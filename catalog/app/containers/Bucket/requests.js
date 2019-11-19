@@ -131,10 +131,30 @@ export const bucketAccessCounts = async ({
             },
             { total: 0, counts: [] },
           )
-          return { ext: r.ext, total, counts }
+          return { ext: r.ext && `.${r.ext}`, total, counts }
         }),
         R.filter((i) => i.total),
         R.sort(R.descend(R.prop('total'))),
+        R.applySpec({
+          byExt: R.identity,
+          combined: {
+            total: R.reduce((sum, { total }) => sum + total, 0),
+            counts: R.pipe(
+              R.pluck('counts'),
+              R.transpose,
+              R.map(
+                R.reduce(
+                  (acc, { date, value, sum }) => ({
+                    date,
+                    value: acc.value + value,
+                    sum: acc.sum + sum,
+                  }),
+                  { value: 0, sum: 0 },
+                ),
+              ),
+            ),
+          },
+        }),
       ),
     )
   } catch (e) {
@@ -461,12 +481,7 @@ export const objectMeta = ({ s3req, bucket, path, version }) =>
       Key: path,
       VersionId: version,
     },
-  }).then(
-    R.pipe(
-      R.path(['Metadata', 'helium']),
-      R.when(Boolean, JSON.parse),
-    ),
-  )
+  }).then(R.pipe(R.path(['Metadata', 'helium']), R.when(Boolean, JSON.parse)))
 
 const isValidManifest = R.both(Array.isArray, R.all(R.is(String)))
 
@@ -726,9 +741,11 @@ export const getPackageRevisions = withErrorHandling(
 )
 
 const loadRevisionHash = ({ s3req, bucket, key }) =>
-  s3req({ bucket, operation: 'getObject', params: { Bucket: bucket, Key: key } }).then(
-    (res) => res.Body.toString('utf-8'),
-  )
+  s3req({
+    bucket,
+    operation: 'getObject',
+    params: { Bucket: bucket, Key: key },
+  }).then((res) => res.Body.toString('utf-8'))
 
 export const getRevisionData = async ({ s3req, endpoint, signer, bucket, key }) => {
   const hash = await loadRevisionHash({ s3req, bucket, key })
@@ -775,14 +792,7 @@ const s3Select = ({
         return acc + s
       }, ''),
       R.trim,
-      R.ifElse(
-        R.isEmpty,
-        R.always([]),
-        R.pipe(
-          R.split('\n'),
-          R.map(JSON.parse),
-        ),
-      ),
+      R.ifElse(R.isEmpty, R.always([]), R.pipe(R.split('\n'), R.map(JSON.parse))),
     ),
   )
 

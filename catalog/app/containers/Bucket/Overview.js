@@ -3,6 +3,7 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
@@ -10,7 +11,7 @@ import * as Pagination from 'components/Pagination'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
 import Skeleton from 'components/Skeleton'
-import MultiSparkline from 'components/Sparkline/Multi'
+import StackedAreaChart from 'components/StackedAreaChart'
 import Thumbnail from 'components/Thumbnail'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -49,6 +50,25 @@ const COLOR_MAP = [
   M.colors.yellow[300],
   M.colors.brown[300],
 ]
+
+function mkKeyedPool(pool) {
+  const map = {}
+  let poolIdx = 0
+  const get = (key) => {
+    if (!(key in map)) {
+      // eslint-disable-next-line no-plusplus
+      map[key] = pool[poolIdx++ % pool.length]
+    }
+    return map[key]
+  }
+  return { get }
+}
+
+function useConst(cons) {
+  const ref = React.useRef(null)
+  if (!ref.current) ref.current = { value: cons() }
+  return ref.current.value
+}
 
 const useObjectsByExtStyles = M.makeStyles((t) => ({
   root: {
@@ -128,7 +148,7 @@ const useObjectsByExtStyles = M.makeStyles((t) => ({
   },
 }))
 
-function ObjectsByExt({ data, ...props }) {
+function ObjectsByExt({ data, colorPool, ...props }) {
   const classes = useObjectsByExtStyles()
   return (
     <M.Box className={classes.root} {...props}>
@@ -138,8 +158,10 @@ function ObjectsByExt({ data, ...props }) {
           Ok: (exts) => {
             const capped = exts.slice(0, MAX_EXTS)
             const maxBytes = capped.reduce((max, e) => Math.max(max, e.bytes), 0)
+            const max = Math.log(maxBytes + 1)
+            const scale = (x) => Math.log(x + 1) / max
             return capped.map(({ ext, bytes, objects }, i) => {
-              const color = COLOR_MAP[i]
+              const color = colorPool.get(ext)
               return (
                 <React.Fragment key={`ext:${ext}`}>
                   <div className={classes.ext} style={{ gridRow: i + 2 }}>
@@ -150,12 +172,12 @@ function ObjectsByExt({ data, ...props }) {
                       className={classes.gauge}
                       style={{
                         background: color,
-                        width: `${(bytes / maxBytes) * 100}%`,
+                        width: `${scale(bytes) * 100}%`,
                       }}
                     >
                       <div
                         className={cx(classes.size, {
-                          [classes.flip]: bytes / maxBytes < 0.3,
+                          [classes.flip]: scale(bytes) < 0.3,
                         })}
                       >
                         {readableBytes(bytes)}
@@ -194,58 +216,66 @@ function ObjectsByExt({ data, ...props }) {
   )
 }
 
-const rnd = ({ i, j, window, lines, stagger, grow, spread, spreadGrow }) =>
-  i * stagger +
-  ((((i + 1) / lines) * (j + 1)) / window) * grow +
-  Math.random() * (spread + ((((j + 1) / window) * (i + 1)) / lines) * spreadGrow)
+const skelData = R.times(
+  R.pipe(
+    () => R.times(Math.random, 30),
+    R.scan(R.add, 0),
+    R.drop(1),
+    R.map((v) => Math.log(100 * v + 1)),
+  ),
+  8,
+)
 
-function SparklineSkel({ height, width, lines, window = 30, animate = false, children }) {
-  const data = React.useMemo(
+const skelColors = [
+  [M.colors.grey[300], M.colors.grey[100]],
+  [M.colors.grey[400], M.colors.grey[200]],
+]
+
+const mkPulsingGradient = ({ colors: [c1, c2], animate = false }) =>
+  SVG.Paint.Server(
+    <linearGradient>
+      <stop offset="0%" stopColor={c2}>
+        {animate && (
+          <animate
+            attributeName="stop-color"
+            values={`${c1}; ${c2}; ${c1}`}
+            dur="3s"
+            repeatCount="indefinite"
+          />
+        )}
+      </stop>
+    </linearGradient>,
+  )
+
+function ChartSkel({
+  height,
+  width,
+  lines = skelData.length,
+  animate = false,
+  children,
+}) {
+  const data = React.useMemo(() => R.times((i) => skelData[i % skelData.length], lines), [
+    lines,
+  ])
+  const fills = React.useMemo(
     () =>
       R.times(
-        (i) =>
-          R.times(
-            (j) =>
-              rnd({ i, j, window, lines, stagger: 1, grow: 6, spread: 3, spreadGrow: 1 }),
-            window,
-          ),
+        (i) => mkPulsingGradient({ colors: skelColors[i % skelColors.length], animate }),
         lines,
       ),
-    [lines, window],
-  )
-  const t = M.useTheme()
-  const c1 = t.palette.grey[300]
-  const c2 = t.palette.grey[100]
-  const stroke = React.useMemo(
-    () =>
-      SVG.Paint.Server(
-        <linearGradient>
-          <stop offset="0%" stopColor={c2}>
-            {animate && (
-              <animate
-                attributeName="stop-color"
-                values={`${c1}; ${c2}; ${c1}`}
-                dur="3s"
-                repeatCount="indefinite"
-              />
-            )}
-          </stop>
-        </linearGradient>,
-      ),
-    [c1, c2, animate],
+    [lines, animate],
   )
   return (
     <M.Box position="relative">
-      <MultiSparkline
+      <StackedAreaChart
         data={data}
         width={width}
         height={height}
-        lineThickness={2}
         extendL
         extendR
-        padding={5}
-        pt={10}
-        lineStroke={stroke}
+        px={10}
+        areaFills={fills}
+        lineStroke={SVG.Paint.Color(M.colors.grey[500])}
       />
       {children}
     </M.Box>
@@ -285,7 +315,7 @@ function DownloadsRange({ value, onChange, bucket, rawData }) {
 
   return (
     <>
-      <M.Button variant="outlined" size="small" __color="inherit" onClick={open}>
+      <M.Button variant="outlined" size="small" onClick={open}>
         <M.Box component="span" width={5} />
         {label} <M.Icon>expand_more</M.Icon>
       </M.Button>
@@ -315,10 +345,93 @@ function DownloadsRange({ value, onChange, bucket, rawData }) {
   )
 }
 
+const useStatsTipStyles = M.makeStyles((t) => ({
+  root: {
+    background: fade(t.palette.grey[700], 0.9),
+    color: t.palette.common.white,
+    padding: [[6, 8]],
+  },
+  head: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  date: {},
+  total: {},
+  extsContainer: {
+    alignItems: 'center',
+    display: 'grid',
+    gridAutoRows: 'auto',
+    gridColumnGap: 4,
+    gridTemplateColumns: 'max-content max-content 1fr',
+  },
+  ext: {
+    fontSize: 12,
+    lineHeight: '16px',
+    opacity: 0.6,
+    textAlign: 'right',
+  },
+  color: {
+    borderRadius: '50%',
+    height: 8,
+    opacity: 0.6,
+    width: 8,
+  },
+  number: {
+    fontSize: 12,
+    lineHeight: '16px',
+    opacity: 0.6,
+  },
+  hl: {
+    opacity: 1,
+  },
+}))
+
+function StatsTip({ stats, colorPool, className, ...props }) {
+  const classes = useStatsTipStyles()
+  return (
+    <M.Paper className={cx(classes.root, className)} elevation={8} {...props}>
+      <div className={classes.head}>
+        <div className={classes.date}>{dateFns.format(stats.date, 'D MMM')}</div>
+        <div className={classes.total}>
+          {readableQuantity(stats.combined.sum)} (+
+          {readableQuantity(stats.combined.value)})
+        </div>
+      </div>
+      <div className={classes.extsContainer}>
+        {stats.byExt.map((s) => {
+          const hl = stats.highlighted ? stats.highlighted.ext === s.ext : true
+          return (
+            <React.Fragment key={s.ext}>
+              <div className={cx(classes.ext, hl && classes.hl)}>{s.ext || 'other'}</div>
+              <div
+                className={cx(classes.color, hl && classes.hl)}
+                style={{ background: colorPool.get(s.ext) }}
+              />
+              <div className={cx(classes.number, hl && classes.hl)}>
+                {readableQuantity(s.sum)} (+
+                {readableQuantity(s.value)})
+              </div>
+            </React.Fragment>
+          )
+        })}
+      </div>
+    </M.Paper>
+  )
+}
+
+const Transition = ({ TransitionComponent = M.Grow, children, ...props }) => {
+  const contentsRef = React.useRef(null)
+  if (props.in) contentsRef.current = children()
+  return (
+    contentsRef.current && (
+      <TransitionComponent {...props}>{contentsRef.current}</TransitionComponent>
+    )
+  )
+}
+
 // use the same height as the bar chart: 20px per bar with 2px margin
 const CHART_H = 22 * MAX_EXTS - 2
-
-const mkStrokes = R.times((i) => SVG.Paint.Color(COLOR_MAP[i % COLOR_MAP.length]))
 
 const useDownloadsStyles = M.makeStyles((t) => ({
   root: {
@@ -368,10 +481,20 @@ const useDownloadsStyles = M.makeStyles((t) => ({
     gridArea: 'chart',
     position: 'relative',
   },
+  left: {},
+  right: {},
   dateStats: {
-    ...t.typography.body1,
+    maxWidth: 180,
     position: 'absolute',
     top: 0,
+    width: 'calc(50% - 8px)',
+    zIndex: 1,
+    '&$left': {
+      left: 0,
+    },
+    '&$right': {
+      right: 0,
+    },
   },
   unavail: {
     ...t.typography.body2,
@@ -385,7 +508,7 @@ const useDownloadsStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Downloads({ bucket, ...props }) {
+function Downloads({ bucket, colorPool, ...props }) {
   const { analyticsBucket } = Config.useConfig()
   const s3req = AWS.S3.useRequest()
   const today = React.useMemo(() => new Date(), [])
@@ -394,11 +517,16 @@ function Downloads({ bucket, ...props }) {
   const { width } = useComponentSize(ref)
   const [window, setWindow] = React.useState(ANALYTICS_WINDOW_OPTIONS[0].value)
   const [cursor, setCursor] = React.useState(null)
-  const cursorStats = (exts) => {
+  const cursorStats = (counts) => {
     if (!cursor) return null
-    const { ext, total, counts } = exts[cursor.i]
-    const { date, sum, value } = counts[cursor.j]
-    return { ext, total, date, sum, value }
+    const { date, ...combined } = counts.combined.counts[cursor.j]
+    const byExt = counts.byExt.map((e) => ({
+      ext: e.ext,
+      ...e.counts[cursor.j],
+    }))
+    const highlighted = cursor.i == null ? null : counts.byExt[cursor.i]
+    const firstHalf = cursor.j < counts.combined.counts.length / 2
+    return { date, combined, byExt, highlighted, firstHalf }
   }
 
   const mkRawData = AsyncResult.case({
@@ -408,9 +536,9 @@ function Downloads({ bucket, ...props }) {
 
   if (!analyticsBucket) {
     return (
-      <SparklineSkel height={CHART_H} lines={MAX_EXTS} width={width}>
+      <ChartSkel height={CHART_H} width={width}>
         <div className={classes.unavail}>Requires CloudTrail</div>
-      </SparklineSkel>
+      </ChartSkel>
     )
   }
 
@@ -432,13 +560,15 @@ function Downloads({ bucket, ...props }) {
           <div className={classes.heading}>
             {AsyncResult.case(
               {
-                Ok: (exts) => {
-                  const stats = cursorStats(exts)
-                  if (!stats) return 'Downloads'
+                Ok: (counts) => {
+                  const stats = cursorStats(counts)
+                  const hl = stats && stats.highlighted
+                  const ext = hl ? hl.ext || 'other' : 'total'
+                  const total = hl ? hl.total : counts.combined.total
+                  if (!counts.byExt.length) return 'Downloads'
                   return (
                     <>
-                      Downloads ({stats.ext ? `.${stats.ext}` : 'other'}):{' '}
-                      {readableQuantity(stats.total)}
+                      Downloads ({ext}): {readableQuantity(total)}
                     </>
                   )
                 },
@@ -450,52 +580,54 @@ function Downloads({ bucket, ...props }) {
           <div className={classes.chart}>
             {AsyncResult.case(
               {
-                Ok: (exts) => {
-                  if (!exts.length) {
+                Ok: (counts) => {
+                  if (!counts.byExt.length) {
                     return (
-                      <SparklineSkel height={CHART_H} lines={MAX_EXTS} width={width}>
+                      <ChartSkel height={CHART_H} width={width}>
                         <div className={classes.unavail}>No Data</div>
-                      </SparklineSkel>
+                      </ChartSkel>
                     )
                   }
 
-                  const stats = cursorStats(exts)
+                  const stats = cursorStats(counts)
                   return (
                     <>
-                      <MultiSparkline
-                        data={exts.map((e) => e.counts.map((i) => Math.log(i.sum + 1)))}
-                        cursor={cursor}
+                      <StackedAreaChart
+                        data={counts.byExt.map((e) =>
+                          e.counts.map((i) => Math.log(i.sum + 1)),
+                        )}
                         onCursor={setCursor}
                         height={CHART_H}
                         width={width}
-                        lineThickness={2}
-                        cursorLineThickness={3}
-                        cursorCircleR={4}
-                        lineStrokes={mkStrokes(exts.length)}
+                        areaFills={counts.byExt.map((e) =>
+                          SVG.Paint.Color(colorPool.get(e.ext)),
+                        )}
                         extendL
                         extendR
-                        cursorCircleFill={SVG.Paint.Color('#fff')}
-                        padding={6}
-                        pt={12}
+                        px={10}
                       />
-                      {!!stats && (
-                        <div className={classes.dateStats}>
-                          {dateFns.format(stats.date, 'D MMM')}:{' '}
-                          {readableQuantity(stats.sum)} (+
-                          {readableQuantity(stats.value)})
-                        </div>
-                      )}
+                      <Transition in={!!stats && stats.firstHalf}>
+                        {() => (
+                          <StatsTip
+                            stats={stats}
+                            colorPool={colorPool}
+                            className={cx(classes.dateStats, classes.right)}
+                          />
+                        )}
+                      </Transition>
+                      <Transition in={!!stats && !stats.firstHalf}>
+                        {() => (
+                          <StatsTip
+                            stats={stats}
+                            colorPool={colorPool}
+                            className={cx(classes.dateStats, classes.left)}
+                          />
+                        )}
+                      </Transition>
                     </>
                   )
                 },
-                _: () => (
-                  <SparklineSkel
-                    height={22 * MAX_EXTS - 2}
-                    lines={MAX_EXTS}
-                    width={width}
-                    animate
-                  />
-                ),
+                _: () => <ChartSkel height={22 * MAX_EXTS - 2} width={width} animate />,
               },
               data,
             )}
@@ -558,14 +690,8 @@ function StatDisplay({ value, label, format, fallback }) {
   const classes = useStatDisplayStyles()
   return R.pipe(
     AsyncResult.case({
-      Ok: R.pipe(
-        format || R.identity,
-        AsyncResult.Ok,
-      ),
-      Err: R.pipe(
-        fallback || R.identity,
-        AsyncResult.Ok,
-      ),
+      Ok: R.pipe(format || R.identity, AsyncResult.Ok),
+      Err: R.pipe(fallback || R.identity, AsyncResult.Ok),
       _: R.identity,
     }),
     AsyncResult.case({
@@ -586,7 +712,6 @@ function StatDisplay({ value, label, format, fallback }) {
 
 const useHeadStyles = M.makeStyles((t) => ({
   root: {
-    overflow: 'hidden',
     position: 'relative',
     [t.breakpoints.down('xs')]: {
       borderRadius: 0,
@@ -596,15 +721,21 @@ const useHeadStyles = M.makeStyles((t) => ({
     },
   },
   top: {
+    background: `center / cover url(${bg}) ${t.palette.grey[700]}`,
+    borderTopLeftRadius: t.shape.borderRadius,
+    borderTopRightRadius: t.shape.borderRadius,
+    color: t.palette.common.white,
+    overflow: 'hidden',
     paddingBottom: t.spacing(3),
     paddingLeft: t.spacing(2),
     paddingRight: t.spacing(2),
     paddingTop: t.spacing(4),
     position: 'relative',
-    color: t.palette.common.white,
-    background: `center / cover url(${bg}) ${t.palette.grey[700]}`,
     [t.breakpoints.up('sm')]: {
       padding: t.spacing(4),
+    },
+    [t.breakpoints.down('xs')]: {
+      borderRadius: 0,
     },
   },
 }))
@@ -612,6 +743,7 @@ const useHeadStyles = M.makeStyles((t) => ({
 function Head({ es, s3req, overviewUrl, bucket, description }) {
   const classes = useHeadStyles()
   const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
+  const colorPool = useConst(() => mkKeyedPool(COLOR_MAP))
   return (
     <Data fetch={requests.bucketStats} params={{ es, s3req, bucket, overviewUrl }}>
       {(res) => (
@@ -665,6 +797,7 @@ function Head({ es, s3req, overviewUrl, bucket, description }) {
               data={AsyncResult.prop('exts', res)}
               width="100%"
               flexShrink={1}
+              colorPool={colorPool}
             />
             <M.Box
               display="flex"
@@ -678,7 +811,12 @@ function Head({ es, s3req, overviewUrl, bucket, description }) {
                 <M.Divider />
               </M.Hidden>
             </M.Box>
-            <Downloads bucket={bucket} width="100%" flexShrink={1} />
+            <Downloads
+              bucket={bucket}
+              colorPool={colorPool}
+              width="100%"
+              flexShrink={1}
+            />
           </M.Box>
         </M.Paper>
       )}
