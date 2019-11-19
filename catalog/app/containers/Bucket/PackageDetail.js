@@ -169,7 +169,7 @@ const useRevisionStyles = M.makeStyles((t) => ({
   },
 }))
 
-const Revision = ({ bucket, name, id, hash, stats, message, counts }) => {
+function Revision({ bucket, name, id, hash, stats, message, counts }) {
   const classes = useRevisionStyles()
   const { urls } = NamedRoutes.use()
   const t = M.useTheme()
@@ -342,7 +342,33 @@ const Revision = ({ bucket, name, id, hash, stats, message, counts }) => {
 
 const PER_PAGE = 30
 
-const Revisions = ({ revisions, counts, bucket, name, page }) => {
+const useRevisionsStyles = M.makeStyles((t) => ({
+  truncated: {
+    background: fade(t.palette.error.main, 0.2),
+    padding: t.spacing(2),
+    position: 'relative',
+
+    [t.breakpoints.down('xs')]: {
+      borderRadius: 0,
+    },
+
+    [t.breakpoints.up('sm')]: {
+      marginTop: t.spacing(1),
+    },
+
+    '& p': {
+      ...t.typography.body1,
+      margin: 0,
+
+      '& b': {
+        fontWeight: t.typography.fontWeightMedium,
+      },
+    },
+  },
+}))
+
+function Revisions({ revisions, isTruncated, counts, bucket, name, page }) {
+  const classes = useRevisionsStyles()
   const { urls } = NamedRoutes.use()
   const { apiGatewayEndpoint: endpoint } = Config.useConfig()
   const signer = AWS.Signer.use()
@@ -374,6 +400,13 @@ const Revisions = ({ revisions, counts, bucket, name, page }) => {
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
       <div ref={scrollRef} />
+      {isTruncated && (
+        <M.Paper className={classes.truncated}>
+          <p>
+            <b>Revision list is truncated.</b> Showing first {revisions.length} revisions.
+          </p>
+        </M.Paper>
+      )}
       {paginated.map(({ id, key }) => (
         <Data
           key={id}
