@@ -91,24 +91,13 @@ class Bucket(object):
         """
         return search_api(query, index=self._bucket, limit=limit)
 
-    def __call__(self, key):
-        """Deserializes object at key from bucket. Syntactic sugar for `bucket.deserialize(key)`.
-
-        Args:
-            key: Key of object to deserialize.
-        """
-        return self.deserialize(key)
-
-    def put_file(self, key, path, meta=None):
+    def put_file(self, key, path):
         """
         Stores file at path to key in bucket.
 
         Args:
             key(str): key in bucket to store file at
             path(str): string representing local path to file
-        Optional args:
-            meta(dict): Quilt metadata to attach to file
-                Must be less than 2KiB serialized
 
         Returns:
             None
@@ -117,12 +106,8 @@ class Bucket(object):
             * if no file exists at path
             * if copy fails
         """
-        user_meta = meta or {}
         dest = self._uri + key
-        all_meta = {
-            'user_meta': user_meta,
-        }
-        copy_file(fix_url(path), dest, all_meta)
+        copy_file(fix_url(path), dest)
 
     def put_dir(self, key, directory):
         """
