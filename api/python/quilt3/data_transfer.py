@@ -14,7 +14,7 @@ from botocore.client import Config
 from botocore.exceptions import ClientError
 import boto3
 from boto3.s3.transfer import TransferConfig
-from s3transfer.utils import OSUtils, signal_transferring, signal_not_transferring
+from s3transfer.utils import ChunksizeAdjuster, OSUtils, signal_transferring, signal_not_transferring
 
 import jsonlines
 from tqdm import tqdm
@@ -124,7 +124,10 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key, override_meta):
         )
         upload_id = resp['UploadId']
 
-        chunk_offsets = list(range(0, size, s3_transfer_config.multipart_chunksize))
+        adjuster = ChunksizeAdjuster()
+        chunksize = adjuster.adjust_chunksize(s3_transfer_config.multipart_chunksize, size)
+
+        chunk_offsets = list(range(0, size, chunksize))
 
         lock = Lock()
         remaining = len(chunk_offsets)
@@ -157,7 +160,7 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key, override_meta):
                 ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
 
         for i, start in enumerate(chunk_offsets):
-            end = min(start + s3_transfer_config.multipart_chunksize, size)
+            end = min(start + chunksize, size)
             ctx.run(upload_part, i, start, end)
 
 
@@ -252,7 +255,10 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
         )
         upload_id = resp['UploadId']
 
-        chunk_offsets = list(range(0, size, s3_transfer_config.multipart_chunksize))
+        adjuster = ChunksizeAdjuster()
+        chunksize = adjuster.adjust_chunksize(s3_transfer_config.multipart_chunksize, size)
+
+        chunk_offsets = list(range(0, size, chunksize))
 
         lock = Lock()
         remaining = len(chunk_offsets)
@@ -287,7 +293,7 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
                 ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
 
         for i, start in enumerate(chunk_offsets):
-            end = min(start + s3_transfer_config.multipart_chunksize, size)
+            end = min(start + chunksize, size)
             ctx.run(upload_part, i, start, end)
 
 
@@ -434,9 +440,12 @@ def _calculate_etag(file_path):
             contents = fd.read()
             etag = hashlib.md5(contents).hexdigest()
         else:
+            adjuster = ChunksizeAdjuster()
+            chunksize = adjuster.adjust_chunksize(s3_transfer_config.multipart_chunksize, size)
+
             hashes = []
             while True:
-                contents = fd.read(s3_transfer_config.multipart_chunksize)
+                contents = fd.read(chunksize)
                 if not contents:
                     break
                 hashes.append(hashlib.md5(contents).digest())
