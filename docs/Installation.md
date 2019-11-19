@@ -10,10 +10,15 @@ Quilt has two user-facing components:
 Python 3.6 or higher is required.
 
 ```bash
-$ pip install quilt3
+$ pip install quilt3[pyarrow]
 ```
 
-If you wish to use AWS resources, such as S3 buckets, you will need valid AWS credentials. If this is your first time using the AWS CLI, run the following:
+If you do not need to serialize and deserialize dataframes with Quilt, you can
+obtain a smaller install, useful in disk-constrained environments like AWS Lambda,
+with `pip install quilt3`.
+
+If you wish to use AWS resources, such as S3 buckets, you will need valid AWS credentials.
+If this is your first time using the AWS CLI, run the following:
 
 ```bash
 $ pip install awscli
