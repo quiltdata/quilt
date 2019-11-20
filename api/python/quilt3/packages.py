@@ -646,7 +646,7 @@ class Package(object):
 
         return self
 
-    def get(self, logical_key=None):
+    def get(self, logical_key):
         """
         Gets object from logical_key and returns its physical path.
         Equivalent to self[logical_key].get().
@@ -661,78 +661,10 @@ class Package(object):
             KeyError: when logical_key is not present in the package
             ValueError: if the logical_key points to a Package rather than PackageEntry.
         """
-        if logical_key:
-            obj = self[logical_key]
-            if not isinstance(obj, PackageEntry):
-                raise ValueError("Key does not point to a PackageEntry")
-            return obj.get()
-        else:
-            # a package has a logical root directory if all of its children are rooted at the
-            # same directory or object path. in other words, the following things must match:
-            # * the URL scheme of every physical key is the same
-            # * the root path to each physical key is the same
-            first_lkey, first_entry = next(self.walk())
-            first_pkey = first_entry.physical_keys[0].split('?versionId=')[0]
-            hypothesized_scheme = urlparse(first_pkey).scheme
-
-            # ensure that the first entry has a logically consistent physical and logical key
-            if not first_pkey.endswith(first_lkey):
-                raise QuiltException(
-                    f"Cannot get the root directory for this package because it is not "
-                    f"physically consistent, as it contains entries whose logical keys and "
-                    f"physical keys have different names. For example, the {first_lkey!r} package "
-                    f"entry points to a file named {first_pkey.split('/')[-1]!r} (expected a file "
-                    f"named {first_lkey.split('/')[-1]!r}). To make this package physically "
-                    f"consistent run 'quilt.Package.install(\"$PKG_NAME\")', replacing '$PKG_NAME' "
-                    f"with the name of this package. Note that this will result in file copying."
-                )
-            hypothesized_root_path = first_pkey[:first_pkey.rfind(first_lkey)]
-
-            # every subsequent entry will be checked to ensure that its logical key is rooted
-            # at the same physical key as the first entry
-            for lkey, entry in self.walk():
-                pkey = entry.physical_keys[0].split('?versionId=')[0]
-                scheme = urlparse(pkey).scheme
-                root_path = pkey[:pkey.rfind(lkey)]
-
-                if scheme != hypothesized_scheme:
-                    raise QuiltException(
-                        f"Cannot get the root directory for this package because it is not "
-                        f"physically consistent, as it contains both local and remote entries. "
-                        f"For example, the {first_lkey!r} package entry is a "
-                        f"'{hypothesized_scheme}' entry, whist the {lkey!r} package entry is a "
-                        f"'{scheme}' entry. To make this package physically "
-                        f"consistent run 'quilt.Package.install(\"$PKG_NAME\")', replacing "
-                        f"'$PKG_NAME' with the name of this package. Note that this will result "
-                        f"in file copying."
-                    )
-                elif not pkey.endswith(lkey):
-                    raise QuiltException(
-                        f"Cannot get the root directory for this package because it is not "
-                        f"physically consistent, as it contains entries whose logical keys and "
-                        f"physical keys have different names. For example, the "
-                        f"{lkey!r} package entry points to a file named "
-                        f"{pkey.split('/')[-1]!r} (expected a file named "
-                        f"{first_lkey.split('/')[-1]!r}). To make this package physically "
-                        f"consistent run 'quilt.Package.install(\"$PKG_NAME\")', replacing "
-                        f"'$PKG_NAME' with the name of this package. Note that this will result "
-                        f"in file copying."
-                    )
-                elif root_path != hypothesized_root_path:
-                    raise QuiltException(
-                        f"Cannot get the root directory for this package because it is not "
-                        f"physically consistent, as it contains entries rooted in different "
-                        f"physical locations. For example, the {lkey!r} entry is located in the "
-                        f"{'/'.join(pkey.split('/')[:-1])!r} directory, whilst the "
-                        f"{first_lkey!r} is located in the "
-                        f"{'/'.join(first_pkey.split('/')[:-1])!r} directory. To make this "
-                        f"package physically consistent run "
-                        f"'quilt.Package.install(\"$PKG_NAME\")', "
-                        f"replacing '$PKG_NAME' with the name of this package. Note that this "
-                        f"will result in file copying."
-                    )
-
-            return hypothesized_root_path
+        obj = self[logical_key]
+        if not isinstance(obj, PackageEntry):
+            raise ValueError("Key does not point to a PackageEntry")
+        return obj.get()
 
     # def get_as_pathlib(self):
 
