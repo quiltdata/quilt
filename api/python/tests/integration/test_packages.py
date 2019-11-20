@@ -599,11 +599,11 @@ class PackageTest(QuiltTestCase):
         assert "Quilt/Foo" in pkgs
         assert "Quilt/Bar" in pkgs
 
-        versions = list(quilt3.list_package_versions('Quilt/Foo'))
-        assert versions == [
+        versions = set(quilt3.list_package_versions('Quilt/Foo'))
+        assert versions == {
             ('latest', '2a5a67156ca9238c14d12042db51c5b52260fdd5511b61ea89b58929d6e1769b'),
             ('1234567890', '2a5a67156ca9238c14d12042db51c5b52260fdd5511b61ea89b58929d6e1769b'),
-        ]
+        }
 
         # Verify specifying a local path explicitly works as expected.
         assert list(pkgs) == list(quilt3.list_packages(LOCAL_REGISTRY.as_posix()))
