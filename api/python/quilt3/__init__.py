@@ -6,8 +6,6 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 
 from .api import (
     copy,
-    put,
-    get,
     list_packages,
     list_package_versions,
     config,

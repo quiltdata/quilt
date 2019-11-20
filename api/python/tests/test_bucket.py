@@ -18,56 +18,6 @@ class TestBucket(QuiltTestCase):
     def test_bucket_construct(self):
         Bucket('s3://test-bucket')
 
-    def test_bucket_meta(self):
-        test_meta = {
-            'helium': json.dumps({'target': 'json'})
-        }
-        response = {
-            'Metadata': test_meta,
-            'ContentLength': 123
-        }
-        params = {
-            'Bucket': 'test-bucket',
-            'Key': 'test'
-        }
-        self.s3_stubber.add_response('head_object', response, params)
-        bucket = Bucket('s3://test-bucket')
-        meta = bucket.get_meta('test')
-        assert meta == {'target': 'json'}
-
-
-        head_meta = {
-            'helium': json.dumps({"target": "json"})
-        }
-        head_response = {
-            'Metadata': head_meta,
-            'ContentLength': 123
-        }
-        head_params = {
-            'Bucket': 'test-bucket',
-            'Key': 'test'
-        }
-        self.s3_stubber.add_response('head_object', head_response, head_params)
-        new_test_meta = {
-            'helium': json.dumps({
-                'target': 'json',
-                'user_meta': {}
-            })
-        }
-        response = {}
-        params = {
-            'CopySource': {
-                'Bucket': 'test-bucket',
-                'Key': 'test'
-            },
-            'Bucket': 'test-bucket',
-            'Key': 'test',
-            'Metadata': new_test_meta,
-            'MetadataDirective': 'REPLACE'
-        }
-        self.s3_stubber.add_response('copy_object', response, params)
-        bucket.set_meta('test', {})
-
     def test_bucket_fetch(self):
         response = {
             'IsTruncated': False
@@ -121,7 +71,7 @@ class TestBucket(QuiltTestCase):
         # test normal use from extension
         expected_args = {
             'Bucket': 'test-bucket',
-            'Key': 'test',
+            'Key': 'test.json',
             'Expression': 'select * from S3Object',
             'ExpressionType': 'SQL',
             'InputSerialization': {
@@ -131,25 +81,11 @@ class TestBucket(QuiltTestCase):
             'OutputSerialization': {'JSON': {}},
             }
 
-        test_meta = {
-            'helium': json.dumps({'target': 'json'})
-        }
-        response = {
-            'Metadata': test_meta,
-            'ContentLength': 123
-        }
-        params = {
-            'Bucket': 'test-bucket',
-            'Key': 'test'
-        }
-
-        self.s3_stubber.add_response('head_object', response, params)
-
         boto_return_val = {'Payload': iter(records)}
         with patch.object(self.s3_client, 'select_object_content', return_value=boto_return_val) as patched:
             bucket = Bucket('s3://test-bucket')
 
-            result = bucket.select('test', 'select * from S3Object')
+            result = bucket.select('test.json', 'select * from S3Object')
 
             patched.assert_called_once_with(**expected_args)
             assert result.equals(expected_result)
@@ -165,15 +101,6 @@ class TestBucket(QuiltTestCase):
             assert urlparse(copy_src).scheme == 'file'
             copy_dest = copy_mock.call_args_list[0][0][1]
             assert urlparse(copy_dest).scheme == 's3'
-
-            copy_mock.reset_mock()
-            test_meta = {'asdf': 'jkl;'}
-            expected_meta = {
-                'user_meta': test_meta
-            }
-            bucket.put_file(key='README.md', path='./README', meta=test_meta)
-            (src, dest, meta) = copy_mock.call_args_list[0][0]
-            assert meta == expected_meta
 
     def test_bucket_put_dir(self):
         path = pathlib.Path(__file__).parent / 'data'
@@ -290,23 +217,3 @@ class TestBucket(QuiltTestCase):
         b.config('https://bar.foo/config.json')
         assert not config_mock.called
         bucket_config_mock.assert_called_once_with('test-bucket', 'https://bar.foo/config.json')
-
-    @patch('quilt3.bucket.put_bytes')
-    def test_bucket_put_ext(self, put_bytes):
-        # This just ensures the bucket is calling serialize() correctly.
-        obj = 'just a string..'
-        b = Bucket('s3://quilt-testing-fake')
-        b.put('foo.json', obj)
-
-        assert put_bytes.called
-        assert len(put_bytes.call_args_list) == 1
-
-        args, kwargs = put_bytes.call_args
-        # avoid args[n] call if put_bytes was called w/kwarg arguments
-        data = kwargs['data'] if 'data' in kwargs else args[0]
-        dest = kwargs['dest'] if 'dest' in kwargs else args[1]
-        meta = kwargs['meta'] if 'meta' in kwargs else args[2]
-
-        assert json.loads(data) == obj
-        assert dest == 's3://quilt-testing-fake/foo.json'
-        assert meta.get('format', {}).get('name') == 'json'

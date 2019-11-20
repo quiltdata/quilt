@@ -60,7 +60,6 @@ setup(
         'ruamel.yaml<=0.15.70',
         'tqdm>=4.26.0',
         'urllib3<1.25,>=1.21.1',            # required by requests
-        'xattr>=0.9.6; platform_system!="Windows"',
     ],
     extras_require={
         'pyarrow': [

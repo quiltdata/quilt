@@ -14,7 +14,7 @@ import warnings
 import jsonlines
 
 from .data_transfer import (
-    calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_meta,
+    calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_version,
     list_object_versions, put_bytes
 )
 from .exceptions import PackageException
@@ -188,7 +188,7 @@ class PackageEntry(object):
             when deserialization metadata is not present
         """
         physical_key = _to_singleton(self.physical_keys)
-        data, _ = get_bytes(physical_key)
+        data = get_bytes(physical_key)
 
         if func is not None:
             return func(data)
@@ -222,7 +222,7 @@ class PackageEntry(object):
         else:
             dest = fix_url(dest)
 
-        copy_file(physical_key, dest, self._meta)
+        copy_file(physical_key, dest)
 
         # return a package reroot package physical keys after the copy operation succeeds
         # see GH#388 for context
@@ -395,8 +395,7 @@ class Package(object):
             return cls._from_path(pkg_manifest_uri)
         else:
             pkg_timestamp_file = f'{registry}/.quilt/named_packages/{name}/latest'
-            latest_pkg_hash, _ = get_bytes(pkg_timestamp_file)
-            latest_pkg_hash = latest_pkg_hash.decode('utf-8').strip()
+            latest_pkg_hash = get_bytes(pkg_timestamp_file).decode('utf-8').strip()
             pkg_manifest_uri = fix_url(f'{registry}/.quilt/packages/{quote(latest_pkg_hash)}')
             return cls._from_path(pkg_manifest_uri)
 
@@ -409,7 +408,7 @@ class Package(object):
             with open(parse_file_url(src_url)) as open_file:
                 pkg = cls.load(open_file)
         elif src_url.scheme == 's3':
-            body, _ = get_bytes(uri)
+            body = get_bytes(uri)
             pkg = cls.load(io.BytesIO(body))
         else:
             raise NotImplementedError
@@ -478,7 +477,7 @@ class Package(object):
             physical_key = _to_singleton(entry.physical_keys)
             new_physical_key = f'{nice_dest}/{quote(logical_key)}'
 
-            file_list.append((physical_key, new_physical_key, entry.size, entry.meta))
+            file_list.append((physical_key, new_physical_key, entry.size))
 
             # return a package reroot package physical keys after the copy operation succeeds
             # see GH#388 for context
@@ -822,7 +821,7 @@ class Package(object):
 
         if isinstance(entry, (str, os.PathLike)):
             url = fix_url(str(entry))
-            size, orig_meta, version = get_size_and_meta(url)
+            size, version = get_size_and_version(url)
 
             # Determine if a new version needs to be appended.
             parsed_url = urlparse(url)
@@ -830,7 +829,7 @@ class Package(object):
                 bucket, key, current_version = parse_s3_url(parsed_url)
                 if not current_version and version:
                     url = make_s3_url(bucket, key, version)
-            entry = PackageEntry([url], size, None, orig_meta)
+            entry = PackageEntry([url], size, None, None)
         elif isinstance(entry, PackageEntry):
             entry = entry._clone()
 
@@ -1085,7 +1084,7 @@ class Package(object):
                 pkg.set(logical_key, new_entry)
             else:
                 entries.append((logical_key, new_entry))
-                file_list.append((physical_key, new_physical_key, entry.size, None))
+                file_list.append((physical_key, new_physical_key, entry.size))
 
         results = copy_file_list(file_list)
 

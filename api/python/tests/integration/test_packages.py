@@ -37,7 +37,6 @@ def mock_make_api_call(self, operation_name, kwarg):
     if operation_name == 'HeadObject':
         # TODO: mock this somehow
         parsed_response = {
-            'Metadata': {},
             'ContentLength': 0
         }
         return parsed_response
@@ -173,7 +172,7 @@ class PackageTest(QuiltTestCase):
             pkgmock.reset_mock()
 
             with patch('quilt3.packages.get_bytes') as dl_mock:
-                dl_mock.return_value = (top_hash.encode('utf-8'), None)
+                dl_mock.return_value = top_hash.encode('utf-8')
                 pkg = Package.browse('Quilt/nice-name')
                 assert registry + '/.quilt/named_packages/Quilt/nice-name/latest' \
                         == dl_mock.call_args_list[0][0][0]
@@ -194,7 +193,7 @@ class PackageTest(QuiltTestCase):
 
             pkgmock.reset_mock()
             with patch('quilt3.packages.get_bytes') as dl_mock:
-                dl_mock.return_value = (top_hash.encode('utf-8'), None)
+                dl_mock.return_value = top_hash.encode('utf-8')
                 pkg = Package.browse('Quilt/nice-name', registry=remote_registry)
             assert '{}/.quilt/packages/{}'.format(remote_registry, top_hash) \
                     in [x[0][0] for x in pkgmock.call_args_list]
@@ -305,7 +304,7 @@ class PackageTest(QuiltTestCase):
              .set('foo', os.path.join(os.path.dirname(__file__), 'data', 'foo.txt'))['foo']
              .fetch())
             filepath = fix_url(os.path.join(os.path.dirname(__file__), 'data', 'foo.txt'))
-            copy_mock.assert_called_once_with(filepath, ANY, ANY)
+            copy_mock.assert_called_once_with(filepath, ANY)
 
     def test_load_into_quilt(self):
         """ Verify loading local manifest and data into S3. """
@@ -320,7 +319,6 @@ class PackageTest(QuiltTestCase):
                 'Body': ANY,
                 'Bucket': 'my_test_bucket',
                 'Key': 'Quilt/package/foo1',
-                'Metadata': {'helium': '{}'}
             }
         )
 
@@ -333,7 +331,6 @@ class PackageTest(QuiltTestCase):
                 'Body': ANY,
                 'Bucket': 'my_test_bucket',
                 'Key': 'Quilt/package/foo2',
-                'Metadata': {'helium': '{}'}
             }
         )
 
@@ -346,7 +343,6 @@ class PackageTest(QuiltTestCase):
                 'Body': ANY,
                 'Bucket': 'my_test_bucket',
                 'Key': '.quilt/packages/' + top_hash1,
-                'Metadata': {'helium': 'null'}
             }
         )
 
@@ -359,7 +355,6 @@ class PackageTest(QuiltTestCase):
                 'Body': top_hash1.encode(),
                 'Bucket': 'my_test_bucket',
                 'Key': '.quilt/named_packages/Quilt/package/1234567890',
-                'Metadata': {'helium': 'null'}
             }
         )
 
@@ -372,7 +367,6 @@ class PackageTest(QuiltTestCase):
                 'Body': top_hash1.encode(),
                 'Bucket': 'my_test_bucket',
                 'Key': '.quilt/named_packages/Quilt/package/latest',
-                'Metadata': {'helium': 'null'}
             }
         )
 
@@ -401,7 +395,6 @@ class PackageTest(QuiltTestCase):
                 'Body': ANY,
                 'Bucket': 'my_test_bucket',
                 'Key': 'Quilt/package/foo2',
-                'Metadata': {'helium': '{}'}
             }
         )
 
@@ -414,7 +407,6 @@ class PackageTest(QuiltTestCase):
                 'Body': ANY,
                 'Bucket': 'my_test_bucket',
                 'Key': '.quilt/packages/' + top_hash2,
-                'Metadata': {'helium': 'null'}
             }
         )
 
@@ -427,7 +419,6 @@ class PackageTest(QuiltTestCase):
                 'Body': top_hash2.encode(),
                 'Bucket': 'my_test_bucket',
                 'Key': '.quilt/named_packages/Quilt/package/1234567891',
-                'Metadata': {'helium': 'null'}
             }
         )
 
@@ -440,7 +431,6 @@ class PackageTest(QuiltTestCase):
                 'Body': top_hash2.encode(),
                 'Bucket': 'my_test_bucket',
                 'Key': '.quilt/named_packages/Quilt/package/latest',
-                'Metadata': {'helium': 'null'}
             }
         )
 
@@ -993,7 +983,7 @@ class PackageTest(QuiltTestCase):
         assert repr(pkg) == TEST_REPR
 
     def test_remote_repr(self):
-        with patch('quilt3.packages.get_size_and_meta', return_value=(0, dict(), '0')):
+        with patch('quilt3.packages.get_size_and_version', return_value=(0, '0')):
             TEST_REPR = (
                 "(remote Package)\n"
                 " └─asdf\n"

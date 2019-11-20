@@ -1,8 +1,6 @@
-import pathlib
-from urllib.parse import quote, urlparse, unquote
+from urllib.parse import quote
 
-from .data_transfer import copy_file, get_bytes, delete_url, put_bytes, list_url
-from .formats import FormatRegistry
+from .data_transfer import copy_file, get_bytes, delete_url, list_url
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
                    CONFIG_TEMPLATE, configure_from_url, fix_url,
@@ -21,46 +19,6 @@ def copy(src, dest):
         dest (str): a path to write to
     """
     copy_file(fix_url(src), fix_url(dest))
-
-
-def put(obj, dest, meta=None):
-    """Write an in-memory object to the specified QUILT ``dest``.
-
-    Note:
-        Does not work with all objects -- object must be serializable.
-
-    You may pass a dict to ``meta`` to store it with ``obj`` at ``dest``.
-
-    Parameters:
-        obj: a serializable object
-        dest (str): A URI
-        meta (dict): Optional. metadata dict to store with ``obj`` at ``dest``
-    """
-    all_meta = {'user_meta': meta}
-    clean_dest = fix_url(dest)
-    ext = pathlib.PurePosixPath(unquote(urlparse(clean_dest).path)).suffix
-    data, format_meta = FormatRegistry.serialize(obj, all_meta, ext)
-    all_meta.update(format_meta)
-
-    put_bytes(data, clean_dest, all_meta)
-
-
-def get(src):
-    """Retrieves src object from QUILT and loads it into memory.
-
-    An optional ``version`` may be specified.
-
-    Parameters:
-        src (str): A URI specifying the object to retrieve
-
-    Returns:
-        tuple: ``(data, metadata)``.  Does not work on all objects.
-    """
-    clean_src = fix_url(src)
-    data, meta = get_bytes(clean_src)
-    ext = pathlib.PurePosixPath(unquote(urlparse(clean_src).path)).suffix
-
-    return FormatRegistry.deserialize(data, meta, ext=ext), meta.get('user_meta')
 
 
 def delete_package(name, registry=None, top_hash=None):
@@ -90,7 +48,7 @@ def delete_package(name, registry=None, top_hash=None):
         for path, _ in paths:
             parts = path.split('/')
             if len(parts) == 1:
-                pkg_hash, _ = get_bytes(package_path + quote(parts[0]))
+                pkg_hash = get_bytes(package_path + quote(parts[0]))
                 if pkg_hash.decode().strip() == top_hash:
                     deleted.append(parts[0])
                 else:
