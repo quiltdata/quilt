@@ -51,45 +51,7 @@ a list of objects with the following structure:
 ```
 
 
-## Bucket.deserialize(self, key)  {#Bucket.deserialize}
-
-Deserializes object at key from bucket.
-
-__Arguments__
-
-* __key(str)__:  key in bucket to get
-
-__Returns__
-
-Deserialized object.
-
-__Raises__
-
-* `KeyError`:  if key does not exist
-* `QuiltException`:  if deserialization fails in a known way
-* if a deserializer raises an unexpected error
-
-
-## Bucket.\_\_call\_\_(self, key)  {#Bucket.\_\_call\_\_}
-Deserializes object at key from bucket. Syntactic sugar for `bucket.deserialize(key)`.
-
-__Arguments__
-
-* __key__:  Key of object to deserialize.
-
-
-## Bucket.put(self, key, obj, meta=None)  {#Bucket.put}
-
-Stores `obj` at key in bucket, optionally with user-provided metadata.
-
-__Arguments__
-
-* __key(str)__:  key in bucket to put object to
-* __obj(serializable)__:  serializable object to store at key
-* __meta(dict)__:  optional user-provided metadata to store
-
-
-## Bucket.put\_file(self, key, path, meta=None)  {#Bucket.put\_file}
+## Bucket.put\_file(self, key, path)  {#Bucket.put\_file}
 
 Stores file at path to key in bucket.
 
@@ -97,9 +59,6 @@ __Arguments__
 
 * __key(str)__:  key in bucket to store file at
 * __path(str)__:  string representing local path to file
-Optional args:
-    meta(dict): Quilt metadata to attach to file
-        Must be less than 2KiB serialized
 
 __Returns__
 
@@ -201,41 +160,6 @@ __Raises__
 
 * if path doesn't exist
 * if download fails
-
-
-## Bucket.get\_meta(self, key)  {#Bucket.get\_meta}
-
-Gets the metadata associated with a `key` in the bucket.
-
-__Arguments__
-
-* __key(str)__:  key in bucket to get meta for
-
-__Returns__
-
-dict of meta
-
-__Raises__
-
-* if download fails
-
-
-## Bucket.set\_meta(self, key, meta)  {#Bucket.set\_meta}
-
-Sets user metadata on a `key` in the bucket.
-
-__Arguments__
-
-* __key(str)__:  key in bucket to set meta for
-* __meta(dict)__:  value to set user metadata to
-
-__Returns__
-
-None
-
-__Raises__
-
-* if put to bucket fails
 
 
 ## Bucket.select(self, key, query, raw=False)  {#Bucket.select}
