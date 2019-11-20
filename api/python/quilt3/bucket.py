@@ -7,8 +7,7 @@ Contains the Bucket class, which provides several useful functions
 import pathlib
 from urllib.parse import urlparse
 
-from .data_transfer import (copy_file, delete_object, get_bytes,
-                            list_object_versions, list_objects, put_bytes, select)
+from .data_transfer import copy_file, delete_object, list_object_versions, list_objects, select
 from .search_util import search_api
 from .util import QuiltException, find_bucket_config, fix_url, get_from_config, parse_s3_url
 
