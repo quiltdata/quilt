@@ -117,7 +117,7 @@ def list_package_versions(name, registry=None):
     for path, _ in list_url(package):
         parts = path.split('/')
         if len(parts) == 1:
-            pkg_hash, _ = get_bytes(package + parts[0])
+            pkg_hash = get_bytes(package + parts[0])
             yield parts[0], pkg_hash.decode().strip()
 
 
