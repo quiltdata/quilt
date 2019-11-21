@@ -1108,3 +1108,92 @@ class PackageTest(QuiltTestCase):
             pkg.set('s3://foo/.', LOCAL_MANIFEST)
         with pytest.raises(QuiltException):
             pkg.set('s3://foo/..', LOCAL_MANIFEST)
+
+    def test_install(self):
+        # Manifest
+
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(b'abcdef'),
+            },
+            expected_params={
+                'Bucket': 'my-test-bucket',
+                'Key': '.quilt/named_packages/Quilt/Foo/latest',
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(REMOTE_MANIFEST.read_bytes()),
+            },
+            expected_params={
+                'Bucket': 'my-test-bucket',
+                'Key': '.quilt/packages/abcdef',
+            }
+        )
+
+        # Objects
+
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(b'a,b,c'),
+            },
+            expected_params={
+                'Bucket': 'my_bucket',
+                'Key': 'my_data_pkg/bar.csv',
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(b'Hello World!'),
+            },
+            expected_params={
+                'Bucket': 'my_bucket',
+                'Key': 'my_data_pkg/baz/bat',
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO('💩'.encode()),
+            },
+            expected_params={
+                'Bucket': 'my_bucket',
+                'Key': 'my_data_pkg/foo',
+            }
+        )
+
+        with patch('quilt3.data_transfer.s3_threads', 1):
+            Package.install('Quilt/Foo', registry='s3://my-test-bucket', dest='package')
+
+        p = Package.browse('Quilt/Foo')
+
+        assert p['foo'].get() == 's3://my_bucket/my_data_pkg/foo'
+
+        # Check that the cache works.
+        local_path = pathlib.Path(p['foo'].get_cached_path())
+        assert local_path == pathlib.Path.cwd() / 'package/foo'
+        assert local_path.read_text('utf8') == '💩'
+
+        # Check that moving the file invalidates the cache...
+        local_path.rename('foo2')
+        assert p['foo'].get_cached_path() is None
+
+        # ...but moving it back fixes it.
+        pathlib.Path('foo2').rename(local_path)
+        assert p['foo'].get_cached_path() == str(local_path)
+
+        # Check that changing the contents invalidates the cache.
+        local_path.write_text('omg')
+        assert p['foo'].get_cached_path() is None

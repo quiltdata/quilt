@@ -1,10 +1,12 @@
 from collections import deque
+import binascii
 import copy
 import hashlib
 import io
 import json
 import pathlib
 import os
+import shutil
 import time
 from multiprocessing import Pool
 from urllib.parse import quote, urlparse, unquote
@@ -23,7 +25,7 @@ from .util import (
     QuiltException, fix_url, get_from_config, get_install_location, make_s3_url, parse_file_url,
     parse_s3_url, validate_package_name, quiltignore_filter, validate_key, extract_file_extension, file_is_local
 )
-from .util import TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
+from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
 
 
 def hash_file(readable_file):
@@ -62,6 +64,46 @@ def _delete_local_physical_key(pk):
     assert file_is_local(pk), "This function only works on files that live on a local disk"
     pathlib.Path(parse_file_url(urlparse(pk))).unlink()
 
+
+class ObjectPathCache(object):
+    @classmethod
+    def _cache_path(cls, url):
+        key = binascii.hexlify(url.encode()).decode()  # The only filesystem-safe encoding (no slashes and no uppercase/lowercase)
+        prefix = '%08x' % binascii.crc32(url.encode())
+        return CACHE_PATH / prefix / key
+
+    @classmethod
+    def get(cls, url):
+        cache_path = cls._cache_path(url)
+        try:
+            with open(cache_path) as fd:
+                path, dev, ino, mtime = json.load(fd)
+        except FileNotFoundError:
+            return None
+
+        try:
+            stat = pathlib.Path(path).stat()
+        except FileNotFoundError:
+            return None
+
+        # check if device, file, and timestamp are unchanged => cache hit
+        # see also https://docs.python.org/3/library/os.html#os.stat_result
+        if stat.st_dev == dev and stat.st_ino == ino and stat.st_mtime_ns == mtime:
+            return path
+        else:
+            return None
+
+    @classmethod
+    def set(cls, url, path):
+        stat = pathlib.Path(path).stat()
+        cache_path = cls._cache_path(url)
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(cache_path, 'w') as fd:
+            json.dump([path, stat.st_dev, stat.st_ino, stat.st_mtime_ns], fd)
+
+    @classmethod
+    def clear(cls):
+        shutil.rmtree(CACHE_PATH)
 
 
 class PackageEntry(object):
@@ -169,6 +211,15 @@ class PackageEntry(object):
         Returns the physical key of this PackageEntry.
         """
         return _to_singleton(self.physical_keys)
+
+    def get_cached_path(self):
+        """
+        Returns a locally cached physical key, if available.
+        """
+        physical_key = _to_singleton(self.physical_keys)
+        if not file_is_local(physical_key):
+            return ObjectPathCache.get(physical_key)
+        return None
 
     def deserialize(self, func=None, **format_opts):
         """
@@ -367,9 +418,8 @@ class Package(object):
         dest = fix_url(dest)
         message = pkg._meta.get('message', None)  # propagate the package message
 
-        pkg = pkg._materialize(dest)
+        pkg._materialize(dest)
         pkg.build(name, registry=dest_registry, message=message)
-        return pkg
 
     @classmethod
     def browse(cls, name=None, registry=None, top_hash=None):
@@ -1050,6 +1100,14 @@ class Package(object):
         pkg.build(name, registry=registry, message=message)
         return pkg
 
+    @classmethod
+    def _maybe_add_to_cache(cls, old_url, new_url):
+        old_parsed_url = urlparse(old_url)
+        new_parsed_url = urlparse(new_url)
+        if old_parsed_url.scheme == 's3' and new_parsed_url.scheme == 'file':
+            path = parse_file_url(new_parsed_url)
+            ObjectPathCache.set(old_url, path)
+
     def _materialize(self, dest_url):
         """
         Copies all Package entries to the destination, then creates a new package that points to those objects.
@@ -1089,6 +1147,8 @@ class Package(object):
         results = copy_file_list(file_list)
 
         for (logical_key, new_entry), versioned_key in zip(entries, results):
+            old_physical_key = new_entry.get()
+            self._maybe_add_to_cache(old_physical_key, versioned_key)
             # Create a new package entry pointing to the new remote key.
             assert versioned_key is not None
             new_entry.physical_keys = [versioned_key]
