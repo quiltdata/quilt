@@ -1186,7 +1186,7 @@ class PackageTest(QuiltTestCase):
         assert local_url.startswith('file://')
         local_path = pathlib.Path(parse_file_url(urlparse(local_url)))
         assert local_path == pathlib.Path.cwd() / 'package/foo'
-        assert local_path.read_text() == '💩'
+        assert local_path.read_text('utf8') == '💩'
 
         # Check that moving the file invalidates the cache...
         local_path.rename('foo2')
