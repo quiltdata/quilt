@@ -38,6 +38,18 @@
       "type": "string",
       "description": "Requests to /package/$owner/[$package/] will be redirected there (must not end in slash)."
     },
+    "linkedData": {
+      "description": "If present, expose structured data (JSON-LD) about the catalog and the datasets it contains",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
     "mixpanelToken": {
       "type": "string",
       "description": "Token for Mixpanel analytics service"
