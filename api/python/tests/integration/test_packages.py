@@ -1193,7 +1193,7 @@ class PackageTest(QuiltTestCase):
         assert p['foo'].get(True).startswith('s3://')
 
         # ...but moving it back fixes it.
-        local_path.rename('foo')
+        pathlib.Path('foo2').rename(local_path)
         assert p['foo'].get(True).startswith('file://')
 
         # Check that changing the contents invalidates the cache.
