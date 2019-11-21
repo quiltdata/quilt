@@ -29,6 +29,7 @@
 
 ### References
 
+* [Frequently Asked Questions](FAQ.md)
 * [Technical Reference](Technical Reference.md)
 * [Contributing](CONTRIBUTING.md)
 * [Further Reading](Further Reading.md)
