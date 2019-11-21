@@ -86,6 +86,8 @@ class ObjectCache(object):
         except FileNotFoundError:
             return None
 
+        # check if device, file, and timestamp are unchanged => cache hit
+        # see also https://docs.python.org/3/library/os.html#os.stat_result
         if stat.st_dev == dev and stat.st_ino == ino and stat.st_mtime_ns == mtime:
             return path
         else:
@@ -1141,7 +1143,8 @@ class Package(object):
         results = copy_file_list(file_list)
 
         for (logical_key, new_entry), versioned_key in zip(entries, results):
-            self._maybe_add_to_cache(new_entry.get(), versioned_key)
+            old_physical_key = new_entry.get()
+            self._maybe_add_to_cache(old_physical_key, versioned_key)
             # Create a new package entry pointing to the new remote key.
             assert versioned_key is not None
             new_entry.physical_keys = [versioned_key]
