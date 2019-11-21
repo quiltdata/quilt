@@ -65,7 +65,7 @@ def _delete_local_physical_key(pk):
     pathlib.Path(parse_file_url(urlparse(pk))).unlink()
 
 
-class ObjectCache(object):
+class ObjectPathCache(object):
     @classmethod
     def _cache_path(cls, url):
         key = binascii.hexlify(url.encode()).decode()  # The only filesystem-safe encoding (no slashes and no uppercase/lowercase)
@@ -206,16 +206,20 @@ class PackageEntry(object):
         else:
             raise PackageException('Must specify either path or meta')
 
-    def get(self, try_cache=False):
+    def get(self):
         """
         Returns the physical key of this PackageEntry.
         """
+        return _to_singleton(self.physical_keys)
+
+    def get_cached_path(self):
+        """
+        Returns a locally cached physical key, if available.
+        """
         physical_key = _to_singleton(self.physical_keys)
-        if try_cache and not file_is_local(physical_key):
-            cached_path = ObjectCache.get(physical_key)
-            if cached_path is not None:
-                return pathlib.Path(cached_path).as_uri()
-        return physical_key
+        if not file_is_local(physical_key):
+            return ObjectPathCache.get(physical_key)
+        return None
 
     def deserialize(self, func=None, **format_opts):
         """
@@ -1102,7 +1106,7 @@ class Package(object):
         new_parsed_url = urlparse(new_url)
         if old_parsed_url.scheme == 's3' and new_parsed_url.scheme == 'file':
             path = parse_file_url(new_parsed_url)
-            ObjectCache.set(old_url, path)
+            ObjectPathCache.set(old_url, path)
 
     def _materialize(self, dest_url):
         """

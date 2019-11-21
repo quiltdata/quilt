@@ -1182,20 +1182,18 @@ class PackageTest(QuiltTestCase):
         assert p['foo'].get() == 's3://my_bucket/my_data_pkg/foo'
 
         # Check that the cache works.
-        local_url = p['foo'].get(True)
-        assert local_url.startswith('file://')
-        local_path = pathlib.Path(parse_file_url(urlparse(local_url)))
+        local_path = pathlib.Path(p['foo'].get_cached_path())
         assert local_path == pathlib.Path.cwd() / 'package/foo'
         assert local_path.read_text('utf8') == '💩'
 
         # Check that moving the file invalidates the cache...
         local_path.rename('foo2')
-        assert p['foo'].get(True).startswith('s3://')
+        assert p['foo'].get_cached_path() is None
 
         # ...but moving it back fixes it.
         pathlib.Path('foo2').rename(local_path)
-        assert p['foo'].get(True).startswith('file://')
+        assert p['foo'].get_cached_path() == str(local_path)
 
         # Check that changing the contents invalidates the cache.
         local_path.write_text('omg')
-        assert p['foo'].get(True).startswith('s3://')
+        assert p['foo'].get_cached_path() is None
