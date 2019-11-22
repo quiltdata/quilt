@@ -389,7 +389,7 @@ class Package(object):
             if registry is None:
                 raise QuiltException(
                     "No registry specified and no default_remote_registry configured. Please "
-                    "specify a registry or configure a default remote registry with quilt.config"
+                    "specify a registry or configure a default remote registry with quilt3.config"
                 )
 
         if dest_registry is None:
@@ -433,22 +433,20 @@ class Package(object):
         """
         if registry is None:
             registry = get_from_config('default_local_registry')
+        else:
+            registry = fix_url(registry)
 
         registry = registry.rstrip('/')
         validate_package_name(name)
-        name = quote(name)
 
-        if top_hash is not None:
-            # TODO: verify that name is correct with respect to this top_hash
-            # TODO: allow partial hashes (e.g. first six alphanumeric)
-            pkg_manifest_uri = fix_url(f'{registry}/.quilt/packages/{top_hash}')
-            return cls._from_path(pkg_manifest_uri)
-        else:
-            pkg_timestamp_file = f'{registry}/.quilt/named_packages/{name}/latest'
-            latest_pkg_hash = get_bytes(pkg_timestamp_file).decode('utf-8').strip()
-            pkg_manifest_uri = fix_url(f'{registry}/.quilt/packages/{quote(latest_pkg_hash)}')
-            return cls._from_path(pkg_manifest_uri)
+        if top_hash is None:
+            top_hash_url = f'{registry}/.quilt/named_packages/{quote(name)}/latest'
+            top_hash = get_bytes(top_hash_url).decode('utf-8').strip()
 
+        # TODO: verify that name is correct with respect to this top_hash
+        # TODO: allow partial hashes (e.g. first six alphanumeric)
+        pkg_manifest_uri = f'{registry}/.quilt/packages/{quote(top_hash)}'
+        return cls._from_path(pkg_manifest_uri)
 
     @classmethod
     def _from_path(cls, uri):
@@ -778,22 +776,23 @@ class Package(object):
 
         if registry is None:
             registry = get_from_config('default_local_registry')
+        else:
+            registry = fix_url(registry)
 
         registry = registry.rstrip('/')
         validate_package_name(name)
-        name = quote(name)
 
         self._fix_sha256()
         manifest = io.BytesIO()
         self.dump(manifest)
 
-        pkg_manifest_file = f'{registry}/.quilt/packages/{self.top_hash}'
+        pkg_manifest_file = f'{registry}/.quilt/packages/{quote(self.top_hash)}'
         put_bytes(
             manifest.getvalue(),
             pkg_manifest_file
         )
 
-        named_path = f'{registry}/.quilt/named_packages/{name}/'
+        named_path = f'{registry}/.quilt/named_packages/{quote(name)}/'
         # TODO: use a float to string formater instead of double casting
         hash_bytes = self.top_hash.encode('utf-8')
         timestamp_path = named_path + str(int(time.time()))
@@ -1032,7 +1031,7 @@ class Package(object):
 
         if registry is None:
             registry = get_from_config('default_remote_registry')
-            if not registry:
+            if registry is None:
                 raise QuiltException(
                     "No registry specified and no default remote registry configured. Please "
                     "specify a registry or configure a default remote registry with quilt3.config"
