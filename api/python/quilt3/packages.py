@@ -1101,22 +1101,16 @@ class Package(object):
         return pkg
 
     @classmethod
-    def rollback(cls, name, top_hash, registry=None):
+    def rollback(cls, name, registry, top_hash):
         """
         Set the "latest" version to the given hash.
 
         Args:
             name(str): Name of package to rollback.
-            top_hash(str): Hash to rollback to.
             registry(str): Registry where package is located.
-                Defaults to the default local registry.
+            top_hash(str): Hash to rollback to.
         """
-        if registry is None:
-            registry = get_from_config('default_local_registry')
-        else:
-            registry = fix_url(registry)
-
-        registry = registry.rstrip('/')
+        registry = fix_url(registry).rstrip('/')
         validate_package_name(name)
 
         hash_path = f'{registry}/.quilt/packages/{quote(top_hash)}'

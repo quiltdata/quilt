@@ -262,16 +262,15 @@ __Returns__
 A new package that points to the copied objects.
 
 
-## Package.rollback(name, top\_hash, registry=None)  {#Package.rollback}
+## Package.rollback(name, registry, top\_hash)  {#Package.rollback}
 
 Set the "latest" version to the given hash.
 
 __Arguments__
 
 * __name(str)__:  Name of package to rollback.
-* __top_hash(str)__:  Hash to rollback to.
 * __registry(str)__:  Registry where package is located.
-    Defaults to the default local registry.
+* __top_hash(str)__:  Hash to rollback to.
 
 
 ## Package.diff(self, other\_pkg)  {#Package.diff}

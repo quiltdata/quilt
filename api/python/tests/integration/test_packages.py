@@ -1213,12 +1213,12 @@ class PackageTest(QuiltTestCase):
 
         assert 'foo' not in Package.browse('quilt/tmp')
 
-        Package.rollback('quilt/tmp', good_hash)
+        Package.rollback('quilt/tmp', LOCAL_REGISTRY, good_hash)
 
         assert 'foo' in Package.browse('quilt/tmp')
 
         with self.assertRaises(QuiltException):
-            Package.rollback('quilt/tmp', '12345')
+            Package.rollback('quilt/tmp', LOCAL_REGISTRY, '12345')
 
         with self.assertRaises(QuiltException):
-            Package.rollback('quilt/blah', good_hash)
+            Package.rollback('quilt/blah', LOCAL_REGISTRY, good_hash)
