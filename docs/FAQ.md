@@ -9,3 +9,5 @@ You can disable anonymous usage collection with an environment variable:
 ```
 $ export QUILT_DISABLE_USAGE_METRICS=true
 ```
+
+Or call `quilt3.disable_telemetry()` to persistently disable anonymous usage statistics.
