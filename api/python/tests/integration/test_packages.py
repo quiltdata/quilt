@@ -1108,3 +1108,27 @@ class PackageTest(QuiltTestCase):
             pkg.set('s3://foo/.', LOCAL_MANIFEST)
         with pytest.raises(QuiltException):
             pkg.set('s3://foo/..', LOCAL_MANIFEST)
+
+    def test_rollback(self):
+        p = Package()
+        p.set('foo', DATA_DIR / 'foo.txt')
+        p.build('quilt/tmp')
+
+        good_hash = p.top_hash
+
+        assert 'foo' in Package.browse('quilt/tmp')
+
+        p.delete('foo')
+        p.build('quilt/tmp')
+
+        assert 'foo' not in Package.browse('quilt/tmp')
+
+        Package.rollback('quilt/tmp', LOCAL_REGISTRY, good_hash)
+
+        assert 'foo' in Package.browse('quilt/tmp')
+
+        with self.assertRaises(QuiltException):
+            Package.rollback('quilt/tmp', LOCAL_REGISTRY, '12345')
+
+        with self.assertRaises(QuiltException):
+            Package.rollback('quilt/blah', LOCAL_REGISTRY, good_hash)

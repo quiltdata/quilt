@@ -1050,6 +1050,28 @@ class Package(object):
         pkg.build(name, registry=registry, message=message)
         return pkg
 
+    @classmethod
+    def rollback(cls, name, registry, top_hash):
+        """
+        Set the "latest" version to the given hash.
+
+        Args:
+            name(str): Name of package to rollback.
+            registry(str): Registry where package is located.
+            top_hash(str): Hash to rollback to.
+        """
+        registry = fix_url(registry).rstrip('/')
+        validate_package_name(name)
+
+        hash_path = f'{registry}/.quilt/packages/{quote(top_hash)}'
+        latest_path = f'{registry}/.quilt/named_packages/{quote(name)}/latest'
+
+        # Check that both latest and top_hash actually exist.
+        get_size_and_version(hash_path)
+        get_size_and_version(latest_path)
+
+        put_bytes(top_hash.encode('utf-8'), latest_path)
+
     def _materialize(self, dest_url):
         """
         Copies all Package entries to the destination, then creates a new package that points to those objects.

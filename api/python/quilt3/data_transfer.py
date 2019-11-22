@@ -615,7 +615,7 @@ def get_size_and_version(src):
     path = unquote(src_url.path)
 
     if not path or path.endswith('/'):
-        raise QuiltException("Invalid path: %r; cannot be a directory")
+        raise QuiltException("Invalid path: %r; cannot be a directory" % path)
 
     version = None
     if src_url.scheme == 'file':
