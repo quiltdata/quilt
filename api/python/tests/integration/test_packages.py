@@ -157,52 +157,73 @@ class PackageTest(QuiltTestCase):
         assert sorted(original_set, key=lambda k: k.get('logical_key', 'manifest')) \
             == sorted(written_set, key=lambda k: k.get('logical_key', 'manifest'))
 
-    def test_browse_package_from_registry(self):
-        """ Verify loading manifest locally and from s3 """
-        with patch('quilt3.Package._from_path') as pkgmock:
-            registry = LOCAL_REGISTRY.resolve().as_uri()
-            pkg = Package()
-            pkgmock.return_value = pkg
-            top_hash = pkg.top_hash
+    def test_remote_browse(self):
+        """ Verify loading manifest from s3 """
+        registry = 's3://test-bucket'
 
-            pkg = Package.browse('Quilt/nice-name', top_hash=top_hash)
-            assert '{}/.quilt/packages/{}'.format(registry, top_hash) \
-                    in [x[0][0] for x in pkgmock.call_args_list]
+        # Make the first request.
 
-            pkgmock.reset_mock()
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(b'abcdef'),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': '.quilt/named_packages/Quilt/test/latest',
+            }
+        )
 
-            with patch('quilt3.packages.get_bytes') as dl_mock:
-                dl_mock.return_value = top_hash.encode('utf-8')
-                pkg = Package.browse('Quilt/nice-name')
-                assert registry + '/.quilt/named_packages/Quilt/nice-name/latest' \
-                        == dl_mock.call_args_list[0][0][0]
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'VersionId': 'v1',
+                'ContentLength': REMOTE_MANIFEST.stat().st_size,
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': '.quilt/packages/abcdef',
+            }
+        )
 
-            assert '{}/.quilt/packages/{}'.format(registry, top_hash) \
-                    in [x[0][0] for x in pkgmock.call_args_list]
-            pkgmock.reset_mock()
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(REMOTE_MANIFEST.read_bytes()),
+                'ContentLength': REMOTE_MANIFEST.stat().st_size,
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': '.quilt/packages/abcdef',
+            }
+        )
 
-            remote_registry = 's3://asdf/foo'
-            # remote load
-            pkg = Package.browse('Quilt/nice-name', registry=remote_registry, top_hash=top_hash)
-            assert '{}/.quilt/packages/{}'.format(remote_registry, top_hash) \
-                    in [x[0][0] for x in pkgmock.call_args_list]
-            pkgmock.reset_mock()
-            pkg = Package.browse('Quilt/nice-name', top_hash=top_hash, registry=remote_registry)
-            assert '{}/.quilt/packages/{}'.format(remote_registry, top_hash) \
-                    in [x[0][0] for x in pkgmock.call_args_list]
+        pkg = Package.browse('Quilt/test', registry=registry)
+        assert 'foo' in pkg
 
-            pkgmock.reset_mock()
-            with patch('quilt3.packages.get_bytes') as dl_mock:
-                dl_mock.return_value = top_hash.encode('utf-8')
-                pkg = Package.browse('Quilt/nice-name', registry=remote_registry)
-            assert '{}/.quilt/packages/{}'.format(remote_registry, top_hash) \
-                    in [x[0][0] for x in pkgmock.call_args_list]
+        # Make the second request. Gets "latest" - but the rest should be cached.
 
-            # registry failure case
-            with patch('quilt3.packages.get_from_config',
-                       return_value=fix_url(os.path.dirname(__file__))):
-                with pytest.raises(FileNotFoundError):
-                    Package.browse('Quilt/nice-name')
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(b'abcdef'),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': '.quilt/named_packages/Quilt/test/latest',
+            }
+        )
+
+        pkg2 = Package.browse('Quilt/test', registry=registry)
+        assert 'foo' in pkg2
+
+        # Make another request with a top hash. Everything should be cached.
+
+        pkg3 = Package.browse('Quilt/test', top_hash='abcdef', registry=registry)
+        assert 'foo' in pkg3
 
     def test_remote_install(self):
         """Verify that installing from a local package works as expected."""
@@ -1125,10 +1146,23 @@ class PackageTest(QuiltTestCase):
         )
 
         self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'VersionId': 'v1',
+                'ContentLength': REMOTE_MANIFEST.stat().st_size,
+            },
+            expected_params={
+                'Bucket': 'my-test-bucket',
+                'Key': '.quilt/packages/abcdef',
+            }
+        )
+
+        self.s3_stubber.add_response(
             method='get_object',
             service_response={
                 'VersionId': 'v1',
                 'Body': BytesIO(REMOTE_MANIFEST.read_bytes()),
+                'ContentLength': REMOTE_MANIFEST.stat().st_size,
             },
             expected_params={
                 'Bucket': 'my-test-bucket',

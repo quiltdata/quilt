@@ -446,20 +446,21 @@ class Package(object):
         # TODO: verify that name is correct with respect to this top_hash
         # TODO: allow partial hashes (e.g. first six alphanumeric)
         pkg_manifest_uri = f'{registry}/.quilt/packages/{quote(top_hash)}'
-        return cls._from_path(pkg_manifest_uri)
+
+        if file_is_local(pkg_manifest_uri):
+            local_pkg_manifest = parse_file_url(urlparse(pkg_manifest_uri))
+        else:
+            local_pkg_manifest = CACHE_PATH / "manifest" / binascii.hexlify(pkg_manifest_uri.encode()).decode()
+            if not local_pkg_manifest.exists():
+                copy_file(pkg_manifest_uri, local_pkg_manifest.as_uri())
+
+        return cls._from_path(local_pkg_manifest)
 
     @classmethod
-    def _from_path(cls, uri):
-        """ Takes a URI and returns a package loaded from that URI """
-        src_url = urlparse(uri)
-        if src_url.scheme == 'file':
-            with open(parse_file_url(src_url)) as open_file:
-                pkg = cls.load(open_file)
-        elif src_url.scheme == 's3':
-            body = get_bytes(uri)
-            pkg = cls.load(io.BytesIO(body))
-        else:
-            raise NotImplementedError
+    def _from_path(cls, path):
+        """ Takes a path and returns a package loaded from that path"""
+        with open(path) as open_file:
+            pkg = cls.load(open_file)
         return pkg
 
     @classmethod
