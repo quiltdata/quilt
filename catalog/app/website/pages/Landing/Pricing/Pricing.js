@@ -41,7 +41,7 @@ const PLANS = [
   {
     name: 'Enterprise',
     trackingName: 'contact',
-    price: 999,
+    price: 'Contact us',
     features: [
       'Unlimited data',
       'Unlimited users',
