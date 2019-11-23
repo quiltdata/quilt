@@ -65,12 +65,16 @@ def _delete_local_physical_key(pk):
     pathlib.Path(parse_file_url(urlparse(pk))).unlink()
 
 
+def _filesystem_safe_encode(key):
+    """Encodes the key as hex. This ensures there are no slashes, uppercase/lowercase conflicts, etc."""
+    return binascii.hexlify(key.encode()).decode()
+
+
 class ObjectPathCache(object):
     @classmethod
     def _cache_path(cls, url):
-        key = binascii.hexlify(url.encode()).decode()  # The only filesystem-safe encoding (no slashes and no uppercase/lowercase)
         prefix = '%08x' % binascii.crc32(url.encode())
-        return CACHE_PATH / prefix / key
+        return CACHE_PATH / prefix / _filesystem_safe_encode(url)
 
     @classmethod
     def get(cls, url):
@@ -450,7 +454,7 @@ class Package(object):
         if file_is_local(pkg_manifest_uri):
             local_pkg_manifest = parse_file_url(urlparse(pkg_manifest_uri))
         else:
-            local_pkg_manifest = CACHE_PATH / "manifest" / binascii.hexlify(pkg_manifest_uri.encode()).decode()
+            local_pkg_manifest = CACHE_PATH / "manifest" / _filesystem_safe_encode(pkg_manifest_uri)
             if not local_pkg_manifest.exists():
                 copy_file(pkg_manifest_uri, local_pkg_manifest.as_uri())
 
