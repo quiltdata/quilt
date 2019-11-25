@@ -237,7 +237,7 @@ class PackageTest(QuiltTestCase):
             pkg.build('Quilt/nice-name')
 
             with patch('quilt3.Package._materialize') as materialize_mock, \
-                patch('quilt3.Package.build') as build_mock:
+                patch('quilt3.Package._build') as build_mock:
                 materialize_mock.return_value = pkg
                 dest_registry = quilt3.util.get_from_config('default_local_registry')
 
@@ -685,7 +685,7 @@ class PackageTest(QuiltTestCase):
         # Test that push cleans up the temporary files, if and only if the serialization_location was not set
         with patch('botocore.client.BaseClient._make_api_call', new=mock_make_api_call), \
             patch('quilt3.Package._materialize') as materialize_mock, \
-            patch('quilt3.Package.build') as build_mock:
+            patch('quilt3.Package._build') as build_mock:
             materialize_mock.return_value = pkg
 
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket')
@@ -960,7 +960,7 @@ class PackageTest(QuiltTestCase):
         """ Verify commit messages populate correctly on push."""
         with patch('botocore.client.BaseClient._make_api_call', new=mock_make_api_call), \
             patch('quilt3.Package._materialize') as materialize_mock, \
-            patch('quilt3.Package.build') as build_mock:
+            patch('quilt3.Package._build') as build_mock:
             with open(REMOTE_MANIFEST) as fd:
                 pkg = Package.load(fd)
             materialize_mock.return_value = pkg
@@ -1082,7 +1082,7 @@ class PackageTest(QuiltTestCase):
 
     def test_import(self):
         with patch('quilt3.Package.browse') as browse_mock, \
-            patch('quilt3.imports.list_packages') as list_packages_mock:
+            patch('quilt3.imports._list_packages') as list_packages_mock:
             browse_mock.return_value = quilt3.Package()
             list_packages_mock.return_value = ['foo/bar', 'foo/baz']
 

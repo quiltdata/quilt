@@ -426,7 +426,7 @@ class Package(object):
         message = pkg._meta.get('message', None)  # propagate the package message
 
         pkg._materialize(dest)
-        pkg.build(name, registry=dest_registry, message=message)
+        pkg._build(name, registry=dest_registry, message=message)
 
 
     @classmethod
