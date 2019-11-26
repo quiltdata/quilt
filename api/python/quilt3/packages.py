@@ -234,8 +234,7 @@ class PackageEntry(object):
         if use_cache_if_available:
             cached_path = self.get_cached_path()
             if cached_path is not None:
-                cached_file_url = fix_url(cached_path)
-                return get_bytes(cached_file_url)
+                return get_bytes(pathlib.Path(cached_path).as_uri())
 
         physical_key = _to_singleton(self.physical_keys)
         data = get_bytes(physical_key)
@@ -759,25 +758,17 @@ class Package(object):
 
     def readme(self):
         """
-        Find the README PackageEntry. Returns (readme_logical_key, readme_package_entry)
+        Returns the README PackageEntry
 
-        The README is the entry with the logical key 'readme.md' (case-insensitive). Will raise a QuiltException if
+        The README is the entry with the logical key 'README.md' (case-sensitive). Will raise a QuiltException if
         no such entry exists.
         """
-        readme_logical_key = None
-        readme_package_entry = None
-        for logical_key, entry in self.walk():
-            if logical_key.lower() == "readme.md":
-                readme_logical_key = logical_key
-                readme_package_entry = entry
-                break
-
-        if readme_logical_key is None:
+        if "README.md" not in self:
             ex_msg = f"This Package is missing a README file. A Quilt recognized README file is a  file named " \
                      f"'README.md' (case-insensitive)"
             raise QuiltException(ex_msg)
 
-        return readme_logical_key, readme_package_entry
+        return self["README.md"]
 
 
     def set_meta(self, meta):
