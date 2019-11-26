@@ -1312,7 +1312,7 @@ class PackageTest(QuiltTestCase):
         assert 'foo' in Package.browse('quilt/tmp')
 
         with self.assertRaises(QuiltException):
-            Package.rollback('quilt/tmp', LOCAL_REGISTRY, '12345')
+            Package.rollback('quilt/tmp', LOCAL_REGISTRY, '12345678' * 8)
 
         with self.assertRaises(QuiltException):
             Package.rollback('quilt/blah', LOCAL_REGISTRY, good_hash)
