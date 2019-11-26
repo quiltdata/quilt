@@ -1051,7 +1051,7 @@ class Package(object):
 
 
     @ApiTelemetry("package.push")
-    def push(self, name, registry=None, dest=None, message=None):
+    def push(self, name, registry=None, dest=None, message=None, selector_fn=lambda logical_key, package_entry: True):
         """
         Copies objects to path, then creates a new package that points to those objects.
         Copies each object in this package to path according to logical key structure,
@@ -1063,6 +1063,28 @@ class Package(object):
             dest: where to copy the objects in the package
             registry: registry where to create the new package
             message: the commit message for the new package
+            selector_fn: A filter function that determines which package entries should be pushed. The function takes
+                         in two arguments, logical_key and package_entry, and should return False if that PackageEntry
+                         should be skipped during push. If for example you have a package where the files are spread
+                         over multiple buckets and you add a single local file, you can use selector_fn to only push
+                         the local file to s3 (instead of pushing all data to the destination bucket).
+
+
+                         Note that push is careful to not push data unnecessarily. To illustrate, imagine you have a
+                         PackageEntry: `pkg["entry_1"].physical_keys = ["/tmp/package_entry_1.json"]`
+
+                         If that entry would be pushed to s3://bucket/prefix/entry_1.json, but
+                         s3://bucket/prefix/entry_1.json already contains the exact same bytes as
+                         '/tmp/package_entry_1.json', quilt3 will not push the bytes to s3, no matter what
+                         selector_fn('entry_1', pkg["entry_1"]) returns.
+
+                         However, selector_fn will dictate whether the new package points to the local file or to s3:
+
+                         If `selector_fn('entry_1', pkg["entry_1"]) == False`,
+                         `new_pkg["entry_1"] = ["/tmp/package_entry_1.json"]`
+
+                         If `selector_fn('entry_1', pkg["entry_1"]) == True`,
+                         `new_pkg["entry_1"] = ["s3://bucket/prefix/entry_1.json"]`
 
         Returns:
             A new package that points to the copied objects.
@@ -1169,7 +1191,7 @@ class Package(object):
             path = parse_file_url(new_parsed_url)
             ObjectPathCache.set(old_url, path)
 
-    def _materialize(self, dest_url):
+    def _materialize(self, dest_url, selector_fn=lambda logical_key, pkg_entry: True):
         """
         Copies all Package entries to the destination, then creates a new package that points to those objects.
 
@@ -1178,6 +1200,9 @@ class Package(object):
 
         Args:
             path: where to copy the objects in the package
+            selector_fn: A function that indicates which package_entries should be materialized and which should be
+                         skipped. See documentation for package.push() for more details. By default materializes all
+                         PackageEntries
 
         Returns:
             A new package that points to the copied objects
@@ -1193,6 +1218,11 @@ class Package(object):
         file_list = []
         entries = []
         for logical_key, entry in self.walk():
+
+            if selector_fn(logical_key, entry) == False:
+                pkg._set(logical_key, entry)
+                continue
+
             # Copy the datafiles in the package.
             physical_key = _to_singleton(entry.physical_keys)
             unversioned_physical_key = physical_key.split('?', 1)[0]
@@ -1200,7 +1230,7 @@ class Package(object):
             new_entry = entry._clone()
             if unversioned_physical_key == new_physical_key:
                 # No need to copy - re-use the original physical key.
-                pkg.set(logical_key, new_entry)
+                pkg._set(logical_key, new_entry)
             else:
                 entries.append((logical_key, new_entry))
                 file_list.append((physical_key, new_physical_key, entry.size))
