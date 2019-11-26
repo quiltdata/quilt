@@ -17,7 +17,7 @@ import jsonlines
 
 from .data_transfer import (
     calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_version,
-    list_object_versions, put_bytes
+    list_object_versions, list_url, put_bytes
 )
 from .exceptions import PackageException
 from .formats import FormatRegistry
@@ -430,6 +430,29 @@ class Package(object):
 
 
     @classmethod
+    def resolve_hash(cls, registry, hash_prefix):
+        """
+        Find a hash that starts with a given prefix.
+        Args:
+            registry(string): location of registry
+            hash_prefix(string): hash prefix with length between 6 and 64 characters
+        """
+        if len(hash_prefix) == 64:
+            top_hash = hash_prefix
+        elif 6 <= len(hash_prefix) < 64:
+            all_hashes = list_url(f'{registry}/.quilt/packages/')
+            matches = [h for h, _ in all_hashes if h.startswith(hash_prefix)]
+            if not matches:
+                raise QuiltException("Found zero matches for %r" % hash_prefix)
+            elif len(matches) > 1:
+                raise QuiltException("Found multiple matches: %r" % hash_prefix)
+            else:
+                top_hash = matches[0]
+        else:
+            raise QuiltException("Invalid hash: %r" % hash_prefix)
+        return top_hash
+
+    @classmethod
     @ApiTelemetry("package.browse")
     def browse(cls, name=None, registry=None, top_hash=None):
         """
@@ -451,6 +474,8 @@ class Package(object):
         if top_hash is None:
             top_hash_url = f'{registry}/.quilt/named_packages/{quote(name)}/latest'
             top_hash = get_bytes(top_hash_url).decode('utf-8').strip()
+        else:
+            top_hash = cls.resolve_hash(registry, top_hash)
 
         # TODO: verify that name is correct with respect to this top_hash
         # TODO: allow partial hashes (e.g. first six alphanumeric)
@@ -1151,6 +1176,8 @@ class Package(object):
         """
         registry = fix_url(registry).rstrip('/')
         validate_package_name(name)
+
+        top_hash = cls.resolve_hash(registry, top_hash)
 
         hash_path = f'{registry}/.quilt/packages/{quote(top_hash)}'
         latest_path = f'{registry}/.quilt/named_packages/{quote(name)}/latest'

@@ -42,6 +42,15 @@ __Returns__
 A new Package that points to files on your local machine.
 
 
+## Package.resolve\_hash(registry, hash\_prefix)  {#Package.resolve\_hash}
+
+Find a hash that starts with a given prefix.
+__Arguments__
+
+* __registry(string)__:  location of registry
+* __hash_prefix(string)__:  hash prefix with length between 6 and 64 characters
+
+
 ## Package.browse(name=None, registry=None, top\_hash=None)  {#Package.browse}
 
 Load a package into memory from a registry without making a local copy of
