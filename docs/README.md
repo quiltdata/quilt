@@ -46,19 +46,22 @@ Quilt addresses five key use cases:
 ## Roadmap
 
 ### I - Performance and core services
-* [ ] Address performance issues with push (e.g. re-hash)
-* [ ] Refactor `bucket/.quilt` for improved listing and delete performance
+* [x] Address performance issues with push (e.g. re-hash)
+* [ ] Investigate and implement more efficient manifest formats (e.g. Parquet),
+that scale to 10M keys; consider abbreviated "fast manifests" for lazy browsing
+* [ ] Refactor `s3://bucket/.quilt` for improved listing and delete performance
+* [ ] Provide Presto-DB-powered services for filtering package repos with SQL
 
 ### II - CI/CD for data
-* [ ] Ability to fork/merge packages (via manifests in git)
-* [ ] Automated data quality monitoring
+* [ ] Ability to fork/merge packages
+* [ ] Data quality monitoring
 
 ### III - Storage agnostic (support Azure, GCP buckets)
-* [ ] evaluate min.io and ceph.io
-* [ ] evaluate feasibility of local storage (e.g. NAS)
+* [ ] Evaluate min.io and ceph.io as shims
+* [ ] Evaluate feasibility of on-prem local storage as a repo
 
 ### IV - Cloud agnostic
-* [ ] K8s deployment for Azure, GCP
+* [ ] Evaluate K8s and Terraform to replace CloudFormation
 * [ ] Shim lambdas (consider serverless.com)
 * [ ] Shim ElasticSearch (consider SOLR)
 * [ ] Shim IAM via RBAC
