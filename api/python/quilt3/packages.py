@@ -21,6 +21,7 @@ from .data_transfer import (
 )
 from .exceptions import PackageException
 from .formats import FormatRegistry
+from .telemetry import ApiTelemetry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location, make_s3_url, parse_file_url,
     parse_s3_url, validate_package_name, quiltignore_filter, validate_key, extract_file_extension, file_is_local
@@ -300,6 +301,7 @@ class Package(object):
         self._children = {}
         self._meta = {'version': 'v0'}
 
+    @ApiTelemetry("package.__repr__")
     def __repr__(self, max_lines=20):
         """
         String representation of the Package.
@@ -315,7 +317,7 @@ class Package(object):
 
             if parent:
                 has_remote_entries = any(
-                    self.map(
+                    self._map(
                         lambda lk, entry: urlparse(
                             fix_url(_to_singleton(entry.physical_keys))
                         ).scheme != 'file'
@@ -373,6 +375,7 @@ class Package(object):
         return self._meta.get('user_meta', dict())
 
     @classmethod
+    @ApiTelemetry("package.install")
     def install(cls, name, registry=None, top_hash=None, dest=None, dest_registry=None):
         """
         Installs a named package to the local registry and downloads its files.
@@ -423,9 +426,11 @@ class Package(object):
         message = pkg._meta.get('message', None)  # propagate the package message
 
         pkg._materialize(dest)
-        pkg.build(name, registry=dest_registry, message=message)
+        pkg._build(name, registry=dest_registry, message=message)
+
 
     @classmethod
+    @ApiTelemetry("package.browse")
     def browse(cls, name=None, registry=None, top_hash=None):
         """
         Load a package into memory from a registry without making a local copy of
@@ -511,6 +516,7 @@ class Package(object):
             pkg = pkg._children[key_fragment]
         return pkg
 
+    @ApiTelemetry("package.fetch")
     def fetch(self, dest='./'):
         """
         Copy all descendants to `dest`. Descendants are written under their logical
@@ -536,7 +542,7 @@ class Package(object):
             # see GH#388 for context
             new_entry = entry._clone()
             new_entry.physical_keys = [new_physical_key]
-            pkg.set(logical_key, new_entry)
+            pkg._set(logical_key, new_entry)
 
         copy_file_list(file_list)
 
@@ -582,7 +588,12 @@ class Package(object):
                 yield key + '/' + child_key, child_meta
 
     @classmethod
+    @ApiTelemetry("package.load")
     def load(cls, readable_file):
+        return cls._load(readable_file=readable_file)
+
+    @classmethod
+    def _load(cls, readable_file):
         """
         Loads a package from a readable file-like object.
 
@@ -673,7 +684,7 @@ class Package(object):
                     continue
                 entry = PackageEntry([f.as_uri()], f.stat().st_size, None, None)
                 logical_key = f.relative_to(src_path).as_posix()
-                root.set(logical_key, entry)
+                root._set(logical_key, entry)
         elif url.scheme == 's3':
             src_bucket, src_key, src_version = parse_s3_url(url)
             if src_version:
@@ -692,7 +703,7 @@ class Package(object):
                 obj_url = make_s3_url(src_bucket, obj['Key'], obj.get('VersionId'))
                 entry = PackageEntry([obj_url], obj['Size'], None, None)
                 logical_key = obj['Key'][len(src_key):]
-                root.set(logical_key, entry)
+                root._set(logical_key, entry)
         else:
             raise NotImplementedError
 
@@ -764,6 +775,8 @@ class Package(object):
 
         self._meta.update({'message': msg})
 
+
+    @ApiTelemetry("package.build")
     def build(self, name=None, registry=None, message=None):
         """
         Serializes this package to a registry.
@@ -777,6 +790,10 @@ class Package(object):
         Returns:
             The top hash as a string.
         """
+        return self._build(name=name, registry=registry, message=message)
+
+
+    def _build(self, name=None, registry=None, message=None):
         self._set_commit_message(message)
 
         if registry is None:
@@ -789,7 +806,7 @@ class Package(object):
 
         self._fix_sha256()
         manifest = io.BytesIO()
-        self.dump(manifest)
+        self._dump(manifest)
 
         pkg_manifest_file = f'{registry}/.quilt/packages/{quote(self.top_hash)}'
         put_bytes(
@@ -807,6 +824,8 @@ class Package(object):
 
         return self
 
+
+    @ApiTelemetry("package.dump")
     def dump(self, writable_file):
         """
         Serializes this package to a writable file-like object.
@@ -821,6 +840,9 @@ class Package(object):
             fail to create file
             fail to finish write
         """
+        return self._dump(writable_file)
+
+    def _dump(self, writable_file):
         writer = jsonlines.Writer(writable_file)
         for line in self.manifest:
             writer.write(line)
@@ -835,6 +857,7 @@ class Package(object):
             yield {'logical_key': dir_key, 'meta': meta}
         for logical_key, entry in self.walk():
             yield {'logical_key': logical_key, **entry.as_dict()}
+
 
     def set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
         """
@@ -860,6 +883,15 @@ class Package(object):
         Returns:
             self
         """
+        return self._set(logical_key=logical_key,
+                         entry=entry,
+                         meta=meta,
+                         serialization_location=serialization_location,
+                         serialization_format_opts=serialization_format_opts)
+
+
+    def _set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
+
         if not logical_key or logical_key.endswith('/'):
             raise QuiltException(
                 f"Invalid logical key {logical_key!r}. "
@@ -1016,6 +1048,9 @@ class Package(object):
 
         return top_hash.hexdigest()
 
+
+
+    @ApiTelemetry("package.push")
     def push(self, name, registry=None, dest=None, message=None):
         """
         Copies objects to path, then creates a new package that points to those objects.
@@ -1099,9 +1134,9 @@ class Package(object):
 
         # Update old package to point to the materialized location of the file since the tempfile no longest exists
         for lk in temp_file_logical_keys:
-            self.set(lk, pkg[lk])
+            self._set(lk, pkg[lk])
 
-        pkg.build(name, registry=registry, message=message)
+        pkg._build(name, registry=registry, message=message)
         return pkg
 
     @classmethod
@@ -1178,10 +1213,11 @@ class Package(object):
             # Create a new package entry pointing to the new remote key.
             assert versioned_key is not None
             new_entry.physical_keys = [versioned_key]
-            pkg.set(logical_key, new_entry)
+            pkg._set(logical_key, new_entry)
         return pkg
 
 
+    @ApiTelemetry("package.diff")
     def diff(self, other_pkg):
         """
         Returns three lists -- added, modified, deleted.
@@ -1210,20 +1246,27 @@ class Package(object):
 
         return added, modified, deleted
 
+    @ApiTelemetry("package.map")
     def map(self, f, include_directories=False):
         """
         Performs a user-specified operation on each entry in the package.
 
         Args:
-            f(x, y): function
-                The function to be applied to each package entry.
-                It should take two inputs, a logical key and a PackageEntry.
-            include_directories: bool
-                Whether or not to include directory entries in the map.
+           f(x, y): function
+               The function to be applied to each package entry.
+               It should take two inputs, a logical key and a PackageEntry.
+           include_directories: bool
+               Whether or not to include directory entries in the map.
 
         Returns: list
-            The list of results generated by the map.
+           The list of results generated by the map.
         """
+        return self._map(f, include_directories=include_directories)
+
+
+
+    def _map(self, f, include_directories=False):
+
         if include_directories:
             for lk, _ in self._walk_dir_meta():
                 yield f(lk, self[lk.rstrip("/")])
@@ -1231,6 +1274,8 @@ class Package(object):
         for lk, entity in self.walk():
             yield f(lk, entity)
 
+
+    @ApiTelemetry("package.filter")
     def filter(self, f, include_directories=False):
         """
         Applies a user-specified operation to each entry in the package,
@@ -1247,6 +1292,10 @@ class Package(object):
         Returns:
             A new package with entries that evaluated to False removed
         """
+        return self._filter(f=f, include_directories=include_directories)
+
+
+    def _filter(self, f, include_directories=False):
         p = Package()
 
         excluded_dirs = set()
@@ -1259,6 +1308,6 @@ class Package(object):
             if (not any(p in excluded_dirs
                         for p in pathlib.PurePosixPath(lk).parents)
                     and f(lk, entity)):
-                p.set(lk, entity)
+                p._set(lk, entity)
 
         return p

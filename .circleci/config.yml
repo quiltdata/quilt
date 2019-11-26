@@ -28,6 +28,8 @@ jobs:
   test-3.6: &test-template
     docker:
       - image: circleci/python:3.6-jessie
+    environment:
+      QUILT_DISABLE_USAGE_METRICS: true
     steps:
       - checkout
       - run:
@@ -140,6 +142,8 @@ jobs:
   build:
     docker:
       - image: circleci/python:3.6-jessie
+    environment:
+      QUILT_DISABLE_USAGE_METRICS: true
     steps:
       - checkout
       - restore_cache:
@@ -166,6 +170,8 @@ jobs:
   deploy:
     docker:
       - image: circleci/python:3.6-jessie
+    environment:
+      QUILT_DISABLE_USAGE_METRICS: true
     steps:
       - checkout
       - restore_cache:

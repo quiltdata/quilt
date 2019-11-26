@@ -57,6 +57,9 @@ default_install_location:
 
 # Identity service URL
 registryUrl:
+
+# Disable anonymous usage metrics
+telemetry_disabled: false
 """.format(BASE_PATH.as_uri() + '/packages')
 
 
@@ -366,6 +369,19 @@ def get_install_location():
     if loc is None:
         loc = get_from_config('default_local_registry').rstrip('/')
     return loc
+
+
+
+def set_config_value(key, value):
+    # Use local configuration (or defaults)
+    if CONFIG_PATH.exists():
+        local_config = read_yaml(CONFIG_PATH)
+    else:
+        local_config = read_yaml(CONFIG_TEMPLATE)
+
+    local_config[key] = value
+    write_yaml(local_config, CONFIG_PATH)
+
 
 def quiltignore_filter(paths, ignore, url_scheme):
     """Given a list of paths, filter out the paths which are captured by the 

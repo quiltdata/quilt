@@ -5,6 +5,7 @@ from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
                    CONFIG_TEMPLATE, configure_from_url, fix_url,
                    get_package_registry, read_yaml, validate_package_name, write_yaml)
+from .telemetry import ApiTelemetry
 
 
 def copy(src, dest):
@@ -21,6 +22,9 @@ def copy(src, dest):
     copy_file(fix_url(src), fix_url(dest))
 
 
+
+
+ApiTelemetry("api.delete_package")
 def delete_package(name, registry=None, top_hash=None):
     """
     Delete a package. Deletes only the manifest entries and not the underlying files.
@@ -71,6 +75,7 @@ def delete_package(name, registry=None, top_hash=None):
     delete_url(named_packages + usr + '/')
 
 
+@ApiTelemetry("api.list_packages")
 def list_packages(registry=None):
     """Lists Packages in the registry.
 
@@ -83,6 +88,16 @@ def list_packages(registry=None):
     Returns:
         A sequence of strings containing the names of the packages
     """
+    return _list_packages(registry=registry)
+
+
+def _list_packages(registry=None):
+    """
+    This differs from list_packages because it does not have telemetry on it. If Quilt code needs the functionality to
+    list packages under a different customer-facing API, _list_packages() is the function that should be used to prevent
+    duplicate metrics (each API call that the user makes should generate a single telemetry event).
+    """
+
     registry_base_path = get_package_registry(fix_url(registry) if registry else None)
 
     named_packages = registry_base_path.rstrip('/') + '/named_packages/'
@@ -97,6 +112,7 @@ def list_packages(registry=None):
                 yield pkg
 
 
+@ApiTelemetry("api.list_package_versions")
 def list_package_versions(name, registry=None):
     """Lists versions of a given package.
 
@@ -108,6 +124,14 @@ def list_package_versions(name, registry=None):
 
     Returns:
         A sequence of tuples containing the named version and hash.
+    """
+    return _list_package_versions(name=name, registry=registry)
+
+
+def _list_package_versions(name, registry=None):
+    """
+    Telemetry-free version of list_package_versions. Internal quilt code should always use _list_package_versions.
+    See documentation for _list_packages for why.
     """
     validate_package_name(name)
 
@@ -121,6 +145,7 @@ def list_package_versions(name, registry=None):
             yield parts[0], pkg_hash.decode().strip()
 
 
+@ApiTelemetry("api.config")
 def config(*catalog_url, **config_values):
     """Set or read the QUILT configuration.
 
@@ -147,6 +172,11 @@ def config(*catalog_url, **config_values):
     Returns:
         QuiltConfig: (an ordered Mapping)
     """
+    return _config(*catalog_url, **config_values)
+
+
+def _config(*catalog_url, **config_values):
+    """   telemetry-free version of config()   """
     if catalog_url and config_values:
         raise QuiltException("Expected either an auto-config URL or key=value pairs, but got both.")
     # Total distinction of args and kwargs -- config(catalog_url='http://foo.com')
@@ -182,6 +212,15 @@ def config(*catalog_url, **config_values):
     # Return current config
     return QuiltConfig(CONFIG_PATH, local_config)
 
+
+@ApiTelemetry("api.disable_telemetry")
+def disable_telemetry():
+    """ Permanently disable sending of anonymous usage metrics """
+    _config(telemetry_disabled=True)
+
+
+
+@ApiTelemetry("api.search")
 def search(query, limit=10):
     """
     Execute a search against the configured search endpoint.

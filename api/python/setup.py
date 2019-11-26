@@ -1,10 +1,12 @@
 import os
 import sys
 
+from pathlib import Path
+
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-VERSION = "3.1.5"
+VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text()
 
 def readme():
     readme_short = """
@@ -60,6 +62,7 @@ setup(
         'ruamel.yaml<=0.15.70',
         'tqdm>=4.26.0',
         'urllib3<1.25,>=1.21.1',            # required by requests
+        'requests_futures==1.0.0',
     ],
     extras_require={
         'pyarrow': [
