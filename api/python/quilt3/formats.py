@@ -779,6 +779,10 @@ class CSVPandasFormatHandler(BaseFormatHandler):
 
         default_opts = copy.deepcopy(self.defaults)
 
+        # CSVs should be the same regardless of the OS.
+        # This can't be in self.defaults, though, because we don't want it when deserializing.
+        default_opts['linesep'] = '\n'
+
         # Use the default delimiter for the given extension, if no fieldsep was specified.
         if ext and 'fieldsep' not in opts:
             ext = ext.strip().lstrip('.').lower()
