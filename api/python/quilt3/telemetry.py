@@ -34,7 +34,8 @@ class ApiTelemetry:
         return FuturesSession(executor=ThreadPoolExecutor(max_workers=2))
 
     def __init__(self, api_name):
-        ApiTelemetry.telemetry_disabled = ApiTelemetry.telemetry_is_disabled()
+        if ApiTelemetry.telemetry_disabled is None:
+            ApiTelemetry.telemetry_disabled = ApiTelemetry.telemetry_is_disabled()
 
         if ApiTelemetry.session is None:
             ApiTelemetry.session = ApiTelemetry.create_session()
@@ -136,6 +137,11 @@ class ApiTelemetry:
 
             results = func(*args, **kwargs)
             # print(f"{len(ApiTelemetry.pending_reqs)} request(s) pending!")
+
+            if self.api_name == "api.disable_telemetry":
+                # Quick hack to disable telemetry immediately after the user calls disable_telemetry()
+                # TODO(armand): This string matching is extremely brittle. Fix ASAP
+                ApiTelemetry.telemetry_disabled = True
             return results
 
         return decorated
