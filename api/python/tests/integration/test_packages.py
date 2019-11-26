@@ -161,13 +161,15 @@ class PackageTest(QuiltTestCase):
         """ Verify loading manifest from s3 """
         registry = 's3://test-bucket'
 
+        top_hash = 'abcdefgh' * 8
+
         # Make the first request.
 
         self.s3_stubber.add_response(
             method='get_object',
             service_response={
                 'VersionId': 'v1',
-                'Body': BytesIO(b'abcdef'),
+                'Body': BytesIO(top_hash.encode()),
             },
             expected_params={
                 'Bucket': 'test-bucket',
@@ -183,7 +185,7 @@ class PackageTest(QuiltTestCase):
             },
             expected_params={
                 'Bucket': 'test-bucket',
-                'Key': '.quilt/packages/abcdef',
+                'Key': f'.quilt/packages/{top_hash}',
             }
         )
 
@@ -196,7 +198,7 @@ class PackageTest(QuiltTestCase):
             },
             expected_params={
                 'Bucket': 'test-bucket',
-                'Key': '.quilt/packages/abcdef',
+                'Key': f'.quilt/packages/{top_hash}',
             }
         )
 
@@ -209,7 +211,7 @@ class PackageTest(QuiltTestCase):
             method='get_object',
             service_response={
                 'VersionId': 'v1',
-                'Body': BytesIO(b'abcdef'),
+                'Body': BytesIO(top_hash.encode()),
             },
             expected_params={
                 'Bucket': 'test-bucket',
@@ -222,8 +224,66 @@ class PackageTest(QuiltTestCase):
 
         # Make another request with a top hash. Everything should be cached.
 
+        pkg3 = Package.browse('Quilt/test', top_hash=top_hash, registry=registry)
+        assert 'foo' in pkg3
+
+        # Make a request with a short hash.
+
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            service_response={
+                'Contents': [
+                    {
+                        'Key': f'.quilt/packages/{top_hash}',
+                        'Size': 64,
+                    },
+                    {
+                        'Key': f'.quilt/packages/{"a" * 64}',
+                        'Size': 64,
+                    }
+                ]
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Prefix': '.quilt/packages/',
+            }
+        )
+
         pkg3 = Package.browse('Quilt/test', top_hash='abcdef', registry=registry)
         assert 'foo' in pkg3
+
+        # Make a request with a bad short hash.
+
+        with self.assertRaises(QuiltException):
+            Package.browse('Quilt/test', top_hash='abcde', registry=registry)
+        with self.assertRaises(QuiltException):
+            Package.browse('Quilt/test', top_hash='a' * 65, registry=registry)
+
+        # Make a request with a non-existant short hash.
+
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            service_response={
+                'Contents': [
+                    {
+                        'Key': f'.quilt/packages/{top_hash}',
+                        'Size': 64,
+                    },
+                    {
+                        'Key': f'.quilt/packages/{"a" * 64}',
+                        'Size': 64,
+                    }
+                ]
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Prefix': '.quilt/packages/',
+            }
+        )
+
+        with self.assertRaises(QuiltException):
+            Package.browse('Quilt/test', top_hash='123456', registry=registry)
+
 
     def test_remote_install(self):
         """Verify that installing from a local package works as expected."""

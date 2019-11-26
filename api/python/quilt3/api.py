@@ -1,6 +1,7 @@
 from urllib.parse import quote
 
 from .data_transfer import copy_file, get_bytes, delete_url, list_url
+from .packages import Package
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
                    CONFIG_TEMPLATE, configure_from_url, fix_url,
@@ -47,6 +48,7 @@ def delete_package(name, registry=None, top_hash=None):
         raise QuiltException("No such package exists in the given directory.")
 
     if top_hash is not None:
+        top_hash = Package.resolve_hash(registry, top_hash)
         deleted = []
         remaining = []
         for path, _ in paths:
