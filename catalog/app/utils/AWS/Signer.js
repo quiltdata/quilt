@@ -18,15 +18,16 @@ const DEFAULT_URL_EXPIRATION = 5 * 60 // in seconds
 
 export const useRequestSigner = () => {
   const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
+  const { anonCredentials } = Config.useConfig()
   const credentials = Credentials.use().suspend()
   return React.useCallback(
     (request, serviceName) => {
-      if (authenticated) {
+      if (authenticated || anonCredentials) {
         const signer = new SignerV4(request, serviceName)
         signer.addAuthorization(credentials, new Date())
       }
     },
-    [credentials, authenticated],
+    [credentials, authenticated, anonCredentials],
   )
 }
 
@@ -44,7 +45,7 @@ export const useS3Signer = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {}) => 
   const s3 = S3.use()
   return React.useCallback(
     ({ bucket, key, version }, opts) =>
-      cfg.shouldSign(bucket) && authenticated
+      cfg.shouldSign(bucket) && (cfg.anonCredentials || authenticated)
         ? s3.getSignedUrl('getObject', {
             Bucket: bucket,
             Key: key,
