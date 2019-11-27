@@ -46,6 +46,40 @@ def create_parser():
     )
     config_p.set_defaults(func=cmd_config)
 
+    shorthelp = "Install a package"
+    install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp)
+    install_p.add_argument(
+        "name",
+        help="Name of package, in the user/pkg format",
+        type=str,
+    )
+    install_p.add_argument(
+        "--registry",
+        help="Registry where package is located. Defaults to the default remote registry.",
+        type=str,
+        required=False,
+    )
+    install_p.add_argument(
+        "--top-hash",
+        help="Hash of package to install. Defaults to latest.",
+        type=str,
+        required=False,
+    )
+    install_p.add_argument(
+        "--dest",
+        help="Local path to download files to.",
+        type=str,
+        required=False,
+    )
+    install_p.add_argument(
+        "--dest-registry",
+        help="Registry to install package to. Defaults to local registry.",
+        type=str,
+        required=False,
+    )
+
+    install_p.set_defaults(func=api.Package.install)
+
     return parser
 
 def main(args=None):
