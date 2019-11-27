@@ -9,6 +9,10 @@
       "type": "string",
       "description": "Bucket where object analytics data is stored"
     },
+    "anonCredentials": {
+      "type": "boolean",
+      "description": "Use AWS credentials for anonymous users (TODO: better description)"
+    },
     "apiGatewayEndpoint": {
       "type": "string",
       "description": "Endpoint to use for previews and other things. Should be auto-populated by your stack."

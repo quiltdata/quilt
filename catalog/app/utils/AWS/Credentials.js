@@ -5,6 +5,7 @@ import * as reduxHook from 'redux-react-hook'
 
 import * as Auth from 'containers/Auth'
 import * as APIConnector from 'utils/APIConnector'
+import * as Config from 'utils/Config'
 import useMemoEq from 'utils/useMemoEq'
 
 class RegistryCredentials extends AWS.Credentials {
@@ -47,25 +48,27 @@ class EmptyCredentials extends AWS.Credentials {
   }
 }
 
-const useCredentialsMemo = () => {
+function useCredentialsMemo({ anon }) {
   const empty = React.useMemo(() => new EmptyCredentials(), [])
   const reg = useMemoEq(APIConnector.use(), (req) => new RegistryCredentials({ req }))
 
   return useMemoEq(
     {
+      anon,
       auth: reduxHook.useMappedState(Auth.selectors.authenticated),
       reg,
       empty,
     },
-    (i) => (i.auth ? i.reg : i.empty),
+    (i) => (i.anon || i.auth ? i.reg : i.empty),
   )
 }
 
 const Ctx = React.createContext()
 
-export const Provider = ({ children }) => (
-  <Ctx.Provider value={useCredentialsMemo()}>{children}</Ctx.Provider>
-)
+export function Provider({ children }) {
+  const { anonCredentials: anon } = Config.use()
+  return <Ctx.Provider value={useCredentialsMemo({ anon })}>{children}</Ctx.Provider>
+}
 
 export const useCredentials = () => React.useContext(Ctx)
 
