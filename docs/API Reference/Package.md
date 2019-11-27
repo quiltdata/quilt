@@ -164,6 +164,14 @@ __Raises__
 * `ValueError`:  if the logical_key points to a Package rather than PackageEntry.
 
 
+## Package.readme(self)  {#Package.readme}
+
+Returns the README PackageEntry
+
+The README is the entry with the logical key 'README.md' (case-sensitive). Will raise a QuiltException if
+no such entry exists.
+
+
 ## Package.set\_meta(self, meta)  {#Package.set\_meta}
 
 Sets user metadata on this Package.
