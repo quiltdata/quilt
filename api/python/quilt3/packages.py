@@ -1218,7 +1218,7 @@ class Package(object):
         file_list = []
         entries = []
         for logical_key, entry in self.walk():
-            if selector_fn(logical_key, entry) == False:
+            if not selector_fn(logical_key, entry):
                 pkg._set(logical_key, entry)
                 continue
 
