@@ -29,7 +29,7 @@ export default function Landing() {
       <Testimonials />
       <UseQuilt />
       <Highlights />
-      <Pricing />
+      {cfg.mode === 'MARKETING' && <Pricing />}
       <Contribute />
     </Layout>
   )

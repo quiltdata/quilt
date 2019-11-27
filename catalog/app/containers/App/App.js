@@ -83,7 +83,7 @@ export default function App() {
 
         {!cfg.disableNavigator && <Route path={paths.search} component={Search} exact />}
 
-        {cfg.enableMarketingPages && (
+        {cfg.mode === 'MARKETING' && (
           <Route path={paths.about} component={MAbout} exact />
         )}
         {cfg.enableMarketingPages && (
