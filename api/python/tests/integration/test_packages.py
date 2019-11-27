@@ -1320,3 +1320,25 @@ class PackageTest(QuiltTestCase):
 
         with self.assertRaises(QuiltException):
             Package.rollback('quilt/blah', LOCAL_REGISTRY, good_hash)
+
+
+    def test_verify(self):
+        pkg = Package()
+
+        pkg.set('foo', b'Hello, World!')
+        pkg.build('quilt/test')
+
+        Package.install('quilt/test', LOCAL_REGISTRY, dest='test')
+        assert pkg.verify('test')
+
+        Path('test/blah').write_text('123')
+        assert not pkg.verify('test')
+        assert pkg.verify('test', extra_files_ok=True)
+
+        Path('test/foo').write_text('123')
+        assert not pkg.verify('test')
+        assert not pkg.verify('test', extra_files_ok=True)
+
+        Path('test/foo').write_text('Hello, World!')
+        Path('test/blah').unlink()
+        assert pkg.verify('test')
