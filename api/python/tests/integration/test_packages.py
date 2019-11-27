@@ -1329,11 +1329,11 @@ class PackageTest(QuiltTestCase):
 
         Path('test/blah').write_text('123')
         assert not pkg.verify('test')
-        assert pkg.verify('test', extra_files=True)
+        assert pkg.verify('test', extra_files_ok=True)
 
         Path('test/foo').write_text('123')
         assert not pkg.verify('test')
-        assert not pkg.verify('test', extra_files=True)
+        assert not pkg.verify('test', extra_files_ok=True)
 
         Path('test/foo').write_text('Hello, World!')
         Path('test/blah').unlink()

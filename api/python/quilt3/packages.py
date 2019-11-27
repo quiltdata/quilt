@@ -1339,13 +1339,13 @@ class Package(object):
 
         return p
 
-    def verify(self, src, extra_files=False):
+    def verify(self, src, extra_files_ok=False):
         """
         Check if the contents of the given directory matches the package manifest.
 
         Args:
             src(str): URL of the directory
-            extra_files(bool): Whether extra files in the directory should cause a failure.
+            extra_files_ok(bool): Whether extra files in the directory should cause a failure.
         Returns:
             True if the package matches the directory; False otherwise.
         """
@@ -1363,7 +1363,7 @@ class Package(object):
             url_list.append(entry_url)
             size_list.append(src_size)
 
-        if src_dict and not extra_files:
+        if src_dict and not extra_files_ok:
             return False
 
         hash_list = calculate_sha256(url_list, size_list)
