@@ -1218,7 +1218,6 @@ class Package(object):
         file_list = []
         entries = []
         for logical_key, entry in self.walk():
-
             if selector_fn(logical_key, entry) == False:
                 # print(f"Skipping {logical_key}")
                 pkg._set(logical_key, entry)
