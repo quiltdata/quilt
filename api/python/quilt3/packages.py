@@ -1140,7 +1140,7 @@ class Package(object):
                 )
 
         self._fix_sha256()
-        pkg = self._materialize(dest)
+        pkg = self._materialize(dest, selector_fn=selector_fn)
 
         def physical_key_is_temp_file(pk):
             if not file_is_local(pk):
@@ -1220,6 +1220,7 @@ class Package(object):
         for logical_key, entry in self.walk():
 
             if selector_fn(logical_key, entry) == False:
+                # print(f"Skipping {logical_key}")
                 pkg._set(logical_key, entry)
                 continue
 
