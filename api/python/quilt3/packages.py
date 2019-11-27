@@ -29,6 +29,7 @@ from .util import (
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
 
 
+
 def hash_file(readable_file):
     """ Returns SHA256 hash of readable file-like object """
     buf = readable_file.read(4096)
@@ -225,6 +226,40 @@ class PackageEntry(object):
         if not file_is_local(physical_key):
             return ObjectPathCache.get(physical_key)
         return None
+
+    def get_bytes(self, use_cache_if_available=True):
+        """
+        Returns the bytes of the object this entry corresponds to. If 'use_cache_if_available'=True, will first try to
+        retrieve the bytes from cache.
+        """
+        if use_cache_if_available:
+            cached_path = self.get_cached_path()
+            if cached_path is not None:
+                return get_bytes(pathlib.Path(cached_path).as_uri())
+
+        physical_key = _to_singleton(self.physical_keys)
+        data = get_bytes(physical_key)
+        return data
+
+    def get_as_json(self, use_cache_if_available=True):
+        """
+        Returns a JSON file as a `dict`. Assumes that the file is encoded using utf-8.
+
+        If 'use_cache_if_available'=True, will first try to retrieve the object from cache.
+        """
+        obj_bytes = self.get_bytes(use_cache_if_available=use_cache_if_available)
+        return json.loads(obj_bytes.decode("utf-8"))
+
+
+    def get_as_string(self, use_cache_if_available=True):
+        """
+        Return the object as a string. Assumes that the file is encoded using utf-8.
+
+        If 'use_cache_if_available'=True, will first try to retrieve the object from cache.
+        """
+        obj_bytes = self.get_bytes(use_cache_if_available=use_cache_if_available)
+        return obj_bytes.decode("utf-8")
+
 
     def deserialize(self, func=None, **format_opts):
         """
@@ -754,7 +789,23 @@ class Package(object):
             raise ValueError("Key does not point to a PackageEntry")
         return obj.get()
 
-    # def get_as_pathlib(self):
+
+
+
+    def readme(self):
+        """
+        Returns the README PackageEntry
+
+        The README is the entry with the logical key 'README.md' (case-sensitive). Will raise a QuiltException if
+        no such entry exists.
+        """
+        if "README.md" not in self:
+            ex_msg = f"This Package is missing a README file. A Quilt recognized README file is a  file named " \
+                     f"'README.md' (case-insensitive)"
+            raise QuiltException(ex_msg)
+
+        return self["README.md"]
+
 
     def set_meta(self, meta):
         """

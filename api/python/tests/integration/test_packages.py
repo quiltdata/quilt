@@ -1280,6 +1280,10 @@ class PackageTest(QuiltTestCase):
         assert local_path == pathlib.Path.cwd() / 'package/foo'
         assert local_path.read_text('utf8') == '💩'
 
+        # Test that get_bytes and get_as_text works
+        assert p['foo'].get_bytes().decode("utf-8") == '💩'
+        assert p['foo'].get_as_string() == '💩'
+
         # Check that moving the file invalidates the cache...
         local_path.rename('foo2')
         assert p['foo'].get_cached_path() is None
