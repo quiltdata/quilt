@@ -242,7 +242,7 @@ class PackageEntry(object):
 
     def get_as_json(self, use_cache_if_available=True):
         """
-        Return the object as JSON. Assumes that the file is encoded using utf-8.
+        Returns a JSON file as a `dict`. Assumes that the file is encoded using utf-8.
 
         If 'use_cache_if_available'=True, will first try to retrieve the object from cache.
         """
