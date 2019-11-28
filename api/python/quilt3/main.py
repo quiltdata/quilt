@@ -50,12 +50,12 @@ def create_parser():
     install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp)
     install_p.add_argument(
         "name",
-        help="Name of package, in the user/pkg format",
+        help="Name of package, in the USER/PKG format",
         type=str,
     )
     install_p.add_argument(
         "--registry",
-        help="Registry where package is located. Defaults to the default remote registry.",
+        help="Registry where package is located, usually s3://MY-BUCKET. Defaults to the default remote registry.",
         type=str,
         required=False,
     )
