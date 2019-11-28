@@ -112,6 +112,7 @@ def create_parser():
         "--dir",
         help="Directory to verify",
         type=str,
+        required=True,
     )
     verify_p.add_argument(
         "--extra-files-ok",
