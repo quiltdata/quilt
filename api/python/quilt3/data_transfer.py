@@ -48,7 +48,6 @@ def create_s3_client():
 
 
 s3_transfer_config = TransferConfig()
-s3_threads = 4
 
 # When uploading files at least this size, compare the ETags first and skip the upload if they're equal;
 # copy the remote file onto itself if the metadata changes.
@@ -277,7 +276,7 @@ def _copy_file_list_internal(s3_client, file_list):
     results = [None] * len(file_list)
 
     with tqdm(desc="Copying", total=total_size, unit='B', unit_scale=True) as progress, \
-         ThreadPoolExecutor(s3_threads) as executor:
+         ThreadPoolExecutor(s3_transfer_config.max_request_concurrency) as executor:
 
         def progress_callback(bytes_transferred):
             with lock:
