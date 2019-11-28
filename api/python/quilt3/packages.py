@@ -67,7 +67,8 @@ def _delete_local_physical_key(pk):
 
 
 def _filesystem_safe_encode(key):
-    """Returns the sha256 of the key. This ensures there are no slashes, uppercase/lowercase conflicts, etc."""
+    """Returns the sha256 of the key. This ensures there are no slashes, uppercase/lowercase conflicts, 
+    avoids `OSError: [Errno 36] File name too long:`, etc."""
     return hashlib.sha256(key.encode()).hexdigest()
 
 
