@@ -52,7 +52,9 @@ export const useRequest = (extra) => {
   return React.useMemo(
     () => ({ bucket, operation, params }) => {
       let client
-      if (!authenticated && operation === 'selectObjectContent') {
+      if (cfg.mode === 'LOCAL') {
+        client = regularClient
+      } else if (!authenticated && operation === 'selectObjectContent') {
         client = s3SelectClient
       } else if (cfg.shouldProxy(bucket)) {
         client = proxyingClient
@@ -60,7 +62,7 @@ export const useRequest = (extra) => {
         client = regularClient
       }
       const method =
-        authenticated && cfg.shouldSign(bucket)
+        cfg.mode === 'LOCAL' || (authenticated && cfg.shouldSign(bucket))
           ? 'makeRequest'
           : 'makeUnauthenticatedRequest'
       return client[method](operation, params).promise()

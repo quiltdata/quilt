@@ -48,26 +48,27 @@ class EmptyCredentials extends AWS.Credentials {
   }
 }
 
-function useCredentialsMemo({ anon }) {
+function useCredentialsMemo({ local }) {
   const empty = React.useMemo(() => new EmptyCredentials(), [])
   const reg = useMemoEq(APIConnector.use(), (req) => new RegistryCredentials({ req }))
 
   return useMemoEq(
     {
-      anon,
+      local,
       auth: reduxHook.useMappedState(Auth.selectors.authenticated),
       reg,
       empty,
     },
-    (i) => (i.anon || i.auth ? i.reg : i.empty),
+    (i) => (i.local || i.auth ? i.reg : i.empty),
   )
 }
 
 const Ctx = React.createContext()
 
 export function Provider({ children }) {
-  const { anonCredentials: anon } = Config.use()
-  return <Ctx.Provider value={useCredentialsMemo({ anon })}>{children}</Ctx.Provider>
+  const cfg = Config.use()
+  const local = cfg.mode === 'LOCAL'
+  return <Ctx.Provider value={useCredentialsMemo({ local })}>{children}</Ctx.Provider>
 }
 
 export const useCredentials = () => React.useContext(Ctx)
