@@ -23,10 +23,10 @@ def cmd_config(catalog_url):
 def cmd_verify(name, registry, top_hash, src, extra_files_ok):
     pkg = api.Package.browse(name, registry, top_hash)
     if pkg.verify(src, extra_files_ok):
-        print("Success")
+        print("Verification succeeded")
         return 0
     else:
-        print("Failed!")
+        print("Verification failed")
         return 1
 
 
