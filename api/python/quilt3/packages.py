@@ -1,5 +1,4 @@
 from collections import deque
-import binascii
 import copy
 import hashlib
 import io
@@ -68,15 +67,15 @@ def _delete_local_physical_key(pk):
 
 
 def _filesystem_safe_encode(key):
-    """Encodes the key as hex. This ensures there are no slashes, uppercase/lowercase conflicts, etc."""
-    return binascii.hexlify(key.encode()).decode()
+    """Returns the sha256 of the key. This ensures there are no slashes, uppercase/lowercase conflicts, etc."""
+    return hashlib.sha256(key.encode()).hexdigest()
 
 
 class ObjectPathCache(object):
     @classmethod
     def _cache_path(cls, url):
-        prefix = '%08x' % binascii.crc32(url.encode())
-        return CACHE_PATH / prefix / _filesystem_safe_encode(url)
+        url_hash = _filesystem_safe_encode(url)
+        return CACHE_PATH / url_hash[0:2] / url_hash[2:]
 
     @classmethod
     def get(cls, url):
