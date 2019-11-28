@@ -480,7 +480,7 @@ def delete_url(src):
         src_path = parse_file_url(src_url)
         src_file = pathlib.Path(src_path)
 
-        if _looks_like_dir(src_path):
+        if src_file.is_dir():
             try:
                 src_file.rmdir()
             except OSError:
