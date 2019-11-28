@@ -20,9 +20,9 @@ def cmd_config(catalog_url):
         api.config(catalog_url)
 
 
-def cmd_verify(name, registry, top_hash, src, extra_files_ok):
+def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
     pkg = api.Package.browse(name, registry, top_hash)
-    if pkg.verify(src, extra_files_ok):
+    if pkg.verify(dir, extra_files_ok):
         print("Verification succeeded")
         return 0
     else:
@@ -109,7 +109,7 @@ def create_parser():
         required=True,
     )
     verify_p.add_argument(
-        "src",
+        "--dir",
         help="Directory to verify",
         type=str,
     )
