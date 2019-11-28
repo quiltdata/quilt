@@ -199,7 +199,7 @@ class DataTransferTest(QuiltTestCase):
         )
 
         # stubber expects responses in order, so disable multi-threading.
-        with mock.patch('quilt3.data_transfer.s3_threads', 1):
+        with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             urls = data_transfer.copy_file_list([
                 (path1.as_uri(), 's3://example1/foo.csv', path1.stat().st_size),
                 (path2.as_uri(), 's3://example2/foo.txt', path2.stat().st_size),
@@ -360,7 +360,7 @@ class DataTransferTest(QuiltTestCase):
             }
         )
 
-        with mock.patch('quilt3.data_transfer.s3_threads', 1):
+        with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             data_transfer.copy_file_list([
                 (path.resolve().as_uri(), f's3://example/{name}', path.stat().st_size),
             ])
@@ -429,7 +429,7 @@ class DataTransferTest(QuiltTestCase):
             }
         )
 
-        with mock.patch('quilt3.data_transfer.s3_threads', 1):
+        with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             data_transfer.copy_file_list([
                 ('s3://example1/large_file1.npy', 's3://example2/large_file2.npy', size),
             ])
