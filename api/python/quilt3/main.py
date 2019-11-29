@@ -3,11 +3,12 @@ Parses the command-line arguments and runs a command.
 """
 
 import argparse
+import subprocess
 import sys
 
 from . import api, session
 from .util import get_from_config, QuiltException
-
+from .registry import app
 
 def cmd_config(catalog_url):
     if catalog_url is None:
@@ -18,6 +19,11 @@ def cmd_config(catalog_url):
             print('<None>')
     else:
         api.config(catalog_url)
+
+
+def cmd_catalog():
+    subprocess.Popen(["docker","run","--rm", "--env-file", "catalog.env", "-p", "3000:80", "quiltdata/catalog"])
+    app.run()
 
 
 def create_parser():
@@ -36,6 +42,7 @@ def create_parser():
     logout_p = subparsers.add_parser("logout", description=shorthelp, help=shorthelp)
     logout_p.set_defaults(func=session.logout)
 
+    # config
     shorthelp = "Configure Quilt"
     config_p = subparsers.add_parser("config", description=shorthelp, help=shorthelp)
     config_p.add_argument(
@@ -46,7 +53,13 @@ def create_parser():
     )
     config_p.set_defaults(func=cmd_config)
 
+    # catalog
+    shorthelp = "Run Quilt catalog locally"
+    config_p = subparsers.add_parser("catalog", description=shorthelp, help=shorthelp)
+    config_p.set_defaults(func=cmd_catalog)
+
     return parser
+
 
 def main(args=None):
     parser = create_parser()

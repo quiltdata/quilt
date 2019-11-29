@@ -55,6 +55,9 @@ setup(
         'appdirs>=1.4.0',
         'aws-requests-auth>=0.4.2',
         'boto3>=1.8.0',
+        'flask',
+        'flask_cors',
+        'flask_json',
         'jsonlines==1.2.0',
         'packaging>=16.8',
         'python-dateutil<=2.8.0',           # 2.8.1 conflicts with botocore
