@@ -109,7 +109,7 @@ export default React.forwardRef(function BucketGrid(
                     !!onTagClick && classes.active,
                   )}
                   type="button"
-                  onClick={onTagClick}
+                  onClick={() => onTagClick(t)}
                 >
                   {t}
                 </button>
