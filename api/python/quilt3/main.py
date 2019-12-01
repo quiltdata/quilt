@@ -22,7 +22,20 @@ def cmd_config(catalog_url):
 
 
 def cmd_catalog():
-    subprocess.Popen(["docker","run","--rm", "--env-file", "catalog.env", "-p", "3000:80", "quiltdata/catalog"])
+    open_config = api.config()
+    command = ["docker","run","--rm"]
+    env = dict(REGISTRY_URL="http://localhost:5000",
+               S3_PROXY_URL=open_config["s3Proxy"],
+               ALWAYS_REQUIRE_AUTH="false",
+               CATALOG_MODE="LOCAL",
+               SSO_AUTH="DISABLED",
+               PASSWORD_AUTH="ENABLED",
+               API_GATEWAY=open_config["apiGatewayEndpoint"],
+               BINARY_API_GATEWAY=open_config["binaryApiGatewayEndpoint"])
+    for var in [f"{key}={value}" for key, value in env.items()]:
+        command += ["-e", var]
+    command += ["-p", "3000:80", "quiltdata/catalog"]
+    subprocess.Popen(command)
     app.run()
 
 
