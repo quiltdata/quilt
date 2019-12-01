@@ -348,8 +348,13 @@ def configure_from_url(catalog_url):
     if not new_config.get('navigator_url'):
         new_config['navigator_url'] = catalog_url
 
+    # Discard some keys that are only relevant for the catalog
+    config_keys_to_ignore = ["mixpanelToken", "sentryDSN"] # TODO: discard more
+
     # Use our template + their configured values, keeping our comments.
     for key, value in new_config.items():
+        if key in config_keys_to_ignore:
+            continue
         config_template[key] = value
     write_yaml(config_template, CONFIG_PATH, keep_backup=True)
     return config_template
