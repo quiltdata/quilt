@@ -655,10 +655,6 @@ class Package(object):
     @classmethod
     @ApiTelemetry("package.load")
     def load(cls, readable_file):
-        return cls._load(readable_file=readable_file)
-
-    @classmethod
-    def _load(cls, readable_file):
         """
         Loads a package from a readable file-like object.
 
@@ -673,6 +669,10 @@ class Package(object):
             json decode error
             invalid package exception
         """
+        return cls._load(readable_file=readable_file)
+
+    @classmethod
+    def _load(cls, readable_file):
         reader = jsonlines.Reader(readable_file)
         meta = reader.read()
         meta.pop('top_hash', None)  # Obsolete as of PR #130
