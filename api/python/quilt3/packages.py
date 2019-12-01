@@ -456,7 +456,7 @@ class Package(object):
                     f"'build' instead."
                 )
 
-        pkg = cls.browse(name=name, registry=registry, top_hash=top_hash)
+        pkg = cls._browse(name=name, registry=registry, top_hash=top_hash)
         dest = fix_url(dest)
         message = pkg._meta.get('message', None)  # propagate the package message
 
@@ -498,6 +498,10 @@ class Package(object):
             registry(string): location of registry to load package from
             top_hash(string): top hash of package version to load
         """
+        return cls._browse(name=name, registry=registry, top_hash=top_hash)
+
+    @classmethod
+    def _browse(cls, name=None, registry=None, top_hash=None):
         if registry is None:
             registry = get_from_config('default_local_registry')
         else:
@@ -524,6 +528,7 @@ class Package(object):
                 copy_file(pkg_manifest_uri, local_pkg_manifest.as_uri())
 
         return cls._from_path(local_pkg_manifest)
+
 
     @classmethod
     def _from_path(cls, path):
