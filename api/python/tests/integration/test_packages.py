@@ -126,7 +126,7 @@ class PackageTest(QuiltTestCase):
             pkg = Package.load(fd)
             assert test_file.resolve().as_uri() == pkg['bar'].physical_keys[0]
 
-    @patch('quilt3.Package.browse', lambda name, registry, top_hash: Package())
+    @patch('quilt3.Package._browse', lambda name, registry, top_hash: Package())
     def test_default_install_location(self):
         """Verify that pushes to the default local install location work as expected"""
         with patch('quilt3.Package._materialize') as materialize_mock:
@@ -1141,7 +1141,7 @@ class PackageTest(QuiltTestCase):
 
 
     def test_import(self):
-        with patch('quilt3.Package.browse') as browse_mock, \
+        with patch('quilt3.Package._browse') as browse_mock, \
             patch('quilt3.imports._list_packages') as list_packages_mock:
             browse_mock.return_value = quilt3.Package()
             list_packages_mock.return_value = ['foo/bar', 'foo/baz']
