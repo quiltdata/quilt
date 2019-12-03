@@ -1296,6 +1296,32 @@ class PackageTest(QuiltTestCase):
         local_path.write_text('omg')
         assert p['foo'].get_cached_path() is None
 
+        # Check that installing the package again reuses the cached manifest and two objects - but not "foo".
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(b'abcdef'),
+            },
+            expected_params={
+                'Bucket': 'my-test-bucket',
+                'Key': '.quilt/named_packages/Quilt/Foo/latest',
+            }
+        )
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO('💩'.encode()),
+            },
+            expected_params={
+                'Bucket': 'my_bucket',
+                'Key': 'my_data_pkg/foo',
+            }
+        )
+
+        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
+            Package.install('Quilt/Foo', registry='s3://my-test-bucket', dest='package/')
 
     def test_rollback(self):
         p = Package()
