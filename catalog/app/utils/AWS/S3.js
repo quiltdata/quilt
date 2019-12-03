@@ -51,13 +51,11 @@ export const useRequest = (extra) => {
   const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
   return React.useMemo(
     () => ({ bucket, operation, params }) => {
-      let client
+      let client = regularClient
       if (!authenticated && operation === 'selectObjectContent') {
         client = s3SelectClient
-      } else if (cfg.shouldProxy(bucket)) {
+      } else if (cfg.mode !== 'LOCAL' && cfg.shouldProxy(bucket)) {
         client = proxyingClient
-      } else {
-        client = regularClient
       }
       const method =
         cfg.mode === 'LOCAL' || (authenticated && cfg.shouldSign(bucket))
