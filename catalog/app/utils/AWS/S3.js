@@ -52,9 +52,7 @@ export const useRequest = (extra) => {
   return React.useMemo(
     () => ({ bucket, operation, params }) => {
       let client
-      if (cfg.mode === 'LOCAL') {
-        client = regularClient
-      } else if (!authenticated && operation === 'selectObjectContent') {
+      if (!authenticated && operation === 'selectObjectContent') {
         client = s3SelectClient
       } else if (cfg.shouldProxy(bucket)) {
         client = proxyingClient
