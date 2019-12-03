@@ -115,7 +115,7 @@
     "reselect": "^4.0.0",
     "resize-observer-polyfill": "^1.5.1",
     "sanitize.css": "^8.0.1",
-    "use-debounce": "^3.1.0",
+    "use-debounce": "^3.2.0",
     "uuid": "^3.3.3",
     "vega": "^5.8.1",
     "vega-embed": "^4.2.5",
