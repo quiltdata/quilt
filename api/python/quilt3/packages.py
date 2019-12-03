@@ -1295,6 +1295,11 @@ class Package(object):
         # Since all that is modified is physical keys, pkg will have the same top hash
         file_list = []
         entries = []
+
+        dest_url = dest_url.rstrip('/')
+
+        local_dest = file_is_local(dest_url)
+
         for logical_key, entry in self.walk():
             if not selector_fn(logical_key, entry):
                 pkg._set(logical_key, entry)
@@ -1302,6 +1307,13 @@ class Package(object):
 
             # Copy the datafiles in the package.
             physical_key = _to_singleton(entry.physical_keys)
+
+            if local_dest:
+                # Try a local cache.
+                cached_file = ObjectPathCache.get(physical_key)
+                if cached_file is not None:
+                    physical_key = pathlib.Path(cached_file).as_uri()
+
             unversioned_physical_key = physical_key.split('?', 1)[0]
             new_physical_key = dest_url + "/" + quote(logical_key)
             new_entry = entry._clone()
