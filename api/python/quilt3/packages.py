@@ -1,5 +1,4 @@
 from collections import deque
-import binascii
 import copy
 import hashlib
 import io
@@ -27,6 +26,7 @@ from .util import (
     parse_s3_url, validate_package_name, quiltignore_filter, validate_key, extract_file_extension, file_is_local
 )
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
+
 
 
 def hash_file(readable_file):
@@ -67,15 +67,16 @@ def _delete_local_physical_key(pk):
 
 
 def _filesystem_safe_encode(key):
-    """Encodes the key as hex. This ensures there are no slashes, uppercase/lowercase conflicts, etc."""
-    return binascii.hexlify(key.encode()).decode()
+    """Returns the sha256 of the key. This ensures there are no slashes, uppercase/lowercase conflicts, 
+    avoids `OSError: [Errno 36] File name too long:`, etc."""
+    return hashlib.sha256(key.encode()).hexdigest()
 
 
 class ObjectPathCache(object):
     @classmethod
     def _cache_path(cls, url):
-        prefix = '%08x' % binascii.crc32(url.encode())
-        return CACHE_PATH / prefix / _filesystem_safe_encode(url)
+        url_hash = _filesystem_safe_encode(url)
+        return CACHE_PATH / url_hash[0:2] / url_hash[2:]
 
     @classmethod
     def get(cls, url):
@@ -225,6 +226,40 @@ class PackageEntry(object):
         if not file_is_local(physical_key):
             return ObjectPathCache.get(physical_key)
         return None
+
+    def get_bytes(self, use_cache_if_available=True):
+        """
+        Returns the bytes of the object this entry corresponds to. If 'use_cache_if_available'=True, will first try to
+        retrieve the bytes from cache.
+        """
+        if use_cache_if_available:
+            cached_path = self.get_cached_path()
+            if cached_path is not None:
+                return get_bytes(pathlib.Path(cached_path).as_uri())
+
+        physical_key = _to_singleton(self.physical_keys)
+        data = get_bytes(physical_key)
+        return data
+
+    def get_as_json(self, use_cache_if_available=True):
+        """
+        Returns a JSON file as a `dict`. Assumes that the file is encoded using utf-8.
+
+        If 'use_cache_if_available'=True, will first try to retrieve the object from cache.
+        """
+        obj_bytes = self.get_bytes(use_cache_if_available=use_cache_if_available)
+        return json.loads(obj_bytes.decode("utf-8"))
+
+
+    def get_as_string(self, use_cache_if_available=True):
+        """
+        Return the object as a string. Assumes that the file is encoded using utf-8.
+
+        If 'use_cache_if_available'=True, will first try to retrieve the object from cache.
+        """
+        obj_bytes = self.get_bytes(use_cache_if_available=use_cache_if_available)
+        return obj_bytes.decode("utf-8")
+
 
     def deserialize(self, func=None, **format_opts):
         """
@@ -754,7 +789,23 @@ class Package(object):
             raise ValueError("Key does not point to a PackageEntry")
         return obj.get()
 
-    # def get_as_pathlib(self):
+
+
+
+    def readme(self):
+        """
+        Returns the README PackageEntry
+
+        The README is the entry with the logical key 'README.md' (case-sensitive). Will raise a QuiltException if
+        no such entry exists.
+        """
+        if "README.md" not in self:
+            ex_msg = f"This Package is missing a README file. A Quilt recognized README file is a  file named " \
+                     f"'README.md' (case-insensitive)"
+            raise QuiltException(ex_msg)
+
+        return self["README.md"]
+
 
     def set_meta(self, meta):
         """
@@ -1076,7 +1127,7 @@ class Package(object):
 
 
     @ApiTelemetry("package.push")
-    def push(self, name, registry=None, dest=None, message=None):
+    def push(self, name, registry=None, dest=None, message=None, selector_fn=lambda logical_key, package_entry: True):
         """
         Copies objects to path, then creates a new package that points to those objects.
         Copies each object in this package to path according to logical key structure,
@@ -1088,6 +1139,28 @@ class Package(object):
             dest: where to copy the objects in the package
             registry: registry where to create the new package
             message: the commit message for the new package
+            selector_fn: A filter function that determines which package entries should be pushed. The function takes
+                         in two arguments, logical_key and package_entry, and should return False if that PackageEntry
+                         should be skipped during push. If for example you have a package where the files are spread
+                         over multiple buckets and you add a single local file, you can use selector_fn to only push
+                         the local file to s3 (instead of pushing all data to the destination bucket).
+
+
+                         Note that push is careful to not push data unnecessarily. To illustrate, imagine you have a
+                         PackageEntry: `pkg["entry_1"].physical_keys = ["/tmp/package_entry_1.json"]`
+
+                         If that entry would be pushed to s3://bucket/prefix/entry_1.json, but
+                         s3://bucket/prefix/entry_1.json already contains the exact same bytes as
+                         '/tmp/package_entry_1.json', quilt3 will not push the bytes to s3, no matter what
+                         selector_fn('entry_1', pkg["entry_1"]) returns.
+
+                         However, selector_fn will dictate whether the new package points to the local file or to s3:
+
+                         If `selector_fn('entry_1', pkg["entry_1"]) == False`,
+                         `new_pkg["entry_1"] = ["/tmp/package_entry_1.json"]`
+
+                         If `selector_fn('entry_1', pkg["entry_1"]) == True`,
+                         `new_pkg["entry_1"] = ["s3://bucket/prefix/entry_1.json"]`
 
         Returns:
             A new package that points to the copied objects.
@@ -1143,7 +1216,7 @@ class Package(object):
                 )
 
         self._fix_sha256()
-        pkg = self._materialize(dest)
+        pkg = self._materialize(dest, selector_fn=selector_fn)
 
         def physical_key_is_temp_file(pk):
             if not file_is_local(pk):
@@ -1196,7 +1269,7 @@ class Package(object):
             path = parse_file_url(new_parsed_url)
             ObjectPathCache.set(old_url, path)
 
-    def _materialize(self, dest_url):
+    def _materialize(self, dest_url, selector_fn=lambda logical_key, pkg_entry: True):
         """
         Copies all Package entries to the destination, then creates a new package that points to those objects.
 
@@ -1205,6 +1278,9 @@ class Package(object):
 
         Args:
             path: where to copy the objects in the package
+            selector_fn: A function that indicates which package_entries should be materialized and which should be
+                         skipped. See documentation for package.push() for more details. By default materializes all
+                         PackageEntries
 
         Returns:
             A new package that points to the copied objects
@@ -1219,15 +1295,31 @@ class Package(object):
         # Since all that is modified is physical keys, pkg will have the same top hash
         file_list = []
         entries = []
+
+        dest_url = dest_url.rstrip('/')
+
+        local_dest = file_is_local(dest_url)
+
         for logical_key, entry in self.walk():
+            if not selector_fn(logical_key, entry):
+                pkg._set(logical_key, entry)
+                continue
+
             # Copy the datafiles in the package.
             physical_key = _to_singleton(entry.physical_keys)
+
+            if local_dest:
+                # Try a local cache.
+                cached_file = ObjectPathCache.get(physical_key)
+                if cached_file is not None:
+                    physical_key = pathlib.Path(cached_file).as_uri()
+
             unversioned_physical_key = physical_key.split('?', 1)[0]
             new_physical_key = dest_url + "/" + quote(logical_key)
             new_entry = entry._clone()
             if unversioned_physical_key == new_physical_key:
                 # No need to copy - re-use the original physical key.
-                pkg.set(logical_key, new_entry)
+                pkg._set(logical_key, new_entry)
             else:
                 entries.append((logical_key, new_entry))
                 file_list.append((physical_key, new_physical_key, entry.size))
@@ -1279,14 +1371,14 @@ class Package(object):
         Performs a user-specified operation on each entry in the package.
 
         Args:
-           f(x, y): function
-               The function to be applied to each package entry.
-               It should take two inputs, a logical key and a PackageEntry.
-           include_directories: bool
-               Whether or not to include directory entries in the map.
+            f(x, y): function
+                The function to be applied to each package entry.
+                It should take two inputs, a logical key and a PackageEntry.
+            include_directories: bool
+                Whether or not to include directory entries in the map.
 
         Returns: list
-           The list of results generated by the map.
+            The list of results generated by the map.
         """
         return self._map(f, include_directories=include_directories)
 
@@ -1338,3 +1430,37 @@ class Package(object):
                 p._set(lk, entity)
 
         return p
+
+    def verify(self, src, extra_files_ok=False):
+        """
+        Check if the contents of the given directory matches the package manifest.
+
+        Args:
+            src(str): URL of the directory
+            extra_files_ok(bool): Whether extra files in the directory should cause a failure.
+        Returns:
+            True if the package matches the directory; False otherwise.
+        """
+        src = fix_url(src).rstrip('/') + '/'
+        src_dict = dict(list_url(src))
+        url_list = []
+        size_list = []
+        for logical_key, entry in self.walk():
+            src_size = src_dict.pop(logical_key, None)
+            if src_size is None:
+                return False
+            if entry.size != src_size:
+                return False
+            entry_url = src + quote(logical_key)
+            url_list.append(entry_url)
+            size_list.append(src_size)
+
+        if src_dict and not extra_files_ok:
+            return False
+
+        hash_list = calculate_sha256(url_list, size_list)
+        for (logical_key, entry), url_hash in zip(self.walk(), hash_list):
+            if entry.hash['value'] != url_hash:
+                return False
+
+        return True

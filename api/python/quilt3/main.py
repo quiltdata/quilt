@@ -21,6 +21,7 @@ def cmd_config(catalog_url):
         api.config(catalog_url)
 
 
+<<<<<<< HEAD
 def cmd_catalog():
     open_config = api.config()
     command = ["docker","run","--rm"]
@@ -37,6 +38,16 @@ def cmd_catalog():
     command += ["-p", "3000:80", "quiltdata/catalog"]
     subprocess.Popen(command)
     app.run()
+=======
+def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
+    pkg = api.Package.browse(name, registry, top_hash)
+    if pkg.verify(dir, extra_files_ok):
+        print("Verification succeeded")
+        return 0
+    else:
+        print("Verification failed")
+        return 1
+>>>>>>> master
 
 
 def create_parser():
@@ -71,6 +82,73 @@ def create_parser():
     config_p = subparsers.add_parser("catalog", description=shorthelp, help=shorthelp)
     config_p.set_defaults(func=cmd_catalog)
 
+    # install
+    shorthelp = "Install a package"
+    install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp)
+    install_p.add_argument(
+        "name",
+        help="Name of package, in the USER/PKG format",
+        type=str,
+    )
+    install_p.add_argument(
+        "--registry",
+        help="Registry where package is located, usually s3://MY-BUCKET. Defaults to the default remote registry.",
+        type=str,
+        required=False,
+    )
+    install_p.add_argument(
+        "--top-hash",
+        help="Hash of package to install. Defaults to latest.",
+        type=str,
+        required=False,
+    )
+    install_p.add_argument(
+        "--dest",
+        help="Local path to download files to.",
+        type=str,
+        required=False,
+    )
+    install_p.add_argument(
+        "--dest-registry",
+        help="Registry to install package to. Defaults to local registry.",
+        type=str,
+        required=False,
+    )
+    install_p.set_defaults(func=api.Package.install)
+
+    shorthelp = "Verify that package contents matches a given directory"
+    verify_p = subparsers.add_parser("verify", description=shorthelp, help=shorthelp)
+    verify_p.add_argument(
+        "name",
+        help="Name of package, in the USER/PKG format",
+        type=str,
+    )
+    verify_p.add_argument(
+        "--registry",
+        help="Registry where package is located, usually s3://MY-BUCKET",
+        type=str,
+        required=True,
+    )
+    verify_p.add_argument(
+        "--top-hash",
+        help="Hash of package to verify",
+        type=str,
+        required=True,
+    )
+    verify_p.add_argument(
+        "--dir",
+        help="Directory to verify",
+        type=str,
+        required=True,
+    )
+    verify_p.add_argument(
+        "--extra-files-ok",
+        help="Directory to verify",
+        action="store_true"
+    )
+    verify_p.set_defaults(func=cmd_verify)
+>>>>>>> master
+
     return parser
 
 
@@ -82,8 +160,7 @@ def main(args=None):
     func = kwargs.pop('func')
 
     try:
-        func(**kwargs)
+        return func(**kwargs)
     except QuiltException as ex:
         print(ex.message, file=sys.stderr)
-
-    return 0
+        return 1

@@ -124,7 +124,7 @@ export default () => {
                 </NavLink>
               </>
             )}
-            {cfg.enableMarketingPages && (
+            {cfg.mode === 'MARKETING' && (
               <>
                 <NavSpacer />
                 <NavLink to={urls.about()}>About</NavLink>

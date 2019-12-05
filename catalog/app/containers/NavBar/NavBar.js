@@ -269,7 +269,7 @@ function useLinks() {
       label: 'Jobs',
     },
     { href: URLS.blog, label: 'Blog' },
-    cfg.enableMarketingPages && { to: urls.about(), label: 'About' },
+    cfg.mode === 'MARKETING' && { to: urls.about(), label: 'About' },
   ].filter(Boolean)
 }
 

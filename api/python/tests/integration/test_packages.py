@@ -461,7 +461,7 @@ class PackageTest(QuiltTestCase):
         new_pkg.set('foo2', test_file1)
 
         with patch('time.time', return_value=1234567890), \
-             patch('quilt3.data_transfer.s3_threads', 1):
+             patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             remote_pkg = new_pkg.push('Quilt/package', 's3://my_test_bucket/')
 
         # Modify one file, and check that only that file gets uploaded.
@@ -520,7 +520,7 @@ class PackageTest(QuiltTestCase):
         remote_pkg.set('foo2', test_file3)
 
         with patch('time.time', return_value=1234567891), \
-             patch('quilt3.data_transfer.s3_threads', 1):
+             patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
 
 
@@ -1268,7 +1268,7 @@ class PackageTest(QuiltTestCase):
             }
         )
 
-        with patch('quilt3.data_transfer.s3_threads', 1):
+        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             Package.install('Quilt/Foo', registry='s3://my-test-bucket', dest='package')
 
         p = Package.browse('Quilt/Foo')
@@ -1279,6 +1279,10 @@ class PackageTest(QuiltTestCase):
         local_path = pathlib.Path(p['foo'].get_cached_path())
         assert local_path == pathlib.Path.cwd() / 'package/foo'
         assert local_path.read_text('utf8') == '💩'
+
+        # Test that get_bytes and get_as_text works
+        assert p['foo'].get_bytes().decode("utf-8") == '💩'
+        assert p['foo'].get_as_string() == '💩'
 
         # Check that moving the file invalidates the cache...
         local_path.rename('foo2')
@@ -1292,6 +1296,32 @@ class PackageTest(QuiltTestCase):
         local_path.write_text('omg')
         assert p['foo'].get_cached_path() is None
 
+        # Check that installing the package again reuses the cached manifest and two objects - but not "foo".
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(b'abcdef'),
+            },
+            expected_params={
+                'Bucket': 'my-test-bucket',
+                'Key': '.quilt/named_packages/Quilt/Foo/latest',
+            }
+        )
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO('💩'.encode()),
+            },
+            expected_params={
+                'Bucket': 'my_bucket',
+                'Key': 'my_data_pkg/foo',
+            }
+        )
+
+        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
+            Package.install('Quilt/Foo', registry='s3://my-test-bucket', dest='package/')
 
     def test_rollback(self):
         p = Package()
@@ -1316,3 +1346,25 @@ class PackageTest(QuiltTestCase):
 
         with self.assertRaises(QuiltException):
             Package.rollback('quilt/blah', LOCAL_REGISTRY, good_hash)
+
+
+    def test_verify(self):
+        pkg = Package()
+
+        pkg.set('foo', b'Hello, World!')
+        pkg.build('quilt/test')
+
+        Package.install('quilt/test', LOCAL_REGISTRY, dest='test')
+        assert pkg.verify('test')
+
+        Path('test/blah').write_text('123')
+        assert not pkg.verify('test')
+        assert pkg.verify('test', extra_files_ok=True)
+
+        Path('test/foo').write_text('123')
+        assert not pkg.verify('test')
+        assert not pkg.verify('test', extra_files_ok=True)
+
+        Path('test/foo').write_text('Hello, World!')
+        Path('test/blah').unlink()
+        assert pkg.verify('test')

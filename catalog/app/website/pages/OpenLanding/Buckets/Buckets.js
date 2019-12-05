@@ -65,7 +65,7 @@ export default function Buckets() {
 
   const filtered = React.useMemo(() => {
     if (!terms.length) return buckets
-    const matches = R.anyPass(R.map(R.includes, terms))
+    const matches = R.allPass(R.map(R.includes, terms))
     return buckets.filter(
       R.pipe(
         (b) => [b.title, b.name, b.description, ...(b.tags || [])],

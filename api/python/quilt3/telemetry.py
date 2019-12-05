@@ -27,7 +27,7 @@ class ApiTelemetry:
     session_id = str(uuid.uuid4())
     pending_reqs = []
     pending_reqs_lock = Lock()
-    telemetry_disabled = False
+    telemetry_disabled = None
 
     @classmethod
     def create_session(cls):
@@ -120,7 +120,7 @@ class ApiTelemetry:
             'python_version_minor': platform.python_version_tuple()[1],
             'python_version_patch': platform.python_version_tuple()[2]
         }
-        print(f"Sending data: {data}")
+        # print(f"Sending data: {data}")
         with ApiTelemetry.pending_reqs_lock:
             r = ApiTelemetry.session.post(TELEMETRY_URL, json=data, headers={'User-Agent': TELEMETRY_USER_AGENT})
             ApiTelemetry.pending_reqs.append(r)
