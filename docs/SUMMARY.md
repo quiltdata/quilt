@@ -26,6 +26,7 @@
 * [quilt3](API Reference/api.md)
 * [quilt3.Package](API Reference/Package.md)
 * [quilt3.Bucket](API Reference/Bucket.md)
+* [quilt3 CLI](API Reference/cli.md)
 
 ### References
 
