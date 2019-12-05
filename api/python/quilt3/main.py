@@ -20,8 +20,6 @@ def cmd_config(catalog_url):
     else:
         api.config(catalog_url)
 
-
-<<<<<<< HEAD
 def cmd_catalog():
     open_config = api.config()
     command = ["docker","run","--rm"]
@@ -38,7 +36,7 @@ def cmd_catalog():
     command += ["-p", "3000:80", "quiltdata/catalog"]
     subprocess.Popen(command)
     app.run()
-=======
+
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
     pkg = api.Package.browse(name, registry, top_hash)
     if pkg.verify(dir, extra_files_ok):
@@ -47,8 +45,6 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
     else:
         print("Verification failed")
         return 1
->>>>>>> master
-
 
 def create_parser():
     parser = argparse.ArgumentParser()
@@ -116,6 +112,7 @@ def create_parser():
     )
     install_p.set_defaults(func=api.Package.install)
 
+    # verify
     shorthelp = "Verify that package contents matches a given directory"
     verify_p = subparsers.add_parser("verify", description=shorthelp, help=shorthelp)
     verify_p.add_argument(
@@ -147,7 +144,6 @@ def create_parser():
         action="store_true"
     )
     verify_p.set_defaults(func=cmd_verify)
->>>>>>> master
 
     return parser
 
