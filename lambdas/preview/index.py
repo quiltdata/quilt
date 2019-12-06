@@ -173,6 +173,7 @@ def extract_csv(head, separator):
     except pandas.errors.ParserError:
         data = pandas.read_csv(
             io.StringIO('\n'.join(head)),
+            error_bad_lines=False,
             # this slower (doesn't use C) but deduces the separator
             sep=None
         )
