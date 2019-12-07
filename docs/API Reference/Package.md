@@ -42,6 +42,15 @@ __Returns__
 A new Package that points to files on your local machine.
 
 
+## Package.resolve\_hash(registry, hash\_prefix)  {#Package.resolve\_hash}
+
+Find a hash that starts with a given prefix.
+__Arguments__
+
+* __registry(string)__:  location of registry
+* __hash_prefix(string)__:  hash prefix with length between 6 and 64 characters
+
+
 ## Package.browse(name=None, registry=None, top\_hash=None)  {#Package.browse}
 
 Load a package into memory from a registry without making a local copy of
@@ -102,25 +111,6 @@ Generator that traverses all entries in the package tree and returns tuples of (
 with keys in alphabetical order.
 
 
-## Package.load(readable\_file)  {#Package.load}
-
-Loads a package from a readable file-like object.
-
-__Arguments__
-
-* __readable_file__:  readable file-like object to deserialize package from
-
-__Returns__
-
-A new Package object
-
-__Raises__
-
-file not found
-json decode error
-invalid package exception
-
-
 ## Package.set\_dir(self, lkey, path=None, meta=None)  {#Package.set\_dir}
 
 Adds all files from `path` to the package.
@@ -162,6 +152,14 @@ __Raises__
 
 * `KeyError`:  when logical_key is not present in the package
 * `ValueError`:  if the logical_key points to a Package rather than PackageEntry.
+
+
+## Package.readme(self)  {#Package.readme}
+
+Returns the README PackageEntry
+
+The README is the entry with the logical key 'README.md' (case-sensitive). Will raise a QuiltException if
+no such entry exists.
 
 
 ## Package.set\_meta(self, meta)  {#Package.set\_meta}
@@ -323,4 +321,17 @@ __Arguments__
 __Returns__
 
 A new package with entries that evaluated to False removed
+
+
+## Package.verify(self, src, extra\_files=False)  {#Package.verify}
+
+Check if the contents of the given directory matches the package manifest.
+
+__Arguments__
+
+* __src(str)__:  URL of the directory
+* __extra_files(bool)__:  Whether extra files in the directory should cause a failure.
+__Returns__
+
+True if the package matches the directory; False otherwise.
 

@@ -1,5 +1,4 @@
 from collections import deque
-import binascii
 import copy
 import hashlib
 import io
@@ -17,15 +16,17 @@ import jsonlines
 
 from .data_transfer import (
     calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_version,
-    list_object_versions, put_bytes
+    list_object_versions, list_url, put_bytes
 )
 from .exceptions import PackageException
 from .formats import FormatRegistry
+from .telemetry import ApiTelemetry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location, make_s3_url, parse_file_url,
     parse_s3_url, validate_package_name, quiltignore_filter, validate_key, extract_file_extension, file_is_local
 )
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
+
 
 
 def hash_file(readable_file):
@@ -66,15 +67,16 @@ def _delete_local_physical_key(pk):
 
 
 def _filesystem_safe_encode(key):
-    """Encodes the key as hex. This ensures there are no slashes, uppercase/lowercase conflicts, etc."""
-    return binascii.hexlify(key.encode()).decode()
+    """Returns the sha256 of the key. This ensures there are no slashes, uppercase/lowercase conflicts, 
+    avoids `OSError: [Errno 36] File name too long:`, etc."""
+    return hashlib.sha256(key.encode()).hexdigest()
 
 
 class ObjectPathCache(object):
     @classmethod
     def _cache_path(cls, url):
-        prefix = '%08x' % binascii.crc32(url.encode())
-        return CACHE_PATH / prefix / _filesystem_safe_encode(url)
+        url_hash = _filesystem_safe_encode(url)
+        return CACHE_PATH / url_hash[0:2] / url_hash[2:]
 
     @classmethod
     def get(cls, url):
@@ -225,6 +227,40 @@ class PackageEntry(object):
             return ObjectPathCache.get(physical_key)
         return None
 
+    def get_bytes(self, use_cache_if_available=True):
+        """
+        Returns the bytes of the object this entry corresponds to. If 'use_cache_if_available'=True, will first try to
+        retrieve the bytes from cache.
+        """
+        if use_cache_if_available:
+            cached_path = self.get_cached_path()
+            if cached_path is not None:
+                return get_bytes(pathlib.Path(cached_path).as_uri())
+
+        physical_key = _to_singleton(self.physical_keys)
+        data = get_bytes(physical_key)
+        return data
+
+    def get_as_json(self, use_cache_if_available=True):
+        """
+        Returns a JSON file as a `dict`. Assumes that the file is encoded using utf-8.
+
+        If 'use_cache_if_available'=True, will first try to retrieve the object from cache.
+        """
+        obj_bytes = self.get_bytes(use_cache_if_available=use_cache_if_available)
+        return json.loads(obj_bytes.decode("utf-8"))
+
+
+    def get_as_string(self, use_cache_if_available=True):
+        """
+        Return the object as a string. Assumes that the file is encoded using utf-8.
+
+        If 'use_cache_if_available'=True, will first try to retrieve the object from cache.
+        """
+        obj_bytes = self.get_bytes(use_cache_if_available=use_cache_if_available)
+        return obj_bytes.decode("utf-8")
+
+
     def deserialize(self, func=None, **format_opts):
         """
         Returns the object this entry corresponds to.
@@ -300,6 +336,7 @@ class Package(object):
         self._children = {}
         self._meta = {'version': 'v0'}
 
+    @ApiTelemetry("package.__repr__")
     def __repr__(self, max_lines=20):
         """
         String representation of the Package.
@@ -315,7 +352,7 @@ class Package(object):
 
             if parent:
                 has_remote_entries = any(
-                    self.map(
+                    self._map(
                         lambda lk, entry: urlparse(
                             fix_url(_to_singleton(entry.physical_keys))
                         ).scheme != 'file'
@@ -373,6 +410,7 @@ class Package(object):
         return self._meta.get('user_meta', dict())
 
     @classmethod
+    @ApiTelemetry("package.install")
     def install(cls, name, registry=None, top_hash=None, dest=None, dest_registry=None):
         """
         Installs a named package to the local registry and downloads its files.
@@ -423,9 +461,34 @@ class Package(object):
         message = pkg._meta.get('message', None)  # propagate the package message
 
         pkg._materialize(dest)
-        pkg.build(name, registry=dest_registry, message=message)
+        pkg._build(name, registry=dest_registry, message=message)
+
 
     @classmethod
+    def resolve_hash(cls, registry, hash_prefix):
+        """
+        Find a hash that starts with a given prefix.
+        Args:
+            registry(string): location of registry
+            hash_prefix(string): hash prefix with length between 6 and 64 characters
+        """
+        if len(hash_prefix) == 64:
+            top_hash = hash_prefix
+        elif 6 <= len(hash_prefix) < 64:
+            all_hashes = list_url(f'{registry}/.quilt/packages/')
+            matches = [h for h, _ in all_hashes if h.startswith(hash_prefix)]
+            if not matches:
+                raise QuiltException("Found zero matches for %r" % hash_prefix)
+            elif len(matches) > 1:
+                raise QuiltException("Found multiple matches: %r" % hash_prefix)
+            else:
+                top_hash = matches[0]
+        else:
+            raise QuiltException("Invalid hash: %r" % hash_prefix)
+        return top_hash
+
+    @classmethod
+    @ApiTelemetry("package.browse")
     def browse(cls, name=None, registry=None, top_hash=None):
         """
         Load a package into memory from a registry without making a local copy of
@@ -446,6 +509,8 @@ class Package(object):
         if top_hash is None:
             top_hash_url = f'{registry}/.quilt/named_packages/{quote(name)}/latest'
             top_hash = get_bytes(top_hash_url).decode('utf-8').strip()
+        else:
+            top_hash = cls.resolve_hash(registry, top_hash)
 
         # TODO: verify that name is correct with respect to this top_hash
         # TODO: allow partial hashes (e.g. first six alphanumeric)
@@ -511,6 +576,7 @@ class Package(object):
             pkg = pkg._children[key_fragment]
         return pkg
 
+    @ApiTelemetry("package.fetch")
     def fetch(self, dest='./'):
         """
         Copy all descendants to `dest`. Descendants are written under their logical
@@ -536,7 +602,7 @@ class Package(object):
             # see GH#388 for context
             new_entry = entry._clone()
             new_entry.physical_keys = [new_physical_key]
-            pkg.set(logical_key, new_entry)
+            pkg._set(logical_key, new_entry)
 
         copy_file_list(file_list)
 
@@ -582,7 +648,12 @@ class Package(object):
                 yield key + '/' + child_key, child_meta
 
     @classmethod
+    @ApiTelemetry("package.load")
     def load(cls, readable_file):
+        return cls._load(readable_file=readable_file)
+
+    @classmethod
+    def _load(cls, readable_file):
         """
         Loads a package from a readable file-like object.
 
@@ -673,7 +744,7 @@ class Package(object):
                     continue
                 entry = PackageEntry([f.as_uri()], f.stat().st_size, None, None)
                 logical_key = f.relative_to(src_path).as_posix()
-                root.set(logical_key, entry)
+                root._set(logical_key, entry)
         elif url.scheme == 's3':
             src_bucket, src_key, src_version = parse_s3_url(url)
             if src_version:
@@ -692,7 +763,7 @@ class Package(object):
                 obj_url = make_s3_url(src_bucket, obj['Key'], obj.get('VersionId'))
                 entry = PackageEntry([obj_url], obj['Size'], None, None)
                 logical_key = obj['Key'][len(src_key):]
-                root.set(logical_key, entry)
+                root._set(logical_key, entry)
         else:
             raise NotImplementedError
 
@@ -718,7 +789,23 @@ class Package(object):
             raise ValueError("Key does not point to a PackageEntry")
         return obj.get()
 
-    # def get_as_pathlib(self):
+
+
+
+    def readme(self):
+        """
+        Returns the README PackageEntry
+
+        The README is the entry with the logical key 'README.md' (case-sensitive). Will raise a QuiltException if
+        no such entry exists.
+        """
+        if "README.md" not in self:
+            ex_msg = f"This Package is missing a README file. A Quilt recognized README file is a  file named " \
+                     f"'README.md' (case-insensitive)"
+            raise QuiltException(ex_msg)
+
+        return self["README.md"]
+
 
     def set_meta(self, meta):
         """
@@ -764,6 +851,8 @@ class Package(object):
 
         self._meta.update({'message': msg})
 
+
+    @ApiTelemetry("package.build")
     def build(self, name=None, registry=None, message=None):
         """
         Serializes this package to a registry.
@@ -777,6 +866,10 @@ class Package(object):
         Returns:
             The top hash as a string.
         """
+        return self._build(name=name, registry=registry, message=message)
+
+
+    def _build(self, name=None, registry=None, message=None):
         self._set_commit_message(message)
 
         if registry is None:
@@ -789,7 +882,7 @@ class Package(object):
 
         self._fix_sha256()
         manifest = io.BytesIO()
-        self.dump(manifest)
+        self._dump(manifest)
 
         pkg_manifest_file = f'{registry}/.quilt/packages/{quote(self.top_hash)}'
         put_bytes(
@@ -807,6 +900,8 @@ class Package(object):
 
         return self
 
+
+    @ApiTelemetry("package.dump")
     def dump(self, writable_file):
         """
         Serializes this package to a writable file-like object.
@@ -821,6 +916,9 @@ class Package(object):
             fail to create file
             fail to finish write
         """
+        return self._dump(writable_file)
+
+    def _dump(self, writable_file):
         writer = jsonlines.Writer(writable_file)
         for line in self.manifest:
             writer.write(line)
@@ -835,6 +933,7 @@ class Package(object):
             yield {'logical_key': dir_key, 'meta': meta}
         for logical_key, entry in self.walk():
             yield {'logical_key': logical_key, **entry.as_dict()}
+
 
     def set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
         """
@@ -860,6 +959,15 @@ class Package(object):
         Returns:
             self
         """
+        return self._set(logical_key=logical_key,
+                         entry=entry,
+                         meta=meta,
+                         serialization_location=serialization_location,
+                         serialization_format_opts=serialization_format_opts)
+
+
+    def _set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
+
         if not logical_key or logical_key.endswith('/'):
             raise QuiltException(
                 f"Invalid logical key {logical_key!r}. "
@@ -1016,7 +1124,10 @@ class Package(object):
 
         return top_hash.hexdigest()
 
-    def push(self, name, registry=None, dest=None, message=None):
+
+
+    @ApiTelemetry("package.push")
+    def push(self, name, registry=None, dest=None, message=None, selector_fn=lambda logical_key, package_entry: True):
         """
         Copies objects to path, then creates a new package that points to those objects.
         Copies each object in this package to path according to logical key structure,
@@ -1028,6 +1139,28 @@ class Package(object):
             dest: where to copy the objects in the package
             registry: registry where to create the new package
             message: the commit message for the new package
+            selector_fn: A filter function that determines which package entries should be pushed. The function takes
+                         in two arguments, logical_key and package_entry, and should return False if that PackageEntry
+                         should be skipped during push. If for example you have a package where the files are spread
+                         over multiple buckets and you add a single local file, you can use selector_fn to only push
+                         the local file to s3 (instead of pushing all data to the destination bucket).
+
+
+                         Note that push is careful to not push data unnecessarily. To illustrate, imagine you have a
+                         PackageEntry: `pkg["entry_1"].physical_keys = ["/tmp/package_entry_1.json"]`
+
+                         If that entry would be pushed to s3://bucket/prefix/entry_1.json, but
+                         s3://bucket/prefix/entry_1.json already contains the exact same bytes as
+                         '/tmp/package_entry_1.json', quilt3 will not push the bytes to s3, no matter what
+                         selector_fn('entry_1', pkg["entry_1"]) returns.
+
+                         However, selector_fn will dictate whether the new package points to the local file or to s3:
+
+                         If `selector_fn('entry_1', pkg["entry_1"]) == False`,
+                         `new_pkg["entry_1"] = ["/tmp/package_entry_1.json"]`
+
+                         If `selector_fn('entry_1', pkg["entry_1"]) == True`,
+                         `new_pkg["entry_1"] = ["s3://bucket/prefix/entry_1.json"]`
 
         Returns:
             A new package that points to the copied objects.
@@ -1083,7 +1216,7 @@ class Package(object):
                 )
 
         self._fix_sha256()
-        pkg = self._materialize(dest)
+        pkg = self._materialize(dest, selector_fn=selector_fn)
 
         def physical_key_is_temp_file(pk):
             if not file_is_local(pk):
@@ -1099,9 +1232,9 @@ class Package(object):
 
         # Update old package to point to the materialized location of the file since the tempfile no longest exists
         for lk in temp_file_logical_keys:
-            self.set(lk, pkg[lk])
+            self._set(lk, pkg[lk])
 
-        pkg.build(name, registry=registry, message=message)
+        pkg._build(name, registry=registry, message=message)
         return pkg
 
     @classmethod
@@ -1116,6 +1249,8 @@ class Package(object):
         """
         registry = fix_url(registry).rstrip('/')
         validate_package_name(name)
+
+        top_hash = cls.resolve_hash(registry, top_hash)
 
         hash_path = f'{registry}/.quilt/packages/{quote(top_hash)}'
         latest_path = f'{registry}/.quilt/named_packages/{quote(name)}/latest'
@@ -1134,7 +1269,7 @@ class Package(object):
             path = parse_file_url(new_parsed_url)
             ObjectPathCache.set(old_url, path)
 
-    def _materialize(self, dest_url):
+    def _materialize(self, dest_url, selector_fn=lambda logical_key, pkg_entry: True):
         """
         Copies all Package entries to the destination, then creates a new package that points to those objects.
 
@@ -1143,6 +1278,9 @@ class Package(object):
 
         Args:
             path: where to copy the objects in the package
+            selector_fn: A function that indicates which package_entries should be materialized and which should be
+                         skipped. See documentation for package.push() for more details. By default materializes all
+                         PackageEntries
 
         Returns:
             A new package that points to the copied objects
@@ -1157,15 +1295,31 @@ class Package(object):
         # Since all that is modified is physical keys, pkg will have the same top hash
         file_list = []
         entries = []
+
+        dest_url = dest_url.rstrip('/')
+
+        local_dest = file_is_local(dest_url)
+
         for logical_key, entry in self.walk():
+            if not selector_fn(logical_key, entry):
+                pkg._set(logical_key, entry)
+                continue
+
             # Copy the datafiles in the package.
             physical_key = _to_singleton(entry.physical_keys)
+
+            if local_dest:
+                # Try a local cache.
+                cached_file = ObjectPathCache.get(physical_key)
+                if cached_file is not None:
+                    physical_key = pathlib.Path(cached_file).as_uri()
+
             unversioned_physical_key = physical_key.split('?', 1)[0]
             new_physical_key = dest_url + "/" + quote(logical_key)
             new_entry = entry._clone()
             if unversioned_physical_key == new_physical_key:
                 # No need to copy - re-use the original physical key.
-                pkg.set(logical_key, new_entry)
+                pkg._set(logical_key, new_entry)
             else:
                 entries.append((logical_key, new_entry))
                 file_list.append((physical_key, new_physical_key, entry.size))
@@ -1178,10 +1332,11 @@ class Package(object):
             # Create a new package entry pointing to the new remote key.
             assert versioned_key is not None
             new_entry.physical_keys = [versioned_key]
-            pkg.set(logical_key, new_entry)
+            pkg._set(logical_key, new_entry)
         return pkg
 
 
+    @ApiTelemetry("package.diff")
     def diff(self, other_pkg):
         """
         Returns three lists -- added, modified, deleted.
@@ -1210,6 +1365,7 @@ class Package(object):
 
         return added, modified, deleted
 
+    @ApiTelemetry("package.map")
     def map(self, f, include_directories=False):
         """
         Performs a user-specified operation on each entry in the package.
@@ -1224,6 +1380,12 @@ class Package(object):
         Returns: list
             The list of results generated by the map.
         """
+        return self._map(f, include_directories=include_directories)
+
+
+
+    def _map(self, f, include_directories=False):
+
         if include_directories:
             for lk, _ in self._walk_dir_meta():
                 yield f(lk, self[lk.rstrip("/")])
@@ -1231,6 +1393,8 @@ class Package(object):
         for lk, entity in self.walk():
             yield f(lk, entity)
 
+
+    @ApiTelemetry("package.filter")
     def filter(self, f, include_directories=False):
         """
         Applies a user-specified operation to each entry in the package,
@@ -1247,6 +1411,10 @@ class Package(object):
         Returns:
             A new package with entries that evaluated to False removed
         """
+        return self._filter(f=f, include_directories=include_directories)
+
+
+    def _filter(self, f, include_directories=False):
         p = Package()
 
         excluded_dirs = set()
@@ -1259,6 +1427,40 @@ class Package(object):
             if (not any(p in excluded_dirs
                         for p in pathlib.PurePosixPath(lk).parents)
                     and f(lk, entity)):
-                p.set(lk, entity)
+                p._set(lk, entity)
 
         return p
+
+    def verify(self, src, extra_files_ok=False):
+        """
+        Check if the contents of the given directory matches the package manifest.
+
+        Args:
+            src(str): URL of the directory
+            extra_files_ok(bool): Whether extra files in the directory should cause a failure.
+        Returns:
+            True if the package matches the directory; False otherwise.
+        """
+        src = fix_url(src).rstrip('/') + '/'
+        src_dict = dict(list_url(src))
+        url_list = []
+        size_list = []
+        for logical_key, entry in self.walk():
+            src_size = src_dict.pop(logical_key, None)
+            if src_size is None:
+                return False
+            if entry.size != src_size:
+                return False
+            entry_url = src + quote(logical_key)
+            url_list.append(entry_url)
+            size_list.append(src_size)
+
+        if src_dict and not extra_files_ok:
+            return False
+
+        hash_list = calculate_sha256(url_list, size_list)
+        for (logical_key, entry), url_hash in zip(self.walk(), hash_list):
+            if entry.hash['value'] != url_hash:
+                return False
+
+        return True

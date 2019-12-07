@@ -274,7 +274,7 @@ function useLinks() {
     cfg.mode === 'MARKETING' && { to: `${urls.home()}#pricing`, label: 'Pricing' },
     cfg.mode !== 'PRODUCT' && { href: URLS.jobs, label: 'Jobs' },
     { href: URLS.blog, label: 'Blog' },
-    cfg.enableMarketingPages && { to: urls.about(), label: 'About' },
+    cfg.mode === 'MARKETING' && { to: urls.about(), label: 'About' },
   ].filter(Boolean)
 }
 

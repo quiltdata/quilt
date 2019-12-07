@@ -368,8 +368,11 @@ const useStatsTipStyles = M.makeStyles((t) => ({
   ext: {
     fontSize: 12,
     lineHeight: '16px',
+    maxWidth: 80,
     opacity: 0.6,
+    overflow: 'hidden',
     textAlign: 'right',
+    textOverflow: 'ellipsis',
   },
   color: {
     borderRadius: '50%',
@@ -462,6 +465,13 @@ const useDownloadsStyles = M.makeStyles((t) => ({
       marginBottom: 0,
       textAlign: 'center',
     },
+  },
+  ext: {
+    display: 'inline-block',
+    maxWidth: 100,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    verticalAlign: 'bottom',
   },
   period: {
     display: 'flex',
@@ -568,7 +578,8 @@ function Downloads({ bucket, colorPool, ...props }) {
                   if (!counts.byExt.length) return 'Downloads'
                   return (
                     <>
-                      Downloads ({ext}): {readableQuantity(total)}
+                      Downloads (<span className={classes.ext}>{ext}</span>):{' '}
+                      {readableQuantity(total)}
                     </>
                   )
                 },

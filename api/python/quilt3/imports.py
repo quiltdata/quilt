@@ -4,7 +4,8 @@ from importlib.machinery import ModuleSpec
 import sys
 
 from quilt3.util import get_from_config
-from quilt3 import list_packages, Package
+from quilt3.api import _list_packages
+from quilt3 import Package
 
 
 MODULE_PATH = []
@@ -42,7 +43,7 @@ class DataPackageImporter:
             namespace = name_parts[2]
 
             # we do not know the name the user will ask for, so populate all valid names
-            for pkg in list_packages():
+            for pkg in _list_packages():
                 pkg_user, pkg_name = pkg.split('/')
                 if pkg_user == namespace:
                     module.__dict__[pkg_name] = Package.browse(pkg, registry=registry)
