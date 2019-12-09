@@ -521,7 +521,11 @@ class Package(object):
         else:
             local_pkg_manifest = CACHE_PATH / "manifest" / _filesystem_safe_encode(pkg_manifest_uri)
             if not local_pkg_manifest.exists():
-                copy_file(pkg_manifest_uri, local_pkg_manifest.as_uri())
+                # Copy to a temporary file first, to make sure we don't cache a truncated file
+                # if the download gets interrupted.
+                tmp_path = local_pkg_manifest.with_suffix('.tmp')
+                copy_file(pkg_manifest_uri, tmp_path.as_uri())
+                tmp_path.rename(local_pkg_manifest)
 
         return cls._from_path(local_pkg_manifest)
 
