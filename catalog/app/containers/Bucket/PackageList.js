@@ -129,7 +129,7 @@ const usePackageStyles = M.makeStyles((t) => ({
   },
 }))
 
-const Package = ({ name, modified, revisions, revisionsTruncated, bucket, views }) => {
+function Package({ name, modified, revisions, revisionsTruncated, bucket, views }) {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
   const t = M.useTheme()
@@ -182,7 +182,7 @@ const useSortDropdownStyles = M.makeStyles((t) => ({
   },
 }))
 
-const SortDropdown = ({ value, options, makeSortUrl }) => {
+function SortDropdown({ value, options, makeSortUrl }) {
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const classes = useSortDropdownStyles()
@@ -257,7 +257,7 @@ const usePackagesStyles = M.makeStyles((t) => ({
 
 const PER_PAGE = 30
 
-const Packages = ({ packages, bucket, filter, sort, page }) => {
+function Packages({ packages, bucket, filter, sort, page }) {
   const dispatch = redux.useDispatch()
   const { urls } = NamedRoutes.use()
   const t = M.useTheme()
@@ -391,12 +391,12 @@ const Packages = ({ packages, bucket, filter, sort, page }) => {
   )
 }
 
-export default ({
+export default function PackageList({
   match: {
     params: { bucket },
   },
   location,
-}) => {
+}) {
   const { filter, sort, p } = parseSearch(location.search)
   const page = p && parseInt(p, 10)
   const s3req = AWS.S3.useRequest()
