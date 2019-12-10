@@ -456,7 +456,7 @@ class Package(object):
                     f"'build' instead."
                 )
 
-        pkg = cls.browse(name=name, registry=registry, top_hash=top_hash)
+        pkg = cls._browse(name=name, registry=registry, top_hash=top_hash)
         dest = fix_url(dest)
         message = pkg._meta.get('message', None)  # propagate the package message
 
@@ -498,6 +498,10 @@ class Package(object):
             registry(string): location of registry to load package from
             top_hash(string): top hash of package version to load
         """
+        return cls._browse(name=name, registry=registry, top_hash=top_hash)
+
+    @classmethod
+    def _browse(cls, name=None, registry=None, top_hash=None):
         if registry is None:
             registry = get_from_config('default_local_registry')
         else:
@@ -525,11 +529,12 @@ class Package(object):
 
         return cls._from_path(local_pkg_manifest)
 
+
     @classmethod
     def _from_path(cls, path):
         """ Takes a path and returns a package loaded from that path"""
         with open(path) as open_file:
-            pkg = cls.load(open_file)
+            pkg = cls._load(open_file)
         return pkg
 
     @classmethod
@@ -650,10 +655,6 @@ class Package(object):
     @classmethod
     @ApiTelemetry("package.load")
     def load(cls, readable_file):
-        return cls._load(readable_file=readable_file)
-
-    @classmethod
-    def _load(cls, readable_file):
         """
         Loads a package from a readable file-like object.
 
@@ -668,6 +669,10 @@ class Package(object):
             json decode error
             invalid package exception
         """
+        return cls._load(readable_file=readable_file)
+
+    @classmethod
+    def _load(cls, readable_file):
         reader = jsonlines.Reader(readable_file)
         meta = reader.read()
         meta.pop('top_hash', None)  # Obsolete as of PR #130
