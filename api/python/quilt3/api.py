@@ -25,7 +25,7 @@ def copy(src, dest):
 
 
 
-ApiTelemetry("api.delete_package")
+@ApiTelemetry("api.delete_package")
 def delete_package(name, registry=None, top_hash=None):
     """
     Delete a package. Deletes only the manifest entries and not the underlying files.
