@@ -5,6 +5,7 @@ disk and RAM pressure.
 Lambda functions can have up to 3GB of RAM and only 512MB of disk.
 """
 import io
+from contextlib import redirect_stderr
 from urllib.parse import urlparse
 
 import pandas
@@ -163,20 +164,25 @@ def extract_csv(head, separator):
         info - metadata
     """
     import re
+
+    warnings_ = io.StringIO()
     # this shouldn't balloon memory because head is limited in size by get_preview_lines
     try:
         data = pandas.read_csv(
             io.StringIO('\n'.join(head)),
             sep=separator
         )
-    # ParserError happens when TSVs are labeled CSVs and/or columns have mixed types
+
     except pandas.errors.ParserError:
-        data = pandas.read_csv(
-            io.StringIO('\n'.join(head)),
-            error_bad_lines=False,
-            # this slower (doesn't use C) but deduces the separator
-            sep=None
-        )
+        # temporarily redirect stderr to capture warnings (usually errors)
+        with redirect_stderr(warnings_):
+            data = pandas.read_csv(
+                io.StringIO('\n'.join(head)),
+                error_bad_lines=False,
+                warn_bad_lines=True,
+                # sep=None is slower (doesn't use C), deduces the separator
+                sep=None
+            )
 
     html = data._repr_html_() # pylint: disable=protected-access
     html = re.sub(
@@ -184,11 +190,13 @@ def extract_csv(head, separator):
         r'\1\2',
         html
     )
+
     return html, {
         'note': (
-            'Object truncated for preview. Row count may be smaller than expected. '
+            'Object truncated for preview. '
             'S3 data remain intact, full length.'
-        )
+        ),
+        'warnings': warnings_.getvalue()
     }
 
 def extract_excel(file_):

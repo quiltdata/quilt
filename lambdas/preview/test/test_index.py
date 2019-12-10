@@ -265,9 +265,7 @@ class TestIndex():
 
     @responses.activate
     def test_tsv_quote(self):
-        """this TSV (from the glue NLP dataset) has some odd quoting that can be
-        overcoming with pd.read_csv(quoting=3), but that's a risky change for all
-        files"""
+        """test TSV from the glue NLP dataset"""
         csv = BASE_DIR / 'dev.tsv'
         responses.add(
             responses.GET,
@@ -278,11 +276,16 @@ class TestIndex():
         resp = index.lambda_handler(event, None)
         body = json.loads(resp['body'])
         assert resp['statusCode'] == 200, f'preview failed on {csv}'
+
         body_html = body['html']
         assert "<td>While dioxin levels in the environment were up" in body_html ,\
             "missing expected cell"
         assert "<td>In Soviet times the Beatles ' music \" was cons...</td>"  in body_html ,\
             "missing expected cell"
+
+        warnings = body['info']['warnings']
+        assert warnings, f"expected warnings when parsing {csv}"
+        assert warnings.count("Skipping line") == 43, f"expected to skip 43 lines"
 
     @responses.activate
     def test_tsv_as_csv(self):
