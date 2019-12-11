@@ -202,7 +202,9 @@ class Custom5Reader(jsonlines.jsonlines.ReaderWriterBase):
 
 
 def custom6_process(str_line):
+    print("custom6_process start")
     output = ujson.loads(str_line)
+    print("custom6_process end")
     return output
 
 
