@@ -209,6 +209,7 @@ def custom6_process(str_line):
 class Custom6Reader(jsonlines.jsonlines.ReaderWriterBase):
 
     def parse_callback(self, result):
+        print("parse callback")
         self.lines.append(result)
         self.pending -= 1
 
