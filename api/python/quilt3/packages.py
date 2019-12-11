@@ -1,4 +1,5 @@
 from collections import deque
+import copy
 import hashlib
 import io
 import json
@@ -40,6 +41,27 @@ def hash_file(readable_file):
         buf = readable_file.read(4096)
 
     return hasher.hexdigest()
+
+def _to_singleton(physical_keys):
+    """
+    Ensure that there is a single physical key, throw otherwise.
+    Temporary utility method to avoid repeated, identical checks.
+
+    Args:
+        pkeys (list): list of physical keys
+    Returns:
+        A physical key
+
+    Throws:
+        NotImplementedError
+
+    TODO:
+        support multiple physical keys
+    """
+    if len(physical_keys) > 1:
+        raise NotImplementedError("Multiple physical keys not supported")
+
+    return physical_keys[0]
 
 
 def _delete_local_physical_key(pk):
@@ -97,13 +119,13 @@ class PackageEntry(object):
     """
     Represents an entry at a logical key inside a package.
     """
-    __slots__ = ['physical_key', 'size', 'hash', '_meta']
-    def __init__(self, physical_key, size, hash_obj, meta):
+    __slots__ = ['physical_keys', 'size', 'hash', '_meta']
+    def __init__(self, physical_keys, size, hash_obj, meta):
         """
         Creates an entry.
 
         Args:
-            physical_key: a URI (either `s3://` or `file://`)
+            physical_keys: a nonempty list of URIs (either `s3://` or `file://`)
             size(number): size of object in bytes
             hash({'type': string, 'value': string}): hash object
                 for example: {'type': 'SHA256', 'value': 'bb08a...'}
@@ -112,7 +134,7 @@ class PackageEntry(object):
         Returns:
             a PackageEntry
         """
-        self.physical_key = physical_key
+        self.physical_keys = [fix_url(x) for x in physical_keys]
         self.size = size
         self.hash = hash_obj
         self._meta = meta or {}
@@ -126,18 +148,26 @@ class PackageEntry(object):
         )
 
     def __repr__(self):
-        return f"PackageEntry('{self.physical_key}')"
+        return f"PackageEntry('{self.physical_keys[0]}')"
 
     def as_dict(self):
         """
         Returns dict representation of entry.
         """
-        return {
-            'physical_keys': [self.physical_key],
+        ret = {
+            'physical_keys': self.physical_keys,
             'size': self.size,
             'hash': self.hash,
             'meta': self._meta
         }
+        return copy.deepcopy(ret)
+
+    def _clone(self):
+        """
+        Returns clone of this PackageEntry.
+        """
+        return self.__class__(copy.deepcopy(self.physical_keys), self.size, \
+                              copy.deepcopy(self.hash), copy.deepcopy(self._meta))
 
     @property
     def meta(self):
@@ -177,7 +207,7 @@ class PackageEntry(object):
             self
         """
         if path is not None:
-            self.physical_key = fix_url(path)
+            self.physical_keys = [fix_url(path)]
             self.size = None
             self.hash = None
         elif meta is not None:
@@ -189,14 +219,15 @@ class PackageEntry(object):
         """
         Returns the physical key of this PackageEntry.
         """
-        return self.physical_key
+        return _to_singleton(self.physical_keys)
 
     def get_cached_path(self):
         """
         Returns a locally cached physical key, if available.
         """
-        if not file_is_local(self.physical_key):
-            return ObjectPathCache.get(self.physical_key)
+        physical_key = _to_singleton(self.physical_keys)
+        if not file_is_local(physical_key):
+            return ObjectPathCache.get(physical_key)
         return None
 
     def get_bytes(self, use_cache_if_available=True):
@@ -209,7 +240,8 @@ class PackageEntry(object):
             if cached_path is not None:
                 return get_bytes(pathlib.Path(cached_path).as_uri())
 
-        data = get_bytes(self.physical_key)
+        physical_key = _to_singleton(self.physical_keys)
+        data = get_bytes(physical_key)
         return data
 
     def get_as_json(self, use_cache_if_available=True):
@@ -249,12 +281,13 @@ class PackageEntry(object):
             hash verification fail
             when deserialization metadata is not present
         """
-        data = get_bytes(self.physical_key)
+        physical_key = _to_singleton(self.physical_keys)
+        data = get_bytes(physical_key)
 
         if func is not None:
             return func(data)
 
-        pkey_ext = pathlib.PurePosixPath(unquote(urlparse(self.physical_key).path)).suffix
+        pkey_ext = pathlib.PurePosixPath(unquote(urlparse(physical_key).path)).suffix
 
         # Verify format can be handled before checking hash.  Raises if none found.
         formats = FormatRegistry.search(None, self._meta, pkey_ext)
@@ -275,17 +308,21 @@ class PackageEntry(object):
         Returns:
             None
         """
+        physical_key = _to_singleton(self.physical_keys)
+
         if dest is None:
-            name = pathlib.PurePosixPath(unquote(urlparse(self.physical_key).path)).name
+            name = pathlib.PurePosixPath(unquote(urlparse(physical_key).path)).name
             dest = (pathlib.Path().resolve() / name).as_uri()
         else:
             dest = fix_url(dest)
 
-        copy_file(self.physical_key, dest)
+        copy_file(physical_key, dest)
 
         # return a package reroot package physical keys after the copy operation succeeds
         # see GH#388 for context
-        return self.with_physical_key(dest)
+        entry = self._clone()
+        entry.physical_keys = [dest]
+        return entry
 
 
     def __call__(self, func=None, **kwargs):
@@ -293,16 +330,6 @@ class PackageEntry(object):
         Shorthand for self.deserialize()
         """
         return self.deserialize(func=func, **kwargs)
-
-    def with_physical_key(self, key):
-        return self.__class__(key, self.size, self.hash, self._meta)
-
-    @property
-    def physical_keys(self):
-        """
-        Deprecated
-        """
-        return [self.physical_key]
 
 
 
@@ -333,7 +360,7 @@ class Package(object):
                 has_remote_entries = any(
                     self._map(
                         lambda lk, entry: urlparse(
-                            fix_url(entry.physical_key)
+                            fix_url(_to_singleton(entry.physical_keys))
                         ).scheme != 'file'
                     )
                 )
@@ -581,14 +608,15 @@ class Package(object):
         pkg = Package()
 
         for logical_key, entry in self.walk():
-            physical_key = entry.physical_key
+            physical_key = _to_singleton(entry.physical_keys)
             new_physical_key = f'{nice_dest}/{quote(logical_key)}'
 
             file_list.append((physical_key, new_physical_key, entry.size))
 
             # return a package reroot package physical keys after the copy operation succeeds
             # see GH#388 for context
-            new_entry = entry.with_physical_key(new_physical_key)
+            new_entry = entry._clone()
+            new_entry.physical_keys = [new_physical_key]
             pkg._set(logical_key, new_entry)
 
         copy_file_list(file_list)
@@ -687,28 +715,33 @@ class Package(object):
             print("Using custom6 JSONL parsing code. Distribute line parsing to mp workers asynchronously")
             reader = jsonl.Custom6Reader(readable_file)
 
+        line_count = len([line for line in readable_file])
+        with tqdm(desc="Loading Manifest Lines", total=line_count) as tqdm_progress:
 
-        meta = reader.read()
-        meta.pop('top_hash', None)  # Obsolete as of PR #130
-        pkg = cls()
-        pkg._meta = meta
 
-        for obj in tqdm(list(reader)):
-            path = cls._split_key(obj.pop('logical_key'))
-            subpkg = pkg._ensure_subpackage(path[:-1])
-            key = path[-1]
-            if not obj.get('physical_keys', None):
-                # directory-level metadata
-                subpkg.set_meta(obj['meta'])
-                continue
-            if key in subpkg._children:
-                raise PackageException("Duplicate logical key while loading package")
-            subpkg._children[key] = PackageEntry(
-                obj['physical_keys'][0],
-                obj['size'],
-                obj['hash'],
-                obj['meta']
-            )
+            meta = reader.read()
+            meta.pop('top_hash', None)  # Obsolete as of PR #130
+            pkg = cls()
+            pkg._meta = meta
+            tqdm_progress.update(1)
+
+            for obj in reader:
+                path = cls._split_key(obj.pop('logical_key'))
+                subpkg = pkg._ensure_subpackage(path[:-1])
+                key = path[-1]
+                if not obj.get('physical_keys', None):
+                    # directory-level metadata
+                    subpkg.set_meta(obj['meta'])
+                    continue
+                if key in subpkg._children:
+                    raise PackageException("Duplicate logical key while loading package")
+                subpkg._children[key] = PackageEntry(
+                    obj['physical_keys'],
+                    obj['size'],
+                    obj['hash'],
+                    obj['meta']
+                )
+                tqdm_progress.update(1)
 
         return pkg
 
@@ -762,7 +795,7 @@ class Package(object):
             for f in files:
                 if not f.is_file():
                     continue
-                entry = PackageEntry(f.as_uri(), f.stat().st_size, None, None)
+                entry = PackageEntry([f.as_uri()], f.stat().st_size, None, None)
                 logical_key = f.relative_to(src_path).as_posix()
                 root._set(logical_key, entry)
         elif url.scheme == 's3':
@@ -781,7 +814,7 @@ class Package(object):
                         warnings.warn(f'Logical keys cannot end in "/", skipping: {obj["Key"]}')
                     continue
                 obj_url = make_s3_url(src_bucket, obj['Key'], obj.get('VersionId'))
-                entry = PackageEntry(obj_url, obj['Size'], None, None)
+                entry = PackageEntry([obj_url], obj['Size'], None, None)
                 logical_key = obj['Key'][len(src_key):]
                 root._set(logical_key, entry)
         else:
@@ -842,7 +875,7 @@ class Package(object):
         physical_keys = []
         sizes = []
         for entry in entries:
-            physical_keys.append(entry.physical_key)
+            physical_keys.append(entry.physical_keys[0])
             sizes.append(entry.size)
 
         results = calculate_sha256(physical_keys, sizes)
@@ -1011,9 +1044,9 @@ class Package(object):
                 bucket, key, current_version = parse_s3_url(parsed_url)
                 if not current_version and version:
                     url = make_s3_url(bucket, key, version)
-            entry = PackageEntry(url, size, None, None)
+            entry = PackageEntry([url], size, None, None)
         elif isinstance(entry, PackageEntry):
-            assert meta is None
+            entry = entry._clone()
 
         elif FormatRegistry.object_is_serializable(entry):
             # Use file extension from serialization_location, fall back to file extension from logical_key
@@ -1064,7 +1097,7 @@ class Package(object):
 
             size = serialization_path.stat().st_size
             write_url = serialization_path.as_uri()
-            entry = PackageEntry(write_url, size, hash_obj=None, meta=new_meta)
+            entry = PackageEntry([write_url], size, hash_obj=None, meta=new_meta)
 
         else:
             raise TypeError(f"Expected a string for entry, but got an instance of {type(entry)}.")
@@ -1134,7 +1167,7 @@ class Package(object):
         for logical_key, entry in self.walk():
             if entry.hash is None or entry.size is None:
                 raise QuiltException(
-                    "PackageEntry missing hash and/or size: %s" % entry.physical_key
+                    "PackageEntry missing hash and/or size: %s" % entry.physical_keys[0]
                 )
             entry_dict = entry.as_dict()
             entry_dict['logical_key'] = logical_key
@@ -1167,7 +1200,7 @@ class Package(object):
 
 
                          Note that push is careful to not push data unnecessarily. To illustrate, imagine you have a
-                         PackageEntry: `pkg["entry_1"].physical_key = "/tmp/package_entry_1.json"`
+                         PackageEntry: `pkg["entry_1"].physical_keys = ["/tmp/package_entry_1.json"]`
 
                          If that entry would be pushed to s3://bucket/prefix/entry_1.json, but
                          s3://bucket/prefix/entry_1.json already contains the exact same bytes as
@@ -1243,7 +1276,7 @@ class Package(object):
                 return False
             return pathlib.Path(parse_file_url(urlparse(pk))).parent == APP_DIR_TEMPFILE_DIR
 
-        temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_key)]
+        temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_keys[0])]
         temp_file_physical_keys = [self.get(lk) for lk in temp_file_logical_keys]
 
         # Now that data has been pushed, delete tmp files created by pkg.set('KEY', obj)
@@ -1326,7 +1359,7 @@ class Package(object):
                 continue
 
             # Copy the datafiles in the package.
-            physical_key = entry.physical_key
+            physical_key = _to_singleton(entry.physical_keys)
 
             if local_dest:
                 # Try a local cache.
@@ -1336,21 +1369,22 @@ class Package(object):
 
             unversioned_physical_key = physical_key.split('?', 1)[0]
             new_physical_key = dest_url + "/" + quote(logical_key)
+            new_entry = entry._clone()
             if unversioned_physical_key == new_physical_key:
                 # No need to copy - re-use the original physical key.
-                pkg._set(logical_key, entry)
+                pkg._set(logical_key, new_entry)
             else:
-                entries.append((logical_key, entry))
+                entries.append((logical_key, new_entry))
                 file_list.append((physical_key, new_physical_key, entry.size))
 
         results = copy_file_list(file_list)
 
-        for (logical_key, entry), versioned_key in zip(entries, results):
-            old_physical_key = entry.get()
+        for (logical_key, new_entry), versioned_key in zip(entries, results):
+            old_physical_key = new_entry.get()
             self._maybe_add_to_cache(old_physical_key, versioned_key)
             # Create a new package entry pointing to the new remote key.
             assert versioned_key is not None
-            new_entry = entry.with_physical_key(versioned_key)
+            new_entry.physical_keys = [versioned_key]
             pkg._set(logical_key, new_entry)
         return pkg
 
