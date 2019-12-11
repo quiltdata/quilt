@@ -11,6 +11,8 @@ from urllib.parse import quote, urlparse, unquote
 import uuid
 import warnings
 
+
+import ujson
 import jsonlines
 
 from .data_transfer import (
@@ -649,11 +651,30 @@ class Package(object):
 
     @classmethod
     def _load(cls, readable_file):
-        reader = jsonlines.Reader(readable_file)
-        meta = reader.read()
-        meta.pop('top_hash', None)  # Obsolete as of PR #130
-        pkg = cls()
-        pkg._meta = meta
+
+        strategy = os.environ["JSONL_STRATEGY"]
+        known_strats = ["original", "ujson"]
+        assert strategy in known_strats, f"Unrecognized JSONL strategy, {strategy}"
+        print(f"JSONL STRATEGY = {strategy}")
+        if strategy == "original":
+            print("Using original JSONL code")
+            reader = jsonlines.Reader(readable_file)
+            meta = reader.read()
+            meta.pop('top_hash', None)  # Obsolete as of PR #130
+            pkg = cls()
+            pkg._meta = meta
+        elif strategy == "ujson":
+            print("Using original JSONL code plus ujson.loads")
+            reader = jsonlines.Reader(readable_file, loads=ujson.loads)
+            meta = reader.read()
+            meta.pop('top_hash', None)  # Obsolete as of PR #130
+            pkg = cls()
+            pkg._meta = meta
+        # elif strategy == "custom1":
+        #     print("Using custom1 JSONL parsing code")
+        #     pass
+
+
         for obj in reader:
             path = cls._split_key(obj.pop('logical_key'))
             subpkg = pkg._ensure_subpackage(path[:-1])
