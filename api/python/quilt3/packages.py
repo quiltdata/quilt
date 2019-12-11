@@ -684,7 +684,10 @@ class Package(object):
         gc.disable()  # Experiments with COCO (650MB manifest) show disabling GC gives us ~2x performance improvement
         reader = jsonlines.Reader(readable_file, loads=ujson.loads)
 
-        line_count = len([line for line in readable_file])  # Adds 0.5-1 secs, but feels faster due to progress bar
+        line_count = 0
+        for _ in readable_file:
+            line_count += 1
+        # line_count = len([line for line in readable_file])  # Adds 0.5-1 secs, but feels faster due to progress bar
         readable_file.seek(0)
 
         with tqdm(desc="Loading Manifest", total=line_count) as tqdm_progress:
