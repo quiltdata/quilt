@@ -12,6 +12,7 @@ from urllib.parse import quote, urlparse, unquote
 import uuid
 import warnings
 from tqdm import tqdm
+import gc
 
 import ujson
 import jsonlines
@@ -689,6 +690,7 @@ class Package(object):
         strategy = os.environ["JSONL_STRATEGY"]
         known_strats = ["original", "ujson", "custom1", "custom2", "custom3", "custom4", "custom5", "custom6"]
         assert strategy in known_strats, f"Unrecognized JSONL strategy, {strategy}"
+        gc.disable()
         print(f"JSONL STRATEGY = {strategy}")
         if strategy == "original":
             print("Using original JSONL code")
@@ -745,6 +747,7 @@ class Package(object):
                 )
                 tqdm_progress.update(1)
 
+        # gc.enable()
         return pkg
 
     def set_dir(self, lkey, path=None, meta=None):
