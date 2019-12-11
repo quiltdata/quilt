@@ -330,6 +330,7 @@ export const bucketSummary = async ({ s3req, es, bucket, overviewUrl, inStack })
   }
   try {
     return await s3req({
+      bucket,
       operation: 'listObjectsV2',
       params: { Bucket: bucket },
     }).then(
@@ -427,6 +428,7 @@ export const bucketImgs = async ({ es, s3req, bucket, overviewUrl, inStack }) =>
   }
   try {
     return await s3req({
+      bucket,
       operation: 'listObjectsV2',
       params: { Bucket: bucket },
     }).then(
