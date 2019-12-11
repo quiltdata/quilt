@@ -201,30 +201,49 @@ class Custom5Reader(jsonlines.jsonlines.ReaderWriterBase):
 
 
 
-# def custom0_process(str_line):
-#     output = ujson.loads(str_line)
-#     return output
-#
-#
-# class Custom0Reader(jsonlines.jsonlines.ReaderWriterBase):
-#
-#     def parse_callback(self, result):
-#         self.lines.append(result)
-#
-#     def __init__(self, fp):
-#
-#         len_timer = Timer("Extracting lines as strings").start()
-#         str_lines = [f for f in fp]
-#         len_timer.stop()
-#
-#         header = ujson.loads(str_lines.pop(0))
-#         self.lines = [header]
-#
-#         with mp.Pool(POOL_WORKERS) as p:
-#             async_results = p.map_async(custom0_process, str_lines)
-#
-#     def read(self):
-#         return self.lines.pop(0)
-#
-#     def __iter__(self):
-#         return self.lines.__iter__()
+def custom6_process(str_line):
+    output = ujson.loads(str_line)
+    return output
+
+
+class Custom6Reader(jsonlines.jsonlines.ReaderWriterBase):
+
+    def parse_callback(self, result):
+        self.lines.append(result)
+        self.pending -= 1
+
+    def __init__(self, fp):
+
+        len_timer = Timer("Extracting lines as strings").start()
+        str_lines = [f for f in fp]
+        self.total_lines = len(str_lines)
+        len_timer.stop()
+
+        header = ujson.loads(str_lines.pop(0))
+        self.lines = [header]
+        self.pending = self.total_lines - 1
+
+        with mp.Pool(POOL_WORKERS) as p:
+            p.apply_async(custom0_process, args=(str_lines,), callback=self.parse_callback)
+
+
+    def read(self):
+        if len(self.lines) == 0:
+            if self.pending == 0:
+                if len(self.lines) > 0: # Make sure the final line wasn't parsed between the first if and the second
+                    return self.lines.pop(0)
+
+                raise RuntimeError("No more lines to read!")
+            else:
+                # No results are ready, but more are on the way
+                while len(self.lines) == 0:
+                    time.sleep(0.01)
+
+        return self.lines.pop(0)
+
+
+
+
+    def __iter__(self):
+        while self.pending > 0 or len(self.lines) > 0:
+            yield self.read()
