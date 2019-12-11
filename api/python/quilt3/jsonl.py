@@ -2,11 +2,13 @@ import jsonlines
 import ujson
 import time
 import itertools
+import os
 from tqdm import tqdm
 
 import multiprocessing as mp
 
-POOL_WORKERS=10
+POOL_WORKERS=os.getenv("POOL_WORKERS", 10)
+print(f"Num pool workers={POOL_WORKERS}")
 
 
 def humanize_float(num): return "{0:,.2f}".format(num)
