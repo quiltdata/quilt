@@ -227,7 +227,7 @@ class Custom6Reader(jsonlines.jsonlines.ReaderWriterBase):
         self.pending = self.total_lines - 1
 
         with mp.Pool(POOL_WORKERS) as p:
-            p.apply_async(custom6_process, args=(str_lines,), callback=self.parse_callback)
+            p.apply_async(custom6_process, args=str_lines, callback=self.parse_callback)
 
 
     def read(self):
