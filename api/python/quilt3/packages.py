@@ -693,7 +693,7 @@ class Package(object):
         pkg = cls()
         pkg._meta = meta
 
-        for obj in tqdm(reader):
+        for obj in tqdm(list(reader)):
             path = cls._split_key(obj.pop('logical_key'))
             subpkg = pkg._ensure_subpackage(path[:-1])
             key = path[-1]
