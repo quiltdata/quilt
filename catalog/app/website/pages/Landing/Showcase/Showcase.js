@@ -1,9 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import HashLink from 'utils/HashLink'
-import * as NamedRoutes from 'utils/NamedRoutes'
-
 import Bar from 'website/components/Bar'
 import ChevronLink from 'website/components/ChevronLink'
 import Overlay1Full from 'website/components/Backgrounds/Overlay1Full'
@@ -54,7 +51,6 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Showcase() {
   const classes = useStyles()
-  const { urls } = NamedRoutes.use()
   return (
     <div className={classes.root}>
       <Overlay2 />
@@ -91,13 +87,15 @@ export default function Showcase() {
               <M.Button
                 variant="contained"
                 color="secondary"
-                to={`${urls.home()}#pricing`}
-                component={HashLink}
+                href="https://open.quiltdata.com"
               >
-                Try now
+                Explore open data
               </M.Button>
             </M.Box>
             <M.Box mt={5}>
+              <ChevronLink href="#pricing">Try now</ChevronLink>
+            </M.Box>
+            <M.Box mt={1}>
               <ChevronLink href="#get-notified">Stay informed about Quilt</ChevronLink>
             </M.Box>
           </div>

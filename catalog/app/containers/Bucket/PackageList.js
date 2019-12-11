@@ -111,11 +111,6 @@ const usePackageStyles = M.makeStyles((t) => ({
       marginTop: t.spacing(1),
     },
   },
-  handle: {
-    fontSize: t.typography.pxToRem(16),
-    fontWeight: t.typography.fontWeightMedium,
-    lineHeight: t.typography.pxToRem(20),
-  },
   handleContainer: {
     WebkitBoxOrient: 'vertical',
     WebkitLineClamp: 2,
@@ -127,9 +122,38 @@ const usePackageStyles = M.makeStyles((t) => ({
     paddingTop: t.spacing(2),
     textOverflow: 'ellipsis',
   },
+  handle: {
+    fontSize: t.typography.pxToRem(16),
+    fontWeight: t.typography.fontWeightMedium,
+    lineHeight: t.typography.pxToRem(20),
+  },
+  handleText: {
+    position: 'relative',
+  },
+  handleClickArea: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+
+    '$handle:hover &': {
+      background: t.palette.action.hover,
+    },
+  },
+  revisions: {
+    ...t.typography.subtitle2,
+    color: t.palette.text.secondary,
+    position: 'relative',
+  },
+  updated: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    position: 'relative',
+  },
 }))
 
-const Package = ({ name, modified, revisions, revisionsTruncated, bucket, views }) => {
+function Package({ name, modified, revisions, revisionsTruncated, bucket, views }) {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
   const t = M.useTheme()
@@ -138,11 +162,12 @@ const Package = ({ name, modified, revisions, revisionsTruncated, bucket, views 
     <M.Paper className={classes.root}>
       <div className={classes.handleContainer}>
         <Link className={classes.handle} to={urls.bucketPackageDetail(bucket, name)}>
-          {name}
+          <span className={classes.handleClickArea} />
+          <span className={classes.handleText}>{name}</span>
         </Link>
       </div>
       <M.Box pl={2} pb={2} pt={1}>
-        <M.Typography variant="subtitle2" color="textSecondary" component="span">
+        <span className={classes.revisions}>
           {revisions}
           {revisionsTruncated && '+'}{' '}
           {xs ? (
@@ -150,12 +175,12 @@ const Package = ({ name, modified, revisions, revisionsTruncated, bucket, views 
           ) : (
             <FormattedPlural one="Revision" other="Revisions" value={revisions} />
           )}
-        </M.Typography>
+        </span>
         <M.Box mr={2} component="span" />
-        <M.Typography variant="body2" color="textSecondary" component="span">
+        <span className={classes.updated}>
           {xs ? 'Upd. ' : 'Updated '}
           {modified ? <FormattedRelative value={modified} /> : '[unknown: see console]'}
-        </M.Typography>
+        </span>
       </M.Box>
       {!!views && <Counts {...views} />}
     </M.Paper>
@@ -182,7 +207,7 @@ const useSortDropdownStyles = M.makeStyles((t) => ({
   },
 }))
 
-const SortDropdown = ({ value, options, makeSortUrl }) => {
+function SortDropdown({ value, options, makeSortUrl }) {
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const classes = useSortDropdownStyles()
@@ -257,7 +282,7 @@ const usePackagesStyles = M.makeStyles((t) => ({
 
 const PER_PAGE = 30
 
-const Packages = ({ packages, bucket, filter, sort, page }) => {
+function Packages({ packages, bucket, filter, sort, page }) {
   const dispatch = redux.useDispatch()
   const { urls } = NamedRoutes.use()
   const t = M.useTheme()
@@ -391,12 +416,12 @@ const Packages = ({ packages, bucket, filter, sort, page }) => {
   )
 }
 
-export default ({
+export default function PackageList({
   match: {
     params: { bucket },
   },
   location,
-}) => {
+}) {
   const { filter, sort, p } = parseSearch(location.search)
   const page = p && parseInt(p, 10)
   const s3req = AWS.S3.useRequest()

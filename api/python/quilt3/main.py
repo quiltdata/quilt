@@ -38,7 +38,7 @@ def cmd_catalog():
     app.run()
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
-    pkg = api.Package.browse(name, registry, top_hash)
+    pkg = api.Package._browse(name, registry, top_hash)
     if pkg.verify(dir, extra_files_ok):
         print("Verification succeeded")
         return 0

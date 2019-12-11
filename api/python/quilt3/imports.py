@@ -46,7 +46,7 @@ class DataPackageImporter:
             for pkg in _list_packages():
                 pkg_user, pkg_name = pkg.split('/')
                 if pkg_user == namespace:
-                    module.__dict__[pkg_name] = Package.browse(pkg, registry=registry)
+                    module.__dict__[pkg_name] = Package._browse(pkg, registry=registry)
 
             module.__path__ = MODULE_PATH
             return module
