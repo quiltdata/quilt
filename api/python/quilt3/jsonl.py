@@ -104,3 +104,26 @@ class Custom2Reader(jsonlines.jsonlines.ReaderWriterBase):
 
     def __iter__(self):
         return self.lines.__iter__()
+
+
+
+class Custom3Reader(jsonlines.jsonlines.ReaderWriterBase):
+    def __init__(self, fp):
+
+        len_timer = Timer("Extracting lines as strings").start()
+        str_lines = [f for f in fp]
+        len_timer.stop()
+
+        array_timer = Timer("Converting lines to one big JSON array string").start()
+        json_array = ",\n".join(str_lines)
+        json_array = f"[{json_array}]"
+        array_timer.stop()
+
+        self.lines = ujson.loads(json_array)
+
+
+    def read(self):
+        return self.lines.pop(0)
+
+    def __iter__(self):
+        return self.lines.__iter__()
