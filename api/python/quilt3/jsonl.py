@@ -202,16 +202,16 @@ class Custom5Reader(jsonlines.jsonlines.ReaderWriterBase):
 
 
 def custom6_process(str_line):
-    print("custom6_process start")
+    # print("custom6_process start")
     output = ujson.loads(str_line)
-    print("custom6_process end")
+    # print("custom6_process end")
     return output
 
 
 class Custom6Reader(jsonlines.jsonlines.ReaderWriterBase):
 
     def parse_callback(self, result):
-        print("parse callback")
+        # print("parse callback")
         self.lines.append(result)
         self.pending -= 1
 
