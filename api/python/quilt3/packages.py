@@ -28,6 +28,7 @@ from .util import (
     parse_s3_url, validate_package_name, quiltignore_filter, validate_key, extract_file_extension, file_is_local
 )
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
+from . import jsonl
 
 
 
@@ -329,6 +330,9 @@ class PackageEntry(object):
         Shorthand for self.deserialize()
         """
         return self.deserialize(func=func, **kwargs)
+
+
+
 
 
 class Package(object):
@@ -677,31 +681,30 @@ class Package(object):
         """
         return cls._load(readable_file=readable_file)
 
+
+
     @classmethod
     def _load(cls, readable_file):
 
         strategy = os.environ["JSONL_STRATEGY"]
-        known_strats = ["original", "ujson"]
+        known_strats = ["original", "ujson", "custom1"]
         assert strategy in known_strats, f"Unrecognized JSONL strategy, {strategy}"
         print(f"JSONL STRATEGY = {strategy}")
         if strategy == "original":
             print("Using original JSONL code")
             reader = jsonlines.Reader(readable_file)
-            meta = reader.read()
-            meta.pop('top_hash', None)  # Obsolete as of PR #130
-            pkg = cls()
-            pkg._meta = meta
         elif strategy == "ujson":
             print("Using original JSONL code plus ujson.loads")
             reader = jsonlines.Reader(readable_file, loads=ujson.loads)
-            meta = reader.read()
-            meta.pop('top_hash', None)  # Obsolete as of PR #130
-            pkg = cls()
-            pkg._meta = meta
-        # elif strategy == "custom1":
-        #     print("Using custom1 JSONL parsing code")
-        #     pass
+        elif strategy == "custom1":
+            print("Using custom1 JSONL parsing code")
+            reader = jsonl.Custom1Reader(readable_file)
 
+
+        meta = reader.read()
+        meta.pop('top_hash', None)  # Obsolete as of PR #130
+        pkg = cls()
+        pkg._meta = meta
 
         for obj in reader:
             path = cls._split_key(obj.pop('logical_key'))
