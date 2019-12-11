@@ -31,7 +31,7 @@ class Timer:
 
 
 
-def process(args):
+def custom1_process(args):
     assert len(args) == 2
     str_line, q = args
     output = ujson.loads(str_line)
@@ -40,11 +40,9 @@ def process(args):
 
 
 class Custom1Reader(jsonlines.jsonlines.ReaderWriterBase):
-    def __init__(self, fp):
-        """
-        Iterate over each line in the
-        """
 
+
+    def __init__(self, fp):
 
         m = mp.Manager()
         shared_queue = m.Queue()
@@ -55,7 +53,7 @@ class Custom1Reader(jsonlines.jsonlines.ReaderWriterBase):
         len_timer.stop()
 
         with mp.Pool(POOL_WORKERS) as p:
-            async_results = p.map_async(process, zip(str_lines, itertools.repeat(shared_queue)))
+            async_results = p.map_async(custom1_process, zip(str_lines, itertools.repeat(shared_queue)))
             with tqdm(desc="Manifest Loading Progress", total=total_size, unit_scale=True) as tqdm_progress:
                 while True:
                     progress_update = shared_queue.get(block=True)
@@ -77,3 +75,34 @@ class Custom1Reader(jsonlines.jsonlines.ReaderWriterBase):
     def __iter__(self):
         return self.lines.__iter__()
 
+
+
+
+
+
+def custom2_process(args):
+    assert len(args) == 1
+    str_line = args
+    output = ujson.loads(str_line)
+    return output
+
+class Custom2Reader(jsonlines.jsonlines.ReaderWriterBase):
+    def __init__(self, fp):
+
+        len_timer = Timer("Extracting lines as strings").start()
+        str_lines = [f for f in fp]
+        len_timer.stop()
+
+        with mp.Pool(POOL_WORKERS) as p:
+            async_results = p.map_async(custom2_process, str_lines)
+            results = async_results.get()
+            assert async_results.successful(), "There was an uncaught error"
+
+        self.lines = results
+
+
+    def read(self):
+        return self.lines.pop(0)
+
+    def __iter__(self):
+        return self.lines.__iter__()
