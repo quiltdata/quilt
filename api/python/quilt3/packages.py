@@ -687,42 +687,13 @@ class Package(object):
     @classmethod
     def _load(cls, readable_file):
 
-        strategy = os.environ["JSONL_STRATEGY"]
-        known_strats = ["original", "ujson", "custom1", "custom2", "custom3", "custom4", "custom5", "custom6"]
-        assert strategy in known_strats, f"Unrecognized JSONL strategy, {strategy}"
-        gc.disable()
-        print(f"JSONL STRATEGY = {strategy}")
-        if strategy == "original":
-            print("Using original JSONL code")
-            reader = jsonlines.Reader(readable_file)
-        elif strategy == "ujson":
-            print("Using original JSONL code plus ujson.loads")
-            reader = jsonlines.Reader(readable_file, loads=ujson.loads)
-        elif strategy == "custom1":
-            print("Using custom1 JSONL parsing code. Distribute line parsing to mp workers w/tqdm")
-            reader = jsonl.Custom1Reader(readable_file)
-        elif strategy == "custom2":
-            print("Using custom2 JSONL parsing code. Distribute line parsing to mp workers - no tqdm")
-            reader = jsonl.Custom2Reader(readable_file)
-        elif strategy == "custom3":
-            print("Using custom3 JSONL parsing code. Turn JSONL into a large JSON array str and parse with ujson")
-            reader = jsonl.Custom3Reader(readable_file)
-        elif strategy == "custom4":
-            print("Using custom4 JSONL parsing code. Distribute line parsing to thread workers - no tqdm")
-            reader = jsonl.Custom4Reader(readable_file)
-        elif strategy == "custom5":
-            print("Using custom5 JSONL parsing code. Distribute line parsing to mp workers - no tqdm, batched")
-            reader = jsonl.Custom5Reader(readable_file)
-        elif strategy == "custom6":
-            print("Using custom6 JSONL parsing code. Distribute line parsing to mp workers asynchronously")
-            reader = jsonl.Custom6Reader(readable_file)
+        gc.disable()  # Experiments with COCO (650MB manifest) show disabling GC gives us ~2x performance improvement
+        reader = jsonlines.Reader(readable_file, loads=ujson.loads)
 
-
-        line_count = len([line for line in readable_file])
+        line_count = len([line for line in readable_file])  # Adds 0.5-1 secs, but feels faster due to progress bar
         readable_file.seek(0)
-        with tqdm(desc="Loading Manifest Lines", total=line_count) as tqdm_progress:
 
-
+        with tqdm(desc="Loading Manifest", total=line_count) as tqdm_progress:
             meta = reader.read()
             meta.pop('top_hash', None)  # Obsolete as of PR #130
             pkg = cls()
@@ -747,7 +718,7 @@ class Package(object):
                 )
                 tqdm_progress.update(1)
 
-        # gc.enable()
+        gc.enable()
         return pkg
 
     def set_dir(self, lkey, path=None, meta=None):
