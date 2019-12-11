@@ -1,4 +1,5 @@
 import S3 from 'aws-sdk/clients/s3'
+import AWS from 'aws-sdk/lib/core'
 import * as React from 'react'
 import * as reduxHook from 'redux-react-hook'
 
@@ -38,11 +39,6 @@ export const use = useS3
 export const useRequest = (extra) => {
   const cfg = useConfig()
   const regularClient = useS3(extra)
-  const proxyingClient = useS3({
-    endpoint: cfg.s3Proxy,
-    s3ForcePathStyle: true,
-    ...extra,
-  })
   const s3SelectClient = useS3({
     endpoint: `${cfg.binaryApiGatewayEndpoint}/s3select/`,
     s3ForcePathStyle: true,
@@ -54,8 +50,6 @@ export const useRequest = (extra) => {
       let client
       if (!authenticated && operation === 'selectObjectContent') {
         client = s3SelectClient
-      } else if (cfg.shouldProxy(bucket)) {
-        client = proxyingClient
       } else {
         client = regularClient
       }
@@ -63,9 +57,18 @@ export const useRequest = (extra) => {
         authenticated && cfg.shouldSign(bucket)
           ? 'makeRequest'
           : 'makeUnauthenticatedRequest'
-      return client[method](operation, params).promise()
+      const req = client[method](operation, params)
+      if (cfg.shouldProxy(bucket)) {
+        req.on('sign', () => {
+          // *After* the request has been signed with the original S3 hostname / path,
+          // change it to the proxy. Proxy will then change it back while keeping the original signature.
+          req.httpRequest.endpoint = new AWS.Endpoint(cfg.s3Proxy)
+          req.httpRequest.path = `/${bucket}${req.httpRequest.path}`
+        })
+      }
+      return req.promise()
     },
-    [regularClient, proxyingClient, authenticated, cfg],
+    [regularClient, authenticated, cfg],
   )
 }
 
