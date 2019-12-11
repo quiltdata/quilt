@@ -687,7 +687,7 @@ class Package(object):
     def _load(cls, readable_file):
 
         strategy = os.environ["JSONL_STRATEGY"]
-        known_strats = ["original", "ujson", "custom1", "custom2", "custom3"]
+        known_strats = ["original", "ujson", "custom1", "custom2", "custom3", "custom4"]
         assert strategy in known_strats, f"Unrecognized JSONL strategy, {strategy}"
         print(f"JSONL STRATEGY = {strategy}")
         if strategy == "original":
@@ -697,14 +697,17 @@ class Package(object):
             print("Using original JSONL code plus ujson.loads")
             reader = jsonlines.Reader(readable_file, loads=ujson.loads)
         elif strategy == "custom1":
-            print("Using custom1 JSONL parsing code. Distribute line parsing to workers w/tqdm")
+            print("Using custom1 JSONL parsing code. Distribute line parsing to mp workers w/tqdm")
             reader = jsonl.Custom1Reader(readable_file)
         elif strategy == "custom2":
-            print("Using custom2 JSONL parsing code. Distribute line parsing to workers - no tqdm")
+            print("Using custom2 JSONL parsing code. Distribute line parsing to mp workers - no tqdm")
             reader = jsonl.Custom2Reader(readable_file)
         elif strategy == "custom3":
             print("Using custom3 JSONL parsing code. Turn JSONL into a large JSON array str and parse with ujson")
             reader = jsonl.Custom3Reader(readable_file)
+        elif strategy == "custom4":
+            print("Using custom4 JSONL parsing code. Distribute line parsing to thread workers - no tqdm")
+            reader = jsonl.Custom4Reader(readable_file)
 
 
         meta = reader.read()
