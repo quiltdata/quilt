@@ -219,9 +219,8 @@ class Custom6Reader(jsonlines.jsonlines.ReaderWriterBase):
         len_timer.stop()
 
         self.header = ujson.loads(str_lines.pop(0))
-
-        with mp.Pool(POOL_WORKERS) as p:
-            self.res_iterator = p.imap(custom6_process, str_lines)
+        self.p = mp.Pool(POOL_WORKERS)
+        self.res_iterator = self.p.imap(custom6_process, str_lines)
 
 
 
