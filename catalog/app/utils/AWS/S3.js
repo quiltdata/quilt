@@ -56,7 +56,7 @@ export const useRequest = (extra) => {
           ? 'makeRequest'
           : 'makeUnauthenticatedRequest'
       const req = client[method](operation, params)
-      if (cfg.shouldProxy(bucket)) {
+      if (cfg.shouldProxy(bucket) && client === regularClient) {
         req.on('sign', () => {
           // *After* the request has been signed with the original S3 hostname / path,
           // change it to the proxy. Proxy will then change it back while keeping the
