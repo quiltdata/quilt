@@ -46,7 +46,7 @@ def time_coco2017_browse(repeats=10):
 
 if __name__ == '__main__':
     """
-    PYTHONUNBUFFERED=TRUE JSONL_STRATEGY=orig python jsonl_load_perf_test.py | tee new_browse_results.log
+    export PYTHONUNBUFFERED=TRUE && export JSONL_STRATEGY=original && python jsonl_load_perf_test.py | tee ${JSONL_STRATEGY}_browse_results.log
     """
     run_and_print("pip freeze | grep quilt3")
     run_and_print("git status")
