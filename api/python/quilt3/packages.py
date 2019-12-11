@@ -29,7 +29,6 @@ from .util import (
     parse_s3_url, validate_package_name, quiltignore_filter, validate_key, extract_file_extension, file_is_local
 )
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
-from . import jsonl
 
 
 
@@ -718,7 +717,7 @@ class Package(object):
                 )
                 tqdm_progress.update(1)
 
-        gc.enable()
+        # gc.enable()
         return pkg
 
     def set_dir(self, lkey, path=None, meta=None):
