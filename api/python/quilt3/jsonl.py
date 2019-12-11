@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 import multiprocessing as mp
 
-POOL_WORKERS=os.getenv("POOL_WORKERS", 10)
+POOL_WORKERS=int(os.getenv("POOL_WORKERS", 10))
 print(f"Num pool workers={POOL_WORKERS}")
 
 
