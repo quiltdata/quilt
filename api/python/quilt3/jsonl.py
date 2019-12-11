@@ -228,8 +228,8 @@ class Custom6Reader(jsonlines.jsonlines.ReaderWriterBase):
 
         with mp.Pool(POOL_WORKERS) as p:
             for line in str_lines:
-                p.apply_async(custom6_process, args=line, callback=self.parse_callback)
-                print("Applied!")
+                p.apply_async(custom6_process, args=(line,), callback=self.parse_callback)
+                # print("Applied!")
 
 
     def read(self):
@@ -242,7 +242,7 @@ class Custom6Reader(jsonlines.jsonlines.ReaderWriterBase):
             else:
                 # No results are ready, but more are on the way
                 while len(self.lines) == 0:
-                    time.sleep(0.01)
+                    time.sleep(0.1)
 
         return self.lines.pop(0)
 
