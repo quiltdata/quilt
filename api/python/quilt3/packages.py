@@ -1,5 +1,6 @@
 from collections import deque
 import copy
+import gc
 import hashlib
 import io
 import json
@@ -11,11 +12,10 @@ from multiprocessing import Pool
 from urllib.parse import quote, urlparse, unquote
 import uuid
 import warnings
-from tqdm import tqdm
-import gc
 
-import ujson
 import jsonlines
+import ujson
+from tqdm import tqdm
 
 from .data_transfer import (
     calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_version,
@@ -330,9 +330,6 @@ class PackageEntry(object):
         Shorthand for self.deserialize()
         """
         return self.deserialize(func=func, **kwargs)
-
-
-
 
 
 class Package(object):
@@ -681,8 +678,6 @@ class Package(object):
         """
         return cls._load(readable_file=readable_file)
 
-
-
     @classmethod
     def _load(cls, readable_file):
 
@@ -717,7 +712,7 @@ class Package(object):
                 )
                 tqdm_progress.update(1)
 
-        # gc.enable()
+        gc.enable()
         return pkg
 
     def set_dir(self, lkey, path=None, meta=None):
