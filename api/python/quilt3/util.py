@@ -62,6 +62,25 @@ registryUrl:
 telemetry_disabled: false
 """.format(BASE_PATH.as_uri() + '/packages')
 
+# When pulling the config from the catalog, don't keep fields that are not relevant for the python client
+CONFIG_FIELD_BLACKLIST = [
+    "apiGatewayEndpoint",
+    "binaryApiGatewayEndpoint",
+    "alwaysRequiresAuth",
+    "defaultBucket",
+    "s3Proxy",
+    "intercomAppId",
+    "signInRedirect",
+    "signOutRedirect",
+    "passwordAuth",
+    "ssoAuth",
+    "ssoProviders",
+    "googleClientId",
+    "sentryDSN",
+    "mixpanelToken",
+    "analyticsBucket",
+    "mode"
+]
 
 class QuiltException(Exception):
     def __init__(self, message, **kwargs):
@@ -350,6 +369,8 @@ def configure_from_url(catalog_url):
 
     # Use our template + their configured values, keeping our comments.
     for key, value in new_config.items():
+        if key in CONFIG_FIELD_BLACKLIST:
+            continue
         config_template[key] = value
     write_yaml(config_template, CONFIG_PATH, keep_backup=True)
     return config_template
