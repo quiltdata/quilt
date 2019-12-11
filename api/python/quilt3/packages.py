@@ -10,7 +10,7 @@ from multiprocessing import Pool
 from urllib.parse import quote, urlparse, unquote
 import uuid
 import warnings
-
+from tqdm import tqdm
 
 import ujson
 import jsonlines
@@ -693,7 +693,7 @@ class Package(object):
         pkg = cls()
         pkg._meta = meta
 
-        for obj in reader:
+        for obj in tqdm(reader):
             path = cls._split_key(obj.pop('logical_key'))
             subpkg = pkg._ensure_subpackage(path[:-1])
             key = path[-1]
