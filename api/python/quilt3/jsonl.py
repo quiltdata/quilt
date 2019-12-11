@@ -80,9 +80,7 @@ class Custom1Reader(jsonlines.jsonlines.ReaderWriterBase):
 
 
 
-def custom2_process(args):
-    assert len(args) == 1
-    str_line = args
+def custom2_process(str_line):
     output = ujson.loads(str_line)
     return output
 
