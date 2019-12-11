@@ -715,7 +715,7 @@ class Package(object):
                 )
                 tqdm_progress.update(1)
 
-        gc.enable()
+        # gc.enable()
         return pkg
 
     def set_dir(self, lkey, path=None, meta=None):
