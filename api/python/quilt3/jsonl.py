@@ -6,6 +6,7 @@ import os
 from tqdm import tqdm
 
 import multiprocessing as mp
+from concurrent.futures import ThreadPoolExecutor
 
 POOL_WORKERS=int(os.getenv("POOL_WORKERS", 10))
 print(f"Num pool workers={POOL_WORKERS}")
@@ -120,6 +121,33 @@ class Custom3Reader(jsonlines.jsonlines.ReaderWriterBase):
         array_timer.stop()
 
         self.lines = ujson.loads(json_array)
+
+
+    def read(self):
+        return self.lines.pop(0)
+
+    def __iter__(self):
+        return self.lines.__iter__()
+
+
+
+
+def custom4_process(str_line):
+    output = ujson.loads(str_line)
+    return output
+
+class Custom4Reader(jsonlines.jsonlines.ReaderWriterBase):
+    def __init__(self, fp):
+
+        len_timer = Timer("Extracting lines as strings").start()
+        str_lines = [f for f in fp]
+        len_timer.stop()
+
+        with ThreadPoolExecutor() as executor:
+            results = executor.map(custom4_process, str_lines)
+
+
+        self.lines = results
 
 
     def read(self):
