@@ -146,8 +146,9 @@ class Custom4Reader(jsonlines.jsonlines.ReaderWriterBase):
         with ThreadPoolExecutor() as executor:
             results = executor.map(custom4_process, str_lines)
 
-
-        self.lines = results
+        list_timer = Timer("Converting results generator to list").start()
+        self.lines = list(results)
+        list_timer.stop()
 
 
     def read(self):
