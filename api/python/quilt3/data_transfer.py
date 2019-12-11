@@ -654,7 +654,7 @@ def calculate_sha256(src_list, sizes):
 
                 with open(path, 'rb') as fd:
                     while True:
-                        chunk = fd.read(1024)
+                        chunk = fd.read(64 * 1024)
                         if not chunk:
                             break
                         hash_obj.update(chunk)
