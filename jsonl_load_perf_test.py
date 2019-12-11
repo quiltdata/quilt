@@ -40,6 +40,8 @@ def time_coco2017_browse(repeats=10):
         dur = t.stop()
         durs.append(dur)
 
+        del pkg
+
     print(durs)
     print(sum(durs)/len(durs))
 
