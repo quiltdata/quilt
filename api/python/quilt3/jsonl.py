@@ -132,6 +132,8 @@ class Custom3Reader(jsonlines.jsonlines.ReaderWriterBase):
 
 
 
+
+
 def custom4_process(str_line):
     output = ujson.loads(str_line)
     return output
@@ -156,3 +158,71 @@ class Custom4Reader(jsonlines.jsonlines.ReaderWriterBase):
 
     def __iter__(self):
         return self.lines.__iter__()
+
+
+
+
+
+def custom5_process(str_lines):
+    return [ujson.loads(l) for l in str_lines]
+
+class Custom5Reader(jsonlines.jsonlines.ReaderWriterBase):
+    def __init__(self, fp):
+
+        len_timer = Timer("Extracting lines as strings").start()
+        str_lines = [f for f in fp]
+        len_timer.stop()
+
+        group_timer = Timer("Grouping lines").start()
+        num_groups = POOL_WORKERS
+        line_groups = [[] for _ in range(POOL_WORKERS)]
+        for i, line in enumerate(str_lines):
+            group = i % num_groups
+            line_groups[group].append(line)
+        group_timer.stop()
+
+        with mp.Pool(POOL_WORKERS) as p:
+            async_results = p.map_async(custom5_process, line_groups)
+            results = async_results.get()
+            assert async_results.successful(), "There was an uncaught error"
+
+        self.lines = results
+
+
+    def read(self):
+        return self.lines.pop(0)
+
+    def __iter__(self):
+        return self.lines.__iter__()
+
+
+
+
+
+# def custom0_process(str_line):
+#     output = ujson.loads(str_line)
+#     return output
+#
+#
+# class Custom0Reader(jsonlines.jsonlines.ReaderWriterBase):
+#
+#     def parse_callback(self, result):
+#         self.lines.append(result)
+#
+#     def __init__(self, fp):
+#
+#         len_timer = Timer("Extracting lines as strings").start()
+#         str_lines = [f for f in fp]
+#         len_timer.stop()
+#
+#         header = ujson.loads(str_lines.pop(0))
+#         self.lines = [header]
+#
+#         with mp.Pool(POOL_WORKERS) as p:
+#             async_results = p.map_async(custom0_process, str_lines)
+#
+#     def read(self):
+#         return self.lines.pop(0)
+#
+#     def __iter__(self):
+#         return self.lines.__iter__()
