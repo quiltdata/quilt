@@ -210,10 +210,6 @@ def custom6_process(str_line):
 
 class Custom6Reader(jsonlines.jsonlines.ReaderWriterBase):
 
-    def parse_callback(self, result):
-        print("parse callback")
-        self.lines.append(result)
-        self.pending -= 1
 
     def __init__(self, fp):
 
@@ -222,35 +218,25 @@ class Custom6Reader(jsonlines.jsonlines.ReaderWriterBase):
         self.total_lines = len(str_lines)
         len_timer.stop()
 
-        header = ujson.loads(str_lines.pop(0))
-        self.lines = [header]
-        self.pending = self.total_lines - 1
+        self.header = ujson.loads(str_lines.pop(0))
 
         with mp.Pool(POOL_WORKERS) as p:
-            for line in str_lines:
-                p.apply_async(custom6_process, args=(line,), callback=self.parse_callback)
-                # print("Applied!")
+            self.res_iterator = p.imap(custom6_process, str_lines)
+
 
 
     def read(self):
-        if len(self.lines) == 0:
-            if self.pending == 0:
-                if len(self.lines) > 0: # Make sure the final line wasn't parsed between the first if and the second
-                    print("READ!")
-                    return self.lines.pop(0)
+        if self.header is not None:
+            r = self.header
+            self.header = None
+            return r
 
-                raise RuntimeError("No more lines to read!")
-            else:
-                # No results are ready, but more are on the way
-                while len(self.lines) == 0:
-                    time.sleep(0.1)
-
-        print("READ!")
-        return self.lines.pop(0)
+        raise RuntimeError("Only the header can be read using read() and it has already been read")
 
 
 
 
     def __iter__(self):
-        while self.pending > 0 or len(self.lines) > 0:
-            yield self.read()
+        if self.header is not None:
+            yield self.header
+        yield from self.res_iterator
