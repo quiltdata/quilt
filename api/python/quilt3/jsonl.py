@@ -211,7 +211,7 @@ def custom6_process(str_line):
 class Custom6Reader(jsonlines.jsonlines.ReaderWriterBase):
 
     def parse_callback(self, result):
-        # print("parse callback")
+        print("parse callback")
         self.lines.append(result)
         self.pending -= 1
 
@@ -236,6 +236,7 @@ class Custom6Reader(jsonlines.jsonlines.ReaderWriterBase):
         if len(self.lines) == 0:
             if self.pending == 0:
                 if len(self.lines) > 0: # Make sure the final line wasn't parsed between the first if and the second
+                    print("READ!")
                     return self.lines.pop(0)
 
                 raise RuntimeError("No more lines to read!")
@@ -244,6 +245,7 @@ class Custom6Reader(jsonlines.jsonlines.ReaderWriterBase):
                 while len(self.lines) == 0:
                     time.sleep(0.1)
 
+        print("READ!")
         return self.lines.pop(0)
 
 
