@@ -716,6 +716,7 @@ class Package(object):
             reader = jsonl.Custom6Reader(readable_file)
 
         line_count = len([line for line in readable_file])
+        readable_file.seek(0)
         with tqdm(desc="Loading Manifest Lines", total=line_count) as tqdm_progress:
 
 
