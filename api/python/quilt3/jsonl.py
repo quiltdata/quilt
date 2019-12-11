@@ -182,11 +182,13 @@ class Custom5Reader(jsonlines.jsonlines.ReaderWriterBase):
         group_timer.stop()
 
         with mp.Pool(POOL_WORKERS) as p:
-            async_results = p.map_async(custom5_process, line_groups)
-            results = async_results.get()
-            assert async_results.successful(), "There was an uncaught error"
+            async_batched_results = p.map_async(custom5_process, line_groups)
+            batched_results = async_batched_results.get()
+            assert async_batched_results.successful(), "There was an uncaught error"
 
-        self.lines = results
+        self.lines = []
+        for result_batch in batched_results:
+            self.lines.extend(result_batch)
 
 
     def read(self):
