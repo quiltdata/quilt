@@ -715,28 +715,33 @@ class Package(object):
             print("Using custom6 JSONL parsing code. Distribute line parsing to mp workers asynchronously")
             reader = jsonl.Custom6Reader(readable_file)
 
+        line_count = len([line for line in readable_file])
+        with tqdm(desc="Loading Manifest Lines", total=line_count) as tqdm_progress:
 
-        meta = reader.read()
-        meta.pop('top_hash', None)  # Obsolete as of PR #130
-        pkg = cls()
-        pkg._meta = meta
 
-        for obj in tqdm(list(reader)):
-            path = cls._split_key(obj.pop('logical_key'))
-            subpkg = pkg._ensure_subpackage(path[:-1])
-            key = path[-1]
-            if not obj.get('physical_keys', None):
-                # directory-level metadata
-                subpkg.set_meta(obj['meta'])
-                continue
-            if key in subpkg._children:
-                raise PackageException("Duplicate logical key while loading package")
-            subpkg._children[key] = PackageEntry(
-                obj['physical_keys'],
-                obj['size'],
-                obj['hash'],
-                obj['meta']
-            )
+            meta = reader.read()
+            meta.pop('top_hash', None)  # Obsolete as of PR #130
+            pkg = cls()
+            pkg._meta = meta
+            tqdm_progress.update(1)
+
+            for obj in reader:
+                path = cls._split_key(obj.pop('logical_key'))
+                subpkg = pkg._ensure_subpackage(path[:-1])
+                key = path[-1]
+                if not obj.get('physical_keys', None):
+                    # directory-level metadata
+                    subpkg.set_meta(obj['meta'])
+                    continue
+                if key in subpkg._children:
+                    raise PackageException("Duplicate logical key while loading package")
+                subpkg._children[key] = PackageEntry(
+                    obj['physical_keys'],
+                    obj['size'],
+                    obj['hash'],
+                    obj['meta']
+                )
+                tqdm_progress.update(1)
 
         return pkg
 
