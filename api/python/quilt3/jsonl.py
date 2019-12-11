@@ -220,7 +220,7 @@ class Custom6Reader(jsonlines.jsonlines.ReaderWriterBase):
 
         self.header = ujson.loads(str_lines.pop(0))
         self.p = mp.Pool(POOL_WORKERS)
-        self.res_iterator = self.p.imap(custom6_process, str_lines)
+        self.res_iterator = self.p.imap_unordered(custom6_process, str_lines)
 
 
 
