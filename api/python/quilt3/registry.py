@@ -1,25 +1,41 @@
+"""
+Microservice that provides temporary user credentials to the catalog
+"""
+
 from datetime import timedelta
 
 import boto3
+from botocore.exceptions import ClientError
 from flask import Flask
 from flask_cors import CORS
-from flask_json import as_json, jsonify
+from flask_json import as_json
+import requests
 
-app = Flask(__name__)
+app = Flask(__name__) # pylint: disable=invalid-name
 app.config['JSON_USE_ENCODE_METHODS'] = True
 app.config['JSON_ADD_STATUS'] = False
 
-sts_client = boto3.client(
+sts_client = boto3.client( # pylint: disable=invalid-name
     'sts',
 )
 
-
+class ApiException(Exception):
+    """
+    Base class for API exceptions.
+    """
+    def __init__(self, status_code, message):
+        super().__init__()
+        self.status_code = status_code
+        self.message = message
 
 CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
 
 @app.route('/api/buckets', methods=['GET'])
 @as_json
 def list_buckets():
+    """
+    Returns an empty list for compatibility
+    """
     return dict(
         buckets=[]
     )
