@@ -454,16 +454,27 @@ class BackgroundThreadReader2(ReaderWriterBase):
 
         while True:
             for i in range(self.max_workers):
-                if len(self.result_queues[i]) != 0:
+                try:
                     r = self.result_queues[i].pop(0)
                     self.lines_read += 1
                     return r
+                except IndexError:
+                    continue
 
             # None of the queues have any results
-            print("No results are ready :(")
-            print("Are there jobs in the job queues?")
             for i in range(self.max_workers):
-                print(f"Job Queue {i} length: {len(self.job_queues[i])}")
+                try:
+                    next_line = self.job_queues[i].pop(0)
+                except IndexError:  # Queue is empty
+                    continue
+                j = ujson.loads(next_line)
+                self.lines_read += 1
+                return j
+
+            # print("No results are ready :(")
+            # print("Are there jobs in the job queues?")
+            # for i in range(self.max_workers):
+            #     print(f"Job Queue {i} length: {len(self.job_queues[i])}")
             time.sleep(0.1)
 
 
