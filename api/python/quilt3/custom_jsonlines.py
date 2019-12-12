@@ -391,6 +391,7 @@ class BackgroundThreadReader(ReaderWriterBase):
 
 
 import os
+import random
 
 class BackgroundThreadReader2(ReaderWriterBase):
 
@@ -453,7 +454,8 @@ class BackgroundThreadReader2(ReaderWriterBase):
             raise RuntimeError("All lines of this JSONL have already been read!")
 
         while True:
-            for i in range(self.max_workers):
+            # for i in range(self.max_workers):
+            for i in random.shuffle(range(self.max_workers)):
                 try:
                     r = self.result_queues[i].pop(0)
                     self.lines_read += 1
@@ -462,7 +464,8 @@ class BackgroundThreadReader2(ReaderWriterBase):
                     continue
 
             # None of the queues have any results
-            for i in range(self.max_workers):
+            # for i in range(self.max_workers):
+            for i in random.shuffle(range(self.max_workers)):
                 try:
                     next_line = self.job_queues[i].pop(0)
                 except IndexError:  # Queue is empty
