@@ -393,6 +393,26 @@ class BackgroundThreadReader(ReaderWriterBase):
 import os
 import random
 
+
+def humanize_float(num): return "{0:,.2f}".format(num)
+
+class Timer:
+    def __init__(self, name):
+        self.name = name
+        self.t1 = None
+        self.t2 = None
+
+    def start(self):
+        print(f'Timer "{self.name}" starting!')
+        self.t1 = time.time()
+        return self
+
+    def stop(self):
+        self.t2 = time.time()
+        print(f'Timer "{self.name}" took {humanize_float(self.t2-self.t1)} seconds')
+        return self.t2-self.t1
+
+
 class BackgroundThreadReader2(ReaderWriterBase):
 
     def parse_json_line(self, i):
@@ -408,6 +428,8 @@ class BackgroundThreadReader2(ReaderWriterBase):
 
 
     def __init__(self, fp, num_lines=None):
+
+        init_timer = Timer("BackgroundThreadReader2 init").start()
 
         self.num_lines = num_lines
         if self.num_lines is None:
@@ -431,12 +453,14 @@ class BackgroundThreadReader2(ReaderWriterBase):
         self.result_queues[0].append(ujson.loads(header))  # Make sure header line is always the first item returned
         self.header_pending = True
 
-
+        job_queue_assignment_timer = Timer("Job queue assignment").start()
         for i, line in enumerate(fp):
 
             self.job_queues[i%self.max_workers].append(line)
 
         # self.job_queue = [line for line in fp]
+
+        job_queue_assignment_timer.stop()
 
         print(f"Num lines: {self.num_lines}")
         for i in range(self.max_workers):
@@ -444,10 +468,16 @@ class BackgroundThreadReader2(ReaderWriterBase):
         for i in range(self.max_workers):
             print(f"Result Queue {i} length: {len(self.result_queues[i])}")
 
+        worker_thread_submit_timer = Timer("Worker thread submit").start()
+
         for i in range(self.max_workers):
             self.worker_thread_pool.submit(self.parse_json_line, i)
 
+        worker_thread_submit_timer.stop()
+
         self.lines_read = 0
+
+        init_timer.stop()
 
     def read(self):
         if self.header_pending:
