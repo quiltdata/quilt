@@ -429,6 +429,7 @@ class BackgroundThreadReader2(ReaderWriterBase):
 
         header = fp.readline()
         self.result_queues[0].append(ujson.loads(header))  # Make sure header line is always the first item returned
+        self.header_pending = True
 
 
         for i, line in enumerate(fp):
@@ -449,13 +450,18 @@ class BackgroundThreadReader2(ReaderWriterBase):
         self.lines_read = 0
 
     def read(self):
+        if self.header_pending:
+            r = self.result_queues[0].pop(0)
+            self.header_pending = False
+            self.lines_read += 1
+            return r
         # print("READING!")
         if self.lines_read > self.num_lines:
             raise RuntimeError("All lines of this JSONL have already been read!")
         worker_list = list(range(self.max_workers))
         while True:
-            # for i in range(self.max_workers):
-            for i in sorted(worker_list, key=lambda _: random.random()):
+            for i in range(self.max_workers):
+            # for i in sorted(worker_list, key=lambda _: random.random()):
                 try:
                     r = self.result_queues[i].pop(0)
                     self.lines_read += 1
@@ -464,8 +470,8 @@ class BackgroundThreadReader2(ReaderWriterBase):
                     continue
 
             # None of the queues have any results
-            # for i in range(self.max_workers):
-            for i in sorted(worker_list, key=lambda _: random.random()):
+            for i in range(self.max_workers):
+            # for i in sorted(worker_list, key=lambda _: random.random()):
                 try:
                     next_line = self.job_queues[i].pop(0)
                 except IndexError:  # Queue is empty
