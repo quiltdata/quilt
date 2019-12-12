@@ -13,6 +13,7 @@ from urllib.parse import quote, urlparse, unquote
 import uuid
 import warnings
 
+from . import custom_jsonlines
 import jsonlines
 import ujson
 from tqdm import tqdm
@@ -682,13 +683,20 @@ class Package(object):
     def _load(cls, readable_file):
 
         gc.disable()  # Experiments with COCO (650MB manifest) show disabling GC gives us ~2x performance improvement
-        reader = jsonlines.Reader(readable_file, loads=ujson.loads)
+
 
         line_count = 0
         for _ in readable_file:
             line_count += 1
-        # line_count = len([line for line in readable_file])  # Adds 0.5-1 secs, but feels faster due to progress bar
         readable_file.seek(0)
+
+        USE_CUSTOM_JSONL = True
+        if not USE_CUSTOM_JSONL:
+            print("Using original codebase")
+            reader = jsonlines.Reader(readable_file, loads=ujson.loads)
+        else:
+            print("Using BackgroundThreadReader jsonlines")
+            reader = custom_jsonlines.BackgroundThreadReader2(readable_file, num_lines=line_count)
 
         with tqdm(desc="Loading Manifest", total=line_count) as tqdm_progress:
             meta = reader.read()
