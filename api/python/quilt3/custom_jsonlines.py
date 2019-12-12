@@ -390,6 +390,7 @@ class BackgroundThreadReader(ReaderWriterBase):
         return self.iter()
 
 
+import os
 
 class BackgroundThreadReader2(ReaderWriterBase):
 
@@ -414,7 +415,7 @@ class BackgroundThreadReader2(ReaderWriterBase):
                 self.num_lines += 1
             fp.seek(0)
 
-        self.max_workers = 10
+        self.max_workers = int(os.getenv("QUILT_MAX_WORKERS", 10))
         self.worker_thread_pool = ThreadPoolExecutor(max_workers=self.max_workers)
 
         self.result_queue = []
