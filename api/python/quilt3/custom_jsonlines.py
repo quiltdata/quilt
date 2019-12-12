@@ -560,7 +560,8 @@ def parse_line_group(line_group):
     l = line_group.rstrip("\n").replace("\n", ",\n")
     l = f"[{l}]"
     t1 = time.time()
-    array_of_jsons = ujson.loads(l)
+    # array_of_jsons = ujson.loads(l)
+    array_of_jsons = json.loads(l)
     t2 = time.time()
 
     replace_dur = t1-t0
