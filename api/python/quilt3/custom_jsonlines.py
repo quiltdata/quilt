@@ -576,15 +576,17 @@ class LineChunkerReader(ReaderWriterBase):
     def __init__(self, fp):
         init_timer = Timer("LineChunkerReader init").start()
 
-        chunk_timer = Timer("Chunking").start()
-        header_line = fp.readline()
-        line_groups = chunk_file(fp)
-        print(f"Num chunks = {len(line_groups)}")
-        chunk_timer.stop()
-
         self.num_workers = int(os.getenv("QUILT_NUM_WORKERS", 5))
         self.chunk_size = os.getenv("QUILT_CHUNK_SIZE", "100_000")
         self.chunk_size = int(self.chunk_size.replace("_", ""))
+
+        chunk_timer = Timer("Chunking").start()
+        header_line = fp.readline()
+        line_groups = chunk_file(fp, self.chunk_size)
+        print(f"Num chunks = {len(line_groups)}")
+        chunk_timer.stop()
+
+
 
         print(f"Chunk size = {humanize_float(self.chunk_size)}")
         self.pool = mp.Pool(self.num_workers)
