@@ -1,6 +1,7 @@
 import * as React from 'react'
 
 import * as Config from 'utils/Config'
+import * as LinkedData from 'utils/LinkedData'
 
 import Dots from 'website/components/Backgrounds/Dots'
 import Layout from 'website/components/Layout'
@@ -20,6 +21,9 @@ export default function Landing() {
   const cfg = Config.useConfig()
   return (
     <Layout>
+      <React.Suspense fallback={null}>
+        <LinkedData.CatalogData />
+      </React.Suspense>
       <Dots />
       {cfg.mode === 'PRODUCT' && <Buckets />}
       <Showcase />
