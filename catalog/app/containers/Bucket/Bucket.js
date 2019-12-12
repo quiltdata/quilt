@@ -1,4 +1,3 @@
-import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
 import { Link, Route, Switch, matchPath } from 'react-router-dom'
@@ -8,7 +7,7 @@ import * as M from '@material-ui/core'
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { ThrowNotFound } from 'containers/NotFoundPage'
-import * as S3 from 'utils/AWS/S3'
+import * as AWS from 'utils/AWS'
 import { useCurrentBucketConfig } from 'utils/BucketConfig'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
@@ -65,20 +64,17 @@ const NavTab = RT.composeComponent(
   M.Tab,
 )
 
-const BucketLayout = RT.composeComponent(
-  'Bucket.Layout',
-  RC.setPropTypes({
-    bucket: PT.string.isRequired,
-    section: PT.oneOf([...Object.keys(sections), false]),
-  }),
-  NamedRoutes.inject(),
-  M.withStyles(({ palette }) => ({
-    appBar: {
-      backgroundColor: palette.common.white,
-      color: palette.getContrastText(palette.common.white),
-    },
-  })),
-  ({ classes, bucket, section = false, children, urls }) => (
+const useStyles = M.makeStyles((t) => ({
+  appBar: {
+    backgroundColor: t.palette.common.white,
+    color: t.palette.getContrastText(t.palette.common.white),
+  },
+}))
+
+function BucketLayout({ bucket, section = false, children }) {
+  const { urls } = NamedRoutes.use()
+  const classes = useStyles()
+  return (
     <Layout
       pre={
         <>
@@ -104,8 +100,8 @@ const BucketLayout = RT.composeComponent(
         </>
       }
     />
-  ),
-)
+  )
+}
 
 export default ({
   location,
@@ -117,7 +113,7 @@ export default ({
   const bucketCfg = useCurrentBucketConfig()
   const s3Props = bucketCfg && bucketCfg.region && { region: bucketCfg.region }
   return (
-    <S3.Provider {...s3Props}>
+    <AWS.S3.Provider {...s3Props}>
       <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
         <Switch>
           <Route path={paths.bucketFile} component={File} exact strict />
@@ -130,6 +126,6 @@ export default ({
           <Route component={ThrowNotFound} />
         </Switch>
       </BucketLayout>
-    </S3.Provider>
+    </AWS.S3.Provider>
   )
 }
