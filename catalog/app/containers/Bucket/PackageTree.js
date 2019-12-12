@@ -93,10 +93,7 @@ const formatListing = ({ urls }, r) => {
 const withComputedTree = (params, fn) =>
   R.pipe(
     AsyncResult.case({
-      Ok: R.pipe(
-        computeTree(params),
-        AsyncResult.Ok,
-      ),
+      Ok: R.pipe(computeTree(params), AsyncResult.Ok),
       _: R.identity,
     }),
     fn,
@@ -110,8 +107,11 @@ const useStyles = M.makeStyles((t) => ({
   },
   crumbs: {
     ...t.typography.body1,
-    maxWidth: 'calc(100% - 40px)',
+    maxWidth: 'calc(100% - 160px)',
     overflowWrap: 'break-word',
+    [t.breakpoints.down('xs')]: {
+      maxWidth: 'calc(100% - 40px)',
+    },
   },
   name: {
     wordBreak: 'break-all',
@@ -136,6 +136,8 @@ export default function PackageTree({
   const { urls } = NamedRoutes.use()
   const getSignedS3URL = AWS.Signer.useS3Signer()
   const { apiGatewayEndpoint: endpoint } = Config.useConfig()
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
 
   const path = decode(encodedPath)
 
@@ -185,17 +187,29 @@ export default function PackageTree({
               {AsyncResult.case(
                 {
                   Ok: TreeDisplay.case({
-                    File: ({ key, version }) => (
-                      <M.IconButton
-                        className={classes.button}
-                        href={getSignedS3URL({ bucket, key, version })}
-                        edge="end"
-                        size="small"
-                        download
-                      >
-                        <M.Icon>arrow_downward</M.Icon>
-                      </M.IconButton>
-                    ),
+                    File: ({ key, version }) =>
+                      xs ? (
+                        <M.IconButton
+                          className={classes.button}
+                          href={getSignedS3URL({ bucket, key, version })}
+                          edge="end"
+                          size="small"
+                          download
+                        >
+                          <M.Icon>arrow_downward</M.Icon>
+                        </M.IconButton>
+                      ) : (
+                        <M.Button
+                          href={getSignedS3URL({ bucket, key, version })}
+                          className={classes.button}
+                          variant="outlined"
+                          size="small"
+                          startIcon={<M.Icon>arrow_downward</M.Icon>}
+                          download
+                        >
+                          Download file
+                        </M.Button>
+                      ),
                     _: () => null,
                   }),
                   _: () => null,
