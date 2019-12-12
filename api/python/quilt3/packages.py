@@ -131,7 +131,7 @@ class PackageEntry(object):
         Returns:
             a PackageEntry
         """
-        self.physical_keys = [fix_url(x) for x in physical_keys]
+        self.physical_keys = physical_keys
         self.size = size
         self.hash = hash_obj
         self._meta = meta or {}
