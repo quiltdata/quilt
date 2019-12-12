@@ -567,7 +567,7 @@ def parse_line_group(line_group):
     replace_dur = t1-t0
     loads_dur = t2-t1
 
-    print(humanize_float(replace_dur), humanize_float(loads_dur), len(array_of_jsons))
+    # print(humanize_float(replace_dur), humanize_float(loads_dur), len(array_of_jsons))
     return array_of_jsons
 
 class LineChunkerReader(ReaderWriterBase):
