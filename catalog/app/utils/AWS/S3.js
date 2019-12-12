@@ -26,19 +26,65 @@ export const Provider = RT.composeComponent(
   },
 )
 
-export const useS3 = (extra) => {
+export const useS3 = (extra, extend = {}) => {
   const config = Config.use()
   Credentials.use().suspend()
   const props = React.useContext(Ctx)
   // TODO: use cache?
-  return useMemoEq({ ...config, ...props, ...extra }, (cfg) => new S3(cfg))
+  return useMemoEq({ cfg: { ...config, ...props, ...extra }, extend }, (opts) =>
+    Object.assign(new S3(opts.cfg), opts.extend),
+  )
 }
 
 export const use = useS3
 
+const PROXIED = Symbol('proxied')
+
 export const useRequest = (extra) => {
   const cfg = useConfig()
-  const regularClient = useS3(extra)
+  const proxyEndpoint = React.useMemo(() => new AWS.Endpoint(cfg.s3Proxy), [cfg.s3Proxy])
+  const customRequestHandler = React.useCallback(
+    (req) => {
+      const b = req.params.Bucket
+      if (b && cfg.shouldProxy(b)) {
+        req.on(
+          'sign',
+          () => {
+            // This is the ultimate hack to get the signing process working.
+            // On non-default regions, when the AWS SDK, after some retries, discovers the
+            // proper (it thinks) region-based endpoint, e.g. $bucket.s3.$region.amazonaws.com,
+            // AWS S3 responds with an error saying that canonical request should contain the
+            // host WITHOUT the region, e.g. $bucket.s3.amazonaws.com ¯\_(°_o)_/¯
+            req.httpRequest.headers.Host = req.httpRequest.headers.Host.replace(
+              /s3\.([a-z]{2}-[a-z]+-\d)\.amazonaws.com/,
+              's3.amazonaws.com',
+            )
+            // Revert our patch so that the request can be re-signed in case of retry.
+            // AWS SDK reuses and mutates the httpRequest object, so we have to track our
+            // monkey-patching to avoid applying it repeatedly.
+            if (req.httpRequest[PROXIED]) {
+              req.httpRequest.endpoint = req.httpRequest[PROXIED].endpoint
+              req.httpRequest.path = req.httpRequest[PROXIED].path
+              delete req.httpRequest[PROXIED]
+            }
+          },
+          true,
+        )
+        req.on('sign', () => {
+          // Monkey-patch the request object after it has been signed and save the original
+          // values in case of retry.
+          req.httpRequest[PROXIED] = {
+            endpoint: req.httpRequest.endpoint,
+            path: req.httpRequest.path,
+          }
+          req.httpRequest.endpoint = proxyEndpoint
+          req.httpRequest.path = `/${b}${req.httpRequest.path}`
+        })
+      }
+    },
+    [cfg, proxyEndpoint],
+  )
+  const regularClient = useS3(extra, { customRequestHandler })
   const s3SelectClient = useS3({
     endpoint: `${cfg.binaryApiGatewayEndpoint}/s3select/`,
     s3ForcePathStyle: true,
@@ -55,17 +101,7 @@ export const useRequest = (extra) => {
         cfg.mode === 'LOCAL' || (authenticated && cfg.shouldSign(bucket))
           ? 'makeRequest'
           : 'makeUnauthenticatedRequest'
-      const req = client[method](operation, params)
-      if (cfg.shouldProxy(bucket) && client === regularClient) {
-        req.on('sign', () => {
-          // *After* the request has been signed with the original S3 hostname / path,
-          // change it to the proxy. Proxy will then change it back while keeping the
-          // original signature.
-          req.httpRequest.endpoint = new AWS.Endpoint(cfg.s3Proxy)
-          req.httpRequest.path = `/${bucket}${req.httpRequest.path}`
-        })
-      }
-      return req.promise()
+      return client[method](operation, params).promise()
     },
     [regularClient, s3SelectClient, authenticated, cfg],
   )
