@@ -11,6 +11,9 @@ from .util import get_from_config, QuiltException
 from .registry import app
 
 def cmd_config(catalog_url):
+    """
+    Configure quilt3 to a Quilt stack
+    """
     if catalog_url is None:
         existing_catalog_url = get_from_config('navigator_url')
         if existing_catalog_url is not None:
@@ -21,8 +24,11 @@ def cmd_config(catalog_url):
         api.config(catalog_url)
 
 def cmd_catalog():
+    """
+    Run the Quilt catalog locally
+    """
     open_config = api.config()
-    command = ["docker","run","--rm"]
+    command = ["docker", "run", "--rm"]
     env = dict(REGISTRY_URL="http://localhost:5000",
                S3_PROXY_URL=open_config["s3Proxy"],
                ALWAYS_REQUIRE_AUTH="false",
