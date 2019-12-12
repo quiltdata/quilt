@@ -695,8 +695,11 @@ class Package(object):
             print("Using original codebase")
             reader = jsonlines.Reader(readable_file, loads=ujson.loads)
         else:
-            print("Using BackgroundThreadReader jsonlines")
-            reader = custom_jsonlines.BackgroundThreadReader2(readable_file, num_lines=line_count)
+            print("Using LineChunkerReader jsonlines")
+            reader = custom_jsonlines.LineChunkerReader(readable_file)
+
+            # print("Using BackgroundThreadReader jsonlines")
+            # reader = custom_jsonlines.BackgroundThreadReader2(readable_file, num_lines=line_count)
 
         with tqdm(desc="Loading Manifest", total=line_count) as tqdm_progress:
             meta = reader.read()

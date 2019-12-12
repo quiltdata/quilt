@@ -424,9 +424,6 @@ class BackgroundThreadReader2(ReaderWriterBase):
             j = ujson.loads(next_line)
             self.result_queues[i].append(j)
 
-
-
-
     def __init__(self, fp, num_lines=None):
 
         init_timer = Timer("BackgroundThreadReader2 init").start()
@@ -516,15 +513,119 @@ class BackgroundThreadReader2(ReaderWriterBase):
             #     print(f"Job Queue {i} length: {len(self.job_queues[i])}")
             time.sleep(0.1)
 
-
-
-
     def iter(self):
         for _ in range(self.num_lines - self.lines_read):
             yield self.read()
 
     def __iter__(self):
         return self.iter()
+
+
+
+
+
+
+
+
+
+
+
+
+
+def chunk_file(fp, approx_chunk_size=100_000):
+    # Split the file into groups of lines
+    # Return a list of tuples: (start_loc, end_loc)
+    chunks = []
+
+
+    while True:
+        chunk = fp.read(approx_chunk_size)
+        chunk += fp.readline()
+        # print(len(chunk))
+        if chunk == "":
+            return chunks
+
+        chunks.append(chunk)
+
+
+
+
+
+
+
+
+
+def parse_line_group(line_group):
+    t0 = time.time()
+    l = line_group.rstrip("\n").replace("\n", ",\n")
+    l = f"[{l}]"
+    t1 = time.time()
+    array_of_jsons = ujson.loads(l)
+    t2 = time.time()
+
+    replace_dur = t1-t0
+    loads_dur = t2-t1
+
+    # print(humanize_float(replace_dur), humanize_float(loads_dur), len(array_of_jsons))
+    return array_of_jsons
+
+class LineChunkerReader(ReaderWriterBase):
+
+
+    def __init__(self, fp):
+        init_timer = Timer("LineChunkerReader init").start()
+
+        chunk_timer = Timer("Chunking").start()
+        header_line = fp.readline()
+        line_groups = chunk_file(fp)
+        print(f"Num chunks = {len(line_groups)}")
+        chunk_timer.stop()
+
+        self.num_workers = int(os.getenv("QUILT_NUM_WORKERS", 5))
+        self.chunk_size = os.getenv("QUILT_CHUNK_SIZE", "100_000")
+        self.chunk_size = int(self.chunk_size.replace("_", ""))
+
+        print(f"Chunk size = {humanize_float(self.chunk_size)}")
+        self.pool = mp.Pool(self.num_workers)
+
+        chunk_timer = Timer("Chunk map").start()
+        results = self.pool.map(parse_line_group, line_groups)
+        chunk_timer.stop()
+
+        self.lines = [ujson.loads(header_line)]
+        for result_batch in results:
+            self.lines.extend(result_batch)
+
+        init_timer.stop()
+
+
+
+
+
+
+
+    def read(self):
+        return self.lines.pop(0)
+
+    def iter(self):
+
+        yield from self.lines
+
+    def __iter__(self):
+        return self.iter()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class Writer(ReaderWriterBase):
     """
