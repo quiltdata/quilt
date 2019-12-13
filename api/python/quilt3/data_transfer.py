@@ -142,7 +142,7 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path):
     body = resp['Body']
     with open(dest_path, 'wb') as fd:
         while True:
-            chunk = body.read(1024)
+            chunk = body.read(64 * 1024)
             if not chunk:
                 break
             fd.write(chunk)
