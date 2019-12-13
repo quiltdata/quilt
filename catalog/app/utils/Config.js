@@ -72,7 +72,7 @@ const transformConfig = (cfg) => ({
   passwordAuth: AUTH_MAP[cfg.passwordAuth],
   ssoAuth: AUTH_MAP[cfg.ssoAuth],
   ssoProviders: cfg.ssoProviders.length ? cfg.ssoProviders.split(' ') : [],
-  enableMarketingPages: cfg.mode !== 'OPEN',
+  enableMarketingPages: cfg.mode === 'PRODUCT' || cfg.mode === 'MARKETING',
   disableNavigator: cfg.mode === 'MARKETING',
 })
 

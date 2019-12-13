@@ -31,8 +31,8 @@
     },
     "mode": {
       "type": "string",
-      "pattern": "^((MARKETING)|(OPEN)|(PRODUCT))$",
-      "description": "App mode: MARKETING | OPEN | PRODUCT."
+      "pattern": "^((MARKETING)|(OPEN)|(PRODUCT)|(LOCAL))$",
+      "description": "App mode: MARKETING | OPEN | PRODUCT | LOCAL."
     },
     "legacyPackagesRedirect": {
       "type": "string",

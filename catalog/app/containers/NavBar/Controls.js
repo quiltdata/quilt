@@ -1,43 +1,35 @@
 import cx from 'classnames'
-import PT from 'prop-types'
 import * as React from 'react'
-import * as RC from 'recompose'
 import * as M from '@material-ui/core'
-
-import * as RT from 'utils/reactTools'
 
 import BucketSelect from './BucketSelect'
 import Search from './Search'
 
-const BucketDisplay = RT.composeComponent(
-  'NavBar.BucketControls.BucketDisplay',
-  RC.setPropTypes({
-    bucket: PT.string.isRequired,
-    select: PT.func.isRequired,
-    locked: PT.bool,
-  }),
-  M.withStyles((t) => ({
-    root: {
-      textTransform: 'none !important',
-      transition: ['opacity 200ms'],
+const useBucketDisplayStyles = M.makeStyles((t) => ({
+  root: {
+    textTransform: 'none !important',
+    transition: ['opacity 200ms'],
+  },
+  locked: {
+    opacity: 0,
+  },
+  s3: {
+    opacity: 0.7,
+  },
+  bucket: {
+    maxWidth: 160,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    [t.breakpoints.down('xs')]: {
+      maxWidth: 'calc(100vw - 220px)',
     },
-    locked: {
-      opacity: 0,
-    },
-    s3: {
-      opacity: 0.7,
-    },
-    bucket: {
-      maxWidth: 160,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap',
-      [t.breakpoints.down('xs')]: {
-        maxWidth: 'calc(100vw - 220px)',
-      },
-    },
-  })),
-  ({ classes, bucket, select, locked = false, ...props }) => (
+  },
+}))
+
+function BucketDisplay({ bucket, select, locked = false, ...props }) {
+  const classes = useBucketDisplayStyles()
+  return (
     <M.Box position="relative" {...props}>
       {locked && <M.Box position="absolute" top={0} bottom={0} left={0} right={0} />}
       <M.Button
@@ -50,14 +42,14 @@ const BucketDisplay = RT.composeComponent(
         <M.Icon>expand_more</M.Icon>
       </M.Button>
     </M.Box>
-  ),
-)
+  )
+}
 
 const Container = (props) => (
   <M.Box display="flex" alignItems="center" position="relative" flexGrow={1} {...props} />
 )
 
-function GlobalControls({ iconized }) {
+function GlobalControls({ iconized, disableSearch }) {
   const [state, setState] = React.useState(null)
   const search = React.useCallback(() => {
     setState('search')
@@ -69,12 +61,12 @@ function GlobalControls({ iconized }) {
   return (
     <Container pr={{ xs: 6, sm: 0 }}>
       <BucketSelect display={state === 'search' ? 'none' : undefined} />
-      <Search onFocus={search} onBlur={cancel} iconized={iconized} />
+      {!disableSearch && <Search onFocus={search} onBlur={cancel} iconized={iconized} />}
     </Container>
   )
 }
 
-function BucketControls({ bucket, iconized }) {
+function BucketControls({ bucket, iconized, disableSearch }) {
   const [state, setState] = React.useState(null)
   const select = React.useCallback(() => {
     setState('select')
@@ -94,13 +86,15 @@ function BucketControls({ bucket, iconized }) {
   return (
     <Container>
       <BucketDisplay bucket={bucket} select={select} locked={!!state} ml={-1} />
-      <Search
-        bucket={bucket}
-        onFocus={search}
-        onBlur={cancel}
-        hidden={state === 'select'}
-        iconized={iconized}
-      />
+      {!disableSearch && (
+        <Search
+          bucket={bucket}
+          onFocus={search}
+          onBlur={cancel}
+          hidden={state === 'select'}
+          iconized={iconized}
+        />
+      )}
       <M.Fade in={state === 'select'} onEnter={focusSelect}>
         <BucketSelect cancel={cancel} position="absolute" left={0} ref={selectRef} />
       </M.Fade>
@@ -108,12 +102,12 @@ function BucketControls({ bucket, iconized }) {
   )
 }
 
-export default function Controls({ bucket }) {
+export default function Controls({ bucket, disableSearch }) {
   const t = M.useTheme()
   const iconized = M.useMediaQuery(t.breakpoints.down('xs'))
   return bucket ? (
-    <BucketControls {...{ bucket, iconized }} />
+    <BucketControls {...{ bucket, iconized, disableSearch }} />
   ) : (
-    <GlobalControls {...{ iconized }} />
+    <GlobalControls {...{ iconized, disableSearch }} />
   )
 }

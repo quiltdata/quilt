@@ -5,17 +5,19 @@ import * as reduxHook from 'redux-react-hook'
 
 import * as Auth from 'containers/Auth'
 import * as APIConnector from 'utils/APIConnector'
+import * as Config from 'utils/Config'
 import useMemoEq from 'utils/useMemoEq'
 
 class RegistryCredentials extends AWS.Credentials {
-  constructor({ req }) {
+  constructor({ req, reqOpts }) {
     super()
     this.req = req
+    this.reqOpts = reqOpts
   }
 
   refresh(callback) {
     if (!this.refreshing) {
-      this.refreshing = this.req({ endpoint: '/auth/get_credentials' })
+      this.refreshing = this.req({ endpoint: '/auth/get_credentials', ...this.reqOpts })
         .then((data) => {
           this.expireTime = new Date(data.Expiration)
           this.accessKeyId = data.AccessKeyId
@@ -47,25 +49,34 @@ class EmptyCredentials extends AWS.Credentials {
   }
 }
 
-const useCredentialsMemo = () => {
+function useCredentialsMemo({ local }) {
   const empty = React.useMemo(() => new EmptyCredentials(), [])
   const reg = useMemoEq(APIConnector.use(), (req) => new RegistryCredentials({ req }))
+  const anon = useMemoEq(
+    APIConnector.use(),
+    (req) => new RegistryCredentials({ req, reqOpts: { auth: false } }),
+  )
 
   return useMemoEq(
     {
+      local,
       auth: reduxHook.useMappedState(Auth.selectors.authenticated),
       reg,
+      anon,
       empty,
     },
-    (i) => (i.auth ? i.reg : i.empty),
+    // eslint-disable-next-line no-nested-ternary
+    (i) => (i.auth ? i.reg : i.local ? i.anon : i.empty),
   )
 }
 
 const Ctx = React.createContext()
 
-export const Provider = ({ children }) => (
-  <Ctx.Provider value={useCredentialsMemo()}>{children}</Ctx.Provider>
-)
+export function Provider({ children }) {
+  const cfg = Config.use()
+  const local = cfg.mode === 'LOCAL'
+  return <Ctx.Provider value={useCredentialsMemo({ local })}>{children}</Ctx.Provider>
+}
 
 export const useCredentials = () => React.useContext(Ctx)
 

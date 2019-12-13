@@ -116,7 +116,7 @@ export default () => {
             <NavLink href={URLS.blog} target="_blank">
               Blog
             </NavLink>
-            {cfg.mode !== 'PRODUCT' && (
+            {(cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') && (
               <>
                 <NavSpacer />
                 <NavLink href={URLS.jobs} target="_blank">
