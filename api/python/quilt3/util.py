@@ -64,11 +64,8 @@ telemetry_disabled: false
 
 # When pulling the config from the catalog, don't keep fields that are not relevant for the python client
 CONFIG_FIELD_BLACKLIST = [
-    "apiGatewayEndpoint",
-    "binaryApiGatewayEndpoint",
     "alwaysRequiresAuth",
     "defaultBucket",
-    "s3Proxy",
     "intercomAppId",
     "signInRedirect",
     "signOutRedirect",
