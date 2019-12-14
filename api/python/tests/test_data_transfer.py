@@ -12,6 +12,7 @@ import pytest
 
 ### Project imports
 from quilt3 import data_transfer
+from quilt3.util import PhysicalKey
 
 from .utils import QuiltTestCase
 
@@ -75,7 +76,7 @@ class DataTransferTest(QuiltTestCase):
             }
         boto_return_val = {'Payload': iter(records)}
         with mock.patch.object(self.s3_client, 'select_object_content', return_value=boto_return_val) as patched:
-            result = data_transfer.select('s3://foo/bar/baz.json', 'select * from S3Object')
+            result = data_transfer.select(PhysicalKey.from_url('s3://foo/bar/baz.json'), 'select * from S3Object')
 
             patched.assert_called_once_with(**expected_args)
             assert result.equals(expected_result)
@@ -83,7 +84,7 @@ class DataTransferTest(QuiltTestCase):
         with mock.patch.object(self.s3_client, 'select_object_content'):
             # No format determined.
             with pytest.raises(data_transfer.QuiltException):
-                result = data_transfer.select('s3://foo/bar/baz', 'select * from S3Object')
+                result = data_transfer.select(PhysicalKey.from_url('s3://foo/bar/baz'), 'select * from S3Object')
 
         # test format-specified in metadata
         expected_args = {
@@ -100,7 +101,7 @@ class DataTransferTest(QuiltTestCase):
 
         boto_return_val = {'Payload': iter(records)}
         with mock.patch.object(self.s3_client, 'select_object_content', return_value=boto_return_val) as patched:
-            result = data_transfer.select('s3://foo/bar/baz', 'select * from S3Object', meta={'target': 'json'})
+            result = data_transfer.select(PhysicalKey.from_url('s3://foo/bar/baz'), 'select * from S3Object', meta={'target': 'json'})
             assert result.equals(expected_result)
             patched.assert_called_once_with(**expected_args)
 
@@ -119,7 +120,7 @@ class DataTransferTest(QuiltTestCase):
         boto_return_val = {'Payload': iter(records)}
         with mock.patch.object(self.s3_client, 'select_object_content', return_value=boto_return_val) as patched:
             # result ignored -- returned data isn't compressed, and this has already been tested.
-            data_transfer.select('s3://foo/bar/baz.json.gz', 'select * from S3Object')
+            data_transfer.select(PhysicalKey.from_url('s3://foo/bar/baz.json.gz'), 'select * from S3Object')
             patched.assert_called_once_with(**expected_args)
 
     def test_get_size_and_version(self):
@@ -135,11 +136,11 @@ class DataTransferTest(QuiltTestCase):
         self.s3_stubber.add_response('head_object', response, expected_params)
 
         # Verify the verion is present
-        assert data_transfer.get_size_and_version('s3://my_bucket/my_obj')[1] == '1.0'
+        assert data_transfer.get_size_and_version(PhysicalKey.from_url('s3://my_bucket/my_obj'))[1] == '1.0'
 
     def test_list_local_url(self):
         dir_path = DATA_DIR / 'dir'
-        contents = set(list(data_transfer.list_url(dir_path.as_uri())))
+        contents = set(list(data_transfer.list_url(PhysicalKey.from_path(dir_path))))
         assert contents == set([
             ('foo.txt', 4),
             ('x/blah.txt', 6)
@@ -165,7 +166,7 @@ class DataTransferTest(QuiltTestCase):
             }
         )
 
-        data_transfer.copy_file(path.as_uri(), 's3://example/foo.csv')
+        data_transfer.copy_file(PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/foo.csv'))
 
     def test_multi_upload(self):
         path1 = DATA_DIR / 'small_file.csv'
@@ -199,12 +200,12 @@ class DataTransferTest(QuiltTestCase):
         # stubber expects responses in order, so disable multi-threading.
         with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             urls = data_transfer.copy_file_list([
-                (path1.as_uri(), 's3://example1/foo.csv', path1.stat().st_size),
-                (path2.as_uri(), 's3://example2/foo.txt', path2.stat().st_size),
+                (PhysicalKey.from_path(path1), PhysicalKey.from_url('s3://example1/foo.csv'), path1.stat().st_size),
+                (PhysicalKey.from_path(path2), PhysicalKey.from_url('s3://example2/foo.txt'), path2.stat().st_size),
             ])
 
-            assert urls[0] == 's3://example1/foo.csv'
-            assert urls[1] == 's3://example2/foo.txt?versionId=v123'
+            assert urls[0] == PhysicalKey.from_url('s3://example1/foo.csv')
+            assert urls[1] == PhysicalKey.from_url('s3://example2/foo.txt?versionId=v123')
 
 
     def test_upload_large_file(self):
@@ -232,9 +233,9 @@ class DataTransferTest(QuiltTestCase):
         )
 
         urls = data_transfer.copy_file_list([
-            (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size),
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
         ])
-        assert urls[0] == 's3://example/large_file.npy?versionId=v1'
+        assert urls[0] == PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1')
 
 
     def test_upload_large_file_etag_match(self):
@@ -254,9 +255,9 @@ class DataTransferTest(QuiltTestCase):
         )
 
         urls = data_transfer.copy_file_list([
-            (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size),
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
         ])
-        assert urls[0] == 's3://example/large_file.npy?versionId=v1'
+        assert urls[0] == PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1')
 
 
     def test_upload_large_file_etag_mismatch(self):
@@ -288,9 +289,9 @@ class DataTransferTest(QuiltTestCase):
         )
 
         urls = data_transfer.copy_file_list([
-            (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size),
+            (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
         ])
-        assert urls[0] == 's3://example/large_file.npy?versionId=v2'
+        assert urls[0] == PhysicalKey.from_url('s3://example/large_file.npy?versionId=v2')
 
 
     def test_multipart_upload(self):
@@ -360,7 +361,7 @@ class DataTransferTest(QuiltTestCase):
 
         with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             data_transfer.copy_file_list([
-                (path.resolve().as_uri(), f's3://example/{name}', path.stat().st_size),
+                (PhysicalKey.from_path(path), PhysicalKey.from_url(f's3://example/{name}'), path.stat().st_size),
             ])
 
 
@@ -429,5 +430,5 @@ class DataTransferTest(QuiltTestCase):
 
         with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             data_transfer.copy_file_list([
-                ('s3://example1/large_file1.npy', 's3://example2/large_file2.npy', size),
+                (PhysicalKey.from_url('s3://example1/large_file1.npy'), PhysicalKey.from_url('s3://example2/large_file2.npy'), size),
             ])

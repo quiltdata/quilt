@@ -1,12 +1,10 @@
-from urllib.parse import quote
-
 from .data_transfer import copy_file, get_bytes, delete_url, list_url
 from .packages import Package
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
                    CONFIG_TEMPLATE, configure_from_default, config_exists,
                    configure_from_url, fix_url, get_package_registry,
-                   load_config, read_yaml, validate_package_name,
+                   load_config, PhysicalKey, read_yaml, validate_package_name,
                    write_yaml)
 from .telemetry import ApiTelemetry
 
@@ -22,8 +20,7 @@ def copy(src, dest):
         src (str): a path to retrieve
         dest (str): a path to write to
     """
-    copy_file(fix_url(src), fix_url(dest))
-
+    copy_file(PhysicalKey.from_url(fix_url(src)), PhysicalKey.from_url(fix_url(dest)))
 
 
 
@@ -40,23 +37,23 @@ def delete_package(name, registry=None, top_hash=None):
     validate_package_name(name)
     usr, pkg = name.split('/')
 
-    registry_base_path = get_package_registry(fix_url(registry) if registry else None)
+    registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
 
-    named_packages = registry_base_path.rstrip('/') + '/named_packages/'
-    package_path = named_packages + name + '/'
+    named_packages = registry_parsed.join('named_packages')
+    package_path = named_packages.join(name)
 
     paths = list(list_url(package_path))
     if not paths:
         raise QuiltException("No such package exists in the given directory.")
 
     if top_hash is not None:
-        top_hash = Package.resolve_hash(registry, top_hash)
+        top_hash = Package.resolve_hash(registry_parsed, top_hash)
         deleted = []
         remaining = []
         for path, _ in paths:
             parts = path.split('/')
             if len(parts) == 1:
-                pkg_hash = get_bytes(package_path + quote(parts[0]))
+                pkg_hash = get_bytes(package_path.join(parts[0]))
                 if pkg_hash.decode().strip() == top_hash:
                     deleted.append(parts[0])
                 else:
@@ -64,19 +61,20 @@ def delete_package(name, registry=None, top_hash=None):
         if not deleted:
             raise QuiltException("No such package version exists in the given directory.")
         for path in deleted:
-            delete_url(package_path + quote(path))
+            delete_url(package_path.join(path))
         if 'latest' in deleted and remaining:
             # Create a new "latest". Technically, we need to compare numerically,
             # but string comparisons will be fine till year 2286.
             new_latest = max(remaining)
-            copy_file(package_path + quote(new_latest), package_path + 'latest')
+            copy_file(package_path.join(new_latest), package_path.join('latest'))
     else:
         for path, _ in paths:
-            delete_url(package_path + quote(path))
+            delete_url(package_path.join(path))
 
     # Will ignore non-empty dirs.
-    delete_url(package_path)
-    delete_url(named_packages + usr + '/')
+    # TODO: .join('') adds a trailing slash - but need a better way.
+    delete_url(package_path.join(''))
+    delete_url(named_packages.join(usr).join(''))
 
 
 @ApiTelemetry("api.list_packages")
@@ -92,10 +90,12 @@ def list_packages(registry=None):
     Returns:
         A sequence of strings containing the names of the packages
     """
-    return _list_packages(registry=registry)
+    registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
+
+    return _list_packages(registry_parsed)
 
 
-def _list_packages(registry=None):
+def _list_packages(registry):
     """This differs from list_packages because it does not have
 
     telemetry on it. If Quilt code needs the functionality to list
@@ -105,9 +105,7 @@ def _list_packages(registry=None):
     telemetry event).
     """
 
-    registry_base_path = get_package_registry(fix_url(registry) if registry else None)
-
-    named_packages = registry_base_path.rstrip('/') + '/named_packages/'
+    named_packages = registry.join('named_packages')
     prev_pkg = None
     for path, _ in list_url(named_packages):
         parts = path.split('/')
@@ -132,23 +130,22 @@ def list_package_versions(name, registry=None):
     Returns:
         A sequence of tuples containing the named version and hash.
     """
-    return _list_package_versions(name=name, registry=registry)
+    validate_package_name(name)
+    registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
+
+    return _list_package_versions(name=name, registry=registry_parsed)
 
 
-def _list_package_versions(name, registry=None):
+def _list_package_versions(name, registry):
     """Telemetry-free version of list_package_versions. Internal quilt
     code should always use _list_package_versions.  See documentation
     for _list_packages for why.
     """
-    validate_package_name(name)
-
-    registry_base_path = get_package_registry(fix_url(registry) if registry else None)
-
-    package = registry_base_path.rstrip('/') + '/named_packages/' + name + '/'
+    package = registry.join('named_packages').join(name)
     for path, _ in list_url(package):
         parts = path.split('/')
         if len(parts) == 1:
-            pkg_hash = get_bytes(package + parts[0])
+            pkg_hash = get_bytes(package.join(parts[0]))
             yield parts[0], pkg_hash.decode().strip()
 
 
