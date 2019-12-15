@@ -47,8 +47,7 @@ def cmd_catalog():
     # app.run() generates misleading info to stderr ("Running on http://127.0.0.1:5000/") so disable stderr
     orig_stderr = sys.stderr
     try:
-        f = open(os.devnull, 'w')
-        sys.stderr = f
+        sys.stderr = open(os.devnull, 'w')
         app.run()
     finally:
         sys.stderr = orig_stderr
