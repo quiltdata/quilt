@@ -3,11 +3,12 @@ Parses the command-line arguments and runs a command.
 """
 
 import argparse
+import os
 import subprocess
 import sys
 
 from . import api, session
-from .util import get_from_config, QuiltException
+from .util import get_from_config, QuiltException, read_config_from_url, OPEN_DATA_URL
 from .registry import app
 
 def cmd_config(catalog_url):
@@ -27,7 +28,7 @@ def cmd_catalog():
     """
     Run the Quilt catalog locally
     """
-    open_config = api.config()
+    open_config = read_config_from_url(OPEN_DATA_URL)
     command = ["docker", "run", "--rm"]
     env = dict(REGISTRY_URL="http://localhost:5000",
                S3_PROXY_URL=open_config["s3Proxy"],
@@ -41,7 +42,19 @@ def cmd_catalog():
         command += ["-e", var]
     command += ["-p", "3000:80", "quiltdata/catalog"]
     subprocess.Popen(command)
-    app.run()
+    print("Running a local version of the catalog at http://localhost:3000")
+    orig_stdout = sys.stdout
+    orig_stderr = sys.stderr
+    try:
+        f = open(os.devnull, 'w')
+        sys.stdout = f
+        sys.stderr = f
+        app.run()
+    except Exception:
+        pass
+    finally:
+        sys.stdout = orig_stdout
+        sys.stderr = orig_stderr
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
     pkg = api.Package._browse(name, registry, top_hash)
@@ -80,7 +93,7 @@ def create_parser():
     config_p.set_defaults(func=cmd_config)
 
     # catalog
-    shorthelp = "Run Quilt catalog locally"
+    shorthelp = "Run Quilt catalog locally at http://localhost:3000"
     config_p = subparsers.add_parser("catalog", description=shorthelp, help=shorthelp)
     config_p.set_defaults(func=cmd_catalog)
 

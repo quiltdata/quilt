@@ -343,6 +343,20 @@ def get_package_registry(path=None):
 def configure_from_url(catalog_url):
     """ Read configuration settings from a Quilt catalog """
     config_template = read_yaml(CONFIG_TEMPLATE)
+
+    new_config = read_config_from_url(catalog_url)
+
+    # Use our template + their configured values, keeping our comments.
+    for key, value in new_config.items():
+        if key in CONFIG_FIELD_BLACKLIST:
+            continue
+        config_template[key] = value
+    write_yaml(config_template, CONFIG_PATH, keep_backup=True)
+    return config_template
+
+
+def read_config_from_url(catalog_url):
+    """ Read configuration settings from a Quilt catalog, but do not change the local config.yaml """
     # Clean up and validate catalog url
     catalog_url = catalog_url.rstrip('/')
     validate_url(catalog_url)
@@ -364,13 +378,8 @@ def configure_from_url(catalog_url):
     if not new_config.get('navigator_url'):
         new_config['navigator_url'] = catalog_url
 
-    # Use our template + their configured values, keeping our comments.
-    for key, value in new_config.items():
-        if key in CONFIG_FIELD_BLACKLIST:
-            continue
-        config_template[key] = value
-    write_yaml(config_template, CONFIG_PATH, keep_backup=True)
-    return config_template
+    return new_config
+
 
 def load_config():
     # For user-facing config, use api.config()
