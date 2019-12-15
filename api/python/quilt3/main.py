@@ -43,17 +43,14 @@ def cmd_catalog():
     command += ["-p", "3000:80", "quiltdata/catalog"]
     subprocess.Popen(command)
     print("Running a local version of the catalog at http://localhost:3000")
-    orig_stdout = sys.stdout
+
+    # app.run() generates misleading info to stderr ("Running on http://127.0.0.1:5000/") so disable stderr
     orig_stderr = sys.stderr
     try:
         f = open(os.devnull, 'w')
-        sys.stdout = f
         sys.stderr = f
         app.run()
-    except Exception:
-        pass
     finally:
-        sys.stdout = orig_stdout
         sys.stderr = orig_stderr
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
