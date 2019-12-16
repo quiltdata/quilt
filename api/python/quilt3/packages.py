@@ -684,22 +684,12 @@ class Package(object):
 
         gc.disable()  # Experiments with COCO (650MB manifest) show disabling GC gives us ~2x performance improvement
 
-
         line_count = 0
         for _ in readable_file:
             line_count += 1
         readable_file.seek(0)
 
-        USE_CUSTOM_JSONL = True
-        if not USE_CUSTOM_JSONL:
-            print("Using original codebase")
-            reader = jsonlines.Reader(readable_file, loads=ujson.loads)
-        else:
-            print("Using LineChunkerReader jsonlines")
-            reader = custom_jsonlines.LineChunkerReader(readable_file)
-
-            # print("Using BackgroundThreadReader jsonlines")
-            # reader = custom_jsonlines.BackgroundThreadReader2(readable_file, num_lines=line_count)
+        reader = jsonlines.Reader(readable_file, loads=ujson.loads)
 
         with tqdm(desc="Loading Manifest", total=line_count) as tqdm_progress:
             meta = reader.read()
