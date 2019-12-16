@@ -13,7 +13,6 @@ from urllib.parse import quote, urlparse, unquote
 import uuid
 import warnings
 
-from . import custom_jsonlines
 import jsonlines
 import ujson
 from tqdm import tqdm
@@ -690,7 +689,6 @@ class Package(object):
         readable_file.seek(0)
 
         reader = jsonlines.Reader(readable_file, loads=ujson.loads)
-
         with tqdm(desc="Loading Manifest", total=line_count) as tqdm_progress:
             meta = reader.read()
             meta.pop('top_hash', None)  # Obsolete as of PR #130
