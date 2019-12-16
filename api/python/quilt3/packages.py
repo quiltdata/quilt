@@ -1,5 +1,4 @@
 from collections import deque
-import copy
 import gc
 import hashlib
 import io
@@ -134,7 +133,7 @@ class PackageEntry(object):
         Returns:
             a PackageEntry
         """
-        self.physical_keys = [fix_url(x) for x in physical_keys]
+        self.physical_keys = physical_keys
         self.size = size
         self.hash = hash_obj
         self._meta = meta or {}
@@ -154,20 +153,12 @@ class PackageEntry(object):
         """
         Returns dict representation of entry.
         """
-        ret = {
+        return {
             'physical_keys': self.physical_keys,
             'size': self.size,
             'hash': self.hash,
             'meta': self._meta
         }
-        return copy.deepcopy(ret)
-
-    def _clone(self):
-        """
-        Returns clone of this PackageEntry.
-        """
-        return self.__class__(copy.deepcopy(self.physical_keys), self.size, \
-                              copy.deepcopy(self.hash), copy.deepcopy(self._meta))
 
     @property
     def meta(self):
@@ -320,9 +311,7 @@ class PackageEntry(object):
 
         # return a package reroot package physical keys after the copy operation succeeds
         # see GH#388 for context
-        entry = self._clone()
-        entry.physical_keys = [dest]
-        return entry
+        return self.with_physical_keys([dest])
 
 
     def __call__(self, func=None, **kwargs):
@@ -330,6 +319,9 @@ class PackageEntry(object):
         Shorthand for self.deserialize()
         """
         return self.deserialize(func=func, **kwargs)
+
+    def with_physical_keys(self, keys):
+        return self.__class__(keys, self.size, self.hash, self._meta)
 
 
 class Package(object):
@@ -612,8 +604,7 @@ class Package(object):
 
             # return a package reroot package physical keys after the copy operation succeeds
             # see GH#388 for context
-            new_entry = entry._clone()
-            new_entry.physical_keys = [new_physical_key]
+            new_entry = entry.with_physical_keys([new_physical_key])
             pkg._set(logical_key, new_entry)
 
         copy_file_list(file_list)
@@ -1018,7 +1009,7 @@ class Package(object):
                     url = make_s3_url(bucket, key, version)
             entry = PackageEntry([url], size, None, None)
         elif isinstance(entry, PackageEntry):
-            entry = entry._clone()
+            assert meta is None
 
         elif FormatRegistry.object_is_serializable(entry):
             # Use file extension from serialization_location, fall back to file extension from logical_key
@@ -1341,22 +1332,21 @@ class Package(object):
 
             unversioned_physical_key = physical_key.split('?', 1)[0]
             new_physical_key = dest_url + "/" + quote(logical_key)
-            new_entry = entry._clone()
             if unversioned_physical_key == new_physical_key:
                 # No need to copy - re-use the original physical key.
-                pkg._set(logical_key, new_entry)
+                pkg._set(logical_key, entry)
             else:
-                entries.append((logical_key, new_entry))
+                entries.append((logical_key, entry))
                 file_list.append((physical_key, new_physical_key, entry.size))
 
         results = copy_file_list(file_list)
 
-        for (logical_key, new_entry), versioned_key in zip(entries, results):
-            old_physical_key = new_entry.get()
+        for (logical_key, entry), versioned_key in zip(entries, results):
+            old_physical_key = entry.get()
             self._maybe_add_to_cache(old_physical_key, versioned_key)
             # Create a new package entry pointing to the new remote key.
             assert versioned_key is not None
-            new_entry.physical_keys = [versioned_key]
+            new_entry = entry.with_physical_keys([versioned_key])
             pkg._set(logical_key, new_entry)
         return pkg
 

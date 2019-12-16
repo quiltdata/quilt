@@ -142,7 +142,7 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path):
     body = resp['Body']
     with open(dest_path, 'wb') as fd:
         while True:
-            chunk = body.read(1024)
+            chunk = body.read(64 * 1024)
             if not chunk:
                 break
             fd.write(chunk)
@@ -654,7 +654,7 @@ def calculate_sha256(src_list, sizes):
 
                 with open(path, 'rb') as fd:
                     while True:
-                        chunk = fd.read(1024)
+                        chunk = fd.read(64 * 1024)
                         if not chunk:
                             break
                         hash_obj.update(chunk)

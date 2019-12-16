@@ -1,8 +1,6 @@
-import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
-import * as RC from 'recompose'
 import * as reduxHook from 'redux-react-hook'
 import { createStructuredSelector } from 'reselect'
 import * as M from '@material-ui/core'
@@ -15,7 +13,6 @@ import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import { composeComponent } from 'utils/reactTools'
 import { useRoute } from 'utils/router'
 
 import bg from './bg.png'
@@ -57,7 +54,7 @@ const userDisplay = (user) => (
   </>
 )
 
-const UserDropdown = () => {
+function UserDropdown() {
   const user = reduxHook.useMappedState(selectUser)
   const { urls } = NamedRoutes.use()
   const [anchor, setAnchor] = React.useState(null)
@@ -94,7 +91,7 @@ const UserDropdown = () => {
   )
 }
 
-const useHam = () => {
+function useHam() {
   const [anchor, setAnchor] = React.useState(null)
 
   const open = React.useCallback(
@@ -192,39 +189,34 @@ function LinksHamburger() {
   )
 }
 
-const SignIn = composeComponent(
-  'NavBar.SignIn',
-  RC.setPropTypes({
-    error: PT.object,
-    waiting: PT.bool.isRequired,
-  }),
-  NamedRoutes.inject(),
-  M.withStyles(({ spacing: { unit } }) => ({
-    icon: {
-      marginRight: unit,
-    },
-  })),
-  ({ error, waiting, urls, classes }) => {
-    if (waiting) {
-      return <M.CircularProgress color="inherit" />
-    }
-    return (
-      <>
-        {error && (
-          <M.Icon
-            title={`${error.message}\n${JSON.stringify(error)}`}
-            className={classes.icon}
-          >
-            error_outline
-          </M.Icon>
-        )}
-        <M.Button component={Link} to={urls.signIn()} variant="contained" color="primary">
-          Sign In
-        </M.Button>
-      </>
-    )
+const useSignInStyles = M.makeStyles((t) => ({
+  icon: {
+    marginRight: t.spacing(1),
   },
-)
+}))
+
+function SignIn({ error, waiting }) {
+  const classes = useSignInStyles()
+  const { urls } = NamedRoutes.use()
+  if (waiting) {
+    return <M.CircularProgress color="inherit" />
+  }
+  return (
+    <>
+      {error && (
+        <M.Icon
+          title={`${error.message}\n${JSON.stringify(error)}`}
+          className={classes.icon}
+        >
+          error_outline
+        </M.Icon>
+      )}
+      <M.Button component={Link} to={urls.signIn()} variant="contained" color="primary">
+        Sign In
+      </M.Button>
+    </>
+  )
+}
 
 const AppBar = M.styled(M.AppBar)(({ theme: t }) => ({
   background: `left / 64px url(${bg})`,
@@ -272,13 +264,16 @@ function useLinks() {
   return [
     { href: URLS.docs, label: 'Docs' },
     cfg.mode === 'MARKETING' && { to: `${urls.home()}#pricing`, label: 'Pricing' },
-    cfg.mode !== 'PRODUCT' && { href: URLS.jobs, label: 'Jobs' },
+    (cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') && {
+      href: URLS.jobs,
+      label: 'Jobs',
+    },
     { href: URLS.blog, label: 'Blog' },
     cfg.mode === 'MARKETING' && { to: urls.about(), label: 'About' },
   ].filter(Boolean)
 }
 
-export const NavBar = () => {
+export function NavBar() {
   const cfg = Config.use()
   const bucket = BucketConfig.useCurrentBucket()
   const { paths } = NamedRoutes.use()
@@ -295,7 +290,11 @@ export const NavBar = () => {
   const links = useLinks()
   return (
     <Container>
-      {cfg.disableNavigator ? <M.Box flexGrow={1} /> : <Controls bucket={bucket} />}
+      {cfg.disableNavigator ? (
+        <M.Box flexGrow={1} />
+      ) : (
+        <Controls {...{ bucket, disableSearch: cfg.mode === 'LOCAL' }} />
+      )}
       {!useHamburger && (
         <M.Box component="nav" display="flex" alignItems="center" ml={3}>
           {links.map(({ label, ...rest }) => (
@@ -307,6 +306,7 @@ export const NavBar = () => {
       )}
 
       {!cfg.disableNavigator &&
+        cfg.mode !== 'LOCAL' &&
         !useHamburger &&
         (authenticated ? (
           <UserDropdown />
@@ -315,7 +315,7 @@ export const NavBar = () => {
         ))}
 
       {useHamburger &&
-        (cfg.disableNavigator ? (
+        (cfg.disableNavigator || cfg.mode === 'LOCAL' ? (
           <LinksHamburger {...{ authenticated, error, waiting }} />
         ) : (
           <AuthHamburger {...{ authenticated, error, waiting }} />

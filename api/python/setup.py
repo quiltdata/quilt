@@ -55,11 +55,14 @@ setup(
         'appdirs>=1.4.0',
         'aws-requests-auth>=0.4.2',
         'boto3>=1.8.0',
+        'flask',
+        'flask_cors',
+        'flask_json',
         'jsonlines==1.2.0',
         'packaging>=16.8',
         'python-dateutil<=2.8.0',           # 2.8.1 conflicts with botocore
         'requests>=2.12.4',
-        'ruamel.yaml<=0.15.70',
+        'ruamel.yaml>=0.15.78',
         'tqdm>=4.26.0',
         'ujson',
         'urllib3<1.25,>=1.21.1',            # required by requests

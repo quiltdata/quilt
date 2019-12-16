@@ -260,8 +260,11 @@ const useStyles = M.makeStyles((t) => ({
   },
   name: {
     ...t.typography.body1,
-    maxWidth: 'calc(100% - 40px)',
+    maxWidth: 'calc(100% - 160px)',
     overflowWrap: 'break-word',
+    [t.breakpoints.down('xs')]: {
+      maxWidth: 'calc(100% - 40px)',
+    },
   },
   topBar: {
     alignItems: 'flex-end',
@@ -291,6 +294,8 @@ export default function File({
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const { analyticsBucket } = Config.useConfig()
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
 
   const path = decode(encodedPath)
 
@@ -312,17 +317,30 @@ export default function File({
           <VersionInfo bucket={bucket} path={path} version={version} />
         </div>
         <div className={classes.spacer} />
-        {withSignedUrl({ bucket, key: path, version }, (url) => (
-          <M.IconButton
-            className={classes.button}
-            href={url}
-            edge="end"
-            size="small"
-            download
-          >
-            <M.Icon>arrow_downward</M.Icon>
-          </M.IconButton>
-        ))}
+        {withSignedUrl({ bucket, key: path, version }, (url) =>
+          xs ? (
+            <M.IconButton
+              className={classes.button}
+              href={url}
+              edge="end"
+              size="small"
+              download
+            >
+              <M.Icon>arrow_downward</M.Icon>
+            </M.IconButton>
+          ) : (
+            <M.Button
+              href={url}
+              className={classes.button}
+              variant="outlined"
+              size="small"
+              startIcon={<M.Icon>arrow_downward</M.Icon>}
+              download
+            >
+              Download file
+            </M.Button>
+          ),
+        )}
       </div>
       <Section icon="code" heading="Code">
         <Code>{code}</Code>

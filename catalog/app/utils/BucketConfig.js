@@ -14,10 +14,11 @@ const fetchBuckets = async ({ registryUrl }) => {
   }
   const json = JSON.parse(text)
   return json.buckets.map((b) => ({
-    ...R.omit(['icon_url', 'overview_url', 'relevance_score'], b),
+    ...R.omit(['icon_url', 'overview_url', 'relevance_score', 'schema_org'], b),
     iconUrl: b.icon_url,
     overviewUrl: b.overview_url,
     relevance: b.relevance_score,
+    linkedData: b.schema_org,
   }))
 }
 
@@ -34,6 +35,7 @@ export const useRelevantBucketConfigs = () => {
   return React.useMemo(
     () =>
       R.pipe(
+        // TODO: filter-out buckets with relevance == null?
         R.filter((b) => b.relevance == null || b.relevance >= 0),
         R.sortWith([R.descend(R.prop('relevance')), R.ascend(R.prop('name'))]),
       )(bs),
