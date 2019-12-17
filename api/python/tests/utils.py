@@ -27,13 +27,14 @@ class QuiltTestCase(TestCase):
 
         quilt3.config(
             navigator_url='https://example.com',
-            elastic_search_url='https://es.example.com/',
             apiGatewayEndpoint='https://xyz.execute-api.us-east-1.amazonaws.com/prod',
+            binaryApiGatewayEndpoint='https://xyz.execute-api.us-east-1.amazonaws.com/prod',
             default_local_registry=pathlib.Path('.').resolve().as_uri() + '/local_registry',
             default_remote_registry='s3://example/',
             default_install_location=None,
             defaultBucket='test-bucket',
-            registryUrl='https://registry.example.com'
+            registryUrl='https://registry.example.com',
+            s3Proxy='open-s3-proxy.quiltdata.com'
         )
 
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
