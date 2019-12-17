@@ -368,7 +368,8 @@ def load_config():
     if CONFIG_PATH.exists():
         local_config = read_yaml(CONFIG_PATH)
     else:
-        local_config = configure_from_url(OPEN_DATA_URL)
+        # This should only happen if a user deletes their local config
+        raise QuiltException("Local config not found. Run quilt3 config <URL>")
     return local_config
 
 def get_from_config(key):

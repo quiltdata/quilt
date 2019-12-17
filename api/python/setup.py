@@ -5,6 +5,7 @@ from pathlib import Path
 
 from setuptools import setup, find_packages
 from setuptools.command.install import install
+from setuptools.command.develop import develop
 
 VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text()
 
@@ -18,6 +19,31 @@ def readme():
 
     """
     return readme_short
+
+def default_config():
+    """Configure to the default (public) Quilt stack"""
+    from quilt3 import api
+    from quilt3.util import OPEN_DATA_URL
+    api.config(OPEN_DATA_URL)
+
+
+class PostDevelopCommand(develop):
+    """ Post install hook for development installs """
+    description = 'Setup default configuration'
+
+    def run(self):
+        default_config()
+        develop.run(self)
+        
+
+class PostInstallCommand(install):
+    """ Post install hook """
+    description = 'Setup default configuration'
+
+    def run(self):
+        default_config()
+        install.run(self)
+
 
 class VerifyVersionCommand(install):
     """Custom command to verify that the git tag matches our version"""
@@ -69,15 +95,15 @@ setup(
     ],
     extras_require={
         'pyarrow': [
-            'numpy>=1.14.0',                    # required by pandas, but missing from its dependencies.
+            'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
             'pandas>=0.19.2',
-            'pyarrow>=0.14.1',                  # as of 7/5/19: linux/circleci bugs on 0.14.0
+            'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
         ],
         'tests': [
             'codecov',
-            'numpy>=1.14.0',                    # required by pandas, but missing from its dependencies.
+            'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
             'pandas>=0.19.2',
-            'pyarrow>=0.14.1',                  # as of 7/5/19: linux/circleci bugs on 0.14.0
+            'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
             'pytest<5.1.0',  # TODO: Fix pytest.ensuretemp in conftest.py
             'pytest-cov',
             'responses',
@@ -92,5 +118,7 @@ setup(
     },
     cmdclass={
         'verify': VerifyVersionCommand,
+        'install': PostInstallCommand,
+        'develop': PostDevelopCommand,
     }
 )
