@@ -3,9 +3,10 @@ Parses the command-line arguments and runs a command.
 """
 
 import argparse
-import requests
 import subprocess
 import sys
+
+import requests
 
 from . import api, session
 from .session import open_url
@@ -33,7 +34,7 @@ def _test_url(url):
         return False
     except requests.exceptions.ConnectionError:
         return False
-        
+
 def _launch_local_catalog():
     """"
     Launches a docker container to run nginx hosting
@@ -62,7 +63,7 @@ def _launch_local_s3proxy():
     command = ["docker", "run", "--rm"]
     command += ["-p", "5002:80", "quiltdata/s3proxy"]
     subprocess.Popen(command)
-    
+
 def cmd_catalog():
     """
     Run the Quilt catalog locally
@@ -70,7 +71,6 @@ def cmd_catalog():
 
     local_catalog_url = "http://localhost:3000"
     local_s3proxy_url = "http://localhost:5002"
-    catalog_running = False
 
     if not _test_url(local_catalog_url):
         _launch_local_catalog()
@@ -78,7 +78,7 @@ def cmd_catalog():
     if not _test_url(local_s3proxy_url):
         _launch_local_s3proxy()
 
-        open_url(local_catalog_url)
+    open_url(local_catalog_url)
     app.run()
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
