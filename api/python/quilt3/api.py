@@ -196,17 +196,17 @@ def _config(*catalog_url, **config_values):
         else:
             config_template = read_yaml(CONFIG_TEMPLATE)
             write_yaml(config_template, CONFIG_PATH, keep_backup=True)
-        return QuiltConfig(CONFIG_PATH, config_template)
-
-    # Use local configuration (or defaults)
-    local_config = load_config()
-
-    # Write to config if needed
-    if config_values:
+        local_config = config_template
+    # Create a custom config with the passed-in values only
+    elif config_values:
+        local_config = load_config()
         config_values = QuiltConfig('', config_values)  # Does some validation/scrubbing
         for key, value in config_values.items():
             local_config[key] = value
         write_yaml(local_config, CONFIG_PATH)
+    # Install the default configuration
+    else:
+        local_config = configure_from_default()
 
     # Return current config
     return QuiltConfig(CONFIG_PATH, local_config)

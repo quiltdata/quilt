@@ -330,12 +330,16 @@ def configure_from_default():
     current config exists. If reading the public stack fails,
     warn the user and save an empty template.
     """
-    if not CONFIG_PATH.exists():
+    if CONFIG_PATH.exists():
+        local_config = load_config()
+    else:
         try:
-            configure_from_url(OPEN_DATA_URL)
+            local_config = configure_from_url(OPEN_DATA_URL)
         except requests.exceptions.ConnectionError:
             config_template = read_yaml(CONFIG_TEMPLATE)
             write_yaml(config_template, CONFIG_PATH, keep_backup=True)
+            local_config = config_template
+    return local_config
 
 def load_config():
     """
@@ -366,7 +370,7 @@ def set_config_value(key, value):
     write_yaml(local_config, CONFIG_PATH)
 
 def quiltignore_filter(paths, ignore, url_scheme):
-    """Given a list of paths, filter out the paths which are captured by the 
+    """Given a list of paths, filter out the paths which are captured by the
     given ignore rules.
 
     Args:
