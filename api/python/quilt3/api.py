@@ -4,9 +4,10 @@ from .data_transfer import copy_file, get_bytes, delete_url, list_url
 from .packages import Package
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
-                   CONFIG_TEMPLATE, configure_from_url, fix_url,
-                   get_package_registry, load_config, read_yaml,
-                   validate_package_name, write_yaml)
+                   CONFIG_TEMPLATE, configure_from_default,
+                   configure_from_url, fix_url, get_package_registry,
+                   load_config, read_yaml, validate_package_name,
+                   write_yaml)
 from .telemetry import ApiTelemetry
 
 
@@ -250,6 +251,8 @@ def search(query, limit=10):
         }, ...]
         ```
     """
+    # force a call to configure_from_default if no config exists
+    _config()
     raw_results = search_api(query, '*', limit)
     return raw_results['hits']['hits']
 
