@@ -3,6 +3,7 @@ Parses the command-line arguments and runs a command.
 """
 
 import argparse
+import requests
 import subprocess
 import sys
 
@@ -24,9 +25,10 @@ def cmd_config(catalog_url):
     else:
         api.config(catalog_url)
 
-def cmd_catalog():
-    """
-    Run the Quilt catalog locally
+def _launch_local_catalog():
+    """"
+    Launches a docker container to run nginx hosting
+    the Quilt catalog on localhost:3000
     """
     open_config = api.config()
     command = ["docker", "run", "--rm"]
@@ -42,7 +44,17 @@ def cmd_catalog():
         command += ["-e", var]
     command += ["-p", "3000:80", "quiltdata/catalog"]
     subprocess.Popen(command)
-    open_url("http://localhost:3000")
+        
+def cmd_catalog():
+    """
+    Run the Quilt catalog locally
+    """
+
+    local_url = "http://localhost:3000"
+    response = requests.get(local_url)
+    if not response.ok:
+        _launch_local_catalog()
+    open_url(local_url)
     app.run()
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
