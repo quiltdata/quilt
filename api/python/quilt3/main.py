@@ -25,6 +25,15 @@ def cmd_config(catalog_url):
     else:
         api.config(catalog_url)
 
+def _test_url(url):
+    try:
+        response = requests.get(url)
+        if response.ok:
+            return True
+        return False
+    except requests.exceptions.ConnectionError:
+        return False
+        
 def _launch_local_catalog():
     """"
     Launches a docker container to run nginx hosting
@@ -33,7 +42,7 @@ def _launch_local_catalog():
     open_config = api.config()
     command = ["docker", "run", "--rm"]
     env = dict(REGISTRY_URL="http://localhost:5000",
-               S3_PROXY_URL=open_config["s3Proxy"],
+               S3_PROXY_URL="http://localhost:5002",
                ALWAYS_REQUIRE_AUTH="false",
                CATALOG_MODE="LOCAL",
                SSO_AUTH="DISABLED",
@@ -44,17 +53,32 @@ def _launch_local_catalog():
         command += ["-e", var]
     command += ["-p", "3000:80", "quiltdata/catalog"]
     subprocess.Popen(command)
-        
+
+def _launch_local_s3proxy():
+    """"
+    Launches an s3 proxy (via docker)
+    on localhost:5002
+    """
+    command = ["docker", "run", "--rm"]
+    command += ["-p", "5002:80", "quiltdata/s3proxy"]
+    subprocess.Popen(command)
+    
 def cmd_catalog():
     """
     Run the Quilt catalog locally
     """
 
-    local_url = "http://localhost:3000"
-    response = requests.get(local_url)
-    if not response.ok:
+    local_catalog_url = "http://localhost:3000"
+    local_s3proxy_url = "http://localhost:5002"
+    catalog_running = False
+
+    if not _test_url(local_catalog_url):
         _launch_local_catalog()
-    open_url(local_url)
+
+    if not _test_url(local_s3proxy_url):
+        _launch_local_s3proxy()
+
+        open_url(local_catalog_url)
     app.run()
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
