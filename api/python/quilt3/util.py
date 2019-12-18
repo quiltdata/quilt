@@ -5,7 +5,7 @@ import datetime
 import json
 import os
 import pathlib
-from urllib.parse import parse_qs, quote, unquote, urlencode, urljoin, urlparse, urlunparse
+from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse, urlunparse
 from urllib.request import url2pathname
 
 # Third-Party
@@ -292,42 +292,6 @@ class QuiltConfig(OrderedDict):
     # TODO: Make an _html_repr_ for nicer Notebook display
     def __repr__(self):
         return "<{} at {!r} {}>".format(type(self).__name__, str(self.filepath), json.dumps(self, indent=4))
-
-
-def find_bucket_config(bucket_name, catalog_config_url):
-    config_request = requests.get(catalog_config_url)
-    if not config_request.ok:
-        raise QuiltException("Failed to get catalog config")
-    config_json = json.loads(config_request.text)
-    if 'federations' in config_json:
-        federations = config_json['federations']
-    else:
-        registry_url = config_json['registryUrl']
-        federations = ["{reg_url}/api/buckets".format(reg_url=registry_url)]
-
-    federations.reverse() # want to get results from last federation first
-    for federation in federations:
-        parsed = urlparse(federation)
-        if not parsed.netloc:
-            # relative URL
-            federation = urljoin(catalog_config_url, federation)
-        federation_request = requests.get(federation)
-        if not federation_request.ok:
-            continue
-        federation = json.loads(federation_request.text)
-        if 'buckets' not in federation:
-            continue
-        buckets = federation['buckets']
-        for bucket in buckets:
-            if isinstance(bucket, str):
-                bucket_request = requests.get(bucket)
-                if not bucket_request.ok:
-                    continue
-                bucket = json.loads(bucket_request.text)
-            if bucket['name'] == bucket_name:
-                return bucket
-
-    raise QuiltException("Failed to find a config for the chosen bucket")
 
 def validate_package_name(name):
     """ Verify that a package name is two alphanumeric strings separated by a slash."""
