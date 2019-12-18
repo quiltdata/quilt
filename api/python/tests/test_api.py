@@ -17,9 +17,10 @@ class TestAPI(QuiltTestCase):
     def test_config(self):
         content = {
             'navigator_url': 'https://foo.bar',
-            'elastic_search_url': 'https://es.foo',
-            'accept_invalid_config_keys': 'yup',
-            'telemetry_disabled': False
+            'telemetry_disabled': False,
+            's3Proxy': None,
+            'apiGatewayEndpoint': None,
+            'binaryApiGatewayEndpoint': None
         }
         self.requests_mock.add(responses.GET, 'https://foo.bar/config.json', json=content, status=200)
 

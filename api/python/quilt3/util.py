@@ -29,19 +29,13 @@ PACKAGE_NAME_FORMAT = r"[\w-]+/[\w-]+$"
 # Must contain every permitted config key, as well as their default values (which can be 'null'/None).
 # Comments are retained and added to local config, unless overridden by autoconfig via `api.config(<url>)`
 CONFIG_TEMPLATE = """
-# Helium configuration file
+# Quilt3 configuration file
 
 # navigator_url: <url string, default: null>
 #
 # Used for autoconfiguration
 # navigator_url: https://example.com
 navigator_url:
-
-# elastic_search_url: <url string, default: null>
-#
-# Used to satisfy search queries
-# elastic_search_url: https://example.com/es
-elastic_search_url:
 
 # default_local_registry: <url string, default: local appdirs>
 # default target registry for operations like install and build
@@ -60,24 +54,17 @@ registryUrl:
 
 # Disable anonymous usage metrics
 telemetry_disabled: false
-""".format(BASE_PATH.as_uri() + '/packages')
 
-# When pulling the config from the catalog, don't keep fields that are not relevant for the python client
-CONFIG_FIELD_BLACKLIST = [
-    "alwaysRequiresAuth",
-    "defaultBucket",
-    "intercomAppId",
-    "signInRedirect",
-    "signOutRedirect",
-    "passwordAuth",
-    "ssoAuth",
-    "ssoProviders",
-    "googleClientId",
-    "sentryDSN",
-    "mixpanelToken",
-    "analyticsBucket",
-    "mode"
-]
+# S3 Proxy
+s3Proxy:
+
+# API Gateway endpoint (e.g., for search)
+apiGatewayEndpoint:
+
+# Binary API Gateway endpoint (e.g., for preview)
+binaryApiGatewayEndpoint:
+
+""".format(BASE_PATH.as_uri() + '/packages')
 
 class QuiltException(Exception):
     def __init__(self, message, **kwargs):
@@ -321,6 +308,7 @@ def configure_from_url(catalog_url):
             message.format(code=response.status_code, reason=response.reason),
             response=response
             )
+
     # QuiltConfig may perform some validation and value scrubbing.
     new_config = QuiltConfig('', response.json())
 
@@ -330,40 +318,52 @@ def configure_from_url(catalog_url):
 
     # Use our template + their configured values, keeping our comments.
     for key, value in new_config.items():
-        if key in CONFIG_FIELD_BLACKLIST:
+        if not key in config_template:
             continue
         config_template[key] = value
     write_yaml(config_template, CONFIG_PATH, keep_backup=True)
     return config_template
 
-def load_config():
-    # For user-facing config, use api.config()
+def configure_from_default():
+    """
+    Configure to the default (public) Quilt stack if no
+    current config exists. If reading the public stack fails,
+    warn the user and save an empty template.
+    """
     if not CONFIG_PATH.exists():
-        configure_from_url(OPEN_DATA_URL)
-    local_config = read_yaml(CONFIG_PATH)
+        try:
+            configure_from_url(OPEN_DATA_URL)
+        except requests.exceptions.ConnectionError:
+            config_template = read_yaml(CONFIG_TEMPLATE)
+            write_yaml(config_template, CONFIG_PATH, keep_backup=True)
+
+def load_config():
+    """
+    Read the local config if one exists, else return an
+    empty config based on CONFIG_TEMPLATE.
+    """
+    if CONFIG_PATH.exists():
+        local_config = read_yaml(CONFIG_PATH)
+    else:
+        # This should only happen if a user deletes their local config and
+        # during test setup
+        local_config = read_yaml(CONFIG_TEMPLATE)
     return local_config
 
 def get_from_config(key):
     return load_config().get(key)
 
 def get_install_location():
-    loc = load_config().get('default_install_location')
+    loc = get_from_config('default_install_location')
     if loc is None:
         loc = get_from_config('default_local_registry').rstrip('/')
     return loc
 
-
-
 def set_config_value(key, value):
     # Use local configuration (or defaults)
-    if CONFIG_PATH.exists():
-        local_config = read_yaml(CONFIG_PATH)
-    else:
-        local_config = read_yaml(CONFIG_TEMPLATE)
-
+    local_config = load_config()
     local_config[key] = value
     write_yaml(local_config, CONFIG_PATH)
-
 
 def quiltignore_filter(paths, ignore, url_scheme):
     """Given a list of paths, filter out the paths which are captured by the 
