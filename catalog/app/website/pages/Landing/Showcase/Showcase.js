@@ -104,17 +104,14 @@ export default function Showcase() {
             </M.Box>
             <M.Box mt={5}>
               <ChevronLink href="https://docs.quiltdata.com/installation">
-                Create your first dataset in Python
+                Create a versioned dataset in Python
               </ChevronLink>
             </M.Box>
             <M.Box mt={1}>
-              <ChevronLink href="#pricing">Install the Quilt portal for AWS</ChevronLink>
+              <ChevronLink href="#pricing">Get the Quilt data portal for AWS</ChevronLink>
             </M.Box>
             <M.Box mt={1}>
-              <ChevronLink href={URLS.slackInvite}>Join slack</ChevronLink>
-            </M.Box>
-            <M.Box mt={1}>
-              <ChevronLink href="#get-notified">Stay informed</ChevronLink>
+              <ChevronLink href={URLS.slackInvite}>Ask questions on Slack</ChevronLink>
             </M.Box>
           </div>
         </div>
