@@ -150,7 +150,7 @@ def clear_session():
         _session.close()
         _session = None
 
-def _open_url(url):
+def open_url(url):
     try:
         if sys.platform == 'win32':
             os.startfile(url)   # pylint:disable=E1101
@@ -182,7 +182,7 @@ def login():
     print("Launching a web browser...")
     print("If that didn't work, please visit the following URL: %s" % login_url)
 
-    _open_url(login_url)
+    open_url(login_url)
 
     print()
     refresh_token = input("Enter the code from the webpage: ")

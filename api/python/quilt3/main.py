@@ -7,6 +7,7 @@ import subprocess
 import sys
 
 from . import api, session
+from .session import open_url
 from .util import get_from_config, QuiltException
 from .registry import app
 
@@ -41,6 +42,7 @@ def cmd_catalog():
         command += ["-e", var]
     command += ["-p", "3000:80", "quiltdata/catalog"]
     subprocess.Popen(command)
+    open_url("http://localhost:3000")
     app.run()
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
