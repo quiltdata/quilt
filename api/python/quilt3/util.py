@@ -360,10 +360,23 @@ def configure_from_url(catalog_url):
     write_yaml(config_template, CONFIG_PATH, keep_backup=True)
     return config_template
 
+def configure_from_default():
+    """
+    Configure to the default (public) Quilt stack if no
+    current config exists. If reading the public stack fails,
+    warn the user and save an empty template.
+    """
+    if not CONFIG_PATH.exists():
+        try:
+            configure_from_url(OPEN_DATA_URL)
+        except requests.exceptions.ConnectionError:
+            config_template = read_yaml(CONFIG_TEMPLATE)
+            write_yaml(config_template, CONFIG_PATH, keep_backup=True)
+
 def load_config():
     """
-    Read the local config if one exists, else build one from
-    the default stack (OPEN_DATA_URL)
+    Read the local config if one exists, else return an
+    empty config based on CONFIG_TEMPLATE.
     """
     if CONFIG_PATH.exists():
         local_config = read_yaml(CONFIG_PATH)
@@ -384,14 +397,9 @@ def get_install_location():
 
 def set_config_value(key, value):
     # Use local configuration (or defaults)
-    if CONFIG_PATH.exists():
-        local_config = read_yaml(CONFIG_PATH)
-    else:
-        local_config = read_yaml(CONFIG_TEMPLATE)
-
+    local_config = load_config()
     local_config[key] = value
     write_yaml(local_config, CONFIG_PATH)
-
 
 def quiltignore_filter(paths, ignore, url_scheme):
     """Given a list of paths, filter out the paths which are captured by the 

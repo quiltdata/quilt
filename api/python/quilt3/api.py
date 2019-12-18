@@ -190,7 +190,7 @@ def _config(*catalog_url, **config_values):
     if catalog_url:
         catalog_url = catalog_url[0]
 
-        # If catalog_url is empty, reset to the default config.
+        # If catalog_url is empty, reset to an empty config.
         if catalog_url:
             config_template = configure_from_url(catalog_url)
         else:

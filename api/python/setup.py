@@ -22,9 +22,8 @@ def readme():
 
 def default_config():
     """Configure to the default (public) Quilt stack"""
-    from quilt3 import api
-    from quilt3.util import OPEN_DATA_URL
-    api.config(OPEN_DATA_URL)
+    from quilt3.util import configure_from_default
+    configure_from_default()
 
 
 class PostDevelopCommand(develop):
@@ -34,7 +33,7 @@ class PostDevelopCommand(develop):
     def run(self):
         default_config()
         develop.run(self)
-        
+
 
 class PostInstallCommand(install):
     """ Post install hook """
