@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as URLS from 'constants/urls'
+
 import Bar from 'website/components/Bar'
 import ChevronLink from 'website/components/ChevronLink'
 import Overlay1Full from 'website/components/Backgrounds/Overlay1Full'
@@ -96,7 +98,10 @@ export default function Showcase() {
               <ChevronLink href="#pricing">Try now</ChevronLink>
             </M.Box>
             <M.Box mt={1}>
-              <ChevronLink href="#get-notified">Stay informed about Quilt</ChevronLink>
+              <ChevronLink href={URLS.slackInvite}>Join slack</ChevronLink>
+            </M.Box>
+            <M.Box mt={1}>
+              <ChevronLink href="#get-notified">Stay informed</ChevronLink>
             </M.Box>
           </div>
         </div>

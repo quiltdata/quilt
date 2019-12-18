@@ -3,6 +3,7 @@ import * as React from 'react'
 import GHButton from 'react-github-btn'
 import * as M from '@material-ui/core'
 
+import * as URLS from 'constants/urls'
 import img2x from 'utils/img2x'
 import scrollIntoView from 'utils/scrollIntoView'
 
@@ -198,12 +199,8 @@ export default function Contribute() {
               <b>general mailing list</b>
             </M.Link>
             {' or '}
-            <M.Link
-              href="https://groups.google.com/forum/#!forum/quilt-data-dev/"
-              color="secondary"
-              underline="always"
-            >
-              <b>developer forums</b>
+            <M.Link color="secondary" underline="always" href={URLS.slackInvite}>
+              <b>Slack channel</b>
             </M.Link>{' '}
             to discuss new features, ask questions, and stay in the loop.
           </M.Typography>
