@@ -111,10 +111,7 @@ export default function Showcase() {
               <ChevronLink href="#pricing">Install the Quilt portal for AWS</ChevronLink>
             </M.Box>
             <M.Box mt={1}>
-              <ChevronLink href={URLS.slackInvite}>Join slack</ChevronLink>
-            </M.Box>
-            <M.Box mt={1}>
-              <ChevronLink href="#get-notified">Stay informed</ChevronLink>
+              <ChevronLink href={URLS.slackInvite}>Join Quilt Slack</ChevronLink>
             </M.Box>
           </div>
         </div>
