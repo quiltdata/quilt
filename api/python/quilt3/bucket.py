@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 from .data_transfer import copy_file, delete_object, list_object_versions, list_objects, select
 from .search_util import search_api
-from .util import QuiltException, find_bucket_config, fix_url, get_from_config, parse_s3_url
+from .util import QuiltException, fix_url, parse_s3_url
 
 
 class Bucket(object):
@@ -32,32 +32,6 @@ class Bucket(object):
 
         self._uri = 's3://{}/'.format(bucket)
         self._bucket = bucket
-        self._search_endpoint = None
-        self._region = None
-
-    def config(self, config_url=None):
-        """
-        Updates this bucket's search endpoint based on a federation config.
-        """
-        if not config_url:
-            navigator_url = get_from_config('navigator_url')
-            if not navigator_url:
-                raise QuiltException("Must set `quilt.config(navigator_url)`, where `navigator_url` is the URL "
-                                     "of your catalog homepage.")
-
-            navigator_url.rstrip('/') # remove trailing / if present
-            config_url = navigator_url + '/config.json'
-
-        # Look for search endpoint in stack config
-        # Only fall back on bucket config for old stacks
-        bucket_config = find_bucket_config(self._bucket, config_url)
-        if 'searchEndpoint' in bucket_config:
-            self._search_endpoint = bucket_config['searchEndpoint']
-        elif 'search_endpoint' in bucket_config:
-            # old format
-            self._search_endpoint = bucket_config['search_endpoint']
-        # TODO: we can maybe get this from searchEndpoint or apiGatewayEndpoint
-        self._region = bucket_config.get('region', 'us-east-1')
 
     def search(self, query, limit=10):
         """

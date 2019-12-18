@@ -193,27 +193,3 @@ class TestBucket(QuiltTestCase):
 
         with pytest.raises(ValueError):
             bucket.delete_dir('s3://test-bucket/dir')
-
-    @patch('quilt3.bucket.find_bucket_config')
-    @patch('quilt3.bucket.get_from_config')
-    def test_bucket_config(self, config_mock, bucket_config_mock):
-        bucket_config_mock.return_value = {
-            'name': 'test-bucket',
-            'title': 'Test Bucket',
-            'icon': 'url',
-            'description': 'description',
-            'searchEndpoint': 'https://foo.bar/search'
-        }
-        config_mock.return_value = 'https://foo.bar'
-        b = Bucket('s3://test-bucket')
-        b.config()
-        assert b._search_endpoint == 'https://foo.bar/search'
-        config_mock.assert_called_once_with('navigator_url')
-        bucket_config_mock.assert_called_once_with('test-bucket', 'https://foo.bar/config.json')
-
-        config_mock.reset_mock()
-        bucket_config_mock.reset_mock()
-
-        b.config('https://bar.foo/config.json')
-        assert not config_mock.called
-        bucket_config_mock.assert_called_once_with('test-bucket', 'https://bar.foo/config.json')
