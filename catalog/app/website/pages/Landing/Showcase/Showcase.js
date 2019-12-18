@@ -108,7 +108,7 @@ export default function Showcase() {
               </ChevronLink>
             </M.Box>
             <M.Box mt={1}>
-              <ChevronLink href="#pricing">Get the Quilt portal for AWS</ChevronLink>
+              <ChevronLink href="#pricing">Get the Quilt data portal for AWS</ChevronLink>
             </M.Box>
             <M.Box mt={1}>
               <ChevronLink href={URLS.slackInvite}>Ask questions on Slack</ChevronLink>
