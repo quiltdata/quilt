@@ -65,7 +65,7 @@ const SparklineSkel = ({ width, height }) => {
   )
 }
 
-const Counts = ({ counts, total, sparklineW, sparklineH }) => {
+function Counts({ counts, total, sparklineW, sparklineH }) {
   const [cursor, setCursor] = React.useState(null)
   return (
     <>
@@ -377,7 +377,7 @@ function Revisions({ revisions, isTruncated, counts, bucket, name, page }) {
   const actualPage = page || 1
 
   const makePageUrl = React.useCallback(
-    (p) => urls.bucketPackageDetail(bucket, name, { p: p !== 1 ? p : undefined }),
+    (p) => urls.bucketPackageRevisions(bucket, name, { p: p !== 1 ? p : undefined }),
     [bucket, name],
   )
 
@@ -433,12 +433,12 @@ const pendingProps = AsyncResult.props(
   AsyncResult.Pending(),
 )
 
-export default ({
+export default function PackageRevisions({
   match: {
     params: { bucket, name },
   },
   location,
-}) => {
+}) {
   const { p } = parseSearch(location.search)
   const page = p && parseInt(p, 10)
   const s3req = AWS.S3.useRequest()

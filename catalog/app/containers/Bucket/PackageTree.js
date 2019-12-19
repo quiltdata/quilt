@@ -116,6 +116,13 @@ const useStyles = M.makeStyles((t) => ({
   name: {
     wordBreak: 'break-all',
   },
+  revision: {
+    alignItems: 'center',
+    display: 'inline-flex',
+  },
+  mono: {
+    fontFamily: t.typography.monospace.fontFamily,
+  },
   spacer: {
     flexGrow: 1,
   },
@@ -128,7 +135,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function PackageTree({
   match: {
-    params: { bucket, name, revision, path: encodedPath = '' },
+    params: { bucket, name, revision = 'latest', path: encodedPath = '' },
   },
 }) {
   const classes = useStyles()
@@ -151,16 +158,18 @@ export default function PackageTree({
     () =>
       R.intersperse(
         Crumb.Sep(<>&nbsp;/ </>),
-        getBreadCrumbs(path).map(({ label, path: segPath }) =>
-          Crumb.Segment({
-            label,
-            to:
-              path === segPath
-                ? undefined
-                : urls.bucketPackageTree(bucket, name, revision, segPath),
-          }),
-        ),
-      ),
+        [{ label: 'ROOT', path: '' }]
+          .concat(getBreadCrumbs(path))
+          .map(({ label, path: segPath }) =>
+            Crumb.Segment({
+              label,
+              to:
+                path === segPath
+                  ? undefined
+                  : urls.bucketPackageTree(bucket, name, revision, segPath),
+            }),
+          ),
+      ).concat(path === '' || path.endsWith('/') ? Crumb.Sep(<>&nbsp;/</>) : []),
     [bucket, name, revision, path, urls],
   )
 
@@ -177,7 +186,17 @@ export default function PackageTree({
                 {name}
               </Link>
               {' @ '}
-              <Link to={urls.bucketPackageTree(bucket, name, revision)}>{revision}</Link>:
+              <Link
+                to={urls.bucketPackageRevisions(bucket, name)}
+                className={classes.revision}
+              >
+                {revision === 'latest' ? (
+                  'latest'
+                ) : (
+                  <span className={classes.mono}>{revision}</span>
+                )}{' '}
+                <M.Icon>expand_more</M.Icon>
+              </Link>
             </M.Typography>
             <div className={classes.topBar}>
               <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
