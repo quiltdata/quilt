@@ -4,9 +4,10 @@ from .data_transfer import copy_file, get_bytes, delete_url, list_url
 from .packages import Package
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
-                   CONFIG_TEMPLATE, configure_from_url, fix_url,
-                   get_package_registry, load_config, read_yaml,
-                   validate_package_name, write_yaml)
+                   CONFIG_TEMPLATE, configure_from_default,
+                   configure_from_url, fix_url, get_package_registry,
+                   load_config, read_yaml, validate_package_name,
+                   write_yaml)
 from .telemetry import ApiTelemetry
 
 
@@ -196,17 +197,17 @@ def _config(*catalog_url, **config_values):
         else:
             config_template = read_yaml(CONFIG_TEMPLATE)
             write_yaml(config_template, CONFIG_PATH, keep_backup=True)
-        return QuiltConfig(CONFIG_PATH, config_template)
-
-    # Use local configuration (or defaults)
-    local_config = load_config()
-
-    # Write to config if needed
-    if config_values:
+        local_config = config_template
+    # Create a custom config with the passed-in values only
+    elif config_values:
+        local_config = load_config()
         config_values = QuiltConfig('', config_values)  # Does some validation/scrubbing
         for key, value in config_values.items():
             local_config[key] = value
         write_yaml(local_config, CONFIG_PATH)
+    # Install the default configuration
+    else:
+        local_config = configure_from_default()
 
     # Return current config
     return QuiltConfig(CONFIG_PATH, local_config)
@@ -250,6 +251,8 @@ def search(query, limit=10):
         }, ...]
         ```
     """
+    # force a call to configure_from_default if no config exists
+    _config()
     raw_results = search_api(query, '*', limit)
     return raw_results['hits']['hits']
 

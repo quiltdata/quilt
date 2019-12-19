@@ -27,7 +27,7 @@ def cmd_catalog():
     """
     Run the Quilt catalog locally
     """
-    open_config = api.config()
+    open_config = api._config()
     command = ["docker", "run", "--rm"]
     env = dict(REGISTRY_URL="http://localhost:5000",
                S3_PROXY_URL=open_config["s3Proxy"],
