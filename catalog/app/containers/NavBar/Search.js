@@ -10,7 +10,6 @@ import * as BucketConfig from 'utils/BucketConfig'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parse from 'utils/parseSearch'
-import * as RT from 'utils/reactTools'
 import { useRoute } from 'utils/router'
 
 const useStyles = M.makeStyles((t) => ({
@@ -61,7 +60,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const SearchBox = ({ bucket, disabled, iconized, hidden, focused, ...props }) => {
+function SearchBox({ bucket, disabled, iconized, hidden, focused, ...props }) {
   const {
     adornment,
     disabled: disabledCls,
@@ -143,40 +142,57 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
   })
 }
 
-function BucketSearch({ bucket, onFocus, onBlur, iconized, ...props }) {
+function BucketSearch({ bucket, onFocus, onBlur, disabled, ...props }) {
   const cfg = BucketConfig.useCurrentBucketConfig()
   const { paths, urls } = NamedRoutes.use()
   const { location: l, match } = useRoute(paths.bucketSearch)
   const query = (match && parse(l.search).q) || ''
   const makeUrl = React.useCallback((q) => urls.bucketSearch(bucket, q), [urls, bucket])
-  return cfg ? (
+  return cfg && !disabled ? (
     <State {...{ query, makeUrl, onFocus, onBlur }}>
-      {(state) => <SearchBox {...{ iconized, bucket, ...state, ...props }} />}
+      {(state) => <SearchBox {...{ bucket, ...state, ...props }} />}
     </State>
   ) : (
-    <SearchBox iconized={iconized} disabled value="Search not available" {...props} />
+    <SearchBox disabled value="Search not available" {...props} />
   )
 }
 
-function GlobalSearch({ onFocus, onBlur, iconized, ...props }) {
+function GlobalSearch({ onFocus, onBlur, disabled, ...props }) {
   const cfg = Config.useConfig()
   const { paths, urls } = NamedRoutes.use()
   const { location: l, match } = useRoute(paths.search)
   const { q: query = '', buckets } = match ? parse(l.search) : {}
   const makeUrl = React.useCallback((q) => urls.search({ q, buckets }), [urls, buckets])
-  return cfg.disableNavigator ? null : (
+  if (cfg.disableNavigator) return null
+  return disabled ? (
+    <SearchBox disabled value="Search not available" {...props} />
+  ) : (
     <State {...{ query, makeUrl, onFocus, onBlur }}>
-      {(state) => <SearchBox {...{ iconized, ...state, ...props }} />}
+      {(state) => <SearchBox {...state} {...props} />}
     </State>
   )
 }
 
-export default RT.withSuspense(() => (
-  <Delay alwaysRender>
-    {(ready) => (
-      <M.Fade in={ready}>
-        <M.CircularProgress />
-      </M.Fade>
-    )}
-  </Delay>
-))((props) => (props.bucket ? <BucketSearch {...props} /> : <GlobalSearch {...props} />))
+function DelayedProgress({
+  TransitionComponent = M.Fade,
+  ProgressComponent = M.CircularProgress,
+  progressProps,
+  transitionProps,
+  ...props
+}) {
+  return (
+    <Delay alwaysRender {...props}>
+      {(ready) => (
+        <TransitionComponent in={ready} {...transitionProps}>
+          <ProgressComponent {...progressProps} />
+        </TransitionComponent>
+      )}
+    </Delay>
+  )
+}
+
+export default (props) => (
+  <React.Suspense fallback={<DelayedProgress />}>
+    {props.bucket ? <BucketSearch {...props} /> : <GlobalSearch {...props} />}
+  </React.Suspense>
+)
