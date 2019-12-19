@@ -457,7 +457,7 @@ class Package(object):
         if top_hash is None:
             top_hash = pkg.top_hash
         short_tophash = Package.shorten_tophash(name, registry, top_hash)
-        print(f"Successfully installed package {name}@{short_tophash} from {registry}")
+        print(f"Successfully installed package '{name}', tophash={short_tophash} from {registry}")
 
 
     @classmethod
