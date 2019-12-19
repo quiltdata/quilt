@@ -73,7 +73,7 @@ const Vcf = ({ meta, header, data, variants }) => {
               // eslint-disable-next-line react/no-array-index-key
               <TableRow key={`meta:${i}`} className={classes.row}>
                 <TableCell
-                  colSpan={header[0].length}
+                  colSpan={header ? header[0].length : undefined}
                   className={cx(classes.cell, classes.meta)}
                 >
                   {l}
@@ -85,11 +85,13 @@ const Vcf = ({ meta, header, data, variants }) => {
       </div>
       <div className={classes.tableWrapper}>
         <Table className={classes.table}>
-          <TableHead>
-            <TableRow className={classes.row}>
-              {header.map(renderCell('header'))}
-            </TableRow>
-          </TableHead>
+          {!!header && (
+            <TableHead>
+              <TableRow className={classes.row}>
+                {header.map(renderCell('header'))}
+              </TableRow>
+            </TableHead>
+          )}
           <TableBody>
             {data.map((row, i) => (
               // eslint-disable-next-line react/no-array-index-key
