@@ -454,6 +454,10 @@ class Package(object):
 
         pkg._materialize(dest)
         pkg._build(name, registry=dest_registry, message=message)
+        if top_hash is None:
+            top_hash = pkg.top_hash
+        short_tophash = Package.shorten_tophash(name, registry, top_hash)
+        print(f"Successfully installed package {name}@{short_tophash} from {registry}")
 
 
     @classmethod
@@ -478,6 +482,12 @@ class Package(object):
         else:
             raise QuiltException("Invalid hash: %r" % hash_prefix)
         return top_hash
+
+    @classmethod
+    def shorten_tophash(cls, package_name, registry, top_hash):
+        # TODO: Eventually we should check that we aren't giving a short hash that has a conflict. Not easy to do with
+        #       current .quilt layout
+        return top_hash[:6]
 
     @classmethod
     @ApiTelemetry("package.browse")
