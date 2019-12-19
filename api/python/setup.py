@@ -5,6 +5,7 @@ from pathlib import Path
 
 from setuptools import setup, find_packages
 from setuptools.command.install import install
+from setuptools.command.develop import develop
 
 VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text()
 
@@ -18,6 +19,30 @@ def readme():
 
     """
     return readme_short
+
+def default_config():
+    """Configure to the default (public) Quilt stack"""
+    from quilt3.util import configure_from_default
+    configure_from_default()
+
+
+class PostDevelopCommand(develop):
+    """ Post install hook for development installs """
+    description = 'Setup default configuration'
+
+    def run(self):
+        default_config()
+        develop.run(self)
+
+
+class PostInstallCommand(install):
+    """ Post install hook """
+    description = 'Setup default configuration'
+
+    def run(self):
+        default_config()
+        install.run(self)
+
 
 class VerifyVersionCommand(install):
     """Custom command to verify that the git tag matches our version"""
@@ -55,26 +80,29 @@ setup(
         'appdirs>=1.4.0',
         'aws-requests-auth>=0.4.2',
         'boto3>=1.8.0',
+        'flask',
+        'flask_cors',
+        'flask_json',
         'jsonlines==1.2.0',
         'packaging>=16.8',
         'python-dateutil<=2.8.0',           # 2.8.1 conflicts with botocore
         'requests>=2.12.4',
-        'ruamel.yaml<=0.15.70',
+        'ruamel.yaml>=0.15.78',
         'tqdm>=4.26.0',
         'urllib3<1.25,>=1.21.1',            # required by requests
         'requests_futures==1.0.0',
     ],
     extras_require={
         'pyarrow': [
-            'numpy>=1.14.0',                    # required by pandas, but missing from its dependencies.
+            'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
             'pandas>=0.19.2',
-            'pyarrow>=0.14.1',                  # as of 7/5/19: linux/circleci bugs on 0.14.0
+            'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
         ],
         'tests': [
             'codecov',
-            'numpy>=1.14.0',                    # required by pandas, but missing from its dependencies.
+            'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
             'pandas>=0.19.2',
-            'pyarrow>=0.14.1',                  # as of 7/5/19: linux/circleci bugs on 0.14.0
+            'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
             'pytest<5.1.0',  # TODO: Fix pytest.ensuretemp in conftest.py
             'pytest-cov',
             'responses',
@@ -89,5 +117,7 @@ setup(
     },
     cmdclass={
         'verify': VerifyVersionCommand,
+        'install': PostInstallCommand,
+        'develop': PostDevelopCommand,
     }
 )

@@ -330,6 +330,7 @@ export const bucketSummary = async ({ s3req, es, bucket, overviewUrl, inStack })
   }
   try {
     return await s3req({
+      bucket,
       operation: 'listObjectsV2',
       params: { Bucket: bucket },
     }).then(
@@ -427,6 +428,7 @@ export const bucketImgs = async ({ es, s3req, bucket, overviewUrl, inStack }) =>
   }
   try {
     return await s3req({
+      bucket,
       operation: 'listObjectsV2',
       params: { Bucket: bucket },
     }).then(
@@ -764,20 +766,27 @@ const loadRevisionHash = ({ s3req, bucket, key }) =>
     params: { Bucket: bucket, Key: key },
   }).then((res) => res.Body.toString('utf-8'))
 
-export const getRevisionData = async ({ s3req, endpoint, signer, bucket, key }) => {
+export const getRevisionData = async ({
+  s3req,
+  endpoint,
+  signer,
+  bucket,
+  key,
+  maxKeys = MAX_PACKAGE_ENTRIES,
+}) => {
   const hash = await loadRevisionHash({ s3req, bucket, key })
   const manifestKey = `${MANIFESTS_PREFIX}${hash}`
   const url = signer.getSignedS3URL({ bucket, key: manifestKey })
-  const maxLines = MAX_PACKAGE_ENTRIES + 2 // 1 for the meta and 1 for checking overflow
+  const maxLines = maxKeys + 2 // 1 for the meta and 1 for checking overflow
   const r = await fetch(
     `${endpoint}/preview?url=${encodeURIComponent(url)}&input=txt&line_count=${maxLines}`,
   )
   const [info, ...entries] = await r
     .json()
     .then((json) => json.info.data.head.map((l) => JSON.parse(l)))
-  const files = Math.min(MAX_PACKAGE_ENTRIES, entries.length)
-  const bytes = entries.slice(0, MAX_PACKAGE_ENTRIES).reduce((sum, i) => sum + i.size, 0)
-  const truncated = entries.length > MAX_PACKAGE_ENTRIES
+  const files = Math.min(maxKeys, entries.length)
+  const bytes = entries.slice(0, maxKeys).reduce((sum, i) => sum + i.size, 0)
+  const truncated = entries.length > maxKeys
   return {
     hash,
     stats: { files, bytes, truncated },

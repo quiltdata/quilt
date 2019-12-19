@@ -1,5 +1,4 @@
 from collections import deque
-import copy
 import hashlib
 import io
 import json
@@ -131,7 +130,7 @@ class PackageEntry(object):
         Returns:
             a PackageEntry
         """
-        self.physical_keys = [fix_url(x) for x in physical_keys]
+        self.physical_keys = physical_keys
         self.size = size
         self.hash = hash_obj
         self._meta = meta or {}
@@ -151,20 +150,12 @@ class PackageEntry(object):
         """
         Returns dict representation of entry.
         """
-        ret = {
+        return {
             'physical_keys': self.physical_keys,
             'size': self.size,
             'hash': self.hash,
             'meta': self._meta
         }
-        return copy.deepcopy(ret)
-
-    def _clone(self):
-        """
-        Returns clone of this PackageEntry.
-        """
-        return self.__class__(copy.deepcopy(self.physical_keys), self.size, \
-                              copy.deepcopy(self.hash), copy.deepcopy(self._meta))
 
     @property
     def meta(self):
@@ -317,9 +308,7 @@ class PackageEntry(object):
 
         # return a package reroot package physical keys after the copy operation succeeds
         # see GH#388 for context
-        entry = self._clone()
-        entry.physical_keys = [dest]
-        return entry
+        return self.with_physical_keys([dest])
 
 
     def __call__(self, func=None, **kwargs):
@@ -327,6 +316,9 @@ class PackageEntry(object):
         Shorthand for self.deserialize()
         """
         return self.deserialize(func=func, **kwargs)
+
+    def with_physical_keys(self, keys):
+        return self.__class__(keys, self.size, self.hash, self._meta)
 
 
 class Package(object):
@@ -456,7 +448,7 @@ class Package(object):
                     f"'build' instead."
                 )
 
-        pkg = cls.browse(name=name, registry=registry, top_hash=top_hash)
+        pkg = cls._browse(name=name, registry=registry, top_hash=top_hash)
         dest = fix_url(dest)
         message = pkg._meta.get('message', None)  # propagate the package message
 
@@ -498,6 +490,10 @@ class Package(object):
             registry(string): location of registry to load package from
             top_hash(string): top hash of package version to load
         """
+        return cls._browse(name=name, registry=registry, top_hash=top_hash)
+
+    @classmethod
+    def _browse(cls, name=None, registry=None, top_hash=None):
         if registry is None:
             registry = get_from_config('default_local_registry')
         else:
@@ -521,15 +517,20 @@ class Package(object):
         else:
             local_pkg_manifest = CACHE_PATH / "manifest" / _filesystem_safe_encode(pkg_manifest_uri)
             if not local_pkg_manifest.exists():
-                copy_file(pkg_manifest_uri, local_pkg_manifest.as_uri())
+                # Copy to a temporary file first, to make sure we don't cache a truncated file
+                # if the download gets interrupted.
+                tmp_path = local_pkg_manifest.with_suffix('.tmp')
+                copy_file(pkg_manifest_uri, tmp_path.as_uri())
+                tmp_path.rename(local_pkg_manifest)
 
         return cls._from_path(local_pkg_manifest)
+
 
     @classmethod
     def _from_path(cls, path):
         """ Takes a path and returns a package loaded from that path"""
         with open(path) as open_file:
-            pkg = cls.load(open_file)
+            pkg = cls._load(open_file)
         return pkg
 
     @classmethod
@@ -600,8 +601,7 @@ class Package(object):
 
             # return a package reroot package physical keys after the copy operation succeeds
             # see GH#388 for context
-            new_entry = entry._clone()
-            new_entry.physical_keys = [new_physical_key]
+            new_entry = entry.with_physical_keys([new_physical_key])
             pkg._set(logical_key, new_entry)
 
         copy_file_list(file_list)
@@ -650,10 +650,6 @@ class Package(object):
     @classmethod
     @ApiTelemetry("package.load")
     def load(cls, readable_file):
-        return cls._load(readable_file=readable_file)
-
-    @classmethod
-    def _load(cls, readable_file):
         """
         Loads a package from a readable file-like object.
 
@@ -668,6 +664,10 @@ class Package(object):
             json decode error
             invalid package exception
         """
+        return cls._load(readable_file=readable_file)
+
+    @classmethod
+    def _load(cls, readable_file):
         reader = jsonlines.Reader(readable_file)
         meta = reader.read()
         meta.pop('top_hash', None)  # Obsolete as of PR #130
@@ -993,7 +993,7 @@ class Package(object):
                     url = make_s3_url(bucket, key, version)
             entry = PackageEntry([url], size, None, None)
         elif isinstance(entry, PackageEntry):
-            entry = entry._clone()
+            assert meta is None
 
         elif FormatRegistry.object_is_serializable(entry):
             # Use file extension from serialization_location, fall back to file extension from logical_key
@@ -1316,22 +1316,21 @@ class Package(object):
 
             unversioned_physical_key = physical_key.split('?', 1)[0]
             new_physical_key = dest_url + "/" + quote(logical_key)
-            new_entry = entry._clone()
             if unversioned_physical_key == new_physical_key:
                 # No need to copy - re-use the original physical key.
-                pkg._set(logical_key, new_entry)
+                pkg._set(logical_key, entry)
             else:
-                entries.append((logical_key, new_entry))
+                entries.append((logical_key, entry))
                 file_list.append((physical_key, new_physical_key, entry.size))
 
         results = copy_file_list(file_list)
 
-        for (logical_key, new_entry), versioned_key in zip(entries, results):
-            old_physical_key = new_entry.get()
+        for (logical_key, entry), versioned_key in zip(entries, results):
+            old_physical_key = entry.get()
             self._maybe_add_to_cache(old_physical_key, versioned_key)
             # Create a new package entry pointing to the new remote key.
             assert versioned_key is not None
-            new_entry.physical_keys = [versioned_key]
+            new_entry = entry.with_physical_keys([versioned_key])
             pkg._set(logical_key, new_entry)
         return pkg
 

@@ -1,8 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import HashLink from 'utils/HashLink'
-import * as NamedRoutes from 'utils/NamedRoutes'
+import * as URLS from 'constants/urls'
 
 import Bar from 'website/components/Bar'
 import ChevronLink from 'website/components/ChevronLink'
@@ -54,7 +53,6 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Showcase() {
   const classes = useStyles()
-  const { urls } = NamedRoutes.use()
   return (
     <div className={classes.root}>
       <Overlay2 />
@@ -65,18 +63,26 @@ export default function Showcase() {
             <Bar color="primary" />
             <M.Box mt={5}>
               <M.Typography variant="h1" color="textPrimary">
-                Experiment faster with versioned data sets
+                Experiment faster by managing data like code
               </M.Typography>
             </M.Box>
             <M.Box mt={4}>
               <M.Typography variant="body1" color="textSecondary">
-                Quilt gives you a Python API, web catalog, and backend stack to manage
-                data sets in S3.
+                Most teams are already on top of their code and containers, but their data
+                lags behind.
               </M.Typography>
             </M.Box>
-            <M.Box mt={2}>
+            <M.Box mt={4}>
               <M.Typography variant="body1" color="textSecondary">
-                Share, understand, discover, and model data at scale.
+                Quilt transforms data into versioned, reusable datasets so that teams in
+                machine learning and computational biology can iterate faster, reduce
+                errors, and deploy smarter models.
+              </M.Typography>
+            </M.Box>
+            <M.Box mt={4}>
+              <M.Typography variant="body1" color="textSecondary">
+                Quilt consists of a Python API, web catalog, and backend stack to manage
+                data sets in S3.
               </M.Typography>
             </M.Box>
             <M.Box mt={5}>
@@ -91,14 +97,21 @@ export default function Showcase() {
               <M.Button
                 variant="contained"
                 color="secondary"
-                to={`${urls.home()}#pricing`}
-                component={HashLink}
+                href="https://open.quiltdata.com"
               >
-                Try now
+                Explore data with Quilt
               </M.Button>
             </M.Box>
             <M.Box mt={5}>
-              <ChevronLink href="#get-notified">Stay informed about Quilt</ChevronLink>
+              <ChevronLink href="https://docs.quiltdata.com/installation">
+                Create a versioned dataset in Python
+              </ChevronLink>
+            </M.Box>
+            <M.Box mt={1}>
+              <ChevronLink href="#pricing">Get the Quilt data portal for AWS</ChevronLink>
+            </M.Box>
+            <M.Box mt={1}>
+              <ChevronLink href={URLS.slackInvite}>Ask questions on Slack</ChevronLink>
             </M.Box>
           </div>
         </div>

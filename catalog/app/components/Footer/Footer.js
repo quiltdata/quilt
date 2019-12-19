@@ -16,6 +16,7 @@ import messages from './messages'
 import bg from './bg.png'
 import iconFacebook from './icon-facebook.svg'
 import iconGithub from './icon-github.svg'
+import iconSlack from './icon-slack.svg'
 import iconTwitter from './icon-twitter.svg'
 
 const Footer = M.styled('footer')(({ theme: t }) => ({
@@ -116,7 +117,7 @@ export default () => {
             <NavLink href={URLS.blog} target="_blank">
               Blog
             </NavLink>
-            {cfg.mode !== 'PRODUCT' && (
+            {(cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') && (
               <>
                 <NavSpacer />
                 <NavLink href={URLS.jobs} target="_blank">
@@ -152,6 +153,7 @@ export default () => {
             <NavIcon icon={iconFacebook} href={URLS.facebook} target="_blank" />
             <NavIcon icon={iconTwitter} href={URLS.twitter} target="_blank" ml={4} />
             <NavIcon icon={iconGithub} href={URLS.gitWeb} target="_blank" ml={4} />
+            <NavIcon icon={iconSlack} href={URLS.slackInvite} target="_blank" ml={4} />
             {!intercom.dummy && (
               <M.Box ml={4} width={60} display={{ xs: 'none', sm: 'block' }} />
             )}

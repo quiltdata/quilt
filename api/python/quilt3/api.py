@@ -5,7 +5,8 @@ from .packages import Package
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
                    CONFIG_TEMPLATE, configure_from_url, fix_url,
-                   get_package_registry, read_yaml, validate_package_name, write_yaml)
+                   get_package_registry, load_config, read_yaml,
+                   validate_package_name, write_yaml)
 from .telemetry import ApiTelemetry
 
 
@@ -25,7 +26,7 @@ def copy(src, dest):
 
 
 
-ApiTelemetry("api.delete_package")
+@ApiTelemetry("api.delete_package")
 def delete_package(name, registry=None, top_hash=None):
     """
     Delete a package. Deletes only the manifest entries and not the underlying files.
@@ -189,8 +190,7 @@ def _config(*catalog_url, **config_values):
     if catalog_url:
         catalog_url = catalog_url[0]
 
-        # If catalog_url is empty, reset to the default config.
-
+        # If catalog_url is empty, reset to an empty config.
         if catalog_url:
             config_template = configure_from_url(catalog_url)
         else:
@@ -199,10 +199,7 @@ def _config(*catalog_url, **config_values):
         return QuiltConfig(CONFIG_PATH, config_template)
 
     # Use local configuration (or defaults)
-    if CONFIG_PATH.exists():
-        local_config = read_yaml(CONFIG_PATH)
-    else:
-        local_config = read_yaml(CONFIG_TEMPLATE)
+    local_config = load_config()
 
     # Write to config if needed
     if config_values:

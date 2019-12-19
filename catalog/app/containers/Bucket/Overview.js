@@ -18,6 +18,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import Data from 'utils/Data'
+import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import Link from 'utils/StyledLink'
@@ -1164,6 +1165,11 @@ export default function Overview({
       {AsyncResult.case({
         Ok: () => (
           <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
+            {!!cfg && cfg.relevance >= 0 && (
+              <React.Suspense fallback={null}>
+                <LinkedData.BucketData bucket={cfg} />
+              </React.Suspense>
+            )}
             {cfg ? (
               <Head {...{ es, s3req, bucket, overviewUrl, description }} />
             ) : (

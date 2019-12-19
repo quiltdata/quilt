@@ -3,13 +3,17 @@ Parses the command-line arguments and runs a command.
 """
 
 import argparse
+import subprocess
 import sys
 
 from . import api, session
 from .util import get_from_config, QuiltException
-
+from .registry import app
 
 def cmd_config(catalog_url):
+    """
+    Configure quilt3 to a Quilt stack
+    """
     if catalog_url is None:
         existing_catalog_url = get_from_config('navigator_url')
         if existing_catalog_url is not None:
@@ -19,16 +23,34 @@ def cmd_config(catalog_url):
     else:
         api.config(catalog_url)
 
+def cmd_catalog():
+    """
+    Run the Quilt catalog locally
+    """
+    open_config = api.config()
+    command = ["docker", "run", "--rm"]
+    env = dict(REGISTRY_URL="http://localhost:5000",
+               S3_PROXY_URL=open_config["s3Proxy"],
+               ALWAYS_REQUIRE_AUTH="false",
+               CATALOG_MODE="LOCAL",
+               SSO_AUTH="DISABLED",
+               PASSWORD_AUTH="ENABLED",
+               API_GATEWAY=open_config["apiGatewayEndpoint"],
+               BINARY_API_GATEWAY=open_config["binaryApiGatewayEndpoint"])
+    for var in [f"{key}={value}" for key, value in env.items()]:
+        command += ["-e", var]
+    command += ["-p", "3000:80", "quiltdata/catalog"]
+    subprocess.Popen(command)
+    app.run()
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
-    pkg = api.Package.browse(name, registry, top_hash)
+    pkg = api.Package._browse(name, registry, top_hash)
     if pkg.verify(dir, extra_files_ok):
         print("Verification succeeded")
         return 0
     else:
         print("Verification failed")
         return 1
-
 
 def create_parser():
     parser = argparse.ArgumentParser()
@@ -46,6 +68,7 @@ def create_parser():
     logout_p = subparsers.add_parser("logout", description=shorthelp, help=shorthelp)
     logout_p.set_defaults(func=session.logout)
 
+    # config
     shorthelp = "Configure Quilt"
     config_p = subparsers.add_parser("config", description=shorthelp, help=shorthelp)
     config_p.add_argument(
@@ -56,6 +79,12 @@ def create_parser():
     )
     config_p.set_defaults(func=cmd_config)
 
+    # catalog
+    shorthelp = "Run Quilt catalog locally"
+    config_p = subparsers.add_parser("catalog", description=shorthelp, help=shorthelp)
+    config_p.set_defaults(func=cmd_catalog)
+
+    # install
     shorthelp = "Install a package"
     install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp)
     install_p.add_argument(
@@ -89,6 +118,7 @@ def create_parser():
     )
     install_p.set_defaults(func=api.Package.install)
 
+    # verify
     shorthelp = "Verify that package contents matches a given directory"
     verify_p = subparsers.add_parser("verify", description=shorthelp, help=shorthelp)
     verify_p.add_argument(
@@ -122,6 +152,7 @@ def create_parser():
     verify_p.set_defaults(func=cmd_verify)
 
     return parser
+
 
 def main(args=None):
     parser = create_parser()

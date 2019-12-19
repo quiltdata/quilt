@@ -8,7 +8,7 @@ import sys
 from threading import Lock
 import uuid
 
-from .util import load_config, set_config_value
+from .util import get_from_config, set_config_value
 from . import __version__ as quilt3_version
 
 TELEMETRY_URL = "https://telemetry.quiltdata.cloud/Prod/metrics"
@@ -53,7 +53,7 @@ class ApiTelemetry:
         Check if 'telemetry_disabled' field exists in quilt3 config. If it does, return it. If it does not exist, set
         it to default value of 'false' (to handle case of current users who predate this config field).
         """
-        config_value = load_config().get("telemetry_disabled")
+        config_value = get_from_config("telemetry_disabled")
         if config_value is not None:
             return config_value
         else:
