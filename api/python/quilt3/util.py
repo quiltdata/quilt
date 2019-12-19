@@ -5,8 +5,9 @@ import datetime
 import json
 import os
 import pathlib
-from urllib.parse import parse_qs, quote, unquote, urlencode, urljoin, urlparse, urlunparse
+from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse, urlunparse
 from urllib.request import url2pathname
+import warnings
 
 # Third-Party
 import ruamel.yaml
@@ -29,19 +30,13 @@ PACKAGE_NAME_FORMAT = r"[\w-]+/[\w-]+$"
 # Must contain every permitted config key, as well as their default values (which can be 'null'/None).
 # Comments are retained and added to local config, unless overridden by autoconfig via `api.config(<url>)`
 CONFIG_TEMPLATE = """
-# Helium configuration file
+# Quilt3 configuration file
 
 # navigator_url: <url string, default: null>
 #
 # Used for autoconfiguration
 # navigator_url: https://example.com
 navigator_url:
-
-# elastic_search_url: <url string, default: null>
-#
-# Used to satisfy search queries
-# elastic_search_url: https://example.com/es
-elastic_search_url:
 
 # default_local_registry: <url string, default: local appdirs>
 # default target registry for operations like install and build
@@ -60,24 +55,17 @@ registryUrl:
 
 # Disable anonymous usage metrics
 telemetry_disabled: false
-""".format(BASE_PATH.as_uri() + '/packages')
 
-# When pulling the config from the catalog, don't keep fields that are not relevant for the python client
-CONFIG_FIELD_BLACKLIST = [
-    "alwaysRequiresAuth",
-    "defaultBucket",
-    "intercomAppId",
-    "signInRedirect",
-    "signOutRedirect",
-    "passwordAuth",
-    "ssoAuth",
-    "ssoProviders",
-    "googleClientId",
-    "sentryDSN",
-    "mixpanelToken",
-    "analyticsBucket",
-    "mode"
-]
+# S3 Proxy
+s3Proxy:
+
+# API Gateway endpoint (e.g., for search)
+apiGatewayEndpoint:
+
+# Binary API Gateway endpoint (e.g., for preview)
+binaryApiGatewayEndpoint:
+
+""".format(BASE_PATH.as_uri() + '/packages')
 
 class QuiltException(Exception):
     def __init__(self, message, **kwargs):
@@ -293,42 +281,6 @@ class QuiltConfig(OrderedDict):
     def __repr__(self):
         return "<{} at {!r} {}>".format(type(self).__name__, str(self.filepath), json.dumps(self, indent=4))
 
-
-def find_bucket_config(bucket_name, catalog_config_url):
-    config_request = requests.get(catalog_config_url)
-    if not config_request.ok:
-        raise QuiltException("Failed to get catalog config")
-    config_json = json.loads(config_request.text)
-    if 'federations' in config_json:
-        federations = config_json['federations']
-    else:
-        registry_url = config_json['registryUrl']
-        federations = ["{reg_url}/api/buckets".format(reg_url=registry_url)]
-
-    federations.reverse() # want to get results from last federation first
-    for federation in federations:
-        parsed = urlparse(federation)
-        if not parsed.netloc:
-            # relative URL
-            federation = urljoin(catalog_config_url, federation)
-        federation_request = requests.get(federation)
-        if not federation_request.ok:
-            continue
-        federation = json.loads(federation_request.text)
-        if 'buckets' not in federation:
-            continue
-        buckets = federation['buckets']
-        for bucket in buckets:
-            if isinstance(bucket, str):
-                bucket_request = requests.get(bucket)
-                if not bucket_request.ok:
-                    continue
-                bucket = json.loads(bucket_request.text)
-            if bucket['name'] == bucket_name:
-                return bucket
-
-    raise QuiltException("Failed to find a config for the chosen bucket")
-
 def validate_package_name(name):
     """ Verify that a package name is two alphanumeric strings separated by a slash."""
     if not re.match(PACKAGE_NAME_FORMAT, name):
@@ -357,6 +309,7 @@ def configure_from_url(catalog_url):
             message.format(code=response.status_code, reason=response.reason),
             response=response
             )
+
     # QuiltConfig may perform some validation and value scrubbing.
     new_config = QuiltConfig('', response.json())
 
@@ -366,43 +319,66 @@ def configure_from_url(catalog_url):
 
     # Use our template + their configured values, keeping our comments.
     for key, value in new_config.items():
-        if key in CONFIG_FIELD_BLACKLIST:
+        if not key in config_template:
             continue
         config_template[key] = value
     write_yaml(config_template, CONFIG_PATH, keep_backup=True)
     return config_template
 
+def config_exists():
+    """
+    Returns True if a config file (config.yml) is installed.
+    """
+    return CONFIG_PATH.exists()
+
+def configure_from_default():
+    """
+    Try to configure to the default (public) Quilt stack.
+    If reading from the public stack fails, warn the user
+    and save an empty template.
+    """
+    try:
+        local_config = configure_from_url(OPEN_DATA_URL)
+    except requests.exceptions.ConnectionError:
+        msg = f"Failed to connect to {OPEN_DATA_URL}."
+        msg += "Some features will not work without a"
+        msg += "valid configuration."
+        warnings.warn(msg)
+        config_template = read_yaml(CONFIG_TEMPLATE)
+        write_yaml(config_template, CONFIG_PATH, keep_backup=True)
+        local_config = config_template
+    return local_config
+
 def load_config():
-    # For user-facing config, use api.config()
-    if not CONFIG_PATH.exists():
-        configure_from_url(OPEN_DATA_URL)
-    local_config = read_yaml(CONFIG_PATH)
+    """
+    Read the local config if one exists, else return an
+    empty config based on CONFIG_TEMPLATE.
+    """
+    if CONFIG_PATH.exists():
+        local_config = read_yaml(CONFIG_PATH)
+    else:
+        # This should only happen if a user deletes their local config and
+        # during test setup
+        local_config = read_yaml(CONFIG_TEMPLATE)
     return local_config
 
 def get_from_config(key):
     return load_config().get(key)
 
 def get_install_location():
-    loc = load_config().get('default_install_location')
+    loc = get_from_config('default_install_location')
     if loc is None:
         loc = get_from_config('default_local_registry').rstrip('/')
     return loc
 
-
-
 def set_config_value(key, value):
     # Use local configuration (or defaults)
-    if CONFIG_PATH.exists():
-        local_config = read_yaml(CONFIG_PATH)
-    else:
-        local_config = read_yaml(CONFIG_TEMPLATE)
-
+    local_config = load_config()
     local_config[key] = value
     write_yaml(local_config, CONFIG_PATH)
 
-
 def quiltignore_filter(paths, ignore, url_scheme):
-    """Given a list of paths, filter out the paths which are captured by the 
+    """Given a list of paths, filter out the paths which are captured by the
     given ignore rules.
 
     Args:

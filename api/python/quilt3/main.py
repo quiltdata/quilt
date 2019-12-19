@@ -40,7 +40,7 @@ def _launch_local_catalog():
     Launches a docker container to run nginx hosting
     the Quilt catalog on localhost:3000
     """
-    open_config = api.config()
+    open_config = api._config()
     command = ["docker", "run", "--rm"]
     env = dict(REGISTRY_URL="http://localhost:5000",
                S3_PROXY_URL="http://localhost:5002",
