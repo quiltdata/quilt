@@ -294,6 +294,13 @@ class PackageEntry(object):
     def with_physical_key(self, key):
         return self.__class__(key, self.size, self.hash, self._meta)
 
+    @property
+    def physical_keys(self):
+        """
+        Deprecated
+        """
+        return [self.physical_key]
+
 
 class Package(object):
     """ In-memory representation of a package """
