@@ -7,6 +7,7 @@ import os
 import pathlib
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse, urlunparse
 from urllib.request import url2pathname
+import warnings
 
 # Third-Party
 import ruamel.yaml
@@ -324,21 +325,28 @@ def configure_from_url(catalog_url):
     write_yaml(config_template, CONFIG_PATH, keep_backup=True)
     return config_template
 
+def config_exists():
+    """
+    Returns True if a config file (config.yml) is installed.
+    """
+    return CONFIG_PATH.exists()
+
 def configure_from_default():
     """
-    Configure to the default (public) Quilt stack if no
-    current config exists. If reading the public stack fails,
-    warn the user and save an empty template.
+    Try to configure to the default (public) Quilt stack.
+    If reading from the public stack fails, warn the user
+    and save an empty template.
     """
-    if CONFIG_PATH.exists():
-        local_config = load_config()
-    else:
-        try:
-            local_config = configure_from_url(OPEN_DATA_URL)
-        except requests.exceptions.ConnectionError:
-            config_template = read_yaml(CONFIG_TEMPLATE)
-            write_yaml(config_template, CONFIG_PATH, keep_backup=True)
-            local_config = config_template
+    try:
+        local_config = configure_from_url(OPEN_DATA_URL)
+    except requests.exceptions.ConnectionError:
+        msg = f"Failed to connect to {OPEN_DATA_URL}."
+        msg += "Some features will not work without a"
+        msg += "valid configuration."
+        warnings.warn(msg)
+        config_template = read_yaml(CONFIG_TEMPLATE)
+        write_yaml(config_template, CONFIG_PATH, keep_backup=True)
+        local_config = config_template
     return local_config
 
 def load_config():
