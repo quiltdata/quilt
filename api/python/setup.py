@@ -65,7 +65,6 @@ setup(
         'requests>=2.12.4',
         'ruamel.yaml>=0.15.78',
         'tqdm>=4.26.0',
-        'ujson',
         'urllib3<1.25,>=1.21.1',            # required by requests
         'requests_futures==1.0.0',
     ],
