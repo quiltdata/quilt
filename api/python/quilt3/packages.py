@@ -471,23 +471,31 @@ class Package(object):
         if len(hash_prefix) == 64:
             top_hash = hash_prefix
         elif 6 <= len(hash_prefix) < 64:
-            all_hashes = list_url(f'{registry}/.quilt/packages/')
-            matches = [h for h, _ in all_hashes if h.startswith(hash_prefix)]
-            if not matches:
+            matching_hashes = [h for h, _
+                               in list_url(f'{registry}/.quilt/packages/')
+                               if h.startswith(hash_prefix)]
+            if not matching_hashes:
                 raise QuiltException("Found zero matches for %r" % hash_prefix)
-            elif len(matches) > 1:
+            elif len(matching_hashes) > 1:
                 raise QuiltException("Found multiple matches: %r" % hash_prefix)
             else:
-                top_hash = matches[0]
+                top_hash = matching_hashes[0]
         else:
             raise QuiltException("Invalid hash: %r" % hash_prefix)
         return top_hash
 
     @classmethod
     def shorten_tophash(cls, package_name, registry, top_hash):
-        # TODO: Eventually we should check that we aren't giving a short hash that has a conflict. Not easy to do with
-        #       current .quilt layout
-        return top_hash[:6]
+        min_shorthash_len = 7
+        matches = [h for h, _ in list_url(f'{registry}/.quilt/packages/') if h.startswith(top_hash[:min_shorthash_len])]
+        if len(matches) == 0:
+            raise ValueError(f"Tophash {top_hash} was not found in registry {registry}")
+        for prefix_length in range(min_shorthash_len, 64):
+            potential_shorthash = top_hash[:prefix_length]
+            matches = [h for h in matches if h.startswith(potential_shorthash)]
+            if len(matches) == 1:
+                return potential_shorthash
+
 
     @classmethod
     @ApiTelemetry("package.browse")
