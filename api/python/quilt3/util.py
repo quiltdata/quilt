@@ -11,7 +11,7 @@ import warnings
 
 # Third-Party
 import ruamel.yaml
-from appdirs import user_data_dir
+from appdirs import user_cache_dir, user_data_dir
 import requests
 
 
@@ -19,7 +19,7 @@ APP_NAME = "Quilt"
 APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
 BASE_PATH = pathlib.Path(BASE_DIR)
-CACHE_PATH = BASE_PATH / "cache" / "v0"
+CACHE_PATH = pathlib.Path(user_cache_dir(APP_NAME, APP_AUTHOR)) / "v0"
 TEMPFILE_DIR_PATH = BASE_PATH / "tempfiles"
 CONFIG_PATH = BASE_PATH / 'config.yml'
 OPEN_DATA_URL = "https://open.quiltdata.com"
