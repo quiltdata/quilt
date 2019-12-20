@@ -6,7 +6,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text()
+VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text().strip()
 
 def readme():
     readme_short = """
