@@ -61,7 +61,12 @@ function GlobalControls({ iconized, disableSearch }) {
   return (
     <Container pr={{ xs: 6, sm: 0 }}>
       <BucketSelect display={state === 'search' ? 'none' : undefined} />
-      {!disableSearch && <Search onFocus={search} onBlur={cancel} iconized={iconized} />}
+      <Search
+        onFocus={search}
+        onBlur={cancel}
+        iconized={iconized}
+        disabled={disableSearch}
+      />
     </Container>
   )
 }
@@ -86,15 +91,14 @@ function BucketControls({ bucket, iconized, disableSearch }) {
   return (
     <Container>
       <BucketDisplay bucket={bucket} select={select} locked={!!state} ml={-1} />
-      {!disableSearch && (
-        <Search
-          bucket={bucket}
-          onFocus={search}
-          onBlur={cancel}
-          hidden={state === 'select'}
-          iconized={iconized}
-        />
-      )}
+      <Search
+        bucket={bucket}
+        onFocus={search}
+        onBlur={cancel}
+        hidden={state === 'select'}
+        iconized={iconized}
+        disabled={disableSearch}
+      />
       <M.Fade in={state === 'select'} onEnter={focusSelect}>
         <BucketSelect cancel={cancel} position="absolute" left={0} ref={selectRef} />
       </M.Fade>

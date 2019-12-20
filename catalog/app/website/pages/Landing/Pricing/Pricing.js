@@ -22,7 +22,7 @@ const PLANS = [
   {
     name: 'open.quiltdata.com',
     trackingName: 'open',
-    price: 0,
+    price: 'Free',
     features: ['Unlimited public packages'],
     cta: 'Explore',
     href: 'https://open.quiltdata.com',

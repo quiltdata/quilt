@@ -6,7 +6,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text()
+VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text().strip()
 
 def readme():
     readme_short = """
@@ -18,6 +18,7 @@ def readme():
 
     """
     return readme_short
+
 
 class VerifyVersionCommand(install):
     """Custom command to verify that the git tag matches our version"""
@@ -69,15 +70,15 @@ setup(
     ],
     extras_require={
         'pyarrow': [
-            'numpy>=1.14.0',                    # required by pandas, but missing from its dependencies.
+            'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
             'pandas>=0.19.2',
-            'pyarrow>=0.14.1',                  # as of 7/5/19: linux/circleci bugs on 0.14.0
+            'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
         ],
         'tests': [
             'codecov',
-            'numpy>=1.14.0',                    # required by pandas, but missing from its dependencies.
+            'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
             'pandas>=0.19.2',
-            'pyarrow>=0.14.1',                  # as of 7/5/19: linux/circleci bugs on 0.14.0
+            'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
             'pytest<5.1.0',  # TODO: Fix pytest.ensuretemp in conftest.py
             'pytest-cov',
             'responses',

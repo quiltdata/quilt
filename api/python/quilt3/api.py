@@ -4,8 +4,10 @@ from .data_transfer import copy_file, get_bytes, delete_url, list_url
 from .packages import Package
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
-                   CONFIG_TEMPLATE, configure_from_url, fix_url,
-                   get_package_registry, read_yaml, validate_package_name, write_yaml)
+                   CONFIG_TEMPLATE, configure_from_default, config_exists,
+                   configure_from_url, fix_url, get_package_registry,
+                   load_config, read_yaml, validate_package_name,
+                   write_yaml)
 from .telemetry import ApiTelemetry
 
 
@@ -94,10 +96,13 @@ def list_packages(registry=None):
 
 
 def _list_packages(registry=None):
-    """
-    This differs from list_packages because it does not have telemetry on it. If Quilt code needs the functionality to
-    list packages under a different customer-facing API, _list_packages() is the function that should be used to prevent
-    duplicate metrics (each API call that the user makes should generate a single telemetry event).
+    """This differs from list_packages because it does not have
+
+    telemetry on it. If Quilt code needs the functionality to list
+    packages under a different customer-facing API, _list_packages()
+    is the function that should be used to prevent duplicate metrics
+    (each API call that the user makes should generate a single
+    telemetry event).
     """
 
     registry_base_path = get_package_registry(fix_url(registry) if registry else None)
@@ -131,9 +136,9 @@ def list_package_versions(name, registry=None):
 
 
 def _list_package_versions(name, registry=None):
-    """
-    Telemetry-free version of list_package_versions. Internal quilt code should always use _list_package_versions.
-    See documentation for _list_packages for why.
+    """Telemetry-free version of list_package_versions. Internal quilt
+    code should always use _list_package_versions.  See documentation
+    for _list_packages for why.
     """
     validate_package_name(name)
 
@@ -189,27 +194,26 @@ def _config(*catalog_url, **config_values):
     if catalog_url:
         catalog_url = catalog_url[0]
 
-        # If catalog_url is empty, reset to the default config.
-
+        # If catalog_url is empty, reset to an empty config.
         if catalog_url:
             config_template = configure_from_url(catalog_url)
         else:
             config_template = read_yaml(CONFIG_TEMPLATE)
             write_yaml(config_template, CONFIG_PATH, keep_backup=True)
-        return QuiltConfig(CONFIG_PATH, config_template)
-
-    # Use local configuration (or defaults)
-    if CONFIG_PATH.exists():
-        local_config = read_yaml(CONFIG_PATH)
-    else:
-        local_config = read_yaml(CONFIG_TEMPLATE)
-
-    # Write to config if needed
-    if config_values:
+        local_config = config_template
+    # Create a custom config with the passed-in values only
+    elif config_values:
+        local_config = load_config()
         config_values = QuiltConfig('', config_values)  # Does some validation/scrubbing
         for key, value in config_values.items():
             local_config[key] = value
         write_yaml(local_config, CONFIG_PATH)
+    # Return the current config if present or create one from the default stack
+    else:
+        if config_exists():
+            local_config = load_config()
+        else:
+            local_config = configure_from_default()
 
     # Return current config
     return QuiltConfig(CONFIG_PATH, local_config)
@@ -253,6 +257,7 @@ def search(query, limit=10):
         }, ...]
         ```
     """
+    # force a call to configure_from_default if no config exists
+    _config()
     raw_results = search_api(query, '*', limit)
     return raw_results['hits']['hits']
-
