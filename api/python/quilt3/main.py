@@ -3,6 +3,7 @@ Parses the command-line arguments and runs a command.
 """
 
 import argparse
+import dns.resolver
 import subprocess
 import sys
 
@@ -60,7 +61,13 @@ def _launch_local_s3proxy():
     Launches an s3 proxy (via docker)
     on localhost:5002
     """
+    dns_resolver = dns.resolver.Resolver()
     command = ["docker", "run", "--rm"]
+
+    # Workaround for a Docker-for-Mac bug in which the container
+    # ends up with a different DNS server than the host.
+    command += ["--dns", dns_resolver.nameservers[0]]
+    
     command += ["-p", "5002:80", "quiltdata/s3proxy"]
     subprocess.Popen(command)
 
