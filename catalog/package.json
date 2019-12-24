@@ -105,7 +105,7 @@
     "react-swipeable-views-core": "^0.13.1",
     "react-swipeable-views-utils": "^0.13.3",
     "recompose": "^0.30.0",
-    "redux": "^4.0.4",
+    "redux": "^4.0.5",
     "redux-devtools-extension": "^2.13.8",
     "redux-form": "^8.2.6",
     "redux-immutable": "^4.0.0",
