@@ -755,6 +755,7 @@ export const getPackageRevisions = withErrorHandling(
       }, []),
       isTruncated: r.IsTruncated,
     }))
+    revisions.unshift({ id: 'latest', key: getRevisionKeyFromId(name, 'latest') })
     return { revisions, isTruncated, counts: await countsP }
   },
 )

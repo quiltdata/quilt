@@ -191,7 +191,7 @@ function Revision({ bucket, name, id, hash, stats, message, counts }) {
                   className={classes.time}
                   to={urls.bucketPackageTree(bucket, name, v)}
                 >
-                  {dateFns.format(modified, dateFmt)}
+                  {v === 'latest' ? 'LATEST' : dateFns.format(modified, dateFmt)}
                 </Link>
               )
             },

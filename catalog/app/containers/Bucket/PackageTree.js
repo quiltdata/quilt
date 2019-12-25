@@ -102,11 +102,15 @@ function RevisionInfo({ revision, bucket, name, path }) {
                       >
                         <M.ListItemText
                           primary={
-                            <span>
-                              {dateFns.format(modified, 'MMMM Do YYYY - h:mmA')}
-                              {' | '}
-                              <span className={classes.mono}>{r.id}</span>
-                            </span>
+                            r.id === 'latest' ? (
+                              'LATEST'
+                            ) : (
+                              <span>
+                                {dateFns.format(modified, 'MMMM Do YYYY - h:mmA')}
+                                {' | '}
+                                <span className={classes.mono}>{r.id}</span>
+                              </span>
+                            )
                           }
                           secondary={
                             <span className={classes.secondaryText}>
