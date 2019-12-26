@@ -235,7 +235,6 @@ class TestIndex():
             expected = json.load(info_json)
         assert (body['info'] == expected), \
             f'Unexpected body["info"] for {parquet}'
-
  
     @responses.activate
     def test_tsv(self):
@@ -263,6 +262,30 @@ class TestIndex():
         with open(BASE_DIR / 'tsv_html_response_head.txt') as expected:
             head = expected.read()
             assert head in body_html, 'unexpected first columns'
+
+    @responses.activate
+    def test_tsv_quote(self):
+        """test TSV from the glue NLP dataset"""
+        csv = BASE_DIR / 'dev.tsv'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=csv.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'csv', 'sep': '\t'})
+        resp = index.lambda_handler(event, None)
+        body = json.loads(resp['body'])
+        assert resp['statusCode'] == 200, f'preview failed on {csv}'
+
+        body_html = body['html']
+        assert "<td>While dioxin levels in the environment were up" in body_html ,\
+            "missing expected cell"
+        assert "<td>In Soviet times the Beatles ' music \" was cons...</td>"  in body_html ,\
+            "missing expected cell"
+
+        warnings = body['info']['warnings']
+        assert warnings, f"expected warnings when parsing {csv}"
+        assert warnings.count("Skipping line") == 43, f"expected to skip 43 lines"
 
     @responses.activate
     def test_tsv_as_csv(self):
