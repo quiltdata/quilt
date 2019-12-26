@@ -434,8 +434,9 @@ def validate_key(key):
                 f"A package entry key cannot contain a file or folder named '.' or '..' in its path."
             )
 
-def catalog_s3_url(bucket, path, version_id=None):
-    catalog_url = f"/b/{bucket}/{path}"
+def catalog_s3_url(s3_url):
+    bucket, path, version_id = parse_s3_url(urlparse(s3_url))
+    catalog_url = f"/b/{bucket}/tree/{path}"
     if version_id not in (None, 'null'):
         params = {'version': version_id}
         catalog_url += f"?{urlencode(params)}"
