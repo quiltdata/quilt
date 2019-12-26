@@ -83,10 +83,9 @@ def cmd_catalog(s3_url=None):
     if not _test_url(local_s3proxy_url):
         _launch_local_s3proxy()
 
+    launch_url = local_catalog_url
     if s3_url:
-        launch_url = f"{local_catalog_url}{catalog_s3_url(s3_url)}"
-    else:
-        launch_url = local_catalog_url
+        launch_url += catalog_s3_url(s3_url)
 
     open_url(launch_url)
     app.run()
