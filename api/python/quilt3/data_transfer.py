@@ -242,7 +242,7 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
             # Check the ETag.
             dest_size = resp['ContentLength']
             dest_etag = resp['ETag']
-            dest_version_id = resp['VersionId']
+            dest_version_id = resp.get('VersionId')
             if size == dest_size:
                 src_etag = _calculate_etag(src_path)
                 if src_etag == dest_etag:
@@ -633,8 +633,7 @@ def get_size_and_version(src):
         s3_client = create_s3_client()
         resp = s3_client.head_object(**params)
         size = resp['ContentLength']
-        if resp.get('VersionId', 'null') != 'null':  # Yes, 'null'
-            version = resp['VersionId']
+        version = resp.get('VersionId')
     else:
         raise NotImplementedError
     return size, version

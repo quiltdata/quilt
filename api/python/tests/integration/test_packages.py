@@ -628,7 +628,7 @@ class PackageTest(QuiltTestCase):
             pkg.set_dir('', 's3://bucket/foo/', meta='test_meta')
 
             assert pkg['a.txt'].physical_key == 's3://bucket/foo/a.txt?versionId=xyz'
-            assert pkg['x']['y.txt'].physical_key == 's3://bucket/foo/x/y.txt'
+            assert pkg['x']['y.txt'].physical_key == 's3://bucket/foo/x/y.txt?versionId=null'
             assert pkg.meta == "test_meta"
             assert pkg['x']['y.txt'].size == 10  # GH368
 
@@ -639,7 +639,7 @@ class PackageTest(QuiltTestCase):
             pkg.set_dir('bar', 's3://bucket/foo')
 
             assert pkg['bar']['a.txt'].physical_key == 's3://bucket/foo/a.txt?versionId=xyz'
-            assert pkg['bar']['x']['y.txt'].physical_key == 's3://bucket/foo/x/y.txt'
+            assert pkg['bar']['x']['y.txt'].physical_key == 's3://bucket/foo/x/y.txt?versionId=null'
             assert pkg['bar']['a.txt'].size == 10 # GH368
 
             list_object_versions_mock.assert_called_with('bucket', 'foo/')
