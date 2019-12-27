@@ -147,7 +147,7 @@ def parse_s3_url(s3_url):
 
 def make_s3_url(bucket, path, version_id=None):
     params = {}
-    if version_id not in (None, 'null'):
+    if version_id is not None:
         params = {'versionId': version_id}
 
     return urlunparse(('s3', bucket, quote(path), None, urlencode(params), None))
