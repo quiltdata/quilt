@@ -19,9 +19,10 @@ from ..utils import QuiltTestCase
 
 
 DATA_DIR = Path(__file__).parent / 'data'
-SERIALIZATION_DIR = Path(__file__).parent / 'serialization_dir'
 LOCAL_MANIFEST = DATA_DIR / 'local_manifest.jsonl'
 REMOTE_MANIFEST = DATA_DIR / 'quilt_manifest.jsonl'
+
+SERIALIZATION_DIR = Path('serialization_dir')
 
 LOCAL_REGISTRY = Path('local_registry')  # Set by QuiltTestCase
 
@@ -45,20 +46,6 @@ def mock_make_api_call(self, operation_name, kwarg):
 
 
 class PackageTest(QuiltTestCase):
-    def setUp(self):
-        super().setUp()
-        self.file_sweeper_path_list = []
-
-    def tearDown(self):
-        super().tearDown()
-        if len(self.file_sweeper_path_list) > 0:
-            for fpath in self.file_sweeper_path_list:
-                if os.path.exists(fpath):
-                    try:
-                        os.remove(fpath)
-                    except Exception as e:
-                        print("Error when removing file", fpath, str(e))
-
     def test_build(self):
         """Verify that build dumps the manifest to appdirs directory."""
         new_pkg = Package()
@@ -734,8 +721,6 @@ class PackageTest(QuiltTestCase):
         for lk, entry in pkg.walk():
             file_path = parse_file_url(urlparse(entry.get()))
             assert pathlib.Path(file_path).exists(), "The serialization files should exist"
-
-            self.file_sweeper_path_list.append(file_path)  # Make sure files get deleted even if test fails
 
         pkg._fix_sha256()
         for lk, entry in pkg.walk():
