@@ -436,7 +436,7 @@ def validate_key(key):
 
 def catalog_s3_url(s3_url):
     bucket, path, version_id = parse_s3_url(urlparse(s3_url))
-    catalog_url = f"/b/{bucket}/tree/{path}"
+    catalog_url = f"/b/{quote(bucket)}/tree/{quote(path)}"
     if version_id not in (None, 'null'):
         params = {'version': version_id}
         catalog_url += f"?{urlencode(params)}"
