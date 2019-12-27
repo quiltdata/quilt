@@ -83,11 +83,8 @@ def cmd_catalog(s3_url=None):
     if not _test_url(local_s3proxy_url):
         _launch_local_s3proxy()
 
-    launch_url = local_catalog_url
-    if s3_url:
-        launch_url += catalog_s3_url(s3_url)
-
-    open_url(launch_url)
+    # open a browser to the local catalog
+    open_url(catalog_s3_url(local_catalog_url, s3_url))
     app.run()
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
