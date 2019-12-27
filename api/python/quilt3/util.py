@@ -433,3 +433,22 @@ def validate_key(key):
                 f"Invalid key {key!r}. "
                 f"A package entry key cannot contain a file or folder named '.' or '..' in its path."
             )
+
+def catalog_s3_url(catalog_url, s3_url):
+    """
+    Generate a URL to the Quilt catalog page for an object in S3
+    """
+    if s3_url is None:
+        return catalog_url
+
+    bucket, path, version_id = parse_s3_url(urlparse(s3_url))
+    catalog_s3_url = f"{catalog_url}/b/{quote(bucket)}"
+
+    if path:
+        catalog_s3_url += f"/tree/{quote(path)}"
+
+        # Ignore version_id if path is empty (e.g., s3://<bucket>)
+        if version_id is not None:
+            params = {'version': version_id}
+            catalog_s3_url += f"?{urlencode(params)}"
+    return catalog_s3_url
