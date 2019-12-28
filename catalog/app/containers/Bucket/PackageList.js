@@ -11,8 +11,11 @@ import { fade } from '@material-ui/core/styles'
 import Message from 'components/Message'
 import Sparkline from 'components/Sparkline'
 import * as AWS from 'utils/AWS'
+import AsyncResult from 'utils/AsyncResult'
+import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
+import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as SVG from 'utils/SVG'
@@ -425,7 +428,9 @@ export default function PackageList({
   const { filter, sort, p } = parseSearch(location.search)
   const page = p && parseInt(p, 10)
   const s3req = AWS.S3.useRequest()
-  const { analyticsBucket } = Config.useConfig()
+  const sign = AWS.Signer.useS3Signer()
+  const { analyticsBucket, apiGatewayEndpoint: endpoint } = Config.useConfig()
+  const bucketCfg = BucketConfig.useCurrentBucketConfig()
   const today = React.useMemo(() => new Date(), [])
   const data = Data.use(requests.listPackages, { s3req, analyticsBucket, bucket, today })
   return data.case({
@@ -435,6 +440,36 @@ export default function PackageList({
       </M.Box>
     ),
     Err: displayError(),
-    Ok: (packages) => <Packages {...{ packages, bucket, filter, sort, page }} />,
+    Ok: (packages) => (
+      <>
+        <Packages {...{ packages, bucket, filter, sort, page }} />
+        {!!bucketCfg &&
+          packages.map(({ name }) => (
+            <Data.Fetcher
+              key={name}
+              fetch={requests.getRevisionData}
+              params={{ s3req, sign, endpoint, bucket, name, id: 'latest', maxKeys: 0 }}
+            >
+              {AsyncResult.case({
+                _: () => null,
+                Ok: ({ hash, modified, header }) => (
+                  <React.Suspense fallback={null}>
+                    <LinkedData.PackageData
+                      {...{
+                        bucket: bucketCfg,
+                        name,
+                        revision: 'latest',
+                        hash,
+                        modified,
+                        header,
+                      }}
+                    />
+                  </React.Suspense>
+                ),
+              })}
+            </Data.Fetcher>
+          ))}
+      </>
+    ),
   })
 }
