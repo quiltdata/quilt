@@ -751,38 +751,42 @@ export const getPackageRevisions = withErrorHandling(
       revisions: r.Contents.reduce((acc, { Key: key }) => {
         const id = getRevisionIdFromKey(key)
         if (id === 'latest') return acc
-        return [{ id, key }].concat(acc)
+        return [id, ...acc]
       }, []),
       isTruncated: r.IsTruncated,
     }))
-    revisions.unshift({ id: 'latest', key: getRevisionKeyFromId(name, 'latest') })
+    revisions.unshift('latest')
     return { revisions, isTruncated, counts: await countsP }
   },
 )
 
-const loadRevisionHash = ({ s3req, bucket, key }) =>
+const loadRevisionHash = ({ s3req, bucket, name, id }) =>
   s3req({
     bucket,
     operation: 'getObject',
-    params: { Bucket: bucket, Key: key },
-  }).then((res) => res.Body.toString('utf-8'))
+    params: { Bucket: bucket, Key: getRevisionKeyFromId(name, id) },
+  }).then((res) => ({
+    modified: res.LastModified,
+    hash: res.Body.toString('utf-8'),
+  }))
 
 export const getRevisionData = async ({
   s3req,
   endpoint,
   signer,
   bucket,
-  key,
+  name,
+  id,
   maxKeys = MAX_PACKAGE_ENTRIES,
 }) => {
-  const hash = await loadRevisionHash({ s3req, bucket, key })
+  const { hash, modified } = await loadRevisionHash({ s3req, bucket, name, id })
   const manifestKey = `${MANIFESTS_PREFIX}${hash}`
   const url = signer.getSignedS3URL({ bucket, key: manifestKey })
   const maxLines = maxKeys + 2 // 1 for the meta and 1 for checking overflow
   const r = await fetch(
     `${endpoint}/preview?url=${encodeURIComponent(url)}&input=txt&line_count=${maxLines}`,
   )
-  const [info, ...entries] = await r
+  const [header, ...entries] = await r
     .json()
     .then((json) => json.info.data.head.map((l) => JSON.parse(l)))
   const files = Math.min(maxKeys, entries.length)
@@ -790,8 +794,10 @@ export const getRevisionData = async ({
   const truncated = entries.length > maxKeys
   return {
     hash,
+    modified,
     stats: { files, bytes, truncated },
-    ...info,
+    message: header.message,
+    header,
   }
 }
 
@@ -828,8 +834,7 @@ const MAX_PACKAGE_ENTRIES = 500
 
 export const fetchPackageTree = withErrorHandling(
   async ({ s3req, sign, endpoint, bucket, name, revision }) => {
-    const hashKey = getRevisionKeyFromId(name, revision)
-    const hash = await loadRevisionHash({ s3req, bucket, key: hashKey })
+    const { hash } = await loadRevisionHash({ s3req, bucket, name, id: revision })
     const manifestKey = `${MANIFESTS_PREFIX}${hash}`
 
     // We skip the first line - it contains the manifest version, etc.

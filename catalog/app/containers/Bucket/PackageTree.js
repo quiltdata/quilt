@@ -83,34 +83,47 @@ function RevisionInfo({ revision, bucket, name, path }) {
             Ok: ({ revisions, isTruncated }) => {
               const revList = revisions.slice(0, MAX_REVISIONS).map((r) => (
                 <Data
-                  key={r.id}
+                  key={r}
                   fetch={requests.getRevisionData}
-                  params={{ s3req, signer, endpoint, bucket, key: r.key, maxKeys: 0 }}
+                  params={{ s3req, signer, endpoint, bucket, name, id: r, maxKeys: 0 }}
                 >
                   {(res) => {
-                    const modified = new Date(parseInt(r.id, 10) * 1000)
+                    const modified =
+                      r === 'latest'
+                        ? AsyncResult.prop('modified', res)
+                        : AsyncResult.Ok(new Date(parseInt(r, 10) * 1000))
                     const hash = AsyncResult.prop('hash', res)
                     const msg = AsyncResult.prop('message', res)
                     return (
                       <M.ListItem
-                        key={r.id}
+                        key={r}
                         button
                         onClick={close}
-                        selected={r.id === revision}
+                        selected={r === revision}
                         component={RRLink}
-                        to={urls.bucketPackageTree(bucket, name, r.id, path)}
+                        to={urls.bucketPackageTree(bucket, name, r, path)}
                       >
                         <M.ListItemText
                           primary={
-                            r.id === 'latest' ? (
-                              'LATEST'
-                            ) : (
-                              <span>
-                                {dateFns.format(modified, 'MMMM Do YYYY - h:mmA')}
-                                {' | '}
-                                <span className={classes.mono}>{r.id}</span>
-                              </span>
-                            )
+                            <>
+                              {r === 'latest' ? (
+                                'LATEST'
+                              ) : (
+                                <span className={classes.mono}>{r}</span>
+                              )}
+                              {AsyncResult.case(
+                                {
+                                  _: () => null,
+                                  Ok: (d) => (
+                                    <>
+                                      {' | '}
+                                      {dateFns.format(d, 'MMMM Do YYYY - h:mmA')}
+                                    </>
+                                  ),
+                                },
+                                modified,
+                              )}
+                            </>
                           }
                           secondary={
                             <span className={classes.secondaryText}>
