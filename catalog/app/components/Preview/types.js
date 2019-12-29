@@ -16,17 +16,22 @@ ParquetMeta: {
   serializedSize: number,
   shape: { rows: number, columns: number },
 }
+
+PreviewStatus: {
+  note: string?,
+  warnings: string?,
+}
 */
 
 export const PreviewData = tagged([
-  'DataFrame', // { preview: string }
+  'DataFrame', // { preview: string, ...PreviewStatus }
   'Image', // { handle: object }
   'IFrame', // { src: string }
   'Markdown', // { rendered: string }
-  'Notebook', // { preview: string }
-  'Parquet', // { preview: string, ...ParquetMeta }
-  'Text', // { contents: string, lang: string }
-  'Vcf', // { meta: string[], header: string[], body: string[][], variants: string[] }
+  'Notebook', // { preview: string, ...PreviewStatus }
+  'Parquet', // { preview: string, ...ParquetMeta, ...PreviewStatus }
+  'Text', // { head: string, tail: string, lang: string, highlighted: { head: string, tail: string }, ...PreviewStatus }
+  'Vcf', // { meta: string[], header: string[], body: string[][], variants: string[], ...PreviewStatus }
   'Vega', // { spec: Object }
 ])
 

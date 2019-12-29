@@ -5,19 +5,19 @@ import AsyncResult from 'utils/AsyncResult'
 import { PreviewData } from '../types'
 import * as utils from './utils'
 
-export const detect = R.pipe(
-  utils.stripCompression,
-  utils.extIn(['.csv', '.tsv']),
-)
+export const detect = R.pipe(utils.stripCompression, utils.extIn(['.csv', '.tsv']))
 
 const fetcher = utils.previewFetcher('csv', (json) =>
-  AsyncResult.Ok(PreviewData.DataFrame({ preview: json.html })),
+  AsyncResult.Ok(
+    PreviewData.DataFrame({
+      preview: json.html,
+      note: json.info.note,
+      warnings: json.info.warnings,
+    }),
+  ),
 )
 
-const isTsv = R.pipe(
-  utils.stripCompression,
-  utils.extIs('.tsv'),
-)
+const isTsv = R.pipe(utils.stripCompression, utils.extIs('.tsv'))
 
 export const load = (handle, callback) =>
   fetcher(handle, callback, isTsv(handle.key) ? { query: { sep: '\t' } } : undefined)
