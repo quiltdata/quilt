@@ -157,7 +157,6 @@ class DataTransferTest(QuiltTestCase):
         self.s3_stubber.add_response(
             method='put_object',
             service_response={
-                'VersionId': 'null'
             },
             expected_params={
                 'Body': ANY,
@@ -176,7 +175,6 @@ class DataTransferTest(QuiltTestCase):
         self.s3_stubber.add_response(
             method='put_object',
             service_response={
-                'VersionId': 'null'
             },
             expected_params={
                 'Body': ANY,

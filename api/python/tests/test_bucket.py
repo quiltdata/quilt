@@ -1,14 +1,12 @@
-import json
 from unittest.mock import patch
+from io import BytesIO
 import pathlib
 from urllib.parse import urlparse
 
-from botocore.stub import Stubber
 import pandas as pd
 import pytest
-import responses
 
-from quilt3 import Bucket, data_transfer, config
+from quilt3 import Bucket
 from quilt3.util import QuiltException
 
 from .utils import QuiltTestCase
@@ -19,16 +17,98 @@ class TestBucket(QuiltTestCase):
         Bucket('s3://test-bucket')
 
     def test_bucket_fetch(self):
-        response = {
-            'IsTruncated': False
-        }
-        params = {
-            'Bucket': 'test-bucket',
-            'Prefix': 'does/not/exist/'
-        }
-        self.s3_stubber.add_response('list_objects_v2', response, params)
+        bucket = Bucket('s3://test-bucket')
+
+        a_contents = b'a' * 10
+        b_contents = b'b' * 20
+
+        # Fetch a directory.
+
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            service_response={
+                'IsTruncated': False,
+                'Contents': [
+                    {'Key': 'dir/a', 'Size': len(a_contents)},
+                    {'Key': 'dir/foo/b', 'Size': len(b_contents)}
+                ],
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Prefix': 'dir/'
+            }
+        )
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'ContentLength': len(a_contents),
+                'Body': BytesIO(a_contents)
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'dir/a'
+            }
+        )
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'ContentLength': len(b_contents),
+                'Body': BytesIO(b_contents)
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'dir/foo/b'
+            }
+        )
+
+        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
+            bucket.fetch('dir/', './')
+
+        assert pathlib.Path('a').read_bytes() == a_contents
+        assert pathlib.Path('foo/b').read_bytes() == b_contents
+
+        # Fetch a single file.
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'ContentLength': len(b_contents),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'dir/foo/b'
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'ContentLength': len(b_contents),
+                'Body': BytesIO(b_contents)
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'dir/foo/b'
+            }
+        )
+
+        bucket.fetch('dir/foo/b', './blah/')
+        assert pathlib.Path('blah/b').read_bytes() == b_contents
+
+        # Fetch a non-existent directory.
+
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            service_response={
+                'IsTruncated': False
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Prefix': 'does/not/exist/'
+            }
+        )
         with pytest.raises(QuiltException):
-            Bucket('s3://test-bucket').fetch('does/not/exist/', './')
+            bucket.fetch('does/not/exist/', './')
 
 
     def test_bucket_select(self):
@@ -140,7 +220,7 @@ class TestBucket(QuiltTestCase):
         bucket.delete('file.json')
 
         with pytest.raises(QuiltException):
-            bucket.delete('s3://test-bucket/dir/')
+            bucket.delete('dir/')
 
 
     def test_remote_delete_dir(self):
@@ -148,11 +228,11 @@ class TestBucket(QuiltTestCase):
             method='list_objects_v2',
             service_response={
                 'IsTruncated': False,
-                'Contents': [{'Key': 'a'}, {'Key': 'b'}],
+                'Contents': [{'Key': 'dir/a'}, {'Key': 'dir/b'}],
             },
             expected_params={
                 'Bucket': 'test-bucket',
-                'Prefix': 's3://test-bucket/dir/'
+                'Prefix': 'dir/'
             }
         )
         self.s3_stubber.add_response(
@@ -160,7 +240,7 @@ class TestBucket(QuiltTestCase):
             service_response={},
             expected_params={
                 'Bucket': 'test-bucket',
-                'Key': 'a'
+                'Key': 'dir/a'
             }
         )
         self.s3_stubber.add_response(
@@ -168,7 +248,7 @@ class TestBucket(QuiltTestCase):
             service_response={},
             expected_params={
                 'Bucket': 'test-bucket',
-                'Key': 'a'
+                'Key': 'dir/a'
             }
         )
         self.s3_stubber.add_response(
@@ -176,7 +256,7 @@ class TestBucket(QuiltTestCase):
             service_response={},
             expected_params={
                 'Bucket': 'test-bucket',
-                'Key': 'b'
+                'Key': 'dir/b'
             }
         )
         self.s3_stubber.add_response(
@@ -184,12 +264,12 @@ class TestBucket(QuiltTestCase):
             service_response={},
             expected_params={
                 'Bucket': 'test-bucket',
-                'Key': 'b'
+                'Key': 'dir/b'
             }
         )
 
         bucket = Bucket('s3://test-bucket')
-        bucket.delete_dir('s3://test-bucket/dir/')
+        bucket.delete_dir('dir/')
 
         with pytest.raises(ValueError):
-            bucket.delete_dir('s3://test-bucket/dir')
+            bucket.delete_dir('dir')

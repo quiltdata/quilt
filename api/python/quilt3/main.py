@@ -6,8 +6,12 @@ import argparse
 import subprocess
 import sys
 
+import dns.resolver
+import requests
+
 from . import api, session
-from .util import get_from_config, QuiltException
+from .session import open_url
+from .util import get_from_config, catalog_s3_url, QuiltException
 from .registry import app
 
 def cmd_config(catalog_url):
@@ -23,14 +27,24 @@ def cmd_config(catalog_url):
     else:
         api.config(catalog_url)
 
-def cmd_catalog():
+def _test_url(url):
+    try:
+        response = requests.get(url)
+        if response.ok:
+            return True
+        return False
+    except requests.exceptions.ConnectionError:
+        return False
+
+def _launch_local_catalog():
+    """"
+    Launches a docker container to run nginx hosting
+    the Quilt catalog on localhost:3000
     """
-    Run the Quilt catalog locally
-    """
-    open_config = api.config()
+    open_config = api._config()
     command = ["docker", "run", "--rm"]
     env = dict(REGISTRY_URL="http://localhost:5000",
-               S3_PROXY_URL=open_config["s3Proxy"],
+               S3_PROXY_URL="http://localhost:5002",
                ALWAYS_REQUIRE_AUTH="false",
                CATALOG_MODE="LOCAL",
                SSO_AUTH="DISABLED",
@@ -41,6 +55,36 @@ def cmd_catalog():
         command += ["-e", var]
     command += ["-p", "3000:80", "quiltdata/catalog"]
     subprocess.Popen(command)
+
+def _launch_local_s3proxy():
+    """"
+    Launches an s3 proxy (via docker)
+    on localhost:5002
+    """
+    dns_resolver = dns.resolver.Resolver()
+    command = ["docker", "run", "--rm"]
+
+    # Workaround for a Docker-for-Mac bug in which the container
+    # ends up with a different DNS server than the host.
+    command += ["--dns", dns_resolver.nameservers[0]]
+    command += ["-p", "5002:80", "quiltdata/s3proxy"]
+    subprocess.Popen(command)
+
+def cmd_catalog(s3_url=None):
+    """
+    Run the Quilt catalog locally
+    """
+    local_catalog_url = "http://localhost:3000"
+    local_s3proxy_url = "http://localhost:5002"
+
+    if not _test_url(local_catalog_url):
+        _launch_local_catalog()
+
+    if not _test_url(local_s3proxy_url):
+        _launch_local_s3proxy()
+
+    # open a browser to the local catalog
+    open_url(catalog_s3_url(local_catalog_url, s3_url))
     app.run()
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
@@ -82,6 +126,12 @@ def create_parser():
     # catalog
     shorthelp = "Run Quilt catalog locally"
     config_p = subparsers.add_parser("catalog", description=shorthelp, help=shorthelp)
+    config_p.add_argument(
+        "s3_url",
+        help="S3 URL to browse in local catalog",
+        type=str,
+        nargs="?"
+    )
     config_p.set_defaults(func=cmd_catalog)
 
     # install

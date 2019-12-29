@@ -5,9 +5,8 @@ from pathlib import Path
 
 from setuptools import setup, find_packages
 from setuptools.command.install import install
-from setuptools.command.develop import develop
 
-VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text()
+VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text().strip()
 
 def readme():
     readme_short = """
@@ -19,29 +18,6 @@ def readme():
 
     """
     return readme_short
-
-def default_config():
-    """Configure to the default (public) Quilt stack"""
-    from quilt3.util import configure_from_default
-    configure_from_default()
-
-
-class PostDevelopCommand(develop):
-    """ Post install hook for development installs """
-    description = 'Setup default configuration'
-
-    def run(self):
-        default_config()
-        develop.run(self)
-
-
-class PostInstallCommand(install):
-    """ Post install hook """
-    description = 'Setup default configuration'
-
-    def run(self):
-        default_config()
-        install.run(self)
 
 
 class VerifyVersionCommand(install):
@@ -117,7 +93,5 @@ setup(
     },
     cmdclass={
         'verify': VerifyVersionCommand,
-        'install': PostInstallCommand,
-        'develop': PostDevelopCommand,
     }
 )

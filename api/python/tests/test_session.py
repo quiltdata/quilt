@@ -12,7 +12,7 @@ from .utils import QuiltTestCase
 
 
 class TestSession(QuiltTestCase):
-    @patch('quilt3.session._open_url')
+    @patch('quilt3.session.open_url')
     @patch('quilt3.session.input', return_value='123456')
     @patch('quilt3.session.login_with_token')
     def test_login(self, mock_login_with_token, mock_input, mock_open_url):

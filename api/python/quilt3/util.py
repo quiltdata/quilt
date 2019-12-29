@@ -7,10 +7,11 @@ import os
 import pathlib
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse, urlunparse
 from urllib.request import url2pathname
+import warnings
 
 # Third-Party
 import ruamel.yaml
-from appdirs import user_data_dir
+from appdirs import user_cache_dir, user_data_dir
 import requests
 
 
@@ -18,7 +19,7 @@ APP_NAME = "Quilt"
 APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
 BASE_PATH = pathlib.Path(BASE_DIR)
-CACHE_PATH = BASE_PATH / "cache" / "v0"
+CACHE_PATH = pathlib.Path(user_cache_dir(APP_NAME, APP_AUTHOR)) / "v0"
 TEMPFILE_DIR_PATH = BASE_PATH / "tempfiles"
 CONFIG_PATH = BASE_PATH / 'config.yml'
 OPEN_DATA_URL = "https://open.quiltdata.com"
@@ -146,7 +147,7 @@ def parse_s3_url(s3_url):
 
 def make_s3_url(bucket, path, version_id=None):
     params = {}
-    if version_id not in (None, 'null'):
+    if version_id is not None:
         params = {'versionId': version_id}
 
     return urlunparse(('s3', bucket, quote(path), None, urlencode(params), None))
@@ -324,18 +325,29 @@ def configure_from_url(catalog_url):
     write_yaml(config_template, CONFIG_PATH, keep_backup=True)
     return config_template
 
+def config_exists():
+    """
+    Returns True if a config file (config.yml) is installed.
+    """
+    return CONFIG_PATH.exists()
+
 def configure_from_default():
     """
-    Configure to the default (public) Quilt stack if no
-    current config exists. If reading the public stack fails,
-    warn the user and save an empty template.
+    Try to configure to the default (public) Quilt stack.
+    If reading from the public stack fails, warn the user
+    and save an empty template.
     """
-    if not CONFIG_PATH.exists():
-        try:
-            configure_from_url(OPEN_DATA_URL)
-        except requests.exceptions.ConnectionError:
-            config_template = read_yaml(CONFIG_TEMPLATE)
-            write_yaml(config_template, CONFIG_PATH, keep_backup=True)
+    try:
+        local_config = configure_from_url(OPEN_DATA_URL)
+    except requests.exceptions.ConnectionError:
+        msg = f"Failed to connect to {OPEN_DATA_URL}."
+        msg += "Some features will not work without a"
+        msg += "valid configuration."
+        warnings.warn(msg)
+        config_template = read_yaml(CONFIG_TEMPLATE)
+        write_yaml(config_template, CONFIG_PATH, keep_backup=True)
+        local_config = config_template
+    return local_config
 
 def load_config():
     """
@@ -366,7 +378,7 @@ def set_config_value(key, value):
     write_yaml(local_config, CONFIG_PATH)
 
 def quiltignore_filter(paths, ignore, url_scheme):
-    """Given a list of paths, filter out the paths which are captured by the 
+    """Given a list of paths, filter out the paths which are captured by the
     given ignore rules.
 
     Args:
@@ -421,3 +433,22 @@ def validate_key(key):
                 f"Invalid key {key!r}. "
                 f"A package entry key cannot contain a file or folder named '.' or '..' in its path."
             )
+
+def catalog_s3_url(catalog_url, s3_url):
+    """
+    Generate a URL to the Quilt catalog page for an object in S3
+    """
+    if s3_url is None:
+        return catalog_url
+
+    bucket, path, version_id = parse_s3_url(urlparse(s3_url))
+    catalog_s3_url = f"{catalog_url}/b/{quote(bucket)}"
+
+    if path:
+        catalog_s3_url += f"/tree/{quote(path)}"
+
+        # Ignore version_id if path is empty (e.g., s3://<bucket>)
+        if version_id is not None:
+            params = {'version': version_id}
+            catalog_s3_url += f"?{urlencode(params)}"
+    return catalog_s3_url
