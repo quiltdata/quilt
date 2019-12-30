@@ -1,5 +1,4 @@
 from collections import deque
-import copy
 import gc
 import hashlib
 import io
