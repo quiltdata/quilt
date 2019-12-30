@@ -130,8 +130,6 @@ class PackageTest(QuiltTestCase):
     @patch('quilt3.Package.shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
     def test_default_install_location(self):
         """Verify that pushes to the default local install location work as expected"""
-
-
         with patch('quilt3.Package._materialize') as materialize_mock:
             pkg_name = 'Quilt/nice-name'
             Package.install(pkg_name, registry='s3://my-test-bucket')
