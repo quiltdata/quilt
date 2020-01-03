@@ -84,6 +84,7 @@ class PhysicalKey(object):
 
     def __init__(self, bucket, path, version_id):
         """
+        For internal use only; call from_path or from_url instead.
         """
         assert bucket is None or isinstance(bucket, str)
         assert isinstance(path, str)

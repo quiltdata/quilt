@@ -61,7 +61,7 @@ def _copy_local_file(ctx, size, src_path, dest_path):
     ctx.progress(size)
     shutil.copymode(src_path, dest_path)
 
-    ctx.done(PhysicalKey(None, dest_path, None))
+    ctx.done(PhysicalKey.from_path(dest_path))
 
 
 def _upload_file(ctx, size, src_path, dest_bucket, dest_key):
@@ -147,7 +147,7 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path):
             fd.write(chunk)
             ctx.progress(len(chunk))
 
-    ctx.done(PhysicalKey(None, dest_path, None))
+    ctx.done(PhysicalKey.from_path(dest_path))
 
 
 def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
@@ -653,7 +653,7 @@ def select(src, query, meta=None, raw=False, **kwargs):
         transparently supported.
 
     Args:
-        src(PhysicalKey):  S3 URL of the object to query
+        src(PhysicalKey):  S3 PhysicalKey of the object to query
         query(str): An SQL query using the 'SELECT' directive. See examples at
             https://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectSELECTContent.html
         meta: Quilt Object Metadata

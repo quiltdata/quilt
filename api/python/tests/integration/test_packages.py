@@ -296,7 +296,7 @@ class PackageTest(QuiltTestCase):
 
                 materialize_mock.assert_called_once_with(PhysicalKey.from_path('./'))
                 build_mock.assert_called_once_with(
-                    'Quilt/nice-name', message=None, registry=PhysicalKey.from_url(dest_registry)
+                    'Quilt/nice-name', message=None, registry=dest_registry
                 )
 
     def test_install_restrictions(self):
@@ -1017,7 +1017,7 @@ class PackageTest(QuiltTestCase):
 
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket', message='test_message')
             build_mock.assert_called_once_with(
-                'Quilt/test_pkg_name', registry=PhysicalKey.from_url('s3://test-bucket'), message='test_message'
+                'Quilt/test_pkg_name', registry='s3://test-bucket', message='test_message'
             )
 
     def test_overwrite_dir_fails(self):

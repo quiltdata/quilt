@@ -439,7 +439,7 @@ class Package(object):
         message = pkg._meta.get('message', None)  # propagate the package message
 
         pkg._materialize(dest_parsed)
-        pkg._build(name, registry=dest_registry_parsed, message=message)
+        pkg._build(name, registry=dest_registry, message=message)
         if top_hash is None:
             top_hash = pkg.top_hash
         short_tophash = Package._shorten_tophash(name, dest_registry_parsed, top_hash)
@@ -878,6 +878,9 @@ class Package(object):
         Returns:
             The top hash as a string.
         """
+        return self._build(name=name, registry=registry, message=message)
+
+    def _build(self, name, registry, message):
         validate_package_name(name)
 
         if registry is None:
@@ -887,22 +890,19 @@ class Package(object):
 
         registry_parsed = PhysicalKey.from_url(registry)
 
-        return self._build(name=name, registry=registry_parsed, message=message)
-
-    def _build(self, name, registry, message):
         self._set_commit_message(message)
 
         self._fix_sha256()
         manifest = io.BytesIO()
         self._dump(manifest)
 
-        pkg_manifest_file = registry.join(f'.quilt/packages/{self.top_hash}')
+        pkg_manifest_file = registry_parsed.join(f'.quilt/packages/{self.top_hash}')
         put_bytes(
             manifest.getvalue(),
             pkg_manifest_file
         )
 
-        named_path = registry.join(f'.quilt/named_packages/{name}')
+        named_path = registry_parsed.join(f'.quilt/named_packages/{name}')
         hash_bytes = self.top_hash.encode('utf-8')
         # TODO: use a float to string formater instead of double casting
         timestamp_path = named_path.join(str(int(time.time())))
@@ -990,7 +990,6 @@ class Package(object):
 
         if entry is None:
             entry = pathlib.Path(logical_key).resolve().as_uri()
-            print('entry1: %r' % entry)
 
         if isinstance(entry, (str, os.PathLike)):
             src = PhysicalKey.from_url(fix_url(str(entry)))
@@ -1000,7 +999,6 @@ class Package(object):
             if not src.is_local() and src.version_id is None and version_id is not None:
                 src.version_id = version_id
             entry = PackageEntry(src, size, None, None)
-            print('entry2: %r' % entry)
         elif isinstance(entry, PackageEntry):
             assert meta is None
 
@@ -1230,7 +1228,7 @@ class Package(object):
         for lk in temp_file_logical_keys:
             self._set(lk, pkg[lk])
 
-        pkg._build(name, registry=registry_parsed, message=message)
+        pkg._build(name, registry=registry, message=message)
         return pkg
 
     @classmethod
