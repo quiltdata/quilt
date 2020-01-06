@@ -1,4 +1,5 @@
 from collections import deque
+import gc
 import hashlib
 import io
 import json
@@ -12,6 +13,7 @@ import uuid
 import warnings
 
 import jsonlines
+from tqdm import tqdm
 
 from .data_transfer import (
     calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_version,
@@ -667,28 +669,41 @@ class Package(object):
 
     @classmethod
     def _load(cls, readable_file):
-        reader = jsonlines.Reader(readable_file)
-        meta = reader.read()
-        meta.pop('top_hash', None)  # Obsolete as of PR #130
-        pkg = cls()
-        pkg._meta = meta
-        for obj in reader:
-            path = cls._split_key(obj.pop('logical_key'))
-            subpkg = pkg._ensure_subpackage(path[:-1])
-            key = path[-1]
-            if not obj.get('physical_keys', None):
-                # directory-level metadata
-                subpkg.set_meta(obj['meta'])
-                continue
-            if key in subpkg._children:
-                raise PackageException("Duplicate logical key while loading package")
-            subpkg._children[key] = PackageEntry(
-                obj['physical_keys'][0],
-                obj['size'],
-                obj['hash'],
-                obj['meta']
-            )
+        gc.disable()  # Experiments with COCO (650MB manifest) show disabling GC gives us ~2x performance improvement
 
+        try:
+            line_count = 0
+            for _ in readable_file:
+                line_count += 1
+            readable_file.seek(0)
+
+            reader = jsonlines.Reader(readable_file, loads=json.loads)
+            with tqdm(desc="Loading Manifest", total=line_count, unit="entries") as tqdm_progress:
+                meta = reader.read()
+                meta.pop('top_hash', None)  # Obsolete as of PR #130
+                pkg = cls()
+                pkg._meta = meta
+                tqdm_progress.update(1)
+
+                for obj in reader:
+                    path = cls._split_key(obj.pop('logical_key'))
+                    subpkg = pkg._ensure_subpackage(path[:-1])
+                    key = path[-1]
+                    if not obj.get('physical_keys', None):
+                        # directory-level metadata
+                        subpkg.set_meta(obj['meta'])
+                        continue
+                    if key in subpkg._children:
+                        raise PackageException("Duplicate logical key while loading package")
+                    subpkg._children[key] = PackageEntry(
+                            obj['physical_keys'][0],
+                            obj['size'],
+                            obj['hash'],
+                            obj['meta']
+                    )
+                    tqdm_progress.update(1)
+        finally:
+            gc.enable()
         return pkg
 
     def set_dir(self, lkey, path=None, meta=None):
