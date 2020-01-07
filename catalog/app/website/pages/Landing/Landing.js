@@ -11,6 +11,7 @@ import Videos from 'website/components/Videos'
 import Buckets from './Buckets'
 import CaseStudies from './CaseStudies'
 import Highlights from './Highlights'
+import LocalMode from './LocalMode'
 import Platform from './Platform'
 import Pricing from './Pricing'
 import Showcase from './Showcase'
@@ -24,17 +25,17 @@ export default function Landing() {
       <React.Suspense fallback={null}>
         <LinkedData.CatalogData />
       </React.Suspense>
-      <Dots />
+      {cfg.mode !== 'LOCAL' && <Dots />}
       {cfg.mode === 'PRODUCT' && <Buckets />}
-      <Showcase />
-      <Videos />
-      <Platform />
-      <CaseStudies />
-      <Testimonials />
-      <UseQuilt />
-      <Highlights />
+      {cfg.mode === 'LOCAL' ? <LocalMode /> : <Showcase />}
+      {cfg.mode !== 'LOCAL' && <Videos />}
+      {cfg.mode !== 'LOCAL' && <Platform />}
+      {cfg.mode !== 'LOCAL' && <CaseStudies />}
+      {cfg.mode !== 'LOCAL' && <Testimonials />}
+      {cfg.mode !== 'LOCAL' && <UseQuilt />}
+      {cfg.mode !== 'LOCAL' && <Highlights />}
       {cfg.mode === 'MARKETING' && <Pricing />}
-      <Contribute />
+      {cfg.mode !== 'LOCAL' && <Contribute />}
     </Layout>
   )
 }
