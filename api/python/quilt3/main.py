@@ -101,24 +101,24 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
         return 1
 
 def create_parser():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(allow_abbrev=False)
 
     subparsers = parser.add_subparsers(metavar="<command>")
     subparsers.required = True
 
     # login
     shorthelp = "Log in to configured Quilt server"
-    login_p = subparsers.add_parser("login", description=shorthelp, help=shorthelp)
+    login_p = subparsers.add_parser("login", description=shorthelp, help=shorthelp, allow_abbrev=False)
     login_p.set_defaults(func=session.login)
 
     # logout
     shorthelp = "Log out of current Quilt server"
-    logout_p = subparsers.add_parser("logout", description=shorthelp, help=shorthelp)
+    logout_p = subparsers.add_parser("logout", description=shorthelp, help=shorthelp, allow_abbrev=False)
     logout_p.set_defaults(func=session.logout)
 
     # config
     shorthelp = "Configure Quilt"
-    config_p = subparsers.add_parser("config", description=shorthelp, help=shorthelp)
+    config_p = subparsers.add_parser("config", description=shorthelp, help=shorthelp, allow_abbrev=False)
     config_p.add_argument(
         "catalog_url",
         help="URL of catalog to config with, or empty string to reset the config",
@@ -129,7 +129,7 @@ def create_parser():
 
     # catalog
     shorthelp = "Run Quilt catalog locally"
-    config_p = subparsers.add_parser("catalog", description=shorthelp, help=shorthelp)
+    config_p = subparsers.add_parser("catalog", description=shorthelp, help=shorthelp, allow_abbrev=False)
     config_p.add_argument(
         "s3_url",
         help="S3 URL to browse in local catalog",
@@ -140,7 +140,7 @@ def create_parser():
 
     # install
     shorthelp = "Install a package"
-    install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp)
+    install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp, allow_abbrev=False)
     install_p.add_argument(
         "name",
         help="Name of package, in the USER/PKG format",
@@ -174,7 +174,7 @@ def create_parser():
 
     # verify
     shorthelp = "Verify that package contents matches a given directory"
-    verify_p = subparsers.add_parser("verify", description=shorthelp, help=shorthelp)
+    verify_p = subparsers.add_parser("verify", description=shorthelp, help=shorthelp, allow_abbrev=False)
     verify_p.add_argument(
         "name",
         help="Name of package, in the USER/PKG format",
