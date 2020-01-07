@@ -8,7 +8,6 @@ import os
 import shutil
 import time
 from multiprocessing import Pool
-from urllib.parse import quote, urlparse, unquote
 import uuid
 import warnings
 
@@ -23,10 +22,10 @@ from .exceptions import PackageException
 from .formats import FormatRegistry
 from .telemetry import ApiTelemetry
 from .util import (
-    QuiltException, fix_url, get_from_config, get_install_location, make_s3_url, parse_file_url,
-    parse_s3_url, validate_package_name, quiltignore_filter, validate_key, extract_file_extension, file_is_local
+    QuiltException, fix_url, get_from_config, get_install_location,
+    validate_package_name, quiltignore_filter, validate_key, extract_file_extension
 )
-from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
+from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey
 
 
 
@@ -42,8 +41,8 @@ def hash_file(readable_file):
 
 
 def _delete_local_physical_key(pk):
-    assert file_is_local(pk), "This function only works on files that live on a local disk"
-    pathlib.Path(parse_file_url(urlparse(pk))).unlink()
+    assert pk.is_local(), "This function only works on files that live on a local disk"
+    pathlib.Path(pk.path).unlink()
 
 
 def _filesystem_safe_encode(key):
@@ -111,6 +110,7 @@ class PackageEntry(object):
         Returns:
             a PackageEntry
         """
+        assert isinstance(physical_key, PhysicalKey)
         self.physical_key = physical_key
         self.size = size
         self.hash = hash_obj
@@ -132,7 +132,7 @@ class PackageEntry(object):
         Returns dict representation of entry.
         """
         return {
-            'physical_keys': [self.physical_key],
+            'physical_keys': [str(self.physical_key)],
             'size': self.size,
             'hash': self.hash,
             'meta': self._meta
@@ -176,7 +176,7 @@ class PackageEntry(object):
             self
         """
         if path is not None:
-            self.physical_key = fix_url(path)
+            self.physical_key = PhysicalKey.from_url(fix_url(path))
             self.size = None
             self.hash = None
         elif meta is not None:
@@ -188,14 +188,14 @@ class PackageEntry(object):
         """
         Returns the physical key of this PackageEntry.
         """
-        return self.physical_key
+        return str(self.physical_key)
 
     def get_cached_path(self):
         """
         Returns a locally cached physical key, if available.
         """
-        if not file_is_local(self.physical_key):
-            return ObjectPathCache.get(self.physical_key)
+        if not self.physical_key.is_local():
+            return ObjectPathCache.get(str(self.physical_key))
         return None
 
     def get_bytes(self, use_cache_if_available=True):
@@ -206,7 +206,7 @@ class PackageEntry(object):
         if use_cache_if_available:
             cached_path = self.get_cached_path()
             if cached_path is not None:
-                return get_bytes(pathlib.Path(cached_path).as_uri())
+                return get_bytes(PhysicalKey(None, cached_path, None))
 
         data = get_bytes(self.physical_key)
         return data
@@ -253,7 +253,7 @@ class PackageEntry(object):
         if func is not None:
             return func(data)
 
-        pkey_ext = pathlib.PurePosixPath(unquote(urlparse(self.physical_key).path)).suffix
+        pkey_ext = pathlib.PurePosixPath(self.physical_key.path).suffix
 
         # Verify format can be handled before checking hash.  Raises if none found.
         formats = FormatRegistry.search(None, self._meta, pkey_ext)
@@ -275,10 +275,10 @@ class PackageEntry(object):
             None
         """
         if dest is None:
-            name = pathlib.PurePosixPath(unquote(urlparse(self.physical_key).path)).name
-            dest = (pathlib.Path().resolve() / name).as_uri()
+            name = self.physical_key.basename()
+            dest = PhysicalKey.from_path('.').join(name)
         else:
-            dest = fix_url(dest)
+            dest = PhysicalKey.from_url(fix_url(dest))
 
         copy_file(self.physical_key, dest)
 
@@ -328,9 +328,7 @@ class Package(object):
             if parent:
                 has_remote_entries = any(
                     self._map(
-                        lambda lk, entry: urlparse(
-                            fix_url(entry.physical_key)
-                        ).scheme != 'file'
+                        lambda lk, entry: not entry.physical_key.is_local()
                     )
                 )
                 pkg_type = 'remote' if has_remote_entries else 'local'
@@ -408,38 +406,43 @@ class Package(object):
                     "No registry specified and no default_remote_registry configured. Please "
                     "specify a registry or configure a default remote registry with quilt3.config"
                 )
+        else:
+            registry = fix_url(registry)
+
+        registry_parsed = PhysicalKey.from_url(registry)
 
         if dest_registry is None:
             dest_registry = get_from_config('default_local_registry')
         else:
-            dest_registry_parsed = urlparse(fix_url(dest_registry))
-            if dest_registry_parsed.scheme != 'file':
-                raise QuiltException(
-                    f"Can only 'install' to a local registry, but 'dest_registry' "
-                    f"{dest_registry!r} is a remote path. To store a package in a remote "
-                    f"registry, use 'push' or 'build' instead."
-                )
+            dest_registry = fix_url(dest_registry)
+
+        dest_registry_parsed = PhysicalKey.from_url(dest_registry)
+        if not dest_registry_parsed.is_local():
+            raise QuiltException(
+                f"Can only 'install' to a local registry, but 'dest_registry' "
+                f"{dest_registry!r} is a remote path. To store a package in a remote "
+                f"registry, use 'push' or 'build' instead."
+            )
 
         if dest is None:
-            dest = get_install_location().rstrip('/') + '/' + quote(name)
+            dest_parsed = PhysicalKey.from_url(get_install_location()).join(name)
         else:
-            dest_parsed = urlparse(fix_url(dest))
-            if dest_parsed.scheme != 'file':
+            dest_parsed = PhysicalKey.from_url(fix_url(dest))
+            if not dest_parsed.is_local():
                 raise QuiltException(
                     f"Invalid package destination path {dest!r}. 'dest', if set, must point at "
                     f"the local filesystem. To copy a package to a remote registry use 'push' or "
                     f"'build' instead."
                 )
 
-        pkg = cls._browse(name=name, registry=registry, top_hash=top_hash)
-        dest = fix_url(dest)
+        pkg = cls._browse(name=name, registry=registry_parsed, top_hash=top_hash)
         message = pkg._meta.get('message', None)  # propagate the package message
 
-        pkg._materialize(dest)
+        pkg._materialize(dest_parsed)
         pkg._build(name, registry=dest_registry, message=message)
         if top_hash is None:
             top_hash = pkg.top_hash
-        short_tophash = Package.shorten_tophash(name, registry, top_hash)
+        short_tophash = Package._shorten_tophash(name, dest_registry_parsed, top_hash)
         print(f"Successfully installed package '{name}', tophash={short_tophash} from {registry}")
 
 
@@ -451,11 +454,12 @@ class Package(object):
             registry(string): location of registry
             hash_prefix(string): hash prefix with length between 6 and 64 characters
         """
+        assert isinstance(registry, PhysicalKey)
         if len(hash_prefix) == 64:
             top_hash = hash_prefix
         elif 6 <= len(hash_prefix) < 64:
             matching_hashes = [h for h, _
-                               in list_url(f'{registry}/.quilt/packages/')
+                               in list_url(registry.join('.quilt/packages/'))
                                if h.startswith(hash_prefix)]
             if not matching_hashes:
                 raise QuiltException("Found zero matches for %r" % hash_prefix)
@@ -468,9 +472,9 @@ class Package(object):
         return top_hash
 
     @classmethod
-    def shorten_tophash(cls, package_name, registry, top_hash):
+    def _shorten_tophash(cls, package_name, registry, top_hash):
         min_shorthash_len = 7
-        matches = [h for h, _ in list_url(f'{registry}/.quilt/packages/') if h.startswith(top_hash[:min_shorthash_len])]
+        matches = [h for h, _ in list_url(registry.join('.quilt/packages/')) if h.startswith(top_hash[:min_shorthash_len])]
         if len(matches) == 0:
             raise ValueError(f"Tophash {top_hash} was not found in registry {registry}")
         for prefix_length in range(min_shorthash_len, 64):
@@ -482,7 +486,7 @@ class Package(object):
 
     @classmethod
     @ApiTelemetry("package.browse")
-    def browse(cls, name=None, registry=None, top_hash=None):
+    def browse(cls, name, registry=None, top_hash=None):
         """
         Load a package into memory from a registry without making a local copy of
         the manifest.
@@ -491,37 +495,34 @@ class Package(object):
             registry(string): location of registry to load package from
             top_hash(string): top hash of package version to load
         """
-        return cls._browse(name=name, registry=registry, top_hash=top_hash)
-
-    @classmethod
-    def _browse(cls, name=None, registry=None, top_hash=None):
+        validate_package_name(name)
         if registry is None:
             registry = get_from_config('default_local_registry')
         else:
             registry = fix_url(registry)
+        registry_parsed = PhysicalKey.from_url(registry)
+        return cls._browse(name=name, registry=registry_parsed, top_hash=top_hash)
 
-        registry = registry.rstrip('/')
-        validate_package_name(name)
-
+    @classmethod
+    def _browse(cls, name, registry, top_hash):
         if top_hash is None:
-            top_hash_url = f'{registry}/.quilt/named_packages/{quote(name)}/latest'
-            top_hash = get_bytes(top_hash_url).decode('utf-8').strip()
+            top_hash_file = registry.join(f'.quilt/named_packages/{name}/latest')
+            top_hash = get_bytes(top_hash_file).decode('utf-8').strip()
         else:
             top_hash = cls.resolve_hash(registry, top_hash)
 
         # TODO: verify that name is correct with respect to this top_hash
-        # TODO: allow partial hashes (e.g. first six alphanumeric)
-        pkg_manifest_uri = f'{registry}/.quilt/packages/{quote(top_hash)}'
+        pkg_manifest = registry.join(f'.quilt/packages/{top_hash}')
 
-        if file_is_local(pkg_manifest_uri):
-            local_pkg_manifest = parse_file_url(urlparse(pkg_manifest_uri))
+        if pkg_manifest.is_local():
+            local_pkg_manifest = pkg_manifest.path
         else:
-            local_pkg_manifest = CACHE_PATH / "manifest" / _filesystem_safe_encode(pkg_manifest_uri)
+            local_pkg_manifest = CACHE_PATH / "manifest" / _filesystem_safe_encode(str(pkg_manifest))
             if not local_pkg_manifest.exists():
                 # Copy to a temporary file first, to make sure we don't cache a truncated file
                 # if the download gets interrupted.
                 tmp_path = local_pkg_manifest.with_suffix('.tmp')
-                copy_file(pkg_manifest_uri, tmp_path.as_uri())
+                copy_file(pkg_manifest, PhysicalKey.from_path(tmp_path))
                 tmp_path.rename(local_pkg_manifest)
 
         return cls._from_path(local_pkg_manifest)
@@ -590,13 +591,13 @@ class Package(object):
         Returns:
             None
         """
-        nice_dest = fix_url(dest).rstrip('/')
+        nice_dest = PhysicalKey.from_url(fix_url(dest))
         file_list = []
         pkg = Package()
 
         for logical_key, entry in self.walk():
             physical_key = entry.physical_key
-            new_physical_key = f'{nice_dest}/{quote(logical_key)}'
+            new_physical_key = nice_dest.join(logical_key)
 
             file_list.append((physical_key, new_physical_key, entry.size))
 
@@ -696,10 +697,10 @@ class Package(object):
                     if key in subpkg._children:
                         raise PackageException("Duplicate logical key while loading package")
                     subpkg._children[key] = PackageEntry(
-                            obj['physical_keys'][0],
-                            obj['size'],
-                            obj['hash'],
-                            obj['meta']
+                        PhysicalKey.from_url(obj['physical_keys'][0]),
+                        obj['size'],
+                        obj['hash'],
+                        obj['meta']
                     )
                     tqdm_progress.update(1)
         finally:
@@ -736,15 +737,14 @@ class Package(object):
 
         root.set_meta(meta)
 
-        if not path:
-            current_working_dir = pathlib.Path.cwd()
-            logical_key_abs_path = pathlib.Path(lkey).absolute()
-            path = logical_key_abs_path.relative_to(current_working_dir)
+        if path:
+            src = PhysicalKey.from_url(fix_url(path))
+        else:
+            src = PhysicalKey.from_path(lkey)
 
         # TODO: deserialization metadata
-        url = urlparse(fix_url(path).strip('/'))
-        if url.scheme == 'file':
-            src_path = pathlib.Path(parse_file_url(url))
+        if src.is_local():
+            src_path = pathlib.Path(src.path)
             if not src_path.is_dir():
                 raise PackageException("The specified directory doesn't exist")
 
@@ -756,16 +756,16 @@ class Package(object):
             for f in files:
                 if not f.is_file():
                     continue
-                entry = PackageEntry(f.as_uri(), f.stat().st_size, None, None)
+                entry = PackageEntry(PhysicalKey.from_path(f), f.stat().st_size, None, None)
                 logical_key = f.relative_to(src_path).as_posix()
                 root._set(logical_key, entry)
-        elif url.scheme == 's3':
-            src_bucket, src_key, src_version = parse_s3_url(url)
-            if src_version:
+        else:
+            if src.version_id is not None:
                 raise PackageException("Directories cannot have versions")
-            if src_key and not src_key.endswith('/'):
-                src_key += '/'
-            objects, _ = list_object_versions(src_bucket, src_key)
+            src_path = src.path
+            if src.basename() != '':
+                src_path += '/'
+            objects, _ = list_object_versions(src.bucket, src_path)
             for obj in objects:
                 if not obj['IsLatest']:
                     continue
@@ -774,12 +774,10 @@ class Package(object):
                     if obj['Size'] != 0:
                         warnings.warn(f'Logical keys cannot end in "/", skipping: {obj["Key"]}')
                     continue
-                obj_url = make_s3_url(src_bucket, obj['Key'], obj.get('VersionId'))
-                entry = PackageEntry(obj_url, obj['Size'], None, None)
-                logical_key = obj['Key'][len(src_key):]
+                obj_pk = PhysicalKey(src.bucket, obj['Key'], obj.get('VersionId'))
+                entry = PackageEntry(obj_pk, obj['Size'], None, None)
+                logical_key = obj['Key'][len(src_path):]
                 root._set(logical_key, entry)
-        else:
-            raise NotImplementedError
 
         return self
 
@@ -867,7 +865,7 @@ class Package(object):
 
 
     @ApiTelemetry("package.build")
-    def build(self, name=None, registry=None, message=None):
+    def build(self, name, registry=None, message=None):
         """
         Serializes this package to a registry.
 
@@ -882,33 +880,33 @@ class Package(object):
         """
         return self._build(name=name, registry=registry, message=message)
 
-
-    def _build(self, name=None, registry=None, message=None):
-        self._set_commit_message(message)
+    def _build(self, name, registry, message):
+        validate_package_name(name)
 
         if registry is None:
             registry = get_from_config('default_local_registry')
         else:
             registry = fix_url(registry)
 
-        registry = registry.rstrip('/')
-        validate_package_name(name)
+        registry_parsed = PhysicalKey.from_url(registry)
+
+        self._set_commit_message(message)
 
         self._fix_sha256()
         manifest = io.BytesIO()
         self._dump(manifest)
 
-        pkg_manifest_file = f'{registry}/.quilt/packages/{quote(self.top_hash)}'
+        pkg_manifest_file = registry_parsed.join(f'.quilt/packages/{self.top_hash}')
         put_bytes(
             manifest.getvalue(),
             pkg_manifest_file
         )
 
-        named_path = f'{registry}/.quilt/named_packages/{quote(name)}/'
-        # TODO: use a float to string formater instead of double casting
+        named_path = registry_parsed.join(f'.quilt/named_packages/{name}')
         hash_bytes = self.top_hash.encode('utf-8')
-        timestamp_path = named_path + str(int(time.time()))
-        latest_path = named_path + "latest"
+        # TODO: use a float to string formater instead of double casting
+        timestamp_path = named_path.join(str(int(time.time())))
+        latest_path = named_path.join("latest")
         put_bytes(hash_bytes, timestamp_path)
         put_bytes(hash_bytes, latest_path)
 
@@ -991,21 +989,16 @@ class Package(object):
         validate_key(logical_key)
 
         if entry is None:
-            current_working_dir = pathlib.Path.cwd()
-            logical_key_abs_path = pathlib.Path(logical_key).absolute()
-            entry = logical_key_abs_path.relative_to(current_working_dir)
+            entry = pathlib.Path(logical_key).resolve().as_uri()
 
         if isinstance(entry, (str, os.PathLike)):
-            url = fix_url(str(entry))
-            size, version = get_size_and_version(url)
+            src = PhysicalKey.from_url(fix_url(str(entry)))
+            size, version_id = get_size_and_version(src)
 
             # Determine if a new version needs to be appended.
-            parsed_url = urlparse(url)
-            if parsed_url.scheme == 's3':
-                bucket, key, current_version = parse_s3_url(parsed_url)
-                if not current_version and version:
-                    url = make_s3_url(bucket, key, version)
-            entry = PackageEntry(url, size, None, None)
+            if not src.is_local() and src.version_id is None and version_id is not None:
+                src.version_id = version_id
+            entry = PackageEntry(src, size, None, None)
         elif isinstance(entry, PackageEntry):
             assert meta is None
 
@@ -1057,8 +1050,8 @@ class Package(object):
             serialization_path.write_bytes(serialized_object_bytes)
 
             size = serialization_path.stat().st_size
-            write_url = serialization_path.as_uri()
-            entry = PackageEntry(write_url, size, hash_obj=None, meta=new_meta)
+            write_pk = PhysicalKey.from_path(serialization_path)
+            entry = PackageEntry(write_pk, size, hash_obj=None, meta=new_meta)
 
         else:
             raise TypeError(f"Expected a string for entry, but got an instance of {type(entry)}.")
@@ -1188,57 +1181,44 @@ class Package(object):
                     "No registry specified and no default remote registry configured. Please "
                     "specify a registry or configure a default remote registry with quilt3.config"
                 )
-            registry_parsed = urlparse(fix_url(registry))
+            registry_parsed = PhysicalKey.from_url(fix_url(registry))
         else:
-            registry_parsed = urlparse(fix_url(registry))
-            if registry_parsed.scheme == 's3':
-                bucket, path, _ = parse_s3_url(registry_parsed)
-                if path != '':  # parse_s3_url returns path == '' if input is pathless
+            registry_parsed = PhysicalKey.from_url(fix_url(registry))
+            if not registry_parsed.is_local():
+                if registry_parsed.path != '':
                     raise QuiltException(
                         f"The 'registry' argument expects an S3 bucket but the S3 object path "
                         f"{registry!r} was provided instead. You probably wanted to set "
-                        f"'registry' to {'s3://' + bucket!r} instead. To specify that package "
+                        f"'registry' to {'s3://' + registry_parsed.bucket!r} instead. To specify that package "
                         f"data land in a specific directory use 'dest'."
                     )
-                registry = 's3://' + bucket
-            elif registry_parsed.scheme == 'file':
+            else:
                 raise QuiltException(
                     f"Can only 'push' to remote registries in S3, but {registry!r} "
                     f"is a local file. To store a package in the local registry, use "
                     f"'build' instead."
                 )
-            else:
-                raise NotImplementedError
 
         if dest is None:
-            dest = registry.rstrip('/') + '/' + quote(name)
+            dest_parsed = registry_parsed.join(name)
         else:
-            dest_parsed = urlparse(fix_url(dest))
-            if dest_parsed.scheme != registry_parsed.scheme:
-                raise QuiltException(
-                    f"Invalid package destination path {dest!r}. 'dest', if set, must be a path "
-                    f"in the {registry!r} package registry specified by 'registry'."
-                )
-
-            assert dest_parsed.scheme == 's3'
-            registry_bucket, _, _ = parse_s3_url(registry_parsed)
-            dest_bucket, _, _ = parse_s3_url(dest_parsed)
-            if registry_bucket != dest_bucket:
+            dest_parsed = PhysicalKey.from_url(fix_url(dest))
+            if dest_parsed.bucket != registry_parsed.bucket:
                 raise QuiltException(
                     f"Invalid package destination path {dest!r}. 'dest', if set, must be a path "
                     f"in the {registry!r} package registry specified by 'registry'."
                 )
 
         self._fix_sha256()
-        pkg = self._materialize(dest, selector_fn=selector_fn)
+        pkg = self._materialize(dest_parsed, selector_fn=selector_fn)
 
         def physical_key_is_temp_file(pk):
-            if not file_is_local(pk):
+            if not pk.is_local():
                 return False
-            return pathlib.Path(parse_file_url(urlparse(pk))).parent == APP_DIR_TEMPFILE_DIR
+            return pathlib.Path(pk.path).parent == APP_DIR_TEMPFILE_DIR
 
         temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_key)]
-        temp_file_physical_keys = [self.get(lk) for lk in temp_file_logical_keys]
+        temp_file_physical_keys = [self[lk].physical_key for lk in temp_file_logical_keys]
 
         # Now that data has been pushed, delete tmp files created by pkg.set('KEY', obj)
         with Pool(10) as p:
@@ -1261,13 +1241,13 @@ class Package(object):
             registry(str): Registry where package is located.
             top_hash(str): Hash to rollback to.
         """
-        registry = fix_url(registry).rstrip('/')
+        registry = PhysicalKey.from_url(fix_url(registry))
         validate_package_name(name)
 
         top_hash = cls.resolve_hash(registry, top_hash)
 
-        hash_path = f'{registry}/.quilt/packages/{quote(top_hash)}'
-        latest_path = f'{registry}/.quilt/named_packages/{quote(name)}/latest'
+        hash_path = registry.join(f'.quilt/packages/{top_hash}')
+        latest_path = registry.join(f'.quilt/named_packages/{name}/latest')
 
         # Check that both latest and top_hash actually exist.
         get_size_and_version(hash_path)
@@ -1276,14 +1256,11 @@ class Package(object):
         put_bytes(top_hash.encode('utf-8'), latest_path)
 
     @classmethod
-    def _maybe_add_to_cache(cls, old_url, new_url):
-        old_parsed_url = urlparse(old_url)
-        new_parsed_url = urlparse(new_url)
-        if old_parsed_url.scheme == 's3' and new_parsed_url.scheme == 'file':
-            path = parse_file_url(new_parsed_url)
-            ObjectPathCache.set(old_url, path)
+    def _maybe_add_to_cache(cls, old: PhysicalKey, new: PhysicalKey):
+        if not old.is_local() and new.is_local():
+            ObjectPathCache.set(str(old), new.path)
 
-    def _materialize(self, dest_url, selector_fn=lambda logical_key, pkg_entry: True):
+    def _materialize(self, dest: PhysicalKey, selector_fn=lambda logical_key, pkg_entry: True):
         """
         Copies all Package entries to the destination, then creates a new package that points to those objects.
 
@@ -1310,10 +1287,6 @@ class Package(object):
         file_list = []
         entries = []
 
-        dest_url = dest_url.rstrip('/')
-
-        local_dest = file_is_local(dest_url)
-
         for logical_key, entry in self.walk():
             if not selector_fn(logical_key, entry):
                 pkg._set(logical_key, entry)
@@ -1322,15 +1295,15 @@ class Package(object):
             # Copy the datafiles in the package.
             physical_key = entry.physical_key
 
-            if local_dest:
+            if dest.is_local():
                 # Try a local cache.
-                cached_file = ObjectPathCache.get(physical_key)
+                cached_file = ObjectPathCache.get(str(physical_key))
                 if cached_file is not None:
-                    physical_key = pathlib.Path(cached_file).as_uri()
+                    physical_key = PhysicalKey.from_path(cached_file)
 
-            unversioned_physical_key = physical_key.split('?', 1)[0]
-            new_physical_key = dest_url + "/" + quote(logical_key)
-            if unversioned_physical_key == new_physical_key:
+            new_physical_key = dest.join(logical_key)
+            if (physical_key.bucket == new_physical_key.bucket and
+                physical_key.path == new_physical_key.path):
                 # No need to copy - re-use the original physical key.
                 pkg._set(logical_key, entry)
             else:
@@ -1340,7 +1313,7 @@ class Package(object):
         results = copy_file_list(file_list)
 
         for (logical_key, entry), versioned_key in zip(entries, results):
-            old_physical_key = entry.get()
+            old_physical_key = entry.physical_key
             self._maybe_add_to_cache(old_physical_key, versioned_key)
             # Create a new package entry pointing to the new remote key.
             assert versioned_key is not None
@@ -1454,7 +1427,7 @@ class Package(object):
         Returns:
             True if the package matches the directory; False otherwise.
         """
-        src = fix_url(src).rstrip('/') + '/'
+        src = PhysicalKey.from_url(fix_url(src))
         src_dict = dict(list_url(src))
         url_list = []
         size_list = []
@@ -1464,7 +1437,7 @@ class Package(object):
                 return False
             if entry.size != src_size:
                 return False
-            entry_url = src + quote(logical_key)
+            entry_url = src.join(logical_key)
             url_list.append(entry_url)
             size_list.append(src_size)
 

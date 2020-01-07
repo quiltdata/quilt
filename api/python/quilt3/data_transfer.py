@@ -1,11 +1,10 @@
 from codecs import iterdecode
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
-import json
 import pathlib
 import shutil
 from threading import Lock
-from urllib.parse import quote, unquote, urlparse
+from typing import List, Tuple
 import warnings
 
 from botocore import UNSIGNED
@@ -19,7 +18,7 @@ import jsonlines
 from tqdm import tqdm
 
 from .session import create_botocore_session
-from .util import QuiltException, make_s3_url, parse_file_url, parse_s3_url
+from .util import PhysicalKey, QuiltException
 
 
 def create_s3_client():
@@ -62,7 +61,7 @@ def _copy_local_file(ctx, size, src_path, dest_path):
     ctx.progress(size)
     shutil.copymode(src_path, dest_path)
 
-    ctx.done(pathlib.Path(dest_path).as_uri())
+    ctx.done(PhysicalKey.from_path(dest_path))
 
 
 def _upload_file(ctx, size, src_path, dest_bucket, dest_key):
@@ -77,7 +76,7 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key):
             )
 
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-        ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
+        ctx.done(PhysicalKey(dest_bucket, dest_key, version_id))
     else:
         resp = s3_client.create_multipart_upload(
             Bucket=dest_bucket,
@@ -118,7 +117,7 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key):
                     MultipartUpload={"Parts": parts}
                 )
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-                ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
+                ctx.done(PhysicalKey(dest_bucket, dest_key, version_id))
 
         for i, start in enumerate(chunk_offsets):
             end = min(start + chunksize, size)
@@ -148,7 +147,7 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path):
             fd.write(chunk)
             ctx.progress(len(chunk))
 
-    ctx.done(pathlib.Path(dest_path).as_uri())
+    ctx.done(PhysicalKey.from_path(dest_path))
 
 
 def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
@@ -177,7 +176,7 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
         resp = s3_client.copy_object(**params)
         ctx.progress(size)
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-        ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
+        ctx.done(PhysicalKey(dest_bucket, dest_key, version_id))
     else:
         resp = s3_client.create_multipart_upload(
             Bucket=dest_bucket,
@@ -220,7 +219,7 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
                     MultipartUpload={"Parts": parts}
                 )
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-                ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
+                ctx.done(PhysicalKey(dest_bucket, dest_key, version_id))
 
         for i, start in enumerate(chunk_offsets):
             end = min(start + chunksize, size)
@@ -249,7 +248,7 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
                     # Nothing more to do. We should not attempt to copy the object because
                     # that would cause the "copy object to itself" error.
                     ctx.progress(size)
-                    ctx.done(make_s3_url(dest_bucket, dest_path, dest_version_id))
+                    ctx.done(PhysicalKey(dest_bucket, dest_path, dest_version_id))
                     return  # Optimization succeeded.
 
     # If the optimization didn't happen, do the normal upload.
@@ -287,7 +286,7 @@ def _copy_file_list_internal(s3_client, file_list):
             with lock:
                 futures.append(future)
 
-        def worker(idx, src_url, dest_url, size):
+        def worker(idx, src, dest, size):
             def done_callback(value):
                 assert value is not None
                 with lock:
@@ -296,33 +295,22 @@ def _copy_file_list_internal(s3_client, file_list):
 
             ctx = WorkerContext(s3_client=s3_client, progress=progress_callback, done=done_callback, run=run_task)
 
-            if src_url.scheme == 'file':
-                src_path = parse_file_url(src_url)
-                if dest_url.scheme == 'file':
-                    dest_path = parse_file_url(dest_url)
-                    _copy_local_file(ctx, size, src_path, dest_path)
-                elif dest_url.scheme == 's3':
-                    dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
-                    if dest_version_id:
-                        raise ValueError("Cannot set VersionId on destination")
-                    _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path)
+            if dest.version_id:
+                raise ValueError("Cannot set VersionId on destination")
+
+            if src.is_local():
+                if dest.is_local():
+                    _copy_local_file(ctx, size, src.path, dest.path)
                 else:
-                    raise NotImplementedError
-            elif src_url.scheme == 's3':
-                src_bucket, src_path, src_version_id = parse_s3_url(src_url)
-                if dest_url.scheme == 'file':
-                    dest_path = parse_file_url(dest_url)
-                    _download_file(ctx, src_bucket, src_path, src_version_id, dest_path)
-                elif dest_url.scheme == 's3':
-                    dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
-                    if dest_version_id:
+                    if dest.version_id:
                         raise ValueError("Cannot set VersionId on destination")
-                    _copy_remote_file(ctx, size, src_bucket, src_path, src_version_id,
-                                      dest_bucket, dest_path)
-                else:
-                    raise NotImplementedError
+                    _upload_or_copy_file(ctx, size, src.path, dest.bucket, dest.path)
             else:
-                raise NotImplementedError
+                if dest.is_local():
+                    _download_file(ctx, src.bucket, src.path, src.version_id, dest.path)
+                else:
+                    _copy_remote_file(ctx, size, src.bucket, src.path, src.version_id,
+                                      dest.bucket, dest.path)
 
         for idx, args in enumerate(file_list):
             run_task(worker, idx, *args)
@@ -432,15 +420,13 @@ def list_objects(bucket, prefix, recursive=True):
         return prefixes, objects
 
 
-def _looks_like_dir(s):
-    return not s or s.endswith('/')
+def _looks_like_dir(pk: PhysicalKey):
+    return pk.basename() == ''
 
 
-def list_url(src):
-    src_url = urlparse(src)
-    if src_url.scheme == 'file':
-        src_path = parse_file_url(src_url)
-        src_file = pathlib.Path(src_path)
+def list_url(src: PhysicalKey):
+    if src.is_local():
+        src_file = pathlib.Path(src.path)
 
         for f in src_file.rglob('*'):
             try:
@@ -450,34 +436,30 @@ def list_url(src):
             except FileNotFoundError:
                 # If a file does not exist, is it really a file?
                 pass
-    elif src_url.scheme == 's3':
-        src_bucket, src_path, src_version_id = parse_s3_url(src_url)
-        if src_version_id is not None:
-            raise ValueError(f"Directories cannot have version IDs: {src_url!r}")
-        if not _looks_like_dir(src_path):
+    else:
+        if src.version_id is not None:
+            raise ValueError(f"Directories cannot have version IDs: {src}")
+        src_path = src.path
+        if not _looks_like_dir(src):
             src_path += '/'
         s3_client = create_s3_client()
         paginator = s3_client.get_paginator('list_objects_v2')
-        for response in paginator.paginate(Bucket=src_bucket, Prefix=src_path):
+        for response in paginator.paginate(Bucket=src.bucket, Prefix=src_path):
             for obj in response.get('Contents', []):
                 key = obj['Key']
                 if not key.startswith(src_path):
                     raise ValueError("Unexpected key: %r" % key)
                 yield key[len(src_path):], obj['Size']
-    else:
-        raise NotImplementedError
 
 
-def delete_url(src):
+def delete_url(src: PhysicalKey):
     """Deletes the given URL.
     Follows S3 semantics even for local files:
     - If the URL does not exist, it's a no-op.
     - If it's a non-empty directory, it's also a no-op.
     """
-    src_url = urlparse(src)
-    if src_url.scheme == 'file':
-        src_path = parse_file_url(src_url)
-        src_file = pathlib.Path(src_path)
+    if src.is_local():
+        src_file = pathlib.Path(src.path)
 
         if src_file.is_dir():
             try:
@@ -490,12 +472,9 @@ def delete_url(src):
                 src_file.unlink()
             except FileExistsError:
                 pass
-    elif src_url.scheme == 's3':
-        src_bucket, src_path, src_version_id = parse_s3_url(src_url)
-        s3_client = create_s3_client()
-        s3_client.delete_object(Bucket=src_bucket, Key=src_path)
     else:
-        raise NotImplementedError
+        s3_client = create_s3_client()
+        s3_client.delete_object(Bucket=src.bucket, Key=src.path)
 
 
 def copy_file_list(file_list):
@@ -504,23 +483,15 @@ def copy_file_list(file_list):
     URLs must be regular files, not directories.
     Returns versioned URLs for S3 destinations and regular file URLs for files.
     """
-    processed_file_list = []
-    for src, dest, size in file_list:
-        src_url = urlparse(src)
-        src_path = unquote(src_url.path)
-        dest_url = urlparse(dest)
-        dest_path = unquote(dest_url.path)
-
-        if _looks_like_dir(src_path) or _looks_like_dir(dest_path):
+    for src, dest, _ in file_list:
+        if _looks_like_dir(src) or _looks_like_dir(dest):
             raise ValueError("Directories are not allowed")
 
-        processed_file_list.append((src_url, dest_url, size))
-
     s3_client = create_s3_client()
-    return _copy_file_list_internal(s3_client, processed_file_list)
+    return _copy_file_list_internal(s3_client, file_list)
 
 
-def copy_file(src, dest, size=None):
+def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None):
     """
     Copies a single file or directory.
     If src is a file, dest can be a file or a directory.
@@ -531,114 +502,90 @@ def copy_file(src, dest, size=None):
             if part in ('', '.', '..'):
                 raise ValueError("Invalid relative path: %r" % rel_path)
 
-    def url_append(url, path):
-        return url._replace(path=url.path + quote(path))
-
-    src_url = urlparse(src)
-    dest_url = urlparse(dest)
-    src_path = unquote(src_url.path)
-    dest_path = unquote(dest_url.path)
-
     url_list = []
-    if _looks_like_dir(src_path):
-        if not _looks_like_dir(dest_path):
+    if _looks_like_dir(src):
+        if not _looks_like_dir(dest):
             raise ValueError("Destination path must end in /")
         if size is not None:
             raise ValueError("`size` does not make sense for directories")
 
         for rel_path, size in list_url(src):
             sanity_check(rel_path)
-            new_src_url = url_append(src_url, rel_path)
-            new_dest_url = url_append(dest_url, rel_path)
-            url_list.append((new_src_url, new_dest_url, size))
+            url_list.append((src.join(rel_path), dest.join(rel_path), size))
         if not url_list:
             raise QuiltException("No objects to download.")
     else:
-        if _looks_like_dir(dest_path):
-            name = src_path.rsplit('/', 1)[1]
-            dest_url = url_append(dest_url, name)
+        if _looks_like_dir(dest):
+            dest = dest.join(src.basename())
         if size is None:
             size, _ = get_size_and_version(src)
-        url_list.append((src_url, dest_url, size))
+        url_list.append((src, dest, size))
 
     s3_client = create_s3_client()
     _copy_file_list_internal(s3_client, url_list)
 
 
-def put_bytes(data, dest):
-    dest_url = urlparse(dest)
-    if dest_url.scheme == 'file':
-        dest_path = pathlib.Path(parse_file_url(dest_url))
-        dest_path.parent.mkdir(parents=True, exist_ok=True)
-        dest_path.write_bytes(data)
-    elif dest_url.scheme == 's3':
-        dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
-        if not dest_path or dest_path.endswith('/'):
-            raise ValueError("Invalid path: %r" % dest_path)
-        if dest_version_id:
+def put_bytes(data: bytes, dest: PhysicalKey):
+    if _looks_like_dir(dest):
+        raise ValueError("Invalid path: %r" % dest.path)
+
+    if dest.is_local():
+        dest_file = pathlib.Path(dest.path)
+        dest_file.parent.mkdir(parents=True, exist_ok=True)
+        dest_file.write_bytes(data)
+    else:
+        if dest.version_id is not None:
             raise ValueError("Cannot set VersionId on destination")
         s3_client = create_s3_client()
         s3_client.put_object(
-            Bucket=dest_bucket,
-            Key=dest_path,
+            Bucket=dest.bucket,
+            Key=dest.path,
             Body=data,
         )
-    else:
-        raise NotImplementedError
 
-def get_bytes(src):
-    src_url = urlparse(src)
-    if src_url.scheme == 'file':
-        src_path = pathlib.Path(parse_file_url(src_url))
-        data = src_path.read_bytes()
-    elif src_url.scheme == 's3':
-        src_bucket, src_path, src_version_id = parse_s3_url(src_url)
-        params = dict(Bucket=src_bucket, Key=src_path)
-        if src_version_id is not None:
-            params.update(dict(VersionId=src_version_id))
+def get_bytes(src: PhysicalKey):
+    if src.is_local():
+        src_file = pathlib.Path(src.path)
+        data = src_file.read_bytes()
+    else:
+        params = dict(Bucket=src.bucket, Key=src.path)
+        if src.version_id is not None:
+            params.update(dict(VersionId=src.version_id))
         s3_client = create_s3_client()
         resp = s3_client.get_object(**params)
         data = resp['Body'].read()
-    else:
-        raise NotImplementedError
     return data
 
-def get_size_and_version(src):
+def get_size_and_version(src: PhysicalKey):
     """
     Gets size and version for the object at a given URL.
 
     Returns:
         size, version(str)
     """
-    src_url = urlparse(src)
-    path = unquote(src_url.path)
-
-    if not path or path.endswith('/'):
-        raise QuiltException("Invalid path: %r; cannot be a directory" % path)
+    if _looks_like_dir(src):
+        raise QuiltException("Invalid path: %r; cannot be a directory" % src.path)
 
     version = None
-    if src_url.scheme == 'file':
-        src_path = pathlib.Path(parse_file_url(src_url))
-        if not src_path.is_file():
-            raise QuiltException("Not a file: %r" % str(src_path))
-        size = src_path.stat().st_size
-    elif src_url.scheme == 's3':
-        bucket, key, version_id = parse_s3_url(src_url)
+    if src.is_local():
+        src_file = pathlib.Path(src.path)
+        if not src_file.is_file():
+            raise QuiltException("Not a file: %r" % str(src_file))
+        size = src_file.stat().st_size
+    else:
         params = dict(
-            Bucket=bucket,
-            Key=key
+            Bucket=src.bucket,
+            Key=src.path
         )
-        if version_id:
-            params.update(dict(VersionId=version_id))
+        if src.version_id is not None:
+            params.update(dict(VersionId=src.version_id))
         s3_client = create_s3_client()
         resp = s3_client.head_object(**params)
         size = resp['ContentLength']
         version = resp.get('VersionId')
-    else:
-        raise NotImplementedError
     return size, version
 
-def calculate_sha256(src_list, sizes):
+def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
     assert len(src_list) == len(sizes)
 
     total_size = sum(sizes)
@@ -646,12 +593,9 @@ def calculate_sha256(src_list, sizes):
 
     with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True) as progress:
         def _process_url(src, size):
-            src_url = urlparse(src)
             hash_obj = hashlib.sha256()
-            if src_url.scheme == 'file':
-                path = pathlib.Path(parse_file_url(src_url))
-
-                with open(path, 'rb') as fd:
+            if src.is_local():
+                with open(src.path, 'rb') as fd:
                     while True:
                         chunk = fd.read(64 * 1024)
                         if not chunk:
@@ -670,11 +614,10 @@ def calculate_sha256(src_list, sizes):
                             f"This should be avoided if possible."
                         )
 
-            elif src_url.scheme == 's3':
-                src_bucket, src_path, src_version_id = parse_s3_url(src_url)
-                params = dict(Bucket=src_bucket, Key=src_path)
-                if src_version_id is not None:
-                    params.update(dict(VersionId=src_version_id))
+            else:
+                params = dict(Bucket=src.bucket, Key=src.path)
+                if src.version_id is not None:
+                    params.update(dict(VersionId=src.version_id))
                 s3_client = create_s3_client()
                 resp = s3_client.get_object(**params)
                 body = resp['Body']
@@ -682,8 +625,6 @@ def calculate_sha256(src_list, sizes):
                     hash_obj.update(chunk)
                     with lock:
                         progress.update(len(chunk))
-            else:
-                raise NotImplementedError
             return hash_obj.hexdigest()
 
         with ThreadPoolExecutor() as executor:
@@ -692,7 +633,7 @@ def calculate_sha256(src_list, sizes):
     return results
 
 
-def select(url, query, meta=None, raw=False, **kwargs):
+def select(src, query, meta=None, raw=False, **kwargs):
     """Perform an S3 Select SQL query, return results as a Pandas DataFrame
 
     The data returned by Boto3 for S3 Select is fairly convoluted, to say the
@@ -712,7 +653,7 @@ def select(url, query, meta=None, raw=False, **kwargs):
         transparently supported.
 
     Args:
-        url(str):  S3 URL of the object to query
+        src(PhysicalKey):  S3 PhysicalKey of the object to query
         query(str): An SQL query using the 'SELECT' directive. See examples at
             https://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectSELECTContent.html
         meta: Quilt Object Metadata
@@ -764,8 +705,9 @@ def select(url, query, meta=None, raw=False, **kwargs):
         }
     delims = {'.tsv': '\t', '.ssv': ';'}
 
-    parsed_url = urlparse(url)
-    bucket, path, version_id = parse_s3_url(parsed_url)
+    assert not src.is_local(), "src must be an S3 URL"
+
+    # TODO: what about version_id???
 
     # TODO: Use formats lib for this stuff
     # use metadata to get format and compression
@@ -778,7 +720,7 @@ def select(url, query, meta=None, raw=False, **kwargs):
             format = meta.get('format', {}).get('contained_format', {}).get('name')
 
     # use file extensions to get compression info, if none is present
-    exts = pathlib.Path(path).suffixes  # last of e.g. ['.periods', '.in', '.name', '.json', '.gz']
+    exts = pathlib.Path(src.path).suffixes  # last of e.g. ['.periods', '.in', '.name', '.json', '.gz']
     if exts and not compression:
         if exts[-1].lower() in accepted_compression:
             compression = accepted_compression[exts.pop(-1)]   # remove e.g. '.gz'
@@ -797,7 +739,7 @@ def select(url, query, meta=None, raw=False, **kwargs):
                 raise QuiltException("Compression {!r} not valid for select on format {!r}: "
                                      "Expected {!r}".format(compression, s3_format, ok_compression))
     if not format:
-        raise QuiltException("Unable to discover format for select on {!r}".format(url))
+        raise QuiltException("Unable to discover format for select on {}".format(src))
 
     # At this point, we have a known format and enough information to use it.
     s3_format = valid_s3_select_formats[format]
@@ -816,8 +758,8 @@ def select(url, query, meta=None, raw=False, **kwargs):
 
     # These are processed and/or default args.
     select_kwargs = dict(
-        Bucket=bucket,
-        Key=path,
+        Bucket=src.bucket,
+        Key=src.path,
         Expression=query,
         ExpressionType=query_type,
         InputSerialization=input_serialization,

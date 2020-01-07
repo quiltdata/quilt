@@ -5,7 +5,6 @@ import pathlib
 from pathlib import Path
 import pandas as pd
 import shutil
-from urllib.parse import urlparse
 
 import jsonlines
 from unittest.mock import patch, call, ANY
@@ -13,7 +12,7 @@ import pytest
 
 import quilt3
 from quilt3 import Package
-from quilt3.util import QuiltException, validate_package_name, parse_file_url, fix_url
+from quilt3.util import PhysicalKey, QuiltException, validate_package_name, fix_url
 
 from ..utils import QuiltTestCase
 
@@ -64,7 +63,7 @@ class PackageTest(QuiltTestCase):
         out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
         with open(out_path) as fd:
             pkg = Package.load(fd)
-            assert test_file.resolve().as_uri() == pkg['foo'].physical_key
+            assert PhysicalKey.from_path(test_file) == pkg['foo'].physical_key
 
         # Verify latest points to the new location.
         named_pointer_path = LOCAL_REGISTRY / ".quilt/named_packages/Quilt/Test/latest"
@@ -78,7 +77,7 @@ class PackageTest(QuiltTestCase):
         out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
         with open(out_path) as fd:
             pkg = Package.load(fd)
-            assert test_file.resolve().as_uri() == pkg['bar'].physical_key
+            assert PhysicalKey.from_path(test_file) == pkg['bar'].physical_key
 
     def test_default_registry(self):
         new_pkg = Package()
@@ -97,7 +96,7 @@ class PackageTest(QuiltTestCase):
         out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
         with open(out_path) as fd:
             pkg = Package.load(fd)
-            assert test_file.resolve().as_uri() == pkg['foo'].physical_key
+            assert PhysicalKey.from_path(test_file) == pkg['foo'].physical_key
 
         # Verify latest points to the new location.
         named_pointer_path = LOCAL_REGISTRY / ".quilt/named_packages/Quilt/Test/latest"
@@ -111,10 +110,10 @@ class PackageTest(QuiltTestCase):
         out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
         with open(out_path) as fd:
             pkg = Package.load(fd)
-            assert test_file.resolve().as_uri() == pkg['bar'].physical_key
+            assert PhysicalKey.from_path(test_file) == pkg['bar'].physical_key
 
     @patch('quilt3.Package._browse', lambda name, registry, top_hash: Package())
-    @patch('quilt3.Package.shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
     def test_default_install_location(self):
         """Verify that pushes to the default local install location work as expected"""
         with patch('quilt3.Package._materialize') as materialize_mock:
@@ -122,7 +121,7 @@ class PackageTest(QuiltTestCase):
             Package.install(pkg_name, registry='s3://my-test-bucket')
 
             materialize_mock.assert_called_once_with(
-                quilt3.util.get_install_location().rstrip('/') + '/' + pkg_name,
+                PhysicalKey.from_url(quilt3.util.get_install_location()).join(pkg_name),
             )
 
     def test_read_manifest(self):
@@ -142,8 +141,12 @@ class PackageTest(QuiltTestCase):
         with open(out_path) as fd:
             written_set = list(jsonlines.Reader(fd))
         assert len(original_set) == len(written_set)
-        assert sorted(original_set, key=lambda k: k.get('logical_key', 'manifest')) \
-            == sorted(written_set, key=lambda k: k.get('logical_key', 'manifest'))
+
+        if os.name != 'nt':
+            # TODO: LOCAL_MANIFEST contains paths like file:///foo -
+            # but they're not valid absolute paths on Windows. What do we do?
+            assert sorted(original_set, key=lambda k: k.get('logical_key', 'manifest')) \
+                == sorted(written_set, key=lambda k: k.get('logical_key', 'manifest'))
 
     def test_remote_browse(self):
         """ Verify loading manifest from s3 """
@@ -291,7 +294,7 @@ class PackageTest(QuiltTestCase):
 
                 quilt3.Package.install('Quilt/nice-name', dest='./')
 
-                materialize_mock.assert_called_once_with(fix_url('./'))
+                materialize_mock.assert_called_once_with(PhysicalKey.from_path('./'))
                 build_mock.assert_called_once_with(
                     'Quilt/nice-name', message=None, registry=dest_registry
                 )
@@ -327,10 +330,10 @@ class PackageTest(QuiltTestCase):
             'fetch wrote {} files; expected: {}'.format(file_count, expected)
 
         # test that package re-rooting works as expected
-        out_dir_abs_path = pathlib.Path(out_dir).resolve().as_uri()
-        assert all(
-            entry.physical_key.startswith(out_dir_abs_path) for _, entry in new_package_.walk()
-        )
+        out_dir_abs_path = pathlib.Path(out_dir).resolve()
+        for _, entry in new_package_.walk():
+            # relative_to will raise an exception if the first path is not inside the second path.
+            pathlib.Path(entry.physical_key.path).relative_to(out_dir_abs_path)
 
     def test_package_fetch_default_dest(self):
         """Verify fetching a package to the default local destination."""
@@ -363,8 +366,7 @@ class PackageTest(QuiltTestCase):
         # The key gets re-rooted correctly.
         pkg = quilt3.Package().set('foo', DATA_DIR / 'foo.txt')
         new_pkg_entry = pkg['foo'].fetch('bar.txt')
-        out_abs_path = pathlib.Path("bar.txt").resolve().as_uri()
-        assert new_pkg_entry.physical_key == out_abs_path
+        assert new_pkg_entry.physical_key == PhysicalKey.from_path('bar.txt')
 
     def test_fetch_default_dest(tmpdir):
         """Verify fetching a package entry to a default destination."""
@@ -372,8 +374,11 @@ class PackageTest(QuiltTestCase):
             (Package()
              .set('foo', os.path.join(os.path.dirname(__file__), 'data', 'foo.txt'))['foo']
              .fetch())
-            filepath = fix_url(os.path.join(os.path.dirname(__file__), 'data', 'foo.txt'))
-            copy_mock.assert_called_once_with(filepath, ANY)
+            filepath = os.path.join(os.path.dirname(__file__), 'data', 'foo.txt')
+            copy_mock.assert_called_once_with(
+                PhysicalKey.from_path(filepath),
+                PhysicalKey.from_path('foo.txt')
+            )
 
     def test_load_into_quilt(self):
         """ Verify loading local manifest and data into S3. """
@@ -548,21 +553,21 @@ class PackageTest(QuiltTestCase):
 
         pkg = pkg.set_dir("/", ".", meta="test_meta")
 
-        assert pathlib.Path('foo').resolve().as_uri() == pkg['foo'].physical_key
-        assert pathlib.Path('bar').resolve().as_uri() == pkg['bar'].physical_key
-        assert (bazdir / 'baz').resolve().as_uri() == pkg['foo_dir/baz_dir/baz'].physical_key
-        assert (foodir / 'bar').resolve().as_uri() == pkg['foo_dir/bar'].physical_key
+        assert PhysicalKey.from_path('foo') == pkg['foo'].physical_key
+        assert PhysicalKey.from_path('bar') == pkg['bar'].physical_key
+        assert PhysicalKey.from_path(bazdir / 'baz') == pkg['foo_dir/baz_dir/baz'].physical_key
+        assert PhysicalKey.from_path(foodir / 'bar') == pkg['foo_dir/bar'].physical_key
         assert pkg.meta == "test_meta"
 
         pkg = Package()
         pkg = pkg.set_dir('/','foo_dir/baz_dir/')
         # todo nested at set_dir site or relative to set_dir path.
-        assert (bazdir / 'baz').resolve().as_uri() == pkg['baz'].physical_key
+        assert PhysicalKey.from_path(bazdir / 'baz') == pkg['baz'].physical_key
 
         pkg = Package()
         pkg = pkg.set_dir('my_keys', 'foo_dir/baz_dir/')
         # todo nested at set_dir site or relative to set_dir path.
-        assert (bazdir / 'baz').resolve().as_uri() == pkg['my_keys/baz'].physical_key
+        assert PhysicalKey.from_path(bazdir / 'baz') == pkg['my_keys/baz'].physical_key
 
         # Verify ignoring files in the presence of a dot-quiltignore
         with open('.quiltignore', 'w') as fd:
@@ -591,15 +596,15 @@ class PackageTest(QuiltTestCase):
 
         pkg = pkg.set_dir("new_dir", ".", meta="new_test_meta")
 
-        assert pathlib.Path('foo').resolve().as_uri() == pkg['new_dir/foo'].physical_key
-        assert pathlib.Path('bar').resolve().as_uri() == pkg['new_dir/bar'].physical_key
+        assert PhysicalKey.from_path('foo') == pkg['new_dir/foo'].physical_key
+        assert PhysicalKey.from_path('bar') == pkg['new_dir/bar'].physical_key
         assert pkg['new_dir'].meta == "new_test_meta"
 
         # verify set_dir logical key shortcut
         pkg = Package()
         pkg.set_dir("/")
-        assert pathlib.Path('foo').resolve().as_uri() == pkg['foo'].physical_key
-        assert pathlib.Path('bar').resolve().as_uri() == pkg['bar'].physical_key
+        assert PhysicalKey.from_path('foo') == pkg['foo'].physical_key
+        assert PhysicalKey.from_path('bar') == pkg['bar'].physical_key
 
 
     def test_s3_set_dir(self):
@@ -615,8 +620,8 @@ class PackageTest(QuiltTestCase):
 
             pkg.set_dir('', 's3://bucket/foo/', meta='test_meta')
 
-            assert pkg['a.txt'].physical_key == 's3://bucket/foo/a.txt?versionId=xyz'
-            assert pkg['x']['y.txt'].physical_key == 's3://bucket/foo/x/y.txt?versionId=null'
+            assert pkg['a.txt'].get() == 's3://bucket/foo/a.txt?versionId=xyz'
+            assert pkg['x']['y.txt'].get() == 's3://bucket/foo/x/y.txt?versionId=null'
             assert pkg.meta == "test_meta"
             assert pkg['x']['y.txt'].size == 10  # GH368
 
@@ -626,8 +631,8 @@ class PackageTest(QuiltTestCase):
 
             pkg.set_dir('bar', 's3://bucket/foo')
 
-            assert pkg['bar']['a.txt'].physical_key == 's3://bucket/foo/a.txt?versionId=xyz'
-            assert pkg['bar']['x']['y.txt'].physical_key == 's3://bucket/foo/x/y.txt?versionId=null'
+            assert pkg['bar']['a.txt'].get() == 's3://bucket/foo/a.txt?versionId=xyz'
+            assert pkg['bar']['x']['y.txt'].get() == 's3://bucket/foo/x/y.txt?versionId=null'
             assert pkg['bar']['a.txt'].size == 10 # GH368
 
             list_object_versions_mock.assert_called_with('bucket', 'foo/')
@@ -688,16 +693,15 @@ class PackageTest(QuiltTestCase):
         pkg['bar'].meta['target'] = 'unicode'
 
         # Build a dummy file to add to the map.
-        with open('bar.txt', "w") as fd:
-            fd.write('test_file_content_string')
-            test_file = Path(fd.name)
+        test_file = Path('bar.txt')
+        test_file.write_text('test_file_content_string')
         pkg['bar'].set('bar.txt')
 
-        assert test_file.resolve().as_uri() == pkg['bar'].physical_key
+        assert PhysicalKey.from_path(test_file) == pkg['bar'].physical_key
 
         # Test shortcut codepath
         pkg = Package().set('bar.txt')
-        assert test_file.resolve().as_uri() == pkg['bar.txt'].physical_key
+        assert PhysicalKey.from_path(test_file) == pkg['bar.txt'].physical_key
 
     def test_set_package_entry_as_object(self):
         pkg = Package()
@@ -720,7 +724,7 @@ class PackageTest(QuiltTestCase):
         pkg.set("mydataframe6.tsv", df, meta={'user_meta': 'blah6'})
 
         for lk, entry in pkg.walk():
-            file_path = parse_file_url(urlparse(entry.get()))
+            file_path = entry.physical_key.path
             assert pathlib.Path(file_path).exists(), "The serialization files should exist"
 
         pkg._fix_sha256()
@@ -737,11 +741,11 @@ class PackageTest(QuiltTestCase):
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket')
 
         for lk in ["mydataframe1.parquet", "mydataframe2.csv", "mydataframe3.tsv"]:
-            file_path = parse_file_url(urlparse(pkg.get(lk)))
+            file_path = pkg[lk].physical_key.path
             assert pathlib.Path(file_path).exists(), "These files should not have been deleted during push()"
 
         for lk in ["mydataframe4.parquet", "mydataframe5.csv", "mydataframe6.tsv"]:
-            file_path = parse_file_url(urlparse(pkg.get(lk)))
+            file_path = pkg[lk].physical_key.path
             assert not pathlib.Path(file_path).exists(), "These temp files should have been deleted during push()"
 
 
@@ -1176,7 +1180,7 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(QuiltException):
             pkg.set('s3://foo/..', LOCAL_MANIFEST)
 
-    @patch('quilt3.Package.shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
     def test_install(self):
         # Manifest
 
@@ -1277,7 +1281,7 @@ class PackageTest(QuiltTestCase):
 
         # ...but moving it back fixes it.
         pathlib.Path('foo2').rename(local_path)
-        assert p['foo'].get_cached_path() == str(local_path)
+        assert pathlib.Path(p['foo'].get_cached_path()) == local_path
 
         # Check that changing the contents invalidates the cache.
         local_path.write_text('omg')
@@ -1334,7 +1338,7 @@ class PackageTest(QuiltTestCase):
         with self.assertRaises(QuiltException):
             Package.rollback('quilt/blah', LOCAL_REGISTRY, good_hash)
 
-    @patch('quilt3.Package.shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
     def test_verify(self):
         pkg = Package()
 
