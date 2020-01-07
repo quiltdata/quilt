@@ -18,9 +18,9 @@ const mkLazy = (load) =>
 const Dir = mkLazy(() => import('./Dir'))
 const File = mkLazy(() => import('./File'))
 const Overview = mkLazy(() => import('./Overview'))
-const PackageDetail = mkLazy(() => import('./PackageDetail'))
 const PackageList = mkLazy(() => import('./PackageList'))
 const PackageTree = mkLazy(() => import('./PackageTree'))
+const PackageRevisions = mkLazy(() => import('./PackageRevisions'))
 const Search = mkLazy(() => import('./Search'))
 
 const match = (cases) => (pathname) => {
@@ -121,8 +121,9 @@ export default ({
           <Route path={paths.bucketOverview} component={Overview} exact />
           <Route path={paths.bucketSearch} component={Search} exact />
           <Route path={paths.bucketPackageList} component={PackageList} exact />
-          <Route path={paths.bucketPackageDetail} component={PackageDetail} exact />
+          <Route path={paths.bucketPackageDetail} component={PackageTree} exact />
           <Route path={paths.bucketPackageTree} component={PackageTree} exact />
+          <Route path={paths.bucketPackageRevisions} component={PackageRevisions} exact />
           <Route component={ThrowNotFound} />
         </Switch>
       </BucketLayout>
