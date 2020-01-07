@@ -91,6 +91,8 @@ export const bucketListing = ({ s3req, bucket, path = '' }) =>
     )
     .catch(catchErrors())
 
+const MAX_BANDS = 10
+
 export const bucketAccessCounts = async ({
   s3req,
   analyticsBucket,
@@ -137,6 +139,25 @@ export const bucketAccessCounts = async ({
         R.sort(R.descend(R.prop('total'))),
         R.applySpec({
           byExt: R.identity,
+          byExtCollapsed: (bands) => {
+            if (bands.length <= MAX_BANDS) return bands
+            const [other, rest] = R.partition((b) => b.ext === '', bands)
+            const [toKeep, toMerge] = R.splitAt(MAX_BANDS - 1, rest)
+            const merged = [...other, ...toMerge].reduce((acc, band) => ({
+              ext: '',
+              total: acc.total + band.total,
+              counts: R.zipWith(
+                (a, b) => ({
+                  date: a.date,
+                  value: a.value + b.value,
+                  sum: a.sum + b.sum,
+                }),
+                acc.counts,
+                band.counts,
+              ),
+            }))
+            return R.sort(R.descend(R.prop('total')), toKeep.concat(merged))
+          },
           combined: {
             total: R.reduce((sum, { total }) => sum + total, 0),
             counts: R.pipe(
