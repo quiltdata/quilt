@@ -472,9 +472,11 @@ class Package(object):
         return top_hash
 
     @classmethod
-    def _shorten_tophash(cls, package_name, registry, top_hash):
+    def _shorten_tophash(cls, package_name, registry: PhysicalKey, top_hash):
         min_shorthash_len = 7
-        matches = [h for h, _ in list_url(registry.join('.quilt/packages/')) if h.startswith(top_hash[:min_shorthash_len])]
+
+        matches = [h for h, _ in list_url(registry.join('.quilt/packages/'))
+                   if h.startswith(top_hash[:min_shorthash_len])]
         if len(matches) == 0:
             raise ValueError(f"Tophash {top_hash} was not found in registry {registry}")
         for prefix_length in range(min_shorthash_len, 64):
@@ -1231,6 +1233,9 @@ class Package(object):
         pkg._build(name, registry=registry, message=message)
 
         navigator_url = get_from_config("navigator_url")
+        registry_parsed = PhysicalKey.from_url(registry)
+        shorthash = Package._shorten_tophash(name, registry_parsed, pkg.top_hash)
+        print(f"Package {name}@{shorthash} pushed to s3://{dest_parsed.bucket}")
         if navigator_url is None:
             print(f"Run `quilt3 catalog {str(dest_parsed)}` to browse.")
         else:
