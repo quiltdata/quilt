@@ -1,4 +1,4 @@
-## How does Quilt play with S3 object versioning?
+## How does Quilt versioning relate to S3 object versioning?
 Quilt packages are one level of abstraction above S3 object versions.
 Object versions track mutations to a single file,
 whereas a quilt package may reference one or more files and makes this entire collection of files reproducible.
