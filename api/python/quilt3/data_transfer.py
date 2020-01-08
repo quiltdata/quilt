@@ -274,10 +274,14 @@ def _copy_file_list_internal(s3_client, file_list):
     futures = []
     results = [None] * len(file_list)
 
+    stopped = False
+
     with tqdm(desc="Copying", total=total_size, unit='B', unit_scale=True) as progress, \
          ThreadPoolExecutor(s3_transfer_config.max_request_concurrency) as executor:
 
         def progress_callback(bytes_transferred):
+            if stopped:
+                raise Exception("Interrupted")
             with lock:
                 progress.update(bytes_transferred)
 
@@ -287,6 +291,9 @@ def _copy_file_list_internal(s3_client, file_list):
                 futures.append(future)
 
         def worker(idx, src, dest, size):
+            if stopped:
+                raise Exception("Interrupted")
+
             def done_callback(value):
                 assert value is not None
                 with lock:
@@ -312,19 +319,23 @@ def _copy_file_list_internal(s3_client, file_list):
                     _copy_remote_file(ctx, size, src.bucket, src.path, src.version_id,
                                       dest.bucket, dest.path)
 
-        for idx, args in enumerate(file_list):
-            run_task(worker, idx, *args)
+        try:
+            for idx, args in enumerate(file_list):
+                run_task(worker, idx, *args)
 
-        # ThreadPoolExecutor does not appear to have a way to just wait for everything to complete.
-        # Shutting it down will cause it to wait - but will prevent any new tasks from starting.
-        # So, manually wait for all tasks to complete.
-        # This will also raise any exception that happened in a worker thread.
-        while True:
-            with lock:
-                if not futures:
-                    break
-                future = futures.pop()
-            future.result()
+            # ThreadPoolExecutor does not appear to have a way to just wait for everything to complete.
+            # Shutting it down will cause it to wait - but will prevent any new tasks from starting.
+            # So, manually wait for all tasks to complete.
+            # This will also raise any exception that happened in a worker thread.
+            while True:
+                with lock:
+                    if not futures:
+                        break
+                    future = futures.pop()
+                future.result()
+        finally:
+            # Make sure all tasks exit quickly if the main thread exits before they're done.
+            stopped = True
 
     assert all(results)
 
