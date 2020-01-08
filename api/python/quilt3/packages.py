@@ -25,7 +25,7 @@ from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
     validate_package_name, quiltignore_filter, validate_key, extract_file_extension
 )
-from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey
+from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config
 
 
 
@@ -1229,6 +1229,12 @@ class Package(object):
             self._set(lk, pkg[lk])
 
         pkg._build(name, registry=registry, message=message)
+
+        navigator_url = get_from_config("navigator_url")
+        if navigator_url is None:
+            print(f"Run `quilt3 catalog {str(dest_parsed)}` to browse.")
+        else:
+            print(f"Visit {navigator_url}/b/{dest_parsed.bucket}/packages/{name}/tree/latest")
         return pkg
 
     @classmethod
