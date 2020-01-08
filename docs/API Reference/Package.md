@@ -51,7 +51,7 @@ __Arguments__
 * __hash_prefix(string)__:  hash prefix with length between 6 and 64 characters
 
 
-## Package.browse(name=None, registry=None, top\_hash=None)  {#Package.browse}
+## Package.browse(name, registry=None, top\_hash=None)  {#Package.browse}
 
 Load a package into memory from a registry without making a local copy of
 the manifest.
@@ -111,6 +111,25 @@ Generator that traverses all entries in the package tree and returns tuples of (
 with keys in alphabetical order.
 
 
+## Package.load(readable\_file)  {#Package.load}
+
+Loads a package from a readable file-like object.
+
+__Arguments__
+
+* __readable_file__:  readable file-like object to deserialize package from
+
+__Returns__
+
+A new Package object
+
+__Raises__
+
+file not found
+json decode error
+invalid package exception
+
+
 ## Package.set\_dir(self, lkey, path=None, meta=None)  {#Package.set\_dir}
 
 Adds all files from `path` to the package.
@@ -167,7 +186,7 @@ no such entry exists.
 Sets user metadata on this Package.
 
 
-## Package.build(self, name=None, registry=None, message=None)  {#Package.build}
+## Package.build(self, name, registry=None, message=None)  {#Package.build}
 
 Serializes this package to a registry.
 
@@ -241,7 +260,7 @@ __Raises__
 * `KeyError`:  when logical_key is not present to be deleted
 
 
-## Package.push(self, name, registry=None, dest=None, message=None)  {#Package.push}
+## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=<function Package.<lambda> at 0x1077a6170>)  {#Package.push}
 
 Copies objects to path, then creates a new package that points to those objects.
 Copies each object in this package to path according to logical key structure,
@@ -254,6 +273,28 @@ __Arguments__
 * __dest__:  where to copy the objects in the package
 * __registry__:  registry where to create the new package
 * __message__:  the commit message for the new package
+* __selector_fn__:  A filter function that determines which package entries should be pushed. The function takes
+             in two arguments, logical_key and package_entry, and should return False if that PackageEntry
+             should be skipped during push. If for example you have a package where the files are spread
+             over multiple buckets and you add a single local file, you can use selector_fn to only push
+             the local file to s3 (instead of pushing all data to the destination bucket).
+
+
+             Note that push is careful to not push data unnecessarily. To illustrate, imagine you have a
+* __PackageEntry__:  `pkg["entry_1"].physical_key = "/tmp/package_entry_1.json"`
+
+* __If that entry would be pushed to s3__: //bucket/prefix/entry_1.json, but
+* __s3__: //bucket/prefix/entry_1.json already contains the exact same bytes as
+             '/tmp/package_entry_1.json', quilt3 will not push the bytes to s3, no matter what
+             selector_fn('entry_1', pkg["entry_1"]) returns.
+
+             However, selector_fn will dictate whether the new package points to the local file or to s3:
+
+             If `selector_fn('entry_1', pkg["entry_1"]) == False`,
+             `new_pkg["entry_1"] = ["/tmp/package_entry_1.json"]`
+
+             If `selector_fn('entry_1', pkg["entry_1"]) == True`,
+* __`new_pkg["entry_1"] = ["s3__: //bucket/prefix/entry_1.json"]`
 
 __Returns__
 
@@ -323,14 +364,14 @@ __Returns__
 A new package with entries that evaluated to False removed
 
 
-## Package.verify(self, src, extra\_files=False)  {#Package.verify}
+## Package.verify(self, src, extra\_files\_ok=False)  {#Package.verify}
 
 Check if the contents of the given directory matches the package manifest.
 
 __Arguments__
 
 * __src(str)__:  URL of the directory
-* __extra_files(bool)__:  Whether extra files in the directory should cause a failure.
+* __extra_files_ok(bool)__:  Whether extra files in the directory should cause a failure.
 __Returns__
 
 True if the package matches the directory; False otherwise.
