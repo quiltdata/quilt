@@ -384,7 +384,7 @@ function Revisions({ revisions, isTruncated, counts, bucket, name, page }) {
   const classes = useRevisionsStyles()
   const { urls } = NamedRoutes.use()
   const { apiGatewayEndpoint: endpoint } = Config.useConfig()
-  const signer = AWS.Signer.use()
+  const sign = AWS.Signer.useS3Signer()
   const s3req = AWS.S3.useRequest()
 
   const actualPage = page || 1
@@ -424,7 +424,7 @@ function Revisions({ revisions, isTruncated, counts, bucket, name, page }) {
         <Data
           key={r}
           fetch={requests.getRevisionData}
-          params={{ s3req, signer, endpoint, bucket, name, id: r }}
+          params={{ s3req, sign, endpoint, bucket, name, id: r }}
         >
           {(res) => (
             <Revision
