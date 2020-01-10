@@ -94,7 +94,7 @@ catalog` sends preview requests to https://open.quiltdata.com. Preview
 requests contain short-lived signed URLs generated using your AWS
 credentials. Data is encrypted in transit and no data is retained by Quilt.
 Nevertheless, it is recommended that you use `quilt3 catalog` only for public data.
-highly sensitive files. We strongly encourage users with highly
+We strongly encourage users with
 sensitive information in S3 to run a private Quilt deployment. See
 https://quiltdata.com for more information.
 """
