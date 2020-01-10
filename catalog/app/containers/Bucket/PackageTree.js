@@ -336,6 +336,19 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: -3,
     marginTop: -3,
   },
+  warning: {
+    background: t.palette.warning.light,
+    borderRadius: t.shape.borderRadius,
+    display: 'flex',
+    padding: t.spacing(1.5),
+    ...t.typography.body2,
+  },
+  warningIcon: {
+    height: 20,
+    lineHeight: '20px',
+    marginRight: t.spacing(1),
+    opacity: 0.6,
+  },
 }))
 
 export default function PackageTree({
@@ -429,6 +442,12 @@ export default function PackageTree({
                 result,
               )}
             </div>
+
+            <M.Box className={classes.warning} mb={2}>
+              <M.Icon className={classes.warningIcon}>warning</M.Icon>
+              Not seeing a file or directory? Package previews are limited to 1,000 files.
+              All files are present in S3.
+            </M.Box>
 
             <Section icon="code" heading="Code">
               <Code>{code}</Code>
