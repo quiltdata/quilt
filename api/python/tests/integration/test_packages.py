@@ -213,30 +213,80 @@ class PackageTest(QuiltTestCase):
         pkg2 = Package.browse('Quilt/test', registry=registry)
         assert 'foo' in pkg2
 
-        # Make another request with a top hash. Everything should be cached.
+        # Make another request with a top hash. The manifest will be cached - but a request to "latest" will be made
+        # while verifying that the hash is valid.
+
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(top_hash.encode()),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': '.quilt/named_packages/Quilt/test/latest',
+            }
+        )
 
         pkg3 = Package.browse('Quilt/test', top_hash=top_hash, registry=registry)
         assert 'foo' in pkg3
 
-        # Make a request with a short hash.
+        # Make a request with a short hash. This will require listing all package hashes.
 
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(top_hash.encode()),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': '.quilt/named_packages/Quilt/test/latest',
+            }
+        )
         self.s3_stubber.add_response(
             method='list_objects_v2',
             service_response={
                 'Contents': [
                     {
-                        'Key': f'.quilt/packages/{top_hash}',
+                        'Key': f'.quilt/named_packages/Quilt/test/1',
                         'Size': 64,
                     },
                     {
-                        'Key': f'.quilt/packages/{"a" * 64}',
+                        'Key': f'.quilt/named_packages/Quilt/test/2',
                         'Size': 64,
-                    }
+                    },
+                    {
+                        'Key': f'.quilt/named_packages/Quilt/test/latest',
+                        'Size': 64,
+                    },
                 ]
             },
             expected_params={
                 'Bucket': 'test-bucket',
-                'Prefix': '.quilt/packages/',
+                'Prefix': '.quilt/named_packages/Quilt/test/',
+            }
+        )
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(b'1' * 64),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': '.quilt/named_packages/Quilt/test/1',
+            }
+        )
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(top_hash.encode()),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': '.quilt/named_packages/Quilt/test/2',
             }
         )
 
@@ -253,22 +303,59 @@ class PackageTest(QuiltTestCase):
         # Make a request with a non-existant short hash.
 
         self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(top_hash.encode()),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': '.quilt/named_packages/Quilt/test/latest',
+            }
+        )
+        self.s3_stubber.add_response(
             method='list_objects_v2',
             service_response={
                 'Contents': [
                     {
-                        'Key': f'.quilt/packages/{top_hash}',
+                        'Key': f'.quilt/named_packages/Quilt/test/1',
                         'Size': 64,
                     },
                     {
-                        'Key': f'.quilt/packages/{"a" * 64}',
+                        'Key': f'.quilt/named_packages/Quilt/test/2',
                         'Size': 64,
-                    }
+                    },
+                    {
+                        'Key': f'.quilt/named_packages/Quilt/test/latest',
+                        'Size': 64,
+                    },
                 ]
             },
             expected_params={
                 'Bucket': 'test-bucket',
-                'Prefix': '.quilt/packages/',
+                'Prefix': '.quilt/named_packages/Quilt/test/',
+            }
+        )
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(b'1' * 64),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': '.quilt/named_packages/Quilt/test/1',
+            }
+        )
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(top_hash.encode()),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': '.quilt/named_packages/Quilt/test/2',
             }
         )
 
@@ -453,7 +540,7 @@ class PackageTest(QuiltTestCase):
         test_file2.write_text('omg')
         new_pkg.set('foo2', test_file1)
 
-        with patch('time.time', return_value=1234567890), \
+        with patch('time.time_ns', return_value=1234567890), \
              patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             remote_pkg = new_pkg.push('Quilt/package', 's3://my_test_bucket/')
 
@@ -512,7 +599,7 @@ class PackageTest(QuiltTestCase):
         test_file3.write_text('!!!')
         remote_pkg.set('foo2', test_file3)
 
-        with patch('time.time', return_value=1234567891), \
+        with patch('time.time_ns', return_value=1234567891), \
              patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
 
@@ -662,7 +749,7 @@ class PackageTest(QuiltTestCase):
         """Verify that list returns packages in the appdirs directory."""
 
         # Build a new package into the local registry.
-        with patch('time.time', return_value=1234567890):
+        with patch('time.time_ns', return_value=1234567890):
             Package().build("Quilt/Foo")
             Package().build("Quilt/Bar")
             Package().build("Quilt/Test")
@@ -1335,7 +1422,7 @@ class PackageTest(QuiltTestCase):
         with self.assertRaises(QuiltException):
             Package.rollback('quilt/tmp', LOCAL_REGISTRY, '12345678' * 8)
 
-        with self.assertRaises(QuiltException):
+        with self.assertRaises(IOError):
             Package.rollback('quilt/blah', LOCAL_REGISTRY, good_hash)
 
     @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")

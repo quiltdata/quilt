@@ -447,7 +447,7 @@ class Package(object):
 
 
     @classmethod
-    def resolve_hash(cls, registry, hash_prefix):
+    def _resolve_hash(cls, package_name, registry, hash_prefix):
         """
         Find a hash that starts with a given prefix.
         Args:
@@ -455,18 +455,33 @@ class Package(object):
             hash_prefix(string): hash prefix with length between 6 and 64 characters
         """
         assert isinstance(registry, PhysicalKey)
+
+        def _find_hashes():
+            """
+            Lazily return all hashes of a given package, starting with the "latest" version.
+            """
+            pkg_dir = registry.join(f'.quilt/named_packages/{package_name}')
+            yield get_bytes(pkg_dir.join('latest')).decode().strip()
+            for version, _ in list_url(pkg_dir):
+                if version == 'latest':
+                    continue
+                yield get_bytes(pkg_dir.join(version)).decode().strip()
+
         if len(hash_prefix) == 64:
+            for pkg_hash in _find_hashes():
+                if hash_prefix == pkg_hash:
+                    break
+            else:
+                raise QuiltException("No such hash: %r" % hash_prefix)
             top_hash = hash_prefix
         elif 6 <= len(hash_prefix) < 64:
-            matching_hashes = [h for h, _
-                               in list_url(registry.join('.quilt/packages/'))
-                               if h.startswith(hash_prefix)]
+            matching_hashes = {h for h in _find_hashes() if h.startswith(hash_prefix)}
             if not matching_hashes:
                 raise QuiltException("Found zero matches for %r" % hash_prefix)
             elif len(matching_hashes) > 1:
                 raise QuiltException("Found multiple matches: %r" % hash_prefix)
             else:
-                top_hash = matching_hashes[0]
+                top_hash = matching_hashes.pop()
         else:
             raise QuiltException("Invalid hash: %r" % hash_prefix)
         return top_hash
@@ -510,7 +525,7 @@ class Package(object):
             top_hash_file = registry_parsed.join(f'.quilt/named_packages/{name}/latest')
             top_hash = get_bytes(top_hash_file).decode('utf-8').strip()
         else:
-            top_hash = cls.resolve_hash(registry_parsed, top_hash)
+            top_hash = cls._resolve_hash(name, registry_parsed, top_hash)
 
         # TODO: verify that name is correct with respect to this top_hash
         pkg_manifest = registry_parsed.join(f'.quilt/packages/{top_hash}')
@@ -865,7 +880,7 @@ class Package(object):
         self._meta.update({'message': msg})
 
 
-    @ApiTelemetry("package.build")
+    # @ApiTelemetry("package.build")
     def build(self, name, registry=None, message=None):
         """
         Serializes this package to a registry.
@@ -905,8 +920,7 @@ class Package(object):
 
         named_path = registry_parsed.join(f'.quilt/named_packages/{name}')
         hash_bytes = self.top_hash.encode('utf-8')
-        # TODO: use a float to string formater instead of double casting
-        timestamp_path = named_path.join(str(int(time.time())))
+        timestamp_path = named_path.join(str(time.time_ns()))
         latest_path = named_path.join("latest")
         put_bytes(hash_bytes, timestamp_path)
         put_bytes(hash_bytes, latest_path)
@@ -1245,7 +1259,7 @@ class Package(object):
         registry = PhysicalKey.from_url(fix_url(registry))
         validate_package_name(name)
 
-        top_hash = cls.resolve_hash(registry, top_hash)
+        top_hash = cls._resolve_hash(name, registry, top_hash)
 
         hash_path = registry.join(f'.quilt/packages/{top_hash}')
         latest_path = registry.join(f'.quilt/named_packages/{name}/latest')
