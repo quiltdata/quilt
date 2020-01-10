@@ -74,12 +74,45 @@ def _launch_local_s3proxy():
     command += ["-p", "5002:80", "quiltdata/s3proxy"]
     subprocess.Popen(command)
 
-def cmd_catalog(s3_url=None):
+
+
+catalog_cmd_detailed_help = """
+Run the Quilt catalog on your machine (requires Docker). Running
+`quilt3 catalog` launches a webserver on your local machine using
+Docker and a Python microservice that supplies temporary AWS
+credentials to the catalog. Temporary credentials are derived from
+your default AWS credentials (or active `AWS_PROFILE`) using
+`boto3.sts.get_session_token`. For more details about configuring and
+using AWS credentials in `boto3`, see the AWS documentation: 
+https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html
+
+#### Previewing files in S3
+The Quilt catalog allows users to preview files in S3 without
+downloading. It relies on a API Gateway and AWS Lambda to generate
+certain previews in the cloud. The catalog launched by `quilt3
+catalog` sends preview requests to https://open.quiltdata.com. Preview
+requests contain short-lived signed URLs generated using your AWS
+credentials. Data is encrypted in transit and no data is retained by Quilt.
+Nevertheless, it is recommended that you use `quilt3 catalog` only for public data.
+We strongly encourage users with
+sensitive data in S3 to run a private Quilt deployment. Visit
+https://quiltdata.com for more information.
+"""
+
+def cmd_catalog(s3_url=None, detailed_help=False):
     """
-    Run the Quilt catalog locally
+    Run the Quilt catalog locally.
+
+    If detailed_help=True, display detailed information about the `quilt3 catalog` command and then exit
     """
+    if detailed_help:
+        print(catalog_cmd_detailed_help)
+        return
+
     local_catalog_url = "http://localhost:3000"
     local_s3proxy_url = "http://localhost:5002"
+
+
 
     if not _test_url(local_catalog_url):
         _launch_local_catalog()
@@ -129,14 +162,20 @@ def create_parser():
 
     # catalog
     shorthelp = "Run Quilt catalog locally"
-    config_p = subparsers.add_parser("catalog", description=shorthelp, help=shorthelp, allow_abbrev=False)
-    config_p.add_argument(
-        "s3_url",
-        help="S3 URL to browse in local catalog",
-        type=str,
-        nargs="?"
+    catalog_p = subparsers.add_parser("catalog", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    catalog_p.add_argument(
+            "s3_url",
+            help="S3 URL to browse in local catalog",
+            type=str,
+            nargs="?"
     )
-    config_p.set_defaults(func=cmd_catalog)
+    catalog_p.add_argument(
+            "--detailed_help",
+            help="Display detailed information about this command and then exit",
+            action="store_true",
+    )
+    catalog_p.set_defaults(func=cmd_catalog)
+
 
     # install
     shorthelp = "Install a package"

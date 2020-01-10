@@ -51,7 +51,7 @@ __Arguments__
 * __hash_prefix(string)__:  hash prefix with length between 6 and 64 characters
 
 
-## Package.browse(name=None, registry=None, top\_hash=None)  {#Package.browse}
+## Package.browse(name, registry=None, top\_hash=None)  {#Package.browse}
 
 Load a package into memory from a registry without making a local copy of
 the manifest.
@@ -111,6 +111,25 @@ Generator that traverses all entries in the package tree and returns tuples of (
 with keys in alphabetical order.
 
 
+## Package.load(readable\_file)  {#Package.load}
+
+Loads a package from a readable file-like object.
+
+__Arguments__
+
+* __readable_file__:  readable file-like object to deserialize package from
+
+__Returns__
+
+A new Package object
+
+__Raises__
+
+file not found
+json decode error
+invalid package exception
+
+
 ## Package.set\_dir(self, lkey, path=None, meta=None)  {#Package.set\_dir}
 
 Adds all files from `path` to the package.
@@ -167,7 +186,7 @@ no such entry exists.
 Sets user metadata on this Package.
 
 
-## Package.build(self, name=None, registry=None, message=None)  {#Package.build}
+## Package.build(self, name, registry=None, message=None)  {#Package.build}
 
 Serializes this package to a registry.
 
@@ -241,12 +260,28 @@ __Raises__
 * `KeyError`:  when logical_key is not present to be deleted
 
 
-## Package.push(self, name, registry=None, dest=None, message=None)  {#Package.push}
+## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=<function Package.<lambda> at 0x110a9b170>)  {#Package.push}
 
 Copies objects to path, then creates a new package that points to those objects.
 Copies each object in this package to path according to logical key structure,
 then adds to the registry a serialized version of this package with
 physical keys that point to the new copies.
+
+Note that push is careful to not push data unnecessarily. To illustrate, imagine you have
+a PackageEntry: `pkg["entry_1"].physical_key = "/tmp/package_entry_1.json"`
+
+If that entry would be pushed to `s3://bucket/prefix/entry_1.json`, but
+`s3://bucket/prefix/entry_1.json` already contains the exact same bytes as
+'/tmp/package_entry_1.json', `quilt3` will not push the bytes to s3, no matter what
+`selector_fn('entry_1', pkg["entry_1"])` returns.
+
+However, selector_fn will dictate whether the new package points to the local file or to s3:
+
+If `selector_fn('entry_1', pkg["entry_1"]) == False`,
+`new_pkg["entry_1"] = ["/tmp/package_entry_1.json"]`
+
+If `selector_fn('entry_1', pkg["entry_1"]) == True`,
+`new_pkg["entry_1"] = ["s3://bucket/prefix/entry_1.json"]`
 
 __Arguments__
 
@@ -254,6 +289,11 @@ __Arguments__
 * __dest__:  where to copy the objects in the package
 * __registry__:  registry where to create the new package
 * __message__:  the commit message for the new package
+* __selector_fn__:  An optional function that determines which package entries should be copied to S3. The function
+             takes in two arguments, logical_key and package_entry, and should return False if that
+             PackageEntry should be skipped during push. If for example you have a package where the files
+             are spread over multiple buckets and you add a single local file, you can use selector_fn to
+             only push the local file to s3 (instead of pushing all data to the destination bucket).
 
 __Returns__
 
@@ -323,15 +363,143 @@ __Returns__
 A new package with entries that evaluated to False removed
 
 
-## Package.verify(self, src, extra\_files=False)  {#Package.verify}
+## Package.verify(self, src, extra\_files\_ok=False)  {#Package.verify}
 
 Check if the contents of the given directory matches the package manifest.
 
 __Arguments__
 
 * __src(str)__:  URL of the directory
-* __extra_files(bool)__:  Whether extra files in the directory should cause a failure.
+* __extra_files_ok(bool)__:  Whether extra files in the directory should cause a failure.
 __Returns__
 
 True if the package matches the directory; False otherwise.
+
+
+# PackageEntry(self, physical\_key, size, hash\_obj, meta)  {#PackageEntry}
+Represents an entry at a logical key inside a package.
+
+**\_\_init\_\_**
+
+Creates an entry.
+
+__Arguments__
+
+* __physical_key__:  a URI (either `s3://` or `file://`)
+* __size(number)__:  size of object in bytes
+* __hash({'type'__:  string, 'value': string}): hash object
+* __for example__:  {'type': 'SHA256', 'value': 'bb08a...'}
+* __meta(dict)__:  metadata dictionary
+
+__Returns__
+
+a PackageEntry
+
+## __slots__
+Built-in mutable sequence.
+
+If no argument is given, the constructor creates a new empty list.
+The argument must be an iterable if specified.
+
+## physical_keys
+
+Deprecated
+
+
+## PackageEntry.as\_dict(self)  {#PackageEntry.as\_dict}
+
+Returns dict representation of entry.
+
+
+## PackageEntry.set\_meta(self, meta)  {#PackageEntry.set\_meta}
+
+Sets the user_meta for this PackageEntry.
+
+
+## PackageEntry.set(self, path=None, meta=None)  {#PackageEntry.set}
+
+Returns self with the physical key set to path.
+
+__Arguments__
+
+* __logical_key(string)__:  logical key to update
+* __path(string)__:  new path to place at logical_key in the package
+    Currently only supports a path on local disk
+* __meta(dict)__:  metadata dict to attach to entry. If meta is provided, set just
+    updates the meta attached to logical_key without changing anything
+    else in the entry
+
+__Returns__
+
+self
+
+
+## PackageEntry.get(self)  {#PackageEntry.get}
+
+Returns the physical key of this PackageEntry.
+
+
+## PackageEntry.get\_cached\_path(self)  {#PackageEntry.get\_cached\_path}
+
+Returns a locally cached physical key, if available.
+
+
+## PackageEntry.get\_bytes(self, use\_cache\_if\_available=True)  {#PackageEntry.get\_bytes}
+
+Returns the bytes of the object this entry corresponds to. If 'use_cache_if_available'=True, will first try to
+retrieve the bytes from cache.
+
+
+## PackageEntry.get\_as\_json(self, use\_cache\_if\_available=True)  {#PackageEntry.get\_as\_json}
+
+Returns a JSON file as a `dict`. Assumes that the file is encoded using utf-8.
+
+If 'use_cache_if_available'=True, will first try to retrieve the object from cache.
+
+
+## PackageEntry.get\_as\_string(self, use\_cache\_if\_available=True)  {#PackageEntry.get\_as\_string}
+
+Return the object as a string. Assumes that the file is encoded using utf-8.
+
+If 'use_cache_if_available'=True, will first try to retrieve the object from cache.
+
+
+## PackageEntry.deserialize(self, func=None, \*\*format\_opts)  {#PackageEntry.deserialize}
+
+Returns the object this entry corresponds to.
+
+__Arguments__
+
+* __func__:  Skip normal deserialization process, and call func(bytes),
+    returning the result directly.
+* __**format_opts__:  Some data formats may take options.  Though
+    normally handled by metadata, these can be overridden here.
+__Returns__
+
+The deserialized object from the logical_key
+
+__Raises__
+
+physical key failure
+hash verification fail
+when deserialization metadata is not present
+
+
+## PackageEntry.fetch(self, dest=None)  {#PackageEntry.fetch}
+
+Gets objects from entry and saves them to dest.
+
+__Arguments__
+
+* __dest__:  where to put the files
+    Defaults to the entry name
+
+__Returns__
+
+None
+
+
+## PackageEntry.\_\_call\_\_(self, func=None, \*\*kwargs)  {#PackageEntry.\_\_call\_\_}
+
+Shorthand for self.deserialize()
 
