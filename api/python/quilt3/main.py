@@ -92,7 +92,8 @@ downloading. It relies on a API Gateway and AWS Lambda to generate
 certain previews in the cloud. The catalog launched by `quilt3
 catalog` sends preview requests to https://open.quiltdata.com. Preview
 requests contain short-lived signed URLs generated using your AWS
-credentials. It is not recommended to use `quilt3 catalog` to browse
+credentials. Data is encrypted in transit and no data is retained by Quilt.
+Nevertheless, it is recommended that you use `quilt3 catalog` only for public data.
 highly sensitive files. We strongly encourage users with highly
 sensitive information in S3 to run a private Quilt deployment. See
 https://quiltdata.com for more information.
