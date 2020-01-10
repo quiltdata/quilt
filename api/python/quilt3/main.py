@@ -9,7 +9,7 @@ import sys
 import dns.resolver
 import requests
 
-from . import api, session
+from . import api, session, list_packages
 from .session import open_url
 from .util import get_from_config, catalog_s3_url, QuiltException
 from .registry import app
@@ -124,6 +124,12 @@ def cmd_catalog(s3_url=None, detailed_help=False):
     open_url(catalog_s3_url(local_catalog_url, s3_url))
     app.run()
 
+
+def cmd_list_packages(registry):
+    for package_name in list_packages(registry=registry):
+        print(package_name)
+
+
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
     pkg = api.Package._browse(name, registry, top_hash)
     if pkg.verify(dir, extra_files_ok):
@@ -210,6 +216,16 @@ def create_parser():
         required=False,
     )
     install_p.set_defaults(func=api.Package.install)
+
+    # list-packages
+    shorthelp = "List all packages in a registry"
+    list_packages_p = subparsers.add_parser("list-packages", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    list_packages_p.add_argument(
+            "registry",
+            help="Registry for packages, e.g. s3://quilt-example",
+            type=str,
+    )
+    list_packages_p.set_defaults(func=cmd_list_packages)
 
     # verify
     shorthelp = "Verify that package contents matches a given directory"
