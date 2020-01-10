@@ -6,7 +6,12 @@ const useMsgStyles = M.makeStyles((t) => ({
   root: {
     borderRadius: t.shape.borderRadius,
     padding: t.spacing(1.5),
+    whiteSpace: 'pre-wrap',
     ...t.typography.body2,
+  },
+  inner: {
+    maxHeight: 100,
+    overflow: 'auto',
   },
   info: {
     background: t.palette.info.light,
@@ -18,22 +23,19 @@ const useMsgStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function Msg({ type = 'info', className, ...props }) {
+export function Msg({ type = 'info', className, children, ...props }) {
   const classes = useMsgStyles()
-  return <M.Box className={cx(classes.root, classes[type], className)} {...props} />
+  return (
+    <M.Box className={cx(classes.root, classes[type], className)} {...props}>
+      <div className={classes.inner}>{children}</div>
+    </M.Box>
+  )
 }
 
 export const renderPreviewStatus = ({ note, warnings }) => (
-  <>
-    {!!note && (
-      <Msg type="info" mb={2}>
-        {note}
-      </Msg>
-    )}
-    {!!warnings && (
-      <Msg type="warning" mb={2}>
-        {warnings}
-      </Msg>
-    )}
-  </>
+  <Msg type="warning" mb={2}>
+    {!!note && note}
+    {!!note && !!warnings && '\n\n'}
+    {!!warnings && warnings}
+  </Msg>
 )
