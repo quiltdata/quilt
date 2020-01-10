@@ -219,6 +219,9 @@ def _config(*catalog_url, **config_values):
 @ApiTelemetry("api.disable_telemetry")
 def disable_telemetry():
     """ Permanently disable sending of anonymous usage metrics """
+    _disable_telemetry()
+
+def _disable_telemetry():
     _config(telemetry_disabled=True)
 
 
