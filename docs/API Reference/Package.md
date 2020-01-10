@@ -260,7 +260,7 @@ __Raises__
 * `KeyError`:  when logical_key is not present to be deleted
 
 
-## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=<function Package.<lambda> at 0x109caa170>)  {#Package.push}
+## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=<function Package.<lambda> at 0x105077200>)  {#Package.push}
 
 Copies objects to path, then creates a new package that points to those objects.
 Copies each object in this package to path according to logical key structure,
@@ -273,11 +273,11 @@ __Arguments__
 * __dest__:  where to copy the objects in the package
 * __registry__:  registry where to create the new package
 * __message__:  the commit message for the new package
-* __selector_fn__:  A filter function that determines which package entries should be pushed. The function takes
-             in two arguments, logical_key and package_entry, and should return False if that PackageEntry
-             should be skipped during push. If for example you have a package where the files are spread
-             over multiple buckets and you add a single local file, you can use selector_fn to only push
-             the local file to s3 (instead of pushing all data to the destination bucket).
+* __selector_fn__:  An optional function that determines which package entries should be coped to S3. The function
+             takes in two arguments, logical_key and package_entry, and should return False if that
+             PackageEntry should be skipped during push. If for example you have a package where the files
+             are spread over multiple buckets and you add a single local file, you can use selector_fn to
+             only push the local file to s3 (instead of pushing all data to the destination bucket).
 
 
              Note that push is careful to not push data unnecessarily. To illustrate, imagine you have a
