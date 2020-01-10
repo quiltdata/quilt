@@ -11,6 +11,12 @@ const appPalette = {
   secondary: {
     main: colors.orange[600],
   },
+  info: {
+    main: colors.lightBlue[50],
+  },
+  warning: {
+    main: colors.yellow[200],
+  },
 }
 
 const websitePalette = {

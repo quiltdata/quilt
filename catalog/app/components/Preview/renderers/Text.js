@@ -1,28 +1,29 @@
 import cx from 'classnames'
-import PT from 'prop-types'
 import * as React from 'react'
-import * as RC from 'recompose'
-import { withStyles } from '@material-ui/styles'
+import * as M from '@material-ui/core'
 
-import * as RT from 'utils/reactTools'
+import { renderPreviewStatus } from './util'
 
-const Text = RT.composeComponent(
-  'Preview.renderers.Text',
-  RC.setPropTypes({
-    className: PT.string,
-    children: PT.node,
-  }),
-  withStyles((t) => ({
-    root: {
-      fontFamily: t.typography.monospace.fontFamily,
-      overflow: 'auto',
-      whiteSpace: 'pre',
-    },
-  })),
-  ({ classes, className, ...props }) => (
-    <div className={cx(className, classes.root)} {...props} />
-  ),
-)
+const useStyles = M.makeStyles((t) => ({
+  root: {
+    width: '100%',
+  },
+  text: {
+    fontFamily: t.typography.monospace.fontFamily,
+    overflow: 'auto',
+    whiteSpace: 'pre',
+  },
+}))
+
+function Text({ className, children, note, warnings, ...props }) {
+  const classes = useStyles()
+  return (
+    <div className={cx(className, classes.root)} {...props}>
+      {renderPreviewStatus({ note, warnings })}
+      <div className={classes.text}>{children}</div>
+    </div>
+  )
+}
 
 const html = (contents) => (
   // eslint-disable-next-line react/no-danger
@@ -31,8 +32,8 @@ const html = (contents) => (
 
 const Skip = () => <div>&hellip;</div>
 
-export default ({ highlighted: { head, tail } }, props) => (
-  <Text {...props}>
+export default ({ highlighted: { head, tail }, note, warnings }, props) => (
+  <Text {...{ note, warnings }} {...props}>
     {html(head)}
     {!!tail && <Skip />}
     {!!tail && html(tail)}
