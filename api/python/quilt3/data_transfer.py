@@ -1,3 +1,4 @@
+from collections import deque
 from codecs import iterdecode
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
@@ -271,7 +272,7 @@ def _copy_file_list_internal(s3_client, file_list):
     total_size = sum(size for _, _, size in file_list)
 
     lock = Lock()
-    futures = []
+    futures = deque()
     results = [None] * len(file_list)
 
     stopped = False
@@ -331,7 +332,7 @@ def _copy_file_list_internal(s3_client, file_list):
                 with lock:
                     if not futures:
                         break
-                    future = futures.pop()
+                    future = futures.popleft()
                 future.result()
         finally:
             # Make sure all tasks exit quickly if the main thread exits before they're done.
