@@ -435,7 +435,7 @@ class Package(object):
                     f"'build' instead."
                 )
 
-        pkg = cls._browse(name=name, registry=registry_parsed, top_hash=top_hash)
+        pkg = cls._browse(name=name, registry=registry, top_hash=top_hash)
         message = pkg._meta.get('message', None)  # propagate the package message
 
         pkg._materialize(dest_parsed)
@@ -495,24 +495,25 @@ class Package(object):
             registry(string): location of registry to load package from
             top_hash(string): top hash of package version to load
         """
+        return cls._browse(name=name, registry=registry, top_hash=top_hash)
+
+    @classmethod
+    def _browse(cls, name, registry, top_hash):
         validate_package_name(name)
         if registry is None:
             registry = get_from_config('default_local_registry')
         else:
             registry = fix_url(registry)
         registry_parsed = PhysicalKey.from_url(registry)
-        return cls._browse(name=name, registry=registry_parsed, top_hash=top_hash)
 
-    @classmethod
-    def _browse(cls, name, registry, top_hash):
         if top_hash is None:
-            top_hash_file = registry.join(f'.quilt/named_packages/{name}/latest')
+            top_hash_file = registry_parsed.join(f'.quilt/named_packages/{name}/latest')
             top_hash = get_bytes(top_hash_file).decode('utf-8').strip()
         else:
-            top_hash = cls.resolve_hash(registry, top_hash)
+            top_hash = cls.resolve_hash(registry_parsed, top_hash)
 
         # TODO: verify that name is correct with respect to this top_hash
-        pkg_manifest = registry.join(f'.quilt/packages/{top_hash}')
+        pkg_manifest = registry_parsed.join(f'.quilt/packages/{top_hash}')
 
         if pkg_manifest.is_local():
             local_pkg_manifest = pkg_manifest.path
