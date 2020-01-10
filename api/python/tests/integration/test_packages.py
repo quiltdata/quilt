@@ -380,6 +380,7 @@ class PackageTest(QuiltTestCase):
                 PhysicalKey.from_path('foo.txt')
             )
 
+    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
     def test_load_into_quilt(self):
         """ Verify loading local manifest and data into S3. """
         top_hash1 = 'abbf5f171cf20bfb2313ecd8684546958cd72ac4f3ec635e4510d9c771168226'
@@ -703,6 +704,7 @@ class PackageTest(QuiltTestCase):
         pkg = Package().set('bar.txt')
         assert PhysicalKey.from_path(test_file) == pkg['bar.txt'].physical_key
 
+    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
     def test_set_package_entry_as_object(self):
         pkg = Package()
         nasty_string = 'a,"\tb'
@@ -1005,7 +1007,7 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(QuiltException):
             p.push('Quilt/Test', 's3://test-bucket', dest='s3://other-test-bucket')
 
-
+    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
     def test_commit_message_on_push(self):
         """ Verify commit messages populate correctly on push."""
         with patch('botocore.client.BaseClient._make_api_call', new=mock_make_api_call), \
