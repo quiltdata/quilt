@@ -95,7 +95,7 @@ requests contain short-lived signed URLs generated using your AWS
 credentials. Data is encrypted in transit and no data is retained by Quilt.
 Nevertheless, it is recommended that you use `quilt3 catalog` only for public data.
 We strongly encourage users with
-sensitive information in S3 to run a private Quilt deployment. See
+sensitive data in S3 to run a private Quilt deployment. Visit
 https://quiltdata.com for more information.
 """
 
