@@ -13,7 +13,6 @@ from . import api, session
 from .session import open_url
 from .util import get_from_config, catalog_s3_url, QuiltException
 from .registry import app
-from .telemetry import ApiTelemetry
 
 def cmd_config(catalog_url):
     """
@@ -125,7 +124,6 @@ def cmd_catalog(s3_url=None, detailed_help=False):
     open_url(catalog_s3_url(local_catalog_url, s3_url))
     app.run()
 
-@ApiTelemetry("cli.disable_telemetry")
 def cmd_disable_telemetry():
     api._disable_telemetry()
     print("Successfully disabled telemetry.")
