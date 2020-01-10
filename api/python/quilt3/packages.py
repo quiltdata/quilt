@@ -25,7 +25,8 @@ from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
     validate_package_name, quiltignore_filter, validate_key, extract_file_extension
 )
-from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config
+from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
+    user_is_configured_to_custom_stack, catalog_package_url
 
 
 
@@ -1232,14 +1233,19 @@ class Package(object):
 
         pkg._build(name, registry=registry, message=message)
 
-        navigator_url = get_from_config("navigator_url")
-        registry_parsed = PhysicalKey.from_url(registry)
-        shorthash = Package._shorten_tophash(name, registry_parsed, pkg.top_hash)
+        shorthash = Package._shorten_tophash(name, PhysicalKey.from_url(registry), pkg.top_hash)
         print(f"Package {name}@{shorthash} pushed to s3://{dest_parsed.bucket}")
-        if navigator_url is None:
-            print(f"Run `quilt3 catalog {str(dest_parsed)}` to browse.")
+
+        if user_is_configured_to_custom_stack():
+            navigator_url = get_from_config("navigator_url")
+
+            print(f"Visit {catalog_package_url(navigator_url, dest_parsed.bucket, name)}")
         else:
-            print(f"Visit {navigator_url}/b/{dest_parsed.bucket}/packages/{name}/tree/latest")
+            dest_s3_url = str(dest_parsed)
+            if not dest_s3_url.endswith("/"):
+                dest_s3_url += "/"
+            print(f"Run `quilt3 catalog {dest_s3_url}` to browse.")
+
         return pkg
 
     @classmethod
