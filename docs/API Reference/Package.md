@@ -260,7 +260,7 @@ __Raises__
 * `KeyError`:  when logical_key is not present to be deleted
 
 
-## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=<function Package.<lambda> at 0x1077a6170>)  {#Package.push}
+## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=<function Package.<lambda> at 0x109caa170>)  {#Package.push}
 
 Copies objects to path, then creates a new package that points to those objects.
 Copies each object in this package to path according to logical key structure,
@@ -375,4 +375,132 @@ __Arguments__
 __Returns__
 
 True if the package matches the directory; False otherwise.
+
+
+# PackageEntry(self, physical\_key, size, hash\_obj, meta)  {#PackageEntry}
+Represents an entry at a logical key inside a package.
+
+**\_\_init\_\_**
+
+Creates an entry.
+
+__Arguments__
+
+* __physical_key__:  a URI (either `s3://` or `file://`)
+* __size(number)__:  size of object in bytes
+* __hash({'type'__:  string, 'value': string}): hash object
+* __for example__:  {'type': 'SHA256', 'value': 'bb08a...'}
+* __meta(dict)__:  metadata dictionary
+
+__Returns__
+
+a PackageEntry
+
+## __slots__
+Built-in mutable sequence.
+
+If no argument is given, the constructor creates a new empty list.
+The argument must be an iterable if specified.
+
+## physical_keys
+
+Deprecated
+
+
+## PackageEntry.as\_dict(self)  {#PackageEntry.as\_dict}
+
+Returns dict representation of entry.
+
+
+## PackageEntry.set\_meta(self, meta)  {#PackageEntry.set\_meta}
+
+Sets the user_meta for this PackageEntry.
+
+
+## PackageEntry.set(self, path=None, meta=None)  {#PackageEntry.set}
+
+Returns self with the physical key set to path.
+
+__Arguments__
+
+* __logical_key(string)__:  logical key to update
+* __path(string)__:  new path to place at logical_key in the package
+    Currently only supports a path on local disk
+* __meta(dict)__:  metadata dict to attach to entry. If meta is provided, set just
+    updates the meta attached to logical_key without changing anything
+    else in the entry
+
+__Returns__
+
+self
+
+
+## PackageEntry.get(self)  {#PackageEntry.get}
+
+Returns the physical key of this PackageEntry.
+
+
+## PackageEntry.get\_cached\_path(self)  {#PackageEntry.get\_cached\_path}
+
+Returns a locally cached physical key, if available.
+
+
+## PackageEntry.get\_bytes(self, use\_cache\_if\_available=True)  {#PackageEntry.get\_bytes}
+
+Returns the bytes of the object this entry corresponds to. If 'use_cache_if_available'=True, will first try to
+retrieve the bytes from cache.
+
+
+## PackageEntry.get\_as\_json(self, use\_cache\_if\_available=True)  {#PackageEntry.get\_as\_json}
+
+Returns a JSON file as a `dict`. Assumes that the file is encoded using utf-8.
+
+If 'use_cache_if_available'=True, will first try to retrieve the object from cache.
+
+
+## PackageEntry.get\_as\_string(self, use\_cache\_if\_available=True)  {#PackageEntry.get\_as\_string}
+
+Return the object as a string. Assumes that the file is encoded using utf-8.
+
+If 'use_cache_if_available'=True, will first try to retrieve the object from cache.
+
+
+## PackageEntry.deserialize(self, func=None, \*\*format\_opts)  {#PackageEntry.deserialize}
+
+Returns the object this entry corresponds to.
+
+__Arguments__
+
+* __func__:  Skip normal deserialization process, and call func(bytes),
+    returning the result directly.
+* __**format_opts__:  Some data formats may take options.  Though
+    normally handled by metadata, these can be overridden here.
+__Returns__
+
+The deserialized object from the logical_key
+
+__Raises__
+
+physical key failure
+hash verification fail
+when deserialization metadata is not present
+
+
+## PackageEntry.fetch(self, dest=None)  {#PackageEntry.fetch}
+
+Gets objects from entry and saves them to dest.
+
+__Arguments__
+
+* __dest__:  where to put the files
+    Defaults to the entry name
+
+__Returns__
+
+None
+
+
+## PackageEntry.\_\_call\_\_(self, func=None, \*\*kwargs)  {#PackageEntry.\_\_call\_\_}
+
+Shorthand for self.deserialize()
 
