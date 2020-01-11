@@ -540,7 +540,7 @@ class PackageTest(QuiltTestCase):
         test_file2.write_text('omg')
         new_pkg.set('foo2', test_file1)
 
-        with patch('time.time_ns', return_value=1234567890), \
+        with patch('time.time', return_value=1234567.890), \
              patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             remote_pkg = new_pkg.push('Quilt/package', 's3://my_test_bucket/')
 
@@ -599,7 +599,7 @@ class PackageTest(QuiltTestCase):
         test_file3.write_text('!!!')
         remote_pkg.set('foo2', test_file3)
 
-        with patch('time.time_ns', return_value=1234567891), \
+        with patch('time.time', return_value=1234567.891), \
              patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
 
@@ -749,7 +749,7 @@ class PackageTest(QuiltTestCase):
         """Verify that list returns packages in the appdirs directory."""
 
         # Build a new package into the local registry.
-        with patch('time.time_ns', return_value=1234567890):
+        with patch('time.time', return_value=1234567.890):
             Package().build("Quilt/Foo")
             Package().build("Quilt/Bar")
             Package().build("Quilt/Test")

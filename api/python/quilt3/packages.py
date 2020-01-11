@@ -920,7 +920,7 @@ class Package(object):
 
         named_path = registry_parsed.join(f'.quilt/named_packages/{name}')
         hash_bytes = self.top_hash.encode('utf-8')
-        timestamp_path = named_path.join(str(time.time_ns()))
+        timestamp_path = named_path.join(str(int(time.time() * 1000)))
         latest_path = named_path.join("latest")
         put_bytes(hash_bytes, timestamp_path)
         put_bytes(hash_bytes, latest_path)
