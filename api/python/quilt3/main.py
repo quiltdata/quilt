@@ -126,7 +126,7 @@ def cmd_catalog(s3_url=None, detailed_help=False):
 
 
 def cmd_list_packages(registry):
-    for package_name in list_packages(registry=registry):
+    for package_name in api._list_packages(registry=registry):
         print(package_name)
 
 
