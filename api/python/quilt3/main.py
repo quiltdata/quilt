@@ -134,11 +134,15 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
         print("Verification failed")
         return 1
 
-def cmd_version():
-    print(quilt3_version.strip())
-
 def create_parser():
     parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument(
+            "--version",
+            help="Show quilt3 version and exit",
+            action="version",
+            version=quilt3_version.strip()
+    )
+
 
     subparsers = parser.add_subparsers(metavar="<command>")
     subparsers.required = True
@@ -247,11 +251,6 @@ def create_parser():
         action="store_true"
     )
     verify_p.set_defaults(func=cmd_verify)
-
-    # version
-    shorthelp = "Display the version of quilt3"
-    version_p = subparsers.add_parser("version", description=shorthelp, help=shorthelp, allow_abbrev=False)
-    version_p.set_defaults(func=cmd_version)
 
     return parser
 
