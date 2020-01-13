@@ -794,7 +794,7 @@ const loadRevisionHash = ({ s3req, bucket, name, id }) =>
 export const getRevisionData = async ({
   s3req,
   endpoint,
-  signer,
+  sign,
   bucket,
   name,
   id,
@@ -802,7 +802,7 @@ export const getRevisionData = async ({
 }) => {
   const { hash, modified } = await loadRevisionHash({ s3req, bucket, name, id })
   const manifestKey = `${MANIFESTS_PREFIX}${hash}`
-  const url = signer.getSignedS3URL({ bucket, key: manifestKey })
+  const url = sign({ bucket, key: manifestKey })
   const maxLines = maxKeys + 2 // 1 for the meta and 1 for checking overflow
   const r = await fetch(
     `${endpoint}/preview?url=${encodeURIComponent(url)}&input=txt&line_count=${maxLines}`,

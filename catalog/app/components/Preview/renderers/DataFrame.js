@@ -1,56 +1,56 @@
 import cx from 'classnames'
-import PT from 'prop-types'
 import * as React from 'react'
-import * as RC from 'recompose'
-import { withStyles } from '@material-ui/styles'
+import * as M from '@material-ui/core'
 
-import * as RT from 'utils/reactTools'
+import { renderPreviewStatus } from './util'
 
-const DataFrame = RT.composeComponent(
-  'Preview.renderers.DataFrame',
-  RC.setPropTypes({
-    children: PT.string,
-    className: PT.string,
-  }),
-  withStyles(({ palette, spacing: { unit } }) => ({
-    root: {
-      width: '100%',
-    },
-    wrapper: {
-      overflow: 'auto',
+const useStyles = M.makeStyles((t) => ({
+  root: {
+    width: '100%',
+  },
+  wrapper: {
+    overflow: 'auto',
 
-      '& table.dataframe': {
+    '& table.dataframe': {
+      border: 'none',
+      minWidth: '100%',
+      width: 'auto',
+
+      '& tr:nth-child(even)': {
+        backgroundColor: t.palette.grey[100],
+      },
+
+      '& th, & td': {
         border: 'none',
-        minWidth: '100%',
-        width: 'auto',
+        fontSize: 'small',
+        height: t.spacing(3),
+        paddingLeft: t.spacing(1),
+        paddingRight: t.spacing(1),
+      },
 
-        '& tr:nth-child(even)': {
-          backgroundColor: palette.grey[100],
-        },
-
-        '& th, & td': {
-          border: 'none',
-          fontSize: 'small',
-          height: 3 * unit,
-          paddingLeft: unit,
-          paddingRight: unit,
-        },
-
-        '& td': {
-          whiteSpace: 'nowrap',
-        },
+      '& td': {
+        whiteSpace: 'nowrap',
       },
     },
-  })),
-  ({ classes, children, className, ...props } = {}) => (
+  },
+}))
+
+function DataFrame({ children, className, note, warnings, ...props } = {}) {
+  const classes = useStyles()
+  return (
     <div className={cx(className, classes.root)} {...props}>
+      {renderPreviewStatus({ note, warnings })}
       <div
         className={classes.wrapper}
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: children }}
       />
     </div>
-  ),
-)
+  )
+}
 
-export default ({ preview }, props) => <DataFrame {...props}>{preview}</DataFrame>
+export default ({ preview, note, warnings }, props) => (
+  <DataFrame {...{ note, warnings }} {...props}>
+    {preview}
+  </DataFrame>
+)

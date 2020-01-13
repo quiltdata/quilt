@@ -54,7 +54,7 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
 
 function RevisionInfo({ revision, bucket, name, path }) {
   const s3req = AWS.S3.useRequest()
-  const signer = AWS.Signer.use()
+  const sign = AWS.Signer.useS3Signer()
   const { apiGatewayEndpoint: endpoint } = Config.useConfig()
   const { urls } = NamedRoutes.use()
   const today = React.useMemo(() => new Date(), [])
@@ -85,7 +85,7 @@ function RevisionInfo({ revision, bucket, name, path }) {
                 <Data
                   key={r}
                   fetch={requests.getRevisionData}
-                  params={{ s3req, signer, endpoint, bucket, name, id: r, maxKeys: 0 }}
+                  params={{ s3req, sign, endpoint, bucket, name, id: r, maxKeys: 0 }}
                 >
                   {(res) => {
                     const modified =
@@ -336,6 +336,19 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: -3,
     marginTop: -3,
   },
+  warning: {
+    background: t.palette.warning.light,
+    borderRadius: t.shape.borderRadius,
+    display: 'flex',
+    padding: t.spacing(1.5),
+    ...t.typography.body2,
+  },
+  warningIcon: {
+    height: 20,
+    lineHeight: '20px',
+    marginRight: t.spacing(1),
+    opacity: 0.6,
+  },
 }))
 
 export default function PackageTree({
@@ -429,6 +442,12 @@ export default function PackageTree({
                 result,
               )}
             </div>
+
+            <M.Box className={classes.warning} mb={2}>
+              <M.Icon className={classes.warningIcon}>warning</M.Icon>
+              The Packages tab shows only the first 1,000 files. Use the Files tab (above)
+              or Python code (below) to view all files. This is a temporary limitation.
+            </M.Box>
 
             <Section icon="code" heading="Code">
               <Code>{code}</Code>

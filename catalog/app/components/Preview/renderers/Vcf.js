@@ -1,17 +1,10 @@
 import cx from 'classnames'
 import * as React from 'react'
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Typography,
-} from '@material-ui/core'
-import { makeStyles } from '@material-ui/styles'
+import * as M from '@material-ui/core'
 
-const useStyles = makeStyles((t) => ({
+import { renderPreviewStatus } from './util'
+
+const useStyles = M.makeStyles((t) => ({
   root: {
     width: '100%',
   },
@@ -51,64 +44,65 @@ const useStyles = makeStyles((t) => ({
   },
 }))
 
-const Vcf = ({ meta, header, data, variants }) => {
+function Vcf({ meta, header, data, variants, note, warnings }) {
   const classes = useStyles()
 
   const renderCell = (type, i = '') => (col, j) => (
-    <TableCell
+    <M.TableCell
       // eslint-disable-next-line react/no-array-index-key
       key={`${type}:${i}:${j}`}
       className={cx(classes.cell, classes[type])}
     >
       {col}
-    </TableCell>
+    </M.TableCell>
   )
 
   return (
     <div className={classes.root}>
+      {renderPreviewStatus({ note, warnings })}
       <div className={classes.tableWrapper}>
-        <Table className={classes.table}>
-          <TableHead>
+        <M.Table className={classes.table}>
+          <M.TableHead>
             {meta.map((l, i) => (
               // eslint-disable-next-line react/no-array-index-key
-              <TableRow key={`meta:${i}`} className={classes.row}>
-                <TableCell
+              <M.TableRow key={`meta:${i}`} className={classes.row}>
+                <M.TableCell
                   colSpan={header ? header[0].length : undefined}
                   className={cx(classes.cell, classes.meta)}
                 >
                   {l}
-                </TableCell>
-              </TableRow>
+                </M.TableCell>
+              </M.TableRow>
             ))}
-          </TableHead>
-        </Table>
+          </M.TableHead>
+        </M.Table>
       </div>
       <div className={classes.tableWrapper}>
-        <Table className={classes.table}>
+        <M.Table className={classes.table}>
           {!!header && (
-            <TableHead>
-              <TableRow className={classes.row}>
+            <M.TableHead>
+              <M.TableRow className={classes.row}>
                 {header.map(renderCell('header'))}
-              </TableRow>
-            </TableHead>
+              </M.TableRow>
+            </M.TableHead>
           )}
-          <TableBody>
+          <M.TableBody>
             {data.map((row, i) => (
               // eslint-disable-next-line react/no-array-index-key
-              <TableRow key={`data:${i}`} className={classes.row}>
+              <M.TableRow key={`data:${i}`} className={classes.row}>
                 {row.map(renderCell('data', i))}
-              </TableRow>
+              </M.TableRow>
             ))}
-          </TableBody>
-        </Table>
+          </M.TableBody>
+        </M.Table>
       </div>
       {!!variants.length && (
-        <Box mt={2}>
-          <Typography variant="h6" gutterBottom>
+        <M.Box mt={2}>
+          <M.Typography variant="h6" gutterBottom>
             Variants ({variants.length})
-          </Typography>
+          </M.Typography>
           <div className={classes.variants}>{variants.join(' ')}</div>
-        </Box>
+        </M.Box>
       )}
     </div>
   )

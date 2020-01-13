@@ -14,11 +14,6 @@ __Returns__
 
 A new Bucket
 
-## Bucket.config(self, config\_url=None)  {#Bucket.config}
-
-Updates this bucket's search endpoint based on a federation config.
-
-
 ## Bucket.search(self, query, limit=10)  {#Bucket.search}
 
 Execute a search against the configured search endpoint.
@@ -77,7 +72,7 @@ Stores all files in the `directory` under the prefix `key`.
 __Arguments__
 
 * __key(str)__:  prefix to store files under in bucket
-* __directory(str)__:  path to local directory to grab files from
+* __directory(str)__:  path to directory to grab files from
 
 __Returns__
 
@@ -85,7 +80,6 @@ None
 
 __Raises__
 
-* if directory isn't a valid local directory
 * if writing to bucket fails
 
 

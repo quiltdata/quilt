@@ -25,6 +25,7 @@ generate:
 
 - Package.md:
   - quilt3.Package+   # All *documented* members, except _private_members.
+  - quilt3.packages.PackageEntry+
 
 
 # MkDocs pages configuration. The `<<` operator is sugar added by pydocmd

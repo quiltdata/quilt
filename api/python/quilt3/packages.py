@@ -436,7 +436,7 @@ class Package(object):
                     f"'build' instead."
                 )
 
-        pkg = cls._browse(name=name, registry=registry_parsed, top_hash=top_hash)
+        pkg = cls._browse(name=name, registry=registry, top_hash=top_hash)
         message = pkg._meta.get('message', None)  # propagate the package message
 
         pkg._materialize(dest_parsed)
@@ -498,24 +498,25 @@ class Package(object):
             registry(string): location of registry to load package from
             top_hash(string): top hash of package version to load
         """
+        return cls._browse(name=name, registry=registry, top_hash=top_hash)
+
+    @classmethod
+    def _browse(cls, name, registry, top_hash):
         validate_package_name(name)
         if registry is None:
             registry = get_from_config('default_local_registry')
         else:
             registry = fix_url(registry)
         registry_parsed = PhysicalKey.from_url(registry)
-        return cls._browse(name=name, registry=registry_parsed, top_hash=top_hash)
 
-    @classmethod
-    def _browse(cls, name, registry, top_hash):
         if top_hash is None:
-            top_hash_file = registry.join(f'.quilt/named_packages/{name}/latest')
+            top_hash_file = registry_parsed.join(f'.quilt/named_packages/{name}/latest')
             top_hash = get_bytes(top_hash_file).decode('utf-8').strip()
         else:
-            top_hash = cls.resolve_hash(registry, top_hash)
+            top_hash = cls.resolve_hash(registry_parsed, top_hash)
 
         # TODO: verify that name is correct with respect to this top_hash
-        pkg_manifest = registry.join(f'.quilt/packages/{top_hash}')
+        pkg_manifest = registry_parsed.join(f'.quilt/packages/{top_hash}')
 
         if pkg_manifest.is_local():
             local_pkg_manifest = pkg_manifest.path
@@ -1144,33 +1145,32 @@ class Package(object):
         then adds to the registry a serialized version of this package with
         physical keys that point to the new copies.
 
+        Note that push is careful to not push data unnecessarily. To illustrate, imagine you have
+        a PackageEntry: `pkg["entry_1"].physical_key = "/tmp/package_entry_1.json"`
+
+        If that entry would be pushed to `s3://bucket/prefix/entry_1.json`, but
+        `s3://bucket/prefix/entry_1.json` already contains the exact same bytes as
+        '/tmp/package_entry_1.json', `quilt3` will not push the bytes to s3, no matter what
+        `selector_fn('entry_1', pkg["entry_1"])` returns.
+
+        However, selector_fn will dictate whether the new package points to the local file or to s3:
+
+        If `selector_fn('entry_1', pkg["entry_1"]) == False`,
+        `new_pkg["entry_1"] = ["/tmp/package_entry_1.json"]`
+
+        If `selector_fn('entry_1', pkg["entry_1"]) == True`,
+        `new_pkg["entry_1"] = ["s3://bucket/prefix/entry_1.json"]`
+
         Args:
             name: name for package in registry
             dest: where to copy the objects in the package
             registry: registry where to create the new package
             message: the commit message for the new package
-            selector_fn: A filter function that determines which package entries should be pushed. The function takes
-                         in two arguments, logical_key and package_entry, and should return False if that PackageEntry
-                         should be skipped during push. If for example you have a package where the files are spread
-                         over multiple buckets and you add a single local file, you can use selector_fn to only push
-                         the local file to s3 (instead of pushing all data to the destination bucket).
-
-
-                         Note that push is careful to not push data unnecessarily. To illustrate, imagine you have a
-                         PackageEntry: `pkg["entry_1"].physical_key = "/tmp/package_entry_1.json"`
-
-                         If that entry would be pushed to s3://bucket/prefix/entry_1.json, but
-                         s3://bucket/prefix/entry_1.json already contains the exact same bytes as
-                         '/tmp/package_entry_1.json', quilt3 will not push the bytes to s3, no matter what
-                         selector_fn('entry_1', pkg["entry_1"]) returns.
-
-                         However, selector_fn will dictate whether the new package points to the local file or to s3:
-
-                         If `selector_fn('entry_1', pkg["entry_1"]) == False`,
-                         `new_pkg["entry_1"] = ["/tmp/package_entry_1.json"]`
-
-                         If `selector_fn('entry_1', pkg["entry_1"]) == True`,
-                         `new_pkg["entry_1"] = ["s3://bucket/prefix/entry_1.json"]`
+            selector_fn: An optional function that determines which package entries should be copied to S3. The function
+                         takes in two arguments, logical_key and package_entry, and should return False if that
+                         PackageEntry should be skipped during push. If for example you have a package where the files
+                         are spread over multiple buckets and you add a single local file, you can use selector_fn to
+                         only push the local file to s3 (instead of pushing all data to the destination bucket).
 
         Returns:
             A new package that points to the copied objects.

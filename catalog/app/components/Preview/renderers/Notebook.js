@@ -1,13 +1,11 @@
 import cx from 'classnames'
 import renderMathInEl from 'katex/contrib/auto-render/auto-render'
-import PT from 'prop-types'
 import * as React from 'react'
-import * as RC from 'recompose'
-import { makeStyles } from '@material-ui/styles'
+import * as M from '@material-ui/core'
 
 import 'katex/dist/katex.css'
 
-import * as RT from 'utils/reactTools'
+import { renderPreviewStatus } from './util'
 
 const MATH_DELIMITERS = [
   { left: '$$', right: '$$', display: true },
@@ -21,9 +19,11 @@ const renderMath = (el) => {
   renderMathInEl(el, { delimiters: MATH_DELIMITERS })
 }
 
-const useStyles = makeStyles({
+const useStyles = M.makeStyles({
   root: {
     width: '100%',
+  },
+  contents: {
     // workaround to speed-up browser rendering / compositing
     '& pre': {
       overflow: 'hidden',
@@ -32,24 +32,23 @@ const useStyles = makeStyles({
   },
 })
 
-const Notebook = RT.composeComponent(
-  'Preview.renderers.Notebook',
-  RC.setPropTypes({
-    children: PT.string,
-    className: PT.string,
-  }),
-  ({ children, className, ...props } = {}) => {
-    const classes = useStyles()
-    return (
+function Notebook({ children, className, note, warnings, ...props } = {}) {
+  const classes = useStyles()
+  return (
+    <div className={cx(classes.root, className)} {...props}>
+      {renderPreviewStatus({ note, warnings })}
       <div
-        className={cx(classes.root, className, 'ipynb-preview')}
+        className={cx(classes.contents, 'ipynb-preview')}
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: children }}
         ref={renderMath}
-        {...props}
       />
-    )
-  },
-)
+    </div>
+  )
+}
 
-export default ({ preview }, props) => <Notebook {...props}>{preview}</Notebook>
+export default ({ preview, note, warnings }, props) => (
+  <Notebook {...{ note, warnings }} {...props}>
+    {preview}
+  </Notebook>
+)
