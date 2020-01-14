@@ -10,8 +10,7 @@ import sys
 import dns.resolver
 import requests
 
-
-from . import api, session, list_packages
+from . import api, session
 from . import __version__ as quilt3_version
 from .session import open_url
 from .util import get_from_config, catalog_s3_url, catalog_package_url, QuiltException
@@ -168,12 +167,9 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
     open_url(catalog_url)
     app.run()
 
-
-
 def cmd_disable_telemetry():
     api._disable_telemetry()
     print("Successfully disabled telemetry.")
- 
 
 def cmd_list_packages(registry):
     for package_name in api._list_packages(registry=registry):
