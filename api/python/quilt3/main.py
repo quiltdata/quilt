@@ -10,6 +10,7 @@ import dns.resolver
 import requests
 
 from . import api, session
+from . import __version__ as quilt3_version
 from .session import open_url
 from .util import get_from_config, catalog_s3_url, QuiltException
 from .registry import app
@@ -135,6 +136,13 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
 
 def create_parser():
     parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument(
+            "--version",
+            help="Show quilt3 version and exit",
+            action="version",
+            version=quilt3_version.strip()
+    )
+
 
     subparsers = parser.add_subparsers(metavar="<command>")
     subparsers.required = True
