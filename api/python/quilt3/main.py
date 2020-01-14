@@ -182,7 +182,7 @@ def create_parser():
     catalog_p.set_defaults(func=cmd_catalog)
 
     # disable-telemetry
-    shorthelp = "Configure quilt to not send anonymous usage metrics"
+    shorthelp = "Disable anonymous usage metrics"
     disable_telemetry_p = subparsers.add_parser("disable-telemetry", description=shorthelp, help=shorthelp, allow_abbrev=False)
     disable_telemetry_p.set_defaults(func=cmd_disable_telemetry)
 
