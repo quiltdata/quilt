@@ -398,6 +398,14 @@ def config_exists():
     """
     return CONFIG_PATH.exists()
 
+def user_is_configured_to_custom_stack():
+    """Look at the users stack to see if they have configured to their own stack. There is currently no way to
+    distinguish between someone who has not configured their stack and someone who has intentionally configured
+    their stack to use open.quiltdata.com"""
+    configured_nav_url = get_from_config("navigator_url")
+    return configured_nav_url is not None and configured_nav_url != OPEN_DATA_URL
+
+
 def configure_from_default():
     """
     Try to configure to the default (public) Quilt stack.
@@ -522,3 +530,19 @@ def catalog_s3_url(catalog_url, s3_url):
             params = {'version': pk.version_id}
             url += f"?{urlencode(params)}"
     return url
+
+def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="latest"):
+    """
+    Generate a URL to the Quilt catalog page of a package. By default will go to the latest version of the package,
+    but the user can pass in the appropriate timestamp to go to a different version.
+
+    Note: There is currently no good way to generate the URL given a specific tophash
+    """
+    assert bucket is not None, "The bucket parameter must not be None"
+    assert package_name is not None, "The package_name parameter must not be None"
+    validate_package_name(package_name)
+
+    return f"{catalog_url}/b/{bucket}/packages/{package_name}/tree/{package_timestamp}"
+
+
+

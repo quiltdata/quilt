@@ -4,6 +4,7 @@ Parses the command-line arguments and runs a command.
 
 import argparse
 import subprocess
+import time
 import sys
 
 import dns.resolver
@@ -12,7 +13,7 @@ import requests
 from . import api, session
 from . import __version__ as quilt3_version
 from .session import open_url
-from .util import get_from_config, catalog_s3_url, QuiltException
+from .util import get_from_config, catalog_s3_url, catalog_package_url, QuiltException
 from .registry import app
 
 def cmd_config(catalog_url):
@@ -77,6 +78,7 @@ def _launch_local_s3proxy():
 
 
 
+
 catalog_cmd_detailed_help = """
 Run the Quilt catalog on your machine (requires Docker). Running
 `quilt3 catalog` launches a webserver on your local machine using
@@ -100,9 +102,10 @@ sensitive data in S3 to run a private Quilt deployment. Visit
 https://quiltdata.com for more information.
 """
 
-def cmd_catalog(s3_url=None, detailed_help=False):
+def cmd_catalog(navigation_target=None, detailed_help=False):
     """
-    Run the Quilt catalog locally.
+    Run the Quilt catalog locally. If navigation_targets starts with 's3://', open file view. Otherwise assume it
+    refers to a package, following the pattern: BUCKET:USER/PKG
 
     If detailed_help=True, display detailed information about the `quilt3 catalog` command and then exit
     """
@@ -115,14 +118,53 @@ def cmd_catalog(s3_url=None, detailed_help=False):
 
 
 
+    # Build the catalog URL - we do this at the beginning so simple syntax errors return immediately
+    if navigation_target.startswith("s3://"):
+        catalog_url = catalog_s3_url(local_catalog_url, navigation_target)
+    else:
+        num_colons = navigation_target.count(":")
+        assert num_colons == 1, f"To go to Package view, the input should follow the pattern BUCKET:USER/PKG. " \
+            f"However the input {navigation_target} has {num_colons} colons when it should have exactly one."
+        num_slashes = navigation_target.count("/")
+        assert num_slashes == 1, f"To go to Package view, the input should follow the pattern BUCKET:USER/PKG. " \
+            f"However the input {navigation_target} has {num_slashes} backslashes when it should have exactly one."
+        bucket, package_name = navigation_target.split(":")
+        catalog_url = catalog_package_url(local_catalog_url, bucket, package_name)
+
+
+
     if not _test_url(local_catalog_url):
         _launch_local_catalog()
 
     if not _test_url(local_s3proxy_url):
         _launch_local_s3proxy()
 
-    # open a browser to the local catalog
-    open_url(catalog_s3_url(local_catalog_url, s3_url))
+    # Make sure the containers are running and available before opening the browser window
+    print("Waiting for containers to launch...")
+    failure_timeout_secs = 15
+    poll_interval_secs = 0.5
+    start_time = time.time()
+    while True:
+        if time.time() - start_time > failure_timeout_secs:
+            catalog_failed = _test_url(local_catalog_url)
+            s3proxy_failed = _test_url(local_s3proxy_url)
+            if not catalog_failed and not s3proxy_failed:
+                # Succeeded at the last second, let it proceed
+                break
+            raise QuiltException(f"The backend containers needed to run the catalog did not both successfully launch. "
+                                 f"Status:\n"
+                                 f"\tCATALOG: {'FAILED' if catalog_failed else 'SUCCEEDED'}"
+                                 f"\tS3PROXY: {'FAILED' if s3proxy_failed else 'SUCCEEDED'}")
+
+        if _test_url(local_catalog_url) and _test_url(local_s3proxy_url):
+            # Everything is working, proceed
+            break
+        else:
+            time.sleep(poll_interval_secs)  # The containers can take a moment to launch
+
+
+
+    open_url(catalog_url)
     app.run()
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
@@ -172,8 +214,10 @@ def create_parser():
     shorthelp = "Run Quilt catalog locally"
     catalog_p = subparsers.add_parser("catalog", description=shorthelp, help=shorthelp, allow_abbrev=False)
     catalog_p.add_argument(
-            "s3_url",
-            help="S3 URL to browse in local catalog",
+            "navigation_target",
+            help="Which page in the local catalog to open. Leave blank to go to the catalog landing page, pass in an "
+             "s3 url (e.g. 's3://bucket/myfile.txt') to go to file viewer, or pass in a package name in the form "
+             "'BUCKET:USER/PKG' to go to the package viewer.",
             type=str,
             nargs="?"
     )
