@@ -1272,11 +1272,6 @@ class Package(object):
 
         put_bytes(top_hash.encode('utf-8'), latest_path)
 
-    @classmethod
-    def _maybe_add_to_cache(cls, old: PhysicalKey, new: PhysicalKey):
-        if not old.is_local() and new.is_local():
-            ObjectPathCache.set(str(old), new.path)
-
     def _materialize(self, dest: PhysicalKey, selector_fn=lambda logical_key, pkg_entry: True):
         """
         Copies all Package entries to the destination, then creates a new package that points to those objects.
@@ -1327,11 +1322,13 @@ class Package(object):
                 entries.append((logical_key, entry))
                 file_list.append((physical_key, new_physical_key, entry.size))
 
-        results = copy_file_list(file_list)
+        def _maybe_add_to_cache(old: PhysicalKey, new: PhysicalKey, _):
+            if not old.is_local() and new.is_local():
+                ObjectPathCache.set(str(old), new.path)
+
+        results = copy_file_list(file_list, callback=_maybe_add_to_cache)
 
         for (logical_key, entry), versioned_key in zip(entries, results):
-            old_physical_key = entry.physical_key
-            self._maybe_add_to_cache(old_physical_key, versioned_key)
             # Create a new package entry pointing to the new remote key.
             assert versioned_key is not None
             new_entry = entry.with_physical_key(versioned_key)
