@@ -167,6 +167,11 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
     open_url(catalog_url)
     app.run()
 
+def cmd_disable_telemetry():
+    api._disable_telemetry()
+    print("Successfully disabled telemetry.")
+
+
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
     pkg = api.Package._browse(name, registry, top_hash)
     if pkg.verify(dir, extra_files_ok):
@@ -228,6 +233,10 @@ def create_parser():
     )
     catalog_p.set_defaults(func=cmd_catalog)
 
+    # disable-telemetry
+    shorthelp = "Disable anonymous usage metrics"
+    disable_telemetry_p = subparsers.add_parser("disable-telemetry", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    disable_telemetry_p.set_defaults(func=cmd_disable_telemetry)
 
     # install
     shorthelp = "Install a package"
