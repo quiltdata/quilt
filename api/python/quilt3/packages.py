@@ -64,7 +64,7 @@ class ObjectPathCache(object):
         try:
             with open(cache_path) as fd:
                 path, dev, ino, mtime = json.load(fd)
-        except FileNotFoundError:
+        except (FileNotFoundError, ValueError):
             return None
 
         try:
