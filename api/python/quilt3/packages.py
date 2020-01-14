@@ -25,7 +25,8 @@ from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
     validate_package_name, quiltignore_filter, validate_key, extract_file_extension
 )
-from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey
+from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
+    user_is_configured_to_custom_stack, catalog_package_url
 
 
 
@@ -472,9 +473,11 @@ class Package(object):
         return top_hash
 
     @classmethod
-    def _shorten_tophash(cls, package_name, registry, top_hash):
+    def _shorten_tophash(cls, package_name, registry: PhysicalKey, top_hash):
         min_shorthash_len = 7
-        matches = [h for h, _ in list_url(registry.join('.quilt/packages/')) if h.startswith(top_hash[:min_shorthash_len])]
+
+        matches = [h for h, _ in list_url(registry.join('.quilt/packages/'))
+                   if h.startswith(top_hash[:min_shorthash_len])]
         if len(matches) == 0:
             raise ValueError(f"Tophash {top_hash} was not found in registry {registry}")
         for prefix_length in range(min_shorthash_len, 64):
@@ -1229,6 +1232,20 @@ class Package(object):
             self._set(lk, pkg[lk])
 
         pkg._build(name, registry=registry, message=message)
+
+        shorthash = Package._shorten_tophash(name, PhysicalKey.from_url(registry), pkg.top_hash)
+        print(f"Package {name}@{shorthash} pushed to s3://{dest_parsed.bucket}")
+
+        if user_is_configured_to_custom_stack():
+            navigator_url = get_from_config("navigator_url")
+
+            print(f"Visit {catalog_package_url(navigator_url, dest_parsed.bucket, name)}")
+        else:
+            dest_s3_url = str(dest_parsed)
+            if not dest_s3_url.endswith("/"):
+                dest_s3_url += "/"
+            print(f"Run `quilt3 catalog {dest_s3_url}` to browse.")
+
         return pkg
 
     @classmethod
