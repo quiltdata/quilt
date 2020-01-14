@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 
-import { renderPreviewStatus } from './util'
+import { renderWarnings } from './util'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -72,7 +72,7 @@ function Parquet({
 
   return (
     <div className={cx(className, classes.root)} {...props}>
-      {renderPreviewStatus({ note, warnings })}
+      {renderWarnings(warnings)}
       <table className={classes.meta}>
         <tbody>
           {renderMeta('Created by:', createdBy, (c) => (
@@ -97,6 +97,7 @@ function Parquet({
         </tbody>
       </table>
       <div
+        title={note}
         className={classes.dataframe}
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: preview }}

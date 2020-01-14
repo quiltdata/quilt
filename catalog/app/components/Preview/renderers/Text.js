@@ -2,7 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { renderPreviewStatus } from './util'
+import { renderWarnings } from './util'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -19,8 +19,10 @@ function Text({ className, children, note, warnings, ...props }) {
   const classes = useStyles()
   return (
     <div className={cx(className, classes.root)} {...props}>
-      {renderPreviewStatus({ note, warnings })}
-      <div className={classes.text}>{children}</div>
+      {renderWarnings(warnings)}
+      <div title={note} className={classes.text}>
+        {children}
+      </div>
     </div>
   )
 }
