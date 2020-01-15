@@ -22,6 +22,9 @@ from tqdm import tqdm
 from .session import create_botocore_session
 from .util import PhysicalKey, QuiltException
 
+import logging
+
+logging.basicConfig(level=logging.WARNING)
 
 
 # def create_s3_client():
@@ -50,6 +53,7 @@ from .util import PhysicalKey, QuiltException
 
 
 class S3Api(Enum):
+    GET_OBJECT = "GET_OBJECT"
     HEAD_OBJECT = "HEAD_OBJECT"
     DELETE_OBJECT = "DELETE_OBJECT"
     LIST_OBJECT_VERSIONS = "LIST_OBJECT_VERSIONS"
@@ -114,18 +118,38 @@ class S3ClientProvider:
     def client_type_known(self, action: S3Api, bucket: str):
         return self.should_use_unsigned_client(action, bucket) is not None
 
-    @classmethod
-    def find_correct_client(cls, api_type, bucket, param_dict, check_fn):
-        if s3_client_provider.client_type_known(api_type, bucket):
-            return s3_client_provider.get_correct_client(api_type, bucket)
+    # @classmethod
+    # def find_correct_client(cls, api_type, bucket, param_dict, check_fn):
+    #     if s3_client_provider.client_type_known(api_type, bucket):
+    #         logging.info(f"{api_type} client type for s3://{bucket} is known")
+    #         return s3_client_provider.get_correct_client(api_type, bucket)
+    #     else:
+    #         logging.info(f"{api_type} client type for s3://{bucket} is unknown. Checking")
+    #         if check_fn(s3_client_provider.standard_client, param_dict):
+    #             s3_client_provider.set_cache(api_type, bucket, use_unsigned=False)
+    #             return s3_client_provider.standard_client
+    #         else:
+    #             if check_fn(s3_client_provider.unsigned_client, param_dict):
+    #                 s3_client_provider.set_cache(api_type, bucket, use_unsigned=True)
+    #                 return s3_client_provider.unsigned_client
+    #             else:
+    #                 raise RuntimeError(f"S3 AccessDenied for {api_type} on bucket: {bucket}")
+
+    def find_correct_client(self, api_type, bucket, param_dict, check_fn):
+        if self.client_type_known(api_type, bucket):
+            logging.warning(f"{api_type} client type for s3://{bucket} is known")
+            return self.get_correct_client(api_type, bucket)
         else:
-            if check_fn(s3_client_provider.standard_client, param_dict):
-                s3_client_provider.set_cache(api_type, bucket, use_unsigned=False)
-                return s3_client_provider.standard_client
+            logging.warning(f"{api_type} client type for s3://{bucket} is unknown. Checking")
+            if check_fn(self.standard_client, param_dict):
+                self.set_cache(api_type, bucket, use_unsigned=False)
+                assert self.client_type_known(api_type, bucket), f"{self.key(api_type, bucket)}: {self._use_unsigned_client}"
+                return self.standard_client
             else:
-                if check_fn(s3_client_provider.unsigned_client, param_dict):
-                    s3_client_provider.set_cache(api_type, bucket, use_unsigned=True)
-                    return s3_client_provider.unsigned_client
+                if check_fn(self.unsigned_client, param_dict):
+                    self.set_cache(api_type, bucket, use_unsigned=True)
+                    assert self.client_type_known(api_type, bucket), f"{self.key(api_type, bucket)}: {self._use_unsigned_client}"
+                    return self.unsigned_client
                 else:
                     raise RuntimeError(f"S3 AccessDenied for {api_type} on bucket: {bucket}")
 
@@ -269,7 +293,7 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path):
         raise ValueError("Cannot download to %r: reserved file name" % dest_path)
 
     params = dict(Bucket=src_bucket, Key=src_key)
-    s3_client = ctx.s3_client_provider.find_correct_client(S3Api.GET_OBJECT, src_bucket, **params,
+    s3_client = ctx.s3_client_provider.find_correct_client(S3Api.GET_OBJECT, src_bucket, params,
                                                            check_fn=check_get_object_works_for_client)
 
     dest_file.parent.mkdir(parents=True, exist_ok=True)
@@ -376,7 +400,7 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
     if size >= UPLOAD_ETAG_OPTIMIZATION_THRESHOLD:
         try:
             params = dict(Bucket=dest_bucket, Key=dest_path)
-            s3_client = ctx.s3_client_provider.find_correct_client(S3Api.HEAD_OBJECT, dest_bucket, **params,
+            s3_client = ctx.s3_client_provider.find_correct_client(S3Api.HEAD_OBJECT, dest_bucket, params,
                                                                    check_fn=check_head_object_works_for_client)
             resp = s3_client.head_object(**params)
         except ClientError:
@@ -401,8 +425,8 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
 
 
 class WorkerContext(object):
-    def __init__(self, s3_client_provider, progress, done, run):
-        self.s3_client_provider = s3_client_provider
+    def __init__(self, s3_client_prov, progress, done, run):
+        self.s3_client_provider = s3_client_prov
         self.progress = progress
         self.done = done
         self.run = run
@@ -447,7 +471,7 @@ def _copy_file_list_internal(file_list, message, callback):
                 if callback is not None:
                     callback(src, dest, size)
 
-            ctx = WorkerContext(s3_client_provider=S3ClientProvider(), progress=progress_callback, done=done_callback, run=run_task)
+            ctx = WorkerContext(s3_client_prov=s3_client_provider, progress=progress_callback, done=done_callback, run=run_task)
 
             if dest.version_id:
                 raise ValueError("Cannot set VersionId on destination")
@@ -726,7 +750,7 @@ def get_bytes(src: PhysicalKey):
         params = dict(Bucket=src.bucket, Key=src.path)
         if src.version_id is not None:
             params.update(dict(VersionId=src.version_id))
-        s3_client = s3_client_provider.find_correct_client(S3Api.GET_OBJECT, src.bucket, **params,
+        s3_client = s3_client_provider.find_correct_client(S3Api.GET_OBJECT, src.bucket, params,
                                                            check_fn=check_get_object_works_for_client)
         resp = s3_client.get_object(**params)
         data = resp['Body'].read()
@@ -755,7 +779,7 @@ def get_size_and_version(src: PhysicalKey):
         )
         if src.version_id is not None:
             params.update(dict(VersionId=src.version_id))
-        s3_client = s3_client_provider.find_correct_client(S3Api.HEAD_OBJECT, src.bucket, **params,
+        s3_client = s3_client_provider.find_correct_client(S3Api.HEAD_OBJECT, src.bucket, params,
                                                            check_fn=check_head_object_works_for_client)
         resp = s3_client.head_object(**params)
         size = resp['ContentLength']
@@ -795,7 +819,7 @@ def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
                 params = dict(Bucket=src.bucket, Key=src.path)
                 if src.version_id is not None:
                     params.update(dict(VersionId=src.version_id))
-                s3_client = s3_client_provider.find_correct_client(S3Api.GET_OBJECT, src.bucket, **params,
+                s3_client = s3_client_provider.find_correct_client(S3Api.GET_OBJECT, src.bucket, params,
                                                                    check_fn=check_get_object_works_for_client)
                 resp = s3_client.get_object(**params)
                 body = resp['Body']
