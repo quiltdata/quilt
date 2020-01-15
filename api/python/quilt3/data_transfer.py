@@ -264,7 +264,7 @@ class WorkerContext(object):
         self.run = run
 
 
-def _copy_file_list_internal(s3_client, file_list, callback):
+def _copy_file_list_internal(s3_client, file_list, message, callback):
     """
     Takes a list of tuples (src, dest, size) and copies the data in parallel.
     Returns versioned URLs for S3 destinations and regular file URLs for files.
@@ -277,7 +277,7 @@ def _copy_file_list_internal(s3_client, file_list, callback):
 
     stopped = False
 
-    with tqdm(desc="Copying", total=total_size, unit='B', unit_scale=True) as progress, \
+    with tqdm(desc=message, total=total_size, unit='B', unit_scale=True) as progress, \
          ThreadPoolExecutor(s3_transfer_config.max_request_concurrency) as executor:
 
         def progress_callback(bytes_transferred):
@@ -491,7 +491,7 @@ def delete_url(src: PhysicalKey):
         s3_client.delete_object(Bucket=src.bucket, Key=src.path)
 
 
-def copy_file_list(file_list, callback=None):
+def copy_file_list(file_list, message=None, callback=None):
     """
     Takes a list of tuples (src, dest, size) and copies them in parallel.
     URLs must be regular files, not directories.
@@ -502,10 +502,10 @@ def copy_file_list(file_list, callback=None):
             raise ValueError("Directories are not allowed")
 
     s3_client = create_s3_client()
-    return _copy_file_list_internal(s3_client, file_list, callback)
+    return _copy_file_list_internal(s3_client, file_list, message, callback)
 
 
-def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, callback=None):
+def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, callback=None):
     """
     Copies a single file or directory.
     If src is a file, dest can be a file or a directory.
@@ -536,7 +536,7 @@ def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, callback=None):
         url_list.append((src, dest, size))
 
     s3_client = create_s3_client()
-    _copy_file_list_internal(s3_client, url_list, callback)
+    _copy_file_list_internal(s3_client, url_list, message, callback)
 
 
 def put_bytes(data: bytes, dest: PhysicalKey):

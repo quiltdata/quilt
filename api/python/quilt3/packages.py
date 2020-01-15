@@ -526,7 +526,7 @@ class Package(object):
                 # Copy to a temporary file first, to make sure we don't cache a truncated file
                 # if the download gets interrupted.
                 tmp_path = local_pkg_manifest.with_suffix('.tmp')
-                copy_file(pkg_manifest, PhysicalKey.from_path(tmp_path))
+                copy_file(pkg_manifest, PhysicalKey.from_path(tmp_path), message="Downloading Manifest")
                 tmp_path.rename(local_pkg_manifest)
 
         return cls._from_path(local_pkg_manifest)
@@ -610,7 +610,7 @@ class Package(object):
             new_entry = entry.with_physical_key(new_physical_key)
             pkg._set(logical_key, new_entry)
 
-        copy_file_list(file_list)
+        copy_file_list(file_list, message="Copying objects")
 
         return pkg
 
@@ -1326,7 +1326,7 @@ class Package(object):
             if not old.is_local() and new.is_local():
                 ObjectPathCache.set(str(old), new.path)
 
-        results = copy_file_list(file_list, callback=_maybe_add_to_cache)
+        results = copy_file_list(file_list, message="Copying objects", callback=_maybe_add_to_cache)
 
         for (logical_key, entry), versioned_key in zip(entries, results):
             # Create a new package entry pointing to the new remote key.
