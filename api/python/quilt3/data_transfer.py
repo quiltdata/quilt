@@ -106,12 +106,14 @@ class S3ClientProvider:
             check_fn = check_fn_mapper[api_type]
             if check_fn(self.standard_client, param_dict):
                 self.set_cache(api_type, bucket, use_unsigned=False)
-                assert self.client_type_known(api_type, bucket), f"{self.key(api_type, bucket)}: {self._use_unsigned_client}"
+                assert self.client_type_known(api_type, bucket), f"{self.key(api_type, bucket)}: " \
+                                                                 f"{self._use_unsigned_client}"
                 return self.standard_client
             else:
                 if check_fn(self.unsigned_client, param_dict):
                     self.set_cache(api_type, bucket, use_unsigned=True)
-                    assert self.client_type_known(api_type, bucket), f"{self.key(api_type, bucket)}: {self._use_unsigned_client}"
+                    assert self.client_type_known(api_type, bucket), f"{self.key(api_type, bucket)}: " \
+                                                                     f"{self._use_unsigned_client}"
                     return self.unsigned_client
                 else:
                     raise RuntimeError(f"S3 AccessDenied for {api_type} on bucket: {bucket}")
@@ -404,7 +406,8 @@ def _copy_file_list_internal(file_list, message, callback):
     results = [None] * len(file_list)
 
     stopped = False
-    s3_client_provider = S3ClientProvider()
+
+    s3_client_provider = S3ClientProvider()  # Share provider across threads to reduce redundant public bucket checks
 
     with tqdm(desc=message, total=total_size, unit='B', unit_scale=True) as progress, \
          ThreadPoolExecutor(s3_transfer_config.max_request_concurrency) as executor:
@@ -432,7 +435,10 @@ def _copy_file_list_internal(file_list, message, callback):
                 if callback is not None:
                     callback(src, dest, size)
 
-            ctx = WorkerContext(s3_client_prov=s3_client_provider, progress=progress_callback, done=done_callback, run=run_task)
+            ctx = WorkerContext(s3_client_prov=s3_client_provider,
+                                progress=progress_callback,
+                                done=done_callback,
+                                run=run_task)
 
             if dest.version_id:
                 raise ValueError("Cannot set VersionId on destination")
@@ -502,11 +508,6 @@ def _calculate_etag(file_path):
 
 
 def delete_object(bucket, key):
-    """
-    Delete the object. We assume that if you have sufficient permissions to DELETE an object, you are able to
-    HEAD the object. Does not support deleting from public bucket using unsigned credentials (not even sure if that
-    is possible)
-    """
     s3_client = S3ClientProvider().standard_client
 
     s3_client.head_object(Bucket=bucket, Key=key)  # Make sure it exists
@@ -530,9 +531,6 @@ def list_object_versions(bucket, prefix, recursive=True):
     prefixes = []
 
     s3_client = S3ClientProvider().find_correct_client(S3Api.LIST_OBJECT_VERSIONS, bucket, list_obj_params)
-
-
-
     paginator = s3_client.get_paginator('list_object_versions')
 
     for response in paginator.paginate(**list_obj_params):
@@ -544,12 +542,6 @@ def list_object_versions(bucket, prefix, recursive=True):
         return versions, delete_markers
     else:
         return prefixes, versions, delete_markers
-
-
-
-
-
-
 
 
 
