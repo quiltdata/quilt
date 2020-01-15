@@ -69,7 +69,9 @@ def _launch_local_s3proxy():
     # Workaround for a Docker-for-Mac bug in which the container
     # ends up with a different DNS server than the host.
     # Workaround #2: use only IPv4 addresses.
-    # TODO: reintroduce this once Docker-for-Mac DNS works reliably
+    # Note: leaving this code in though it isn't called so that it
+    # can be reintroduced once Docker-for-Mac DNS works reliably.
+    # TODO: switch back to this local s3proxy or remove this function
     if sys.platform == 'darwin':
         nameservers = [ip for ip in dns_resolver.nameservers if ip.count('.') == 3]
         command += ["--dns", nameservers[0]]
