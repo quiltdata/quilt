@@ -45,9 +45,6 @@ class S3ClientProvider:
     access public s3 buckets.
 
     We assume that public buckets are read-only: write operations should always use S3ClientProvider.standard_client
-
-    NOTE: session.get_botocore_session() may do credential injection so S3ClientProvider.standard_client may differ
-          from boto3.client()
     """
 
     def __init__(self):
