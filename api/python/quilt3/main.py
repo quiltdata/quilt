@@ -46,7 +46,7 @@ def _launch_local_catalog():
     open_config = api._config()
     command = ["docker", "run", "--rm"]
     env = dict(REGISTRY_URL="http://localhost:5000",
-               S3_PROXY_URL="http://localhost:5002",
+               S3_PROXY_URL=open_config["s3Proxy"],
                ALWAYS_REQUIRE_AUTH="false",
                CATALOG_MODE="LOCAL",
                SSO_AUTH="DISABLED",
@@ -69,6 +69,7 @@ def _launch_local_s3proxy():
     # Workaround for a Docker-for-Mac bug in which the container
     # ends up with a different DNS server than the host.
     # Workaround #2: use only IPv4 addresses.
+    # TODO: reintroduce this once Docker-for-Mac DNS works reliably
     if sys.platform == 'darwin':
         nameservers = [ip for ip in dns_resolver.nameservers if ip.count('.') == 3]
         command += ["--dns", nameservers[0]]
@@ -114,12 +115,11 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
         return
 
     local_catalog_url = "http://localhost:3000"
-    local_s3proxy_url = "http://localhost:5002"
-
-
 
     # Build the catalog URL - we do this at the beginning so simple syntax errors return immediately
-    if navigation_target.startswith("s3://"):
+    if navigation_target is None:
+        catalog_url = local_catalog_url
+    elif navigation_target.startswith("s3://"):
         catalog_url = catalog_s3_url(local_catalog_url, navigation_target)
     else:
         num_colons = navigation_target.count(":")
@@ -131,13 +131,8 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
         bucket, package_name = navigation_target.split(":")
         catalog_url = catalog_package_url(local_catalog_url, bucket, package_name)
 
-
-
     if not _test_url(local_catalog_url):
         _launch_local_catalog()
-
-    if not _test_url(local_s3proxy_url):
-        _launch_local_s3proxy()
 
     # Make sure the containers are running and available before opening the browser window
     print("Waiting for containers to launch...")
@@ -147,22 +142,18 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
     while True:
         if time.time() - start_time > failure_timeout_secs:
             catalog_failed = _test_url(local_catalog_url)
-            s3proxy_failed = _test_url(local_s3proxy_url)
-            if not catalog_failed and not s3proxy_failed:
+            if not catalog_failed:
                 # Succeeded at the last second, let it proceed
                 break
             raise QuiltException(f"The backend containers needed to run the catalog did not both successfully launch. "
                                  f"Status:\n"
-                                 f"\tCATALOG: {'FAILED' if catalog_failed else 'SUCCEEDED'}"
-                                 f"\tS3PROXY: {'FAILED' if s3proxy_failed else 'SUCCEEDED'}")
+                                 f"\tCATALOG: {'FAILED' if catalog_failed else 'SUCCEEDED'}")
 
-        if _test_url(local_catalog_url) and _test_url(local_s3proxy_url):
+        if _test_url(local_catalog_url):
             # Everything is working, proceed
             break
         else:
             time.sleep(poll_interval_secs)  # The containers can take a moment to launch
-
-
 
     open_url(catalog_url)
     app.run()
