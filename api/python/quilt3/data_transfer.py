@@ -22,34 +22,8 @@ from tqdm import tqdm
 from .session import create_botocore_session
 from .util import PhysicalKey, QuiltException
 
-import logging
-
-logging.basicConfig(level=logging.WARNING)
 
 
-# def create_s3_client():
-#     botocore_session = create_botocore_session()
-#     boto_session = boto3.Session(botocore_session=botocore_session)
-#
-#     # Check whether credentials are present
-#     if boto_session.get_credentials() is None:
-#         # Use unsigned boto if credentials aren't present
-#         s3_client = boto_session.client('s3', config=Config(signature_version=UNSIGNED))
-#     else:
-#         # Use normal boto
-#         s3_client = boto_session.client('s3')
-#
-#     # Enable/disable file read callbacks when uploading files.
-#     # Copied from https://github.com/boto/s3transfer/blob/develop/s3transfer/manager.py#L501
-#     event_name = 'request-created.s3'
-#     s3_client.meta.events.register_first(
-#         event_name, signal_not_transferring,
-#         unique_id='datatransfer-not-transferring')
-#     s3_client.meta.events.register_last(
-#         event_name, signal_transferring,
-#         unique_id='datatransfer-transferring')
-#
-#     return s3_client
 
 
 class S3Api(Enum):
@@ -71,7 +45,7 @@ class S3ClientProvider:
     Quilt-provided role from quilt3.login()), the standard client will also be unsigned so that users can still
     access public s3 buckets.
 
-    We assume that public buckets are read-only: write operations should always use SmartS3Client.standard_client
+    We assume that public buckets are read-only: write operations should always use S3ClientProvider.standard_client
 
     NOTE: session.get_botocore_session() may do credential injection so S3ClientProvider.standard_client may differ
           from boto3.client()
@@ -118,29 +92,12 @@ class S3ClientProvider:
     def client_type_known(self, action: S3Api, bucket: str):
         return self.should_use_unsigned_client(action, bucket) is not None
 
-    # @classmethod
-    # def find_correct_client(cls, api_type, bucket, param_dict, check_fn):
-    #     if s3_client_provider.client_type_known(api_type, bucket):
-    #         logging.info(f"{api_type} client type for s3://{bucket} is known")
-    #         return s3_client_provider.get_correct_client(api_type, bucket)
-    #     else:
-    #         logging.info(f"{api_type} client type for s3://{bucket} is unknown. Checking")
-    #         if check_fn(s3_client_provider.standard_client, param_dict):
-    #             s3_client_provider.set_cache(api_type, bucket, use_unsigned=False)
-    #             return s3_client_provider.standard_client
-    #         else:
-    #             if check_fn(s3_client_provider.unsigned_client, param_dict):
-    #                 s3_client_provider.set_cache(api_type, bucket, use_unsigned=True)
-    #                 return s3_client_provider.unsigned_client
-    #             else:
-    #                 raise RuntimeError(f"S3 AccessDenied for {api_type} on bucket: {bucket}")
+
 
     def find_correct_client(self, api_type, bucket, param_dict, check_fn):
         if self.client_type_known(api_type, bucket):
-            logging.warning(f"{api_type} client type for s3://{bucket} is known")
             return self.get_correct_client(api_type, bucket)
         else:
-            logging.warning(f"{api_type} client type for s3://{bucket} is unknown. Checking")
             if check_fn(self.standard_client, param_dict):
                 self.set_cache(api_type, bucket, use_unsigned=False)
                 assert self.client_type_known(api_type, bucket), f"{self.key(api_type, bucket)}: {self._use_unsigned_client}"
@@ -208,7 +165,7 @@ def check_head_object_works_for_client(s3_client, params):
 
 
 
-s3_client_provider = S3ClientProvider()
+# s3_client_provider = S3ClientProvider()
 s3_transfer_config = TransferConfig()
 
 # When uploading files at least this size, compare the ETags first and skip the upload if they're equal;
@@ -444,6 +401,7 @@ def _copy_file_list_internal(file_list, message, callback):
     results = [None] * len(file_list)
 
     stopped = False
+    s3_client_provider = S3ClientProvider()
 
     with tqdm(desc=message, total=total_size, unit='B', unit_scale=True) as progress, \
          ThreadPoolExecutor(s3_transfer_config.max_request_concurrency) as executor:
@@ -568,7 +526,7 @@ def list_object_versions(bucket, prefix, recursive=True):
     delete_markers = []
     prefixes = []
 
-    s3_client = s3_client_provider.find_correct_client(S3Api.LIST_OBJECT_VERSIONS, bucket, list_obj_params,
+    s3_client = S3ClientProvider().find_correct_client(S3Api.LIST_OBJECT_VERSIONS, bucket, list_obj_params,
                                                        check_fn=check_list_object_versions_works_for_client)
 
 
@@ -605,7 +563,7 @@ def list_objects(bucket, prefix, recursive=True):
         # Treat '/' as a directory separator and only return one level of files instead of everything.
         list_obj_params.update(dict(Delimiter='/'))
 
-    s3_client = s3_client_provider.find_correct_client(S3Api.LIST_OBJECTS_V2, bucket, list_obj_params,
+    s3_client = S3ClientProvider().find_correct_client(S3Api.LIST_OBJECTS_V2, bucket, list_obj_params,
                                                        check_fn=check_list_objects_v2_works_for_client)
     paginator = s3_client.get_paginator('list_objects_v2')
 
@@ -642,7 +600,7 @@ def list_url(src: PhysicalKey):
         if not _looks_like_dir(src):
             src_path += '/'
         list_obj_params = dict(Bucket=src.bucket, Prefix=src_path)
-        s3_client = s3_client_provider.find_correct_client(S3Api.LIST_OBJECTS_V2, src.bucket, list_obj_params,
+        s3_client = S3ClientProvider().find_correct_client(S3Api.LIST_OBJECTS_V2, src.bucket, list_obj_params,
                                                            check_fn=check_list_objects_v2_works_for_client)
         paginator = s3_client.get_paginator('list_objects_v2')
         for response in paginator.paginate(**list_obj_params):
@@ -674,7 +632,7 @@ def delete_url(src: PhysicalKey):
             except FileExistsError:
                 pass
     else:
-        s3_client = s3_client_provider.standard_client
+        s3_client = S3ClientProvider().standard_client
         s3_client.delete_object(Bucket=src.bucket, Key=src.path)
 
 
@@ -735,7 +693,7 @@ def put_bytes(data: bytes, dest: PhysicalKey):
     else:
         if dest.version_id is not None:
             raise ValueError("Cannot set VersionId on destination")
-        s3_client = s3_client_provider.standard_client
+        s3_client = S3ClientProvider().standard_client
         s3_client.put_object(
             Bucket=dest.bucket,
             Key=dest.path,
@@ -750,7 +708,7 @@ def get_bytes(src: PhysicalKey):
         params = dict(Bucket=src.bucket, Key=src.path)
         if src.version_id is not None:
             params.update(dict(VersionId=src.version_id))
-        s3_client = s3_client_provider.find_correct_client(S3Api.GET_OBJECT, src.bucket, params,
+        s3_client = S3ClientProvider().find_correct_client(S3Api.GET_OBJECT, src.bucket, params,
                                                            check_fn=check_get_object_works_for_client)
         resp = s3_client.get_object(**params)
         data = resp['Body'].read()
@@ -779,7 +737,7 @@ def get_size_and_version(src: PhysicalKey):
         )
         if src.version_id is not None:
             params.update(dict(VersionId=src.version_id))
-        s3_client = s3_client_provider.find_correct_client(S3Api.HEAD_OBJECT, src.bucket, params,
+        s3_client = S3ClientProvider().find_correct_client(S3Api.HEAD_OBJECT, src.bucket, params,
                                                            check_fn=check_head_object_works_for_client)
         resp = s3_client.head_object(**params)
         size = resp['ContentLength']
@@ -819,7 +777,7 @@ def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
                 params = dict(Bucket=src.bucket, Key=src.path)
                 if src.version_id is not None:
                     params.update(dict(VersionId=src.version_id))
-                s3_client = s3_client_provider.find_correct_client(S3Api.GET_OBJECT, src.bucket, params,
+                s3_client = S3ClientProvider().find_correct_client(S3Api.GET_OBJECT, src.bucket, params,
                                                                    check_fn=check_get_object_works_for_client)
                 resp = s3_client.get_object(**params)
                 body = resp['Body']
@@ -972,7 +930,7 @@ def select(src, query, meta=None, raw=False, **kwargs):
 
     # S3 Select does not support anonymous access (as of Jan 2019)
     # https://docs.aws.amazon.com/AmazonS3/latest/API/API_SelectObjectContent.html
-    s3_client = s3_client_provider.standard_client
+    s3_client = S3ClientProvider().standard_client
     response = s3_client.select_object_content(**select_kwargs)
 
     # we don't want multiple copies of large chunks of data hanging around.
