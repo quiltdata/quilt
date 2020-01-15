@@ -148,18 +148,22 @@ def check_list_objects_v2_works_for_client(s3_client, params):
 
 def check_get_object_works_for_client(s3_client, params):
     try:
-        s3_client.get_object(**params, Range='bytes=0-0')  # Only get the first byte so it is fast
+        s3_client.head_object(Bucket=params["Bucket"], Key=params["Key"])  # HEAD/GET share perms, but HEAD always fast
         return True
     except ClientError as e:
         if e.response["Error"]["Code"] == "AccessDenied":
+            # This can also happen if you have full get_object access, but not list_objects_v2, and the object does not
+            # exist. Instead of returning a 404, S3 will return a 403.
             return False
 
 def check_head_object_works_for_client(s3_client, params):
     try:
-        s3_client.head_object(**params, Range='bytes=0-0')  # Only get the first byte so it is fast
+        s3_client.head_object(**params)
         return True
     except ClientError as e:
         if e.response["Error"]["Code"] == "AccessDenied":
+            # This can also happen if you have full get_object access, but not list_objects_v2, and the object does not
+            # exist. Instead of returning a 404, S3 will return a 403.
             return False
 
 
