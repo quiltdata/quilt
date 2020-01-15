@@ -526,7 +526,7 @@ class Package(object):
                 # Copy to a temporary file first, to make sure we don't cache a truncated file
                 # if the download gets interrupted.
                 tmp_path = local_pkg_manifest.with_suffix('.tmp')
-                copy_file(pkg_manifest, PhysicalKey.from_path(tmp_path), message="Downloading Manifest")
+                copy_file(pkg_manifest, PhysicalKey.from_path(tmp_path), message="Downloading manifest")
                 tmp_path.rename(local_pkg_manifest)
 
         return cls._from_path(local_pkg_manifest)
@@ -683,7 +683,7 @@ class Package(object):
             readable_file.seek(0)
 
             reader = jsonlines.Reader(readable_file, loads=json.loads)
-            with tqdm(desc="Loading Manifest", total=line_count, unit="entries") as tqdm_progress:
+            with tqdm(desc="Loading manifest", total=line_count, unit="entries") as tqdm_progress:
                 meta = reader.read()
                 meta.pop('top_hash', None)  # Obsolete as of PR #130
                 pkg = cls()
