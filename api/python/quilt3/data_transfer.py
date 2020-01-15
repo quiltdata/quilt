@@ -33,6 +33,17 @@ class S3Api(Enum):
     LIST_OBJECTS_V2 = "LIST_OBJECTS_V2"
 
 
+class S3NoValidClientError(Exception):
+    def __init__(self, message, **kwargs):
+        # We use NewError("Prefix: " + str(error)) a lot.
+        # To be consistent across Python 2.7 and 3.x:
+        # 1) This `super` call must exist, or 2.7 will have no text for str(error)
+        # 2) This `super` call must have only one argument (the message) or str(error) will be a repr of args
+        super(S3NoValidClientError, self).__init__(message)
+        self.message = message
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
 class S3ClientProvider:
     """
     An s3_client is either signed with standard credentials or unsigned. This class exists to dynamically provide the
@@ -109,7 +120,7 @@ class S3ClientProvider:
                     self.set_cache(api_type, bucket, use_unsigned=True)
                     return self.unsigned_client
                 else:
-                    raise RuntimeError(f"S3 AccessDenied for {api_type} on bucket: {bucket}")
+                    raise S3NoValidClientError(f"S3 AccessDenied for {api_type} on bucket: {bucket}")
 
     def get_boto_session(self):
         botocore_session = create_botocore_session()
@@ -367,7 +378,7 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
             params = dict(Bucket=dest_bucket, Key=dest_path)
             s3_client = ctx.s3_client_provider.find_correct_client(S3Api.HEAD_OBJECT, dest_bucket, params)
             resp = s3_client.head_object(**params)
-        except ClientError:
+        except S3NoValidClientError:
             # Destination doesn't exist, so fall through to the normal upload.
             pass
         else:
