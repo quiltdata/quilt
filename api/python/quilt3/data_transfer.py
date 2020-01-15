@@ -155,7 +155,7 @@ def check_get_object_works_for_client(s3_client, params):
         if "VersionId" in params:
             head_args["VersionId"] = params["VersionId"]
 
-        s3_client.head_object(head_args)  # HEAD/GET share perms, but HEAD always fast
+        s3_client.head_object(**head_args)  # HEAD/GET share perms, but HEAD always fast
         return True
     except ClientError as e:
         if e.response["Error"]["Code"] == "AccessDenied":
