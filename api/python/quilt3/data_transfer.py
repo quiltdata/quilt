@@ -103,6 +103,9 @@ class S3ClientProvider:
                 S3Api.LIST_OBJECTS_V2: check_list_objects_v2_works_for_client,
                 S3Api.LIST_OBJECT_VERSIONS: check_list_object_versions_works_for_client
             }
+            assert api_type in check_fn_mapper.keys(), f"Only certain APIs are supported with unsigned_client. The " \
+                f"API '{api_type}' is not current supported. You may want to use S3ClientProvider.standard_client " \
+                f"instead "
             check_fn = check_fn_mapper[api_type]
             if check_fn(self.standard_client, param_dict):
                 self.set_cache(api_type, bucket, use_unsigned=False)
