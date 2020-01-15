@@ -58,7 +58,6 @@ class S3ClientProvider:
             self._build_standard_client()
         return self._standard_client
 
-
     @property
     def unsigned_client(self):
         if self._unsigned_client is None:
@@ -87,8 +86,6 @@ class S3ClientProvider:
 
     def client_type_known(self, action: S3Api, bucket: str):
         return self.should_use_unsigned_client(action, bucket) is not None
-
-
 
     def find_correct_client(self, api_type, bucket, param_dict):
         if self.client_type_known(api_type, bucket):
@@ -133,7 +130,6 @@ class S3ClientProvider:
         self._unsigned_client = boto_session.client('s3', config=Config(signature_version=UNSIGNED))
 
 
-
 def check_list_object_versions_works_for_client(s3_client, params):
     try:
         s3_client.list_object_versions(**params, MaxKeys=1)  # Make this as fast as possible
@@ -141,7 +137,6 @@ def check_list_object_versions_works_for_client(s3_client, params):
     except ClientError as e:
         if e.response["Error"]["Code"] == "AccessDenied":
             return False
-
 
 def check_list_objects_v2_works_for_client(s3_client, params):
     try:
@@ -383,8 +378,8 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
 
 
 class WorkerContext(object):
-    def __init__(self, s3_client_prov, progress, done, run):
-        self.s3_client_provider = s3_client_prov
+    def __init__(self, s3_client_provider, progress, done, run):
+        self.s3_client_provider = s3_client_provider
         self.progress = progress
         self.done = done
         self.run = run
@@ -431,7 +426,7 @@ def _copy_file_list_internal(file_list, message, callback):
                 if callback is not None:
                     callback(src, dest, size)
 
-            ctx = WorkerContext(s3_client_prov=s3_client_provider,
+            ctx = WorkerContext(s3_client_provider=s3_client_provider,
                                 progress=progress_callback,
                                 done=done_callback,
                                 run=run_task)
