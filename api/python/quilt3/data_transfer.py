@@ -148,7 +148,14 @@ def check_list_objects_v2_works_for_client(s3_client, params):
 
 def check_get_object_works_for_client(s3_client, params):
     try:
-        s3_client.head_object(Bucket=params["Bucket"], Key=params["Key"])  # HEAD/GET share perms, but HEAD always fast
+        head_args = dict(
+                Bucket=params["Bucket"],
+                Key=params["Key"]
+        )
+        if "VersionId" in params:
+            head_args["VersionId"] = params["VersionId"]
+
+        s3_client.head_object(head_args)  # HEAD/GET share perms, but HEAD always fast
         return True
     except ClientError as e:
         if e.response["Error"]["Code"] == "AccessDenied":
