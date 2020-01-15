@@ -106,14 +106,10 @@ class S3ClientProvider:
             check_fn = check_fn_mapper[api_type]
             if check_fn(self.standard_client, param_dict):
                 self.set_cache(api_type, bucket, use_unsigned=False)
-                assert self.client_type_known(api_type, bucket), f"{self.key(api_type, bucket)}: " \
-                                                                 f"{self._use_unsigned_client}"
                 return self.standard_client
             else:
                 if check_fn(self.unsigned_client, param_dict):
                     self.set_cache(api_type, bucket, use_unsigned=True)
-                    assert self.client_type_known(api_type, bucket), f"{self.key(api_type, bucket)}: " \
-                                                                     f"{self._use_unsigned_client}"
                     return self.unsigned_client
                 else:
                     raise RuntimeError(f"S3 AccessDenied for {api_type} on bucket: {bucket}")
