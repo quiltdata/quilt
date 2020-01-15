@@ -127,6 +127,18 @@ class S3ClientProvider:
         boto_session = boto3.Session(botocore_session=botocore_session)
         return boto_session
 
+
+    def register_signals(self, s3_client):
+        # Enable/disable file read callbacks when uploading files.
+        # Copied from https://github.com/boto/s3transfer/blob/develop/s3transfer/manager.py#L501
+        event_name = 'request-created.s3'
+        s3_client.meta.events.register_first(
+                event_name, signal_not_transferring,
+                unique_id='datatransfer-not-transferring')
+        s3_client.meta.events.register_last(
+                event_name, signal_transferring,
+                unique_id='datatransfer-transferring')
+
     def _build_standard_client(self):
         boto_session = self.get_boto_session()
 
@@ -134,11 +146,17 @@ class S3ClientProvider:
         if boto_session.get_credentials() is None:
             config = Config(signature_version=UNSIGNED)
 
-        self._standard_client = boto_session.client('s3', config=config)
+        s3_client = boto_session.client('s3', config=config)
+        self.register_signals(s3_client)
+        self._standard_client = s3_client
+
 
     def _build_unsigned_client(self):
         boto_session = self.get_boto_session()
-        self._unsigned_client = boto_session.client('s3', config=Config(signature_version=UNSIGNED))
+        s3_client = boto_session.client('s3', config=Config(signature_version=UNSIGNED))
+        self.register_signals(s3_client)
+        self._unsigned_client = s3_client
+
 
 
 def check_list_object_versions_works_for_client(s3_client, params):
