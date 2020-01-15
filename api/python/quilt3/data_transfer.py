@@ -507,7 +507,7 @@ def delete_object(bucket, key):
     HEAD the object. Does not support deleting from public bucket using unsigned credentials (not even sure if that
     is possible)
     """
-    s3_client = s3_client_provider.standard_client
+    s3_client = S3ClientProvider().standard_client
 
     s3_client.head_object(Bucket=bucket, Key=key)  # Make sure it exists
     s3_client.delete_object(Bucket=bucket, Key=key)  # Actually delete it

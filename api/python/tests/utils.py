@@ -41,9 +41,23 @@ class QuiltTestCase(TestCase):
         self.requests_mock.start()
 
         # Create a dummy S3 client that (hopefully) can't do anything.
-        self.s3_client = boto3.client('s3', config=Config(signature_version=UNSIGNED))
+        boto_client = boto3.client('s3', config=Config(signature_version=UNSIGNED))
+        self.s3_client = boto_client
 
-        self.s3_client_patcher = mock.patch('quilt3.data_transfer.create_s3_client', return_value=self.s3_client)
+
+        class DummyS3Provider:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            @property
+            def standard_client(self):
+                return boto_client
+
+            def find_correct_client(self, *args, **kwargs):
+                return boto_client
+
+
+        self.s3_client_patcher = mock.patch('quilt3.data_transfer.S3ClientProvider', return_value=DummyS3Provider())
         self.s3_client_patcher.start()
 
         self.s3_stubber = Stubber(self.s3_client)
