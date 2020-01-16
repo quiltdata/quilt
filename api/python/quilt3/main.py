@@ -14,7 +14,6 @@ from . import api, session
 from . import __version__ as quilt3_version
 from .session import open_url
 from .util import get_from_config, catalog_s3_url, catalog_package_url, QuiltException
-from .registry import app
 
 def cmd_config(catalog_url):
     """
@@ -112,6 +111,8 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
 
     If detailed_help=True, display detailed information about the `quilt3 catalog` command and then exit
     """
+    from .registry import app  # Delay importing it cause it's expensive.
+
     if detailed_help:
         print(catalog_cmd_detailed_help)
         return
