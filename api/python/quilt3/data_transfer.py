@@ -163,10 +163,8 @@ def check_list_object_versions_works_for_client(s3_client, params):
     try:
         s3_client.list_object_versions(**params, MaxKeys=1)  # Make this as fast as possible
     except ClientError as e:
-        if e.response["Error"]["Code"] == "AccessDenied":
-            return False
-    finally:
-        return True
+        return e.response["Error"]["Code"] != "AccessDenied"
+    return True
 
 def check_list_objects_v2_works_for_client(s3_client, params):
     try:
@@ -174,8 +172,7 @@ def check_list_objects_v2_works_for_client(s3_client, params):
     except ClientError as e:
         if e.response["Error"]["Code"] == "AccessDenied":
             return False
-    finally:
-        return True
+    return True
 
 def check_get_object_works_for_client(s3_client, params):
     try:
@@ -188,23 +185,22 @@ def check_get_object_works_for_client(s3_client, params):
 
         s3_client.head_object(**head_args)  # HEAD/GET share perms, but HEAD always fast
     except ClientError as e:
-        if e.response["Error"]["Code"] == "AccessDenied":
+        if e.response["Error"]["Code"] == "403":
             # This can also happen if you have full get_object access, but not list_objects_v2, and the object does not
             # exist. Instead of returning a 404, S3 will return a 403.
             return False
-    finally:
-        return True
+
+    return True
 
 def check_head_object_works_for_client(s3_client, params):
     try:
         s3_client.head_object(**params)
     except ClientError as e:
-        if e.response["Error"]["Code"] == "AccessDenied":
+        if e.response["Error"]["Code"] == "403":
             # This can also happen if you have full get_object access, but not list_objects_v2, and the object does not
             # exist. Instead of returning a 404, S3 will return a 403.
             return False
-    finally:
-        return True
+    return True
 
 
 
