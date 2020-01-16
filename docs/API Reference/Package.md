@@ -260,7 +260,7 @@ __Raises__
 * `KeyError`:  when logical_key is not present to be deleted
 
 
-## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=<function Package.<lambda> at 0x110a9b170>)  {#Package.push}
+## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=<function Package.<lambda> at 0x10d02aa70>)  {#Package.push}
 
 Copies objects to path, then creates a new package that points to those objects.
 Copies each object in this package to path according to logical key structure,
