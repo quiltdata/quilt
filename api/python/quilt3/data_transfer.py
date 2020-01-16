@@ -1,29 +1,26 @@
-from collections import deque
-from codecs import iterdecode
-from concurrent.futures import ThreadPoolExecutor
-from enum import Enum
 import hashlib
 import pathlib
 import shutil
-from threading import Lock
-from typing import List, Tuple
 import warnings
+from codecs import iterdecode
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor
+from enum import Enum
+from threading import Lock
+from typing import List
 
+import boto3
+import jsonlines
+from boto3.s3.transfer import TransferConfig
 from botocore import UNSIGNED
 from botocore.client import Config
 from botocore.exceptions import ClientError
-import boto3
-from boto3.s3.transfer import TransferConfig
-from s3transfer.utils import ChunksizeAdjuster, OSUtils, signal_transferring, signal_not_transferring
-
-import jsonlines
+from s3transfer.utils import (ChunksizeAdjuster, OSUtils,
+                              signal_not_transferring, signal_transferring)
 from tqdm import tqdm
 
 from .session import create_botocore_session
 from .util import PhysicalKey, QuiltException
-
-
-
 
 
 class S3Api(Enum):
@@ -429,6 +426,37 @@ class WorkerContext(object):
         self.run = run
 
 
+def _get_executor(maximum_concurrency: int = None):
+    # Dask clients and concurrent futures executors have the same API of submit and map
+    # (Specifically designed to be that way)
+    # As more and more people are starting to use dask in data engineering and modeling
+    # workloads, the problem that arises is it is common for single dask workers to
+    # only have a few cores / threads.
+    # Instead of utilizing a single workers available resources we can call out to
+    # the scheduler that we want to distribute our jobs to the available cluster.
+
+    # Check if this function is running in a dask worker
+    try:
+        from distributed import get_client
+
+        # Return current dask scheduler client if we are running on a dask working
+        return get_client()
+
+    # Except module not found for dask / distributed not installed and value error for
+    # when not running on a dask worker
+    except (ModuleNotFoundError, ValueError):
+        if maximum_concurrency is not None:
+            return ThreadPoolExecutor(maximum_concurrency)
+
+        return ThreadPoolExecutor()
+
+
+def _close_executor(executor):
+    # Close the executor if it is a ThreadPoolExecutor
+    if isinstance(executor, ThreadPoolExecutor):
+        executor.shutdown()
+
+
 def _copy_file_list_internal(file_list, message, callback):
     """
     Takes a list of tuples (src, dest, size) and copies the data in parallel.
@@ -444,8 +472,10 @@ def _copy_file_list_internal(file_list, message, callback):
 
     s3_client_provider = S3ClientProvider()  # Share provider across threads to reduce redundant public bucket checks
 
-    with tqdm(desc=message, total=total_size, unit='B', unit_scale=True) as progress, \
-         ThreadPoolExecutor(s3_transfer_config.max_request_concurrency) as executor:
+    # Get the appropriate executor
+    executor = _get_executor(s3_transfer_config.max_request_concurrency)
+
+    with tqdm(desc=message, total=total_size, unit='B', unit_scale=True) as progress:
 
         def progress_callback(bytes_transferred):
             if stopped:
@@ -511,6 +541,9 @@ def _copy_file_list_internal(file_list, message, callback):
             stopped = True
 
     assert all(results)
+
+    # Close the executor
+    _close_executor(executor)
 
     return results
 
@@ -811,8 +844,9 @@ def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
                         progress.update(len(chunk))
             return hash_obj.hexdigest()
 
-        with ThreadPoolExecutor() as executor:
-            results = executor.map(_process_url, src_list, sizes)
+        executor = _get_executor()
+        results = executor.map(_process_url, src_list, sizes)
+        _close_executor(executor)
 
     return results
 
