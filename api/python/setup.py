@@ -1,12 +1,12 @@
 import os
 import sys
-
 from pathlib import Path
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 from setuptools.command.install import install
 
 VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text().strip()
+
 
 def readme():
     readme_short = """
@@ -32,6 +32,27 @@ class VerifyVersionCommand(install):
                 tag, VERSION
             )
             sys.exit(info)
+
+
+pyarrow_requires = [
+    'numpy>=1.14.0',  # required by pandas, but missing from its dependencies.
+    'pandas>=0.19.2',
+    'pyarrow>=0.14.1',  # as of 7/5/19: linux/circleci bugs on 0.14.0
+]
+
+test_requires = [
+    'codecov',
+    'numpy>=1.14.0',  # required by pandas, but missing from its dependencies.
+    'pandas>=0.19.2',
+    'pyarrow>=0.14.1',  # as of 7/5/19: linux/circleci bugs on 0.14.0
+    'pytest<5.1.0',  # TODO: Fix pytest.ensuretemp in conftest.py
+    'pytest-cov',
+    'pytest-env',
+    'responses',
+    'tox',
+    'detox',
+    'tox-pytest-summary',
+]
 
 setup(
     name="quilt3",
@@ -70,24 +91,12 @@ setup(
         'requests_futures==1.0.0',
     ],
     extras_require={
-        'pyarrow': [
-            'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
-            'pandas>=0.19.2',
-            'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
-        ],
-        'tests': [
-            'codecov',
-            'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
-            'pandas>=0.19.2',
-            'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
-            'pytest<5.1.0',  # TODO: Fix pytest.ensuretemp in conftest.py
-            'pytest-cov',
-            'pytest-env',
-            'responses',
-            'tox',
-            'detox',
-            'tox-pytest-summary',
-        ],
+        'pyarrow': pyarrow_requires,
+        'tests': test_requires,
+        'all': [
+            *pyarrow_requires,
+            *test_requires,
+        ]
     },
     include_package_data=True,
     entry_points={

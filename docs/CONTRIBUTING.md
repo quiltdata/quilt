@@ -31,7 +31,7 @@ Use `pip` to install `quilt` locally (including development dependencies):
 
 ```bash
 $ cd api/python
-$ pip install -e .[extra]
+$ pip install -e .[all]
 ```
 
 This will create an [editable install](https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs) of `quilt`, allowing you to modify the code and test your changes right away.
