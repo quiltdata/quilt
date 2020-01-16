@@ -2,17 +2,21 @@
 
 ## `catalog`
 ```
-usage: quilt3 catalog [-h] [--detailed_help] [s3_url]
+usage: quilt3 catalog [-h] [--detailed_help] [navigation_target]
 
 Run Quilt catalog locally
 
 positional arguments:
-  s3_url           S3 URL to browse in local catalog
+  navigation_target  Which page in the local catalog to open. Leave blank to
+                     go to the catalog landing page, pass in an s3 url (e.g.
+                     's3://bucket/myfile.txt') to go to file viewer, or pass
+                     in a package name in the form 'BUCKET:USER/PKG' to go to
+                     the package viewer.
 
 optional arguments:
-  -h, --help       show this help message and exit
-  --detailed_help  Display detailed information about this command and then
-                   exit
+  -h, --help         show this help message and exit
+  --detailed_help    Display detailed information about this command and then
+                     exit
 ```
 
 Run the Quilt catalog on your machine (requires Docker). Running
@@ -106,4 +110,13 @@ positional arguments:
 
 optional arguments:
   -h, --help   show this help message and exit
+```
+## `disable-telemetry`
+```
+usage: quilt3 disable-telemetry [-h]
+
+Disable anonymous usage metrics
+
+optional arguments:
+  -h, --help  show this help message and exit
 ```

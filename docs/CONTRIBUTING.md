@@ -142,7 +142,7 @@ npm run test
 
 ## Creating a release
 
-1. Once you are ready to cut a new release of your project, you update the version in `setup.py` and create a new git tag with `git tag $VERSION`.
+1. Once you are ready to cut a new release of your project, you update the version in `setup.py` and create a new git tag with `git tag $VERSION`, e.g. `git tag 3.1.8`.
 2. Once you push the tag to GitHub with `git push --tags` a new CircleCI build is triggered.
 3. Merge the new PR into master so the `setup.py` reflects the latest package.
 
