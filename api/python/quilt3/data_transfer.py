@@ -434,6 +434,7 @@ def _get_executor(maximum_concurrency: int = None):
     # only have a few cores / threads.
     # Instead of utilizing a single workers available resources we can call out to
     # the scheduler that we want to distribute our jobs to the available cluster.
+    # https://docs.dask.org/en/latest/futures.html#start-dask-client
 
     # Check if this function is running in a dask worker
     try:
