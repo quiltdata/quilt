@@ -434,6 +434,9 @@ def _copy_file_list_internal(file_list, message, callback):
     Takes a list of tuples (src, dest, size) and copies the data in parallel.
     Returns versioned URLs for S3 destinations and regular file URLs for files.
     """
+    if not file_list:
+        return []
+
     total_size = sum(size for _, _, size in file_list)
 
     lock = Lock()
