@@ -396,7 +396,7 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
             params = dict(Bucket=dest_bucket, Key=dest_path)
             s3_client = ctx.s3_client_provider.find_correct_client(S3Api.HEAD_OBJECT, dest_bucket, params)
             resp = s3_client.head_object(**params)
-        except S3NoValidClientError:
+        except ClientError:
             # Destination doesn't exist, so fall through to the normal upload.
             pass
         else:
