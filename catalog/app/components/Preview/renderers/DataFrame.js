@@ -2,7 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { renderPreviewStatus } from './util'
+import { renderWarnings } from './util'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -39,8 +39,9 @@ function DataFrame({ children, className, note, warnings, ...props } = {}) {
   const classes = useStyles()
   return (
     <div className={cx(className, classes.root)} {...props}>
-      {renderPreviewStatus({ note, warnings })}
+      {renderWarnings(warnings)}
       <div
+        title={note}
         className={classes.wrapper}
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: children }}

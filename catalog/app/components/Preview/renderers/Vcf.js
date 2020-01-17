@@ -2,7 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { renderPreviewStatus } from './util'
+import { renderWarnings } from './util'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -59,7 +59,7 @@ function Vcf({ meta, header, data, variants, note, warnings }) {
 
   return (
     <div className={classes.root}>
-      {renderPreviewStatus({ note, warnings })}
+      {renderWarnings(warnings)}
       <div className={classes.tableWrapper}>
         <M.Table className={classes.table}>
           <M.TableHead>
@@ -77,7 +77,7 @@ function Vcf({ meta, header, data, variants, note, warnings }) {
           </M.TableHead>
         </M.Table>
       </div>
-      <div className={classes.tableWrapper}>
+      <div title={note} className={classes.tableWrapper}>
         <M.Table className={classes.table}>
           {!!header && (
             <M.TableHead>
