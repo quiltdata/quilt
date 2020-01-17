@@ -399,6 +399,10 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
         except ClientError:
             # Destination doesn't exist, so fall through to the normal upload.
             pass
+        except S3NoValidClientError:
+            # S3ClientProvider can't currently distinguish between a user that has PUT but not LIST permissions and a
+            # user that has no permissions. If we can't find a valid client, proceed to the upload stage anyway.
+            pass
         else:
             # Check the ETag.
             dest_size = resp['ContentLength']
