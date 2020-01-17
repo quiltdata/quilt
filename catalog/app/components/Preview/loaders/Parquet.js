@@ -5,10 +5,7 @@ import AsyncResult from 'utils/AsyncResult'
 import { PreviewData } from '../types'
 import * as utils from './utils'
 
-export const detect = R.pipe(
-  utils.stripCompression,
-  utils.extIs('.parquet'),
-)
+export const detect = R.pipe(utils.stripCompression, utils.extIs('.parquet'))
 
 export const load = utils.previewFetcher(
   'parquet',
@@ -31,6 +28,8 @@ export const load = utils.previewFetcher(
       ),
       serializedSize: info.serialized_size,
       shape: { rows: info.shape[0], columns: info.shape[1] },
+      note: info.note,
+      warnings: info.warnings,
     }),
     PreviewData.Parquet,
     AsyncResult.Ok,

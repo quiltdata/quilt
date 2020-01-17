@@ -6,7 +6,7 @@ import json
 import os
 import pathlib
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse, urlunparse
-from urllib.request import url2pathname
+from urllib.request import pathname2url, url2pathname
 import warnings
 
 # Third-Party
@@ -79,6 +79,117 @@ class QuiltException(Exception):
             setattr(self, k, v)
 
 
+class PhysicalKey(object):
+    __slots__ = ['bucket', 'path', 'version_id']
+
+    def __init__(self, bucket, path, version_id):
+        """
+        For internal use only; call from_path or from_url instead.
+        """
+        assert bucket is None or isinstance(bucket, str)
+        assert isinstance(path, str)
+        assert version_id is None or isinstance(version_id, str)
+
+        if bucket is None:
+            assert path is not None, "Local keys must have a path"
+            assert version_id is None, "Local keys cannot have a version ID"
+            if os.name == 'nt':
+                assert '\\' not in path, "Paths must use / as a separator"
+        else:
+            assert not path.startswith('/'), "S3 paths must not start with '/'"
+
+        self.bucket = bucket
+        self.path = path
+        self.version_id = version_id
+
+    @classmethod
+    def from_url(cls, url):
+        parsed = urlparse(url)
+
+        if parsed.scheme == 's3':
+            if not parsed.netloc:
+                raise ValueError("Missing bucket")
+            bucket = parsed.netloc
+            assert not parsed.path or parsed.path.startswith('/')
+            path = unquote(parsed.path)[1:]
+            # Parse the version ID the way the Java SDK does:
+            # https://github.com/aws/aws-sdk-java/blob/master/aws-java-sdk-s3/src/main/java/com/amazonaws/services/s3/AmazonS3URI.java#L192
+            query = parse_qs(parsed.query)
+            version_id = query.pop('versionId', [None])[0]
+            if query:
+                raise ValueError(f"Unexpected S3 query string: {parsed.query!r}")
+            return cls(bucket, path, version_id)
+        elif parsed.scheme == 'file':
+            if parsed.netloc not in ('', 'localhost'):
+                raise ValueError("Unexpected hostname")
+            if not parsed.path:
+                raise ValueError("Missing path")
+            if not parsed.path.startswith('/'):
+                raise ValueError("Relative paths are not allowed")
+            if parsed.query:
+                raise ValueError("Unexpected query")
+            path = url2pathname(parsed.path)
+            if parsed.path.endswith('/') and not path.endswith(os.path.sep):
+                # On Windows, url2pathname loses the trailing `/`.
+                path += os.path.sep
+            return cls.from_path(path)
+        else:
+            raise ValueError(f"Unexpected scheme: {parsed.scheme!r}")
+
+    @classmethod
+    def from_path(cls, path):
+        path = os.fspath(path)
+        new_path = os.path.realpath(path)
+        # Use '/' as the path separator.
+        if os.path.sep != '/':
+            new_path = new_path.replace(os.path.sep, '/')
+        # Add back a trailing '/' if the original path has it.
+        if (path.endswith(os.path.sep) or
+            (os.path.altsep is not None and path.endswith(os.path.altsep))):
+            new_path += '/'
+        return cls(None, new_path, None)
+
+    def is_local(self):
+        return self.bucket is None
+
+    def join(self, rel_path):
+        if self.version_id is not None:
+            raise ValueError('Cannot append paths to URLs with a version ID')
+
+        if os.name == 'nt' and '\\' in rel_path:
+            raise ValueError("Paths must use / as a separator")
+
+        if self.path:
+            new_path = self.path.rstrip('/') + '/' + rel_path.lstrip('/')
+        else:
+            new_path = rel_path.lstrip('/')
+        return PhysicalKey(self.bucket, new_path, None)
+
+    def basename(self):
+        return self.path.rsplit('/', 1)[-1]
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, self.__class__) and
+            self.bucket == other.bucket and
+            self.path == other.path and
+            self.version_id == other.version_id
+        )
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.bucket!r}, {self.path!r}, {self.version_id!r})'
+
+    def __str__(self):
+        if self.bucket is None:
+            return urlunparse(('file', '', pathname2url(self.path.replace('/', os.path.sep)), None, None, None))
+        else:
+            if self.version_id is None:
+                params = {}
+            else:
+                params = {'versionId': self.version_id}
+            return urlunparse(('s3', self.bucket, quote(self.path), None, urlencode(params), None))
+
+
 def fix_url(url):
     """Convert non-URL paths to file:// URLs"""
     # If it has a scheme, we assume it's a URL.
@@ -121,50 +232,6 @@ def extract_file_extension(file_path_or_url):
     else:
         return None
 
-
-EXAMPLE = "Example: 's3://my-bucket/path/'."
-def parse_s3_url(s3_url):
-    """
-    Takes in the result of urlparse, and returns a tuple (bucket, path, version_id)
-    """
-    if s3_url.scheme != 's3':
-        raise ValueError("Expected URI scheme 's3', not '{}'. {}".format(s3_url.scheme, EXAMPLE))
-    if not s3_url.netloc:
-        raise ValueError("Expected non-empty URI location. {}".format(EXAMPLE))
-    # based on testing, the next case can never happen; TODO: remove this case
-    if (s3_url.path and not s3_url.path.startswith('/')):
-        raise ValueError("Expected URI path to start with '/', not '{}'. {}".format(s3_url.scheme, EXAMPLE))
-    bucket = s3_url.netloc
-    path = unquote(s3_url.path)[1:]
-    # Parse the version ID the way the Java SDK does:
-    # https://github.com/aws/aws-sdk-java/blob/master/aws-java-sdk-s3/src/main/java/com/amazonaws/services/s3/AmazonS3URI.java#L192
-    query = parse_qs(s3_url.query)
-    version_id = query.pop('versionId', [None])[0]
-    if query:
-        raise ValueError("Unexpected S3 query string: %r" % s3_url.query)
-    return bucket, path, version_id
-
-
-def make_s3_url(bucket, path, version_id=None):
-    params = {}
-    if version_id is not None:
-        params = {'versionId': version_id}
-
-    return urlunparse(('s3', bucket, quote(path), None, urlencode(params), None))
-
-
-def parse_file_url(file_url):
-    if file_url.scheme != 'file':
-        raise ValueError("Invalid file URI")
-    path = url2pathname(file_url.path)
-    if file_url.netloc not in ('', 'localhost'):
-        # Windows file share
-        # TODO: Can't do anything useful on non-Windows... Return an error?
-        path = '\\\\%s%s' % (file_url.netloc, path)
-    return path
-
-def file_is_local(file_url_or_path):
-    return urlparse(fix_url(file_url_or_path)).scheme == 'file'
 
 def read_yaml(yaml_stream):
     yaml = ruamel.yaml.YAML()
@@ -331,6 +398,14 @@ def config_exists():
     """
     return CONFIG_PATH.exists()
 
+def user_is_configured_to_custom_stack():
+    """Look at the users stack to see if they have configured to their own stack. There is currently no way to
+    distinguish between someone who has not configured their stack and someone who has intentionally configured
+    their stack to use open.quiltdata.com"""
+    configured_nav_url = get_from_config("navigator_url")
+    return configured_nav_url is not None and configured_nav_url != OPEN_DATA_URL
+
+
 def configure_from_default():
     """
     Try to configure to the default (public) Quilt stack.
@@ -441,14 +516,33 @@ def catalog_s3_url(catalog_url, s3_url):
     if s3_url is None:
         return catalog_url
 
-    bucket, path, version_id = parse_s3_url(urlparse(s3_url))
-    catalog_s3_url = f"{catalog_url}/b/{quote(bucket)}"
+    pk = PhysicalKey.from_url(s3_url)
+    if pk.is_local():
+        raise QuiltException("Not an S3 URL")
 
-    if path:
-        catalog_s3_url += f"/tree/{quote(path)}"
+    url = f"{catalog_url}/b/{quote(pk.bucket)}"
+
+    if pk.path:
+        url += f"/tree/{quote(pk.path)}"
 
         # Ignore version_id if path is empty (e.g., s3://<bucket>)
-        if version_id is not None:
-            params = {'version': version_id}
-            catalog_s3_url += f"?{urlencode(params)}"
-    return catalog_s3_url
+        if pk.version_id is not None:
+            params = {'version': pk.version_id}
+            url += f"?{urlencode(params)}"
+    return url
+
+def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="latest"):
+    """
+    Generate a URL to the Quilt catalog page of a package. By default will go to the latest version of the package,
+    but the user can pass in the appropriate timestamp to go to a different version.
+
+    Note: There is currently no good way to generate the URL given a specific tophash
+    """
+    assert bucket is not None, "The bucket parameter must not be None"
+    assert package_name is not None, "The package_name parameter must not be None"
+    validate_package_name(package_name)
+
+    return f"{catalog_url}/b/{bucket}/packages/{package_name}/tree/{package_timestamp}"
+
+
+

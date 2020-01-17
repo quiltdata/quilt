@@ -1,11 +1,12 @@
+from collections import deque
 from codecs import iterdecode
 from concurrent.futures import ThreadPoolExecutor
+from enum import Enum
 import hashlib
-import json
 import pathlib
 import shutil
 from threading import Lock
-from urllib.parse import quote, unquote, urlparse
+from typing import List, Tuple
 import warnings
 
 from botocore import UNSIGNED
@@ -19,32 +20,188 @@ import jsonlines
 from tqdm import tqdm
 
 from .session import create_botocore_session
-from .util import QuiltException, make_s3_url, parse_file_url, parse_s3_url
+from .util import PhysicalKey, QuiltException
 
 
-def create_s3_client():
-    botocore_session = create_botocore_session()
-    boto_session = boto3.Session(botocore_session=botocore_session)
 
-    # Check whether credentials are present
-    if boto_session.get_credentials() is None:
-        # Use unsigned boto if credentials aren't present
+
+
+class S3Api(Enum):
+    GET_OBJECT = "GET_OBJECT"
+    HEAD_OBJECT = "HEAD_OBJECT"
+    LIST_OBJECT_VERSIONS = "LIST_OBJECT_VERSIONS"
+    LIST_OBJECTS_V2 = "LIST_OBJECTS_V2"
+
+
+class S3NoValidClientError(Exception):
+    def __init__(self, message, **kwargs):
+        # We use NewError("Prefix: " + str(error)) a lot.
+        # To be consistent across Python 2.7 and 3.x:
+        # 1) This `super` call must exist, or 2.7 will have no text for str(error)
+        # 2) This `super` call must have only one argument (the message) or str(error) will be a repr of args
+        super(S3NoValidClientError, self).__init__(message)
+        self.message = message
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+class S3ClientProvider:
+    """
+    An s3_client is either signed with standard credentials or unsigned. This class exists to dynamically provide the
+    correct s3 client (either standard_client or unsigned_client) for a bucket. This means if standard credentials
+    can't read from the bucket, check if the bucket is public in which case we should be using an unsigned client.
+    This check is expensive at scale so the class also keeps track of which client to use for each bucket+api_call.
+
+    If there are no credentials available at all (i.e. you don't have AWS credentials and you don't have a
+    Quilt-provided role from quilt3.login()), the standard client will also be unsigned so that users can still
+    access public s3 buckets.
+
+    We assume that public buckets are read-only: write operations should always use S3ClientProvider.standard_client
+    """
+
+    def __init__(self):
+        self._use_unsigned_client = {}  # f'{action}/{bucket}' -> use_unsigned_client_bool
+        self._standard_client = None
+        self._unsigned_client = None
+
+    @property
+    def standard_client(self):
+        if self._standard_client is None:
+            self._build_standard_client()
+        return self._standard_client
+
+    @property
+    def unsigned_client(self):
+        if self._unsigned_client is None:
+            self._build_unsigned_client()
+        return self._unsigned_client
+
+    def get_correct_client(self, action: S3Api, bucket: str):
+        if not self.client_type_known(action, bucket):
+            raise RuntimeError("get_correct_client was called, but the correct client type is not known. Only call "
+                               "get_correct_client() after checking if client_type_known()")
+
+        if self.should_use_unsigned_client(action, bucket):
+            return self.unsigned_client
+        else:
+            return self.standard_client
+
+    def key(self, action: S3Api, bucket: str):
+        return f"{action}/{bucket}"
+
+    def set_cache(self, action: S3Api, bucket: str, use_unsigned: bool):
+        self._use_unsigned_client[self.key(action, bucket)] = use_unsigned
+
+    def should_use_unsigned_client(self, action: S3Api, bucket: str):
+        # True if should use unsigned, False if should use standard, None if don't know yet
+        return self._use_unsigned_client.get(self.key(action, bucket))
+
+    def client_type_known(self, action: S3Api, bucket: str):
+        return self.should_use_unsigned_client(action, bucket) is not None
+
+    def find_correct_client(self, api_type, bucket, param_dict):
+        if self.client_type_known(api_type, bucket):
+            return self.get_correct_client(api_type, bucket)
+        else:
+            check_fn_mapper = {
+                S3Api.GET_OBJECT: check_get_object_works_for_client,
+                S3Api.HEAD_OBJECT: check_head_object_works_for_client,
+                S3Api.LIST_OBJECTS_V2: check_list_objects_v2_works_for_client,
+                S3Api.LIST_OBJECT_VERSIONS: check_list_object_versions_works_for_client
+            }
+            assert api_type in check_fn_mapper.keys(), f"Only certain APIs are supported with unsigned_client. The " \
+                f"API '{api_type}' is not current supported. You may want to use S3ClientProvider.standard_client " \
+                f"instead "
+            check_fn = check_fn_mapper[api_type]
+            if check_fn(self.standard_client, param_dict):
+                self.set_cache(api_type, bucket, use_unsigned=False)
+                return self.standard_client
+            else:
+                if check_fn(self.unsigned_client, param_dict):
+                    self.set_cache(api_type, bucket, use_unsigned=True)
+                    return self.unsigned_client
+                else:
+                    raise S3NoValidClientError(f"S3 AccessDenied for {api_type} on bucket: {bucket}")
+
+    def get_boto_session(self):
+        botocore_session = create_botocore_session()
+        boto_session = boto3.Session(botocore_session=botocore_session)
+        return boto_session
+
+
+    def register_signals(self, s3_client):
+        # Enable/disable file read callbacks when uploading files.
+        # Copied from https://github.com/boto/s3transfer/blob/develop/s3transfer/manager.py#L501
+        event_name = 'request-created.s3'
+        s3_client.meta.events.register_first(
+                event_name, signal_not_transferring,
+                unique_id='datatransfer-not-transferring')
+        s3_client.meta.events.register_last(
+                event_name, signal_transferring,
+                unique_id='datatransfer-transferring')
+
+    def _build_standard_client(self):
+        boto_session = self.get_boto_session()
+
+        config = None
+        if boto_session.get_credentials() is None:
+            config = Config(signature_version=UNSIGNED)
+
+        s3_client = boto_session.client('s3', config=config)
+        self.register_signals(s3_client)
+        self._standard_client = s3_client
+
+
+    def _build_unsigned_client(self):
+        boto_session = self.get_boto_session()
         s3_client = boto_session.client('s3', config=Config(signature_version=UNSIGNED))
-    else:
-        # Use normal boto
-        s3_client = boto_session.client('s3')
+        self.register_signals(s3_client)
+        self._unsigned_client = s3_client
 
-    # Enable/disable file read callbacks when uploading files.
-    # Copied from https://github.com/boto/s3transfer/blob/develop/s3transfer/manager.py#L501
-    event_name = 'request-created.s3'
-    s3_client.meta.events.register_first(
-        event_name, signal_not_transferring,
-        unique_id='datatransfer-not-transferring')
-    s3_client.meta.events.register_last(
-        event_name, signal_transferring,
-        unique_id='datatransfer-transferring')
 
-    return s3_client
+
+def check_list_object_versions_works_for_client(s3_client, params):
+    try:
+        s3_client.list_object_versions(**params, MaxKeys=1)  # Make this as fast as possible
+    except ClientError as e:
+        return e.response["Error"]["Code"] != "AccessDenied"
+    return True
+
+def check_list_objects_v2_works_for_client(s3_client, params):
+    try:
+        s3_client.list_objects_v2(**params, MaxKeys=1)  # Make this as fast as possible
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "AccessDenied":
+            return False
+    return True
+
+def check_get_object_works_for_client(s3_client, params):
+    try:
+        head_args = dict(
+                Bucket=params["Bucket"],
+                Key=params["Key"]
+        )
+        if "VersionId" in params:
+            head_args["VersionId"] = params["VersionId"]
+
+        s3_client.head_object(**head_args)  # HEAD/GET share perms, but HEAD always fast
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "403":
+            # This can also happen if you have full get_object access, but not list_objects_v2, and the object does not
+            # exist. Instead of returning a 404, S3 will return a 403.
+            return False
+
+    return True
+
+def check_head_object_works_for_client(s3_client, params):
+    try:
+        s3_client.head_object(**params)
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "403":
+            # This can also happen if you have full get_object access, but not list_objects_v2, and the object does not
+            # exist. Instead of returning a 404, S3 will return a 403.
+            return False
+    return True
+
 
 
 s3_transfer_config = TransferConfig()
@@ -62,11 +219,11 @@ def _copy_local_file(ctx, size, src_path, dest_path):
     ctx.progress(size)
     shutil.copymode(src_path, dest_path)
 
-    ctx.done(pathlib.Path(dest_path).as_uri())
+    ctx.done(PhysicalKey.from_path(dest_path))
 
 
 def _upload_file(ctx, size, src_path, dest_bucket, dest_key):
-    s3_client = ctx.s3_client
+    s3_client = ctx.s3_client_provider.standard_client
 
     if size < s3_transfer_config.multipart_threshold:
         with OSUtils().open_file_chunk_reader(src_path, 0, size, [ctx.progress]) as fd:
@@ -77,7 +234,7 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key):
             )
 
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-        ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
+        ctx.done(PhysicalKey(dest_bucket, dest_key, version_id))
     else:
         resp = s3_client.create_multipart_upload(
             Bucket=dest_bucket,
@@ -118,7 +275,7 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key):
                     MultipartUpload={"Parts": parts}
                 )
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-                ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
+                ctx.done(PhysicalKey(dest_bucket, dest_key, version_id))
 
         for i, start in enumerate(chunk_offsets):
             end = min(start + chunksize, size)
@@ -130,11 +287,12 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path):
     if dest_file.is_reserved():
         raise ValueError("Cannot download to %r: reserved file name" % dest_path)
 
-    s3_client = ctx.s3_client
+    params = dict(Bucket=src_bucket, Key=src_key)
+    s3_client = ctx.s3_client_provider.find_correct_client(S3Api.GET_OBJECT, src_bucket, params)
 
     dest_file.parent.mkdir(parents=True, exist_ok=True)
 
-    params = dict(Bucket=src_bucket, Key=src_key)
+
     if src_version is not None:
         params.update(dict(VersionId=src_version))
     resp = s3_client.get_object(**params)
@@ -148,7 +306,7 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path):
             fd.write(chunk)
             ctx.progress(len(chunk))
 
-    ctx.done(pathlib.Path(dest_path).as_uri())
+    ctx.done(PhysicalKey.from_path(dest_path))
 
 
 def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
@@ -162,7 +320,7 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
             VersionId=src_version
         )
 
-    s3_client = ctx.s3_client
+    s3_client = ctx.s3_client_provider.standard_client
 
     if size < s3_transfer_config.multipart_threshold:
         params = dict(
@@ -177,7 +335,7 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
         resp = s3_client.copy_object(**params)
         ctx.progress(size)
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-        ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
+        ctx.done(PhysicalKey(dest_bucket, dest_key, version_id))
     else:
         resp = s3_client.create_multipart_upload(
             Bucket=dest_bucket,
@@ -220,7 +378,7 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
                     MultipartUpload={"Parts": parts}
                 )
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-                ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
+                ctx.done(PhysicalKey(dest_bucket, dest_key, version_id))
 
         for i, start in enumerate(chunk_offsets):
             end = min(start + chunksize, size)
@@ -228,14 +386,17 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
 
 
 def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
-    s3_client = ctx.s3_client
+
+
 
     # Optimization: check if the remote file already exists and has the right ETag,
     # and skip the upload.
     if size >= UPLOAD_ETAG_OPTIMIZATION_THRESHOLD:
         try:
-            resp = s3_client.head_object(Bucket=dest_bucket, Key=dest_path)
-        except ClientError:
+            params = dict(Bucket=dest_bucket, Key=dest_path)
+            s3_client = ctx.s3_client_provider.find_correct_client(S3Api.HEAD_OBJECT, dest_bucket, params)
+            resp = s3_client.head_object(**params)
+        except S3NoValidClientError:
             # Destination doesn't exist, so fall through to the normal upload.
             pass
         else:
@@ -249,7 +410,7 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
                     # Nothing more to do. We should not attempt to copy the object because
                     # that would cause the "copy object to itself" error.
                     ctx.progress(size)
-                    ctx.done(make_s3_url(dest_bucket, dest_path, dest_version_id))
+                    ctx.done(PhysicalKey(dest_bucket, dest_path, dest_version_id))
                     return  # Optimization succeeded.
 
     # If the optimization didn't happen, do the normal upload.
@@ -257,14 +418,14 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
 
 
 class WorkerContext(object):
-    def __init__(self, s3_client, progress, done, run):
-        self.s3_client = s3_client
+    def __init__(self, s3_client_provider, progress, done, run):
+        self.s3_client_provider = s3_client_provider
         self.progress = progress
         self.done = done
         self.run = run
 
 
-def _copy_file_list_internal(s3_client, file_list):
+def _copy_file_list_internal(file_list, message, callback):
     """
     Takes a list of tuples (src, dest, size) and copies the data in parallel.
     Returns versioned URLs for S3 destinations and regular file URLs for files.
@@ -272,13 +433,19 @@ def _copy_file_list_internal(s3_client, file_list):
     total_size = sum(size for _, _, size in file_list)
 
     lock = Lock()
-    futures = []
+    futures = deque()
     results = [None] * len(file_list)
 
-    with tqdm(desc="Copying", total=total_size, unit='B', unit_scale=True) as progress, \
+    stopped = False
+
+    s3_client_provider = S3ClientProvider()  # Share provider across threads to reduce redundant public bucket checks
+
+    with tqdm(desc=message, total=total_size, unit='B', unit_scale=True) as progress, \
          ThreadPoolExecutor(s3_transfer_config.max_request_concurrency) as executor:
 
         def progress_callback(bytes_transferred):
+            if stopped:
+                raise Exception("Interrupted")
             with lock:
                 progress.update(bytes_transferred)
 
@@ -287,56 +454,57 @@ def _copy_file_list_internal(s3_client, file_list):
             with lock:
                 futures.append(future)
 
-        def worker(idx, src_url, dest_url, size):
+        def worker(idx, src, dest, size):
+            if stopped:
+                raise Exception("Interrupted")
+
             def done_callback(value):
                 assert value is not None
                 with lock:
                     assert results[idx] is None
                     results[idx] = value
+                if callback is not None:
+                    callback(src, dest, size)
 
-            ctx = WorkerContext(s3_client=s3_client, progress=progress_callback, done=done_callback, run=run_task)
+            ctx = WorkerContext(s3_client_provider=s3_client_provider,
+                                progress=progress_callback,
+                                done=done_callback,
+                                run=run_task)
 
-            if src_url.scheme == 'file':
-                src_path = parse_file_url(src_url)
-                if dest_url.scheme == 'file':
-                    dest_path = parse_file_url(dest_url)
-                    _copy_local_file(ctx, size, src_path, dest_path)
-                elif dest_url.scheme == 's3':
-                    dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
-                    if dest_version_id:
-                        raise ValueError("Cannot set VersionId on destination")
-                    _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path)
+            if dest.version_id:
+                raise ValueError("Cannot set VersionId on destination")
+
+            if src.is_local():
+                if dest.is_local():
+                    _copy_local_file(ctx, size, src.path, dest.path)
                 else:
-                    raise NotImplementedError
-            elif src_url.scheme == 's3':
-                src_bucket, src_path, src_version_id = parse_s3_url(src_url)
-                if dest_url.scheme == 'file':
-                    dest_path = parse_file_url(dest_url)
-                    _download_file(ctx, src_bucket, src_path, src_version_id, dest_path)
-                elif dest_url.scheme == 's3':
-                    dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
-                    if dest_version_id:
+                    if dest.version_id:
                         raise ValueError("Cannot set VersionId on destination")
-                    _copy_remote_file(ctx, size, src_bucket, src_path, src_version_id,
-                                      dest_bucket, dest_path)
-                else:
-                    raise NotImplementedError
+                    _upload_or_copy_file(ctx, size, src.path, dest.bucket, dest.path)
             else:
-                raise NotImplementedError
+                if dest.is_local():
+                    _download_file(ctx, src.bucket, src.path, src.version_id, dest.path)
+                else:
+                    _copy_remote_file(ctx, size, src.bucket, src.path, src.version_id,
+                                      dest.bucket, dest.path)
 
-        for idx, args in enumerate(file_list):
-            run_task(worker, idx, *args)
+        try:
+            for idx, args in enumerate(file_list):
+                run_task(worker, idx, *args)
 
-        # ThreadPoolExecutor does not appear to have a way to just wait for everything to complete.
-        # Shutting it down will cause it to wait - but will prevent any new tasks from starting.
-        # So, manually wait for all tasks to complete.
-        # This will also raise any exception that happened in a worker thread.
-        while True:
-            with lock:
-                if not futures:
-                    break
-                future = futures.pop()
-            future.result()
+            # ThreadPoolExecutor does not appear to have a way to just wait for everything to complete.
+            # Shutting it down will cause it to wait - but will prevent any new tasks from starting.
+            # So, manually wait for all tasks to complete.
+            # This will also raise any exception that happened in a worker thread.
+            while True:
+                with lock:
+                    if not futures:
+                        break
+                    future = futures.popleft()
+                future.result()
+        finally:
+            # Make sure all tasks exit quickly if the main thread exits before they're done.
+            stopped = True
 
     assert all(results)
 
@@ -371,7 +539,7 @@ def _calculate_etag(file_path):
 
 
 def delete_object(bucket, key):
-    s3_client = create_s3_client()
+    s3_client = S3ClientProvider().standard_client
 
     s3_client.head_object(Bucket=bucket, Key=key)  # Make sure it exists
     s3_client.delete_object(Bucket=bucket, Key=key)  # Actually delete it
@@ -393,7 +561,7 @@ def list_object_versions(bucket, prefix, recursive=True):
     delete_markers = []
     prefixes = []
 
-    s3_client = create_s3_client()
+    s3_client = S3ClientProvider().find_correct_client(S3Api.LIST_OBJECT_VERSIONS, bucket, list_obj_params)
     paginator = s3_client.get_paginator('list_object_versions')
 
     for response in paginator.paginate(**list_obj_params):
@@ -405,6 +573,7 @@ def list_object_versions(bucket, prefix, recursive=True):
         return versions, delete_markers
     else:
         return prefixes, versions, delete_markers
+
 
 
 def list_objects(bucket, prefix, recursive=True):
@@ -419,7 +588,7 @@ def list_objects(bucket, prefix, recursive=True):
         # Treat '/' as a directory separator and only return one level of files instead of everything.
         list_obj_params.update(dict(Delimiter='/'))
 
-    s3_client = create_s3_client()
+    s3_client = S3ClientProvider().find_correct_client(S3Api.LIST_OBJECTS_V2, bucket, list_obj_params)
     paginator = s3_client.get_paginator('list_objects_v2')
 
     for response in paginator.paginate(**list_obj_params):
@@ -432,15 +601,13 @@ def list_objects(bucket, prefix, recursive=True):
         return prefixes, objects
 
 
-def _looks_like_dir(s):
-    return not s or s.endswith('/')
+def _looks_like_dir(pk: PhysicalKey):
+    return pk.basename() == ''
 
 
-def list_url(src):
-    src_url = urlparse(src)
-    if src_url.scheme == 'file':
-        src_path = parse_file_url(src_url)
-        src_file = pathlib.Path(src_path)
+def list_url(src: PhysicalKey):
+    if src.is_local():
+        src_file = pathlib.Path(src.path)
 
         for f in src_file.rglob('*'):
             try:
@@ -450,34 +617,31 @@ def list_url(src):
             except FileNotFoundError:
                 # If a file does not exist, is it really a file?
                 pass
-    elif src_url.scheme == 's3':
-        src_bucket, src_path, src_version_id = parse_s3_url(src_url)
-        if src_version_id is not None:
-            raise ValueError(f"Directories cannot have version IDs: {src_url!r}")
-        if not _looks_like_dir(src_path):
+    else:
+        if src.version_id is not None:
+            raise ValueError(f"Directories cannot have version IDs: {src}")
+        src_path = src.path
+        if not _looks_like_dir(src):
             src_path += '/'
-        s3_client = create_s3_client()
+        list_obj_params = dict(Bucket=src.bucket, Prefix=src_path)
+        s3_client = S3ClientProvider().find_correct_client(S3Api.LIST_OBJECTS_V2, src.bucket, list_obj_params)
         paginator = s3_client.get_paginator('list_objects_v2')
-        for response in paginator.paginate(Bucket=src_bucket, Prefix=src_path):
+        for response in paginator.paginate(**list_obj_params):
             for obj in response.get('Contents', []):
                 key = obj['Key']
                 if not key.startswith(src_path):
                     raise ValueError("Unexpected key: %r" % key)
                 yield key[len(src_path):], obj['Size']
-    else:
-        raise NotImplementedError
 
 
-def delete_url(src):
+def delete_url(src: PhysicalKey):
     """Deletes the given URL.
     Follows S3 semantics even for local files:
     - If the URL does not exist, it's a no-op.
     - If it's a non-empty directory, it's also a no-op.
     """
-    src_url = urlparse(src)
-    if src_url.scheme == 'file':
-        src_path = parse_file_url(src_url)
-        src_file = pathlib.Path(src_path)
+    if src.is_local():
+        src_file = pathlib.Path(src.path)
 
         if src_file.is_dir():
             try:
@@ -490,37 +654,25 @@ def delete_url(src):
                 src_file.unlink()
             except FileExistsError:
                 pass
-    elif src_url.scheme == 's3':
-        src_bucket, src_path, src_version_id = parse_s3_url(src_url)
-        s3_client = create_s3_client()
-        s3_client.delete_object(Bucket=src_bucket, Key=src_path)
     else:
-        raise NotImplementedError
+        s3_client = S3ClientProvider().standard_client
+        s3_client.delete_object(Bucket=src.bucket, Key=src.path)
 
 
-def copy_file_list(file_list):
+def copy_file_list(file_list, message=None, callback=None):
     """
     Takes a list of tuples (src, dest, size) and copies them in parallel.
     URLs must be regular files, not directories.
     Returns versioned URLs for S3 destinations and regular file URLs for files.
     """
-    processed_file_list = []
-    for src, dest, size in file_list:
-        src_url = urlparse(src)
-        src_path = unquote(src_url.path)
-        dest_url = urlparse(dest)
-        dest_path = unquote(dest_url.path)
-
-        if _looks_like_dir(src_path) or _looks_like_dir(dest_path):
+    for src, dest, _ in file_list:
+        if _looks_like_dir(src) or _looks_like_dir(dest):
             raise ValueError("Directories are not allowed")
 
-        processed_file_list.append((src_url, dest_url, size))
-
-    s3_client = create_s3_client()
-    return _copy_file_list_internal(s3_client, processed_file_list)
+    return _copy_file_list_internal(file_list, message, callback)
 
 
-def copy_file(src, dest, size=None):
+def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, callback=None):
     """
     Copies a single file or directory.
     If src is a file, dest can be a file or a directory.
@@ -531,114 +683,89 @@ def copy_file(src, dest, size=None):
             if part in ('', '.', '..'):
                 raise ValueError("Invalid relative path: %r" % rel_path)
 
-    def url_append(url, path):
-        return url._replace(path=url.path + quote(path))
-
-    src_url = urlparse(src)
-    dest_url = urlparse(dest)
-    src_path = unquote(src_url.path)
-    dest_path = unquote(dest_url.path)
-
     url_list = []
-    if _looks_like_dir(src_path):
-        if not _looks_like_dir(dest_path):
+    if _looks_like_dir(src):
+        if not _looks_like_dir(dest):
             raise ValueError("Destination path must end in /")
         if size is not None:
             raise ValueError("`size` does not make sense for directories")
 
         for rel_path, size in list_url(src):
             sanity_check(rel_path)
-            new_src_url = url_append(src_url, rel_path)
-            new_dest_url = url_append(dest_url, rel_path)
-            url_list.append((new_src_url, new_dest_url, size))
+            url_list.append((src.join(rel_path), dest.join(rel_path), size))
         if not url_list:
             raise QuiltException("No objects to download.")
     else:
-        if _looks_like_dir(dest_path):
-            name = src_path.rsplit('/', 1)[1]
-            dest_url = url_append(dest_url, name)
+        if _looks_like_dir(dest):
+            dest = dest.join(src.basename())
         if size is None:
             size, _ = get_size_and_version(src)
-        url_list.append((src_url, dest_url, size))
+        url_list.append((src, dest, size))
 
-    s3_client = create_s3_client()
-    _copy_file_list_internal(s3_client, url_list)
+    _copy_file_list_internal(url_list, message, callback)
 
 
-def put_bytes(data, dest):
-    dest_url = urlparse(dest)
-    if dest_url.scheme == 'file':
-        dest_path = pathlib.Path(parse_file_url(dest_url))
-        dest_path.parent.mkdir(parents=True, exist_ok=True)
-        dest_path.write_bytes(data)
-    elif dest_url.scheme == 's3':
-        dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
-        if not dest_path or dest_path.endswith('/'):
-            raise ValueError("Invalid path: %r" % dest_path)
-        if dest_version_id:
+def put_bytes(data: bytes, dest: PhysicalKey):
+    if _looks_like_dir(dest):
+        raise ValueError("Invalid path: %r" % dest.path)
+
+    if dest.is_local():
+        dest_file = pathlib.Path(dest.path)
+        dest_file.parent.mkdir(parents=True, exist_ok=True)
+        dest_file.write_bytes(data)
+    else:
+        if dest.version_id is not None:
             raise ValueError("Cannot set VersionId on destination")
-        s3_client = create_s3_client()
+        s3_client = S3ClientProvider().standard_client
         s3_client.put_object(
-            Bucket=dest_bucket,
-            Key=dest_path,
+            Bucket=dest.bucket,
+            Key=dest.path,
             Body=data,
         )
-    else:
-        raise NotImplementedError
 
-def get_bytes(src):
-    src_url = urlparse(src)
-    if src_url.scheme == 'file':
-        src_path = pathlib.Path(parse_file_url(src_url))
-        data = src_path.read_bytes()
-    elif src_url.scheme == 's3':
-        src_bucket, src_path, src_version_id = parse_s3_url(src_url)
-        params = dict(Bucket=src_bucket, Key=src_path)
-        if src_version_id is not None:
-            params.update(dict(VersionId=src_version_id))
-        s3_client = create_s3_client()
+def get_bytes(src: PhysicalKey):
+    if src.is_local():
+        src_file = pathlib.Path(src.path)
+        data = src_file.read_bytes()
+    else:
+        params = dict(Bucket=src.bucket, Key=src.path)
+        if src.version_id is not None:
+            params.update(dict(VersionId=src.version_id))
+        s3_client = S3ClientProvider().find_correct_client(S3Api.GET_OBJECT, src.bucket, params)
         resp = s3_client.get_object(**params)
         data = resp['Body'].read()
-    else:
-        raise NotImplementedError
     return data
 
-def get_size_and_version(src):
+def get_size_and_version(src: PhysicalKey):
     """
     Gets size and version for the object at a given URL.
 
     Returns:
         size, version(str)
     """
-    src_url = urlparse(src)
-    path = unquote(src_url.path)
-
-    if not path or path.endswith('/'):
-        raise QuiltException("Invalid path: %r; cannot be a directory" % path)
+    if _looks_like_dir(src):
+        raise QuiltException("Invalid path: %r; cannot be a directory" % src.path)
 
     version = None
-    if src_url.scheme == 'file':
-        src_path = pathlib.Path(parse_file_url(src_url))
-        if not src_path.is_file():
-            raise QuiltException("Not a file: %r" % str(src_path))
-        size = src_path.stat().st_size
-    elif src_url.scheme == 's3':
-        bucket, key, version_id = parse_s3_url(src_url)
+    if src.is_local():
+        src_file = pathlib.Path(src.path)
+        if not src_file.is_file():
+            raise QuiltException("Not a file: %r" % str(src_file))
+        size = src_file.stat().st_size
+    else:
         params = dict(
-            Bucket=bucket,
-            Key=key
+            Bucket=src.bucket,
+            Key=src.path
         )
-        if version_id:
-            params.update(dict(VersionId=version_id))
-        s3_client = create_s3_client()
+        if src.version_id is not None:
+            params.update(dict(VersionId=src.version_id))
+        s3_client = S3ClientProvider().find_correct_client(S3Api.HEAD_OBJECT, src.bucket, params)
         resp = s3_client.head_object(**params)
         size = resp['ContentLength']
         version = resp.get('VersionId')
-    else:
-        raise NotImplementedError
     return size, version
 
-def calculate_sha256(src_list, sizes):
+def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
     assert len(src_list) == len(sizes)
 
     total_size = sum(sizes)
@@ -646,12 +773,9 @@ def calculate_sha256(src_list, sizes):
 
     with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True) as progress:
         def _process_url(src, size):
-            src_url = urlparse(src)
             hash_obj = hashlib.sha256()
-            if src_url.scheme == 'file':
-                path = pathlib.Path(parse_file_url(src_url))
-
-                with open(path, 'rb') as fd:
+            if src.is_local():
+                with open(src.path, 'rb') as fd:
                     while True:
                         chunk = fd.read(64 * 1024)
                         if not chunk:
@@ -670,20 +794,17 @@ def calculate_sha256(src_list, sizes):
                             f"This should be avoided if possible."
                         )
 
-            elif src_url.scheme == 's3':
-                src_bucket, src_path, src_version_id = parse_s3_url(src_url)
-                params = dict(Bucket=src_bucket, Key=src_path)
-                if src_version_id is not None:
-                    params.update(dict(VersionId=src_version_id))
-                s3_client = create_s3_client()
+            else:
+                params = dict(Bucket=src.bucket, Key=src.path)
+                if src.version_id is not None:
+                    params.update(dict(VersionId=src.version_id))
+                s3_client = S3ClientProvider().find_correct_client(S3Api.GET_OBJECT, src.bucket, params)
                 resp = s3_client.get_object(**params)
                 body = resp['Body']
                 for chunk in body:
                     hash_obj.update(chunk)
                     with lock:
                         progress.update(len(chunk))
-            else:
-                raise NotImplementedError
             return hash_obj.hexdigest()
 
         with ThreadPoolExecutor() as executor:
@@ -692,7 +813,7 @@ def calculate_sha256(src_list, sizes):
     return results
 
 
-def select(url, query, meta=None, raw=False, **kwargs):
+def select(src, query, meta=None, raw=False, **kwargs):
     """Perform an S3 Select SQL query, return results as a Pandas DataFrame
 
     The data returned by Boto3 for S3 Select is fairly convoluted, to say the
@@ -712,7 +833,7 @@ def select(url, query, meta=None, raw=False, **kwargs):
         transparently supported.
 
     Args:
-        url(str):  S3 URL of the object to query
+        src(PhysicalKey):  S3 PhysicalKey of the object to query
         query(str): An SQL query using the 'SELECT' directive. See examples at
             https://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectSELECTContent.html
         meta: Quilt Object Metadata
@@ -764,8 +885,9 @@ def select(url, query, meta=None, raw=False, **kwargs):
         }
     delims = {'.tsv': '\t', '.ssv': ';'}
 
-    parsed_url = urlparse(url)
-    bucket, path, version_id = parse_s3_url(parsed_url)
+    assert not src.is_local(), "src must be an S3 URL"
+
+    # TODO: what about version_id???
 
     # TODO: Use formats lib for this stuff
     # use metadata to get format and compression
@@ -778,7 +900,7 @@ def select(url, query, meta=None, raw=False, **kwargs):
             format = meta.get('format', {}).get('contained_format', {}).get('name')
 
     # use file extensions to get compression info, if none is present
-    exts = pathlib.Path(path).suffixes  # last of e.g. ['.periods', '.in', '.name', '.json', '.gz']
+    exts = pathlib.Path(src.path).suffixes  # last of e.g. ['.periods', '.in', '.name', '.json', '.gz']
     if exts and not compression:
         if exts[-1].lower() in accepted_compression:
             compression = accepted_compression[exts.pop(-1)]   # remove e.g. '.gz'
@@ -797,7 +919,7 @@ def select(url, query, meta=None, raw=False, **kwargs):
                 raise QuiltException("Compression {!r} not valid for select on format {!r}: "
                                      "Expected {!r}".format(compression, s3_format, ok_compression))
     if not format:
-        raise QuiltException("Unable to discover format for select on {!r}".format(url))
+        raise QuiltException("Unable to discover format for select on {}".format(src))
 
     # At this point, we have a known format and enough information to use it.
     s3_format = valid_s3_select_formats[format]
@@ -816,8 +938,8 @@ def select(url, query, meta=None, raw=False, **kwargs):
 
     # These are processed and/or default args.
     select_kwargs = dict(
-        Bucket=bucket,
-        Key=path,
+        Bucket=src.bucket,
+        Key=src.path,
         Expression=query,
         ExpressionType=query_type,
         InputSerialization=input_serialization,
@@ -826,7 +948,9 @@ def select(url, query, meta=None, raw=False, **kwargs):
     # Include user-specified passthrough options, overriding other options
     select_kwargs.update(kwargs)
 
-    s3_client = create_s3_client()
+    # S3 Select does not support anonymous access (as of Jan 2019)
+    # https://docs.aws.amazon.com/AmazonS3/latest/API/API_SelectObjectContent.html
+    s3_client = S3ClientProvider().standard_client
     response = s3_client.select_object_content(**select_kwargs)
 
     # we don't want multiple copies of large chunks of data hanging around.

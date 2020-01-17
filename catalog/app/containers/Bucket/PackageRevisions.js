@@ -65,7 +65,7 @@ const SparklineSkel = ({ width, height }) => {
   )
 }
 
-const Counts = ({ counts, total, sparklineW, sparklineH }) => {
+function Counts({ counts, total, sparklineW, sparklineH }) {
   const [cursor, setCursor] = React.useState(null)
   return (
     <>
@@ -142,6 +142,9 @@ const useRevisionStyles = M.makeStyles((t) => ({
       marginTop: t.spacing(1),
     },
   },
+  mono: {
+    fontFamily: t.typography.monospace.fontFamily,
+  },
   time: {
     ...t.typography.body1,
     fontWeight: t.typography.fontWeightMedium,
@@ -169,7 +172,7 @@ const useRevisionStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Revision({ bucket, name, id, hash, stats, message, counts }) {
+function Revision({ bucket, name, id, hash, stats, message, modified, counts }) {
   const classes = useRevisionStyles()
   const { urls } = NamedRoutes.use()
   const t = M.useTheme()
@@ -185,13 +188,23 @@ function Revision({ bucket, name, id, hash, stats, message, counts }) {
         {AsyncResult.case(
           {
             Ok: (v) => {
-              const modified = new Date(parseInt(v, 10) * 1000)
+              const mtime =
+                v === 'latest'
+                  ? modified
+                  : AsyncResult.Ok(new Date(parseInt(v, 10) * 1000))
               return (
                 <Link
                   className={classes.time}
                   to={urls.bucketPackageTree(bucket, name, v)}
                 >
-                  {dateFns.format(modified, dateFmt)}
+                  {v === 'latest' ? 'LATEST' : <span className={classes.mono}>{v}</span>}
+                  {AsyncResult.case(
+                    {
+                      _: () => null,
+                      Ok: (d) => <> | {dateFns.format(d, dateFmt)}</>,
+                    },
+                    mtime,
+                  )}
                 </Link>
               )
             },
@@ -371,13 +384,13 @@ function Revisions({ revisions, isTruncated, counts, bucket, name, page }) {
   const classes = useRevisionsStyles()
   const { urls } = NamedRoutes.use()
   const { apiGatewayEndpoint: endpoint } = Config.useConfig()
-  const signer = AWS.Signer.use()
+  const sign = AWS.Signer.useS3Signer()
   const s3req = AWS.S3.useRequest()
 
   const actualPage = page || 1
 
   const makePageUrl = React.useCallback(
-    (p) => urls.bucketPackageDetail(bucket, name, { p: p !== 1 ? p : undefined }),
+    (p) => urls.bucketPackageRevisions(bucket, name, { p: p !== 1 ? p : undefined }),
     [bucket, name],
   )
 
@@ -407,17 +420,17 @@ function Revisions({ revisions, isTruncated, counts, bucket, name, page }) {
           </p>
         </M.Paper>
       )}
-      {paginated.map(({ id, key }) => (
+      {paginated.map((r) => (
         <Data
-          key={id}
+          key={r}
           fetch={requests.getRevisionData}
-          params={{ s3req, signer, endpoint, bucket, key }}
+          params={{ s3req, sign, endpoint, bucket, name, id: r }}
         >
           {(res) => (
             <Revision
               {...{ bucket, name }}
-              id={AsyncResult.Ok(id)}
-              {...AsyncResult.props(['hash', 'stats', 'message'], res)}
+              id={AsyncResult.Ok(r)}
+              {...AsyncResult.props(['hash', 'stats', 'message', 'modified'], res)}
               counts={AsyncResult.mapCase({ Ok: ({ hash }) => counts[hash] }, res)}
             />
           )}
@@ -429,16 +442,16 @@ function Revisions({ revisions, isTruncated, counts, bucket, name, page }) {
 }
 
 const pendingProps = AsyncResult.props(
-  ['id', 'hash', 'stats', 'message', 'counts'],
+  ['id', 'hash', 'stats', 'message', 'modified', 'counts'],
   AsyncResult.Pending(),
 )
 
-export default ({
+export default function PackageRevisions({
   match: {
     params: { bucket, name },
   },
   location,
-}) => {
+}) {
   const { p } = parseSearch(location.search)
   const page = p && parseInt(p, 10)
   const s3req = AWS.S3.useRequest()

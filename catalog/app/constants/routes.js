@@ -100,12 +100,19 @@ export const bucketPackageList = {
 }
 export const bucketPackageDetail = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})`,
-  url: (bucket, name, { p } = {}) => `/b/${bucket}/packages/${name}${mkSearch({ p })}`,
+  url: (bucket, name) => `/b/${bucket}/packages/${name}`,
 }
 export const bucketPackageTree = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
   url: (bucket, name, revision, path = '') =>
-    `/b/${bucket}/packages/${name}/tree/${revision}/${encode(path)}`,
+    revision === 'latest' && !path
+      ? bucketPackageDetail.url(bucket, name)
+      : `/b/${bucket}/packages/${name}/tree/${revision}/${encode(path)}`,
+}
+export const bucketPackageRevisions = {
+  path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/revisions`,
+  url: (bucket, name, { p } = {}) =>
+    `/b/${bucket}/packages/${name}/revisions${mkSearch({ p })}`,
 }
 
 // legacy stuff

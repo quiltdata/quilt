@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from quilt3 import Bucket
-from quilt3.util import QuiltException
+from quilt3.util import PhysicalKey, QuiltException
 
 from .utils import QuiltTestCase
 
@@ -177,10 +177,9 @@ class TestBucket(QuiltTestCase):
         with patch("quilt3.bucket.copy_file") as copy_mock:
             bucket = Bucket('s3://test-bucket')
             bucket.put_file(key='README.md', path='./README') # put local file to bucket
-            copy_src = copy_mock.call_args_list[0][0][0]
-            assert urlparse(copy_src).scheme == 'file'
-            copy_dest = copy_mock.call_args_list[0][0][1]
-            assert urlparse(copy_dest).scheme == 's3'
+
+            copy_mock.assert_called_once_with(
+                PhysicalKey.from_path('README'), PhysicalKey.from_url('s3://test-bucket/README.md'))
 
     def test_bucket_put_dir(self):
         path = pathlib.Path(__file__).parent / 'data'
@@ -188,15 +187,18 @@ class TestBucket(QuiltTestCase):
 
         with patch("quilt3.bucket.copy_file") as copy_mock:
             bucket.put_dir('test', path)
-            copy_mock.assert_called_once_with(path.as_uri() + '/', 's3://test-bucket/test/')
+            copy_mock.assert_called_once_with(
+                PhysicalKey.from_path(str(path) + '/'), PhysicalKey.from_url('s3://test-bucket/test/'))
 
         with patch("quilt3.bucket.copy_file") as copy_mock:
             bucket.put_dir('test/', path)
-            copy_mock.assert_called_once_with(path.as_uri() + '/', 's3://test-bucket/test/')
+            copy_mock.assert_called_once_with(
+                PhysicalKey.from_path(str(path) + '/'), PhysicalKey.from_url('s3://test-bucket/test/'))
 
         with patch("quilt3.bucket.copy_file") as copy_mock:
             bucket.put_dir('', path)
-            copy_mock.assert_called_once_with(path.as_uri() + '/', 's3://test-bucket/')
+            copy_mock.assert_called_once_with(
+                PhysicalKey.from_path(str(path) + '/'), PhysicalKey.from_url('s3://test-bucket/'))
 
     def test_remote_delete(self):
         self.s3_stubber.add_response(

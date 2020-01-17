@@ -5,11 +5,10 @@ Contains the Bucket class, which provides several useful functions
     over an s3 bucket.
 """
 import pathlib
-from urllib.parse import urlparse
 
 from .data_transfer import copy_file, delete_object, list_object_versions, list_objects, select
 from .search_util import search_api
-from .util import QuiltException, fix_url, parse_s3_url
+from .util import PhysicalKey, QuiltException, fix_url
 
 
 class Bucket(object):
@@ -25,13 +24,11 @@ class Bucket(object):
         Returns:
             A new Bucket
         """
-        parsed = urlparse(bucket_uri)
-        bucket, path, version_id = parse_s3_url(parsed)
-        if path or version_id:
+        self._pk = PhysicalKey.from_url(bucket_uri)
+        if self._pk.is_local():
+            raise QuiltException("Bucket URI must be an S3 URI")
+        if self._pk.path or self._pk.version_id is not None:
             raise QuiltException("Bucket URI shouldn't contain a path or a version ID")
-
-        self._uri = 's3://{}/'.format(bucket)
-        self._bucket = bucket
 
     def search(self, query, limit=10):
         """
@@ -62,7 +59,7 @@ class Bucket(object):
             }...]
             ```
         """
-        return search_api(query, index=self._bucket, limit=limit)
+        return search_api(query, index=self._pk.bucket, limit=limit)
 
     def put_file(self, key, path):
         """
@@ -79,8 +76,8 @@ class Bucket(object):
             * if no file exists at path
             * if copy fails
         """
-        dest = self._uri + key
-        copy_file(fix_url(path), dest)
+        dest = self._pk.join(key)
+        copy_file(PhysicalKey.from_url(fix_url(path)), dest)
 
     def put_dir(self, key, directory):
         """
@@ -88,13 +85,12 @@ class Bucket(object):
 
         Args:
             key(str): prefix to store files under in bucket
-            directory(str): path to local directory to grab files from
+            directory(str): path to directory to grab files from
 
         Returns:
             None
 
         Raises:
-            * if directory isn't a valid local directory
             * if writing to bucket fails
         """
         # Ensure key ends in '/'.
@@ -105,9 +101,9 @@ class Bucket(object):
         if not src_path.is_dir():
             raise QuiltException("Provided directory does not exist")
 
-        source_dir = src_path.resolve().as_uri() + '/'
-        s3_uri_prefix = self._uri + key
-        copy_file(source_dir, s3_uri_prefix)
+        src = PhysicalKey.from_path(str(src_path) + '/')
+        dest = self._pk.join(key)
+        copy_file(src, dest)
 
     def keys(self):
         """
@@ -116,7 +112,7 @@ class Bucket(object):
         Returns:
             List of strings
         """
-        return [x.get('Key') for x in list_objects(self._bucket, '')]
+        return [x.get('Key') for x in list_objects(self._pk.bucket, '')]
 
     def delete(self, key):
         """
@@ -137,7 +133,7 @@ class Bucket(object):
         if key[-1] == '/':
             raise QuiltException("Must use delete_dir to delete directories")
 
-        delete_object(self._bucket, key)
+        delete_object(self._pk.bucket, key)
 
     def delete_dir(self, path):
         """Delete a directory and all of its contents from the bucket.
@@ -145,7 +141,7 @@ class Bucket(object):
         Parameters:
                 path (str): path to the directory to delete
         """
-        results = list_objects(self._bucket, path)
+        results = list_objects(self._pk.bucket, path)
         for result in results:
             self.delete(result['Key'])
 
@@ -166,7 +162,7 @@ class Bucket(object):
         elif not path:
             path = ""  # enumerate top-of-bucket
 
-        results = list_object_versions(self._bucket, path, recursive=recursive)
+        results = list_object_versions(self._pk.bucket, path, recursive=recursive)
         return results
 
     def fetch(self, key, path):
@@ -189,9 +185,9 @@ class Bucket(object):
             * if path doesn't exist
             * if download fails
         """
-        source_uri = self._uri + key
-        dest_uri = fix_url(path)
-        copy_file(source_uri, dest_uri)
+        source = self._pk.join(key)
+        dest = PhysicalKey.from_url(fix_url(path))
+        copy_file(source, dest)
 
     def select(self, key, query, raw=False):
         """
@@ -206,5 +202,5 @@ class Bucket(object):
         Returns:
             pandas.DataFrame: results of query
         """
-        uri = self._uri + key
-        return select(uri, query, raw=raw)
+        source = self._pk.join(key)
+        return select(source, query, raw=raw)

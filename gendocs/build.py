@@ -4,11 +4,13 @@ import sys
 import subprocess
 import pkg_resources
 
+
 try:
     from pip._internal import main as pipmain
 except ImportError:
     from pip import main as pipmain
 from ruamel import yaml
+
 
 
 # To push out and use a new version of pydocmd to people generating docs,
@@ -19,8 +21,14 @@ EXPECTED_VERSION_SUFFIX = '-quilt3'
 # Just the branch name right now, but anything following '@' in a github repo URL
 GH_HTTPS_REV = 'quilt'
 
+def generate_cli_api_reference_docs():
+    # This script relies on relative paths so it should only run if the cwd is gendocs/
+    subprocess.check_call(["./gen_cli_api_reference.sh"])
+
 
 if __name__ == "__main__":
+    generate_cli_api_reference_docs()  # CLI docs use custom script to generate documentation markdown, so do that first
+
     try:
         pydocmd_dist = pkg_resources.get_distribution('pydoc-markdown')  # install name, not module name
         version = pydocmd_dist.version

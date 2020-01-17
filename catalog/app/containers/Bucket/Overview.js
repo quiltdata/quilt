@@ -369,7 +369,7 @@ const useStatsTipStyles = M.makeStyles((t) => ({
   ext: {
     fontSize: 12,
     lineHeight: '16px',
-    maxWidth: 80,
+    maxWidth: 70,
     opacity: 0.6,
     overflow: 'hidden',
     textAlign: 'right',
@@ -531,11 +531,11 @@ function Downloads({ bucket, colorPool, ...props }) {
   const cursorStats = (counts) => {
     if (!cursor) return null
     const { date, ...combined } = counts.combined.counts[cursor.j]
-    const byExt = counts.byExt.map((e) => ({
+    const byExt = counts.byExtCollapsed.map((e) => ({
       ext: e.ext,
       ...e.counts[cursor.j],
     }))
-    const highlighted = cursor.i == null ? null : counts.byExt[cursor.i]
+    const highlighted = cursor.i == null ? null : counts.byExtCollapsed[cursor.i]
     const firstHalf = cursor.j < counts.combined.counts.length / 2
     return { date, combined, byExt, highlighted, firstHalf }
   }
@@ -576,7 +576,7 @@ function Downloads({ bucket, colorPool, ...props }) {
                   const hl = stats && stats.highlighted
                   const ext = hl ? hl.ext || 'other' : 'total'
                   const total = hl ? hl.total : counts.combined.total
-                  if (!counts.byExt.length) return 'Downloads'
+                  if (!counts.byExtCollapsed.length) return 'Downloads'
                   return (
                     <>
                       Downloads (<span className={classes.ext}>{ext}</span>):{' '}
@@ -593,7 +593,7 @@ function Downloads({ bucket, colorPool, ...props }) {
             {AsyncResult.case(
               {
                 Ok: (counts) => {
-                  if (!counts.byExt.length) {
+                  if (!counts.byExtCollapsed.length) {
                     return (
                       <ChartSkel height={CHART_H} width={width}>
                         <div className={classes.unavail}>No Data</div>
@@ -605,13 +605,13 @@ function Downloads({ bucket, colorPool, ...props }) {
                   return (
                     <>
                       <StackedAreaChart
-                        data={counts.byExt.map((e) =>
+                        data={counts.byExtCollapsed.map((e) =>
                           e.counts.map((i) => Math.log(i.sum + 1)),
                         )}
                         onCursor={setCursor}
                         height={CHART_H}
                         width={width}
-                        areaFills={counts.byExt.map((e) =>
+                        areaFills={counts.byExtCollapsed.map((e) =>
                           SVG.Paint.Color(colorPool.get(e.ext)),
                         )}
                         extendL

@@ -56,6 +56,7 @@ setup(
         'appdirs>=1.4.0',
         'aws-requests-auth>=0.4.2',
         'boto3>=1.8.0',
+        'dnspython>=1.16.0',
         'flask',
         'flask_cors',
         'flask_json',
@@ -81,6 +82,7 @@ setup(
             'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
             'pytest<5.1.0',  # TODO: Fix pytest.ensuretemp in conftest.py
             'pytest-cov',
+            'pytest-env',
             'responses',
             'tox',
             'detox',

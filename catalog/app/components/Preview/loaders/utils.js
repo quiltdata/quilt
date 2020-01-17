@@ -177,16 +177,9 @@ const fetchPreview = async ({ endpoint, type, handle, signer, query }) => {
 const withGatewayEndpoint = (callback) => (
   <Config.Inject>
     {AsyncResult.case({
-      Err: R.pipe(
-        AsyncResult.Err,
-        callback,
-      ),
+      Err: R.pipe(AsyncResult.Err, callback),
       _: callback,
-      Ok: R.pipe(
-        R.prop('apiGatewayEndpoint'),
-        AsyncResult.Ok,
-        callback,
-      ),
+      Ok: R.pipe(R.prop('apiGatewayEndpoint'), AsyncResult.Ok, callback),
     })}
   </Config.Inject>
 )
