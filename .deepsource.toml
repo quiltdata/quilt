@@ -1,0 +1,11 @@
+version = 1
+
+test_patterns = []
+
+exclude_patterns = [
+  'docs/**',
+]
+
+[[ analyzers ]]
+  name = 'python'
+  enabled = true
