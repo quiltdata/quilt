@@ -65,7 +65,7 @@
     "@rehooks/component-size": "^1.0.3",
     "@sentry/browser": "^5.11.1",
     "@testing-library/react": "^9.4.0",
-    "ajv": "^6.10.2",
+    "ajv": "^6.11.0",
     "assert": "^1.5.0",
     "autobind-decorator": "^2.4.0",
     "aws-sdk": "^2.605.0",
