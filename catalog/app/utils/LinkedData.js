@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import * as React from 'react'
 import { Helmet } from 'react-helmet'
 
@@ -11,6 +12,17 @@ const catalogRef = (name) => ({
   sameAs: window.location.origin,
 })
 
+function mkBucketRef({ bucket, urls }) {
+  const getLD = (prop) => R.path(['linkedData', prop], bucket)
+  return {
+    '@type': 'Dataset',
+    name: getLD('name') || bucket.title,
+    alternateName: bucket.name,
+    description: getLD('description') || bucket.description,
+    sameAs: window.location.origin + urls.bucketRoot(bucket.name),
+  }
+}
+
 const mkCatalogAnnotation = ({ name, description, buckets, urls }) => ({
   '@context': 'https://schema.org/',
   '@type': 'DataCatalog',
@@ -18,57 +30,60 @@ const mkCatalogAnnotation = ({ name, description, buckets, urls }) => ({
   name,
   description,
   dataset: [
-    ...buckets.map((b) => ({
-      '@type': 'Dataset',
-      sameAs: window.location.origin + urls.bucketRoot(b.name),
-    })),
-    // TODO: expose packages as datasets
+    ...buckets.map((bucket) => mkBucketRef({ bucket, urls })),
+    // TODO: expose packages as datasets?
   ],
 })
 
 function mkBucketAnnotation({ bucket, catalog, urls }) {
-  const ld = bucket.linkedData
+  const getLD = (prop) => R.path(['linkedData', prop], bucket)
   return {
     '@context': 'https://schema.org/',
     '@type': 'Dataset',
-    name: (ld && ld.name) || bucket.title,
+    name: getLD('name') || bucket.title,
     alternateName: bucket.name,
-    description: (ld && ld.description) || bucket.description || undefined,
+    description: getLD('description') || bucket.description,
     url: window.location.origin + urls.bucketRoot(bucket.name),
-    sameAs: (ld && ld.sameAs) || undefined,
-    identifier: (ld && ld.identifier) || undefined,
-    keywords: (ld && ld.keyword) || bucket.tags || undefined,
-    creator: (ld && ld.creator) || undefined,
-    license: (ld && ld.license) || undefined,
-    // TODO: expose packages
+    sameAs: getLD('sameAs'),
+    identifier: getLD('identifier'),
+    keywords: getLD('keywords') || bucket.tags,
+    creator: getLD('creator'),
+    license: getLD('license'),
+    // TODO: expose packages as child datasets?
     // hasPart: [],
     includedInDataCatalog: catalog ? catalogRef(catalog) : undefined,
   }
 }
 
-/* TODO: expose packages as datasets
-// render on the package revision (tree) root page
-const mkPackageAnnotation = ({ }) => ({
-  '@context': 'https://schema.org/',
-  '@type': 'Dataset',
-  name: TODO,
-  description: TODO,
-  alternateName: 'package handle',
-  // TODO: use proper route
-  url: window.location.origin + urls.bucketPackageTree(bucket, handle, revision),
-  version: REVISION,
-  dateModified: TODO,
-  // sameAs: from rest
-  // identifier: from rest
-  keywords: [], // TODO: from dataset provider
-  // creator: from rest
-  isPartOf: {
+const mkPackageAnnotation = ({
+  bucket,
+  name,
+  revision,
+  hash,
+  modified,
+  header,
+  catalog,
+  urls,
+}) => {
+  const getLD = (prop) => R.path(['user_meta', 'json-ld', prop], header)
+  return {
+    '@context': 'https://schema.org/',
     '@type': 'Dataset',
-    sameAs: window.location.origin + urls.bucketRoot(bucket),
-  },
-  includedInDataCatalog: catalogRef,
-})
-*/
+    name: getLD('name') || name,
+    alternateName: getLD('name') && name,
+    description: getLD('description'),
+    url: window.location.origin + urls.bucketPackageTree(bucket.name, name, revision),
+    version: hash,
+    dateModified: modified,
+    sameAs: getLD('sameAs'),
+    identifier: getLD('identifier'),
+    keywords: getLD('keywords'),
+    creator: getLD('creator'),
+    license: getLD('license'),
+    isPartOf: mkBucketRef({ bucket, urls }),
+    includedInDataCatalog: catalog ? catalogRef(catalog) : undefined,
+  }
+}
 
 const renderJsonLd = (ld) => (
   <Helmet>
@@ -90,5 +105,22 @@ export function BucketData({ bucket }) {
   const { urls } = NamedRoutes.use()
   if (!cfg.linkedData) return null
   const ld = mkBucketAnnotation({ bucket, catalog: cfg.linkedData.name, urls })
+  return renderJsonLd(ld)
+}
+
+export function PackageData({ bucket, name, revision, hash, modified, header }) {
+  const cfg = useConfig()
+  const { urls } = NamedRoutes.use()
+  if (!cfg.linkedData) return null
+  const ld = mkPackageAnnotation({
+    bucket,
+    name,
+    revision,
+    hash,
+    modified,
+    header,
+    catalog: cfg.linkedData.name,
+    urls,
+  })
   return renderJsonLd(ld)
 }
