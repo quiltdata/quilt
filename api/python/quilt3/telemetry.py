@@ -14,7 +14,7 @@ from . import __version__ as quilt3_version
 TELEMETRY_URL = "https://telemetry.quiltdata.cloud/Prod/metrics"
 TELEMETRY_USER_AGENT = "QuiltCli"
 TELEMETRY_CLIENT_TYPE = "quilt3-python-client"
-TELEMETRY_SCHEMA_VERSION = "pyclient-usage-metrics-v0"
+TELEMETRY_SCHEMA_VERSION = "pyclient-usage-metrics-v1"
 
 DISABLE_USAGE_METRICS_ENVVAR = "QUILT_DISABLE_USAGE_METRICS"
 MAX_CLEANUP_WAIT_SECS = 5
@@ -108,10 +108,12 @@ class ApiTelemetry:
         if ApiTelemetry.telemetry_disabled:
             return
 
+        navigator_url = get_from_config("navigator_url")
         data = {
             "api_name": api_name,
             "python_session_id": python_session_id,
             "telemetry_schema_version": TELEMETRY_SCHEMA_VERSION,
+            "navigator_url": navigator_url,
             'client_type': TELEMETRY_CLIENT_TYPE,
             'client_version': quilt3_version,
             'platform': sys.platform,
