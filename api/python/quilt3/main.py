@@ -13,7 +13,8 @@ import requests
 from . import api, session
 from . import __version__ as quilt3_version
 from .session import open_url
-from .util import get_from_config, catalog_s3_url, catalog_package_url, QuiltException
+from .util import get_from_config, catalog_s3_url, catalog_package_url, QuiltException, PhysicalKey, \
+    fix_url, get_package_registry
 from .registry import app
 
 def cmd_config(catalog_url):
@@ -172,7 +173,8 @@ def cmd_disable_telemetry():
     print("Successfully disabled telemetry.")
 
 def cmd_list_packages(registry):
-    for package_name in api._list_packages(registry=registry):
+    registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry)))
+    for package_name in api._list_packages(registry=registry_parsed):
         print(package_name)
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
