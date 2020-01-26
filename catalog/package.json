@@ -101,7 +101,7 @@
     "react-router-dom": "^5.1.2",
     "react-router-hash-link": "^1.2.2",
     "react-swipeable-views": "^0.13.5",
-    "react-swipeable-views-core": "^0.13.5",
+    "react-swipeable-views-core": "^0.13.6",
     "react-swipeable-views-utils": "^0.13.5",
     "recompose": "^0.30.0",
     "redux": "^4.0.5",
