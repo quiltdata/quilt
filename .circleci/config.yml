@@ -42,7 +42,7 @@ jobs:
           name: Run Pytest
           command: |
             . venv/bin/activate
-            cd api/python && pytest --cov=./
+            cd api/python && pytest --live --cov=./
             codecov
 
   test-lambdas-indexer:
