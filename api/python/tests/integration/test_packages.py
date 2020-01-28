@@ -26,22 +26,8 @@ SERIALIZATION_DIR = Path('serialization_dir')
 LOCAL_REGISTRY = Path('local_registry')  # Set by QuiltTestCase
 
 
-def mock_make_api_call(self, operation_name, kwarg):
-    """ Mock boto3's AWS API Calls for testing. """
-    if operation_name == 'GetObject':
-        parsed_response = {'Body': BytesIO(b'foo')}
-        return parsed_response
-    if operation_name == 'ListObjectsV2':
-        parsed_response = {'CommonPrefixes': ['foo']}
-        return parsed_response
-    if operation_name == 'HeadObject':
-        # TODO: mock this somehow
-        parsed_response = {
-            'ContentLength': 0
-        }
-        return parsed_response
-    raise NotImplementedError(operation_name)
-
+def _mock_copy_file_list(file_list, callback=None, message=None):
+    return [key for _, key, _ in file_list]
 
 
 class PackageTest(QuiltTestCase):
@@ -116,13 +102,11 @@ class PackageTest(QuiltTestCase):
     @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
     def test_default_install_location(self):
         """Verify that pushes to the default local install location work as expected"""
-        with patch('quilt3.Package._materialize') as materialize_mock:
+        with patch('quilt3.Package._build') as build_mock:
             pkg_name = 'Quilt/nice-name'
             Package.install(pkg_name, registry='s3://my-test-bucket')
 
-            materialize_mock.assert_called_once_with(
-                PhysicalKey.from_url(quilt3.util.get_install_location()).join(pkg_name),
-            )
+            build_mock.assert_called_once_with(pkg_name, registry=quilt3.util.get_install_location(), message=None)
 
     def test_read_manifest(self):
         """ Verify reading serialized manifest from disk. """
@@ -274,30 +258,6 @@ class PackageTest(QuiltTestCase):
 
         with self.assertRaises(QuiltException):
             Package.browse('Quilt/test', top_hash='123456', registry=registry)
-
-
-    def test_remote_install(self):
-        """Verify that installing from a local package works as expected."""
-        remote_registry = Path('.').resolve().as_uri()
-        quilt3.config(
-            default_local_registry=remote_registry,
-            default_remote_registry=remote_registry
-        )
-        with patch('quilt3.Package.push') as push_mock:
-            pkg = Package()
-            pkg.build('Quilt/nice-name')
-
-            with patch('quilt3.Package._materialize') as materialize_mock, \
-                patch('quilt3.Package._build') as build_mock:
-                materialize_mock.return_value = pkg
-                dest_registry = quilt3.util.get_from_config('default_local_registry')
-
-                quilt3.Package.install('Quilt/nice-name', dest='./')
-
-                materialize_mock.assert_called_once_with(PhysicalKey.from_path('./'))
-                build_mock.assert_called_once_with(
-                    'Quilt/nice-name', message=None, registry=dest_registry
-                )
 
     def test_install_restrictions(self):
         """Verify that install can only operate remote -> local."""
@@ -735,11 +695,8 @@ class PackageTest(QuiltTestCase):
                                                    "was serialized"
 
         # Test that push cleans up the temporary files, if and only if the serialization_location was not set
-        with patch('botocore.client.BaseClient._make_api_call', new=mock_make_api_call), \
-            patch('quilt3.Package._materialize') as materialize_mock, \
-            patch('quilt3.Package._build') as build_mock:
-            materialize_mock.return_value = pkg
-
+        with patch('quilt3.Package._build'), \
+             patch('quilt3.packages.copy_file_list', _mock_copy_file_list):
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket')
 
         for lk in ["mydataframe1.parquet", "mydataframe2.csv", "mydataframe3.tsv"]:
@@ -1010,12 +967,10 @@ class PackageTest(QuiltTestCase):
     @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
     def test_commit_message_on_push(self):
         """ Verify commit messages populate correctly on push."""
-        with patch('botocore.client.BaseClient._make_api_call', new=mock_make_api_call), \
-            patch('quilt3.Package._materialize') as materialize_mock, \
+        with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
             patch('quilt3.Package._build') as build_mock:
             with open(REMOTE_MANIFEST) as fd:
                 pkg = Package.load(fd)
-            materialize_mock.return_value = pkg
 
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket', message='test_message')
             build_mock.assert_called_once_with(

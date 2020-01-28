@@ -12,8 +12,10 @@ import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/Bre
 import Skeleton from 'components/Skeleton'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import Data from 'utils/Data'
+import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link, { linkStyle } from 'utils/StyledLink'
 import { getBreadCrumbs, getPrefix, isDir, parseS3Url, up, decode } from 'utils/s3paths'
@@ -361,6 +363,7 @@ export default function PackageTree({
   const { urls } = NamedRoutes.use()
   const getSignedS3URL = AWS.Signer.useS3Signer()
   const { apiGatewayEndpoint: endpoint } = Config.useConfig()
+  const bucketCfg = BucketConfig.useCurrentBucketConfig()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
 
@@ -391,6 +394,31 @@ export default function PackageTree({
 
   return (
     <M.Box pt={2} pb={4}>
+      {!!bucketCfg && (
+        <Data
+          fetch={requests.getRevisionData}
+          params={{
+            s3req,
+            sign: getSignedS3URL,
+            endpoint,
+            bucket,
+            name,
+            id: revision,
+            maxKeys: 0,
+          }}
+        >
+          {AsyncResult.case({
+            _: () => null,
+            Ok: ({ hash, modified, header }) => (
+              <React.Suspense fallback={null}>
+                <LinkedData.PackageData
+                  {...{ bucket: bucketCfg, name, revision, hash, modified, header }}
+                />
+              </React.Suspense>
+            ),
+          })}
+        </Data>
+      )}
       <Data
         fetch={requests.fetchPackageTree}
         params={{ s3req, sign: getSignedS3URL, endpoint, bucket, name, revision }}
@@ -443,11 +471,23 @@ export default function PackageTree({
               )}
             </div>
 
-            <M.Box className={classes.warning} mb={2}>
-              <M.Icon className={classes.warningIcon}>warning</M.Icon>
-              The Packages tab shows only the first 1,000 files. Use the Files tab (above)
-              or Python code (below) to view all files. This is a temporary limitation.
-            </M.Box>
+            {AsyncResult.case(
+              {
+                Ok: TreeDisplay.case({
+                  Dir: () => (
+                    <M.Box className={classes.warning} mb={2}>
+                      <M.Icon className={classes.warningIcon}>warning</M.Icon>
+                      The Packages tab shows only the first 1,000 files. Use the Files tab
+                      (above) or Python code (below) to view all files. This is a
+                      temporary limitation.
+                    </M.Box>
+                  ),
+                  _: () => null,
+                }),
+                _: () => null,
+              },
+              result,
+            )}
 
             <Section icon="code" heading="Code">
               <Code>{code}</Code>

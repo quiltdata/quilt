@@ -22,6 +22,7 @@ gen_cmd_docs 'verify'
 gen_cmd_docs 'login'
 gen_cmd_docs 'logout'
 gen_cmd_docs 'config'
+gen_cmd_docs 'disable-telemetry'
 
 mv cli.md "../docs/API Reference/cli.md"
 

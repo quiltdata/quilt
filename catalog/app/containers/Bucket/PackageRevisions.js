@@ -10,8 +10,10 @@ import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import Data from 'utils/Data'
+import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import copyToClipboard from 'utils/clipboard'
@@ -384,6 +386,7 @@ function Revisions({ revisions, isTruncated, counts, bucket, name, page }) {
   const classes = useRevisionsStyles()
   const { urls } = NamedRoutes.use()
   const { apiGatewayEndpoint: endpoint } = Config.useConfig()
+  const bucketCfg = BucketConfig.useCurrentBucketConfig()
   const sign = AWS.Signer.useS3Signer()
   const s3req = AWS.S3.useRequest()
 
@@ -420,19 +423,44 @@ function Revisions({ revisions, isTruncated, counts, bucket, name, page }) {
           </p>
         </M.Paper>
       )}
-      {paginated.map((r) => (
+      {revisions.map((r) => (
         <Data
           key={r}
           fetch={requests.getRevisionData}
           params={{ s3req, sign, endpoint, bucket, name, id: r }}
         >
           {(res) => (
-            <Revision
-              {...{ bucket, name }}
-              id={AsyncResult.Ok(r)}
-              {...AsyncResult.props(['hash', 'stats', 'message', 'modified'], res)}
-              counts={AsyncResult.mapCase({ Ok: ({ hash }) => counts[hash] }, res)}
-            />
+            <>
+              {!!bucketCfg &&
+                AsyncResult.case(
+                  {
+                    _: () => null,
+                    Ok: ({ hash, modified, header }) => (
+                      <React.Suspense fallback={null}>
+                        <LinkedData.PackageData
+                          {...{
+                            bucket: bucketCfg,
+                            name,
+                            revision: r,
+                            hash,
+                            modified,
+                            header,
+                          }}
+                        />
+                      </React.Suspense>
+                    ),
+                  },
+                  res,
+                )}
+              {paginated.includes(r) && (
+                <Revision
+                  {...{ bucket, name }}
+                  id={AsyncResult.Ok(r)}
+                  {...AsyncResult.props(['hash', 'stats', 'message', 'modified'], res)}
+                  counts={AsyncResult.mapCase({ Ok: ({ hash }) => counts[hash] }, res)}
+                />
+              )}
+            </>
           )}
         </Data>
       ))}

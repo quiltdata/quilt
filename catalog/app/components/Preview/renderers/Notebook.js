@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 
 import 'katex/dist/katex.css'
 
-import { renderPreviewStatus } from './util'
+import { renderWarnings } from './util'
 
 const MATH_DELIMITERS = [
   { left: '$$', right: '$$', display: true },
@@ -36,8 +36,9 @@ function Notebook({ children, className, note, warnings, ...props } = {}) {
   const classes = useStyles()
   return (
     <div className={cx(classes.root, className)} {...props}>
-      {renderPreviewStatus({ note, warnings })}
+      {renderWarnings(warnings)}
       <div
+        title={note}
         className={cx(classes.contents, 'ipynb-preview')}
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: children }}
