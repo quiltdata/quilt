@@ -120,3 +120,15 @@ Disable anonymous usage metrics
 optional arguments:
   -h, --help  show this help message and exit
 ```
+## `list-packages`
+```
+usage: quilt3 list-packages [-h] registry
+
+List all packages in a registry
+
+positional arguments:
+  registry    Registry for packages, e.g. s3://quilt-example
+
+optional arguments:
+  -h, --help  show this help message and exit
+```

@@ -23,6 +23,7 @@ gen_cmd_docs 'login'
 gen_cmd_docs 'logout'
 gen_cmd_docs 'config'
 gen_cmd_docs 'disable-telemetry'
+gen_cmd_docs 'list-packages'
 
 mv cli.md "../docs/API Reference/cli.md"
 
