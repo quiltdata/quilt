@@ -1,9 +1,13 @@
 version = 1
 
-test_patterns = []
+test_patterns = [
+  '**/tests/**',
+]
 
 exclude_patterns = [
   'docs/**',
+  'gendocs/**',
+  
 ]
 
 [[ analyzers ]]
