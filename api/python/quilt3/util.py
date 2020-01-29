@@ -426,15 +426,11 @@ def configure_from_default():
 
 def load_config():
     """
-    Read the local config if one exists, else return an
-    empty config based on CONFIG_TEMPLATE.
+    Read the local config using defaults from CONFIG_TEMPLATE.
     """
+    local_config = read_yaml(CONFIG_TEMPLATE)
     if CONFIG_PATH.exists():
-        local_config = read_yaml(CONFIG_PATH)
-    else:
-        # This should only happen if a user deletes their local config and
-        # during test setup
-        local_config = read_yaml(CONFIG_TEMPLATE)
+        local_config.update(read_yaml(CONFIG_PATH))
     return local_config
 
 def get_from_config(key):
