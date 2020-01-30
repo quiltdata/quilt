@@ -166,7 +166,7 @@
     "imports-loader": "^0.8.0",
     "jest-cli": "^24.9.0",
     "jest-localstorage-mock": "^2.4.0",
-    "lint-staged": "^10.0.5",
+    "lint-staged": "^10.0.6",
     "ngrok": "^3.2.7",
     "node-plop": "^0.23.0",
     "plop": "^2.5.3",
