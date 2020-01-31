@@ -32,10 +32,13 @@ export function Msg({ type = 'info', className, children, ...props }) {
   )
 }
 
-export const renderPreviewStatus = ({ note, warnings }) => (
-  <Msg type="warning" mb={2}>
-    {!!note && note}
-    {!!note && !!warnings && '\n\n'}
-    {!!warnings && warnings}
-  </Msg>
-)
+export const renderWarnings = (warnings) =>
+  !!warnings && (
+    <Msg type="warning" mb={2}>
+      <M.Box component="span" fontWeight="fontWeightMedium">
+        Preview encountered parsing errors:
+      </M.Box>
+      {'\n'}
+      {warnings}
+    </Msg>
+  )

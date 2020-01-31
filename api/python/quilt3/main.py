@@ -13,7 +13,8 @@ import requests
 from . import api, session
 from . import __version__ as quilt3_version
 from .session import open_url
-from .util import get_from_config, catalog_s3_url, catalog_package_url, QuiltException
+from .util import get_from_config, catalog_s3_url, catalog_package_url, QuiltException, PhysicalKey, \
+    fix_url, get_package_registry
 from .registry import app
 
 def cmd_config(catalog_url):
@@ -112,6 +113,8 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
 
     If detailed_help=True, display detailed information about the `quilt3 catalog` command and then exit
     """
+    from .registry import app  # Delay importing it cause it's expensive.
+
     if detailed_help:
         print(catalog_cmd_detailed_help)
         return
@@ -164,6 +167,10 @@ def cmd_disable_telemetry():
     api._disable_telemetry()
     print("Successfully disabled telemetry.")
 
+def cmd_list_packages(registry):
+    registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry)))
+    for package_name in api._list_packages(registry=registry_parsed):
+        print(package_name)
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
     pkg = api.Package._browse(name, registry, top_hash)
@@ -264,6 +271,16 @@ def create_parser():
         required=False,
     )
     install_p.set_defaults(func=api.Package.install)
+
+    # list-packages
+    shorthelp = "List all packages in a registry"
+    list_packages_p = subparsers.add_parser("list-packages", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    list_packages_p.add_argument(
+            "registry",
+            help="Registry for packages, e.g. s3://quilt-example",
+            type=str,
+    )
+    list_packages_p.set_defaults(func=cmd_list_packages)
 
     # verify
     shorthelp = "Verify that package contents matches a given directory"

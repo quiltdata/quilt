@@ -1165,7 +1165,7 @@ export default function Overview({
       {AsyncResult.case({
         Ok: () => (
           <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
-            {!!cfg && cfg.relevance >= 0 && (
+            {!!cfg && (
               <React.Suspense fallback={null}>
                 <LinkedData.BucketData bucket={cfg} />
               </React.Suspense>

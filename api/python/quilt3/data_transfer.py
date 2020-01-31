@@ -396,8 +396,12 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
             params = dict(Bucket=dest_bucket, Key=dest_path)
             s3_client = ctx.s3_client_provider.find_correct_client(S3Api.HEAD_OBJECT, dest_bucket, params)
             resp = s3_client.head_object(**params)
-        except S3NoValidClientError:
+        except ClientError:
             # Destination doesn't exist, so fall through to the normal upload.
+            pass
+        except S3NoValidClientError:
+            # S3ClientProvider can't currently distinguish between a user that has PUT but not LIST permissions and a
+            # user that has no permissions. If we can't find a valid client, proceed to the upload stage anyway.
             pass
         else:
             # Check the ETag.
@@ -430,6 +434,9 @@ def _copy_file_list_internal(file_list, message, callback):
     Takes a list of tuples (src, dest, size) and copies the data in parallel.
     Returns versioned URLs for S3 destinations and regular file URLs for files.
     """
+    if not file_list:
+        return []
+
     total_size = sum(size for _, _, size in file_list)
 
     lock = Lock()

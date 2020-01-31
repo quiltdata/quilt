@@ -439,7 +439,27 @@ class Package(object):
         pkg = cls._browse(name=name, registry=registry, top_hash=top_hash)
         message = pkg._meta.get('message', None)  # propagate the package message
 
-        pkg._materialize(dest_parsed)
+        file_list = []
+
+        for logical_key, entry in pkg.walk():
+            # Copy the datafiles in the package.
+            physical_key = entry.physical_key
+
+            # Try a local cache.
+            cached_file = ObjectPathCache.get(str(physical_key))
+            if cached_file is not None:
+                physical_key = PhysicalKey.from_path(cached_file)
+
+            new_physical_key = dest_parsed.join(logical_key)
+            if physical_key != new_physical_key:
+                file_list.append((physical_key, new_physical_key, entry.size))
+
+        def _maybe_add_to_cache(old: PhysicalKey, new: PhysicalKey, _):
+            if not old.is_local() and new.is_local():
+                ObjectPathCache.set(str(old), new.path)
+
+        copy_file_list(file_list, callback=_maybe_add_to_cache, message="Copying objects")
+
         pkg._build(name, registry=dest_registry, message=message)
         if top_hash is None:
             top_hash = pkg.top_hash
@@ -1213,7 +1233,37 @@ class Package(object):
                 )
 
         self._fix_sha256()
-        pkg = self._materialize(dest_parsed, selector_fn=selector_fn)
+
+        pkg = self.__class__()
+        pkg._meta = self._meta
+        # Since all that is modified is physical keys, pkg will have the same top hash
+        file_list = []
+        entries = []
+
+        for logical_key, entry in self.walk():
+            if not selector_fn(logical_key, entry):
+                pkg._set(logical_key, entry)
+                continue
+
+            # Copy the datafiles in the package.
+            physical_key = entry.physical_key
+
+            new_physical_key = dest_parsed.join(logical_key)
+            if (physical_key.bucket == new_physical_key.bucket and
+                physical_key.path == new_physical_key.path):
+                # No need to copy - re-use the original physical key.
+                pkg._set(logical_key, entry)
+            else:
+                entries.append((logical_key, entry))
+                file_list.append((physical_key, new_physical_key, entry.size))
+
+        results = copy_file_list(file_list, message="Copying objects")
+
+        for (logical_key, entry), versioned_key in zip(entries, results):
+            # Create a new package entry pointing to the new remote key.
+            assert versioned_key is not None
+            new_entry = entry.with_physical_key(versioned_key)
+            pkg._set(logical_key, new_entry)
 
         def physical_key_is_temp_file(pk):
             if not pk.is_local():
@@ -1271,69 +1321,6 @@ class Package(object):
         get_size_and_version(latest_path)
 
         put_bytes(top_hash.encode('utf-8'), latest_path)
-
-    def _materialize(self, dest: PhysicalKey, selector_fn=lambda logical_key, pkg_entry: True):
-        """
-        Copies all Package entries to the destination, then creates a new package that points to those objects.
-
-        Copies each object in this package to path according to logical key structure,
-        and returns a package with physical_keys that point to the new copies.
-
-        Args:
-            path: where to copy the objects in the package
-            selector_fn: A function that indicates which package_entries should be materialized and which should be
-                         skipped. See documentation for package.push() for more details. By default materializes all
-                         PackageEntries
-
-        Returns:
-            A new package that points to the copied objects
-
-        Raises:
-            fail to get bytes
-            fail to put bytes
-            fail to put package to registry
-        """
-        pkg = self.__class__()
-        pkg._meta = self._meta
-        # Since all that is modified is physical keys, pkg will have the same top hash
-        file_list = []
-        entries = []
-
-        for logical_key, entry in self.walk():
-            if not selector_fn(logical_key, entry):
-                pkg._set(logical_key, entry)
-                continue
-
-            # Copy the datafiles in the package.
-            physical_key = entry.physical_key
-
-            if dest.is_local():
-                # Try a local cache.
-                cached_file = ObjectPathCache.get(str(physical_key))
-                if cached_file is not None:
-                    physical_key = PhysicalKey.from_path(cached_file)
-
-            new_physical_key = dest.join(logical_key)
-            if (physical_key.bucket == new_physical_key.bucket and
-                physical_key.path == new_physical_key.path):
-                # No need to copy - re-use the original physical key.
-                pkg._set(logical_key, entry)
-            else:
-                entries.append((logical_key, entry))
-                file_list.append((physical_key, new_physical_key, entry.size))
-
-        def _maybe_add_to_cache(old: PhysicalKey, new: PhysicalKey, _):
-            if not old.is_local() and new.is_local():
-                ObjectPathCache.set(str(old), new.path)
-
-        results = copy_file_list(file_list, message="Copying objects", callback=_maybe_add_to_cache)
-
-        for (logical_key, entry), versioned_key in zip(entries, results):
-            # Create a new package entry pointing to the new remote key.
-            assert versioned_key is not None
-            new_entry = entry.with_physical_key(versioned_key)
-            pkg._set(logical_key, new_entry)
-        return pkg
 
 
     @ApiTelemetry("package.diff")
