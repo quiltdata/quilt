@@ -90,7 +90,7 @@
     "minimist": "^1.2.0",
     "mixpanel-browser": "^2.34.0",
     "prop-types": "^15.7.2",
-    "ramda": "^0.27.0",
+    "ramda": "^0.26.1",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "react-github-btn": "^1.1.1",
