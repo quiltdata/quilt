@@ -119,7 +119,7 @@ function RevisionInfo({ revision, bucket, name, path }) {
                                   Ok: (d) => (
                                     <>
                                       {' | '}
-                                      {dateFns.format(d, 'MMMM Do YYYY - h:mmA')}
+                                      {dateFns.format(d, 'MMMM do yyyy - h:mma')}
                                     </>
                                   ),
                                 },

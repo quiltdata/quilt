@@ -396,7 +396,7 @@ function StatsTip({ stats, colorPool, className, ...props }) {
   return (
     <M.Paper className={cx(classes.root, className)} elevation={8} {...props}>
       <div className={classes.head}>
-        <div className={classes.date}>{dateFns.format(stats.date, 'D MMM')}</div>
+        <div className={classes.date}>{dateFns.format(stats.date, 'd MMM')}</div>
         <div className={classes.total}>
           {readableQuantity(stats.combined.sum)} (+
           {readableQuantity(stats.combined.value)})
