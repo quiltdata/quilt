@@ -55,6 +55,7 @@ const userDisplay = (user) => (
 )
 
 function UserDropdown() {
+  const cfg = Config.useConfig()
   const user = reduxHook.useMappedState(selectUser)
   const { urls } = NamedRoutes.use()
   const [anchor, setAnchor] = React.useState(null)
@@ -80,6 +81,11 @@ function UserDropdown() {
           {user.isAdmin && (
             <Item to={urls.admin()} onClick={close} divider>
               <M.Icon fontSize="small">security</M.Icon>&nbsp;Users and roles
+            </Item>
+          )}
+          {cfg.mode === 'OPEN' && (
+            <Item to={urls.profile()} onClick={close}>
+              Profile
             </Item>
           )}
           <Item to={urls.signOut()} onClick={close}>
@@ -130,6 +136,7 @@ function useHam() {
 }
 
 function AuthHamburger({ authenticated, waiting, error }) {
+  const cfg = Config.useConfig()
   const user = reduxHook.useMappedState(selectUser)
   const { urls } = NamedRoutes.use()
   const ham = useHam()
@@ -146,6 +153,12 @@ function AuthHamburger({ authenticated, waiting, error }) {
               <M.Box component="span" pr={2} />
               <M.Icon fontSize="small">security</M.Icon>
               &nbsp;Users and roles
+            </Item>
+          ),
+          cfg.mode === 'OPEN' && (
+            <Item key="profile" to={urls.profile()} onClick={ham.close}>
+              <M.Box component="span" pr={2} />
+              Profile
             </Item>
           ),
           <Item key="signout" to={urls.signOut()} onClick={ham.close}>
