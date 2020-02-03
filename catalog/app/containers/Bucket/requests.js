@@ -183,7 +183,11 @@ export const bucketAccessCounts = async ({
     console.log('Unable to fetch bucket access counts:')
     // eslint-disable-next-line no-console
     console.error(e)
-    return []
+    return {
+      byExt: [],
+      byExtCollapsed: [],
+      combined: { total: 0, counts: [] },
+    }
   }
 }
 
