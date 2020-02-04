@@ -22,8 +22,8 @@ and non-technical members (executives, data scientists,
 data engineers, sales, product, etc.).
 
 ## What does Quilt do?
-Quilt adds search, visual content preview, and
-versioning to every file in S3.
+Quilt manages data like code so that teams in machine learning, biotech, and analytics
+can experiment faster, build smarter models, and recover from errors.
 
 ## How does Quilt work?
 Quilt consists of a Python client, web catalog, lambda
