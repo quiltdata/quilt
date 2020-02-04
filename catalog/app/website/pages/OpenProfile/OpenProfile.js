@@ -24,7 +24,7 @@ function UserInfo() {
         <M.Typography variant="body1" color="textPrimary">
           By signing in you gain unlimited searches. Many more features are on the way.
           Check out our{' '}
-          <M.Link color="secondary" underline="always" href={`${URLS.docs}#roadmap`}>
+          <M.Link color="secondary" underline="always" href={`${URLS.gitWeb}#roadmap`}>
             roadmap
           </M.Link>
           . If you&apos;d like to add public data to Quilt,{' '}
