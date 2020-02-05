@@ -469,7 +469,7 @@ class Package(object):
 
 
     @classmethod
-    def resolve_hash(cls, registry, name, hash_prefix):
+    def resolve_hash(cls, registry: PhysicalKey, name, hash_prefix):
         """
         Find a hash that starts with a given prefix.
         Args:

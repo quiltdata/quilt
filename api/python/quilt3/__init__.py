@@ -26,5 +26,7 @@ from .bucket import Bucket
 
 from . import admin
 
+from .util import PhysicalKey
+
 from .imports import start_data_package_loader
 start_data_package_loader()
