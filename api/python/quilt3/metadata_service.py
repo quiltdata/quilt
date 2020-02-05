@@ -1,12 +1,7 @@
-import boto3
-
 import athena
 from tabulate import tabulate
 
-# User-facing commands:
-#       setup(bucket, db_name="default", verbose=False)
-#       recover_partitions(bucket, db_name="default", verbose=False)
-#       query(sql, bucket, db_name="default", verbose=False)
+
 
 
 
@@ -51,7 +46,7 @@ def create_tables_and_views_if_nonexistent(glue_client, athena_client, bucket, d
 
     if not athena.table_exists(glue_client, db_name, table_name(bucket)):
         vlog(f"Table '{db_name}.{table_name(bucket)}' doesn't exist, creating it.")
-        # Raises exception if doesn't succeed
+        # Query and wait raises exception if doesn't succeed
         athena.query_and_wait(athena_client, table_creation_sql(bucket), db_name, output_location)
     else:
         vlog(f"Table '{db_name}.{table_name(bucket)}' already exists")
@@ -59,6 +54,7 @@ def create_tables_and_views_if_nonexistent(glue_client, athena_client, bucket, d
 
     if not athena.table_exists(glue_client, db_name, view_name(bucket)):
         vlog(f"View '{db_name}.{view_name(bucket)}' doesn't exist, creating it.")
+        # Query and wait raises exception if doesn't succeed
         athena.query_and_wait(athena_client, view_creation_sql(db_name, bucket), db_name, output_location)
     else:
         vlog(f"View '{db_name}.{view_name(bucket)}' already exists")

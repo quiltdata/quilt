@@ -7,13 +7,50 @@ Full manifest:
 $REGISTRY/.quilt/v2/manifests/usr=usr/pkg=pkg/hash_prefix=12/123456789abcdef.jsonl
 ```
 
-Pointer file containing tophash of latest manifest
+Pointer file containing tophash of latest manifest. 
 ```
 $REGISTRY/.quilt/v2/pointers/usr=usr/pkg=pkg/latest
 ```
 
+This can be expanded to support tags other than `latest`.
 
-## Table structures
+## User-facing API
+
+There are three main APIs for interacting with metadata. If a user is using the new `.quilt` layout in the registry `s3://armand-dotquilt-dev`, to start using metadata service, a user needs to run:
+
+```
+metadata_service.setup("armand-dotquilt-dev")
+```
+
+This will create the Athena table/view. By default, we use the Glue database `default`, but that can be changed via the `db_name` argument.
+
+You can then run a SQL query via:
+
+```
+col_headers, rows = metadata_service.query("SELECT * FROM defaut.metadata_service_armand_dotquilt_dev LIMIT 10", "armand-dotquilt-dev")
+``` 
+
+Using verbose=True in the above command will pretty print the results as a table.
+
+Due to the partitioning, new manifests will not be picked up by the query until the partitions are loaded into the metastore. This can be done via:
+
+```metadata_service.recover_partitions(bucket)```
+
+
+### Naming
+If a user is using the registry `s3://armand-dotquilt-dev`, a table `quilt_manifests_armand_dotquilt_dev` and a view `quilt_metadata_service_armand_dotquilt_dev` will be created (see `metadata_service.py`, `table_name()`/`view_name()`).
+
+Note: Metadata service currently only works for users who use the default registry path, i.e. `s3://my-bucket/.quilt/`. This could be changed by changing the create table SQL statement, but there would be Athena table naming conflicts if you have two registries in the same bucket (i.e. `s3://my-bucket/.quilt/` and `s3//my-bucket/custom/path/.quilt/` would require two different Athena tables, but metadata service would try to give them both the name `quilt_metadata_service_my_bucket`).
+
+### Boto3
+Currently, metadata service uses boto3 in the simplest way (see `athena.py`, `get_glue_client()`/`get_athena_client()`). 
+
+### SQL syntactic sugar
+
+WIP. See `metadata_service_client.py`
+
+## Athena
+## Table/view structures
 
 The underlying technology is Athena. There are two views that can be queried:
 

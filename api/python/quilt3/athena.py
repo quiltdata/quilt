@@ -3,12 +3,10 @@ import time
 
 
 def get_athena_client():
-    # return boto3.session.Session(profile_name='staging', region_name="us-east-1").client("athena")
-    return boto3.session.Session().client("athena")
+    return boto3.client("athena")
 
 def get_glue_client():
-    # return boto3.session.Session(profile_name='staging', region_name="us-east-1").client("athena")
-    return boto3.session.Session().client("glue")
+    return boto3.client("glue")
 
 
 
@@ -43,6 +41,7 @@ def wait_for_query_to_complete(athena_client, query_execution_id):
         if status in ["SUCCEEDED", "FAILED", "CANCELLED"]:
             return status
         time.sleep(1)
+        # TODO: Print out feedback to the user
 
 
 def retrieve_results(athena_client, query_execution_id):
@@ -54,7 +53,7 @@ def retrieve_results(athena_client, query_execution_id):
     rows = []
     for i, raw_row in enumerate(response['ResultSet']['Rows']):
         if i == 0:
-            continue # skip header row
+            continue  # skip header row
         row = []
         for j, col in enumerate(raw_row['Data']):
             col_type = col_types[j]
@@ -82,7 +81,6 @@ def transform_entry(var_char_value, col_type):
     elif col_type == "double":
         return float(var_char_value)
     elif col_type == "json":
-        # return json.dumps(var_char_value)
         return var_char_value
     else:
         raise NotImplementedError(f"Don't know how to parse {col_type}")
@@ -91,7 +89,7 @@ def transform_entry(var_char_value, col_type):
 
 
 def get_database_names(glue_client):
-    # TODO: Pagination
+    # TODO: Paginate properly
     resp = glue_client.get_databases()
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/glue.html#Glue.Client.get_databases
 
@@ -105,10 +103,10 @@ def database_exists(glue_client, db_name):
 
 
 def create_database(glue_client, db_name):
-    response = glue_client.create_database(DatabaseInput={'Name': db_name})
+    glue_client.create_database(DatabaseInput={'Name': db_name})
 
 def list_tables(glue_client, db_name):
-    # TODO: Pagination
+    # TODO: Paginate properly
     response = glue_client.get_tables(DatabaseName=db_name)
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/glue.html#Glue.Client.get_tables
     table_names = []
