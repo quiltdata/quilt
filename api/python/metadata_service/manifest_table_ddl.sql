@@ -9,10 +9,9 @@ CREATE EXTERNAL TABLE `dotquilt_manifests`(
                        `value`: string
                       >
   )
---   `object_hash` string
---   )
 PARTITIONED BY (
-  `package` string,
+  `usr` string,
+  `pkg` string,
   `hash_prefix` string)
 ROW FORMAT SERDE
   'org.openx.data.jsonserde.JsonSerDe'

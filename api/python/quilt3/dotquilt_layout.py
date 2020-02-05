@@ -1,16 +1,21 @@
+from .util import PhysicalKey
+
 class DotQuiltLayout:
     latest_tag = "latest"
 
     @classmethod
-    def get_manifest_key_by_tophash(cls, package_name, top_hash):
+    def manifest_pk(cls, registry: PhysicalKey, package_name: str, top_hash: str):
+        assert isinstance(registry, PhysicalKey)
+        assert len(top_hash) ==
         user, pkg = package_name.split("/")
         hash_prefix = top_hash[:2]
-        return f".quilt/v2/manifests/user={user}/package={pkg}/hash_prefix={hash_prefix}/{top_hash}.jsonl"
+        return registry.join(f".quilt/v2/manifests/usr={user}/pkg={pkg}/hash_prefix={hash_prefix}/{top_hash}.jsonl")
 
     @classmethod
-    def get_latest_key(cls, package_name):
+    def latest_pointer_pk(cls, registry: PhysicalKey, package_name: str) -> PhysicalKey:
+        assert isinstance(registry, PhysicalKey)
         user, pkg = package_name.split("/")
-        return f".quilt/v2/manifests/user={user}/package={pkg}/{cls.latest_tag}"
+        return registry.join(f".quilt/v2/pointers/usr={user}/pkg={pkg}/{cls.latest_tag}")
 
 
 

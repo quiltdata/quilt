@@ -4,12 +4,12 @@
 
 Full manifest:
 ```
-$REGISTRY/.quilt/v2/usr=usr/pkg=pkg/hash_prefix=12/123456789abcdef.jsonl
+$REGISTRY/.quilt/v2/manifests/usr=usr/pkg=pkg/hash_prefix=12/123456789abcdef.jsonl
 ```
 
 Pointer file containing tophash of latest manifest
 ```
-$REGISTRY/.quilt/v2/usr=usr/pkg=pkg/latest
+$REGISTRY/.quilt/v2/pointers/usr=usr/pkg=pkg/latest
 ```
 
 
@@ -35,7 +35,7 @@ The underlying technology is Athena. There are two views that can be queried:
     - Which version of this package contain this s3 object+version?
     - What is the average number of keys across version of this package?
 
-The underlying data is partitioned by `package` and by the first two characters of the manifest `hash` so you can leverage that to improve query speed.
+The underlying data is partitioned by `usr` and `pkg` and then by the first two characters of the manifest `tophash`.
 
 ## Usage
 
