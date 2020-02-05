@@ -29,23 +29,7 @@ def query(sql, database, output_location):
     )
     return response['QueryExecutionId']
 
-def transform_entry(var_char_value, col_type):
-    if col_type == "varchar":
-        return var_char_value
-    elif col_type == "date":
-        # TODO: Parse date correctly?
-        return var_char_value
-    elif col_type == "integer":
-        return int(var_char_value)
-    elif col_type == "bigint":
-        return int(var_char_value)
-    elif col_type == "double":
-        return float(var_char_value)
-    elif col_type == "json":
-        # return json.dumps(var_char_value)
-        return var_char_value
-    else:
-        raise NotImplementedError(f"Don't know how to parse {col_type}")
+
 
 def retrieve_results(query_execution_id):
     response = get_athena_client().get_query_results(QueryExecutionId=query_execution_id)

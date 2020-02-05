@@ -1,4 +1,4 @@
-CREATE EXTERNAL TABLE `dotquilt_manifests`(
+CREATE EXTERNAL TABLE `quilt_manifests_armand_dotquilt_dev`(
   `logical_key` string,
   `size` int,
   `physical_keys` string,
@@ -24,6 +24,6 @@ STORED AS INPUTFORMAT
 OUTPUTFORMAT
   'org.apache.hadoop.hive.ql.io.IgnoreKeyTextOutputFormat'
 LOCATION
-  's3://quilt-ml-data/.quilt/manifests'
+  's3://armand-dotquilt-dev/.quilt/v2/manifests'
 TBLPROPERTIES (
   'has_encrypted_data'='false')
