@@ -724,7 +724,7 @@ def new_latest_manifest_tophash(registry: PhysicalKey, package_name: str, tophas
 
     if len(files) == 0:
         return None
-    most_recent_tophash, _ = max(files, key=lambda item: item[2])
+    most_recent_tophash, _ = max(files, key=lambda item: item[1])
     return most_recent_tophash
 
 
