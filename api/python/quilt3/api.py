@@ -1,4 +1,4 @@
-from .data_transfer import copy_file, get_bytes, delete_url, list_url, get_new_latest_manifest_tophash, put_bytes, list_url_with_datetime
+from .data_transfer import copy_file, get_bytes, delete_url, list_url, new_latest_manifest_tophash, put_bytes, list_url_with_datetime
 from .packages import Package
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
@@ -41,49 +41,41 @@ def delete_package(name, registry=None, top_hash=None):
 def _delete_package(name, registry=None, top_hash=None):
 
     validate_package_name(name)
-    usr, pkg = name.split('/')
 
     registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
-    # named_packages = registry_parsed.join('named_packages')
-    # package_path = named_packages.join(name)
 
-    package_path = registry_parsed.join(DotQuiltLayout.get_package_manifest_dir(name))  # .quilt/v2/usr=usr/pkg=pkg (no trailing slash)
-
-    manifest_list_prefix = package_path.join("hash_prefix=")  # This prevents the listing from including the 'latest' pointer
-    latest_pointer = registry_parsed.join(DotQuiltLayout.get_latest_key(name))
-
-    paths = list(list_url(manifest_list_prefix))
-    if not paths:
-        raise QuiltException("No such package exists in the given directory.")
-
-
-    if top_hash is not None:  # Just deleting one version
-        top_hash = Package.resolve_hash(registry_parsed, name, top_hash)
-
-        # Check if the tophash to delete is latest
-        #   if not, delete it and call it a day
-        #   if so, replace it with the most recently created manifest. List all manifests and pick the most recent
-
-
-        # Open latest pointer to see if we are deleting the latest version
-        latest_top_hash = get_bytes(latest_pointer).decode('utf-8').strip()
-        need_to_update_latest_pointer = top_hash == latest_top_hash
-
-        manifest_physical_key = registry_parsed.join(DotQuiltLayout.get_manifest_key_by_tophash(name, top_hash))
-        delete_url(manifest_physical_key)
-
-        if need_to_update_latest_pointer:
-            # List
-            new_latest_manifest_tophash = get_new_latest_manifest_tophash(manifest_list_prefix, top_hash)
-            put_bytes(new_latest_manifest_tophash.encode('utf-8'), latest_pointer)
-
-
+    if top_hash is None:
+        _delete_all_package_versions(registry_parsed, name)
     else:
-        for path, _ in paths:
-            delete_url(package_path.join(path))
-            delete_url(latest_pointer)
+        _delete_package_version(registry_parsed, name, top_hash)
 
 
+def _delete_package_version(registry: PhysicalKey, package_name, tophash: str):
+    assert isinstance(registry, PhysicalKey)
+
+    full_tophash = Package.resolve_hash(registry, package_name, tophash)
+    latest_pointer_pk = DotQuiltLayout.latest_pointer_pk(registry, package_name)
+
+    # Open latest pointer to see if we are deleting the latest version
+    latest_tophash = get_bytes(latest_pointer_pk).decode('utf-8').strip()
+    need_to_update_latest_pointer = full_tophash == latest_tophash
+
+    delete_url(DotQuiltLayout.manifest_pk(registry, package_name, tophash))
+
+    if need_to_update_latest_pointer:
+        new_latest_tophash = new_latest_manifest_tophash(registry, package_name, tophash_to_ignore=full_tophash)
+        if new_latest_tophash is None:
+            return
+        put_bytes(new_latest_tophash.encode('utf-8'), latest_pointer_pk)
+
+def _delete_all_package_versions(registry: PhysicalKey, package_name):
+    assert isinstance(registry, PhysicalKey)
+    manifest_dir_pk = DotQuiltLayout.package_manifest_dir(registry, package_name)
+
+    for rel_path, _ in list_url(manifest_dir_pk):
+        tophash = DotQuiltLayout.extract_tophash(rel_path)
+        delete_url(DotQuiltLayout.manifest_pk(registry, package_name, tophash))
+    delete_url(DotQuiltLayout.latest_pointer_pk(registry, package_name))
 
 @ApiTelemetry("api.list_packages")
 def list_packages(registry=None):
@@ -98,26 +90,22 @@ def list_packages(registry=None):
     Returns:
         A sequence of strings containing the names of the packages
     """
-
-
     return _list_packages(registry=registry)
 
 
 def _list_packages(registry=None):
 
-    registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
+    registry_pk = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
+    manifest_dir_pk = DotQuiltLayout.global_manifest_dir(registry_pk)
 
     # A package can have multiple versions, but we should only return the name once.
     visited = set()
 
-    prev_pkg = None
-    for path, _ in list_url(registry_parsed):
-        if path.endswith("latest"):  # Ignore 'latest' pointer
-            continue
+    for path, _ in list_url(manifest_dir_pk):
+        parts = path.lstrip("/").split("/")  # ["usr=usr", "pkg=pkg", "hash_prefix=ab", "XXXXXXXXXXX.jsonl"]
 
-        parts = path.split('/')   # ["user=usr", "pkg=pkg", "hash_prefix=ab", "XXXXXXXXXXX.jsonl"]
-        usr = parts[0].lstrip("usr=")
-        pkg = parts[1].lstrip("pkg=")
+        usr = parts[0].replace("usr=", "")
+        pkg = parts[1].replace("pkg=", "")
 
         pkg_name = f"{usr}/{pkg}"
         if pkg_name not in visited:
@@ -144,16 +132,15 @@ def list_package_versions(name, registry=None):
 
 
 def _list_package_versions(name, registry=None):
+    # TODO: Timezones?
 
     validate_package_name(name)
-    registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
+    registry_pk = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
 
-    package = registry_parsed.join(DotQuiltLayout.get_package_manifest_dir(name)).join("")  # Get that trailing slash
-    for path, _, dt in list_url_with_datetime(package):
-        if path.endswith("latest"):
-            continue
+    package_manifest_dir_pk = DotQuiltLayout.package_manifest_dir(registry_pk, name)
 
-        tophash = path.split("/")[1].strip(".jsonl")
+    for path, _, dt in list_url_with_datetime(package_manifest_dir_pk):
+        tophash = DotQuiltLayout.extract_tophash(path)
         yield tophash, dt.strftime("%Y-%m-%d %H:%M:%S")
 
 

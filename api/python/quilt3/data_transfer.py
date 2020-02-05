@@ -22,6 +22,7 @@ from tqdm import tqdm
 
 from .session import create_botocore_session
 from .util import PhysicalKey, QuiltException
+from .dotquilt_layout import DotQuiltLayout
 
 
 
@@ -677,22 +678,31 @@ def list_url_with_datetime(src: PhysicalKey):
                 yield key[len(src_path):], obj['Size'], obj["LastModified"]
 
 
-def get_new_latest_manifest_tophash(manifest_list_prefix: PhysicalKey, tophash_to_skip: str):
-    files = []
-    if manifest_list_prefix.is_local():
-        src_file = pathlib.Path(manifest_list_prefix.path)
+def new_latest_manifest_tophash(registry: PhysicalKey, package_name: str, tophash_to_ignore=None) -> str:
+    """
+    List the manifests and return the tophash of the most recent one. For local fs, recent means created time according
+    to the OS. For s3, recent means last modified time (which for immutable packages is the same as created time).
 
+    tophash_to_ignore exists to help with eventual consistency when deleting a packafe version
+
+    If there are no other package versions, returns None
+    """
+    assert isinstance(registry, PhysicalKey)
+
+    manifest_dir_pk = DotQuiltLayout.package_manifest_dir(registry, package_name)
+    files = []
+    if manifest_dir_pk.is_local():
+        src_file = pathlib.Path(manifest_dir_pk.path)
 
         for f in src_file.rglob('*'):
             try:
                 if f.is_file():
-                    size = f.stat().st_size
                     created_ts_ns = f.stat().st_ctime_ns
                     rel_path = f.relative_to(src_file).as_posix()
-
-                    if tophash_to_skip in str(rel_path):
+                    tophash = DotQuiltLayout.extract_tophash(rel_path)
+                    if tophash_to_ignore is not None and tophash == tophash_to_ignore:
                         continue
-                    files.append((rel_path, size, created_ts_ns))
+                    files.append((rel_path, created_ts_ns))
             except FileNotFoundError:
                 # If a file does not exist, is it really a file?
                 pass
@@ -700,20 +710,22 @@ def get_new_latest_manifest_tophash(manifest_list_prefix: PhysicalKey, tophash_t
 
     else:
 
-        src_path = manifest_list_prefix.path
-        list_obj_params = dict(Bucket=manifest_list_prefix.bucket, Prefix=src_path)
-        s3_client = S3ClientProvider().find_correct_client(S3Api.LIST_OBJECTS_V2, manifest_list_prefix.bucket, list_obj_params)
+        src_path = manifest_dir_pk.path
+        list_obj_params = dict(Bucket=manifest_dir_pk.bucket, Prefix=src_path)
+        s3_client = S3ClientProvider().find_correct_client(S3Api.LIST_OBJECTS_V2, manifest_dir_pk.bucket, list_obj_params)
         paginator = s3_client.get_paginator('list_objects_v2')
         for response in paginator.paginate(**list_obj_params):
             for obj in response.get('Contents', []):
                 key = obj['Key']
-                k = key[len(src_path):]
-                if tophash_to_skip in k:
+                tophash = DotQuiltLayout.extract_tophash(key)
+                if tophash_to_ignore is not None and tophash == tophash_to_ignore:
                     continue
-                files.append((k, obj['Size'], obj["LastModified"].timestamp()))
+                files.append((tophash, obj["LastModified"].timestamp()))
 
-    most_recent_file = max(files, key=lambda item: item[2])
-    return most_recent_file[0].split("/")[-1].rstrip(".jsonl")
+    if len(files) == 0:
+        return None
+    most_recent_tophash, _ = max(files, key=lambda item: item[2])
+    return most_recent_tophash
 
 
 def delete_url(src: PhysicalKey):
