@@ -8,6 +8,7 @@ import shutil
 from threading import Lock
 from typing import List, Tuple
 import warnings
+from datetime import datetime
 
 from botocore import UNSIGNED
 from botocore.client import Config
@@ -56,6 +57,9 @@ class S3ClientProvider:
     access public s3 buckets.
 
     We assume that public buckets are read-only: write operations should always use S3ClientProvider.standard_client
+
+    TODO: This is a crappy hack done at the last minute. Better idea is to have class mimic the s3 client and try both
+          normal and unsigned clients, caching which worked for a bucket so we try that one first.
     """
 
     def __init__(self):
@@ -639,6 +643,77 @@ def list_url(src: PhysicalKey):
                 if not key.startswith(src_path):
                     raise ValueError("Unexpected key: %r" % key)
                 yield key[len(src_path):], obj['Size']
+
+
+
+def list_url_with_datetime(src: PhysicalKey):
+    # Returns created time for local items and last modified time for s3 items
+    if src.is_local():
+        src_file = pathlib.Path(src.path)
+
+        for f in src_file.rglob('*'):
+            try:
+                if f.is_file():
+                    size = f.stat().st_size
+                    created_datetime = datetime.fromtimestamp(f.stat().st_ctime)
+                    yield f.relative_to(src_file).as_posix(), size, created_datetime
+            except FileNotFoundError:
+                # If a file does not exist, is it really a file?
+                pass
+    else:
+        if src.version_id is not None:
+            raise ValueError(f"Directories cannot have version IDs: {src}")
+        src_path = src.path
+        if not _looks_like_dir(src):
+            src_path += '/'
+        list_obj_params = dict(Bucket=src.bucket, Prefix=src_path)
+        s3_client = S3ClientProvider().find_correct_client(S3Api.LIST_OBJECTS_V2, src.bucket, list_obj_params)
+        paginator = s3_client.get_paginator('list_objects_v2')
+        for response in paginator.paginate(**list_obj_params):
+            for obj in response.get('Contents', []):
+                key = obj['Key']
+                if not key.startswith(src_path):
+                    raise ValueError("Unexpected key: %r" % key)
+                yield key[len(src_path):], obj['Size'], obj["LastModified"]
+
+
+def get_new_latest_manifest_tophash(manifest_list_prefix: PhysicalKey, tophash_to_skip: str):
+    files = []
+    if manifest_list_prefix.is_local():
+        src_file = pathlib.Path(manifest_list_prefix.path)
+
+
+        for f in src_file.rglob('*'):
+            try:
+                if f.is_file():
+                    size = f.stat().st_size
+                    created_ts_ns = f.stat().st_ctime_ns
+                    rel_path = f.relative_to(src_file).as_posix()
+
+                    if tophash_to_skip in str(rel_path):
+                        continue
+                    files.append((rel_path, size, created_ts_ns))
+            except FileNotFoundError:
+                # If a file does not exist, is it really a file?
+                pass
+
+
+    else:
+
+        src_path = manifest_list_prefix.path
+        list_obj_params = dict(Bucket=manifest_list_prefix.bucket, Prefix=src_path)
+        s3_client = S3ClientProvider().find_correct_client(S3Api.LIST_OBJECTS_V2, manifest_list_prefix.bucket, list_obj_params)
+        paginator = s3_client.get_paginator('list_objects_v2')
+        for response in paginator.paginate(**list_obj_params):
+            for obj in response.get('Contents', []):
+                key = obj['Key']
+                k = key[len(src_path):]
+                if tophash_to_skip in k:
+                    continue
+                files.append((k, obj['Size'], obj["LastModified"].timestamp()))
+
+    most_recent_file = max(files, key=lambda item: item[2])
+    return most_recent_file[0].split("/")[-1].rstrip(".jsonl")
 
 
 def delete_url(src: PhysicalKey):

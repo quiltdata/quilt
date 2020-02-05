@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from .data_transfer import (
     calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_version,
-    list_object_versions, list_url, put_bytes
+    list_object_versions, list_url, put_bytes, get_new_latest_manifest_tophash
 )
 from .exceptions import PackageException
 from .formats import FormatRegistry
@@ -27,6 +27,7 @@ from .util import (
 )
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
     user_is_configured_to_custom_stack, catalog_package_url
+from .dotquilt_layout import DotQuiltLayout
 
 
 
@@ -468,26 +469,31 @@ class Package(object):
 
 
     @classmethod
-    def resolve_hash(cls, registry, hash_prefix):
+    def resolve_hash(cls, registry, name, hash_prefix):
         """
         Find a hash that starts with a given prefix.
         Args:
             registry(string): location of registry
+            name(str): name of the package, e.g. "user/package"
             hash_prefix(string): hash prefix with length between 6 and 64 characters
         """
+        assert len(hash_prefix) >= 6
         assert isinstance(registry, PhysicalKey)
         if len(hash_prefix) == 64:
             top_hash = hash_prefix
         elif 6 <= len(hash_prefix) < 64:
-            matching_hashes = [h for h, _
-                               in list_url(registry.join('.quilt/packages/'))
-                               if h.startswith(hash_prefix)]
-            if not matching_hashes:
+
+            # {registry}/.quilt/v2/usr={usr}/pkg={pkg}/hash_prefix={2digit_hash_prefix}/{hash_prefix}
+            manifest_path_prefix = registry.join(DotQuiltLayout.get_package_manifest_dir(name).join(f"hash_prefix={hash_prefix[:2]}/{hash_prefix}"))
+            matching_manifests = list_url(manifest_path_prefix)
+
+
+            if not matching_manifests:
                 raise QuiltException("Found zero matches for %r" % hash_prefix)
-            elif len(matching_hashes) > 1:
+            elif len(matching_manifests) > 1:
                 raise QuiltException("Found multiple matches: %r" % hash_prefix)
             else:
-                top_hash = matching_hashes[0]
+                top_hash = matching_manifests[0][0].split("/")[-1].rstrip(".jsonl")
         else:
             raise QuiltException("Invalid hash: %r" % hash_prefix)
         return top_hash
@@ -496,14 +502,14 @@ class Package(object):
     def _shorten_tophash(cls, package_name, registry: PhysicalKey, top_hash):
         min_shorthash_len = 7
 
-        matches = [h for h, _ in list_url(registry.join('.quilt/packages/'))
-                   if h.startswith(top_hash[:min_shorthash_len])]
-        if len(matches) == 0:
+        manifest_path_prefix = registry.join(DotQuiltLayout.get_package_manifest_dir(package_name).join(f"hash_prefix={top_hash[:2]}/{top_hash[:min_shorthash_len]}"))
+        matching_tophashs = [h.split("/")[-1].rstrip(".jsonl") for h, _ in list_url(manifest_path_prefix)]
+        if len(matching_tophashs) == 0:
             raise ValueError(f"Tophash {top_hash} was not found in registry {registry}")
         for prefix_length in range(min_shorthash_len, 64):
             potential_shorthash = top_hash[:prefix_length]
-            matches = [h for h in matches if h.startswith(potential_shorthash)]
-            if len(matches) == 1:
+            matching_tophashs = [h for h in matching_tophashs if h.startswith(potential_shorthash)]
+            if len(matching_tophashs) == 1:
                 return potential_shorthash
 
 
@@ -530,10 +536,10 @@ class Package(object):
         registry_parsed = PhysicalKey.from_url(registry)
 
         if top_hash is None:
-            top_hash_file = registry_parsed.join(f'.quilt/named_packages/{name}/latest')
-            top_hash = get_bytes(top_hash_file).decode('utf-8').strip()
+            latest_pointer_file = registry_parsed.join(DotQuiltLayout.get_latest_key(name))
+            top_hash = get_bytes(latest_pointer_file).decode('utf-8').strip()
         else:
-            top_hash = cls.resolve_hash(registry_parsed, top_hash)
+            top_hash = cls.resolve_hash(registry_parsed, name, top_hash)
 
         # TODO: verify that name is correct with respect to this top_hash
         pkg_manifest = registry_parsed.join(f'.quilt/packages/{top_hash}')
@@ -920,19 +926,15 @@ class Package(object):
         manifest = io.BytesIO()
         self._dump(manifest)
 
-        pkg_manifest_file = registry_parsed.join(f'.quilt/packages/{self.top_hash}')
-        put_bytes(
-            manifest.getvalue(),
-            pkg_manifest_file
-        )
+        top_hash = self.top_hash  # Only calculate tophash once
+        manifest_file_pk = registry_parsed.join(DotQuiltLayout.get_manifest_key_by_tophash(name, top_hash))
+        latest_pointer_pk = registry_parsed.join(DotQuiltLayout.get_latest_key(name))
 
-        named_path = registry_parsed.join(f'.quilt/named_packages/{name}')
-        hash_bytes = self.top_hash.encode('utf-8')
-        # TODO: use a float to string formater instead of double casting
-        timestamp_path = named_path.join(str(int(time.time())))
-        latest_path = named_path.join("latest")
-        put_bytes(hash_bytes, timestamp_path)
-        put_bytes(hash_bytes, latest_path)
+        # Push manifest to s3
+        put_bytes(manifest.getvalue(), manifest_file_pk)
+
+        # Update latest pointer
+        put_bytes(top_hash.encode("utf-8"), latest_pointer_pk)
 
         return self
 
@@ -1301,26 +1303,23 @@ class Package(object):
     @classmethod
     def rollback(cls, name, registry, top_hash):
         """
-        Set the "latest" version to the given hash.
+        Set the "latest" version to the given hash. Does not delete the manifest, just changes the 'latest' pointer.
+
+        Raises exception if the new package version doesn't exist.
 
         Args:
             name(str): Name of package to rollback.
             registry(str): Registry where package is located.
             top_hash(str): Hash to rollback to.
         """
-        registry = PhysicalKey.from_url(fix_url(registry))
         validate_package_name(name)
+        registry = PhysicalKey.from_url(fix_url(registry))
 
-        top_hash = cls.resolve_hash(registry, top_hash)
+        top_hash = cls.resolve_hash(registry, name, top_hash)
 
-        hash_path = registry.join(f'.quilt/packages/{top_hash}')
-        latest_path = registry.join(f'.quilt/named_packages/{name}/latest')
+        latest_pointer = registry.join(DotQuiltLayout.get_latest_key(name))
 
-        # Check that both latest and top_hash actually exist.
-        get_size_and_version(hash_path)
-        get_size_and_version(latest_path)
-
-        put_bytes(top_hash.encode('utf-8'), latest_path)
+        put_bytes(top_hash.encode('utf-8'), latest_pointer)
 
 
     @ApiTelemetry("package.diff")

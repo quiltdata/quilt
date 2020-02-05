@@ -1,4 +1,4 @@
-from .data_transfer import copy_file, get_bytes, delete_url, list_url
+from .data_transfer import copy_file, get_bytes, delete_url, list_url, get_new_latest_manifest_tophash, put_bytes, list_url_with_datetime
 from .packages import Package
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
@@ -7,6 +7,7 @@ from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
                    load_config, PhysicalKey, read_yaml, validate_package_name,
                    write_yaml)
 from .telemetry import ApiTelemetry
+from .dotquilt_layout import DotQuiltLayout
 
 
 def copy(src, dest):
@@ -34,47 +35,54 @@ def delete_package(name, registry=None, top_hash=None):
         registry (str): The registry the package will be removed from
         top_hash (str): Optional. A package hash to delete, instead of the whole package.
     """
+    return _delete_package(name=name, registry=registry, top_hash=top_hash)
+
+
+def _delete_package(name, registry=None, top_hash=None):
+
     validate_package_name(name)
     usr, pkg = name.split('/')
 
     registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
+    # named_packages = registry_parsed.join('named_packages')
+    # package_path = named_packages.join(name)
 
-    named_packages = registry_parsed.join('named_packages')
-    package_path = named_packages.join(name)
+    package_path = registry_parsed.join(DotQuiltLayout.get_package_manifest_dir(name))  # .quilt/v2/usr=usr/pkg=pkg (no trailing slash)
 
-    paths = list(list_url(package_path))
+    manifest_list_prefix = package_path.join("hash_prefix=")  # This prevents the listing from including the 'latest' pointer
+    latest_pointer = registry_parsed.join(DotQuiltLayout.get_latest_key(name))
+
+    paths = list(list_url(manifest_list_prefix))
     if not paths:
         raise QuiltException("No such package exists in the given directory.")
 
-    if top_hash is not None:
-        top_hash = Package.resolve_hash(registry_parsed, top_hash)
-        deleted = []
-        remaining = []
-        for path, _ in paths:
-            parts = path.split('/')
-            if len(parts) == 1:
-                pkg_hash = get_bytes(package_path.join(parts[0]))
-                if pkg_hash.decode().strip() == top_hash:
-                    deleted.append(parts[0])
-                else:
-                    remaining.append(parts[0])
-        if not deleted:
-            raise QuiltException("No such package version exists in the given directory.")
-        for path in deleted:
-            delete_url(package_path.join(path))
-        if 'latest' in deleted and remaining:
-            # Create a new "latest". Technically, we need to compare numerically,
-            # but string comparisons will be fine till year 2286.
-            new_latest = max(remaining)
-            copy_file(package_path.join(new_latest), package_path.join('latest'))
+
+    if top_hash is not None:  # Just deleting one version
+        top_hash = Package.resolve_hash(registry_parsed, name, top_hash)
+
+        # Check if the tophash to delete is latest
+        #   if not, delete it and call it a day
+        #   if so, replace it with the most recently created manifest. List all manifests and pick the most recent
+
+
+        # Open latest pointer to see if we are deleting the latest version
+        latest_top_hash = get_bytes(latest_pointer).decode('utf-8').strip()
+        need_to_update_latest_pointer = top_hash == latest_top_hash
+
+        manifest_physical_key = registry_parsed.join(DotQuiltLayout.get_manifest_key_by_tophash(name, top_hash))
+        delete_url(manifest_physical_key)
+
+        if need_to_update_latest_pointer:
+            # List
+            new_latest_manifest_tophash = get_new_latest_manifest_tophash(manifest_list_prefix, top_hash)
+            put_bytes(new_latest_manifest_tophash.encode('utf-8'), latest_pointer)
+
+
     else:
         for path, _ in paths:
             delete_url(package_path.join(path))
+            delete_url(latest_pointer)
 
-    # Will ignore non-empty dirs.
-    # TODO: .join('') adds a trailing slash - but need a better way.
-    delete_url(package_path.join(''))
-    delete_url(named_packages.join(usr).join(''))
 
 
 @ApiTelemetry("api.list_packages")
@@ -90,31 +98,32 @@ def list_packages(registry=None):
     Returns:
         A sequence of strings containing the names of the packages
     """
+
+
+    return _list_packages(registry=registry)
+
+
+def _list_packages(registry=None):
+
     registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
 
-    return _list_packages(registry_parsed)
+    # A package can have multiple versions, but we should only return the name once.
+    visited = set()
 
-
-def _list_packages(registry):
-    """This differs from list_packages because it does not have
-
-    telemetry on it. If Quilt code needs the functionality to list
-    packages under a different customer-facing API, _list_packages()
-    is the function that should be used to prevent duplicate metrics
-    (each API call that the user makes should generate a single
-    telemetry event).
-    """
-
-    named_packages = registry.join('named_packages')
     prev_pkg = None
-    for path, _ in list_url(named_packages):
-        parts = path.split('/')
-        if len(parts) == 3:
-            pkg = f'{parts[0]}/{parts[1]}'
-            # A package can have multiple versions, but we should only return the name once.
-            if pkg != prev_pkg:
-                prev_pkg = pkg
-                yield pkg
+    for path, _ in list_url(registry_parsed):
+        if path.endswith("latest"):  # Ignore 'latest' pointer
+            continue
+
+        parts = path.split('/')   # ["user=usr", "pkg=pkg", "hash_prefix=ab", "XXXXXXXXXXX.jsonl"]
+        usr = parts[0].lstrip("usr=")
+        pkg = parts[1].lstrip("pkg=")
+
+        pkg_name = f"{usr}/{pkg}"
+        if pkg_name not in visited:
+            visited.add(pkg_name)
+            yield pkg_name
+
 
 
 @ApiTelemetry("api.list_package_versions")
@@ -130,23 +139,23 @@ def list_package_versions(name, registry=None):
     Returns:
         A sequence of tuples containing the named version and hash.
     """
+
+    return _list_package_versions(name=name, registry=registry)
+
+
+def _list_package_versions(name, registry=None):
+
     validate_package_name(name)
     registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
 
-    return _list_package_versions(name=name, registry=registry_parsed)
+    package = registry_parsed.join(DotQuiltLayout.get_package_manifest_dir(name)).join("")  # Get that trailing slash
+    for path, _, dt in list_url_with_datetime(package):
+        if path.endswith("latest"):
+            continue
 
+        tophash = path.split("/")[1].strip(".jsonl")
+        yield tophash, dt.strftime("%Y-%m-%d %H:%M:%S")
 
-def _list_package_versions(name, registry):
-    """Telemetry-free version of list_package_versions. Internal quilt
-    code should always use _list_package_versions.  See documentation
-    for _list_packages for why.
-    """
-    package = registry.join('named_packages').join(name)
-    for path, _ in list_url(package):
-        parts = path.split('/')
-        if len(parts) == 1:
-            pkg_hash = get_bytes(package.join(parts[0]))
-            yield parts[0], pkg_hash.decode().strip()
 
 
 @ApiTelemetry("api.config")
