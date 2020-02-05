@@ -1,4 +1,16 @@
-# Metadata Query Code Samples
+# Metadata Service Notes
+
+## New .quilt layout
+
+Full manifest:
+```
+$REGISTRY/.quilt/v2/usr=usr/pkg=pkg/hash_prefix=12/123456789abcdef.jsonl
+```
+
+Pointer file containing tophash of latest manifest
+```
+$REGISTRY/.quilt/v2/usr=usr/pkg=pkg/latest
+```
 
 
 ## Table structures
