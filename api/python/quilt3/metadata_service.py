@@ -181,4 +181,7 @@ if __name__ == '__main__':
 
     setup(bucket, db_name, verbose=verbose)
     # recover_partitions(bucket, db_name, verbose=verbose)
-    query(f"SELECT * FROM {db_name}.{view_name(bucket)} LIMIT 10", bucket, db_name=db_name, verbose=verbose)
+
+    sql = f"""\
+    SELECT DISTINCT(package) FROM {db_name}.{view_name(bucket)}"""
+    col_headers, rows = query(sql, bucket, db_name=db_name, verbose=verbose)

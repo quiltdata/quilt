@@ -22,7 +22,7 @@ There are three main APIs for interacting with metadata. If a user is using the 
 metadata_service.setup("armand-dotquilt-dev")
 ```
 
-This will create the Athena table/view. By default, we use the Glue database `default`, but that can be changed via the `db_name` argument.
+This will create the Athena table/view. By default, we use the Glue database `default`, but that can be changed via the `db_name` argument. `setup()` check if the database and tables already exist and does nothing except recover partitions if they do.
 
 You can then run a SQL query via:
 
@@ -47,11 +47,13 @@ Currently, metadata service uses boto3 in the simplest way (see `athena.py`, `ge
 
 ### SQL syntactic sugar
 
-WIP. See `metadata_service_client.py`
+WIP. See `presto_sql.py`
 
 ## Athena
 ## Table/view structures
 
+CURRENT STATUS NOTE: Only the third view discussed below is currently available, but the other two would be easy to add. Adding them would improve performance, but would not add any missing functionality.
+ 
 The underlying technology is Athena. There are two views that can be queried:
 
 1. Manifests themselves
@@ -89,7 +91,7 @@ Between the SQLAlchemy engine and the DBAPI2.0 compliant connection, you will be
 
 ```python
 from quilt3 import MetadataQuery
-rows = MetadataQuery(bucket='quilt-ml-data').raw_sql("""\
+rows = MetadataQuery(bucket='armand-dotquilt-dev').raw_sql("""\
 SELECT logical_key
    , physical_key
    , size
@@ -99,10 +101,10 @@ SELECT logical_key
    , manifest_commit_message
    , hash
    , meta -- user defined metadata for each logical_key (work with meta using Presto JSON tools)
-FROM "default"."quilt_metadata_service_combined" 
-WHERE package='coco-train2017'
-AND hash_prefix='ca' -- Leverage partitions to speed up the query if you want to query a specific manifest hash
-AND hash='ca67d9dc4105d6fbaf3279c949a91f0e739063252cbfb9bc0ab64d315203e3a3'
+FROM "default"."quilt_metadata_service_armand_dotquilt_dev" 
+WHERE package='test/glue'
+AND hash_prefix='1a' -- Leverage partitions to speed up the query if you want to query a specific manifest hash
+AND hash='1a527eccc30d9a775e3c06031190a76de7263047543b31c5d8136273ba793476'
 LIMIT 100;
 """).execute()
 ```
@@ -114,10 +116,9 @@ Presto JSON tools: https://prestodb.github.io/docs/current/functions/json.html
 ```python
 from quilt3 import MetadataQuery
 rows = MetadataQuery(
-            bucket="quilt-ml-data",
-            table="quilt_metadata_service_combined",
-            package="coco-train2017", 
-            tophash="ca67d9dc4105d6fbaf3279c949a91f0e739063252cbfb9bc0ab64d315203e3a3"
+            bucket="armand-dotquilt-dev",
+            package="test/glue", 
+            tophash="1a527eccc30d9a775e3c06031190a76de7263047543b31c5d8136273ba793476"
         ).select([
             "logical_key",
             "physical_key",
@@ -169,8 +170,8 @@ rows = MetadataQuery(
 ```python
 from quilt3 import MetadataQuery
 from sqlalchemy.sql.schema import Table, MetaData
-engine = MetadataQuery(bucket='quilt-ml-data').sqlalchemy_engine
-table = Table('quilt_metadata_service_combined', MetaData(bind=engine), autoload=True)
+engine = MetadataQuery(bucket='armand_dotquilt_dev').sqlalchemy_engine
+table = Table('quilt_metadata_service_armand_dotquilt_dev', MetaData(bind=engine), autoload=True)
 results = table.select().limit(100).execute()
 for row in results:
     print(row)

@@ -9,81 +9,9 @@ pd.set_option('display.max_columns', 500)
 pd.set_option('display.max_rows', 500)
 
 
-def get_athena_client():
-    # return boto3.session.Session(profile_name='staging', region_name="us-east-1").client("athena")
-    return boto3.session.Session(region_name="us-east-1").client("athena")
 
 
 
-def query(sql, database, output_location):
-    # output_location is in form "s3://bucket/output_prefix/
-    response = get_athena_client().start_query_execution(
-            QueryString=sql,
-            QueryExecutionContext={
-                'Database': database
-            },
-            ResultConfiguration={
-                'OutputLocation': output_location,
-                'EncryptionConfiguration': {'EncryptionOption': 'SSE_S3'}
-            },
-    )
-    return response['QueryExecutionId']
-
-
-
-def retrieve_results(query_execution_id):
-    response = get_athena_client().get_query_results(QueryExecutionId=query_execution_id)
-    # return format: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/athena.html#Athena.Client.get_query_results
-    column_info_list = response['ResultSet']['ResultSetMetadata']['ColumnInfo']
-    col_headers = [c['Name'] for c in column_info_list]
-    col_types = [c['Type'] for c in column_info_list]
-    rows = []
-    for i, raw_row in enumerate(response['ResultSet']['Rows']):
-        if i == 0:
-            continue # skip header row
-        row = []
-        for i, col in enumerate(raw_row['Data']):
-            col_type = col_types[i]
-            d = col['VarCharValue']
-            row.append(transform_entry(d, col_type))
-        rows.append(row)
-
-    return col_headers, rows
-
-
-def results_as_pd_dataframe(col_headers, rows):
-    cols = []
-    num_cols = len(col_headers)
-    for i in range(num_cols):
-        cols.append([])
-
-    for row in rows:
-        for i in range(num_cols):
-            cols[i].append(row[i])
-    results = {}
-    for i, col_header in enumerate(col_headers):
-        results[col_header] = cols[i]
-    return pd.DataFrame(results)
-
-def wait_for_query_to_complete(query_execution_id):
-    client = get_athena_client()
-    while True:
-        response = client.get_query_execution(QueryExecutionId=query_execution_id)
-        status = response["QueryExecution"]["Status"]["State"]
-        if status in ["SUCCEEDED", "FAILED", "CANCELLED"]:
-            return status
-        time.sleep(1)
-
-
-def describe_query_execution_performance(query_execution_id):
-    response = get_athena_client().get_query_execution(QueryExecutionId=query_execution_id)
-    status = response["QueryExecution"]["Status"]["State"] == "SUCCEEDED"
-    assert status, f"Query must have succeeded to get performance numbers. Query is currently {status}"
-    stats = response["QueryExecution"]["Statistics"]
-    return stats["EngineExecutionTimeInMillis"], stats["DataScannedInBytes"]
-
-    # exec_dur, data_scanned = describe_query_execution_performance(query_execution_id)
-    #     print(exec_dur/1000, "seconds,", data_scanned/1024/1024, "megabytes scanned")
 
 
 OUTPUT_LOCATION = "s3://quilt-ml-data/athena/demo/"

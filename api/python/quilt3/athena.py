@@ -67,6 +67,32 @@ def retrieve_results(athena_client, query_execution_id):
     return col_headers, rows
 
 
+def describe_query_execution_performance(query_execution_id):
+    response = get_athena_client().get_query_execution(QueryExecutionId=query_execution_id)
+    status = response["QueryExecution"]["Status"]["State"] == "SUCCEEDED"
+    assert status, f"Query must have succeeded to get performance numbers. Query is currently {status}"
+    stats = response["QueryExecution"]["Statistics"]
+    return stats["EngineExecutionTimeInMillis"], stats["DataScannedInBytes"]
+
+    # exec_dur, data_scanned = describe_query_execution_performance(query_execution_id)
+    #     print(exec_dur/1000, "seconds,", data_scanned/1024/1024, "megabytes scanned")
+
+
+def results_as_pandas_dataframe(col_headers, rows):
+    import pandas as pd
+    cols = []
+    num_cols = len(col_headers)
+    for i in range(num_cols):
+        cols.append([])
+
+    for row in rows:
+        for i in range(num_cols):
+            cols[i].append(row[i])
+    results = {}
+    for i, col_header in enumerate(col_headers):
+        results[col_header] = cols[i]
+    return pd.DataFrame(results)
+
 
 def transform_entry(var_char_value, col_type):
     if col_type == "varchar":
