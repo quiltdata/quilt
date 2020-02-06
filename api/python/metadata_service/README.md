@@ -22,7 +22,7 @@ There are three main APIs for interacting with metadata. If a user is using the 
 metadata_service.setup("armand-dotquilt-dev")
 ```
 
-This will create the Athena table/view. By default, we use the Glue database `default`, but that can be changed via the `db_name` argument. `setup()` check if the database and tables already exist and does nothing except recover partitions if they do.
+This will create the Athena table/view and recover partitions. By default, we use the Glue database `default`, but that can be changed via the `db_name` argument. `setup()` check if the database and tables already exist and does nothing except recover partitions if they do.
 
 You can then run a SQL query via:
 
@@ -57,24 +57,19 @@ CURRENT STATUS NOTE: Only the third view discussed below is currently available,
 The underlying technology is Athena. There are two views that can be queried:
 
 1. Manifests themselves
-    - `quilt_metadata_service_manifests`
     - How many versions are there of this package?
     - List all versions of this package.
     - Find all versions of this package created in the last two days
 2. Entries in manifests  
-    - `quilt_metadata_service_entries`
     - How many entries are there in this version of this package?
     - Calculate total size of all objects in this version of this package
     - Look at file type breakdown in this package
 
-   __You may want to combine the two tables. This is a valuable but more expensive operation exposed via a third view:__
+   __You may want to combine the two views. This is a valuable but more expensive operation exposed via a third view:__
 
 3. Entries along with which manifest they are in
-    - `quilt_metadata_service_combined`
     - Which version of this package contain this s3 object+version?
     - What is the average number of keys across version of this package?
-
-The underlying data is partitioned by `usr` and `pkg` and then by the first two characters of the manifest `tophash`.
 
 ## Usage
 
