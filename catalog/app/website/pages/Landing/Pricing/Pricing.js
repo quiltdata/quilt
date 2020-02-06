@@ -20,18 +20,18 @@ import bgTer2x from './bg-tertiary@2x.png'
 
 const PLANS = [
   {
-    name: 'open.quiltdata.com',
+    name: 'Public data',
     trackingName: 'open',
-    price: 'Free',
+    price: '0',
     features: ['Unlimited public packages'],
     cta: 'Explore',
     href: 'https://open.quiltdata.com',
     variant: 'tertiary',
   },
   {
-    name: 'Virtual Private Cloud',
+    name: 'Private Cloud',
     trackingName: 'marketplace',
-    price: 600,
+    price: '199',
     features: ['Unlimited data', 'Unlimited users', 'One S3 bucket', '30-day free trial'],
     cta: 'Try Now',
     to: ({ urls }) => urls.install(),
@@ -41,7 +41,7 @@ const PLANS = [
   {
     name: 'Enterprise',
     trackingName: 'contact',
-    price: 'Contact us',
+    price: '999',
     features: [
       'Unlimited data',
       'Unlimited users',
