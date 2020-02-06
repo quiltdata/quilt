@@ -343,6 +343,8 @@ class PackageTest(QuiltTestCase):
     @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
     def test_load_into_quilt(self):
         """ Verify loading local manifest and data into S3. """
+        usr="quilt"
+        pkg="test"
         top_hash1 = 'abbf5f171cf20bfb2313ecd8684546958cd72ac4f3ec635e4510d9c771168226'
 
         self.s3_stubber.add_response(
@@ -353,7 +355,7 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Body': ANY,
                 'Bucket': 'my_test_bucket',
-                'Key': 'Quilt/package/foo1',
+                'Key': f'{usr}/{pkg}/foo1',
             }
         )
 
@@ -365,7 +367,7 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Body': ANY,
                 'Bucket': 'my_test_bucket',
-                'Key': 'Quilt/package/foo2',
+                'Key': f'{usr}/{pkg}/foo2',
             }
         )
 
@@ -377,7 +379,7 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Body': ANY,
                 'Bucket': 'my_test_bucket',
-                'Key': '.quilt/packages/' + top_hash1,
+                'Key': f'.quilt/v2/manifests/usr={usr}/pkg={pkg}/hash_prefix={top_hash1[:2]}/{top_hash1}.jsonl',
             }
         )
 
@@ -389,19 +391,7 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Body': top_hash1.encode(),
                 'Bucket': 'my_test_bucket',
-                'Key': '.quilt/named_packages/Quilt/package/1234567890',
-            }
-        )
-
-        self.s3_stubber.add_response(
-            method='put_object',
-            service_response={
-                'VersionId': 'v4'
-            },
-            expected_params={
-                'Body': top_hash1.encode(),
-                'Bucket': 'my_test_bucket',
-                'Key': '.quilt/named_packages/Quilt/package/latest',
+                'Key': f'.quilt/v2/pointers/usr={usr}/pkg={pkg}/latest',
             }
         )
 
@@ -429,7 +419,7 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Body': ANY,
                 'Bucket': 'my_test_bucket',
-                'Key': 'Quilt/package/foo2',
+                'Key': f'{usr}/{pkg}/foo2',
             }
         )
 
@@ -441,7 +431,7 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Body': ANY,
                 'Bucket': 'my_test_bucket',
-                'Key': '.quilt/packages/' + top_hash2,
+                'Key': f'.quilt/v2/manifests/usr={usr}/pkg={pkg}/hash_prefix={top_hash2[:2]}/{top_hash2}.jsonl'
             }
         )
 
@@ -453,19 +443,7 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Body': top_hash2.encode(),
                 'Bucket': 'my_test_bucket',
-                'Key': '.quilt/named_packages/Quilt/package/1234567891',
-            }
-        )
-
-        self.s3_stubber.add_response(
-            method='put_object',
-            service_response={
-                'VersionId': 'v4'
-            },
-            expected_params={
-                'Body': top_hash2.encode(),
-                'Bucket': 'my_test_bucket',
-                'Key': '.quilt/named_packages/Quilt/package/latest',
+                'Key': f'.quilt/v2/pointers/usr={usr}/pkg={pkg}/latest',
             }
         )
 
@@ -802,29 +780,25 @@ class PackageTest(QuiltTestCase):
             service_response={
                 'Contents': [
                     {
-                        'Key': '.quilt/named_packages/foo/bar/1549931300',
+                        'Key': '.quilt/v2/manifests/usr=foo/pkg=bar/hash_prefix=e9/e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303.jsonl',
                         'Size': 64,
                     },
                     {
-                        'Key': '.quilt/named_packages/foo/bar/1549931634',
+                        'Key': '.quilt/v2/manifests/usr=foo2/pkg=bar2/hash_prefix=20/20de5433549a4db332a11d8d64b934a82bdea8f144b4aecd901e7d4134f8e733.jsonl',
                         'Size': 64,
                     },
-                    {
-                        'Key': '.quilt/named_packages/foo/bar/latest',
-                        'Size': 64,
-                    }
                 ]
             },
             expected_params={
                 'Bucket': 'my_test_bucket',
-                'Prefix': '.quilt/named_packages/',
+                'Prefix': '.quilt/v2/manifests/',
             }
         )
 
         pkgs = list(quilt3.list_packages('s3://my_test_bucket/'))
 
-        assert len(pkgs) == 1
-        assert list(pkgs) == ['foo/bar']
+        assert len(pkgs) == 2
+        assert set(pkgs) == {'foo/bar', 'foo2/bar2'}
 
 
     def test_validate_package_name(self):
