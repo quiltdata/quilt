@@ -191,7 +191,7 @@ function Analytics({ analyticsBucket, bucket, path }) {
   const formatDate = (date) =>
     dateFns.format(
       date,
-      today.getFullYear() === date.getFullYear() ? `d MMM` : `d MMM yyyy`,
+      today.getFullYear() === date.getFullYear() ? 'd MMM' : 'd MMM yyyy',
     )
 
   return (
