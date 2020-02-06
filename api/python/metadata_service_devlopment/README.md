@@ -47,7 +47,15 @@ Currently, metadata service uses boto3 in the simplest way (see `athena.py`, `ge
 
 ### SQL syntactic sugar
 
-WIP. See `presto_sql.py`
+Experimental. See `presto_sql.py`
+
+## Migration
+
+The current implementation of the new dotquilt layout does not conflict in any way with the existing layout, with everything being stored under `.quilt/v2/`. In order to migrate, a user should list every version of every package, pull the Package manifest into memory and then push the package using this codebase. The JSONL/in-memory representation of a Package is unchanged so the easiest way might be to have `quilt3<=3.1.10` create a list of (package_name, registry, JSONL path) tuples and have this codebase load each Package into memory and then push them.
+
+Open questions:
+- commit messages
+- timestamps
 
 ## Athena
 ## Table/view structures
@@ -85,8 +93,8 @@ Between the SQLAlchemy engine and the DBAPI2.0 compliant connection, you will be
 ### Raw SQL
 
 ```python
-from quilt3 import MetadataQuery
-rows = MetadataQuery(bucket='armand-dotquilt-dev').raw_sql("""\
+from quilt3 import metadata_service
+column_headers, rows = metadata_service.query(bucket='armand-dotquilt-dev', sql="""\
 SELECT logical_key
    , physical_key
    , size
@@ -101,8 +109,10 @@ WHERE package='test/glue'
 AND hash_prefix='1a' -- Leverage partitions to speed up the query if you want to query a specific manifest hash
 AND hash='1a527eccc30d9a775e3c06031190a76de7263047543b31c5d8136273ba793476'
 LIMIT 100;
-""").execute()
+""")
 ```
+
+One downside of this API is that users need to have a clear understanding of how the Athena views are named as well as how to leverage the partitioning for performance.
 
 Presto JSON tools: https://prestodb.github.io/docs/current/functions/json.html
 
@@ -110,27 +120,27 @@ Presto JSON tools: https://prestodb.github.io/docs/current/functions/json.html
 
 ```python
 from quilt3 import MetadataQuery
-rows = MetadataQuery(
-            bucket="armand-dotquilt-dev",
-            package="test/glue", 
-            tophash="1a527eccc30d9a775e3c06031190a76de7263047543b31c5d8136273ba793476"
-        ).select([
-            "logical_key",
-            "physical_key",
-            "size",
-            "object_hash_type",
-            "object_hash",
-            "package", # Package name
-            "manifest_commit_message", 
-            "hash" # manifest top hash
-            "meta" # user defined metadata for each logical_key (work with meta using Presto JSON tools)
-        ]).where([
-            "'size' > 1000000"
-        ]).limit(
-            100
-        ).execute()
+headers, rows = MetadataQuery(
+                    bucket="armand-dotquilt-dev",
+                    package="test/glue", 
+                    tophash="1a527eccc30d9a775e3c06031190a76de7263047543b31c5d8136273ba793476"
+                ).select([
+                    "logical_key",
+                    "physical_key",
+                    "size",
+                    "object_hash_type",
+                    "object_hash",
+                    "package", # Package name
+                    "manifest_commit_message", 
+                    "hash", # manifest top hash
+                    "meta" # user defined metadata for each logical_key (work with meta using Presto JSON or the syntactic sugar described below)
+                ]).where([
+                    "size > 1000000"
+                ]).limit(
+                    100
+                ).execute()
 ```
-Note `table`, `package` and `tophash` are optional, but if you pass one or more of them in, `MetadataQuery` can automatically leverage Athena partitioning to execute a more performant query.
+Note `package` and `tophash` as init arguments to `MetadataQuery` are optional, but if you pass one or more of them in, `MetadataQuery` can automatically leverage Athena partitioning to execute a more performant query.
 
 ##### Explore metadata
 
@@ -138,22 +148,22 @@ We provide some utilities that wrap Presto JSON operations as native Python code
 
 ```python
 meta = PrestoJsonSugar()
-rows = MetadataQuery(
-            bucket="quilt-ml-data",
-            table="quilt_metadata_service_combined",
-            package="coco-train2017", 
-            tophash="ca67d9dc4105d6fbaf3279c949a91f0e739063252cbfb9bc0ab64d315203e3a3"
-        ).select([
-            "logical_key",
-            meta["user_meta"]["coco_meta"]["annotation_info"]["category.names"].name_col_as("objects_in_image"),
-            meta["user_meta"]["split"].name_col_as("split"),
-            "package",
-            "physical_key"
-        ]).where([
-            meta["user_meta"]["coco_meta"]["annotation_info"]["category.names"].contains('car'),
-            meta["user_meta"]["split"] == 'train2017',
-            meta["user_meta"]["filetype"].is_in(['jpg', 'png'])
-        ]).execute()
+col_headers, rows = MetadataQuery(
+                        bucket="quilt-ml-data",
+                        table="quilt_metadata_service_combined",
+                        package="coco-train2017", 
+                        tophash="ca67d9dc4105d6fbaf3279c949a91f0e739063252cbfb9bc0ab64d315203e3a3"
+                    ).select([
+                        "logical_key",
+                        {meta["user_meta"]["coco_meta"]["annotation_info"]["category.names"]: "objects_in_image"},
+                        {meta["user_meta"]["split"]: "split"},
+                        "package",
+                        "physical_key"
+                    ]).where([
+                        meta["user_meta"]["coco_meta"]["annotation_info"]["category.names"].contains('car'),
+                        meta["user_meta"]["split"] == 'train2017',
+                        meta["user_meta"]["filetype"].is_in(['jpg', 'png'])
+                    ]).execute()
 ```
 
 
@@ -161,7 +171,7 @@ rows = MetadataQuery(
 
 ### SQLAlchemy
 
-
+NOTE: Not currently implemented. If implementing, see `pyathena.py` for starter code 
 ```python
 from quilt3 import MetadataQuery
 from sqlalchemy.sql.schema import Table, MetaData
@@ -174,6 +184,7 @@ for row in results:
 
 ### pandas read_sql
 
+NOTE: Not currently implemented. If implementing, `see pyathena.py` for starter code
 ```python
 from quilt3 import MetadataQuery
 import pandas as pd

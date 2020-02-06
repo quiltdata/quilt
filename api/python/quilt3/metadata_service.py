@@ -112,6 +112,8 @@ CREATE VIEW {view_name(bucket)} AS
 WITH
 manifest_table as (
   SELECT concat(usr, '/', pkg) AS package
+  , usr
+  , pkg 
   , manifest_commit_message
   , regexp_extract("$path",'[ \w-]+?(?=\.)') AS hash
   FROM "{db_name}"."{table_name(bucket)}"
@@ -137,8 +139,11 @@ logical_key
 , object_hash_type
 , object_hash
 , package
+, usr
+, pkg
 , manifest_commit_message
 , hash
+, hash_prefix
 , meta
 FROM entry_table
 JOIN manifest_table
@@ -174,14 +179,3 @@ def get_output_location(bucket):
 
 
 
-if __name__ == '__main__':
-    verbose = True
-    bucket = "armand-dotquilt-dev"
-    db_name = "default2"
-
-    setup(bucket, db_name, verbose=verbose)
-    # recover_partitions(bucket, db_name, verbose=verbose)
-
-    sql = f"""\
-    SELECT DISTINCT(package) FROM {db_name}.{view_name(bucket)}"""
-    col_headers, rows = query(sql, bucket, db_name=db_name, verbose=verbose)

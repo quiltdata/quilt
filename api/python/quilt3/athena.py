@@ -13,8 +13,8 @@ def get_glue_client():
 
 def query_and_wait(athena_client, sql, db_name, output_location):
     query_id = launch_query(athena_client, sql, db_name, output_location)
-    status = wait_for_query_to_complete(athena_client, query_id)
-    assert status == "SUCCEEDED", f"Query Did Not Succeed: {status}"
+    status, status_response = wait_for_query_to_complete(athena_client, query_id)
+    assert status == "SUCCEEDED", f"Query Did Not Succeed: {status}\nDetails: {status_response}"
     col_headers, rows = retrieve_results(athena_client, query_id)
     return col_headers, rows
 
@@ -39,7 +39,7 @@ def wait_for_query_to_complete(athena_client, query_execution_id):
         response = athena_client.get_query_execution(QueryExecutionId=query_execution_id)
         status = response["QueryExecution"]["Status"]["State"]
         if status in ["SUCCEEDED", "FAILED", "CANCELLED"]:
-            return status
+            return status, response
         time.sleep(1)
         # TODO: Print out feedback to the user
 
@@ -48,6 +48,7 @@ def retrieve_results(athena_client, query_execution_id):
     response = athena_client.get_query_results(QueryExecutionId=query_execution_id)
     # return format: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/athena.html#Athena.Client.get_query_results
     column_info_list = response['ResultSet']['ResultSetMetadata']['ColumnInfo']
+
     col_headers = [c['Name'] for c in column_info_list]
     col_types = [c['Type'] for c in column_info_list]
     rows = []
@@ -56,7 +57,17 @@ def retrieve_results(athena_client, query_execution_id):
             continue  # skip header row
         row = []
         for j, col in enumerate(raw_row['Data']):
-            col_type = col_types[j]
+
+            # In some cases such as repair table (where an info string is returned as a result row),
+            # the column_info_list is empty despite results of some sort being present. In that
+            # case we interpret everything as a varchar. Not certain that this is the right solution,
+            # but since it isn't clear what other scenarios cause this, it seems like a fairly robust
+            # solution
+
+            if j < len(column_info_list):
+                col_type = col_types[j]
+            else:
+                col_type = 'varchar'
             if 'VarCharValue' in col:
                 d = col['VarCharValue']
             else:

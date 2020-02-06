@@ -1,9 +1,12 @@
 from textwrap import dedent
 
-from . import athena
-from . import metadata_service
+import athena
+import metadata_service
 
 
+# NOTE: This is a somewhat fragile/prototypey codebase, but it provides a
+# much nicer UX than the APIs in metadata_service.py. Code should be thoroughly
+# reviewed before being released
 
 
 class MetadataQuery:
@@ -16,6 +19,7 @@ class MetadataQuery:
         self.tophash = tophash
         self.select_params = []
         self.where_clauses = []
+        self.limit_val = None
 
     def select(self, inputs):
         """
@@ -97,15 +101,22 @@ class MetadataQuery:
         self.where_clauses = where_clauses
         return self
 
+    def limit(self, limit_val: int):
+        assert isinstance(limit_val, int)
+        self.limit_val = limit_val
+        return self
+
 
     def _gen_select_sql(self):
         """Convert select_clauses into a single SELECT string"""
-        return "SELECT" + "\n, ".join(self.select_params)
+        return "SELECT " + "\n, ".join(self.select_params)
 
 
     def _gen_where_sql(self):
         if self.package is not None:
-            self.where_clauses.append(f"   package = '{self.package}'   ")
+            usr, pkg = self.package.split("/")
+            self.where_clauses.append(f"   usr = '{usr}'   ")
+            self.where_clauses.append(f"   pkg = '{pkg}'   ")
         if self.tophash is not None:
             self.where_clauses.append(f"""   hash = '{self.tophash}'   """)
             self.where_clauses.append(f"""   hash_prefix = '{self.tophash[:2]}'   """)
@@ -118,16 +129,19 @@ class MetadataQuery:
             where_sql += clause_sql
         return where_sql
 
+    def _gen_limit_sql(self):
+        if self.limit_val is None:
+            return ""
 
+        return f"LIMIT {self.limit_val}"
 
     def _gen_sql(self):
-        sql = dedent(
-                f"""\
-                {self._gen_select_sql()}
-                FROM "{self.db_name}"."{metadata_service.view_name(self.bucket)}" 
-                {self._gen_where_sql()}
-                """
-        )
+        sql = f"""\
+{self._gen_select_sql()}
+FROM "{self.db_name}"."{metadata_service.view_name(self.bucket)}" 
+{self._gen_where_sql()}
+{self._gen_limit_sql()}"""
+
 
         return sql
 
@@ -160,6 +174,22 @@ def list_to_sql(list_or_tuple):
 
 
 class PrestoJsonSugar:
+    """
+    This class exists to improve the UX of PrestoJsonSugarInstance so that you can do:
+
+        meta = PrestoJsonSugar()
+        meta["key1"] == "value1"
+        meta["key2"].is_in(["val2", "val3", "val4"])
+
+    instead of:
+
+        meta = PrestoJsonSugarInstance
+        meta()["key1"] == "value1"
+        meta()["key2"].is_in(["val2", "val3", "val4"])
+
+    Code is prototype-style so needs to be seriously reviewed before release
+
+    """
 
     @classmethod
     def __getitem__(cls, key):
@@ -174,6 +204,15 @@ class PrestoJsonSugar:
         return PrestoJsonSugarInstance().contains(item)
 
 class PrestoJsonSugarInstance:
+    """
+    A class to construct Presto JSON SQL from code that looks like normal
+    python dictionary expressions. Each dictionary style access adds a new
+    (operation, value) tuple to self.chain.
+
+    build() then converts the chain into Presto SQL
+
+    Code is prototype-style so needs to be seriously reviewed before release
+    """
     def __init__(self):
         """ Maintain an internal list of (operation, value) tuples that can be converted into Presto SQL"""
         self.chain = []
@@ -204,6 +243,7 @@ class PrestoJsonSugarInstance:
         chain_entry = "in_list", list_or_tuple
         self.chain.append(chain_entry)
         return self
+
 
     def build(self):
         cur = "meta"
@@ -239,3 +279,57 @@ class PrestoJsonSugarInstance:
             cur = dedent(cur.strip())
         return cur
 
+    @property
+    def sqlalchemy_engine(self):
+        raise NotImplementedError
+
+    @property
+    def pyathena_connection(self):
+        raise NotImplementedError
+
+
+if __name__ == '__main__':
+    verbose = True
+    bucket = "armand-dotquilt-dev"
+    db_name = "default2"
+    package = "test/glue"
+    metadata_service.setup(bucket, db_name, verbose=verbose)
+
+    query = MetadataQuery(
+        bucket=bucket,
+        package=package,
+        tophash="1a527eccc30d9a775e3c06031190a76de7263047543b31c5d8136273ba793476",
+        db_name=db_name
+    ).select([
+        "logical_key",
+        "physical_key",
+        "size",
+        "object_hash_type",
+        "object_hash",
+        "package",  # Package name
+        "manifest_commit_message",
+        "hash",  # manifest top hash
+        "meta"  # user defined metadata for each logical_key (work with meta using Presto JSON tools or PrestoJsonSugar class)
+    ]).where([
+        "size > 1000000"
+    ]).limit(
+            100
+    )
+
+    col_headers, rows = query.execute(verbose=True)
+
+
+
+    # meta = PrestoJsonSugar()
+    # tophash = "5708d60b8f27213ce3936d79a698916b68415e3efa0b5474d913de59f8ed999c"
+    # q = MetadataQuery(bucket=bucket, package=package, tophash=tophash)
+    # q = q.select([
+    #     "logical_key",
+    #     {meta["user_meta"]["coco_meta"]["annotation_info"]["category.names"]: "objects_in_image"},
+    #     {meta["user_meta"]["split"]: "split"},
+    #     "package",
+    #     "physical_key"
+    # ]).where([
+    #     meta["user_meta"]["coco_meta"]["annotation_info"]["category.names"].contains('car'),
+    #     meta["user_meta"]["split"].is_in(['train2017', 'val2017'])
+    # ])

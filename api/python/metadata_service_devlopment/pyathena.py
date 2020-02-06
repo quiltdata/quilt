@@ -1,17 +1,20 @@
 from pyathena import connect
 
+# This file contains example code for how to query Athena via the
+# PyAthena library both with and without SQLAlchemy
+
 AWS_ACCESS_KEY="REDACTED"
 AWS_SECRET_ACCESS_KEY="REDACTED"
 
-# def direct_access():
-#     cursor = connect(aws_access_key_id=AWS_ACCESS_KEY,
-#                      aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-#                      s3_staging_dir='s3://quilt-ml-data/athena/',
-#                      region_name='us-east-1').cursor()
-#
-#     cursor.execute("SELECT * FROM default.quilt_metadata_service LIMIT 100")
-#     for row in cursor:
-#         print(row)
+def direct_access():
+    cursor = connect(aws_access_key_id=AWS_ACCESS_KEY,
+                     aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                     s3_staging_dir='s3://quilt-ml-data/athena/',
+                     region_name='us-east-1').cursor()
+
+    cursor.execute("SELECT * FROM default.quilt_metadata_service LIMIT 100")
+    for row in cursor:
+        print(row)
 
 from urllib.parse import quote_plus  # PY2: from urllib import quote_plus
 from sqlalchemy.engine import create_engine
