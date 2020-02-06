@@ -118,14 +118,15 @@ def _list_packages(registry=None):
 def list_package_versions(name, registry=None):
     """Lists versions of a given package.
 
-    Returns a sequence of (version, hash) of a package in a registry.
+    Returns a sequence of (tophash, timestamp) of a package in a registry. The timestamp is a string for display
+    purposes - either the last modified timestamp or the created timestamp depending on whether it is local or on s3.
     If the registry is None, default to the local registry.
 
     Args:
         registry(string): location of registry to load package from.
 
     Returns:
-        A sequence of tuples containing the named version and hash.
+        A sequence of tuples containing the hash and the timestamp.
     """
 
     return _list_package_versions(name=name, registry=registry)

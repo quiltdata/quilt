@@ -46,13 +46,13 @@ class PackageTest(QuiltTestCase):
         top_hash = new_pkg.build("Quilt/Test").top_hash
 
         # Verify manifest is registered by hash.
-        out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
+        out_path = LOCAL_REGISTRY / f".quilt/v2/manifests/usr=Quilt/pkg=Test/hash_prefix={top_hash[:2]}/{top_hash}.jsonl"
         with open(out_path) as fd:
             pkg = Package.load(fd)
             assert PhysicalKey.from_path(test_file) == pkg['foo'].physical_key
 
         # Verify latest points to the new location.
-        named_pointer_path = LOCAL_REGISTRY / ".quilt/named_packages/Quilt/Test/latest"
+        named_pointer_path = LOCAL_REGISTRY / ".quilt/v2/pointers/usr=Quilt/pkg=Test/latest"
         with open(named_pointer_path) as fd:
             assert fd.read().replace('\n', '') == top_hash
 
@@ -60,7 +60,7 @@ class PackageTest(QuiltTestCase):
         new_pkg = Package()
         new_pkg = new_pkg.set('bar', test_file_name)
         top_hash = new_pkg.build('Quilt/Test').top_hash
-        out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
+        out_path = LOCAL_REGISTRY / f".quilt/v2/manifests/usr=Quilt/pkg=Test/hash_prefix={top_hash[:2]}/{top_hash}.jsonl"
         with open(out_path) as fd:
             pkg = Package.load(fd)
             assert PhysicalKey.from_path(test_file) == pkg['bar'].physical_key
@@ -79,13 +79,13 @@ class PackageTest(QuiltTestCase):
         top_hash = new_pkg.build("Quilt/Test").top_hash
 
         # Verify manifest is registered by hash.
-        out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
+        out_path = LOCAL_REGISTRY / f".quilt/v2/manifests/usr=Quilt/pkg=Test/hash_prefix={top_hash[:2]}/{top_hash}.jsonl"
         with open(out_path) as fd:
             pkg = Package.load(fd)
             assert PhysicalKey.from_path(test_file) == pkg['foo'].physical_key
 
         # Verify latest points to the new location.
-        named_pointer_path = LOCAL_REGISTRY / ".quilt/named_packages/Quilt/Test/latest"
+        named_pointer_path = LOCAL_REGISTRY / ".quilt/v2/pointers/usr=Quilt/pkg=Test/latest"
         with open(named_pointer_path) as fd:
             assert fd.read().replace('\n', '') == top_hash
 
@@ -93,7 +93,7 @@ class PackageTest(QuiltTestCase):
         new_pkg = Package()
         new_pkg = new_pkg.set('bar', test_file_name)
         top_hash = new_pkg.build("Quilt/Test").top_hash
-        out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
+        out_path = LOCAL_REGISTRY / f".quilt/v2/manifests/usr=Quilt/pkg=Test/hash_prefix={top_hash[:2]}/{top_hash}.jsonl"
         with open(out_path) as fd:
             pkg = Package.load(fd)
             assert PhysicalKey.from_path(test_file) == pkg['bar'].physical_key
@@ -634,10 +634,10 @@ class PackageTest(QuiltTestCase):
         assert "Quilt/Foo" in pkgs
         assert "Quilt/Bar" in pkgs
 
-        versions = set(quilt3.list_package_versions('Quilt/Foo'))
-        assert versions == {
-            ('latest', '2a5a67156ca9238c14d12042db51c5b52260fdd5511b61ea89b58929d6e1769b'),
-            ('1234567890', '2a5a67156ca9238c14d12042db51c5b52260fdd5511b61ea89b58929d6e1769b'),
+        versions = [tophash for tophash, timestamp_str in quilt3.list_package_versions('Quilt/Foo')]
+
+        assert set(versions) == {
+            '2a5a67156ca9238c14d12042db51c5b52260fdd5511b61ea89b58929d6e1769b',
         }
 
         # Verify specifying a local path explicitly works as expected.
@@ -898,7 +898,7 @@ class PackageTest(QuiltTestCase):
         pkg = Package.browse('foo/bar', registry=registry, top_hash=top_hash)
 
         assert pkg.top_hash == top_hash, \
-            "Unexpected top_hash for {}/packages/.quilt/packages/{}".format(registry, top_hash)
+            f"Unexpected top_hash for {registry}/packages/.quilt/v2/manifests/usr=foo/pkg=bar/{top_hash[:2]}/{top_hash}.jsonl"
 
 
     def test_local_package_delete(self):
@@ -1137,7 +1137,7 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(QuiltException):
             pkg.set('s3://foo/..', LOCAL_MANIFEST)
 
-    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "e99b760")
     def test_install(self):
         # Manifest
 
@@ -1145,11 +1145,11 @@ class PackageTest(QuiltTestCase):
             method='get_object',
             service_response={
                 'VersionId': 'v1',
-                'Body': BytesIO(b'abcdef'),
+                'Body': BytesIO(b'e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303'),
             },
             expected_params={
                 'Bucket': 'my-test-bucket',
-                'Key': '.quilt/named_packages/Quilt/Foo/latest',
+                'Key': ".quilt/v2/pointers/usr=Quilt/pkg=Foo/latest",
             }
         )
 
@@ -1161,7 +1161,7 @@ class PackageTest(QuiltTestCase):
             },
             expected_params={
                 'Bucket': 'my-test-bucket',
-                'Key': '.quilt/packages/abcdef',
+                'Key': f".quilt/v2/manifests/usr=Quilt/pkg=Foo/hash_prefix=e9/e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303.jsonl",
             }
         )
 
@@ -1174,7 +1174,7 @@ class PackageTest(QuiltTestCase):
             },
             expected_params={
                 'Bucket': 'my-test-bucket',
-                'Key': '.quilt/packages/abcdef',
+                'Key': f".quilt/v2/manifests/usr=Quilt/pkg=Foo/hash_prefix=e9/e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303.jsonl",
             }
         )
 
@@ -1249,11 +1249,11 @@ class PackageTest(QuiltTestCase):
             method='get_object',
             service_response={
                 'VersionId': 'v1',
-                'Body': BytesIO(b'abcdef'),
+                'Body': BytesIO(b'e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303'),
             },
             expected_params={
                 'Bucket': 'my-test-bucket',
-                'Key': '.quilt/named_packages/Quilt/Foo/latest',
+                'Key': ".quilt/v2/pointers/usr=Quilt/pkg=Foo/latest",
             }
         )
         self.s3_stubber.add_response(
