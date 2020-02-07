@@ -13,6 +13,7 @@ import warnings
 
 import jsonlines
 from tqdm import tqdm
+from botocore.exceptions import ClientError
 
 from .data_transfer import (
     calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_version,
@@ -477,7 +478,8 @@ class Package(object):
             name(str): name of the package, e.g. "user/package"
             hash_prefix(string): hash prefix with length between 6 and 64 characters
         """
-        assert len(hash_prefix) >= 6
+        if len(hash_prefix) < 6:
+            raise QuiltException(f"The hash_prefix must be at least length 6. You passed in '{hash_prefix}'")
         assert isinstance(registry, PhysicalKey)
         registry_pk = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
 
@@ -489,7 +491,8 @@ class Package(object):
             manifest_dir_with_hash_prefix_pk = manifest_dir_pk.join(f"hash_prefix={hash_prefix[:2]}")
             matching_tophashes = [DotQuiltLayout.extract_tophash(rel_path)
                                   for rel_path, _
-                                  in list_url(manifest_dir_with_hash_prefix_pk)]
+                                  in list_url(manifest_dir_with_hash_prefix_pk)
+                                  if DotQuiltLayout.extract_tophash(rel_path).startswith(hash_prefix)]
 
             if not matching_tophashes:
                 raise QuiltException("Found zero matches for %r" % hash_prefix)
@@ -1311,6 +1314,13 @@ class Package(object):
         registry_pk = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
 
         top_hash = cls.resolve_hash(registry_pk, name, top_hash)
+
+        try:
+            get_size_and_version(DotQuiltLayout.manifest_pk(registry_pk, name, top_hash))
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "NoSuchKey":
+                raise QuiltException("The rollback tophash does not exist")
+            raise
 
         latest_pointer_pk = DotQuiltLayout.latest_pointer_pk(registry_pk, name)
         put_bytes(top_hash.encode('utf-8'), latest_pointer_pk)

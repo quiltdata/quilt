@@ -106,6 +106,10 @@ def results_as_pandas_dataframe(col_headers, rows):
 
 
 def transform_entry(var_char_value, col_type):
+    """
+    Type conversion mapping handles all current metadata service types, but might not be comprehensive for future types
+    if table column types are changed
+    """
     if col_type == "varchar":
         return var_char_value
     elif col_type == "date":

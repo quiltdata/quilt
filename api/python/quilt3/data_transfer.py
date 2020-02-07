@@ -390,6 +390,7 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
             ctx.run(upload_part, i, start, end)
 
 
+
 def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
 
 
@@ -829,6 +830,7 @@ def get_bytes(src: PhysicalKey):
         resp = s3_client.get_object(**params)
         data = resp['Body'].read()
     return data
+
 
 def get_size_and_version(src: PhysicalKey):
     """

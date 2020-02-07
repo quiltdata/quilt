@@ -136,7 +136,11 @@ class PackageTest(QuiltTestCase):
         """ Verify loading manifest from s3 """
         registry = 's3://test-bucket'
 
-        top_hash = 'abcdefgh' * 8
+        top_hash = "e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303"
+        top_hash2 = "e99aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        usr = "Quilt"
+        pkg_name = "test"
+        handle = f"{usr}/{pkg_name}"
 
         # Make the first request.
 
@@ -148,7 +152,7 @@ class PackageTest(QuiltTestCase):
             },
             expected_params={
                 'Bucket': 'test-bucket',
-                'Key': '.quilt/named_packages/Quilt/test/latest',
+                'Key': f".quilt/v2/pointers/usr={usr}/pkg={pkg_name}/latest"
             }
         )
 
@@ -160,7 +164,7 @@ class PackageTest(QuiltTestCase):
             },
             expected_params={
                 'Bucket': 'test-bucket',
-                'Key': f'.quilt/packages/{top_hash}',
+                'Key': f".quilt/v2/manifests/usr={usr}/pkg={pkg_name}/hash_prefix={top_hash[:2]}/{top_hash}.jsonl"
             }
         )
 
@@ -173,11 +177,11 @@ class PackageTest(QuiltTestCase):
             },
             expected_params={
                 'Bucket': 'test-bucket',
-                'Key': f'.quilt/packages/{top_hash}',
+                'Key': f".quilt/v2/manifests/usr={usr}/pkg={pkg_name}/hash_prefix={top_hash[:2]}/{top_hash}.jsonl",
             }
         )
 
-        pkg = Package.browse('Quilt/test', registry=registry)
+        pkg = Package.browse(handle, registry=registry)
         assert 'foo' in pkg
 
         # Make the second request. Gets "latest" - but the rest should be cached.
@@ -190,16 +194,16 @@ class PackageTest(QuiltTestCase):
             },
             expected_params={
                 'Bucket': 'test-bucket',
-                'Key': '.quilt/named_packages/Quilt/test/latest',
+                'Key': f".quilt/v2/pointers/usr={usr}/pkg={pkg_name}/latest"
             }
         )
 
-        pkg2 = Package.browse('Quilt/test', registry=registry)
+        pkg2 = Package.browse(handle, registry=registry)
         assert 'foo' in pkg2
 
         # Make another request with a top hash. Everything should be cached.
 
-        pkg3 = Package.browse('Quilt/test', top_hash=top_hash, registry=registry)
+        pkg3 = Package.browse(handle, top_hash=top_hash, registry=registry)
         assert 'foo' in pkg3
 
         # Make a request with a short hash.
@@ -209,55 +213,46 @@ class PackageTest(QuiltTestCase):
             service_response={
                 'Contents': [
                     {
-                        'Key': f'.quilt/packages/{top_hash}',
+                        'Key': f".quilt/v2/manifests/usr={usr}/pkg={pkg_name}/hash_prefix={top_hash[:2]}/{top_hash}.jsonl",
                         'Size': 64,
                     },
                     {
-                        'Key': f'.quilt/packages/{"a" * 64}',
+                        'Key': f".quilt/v2/manifests/usr={usr}/pkg={pkg_name}/hash_prefix={top_hash2[:2]}/{top_hash2}.jsonl",
                         'Size': 64,
                     }
                 ]
             },
             expected_params={
                 'Bucket': 'test-bucket',
-                'Prefix': '.quilt/packages/',
+                'Prefix': f".quilt/v2/manifests/usr={usr}/pkg={pkg_name}/hash_prefix={top_hash[:2]}/"
             }
         )
 
-        pkg3 = Package.browse('Quilt/test', top_hash='abcdef', registry=registry)
+        pkg3 = Package.browse(handle, top_hash=top_hash[:6], registry=registry)
         assert 'foo' in pkg3
 
         # Make a request with a bad short hash.
 
         with self.assertRaises(QuiltException):
-            Package.browse('Quilt/test', top_hash='abcde', registry=registry)
+            Package.browse(handle, top_hash=top_hash[:5], registry=registry)
         with self.assertRaises(QuiltException):
-            Package.browse('Quilt/test', top_hash='a' * 65, registry=registry)
+            Package.browse(handle, top_hash='a' * 65, registry=registry)
 
-        # Make a request with a non-existant short hash.
+        # Make a request with a non-existent short hash.
 
         self.s3_stubber.add_response(
             method='list_objects_v2',
             service_response={
-                'Contents': [
-                    {
-                        'Key': f'.quilt/packages/{top_hash}',
-                        'Size': 64,
-                    },
-                    {
-                        'Key': f'.quilt/packages/{"a" * 64}',
-                        'Size': 64,
-                    }
-                ]
+                'Contents': []
             },
             expected_params={
                 'Bucket': 'test-bucket',
-                'Prefix': '.quilt/packages/',
+                'Prefix': f".quilt/v2/manifests/usr={usr}/pkg={pkg_name}/hash_prefix=12/"
             }
         )
 
         with self.assertRaises(QuiltException):
-            Package.browse('Quilt/test', top_hash='123456', registry=registry)
+            Package.browse(handle, top_hash='123456', registry=registry)
 
     def test_install_restrictions(self):
         """Verify that install can only operate remote -> local."""
@@ -343,8 +338,9 @@ class PackageTest(QuiltTestCase):
     @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
     def test_load_into_quilt(self):
         """ Verify loading local manifest and data into S3. """
-        usr="quilt"
-        pkg="test"
+        usr = "Quilt"
+        pkg = "test"
+        handle = f"{usr}/{pkg}"
         top_hash1 = 'abbf5f171cf20bfb2313ecd8684546958cd72ac4f3ec635e4510d9c771168226'
 
         self.s3_stubber.add_response(
@@ -406,7 +402,7 @@ class PackageTest(QuiltTestCase):
 
         with patch('time.time', return_value=1234567890), \
              patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
-            remote_pkg = new_pkg.push('Quilt/package', 's3://my_test_bucket/')
+            remote_pkg = new_pkg.push(handle, 's3://my_test_bucket/')
 
         # Modify one file, and check that only that file gets uploaded.
         top_hash2 = 'd4efbb1734a53726d97086824d153e6cb5e9d8bc31d15ead0dbc019022cfe539'
@@ -453,7 +449,7 @@ class PackageTest(QuiltTestCase):
 
         with patch('time.time', return_value=1234567891), \
              patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
-            remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
+            remote_pkg.push(handle, 's3://my_test_bucket/')
 
 
     def test_package_deserialize(self):
@@ -886,35 +882,51 @@ class PackageTest(QuiltTestCase):
 
     def test_remote_package_delete(self):
         """Verify remote package delete works."""
+        usr = "Quilt"
+        pkg = "Test"
+        tophash1 = "e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303"
+        tophash2 = "20de5433549a4db332a11d8d64b934a82bdea8f144b4aecd901e7d4134f8e733"
         self.s3_stubber.add_response(
             method='list_objects_v2',
             service_response={
                 'Contents': [
                     {
-                        'Key': '.quilt/named_packages/Quilt/Test/0',
+                        'Key': f'.quilt/v2/manifests/usr={usr}/pkg={pkg}/hash_prefix={tophash1[:2]}/{tophash1}.jsonl',
                         'Size': 64,
                     },
                     {
-                        'Key': '.quilt/named_packages/Quilt/Test/latest',
+                        'Key': f'.quilt/v2/manifests/usr={usr}/pkg={pkg}/hash_prefix={tophash2[:2]}/{tophash2}.jsonl',
                         'Size': 64,
                     }
                 ]
             },
             expected_params={
                 'Bucket': 'test-bucket',
-                'Prefix': '.quilt/named_packages/Quilt/Test/',
+                'Prefix': f'.quilt/v2/manifests/usr={usr}/pkg={pkg}/',
             }
         )
 
-        for path in ['Quilt/Test/0', 'Quilt/Test/latest', 'Quilt/Test/', 'Quilt/']:
+        for key in [
+            f'.quilt/v2/manifests/usr={usr}/pkg={pkg}/hash_prefix={tophash1[:2]}/{tophash1}.jsonl',
+            f'.quilt/v2/manifests/usr={usr}/pkg={pkg}/hash_prefix={tophash2[:2]}/{tophash2}.jsonl'
+            ]:
             self.s3_stubber.add_response(
                 method='delete_object',
                 service_response={},
                 expected_params={
                     'Bucket': 'test-bucket',
-                    'Key': f'.quilt/named_packages/{path}',
+                    'Key': key,
                 }
             )
+
+        self.s3_stubber.add_response(
+                method='delete_object',
+                service_response={},
+                expected_params={
+                    'Bucket': 'test-bucket',
+                    'Key': f".quilt/v2/pointers/usr={usr}/pkg={pkg}/latest",
+                }
+        )
 
         quilt3.delete_package('Quilt/Test', registry='s3://test-bucket')
 

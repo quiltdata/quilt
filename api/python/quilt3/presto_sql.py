@@ -316,7 +316,7 @@ if __name__ == '__main__':
             100
     )
 
-    col_headers, rows = query.execute(verbose=True)
+    pd_df = query.execute(verbose=True)
 
 
 
