@@ -152,20 +152,20 @@ export default function Contribute() {
       <div className={classes.grid}>
         <div className={classes.col}>
           <Panel color="tertiary">Curate open data</Panel>
-          <Link href="https://forms.gle/oNoiRYDxnkZEnppq7">Apply now</Link>
+          <Link href={URLS.curate}>Apply now</Link>
         </div>
         <div className={classes.col}>
           <Panel
             color="primary"
             extra={
-              <GHButton href="https://github.com/quiltdata/quilt" data-show-count>
+              <GHButton href={URLS.gitWeb} data-show-count>
                 Star
               </GHButton>
             }
           >
             Write code
           </Panel>
-          <Link href="https://github.com/quiltdata/quilt">View on GitHub</Link>
+          <Link href={URLS.gitWeb}>View on GitHub</Link>
         </div>
         <div className={classes.col}>
           <Panel color="secondary">Run a private Quilt</Panel>
@@ -195,7 +195,7 @@ export default function Contribute() {
           <M.Box pt={4} />
           <M.Typography variant="body1" color="textSecondary">
             Quilt is evolving. Join the{' '}
-            <M.Link color="secondary" underline="always" href="http://eepurl.com/bOyxRz">
+            <M.Link color="secondary" underline="always" href={URLS.mailingListGeneral}>
               <b>general mailing list</b>
             </M.Link>
             {' or '}

@@ -20,3 +20,5 @@ export const tutorial =
   'https://github.com/quiltdata/quilt/blob/master/README.md#tutorial'
 export const twitter = 'https://twitter.com/quiltdata'
 export const facebook = 'https://www.facebook.com/quiltdata/'
+export const curate = 'https://forms.gle/oNoiRYDxnkZEnppq7'
+export const mailingListGeneral = 'http://eepurl.com/bOyxRz'

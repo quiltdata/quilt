@@ -68,6 +68,12 @@ export const activationError = {
   url: () => '/activation_error',
 }
 
+// profile
+export const profile = {
+  path: '/profile',
+  url: () => '/profile',
+}
+
 // global search
 export const search = {
   path: '/search',
