@@ -124,7 +124,7 @@ export const bucketAccessCounts = async ({
           const recordedCounts = JSON.parse(r.counts)
           const { counts, total } = dates.reduce(
             (acc, date) => {
-              const value = recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0
+              const value = recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0
               const sum = acc.total + value
               return {
                 total: sum,
@@ -592,7 +592,7 @@ const fetchPackagesAccessCounts = async ({
         const date = dateFns.subDays(today, window - i - 1)
         return {
           date,
-          value: recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0,
+          value: recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0,
         }
       }, window)
 
@@ -719,7 +719,7 @@ const fetchRevisionsAccessCounts = async ({
         const date = dateFns.subDays(today, window - i - 1)
         return {
           date,
-          value: recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0,
+          value: recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0,
         }
       }, window)
 
@@ -913,7 +913,7 @@ const queryAccessCounts = async ({
       const date = dateFns.subDays(today, window - i - 1)
       return {
         date,
-        value: recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0,
+        value: recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0,
       }
     }, window)
 

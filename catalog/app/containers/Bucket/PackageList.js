@@ -50,7 +50,7 @@ const Counts = ({ counts, total }) => {
         >
           {cursor === null
             ? 'Total views'
-            : dateFns.format(counts[cursor].date, `MMM Do`)}
+            : dateFns.format(counts[cursor].date, `MMM do`)}
           :
         </M.Typography>
         <M.Box
