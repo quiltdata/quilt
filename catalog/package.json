@@ -162,7 +162,7 @@
     "file-loader": "^5.0.2",
     "html-loader": "^0.5.5",
     "html-webpack-plugin": "^3.2.0",
-    "husky": "^4.2.1",
+    "husky": "^4.2.2",
     "imports-loader": "^0.8.0",
     "jest-cli": "^24.9.0",
     "jest-localstorage-mock": "^2.4.0",
