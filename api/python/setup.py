@@ -55,7 +55,7 @@ setup(
     install_requires=[
         'appdirs>=1.4.0',
         'aws-requests-auth>=0.4.2',
-        'boto3>=1.8.0',
+        'boto3>=1.10.0',
         'dnspython>=1.16.0',
         'flask',
         'flask_cors',
