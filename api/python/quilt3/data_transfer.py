@@ -11,7 +11,7 @@ import warnings
 
 from botocore import UNSIGNED
 from botocore.client import Config
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ReadTimeoutError
 import boto3
 from boto3.s3.transfer import TransferConfig
 from s3transfer.utils import ChunksizeAdjuster, OSUtils, signal_transferring, signal_not_transferring
@@ -806,12 +806,16 @@ def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
                 if src.version_id is not None:
                     params.update(dict(VersionId=src.version_id))
                 s3_client = S3ClientProvider().find_correct_client(S3Api.GET_OBJECT, src.bucket, params)
-                resp = s3_client.get_object(**params)
-                body = resp['Body']
-                for chunk in body:
-                    hash_obj.update(chunk)
-                    with lock:
-                        progress.update(len(chunk))
+                try:
+                    resp = s3_client.get_object(**params)
+                    body = resp['Body']
+                    for chunk in body:
+                        hash_obj.update(chunk)
+                        with lock:
+                            progress.update(len(chunk))
+                except ReadTimeoutError:
+                    # TODO: Find a better way to warn users that we failed to compute this hash
+                    return None
             return hash_obj.hexdigest()
 
         with ThreadPoolExecutor() as executor:

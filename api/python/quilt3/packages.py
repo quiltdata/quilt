@@ -850,8 +850,12 @@ class Package(object):
         self._meta['user_meta'] = meta
         return self
 
-    def _fix_sha256(self):
-        entries = [entry for key, entry in self.walk() if entry.hash is None]
+    def _fix_sha256(self, entry_list=None):
+        if entry_list is None:
+            entries = [entry for key, entry in self.walk() if entry.hash is None]
+        else:
+            entries = entry_list
+        
         if not entries:
             return
 
@@ -863,8 +867,13 @@ class Package(object):
 
         results = calculate_sha256(physical_keys, sizes)
 
+        entries_w_missing_hash = []
         for entry, obj_hash in zip(entries, results):
-            entry.hash = dict(type='SHA256', value=obj_hash)
+            if obj_hash is None:
+                entries_w_missing_hash.append(entry)
+            else:
+                entry.hash = dict(type='SHA256', value=obj_hash) if obj_hash is not None else None
+        return entries_w_missing_hash
 
     def _set_commit_message(self, msg):
         """
@@ -916,7 +925,8 @@ class Package(object):
 
         self._set_commit_message(message)
 
-        self._fix_sha256()
+        not_fixed = self._fix_sha256()
+        self._fix_sha256(not_fixed) # retry any entries not fixed in first pass
         manifest = io.BytesIO()
         self._dump(manifest)
 
