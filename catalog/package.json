@@ -59,9 +59,9 @@
   },
   "dependencies": {
     "@babel/polyfill": "^7.8.3",
-    "@material-ui/core": "^4.9.2",
+    "@material-ui/core": "^4.9.3",
     "@material-ui/styles": "^4.9.0",
-    "@material-ui/system": "^4.9.1",
+    "@material-ui/system": "^4.9.3",
     "@rehooks/component-size": "^1.0.3",
     "@sentry/browser": "^5.12.1",
     "@testing-library/react": "^9.4.0",
