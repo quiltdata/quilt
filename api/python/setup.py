@@ -10,12 +10,13 @@ VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text().strip()
 
 def readme():
     readme_short = """
-    Quilt is a data management tool designed for data discoverability, data dependency
-    management, and data version control using `data packages <https://blog.quiltdata.com/data-packages-for-fast-reproducible-python-analysis-c74b78015c7f>`_.
+    Quilt manages data like code (with packages, repositories, browsing and
+    revision history) so that teams can experiment faster in machine learning,
+    biotech, and other data-driven domains.
 
-    The `quilt3` PyPi package allows you to build, push, and install data packages in Quilt using Python.
-    Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_ for more information.
-
+    The `quilt3` PyPi package allows you to build, push, and install data packages.
+    Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_
+    to learn more.
     """
     return readme_short
 
@@ -80,7 +81,7 @@ setup(
             'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
             'pandas>=0.19.2',
             'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
-            'pytest<5.1.0',  # TODO: Fix pytest.ensuretemp in conftest.py
+            'pytest<5.1.0',                 # TODO: Fix pytest.ensuretemp in conftest.py
             'pytest-cov',
             'pytest-env',
             'responses',
