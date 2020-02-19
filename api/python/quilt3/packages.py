@@ -521,7 +521,7 @@ class Package(object):
         return cls._browse(name=name, registry=registry, top_hash=top_hash)
 
     @classmethod
-    def _browse(cls, name, registry, top_hash):
+    def _browse(cls, name, registry=None, top_hash=None):
         validate_package_name(name)
         if registry is None:
             registry = get_from_config('default_local_registry')
