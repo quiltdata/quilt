@@ -28,6 +28,7 @@ from .util import (
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
     user_is_configured_to_custom_stack, catalog_package_url
 
+MAX_FIX_HASH_RETRIES = 3
 
 
 def hash_file(readable_file):
@@ -850,30 +851,34 @@ class Package(object):
         self._meta['user_meta'] = meta
         return self
 
-    def _fix_sha256(self, entry_list=None):
-        if entry_list is None:
-            entries = [entry for key, entry in self.walk() if entry.hash is None]
-        else:
-            entries = entry_list
-        
-        if not entries:
-            return
+    def _fix_sha256(self):
+        """
+        Calculate and set missing hash values
+        """
+        def _fix_pkg_entries(entries):
+            physical_keys = []
+            sizes = []
+            for entry in entries:
+                physical_keys.append(entry.physical_key)
+                sizes.append(entry.size)
 
-        physical_keys = []
-        sizes = []
-        for entry in entries:
-            physical_keys.append(entry.physical_key)
-            sizes.append(entry.size)
+            results = calculate_sha256(physical_keys, sizes)
 
-        results = calculate_sha256(physical_keys, sizes)
+            entries_w_missing_hash = []
+            for entry, obj_hash in zip(entries, results):
+                if obj_hash is None:
+                    entries_w_missing_hash.append(entry)
+                else:
+                    entry.hash = dict(type='SHA256', value=obj_hash) if obj_hash is not None else None
+            return entries_w_missing_hash
 
-        entries_w_missing_hash = []
-        for entry, obj_hash in zip(entries, results):
-            if obj_hash is None:
-                entries_w_missing_hash.append(entry)
-            else:
-                entry.hash = dict(type='SHA256', value=obj_hash) if obj_hash is not None else None
-        return entries_w_missing_hash
+        entries = [entry for key, entry in self.walk() if entry.hash is None]
+
+        retries = 0
+        while entries and retries < MAX_FIX_HASH_RETRIES:
+            entries = _fix_pkg_entries(entries)
+            retries += 1
+
 
     def _set_commit_message(self, msg):
         """
@@ -925,8 +930,7 @@ class Package(object):
 
         self._set_commit_message(message)
 
-        not_fixed = self._fix_sha256()
-        self._fix_sha256(not_fixed) # retry any entries not fixed in first pass
+        self._fix_sha256()
         manifest = io.BytesIO()
         self._dump(manifest)
 
