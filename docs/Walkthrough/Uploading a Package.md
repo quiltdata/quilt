@@ -11,7 +11,7 @@ p = quilt3.Package()
 top_hash = p.build("username/packagename")
 ```
 
-Building a package requires providing it with a name. Packages names must follow the `$"{namespace}/${packagename}"` format. For small teams, we recommend using the package author's name as the namespace.
+Building a package requires providing it with a name. Packages names must follow the `"${namespace}/${packagename}"` format. For small teams, we recommend using the package author's name as the namespace.
 
 ## Authenticating to a remote registry
 
