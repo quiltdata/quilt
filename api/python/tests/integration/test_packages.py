@@ -32,7 +32,7 @@ def _mock_copy_file_list(file_list, callback=None, message=None):
 
 class PackageTest(QuiltTestCase):
     def setup_s3_stubber(self, pkg_name, bucket, *, manifest=None, entries=()):
-        top_hash = 'abcde'
+        top_hash = 'abcdef'
 
         self.s3_stubber.add_response(
             method='get_object',
@@ -1327,6 +1327,7 @@ class PackageTest(QuiltTestCase):
         with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             Package.install('Quilt/Foo', registry='s3://my-test-bucket', dest='package/')
 
+    @pytest.mark.usefixtures('isolate_packages_cache')
     def test_install_subpackage(self):
         pkg_name = 'Quilt/Foo'
         bucket = 'my-test-bucket'
@@ -1350,6 +1351,7 @@ class PackageTest(QuiltTestCase):
                 )
                 assert path.read_bytes() == entry_content
 
+    @pytest.mark.usefixtures('isolate_packages_cache')
     def test_install_entry(self):
         pkg_name = 'Quilt/Foo'
         bucket = 'my-test-bucket'
