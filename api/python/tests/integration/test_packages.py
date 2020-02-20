@@ -72,19 +72,19 @@ class PackageTest(QuiltTestCase):
                 }
             )
 
-            for url, content in entries:
-                key = PhysicalKey.from_url(url)
-                self.s3_stubber.add_response(
-                    method='get_object',
-                    service_response={
-                        'VersionId': 'v1',
-                        'Body': BytesIO(content),
-                    },
-                    expected_params={
-                        'Bucket': key.bucket,
-                        'Key': key.path,
-                    }
-                )
+        for url, content in entries:
+            key = PhysicalKey.from_url(url)
+            self.s3_stubber.add_response(
+                method='get_object',
+                service_response={
+                    'VersionId': 'v1',
+                    'Body': BytesIO(content),
+                },
+                expected_params={
+                    'Bucket': key.bucket,
+                    'Key': key.path,
+                }
+            )
 
 
     def test_build(self):
