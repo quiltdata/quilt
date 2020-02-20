@@ -869,7 +869,7 @@ class Package(object):
                 if obj_hash is None:
                     entries_w_missing_hash.append(entry)
                 else:
-                    entry.hash = dict(type='SHA256', value=obj_hash) if obj_hash is not None else None
+                    entry.hash = dict(type='SHA256', value=obj_hash)
             return entries_w_missing_hash
 
         entries = [entry for key, entry in self.walk() if entry.hash is None]
