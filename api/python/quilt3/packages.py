@@ -396,9 +396,6 @@ class Package(object):
             top_hash(str): Hash of package to install. Defaults to latest.
             dest(str): Local path to download files to.
             dest_registry(str): Registry to install package to. Defaults to local registry.
-
-        Returns:
-            A new Package that points to files on your local machine.
         """
         if registry is None:
             registry = get_from_config('default_remote_registry')

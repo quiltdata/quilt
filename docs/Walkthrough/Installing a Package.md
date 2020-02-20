@@ -25,7 +25,7 @@ To make a remote package and all of its data available locally, `install` it.
 
 ```python
 import quilt3
-p = quilt3.Package.install(
+quilt3.Package.install(
     "username/packagename",
     "s3://your-bucket",
 )
