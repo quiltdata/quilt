@@ -49,7 +49,7 @@ usage: quilt3 install [-h] [--registry REGISTRY] [--top-hash TOP_HASH]
 Install a package
 
 positional arguments:
-  name                  Name of package, in the USER/PKG format
+  name                  Name of package, in the USER/PKG[/PATH] format
 
 optional arguments:
   -h, --help            show this help message and exit

@@ -390,7 +390,9 @@ class Package(object):
         Installs a named package to the local registry and downloads its files.
 
         Args:
-            name(str): Name of package to install.
+            name(str): Name of package to install. It also can be passed as NAME/PATH,
+                in this case only the sub-package or the entry specified by PATH will
+                be downloaded.
             registry(str): Registry where package is located. 
                 Defaults to the default remote registry.
             top_hash(str): Hash of package to install. Defaults to latest.
@@ -436,12 +438,26 @@ class Package(object):
                     f"'build' instead."
                 )
 
+        subpkg_key_index = name.find('/', name.find('/') + 1)
+        if subpkg_key_index < 0:
+            subpkg_key = None
+        else:
+            name, subpkg_key = name[:subpkg_key_index], name[subpkg_key_index + 1:]
+            validate_key(subpkg_key)
+
         pkg = cls._browse(name=name, registry=registry, top_hash=top_hash)
         message = pkg._meta.get('message', None)  # propagate the package message
 
         file_list = []
 
-        for logical_key, entry in pkg.walk():
+        if subpkg_key is not None:
+            if subpkg_key not in pkg:
+                raise QuiltException(f"Package {name} doesn't contain {subpkg_key!r}.")
+            entry = pkg[subpkg_key]
+            entries = entry.walk() if isinstance(entry, Package) else ((subpkg_key.split('/')[-1], entry),)
+        else:
+            entries = pkg.walk()
+        for logical_key, entry in entries:
             # Copy the datafiles in the package.
             physical_key = entry.physical_key
 
