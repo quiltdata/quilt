@@ -70,10 +70,10 @@ An alternative to `install` is `browse`. `browse` downloads a package manifest w
 import quilt3
 
 # load a package manifest from a remote registry
-p  = quilt3.Package.browse("username/packagename", "s3://your-bucket")
+p = quilt3.Package.browse("username/packagename", "s3://your-bucket")
 
 # load a package manifest from the default remote registry
-p  = quilt3.Package.browse("username/packagename")
+p = quilt3.Package.browse("username/packagename")
 
 # load a package manifest from the local registry
 p = quilt3.Package.browse("username/packagename", "local")
