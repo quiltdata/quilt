@@ -97,7 +97,8 @@ __Arguments__
 
 __Returns__
 
-None
+A new Package object with entries from self, but with physical keys
+    pointing to files in `dest`.
 
 
 ## Package.keys(self)  {#Package.keys}
