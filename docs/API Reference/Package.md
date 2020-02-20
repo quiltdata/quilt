@@ -290,10 +290,10 @@ __Arguments__
 * __registry__:  registry where to create the new package
 * __message__:  the commit message for the new package
 * __selector_fn__:  An optional function that determines which package entries should be copied to S3. The function
-             takes in two arguments, logical_key and package_entry, and should return False if that
-             PackageEntry should be skipped during push. If for example you have a package where the files
-             are spread over multiple buckets and you add a single local file, you can use selector_fn to
-             only push the local file to s3 (instead of pushing all data to the destination bucket).
+    takes in two arguments, logical_key and package_entry, and should return False if that
+    PackageEntry should be skipped during push. If for example you have a package where the files
+    are spread over multiple buckets and you add a single local file, you can use selector_fn to
+    only push the local file to s3 (instead of pushing all data to the destination bucket).
 
 __Returns__
 
