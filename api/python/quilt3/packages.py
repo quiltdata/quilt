@@ -29,7 +29,7 @@ from .util import (
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
     user_is_configured_to_custom_stack, catalog_package_url
 
-MAX_FIX_HASH_RETRIES = 0
+MAX_FIX_HASH_RETRIES = 3
 
 
 def hash_file(readable_file):
