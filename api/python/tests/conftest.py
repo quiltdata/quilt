@@ -1,7 +1,6 @@
 
 ### stdlib
 import os
-import pathlib
 from unittest import mock
 
 # third party imports
@@ -84,6 +83,6 @@ def set_temporary_working_dir(request, tmpdir):
 
 
 @pytest.fixture
-def isolate_packages_cache(tmpdir):
-    with mock.patch('quilt3.packages.CACHE_PATH', pathlib.Path(tmpdir)):
+def isolate_packages_cache(tmp_path):
+    with mock.patch('quilt3.packages.CACHE_PATH', tmp_path):
         yield
