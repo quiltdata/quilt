@@ -12,6 +12,7 @@ import uuid
 import warnings
 
 import jsonlines
+from tenacity import retry, retry_if_result, stop_after_attempt
 from tqdm import tqdm
 
 from .data_transfer import (
@@ -855,6 +856,12 @@ class Package(object):
         """
         Calculate and set missing hash values
         """
+        entries = [entry for key, entry in self.walk() if entry.hash is None]
+
+        def _is_empty(l):
+            return not l
+        
+        @retry(retry=retry_if_result(_is_empty), stop=stop_after_attempt(MAX_FIX_HASH_RETRIES))
         def _fix_pkg_entries(entries):
             physical_keys = []
             sizes = []
@@ -870,14 +877,9 @@ class Package(object):
                     entries_w_missing_hash.append(entry)
                 else:
                     entry.hash = dict(type='SHA256', value=obj_hash)
-            return entries_w_missing_hash
+            entries = entries_w_missing_hash
 
-        entries = [entry for key, entry in self.walk() if entry.hash is None]
-
-        retries = 0
-        while entries and retries < MAX_FIX_HASH_RETRIES:
-            entries = _fix_pkg_entries(entries)
-            retries += 1
+        _fix_pkg_entries(entries)
 
 
     def _set_commit_message(self, msg):
