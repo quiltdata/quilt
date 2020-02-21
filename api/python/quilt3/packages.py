@@ -12,7 +12,7 @@ import uuid
 import warnings
 
 import jsonlines
-from tenacity import retry, stop_after_attempt, TryAgain
+from tenacity import retry, stop_after_attempt, wait_exponential
 from tqdm import tqdm
 
 from .data_transfer import (
@@ -29,7 +29,7 @@ from .util import (
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
     user_is_configured_to_custom_stack, catalog_package_url
 
-MAX_FIX_HASH_RETRIES = 3
+MAX_FIX_HASH_RETRIES = 0
 
 
 def hash_file(readable_file):
@@ -852,7 +852,9 @@ class Package(object):
         self._meta['user_meta'] = meta
         return self
 
-    @retry(stop=stop_after_attempt(MAX_FIX_HASH_RETRIES))
+    @retry(stop=stop_after_attempt(MAX_FIX_HASH_RETRIES),
+           wait=wait_exponential(multiplier=1, min=1, max=10),
+           reraise=True)
     def _fix_sha256(self):
         """
         Calculate and set missing hash values
@@ -876,7 +878,9 @@ class Package(object):
 
         self._incomplete_entries = entries_w_missing_hash
         if self._incomplete_entries:
-            raise TryAgain
+            incomplete_manifest_path = self._dump_manifest_to_scratch()
+            msg = "Could not compute all hash values. Incomplete manifest saved to: {path}"
+            raise PackageException(msg.format(path=incomplete_manifest_path))
 
     def _set_commit_message(self, msg):
         """
@@ -899,7 +903,19 @@ class Package(object):
 
         self._meta.update({'message': msg})
 
-
+    def _dump_manifest_to_scratch(self):
+        registry = get_from_config('default_local_registry')
+        registry_parsed = PhysicalKey.from_url(registry)
+        pkg_manifest_file = registry_parsed.join("scratch").join(str(int(time.time())))
+            
+        manifest = io.BytesIO()
+        self._dump(manifest)
+        put_bytes(
+            manifest.getvalue(),
+            pkg_manifest_file
+        )
+        return pkg_manifest_file.path
+        
     @ApiTelemetry("package.build")
     def build(self, name, registry=None, message=None):
         """
