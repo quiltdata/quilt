@@ -477,9 +477,19 @@ export default function PackageTree({
                   Dir: () => (
                     <M.Box className={classes.warning} mb={2}>
                       <M.Icon className={classes.warningIcon}>warning</M.Icon>
-                      The Packages tab shows only the first 1,000 files. Use the Files tab
-                      (above) or Python code (below) to view all files. This is a
-                      temporary limitation.
+                      <div>
+                        The Packages tab shows only the first 1,000 files. Use the{' '}
+                        <M.Link
+                          to={urls.bucketDir(bucket)}
+                          color="inherit"
+                          underline="always"
+                          component={RRLink}
+                        >
+                          Files tab
+                        </M.Link>{' '}
+                        (above) or Python code (below) to view all files. This is a
+                        temporary limitation.
+                      </div>
                     </M.Box>
                   ),
                   _: () => null,
