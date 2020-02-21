@@ -613,7 +613,8 @@ class Package(object):
             dest: where to put the files (locally)
 
         Returns:
-            None
+            A new Package object with entries from self, but with physical keys
+                pointing to files in `dest`.
         """
         nice_dest = PhysicalKey.from_url(fix_url(dest))
         file_list = []
