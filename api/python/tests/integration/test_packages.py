@@ -1328,7 +1328,9 @@ class PackageTest(QuiltTestCase):
             Package.install('Quilt/Foo', registry='s3://my-test-bucket', dest='package/')
 
     @pytest.mark.usefixtures('isolate_packages_cache')
-    def test_install_subpackage(self):
+    @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
+    @patch('quilt3.packages.ObjectPathCache.set')
+    def test_install_subpackage(self, mocked_cache_set):
         pkg_name = 'Quilt/Foo'
         bucket = 'my-test-bucket'
         subpackage_path = 'baz'
@@ -1338,21 +1340,21 @@ class PackageTest(QuiltTestCase):
             (entry_url, entry_content),
         )
         dest = 'package'
-
         self.setup_s3_stubber(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
-        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
-            with patch('quilt3.packages.ObjectPathCache.set') as mocked_cache_set:
-                Package.install(f'{pkg_name}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
 
-                path = pathlib.Path.cwd() / dest / 'bat'
-                mocked_cache_set.assert_called_once_with(
-                    entry_url,
-                    str(path),
-                )
-                assert path.read_bytes() == entry_content
+        Package.install(f'{pkg_name}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
+
+        path = pathlib.Path.cwd() / dest / 'bat'
+        mocked_cache_set.assert_called_once_with(
+            entry_url,
+            str(path),
+        )
+        assert path.read_bytes() == entry_content
 
     @pytest.mark.usefixtures('isolate_packages_cache')
-    def test_install_entry(self):
+    @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
+    @patch('quilt3.packages.ObjectPathCache.set')
+    def test_install_entry(self, mocked_cache_set):
         pkg_name = 'Quilt/Foo'
         bucket = 'my-test-bucket'
         subpackage_path = 'baz/bat'
@@ -1362,18 +1364,16 @@ class PackageTest(QuiltTestCase):
             (entry_url, entry_content),
         )
         dest = 'package'
-
         self.setup_s3_stubber(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
-        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
-            with patch('quilt3.packages.ObjectPathCache.set') as mocked_cache_set:
-                Package.install(f'{pkg_name}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
 
-                path = pathlib.Path.cwd() / dest / 'bat'
-                mocked_cache_set.assert_called_once_with(
-                    entry_url,
-                    str(path),
-                )
-                assert path.read_bytes() == entry_content
+        Package.install(f'{pkg_name}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
+
+        path = pathlib.Path.cwd() / dest / 'bat'
+        mocked_cache_set.assert_called_once_with(
+            entry_url,
+            str(path),
+        )
+        assert path.read_bytes() == entry_content
 
     def test_rollback(self):
         p = Package()
