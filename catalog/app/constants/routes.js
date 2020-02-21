@@ -132,3 +132,8 @@ export const admin = {
   path: '/admin',
   url: () => '/admin',
 }
+export const adminUsers = admin
+export const adminBuckets = {
+  path: '/admin/buckets',
+  url: () => '/admin/buckets',
+}

@@ -27,3 +27,29 @@ export const UsersResource = Cache.createResource({
     ),
   key: () => null,
 })
+
+export const BucketsResource = Cache.createResource({
+  name: 'Admin.data.buckets',
+  fetch: ({ req }) =>
+    req({ endpoint: '/admin/buckets' }).then(
+      R.pipe(
+        R.prop('results'),
+        R.map((b) => ({
+          name: b.name,
+          title: b.title,
+          description: b.description,
+          iconUrl: b.icon_url,
+          overviewUrl: b.overview_url,
+          linkedData: b.schema_org,
+          relevanceScore: b.relevance_score,
+          tags: b.tags,
+          // file_extensions_to_index: null
+          // last_indexed: "2020-02-06T19:32:00.168957+00:00"
+          // scanner_parallel_shards_depth: null
+          // skip_meta_data_indexing: false
+          // sns_notification_arn: "arn:aws:sns:us-east-1:712023778557:quilt-kevin-stage-QuiltNotifications-8dfddc58-66e9-4cfd-9eb7-d1d0767420d1"
+        })),
+      ),
+    ),
+  key: () => null,
+})
