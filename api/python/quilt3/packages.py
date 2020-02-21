@@ -12,7 +12,7 @@ import uuid
 import warnings
 
 import jsonlines
-from tenacity import retry, retry_if_result, stop_after_attempt
+from tenacity import retry, stop_after_attempt, TryAgain
 from tqdm import tqdm
 
 from .data_transfer import (
@@ -852,35 +852,31 @@ class Package(object):
         self._meta['user_meta'] = meta
         return self
 
+    @retry(stop=stop_after_attempt(MAX_FIX_HASH_RETRIES))
     def _fix_sha256(self):
         """
         Calculate and set missing hash values
         """
-        entries = [entry for key, entry in self.walk() if entry.hash is None]
+        self._incomplete_entries = [entry for key, entry in self.walk() if entry.hash is None]
 
-        def _is_empty(l):
-            return not l
+        physical_keys = []
+        sizes = []
+        for entry in self._incomplete_entries:
+            physical_keys.append(entry.physical_key)
+            sizes.append(entry.size)
+
+        results = calculate_sha256(physical_keys, sizes)
         
-        @retry(retry=retry_if_result(_is_empty), stop=stop_after_attempt(MAX_FIX_HASH_RETRIES))
-        def _fix_pkg_entries(entries):
-            physical_keys = []
-            sizes = []
-            for entry in entries:
-                physical_keys.append(entry.physical_key)
-                sizes.append(entry.size)
+        entries_w_missing_hash = []
+        for entry, obj_hash in zip(self._incomplete_entries, results):
+            if obj_hash is None:
+                entries_w_missing_hash.append(entry)
+            else:
+                entry.hash = dict(type='SHA256', value=obj_hash)
 
-            results = calculate_sha256(physical_keys, sizes)
-
-            entries_w_missing_hash = []
-            for entry, obj_hash in zip(entries, results):
-                if obj_hash is None:
-                    entries_w_missing_hash.append(entry)
-                else:
-                    entry.hash = dict(type='SHA256', value=obj_hash)
-            entries = entries_w_missing_hash
-
-        _fix_pkg_entries(entries)
-
+        self._incomplete_entries = entries_w_missing_hash
+        if self._incomplete_entries:
+            raise TryAgain
 
     def _set_commit_message(self, msg):
         """
