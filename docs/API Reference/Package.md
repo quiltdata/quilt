@@ -37,10 +37,6 @@ __Arguments__
 * __dest(str)__:  Local path to download files to.
 * __dest_registry(str)__:  Registry to install package to. Defaults to local registry.
 
-__Returns__
-
-A new Package that points to files on your local machine.
-
 
 ## Package.resolve\_hash(registry, hash\_prefix)  {#Package.resolve\_hash}
 
