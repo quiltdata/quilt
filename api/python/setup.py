@@ -65,6 +65,7 @@ setup(
         'python-dateutil<=2.8.0',           # 2.8.1 conflicts with botocore
         'requests>=2.12.4',
         'ruamel.yaml>=0.15.78',
+        'tenacity>=5.1.1',
         'tqdm>=4.26.0',
         'urllib3<1.25,>=1.21.1',            # required by requests
         'requests_futures==1.0.0',
