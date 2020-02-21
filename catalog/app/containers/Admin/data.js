@@ -28,28 +28,42 @@ export const UsersResource = Cache.createResource({
   key: () => null,
 })
 
+export const bucketFromJSON = (b) => ({
+  name: b.name,
+  title: b.title,
+  description: b.description,
+  iconUrl: b.icon_url,
+  overviewUrl: b.overview_url,
+  linkedData: b.schema_org, // object
+  relevanceScore: b.relevance_score, // integer
+  tags: b.tags, // list of strings
+  lastIndexed: b.last_indexed && new Date(b.last_indexed),
+  fileExtensionsToIndex: b.file_extensions_to_index, // list of strings
+  scannerParallelShardsDepth: b.scanner_parallel_shards_depth, // integer
+  skipMetaDataIndexing: b.skip_meta_data_indexing, // bool
+  snsNotificationArn: b.sns_notification_arn,
+})
+
+export const bucketToJSON = (b) => ({
+  name: b.name,
+  title: b.title,
+  description: b.description,
+  icon_url: b.iconUrl,
+  overview_url: b.overviewUrl,
+  schema_org: b.linkedData,
+  relevance_score: b.relevanceScore,
+  tags: b.tags,
+  file_extensions_to_index: b.fileExtensionsToIndex,
+  scanner_parallel_shards_depth: b.scannerParallelShardsDepth,
+  skip_meta_data_indexing: b.skipMetaDataIndexing,
+  sns_notification_arn: b.snsNotificationArn,
+})
+
 export const BucketsResource = Cache.createResource({
   name: 'Admin.data.buckets',
   fetch: ({ req }) =>
     req({ endpoint: '/admin/buckets' }).then(
-      R.pipe(
-        R.prop('results'),
-        R.map((b) => ({
-          name: b.name,
-          title: b.title,
-          description: b.description,
-          iconUrl: b.icon_url,
-          overviewUrl: b.overview_url,
-          linkedData: b.schema_org,
-          relevanceScore: b.relevance_score,
-          tags: b.tags,
-          // file_extensions_to_index: null
-          // last_indexed: "2020-02-06T19:32:00.168957+00:00"
-          // scanner_parallel_shards_depth: null
-          // skip_meta_data_indexing: false
-          // sns_notification_arn: "arn:aws:sns:us-east-1:712023778557:quilt-kevin-stage-QuiltNotifications-8dfddc58-66e9-4cfd-9eb7-d1d0767420d1"
-        })),
-      ),
+      R.pipe(R.prop('results'), R.map(bucketFromJSON)),
     ),
   key: () => null,
 })

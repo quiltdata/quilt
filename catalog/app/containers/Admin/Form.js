@@ -33,7 +33,7 @@ export const FormError = RT.composeComponent(
   'Admin.Form.FormError',
   withStyles((t) => ({
     root: {
-      marginTop: t.spacing.unit * 3,
+      marginTop: t.spacing(3),
 
       '& a': {
         textDecoration: 'underline',
