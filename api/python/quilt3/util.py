@@ -10,7 +10,7 @@ from urllib.request import pathname2url, url2pathname
 import warnings
 
 # Third-Party
-import ruamel.yaml
+import yaml
 from appdirs import user_cache_dir, user_data_dir
 import requests
 
@@ -234,10 +234,12 @@ def extract_file_extension(file_path_or_url):
 
 
 def read_yaml(yaml_stream):
-    yaml = ruamel.yaml.YAML()
     try:
-        return yaml.load(yaml_stream)
-    except ruamel.yaml.parser.ParserError as error:
+        if isinstance(yaml_stream, pathlib.PosixPath):
+            with yaml_stream.open(mode='r') as stream:
+                return yaml.safe_load(stream)
+        return yaml.safe_load(yaml_stream)
+    except yaml.YAMLError as error:
         raise QuiltException(str(error), original_error=error)
 
 
@@ -248,7 +250,6 @@ def write_yaml(data, yaml_path, keep_backup=False):
     :param yaml_path: Destination. Can be a string or pathlib path.
     :param keep_backup: If set, a timestamped backup will be kept in the same dir.
     """
-    yaml = ruamel.yaml.YAML()
     path = pathlib.Path(yaml_path)
     now = str(datetime.datetime.now())
 
@@ -274,36 +275,6 @@ def write_yaml(data, yaml_path, keep_backup=False):
 
     if backup_path.exists() and not keep_backup:
         backup_path.unlink()
-
-
-def yaml_has_comments(parsed):
-    """Determine if parsed YAML data has comments.
-
-    Any object can be given, but only objects based on `ruamel.yaml`'s
-    `CommentedBase` class can be True.
-
-    :returns: True if object has retained comments, False otherwise
-    """
-    # Is this even a parse result object that stores comments?
-    if not isinstance(parsed, ruamel.yaml.comments.CommentedBase):
-        return False
-
-    # Are there comments on this object?
-    if parsed.ca.items or parsed.ca.comment or parsed.ca.end:
-        return True
-
-    # Is this a container that might have values with comments?
-    values = ()
-    if isinstance(parsed, (Sequence, Set)):
-        values = parsed
-    if isinstance(parsed, Mapping):
-        values = parsed.values()
-    # If so, do any of them have comments?
-    for value in values:
-        if yaml_has_comments(value):
-            return True
-    # no comments found.
-    return False
 
 
 def validate_url(url):

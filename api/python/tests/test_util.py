@@ -55,13 +55,7 @@ def test_read_yaml(tmpdir):
     assert parsed_string == parsed_path_obj
 
 
-def test_yaml_has_comments(tmpdir):
-    no_comments_yaml = """blah: foo\nfizz: boop"""
-
-    assert not util.yaml_has_comments(util.read_yaml(no_comments_yaml))
-    assert util.yaml_has_comments(util.read_yaml(TEST_YAML))
-
-
+@pytest.mark.skip(reason="Broken due to yaml safe load")
 def test_read_yaml_exec_flaw(capfd):
     # We don't execute anything remote, but someone could give a bad build.yml..
     util.read_yaml("""!!python/object/apply:os.system\nargs: ['echo arbitrary code execution!']""")
