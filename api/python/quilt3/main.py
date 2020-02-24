@@ -310,7 +310,7 @@ def create_parser():
     )
     verify_p.add_argument(
         "--extra-files-ok",
-        help="Directory to verify",
+        help="Whether extra files in the directory should cause a failure",
         action="store_true"
     )
     verify_p.set_defaults(func=cmd_verify)
