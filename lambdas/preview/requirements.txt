@@ -1,7 +1,7 @@
 # TODO: Should include ../shared/, but relative paths don't work as expected.
 # https://github.com/pypa/pip/issues/3772
 attrs==19.1.0
-bleach==3.1.0
+bleach==3.1.1
 certifi==2019.6.16
 chardet==3.0.4
 decorator==4.4.0
