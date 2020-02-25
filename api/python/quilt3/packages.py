@@ -879,7 +879,7 @@ class Package(object):
         self._incomplete_entries = entries_w_missing_hash
         if self._incomplete_entries:
             incomplete_manifest_path = self._dump_manifest_to_scratch()
-            msg = "Could not compute all hash values. Incomplete manifest saved to: {path}"
+            msg = "Unable to reach S3 for some hash values. Incomplete manifest saved to {path}."
             raise PackageException(msg.format(path=incomplete_manifest_path))
 
     def _set_commit_message(self, msg):
