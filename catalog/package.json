@@ -74,7 +74,7 @@
     "compression": "^1.7.4",
     "connected-react-router": "^6.7.0",
     "cross-env": "^7.0.0",
-    "date-fns": "^2.9.0",
+    "date-fns": "^2.10.0",
     "dedent": "^0.7.0",
     "dompurify": "^2.0.8",
     "express": "^4.17.1",
