@@ -1202,7 +1202,7 @@ class Package(object):
 
 
     @ApiTelemetry("package.push")
-    def push(self, name, registry=None, dest=None, message=None, selector_fn=lambda logical_key, package_entry: True):
+    def push(self, name, registry=None, dest=None, message=None, selector_fn=None):
         """
         Copies objects to path, then creates a new package that points to those objects.
         Copies each object in this package to path according to logical key structure,
@@ -1239,6 +1239,8 @@ class Package(object):
         Returns:
             A new package that points to the copied objects.
         """
+        selector_fn = lambda *args: True if selector_fn is None else selector_fn
+
         validate_package_name(name)
 
         if registry is None:
