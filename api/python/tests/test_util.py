@@ -55,13 +55,11 @@ def test_read_yaml(tmpdir):
     assert parsed_string == parsed_path_obj
 
 
-@pytest.mark.skip(reason="Broken due to yaml safe load")
 def test_read_yaml_exec_flaw(capfd):
     # We don't execute anything remote, but someone could give a bad build.yml..
-    util.read_yaml("""!!python/object/apply:os.system\nargs: ['echo arbitrary code execution!']""")
-    out, err = capfd.readouterr()
-    assert not out
-    assert not err
+    with pytest.raises(util.QuiltException) as exc_info:
+        util.read_yaml("""!!python/object/apply:os.system\nargs: ['echo arbitrary code execution!']""")
+    assert "could not determine a constructor for the tag" in str(exc_info.value)
 
 
 def test_validate_url():
