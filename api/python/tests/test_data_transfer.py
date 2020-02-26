@@ -432,7 +432,7 @@ class DataTransferTest(QuiltTestCase):
         with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             data_transfer.copy_file_list([
                 (PhysicalKey.from_url('s3://example1/large_file1.npy'), PhysicalKey.from_url('s3://example2/large_file2.npy'), size),
-                ])
+            ])
 
     def test_calculate_sha256_read_timeout(self):
         bucket = 'test-bucket'
