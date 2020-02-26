@@ -12,6 +12,7 @@ import uuid
 import warnings
 
 import jsonlines
+from tenacity import retry, stop_after_attempt, wait_exponential
 from tqdm import tqdm
 
 from .data_transfer import (
@@ -28,6 +29,7 @@ from .util import (
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
     user_is_configured_to_custom_stack, catalog_package_url
 
+MAX_FIX_HASH_RETRIES = 3
 
 
 def hash_file(readable_file):
@@ -848,21 +850,35 @@ class Package(object):
         self._meta['user_meta'] = meta
         return self
 
+    @retry(stop=stop_after_attempt(MAX_FIX_HASH_RETRIES),
+           wait=wait_exponential(multiplier=1, min=1, max=10),
+           reraise=True)
     def _fix_sha256(self):
-        entries = [entry for key, entry in self.walk() if entry.hash is None]
-        if not entries:
-            return
+        """
+        Calculate and set missing hash values
+        """
+        self._incomplete_entries = [entry for key, entry in self.walk() if entry.hash is None]
 
         physical_keys = []
         sizes = []
-        for entry in entries:
+        for entry in self._incomplete_entries:
             physical_keys.append(entry.physical_key)
             sizes.append(entry.size)
 
         results = calculate_sha256(physical_keys, sizes)
+        
+        entries_w_missing_hash = []
+        for entry, obj_hash in zip(self._incomplete_entries, results):
+            if obj_hash is None:
+                entries_w_missing_hash.append(entry)
+            else:
+                entry.hash = dict(type='SHA256', value=obj_hash)
 
-        for entry, obj_hash in zip(entries, results):
-            entry.hash = dict(type='SHA256', value=obj_hash)
+        self._incomplete_entries = entries_w_missing_hash
+        if self._incomplete_entries:
+            incomplete_manifest_path = self._dump_manifest_to_scratch()
+            msg = "Unable to reach S3 for some hash values. Incomplete manifest saved to {path}."
+            raise PackageException(msg.format(path=incomplete_manifest_path))
 
     def _set_commit_message(self, msg):
         """
@@ -885,7 +901,19 @@ class Package(object):
 
         self._meta.update({'message': msg})
 
-
+    def _dump_manifest_to_scratch(self):
+        registry = get_from_config('default_local_registry')
+        registry_parsed = PhysicalKey.from_url(registry)
+        pkg_manifest_file = registry_parsed.join("scratch").join(str(int(time.time())))
+            
+        manifest = io.BytesIO()
+        self._dump(manifest)
+        put_bytes(
+            manifest.getvalue(),
+            pkg_manifest_file
+        )
+        return pkg_manifest_file.path
+        
     @ApiTelemetry("package.build")
     def build(self, name, registry=None, message=None):
         """
