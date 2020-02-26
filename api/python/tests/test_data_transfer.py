@@ -444,6 +444,5 @@ class DataTransferTest(QuiltTestCase):
         pk = PhysicalKey(bucket, key, vid)
         with mock.patch('botocore.client.BaseClient._make_api_call',
                         side_effect=ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")):
-            results = [r for r in data_transfer.calculate_sha256([pk], [len(a_contents)])]
-            assert len(results) == 1
-            assert results[0] is None
+            results = data_transfer.calculate_sha256([pk], [len(a_contents)])
+            assert list(results) == [None]
