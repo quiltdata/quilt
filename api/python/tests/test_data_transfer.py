@@ -1,7 +1,6 @@
 """ Testing for data_transfer.py """
 
 ### Python imports
-from io import BytesIO
 import pathlib
 
 from unittest import mock
@@ -433,8 +432,7 @@ class DataTransferTest(QuiltTestCase):
         with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             data_transfer.copy_file_list([
                 (PhysicalKey.from_url('s3://example1/large_file1.npy'), PhysicalKey.from_url('s3://example2/large_file2.npy'), size),
-            ])
-
+                ])
 
     def test_calculate_sha256_read_timeout(self):
         bucket = 'test-bucket'
@@ -443,11 +441,9 @@ class DataTransferTest(QuiltTestCase):
 
         a_contents = b'a' * 10
 
-        def raise_read_timeout():
-            raise botocore.ReadTimeout("Test Timeout")
-
         pk = PhysicalKey(bucket, key, vid)
-        with mock.patch('botocore.client.BaseClient._make_api_call', side_effect=ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")):
+        with mock.patch('botocore.client.BaseClient._make_api_call',
+                        side_effect=ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")):
             results = [r for r in data_transfer.calculate_sha256([pk], [len(a_contents)])]
             assert len(results) == 1
             assert results[0] is None
