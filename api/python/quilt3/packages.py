@@ -5,6 +5,7 @@ import io
 import json
 import pathlib
 import os
+import re
 import shutil
 import time
 from multiprocessing import Pool
@@ -23,8 +24,8 @@ from .formats import FormatRegistry
 from .telemetry import ApiTelemetry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
-    validate_package_name, quiltignore_filter, validate_key, extract_file_extension
-)
+    validate_package_name, quiltignore_filter, validate_key, extract_file_extension,
+    SUBPACKAGE_NAME_FORMAT)
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
     user_is_configured_to_custom_stack, catalog_package_url
 
@@ -438,12 +439,12 @@ class Package(object):
                     f"'build' instead."
                 )
 
-        subpkg_key_index = name.find('/', name.find('/') + 1)
-        if subpkg_key_index < 0:
-            subpkg_key = None
-        else:
-            name, subpkg_key = name[:subpkg_key_index], name[subpkg_key_index + 1:]
+        match = re.match(SUBPACKAGE_NAME_FORMAT, name).groups()
+        if match[1]:
+            name, subpkg_key = match
             validate_key(subpkg_key)
+        else:
+            subpkg_key = None
 
         pkg = cls._browse(name=name, registry=registry, top_hash=top_hash)
         message = pkg._meta.get('message', None)  # propagate the package message

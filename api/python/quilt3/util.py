@@ -25,6 +25,7 @@ CONFIG_PATH = BASE_PATH / 'config.yml'
 OPEN_DATA_URL = "https://open.quiltdata.com"
 
 PACKAGE_NAME_FORMAT = r"[\w-]+/[\w-]+$"
+SUBPACKAGE_NAME_FORMAT = r"([\w-]+/[\w-]+)(?:/(.+))?$"
 
 ## CONFIG_TEMPLATE
 # Must contain every permitted config key, as well as their default values (which can be 'null'/None).
