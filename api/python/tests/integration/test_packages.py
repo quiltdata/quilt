@@ -12,6 +12,7 @@ import pytest
 
 import quilt3
 from quilt3 import Package
+from quilt3.packages import MAX_FIX_HASH_RETRIES
 from quilt3.util import PhysicalKey, QuiltException, validate_package_name, fix_url
 
 from ..utils import QuiltTestCase
@@ -1316,3 +1317,29 @@ class PackageTest(QuiltTestCase):
         Path('test/foo').write_text('Hello, World!')
         Path('test/blah').unlink()
         assert pkg.verify('test')
+
+    @patch('quilt3.packages.calculate_sha256')
+    def test_fix_sha256_fail(self, mocked_calculate_sha256):
+        data = b'Hello, World!'
+        pkg = Package()
+        pkg.set('foo', data)
+        _, entry = next(pkg.walk())
+
+        mocked_calculate_sha256.return_value = [None]
+        with self.assertRaises(quilt3.exceptions.PackageException):
+            pkg._fix_sha256()
+        mocked_calculate_sha256.assert_has_calls([call([entry.physical_key], [len(data)])] * MAX_FIX_HASH_RETRIES)
+        assert entry.hash is None
+
+    @patch('quilt3.packages.calculate_sha256')
+    def test_fix_sha256(self, mocked_calculate_sha256):
+        data = b'Hello, World!'
+        pkg = Package()
+        pkg.set('foo', data)
+        _, entry = next(pkg.walk())
+
+        hash_ = object()
+        mocked_calculate_sha256.side_effect = ([None], [hash_])
+        pkg._fix_sha256()
+        mocked_calculate_sha256.assert_has_calls([call([entry.physical_key], [len(data)])] * 2)
+        assert entry.hash == {'type': 'SHA256', 'value': hash_}
