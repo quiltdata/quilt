@@ -5,6 +5,7 @@ import io
 import json
 import pathlib
 import os
+import re
 import shutil
 import time
 from multiprocessing import Pool
@@ -24,8 +25,8 @@ from .formats import FormatRegistry
 from .telemetry import ApiTelemetry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
-    validate_package_name, quiltignore_filter, validate_key, extract_file_extension
-)
+    validate_package_name, quiltignore_filter, validate_key, extract_file_extension,
+    parse_sub_package_name)
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
     user_is_configured_to_custom_stack, catalog_package_url
 
@@ -392,7 +393,9 @@ class Package(object):
         Installs a named package to the local registry and downloads its files.
 
         Args:
-            name(str): Name of package to install.
+            name(str): Name of package to install. It also can be passed as NAME/PATH,
+                in this case only the sub-package or the entry specified by PATH will
+                be downloaded.
             registry(str): Registry where package is located. 
                 Defaults to the default remote registry.
             top_hash(str): Hash of package to install. Defaults to latest.
@@ -435,12 +438,26 @@ class Package(object):
                     f"'build' instead."
                 )
 
+        parts = parse_sub_package_name(name)
+        if parts and parts[1]:
+            name, subpkg_key = parts
+            validate_key(subpkg_key)
+        else:
+            subpkg_key = None
+
         pkg = cls._browse(name=name, registry=registry, top_hash=top_hash)
         message = pkg._meta.get('message', None)  # propagate the package message
 
         file_list = []
 
-        for logical_key, entry in pkg.walk():
+        if subpkg_key is not None:
+            if subpkg_key not in pkg:
+                raise QuiltException(f"Package {name} doesn't contain {subpkg_key!r}.")
+            entry = pkg[subpkg_key]
+            entries = entry.walk() if isinstance(entry, Package) else ((subpkg_key.split('/')[-1], entry),)
+        else:
+            entries = pkg.walk()
+        for logical_key, entry in entries:
             # Copy the datafiles in the package.
             physical_key = entry.physical_key
 

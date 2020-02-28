@@ -30,7 +30,9 @@ Installs a named package to the local registry and downloads its files.
 
 __Arguments__
 
-* __name(str)__:  Name of package to install.
+* __name(str)__:  Name of package to install. It also can be passed as NAME/PATH,
+    in this case only the sub-package or the entry specified by PATH will
+    be downloaded.
 * __registry(str)__:  Registry where package is located.
     Defaults to the default remote registry.
 * __top_hash(str)__:  Hash of package to install. Defaults to latest.

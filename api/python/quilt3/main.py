@@ -243,7 +243,7 @@ def create_parser():
     install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp, allow_abbrev=False)
     install_p.add_argument(
         "name",
-        help="Name of package, in the USER/PKG format",
+        help="Name of package, in the USER/PKG[/PATH] format",
         type=str,
     )
     install_p.add_argument(

@@ -32,6 +32,62 @@ def _mock_copy_file_list(file_list, callback=None, message=None):
 
 
 class PackageTest(QuiltTestCase):
+    def setup_s3_stubber(self, pkg_name, bucket, *, manifest=None, entries=()):
+        top_hash = 'abcdef'
+
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(top_hash.encode()),
+            },
+            expected_params={
+                'Bucket': bucket,
+                'Key': f'.quilt/named_packages/{pkg_name}/latest',
+            }
+        )
+
+        if manifest:
+            self.s3_stubber.add_response(
+                method='head_object',
+                service_response={
+                    'VersionId': 'v1',
+                    'ContentLength': len(manifest),
+                },
+                expected_params={
+                    'Bucket': bucket,
+                    'Key': f'.quilt/packages/{top_hash}',
+                }
+            )
+
+            self.s3_stubber.add_response(
+                method='get_object',
+                service_response={
+                    'VersionId': 'v1',
+                    'Body': BytesIO(manifest),
+                    'ContentLength': len(manifest),
+                },
+                expected_params={
+                    'Bucket': bucket,
+                    'Key': f'.quilt/packages/{top_hash}',
+                }
+            )
+
+        for url, content in entries:
+            key = PhysicalKey.from_url(url)
+            self.s3_stubber.add_response(
+                method='get_object',
+                service_response={
+                    'VersionId': 'v1',
+                    'Body': BytesIO(content),
+                },
+                expected_params={
+                    'Bucket': key.bucket,
+                    'Key': key.path,
+                }
+            )
+
+
     def test_build(self):
         """Verify that build dumps the manifest to appdirs directory."""
         new_pkg = Package()
@@ -1271,6 +1327,58 @@ class PackageTest(QuiltTestCase):
 
         with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             Package.install('Quilt/Foo', registry='s3://my-test-bucket', dest='package/')
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
+    @patch('quilt3.packages.ObjectPathCache.set')
+    def test_install_subpackage(self, mocked_cache_set):
+        pkg_name = 'Quilt/Foo'
+        bucket = 'my-test-bucket'
+        subpackage_path = 'baz'
+        entry_url = 's3://my_bucket/my_data_pkg/baz/bat'
+        entry_content = b'42'
+        entries = (
+            (entry_url, entry_content),
+        )
+        dest = 'package'
+        self.setup_s3_stubber(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
+
+        Package.install(f'{pkg_name}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
+
+        path = pathlib.Path.cwd() / dest / 'bat'
+        mocked_cache_set.assert_called_once_with(
+            entry_url,
+            str(path),
+        )
+        assert path.read_bytes() == entry_content
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
+    @patch('quilt3.packages.ObjectPathCache.set')
+    def test_install_entry(self, mocked_cache_set):
+        pkg_name = 'Quilt/Foo'
+        bucket = 'my-test-bucket'
+        subpackage_path = 'baz/bat'
+        entry_url = 's3://my_bucket/my_data_pkg/baz/bat'
+        entry_content = b'42'
+        entries = (
+            (entry_url, entry_content),
+        )
+        dest = 'package'
+        self.setup_s3_stubber(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
+
+        Package.install(f'{pkg_name}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
+
+        path = pathlib.Path.cwd() / dest / 'bat'
+        mocked_cache_set.assert_called_once_with(
+            entry_url,
+            str(path),
+        )
+        assert path.read_bytes() == entry_content
+
+    def test_install_bad_name(self):
+        with self.assertRaisesRegex(QuiltException, 'Invalid package name'):
+            Package().install('?')
 
     def test_rollback(self):
         p = Package()
