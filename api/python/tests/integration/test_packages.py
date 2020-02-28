@@ -1375,6 +1375,10 @@ class PackageTest(QuiltTestCase):
         )
         assert path.read_bytes() == entry_content
 
+    def test_install_bad_name(self):
+        with self.assertRaisesRegex(QuiltException, 'Invalid package name'):
+            Package().install('?')
+
     def test_rollback(self):
         p = Package()
         p.set('foo', DATA_DIR / 'foo.txt')

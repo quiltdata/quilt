@@ -25,7 +25,7 @@ from .telemetry import ApiTelemetry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
     validate_package_name, quiltignore_filter, validate_key, extract_file_extension,
-    SUBPACKAGE_NAME_FORMAT)
+    parse_sub_package_name)
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
     user_is_configured_to_custom_stack, catalog_package_url
 
@@ -439,9 +439,9 @@ class Package(object):
                     f"'build' instead."
                 )
 
-        match = re.match(SUBPACKAGE_NAME_FORMAT, name).groups()
-        if match[1]:
-            name, subpkg_key = match
+        parts = parse_sub_package_name(name)
+        if parts and parts[1]:
+            name, subpkg_key = parts
             validate_key(subpkg_key)
         else:
             subpkg_key = None
