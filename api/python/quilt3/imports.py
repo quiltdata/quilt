@@ -41,10 +41,10 @@ class DataPackageImporter:
 
         elif len(name_parts) == 3:  # e.g. module.__name__ == quilt3.data.foo
             namespace = name_parts[2]
-            registry_passed = PhysicalKey.from_url(registry)
+            registry_parsed = PhysicalKey.from_url(registry)
 
             # we do not know the name the user will ask for, so populate all valid names
-            for pkg in _list_packages(registry_passed):
+            for pkg in _list_packages(registry_parsed):
                 pkg_user, pkg_name = pkg.split('/')
                 if pkg_user == namespace:
                     module.__dict__[pkg_name] = Package._browse(pkg, registry=registry)
