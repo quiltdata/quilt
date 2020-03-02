@@ -7,6 +7,7 @@ from unittest import mock
 
 ### Third-party imports
 from botocore.stub import ANY
+from botocore.exceptions import ReadTimeoutError
 import pandas as pd
 import pytest
 
@@ -432,3 +433,16 @@ class DataTransferTest(QuiltTestCase):
             data_transfer.copy_file_list([
                 (PhysicalKey.from_url('s3://example1/large_file1.npy'), PhysicalKey.from_url('s3://example2/large_file2.npy'), size),
             ])
+
+    def test_calculate_sha256_read_timeout(self):
+        bucket = 'test-bucket'
+        key = 'dir/a'
+        vid = 'a1234'
+
+        a_contents = b'a' * 10
+
+        pk = PhysicalKey(bucket, key, vid)
+        with mock.patch('botocore.client.BaseClient._make_api_call',
+                        side_effect=ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")):
+            results = data_transfer.calculate_sha256([pk], [len(a_contents)])
+            assert list(results) == [None]

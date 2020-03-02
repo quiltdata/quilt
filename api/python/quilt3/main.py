@@ -243,7 +243,7 @@ def create_parser():
     install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp, allow_abbrev=False)
     install_p.add_argument(
         "name",
-        help="Name of package, in the USER/PKG format",
+        help="Name of package, in the USER/PKG[/PATH] format",
         type=str,
     )
     install_p.add_argument(
@@ -310,7 +310,7 @@ def create_parser():
     )
     verify_p.add_argument(
         "--extra-files-ok",
-        help="Directory to verify",
+        help="Whether extra files in the directory should cause a failure",
         action="store_true"
     )
     verify_p.set_defaults(func=cmd_verify)

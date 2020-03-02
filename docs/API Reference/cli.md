@@ -49,7 +49,7 @@ usage: quilt3 install [-h] [--registry REGISTRY] [--top-hash TOP_HASH]
 Install a package
 
 positional arguments:
-  name                  Name of package, in the USER/PKG format
+  name                  Name of package, in the USER/PKG[/PATH] format
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -78,7 +78,8 @@ optional arguments:
                        BUCKET
   --top-hash TOP_HASH  Hash of package to verify
   --dir DIR            Directory to verify
-  --extra-files-ok     Directory to verify
+  --extra-files-ok     Whether extra files in the directory should cause a
+                       failure
 ```
 ## `login`
 ```

@@ -10,12 +10,13 @@ VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text().strip()
 
 def readme():
     readme_short = """
-    Quilt is a data management tool designed for data discoverability, data dependency
-    management, and data version control using `data packages <https://blog.quiltdata.com/data-packages-for-fast-reproducible-python-analysis-c74b78015c7f>`_.
+    Quilt manages data like code (with packages, repositories, browsing and
+    revision history) so that teams can experiment faster in machine learning,
+    biotech, and other data-driven domains.
 
-    The `quilt3` PyPi package allows you to build, push, and install data packages in Quilt using Python.
-    Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_ for more information.
-
+    The `quilt3` PyPi package allows you to build, push, and install data packages.
+    Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_
+    to learn more.
     """
     return readme_short
 
@@ -55,7 +56,7 @@ setup(
     install_requires=[
         'appdirs>=1.4.0',
         'aws-requests-auth>=0.4.2',
-        'boto3>=1.8.0',
+        'boto3>=1.10.0',
         'dnspython>=1.16.0',
         'flask',
         'flask_cors',
@@ -65,6 +66,7 @@ setup(
         'python-dateutil<=2.8.0',           # 2.8.1 conflicts with botocore
         'requests>=2.12.4',
         'ruamel.yaml>=0.15.78',
+        'tenacity>=5.1.1',
         'tqdm>=4.26.0',
         'urllib3<1.25,>=1.21.1',            # required by requests
         'requests_futures==1.0.0',
@@ -80,7 +82,7 @@ setup(
             'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
             'pandas>=0.19.2',
             'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
-            'pytest<5.1.0',  # TODO: Fix pytest.ensuretemp in conftest.py
+            'pytest<5.1.0',                 # TODO: Fix pytest.ensuretemp in conftest.py
             'pytest-cov',
             'pytest-env',
             'responses',

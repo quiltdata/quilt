@@ -30,16 +30,14 @@ Installs a named package to the local registry and downloads its files.
 
 __Arguments__
 
-* __name(str)__:  Name of package to install.
+* __name(str)__:  Name of package to install. It also can be passed as NAME/PATH,
+    in this case only the sub-package or the entry specified by PATH will
+    be downloaded.
 * __registry(str)__:  Registry where package is located.
     Defaults to the default remote registry.
 * __top_hash(str)__:  Hash of package to install. Defaults to latest.
 * __dest(str)__:  Local path to download files to.
 * __dest_registry(str)__:  Registry to install package to. Defaults to local registry.
-
-__Returns__
-
-A new Package that points to files on your local machine.
 
 
 ## Package.resolve\_hash(registry, hash\_prefix)  {#Package.resolve\_hash}
@@ -97,7 +95,8 @@ __Arguments__
 
 __Returns__
 
-None
+A new Package object with entries from self, but with physical keys
+    pointing to files in `dest`.
 
 
 ## Package.keys(self)  {#Package.keys}
@@ -290,10 +289,10 @@ __Arguments__
 * __registry__:  registry where to create the new package
 * __message__:  the commit message for the new package
 * __selector_fn__:  An optional function that determines which package entries should be copied to S3. The function
-             takes in two arguments, logical_key and package_entry, and should return False if that
-             PackageEntry should be skipped during push. If for example you have a package where the files
-             are spread over multiple buckets and you add a single local file, you can use selector_fn to
-             only push the local file to s3 (instead of pushing all data to the destination bucket).
+    takes in two arguments, logical_key and package_entry, and should return False if that
+    PackageEntry should be skipped during push. If for example you have a package where the files
+    are spread over multiple buckets and you add a single local file, you can use selector_fn to
+    only push the local file to s3 (instead of pushing all data to the destination bucket).
 
 __Returns__
 
