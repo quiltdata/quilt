@@ -54,3 +54,24 @@ export const useCurrentBucketConfig = () => {
   const bucketConfigs = useBucketConfigs()
   return bucket && bucketConfigs.find((i) => i.name === bucket)
 }
+
+export function useInStackBuckets() {
+  const bucketConfigs = useBucketConfigs()
+  const cfg = Config.use()
+  return React.useMemo(
+    () =>
+      R.pipe(
+        R.pluck('name'),
+        R.append(cfg.analyticsBucket),
+        R.reject((b) => !b),
+        R.uniq,
+      )(bucketConfigs),
+    [bucketConfigs, cfg.analyticsBucket],
+  )
+}
+
+export function useIsInStack() {
+  const buckets = useInStackBuckets()
+  // eslint-disable-next-line no-underscore-dangle
+  return React.useCallback(R.includes(R.__, buckets), [buckets])
+}
