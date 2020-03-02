@@ -67,8 +67,6 @@ const AUTH_MAP = {
 
 const transformConfig = (cfg) => ({
   ...cfg,
-  shouldSign: (bucket) => [cfg.defaultBucket, cfg.analyticsBucket].includes(bucket),
-  shouldProxy: (bucket) => ![cfg.defaultBucket, cfg.analyticsBucket].includes(bucket),
   passwordAuth: AUTH_MAP[cfg.passwordAuth],
   ssoAuth: AUTH_MAP[cfg.ssoAuth],
   ssoProviders: cfg.ssoProviders.length ? cfg.ssoProviders.split(' ') : [],
