@@ -59,7 +59,7 @@ function Hits({ hits, page, scrollRef, makePageUrl }) {
 }
 
 function Results({ buckets, query, page, scrollRef, makePageUrl }) {
-  const es = AWS.ES.use({ sign: true })
+  const es = AWS.ES.use()
   const data = Data.use(search, { es, buckets, query })
   return data.case({
     _: () => (
@@ -234,10 +234,7 @@ function BucketSelectDropdown({ buckets, onChange }) {
       R.ifElse(
         R.includes(v),
         R.without([v]),
-        R.pipe(
-          R.append(v),
-          R.sortBy(R.identity),
-        ),
+        R.pipe(R.append(v), R.sortBy(R.identity)),
       )(state.value),
     )
   }
