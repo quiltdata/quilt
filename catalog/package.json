@@ -73,7 +73,7 @@
     "classnames": "^2.2.6",
     "compression": "^1.7.4",
     "connected-react-router": "^6.7.0",
-    "cross-env": "^7.0.0",
+    "cross-env": "^7.0.1",
     "date-fns": "^2.10.0",
     "dedent": "^0.7.0",
     "dompurify": "^2.0.8",
