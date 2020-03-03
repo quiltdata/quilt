@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as reduxHook from 'redux-react-hook'
 
 import * as Auth from 'containers/Auth'
+import * as BucketConfig from 'utils/BucketConfig'
 import { useConfig } from 'utils/Config'
 import * as RT from 'utils/reactTools'
 import useMemoEq from 'utils/useMemoEq'
@@ -42,11 +43,13 @@ const PROXIED = Symbol('proxied')
 
 export const useRequest = (extra) => {
   const cfg = useConfig()
+  const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
+  const isInStack = BucketConfig.useIsInStack()
   const proxyEndpoint = React.useMemo(() => new AWS.Endpoint(cfg.s3Proxy), [cfg.s3Proxy])
   const customRequestHandler = React.useCallback(
     (req) => {
       const b = req.params.Bucket
-      if (b && cfg.shouldProxy(b)) {
+      if (b && !isInStack(b)) {
         req.on(
           'sign',
           () => {
@@ -90,7 +93,6 @@ export const useRequest = (extra) => {
     s3ForcePathStyle: true,
     ...extra,
   })
-  const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
   return React.useMemo(
     () => ({ bucket, operation, params }) => {
       const client =
@@ -98,12 +100,12 @@ export const useRequest = (extra) => {
           ? s3SelectClient
           : regularClient
       const method =
-        cfg.mode === 'LOCAL' || (authenticated && cfg.shouldSign(bucket))
+        cfg.mode === 'LOCAL' || (authenticated && isInStack(bucket))
           ? 'makeRequest'
           : 'makeUnauthenticatedRequest'
       return client[method](operation, params).promise()
     },
-    [regularClient, s3SelectClient, authenticated, cfg],
+    [regularClient, s3SelectClient, authenticated, cfg, isInStack],
   )
 }
 

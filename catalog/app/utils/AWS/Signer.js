@@ -5,6 +5,7 @@ import { setPropTypes } from 'recompose'
 import * as reduxHook from 'redux-react-hook'
 
 import * as Auth from 'containers/Auth'
+import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import { mkSearch } from 'utils/NamedRoutes'
 import * as Resource from 'utils/Resource'
@@ -41,11 +42,12 @@ const buildS3Url = ({ bucket, key, version }) =>
 export const useS3Signer = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {}) => {
   Credentials.use().suspend()
   const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
-  const cfg = Config.useConfig()
+  const { mode } = Config.useConfig()
+  const isInStack = BucketConfig.useIsInStack()
   const s3 = S3.use()
   return React.useCallback(
     ({ bucket, key, version }, opts) =>
-      cfg.mode === 'LOCAL' || (cfg.shouldSign(bucket) && authenticated)
+      mode === 'LOCAL' || (isInStack(bucket) && authenticated)
         ? s3.getSignedUrl('getObject', {
             Bucket: bucket,
             Key: key,
@@ -54,7 +56,7 @@ export const useS3Signer = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {}) => 
             ...opts,
           })
         : buildS3Url({ bucket, key, version }),
-    [cfg, authenticated, s3, urlExpiration],
+    [mode, isInStack, authenticated, s3, urlExpiration],
   )
 }
 
