@@ -47,7 +47,6 @@ export const useS3Signer = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {}) => 
   const s3 = S3.use()
   return React.useCallback(
     ({ bucket, key, version }, opts) =>
-      // TODO: should we sign out-of-stack requests in LOCAL mode?
       mode === 'LOCAL' || (isInStack(bucket) && authenticated)
         ? s3.getSignedUrl('getObject', {
             Bucket: bucket,

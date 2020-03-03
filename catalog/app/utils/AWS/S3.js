@@ -99,7 +99,6 @@ export const useRequest = (extra) => {
         !authenticated && operation === 'selectObjectContent'
           ? s3SelectClient
           : regularClient
-      // TODO: should we sign out-of-stack requests in LOCAL mode?
       const method =
         cfg.mode === 'LOCAL' || (authenticated && isInStack(bucket))
           ? 'makeRequest'
