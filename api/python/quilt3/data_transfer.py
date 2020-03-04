@@ -1,7 +1,8 @@
-from collections import deque
+from collections import defaultdict, deque
 from codecs import iterdecode
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
+import functools
 import hashlib
 import pathlib
 import shutil
@@ -17,13 +18,14 @@ from boto3.s3.transfer import TransferConfig
 from s3transfer.utils import ChunksizeAdjuster, OSUtils, signal_transferring, signal_not_transferring
 
 import jsonlines
+from tenacity import retry, stop_after_attempt, wait_exponential
 from tqdm import tqdm
 
 from .session import create_botocore_session
 from .util import PhysicalKey, QuiltException
 
 
-
+MAX_COPY_FILE_LIST_RETRIES = 3
 
 
 class S3Api(Enum):
@@ -437,11 +439,21 @@ def _copy_file_list_internal(file_list, message, callback):
     if not file_list:
         return []
 
-    total_size = sum(size for _, _, size in file_list)
+    results = _copy_file_list_internal_retry(file_list, [None] * len(file_list), message, callback)
+    assert all(results)
+    return results
+
+
+@retry(stop=stop_after_attempt(MAX_COPY_FILE_LIST_RETRIES),
+       wait=wait_exponential(multiplier=1, min=1, max=10),
+       reraise=True)
+def _copy_file_list_internal_retry(file_list, results, message, callback):
+    total_size = sum(size for (_, _, size), result in zip(file_list, results) if result is None)
 
     lock = Lock()
     futures = deque()
-    results = [None] * len(file_list)
+    future_to_idx = {}
+    idx_to_futures = defaultdict(list)
 
     stopped = False
 
@@ -456,10 +468,12 @@ def _copy_file_list_internal(file_list, message, callback):
             with lock:
                 progress.update(bytes_transferred)
 
-        def run_task(func, *args):
+        def run_task(idx, func, *args):
             future = executor.submit(func, *args)
             with lock:
                 futures.append(future)
+                future_to_idx[future] = idx
+                idx_to_futures[idx].append(future)
 
         def worker(idx, src, dest, size):
             if stopped:
@@ -476,7 +490,7 @@ def _copy_file_list_internal(file_list, message, callback):
             ctx = WorkerContext(s3_client_provider=s3_client_provider,
                                 progress=progress_callback,
                                 done=done_callback,
-                                run=run_task)
+                                run=functools.partial(run_task, idx))
 
             if dest.version_id:
                 raise ValueError("Cannot set VersionId on destination")
@@ -496,8 +510,10 @@ def _copy_file_list_internal(file_list, message, callback):
                                       dest.bucket, dest.path)
 
         try:
-            for idx, args in enumerate(file_list):
-                run_task(worker, idx, *args)
+            for idx, (args, result) in enumerate(zip(file_list, results)):
+                if result is not None:
+                    continue
+                run_task(idx, worker, idx, *args)
 
             # ThreadPoolExecutor does not appear to have a way to just wait for everything to complete.
             # Shutting it down will cause it to wait - but will prevent any new tasks from starting.
@@ -508,12 +524,23 @@ def _copy_file_list_internal(file_list, message, callback):
                     if not futures:
                         break
                     future = futures.popleft()
-                future.result()
+                if future.cancelled():
+                    continue
+                try:
+                    future.result()
+                except ClientError:
+                    with lock:
+                        idx = future_to_idx
+                        futures_to_cancel = idx_to_futures[idx]
+                        for f in futures_to_cancel:
+                            f.cancel()
+                        futures_to_cancel.clear()
         finally:
             # Make sure all tasks exit quickly if the main thread exits before they're done.
             stopped = True
 
-    assert all(results)
+    if not all(results):
+        raise QuiltException("Unable to copy some files.")
 
     return results
 
