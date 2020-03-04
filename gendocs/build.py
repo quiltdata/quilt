@@ -9,8 +9,7 @@ try:
     from pip._internal import main as pipmain
 except ImportError:
     from pip import main as pipmain
-from ruamel import yaml
-
+import yaml
 
 
 # To push out and use a new version of pydocmd to people generating docs,
