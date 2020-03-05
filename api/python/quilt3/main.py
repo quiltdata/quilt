@@ -30,6 +30,15 @@ def cmd_config(catalog_url):
     else:
         api.config(catalog_url)
 
+def cmd_config_default_registry(default_remote_registry):
+    """
+    Configure the default remote registry for quilt3
+    """
+    api.config(default_remote_registry=default_remote_registry)
+    print(f"Successfully set the default remote registry to {default_remote_registry}")
+
+
+
 def _test_url(url):
     try:
         response = requests.get(url)
@@ -214,6 +223,16 @@ def create_parser():
         nargs="?"
     )
     config_p.set_defaults(func=cmd_config)
+
+    # config-default-registry
+    shorthelp = "Configure default remote registry for Quilt"
+    config_p = subparsers.add_parser("config-default-remote-registry", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    config_p.add_argument(
+            "default_remote_registry",
+            help="The default remote registry to use, e.g. s3://quilt-ml",
+            type=str
+    )
+    config_p.set_defaults(func=cmd_config_default_registry)
 
     # catalog
     shorthelp = "Run Quilt catalog locally"
