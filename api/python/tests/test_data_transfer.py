@@ -7,7 +7,7 @@ from unittest import mock
 
 ### Third-party imports
 from botocore.stub import ANY
-from botocore.exceptions import ReadTimeoutError
+from botocore.exceptions import ClientError, ReadTimeoutError
 import pandas as pd
 import pytest
 
@@ -446,3 +446,18 @@ class DataTransferTest(QuiltTestCase):
                         side_effect=ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")):
             results = data_transfer.calculate_sha256([pk], [len(a_contents)])
             assert list(results) == [None]
+
+    def test_copy_file_list_retry(self):
+        bucket = 'test-bucket'
+        other_bucket = f'{bucket}-other'
+        key = 'dir/a'
+        vid = None
+
+        src = PhysicalKey(bucket, key, vid)
+        dst = PhysicalKey(other_bucket, key, vid)
+
+        with mock.patch('botocore.client.BaseClient._make_api_call',
+                        side_effect=ClientError({}, 'CopyObject')) as mocked_api_call:
+            with self.assertRaisesRegex(data_transfer.QuiltException, "Unable to copy some files."):
+                data_transfer.copy_file_list([(src, dst, 100)])
+            self.assertEqual(mocked_api_call.call_count, data_transfer.MAX_COPY_FILE_LIST_RETRIES)

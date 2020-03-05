@@ -530,7 +530,7 @@ def _copy_file_list_internal_retry(file_list, results, message, callback):
                     future.result()
                 except ClientError:
                     with lock:
-                        idx = future_to_idx
+                        idx = future_to_idx[future]
                         futures_to_cancel = idx_to_futures[idx]
                         for f in futures_to_cancel:
                             f.cancel()
