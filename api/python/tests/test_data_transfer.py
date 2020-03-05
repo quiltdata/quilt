@@ -2,6 +2,7 @@
 
 ### Python imports
 import pathlib
+import time
 
 from unittest import mock
 
@@ -459,5 +460,26 @@ class DataTransferTest(QuiltTestCase):
         with mock.patch('botocore.client.BaseClient._make_api_call',
                         side_effect=ClientError({}, 'CopyObject')) as mocked_api_call:
             with self.assertRaisesRegex(data_transfer.QuiltException, "Unable to copy some files."):
-                data_transfer.copy_file_list([(src, dst, 100)])
+                data_transfer.copy_file_list([(src, dst, 1)])
             self.assertEqual(mocked_api_call.call_count, data_transfer.MAX_COPY_FILE_LIST_RETRIES)
+
+    def test_copy_file_list_multipart_retry(self):
+        bucket = 'test-bucket'
+        other_bucket = f'{bucket}-other'
+        key = 'dir/a'
+        vid = None
+
+        src = PhysicalKey(bucket, key, vid)
+        dst = PhysicalKey(other_bucket, key, vid)
+        parts = 2 * data_transfer.s3_transfer_config.max_request_concurrency
+        size = parts * data_transfer.s3_transfer_config.multipart_threshold
+
+        def side_effect(operation_name, *args, **kwargs):
+            if operation_name == 'CreateMultipartUpload':
+                return {'UploadId': '123'}
+            time.sleep(0.1)
+            raise ClientError({}, 'CopyObject')
+
+        with mock.patch('botocore.client.BaseClient._make_api_call', side_effect=side_effect):
+            with self.assertRaisesRegex(data_transfer.QuiltException, "Unable to copy some files."):
+                data_transfer.copy_file_list([(src, dst, size)])
