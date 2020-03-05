@@ -17,18 +17,37 @@ from .util import get_from_config, catalog_s3_url, catalog_package_url, QuiltExc
     fix_url, get_package_registry
 from .registry import app
 
-def cmd_config(catalog_url):
+def cmd_config(catalog_url, **kwargs):
     """
     Configure quilt3 to a Quilt stack
     """
-    if catalog_url is None:
-        existing_catalog_url = get_from_config('navigator_url')
-        if existing_catalog_url is not None:
-            print(existing_catalog_url)
-        else:
-            print('<None>')
+    config_values = kwargs['set'] if kwargs['set'] else {}
+    if catalog_url and config_values:
+        raise QuiltException("Expected either an auto-config URL or key=value pairs, but got both.")
+
+    if config_values:
+        api.config(**config_values)
     else:
-        api.config(catalog_url)
+        if catalog_url is None:
+            existing_catalog_url = get_from_config('navigator_url')
+            if existing_catalog_url is not None:
+                print(existing_catalog_url)
+            else:
+                print('<None>')
+        else:
+            api.config(catalog_url)
+
+
+class ParseConfigDict(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        d = {}
+        if values:
+            for item in values:
+                split_items = item.split("=", 1)
+                key, value = split_items[0].strip(), split_items[1]
+                d[key] = value
+        setattr(namespace, self.dest, d)
+
 
 def cmd_config_default_registry(default_remote_registry):
     """
@@ -221,6 +240,18 @@ def create_parser():
         help="URL of catalog to config with, or empty string to reset the config",
         type=str,
         nargs="?"
+    )
+    config_p.add_argument(
+            "--set",
+            metavar="KEY=VALUE",
+            nargs="+",
+            help="Set a number of key-value pairs for config_values"
+                 "(do not put spaces before or after the = sign). "
+                 "If a value contains spaces, you should define "
+                 "it with double quotes: "
+                 'foo="this is a sentence". Note that '
+                 "values are always treated as strings.",
+            action=ParseConfigDict,
     )
     config_p.set_defaults(func=cmd_config)
 
