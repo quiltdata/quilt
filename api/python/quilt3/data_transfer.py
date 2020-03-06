@@ -431,7 +431,10 @@ class WorkerContext(object):
         self.run = run
 
 
-def _copy_file_list_internal(file_list, message, callback):
+@retry(stop=stop_after_attempt(MAX_COPY_FILE_LIST_RETRIES),
+       wait=wait_exponential(multiplier=1, min=1, max=10),
+       reraise=True)
+def _copy_file_list_internal(file_list, results, message, callback):
     """
     Takes a list of tuples (src, dest, size) and copies the data in parallel.
     Returns versioned URLs for S3 destinations and regular file URLs for files.
@@ -439,15 +442,6 @@ def _copy_file_list_internal(file_list, message, callback):
     if not file_list:
         return []
 
-    results = _copy_file_list_internal_retry(file_list, [None] * len(file_list), message, callback)
-    assert all(results)
-    return results
-
-
-@retry(stop=stop_after_attempt(MAX_COPY_FILE_LIST_RETRIES),
-       wait=wait_exponential(multiplier=1, min=1, max=10),
-       reraise=True)
-def _copy_file_list_internal_retry(file_list, results, message, callback):
     total_size = sum(size for (_, _, size), result in zip(file_list, results) if result is None)
 
     lock = Lock()
@@ -703,7 +697,7 @@ def copy_file_list(file_list, message=None, callback=None):
         if _looks_like_dir(src) or _looks_like_dir(dest):
             raise ValueError("Directories are not allowed")
 
-    return _copy_file_list_internal(file_list, message, callback)
+    return _copy_file_list_internal(file_list, [None] * len(file_list), message, callback)
 
 
 def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, callback=None):
@@ -736,7 +730,7 @@ def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, call
             size, _ = get_size_and_version(src)
         url_list.append((src, dest, size))
 
-    _copy_file_list_internal(url_list, message, callback)
+    _copy_file_list_internal(url_list, [None] * len(url_list), message, callback)
 
 
 def put_bytes(data: bytes, dest: PhysicalKey):
