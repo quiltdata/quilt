@@ -442,6 +442,8 @@ def _copy_file_list_internal(file_list, results, message, callback):
     if not file_list:
         return []
 
+    assert len(file_list) == len(results)
+
     total_size = sum(size for (_, _, size), result in zip(file_list, results) if result is None)
 
     lock = Lock()
