@@ -437,6 +437,7 @@ class WorkerContext(object):
 def _copy_file_list_internal(file_list, results, message, callback):
     """
     Takes a list of tuples (src, dest, size) and copies the data in parallel.
+    `results` is the list where results will be stored.
     Returns versioned URLs for S3 destinations and regular file URLs for files.
     """
     if not file_list:
