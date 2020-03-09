@@ -142,20 +142,25 @@ export function Head({
           <M.TableCell
             key={col.id}
             sortDirection={ord.column === col ? ord.direction : false}
+            align={col.align}
           >
-            <M.Tooltip
-              title={col.hint || 'Sort'}
-              placement="bottom-start"
-              enterDelay={300}
-            >
-              <M.TableSortLabel
-                active={ord.column === col}
-                direction={ord.direction}
-                onClick={() => ord.change(col)}
+            {col.sortable === false ? (
+              col.label
+            ) : (
+              <M.Tooltip
+                title={col.hint || 'Sort'}
+                placement="bottom-start"
+                enterDelay={300}
               >
-                {col.label}
-              </M.TableSortLabel>
-            </M.Tooltip>
+                <M.TableSortLabel
+                  active={ord.column === col}
+                  direction={ord.direction}
+                  onClick={() => ord.change(col)}
+                >
+                  {col.label}
+                </M.TableSortLabel>
+              </M.Tooltip>
+            )}
           </M.TableCell>
         ))}
         {withInlineActions && <M.TableCell align="right">Actions</M.TableCell>}
