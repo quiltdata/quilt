@@ -30,6 +30,185 @@ values:
   relevance_score=data.get('relevance_score', 0)
 */
 
+const useBucketFieldsStyles = M.makeStyles((t) => ({
+  root: {
+    [t.breakpoints.up('md')]: {
+      display: 'grid',
+      gridAutoFlow: 'column',
+      gridColumnGap: t.spacing(3),
+    },
+  },
+  group: {
+    '& + &': {
+      [t.breakpoints.down('sm')]: {
+        marginTop: t.spacing(2),
+      },
+    },
+    '& > *:first-child': {
+      marginTop: 0,
+    },
+  },
+}))
+
+function BucketFields({ add = false }) {
+  const classes = useBucketFieldsStyles()
+  return (
+    <M.Box className={classes.root}>
+      <M.Box className={classes.group}>
+        <RF.Field
+          component={Form.Field}
+          name="name"
+          label="Name"
+          normalize={R.pipe(R.toLower, R.replace(/[^a-z0-9-.]/g, ''), R.take(63))}
+          validate={[validators.required]}
+          errors={{
+            required: 'Enter a bucket name',
+            conflict: 'Bucket already added',
+          }}
+          fullWidth
+          margin="normal"
+        />
+        <RF.Field
+          component={Form.Field}
+          name="title"
+          label="Title"
+          // TODO: trim
+          normalize={R.pipe(R.replace(/^\s+/g, ''), R.take(256))}
+          validate={[validators.required]}
+          errors={{
+            required: 'Enter a bucket title',
+          }}
+          fullWidth
+          margin="normal"
+        />
+        <RF.Field
+          component={Form.Field}
+          name="iconUrl"
+          label="Icon URL"
+          normalize={R.pipe(R.trim, R.take(1024))}
+          // TODO: preview img
+          fullWidth
+          margin="normal"
+        />
+        <RF.Field
+          component={Form.Field}
+          name="description"
+          label="Description"
+          // TODO: trim down the line
+          normalize={R.pipe(R.replace(/^\s+/g, ''), R.take(1024))}
+          multiline
+          rows={1}
+          rowsMax={3}
+          fullWidth
+          margin="normal"
+        />
+      </M.Box>
+      <M.Box className={classes.group}>
+        <RF.Field
+          component={Form.Field}
+          name="relevanceScore"
+          label="Relevance score"
+          // TODO: some help text / docs link maybe?
+          // TODO: parse int further down the pipeline
+          normalize={R.pipe(
+            R.replace(/[^0-9-]/g, ''),
+            R.replace(/(.+)-+$/g, '$1'),
+            R.take(16),
+          )}
+          validate={[validators.integer]}
+          errors={{
+            integer: 'Enter a valid integer',
+          }}
+          fullWidth
+          margin="normal"
+        />
+        <RF.Field
+          component={Form.Field}
+          name="overviewUrl"
+          label="Overview URL"
+          normalize={R.trim}
+          fullWidth
+          margin="normal"
+        />
+        <RF.Field
+          component={Form.Field}
+          name="tags"
+          label="Tags (comma-separated)"
+          // TODO: process down the line: split, trim, reject empty & repeats
+          fullWidth
+          margin="normal"
+          multiline
+          rows={1}
+          maxRows={3}
+        />
+        <RF.Field
+          component={Form.Field}
+          name="linkedData"
+          // TODO: some help text / docs link maybe?
+          // TODO: validate top level entity is an object?
+          label="Structured data (JSON-LD)"
+          validate={[validators.json]}
+          errors={{
+            json: 'Must be a valid JSON',
+          }}
+          fullWidth
+          multiline
+          rows={1}
+          rowsMax={10}
+          margin="normal"
+        />
+      </M.Box>
+      <M.Box className={classes.group}>
+        <RF.Field
+          component={Form.Field}
+          name="fileExtensionsToIndex"
+          label="File extensions to index (comma-separated)"
+          fullWidth
+          margin="normal"
+        />
+        <RF.Field
+          component={Form.Field}
+          name="scannerParallelShardsDepth"
+          label="Scanner parallel shards depth"
+          validate={[validators.integer]}
+          errors={{
+            integer: 'Enter a valid integer',
+          }}
+          // TODO: parse int further down the pipeline
+          normalize={R.pipe(R.replace(/[^0-9]/g, ''), R.take(16))}
+          fullWidth
+          margin="normal"
+        />
+        <RF.Field
+          component={Form.Field}
+          name="snsNotificationArn"
+          label="SNS notification ARN"
+          fullWidth
+          margin="normal"
+        />
+        <M.Box mt={2}>
+          <RF.Field
+            component={Form.Checkbox}
+            type="checkbox"
+            name="skipMetaDataIndexing"
+            label="Skip metadata indexing"
+          />
+        </M.Box>
+        {add && (
+          <M.Box mt={1}>
+            <RF.Field
+              component={Form.Checkbox}
+              type="checkbox"
+              name="delayScan"
+              label="Delay scan"
+            />
+          </M.Box>
+        )}
+      </M.Box>
+    </M.Box>
+  )
+}
+
 function Add({ close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
@@ -70,136 +249,7 @@ function Add({ close }) {
           <M.DialogTitle>Add a bucket</M.DialogTitle>
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
-              <RF.Field
-                component={Form.Field}
-                name="name"
-                // TODO: properly validate
-                validate={[validators.required]}
-                label="Name"
-                fullWidth
-                margin="normal"
-                errors={{
-                  required: 'Enter a bucket name',
-                  conflict: 'Bucket already added',
-                }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="title"
-                // TODO: properly validate
-                validate={[validators.required]}
-                label="Title"
-                fullWidth
-                margin="normal"
-                errors={{
-                  required: 'Enter a bucket title',
-                }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="description"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="Description"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="iconUrl"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="Icon URL"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="relevanceScore"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                // TODO: some help text / docs link maybe?
-                label="Relevance score"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="overviewUrl"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="Overview URL"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="linkedData"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                // TODO: some help text / docs link maybe?
-                label="Linked data (schema.org)"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              {/* TODO: fancy multi-input or separated by commas */}
-              <RF.Field
-                component={Form.Field}
-                name="tags"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="Tags"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              {/* TODO: fancy multi-input or separated by commas */}
-              <RF.Field
-                component={Form.Field}
-                name="fileExtensionsToIndex"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="File extensions to index"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="scannerParallelShardsDepth"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="Scanner parallel shards depth"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              {/* TODO: use toggle */}
-              <RF.Field
-                component={Form.Field}
-                name="skipMetaDataIndexing"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="Skip metadata indexing"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="snsNotificationArn"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="SNS notification ARN"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
+              <BucketFields add />
               {submitFailed && (
                 <Form.FormError
                   error={error}
@@ -273,122 +323,7 @@ function Edit({ bucket, close }) {
           <M.DialogTitle>Edit the &quot;{bucket.name}&quot; bucket</M.DialogTitle>
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
-              <RF.Field
-                component={Form.Field}
-                name="title"
-                // TODO: properly validate
-                validate={[validators.required]}
-                label="Title"
-                fullWidth
-                margin="normal"
-                errors={{
-                  required: 'Enter a bucket title',
-                }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="description"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="Description"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="iconUrl"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="Icon URL"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="relevanceScore"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="Relevance score"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="overviewUrl"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="Overview URL"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="linkedData"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                // TODO: some help text / docs link maybe?
-                label="Linked data (schema.org)"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              {/* TODO: fancy multi-input or separated by commas */}
-              <RF.Field
-                component={Form.Field}
-                name="tags"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="Tags"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              {/* TODO: fancy multi-input or separated by commas */}
-              <RF.Field
-                component={Form.Field}
-                name="fileExtensionsToIndex"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="File extensions to index"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="scannerParallelShardsDepth"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="Scanner parallel shards depth"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              {/* TODO: use toggle */}
-              <RF.Field
-                component={Form.Field}
-                name="skipMetaDataIndexing"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="Skip metadata indexing"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
-              <RF.Field
-                component={Form.Field}
-                name="snsNotificationArn"
-                // TODO: properly validate
-                // validate={[validators.required]}
-                label="SNS notification ARN"
-                fullWidth
-                margin="normal"
-                // errors={{ }}
-              />
+              <BucketFields />
               {submitFailed && (
                 <Form.FormError
                   error={error}
@@ -476,6 +411,25 @@ const columns = [
     ),
   },
   {
+    id: 'icon',
+    label: 'Icon',
+    sortable: false,
+    align: 'center',
+    getValue: R.prop('iconUrl'),
+    getDisplay: (v) =>
+      !!v && (
+        <M.Box
+          component="img"
+          src={v}
+          alt=""
+          height={40}
+          width={40}
+          mt={-0.25}
+          mb={-0.25}
+        />
+      ),
+  },
+  {
     id: 'title',
     label: 'Title',
     getValue: R.prop('title'),
@@ -544,7 +498,7 @@ function CRUD({ buckets }) {
       title: 'Add bucket',
       icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
-        dialogs.open(({ close }) => <Add {...{ close }} />)
+        dialogs.open(({ close }) => <Add {...{ close }} />, { maxWidth: 'lg' })
       }, [dialogs.open]),
     },
   ]
@@ -561,7 +515,7 @@ function CRUD({ buckets }) {
       title: 'Edit',
       icon: <M.Icon>edit</M.Icon>,
       fn: () => {
-        dialogs.open(({ close }) => <Edit {...{ bucket, close }} />)
+        dialogs.open(({ close }) => <Edit {...{ bucket, close }} />, { maxWidth: 'lg' })
       },
     },
   ]
@@ -577,7 +531,7 @@ function CRUD({ buckets }) {
             {pagination.paginated.map((i) => (
               <M.TableRow hover key={i.name}>
                 {columns.map((col) => (
-                  <M.TableCell key={col.id} {...col.props}>
+                  <M.TableCell key={col.id} align={col.align} {...col.props}>
                     {(col.getDisplay || R.identity)(col.getValue(i), i)}
                   </M.TableCell>
                 ))}
