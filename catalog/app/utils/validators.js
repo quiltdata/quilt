@@ -91,3 +91,25 @@ export const matchesField = (field) => (v, vs) => {
  * @type {Validator}
  */
 export const required = (v) => (v ? undefined : 'required')
+
+/**
+ * Validate that the string represents a valid integer. Error string: 'integer'.
+ *
+ * @type {Validator}
+ */
+export const integer = (v) => (!v || Number.isInteger(Number(v)) ? undefined : 'integer')
+
+/**
+ * Validate that the string is a valid JSON. Error string: 'json'.
+ *
+ * @type {Validator}
+ */
+export const json = (v) => {
+  if (!v) return undefined
+  try {
+    JSON.parse(v)
+    return undefined
+  } catch (e) {
+    return 'json'
+  }
+}
