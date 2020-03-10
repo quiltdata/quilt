@@ -190,6 +190,14 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
         print("Verification failed")
         return 1
 
+
+def cmd_push(name, dir, registry, dest, message):
+    pkg = api.Package()
+    pkg.set_dir('.', dir)
+    pkg.push(name, registry=registry, dest=dest, message=message)
+    print("Successfully pushed the new package")
+
+
 def create_parser():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
@@ -333,6 +341,37 @@ def create_parser():
         action="store_true"
     )
     verify_p.set_defaults(func=cmd_verify)
+
+    # push
+    shorthelp = "Pushes the new package to the remote registry"
+    push_p = subparsers.add_parser("push", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    push_p.add_argument(
+        "name",
+        help="Name of package, in the USER/PKG format",
+        type=str,
+    )
+    push_p.add_argument(
+        "--dir",
+        help="Directory to add to the new package",
+        type=str,
+        required=True,
+    )
+    push_p.add_argument(
+        "--registry",
+        help="Registry where to create the new package. Defaults to the default remote registry.",
+        type=str,
+    )
+    push_p.add_argument(
+        "--dest",
+        help="Where to copy the objects in the package",
+        type=str,
+    )
+    push_p.add_argument(
+        "--message",
+        help="The commit message for the new package",
+        type=str,
+    )
+    push_p.set_defaults(func=cmd_push)
 
     return parser
 
