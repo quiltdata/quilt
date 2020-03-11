@@ -1,4 +1,5 @@
 import memoize from 'lodash/memoize'
+import * as R from 'ramda'
 
 /**
  * @typedef {function} TestFunction
@@ -111,5 +112,20 @@ export const json = (v) => {
     return undefined
   } catch (e) {
     return 'json'
+  }
+}
+
+/**
+ * Validate that the string represents a valid JSON object. Error string: 'jsonObject'.
+ *
+ * @type {Validator}
+ */
+export const jsonObject = (v) => {
+  if (!v) return undefined
+  try {
+    const parsed = JSON.parse(v)
+    return R.is(Object, parsed) ? undefined : 'jsonObject'
+  } catch (e) {
+    return 'jsonObject'
   }
 }
