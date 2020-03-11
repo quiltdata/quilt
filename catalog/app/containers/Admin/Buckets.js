@@ -9,6 +9,7 @@ import * as Notifications from 'containers/Notifications'
 import * as APIConnector from 'utils/APIConnector'
 import * as Dialogs from 'utils/Dialogs'
 import * as Cache from 'utils/ResourceCache'
+import { useTracker } from 'utils/tracking'
 import * as validators from 'utils/validators'
 
 import * as Form from './Form'
@@ -232,6 +233,7 @@ function Add({ close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
   const { push } = Notifications.use()
+  const t = useTracker()
   const onSubmit = React.useCallback(
     async (values) => {
       try {
@@ -243,6 +245,7 @@ function Add({ close }) {
         const b = data.bucketFromJSON(res)
         cache.patchOk(data.BucketsResource, null, R.append(b))
         push(`Bucket "${b.name}" added`)
+        t.track('WEB', { type: 'bucket added' }) // TODO
         close()
       } catch (e) {
         if (APIConnector.HTTPError.is(e, 409, /Bucket already added/)) {
@@ -399,14 +402,15 @@ function Delete({ bucket, close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
   const { push } = Notifications.use()
+  const t = useTracker()
   const doDelete = React.useCallback(async () => {
     close()
     try {
       // optimistically remove the bucket from cache
       cache.patchOk(data.BucketsResource, null, R.reject(R.propEq('name', bucket.name)))
       await req({ endpoint: `/admin/buckets/${bucket.name}`, method: 'DELETE' })
+      t.track('WEB', { type: 'bucket deleted' }) // TODO
     } catch (e) {
-      // TODO: handle errors
       // put the bucket back into cache if it hasnt been deleted properly
       cache.patchOk(data.BucketsResource, null, R.append(bucket))
       push(`Error deleting bucket "${bucket.name}"`)
