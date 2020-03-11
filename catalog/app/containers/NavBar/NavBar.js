@@ -59,6 +59,8 @@ function UserDropdown() {
   const user = reduxHook.useMappedState(selectUser)
   const { urls, paths } = NamedRoutes.use()
   const isProfile = !!useRoute(paths.profile, { exact: true }).match
+  const isAdminUsers = !!useRoute(paths.adminUsers, { exact: true }).match
+  const isAdminBuckets = !!useRoute(paths.adminBuckets, { exact: true }).match
   const [anchor, setAnchor] = React.useState(null)
 
   const open = React.useCallback(
@@ -80,8 +82,18 @@ function UserDropdown() {
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
           {user.isAdmin && (
-            <Item to={urls.admin()} onClick={close} divider>
+            <Item to={urls.adminUsers()} onClick={close} selected={isAdminUsers}>
               <M.Icon fontSize="small">security</M.Icon>&nbsp;Users and roles
+            </Item>
+          )}
+          {user.isAdmin && (
+            <Item
+              to={urls.adminBuckets()}
+              onClick={close}
+              selected={isAdminBuckets}
+              divider
+            >
+              <M.Icon fontSize="small">security</M.Icon>&nbsp;Buckets
             </Item>
           )}
           {cfg.mode === 'OPEN' && (
@@ -141,6 +153,8 @@ function AuthHamburger({ authenticated, waiting, error }) {
   const user = reduxHook.useMappedState(selectUser)
   const { urls, paths } = NamedRoutes.use()
   const isProfile = !!useRoute(paths.profile, { exact: true }).match
+  const isAdminUsers = !!useRoute(paths.adminUsers, { exact: true }).match
+  const isAdminBuckets = !!useRoute(paths.adminBuckets, { exact: true }).match
   const ham = useHam()
   const links = useLinks()
   return ham.render([
@@ -151,10 +165,27 @@ function AuthHamburger({ authenticated, waiting, error }) {
             {userDisplay(user)}
           </M.MenuItem>,
           user.isAdmin && (
-            <Item key="admin" to={urls.admin()} onClick={ham.close}>
+            <Item
+              key="adminUsers"
+              to={urls.adminUsers()}
+              onClick={ham.close}
+              selected={isAdminUsers}
+            >
               <M.Box component="span" pr={2} />
               <M.Icon fontSize="small">security</M.Icon>
               &nbsp;Users and roles
+            </Item>
+          ),
+          user.isAdmin && (
+            <Item
+              key="adminBuckets"
+              to={urls.adminBuckets()}
+              onClick={ham.close}
+              selected={isAdminBuckets}
+            >
+              <M.Box component="span" pr={2} />
+              <M.Icon fontSize="small">security</M.Icon>
+              &nbsp;Buckets
             </Item>
           ),
           cfg.mode === 'OPEN' && (
