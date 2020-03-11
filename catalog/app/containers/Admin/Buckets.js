@@ -15,21 +15,6 @@ import * as Form from './Form'
 import * as Table from './Table'
 import * as data from './data'
 
-/*
-values:
-  title=data['title'],
-  description=data.get('description'),
-  icon_url=data.get('icon_url'),
-  sns_notification_arn=data.get('sns_notification_arn'),
-  scanner_parallel_shards_depth=data.get('scanner_parallel_shards_depth'),
-  schema_org=data.get('schema_org'),
-  overview_url=data.get('overview_url'),
-  skip_meta_data_indexing=data.get('skip_meta_data_indexing'),
-  file_extensions_to_index=data.get('file_extensions_to_index'),
-  tags=data.get('tags'),
-  relevance_score=data.get('relevance_score', 0)
-*/
-
 const useBucketFieldsStyles = M.makeStyles((t) => ({
   root: {
     [t.breakpoints.up('md')]: {
@@ -72,7 +57,6 @@ function BucketFields({ add = false }) {
           component={Form.Field}
           name="title"
           label="Title"
-          // TODO: trim
           normalize={R.pipe(R.replace(/^\s+/g, ''), R.take(256))}
           validate={[validators.required]}
           errors={{
@@ -94,7 +78,6 @@ function BucketFields({ add = false }) {
           component={Form.Field}
           name="description"
           label="Description"
-          // TODO: trim down the line
           normalize={R.pipe(R.replace(/^\s+/g, ''), R.take(1024))}
           multiline
           rows={1}
@@ -109,7 +92,6 @@ function BucketFields({ add = false }) {
           name="relevanceScore"
           label="Relevance score"
           // TODO: some help text / docs link maybe?
-          // TODO: parse int further down the pipeline
           normalize={R.pipe(
             R.replace(/[^0-9-]/g, ''),
             R.replace(/(.+)-+$/g, '$1'),
@@ -134,7 +116,6 @@ function BucketFields({ add = false }) {
           component={Form.Field}
           name="tags"
           label="Tags (comma-separated)"
-          // TODO: process down the line: split, trim, reject empty & repeats
           fullWidth
           margin="normal"
           multiline
@@ -145,11 +126,10 @@ function BucketFields({ add = false }) {
           component={Form.Field}
           name="linkedData"
           // TODO: some help text / docs link maybe?
-          // TODO: validate top level entity is an object?
           label="Structured data (JSON-LD)"
-          validate={[validators.json]}
+          validate={[validators.jsonObject]}
           errors={{
-            json: 'Must be a valid JSON',
+            jsonObject: 'Must be a valid JSON object',
           }}
           fullWidth
           multiline
@@ -174,7 +154,6 @@ function BucketFields({ add = false }) {
           errors={{
             integer: 'Enter a valid integer',
           }}
-          // TODO: parse int further down the pipeline
           normalize={R.pipe(R.replace(/[^0-9]/g, ''), R.take(16))}
           fullWidth
           margin="normal"
@@ -209,22 +188,59 @@ function BucketFields({ add = false }) {
   )
 }
 
+const formToJSON = (values) => {
+  const isMissing = (v) => v == null || v === '' || Number.isNaN(v)
+  const get = (key, onValue = R.identity, onMissing) => {
+    const v = values.get(key)
+    return isMissing(v) ? onMissing : onValue(v)
+  }
+  const json = {
+    name: get('name'),
+    title: get('title', R.trim),
+    icon_url: get('iconUrl', R.identity),
+    description: get('description', R.trim),
+    relevance_score: get('relevanceScore', Number),
+    overview_url: get('overviewUrl'),
+    tags: get(
+      'tags',
+      R.pipe(
+        R.split(','),
+        R.map(R.trim),
+        R.reject((t) => !t),
+        R.uniq,
+      ),
+    ),
+    schema_org: get('linkedData', JSON.parse),
+    file_extensions_to_index: get(
+      'fileExtensionsToIndex',
+      R.pipe(
+        R.split(','),
+        R.map(R.trim),
+        R.reject((t) => !t),
+        R.uniq,
+      ),
+    ),
+    scanner_parallel_shards_depth: get('scannerParallelShardsDepth', Number),
+    sns_notification_arn: get('snsNotificationArn', R.trim),
+    skip_meta_data_indexing: get('skipMetaDataIndexing'),
+    delay_scan: get('delayScan'),
+  }
+  return R.reject(isMissing, json)
+}
+
 function Add({ close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
   const { push } = Notifications.use()
   const onSubmit = React.useCallback(
-    async (valuesI) => {
-      const values = valuesI.toJS()
-      console.log('submit', values)
+    async (values) => {
       try {
         const res = await req({
           endpoint: '/admin/buckets',
           method: 'POST',
-          body: JSON.stringify(data.bucketToJSON(values)),
+          body: JSON.stringify(formToJSON(values)),
         })
         const b = data.bucketFromJSON(res)
-        console.log('res', { res, b })
         cache.patchOk(data.BucketsResource, null, R.append(b))
         push(`Bucket "${b.name}" added`)
         close()
@@ -274,7 +290,7 @@ function Add({ close }) {
               color="primary"
               disabled={submitting || (submitFailed && invalid)}
             >
-              Create
+              Add
             </M.Button>
           </M.DialogActions>
         </>
@@ -292,7 +308,7 @@ function Edit({ bucket, close }) {
         const res = await req({
           endpoint: `/admin/buckets/${bucket.name}`,
           method: 'PUT',
-          body: JSON.stringify(data.bucketToJSON(values.toJS())),
+          body: JSON.stringify(formToJSON(values)),
         })
         const updated = data.bucketFromJSON(res)
         cache.patchOk(
@@ -312,13 +328,28 @@ function Edit({ bucket, close }) {
     [req, cache, close],
   )
 
+  const initialValues = {
+    name: bucket.name,
+    title: bucket.title,
+    iconUrl: bucket.iconUrl,
+    description: bucket.description,
+    relevanceScore: bucket.relevanceScore,
+    overviewUrl: bucket.overviewUrl,
+    tags: (bucket.tags || []).join(', '),
+    linkedData: bucket.linkedData ? JSON.stringify(bucket.linkedData) : undefined,
+    fileExtensionsToIndex: (bucket.fileExtensionsToIndex || []).join(', '),
+    scannerParallelShardsDepth: bucket.scannerParallelShardsDepth,
+    snsNotificationArn: bucket.snsNotificationArn,
+    skipMetaDataIndexing: bucket.skipMetaDataIndexing,
+  }
+
   return (
     <Form.ReduxForm
       form={`Admin.Buckets.Edit(${bucket.name})`}
       onSubmit={onSubmit}
-      initialValues={bucket}
+      initialValues={initialValues}
     >
-      {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
+      {({ handleSubmit, submitting, submitFailed, error, invalid, pristine, reset }) => (
         <>
           <M.DialogTitle>Edit the &quot;{bucket.name}&quot; bucket</M.DialogTitle>
           <M.DialogContent>
@@ -337,6 +368,13 @@ function Edit({ bucket, close }) {
           </M.DialogContent>
           <M.DialogActions>
             <M.Button
+              onClick={() => reset()}
+              color="primary"
+              disabled={pristine || submitting}
+            >
+              Reset
+            </M.Button>
+            <M.Button
               onClick={() => close('cancel')}
               color="primary"
               disabled={submitting}
@@ -346,11 +384,10 @@ function Edit({ bucket, close }) {
             <M.Button
               onClick={handleSubmit}
               color="primary"
-              disabled={submitting || (submitFailed && invalid)}
+              disabled={pristine || submitting || (submitFailed && invalid)}
             >
               Save
             </M.Button>
-            {/* TODO: reset button? */}
           </M.DialogActions>
         </>
       )}
@@ -402,12 +439,17 @@ function Delete({ bucket, close }) {
 const columns = [
   {
     id: 'name',
-    label: 'Name',
+    label: 'Name (relevance)',
     getValue: R.prop('name'),
-    getDisplay: (v) => (
-      <M.Box fontFamily="monospace.fontFamily" component="span">
-        {v}
-      </M.Box>
+    getDisplay: (v, b) => (
+      <span>
+        <M.Box fontFamily="monospace.fontFamily" component="span">
+          {v}
+        </M.Box>{' '}
+        <M.Box color="text.secondary" component="span">
+          ({b.relevanceScore})
+        </M.Box>
+      </span>
     ),
   },
   {
@@ -503,6 +545,9 @@ function CRUD({ buckets }) {
     },
   ]
 
+  const edit = (bucket) => () =>
+    dialogs.open(({ close }) => <Edit {...{ bucket, close }} />, { maxWidth: 'lg' })
+
   const inlineActions = (bucket) => [
     {
       title: 'Delete',
@@ -514,9 +559,7 @@ function CRUD({ buckets }) {
     {
       title: 'Edit',
       icon: <M.Icon>edit</M.Icon>,
-      fn: () => {
-        dialogs.open(({ close }) => <Edit {...{ bucket, close }} />, { maxWidth: 'lg' })
-      },
+      fn: edit(bucket),
     },
   ]
 
@@ -529,13 +572,22 @@ function CRUD({ buckets }) {
           <Table.Head columns={columns} ordering={ordering} withInlineActions />
           <M.TableBody>
             {pagination.paginated.map((i) => (
-              <M.TableRow hover key={i.name}>
+              <M.TableRow
+                hover
+                key={i.name}
+                onClick={edit(i)}
+                style={{ cursor: 'pointer' }}
+              >
                 {columns.map((col) => (
                   <M.TableCell key={col.id} align={col.align} {...col.props}>
                     {(col.getDisplay || R.identity)(col.getValue(i), i)}
                   </M.TableCell>
                 ))}
-                <M.TableCell align="right" padding="none">
+                <M.TableCell
+                  align="right"
+                  padding="none"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Table.InlineActions actions={inlineActions(i)} />
                 </M.TableCell>
               </M.TableRow>

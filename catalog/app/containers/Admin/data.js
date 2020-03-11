@@ -44,28 +44,6 @@ export const bucketFromJSON = (b) => ({
   snsNotificationArn: b.sns_notification_arn,
 })
 
-export const bucketToJSON = R.pipe(
-  (b) => ({
-    name: b.name,
-    title: b.title,
-    description: b.description,
-    icon_url: b.iconUrl,
-    overview_url: b.overviewUrl,
-    schema_org: b.linkedData,
-    relevance_score: b.relevanceScore,
-    tags: b.tags,
-    file_extensions_to_index: b.fileExtensionsToIndex,
-    scanner_parallel_shards_depth: b.scannerParallelShardsDepth,
-    skip_meta_data_indexing: b.skipMetaDataIndexing,
-    sns_notification_arn: b.snsNotificationArn,
-    delay_scan: b.delayScan,
-  }),
-  R.filter((v) => v !== undefined),
-  R.tap((x) => {
-    console.log('to json', x)
-  }),
-)
-
 export const BucketsResource = Cache.createResource({
   name: 'Admin.data.buckets',
   fetch: ({ req }) =>
