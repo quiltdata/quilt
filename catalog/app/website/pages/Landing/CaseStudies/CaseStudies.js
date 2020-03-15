@@ -1,6 +1,9 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import logoAllen from './logo-allencell.png'
+import logoPulse from './logo-pulse.png'
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     background: 'linear-gradient(to right, #30266e, #1b194f)',
@@ -17,6 +20,7 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   study: {
+    backgroundPosition: 'center',
     marginTop: t.spacing(7),
     maxWidth: 500,
     width: `calc(50% - ${t.spacing(6)}px)`,
@@ -35,7 +39,7 @@ export default function CaseStudies() {
           Case studies
         </M.Typography>
         <div className={classes.studies}>
-          <div className={classes.study}>
+          <div className={classes.study} style={{ backgroundImage: `url(${logoAllen})` }}>
             <M.Typography variant="h4" color="textPrimary">
               Distributing terabytes of versioned images to researchers
             </M.Typography>
@@ -56,7 +60,7 @@ export default function CaseStudies() {
               <b>Read more</b>
             </M.Link>
           </div>
-          <div className={classes.study}>
+          <div className={classes.study} style={{ backgroundImage: `url(${logoPulse})` }}>
             <M.Typography variant="h4" color="textPrimary">
               The future of data collaboration in S3
             </M.Typography>
