@@ -1325,8 +1325,32 @@ class PackageTest(QuiltTestCase):
             }
         )
 
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(b'abcdef'),
+            },
+            expected_params={
+                'Bucket': 'my-test-bucket',
+                'Key': '.quilt/named_packages/Quilt/Foo/latest',
+            }
+        )
+
         with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             Package.install('Quilt/Foo', registry='s3://my-test-bucket', dest='package/')
+
+        # make sure import works for an installed named package
+        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
+            Package.install('Quilt/Foo', registry='s3://my-test-bucket')
+
+            with patch('quilt3.Package._browse') as browse_mock:
+                browse_mock.return_value = quilt3.Package()
+
+                from quilt3.data.Quilt import Foo
+
+                assert isinstance(Foo, Package)
+                browse_mock.assert_called_once()
 
     @pytest.mark.usefixtures('isolate_packages_cache')
     @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
