@@ -311,6 +311,8 @@ class PackageEntry(object):
 class Package(object):
     """ In-memory representation of a package """
 
+    use_tqdm = os.getenv('QUILT_USE_TQDM').lower() == 'true'
+
     def __init__(self):
         self._children = {}
         self._meta = {'version': 'v0'}
@@ -713,6 +715,34 @@ class Package(object):
     def _load(cls, readable_file):
         gc.disable()  # Experiments with COCO (650MB manifest) show disabling GC gives us ~2x performance improvement
 
+        def pkg_load(reader, progress=None):
+            meta = reader.read()
+            meta.pop('top_hash', None)  # Obsolete as of PR #130
+            pkg = cls()
+            pkg._meta = meta
+            if progress:
+                progress.update(1)
+
+            for obj in reader:
+                path = cls._split_key(obj.pop('logical_key'))
+                subpkg = pkg._ensure_subpackage(path[:-1])
+                key = path[-1]
+                if not obj.get('physical_keys', None):
+                    # directory-level metadata
+                    subpkg.set_meta(obj['meta'])
+                    continue
+                if key in subpkg._children:
+                    raise PackageException("Duplicate logical key while loading package")
+                subpkg._children[key] = PackageEntry(
+                    PhysicalKey.from_url(obj['physical_keys'][0]),
+                    obj['size'],
+                    obj['hash'],
+                    obj['meta']
+                )
+                if progress:
+                    progress.update(1)
+            return pkg
+
         try:
             line_count = 0
             for _ in readable_file:
@@ -720,30 +750,11 @@ class Package(object):
             readable_file.seek(0)
 
             reader = jsonlines.Reader(readable_file, loads=json.loads)
-            with tqdm(desc="Loading manifest", total=line_count, unit="entries") as tqdm_progress:
-                meta = reader.read()
-                meta.pop('top_hash', None)  # Obsolete as of PR #130
-                pkg = cls()
-                pkg._meta = meta
-                tqdm_progress.update(1)
-
-                for obj in reader:
-                    path = cls._split_key(obj.pop('logical_key'))
-                    subpkg = pkg._ensure_subpackage(path[:-1])
-                    key = path[-1]
-                    if not obj.get('physical_keys', None):
-                        # directory-level metadata
-                        subpkg.set_meta(obj['meta'])
-                        continue
-                    if key in subpkg._children:
-                        raise PackageException("Duplicate logical key while loading package")
-                    subpkg._children[key] = PackageEntry(
-                        PhysicalKey.from_url(obj['physical_keys'][0]),
-                        obj['size'],
-                        obj['hash'],
-                        obj['meta']
-                    )
-                    tqdm_progress.update(1)
+            if cls.use_tqdm:
+                with tqdm(desc="Loading manifest", total=line_count, unit="entries") as tqdm_progress:
+                    pkg = pkg_load(reader, tqdm_progress)
+            else:
+                pkg = pkg_load(reader)
         finally:
             gc.enable()
         return pkg
