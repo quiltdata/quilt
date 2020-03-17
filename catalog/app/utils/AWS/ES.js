@@ -16,12 +16,9 @@ const getRegion = R.pipe(
   R.defaultTo('us-east-1'),
 )
 
-const noop = () => {}
-
-export const useES = ({ sign = false }) => {
+export const useES = () => {
   const { apiGatewayEndpoint: ep } = useConfig()
-  const requestSigner = Signer.useRequestSigner()
-  const signRequest = sign ? requestSigner : noop
+  const signRequest = Signer.useRequestSigner()
 
   const endpoint = React.useMemo(() => new AWS.Endpoint(ep), [ep])
   const region = React.useMemo(() => getRegion(endpoint), [ep])
