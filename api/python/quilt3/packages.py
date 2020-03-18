@@ -5,6 +5,7 @@ import io
 import json
 import pathlib
 import os
+import re
 import shutil
 import time
 from multiprocessing import Pool
@@ -12,6 +13,7 @@ import uuid
 import warnings
 
 import jsonlines
+from tenacity import retry, stop_after_attempt, wait_exponential
 from tqdm import tqdm
 
 from .data_transfer import (
@@ -23,11 +25,12 @@ from .formats import FormatRegistry
 from .telemetry import ApiTelemetry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
-    validate_package_name, quiltignore_filter, validate_key, extract_file_extension
-)
+    validate_package_name, quiltignore_filter, validate_key, extract_file_extension,
+    parse_sub_package_name)
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
     user_is_configured_to_custom_stack, catalog_package_url
 
+MAX_FIX_HASH_RETRIES = 3
 
 
 def hash_file(readable_file):
@@ -390,7 +393,9 @@ class Package(object):
         Installs a named package to the local registry and downloads its files.
 
         Args:
-            name(str): Name of package to install.
+            name(str): Name of package to install. It also can be passed as NAME/PATH,
+                in this case only the sub-package or the entry specified by PATH will
+                be downloaded.
             registry(str): Registry where package is located. 
                 Defaults to the default remote registry.
             top_hash(str): Hash of package to install. Defaults to latest.
@@ -433,12 +438,26 @@ class Package(object):
                     f"'build' instead."
                 )
 
+        parts = parse_sub_package_name(name)
+        if parts and parts[1]:
+            name, subpkg_key = parts
+            validate_key(subpkg_key)
+        else:
+            subpkg_key = None
+
         pkg = cls._browse(name=name, registry=registry, top_hash=top_hash)
         message = pkg._meta.get('message', None)  # propagate the package message
 
         file_list = []
 
-        for logical_key, entry in pkg.walk():
+        if subpkg_key is not None:
+            if subpkg_key not in pkg:
+                raise QuiltException(f"Package {name} doesn't contain {subpkg_key!r}.")
+            entry = pkg[subpkg_key]
+            entries = entry.walk() if isinstance(entry, Package) else ((subpkg_key.split('/')[-1], entry),)
+        else:
+            entries = pkg.walk()
+        for logical_key, entry in entries:
             # Copy the datafiles in the package.
             physical_key = entry.physical_key
 
@@ -518,7 +537,7 @@ class Package(object):
         return cls._browse(name=name, registry=registry, top_hash=top_hash)
 
     @classmethod
-    def _browse(cls, name, registry, top_hash):
+    def _browse(cls, name, registry=None, top_hash=None):
         validate_package_name(name)
         if registry is None:
             registry = get_from_config('default_local_registry')
@@ -848,21 +867,35 @@ class Package(object):
         self._meta['user_meta'] = meta
         return self
 
+    @retry(stop=stop_after_attempt(MAX_FIX_HASH_RETRIES),
+           wait=wait_exponential(multiplier=1, min=1, max=10),
+           reraise=True)
     def _fix_sha256(self):
-        entries = [entry for key, entry in self.walk() if entry.hash is None]
-        if not entries:
-            return
+        """
+        Calculate and set missing hash values
+        """
+        self._incomplete_entries = [entry for key, entry in self.walk() if entry.hash is None]
 
         physical_keys = []
         sizes = []
-        for entry in entries:
+        for entry in self._incomplete_entries:
             physical_keys.append(entry.physical_key)
             sizes.append(entry.size)
 
         results = calculate_sha256(physical_keys, sizes)
+        
+        entries_w_missing_hash = []
+        for entry, obj_hash in zip(self._incomplete_entries, results):
+            if obj_hash is None:
+                entries_w_missing_hash.append(entry)
+            else:
+                entry.hash = dict(type='SHA256', value=obj_hash)
 
-        for entry, obj_hash in zip(entries, results):
-            entry.hash = dict(type='SHA256', value=obj_hash)
+        self._incomplete_entries = entries_w_missing_hash
+        if self._incomplete_entries:
+            incomplete_manifest_path = self._dump_manifest_to_scratch()
+            msg = "Unable to reach S3 for some hash values. Incomplete manifest saved to {path}."
+            raise PackageException(msg.format(path=incomplete_manifest_path))
 
     def _set_commit_message(self, msg):
         """
@@ -885,7 +918,19 @@ class Package(object):
 
         self._meta.update({'message': msg})
 
-
+    def _dump_manifest_to_scratch(self):
+        registry = get_from_config('default_local_registry')
+        registry_parsed = PhysicalKey.from_url(registry)
+        pkg_manifest_file = registry_parsed.join("scratch").join(str(int(time.time())))
+            
+        manifest = io.BytesIO()
+        self._dump(manifest)
+        put_bytes(
+            manifest.getvalue(),
+            pkg_manifest_file
+        )
+        return pkg_manifest_file.path
+        
     @ApiTelemetry("package.build")
     def build(self, name, registry=None, message=None):
         """

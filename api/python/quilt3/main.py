@@ -30,6 +30,15 @@ def cmd_config(catalog_url):
     else:
         api.config(catalog_url)
 
+def cmd_config_default_registry(default_remote_registry):
+    """
+    Configure the default remote registry for quilt3
+    """
+    api.config(default_remote_registry=default_remote_registry)
+    print(f"Successfully set the default remote registry to {default_remote_registry}")
+
+
+
 def _test_url(url):
     try:
         response = requests.get(url)
@@ -181,6 +190,14 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
         print("Verification failed")
         return 1
 
+
+def cmd_push(name, dir, registry, dest, message):
+    pkg = api.Package()
+    pkg.set_dir('.', dir)
+    pkg.push(name, registry=registry, dest=dest, message=message)
+    print("Successfully pushed the new package")
+
+
 def create_parser():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
@@ -215,6 +232,16 @@ def create_parser():
     )
     config_p.set_defaults(func=cmd_config)
 
+    # config-default-registry
+    shorthelp = "Configure default remote registry for Quilt"
+    config_p = subparsers.add_parser("config-default-remote-registry", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    config_p.add_argument(
+            "default_remote_registry",
+            help="The default remote registry to use, e.g. s3://quilt-ml",
+            type=str
+    )
+    config_p.set_defaults(func=cmd_config_default_registry)
+
     # catalog
     shorthelp = "Run Quilt catalog locally"
     catalog_p = subparsers.add_parser("catalog", description=shorthelp, help=shorthelp, allow_abbrev=False)
@@ -243,7 +270,7 @@ def create_parser():
     install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp, allow_abbrev=False)
     install_p.add_argument(
         "name",
-        help="Name of package, in the USER/PKG format",
+        help="Name of package, in the USER/PKG[/PATH] format",
         type=str,
     )
     install_p.add_argument(
@@ -310,10 +337,41 @@ def create_parser():
     )
     verify_p.add_argument(
         "--extra-files-ok",
-        help="Directory to verify",
+        help="Whether extra files in the directory should cause a failure",
         action="store_true"
     )
     verify_p.set_defaults(func=cmd_verify)
+
+    # push
+    shorthelp = "Pushes the new package to the remote registry"
+    push_p = subparsers.add_parser("push", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    push_p.add_argument(
+        "name",
+        help="Name of package, in the USER/PKG format",
+        type=str,
+    )
+    push_p.add_argument(
+        "--dir",
+        help="Directory to add to the new package",
+        type=str,
+        required=True,
+    )
+    push_p.add_argument(
+        "--registry",
+        help="Registry where to create the new package. Defaults to the default remote registry.",
+        type=str,
+    )
+    push_p.add_argument(
+        "--dest",
+        help="Where to copy the objects in the package",
+        type=str,
+    )
+    push_p.add_argument(
+        "--message",
+        help="The commit message for the new package",
+        type=str,
+    )
+    push_p.set_defaults(func=cmd_push)
 
     return parser
 

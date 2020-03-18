@@ -87,7 +87,8 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                 s3_client=s3_client,
                 version_id=version_id
             )
-            content = extract_parquet(get_bytes(obj["Body"], compression), as_html=False)[0]
+            body, info = extract_parquet(get_bytes(obj["Body"], compression), as_html=False)
+            content = trim_to_bytes(f"{str(info)}\n{body}", ELASTIC_LIMIT_BYTES)
         else:
             content = get_plain_text(
                 bucket,

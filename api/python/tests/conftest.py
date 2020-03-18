@@ -80,3 +80,9 @@ def set_temporary_working_dir(request, tmpdir):
         os.chdir(orig_dir)
 
     request.addfinalizer(teardown)
+
+
+@pytest.fixture
+def isolate_packages_cache(tmp_path):
+    with mock.patch('quilt3.packages.CACHE_PATH', tmp_path):
+        yield

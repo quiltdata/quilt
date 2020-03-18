@@ -3,8 +3,7 @@ from datetime import datetime, timedelta, timezone
 import numpy as np
 import pytest
 import responses
-from ruamel.yaml import YAML
-
+import yaml
 import quilt3 as he
 from quilt3 import util
 
@@ -26,8 +25,8 @@ class TestAPI(QuiltTestCase):
 
         he.config('https://foo.bar')
 
-        yaml = YAML()
-        config = yaml.load(util.CONFIG_PATH)
+        with open(util.CONFIG_PATH, 'r') as stream:
+            config = yaml.safe_load(stream)
 
         # These come from CONFIG_TEMPLATE, not the mocked config file.
         content['default_local_registry'] = util.BASE_PATH.as_uri() + '/packages'

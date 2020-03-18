@@ -7,7 +7,6 @@ import Pagination from 'components/Pagination2'
 import * as SearchResults from 'components/SearchResults'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
-import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -53,12 +52,9 @@ function Hits({ hits, page, scrollRef, makePageUrl }) {
 }
 
 function Results({ bucket, query, page, makePageUrl }) {
-  const cfg = Config.useConfig()
-  const es = AWS.ES.use({ sign: cfg.shouldSign(bucket) })
+  const es = AWS.ES.use()
   const scrollRef = React.useRef(null)
-
   const data = Data.use(search, { es, buckets: [bucket], query })
-
   return data.case({
     _: () => (
       <Delay alwaysRender>

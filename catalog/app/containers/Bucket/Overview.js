@@ -1154,8 +1154,7 @@ export default function Overview({
   },
 }) {
   const s3req = AWS.S3.useRequest()
-  const { shouldSign } = Config.useConfig()
-  const es = AWS.ES.use({ sign: shouldSign(bucket) })
+  const es = AWS.ES.use()
   const cfg = BucketConfig.useCurrentBucketConfig()
   const inStack = !!cfg
   const overviewUrl = cfg && cfg.overviewUrl
