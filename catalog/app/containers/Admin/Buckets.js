@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 import * as Pagination from 'components/Pagination'
 import * as Notifications from 'containers/Notifications'
 import * as APIConnector from 'utils/APIConnector'
+import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
 import * as Cache from 'utils/ResourceCache'
 import { useTracker } from 'utils/tracking'
@@ -17,34 +18,36 @@ import * as Table from './Table'
 import * as data from './data'
 
 const useBucketFieldsStyles = M.makeStyles((t) => ({
-  root: {
-    [t.breakpoints.up('md')]: {
-      display: 'grid',
-      gridAutoFlow: 'column',
-      gridColumnGap: t.spacing(3),
-    },
-  },
   group: {
-    '& + &': {
-      [t.breakpoints.down('sm')]: {
-        marginTop: t.spacing(2),
-      },
-    },
     '& > *:first-child': {
       marginTop: 0,
     },
+  },
+  panel: {
+    margin: '0 !important',
+    '&::before': {
+      content: 'none',
+    },
+  },
+  panelSummary: {
+    padding: 0,
+    minHeight: 'auto !important',
+  },
+  panelSummaryContent: {
+    margin: `${t.spacing(1)}px 0 !important`,
   },
 }))
 
 function BucketFields({ add = false }) {
   const classes = useBucketFieldsStyles()
   return (
-    <M.Box className={classes.root}>
-      <M.Box className={classes.group}>
+    <M.Box>
+      <M.Box className={classes.group} mt={-1} pb={2}>
         <RF.Field
           component={Form.Field}
           name="name"
           label="Name"
+          placeholder="Enter an S3 bucket name"
           normalize={R.pipe(R.toLower, R.replace(/[^a-z0-9-.]/g, ''), R.take(63))}
           validate={[validators.required]}
           errors={{
@@ -58,6 +61,7 @@ function BucketFields({ add = false }) {
           component={Form.Field}
           name="title"
           label="Title"
+          placeholder='e.g. "Production analytics data"'
           normalize={R.pipe(R.replace(/^\s+/g, ''), R.take(256))}
           validate={[validators.required]}
           errors={{
@@ -70,8 +74,8 @@ function BucketFields({ add = false }) {
           component={Form.Field}
           name="iconUrl"
           label="Icon URL"
+          placeholder="e.g. https://some-cdn.com/icon.png"
           normalize={R.pipe(R.trim, R.take(1024))}
-          // TODO: preview img
           fullWidth
           margin="normal"
         />
@@ -87,104 +91,126 @@ function BucketFields({ add = false }) {
           margin="normal"
         />
       </M.Box>
-      <M.Box className={classes.group}>
-        <RF.Field
-          component={Form.Field}
-          name="relevanceScore"
-          label="Relevance score"
-          // TODO: some help text / docs link maybe?
-          normalize={R.pipe(
-            R.replace(/[^0-9-]/g, ''),
-            R.replace(/(.+)-+$/g, '$1'),
-            R.take(16),
-          )}
-          validate={[validators.integer]}
-          errors={{
-            integer: 'Enter a valid integer',
+      <M.ExpansionPanel elevation={0} className={classes.panel}>
+        <M.ExpansionPanelSummary
+          expandIcon={<M.Icon>expand_more</M.Icon>}
+          classes={{
+            root: classes.panelSummary,
+            content: classes.panelSummaryContent,
           }}
-          fullWidth
-          margin="normal"
-        />
-        <RF.Field
-          component={Form.Field}
-          name="overviewUrl"
-          label="Overview URL"
-          normalize={R.trim}
-          fullWidth
-          margin="normal"
-        />
-        <RF.Field
-          component={Form.Field}
-          name="tags"
-          label="Tags (comma-separated)"
-          fullWidth
-          margin="normal"
-          multiline
-          rows={1}
-          maxRows={3}
-        />
-        <RF.Field
-          component={Form.Field}
-          name="linkedData"
-          // TODO: some help text / docs link maybe?
-          label="Structured data (JSON-LD)"
-          validate={[validators.jsonObject]}
-          errors={{
-            jsonObject: 'Must be a valid JSON object',
-          }}
-          fullWidth
-          multiline
-          rows={1}
-          rowsMax={10}
-          margin="normal"
-        />
-      </M.Box>
-      <M.Box className={classes.group}>
-        <RF.Field
-          component={Form.Field}
-          name="fileExtensionsToIndex"
-          label="File extensions to index (comma-separated)"
-          fullWidth
-          margin="normal"
-        />
-        <RF.Field
-          component={Form.Field}
-          name="scannerParallelShardsDepth"
-          label="Scanner parallel shards depth"
-          validate={[validators.integer]}
-          errors={{
-            integer: 'Enter a valid integer',
-          }}
-          normalize={R.pipe(R.replace(/[^0-9]/g, ''), R.take(16))}
-          fullWidth
-          margin="normal"
-        />
-        <RF.Field
-          component={Form.Field}
-          name="snsNotificationArn"
-          label="SNS notification ARN"
-          fullWidth
-          margin="normal"
-        />
-        <M.Box mt={2}>
+        >
+          <M.Typography variant="h6">Metadata</M.Typography>
+        </M.ExpansionPanelSummary>
+        <M.Box className={classes.group} pt={1} pb={2}>
           <RF.Field
-            component={Form.Checkbox}
-            type="checkbox"
-            name="skipMetaDataIndexing"
-            label="Skip metadata indexing"
+            component={Form.Field}
+            name="relevanceScore"
+            label="Relevance score"
+            placeholder="-1 to hide, 0 to sort first, 1 or higher to sort later"
+            normalize={R.pipe(
+              R.replace(/[^0-9-]/g, ''),
+              R.replace(/(.+)-+$/g, '$1'),
+              R.take(16),
+            )}
+            validate={[validators.integer]}
+            errors={{
+              integer: 'Enter a valid integer',
+            }}
+            fullWidth
+            margin="normal"
+          />
+          <RF.Field
+            component={Form.Field}
+            name="tags"
+            label="Tags (comma-separated)"
+            placeholder='e.g. "geospatial", for bucket discovery'
+            fullWidth
+            margin="normal"
+            multiline
+            rows={1}
+            maxRows={3}
+          />
+          <RF.Field
+            component={Form.Field}
+            name="overviewUrl"
+            label="Overview URL"
+            normalize={R.trim}
+            fullWidth
+            margin="normal"
+          />
+          <RF.Field
+            component={Form.Field}
+            name="linkedData"
+            label="Structured data (JSON-LD)"
+            validate={[validators.jsonObject]}
+            errors={{
+              jsonObject: 'Must be a valid JSON object',
+            }}
+            fullWidth
+            multiline
+            rows={1}
+            rowsMax={10}
+            margin="normal"
           />
         </M.Box>
-        {add && (
-          <M.Box mt={1}>
+      </M.ExpansionPanel>
+      <M.ExpansionPanel elevation={0} className={classes.panel}>
+        <M.ExpansionPanelSummary
+          expandIcon={<M.Icon>expand_more</M.Icon>}
+          classes={{
+            root: classes.panelSummary,
+            content: classes.panelSummaryContent,
+          }}
+        >
+          <M.Typography variant="h6">Indexing and notifications</M.Typography>
+        </M.ExpansionPanelSummary>
+        <M.Box className={classes.group} pt={1}>
+          <RF.Field
+            component={Form.Field}
+            name="fileExtensionsToIndex"
+            label="File extensions to index (comma-separated)"
+            fullWidth
+            margin="normal"
+          />
+          <RF.Field
+            component={Form.Field}
+            name="scannerParallelShardsDepth"
+            label="Scanner parallel shards depth"
+            validate={[validators.integer]}
+            errors={{
+              integer: 'Enter a valid integer',
+            }}
+            normalize={R.pipe(R.replace(/[^0-9]/g, ''), R.take(16))}
+            fullWidth
+            margin="normal"
+          />
+          <RF.Field
+            component={Form.Field}
+            name="snsNotificationArn"
+            label="SNS notification ARN"
+            fullWidth
+            margin="normal"
+          />
+          <M.Box mt={2}>
             <RF.Field
               component={Form.Checkbox}
               type="checkbox"
-              name="delayScan"
-              label="Delay scan"
+              name="skipMetaDataIndexing"
+              label="Skip metadata indexing"
             />
           </M.Box>
-        )}
-      </M.Box>
+          {add && (
+            <M.Box mt={1}>
+              <RF.Field
+                component={Form.Checkbox}
+                type="checkbox"
+                name="delayScan"
+                label="Delay scan"
+              />
+            </M.Box>
+          )}
+        </M.Box>
+      </M.ExpansionPanel>
     </M.Box>
   )
 }
@@ -281,6 +307,15 @@ function Add({ close }) {
             </form>
           </M.DialogContent>
           <M.DialogActions>
+            {submitting && (
+              <Delay>
+                {() => (
+                  <M.Box flexGrow={1} display="flex" pl={2}>
+                    <M.CircularProgress size={24} />
+                  </M.Box>
+                )}
+              </Delay>
+            )}
             <M.Button
               onClick={() => close('cancel')}
               color="primary"
@@ -370,6 +405,15 @@ function Edit({ bucket, close }) {
             </form>
           </M.DialogContent>
           <M.DialogActions>
+            {submitting && (
+              <Delay>
+                {() => (
+                  <M.Box flexGrow={1} display="flex" pl={2}>
+                    <M.CircularProgress size={24} />
+                  </M.Box>
+                )}
+              </Delay>
+            )}
             <M.Button
               onClick={() => reset()}
               color="primary"
@@ -544,13 +588,13 @@ function CRUD({ buckets }) {
       title: 'Add bucket',
       icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
-        dialogs.open(({ close }) => <Add {...{ close }} />, { maxWidth: 'lg' })
+        dialogs.open(({ close }) => <Add {...{ close }} />)
       }, [dialogs.open]),
     },
   ]
 
   const edit = (bucket) => () =>
-    dialogs.open(({ close }) => <Edit {...{ bucket, close }} />, { maxWidth: 'lg' })
+    dialogs.open(({ close }) => <Edit {...{ bucket, close }} />)
 
   const inlineActions = (bucket) => [
     {

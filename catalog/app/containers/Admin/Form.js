@@ -2,12 +2,11 @@ import * as React from 'react'
 import * as RF from 'redux-form/es/immutable'
 import * as M from '@material-ui/core'
 
-export function Field({ input, meta, errors, label, ...rest }) {
+export function Field({ input, meta, errors, helperText, ...rest }) {
   const error = meta.submitFailed && meta.error
   const props = {
     error: !!error,
-    // TODO: put error into help text or smth
-    label: error ? errors[error] || error : label,
+    helperText: error ? errors[error] || error : helperText,
     disabled: meta.submitting || meta.submitSucceeded,
     ...input,
     ...rest,
