@@ -271,7 +271,7 @@ function Add({ close }) {
         const b = data.bucketFromJSON(res)
         cache.patchOk(data.BucketsResource, null, R.append(b))
         push(`Bucket "${b.name}" added`)
-        t.track('WEB', { type: 'bucket added' }) // TODO
+        t.track('WEB', { type: 'admin', action: 'bucket add', bucket: b.name })
         close()
       } catch (e) {
         if (APIConnector.HTTPError.is(e, 409, /Bucket already added/)) {
@@ -453,7 +453,7 @@ function Delete({ bucket, close }) {
       // optimistically remove the bucket from cache
       cache.patchOk(data.BucketsResource, null, R.reject(R.propEq('name', bucket.name)))
       await req({ endpoint: `/admin/buckets/${bucket.name}`, method: 'DELETE' })
-      t.track('WEB', { type: 'bucket deleted' }) // TODO
+      t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
     } catch (e) {
       // put the bucket back into cache if it hasnt been deleted properly
       cache.patchOk(data.BucketsResource, null, R.append(bucket))
