@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 from .data_transfer import (
     calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_version,
-    list_object_versions, list_url, put_bytes
+    list_object_versions, list_url, put_bytes, USE_TQDM
 )
 from .exceptions import PackageException
 from .formats import FormatRegistry
@@ -310,8 +310,6 @@ class PackageEntry(object):
 
 class Package(object):
     """ In-memory representation of a package """
-
-    use_tqdm = os.getenv('QUILT_USE_TQDM').lower() == 'true'
 
     def __init__(self):
         self._children = {}
@@ -750,7 +748,7 @@ class Package(object):
             readable_file.seek(0)
 
             reader = jsonlines.Reader(readable_file, loads=json.loads)
-            if cls.use_tqdm:
+            if USE_TQDM:
                 with tqdm(desc="Loading manifest", total=line_count, unit="entries") as tqdm_progress:
                     pkg = pkg_load(reader, tqdm_progress)
             else:

@@ -27,7 +27,7 @@ from .util import PhysicalKey, QuiltException
 
 
 MAX_COPY_FILE_LIST_RETRIES = 3
-use_tqdm = os.getenv('QUILT_USE_TQDM').lower() == 'true'
+USE_TQDM = os.getenv('QUILT_USE_TQDM', '').lower() == 'true'
 
 
 class S3Api(Enum):
@@ -537,7 +537,7 @@ def _copy_file_list_internal(file_list, results, message, callback):
             # Make sure all tasks exit quickly if the main thread exits before they're done.
             stp = True
 
-    if use_tqdm:
+    if USE_TQDM:
         with tqdm(desc=message, total=total_size, unit='B', unit_scale=True) as progress, \
              ThreadPoolExecutor(s3_transfer_config.max_request_concurrency) as executor:
             copy_internal(stopped, progress)
@@ -811,7 +811,7 @@ def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
 
     total_size = sum(sizes)
 
-    if use_tqdm:
+    if USE_TQDM:
         with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True) as progress:
             results = _calculate_sha256(sizes, src_list, progress)
     else:
