@@ -16,6 +16,8 @@ generate:
     - quilt3.list_package_versions
     - quilt3.list_packages
     - quilt3.search
+    - quilt3.login
+    - quilt3.logout
 # Uncomment the following two lines in include these classes directly in api.md
 #    - Bucket+
 #    - Package+

@@ -110,3 +110,15 @@ a list of objects with the following structure:
 }, ...]
 ```
 
+
+## login()  {#login}
+
+Authenticate.
+
+Launches a web browser and asks the user for a token.
+
+
+## logout()  {#logout}
+
+Become anonymous. Useful for testing.
+
