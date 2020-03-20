@@ -20,6 +20,23 @@ const useStyles = M.makeStyles((t) => ({
       gridTemplateColumns: 'auto',
     },
   },
+  add: {
+    alignItems: 'center',
+    border: '2px dashed #2f306e',
+    borderRadius: t.spacing(2),
+    color: t.palette.tertiary.main,
+    cursor: 'pointer',
+    display: 'flex',
+    justifyContent: 'center',
+    paddingBottom: 'calc(50% - 2rem - 2px)',
+    paddingTop: 'calc(50% - 2rem - 2px)',
+    '&:hover': {
+      background: fade(t.palette.tertiary.main, 0.04),
+    },
+    '& > span': {
+      fontSize: '4rem',
+    },
+  },
   bucket: {
     background: 'linear-gradient(to top, #1f2151, #2f306e)',
     borderRadius: t.spacing(2),
@@ -81,7 +98,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default React.forwardRef(function BucketGrid(
-  { buckets, onTagClick, tagIsMatching = () => false },
+  { buckets, onTagClick, tagIsMatching = () => false, showAddLink = false },
   ref,
 ) {
   const classes = useStyles()
@@ -118,6 +135,11 @@ export default React.forwardRef(function BucketGrid(
           )}
         </div>
       ))}
+      {showAddLink && (
+        <Link className={classes.add} to={urls.adminBuckets()}>
+          <M.Icon>add</M.Icon>
+        </Link>
+      )}
     </div>
   )
 })

@@ -1,9 +1,11 @@
 import * as React from 'react'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import Pagination from 'components/Pagination2'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as NamedRoutes from 'utils/NamedRoutes'
 import usePrevious from 'utils/usePrevious'
 
 import Backlight from 'website/components/Backgrounds/Backlight1'
@@ -53,6 +55,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Buckets() {
   const classes = useStyles()
   const buckets = BucketConfig.useRelevantBucketConfigs()
+  const { urls } = NamedRoutes.use()
   const [page, setPage] = React.useState(1)
   const scrollRef = React.useRef(null)
 
@@ -69,8 +72,6 @@ export default function Buckets() {
     }
   })
 
-  if (!buckets.length) return null
-
   return (
     <div className={classes.root}>
       <Backlight style={{ opacity: 0.5 }} />
@@ -79,16 +80,34 @@ export default function Buckets() {
           Explore your buckets
         </M.Typography>
         <M.Box mt={4} />
-        <BucketGrid buckets={paginated} ref={scrollRef} />
+        <BucketGrid
+          buckets={paginated}
+          ref={scrollRef}
+          showAddLink={buckets.length <= 2}
+        />
         <div className={classes.controls}>
-          <M.Box mt={4}>
-            <M.Button
-              variant="contained"
-              color="secondary"
-              href="https://open.quiltdata.com/"
-            >
-              Browse Example Buckets
-            </M.Button>
+          <M.Box mt={2}>
+            {buckets.length > 2 && (
+              <M.Box mt={2} mr={2} display="inline-block">
+                <M.Button
+                  variant="contained"
+                  color="primary"
+                  component={Link}
+                  to={urls.adminBuckets()}
+                >
+                  Add Bucket
+                </M.Button>
+              </M.Box>
+            )}
+            <M.Box mt={2} display="inline-block">
+              <M.Button
+                variant="contained"
+                color="secondary"
+                href="https://open.quiltdata.com/"
+              >
+                Browse Example Buckets
+              </M.Button>
+            </M.Box>
           </M.Box>
           {pages > 1 && (
             <Pagination
