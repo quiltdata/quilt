@@ -113,12 +113,13 @@ a list of objects with the following structure:
 
 ## login()  {#login}
 
-Authenticate.
+Authenticate to your Quilt stack and assume the role assigned to you by
+your stack administrator. Not required if you have existing AWS credentials.
 
 Launches a web browser and asks the user for a token.
 
 
 ## logout()  {#logout}
 
-Become anonymous. Useful for testing.
+Do not use Quilt credentials. Useful if you have existing AWS credentials.
 
