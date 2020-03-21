@@ -6,6 +6,8 @@ import * as M from '@material-ui/core'
 import * as Pagination from 'components/Pagination'
 import { readableBytes } from 'utils/string'
 import tagged from 'utils/tagged'
+import useDebouncedInput from 'utils/useDebouncedInput'
+import usePrevious from 'utils/usePrevious'
 
 export const ListingItem = tagged([
   'Dir', // { name, to }
@@ -68,7 +70,8 @@ const computeStats = R.reduce(
 
 const useStatsStyles = M.makeStyles((t) => ({
   root: {
-    background: t.palette.grey[100],
+    alignItems: 'center',
+    borderBottom: `1px solid ${t.palette.divider}`,
     display: 'flex',
     flexWrap: 'wrap',
     padding: t.spacing(1),
@@ -87,11 +90,36 @@ const useStatsStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Stats({ items, truncated }) {
+function Stats({ items, filtering, truncated }) {
   const classes = useStatsStyles()
   const stats = React.useMemo(() => computeStats(items), [items])
+
   return (
     <div className={classes.root}>
+      <M.Box position="relative">
+        <M.InputBase
+          // TODO: use autosizing input
+          // TODO: better styling
+          {...filtering.input}
+          placeholder="Filter files and directories"
+          // classes={{ input: classes.input }}
+          fullWidth
+          startAdornment={<M.Icon className={classes.searchIcon}>search</M.Icon>}
+          endAdornment={
+            <M.Fade in={!!filtering.input.value}>
+              <M.Box
+                position="absolute"
+                right={-4}
+                component={M.IconButton}
+                onClick={() => filtering.set('')}
+              >
+                <M.Icon>clear</M.Icon>
+              </M.Box>
+            </M.Fade>
+          }
+        />
+      </M.Box>
+      <span className={classes.spacer} />
       <span>{stats.dirs} folders</span>
       <span className={classes.divider}> | </span>
       <span>
@@ -104,8 +132,12 @@ function Stats({ items, truncated }) {
         {readableBytes(stats.size)}
       </span>
       {truncated && <span className={classes.truncated}>(truncated)</span>}
-      <span className={classes.spacer} />
-      {!!stats.modified && <span>Last modified {stats.modified.toLocaleString()}</span>}
+      {!!stats.modified && (
+        <>
+          <span className={classes.divider}> | </span>
+          <span>Last modified {stats.modified.toLocaleString()}</span>
+        </>
+      )}
     </div>
   )
 }
@@ -152,7 +184,32 @@ export default function Listing({ items, truncated = false, locked = false }) {
     if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
   })
 
-  const pagination = Pagination.use(items, { perPage: 25, onChange: scroll })
+  const filtering = useDebouncedInput('', 200)
+  const filtered = React.useMemo(
+    () =>
+      filtering.value
+        ? items.filter(
+            R.pipe(
+              ListingItem.case({
+                Dir: R.prop('name'),
+                File: R.prop('name'),
+              }),
+              (name) =>
+                name === '..' ||
+                name.toLowerCase().includes(filtering.value.toLowerCase()),
+            ),
+          )
+        : items,
+    [filtering.value, items],
+  )
+
+  usePrevious(items, (prevItems) => {
+    if (!R.equals(items, prevItems)) {
+      filtering.set('')
+    }
+  })
+
+  const pagination = Pagination.use(filtered, { perPage: 25, onChange: scroll })
 
   return (
     <M.Card>
@@ -167,8 +224,9 @@ export default function Listing({ items, truncated = false, locked = false }) {
             No files
           </M.Typography>
         ) : (
+          // TODO: handle empty filtered set (no matching files)
           <>
-            <Stats items={items} truncated={truncated} />
+            <Stats items={filtered} filtering={filtering} truncated={truncated} />
             <div ref={scrollRef} />
             {pagination.paginated.map(
               ListingItem.case({
