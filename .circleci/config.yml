@@ -1,10 +1,14 @@
-version: 2
+version: 2.1
+
+orbs:
+  win: circleci/windows@2.4.0
 
 workflows:
   version: 2
   test:
     jobs:
-      - test-3.6
+      - test-36
+      - test-windows
       - test-lambdas-indexer
       - test-lambdas-preview
       - test-lambdas-s3select
@@ -25,7 +29,7 @@ workflows:
             branches:
               ignore: /.*/
 jobs:
-  test-3.6: &test-template
+  test-36: &test-template
     docker:
       - image: circleci/python:3.6-jessie
     environment:
@@ -43,6 +47,28 @@ jobs:
           command: |
             . venv/bin/activate
             cd api/python && pytest --cov=./
+            codecov
+
+  test-windows:
+    executor:
+      name: win/default
+      size: "medium"
+    environment:
+      QUILT_DISABLE_USAGE_METRICS: true
+    steps:
+      - checkout
+      - run:
+          name: Setup
+          command: |
+            pip install virtualenv
+            virtualenv venv
+            venv\Scripts\activate.bat
+            pip install -e api\python[tests]
+      - run:
+          name: Run Pytest
+          command: |
+            venv\Scripts\activate.bat
+            cd api\python; pytest --cov=.
             codecov
 
   test-lambdas-indexer:
