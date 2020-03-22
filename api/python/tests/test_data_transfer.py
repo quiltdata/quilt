@@ -459,9 +459,24 @@ class DataTransferTest(QuiltTestCase):
 
         with mock.patch('botocore.client.BaseClient._make_api_call',
                         side_effect=ClientError({}, 'CopyObject')) as mocked_api_call:
-            with self.assertRaisesRegex(data_transfer.QuiltException, "Unable to copy some files."):
+            with pytest.raises(ClientError):
                 data_transfer.copy_file_list([(src, dst, 1)])
             self.assertEqual(mocked_api_call.call_count, data_transfer.MAX_COPY_FILE_LIST_RETRIES)
+
+    def test_copy_file_list_retry_non_client_error(self):
+        bucket = 'test-bucket'
+        other_bucket = f'{bucket}-other'
+        key = 'dir/a'
+        vid = None
+
+        src = PhysicalKey(bucket, key, vid)
+        dst = PhysicalKey(other_bucket, key, vid)
+
+        with mock.patch('botocore.client.BaseClient._make_api_call',
+                        side_effect=Exception('test exception')) as mocked_api_call:
+            with pytest.raises(Exception, match='test exception'):
+                data_transfer.copy_file_list([(src, dst, 1)])
+            assert mocked_api_call.call_count == 1
 
     def test_copy_file_list_multipart_retry(self):
         bucket = 'test-bucket'
@@ -481,5 +496,5 @@ class DataTransferTest(QuiltTestCase):
             raise ClientError({}, 'CopyObject')
 
         with mock.patch('botocore.client.BaseClient._make_api_call', side_effect=side_effect):
-            with self.assertRaisesRegex(data_transfer.QuiltException, "Unable to copy some files."):
+            with pytest.raises(ClientError):
                 data_transfer.copy_file_list([(src, dst, size)])
