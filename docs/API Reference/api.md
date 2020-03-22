@@ -78,6 +78,11 @@ __Returns__
 A sequence of strings containing the names of the packages
 
 
+## logged\_in()  {#logged\_in}
+
+Return whether Quilt client is authenticated.
+
+
 ## login()  {#login}
 
 Authenticate to your Quilt stack and assume the role assigned to you by

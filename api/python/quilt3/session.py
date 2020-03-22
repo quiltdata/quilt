@@ -237,6 +237,13 @@ def _refresh_credentials():
     return result
 
 
+def logged_in():
+    """
+    Return whether Quilt client is authenticated.
+    """
+    return get_registry_url() in _load_auth()
+
+
 class QuiltProvider(CredentialProvider):
     METHOD = 'quilt-registry'
     CANONICAL_NAME = 'QuiltRegistry'

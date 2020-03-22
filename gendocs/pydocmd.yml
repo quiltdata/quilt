@@ -15,6 +15,7 @@ generate:
     - quilt3.delete_package
     - quilt3.list_package_versions
     - quilt3.list_packages
+    - quilt3.logged_in
     - quilt3.login
     - quilt3.logout
     - quilt3.search

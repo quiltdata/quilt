@@ -119,3 +119,20 @@ class TestSession(QuiltTestCase):
         assert credentials.token == 'session-token2'
 
         mock_save_credentials.assert_called()
+
+    def test_logged_in(self):
+        url = quilt3.session.get_registry_url()
+        other_url = url + 'other'
+        mock_auth = dict(
+            refresh_token='refresh-token',
+            access_token='access-token',
+            expires_at=123456789,
+        )
+
+        with patch('quilt3.session._load_auth', return_value={url: mock_auth}) as mocked_load_auth:
+            assert quilt3.logged_in() is True
+            mocked_load_auth.assert_called_once()
+
+        with patch('quilt3.session._load_auth', return_value={other_url: mock_auth}) as mocked_load_auth:
+            assert quilt3.logged_in() is False
+            mocked_load_auth.assert_called_once()

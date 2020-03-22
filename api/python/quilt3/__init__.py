@@ -18,7 +18,7 @@ from .api import (
     search
 )
 
-from .session import login, logout
+from .session import logged_in, login, logout
 
 from .packages import Package
 
