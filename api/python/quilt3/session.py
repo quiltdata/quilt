@@ -77,7 +77,7 @@ def _update_auth(refresh_token, timeout=None):
 def _handle_response(resp, **kwargs):
     if resp.status_code == requests.codes.unauthorized:
         raise QuiltException(
-            "Authentication failed. Run `quilt login` again."
+            "Authentication failed. Run `quilt3 login` again."
         )
     elif not resp.ok:
         try:
