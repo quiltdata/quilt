@@ -1,8 +1,10 @@
 """ Testing for data_transfer.py """
 
 ### Python imports
+import io
 import pathlib
 import time
+from contextlib import redirect_stderr
 
 from unittest import mock
 
@@ -366,7 +368,6 @@ class DataTransferTest(QuiltTestCase):
                 (PhysicalKey.from_path(path), PhysicalKey.from_url(f's3://example/{name}'), path.stat().st_size),
             ])
 
-
     def test_multipart_copy(self):
         size = 100 * 1024 * 1024 * 1024
 
@@ -431,9 +432,16 @@ class DataTransferTest(QuiltTestCase):
         )
 
         with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
-            data_transfer.copy_file_list([
-                (PhysicalKey.from_url('s3://example1/large_file1.npy'), PhysicalKey.from_url('s3://example2/large_file2.npy'), size),
-            ])
+            stdout = io.StringIO()
+
+            # temporarily redirect stderr to capture warnings (usually errors)
+            with redirect_stderr(stdout):
+                data_transfer.copy_file_list([
+                    (PhysicalKey.from_url('s3://example1/large_file1.npy'), PhysicalKey.from_url('s3://example2/large_file2.npy'), size),
+                ])
+            assert '100%|##' not in stdout.getvalue()
+
+
 
     def test_calculate_sha256_read_timeout(self):
         bucket = 'test-bucket'

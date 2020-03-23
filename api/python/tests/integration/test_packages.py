@@ -1,4 +1,6 @@
 """ Integration tests for Quilt Packages. """
+import io
+from contextlib import redirect_stderr
 from io import BytesIO
 import os
 import pathlib
@@ -532,7 +534,12 @@ class PackageTest(QuiltTestCase):
 
         with patch('time.time', return_value=1234567891), \
              patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
-            remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
+            stdout = io.StringIO()
+
+            # temporarily redirect stderr to capture warnings (usually errors)
+            with redirect_stderr(stdout):
+                remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
+            assert '100%|##' not in stdout.getvalue()
 
 
     def test_package_deserialize(self):
