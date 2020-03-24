@@ -14,6 +14,28 @@ class Vars:
     tmpdir_data = None
     extrasession_mockers = []
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--live",
+        action="store_true",
+        default=False,
+        help="Run tests against actual S3 buckets"
+    )
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "live: mark test as affecting live infrastructure"
+    )
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--live"):
+        # --live given in cli, so run them
+        return
+    skip_live = pytest.mark.skip(reason="need --live option to run")
+    for item in items:
+        if "live" in item.keywords:
+            item.add_marker(skip_live) 
 
 def pytest_sessionstart(session):
     """ pytest_sessionstart hook
