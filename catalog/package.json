@@ -184,7 +184,7 @@
     "svg-url-loader": "^5.0.0",
     "terser-webpack-plugin": "^1.4.3",
     "url-loader": "^4.0.0",
-    "webpack": "^4.42.0",
+    "webpack": "^4.42.1",
     "webpack-cli": "^3.3.11",
     "webpack-dev-middleware": "^3.7.2",
     "webpack-hot-middleware": "^2.25.0"
