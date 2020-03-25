@@ -469,7 +469,7 @@ function Delete({ bucket, close }) {
     <>
       <M.DialogTitle>Delete a bucket</M.DialogTitle>
       <M.DialogContent>
-        You are about to remove &quot;{bucket.name}&quot; from Quilt. The search index
+        You are about to disconnect &quot;{bucket.name}&quot; from Quilt. The search index
         will be deleted. Bucket contents will remain unchanged.
       </M.DialogContent>
       <M.DialogActions>
