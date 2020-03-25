@@ -469,8 +469,8 @@ function Delete({ bucket, close }) {
     <>
       <M.DialogTitle>Delete a bucket</M.DialogTitle>
       <M.DialogContent>
-        You are about to delete the &quot;{bucket.name}&quot; bucket. This operation is
-        irreversible.
+        You are about to disconnect &quot;{bucket.name}&quot; from Quilt. The search index
+        will be deleted. Bucket contents will remain unchanged.
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={() => close('cancel')} color="primary">
