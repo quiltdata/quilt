@@ -1,5 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import AutosizeInput from 'react-input-autosize'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
@@ -8,6 +9,10 @@ import { readableBytes } from 'utils/string'
 import tagged from 'utils/tagged'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
+
+function WrappedAutosizeInput({ className, ...props }) {
+  return <AutosizeInput inputClassName={className} {...props} />
+}
 
 export const ListingItem = tagged([
   'Dir', // { name, to }
@@ -76,6 +81,21 @@ const useStatsStyles = M.makeStyles((t) => ({
     flexWrap: 'wrap',
     padding: t.spacing(1),
   },
+  input: {
+    fontSize: 14,
+    height: 20,
+    lineHeight: 20,
+    padding: 0,
+  },
+  clear: {
+    left: 'calc(100% - 4px)',
+    position: 'absolute',
+  },
+  searchIcon: {
+    fontSize: 20,
+    marginLeft: -2,
+    marginRight: t.spacing(0.5) - 2,
+  },
   divider: {
     color: t.palette.text.hint,
     marginLeft: t.spacing(1),
@@ -93,32 +113,39 @@ const useStatsStyles = M.makeStyles((t) => ({
 function Stats({ items, filtering, truncated }) {
   const classes = useStatsStyles()
   const stats = React.useMemo(() => computeStats(items), [items])
+  const inputRef = React.useRef()
+  const handleKeyDown = React.useCallback(
+    (e) => {
+      if (e.key === 'Escape') {
+        filtering.set('')
+        if (inputRef.current && inputRef.current.blur) inputRef.current.blur()
+      }
+    },
+    [filtering.set, inputRef],
+  )
 
   return (
     <div className={classes.root}>
-      <M.Box position="relative">
-        <M.InputBase
-          // TODO: use autosizing input
-          // TODO: better styling
-          {...filtering.input}
-          placeholder="Filter files and directories"
-          // classes={{ input: classes.input }}
-          fullWidth
-          startAdornment={<M.Icon className={classes.searchIcon}>search</M.Icon>}
-          endAdornment={
-            <M.Fade in={!!filtering.input.value}>
-              <M.Box
-                position="absolute"
-                right={-4}
-                component={M.IconButton}
-                onClick={() => filtering.set('')}
-              >
-                <M.Icon>clear</M.Icon>
-              </M.Box>
-            </M.Fade>
-          }
-        />
-      </M.Box>
+      <M.InputBase
+        {...filtering.input}
+        onKeyDown={handleKeyDown}
+        placeholder="Filter files and directories"
+        classes={{ input: classes.input }}
+        inputComponent={WrappedAutosizeInput}
+        inputRef={inputRef}
+        startAdornment={<M.Icon className={classes.searchIcon}>search</M.Icon>}
+        endAdornment={
+          !!filtering.input.value && (
+            <M.IconButton
+              className={classes.clear}
+              size="small"
+              onClick={() => filtering.set('')}
+            >
+              <M.Icon fontSize="small">clear</M.Icon>
+            </M.IconButton>
+          )
+        }
+      />
       <span className={classes.spacer} />
       <span>{stats.dirs} folders</span>
       <span className={classes.divider}> | </span>
@@ -166,6 +193,10 @@ const useListingStyles = M.makeStyles((t) => ({
     marginLeft: t.spacing(2),
     paddingTop: t.spacing(2.5),
   },
+  noMatch: {
+    ...t.typography.body2,
+    padding: t.spacing(1),
+  },
   size: {
     textAlign: 'right',
     width: '6em',
@@ -194,9 +225,7 @@ export default function Listing({ items, truncated = false, locked = false }) {
                 Dir: R.prop('name'),
                 File: R.prop('name'),
               }),
-              (name) =>
-                name === '..' ||
-                name.toLowerCase().includes(filtering.value.toLowerCase()),
+              (name) => name.toLowerCase().includes(filtering.value.toLowerCase()),
             ),
           )
         : items,
@@ -224,10 +253,14 @@ export default function Listing({ items, truncated = false, locked = false }) {
             No files
           </M.Typography>
         ) : (
-          // TODO: handle empty filtered set (no matching files)
           <>
             <Stats items={filtered} filtering={filtering} truncated={truncated} />
             <div ref={scrollRef} />
+            {!filtered.length && (
+              <div className={classes.noMatch}>
+                No entries matching <b>&quot;{filtering.value}&quot;</b>
+              </div>
+            )}
             {pagination.paginated.map(
               ListingItem.case({
                 Dir: ({ name, to }) => (
