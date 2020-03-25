@@ -49,7 +49,7 @@ export const useRequest = (extra) => {
   const customRequestHandler = React.useCallback(
     (req) => {
       const b = req.params.Bucket
-      if (b && !isInStack(b)) {
+      if (b) {
         req.on(
           'sign',
           () => {
@@ -100,7 +100,8 @@ export const useRequest = (extra) => {
           ? s3SelectClient
           : regularClient
       const method =
-        cfg.mode === 'LOCAL' || (authenticated && isInStack(bucket))
+        cfg.mode !== 'OPEN' &&
+        (cfg.mode === 'LOCAL' || (authenticated && isInStack(bucket)))
           ? 'makeRequest'
           : 'makeUnauthenticatedRequest'
       return client[method](operation, params).promise()
