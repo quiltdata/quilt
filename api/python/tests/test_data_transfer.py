@@ -464,6 +464,9 @@ class DataTransferTest(QuiltTestCase):
             self.assertEqual(mocked_api_call.call_count, data_transfer.MAX_COPY_FILE_LIST_RETRIES)
 
     def test_copy_file_list_retry_non_client_error(self):
+        """
+        copy_file_list() is not retrying on random exceptions.
+        """
         bucket = 'test-bucket'
         other_bucket = f'{bucket}-other'
         key = 'dir/a'
