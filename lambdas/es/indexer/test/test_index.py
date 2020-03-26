@@ -60,17 +60,17 @@ class TestIndex(TestCase):
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
         # parquet
-        assert index.infer_extensions("s3/some/file.c0000", ".c0000") == ".parquet", \
+        assert index.infer_extensions("s3/some/file.c000", ".c000") == ".parquet", \
             "Expected .c0000 to infer as .parquet"
         # parquet, nonzero part number
-        assert index.infer_extensions("s3/some/file.c0001", ".c0001") == ".parquet", \
+        assert index.infer_extensions("s3/some/file.c001", ".c001") == ".parquet", \
             "Expected .c0001 to infer as .parquet"
         # -c0001 file
         assert index.infer_extensions("s3/some/file-c0001", "") == ".parquet", \
             "Expected -c0001 to infer as .parquet"
         # -c00111 file (should never happen)
-        assert index.infer_extensions("s3/some/file-c00011", "") == "", \
-            "Expected -c00011 not to infer as .parquet"
+        assert index.infer_extensions("s3/some/file-c000121", "") == "", \
+            "Expected -c000121 not to infer as .parquet"
         # .txt file, should be unchanged
         assert index.infer_extensions("s3/some/file-c0000.txt", ".txt") == ".txt", \
             "Expected .txt to infer as .txt"
