@@ -7,6 +7,7 @@ note: we truncate outbound documents to DOC_SIZE_LIMIT characters
 import datetime
 import json
 import pathlib
+import re
 from urllib.parse import unquote, unquote_plus
 
 import boto3
@@ -51,6 +52,14 @@ def should_retry_exception(exception):
     error_code = exception.response.get('Error', {}).get('Code', 218)
     return error_code not in ["402", "403", "404"]
 
+def infer_extensions(key, ext):
+    """guess extensions if possible"""
+    # Handle special case of hive partitions
+    # see https://www.qubole.com/blog/direct-writes-to-increase-spark-performance/
+    if re.fullmatch(r".c\d{3,5}", ext) or re.fullmatch(r".*-c\d{3,5}$", key):
+        return ".parquet"
+    return ext
+
 def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
     """get the byte contents of a file"""
     if ext.endswith('.gz'):
@@ -60,6 +69,7 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
         compression = None
 
     content = ""
+    ext = infer_extensions(key, ext)
     if ext in CONTENT_INDEX_EXTS:
         if ext == ".ipynb":
             content = trim_to_bytes(
