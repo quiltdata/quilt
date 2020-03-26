@@ -63,7 +63,7 @@
     "@material-ui/styles": "^4.9.6",
     "@material-ui/system": "^4.9.6",
     "@rehooks/component-size": "^1.0.3",
-    "@sentry/browser": "^5.15.1",
+    "@sentry/browser": "^5.15.2",
     "@testing-library/react": "^10.0.1",
     "ajv": "^6.12.0",
     "assert": "^1.5.0",
