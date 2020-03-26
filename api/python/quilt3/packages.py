@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 from .data_transfer import (
     calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_version,
-    list_object_versions, list_url, put_bytes, USE_TQDM
+    list_object_versions, list_url, put_bytes
 )
 from .exceptions import PackageException
 from .formats import FormatRegistry
@@ -28,7 +28,7 @@ from .util import (
     validate_package_name, quiltignore_filter, validate_key, extract_file_extension,
     parse_sub_package_name)
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
-    user_is_configured_to_custom_stack, catalog_package_url
+    user_is_configured_to_custom_stack, catalog_package_url, DISABLE_TQDM
 
 MAX_FIX_HASH_RETRIES = 3
 
@@ -713,34 +713,6 @@ class Package(object):
     def _load(cls, readable_file):
         gc.disable()  # Experiments with COCO (650MB manifest) show disabling GC gives us ~2x performance improvement
 
-        def pkg_load(reader, progress=None):
-            meta = reader.read()
-            meta.pop('top_hash', None)  # Obsolete as of PR #130
-            pkg = cls()
-            pkg._meta = meta
-            if progress:
-                progress.update(1)
-
-            for obj in reader:
-                path = cls._split_key(obj.pop('logical_key'))
-                subpkg = pkg._ensure_subpackage(path[:-1])
-                key = path[-1]
-                if not obj.get('physical_keys', None):
-                    # directory-level metadata
-                    subpkg.set_meta(obj['meta'])
-                    continue
-                if key in subpkg._children:
-                    raise PackageException("Duplicate logical key while loading package")
-                subpkg._children[key] = PackageEntry(
-                    PhysicalKey.from_url(obj['physical_keys'][0]),
-                    obj['size'],
-                    obj['hash'],
-                    obj['meta']
-                )
-                if progress:
-                    progress.update(1)
-            return pkg
-
         try:
             line_count = 0
             for _ in readable_file:
@@ -748,11 +720,30 @@ class Package(object):
             readable_file.seek(0)
 
             reader = jsonlines.Reader(readable_file, loads=json.loads)
-            if USE_TQDM:
-                with tqdm(desc="Loading manifest", total=line_count, unit="entries") as tqdm_progress:
-                    pkg = pkg_load(reader, tqdm_progress)
-            else:
-                pkg = pkg_load(reader)
+            with tqdm(desc="Loading manifest", total=line_count, unit="entries", disable=DISABLE_TQDM) as tqdm_progress:
+                meta = reader.read()
+                meta.pop('top_hash', None)  # Obsolete as of PR #130
+                pkg = cls()
+                pkg._meta = meta
+                tqdm_progress.update(1)
+
+                for obj in reader:
+                    path = cls._split_key(obj.pop('logical_key'))
+                    subpkg = pkg._ensure_subpackage(path[:-1])
+                    key = path[-1]
+                    if not obj.get('physical_keys', None):
+                        # directory-level metadata
+                        subpkg.set_meta(obj['meta'])
+                        continue
+                    if key in subpkg._children:
+                        raise PackageException("Duplicate logical key while loading package")
+                    subpkg._children[key] = PackageEntry(
+                        PhysicalKey.from_url(obj['physical_keys'][0]),
+                        obj['size'],
+                        obj['hash'],
+                        obj['meta']
+                    )
+                    tqdm_progress.update(1)
         finally:
             gc.enable()
         return pkg

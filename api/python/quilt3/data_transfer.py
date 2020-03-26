@@ -1,4 +1,3 @@
-import os
 from collections import defaultdict, deque
 from codecs import iterdecode
 from concurrent.futures import ThreadPoolExecutor
@@ -23,11 +22,9 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from tqdm import tqdm
 
 from .session import create_botocore_session
-from .util import PhysicalKey, QuiltException
-
+from .util import PhysicalKey, QuiltException, DISABLE_TQDM
 
 MAX_COPY_FILE_LIST_RETRIES = 3
-USE_TQDM = os.getenv('QUILT_USE_TQDM', '').lower() == 'true'
 
 
 class S3Api(Enum):
@@ -458,13 +455,14 @@ def _copy_file_list_internal(file_list, results, message, callback):
 
     s3_client_provider = S3ClientProvider()  # Share provider across threads to reduce redundant public bucket checks
 
-    def copy_internal(stp, tqdm_progress=None):
+    with tqdm(desc=message, total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress, \
+         ThreadPoolExecutor(s3_transfer_config.max_request_concurrency) as executor:
+
         def progress_callback(bytes_transferred):
             if stopped:
                 raise Exception("Interrupted")
-            if tqdm_progress:
-                with lock:
-                    tqdm_progress.update(bytes_transferred)
+            with lock:
+                progress.update(bytes_transferred)
 
         def run_task(idx, func, *args):
             future = executor.submit(func, *args)
@@ -474,7 +472,7 @@ def _copy_file_list_internal(file_list, results, message, callback):
                 idx_to_futures[idx].append(future)
 
         def worker(idx, src, dest, size):
-            if stp:
+            if stopped:
                 raise Exception("Interrupted")
 
             def done_callback(value):
@@ -535,15 +533,7 @@ def _copy_file_list_internal(file_list, results, message, callback):
                         futures_to_cancel.clear()
         finally:
             # Make sure all tasks exit quickly if the main thread exits before they're done.
-            stp = True
-
-    if USE_TQDM:
-        with tqdm(desc=message, total=total_size, unit='B', unit_scale=True) as progress, \
-             ThreadPoolExecutor(s3_transfer_config.max_request_concurrency) as executor:
-            copy_internal(stopped, progress)
-    else:
-        with ThreadPoolExecutor(s3_transfer_config.max_request_concurrency) as executor:
-            copy_internal(stopped)
+            stopped = True
 
     if not all(results):
         raise QuiltException("Unable to copy some files.")
@@ -805,68 +795,56 @@ def get_size_and_version(src: PhysicalKey):
         version = resp.get('VersionId')
     return size, version
 
-
 def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
     assert len(src_list) == len(sizes)
 
     total_size = sum(sizes)
-
-    if USE_TQDM:
-        with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True) as progress:
-            results = _calculate_sha256(sizes, src_list, progress)
-    else:
-        results = _calculate_sha256(sizes, src_list)
-
-    return results
-
-
-def _calculate_sha256(sizes, src_list, progress=None):
     lock = Lock()
 
-    def _process_url(src, size):
-        hash_obj = hashlib.sha256()
-        if src.is_local():
-            with open(src.path, 'rb') as fd:
-                while True:
-                    chunk = fd.read(64 * 1024)
-                    if not chunk:
-                        break
-                    hash_obj.update(chunk)
-                    if progress:
+    with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress:
+        def _process_url(src, size):
+            hash_obj = hashlib.sha256()
+            if src.is_local():
+                with open(src.path, 'rb') as fd:
+                    while True:
+                        chunk = fd.read(64 * 1024)
+                        if not chunk:
+                            break
+                        hash_obj.update(chunk)
                         with lock:
                             progress.update(len(chunk))
 
-                current_file_size = fd.tell()
-                if current_file_size != size:
-                    warnings.warn(
-                        f"Expected the package entry at {src!r} to be {size} B in size, but "
-                        f"found an object which is {current_file_size} B instead. This "
-                        f"indicates that the content of the file changed in between when you "
-                        f"included this  entry in the package (via set or set_dir) and now. "
-                        f"This should be avoided if possible."
-                    )
+                    current_file_size = fd.tell()
+                    if current_file_size != size:
+                        warnings.warn(
+                            f"Expected the package entry at {src!r} to be {size} B in size, but "
+                            f"found an object which is {current_file_size} B instead. This "
+                            f"indicates that the content of the file changed in between when you "
+                            f"included this  entry in the package (via set or set_dir) and now. "
+                            f"This should be avoided if possible."
+                        )
 
-        else:
-            params = dict(Bucket=src.bucket, Key=src.path)
-            if src.version_id is not None:
-                params.update(dict(VersionId=src.version_id))
-            try:
-                s3_client = S3ClientProvider().find_correct_client(S3Api.GET_OBJECT, src.bucket, params)
+            else:
+                params = dict(Bucket=src.bucket, Key=src.path)
+                if src.version_id is not None:
+                    params.update(dict(VersionId=src.version_id))
+                try:
+                    s3_client = S3ClientProvider().find_correct_client(S3Api.GET_OBJECT, src.bucket, params)
 
-                resp = s3_client.get_object(**params)
-                body = resp['Body']
-                for chunk in body:
-                    hash_obj.update(chunk)
-                    if progress:
+                    resp = s3_client.get_object(**params)
+                    body = resp['Body']
+                    for chunk in body:
+                        hash_obj.update(chunk)
                         with lock:
                             progress.update(len(chunk))
-            except (ConnectionError, HTTPClientError, ReadTimeoutError):
-                # TODO: Find a better way to warn users that we failed to compute this hash
-                return None
-        return hash_obj.hexdigest()
+                except (ConnectionError, HTTPClientError, ReadTimeoutError):
+                    # TODO: Find a better way to warn users that we failed to compute this hash
+                    return None
+            return hash_obj.hexdigest()
 
-    with ThreadPoolExecutor() as executor:
-        results = executor.map(_process_url, src_list, sizes)
+        with ThreadPoolExecutor() as executor:
+            results = executor.map(_process_url, src_list, sizes)
+
     return results
 
 

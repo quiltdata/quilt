@@ -3,6 +3,7 @@
 ### Python imports
 import io
 import pathlib
+import re
 import time
 from contextlib import redirect_stderr
 
@@ -439,7 +440,8 @@ class DataTransferTest(QuiltTestCase):
                 data_transfer.copy_file_list([
                     (PhysicalKey.from_url('s3://example1/large_file1.npy'), PhysicalKey.from_url('s3://example2/large_file2.npy'), size),
                 ])
-            assert '100%|##' not in stdout.getvalue()
+            assert not re.search('#+', stdout.getvalue())
+            assert not re.search('[1-100]', stdout.getvalue())
 
 
 

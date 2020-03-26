@@ -1,5 +1,6 @@
 """ Integration tests for Quilt Packages. """
 import io
+import re
 from contextlib import redirect_stderr
 from io import BytesIO
 import os
@@ -539,7 +540,8 @@ class PackageTest(QuiltTestCase):
             # temporarily redirect stderr to capture warnings (usually errors)
             with redirect_stderr(stdout):
                 remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
-            assert '100%|##' not in stdout.getvalue()
+            assert not re.search('#+', stdout.getvalue())
+            assert not re.search('[1-100]', stdout.getvalue())
 
 
     def test_package_deserialize(self):
