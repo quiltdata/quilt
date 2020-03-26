@@ -101,16 +101,22 @@ optional arguments:
 ```
 ## `config`
 ```
-usage: quilt3 config [-h] [catalog_url]
+usage: quilt3 config [-h] [--set KEY=VALUE [KEY=VALUE ...]] [catalog_url]
 
 Configure Quilt
 
 positional arguments:
-  catalog_url  URL of catalog to config with, or empty string to reset the
-               config
+  catalog_url           URL of catalog to config with, or empty string to
+                        reset the config
 
 optional arguments:
-  -h, --help   show this help message and exit
+  -h, --help            show this help message and exit
+  --set KEY=VALUE [KEY=VALUE ...]
+                        Set a number of key-value pairs for config_values(do
+                        not put spaces before or after the = sign). If a value
+                        contains spaces, you should define it with double
+                        quotes: foo="this is a sentence". Note that values are
+                        always treated as strings.
 ```
 ## `disable-telemetry`
 ```
