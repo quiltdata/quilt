@@ -72,7 +72,7 @@ class TestIndex(TestCase):
         assert index.infer_extensions("s3/some/file-c00011", "") == "", \
             "Expected -c00011 not to infer as .parquet"
         # .txt file, should be unchanged
-        assert index.infer_extensions("s3/some/file.txt", ".txt") == ".txt", \
+        assert index.infer_extensions("s3/some/file-c0000.txt", ".txt") == ".txt", \
             "Expected .txt to infer as .txt"
 
     def test_delete_event(self):
