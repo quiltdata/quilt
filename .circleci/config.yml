@@ -62,14 +62,16 @@ jobs:
           command: |
             pip install virtualenv
             virtualenv venv
-            venv\Scripts\activate.bat
-            pip install -e api\python[tests]
+            venv/Scripts/activate.bat
+            pip install -e api/python[tests]
+          shell: bash.exe
       - run:
           name: Run Pytest
           command: |
-            venv\Scripts\activate.bat
-            cd api\python; pytest --cov=.
+            venv/Scripts/activate.bat
+            cd api/python; pytest --cov=.
             codecov
+          shell: bash.exe
 
   test-lambdas-indexer:
     docker:
