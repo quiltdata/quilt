@@ -57,17 +57,7 @@ export const useCurrentBucketConfig = () => {
 
 export function useInStackBuckets() {
   const bucketConfigs = useBucketConfigs()
-  const cfg = Config.use()
-  return React.useMemo(
-    () =>
-      R.pipe(
-        R.pluck('name'),
-        R.append(cfg.analyticsBucket),
-        R.reject((b) => !b),
-        R.uniq,
-      )(bucketConfigs),
-    [bucketConfigs, cfg.analyticsBucket],
-  )
+  return React.useMemo(() => R.pluck('name', bucketConfigs), [bucketConfigs])
 }
 
 export function useIsInStack() {

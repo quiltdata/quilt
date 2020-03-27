@@ -93,17 +93,26 @@ export const useRequest = (extra) => {
     s3ForcePathStyle: true,
     ...extra,
   })
-  return React.useMemo(
-    () => ({ bucket, operation, params }) => {
-      const client =
-        !authenticated && operation === 'selectObjectContent'
-          ? s3SelectClient
-          : regularClient
-      const method =
-        cfg.mode !== 'OPEN' &&
-        (cfg.mode === 'LOCAL' || (authenticated && isInStack(bucket)))
-          ? 'makeRequest'
-          : 'makeUnauthenticatedRequest'
+  return React.useCallback(
+    ({ bucket, operation, params }) => {
+      let type = 'unsigned'
+      if (cfg.mode === 'LOCAL') {
+        type = 'signed'
+      } else if (authenticated) {
+        if (
+          (cfg.analyticsBucket && cfg.analyticsBucket === bucket) ||
+          (cfg.mode !== 'OPEN' && isInStack(bucket))
+        ) {
+          type = 'signed'
+        }
+      } else if (operation === 'selectObjectContent') {
+        type = 'select'
+      }
+      const [client, method] = {
+        signed: [regularClient, 'makeRequest'],
+        unsigned: [regularClient, 'makeUnauthenticatedRequest'],
+        select: [s3SelectClient, 'makeUnauthenticatedRequest'],
+      }[type]
       return client[method](operation, params).promise()
     },
     [regularClient, s3SelectClient, authenticated, cfg, isInStack],
