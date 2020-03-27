@@ -12,7 +12,6 @@ import uuid
 import warnings
 
 import jsonlines
-from tenacity import retry, stop_after_attempt, wait_exponential
 from tqdm import tqdm
 
 from .data_transfer import (
@@ -28,8 +27,6 @@ from .util import (
     parse_sub_package_name)
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, \
     user_is_configured_to_custom_stack, catalog_package_url, DISABLE_TQDM
-
-MAX_FIX_HASH_RETRIES = 3
 
 
 def hash_file(readable_file):
@@ -867,9 +864,6 @@ class Package(object):
         self._meta['user_meta'] = meta
         return self
 
-    @retry(stop=stop_after_attempt(MAX_FIX_HASH_RETRIES),
-           wait=wait_exponential(multiplier=1, min=1, max=10),
-           reraise=True)
     def _fix_sha256(self):
         """
         Calculate and set missing hash values
@@ -883,19 +877,16 @@ class Package(object):
             sizes.append(entry.size)
 
         results = calculate_sha256(physical_keys, sizes)
-
-        entries_w_missing_hash = []
+        exc = None
         for entry, obj_hash in zip(self._incomplete_entries, results):
-            if obj_hash is None:
-                entries_w_missing_hash.append(entry)
+            if isinstance(obj_hash, Exception):
+                exc = obj_hash
             else:
                 entry.hash = dict(type='SHA256', value=obj_hash)
-
-        self._incomplete_entries = entries_w_missing_hash
-        if self._incomplete_entries:
+        if exc:
             incomplete_manifest_path = self._dump_manifest_to_scratch()
             msg = "Unable to reach S3 for some hash values. Incomplete manifest saved to {path}."
-            raise PackageException(msg.format(path=incomplete_manifest_path))
+            raise PackageException(msg.format(path=incomplete_manifest_path)) from exc
 
     def _set_commit_message(self, msg):
         """
@@ -1492,6 +1483,8 @@ class Package(object):
 
         hash_list = calculate_sha256(url_list, size_list)
         for (logical_key, entry), url_hash in zip(self.walk(), hash_list):
+            if isinstance(url_hash, Exception):
+                raise url_hash
             if entry.hash['value'] != url_hash:
                 return False
 
