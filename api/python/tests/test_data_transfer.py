@@ -440,7 +440,8 @@ class DataTransferTest(QuiltTestCase):
                 ])
             assert stderr.getvalue()
 
-    def test_calculate_sha256_read_timeout(self):
+    @mock.patch('botocore.client.BaseClient._make_api_call')
+    def test_calculate_sha256_read_timeout(self, mocked_api_call):
         bucket = 'test-bucket'
         key = 'dir/a'
         vid = 'a1234'
@@ -448,10 +449,11 @@ class DataTransferTest(QuiltTestCase):
         a_contents = b'a' * 10
 
         pk = PhysicalKey(bucket, key, vid)
-        with mock.patch('botocore.client.BaseClient._make_api_call',
-                        side_effect=ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")):
-            results = data_transfer.calculate_sha256([pk], [len(a_contents)])
-            assert list(results) == [None]
+        exc = ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")
+        mocked_api_call.side_effect = exc
+        results = data_transfer.calculate_sha256([pk], [len(a_contents)])
+        assert mocked_api_call.call_count == data_transfer.MAX_FIX_HASH_RETRIES
+        assert results == [exc]
 
     def test_copy_file_list_retry(self):
         bucket = 'test-bucket'

@@ -2,6 +2,7 @@ from collections import defaultdict, deque
 from codecs import iterdecode
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
+import concurrent
 import functools
 import hashlib
 import pathlib
@@ -18,13 +19,14 @@ from boto3.s3.transfer import TransferConfig
 from s3transfer.utils import ChunksizeAdjuster, OSUtils, signal_transferring, signal_not_transferring
 
 import jsonlines
-from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_exponential, retry_if_result
 from tqdm import tqdm
 
 from .session import create_botocore_session
 from .util import PhysicalKey, QuiltException, DISABLE_TQDM
 
 MAX_COPY_FILE_LIST_RETRIES = 3
+MAX_FIX_HASH_RETRIES = 3
 
 
 class S3Api(Enum):
@@ -803,7 +805,20 @@ def get_size_and_version(src: PhysicalKey):
 def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
     assert len(src_list) == len(sizes)
 
-    total_size = sum(sizes)
+    return _calculate_sha256_internal(src_list, sizes, [None] * len(src_list))
+
+
+@retry(stop=stop_after_attempt(MAX_FIX_HASH_RETRIES),
+       wait=wait_exponential(multiplier=1, min=1, max=10),
+       retry=retry_if_result(lambda results: any(r is None or isinstance(r, Exception) for r in results)),
+       retry_error_callback=lambda retry_state: retry_state.outcome.result(),
+       )
+def _calculate_sha256_internal(src_list, sizes, results):
+    total_size = sum(
+        size
+        for size, result in zip(sizes, results)
+        if result is None or isinstance(result, Exception)
+    )
     lock = Lock()
 
     with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress:
@@ -842,13 +857,18 @@ def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
                         hash_obj.update(chunk)
                         with lock:
                             progress.update(len(chunk))
-                except (ConnectionError, HTTPClientError, ReadTimeoutError):
-                    # TODO: Find a better way to warn users that we failed to compute this hash
-                    return None
+                except (ConnectionError, HTTPClientError, ReadTimeoutError) as e:
+                    return e
             return hash_obj.hexdigest()
 
         with ThreadPoolExecutor() as executor:
-            results = executor.map(_process_url, src_list, sizes)
+            future_to_idx = {
+                executor.submit(_process_url, src, size): i
+                for i, (src, size, result) in enumerate(zip(src_list, sizes, results))
+                if result is None or isinstance(result, Exception)
+            }
+            for future in concurrent.futures.as_completed(future_to_idx):
+                results[future_to_idx[future]] = future.result()
 
     return results
 
