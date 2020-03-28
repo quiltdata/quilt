@@ -110,9 +110,10 @@ const useStatsStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Stats({ items, filtering, truncated }) {
+function Stats({ items, unfiltered, filtering, truncated }) {
   const classes = useStatsStyles()
-  const stats = React.useMemo(() => computeStats(items), [items])
+  const stats = React.useMemo(() => computeStats(unfiltered), [unfiltered])
+  const filteredStats = React.useMemo(() => computeStats(items), [items])
   const inputRef = React.useRef()
   const handleKeyDown = React.useCallback(
     (e) => {
@@ -129,7 +130,7 @@ function Stats({ items, filtering, truncated }) {
       <M.InputBase
         {...filtering.input}
         onKeyDown={handleKeyDown}
-        placeholder="Filter files and directories"
+        placeholder="Filter children of current directory"
         classes={{ input: classes.input }}
         inputComponent={WrappedAutosizeInput}
         inputRef={inputRef}
@@ -147,15 +148,18 @@ function Stats({ items, filtering, truncated }) {
         }
       />
       <span className={classes.spacer} />
-      <span>{stats.dirs} folders</span>
+      <span>
+        {!!filtering.value && <>{filteredStats.dirs} / </>}
+        {stats.dirs} folders
+      </span>
       <span className={classes.divider}> | </span>
       <span>
-        {truncated && '> '}
+        {!!filtering.value && <>{filteredStats.files} / </>}
         {stats.files} files
       </span>
       <span className={classes.divider}> | </span>
       <span>
-        {truncated && '> '}
+        {!!filtering.value && <>{readableBytes(filteredStats.size)} / </>}
         {readableBytes(stats.size)}
       </span>
       {truncated && <span className={classes.truncated}>(truncated)</span>}
@@ -207,7 +211,7 @@ const useListingStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Listing({ items, truncated = false, locked = false }) {
+export default function Listing({ items, truncated = false, locked = false, loadMore }) {
   const classes = useListingStyles()
 
   const scrollRef = React.useRef(null)
@@ -232,8 +236,13 @@ export default function Listing({ items, truncated = false, locked = false }) {
     [filtering.value, items],
   )
 
+  const totalItems = React.useMemo(() => {
+    const stats = computeStats(items)
+    return stats.dirs + stats.files
+  }, [items])
+
   usePrevious(items, (prevItems) => {
-    if (!R.equals(items, prevItems)) {
+    if (R.is(Array, items) && R.is(Array, prevItems) && !R.startsWith(prevItems, items)) {
       filtering.set('')
     }
   })
@@ -254,11 +263,19 @@ export default function Listing({ items, truncated = false, locked = false }) {
           </M.Typography>
         ) : (
           <>
-            <Stats items={filtered} filtering={filtering} truncated={truncated} />
+            <Stats
+              items={filtered}
+              unfiltered={items}
+              filtering={filtering}
+              truncated={truncated}
+            />
             <div ref={scrollRef} />
             {!filtered.length && (
               <div className={classes.noMatch}>
                 No entries matching <b>&quot;{filtering.value}&quot;</b>
+                {truncated && !!loadMore && (
+                  <> &rarr; try loading more items (button below)</>
+                )}
               </div>
             )}
             {pagination.paginated.map(
@@ -276,11 +293,39 @@ export default function Listing({ items, truncated = false, locked = false }) {
                 ),
               }),
             )}
-            {pagination.pages > 1 && (
+            {(truncated || pagination.pages > 1) && (
               <M.Box>
                 <M.Divider />
-                <M.Box display="flex" justifyContent="flex-end" px={1} py={0.25}>
-                  <Pagination.Controls {...pagination} />
+                <M.Box display="flex" alignItems="center" minHeight={36} px={1}>
+                  {truncated && (
+                    <M.Typography variant="body2" component="span" color="textSecondary">
+                      <M.Icon
+                        style={{
+                          fontSize: 16,
+                          verticalAlign: 'text-bottom',
+                          marginRight: 4,
+                        }}
+                      >
+                        warning
+                      </M.Icon>
+                      Listing truncated to {totalItems} items
+                      {!!loadMore && (
+                        <>
+                          <> &rarr; </>
+                          <M.Link
+                            onClick={loadMore}
+                            component="button"
+                            underline="always"
+                            style={{ verticalAlign: 'baseline' }}
+                          >
+                            load more
+                          </M.Link>
+                        </>
+                      )}
+                    </M.Typography>
+                  )}
+                  <M.Box flexGrow={1} />
+                  {pagination.pages > 1 && <Pagination.Controls {...pagination} />}
                 </M.Box>
               </M.Box>
             )}
