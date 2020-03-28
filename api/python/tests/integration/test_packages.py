@@ -1348,7 +1348,7 @@ class PackageTest(QuiltTestCase):
         path = pathlib.Path.cwd() / dest / 'bat'
         mocked_cache_set.assert_called_once_with(
             entry_url,
-            str(path),
+            PhysicalKey.from_path(path).path,
         )
         assert path.read_bytes() == entry_content
 
@@ -1372,7 +1372,7 @@ class PackageTest(QuiltTestCase):
         path = pathlib.Path.cwd() / dest / 'bat'
         mocked_cache_set.assert_called_once_with(
             entry_url,
-            str(path),
+            PhysicalKey.from_path(path).path,
         )
         assert path.read_bytes() == entry_content
 

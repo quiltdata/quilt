@@ -1,0 +1,5 @@
+api/python/tests/data/*.csv text eol=lf
+api/python/tests/data/dir/foo.txt text eol=lf
+api/python/tests/data/dir/x/blah.txt text eol=lf
+api/python/tests/integration/data/foo.txt text eol=lf
+api/python/tests/integration/data/foo.unrecognized.ext text eol=lf
