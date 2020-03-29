@@ -436,14 +436,12 @@ class DataTransferTest(QuiltTestCase):
             stdout = io.StringIO()
 
             # temporarily redirect stderr to capture warnings (usually errors)
-            with redirect_stderr(stdout):
+            with redirect_stderr(stdout), mock.patch('quilt3.data_transfer.DISABLE_TQDM', False):
                 data_transfer.copy_file_list([
                     (PhysicalKey.from_url('s3://example1/large_file1.npy'), PhysicalKey.from_url('s3://example2/large_file2.npy'), size),
                 ])
-            assert not re.search('#+', stdout.getvalue())
-            assert not re.search('[1-100]', stdout.getvalue())
-
-
+            assert re.search('#+', stdout.getvalue())
+            assert re.search('[1-100]', stdout.getvalue())
 
     def test_calculate_sha256_read_timeout(self):
         bucket = 'test-bucket'

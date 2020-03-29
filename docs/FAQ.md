@@ -31,3 +31,10 @@ $ export QUILT_DISABLE_USAGE_METRICS=true
 
 Or call `quilt3.disable_telemetry()`
 to persistently disable anonymous usage statistics.
+
+## How do I minimize stdout?
+
+You can minimize stdout with an environment variable:
+```
+$ export QUILT_MINIMIZE_STDOUT=true
+```

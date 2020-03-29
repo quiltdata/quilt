@@ -538,7 +538,7 @@ class PackageTest(QuiltTestCase):
             stdout = io.StringIO()
 
             # temporarily redirect stderr to capture warnings (usually errors)
-            with redirect_stderr(stdout):
+            with redirect_stderr(stdout), patch('quilt3.packages.DISABLE_TQDM', True):
                 remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
             assert not re.search('#+', stdout.getvalue())
             assert not re.search('[1-100]', stdout.getvalue())
