@@ -308,7 +308,7 @@ export default function Listing({ items, truncated = false, locked = false, load
                       >
                         warning
                       </M.Icon>
-                      Listing truncated to {totalItems} items
+                      Results truncated to {totalItems} items
                       {!!loadMore && (
                         <>
                           <> &rarr; </>
