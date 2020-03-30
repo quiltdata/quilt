@@ -130,7 +130,7 @@ function Stats({ items, unfiltered, filtering, truncated }) {
       <M.InputBase
         {...filtering.input}
         onKeyDown={handleKeyDown}
-        placeholder="Filter children of current directory"
+        placeholder="Filter current directory by substring"
         classes={{ input: classes.input }}
         inputComponent={WrappedAutosizeInput}
         inputRef={inputRef}
