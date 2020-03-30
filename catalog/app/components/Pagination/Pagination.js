@@ -11,10 +11,15 @@ const PER_PAGE = 10
 const useGetter = (value, get) =>
   React.useMemo(() => (value == null ? value : get(value)), [value, get])
 
-const useHasChanged = (value, getKey = R.identity) => {
+function useHasChanged(value, getKey = R.identity) {
   const key = useGetter(value, getKey)
   const oldValue = usePrevious(value)
   const oldKey = useGetter(oldValue, getKey)
+  if (R.is(Array, key) && R.is(Array, oldKey)) {
+    // if new list == old list + more items (appended), consider it unchanged
+    // to avoid resetting pagination on adding more items to the paginated set
+    return !R.startsWith(oldKey, key)
+  }
   return !R.equals(key, oldKey)
 }
 
@@ -27,13 +32,7 @@ export const usePagination = (
 
   const pages = Math.max(1, Math.ceil(items.length / perPage))
 
-  const goToPage = React.useCallback(
-    R.pipe(
-      R.clamp(1, pages),
-      setPage,
-    ),
-    [pages, setPage],
-  )
+  const goToPage = React.useCallback(R.pipe(R.clamp(1, pages), setPage), [pages, setPage])
 
   const nextPage = React.useCallback(() => goToPage(page + 1), [goToPage, page])
 
@@ -41,7 +40,7 @@ export const usePagination = (
 
   const getKey = useGetter(getItemId, R.map)
   if (useHasChanged(items, getKey) && page !== 1) {
-    // reset to page 1 if items change
+    // reset to page 1 if items change (but not if appended)
     goToPage(1)
   }
 
