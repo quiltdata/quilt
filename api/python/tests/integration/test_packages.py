@@ -1,6 +1,5 @@
 """ Integration tests for Quilt Packages. """
 import io
-import re
 from contextlib import redirect_stderr
 from io import BytesIO
 import os
@@ -537,13 +536,11 @@ class PackageTest(QuiltTestCase):
         with patch('time.time', return_value=1234567891), \
              patch('quilt3.packages.DISABLE_TQDM', True), patch('quilt3.data_transfer.DISABLE_TQDM', True), \
              patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
-            stdout = io.StringIO()
+            stderr = io.StringIO()
 
-            # temporarily redirect stderr to capture warnings (usually errors)
-            with redirect_stderr(stdout), patch('quilt3.packages.DISABLE_TQDM', True):
+            with redirect_stderr(stderr), patch('quilt3.packages.DISABLE_TQDM', True):
                 remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
-            assert not re.search('#+', stdout.getvalue())
-            assert not re.search('[1-100]', stdout.getvalue())
+            assert not stderr.getvalue()
 
 
     def test_package_deserialize(self):

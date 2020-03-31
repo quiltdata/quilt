@@ -3,7 +3,6 @@
 ### Python imports
 import io
 import pathlib
-import re
 import time
 from contextlib import redirect_stderr
 
@@ -433,15 +432,13 @@ class DataTransferTest(QuiltTestCase):
         )
 
         with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
-            stdout = io.StringIO()
+            stderr = io.StringIO()
 
-            # temporarily redirect stderr to capture warnings (usually errors)
-            with redirect_stderr(stdout), mock.patch('quilt3.data_transfer.DISABLE_TQDM', False):
+            with redirect_stderr(stderr), mock.patch('quilt3.data_transfer.DISABLE_TQDM', False):
                 data_transfer.copy_file_list([
                     (PhysicalKey.from_url('s3://example1/large_file1.npy'), PhysicalKey.from_url('s3://example2/large_file2.npy'), size),
                 ])
-            assert re.search('#+', stdout.getvalue())
-            assert re.search('[1-100]', stdout.getvalue())
+            assert stderr.getvalue()
 
     def test_calculate_sha256_read_timeout(self):
         bucket = 'test-bucket'
