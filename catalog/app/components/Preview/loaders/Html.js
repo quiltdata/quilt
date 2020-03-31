@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
+import { useIsInStack } from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 
 import { PreviewData } from '../types'
@@ -23,7 +24,8 @@ const IFrameLoader = ({ handle, children }) => {
 
 const HtmlLoader = ({ handle, children }) => {
   const cfg = Config.useConfig()
-  return handle.bucket === cfg.defaultBucket ? (
+  const isInStack = useIsInStack()
+  return cfg.mode === 'PRODUCT' && isInStack(handle.bucket) ? (
     <IFrameLoader handle={handle}>{children}</IFrameLoader>
   ) : (
     Text.load(handle, children)
