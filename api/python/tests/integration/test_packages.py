@@ -474,7 +474,6 @@ class PackageTest(QuiltTestCase):
         new_pkg.set('foo2', test_file1)
 
         with patch('time.time', return_value=1234567890), \
-             patch('quilt3.packages.DISABLE_TQDM', True), patch('quilt3.data_transfer.DISABLE_TQDM', True),\
              patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             remote_pkg = new_pkg.push('Quilt/package', 's3://my_test_bucket/')
 
