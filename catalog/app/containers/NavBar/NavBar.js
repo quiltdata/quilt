@@ -59,6 +59,7 @@ function UserDropdown() {
   const user = reduxHook.useMappedState(selectUser)
   const { urls, paths } = NamedRoutes.use()
   const isProfile = !!useRoute(paths.profile, { exact: true }).match
+  const isAdmin = !!useRoute(paths.admin).match
   const [anchor, setAnchor] = React.useState(null)
 
   const open = React.useCallback(
@@ -80,8 +81,8 @@ function UserDropdown() {
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
           {user.isAdmin && (
-            <Item to={urls.admin()} onClick={close} divider>
-              <M.Icon fontSize="small">security</M.Icon>&nbsp;Users and roles
+            <Item to={urls.admin()} onClick={close} selected={isAdmin} divider>
+              <M.Icon fontSize="small">security</M.Icon>&nbsp;Users and buckets
             </Item>
           )}
           {cfg.mode === 'OPEN' && (
@@ -141,6 +142,7 @@ function AuthHamburger({ authenticated, waiting, error }) {
   const user = reduxHook.useMappedState(selectUser)
   const { urls, paths } = NamedRoutes.use()
   const isProfile = !!useRoute(paths.profile, { exact: true }).match
+  const isAdmin = !!useRoute(paths.admin).match
   const ham = useHam()
   const links = useLinks()
   return ham.render([
@@ -151,10 +153,10 @@ function AuthHamburger({ authenticated, waiting, error }) {
             {userDisplay(user)}
           </M.MenuItem>,
           user.isAdmin && (
-            <Item key="admin" to={urls.admin()} onClick={ham.close}>
+            <Item key="admin" to={urls.admin()} onClick={ham.close} selected={isAdmin}>
               <M.Box component="span" pr={2} />
               <M.Icon fontSize="small">security</M.Icon>
-              &nbsp;Users and roles
+              &nbsp;Users and buckets
             </Item>
           ),
           cfg.mode === 'OPEN' && (

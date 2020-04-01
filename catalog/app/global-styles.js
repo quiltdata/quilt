@@ -23,6 +23,11 @@ const useGlobalStyles = makeStyles({
       // reset margin set by sanitize.css
       margin: 0,
     },
+    p: {
+      // reset margins set by user-agent
+      marginBlockEnd: 0,
+      marginBlockStart: 0,
+    },
   },
 })
 

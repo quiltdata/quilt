@@ -18,7 +18,7 @@ from boto3.s3.transfer import TransferConfig
 from s3transfer.utils import ChunksizeAdjuster, OSUtils, signal_transferring, signal_not_transferring
 
 import jsonlines
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_exponential
 from tqdm import tqdm
 
 from .session import create_botocore_session
@@ -431,10 +431,18 @@ class WorkerContext(object):
         self.run = run
 
 
-@retry(stop=stop_after_attempt(MAX_COPY_FILE_LIST_RETRIES),
+def _copy_file_list_last_retry(retry_state):
+    return retry_state.fn(
+        *retry_state.args,
+        **{**retry_state.kwargs, 'exceptions_to_ignore': ()},
+    )
+
+
+@retry(stop=stop_after_attempt(MAX_COPY_FILE_LIST_RETRIES - 1),
        wait=wait_exponential(multiplier=1, min=1, max=10),
-       reraise=True)
-def _copy_file_list_internal(file_list, results, message, callback):
+       retry=retry_if_not_result(all),
+       retry_error_callback=_copy_file_list_last_retry)
+def _copy_file_list_internal(file_list, results, message, callback, exceptions_to_ignore=(ClientError,)):
     """
     Takes a list of tuples (src, dest, size) and copies the data in parallel.
     `results` is the list where results will be stored.
@@ -525,7 +533,7 @@ def _copy_file_list_internal(file_list, results, message, callback):
                     continue
                 try:
                     future.result()
-                except ClientError:
+                except exceptions_to_ignore:
                     with lock:
                         idx = future_to_idx[future]
                         futures_to_cancel = idx_to_futures[idx]
@@ -535,9 +543,6 @@ def _copy_file_list_internal(file_list, results, message, callback):
         finally:
             # Make sure all tasks exit quickly if the main thread exits before they're done.
             stopped = True
-
-    if not all(results):
-        raise QuiltException("Unable to copy some files.")
 
     return results
 

@@ -53,7 +53,7 @@ const mergeAllP = (...ps) => Promise.all(ps).then(R.mergeAll)
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
 
-export const bucketListing = ({ s3req, bucket, path = '' }) =>
+export const bucketListing = ({ s3req, bucket, path = '', prev }) =>
   s3req({
     bucket,
     operation: 'listObjectsV2',
@@ -61,6 +61,7 @@ export const bucketListing = ({ s3req, bucket, path = '' }) =>
       Bucket: bucket,
       Delimiter: '/',
       Prefix: path,
+      ContinuationToken: prev ? prev.continuationToken : undefined,
     },
   })
     .then(
@@ -69,6 +70,7 @@ export const bucketListing = ({ s3req, bucket, path = '' }) =>
           R.prop('CommonPrefixes'),
           R.pluck('Prefix'),
           R.filter((d) => d !== '/' && d !== '../'),
+          (xs) => (prev && prev.dirs ? prev.dirs.concat(xs) : xs),
           R.uniq,
         ),
         files: R.pipe(
@@ -83,8 +85,10 @@ export const bucketListing = ({ s3req, bucket, path = '' }) =>
             size: i.Size,
             etag: i.ETag,
           })),
+          (xs) => (prev && prev.files ? prev.files.concat(xs) : xs),
         ),
         truncated: R.prop('IsTruncated'),
+        continuationToken: R.prop('NextContinuationToken'),
         bucket: () => bucket,
         path: () => path,
       }),

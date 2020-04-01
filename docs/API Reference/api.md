@@ -78,6 +78,19 @@ __Returns__
 A sequence of strings containing the names of the packages
 
 
+## login()  {#login}
+
+Authenticate to your Quilt stack and assume the role assigned to you by
+your stack administrator. Not required if you have existing AWS credentials.
+
+Launches a web browser and asks the user for a token.
+
+
+## logout()  {#logout}
+
+Do not use Quilt credentials. Useful if you have existing AWS credentials.
+
+
 ## search(query, limit=10)  {#search}
 
 Execute a search against the configured search endpoint.

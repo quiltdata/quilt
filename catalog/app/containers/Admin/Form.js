@@ -1,51 +1,63 @@
-import PT from 'prop-types'
 import * as React from 'react'
-import * as RC from 'recompose'
 import * as RF from 'redux-form/es/immutable'
-import TextField from '@material-ui/core/TextField'
-import Typography from '@material-ui/core/Typography'
-import { withStyles } from '@material-ui/styles'
+import * as M from '@material-ui/core'
 
-import * as RT from 'utils/reactTools'
+export function Field({ input, meta, errors, helperText, ...rest }) {
+  const error = meta.submitFailed && meta.error
+  const props = {
+    error: !!error,
+    helperText: error ? errors[error] || error : helperText,
+    disabled: meta.submitting || meta.submitSucceeded,
+    ...input,
+    ...rest,
+  }
+  return <M.TextField {...props} />
+}
 
-export const Field = RT.composeComponent(
-  'Admin.Form.Field',
-  RC.setPropTypes({
-    input: PT.object.isRequired,
-    meta: PT.object.isRequired,
-    errors: PT.objectOf(PT.node),
-    label: PT.node,
-  }),
-  ({ input, meta, errors, label, ...rest }) => {
-    const error = meta.submitFailed && meta.error
-    const props = {
-      error: !!error,
-      label: error ? errors[error] || error : label,
-      disabled: meta.submitting || meta.submitSucceeded,
-      ...input,
-      ...rest,
-    }
-    return <TextField {...props} />
+const useCheckboxStyles = M.makeStyles(() => ({
+  root: {
+    paddingBottom: 0,
+    paddingTop: 0,
   },
-)
+}))
 
-export const FormError = RT.composeComponent(
-  'Admin.Form.FormError',
-  withStyles((t) => ({
-    root: {
-      marginTop: t.spacing.unit * 3,
+export function Checkbox({ input, meta, errors, label, FormControlLabelProps, ...rest }) {
+  const classes = useCheckboxStyles()
+  return (
+    <M.FormControlLabel
+      control={
+        <M.Checkbox
+          classes={classes}
+          disabled={meta.submitting || meta.submitScceeded}
+          {...input}
+          {...rest}
+        />
+      }
+      label={label}
+      {...FormControlLabelProps}
+    />
+  )
+}
 
-      '& a': {
-        textDecoration: 'underline',
-      },
+const useFormErrorStyles = M.makeStyles((t) => ({
+  root: {
+    marginTop: t.spacing(3),
+
+    '& a': {
+      textDecoration: 'underline',
     },
-  })),
-  ({ error, errors, ...rest }) =>
+  },
+}))
+
+export function FormError({ error, errors, ...rest }) {
+  const classes = useFormErrorStyles()
+  return (
     !!error && (
-      <Typography color="error" {...rest}>
+      <M.Typography color="error" classes={classes} {...rest}>
         {errors[error] || error}
-      </Typography>
-    ),
-)
+      </M.Typography>
+    )
+  )
+}
 
 export const ReduxForm = RF.reduxForm()(({ children, ...props }) => children(props))

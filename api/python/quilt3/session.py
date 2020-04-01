@@ -77,7 +77,7 @@ def _update_auth(refresh_token, timeout=None):
 def _handle_response(resp, **kwargs):
     if resp.status_code == requests.codes.unauthorized:
         raise QuiltException(
-            "Authentication failed. Run `quilt login` again."
+            "Authentication failed. Run `quilt3 login` again."
         )
     elif not resp.ok:
         try:
@@ -165,7 +165,8 @@ def open_url(url):
 
 def login():
     """
-    Authenticate.
+    Authenticate to your Quilt stack and assume the role assigned to you by
+    your stack administrator. Not required if you have existing AWS credentials.
 
     Launches a web browser and asks the user for a token.
     """
@@ -208,7 +209,7 @@ def login_with_token(refresh_token):
 
 def logout():
     """
-    Become anonymous. Useful for testing.
+    Do not use Quilt credentials. Useful if you have existing AWS credentials.
     """
     # TODO revoke refresh token (without logging out of web sessions)
     if _load_auth() or _load_credentials():

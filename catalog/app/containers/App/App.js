@@ -131,7 +131,7 @@ export default function App() {
         )}
 
         {!cfg.disableNavigator && (
-          <Route path={paths.admin} component={requireAdmin(Admin)} exact />
+          <Route path={paths.admin} component={requireAdmin(Admin)} />
         )}
 
         {!cfg.disableNavigator && (
