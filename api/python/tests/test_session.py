@@ -130,9 +130,9 @@ class TestSession(QuiltTestCase):
         )
 
         with patch('quilt3.session._load_auth', return_value={url: mock_auth}) as mocked_load_auth:
-            assert quilt3.logged_in() is True
+            assert quilt3.logged_in() == url
             mocked_load_auth.assert_called_once()
 
         with patch('quilt3.session._load_auth', return_value={other_url: mock_auth}) as mocked_load_auth:
-            assert quilt3.logged_in() is False
+            assert quilt3.logged_in() is None
             mocked_load_auth.assert_called_once()

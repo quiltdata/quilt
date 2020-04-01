@@ -80,7 +80,8 @@ A sequence of strings containing the names of the packages
 
 ## logged\_in()  {#logged\_in}
 
-Return whether Quilt client is authenticated.
+Return registry URL if Quilt client is authenticated. Otherwise
+return `None`.
 
 
 ## login()  {#login}
