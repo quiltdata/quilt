@@ -28,7 +28,7 @@ from .util import (
     validate_package_name, quiltignore_filter, validate_key, extract_file_extension,
     parse_sub_package_name)
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
-    user_is_configured_to_custom_stack, catalog_package_url
+    user_is_configured_to_custom_stack, catalog_package_url, DISABLE_TQDM
 
 MAX_FIX_HASH_RETRIES = 3
 
@@ -721,7 +721,7 @@ class Package(object):
             readable_file.seek(0)
 
             reader = jsonlines.Reader(readable_file, loads=json.loads)
-            with tqdm(desc="Loading manifest", total=line_count, unit="entries") as tqdm_progress:
+            with tqdm(desc="Loading manifest", total=line_count, unit="entries", disable=DISABLE_TQDM) as tqdm_progress:
                 meta = reader.read()
                 meta.pop('top_hash', None)  # Obsolete as of PR #130
                 pkg = cls()

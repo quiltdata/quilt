@@ -31,3 +31,10 @@ $ export QUILT_DISABLE_USAGE_METRICS=true
 
 Or call `quilt3.disable_telemetry()`
 to persistently disable anonymous usage statistics.
+
+## Can I turn off progress bars for log files?
+
+Yes:
+```
+$ export QUILT_MINIMIZE_STDOUT=true
+```

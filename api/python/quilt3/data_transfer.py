@@ -22,8 +22,7 @@ from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_expone
 from tqdm import tqdm
 
 from .session import create_botocore_session
-from .util import PhysicalKey, QuiltException
-
+from .util import PhysicalKey, QuiltException, DISABLE_TQDM
 
 MAX_COPY_FILE_LIST_RETRIES = 3
 
@@ -464,7 +463,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
 
     s3_client_provider = S3ClientProvider()  # Share provider across threads to reduce redundant public bucket checks
 
-    with tqdm(desc=message, total=total_size, unit='B', unit_scale=True) as progress, \
+    with tqdm(desc=message, total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress, \
          ThreadPoolExecutor(s3_transfer_config.max_request_concurrency) as executor:
 
         def progress_callback(bytes_transferred):
@@ -807,7 +806,7 @@ def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
     total_size = sum(sizes)
     lock = Lock()
 
-    with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True) as progress:
+    with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress:
         def _process_url(src, size):
             hash_obj = hashlib.sha256()
             if src.is_local():
