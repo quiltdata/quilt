@@ -28,51 +28,44 @@ workflows:
               only: /[0-9]+(\.[0-9]+)*([abrc]+[0-9]+)?$/
             branches:
               ignore: /.*/
+
+test-base: &test-base
+  environment:
+    QUILT_DISABLE_USAGE_METRICS: true
+  steps:
+    - run: git config --global core.autocrlf false # for Windows
+    - checkout
+    - run:
+        name: Setup venv
+        command: |
+          pip install virtualenv
+          virtualenv venv
+          if [ -e venv/bin/activate ]; then
+            echo ". venv/bin/activate" >> $BASH_ENV
+          else
+            echo ". venv/Scripts/activate" >> $BASH_ENV # for Windows
+          fi
+    - run:
+        name: Install dependencies
+        command: |
+          pip install -e api/python[tests]
+    - run:
+        name: Run Pytest
+        command: |
+          cd api/python && pytest --cov=./
+          codecov
+
 jobs:
-  test-36: &test-template
+  test-36:
     docker:
       - image: circleci/python:3.6-jessie
-    environment:
-      QUILT_DISABLE_USAGE_METRICS: true
-    steps:
-      - checkout
-      - run:
-          name: Setup
-          command: |
-            virtualenv venv
-            . venv/bin/activate
-            pip install -e api/python[tests]
-      - run:
-          name: Run Pytest
-          command: |
-            . venv/bin/activate
-            cd api/python && pytest --cov=./
-            codecov
+    <<: *test-base
 
   test-windows:
     executor:
       name: win/default
-      size: "medium"
-    environment:
-      QUILT_DISABLE_USAGE_METRICS: true
-    steps:
-      - checkout
-      - run:
-          name: Setup
-          command: |
-            pip install virtualenv
-            virtualenv venv
-            source venv/Scripts/activate
-            pip install -e api/python[tests]
-          shell: bash.exe
-      - run:
-          name: Run Pytest
-          command: |
-            set -e
-            source venv/Scripts/activate
-            cd api/python; pytest --cov=.
-            codecov
-          shell: bash.exe
+      shell: bash --login -eo pipefail
+    <<: *test-base
 
   test-lambdas-indexer:
     docker:
