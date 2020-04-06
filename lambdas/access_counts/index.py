@@ -152,6 +152,10 @@ CREATE_PACKAGE_HASHES = textwrap.dedent(f"""\
     FROM named_packages
 """)
 
+# All GROUP BY statements are supposed to be:
+# - in the order from most unique values to least unique
+# - integers rather than strings
+
 OBJECT_ACCESS_COUNTS = textwrap.dedent("""\
     SELECT
         eventname,
@@ -159,7 +163,7 @@ OBJECT_ACCESS_COUNTS = textwrap.dedent("""\
         key,
         CAST(histogram(date) AS JSON) AS counts
     FROM object_access_log
-    GROUP BY eventname, bucket, key
+    GROUP BY 3, 2, 1
 """)
 
 PACKAGE_ACCESS_COUNTS = textwrap.dedent("""\
@@ -170,7 +174,7 @@ PACKAGE_ACCESS_COUNTS = textwrap.dedent("""\
         CAST(histogram(date) AS JSON) AS counts
     FROM object_access_log JOIN package_hashes
     ON object_access_log.bucket = package_hashes.bucket AND key = concat('.quilt/packages/', hash)
-    GROUP BY eventname, package_hashes.bucket, name
+    GROUP BY 3, 2, 1
 """)
 
 PACKAGE_VERSION_ACCESS_COUNTS = textwrap.dedent("""\
@@ -182,7 +186,7 @@ PACKAGE_VERSION_ACCESS_COUNTS = textwrap.dedent("""\
         CAST(histogram(date) AS JSON) AS counts
     FROM object_access_log JOIN package_hashes
     ON object_access_log.bucket = package_hashes.bucket AND key = concat('.quilt/packages/', hash)
-    GROUP BY eventname, package_hashes.bucket, name, hash
+    GROUP BY 4, 3, 2, 1
 """)
 
 BUCKET_ACCESS_COUNTS = textwrap.dedent("""\
@@ -191,7 +195,7 @@ BUCKET_ACCESS_COUNTS = textwrap.dedent("""\
         bucket,
         CAST(histogram(date) AS JSON) AS counts
     FROM object_access_log
-    GROUP BY eventname, bucket
+    GROUP BY 2, 1
 """)
 
 
@@ -221,7 +225,7 @@ EXTS_ACCESS_COUNTS = textwrap.dedent("""\
             FROM object_access_log
         )
     )
-    GROUP BY eventname, bucket, ext
+    GROUP BY 3, 2, 1
 """)
 
 
