@@ -33,7 +33,6 @@ test-base: &test-base
   environment:
     QUILT_DISABLE_USAGE_METRICS: true
   steps:
-    - run: git config --global core.autocrlf false # for Windows
     - checkout
     - run:
         name: Setup venv
