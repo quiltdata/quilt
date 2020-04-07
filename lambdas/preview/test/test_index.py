@@ -426,6 +426,7 @@ class TestIndex():
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'vcf'})
         resp = index.lambda_handler(event, None)
+        assert resp['statusCode'] == 200, 'preview failed on example.vcf'
         _check_vcf(self._read_body(resp))
 
     @responses.activate
@@ -440,6 +441,7 @@ class TestIndex():
         event = self._make_event(
             {'url': self.FILE_URL, 'input': 'vcf', 'compression': 'gz'})
         resp = index.lambda_handler(event, None)
+        assert resp['statusCode'] == 200, 'preview failed on example.vcf.gz'
         _check_vcf(self._read_body(resp))
 
     # 513 = 128*4 + 1 => ensure there's a partial chunk in play
@@ -477,7 +479,6 @@ class TestIndex():
 def _check_vcf(resp):
     """common logic for checking vcf files, e.g. across compression settings"""
     body = json.loads(resp)
-    assert resp['statusCode'] == 200, 'preview failed on example.vcf, or a compressed version of it'
     assert body['info']['metadata']['variant_count'] == 3, 'expected 3 variants'
     data = body['info']['data']
     assert data['meta'][0] == '##fileformat=VCFv4.0', 'unexpected meta first line'
