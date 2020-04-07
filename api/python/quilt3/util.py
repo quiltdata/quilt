@@ -236,7 +236,7 @@ def extract_file_extension(file_path_or_url):
 
 def read_yaml(yaml_stream):
     try:
-        if isinstance(yaml_stream, pathlib.PosixPath):
+        if isinstance(yaml_stream, pathlib.Path):
             with yaml_stream.open(mode='r') as stream:
                 return yaml.safe_load(stream)
         return yaml.safe_load(yaml_stream)
