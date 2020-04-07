@@ -4,10 +4,15 @@ Decorators for using lambdas in API Gateway
 
 from base64 import b64decode, b64encode
 from functools import wraps
+import gzip
 import json
 import traceback
 
 from jsonschema import Draft4Validator, ValidationError
+
+
+GZIP_MIN_LENGTH = 1024
+GZIP_TYPES = {'text/plain', 'application/json'}
 
 
 class Request(object):
@@ -48,6 +53,15 @@ def api(cors_origins=[]):
                     response_headers = {
                         'Content-Type': 'text/plain'
                     }
+
+                content_type = response_headers.get('Content-Type')
+                if len(body) >= GZIP_MIN_LENGTH and content_type in GZIP_TYPES:
+                    if isinstance(body, str):
+                        body = body.encode()
+                    body = gzip.compress(body)
+                    response_headers.update({
+                        'Content-Encoding': 'gzip'
+                    })
 
                 if isinstance(body, bytes):
                     body = b64encode(body).decode()
