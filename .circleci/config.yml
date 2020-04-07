@@ -8,6 +8,8 @@ workflows:
   test:
     jobs:
       - test-36
+      - test-37
+      - test-38
       - test-windows
       - test-lambdas-indexer
       - test-lambdas-preview
@@ -58,6 +60,16 @@ jobs:
   test-36:
     docker:
       - image: circleci/python:3.6-jessie
+    <<: *test-base
+
+  test-37:
+    docker:
+      - image: circleci/python:3.7
+    <<: *test-base
+
+  test-38:
+    docker:
+      - image: circleci/python:3.8
     <<: *test-base
 
   test-windows:
