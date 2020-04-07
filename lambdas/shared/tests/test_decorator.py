@@ -2,6 +2,7 @@
 Decorator tests
 """
 from base64 import b64decode, b64encode
+import gzip
 from unittest import TestCase
 
 from t4_lambda_shared.decorator import api, Request, validate
@@ -185,3 +186,20 @@ class TestDecorator(TestCase):
         code, _, headers = handler(Request(self._make_get({'foo': 'bar', 'x': 'y'}, None)))
         assert code == 400
         assert headers == {'Content-Type': 'text/plain'}
+
+    def test_gzip(self):
+        long_data = 'Hello World\n' * 1000
+
+        @api()
+        def handler(request):
+            return 200, long_data, {'Content-Type': 'text/plain'}
+
+        resp = handler(self._make_get(None, None), None)
+
+        assert resp['statusCode'] == 200
+        assert resp['isBase64Encoded'] is True
+        assert gzip.decompress(b64decode(resp['body'].encode())).decode() == long_data
+        assert resp['headers'] == {
+            'Content-Type': 'text/plain',
+            'Content-Encoding': 'gzip'
+        }
