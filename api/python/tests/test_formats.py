@@ -41,7 +41,7 @@ def test_formats_for_obj():
     assert found_string_fmt_names == expected_string_fmt_names
 
     bytes_obj = fmt.serialize(arr)[0]
-    assert np.array_equal(fmt.deserialize(bytes_obj, ), arr)
+    np.testing.assert_array_equal(fmt.deserialize(bytes_obj), arr)
 
 
 def test_formats_for_ext():
