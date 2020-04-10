@@ -1,9 +1,11 @@
+import { join as pathJoin } from 'path'
+
 import * as dateFns from 'date-fns'
 import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
-import { resolveKey } from 'utils/s3paths'
+import { resolveKey, parseS3Url } from 'utils/s3paths'
 import * as Resource from 'utils/Resource'
 
 import * as errors from './errors'
@@ -209,10 +211,9 @@ export const bucketExists = ({ s3req, bucket }) =>
     ]),
   )
 
-const S3_REGEXP = /s3:\/\/(?<bucket>[^/]+)\/(?<path>.*)/
-
-const getOverviewBucket = (url) => url.match(S3_REGEXP).groups.bucket
-const getOverviewPath = (url) => url.match(S3_REGEXP).groups.path
+const getOverviewBucket = (url) => parseS3Url(url).bucket
+const getOverviewPrefix = (url) => parseS3Url(url).key
+const getOverviewKey = (url, path) => pathJoin(getOverviewPrefix(url), path)
 
 const processStats = R.applySpec({
   exts: R.pipe(
@@ -237,7 +238,7 @@ export const bucketStats = async ({ es, s3req, bucket, overviewUrl }) => {
         operation: 'getObject',
         params: {
           Bucket: getOverviewBucket(overviewUrl),
-          Key: `${unescape(getOverviewPath(overviewUrl))}/stats.json`,
+          Key: getOverviewKey(overviewUrl, 'stats.json'),
         },
       })
         .then((r) => JSON.parse(r.Body.toString('utf-8')))
@@ -305,7 +306,7 @@ export const bucketSummary = async ({ s3req, es, bucket, overviewUrl, inStack })
         operation: 'getObject',
         params: {
           Bucket: getOverviewBucket(overviewUrl),
-          Key: `${unescape(getOverviewPath(overviewUrl))}/summary.json`,
+          Key: getOverviewKey(overviewUrl, 'summary.json'),
         },
       }).then(
         R.pipe(
@@ -396,7 +397,7 @@ export const bucketReadmes = ({ s3req, bucket, overviewUrl }) =>
       headObject({
         s3req,
         bucket: getOverviewBucket(overviewUrl),
-        key: `${unescape(getOverviewPath(overviewUrl))}/README.md`,
+        key: getOverviewKey(overviewUrl, 'README.md'),
       }),
     discovered: Promise.all(
       README_KEYS.map((key) => headObject({ s3req, bucket, key })),
@@ -411,7 +412,7 @@ export const bucketImgs = async ({ es, s3req, bucket, overviewUrl, inStack }) =>
         operation: 'getObject',
         params: {
           Bucket: getOverviewBucket(overviewUrl),
-          Key: `${unescape(getOverviewPath(overviewUrl))}/summary.json`,
+          Key: getOverviewKey(overviewUrl, 'summary.json'),
         },
       }).then(
         R.pipe(
