@@ -1,6 +1,8 @@
 """
 Helper functions.
 """
+from base64 import b64decode
+import gzip
 import json
 import os
 
@@ -26,3 +28,12 @@ def make_json_response(status_code, json_object, extra_headers=None):
         headers.update(extra_headers)
 
     return status_code, json.dumps(json_object), headers
+
+
+def read_body(resp):
+    body = resp['body']
+    if resp['isBase64Encoded']:
+        body = b64decode(body)
+    if resp['headers'].get('Content-Encoding') == 'gzip':
+        body = gzip.decompress(body)
+    return body
