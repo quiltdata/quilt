@@ -1,12 +1,10 @@
 """
 Test functions for preview endpoint
 """
-import gzip
 import json
 import os
 import pathlib
 import re
-from base64 import b64decode
 from unittest.mock import ANY, patch
 
 import responses
