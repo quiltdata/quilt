@@ -18,6 +18,7 @@ import numpy as np
 import requests
 from aicsimageio import AICSImage, readers
 from PIL import Image
+
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
@@ -221,7 +222,12 @@ def lambda_handler(request):
     if resp.ok:
         # Get the original reader / format
         # If the original reader isn't in the supported formats map, use PNG as default presentation format
-        thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(imageio.get_reader(resp.content), "PNG")
+        try:
+            thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(imageio.get_reader(resp.content), "PNG")
+        # In the case imageio can't read the image, default to PNG
+        # Usually an OME-TIFF / CZI / some other bio-format
+        except ValueError:
+            thumbnail_format = "PNG"
 
         # Read image data
         img = AICSImage(resp.content)
