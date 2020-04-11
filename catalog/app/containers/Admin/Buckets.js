@@ -17,6 +17,32 @@ import * as Form from './Form'
 import * as Table from './Table'
 import * as data from './data'
 
+const REGIONS = {
+  'us-east-1': 'US East (N. Virginia)',
+  'us-east-2': 'US East (Ohio)',
+  'us-west-1': 'US West (N. California)',
+  'us-west-2': 'US West (Oregon)',
+  'ap-east-1': 'Asia Pacific (Hong Kong)',
+  'ap-south-1': 'Asia Pacific (Mumbai)',
+  'ap-southeast-1': 'Asia Pacific (Singapore)',
+  'ap-southeast-2': 'Asia Pacific (Sydney)',
+  'ap-northeast-1': 'Asia Pacific (Tokyo)',
+  'ap-northeast-2': 'Asia Pacific (Seoul)',
+  'ap-northeast-3': 'Asia Pacific (Osaka-Local)',
+  'ca-central-1': 'Canada (Central)',
+  'cn-north-1': 'China (Beijing)',
+  'cn-northwest-1': 'China (Ningxia)',
+  'eu-central-1': 'Europe (Frankfurt)',
+  'eu-west-1': 'Europe (Ireland)',
+  'eu-west-2': 'Europe (London)',
+  'eu-west-3': 'Europe (Paris)',
+  'eu-north-1': 'Europe (Stockholm)',
+  'sa-east-1': 'South America (São Paulo)',
+  'me-south-1': 'Middle East (Bahrain)',
+}
+
+const DEFAULT_REGION = 'us-east-1'
+
 const useBucketFieldsStyles = M.makeStyles((t) => ({
   group: {
     '& > *:first-child': {
@@ -57,6 +83,25 @@ function BucketFields({ add = false }) {
           fullWidth
           margin="normal"
         />
+        <RF.Field
+          component={Form.Field}
+          select
+          name="region"
+          label="Region"
+          validate={[validators.required]}
+          errors={{
+            required: "Select bucket's region",
+          }}
+          fullWidth
+          margin="normal"
+          renderValue={(v) => (v ? `${v} / ${REGIONS[v]}` : null)}
+        >
+          {Object.entries(REGIONS).map(([key, name]) => (
+            <M.MenuItem key={key} value={key}>
+              {key} / {name}
+            </M.MenuItem>
+          ))}
+        </RF.Field>
         <RF.Field
           component={Form.Field}
           name="title"
@@ -288,7 +333,11 @@ function Add({ close }) {
   )
 
   return (
-    <Form.ReduxForm form="Admin.Buckets.Add" onSubmit={onSubmit}>
+    <Form.ReduxForm
+      form="Admin.Buckets.Add"
+      onSubmit={onSubmit}
+      initialValues={{ region: DEFAULT_REGION }}
+    >
       {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
         <>
           <M.DialogTitle>Add a bucket</M.DialogTitle>
@@ -369,6 +418,7 @@ function Edit({ bucket, close }) {
   const initialValues = {
     name: bucket.name,
     title: bucket.title,
+    region: bucket.region,
     iconUrl: bucket.iconUrl,
     description: bucket.description,
     relevanceScore: bucket.relevanceScore,
@@ -499,6 +549,21 @@ const columns = [
         </M.Box>
       </span>
     ),
+  },
+  {
+    id: 'region',
+    label: 'Region',
+    getValue: R.prop('region'),
+    getDisplay: (v) =>
+      v ? (
+        <M.Box fontFamily="monospace.fontFamily" component="span">
+          {v}
+        </M.Box>
+      ) : (
+        <M.Box color="text.secondary" component="span">
+          {'<Not set>'}
+        </M.Box>
+      ),
   },
   {
     id: 'icon',

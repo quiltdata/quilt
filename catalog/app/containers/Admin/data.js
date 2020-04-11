@@ -30,6 +30,7 @@ export const UsersResource = Cache.createResource({
 
 export const bucketFromJSON = (b) => ({
   name: b.name,
+  region: b.region,
   title: b.title,
   description: b.description,
   iconUrl: b.icon_url,
