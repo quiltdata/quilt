@@ -1,3 +1,4 @@
+import S3 from 'aws-sdk/clients/s3'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -12,7 +13,16 @@ const fetchBuckets = async ({ registryUrl }) => {
   if (!res.ok) {
     throw new Error(`Unable to fetch buckets (${res.status}):\n${text}`)
   }
+
   const json = JSON.parse(text)
+
+  // prime S3 bucket region cache with known regions
+  json.buckets.forEach(({ name, region }) => {
+    if (region && !S3.prototype.bucketRegionCache[name]) {
+      S3.prototype.bucketRegionCache[name] = region
+    }
+  })
+
   return json.buckets.map((b) => ({
     ...R.omit(['icon_url', 'overview_url', 'relevance_score', 'schema_org'], b),
     iconUrl: b.icon_url,
