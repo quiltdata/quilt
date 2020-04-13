@@ -269,6 +269,7 @@ const formToJSON = (values) => {
   const json = {
     name: get('name'),
     title: get('title', R.trim),
+    region: get('region'),
     icon_url: get('iconUrl', R.identity),
     description: get('description', R.trim),
     relevance_score: get('relevanceScore', Number),
