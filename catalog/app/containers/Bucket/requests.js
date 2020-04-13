@@ -1,5 +1,6 @@
 import { join as pathJoin } from 'path'
 
+import S3 from 'aws-sdk/clients/s3'
 import * as dateFns from 'date-fns'
 import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
@@ -199,17 +200,25 @@ export const bucketAccessCounts = async ({
 
 const parseDate = (d) => d && new Date(d)
 
-export const bucketExists = ({ s3req, bucket }) =>
-  s3req({ bucket, operation: 'headBucket', params: { Bucket: bucket } }).catch(
-    catchErrors([
-      [
-        R.propEq('code', 'NotFound'),
-        () => {
-          throw new errors.NoSuchBucket()
-        },
-      ],
-    ]),
-  )
+export function bucketExists({ s3req, bucket, cache }) {
+  if (S3.prototype.bucketRegionCache[bucket]) return Promise.resolve()
+  if (cache && cache[bucket]) return Promise.resolve()
+  return s3req({ bucket, operation: 'headBucket', params: { Bucket: bucket } })
+    .then(() => {
+      // eslint-disable-next-line no-param-reassign
+      if (cache) cache[bucket] = true
+    })
+    .catch(
+      catchErrors([
+        [
+          R.propEq('code', 'NotFound'),
+          () => {
+            throw new errors.NoSuchBucket()
+          },
+        ],
+      ]),
+    )
+}
 
 const getOverviewBucket = (url) => parseS3Url(url).bucket
 const getOverviewPrefix = (url) => parseS3Url(url).key
