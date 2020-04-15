@@ -45,8 +45,6 @@ def lambda_handler(request):
     Proxy the request to the elastic search.
     """
 
-    #TODO: remove INDEX_OVERRIDES?
-    INDEX_OVERRIDES = os.getenv('INDEX_OVERRIDES', '')
     action = request.args.get('action')
     indexes = request.args.get('index')
     terminate_after = os.getenv('MAX_DOCUMENTS_PER_SHARD')
@@ -122,7 +120,8 @@ def lambda_handler(request):
 
     es_host = os.environ['ES_HOST']
     region = os.environ['AWS_REGION']
-
+    index_overrides = os.getenv('INDEX_OVERRIDES', '')
+    
     auth = BotoAWSRequestsAuth(
         aws_host=es_host,
         aws_region=region,
@@ -137,7 +136,7 @@ def lambda_handler(request):
         connection_class=RequestsHttpConnection
     )
 
-    to_search = f"{indexes},{INDEX_OVERRIDES}" if INDEX_OVERRIDES else indexes
+    to_search = f"{indexes},{index_overrides}" if index_overrides else indexes
     result = es_client.search(
         to_search,
         body,
