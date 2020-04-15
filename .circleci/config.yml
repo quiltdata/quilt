@@ -3,10 +3,26 @@ version: 2.1
 orbs:
   win: circleci/windows@2.4.0
 
+commands:
+  setup-venv:
+    description: "Make subsequent steps to run in venv"
+    steps:
+      - run:
+          name: Setup venv
+          command: |
+            pip install virtualenv
+            virtualenv venv
+            if [ -e venv/bin/activate ]; then
+              echo ". venv/bin/activate" >> $BASH_ENV
+            else
+              echo ". venv/Scripts/activate" >> $BASH_ENV # for Windows
+            fi
+
 workflows:
   version: 2
   test:
     jobs:
+      - linter
       - test-36
       - test-37
       - test-38
@@ -36,16 +52,7 @@ test-base: &test-base
     QUILT_DISABLE_USAGE_METRICS: true
   steps:
     - checkout
-    - run:
-        name: Setup venv
-        command: |
-          pip install virtualenv
-          virtualenv venv
-          if [ -e venv/bin/activate ]; then
-            echo ". venv/bin/activate" >> $BASH_ENV
-          else
-            echo ". venv/Scripts/activate" >> $BASH_ENV # for Windows
-          fi
+    - setup-venv
     - run:
         name: Install dependencies
         command: |
@@ -57,6 +64,21 @@ test-base: &test-base
           codecov
 
 jobs:
+  linter:
+    docker:
+      - image: circleci/python:3.6-jessie
+    steps:
+      - checkout
+      - setup-venv
+      - run:
+          name: Install dependencies
+          command: |
+            pip install pylint
+      - run:
+          name: Run pylint
+          command: |
+            pylint api/python/quilt3 lambdas/*
+
   test-36:
     docker:
       - image: circleci/python:3.6-jessie
