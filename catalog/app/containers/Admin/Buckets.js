@@ -283,7 +283,12 @@ function Add({ close }) {
         })
         const b = data.bucketFromJSON(res)
         cache.patchOk(data.BucketsResource, null, R.append(b))
-        cache.patchOk(BucketConfig.BucketsResource, null, R.append(toBucketConfig(b)))
+        cache.patchOk(
+          BucketConfig.BucketsResource,
+          { empty: false },
+          R.append(toBucketConfig(b)),
+          true,
+        )
         push(`Bucket "${b.name}" added`)
         t.track('WEB', { type: 'admin', action: 'bucket add', bucket: b.name })
         close()
@@ -370,8 +375,9 @@ function Edit({ bucket, close }) {
         )
         cache.patchOk(
           BucketConfig.BucketsResource,
-          null,
+          { empty: false },
           R.map((b) => (b.name === bucket.name ? toBucketConfig(updated) : b)),
+          true,
         )
         close()
       } catch (e) {
@@ -473,15 +479,21 @@ function Delete({ bucket, close }) {
       cache.patchOk(data.BucketsResource, null, R.reject(R.propEq('name', bucket.name)))
       cache.patchOk(
         BucketConfig.BucketsResource,
-        null,
+        { empty: false },
         R.reject(R.propEq('name', bucket.name)),
+        true,
       )
       await req({ endpoint: `/admin/buckets/${bucket.name}`, method: 'DELETE' })
       t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
     } catch (e) {
       // put the bucket back into cache if it hasnt been deleted properly
       cache.patchOk(data.BucketsResource, null, R.append(bucket))
-      cache.patchOk(BucketConfig.BucketsResource, null, R.append(toBucketConfig(bucket)))
+      cache.patchOk(
+        BucketConfig.BucketsResource,
+        { empty: false },
+        R.append(toBucketConfig(bucket)),
+        true,
+      )
       push(`Error deleting bucket "${bucket.name}"`)
       // eslint-disable-next-line no-console
       console.error('Error deleting bucket')
