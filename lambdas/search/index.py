@@ -11,8 +11,6 @@ from elasticsearch import Elasticsearch, RequestsHttpConnection
 from t4_lambda_shared.decorator import api
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
-INDEX_OVERRIDES = os.getenv('INDEX_OVERRIDES', '')
-MAX_DOCUMENTS_PER_SHARD = os.getenv('MAX_DOCUMENTS_PER_SHARD')
 MAX_QUERY_DURATION = '15s'
 NUM_PREVIEW_IMAGES = 100
 NUM_PREVIEW_FILES = 100
@@ -46,9 +44,12 @@ def lambda_handler(request):
     """
     Proxy the request to the elastic search.
     """
+
+    #TODO: remove INDEX_OVERRIDES?
+    INDEX_OVERRIDES = os.getenv('INDEX_OVERRIDES', '')
     action = request.args.get('action')
     indexes = request.args.get('index')
-    terminate_after = MAX_DOCUMENTS_PER_SHARD
+    terminate_after = os.getenv('MAX_DOCUMENTS_PER_SHARD')
 
     if action == 'search':
         query = request.args.get('query', '')
