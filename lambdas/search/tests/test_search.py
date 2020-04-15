@@ -19,7 +19,8 @@ class TestS3Select(TestCase):
             'AWS_ACCESS_KEY_ID': 'test_key',
             'AWS_SECRET_ACCESS_KEY': 'test_secret',
             'AWS_REGION': 'ng-north-1',
-            'ES_HOST': 'www.example.com'
+            'ES_HOST': 'www.example.com',
+            'MAX_DOCUMENTS_PER_SHARD': '10000',
         })
         self.env_patcher.start()
 
@@ -86,7 +87,6 @@ class TestS3Select(TestCase):
     def test_stats(self):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
             timeout='15s',
-            terminate_after=10000,
             size=0,
             _source = '',
         ))
