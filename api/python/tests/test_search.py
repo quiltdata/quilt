@@ -1,9 +1,6 @@
-import json
-from unittest.mock import patch, MagicMock
-
 import responses
 
-from quilt3 import Bucket, search
+from quilt3 import search
 from quilt3.util import get_from_config
 
 from .utils import QuiltTestCase

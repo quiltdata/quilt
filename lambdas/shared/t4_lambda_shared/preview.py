@@ -3,7 +3,6 @@ Shared helper functions for generating previews for the preview lambda and the E
 """
 from io import BytesIO
 import os
-import json
 import zlib
 
 # CATALOG_LIMIT_BYTES is bytes scanned, so acts as an upper bound on bytes returned

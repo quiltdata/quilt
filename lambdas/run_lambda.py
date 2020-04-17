@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import argparse
 from base64 import b64decode, b64encode
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import sys

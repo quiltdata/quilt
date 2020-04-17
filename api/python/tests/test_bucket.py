@@ -1,7 +1,6 @@
 from unittest.mock import patch
 from io import BytesIO
 import pathlib
-from urllib.parse import urlparse
 
 import pandas as pd
 import pytest

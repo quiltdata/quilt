@@ -5,7 +5,6 @@ import io
 import json
 import pathlib
 import os
-import re
 import shutil
 import time
 from multiprocessing import Pool
@@ -27,7 +26,7 @@ from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
     validate_package_name, quiltignore_filter, validate_key, extract_file_extension,
     parse_sub_package_name)
-from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
+from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, \
     user_is_configured_to_custom_stack, catalog_package_url, DISABLE_TQDM
 
 MAX_FIX_HASH_RETRIES = 3

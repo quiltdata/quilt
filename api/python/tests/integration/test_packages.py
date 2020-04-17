@@ -15,7 +15,7 @@ import pytest
 import quilt3
 from quilt3 import Package
 from quilt3.packages import MAX_FIX_HASH_RETRIES
-from quilt3.util import PhysicalKey, QuiltException, validate_package_name, fix_url
+from quilt3.util import PhysicalKey, QuiltException, validate_package_name
 
 from ..utils import QuiltTestCase
 
@@ -1351,7 +1351,7 @@ class PackageTest(QuiltTestCase):
 
             with patch('quilt3.Package._browse') as browse_mock, pytest.raises(ImportError) as exc_info:
                 browse_mock.return_value = quilt3.Package()
-                from quilt3.data.Quilt import Foo
+                from quilt3.data.Quilt import Foo # pylint: disable=unused-import
             assert "cannot import name 'Foo'" in str(exc_info.value)
 
         # make sure import works for an installed named package

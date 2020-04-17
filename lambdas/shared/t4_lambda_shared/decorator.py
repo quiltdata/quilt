@@ -5,7 +5,6 @@ Decorators for using lambdas in API Gateway
 from base64 import b64decode, b64encode
 from functools import wraps
 import gzip
-import json
 import traceback
 
 from jsonschema import Draft4Validator, ValidationError

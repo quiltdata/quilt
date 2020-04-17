@@ -2,7 +2,6 @@ import base64
 import json
 from pathlib import Path
 
-import imageio
 import numpy as np
 import pytest
 import responses
