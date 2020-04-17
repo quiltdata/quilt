@@ -1,7 +1,6 @@
 [MESSAGES CONTROL]
 disable=attribute-defined-outside-init,
         bad-continuation,
-        bad-whitespace,
         broad-except,
         consider-using-in,
         consider-using-sys-exit,

@@ -45,7 +45,7 @@ class TestS3Select(TestCase):
             timeout='15s',
             size=1000,
             terminate_after=10000,
-            _source = ','.join(['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']),
+            _source=','.join(['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']),
         ))
 
         def _callback(request):
@@ -88,18 +88,18 @@ class TestS3Select(TestCase):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
             timeout='15s',
             size=0,
-            _source = '',
+            _source='',
         ))
 
         def _callback(request):
             payload = json.loads(request.body)
             assert payload == {
-                "query": { "match_all": {} },
+                "query": {"match_all": {}},
                 "aggs": {
-                    "totalBytes": { "sum": { "field": 'size' } },
+                    "totalBytes": {"sum": {"field": 'size'}},
                     "exts": {
-                        "terms": { "field": 'ext' },
-                        "aggs": { "size": { "sum": { "field": 'size' } } },
+                        "terms": {"field": 'ext'},
+                        "aggs": {"size": {"sum": {"field": 'size'}}},
                     },
                 }
             }

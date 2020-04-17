@@ -585,7 +585,7 @@ class PackageTest(QuiltTestCase):
         assert pkg.meta == "test_meta"
 
         pkg = Package()
-        pkg = pkg.set_dir('/','foo_dir/baz_dir/')
+        pkg = pkg.set_dir('/', 'foo_dir/baz_dir/')
         # todo nested at set_dir site or relative to set_dir path.
         assert PhysicalKey.from_path(bazdir / 'baz') == pkg['baz'].physical_key
 
