@@ -981,7 +981,7 @@ class ParquetFormatHandler(BaseFormatHandler):
         import pandas as pd
         try:
             # intentional unused import -- verify we have pyarrow installed
-            import pyarrow as pa
+            import pyarrow as pa # pylint: disable=unused-import
         except ImportError:
             return False
         self.handled_types.add(pd.DataFrame)

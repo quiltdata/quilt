@@ -1,6 +1,3 @@
-from datetime import datetime, timedelta, timezone
-
-import numpy as np
 import pytest
 import responses
 import yaml

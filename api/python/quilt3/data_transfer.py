@@ -7,7 +7,7 @@ import hashlib
 import pathlib
 import shutil
 from threading import Lock
-from typing import List, Tuple
+from typing import List
 import warnings
 
 from botocore import UNSIGNED

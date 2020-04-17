@@ -1,7 +1,6 @@
 """
 Tests for the ES indexer
 """
-import datetime
 from gzip import compress
 from io import BytesIO
 import json

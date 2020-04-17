@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from io import BytesIO
 import os
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from botocore.stub import Stubber
 
