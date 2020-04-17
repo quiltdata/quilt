@@ -14,7 +14,7 @@ GZIP_MIN_LENGTH = 1024
 GZIP_TYPES = {'text/plain', 'application/json'}
 
 
-class Request(object):
+class Request:
     """
     Wraps a lambda event in an object similar to a Flask Request:
     http://flask.pocoo.org/docs/1.0/api/#flask.Request

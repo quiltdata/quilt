@@ -6,7 +6,7 @@ from quilt3.util import get_from_config
 from .utils import QuiltTestCase
 
 
-class ResponseMock(object):
+class ResponseMock:
     pass
 
 

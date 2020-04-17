@@ -424,7 +424,7 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
     _upload_file(ctx, size, src_path, dest_bucket, dest_path)
 
 
-class WorkerContext(object):
+class WorkerContext:
     def __init__(self, s3_client_provider, progress, done, run):
         self.s3_client_provider = s3_client_provider
         self.progress = progress

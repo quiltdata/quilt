@@ -51,7 +51,7 @@ def _filesystem_safe_encode(key):
     return hashlib.sha256(key.encode()).hexdigest()
 
 
-class ObjectPathCache(object):
+class ObjectPathCache:
     @classmethod
     def _cache_path(cls, url):
         url_hash = _filesystem_safe_encode(url)
@@ -91,7 +91,7 @@ class ObjectPathCache(object):
         shutil.rmtree(CACHE_PATH)
 
 
-class PackageEntry(object):
+class PackageEntry:
     """
     Represents an entry at a logical key inside a package.
     """
@@ -304,7 +304,7 @@ class PackageEntry(object):
         return [self.physical_key]
 
 
-class Package(object):
+class Package:
     """ In-memory representation of a package """
 
     def __init__(self):

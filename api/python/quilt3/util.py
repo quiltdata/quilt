@@ -79,7 +79,7 @@ class QuiltException(Exception):
             setattr(self, k, v)
 
 
-class PhysicalKey(object):
+class PhysicalKey:
     __slots__ = ['bucket', 'path', 'version_id']
 
     def __init__(self, bucket, path, version_id):
