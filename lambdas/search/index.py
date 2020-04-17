@@ -121,7 +121,7 @@ def lambda_handler(request):
     es_host = os.environ['ES_HOST']
     region = os.environ['AWS_REGION']
     index_overrides = os.getenv('INDEX_OVERRIDES', '')
-    
+
     auth = BotoAWSRequestsAuth(
         aws_host=es_host,
         aws_region=region,

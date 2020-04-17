@@ -522,6 +522,3 @@ def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="la
     validate_package_name(package_name)
 
     return f"{catalog_url}/b/{bucket}/packages/{package_name}/tree/{package_timestamp}"
-
-
-
