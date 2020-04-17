@@ -289,9 +289,9 @@ class TestIndex():
         assert resp['statusCode'] == 200, f'preview failed on {csv}'
 
         body_html = body['html']
-        assert "<td>While dioxin levels in the environment were up" in body_html ,\
+        assert "<td>While dioxin levels in the environment were up" in body_html,\
             "missing expected cell"
-        assert "<td>In Soviet times the Beatles ' music \" was cons...</td>"  in body_html ,\
+        assert "<td>In Soviet times the Beatles ' music \" was cons...</td>"  in body_html,\
             "missing expected cell"
 
         warnings = body['info']['warnings']

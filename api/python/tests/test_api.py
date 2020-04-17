@@ -42,7 +42,7 @@ class TestAPI(QuiltTestCase):
             he.config('https://fliff:fluff')
 
     def test_empty_list_role(self):
-        empty_list_response = { 'results': [] }
+        empty_list_response = {'results': []}
         self.requests_mock.add(responses.GET, DEFAULT_URL + '/api/roles',
                 json=empty_list_response, status=200)
         assert he.admin.list_roles() == []
@@ -53,7 +53,7 @@ class TestAPI(QuiltTestCase):
             'arn': 'asdf123',
             'id': '1234-1234'
         }
-        list_response = { 'results': [result] }
+        list_response = {'results': [result]}
         self.requests_mock.add(responses.GET, DEFAULT_URL + '/api/roles',
                 json=list_response, status=200)
         assert he.admin.list_roles() == [result]
