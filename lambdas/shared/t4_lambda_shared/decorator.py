@@ -32,7 +32,7 @@ class Request:
             self.data = event['body']
 
 
-def api(cors_origins=[]):
+def api(cors_origins=()):
     def innerdec(f):
         @wraps(f)
         def wrapper(event, _):
