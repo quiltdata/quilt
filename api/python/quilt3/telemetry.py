@@ -157,5 +157,3 @@ def cleanup():
     with ApiTelemetry.pending_reqs_lock:  # Not sure why we would need this lock...
         wait(ApiTelemetry.pending_reqs, timeout=MAX_CLEANUP_WAIT_SECS)
     # t.stop()
-
-

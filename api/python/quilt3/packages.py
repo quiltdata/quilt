@@ -49,7 +49,7 @@ def _delete_local_physical_key(pk):
 
 
 def _filesystem_safe_encode(key):
-    """Returns the sha256 of the key. This ensures there are no slashes, uppercase/lowercase conflicts, 
+    """Returns the sha256 of the key. This ensures there are no slashes, uppercase/lowercase conflicts,
     avoids `OSError: [Errno 36] File name too long:`, etc."""
     return hashlib.sha256(key.encode()).hexdigest()
 
@@ -395,7 +395,7 @@ class Package(object):
             name(str): Name of package to install. It also can be passed as NAME/PATH,
                 in this case only the sub-package or the entry specified by PATH will
                 be downloaded.
-            registry(str): Registry where package is located. 
+            registry(str): Registry where package is located.
                 Defaults to the default remote registry.
             top_hash(str): Hash of package to install. Defaults to latest.
             dest(str): Local path to download files to.
@@ -883,7 +883,7 @@ class Package(object):
             sizes.append(entry.size)
 
         results = calculate_sha256(physical_keys, sizes)
-        
+
         entries_w_missing_hash = []
         for entry, obj_hash in zip(self._incomplete_entries, results):
             if obj_hash is None:
@@ -922,7 +922,7 @@ class Package(object):
         registry = get_from_config('default_local_registry')
         registry_parsed = PhysicalKey.from_url(registry)
         pkg_manifest_file = registry_parsed.join("scratch").join(str(int(time.time())))
-            
+
         manifest = io.BytesIO()
         self._dump(manifest)
         put_bytes(
@@ -930,7 +930,7 @@ class Package(object):
             pkg_manifest_file
         )
         return pkg_manifest_file.path
-        
+
     @ApiTelemetry("package.build")
     def build(self, name, registry=None, message=None):
         """
@@ -1378,7 +1378,7 @@ class Package(object):
         Deleted: present in self, but not other_pkg.
 
         Args:
-            other_pkg: Package to diff 
+            other_pkg: Package to diff
 
         Returns:
             added, modified, deleted (all lists of logical keys)

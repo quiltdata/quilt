@@ -246,7 +246,7 @@ class TestIndex():
             expected = json.load(info_json)
         assert (body['info'] == expected), \
             f'Unexpected body["info"] for {parquet}'
- 
+
     @responses.activate
     def test_tsv(self):
         """test returning HTML previews of TSV (via pandas)"""
