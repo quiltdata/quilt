@@ -67,6 +67,9 @@ const useBucketStyles = M.makeStyles((t) => ({
     width: 40,
   },
   text: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
     overflow: 'hidden',
     paddingLeft: t.spacing(1),
     '& > *': {
@@ -79,7 +82,7 @@ const useBucketStyles = M.makeStyles((t) => ({
     ...t.typography.body1,
     lineHeight: '20px',
   },
-  name: {
+  desc: {
     ...t.typography.body2,
     color: t.palette.text.secondary,
   },
@@ -92,8 +95,10 @@ function Bucket({ iconUrl, name, title, description }) {
       {/* TODO: show text avatar or smth when iconUrl is empty */}
       <img src={iconUrl} alt={title} className={classes.icon} />
       <div className={classes.text}>
-        <div className={classes.title}>{title}</div>
-        <div className={classes.name}>s3://{name}</div>
+        <div className={classes.title}>
+          {title} (s3://{name})
+        </div>
+        <div className={classes.desc}>{description}</div>
       </div>
     </div>
   )
@@ -103,7 +108,7 @@ function CustomPopper({ style: css, ...props }) {
   return (
     <M.Popper
       {...props}
-      style={{ ...css, width: 'auto', maxWidth: 'calc(100vw - 8px)' }}
+      style={{ ...css, width: 'auto', maxWidth: 'min(calc(100vw - 8px), 680px)' }}
       placement="bottom-start"
     />
   )
@@ -155,8 +160,13 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
                     'name',
                     'title',
                     {
+                      key: 'tags',
+                      threshold: matchSorter.rankings.WORD_STARTS_WITH,
+                    },
+                    {
                       key: 'description',
                       maxRanking: matchSorter.rankings.STARTS_WITH,
+                      threshold: matchSorter.rankings.ACRONYM,
                     },
                   ],
                 })
