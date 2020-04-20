@@ -17,6 +17,32 @@ commands:
             else
               echo ". venv/Scripts/activate" >> $BASH_ENV # for Windows
             fi
+  setup-lambda:
+    description: "Setup lambda test"
+    parameters:
+      path:
+        type: string
+    steps:
+      - run:
+          name: Setup
+          command: |
+            virtualenv venv
+            . venv/bin/activate
+            pip install lambdas/shared/
+            pip install lambdas/<< parameters.path >>
+            pip install -r lambdas/<< parameters.path >>/requirements.txt
+            pip install -r lambdas/<< parameters.path >>/test-requirements.txt
+  test-lambda:
+    description: "Run lambda test"
+    parameters:
+      path:
+        type: string
+    steps:
+      - run:
+          name: Pytest
+          command: |
+            . venv/bin/activate
+            cd lambdas/<< parameters.path >> && pytest --cov=./
 
 workflows:
   version: 2
@@ -105,78 +131,40 @@ jobs:
       - image: circleci/python:3.6-jessie
     steps:
       - checkout
-      - run:
-          name: Setup
-          command: |
-            virtualenv venv
-            . venv/bin/activate
-            pip install lambdas/shared/
-            pip install -r lambdas/es/indexer/requirements.txt
-            pip install -r lambdas/es/indexer/test-requirements.txt
-      - run:
-          name: Pytest
-          command: |
-            . venv/bin/activate
-            cd lambdas/es/indexer && pytest --cov=./
+      - setup-lambda:
+          path: "es/indexer"
+      - test-lambda:
+          path: "es/indexer"
 
   test-lambdas-preview:
     docker:
       - image: circleci/python:3.6-jessie
     steps:
       - checkout
-      - run:
-          name: Setup
-          command: |
-            virtualenv venv
-            . venv/bin/activate
-            pip install lambdas/shared/
-            pip install -r lambdas/preview/requirements.txt
-            pip install -r lambdas/preview/test-requirements.txt
-      - run:
-          name: Pytest
-          command: |
-            . venv/bin/activate
-            cd lambdas/preview && pytest --cov=./
+      - setup-lambda:
+          path: "preview"
+      - test-lambda:
+          path: "preview"
 
   test-lambdas-s3select:
     docker:
       - image: circleci/python:3.6-jessie
     steps:
       - checkout
-      - run:
-          name: Setup
-          command: |
-            virtualenv venv
-            . venv/bin/activate
-            pip install lambdas/shared/
-            pip install lambdas/s3select
-            pip install -r lambdas/s3select/requirements.txt
-            pip install -r lambdas/s3select/test-requirements.txt
-      - run:
-          name: Pytest
-          command: |
-            . venv/bin/activate
-            cd lambdas/s3select && pytest --cov=./
+      - setup-lambda:
+          path: "s3select"
+      - test-lambda:
+          path: "s3select"
 
   test-lambdas-search:
     docker:
       - image: circleci/python:3.6-jessie
     steps:
       - checkout
-      - run:
-          name: Setup
-          command: |
-            virtualenv venv
-            . venv/bin/activate
-            pip install lambdas/shared/
-            pip install lambdas/search/
-            pip install -r lambdas/search/requirements.txt
-            pip install -r lambdas/search/test-requirements.txt
-      - run:
-          name: Pytest
-          command: |
-            . venv/bin/activate
-            cd lambdas/search && pytest --cov=./
+      - setup-lambda:
+          path: "search"
+      - test-lambda:
+          path: "search"
 
   test-lambdas-shared:
     docker:
@@ -189,11 +177,8 @@ jobs:
             virtualenv venv
             . venv/bin/activate
             pip install lambdas/shared/[tests]
-      - run:
-          name: Pytest
-          command: |
-            . venv/bin/activate
-            cd lambdas/shared && pytest --cov=./
+      - test-lambda:
+          path: "shared"
   build:
     docker:
       - image: circleci/python:3.6-jessie
