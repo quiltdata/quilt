@@ -112,7 +112,7 @@ jobs:
       QUILT_DISABLE_USAGE_METRICS: true
     parameters:
       path:
-        description: "The lambda path"
+        description: "lambdas/$path"
         type: string
     steps:
       - checkout
