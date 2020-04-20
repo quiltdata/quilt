@@ -108,6 +108,8 @@ jobs:
     docker:
       - image: circleci/python:3.6-jessie
     description: "Test lambdas"
+    environment:
+      QUILT_DISABLE_USAGE_METRICS: true
     parameters:
       path:
         description: "The lambda path"
