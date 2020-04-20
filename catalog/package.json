@@ -138,7 +138,7 @@
     "@babel/register": "^7.9.0",
     "babel-eslint": "^10.1.0",
     "babel-loader": "^8.1.0",
-    "babel-plugin-dynamic-import-node": "^2.3.0",
+    "babel-plugin-dynamic-import-node": "^2.3.2",
     "babel-plugin-react-intl": "^4.3.0",
     "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
     "bundlesize": "^0.18.0",
