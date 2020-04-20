@@ -112,7 +112,7 @@ jobs:
       QUILT_DISABLE_USAGE_METRICS: true
     parameters:
       path:
-        description: "lambdas/$path"
+        description: "Relative path to lambda root including setup.py, e.g. 'es/indexer' for lambdas/es/indexer"
         type: string
     steps:
       - checkout
