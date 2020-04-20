@@ -121,18 +121,18 @@ class TestSession(QuiltTestCase):
         mock_save_credentials.assert_called()
 
     def test_logged_in(self):
-        url = quilt3.session.get_registry_url()
-        other_url = url + 'other'
+        registry_url = quilt3.session.get_registry_url()
+        other_registry_url = registry_url + 'other'
         mock_auth = dict(
             refresh_token='refresh-token',
             access_token='access-token',
             expires_at=123456789,
         )
 
-        with patch('quilt3.session._load_auth', return_value={url: mock_auth}) as mocked_load_auth:
-            assert quilt3.logged_in() == url
+        with patch('quilt3.session._load_auth', return_value={registry_url: mock_auth}) as mocked_load_auth:
+            assert quilt3.logged_in() == 'https://example.com'
             mocked_load_auth.assert_called_once()
 
-        with patch('quilt3.session._load_auth', return_value={other_url: mock_auth}) as mocked_load_auth:
+        with patch('quilt3.session._load_auth', return_value={other_registry_url: mock_auth}) as mocked_load_auth:
             assert quilt3.logged_in() is None
             mocked_load_auth.assert_called_once()

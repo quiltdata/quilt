@@ -239,12 +239,12 @@ def _refresh_credentials():
 
 def logged_in():
     """
-    Return registry URL if Quilt client is authenticated. Otherwise
+    Return catalog URL if Quilt client is authenticated. Otherwise
     return `None`.
     """
     url = get_registry_url()
     if url in _load_auth():
-        return url
+        return get_from_config('navigator_url')
 
 
 class QuiltProvider(CredentialProvider):
