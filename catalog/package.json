@@ -171,7 +171,7 @@
     "ngrok": "^3.2.7",
     "node-plop": "^0.25.0",
     "plop": "^2.6.0",
-    "prettier": "^2.0.4",
+    "prettier": "^2.0.5",
     "raf": "^3.4.1",
     "raw-loader": "^4.0.1",
     "react-app-polyfill": "^1.0.6",
