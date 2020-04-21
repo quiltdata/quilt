@@ -28,14 +28,19 @@ workflows:
       - test-38
       - test-windows
       - test-lambda:
+          name: test-lambda-indexer
           path: "es/indexer"
       - test-lambda:
+          name: test-lambda-preview
           path: "preview"
       - test-lambda:
+          name: test-lambda-s3select
           path: "s3select"
       - test-lambda:
+          name: test-lambda-search
           path: "search"
       - test-lambda:
+          name: test-lambda-shared
           path: "shared"
           sub-path: "[tests]"
 
