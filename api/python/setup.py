@@ -90,6 +90,7 @@ setup(
             'tox',
             'detox',
             'tox-pytest-summary',
+            'git-pylint-commit-hook',
         ],
     },
     include_package_data=True,
