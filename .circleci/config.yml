@@ -43,6 +43,8 @@ workflows:
           name: test-lambda-shared
           path: "shared"
           sub-path: "[tests]"
+      - test-lambda:
+          path: "thumbnail"
 
   build_and_deploy:
     jobs:
