@@ -71,7 +71,6 @@ setup(
         'tqdm>=4.26.0',
         'urllib3<1.25,>=1.21.1',            # required by requests
         'requests_futures==1.0.0',
-        'git-pylint-commit-hook',
     ],
     extras_require={
         'pyarrow': [
@@ -91,6 +90,7 @@ setup(
             'tox',
             'detox',
             'tox-pytest-summary',
+            'git-pylint-commit-hook',
         ],
     },
     include_package_data=True,
