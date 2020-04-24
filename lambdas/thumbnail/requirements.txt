@@ -1,4 +1,4 @@
-aicsimageio==3.0.0
+aicsimageio==3.0.7
 attrs==19.1.0
 certifi==2018.11.29
 chardet==3.0.4
