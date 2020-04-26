@@ -805,6 +805,8 @@ def get_size_and_version(src: PhysicalKey):
 def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
     assert len(src_list) == len(sizes)
 
+    if not src_list:
+        return []
     return _calculate_sha256_internal(src_list, sizes, [None] * len(src_list))
 
 
