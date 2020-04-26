@@ -179,7 +179,7 @@
     "redux-logger": "^3.0.6",
     "rimraf": "^3.0.2",
     "shelljs": "^0.8.4",
-    "style-loader": "^1.1.4",
+    "style-loader": "^1.2.0",
     "stylelint": "^13.3.3",
     "stylelint-config-recommended": "^3.0.0",
     "svg-url-loader": "^5.0.0",
