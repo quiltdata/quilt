@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 import responses
 from aicsimageio import AICSImage
+from t4_lambda_shared.utils import read_body
 
 from ..index import lambda_handler
 
@@ -67,7 +68,7 @@ def test_generate_thumbnail(
     assert response["statusCode"] == 200
 
     # Parse the body / the returned thumbnail
-    body = json.loads(response["body"])
+    body = json.loads(read_body(response))
 
     # Assert basic metadata was fill properly
     assert body["info"]["original_size"] == expected_original_size
