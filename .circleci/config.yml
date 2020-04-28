@@ -1,15 +1,51 @@
-version: 2
+version: 2.1
+
+orbs:
+  win: circleci/windows@2.4.0
+
+commands:
+  setup-venv:
+    description: "Make subsequent steps to run in venv"
+    steps:
+      - run:
+          name: Setup venv
+          command: |
+            pip install virtualenv
+            virtualenv venv
+            if [ -e venv/bin/activate ]; then
+              echo ". venv/bin/activate" >> $BASH_ENV
+            else
+              echo ". venv/Scripts/activate" >> $BASH_ENV # for Windows
+            fi
 
 workflows:
   version: 2
   test:
     jobs:
-      - test-3.6
-      - test-lambdas-indexer
-      - test-lambdas-preview
-      - test-lambdas-s3select
-      - test-lambdas-search
-      - test-lambdas-shared
+      - linter
+      - test-36
+      - test-37
+      - test-38
+      - test-windows
+      - test-lambda:
+          name: test-lambda-indexer
+          path: "es/indexer"
+      - test-lambda:
+          name: test-lambda-preview
+          path: "preview"
+      - test-lambda:
+          name: test-lambda-s3select
+          path: "s3select"
+      - test-lambda:
+          name: test-lambda-search
+          path: "search"
+      - test-lambda:
+          name: test-lambda-shared
+          path: "shared"
+          sub-path: "[tests]"
+      - test-lambda:
+          path: "thumbnail"
+
   build_and_deploy:
     jobs:
       - build:
@@ -24,12 +60,74 @@ workflows:
               only: /[0-9]+(\.[0-9]+)*([abrc]+[0-9]+)?$/
             branches:
               ignore: /.*/
+
+test-base: &test-base
+  environment:
+    QUILT_DISABLE_USAGE_METRICS: true
+  steps:
+    - checkout
+    - setup-venv
+    - run:
+        name: Install dependencies
+        command: |
+          pip install -e api/python[tests]
+    - run:
+        name: Run Pytest
+        command: |
+          cd api/python && pytest --cov=./
+          codecov
+
 jobs:
-  test-3.6: &test-template
+  linter:
     docker:
       - image: circleci/python:3.6-jessie
+    steps:
+      - checkout
+      - setup-venv
+      - run:
+          name: Install dependencies
+          command: |
+            pip install pylint
+      - run:
+          name: Run pylint
+          command: |
+            pylint $(find -name '*.py' -not -path './venv/*')
+
+  test-36:
+    docker:
+      - image: circleci/python:3.6-jessie
+    <<: *test-base
+
+  test-37:
+    docker:
+      - image: circleci/python:3.7
+    <<: *test-base
+
+  test-38:
+    docker:
+      - image: circleci/python:3.8
+    <<: *test-base
+
+  test-windows:
+    executor:
+      name: win/default
+      shell: bash --login -eo pipefail
+    <<: *test-base
+
+  test-lambda:
+    docker:
+      - image: circleci/python:3.6-jessie
+    description: "Test lambdas"
     environment:
       QUILT_DISABLE_USAGE_METRICS: true
+    parameters:
+      path:
+        description: "Relative path to lambda root including setup.py, e.g. 'es/indexer' for lambdas/es/indexer"
+        type: string
+      sub-path:
+        description: "sub-path relative to lambda path"
+        default: ""
+        type: string
     steps:
       - checkout
       - run:
@@ -37,108 +135,19 @@ jobs:
           command: |
             virtualenv venv
             . venv/bin/activate
-            pip install -e api/python[tests]
-      - run:
-          name: Run Pytest
-          command: |
-            . venv/bin/activate
-            cd api/python && pytest --cov=./
-            codecov
-
-  test-lambdas-indexer:
-    docker:
-      - image: circleci/python:3.6-jessie
-    steps:
-      - checkout
-      - run:
-          name: Setup
-          command: |
-            virtualenv venv
-            . venv/bin/activate
-            pip install lambdas/shared/
-            pip install -r lambdas/es/indexer/requirements.txt
-            pip install -r lambdas/es/indexer/test-requirements.txt
+            pip install lambdas/shared/<< parameters.sub-path >>
+            if [ << parameters.path >> != "shared" ]
+            then
+              pip install lambdas/<< parameters.path >>
+              pip install -r lambdas/<< parameters.path >>/requirements.txt
+              pip install -r lambdas/<< parameters.path >>/test-requirements.txt
+            fi
       - run:
           name: Pytest
           command: |
             . venv/bin/activate
-            cd lambdas/es/indexer && pytest --cov=./
+            cd lambdas/<< parameters.path >> && pytest --cov=./
 
-  test-lambdas-preview:
-    docker:
-      - image: circleci/python:3.6-jessie
-    steps:
-      - checkout
-      - run:
-          name: Setup
-          command: |
-            virtualenv venv
-            . venv/bin/activate
-            pip install lambdas/shared/
-            pip install -r lambdas/preview/requirements.txt
-            pip install -r lambdas/preview/test-requirements.txt
-      - run:
-          name: Pytest
-          command: |
-            . venv/bin/activate
-            cd lambdas/preview && pytest --cov=./
-
-  test-lambdas-s3select:
-    docker:
-      - image: circleci/python:3.6-jessie
-    steps:
-      - checkout
-      - run:
-          name: Setup
-          command: |
-            virtualenv venv
-            . venv/bin/activate
-            pip install lambdas/shared/
-            pip install lambdas/s3select
-            pip install -r lambdas/s3select/requirements.txt
-            pip install -r lambdas/s3select/test-requirements.txt
-      - run:
-          name: Pytest
-          command: |
-            . venv/bin/activate
-            cd lambdas/s3select && pytest --cov=./
-
-  test-lambdas-search:
-    docker:
-      - image: circleci/python:3.6-jessie
-    steps:
-      - checkout
-      - run:
-          name: Setup
-          command: |
-            virtualenv venv
-            . venv/bin/activate
-            pip install lambdas/shared/
-            pip install lambdas/search/
-            pip install -r lambdas/search/requirements.txt
-            pip install -r lambdas/search/test-requirements.txt
-      - run:
-          name: Pytest
-          command: |
-            . venv/bin/activate
-            cd lambdas/search && pytest --cov=./
-
-  test-lambdas-shared:
-    docker:
-      - image: circleci/python:3.6-jessie
-    steps:
-      - checkout
-      - run:
-          name: Setup
-          command: |
-            virtualenv venv
-            . venv/bin/activate
-            pip install lambdas/shared/[tests]
-      - run:
-          name: Pytest
-          command: |
-            . venv/bin/activate
-            cd lambdas/shared && pytest --cov=./
   build:
     docker:
       - image: circleci/python:3.6-jessie

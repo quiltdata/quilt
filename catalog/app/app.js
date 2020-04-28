@@ -19,6 +19,7 @@ import * as Intercom from 'components/Intercom'
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
+import { BucketCacheProvider } from 'containers/Bucket'
 import LanguageProvider from 'containers/LanguageProvider'
 import * as Auth from 'containers/Auth'
 import * as Notifications from 'containers/Notifications'
@@ -138,6 +139,7 @@ const render = (messages) => {
       AWSSigner.Provider,
       Notifications.WithNotifications,
       ErrorBoundary,
+      BucketCacheProvider,
       App,
     ),
     MOUNT_NODE,

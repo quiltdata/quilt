@@ -1,8 +1,10 @@
 """ Testing for data_transfer.py """
 
 ### Python imports
+import io
 import pathlib
 import time
+from contextlib import redirect_stderr
 
 from unittest import mock
 
@@ -366,7 +368,6 @@ class DataTransferTest(QuiltTestCase):
                 (PhysicalKey.from_path(path), PhysicalKey.from_url(f's3://example/{name}'), path.stat().st_size),
             ])
 
-
     def test_multipart_copy(self):
         size = 100 * 1024 * 1024 * 1024
 
@@ -431,11 +432,16 @@ class DataTransferTest(QuiltTestCase):
         )
 
         with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
-            data_transfer.copy_file_list([
-                (PhysicalKey.from_url('s3://example1/large_file1.npy'), PhysicalKey.from_url('s3://example2/large_file2.npy'), size),
-            ])
+            stderr = io.StringIO()
 
-    def test_calculate_sha256_read_timeout(self):
+            with redirect_stderr(stderr), mock.patch('quilt3.data_transfer.DISABLE_TQDM', False):
+                data_transfer.copy_file_list([
+                    (PhysicalKey.from_url('s3://example1/large_file1.npy'), PhysicalKey.from_url('s3://example2/large_file2.npy'), size),
+                ])
+            assert stderr.getvalue()
+
+    @mock.patch('botocore.client.BaseClient._make_api_call')
+    def test_calculate_sha256_read_timeout(self, mocked_api_call):
         bucket = 'test-bucket'
         key = 'dir/a'
         vid = 'a1234'
@@ -443,10 +449,11 @@ class DataTransferTest(QuiltTestCase):
         a_contents = b'a' * 10
 
         pk = PhysicalKey(bucket, key, vid)
-        with mock.patch('botocore.client.BaseClient._make_api_call',
-                        side_effect=ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")):
-            results = data_transfer.calculate_sha256([pk], [len(a_contents)])
-            assert list(results) == [None]
+        exc = ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")
+        mocked_api_call.side_effect = exc
+        results = data_transfer.calculate_sha256([pk], [len(a_contents)])
+        assert mocked_api_call.call_count == data_transfer.MAX_FIX_HASH_RETRIES
+        assert results == [exc]
 
     def test_copy_file_list_retry(self):
         bucket = 'test-bucket'

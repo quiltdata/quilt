@@ -79,7 +79,8 @@ const useStatsStyles = M.makeStyles((t) => ({
     borderBottom: `1px solid ${t.palette.divider}`,
     display: 'flex',
     flexWrap: 'wrap',
-    padding: t.spacing(1),
+    minHeight: 37,
+    padding: [[2, t.spacing(1)]],
   },
   input: {
     fontSize: 14,
@@ -87,9 +88,24 @@ const useStatsStyles = M.makeStyles((t) => ({
     lineHeight: 20,
     padding: 0,
   },
+  checkbox: {
+    marginBottom: -9,
+    marginRight: -5,
+    marginTop: -9,
+  },
+  checkboxLabel: {
+    ...t.typography.body2,
+  },
   clear: {
-    left: 'calc(100% - 4px)',
-    position: 'absolute',
+    fontSize: 11,
+    lineHeight: '22px',
+    paddingBottom: 0,
+    paddingTop: 2,
+  },
+  clearIcon: {
+    fontSize: '16px !important',
+    lineHeight: '15px',
+    marginLeft: -4,
   },
   searchIcon: {
     fontSize: 20,
@@ -110,7 +126,7 @@ const useStatsStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Stats({ items, unfiltered, filtering, truncated }) {
+function Stats({ items, unfiltered, filtering, truncated, useRE, setUseRE }) {
   const classes = useStatsStyles()
   const stats = React.useMemo(() => computeStats(unfiltered), [unfiltered])
   const filteredStats = React.useMemo(() => computeStats(items), [items])
@@ -124,27 +140,52 @@ function Stats({ items, unfiltered, filtering, truncated }) {
     },
     [filtering.set, inputRef],
   )
+  const handleToggleRE = React.useCallback(
+    (e) => {
+      setUseRE(e.target.checked)
+    },
+    [setUseRE],
+  )
 
   return (
     <div className={classes.root}>
       <M.InputBase
         {...filtering.input}
         onKeyDown={handleKeyDown}
-        placeholder="Filter current directory by substring"
+        placeholder="Filter current directory"
         classes={{ input: classes.input }}
         inputComponent={WrappedAutosizeInput}
         inputRef={inputRef}
         startAdornment={<M.Icon className={classes.searchIcon}>search</M.Icon>}
         endAdornment={
-          !!filtering.input.value && (
-            <M.IconButton
-              className={classes.clear}
-              size="small"
-              onClick={() => filtering.set('')}
-            >
-              <M.Icon fontSize="small">clear</M.Icon>
-            </M.IconButton>
-          )
+          <>
+            <M.FormControlLabel
+              style={{ marginLeft: 0 }}
+              classes={{ label: classes.checkboxLabel }}
+              control={
+                <M.Checkbox
+                  checked={useRE}
+                  onChange={handleToggleRE}
+                  color="primary"
+                  size="small"
+                  className={classes.checkbox}
+                />
+              }
+              label="regex"
+            />
+            {!!filtering.input.value && (
+              <M.Button
+                className={classes.clear}
+                size="small"
+                variant="contained"
+                color="primary"
+                onClick={() => filtering.set('')}
+                endIcon={<M.Icon className={classes.clearIcon}>clear</M.Icon>}
+              >
+                Clear filter
+              </M.Button>
+            )}
+          </>
         }
       />
       <span className={classes.spacer} />
@@ -219,21 +260,31 @@ export default function Listing({ items, truncated = false, locked = false, load
     if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
   })
 
+  const [useRE, setUseRE] = React.useState(false)
   const filtering = useDebouncedInput('', 200)
   const filtered = React.useMemo(
-    () =>
-      filtering.value
-        ? items.filter(
-            R.pipe(
-              ListingItem.case({
-                Dir: R.prop('name'),
-                File: R.prop('name'),
-              }),
-              (name) => name.toLowerCase().includes(filtering.value.toLowerCase()),
-            ),
-          )
-        : items,
-    [filtering.value, items],
+    R.tryCatch(
+      R.pipe(
+        () =>
+          filtering.value
+            ? items.filter(
+                R.pipe(
+                  ListingItem.case({
+                    Dir: R.prop('name'),
+                    File: R.prop('name'),
+                  }),
+                  R.toLower,
+                  useRE
+                    ? R.test(new RegExp(filtering.value, 'i'))
+                    : R.includes(filtering.value.toLowerCase()),
+                ),
+              )
+            : items,
+        R.objOf('result'),
+      ),
+      (err) => ({ result: [], err }),
+    ),
+    [filtering.value, items, useRE],
   )
 
   const totalItems = React.useMemo(() => {
@@ -247,7 +298,7 @@ export default function Listing({ items, truncated = false, locked = false, load
     }
   })
 
-  const pagination = Pagination.use(filtered, { perPage: 25, onChange: scroll })
+  const pagination = Pagination.use(filtered.result, { perPage: 25, onChange: scroll })
 
   return (
     <M.Card>
@@ -264,20 +315,30 @@ export default function Listing({ items, truncated = false, locked = false, load
         ) : (
           <>
             <Stats
-              items={filtered}
+              items={filtered.result}
               unfiltered={items}
               filtering={filtering}
               truncated={truncated}
+              useRE={useRE}
+              setUseRE={setUseRE}
             />
             <div ref={scrollRef} />
-            {!filtered.length && (
-              <div className={classes.noMatch}>
-                No entries matching <b>&quot;{filtering.value}&quot;</b>
-                {truncated && !!loadMore && (
-                  <> &rarr; try loading more items (button below)</>
-                )}
-              </div>
-            )}
+            {!filtered.result.length &&
+              (filtered.err ? (
+                <div className={classes.noMatch}>{filtered.err.message}</div>
+              ) : (
+                <div className={classes.noMatch}>
+                  No entries matching{' '}
+                  <b>
+                    <code>
+                      {useRE ? `/${filtering.value}/i` : `"${filtering.value}"`}
+                    </code>
+                  </b>
+                  {truncated && !!loadMore && (
+                    <> &rarr; try loading more items (button below)</>
+                  )}
+                </div>
+              ))}
             {pagination.paginated.map(
               ListingItem.case({
                 Dir: ({ name, to }) => (

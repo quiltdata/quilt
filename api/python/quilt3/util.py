@@ -1,6 +1,5 @@
 import re
 from collections import OrderedDict
-from collections.abc import Mapping, Sequence, Set
 import datetime
 import json
 import os
@@ -25,6 +24,7 @@ CONFIG_PATH = BASE_PATH / 'config.yml'
 OPEN_DATA_URL = "https://open.quiltdata.com"
 
 PACKAGE_NAME_FORMAT = r"([\w-]+/[\w-]+)(?:/(.+))?$"
+DISABLE_TQDM = os.getenv('QUILT_MINIMIZE_STDOUT', '').lower() == 'true'
 
 ## CONFIG_TEMPLATE
 # Must contain every permitted config key, as well as their default values (which can be 'null'/None).
@@ -79,7 +79,7 @@ class QuiltException(Exception):
             setattr(self, k, v)
 
 
-class PhysicalKey(object):
+class PhysicalKey:
     __slots__ = ['bucket', 'path', 'version_id']
 
     def __init__(self, bucket, path, version_id):
@@ -235,7 +235,7 @@ def extract_file_extension(file_path_or_url):
 
 def read_yaml(yaml_stream):
     try:
-        if isinstance(yaml_stream, pathlib.PosixPath):
+        if isinstance(yaml_stream, pathlib.Path):
             with yaml_stream.open(mode='r') as stream:
                 return yaml.safe_load(stream)
         return yaml.safe_load(yaml_stream)
@@ -521,6 +521,3 @@ def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="la
     validate_package_name(package_name)
 
     return f"{catalog_url}/b/{bucket}/packages/{package_name}/tree/{package_timestamp}"
-
-
-

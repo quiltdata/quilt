@@ -31,7 +31,6 @@ function BucketDisplay({ bucket, select, locked = false, ...props }) {
   const classes = useBucketDisplayStyles()
   return (
     <M.Box position="relative" {...props}>
-      {locked && <M.Box position="absolute" top={0} bottom={0} left={0} right={0} />}
       <M.Button
         color="inherit"
         className={cx(classes.root, { [classes.locked]: locked })}
@@ -41,6 +40,7 @@ function BucketDisplay({ bucket, select, locked = false, ...props }) {
         <span className={classes.bucket}>{bucket}</span>
         <M.Icon>expand_more</M.Icon>
       </M.Button>
+      {locked && <M.Box position="absolute" top={0} bottom={0} left={0} right={0} />}
     </M.Box>
   )
 }

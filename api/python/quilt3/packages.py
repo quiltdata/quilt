@@ -5,7 +5,6 @@ import io
 import json
 import pathlib
 import os
-import re
 import shutil
 import time
 from multiprocessing import Pool
@@ -13,7 +12,6 @@ import uuid
 import warnings
 
 import jsonlines
-from tenacity import retry, stop_after_attempt, wait_exponential
 from tqdm import tqdm
 
 from .data_transfer import (
@@ -27,10 +25,8 @@ from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
     validate_package_name, quiltignore_filter, validate_key, extract_file_extension,
     parse_sub_package_name)
-from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
-    user_is_configured_to_custom_stack, catalog_package_url
-
-MAX_FIX_HASH_RETRIES = 3
+from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, \
+    user_is_configured_to_custom_stack, catalog_package_url, DISABLE_TQDM
 
 
 def hash_file(readable_file):
@@ -50,12 +46,12 @@ def _delete_local_physical_key(pk):
 
 
 def _filesystem_safe_encode(key):
-    """Returns the sha256 of the key. This ensures there are no slashes, uppercase/lowercase conflicts, 
+    """Returns the sha256 of the key. This ensures there are no slashes, uppercase/lowercase conflicts,
     avoids `OSError: [Errno 36] File name too long:`, etc."""
     return hashlib.sha256(key.encode()).hexdigest()
 
 
-class ObjectPathCache(object):
+class ObjectPathCache:
     @classmethod
     def _cache_path(cls, url):
         url_hash = _filesystem_safe_encode(url)
@@ -95,7 +91,7 @@ class ObjectPathCache(object):
         shutil.rmtree(CACHE_PATH)
 
 
-class PackageEntry(object):
+class PackageEntry:
     """
     Represents an entry at a logical key inside a package.
     """
@@ -308,7 +304,7 @@ class PackageEntry(object):
         return [self.physical_key]
 
 
-class Package(object):
+class Package:
     """ In-memory representation of a package """
 
     def __init__(self):
@@ -396,7 +392,7 @@ class Package(object):
             name(str): Name of package to install. It also can be passed as NAME/PATH,
                 in this case only the sub-package or the entry specified by PATH will
                 be downloaded.
-            registry(str): Registry where package is located. 
+            registry(str): Registry where package is located.
                 Defaults to the default remote registry.
             top_hash(str): Hash of package to install. Defaults to latest.
             dest(str): Local path to download files to.
@@ -721,7 +717,7 @@ class Package(object):
             readable_file.seek(0)
 
             reader = jsonlines.Reader(readable_file, loads=json.loads)
-            with tqdm(desc="Loading manifest", total=line_count, unit="entries") as tqdm_progress:
+            with tqdm(desc="Loading manifest", total=line_count, unit="entries", disable=DISABLE_TQDM) as tqdm_progress:
                 meta = reader.read()
                 meta.pop('top_hash', None)  # Obsolete as of PR #130
                 pkg = cls()
@@ -854,8 +850,8 @@ class Package(object):
         no such entry exists.
         """
         if "README.md" not in self:
-            ex_msg = f"This Package is missing a README file. A Quilt recognized README file is a  file named " \
-                     f"'README.md' (case-insensitive)"
+            ex_msg = "This Package is missing a README file. A Quilt recognized README file is a  file named " \
+                     "'README.md' (case-insensitive)"
             raise QuiltException(ex_msg)
 
         return self["README.md"]
@@ -868,9 +864,6 @@ class Package(object):
         self._meta['user_meta'] = meta
         return self
 
-    @retry(stop=stop_after_attempt(MAX_FIX_HASH_RETRIES),
-           wait=wait_exponential(multiplier=1, min=1, max=10),
-           reraise=True)
     def _fix_sha256(self):
         """
         Calculate and set missing hash values
@@ -884,19 +877,16 @@ class Package(object):
             sizes.append(entry.size)
 
         results = calculate_sha256(physical_keys, sizes)
-        
-        entries_w_missing_hash = []
+        exc = None
         for entry, obj_hash in zip(self._incomplete_entries, results):
-            if obj_hash is None:
-                entries_w_missing_hash.append(entry)
+            if isinstance(obj_hash, Exception):
+                exc = obj_hash
             else:
                 entry.hash = dict(type='SHA256', value=obj_hash)
-
-        self._incomplete_entries = entries_w_missing_hash
-        if self._incomplete_entries:
+        if exc:
             incomplete_manifest_path = self._dump_manifest_to_scratch()
             msg = "Unable to reach S3 for some hash values. Incomplete manifest saved to {path}."
-            raise PackageException(msg.format(path=incomplete_manifest_path))
+            raise PackageException(msg.format(path=incomplete_manifest_path)) from exc
 
     def _set_commit_message(self, msg):
         """
@@ -923,7 +913,7 @@ class Package(object):
         registry = get_from_config('default_local_registry')
         registry_parsed = PhysicalKey.from_url(registry)
         pkg_manifest_file = registry_parsed.join("scratch").join(str(int(time.time())))
-            
+
         manifest = io.BytesIO()
         self._dump(manifest)
         put_bytes(
@@ -931,7 +921,7 @@ class Package(object):
             pkg_manifest_file
         )
         return pkg_manifest_file.path
-        
+
     @ApiTelemetry("package.build")
     def build(self, name, registry=None, message=None):
         """
@@ -1099,8 +1089,8 @@ class Package(object):
                 error_message = f'Quilt does not know how to serialize a {type(entry)}'
                 if ext is not None:
                     error_message += f' as a {ext} file.'
-                error_message += f'. If you think this should be supported, please open an issue or PR at ' \
-                                 f'https://github.com/quiltdata/quilt'
+                error_message += '. If you think this should be supported, please open an issue or PR at ' \
+                                 'https://github.com/quiltdata/quilt'
                 raise QuiltException(error_message)
 
             if serialization_format_opts is None:
@@ -1202,7 +1192,7 @@ class Package(object):
 
 
     @ApiTelemetry("package.push")
-    def push(self, name, registry=None, dest=None, message=None, selector_fn=lambda logical_key, package_entry: True):
+    def push(self, name, registry=None, dest=None, message=None, selector_fn=None):
         """
         Copies objects to path, then creates a new package that points to those objects.
         Copies each object in this package to path according to logical key structure,
@@ -1239,6 +1229,8 @@ class Package(object):
         Returns:
             A new package that points to the copied objects.
         """
+        selector_fn = lambda *args: True if selector_fn is None else selector_fn
+
         validate_package_name(name)
 
         if registry is None:
@@ -1377,7 +1369,7 @@ class Package(object):
         Deleted: present in self, but not other_pkg.
 
         Args:
-            other_pkg: Package to diff 
+            other_pkg: Package to diff
 
         Returns:
             added, modified, deleted (all lists of logical keys)
@@ -1491,6 +1483,8 @@ class Package(object):
 
         hash_list = calculate_sha256(url_list, size_list)
         for (logical_key, entry), url_hash in zip(self.walk(), hash_list):
+            if isinstance(url_hash, Exception):
+                raise url_hash
             if entry.hash['value'] != url_hash:
                 return False
 

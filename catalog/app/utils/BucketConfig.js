@@ -22,9 +22,10 @@ const fetchBuckets = async ({ registryUrl }) => {
   }))
 }
 
-const BucketsResource = Cache.createResource({
+export const BucketsResource = Cache.createResource({
   name: 'BucketConfig.buckets',
   fetch: fetchBuckets,
+  key: () => null,
 })
 
 export const useBucketConfigs = ({ suspend = true } = {}) =>

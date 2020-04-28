@@ -173,9 +173,9 @@ def login():
     registry_url = get_registry_url()
     if registry_url is None:
         raise QuiltException(
-            f"You attempted to authenticate to a Quilt catalog, but your home catalog is "
-            f"currently set to None. Please first specify your home catalog by running "
-            f"\"quilt3.config('$URL')\", replacing '$URL' with your catalog homepage."
+            "You attempted to authenticate to a Quilt catalog, but your home catalog is "
+            "currently set to None. Please first specify your home catalog by running "
+            "\"quilt3.config('$URL')\", replacing '$URL' with your catalog homepage."
         )
 
     login_url = "%s/login" % get_registry_url()
@@ -235,6 +235,16 @@ def _refresh_credentials():
     }
     _save_credentials(result)
     return result
+
+
+def logged_in():
+    """
+    Return catalog URL if Quilt client is authenticated. Otherwise
+    return `None`.
+    """
+    url = get_registry_url()
+    if url in _load_auth():
+        return get_from_config('navigator_url')
 
 
 class QuiltProvider(CredentialProvider):

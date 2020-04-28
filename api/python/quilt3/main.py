@@ -15,7 +15,6 @@ from . import __version__ as quilt3_version
 from .session import open_url
 from .util import get_from_config, catalog_s3_url, catalog_package_url, QuiltException, PhysicalKey, \
     fix_url, get_package_registry
-from .registry import app
 
 def cmd_config(catalog_url, **kwargs):
     """

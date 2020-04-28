@@ -1,4 +1,6 @@
 """ Integration tests for Quilt Packages. """
+import io
+from contextlib import redirect_stderr
 from io import BytesIO
 import os
 import pathlib
@@ -12,8 +14,7 @@ import pytest
 
 import quilt3
 from quilt3 import Package
-from quilt3.packages import MAX_FIX_HASH_RETRIES
-from quilt3.util import PhysicalKey, QuiltException, validate_package_name, fix_url
+from quilt3.util import PhysicalKey, QuiltException, validate_package_name
 
 from ..utils import QuiltTestCase
 
@@ -531,8 +532,13 @@ class PackageTest(QuiltTestCase):
         remote_pkg.set('foo2', test_file3)
 
         with patch('time.time', return_value=1234567891), \
+             patch('quilt3.packages.DISABLE_TQDM', True), patch('quilt3.data_transfer.DISABLE_TQDM', True), \
              patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
-            remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
+            stderr = io.StringIO()
+
+            with redirect_stderr(stderr), patch('quilt3.packages.DISABLE_TQDM', True):
+                remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
+            assert not stderr.getvalue()
 
 
     def test_package_deserialize(self):
@@ -578,7 +584,7 @@ class PackageTest(QuiltTestCase):
         assert pkg.meta == "test_meta"
 
         pkg = Package()
-        pkg = pkg.set_dir('/','foo_dir/baz_dir/')
+        pkg = pkg.set_dir('/', 'foo_dir/baz_dir/')
         # todo nested at set_dir site or relative to set_dir path.
         assert PhysicalKey.from_path(bazdir / 'baz') == pkg['baz'].physical_key
 
@@ -1344,7 +1350,7 @@ class PackageTest(QuiltTestCase):
 
             with patch('quilt3.Package._browse') as browse_mock, pytest.raises(ImportError) as exc_info:
                 browse_mock.return_value = quilt3.Package()
-                from quilt3.data.Quilt import Foo
+                from quilt3.data.Quilt import Foo # pylint: disable=unused-import
             assert "cannot import name 'Foo'" in str(exc_info.value)
 
         # make sure import works for an installed named package
@@ -1379,7 +1385,7 @@ class PackageTest(QuiltTestCase):
         path = pathlib.Path.cwd() / dest / 'bat'
         mocked_cache_set.assert_called_once_with(
             entry_url,
-            str(path),
+            PhysicalKey.from_path(path).path,
         )
         assert path.read_bytes() == entry_content
 
@@ -1403,7 +1409,7 @@ class PackageTest(QuiltTestCase):
         path = pathlib.Path.cwd() / dest / 'bat'
         mocked_cache_set.assert_called_once_with(
             entry_url,
-            str(path),
+            PhysicalKey.from_path(path).path,
         )
         assert path.read_bytes() == entry_content
 
@@ -1464,11 +1470,13 @@ class PackageTest(QuiltTestCase):
         pkg.set('foo', data)
         _, entry = next(pkg.walk())
 
-        mocked_calculate_sha256.return_value = [None]
-        with self.assertRaises(quilt3.exceptions.PackageException):
+        exc = Exception('test exception')
+        mocked_calculate_sha256.return_value = [exc]
+        with pytest.raises(quilt3.exceptions.PackageException) as excinfo:
             pkg._fix_sha256()
-        mocked_calculate_sha256.assert_has_calls([call([entry.physical_key], [len(data)])] * MAX_FIX_HASH_RETRIES)
+        mocked_calculate_sha256.assert_called_once_with([entry.physical_key], [len(data)])
         assert entry.hash is None
+        assert excinfo.value.__cause__ == exc
 
     @patch('quilt3.packages.calculate_sha256')
     def test_fix_sha256(self, mocked_calculate_sha256):
@@ -1478,7 +1486,7 @@ class PackageTest(QuiltTestCase):
         _, entry = next(pkg.walk())
 
         hash_ = object()
-        mocked_calculate_sha256.side_effect = ([None], [hash_])
+        mocked_calculate_sha256.return_value = [hash_]
         pkg._fix_sha256()
-        mocked_calculate_sha256.assert_has_calls([call([entry.physical_key], [len(data)])] * 2)
+        mocked_calculate_sha256.assert_called_once_with([entry.physical_key], [len(data)])
         assert entry.hash == {'type': 'SHA256', 'value': hash_}

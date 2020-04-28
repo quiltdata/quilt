@@ -19,7 +19,8 @@ class TestS3Select(TestCase):
             'AWS_ACCESS_KEY_ID': 'test_key',
             'AWS_SECRET_ACCESS_KEY': 'test_secret',
             'AWS_REGION': 'ng-north-1',
-            'ES_HOST': 'www.example.com'
+            'ES_HOST': 'www.example.com',
+            'MAX_DOCUMENTS_PER_SHARD': '10000',
         })
         self.env_patcher.start()
 
@@ -44,7 +45,7 @@ class TestS3Select(TestCase):
             timeout='15s',
             size=1000,
             terminate_after=10000,
-            _source = ','.join(['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']),
+            _source=','.join(['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']),
         ))
 
         def _callback(request):
@@ -86,20 +87,19 @@ class TestS3Select(TestCase):
     def test_stats(self):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
             timeout='15s',
-            terminate_after=10000,
             size=0,
-            _source = '',
+            _source='',
         ))
 
         def _callback(request):
             payload = json.loads(request.body)
             assert payload == {
-                "query": { "match_all": {} },
+                "query": {"match_all": {}},
                 "aggs": {
-                    "totalBytes": { "sum": { "field": 'size' } },
+                    "totalBytes": {"sum": {"field": 'size'}},
                     "exts": {
-                        "terms": { "field": 'ext' },
-                        "aggs": { "size": { "sum": { "field": 'size' } } },
+                        "terms": {"field": 'ext'},
+                        "aggs": {"size": {"sum": {"field": 'size'}}},
                     },
                 }
             }

@@ -361,11 +361,11 @@ class BaseFormatHandler(ABC):
 
     def __init__(self, name=None, handled_extensions=tuple(), handled_types=tuple()):
         """Common initialization for BaseFormat subclasses
-        
+
         Subclasses implement the `serialize()` and `deserialize()` methods,
         which are passed the object/bytes to handle, as well as metadata and
         runtime kwargs.
-        
+
         Subclasses *may* implement custom `handles_ext`, `handles_type` methods
         if there is a scenario which requires it (such as lazy load of a large
         module).
@@ -377,10 +377,10 @@ class BaseFormatHandler(ABC):
         which can potentially cause security issues should be avoided
         altogether.  `cls.opts` are useful to handle quirks in poorly-defined
         formats, such as CSV, TSV, and similar.
-        
+
         Args:
             name(str): Name of new format.  Use existing name if your
-                format is compatible with existing formats, if practicable.  
+                format is compatible with existing formats, if practicable.
                 I.e., two different CSV format handlers should both use 'csv'.
 
             handled_extensions(iterable(str)): filename extensions that can be
@@ -981,7 +981,7 @@ class ParquetFormatHandler(BaseFormatHandler):
         import pandas as pd
         try:
             # intentional unused import -- verify we have pyarrow installed
-            import pyarrow as pa
+            import pyarrow as pa # pylint: disable=unused-import
         except ImportError:
             return False
         self.handled_types.add(pd.DataFrame)
