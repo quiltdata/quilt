@@ -45,7 +45,7 @@ const Action = tagged([
   'Init', // { resource, input: any, promise, resolver }
   'Request', // { resource, input: any }
   'Response', // { resource, input: any, result: Result }
-  'Patch', // { resource, input: any, update: fn }
+  'Patch', // { resource, input: any, update: fn, silent: bool }
   // TODO
   // 'Dispose', // { fetch: fn, input: any }
 ])
@@ -76,9 +76,12 @@ const reducer = reduxTools.withInitialState(
         }
         return { ...entry, result }
       }),
-    Patch: ({ resource, input, update }) => (s) =>
+    Patch: ({ resource, input, update, silent = false }) => (s) =>
       s.updateIn(keyFor(resource, input), (entry) => {
-        if (!entry) throw new Error('Patch: entry does not exist')
+        if (!entry) {
+          if (silent) return entry
+          throw new Error('Patch: entry does not exist')
+        }
         return update(entry)
       }),
     __: () => R.identity,
@@ -136,37 +139,28 @@ export const Provider = ({ children }) => {
     [store],
   )
 
-  const get = React.useCallback(
-    R.pipe(
-      accessResult,
-      suspend,
-    ),
-    [accessResult],
-  )
+  const get = React.useCallback(R.pipe(accessResult, suspend), [accessResult])
 
   const patch = React.useCallback(
-    (resource, input, update) => {
-      store.dispatch(Action.Patch({ resource, input, update }))
+    (resource, input, update, silent) => {
+      store.dispatch(Action.Patch({ resource, input, update, silent }))
     },
     [store],
   )
 
   const patchOk = React.useCallback(
-    (resource, input, updateOk) => {
+    (resource, input, updateOk, silent) => {
       const update = R.when(
         (s) => AsyncResult.Ok.is(s.result),
         R.evolve({
           result: AsyncResult.case({
-            Ok: R.pipe(
-              updateOk,
-              AsyncResult.Ok,
-            ),
+            Ok: R.pipe(updateOk, AsyncResult.Ok),
             _: R.identity,
           }),
           promise: R.then(updateOk),
         }),
       )
-      return patch(resource, input, update)
+      return patch(resource, input, update, silent)
     },
     [patch],
   )
