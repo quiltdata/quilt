@@ -296,7 +296,7 @@ class TestIndex():
 
         warnings = body['info']['warnings']
         assert warnings, f"expected warnings when parsing {csv}"
-        assert warnings.count("Skipping line") == 43, f"expected to skip 43 lines"
+        assert warnings.count("Skipping line") == 43, "expected to skip 43 lines"
 
     @responses.activate
     def test_tsv_as_csv(self):

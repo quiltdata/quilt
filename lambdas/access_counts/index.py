@@ -117,7 +117,7 @@ REPAIR_OBJECT_ACCESS_LOG = textwrap.dedent("""
     MSCK REPAIR TABLE object_access_log
 """)
 
-INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
+INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent("""\
     INSERT INTO object_access_log
     SELECT eventname, bucket, key, date_format(eventtime, '%Y-%m-%d') AS date
     FROM (
