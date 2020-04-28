@@ -89,7 +89,7 @@ def lambda_handler(request):
         max_bytes = int(request.args.get('max_bytes', CATALOG_LIMIT_BYTES))
     except ValueError as error:
         return make_json_response(400, {
-            'title': f'Unexpected max_bytes= value',
+            'title': 'Unexpected max_bytes= value',
             'detail': str(error)
         })
 

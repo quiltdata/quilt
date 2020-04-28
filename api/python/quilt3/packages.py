@@ -850,8 +850,8 @@ class Package:
         no such entry exists.
         """
         if "README.md" not in self:
-            ex_msg = f"This Package is missing a README file. A Quilt recognized README file is a  file named " \
-                     f"'README.md' (case-insensitive)"
+            ex_msg = "This Package is missing a README file. A Quilt recognized README file is a  file named " \
+                     "'README.md' (case-insensitive)"
             raise QuiltException(ex_msg)
 
         return self["README.md"]
@@ -1089,8 +1089,8 @@ class Package:
                 error_message = f'Quilt does not know how to serialize a {type(entry)}'
                 if ext is not None:
                     error_message += f' as a {ext} file.'
-                error_message += f'. If you think this should be supported, please open an issue or PR at ' \
-                                 f'https://github.com/quiltdata/quilt'
+                error_message += '. If you think this should be supported, please open an issue or PR at ' \
+                                 'https://github.com/quiltdata/quilt'
                 raise QuiltException(error_message)
 
             if serialization_format_opts is None:
