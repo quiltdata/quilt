@@ -1,0 +1,18 @@
+{
+    "apiGatewayEndpoint": "https://l3ufqlwcb6.execute-api.us-east-2.amazonaws.com/prod",
+    "binaryApiGatewayEndpoint": "https://yukin5rp5j.execute-api.us-east-2.amazonaws.com/prod",
+    "alwaysRequiresAuth": true,
+    "s3Proxy": "https://pf-dev-databrowser-s3-proxy.blackthornrx.com",
+    "intercomAppId": "eprutqnr",
+    "registryUrl": "https://pf-dev-databrowser-registry.blackthornrx.com",
+    "signInRedirect": "/",
+    "signOutRedirect": "/",
+    "passwordAuth": "SIGN_IN_ONLY",
+    "ssoAuth": "DISABLED",
+    "ssoProviders": "",
+    "googleClientId": "",
+    "sentryDSN": "https://cfde44007c3844aab3d1ee3f0ba53a1a@sentry.io/1410550",
+    "mixpanelToken": "e3385877c980efdce0a7eaec5a8a8277",
+    "analyticsBucket": "btrx-quilt-pf-poc-analyticsbucket-1xpyqkyiy216k",
+    "mode": "PRODUCT"
+}
