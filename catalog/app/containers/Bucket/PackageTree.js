@@ -362,7 +362,7 @@ export default function PackageTree({
   const s3req = AWS.S3.useRequest()
   const { urls } = NamedRoutes.use()
   const getSignedS3URL = AWS.Signer.useS3Signer()
-  const { apiGatewayEndpoint: endpoint } = Config.useConfig()
+  const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
   const bucketCfg = BucketConfig.useCurrentBucketConfig()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
@@ -437,38 +437,39 @@ export default function PackageTree({
                 {renderCrumbs(crumbs)}
               </div>
               <div className={classes.spacer} />
-              {AsyncResult.case(
-                {
-                  Ok: TreeDisplay.case({
-                    File: ({ key, version }) =>
-                      xs ? (
-                        <M.IconButton
-                          className={classes.button}
-                          href={getSignedS3URL({ bucket, key, version })}
-                          edge="end"
-                          size="small"
-                          download
-                        >
-                          <M.Icon>arrow_downward</M.Icon>
-                        </M.IconButton>
-                      ) : (
-                        <M.Button
-                          href={getSignedS3URL({ bucket, key, version })}
-                          className={classes.button}
-                          variant="outlined"
-                          size="small"
-                          startIcon={<M.Icon>arrow_downward</M.Icon>}
-                          download
-                        >
-                          Download file
-                        </M.Button>
-                      ),
+              {!noDownload &&
+                AsyncResult.case(
+                  {
+                    Ok: TreeDisplay.case({
+                      File: ({ key, version }) =>
+                        xs ? (
+                          <M.IconButton
+                            className={classes.button}
+                            href={getSignedS3URL({ bucket, key, version })}
+                            edge="end"
+                            size="small"
+                            download
+                          >
+                            <M.Icon>arrow_downward</M.Icon>
+                          </M.IconButton>
+                        ) : (
+                          <M.Button
+                            href={getSignedS3URL({ bucket, key, version })}
+                            className={classes.button}
+                            variant="outlined"
+                            size="small"
+                            startIcon={<M.Icon>arrow_downward</M.Icon>}
+                            download
+                          >
+                            Download file
+                          </M.Button>
+                        ),
+                      _: () => null,
+                    }),
                     _: () => null,
-                  }),
-                  _: () => null,
-                },
-                result,
-              )}
+                  },
+                  result,
+                )}
             </div>
 
             {AsyncResult.case(
