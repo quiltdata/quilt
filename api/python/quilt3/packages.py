@@ -240,6 +240,7 @@ class PackageEntry:
                 returning the result directly.
             **format_opts: Some data formats may take options.  Though
                 normally handled by metadata, these can be overridden here.
+
         Returns:
             The deserialized object from the logical_key
 
@@ -484,6 +485,7 @@ class Package:
     def resolve_hash(cls, registry, hash_prefix):
         """
         Find a hash that starts with a given prefix.
+
         Args:
             registry(string): location of registry
             hash_prefix(string): hash prefix with length between 6 and 64 characters
@@ -526,6 +528,7 @@ class Package:
         """
         Load a package into memory from a registry without making a local copy of
         the manifest.
+
         Args:
             name(string): name of package to load
             registry(string): location of registry to load package from
@@ -1461,6 +1464,7 @@ class Package:
         Args:
             src(str): URL of the directory
             extra_files_ok(bool): Whether extra files in the directory should cause a failure.
+
         Returns:
             True if the package matches the directory; False otherwise.
         """
