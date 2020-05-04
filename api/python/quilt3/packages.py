@@ -220,7 +220,6 @@ class PackageEntry:
         obj_bytes = self.get_bytes(use_cache_if_available=use_cache_if_available)
         return json.loads(obj_bytes.decode("utf-8"))
 
-
     def get_as_string(self, use_cache_if_available=True):
         """
         Return the object as a string. Assumes that the file is encoded using utf-8.
@@ -229,7 +228,6 @@ class PackageEntry:
         """
         obj_bytes = self.get_bytes(use_cache_if_available=use_cache_if_available)
         return obj_bytes.decode("utf-8")
-
 
     def deserialize(self, func=None, **format_opts):
         """
@@ -286,7 +284,6 @@ class PackageEntry:
         # return a package reroot package physical keys after the copy operation succeeds
         # see GH#388 for context
         return self.with_physical_key(dest)
-
 
     def __call__(self, func=None, **kwargs):
         """
@@ -480,7 +477,6 @@ class Package:
         short_tophash = Package._shorten_tophash(name, dest_registry_parsed, top_hash)
         print(f"Successfully installed package '{name}', tophash={short_tophash} from {registry}")
 
-
     @classmethod
     def resolve_hash(cls, registry, hash_prefix):
         """
@@ -520,7 +516,6 @@ class Package:
             matches = [h for h in matches if h.startswith(potential_shorthash)]
             if len(matches) == 1:
                 return potential_shorthash
-
 
     @classmethod
     @ApiTelemetry("package.browse")
@@ -566,7 +561,6 @@ class Package:
                 tmp_path.rename(local_pkg_manifest)
 
         return cls._from_path(local_pkg_manifest)
-
 
     @classmethod
     def _from_path(cls, path):
@@ -842,9 +836,6 @@ class Package:
             raise ValueError("Key does not point to a PackageEntry")
         return obj.get()
 
-
-
-
     def readme(self):
         """
         Returns the README PackageEntry
@@ -858,7 +849,6 @@ class Package:
             raise QuiltException(ex_msg)
 
         return self["README.md"]
-
 
     def set_meta(self, meta):
         """
@@ -973,7 +963,6 @@ class Package:
 
         return self
 
-
     @ApiTelemetry("package.dump")
     def dump(self, writable_file):
         """
@@ -1007,7 +996,6 @@ class Package:
         for logical_key, entry in self.walk():
             yield {'logical_key': logical_key, **entry.as_dict()}
 
-
     def set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
         """
         Returns self with the object at logical_key set to entry.
@@ -1038,9 +1026,7 @@ class Package:
                          serialization_location=serialization_location,
                          serialization_format_opts=serialization_format_opts)
 
-
     def _set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
-
         if not logical_key or logical_key.endswith('/'):
             raise QuiltException(
                 f"Invalid logical key {logical_key!r}. "
@@ -1191,8 +1177,6 @@ class Package:
             top_hash.update(entry_dict_str.encode('utf-8'))
 
         return top_hash.hexdigest()
-
-
 
     @ApiTelemetry("package.push")
     def push(self, name, registry=None, dest=None, message=None, selector_fn=None):
@@ -1361,7 +1345,6 @@ class Package:
 
         put_bytes(top_hash.encode('utf-8'), latest_path)
 
-
     @ApiTelemetry("package.diff")
     def diff(self, other_pkg):
         """
@@ -1408,8 +1391,6 @@ class Package:
         """
         return self._map(f, include_directories=include_directories)
 
-
-
     def _map(self, f, include_directories=False):
 
         if include_directories:
@@ -1418,7 +1399,6 @@ class Package:
 
         for lk, entity in self.walk():
             yield f(lk, entity)
-
 
     @ApiTelemetry("package.filter")
     def filter(self, f, include_directories=False):
@@ -1438,7 +1418,6 @@ class Package:
             A new package with entries that evaluated to False removed
         """
         return self._filter(f=f, include_directories=include_directories)
-
 
     def _filter(self, f, include_directories=False):
         p = Package()

@@ -154,7 +154,6 @@ class DataTransferTest(QuiltTestCase):
         assert data_transfer._calculate_etag(DATA_DIR / 'small_file.csv') == '"0bec5bf6f93c547bc9c6774acaf85e1a"'
         assert data_transfer._calculate_etag(DATA_DIR / 'buggy_parquet.parquet') == '"dfb5aca048931d396f4534395617363f"'
 
-
     def test_simple_upload(self):
         path = DATA_DIR / 'small_file.csv'
 
@@ -241,7 +240,6 @@ class DataTransferTest(QuiltTestCase):
         ])
         assert urls[0] == PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1')
 
-
     def test_upload_large_file_etag_match(self):
         path = DATA_DIR / 'large_file.npy'
 
@@ -262,7 +260,6 @@ class DataTransferTest(QuiltTestCase):
             (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
         ])
         assert urls[0] == PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1')
-
 
     def test_upload_large_file_etag_mismatch(self):
         path = DATA_DIR / 'large_file.npy'

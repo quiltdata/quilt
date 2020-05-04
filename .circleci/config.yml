@@ -87,11 +87,15 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            pip install pylint
+            pip install pylint pycodestyle
       - run:
           name: Run pylint
           command: |
             pylint $(find -name '*.py' -not -path './venv/*')
+      - run:
+          name: Run pycodestyle
+          command: |
+            pycodestyle $(find -name '*.py' -not -path './venv/*')
 
   test-36:
     docker:

@@ -88,7 +88,6 @@ class PackageTest(QuiltTestCase):
                 }
             )
 
-
     def test_build(self):
         """Verify that build dumps the manifest to appdirs directory."""
         new_pkg = Package()
@@ -540,7 +539,6 @@ class PackageTest(QuiltTestCase):
                 remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
             assert not stderr.getvalue()
 
-
     def test_package_deserialize(self):
         """ Verify loading data from a local file. """
         pkg = (
@@ -630,7 +628,6 @@ class PackageTest(QuiltTestCase):
         assert PhysicalKey.from_path('foo') == pkg['foo'].physical_key
         assert PhysicalKey.from_path('bar') == pkg['bar'].physical_key
 
-
     def test_s3_set_dir(self):
         """ Verify building a package from an S3 directory. """
         with patch('quilt3.packages.list_object_versions') as list_object_versions_mock:
@@ -661,7 +658,6 @@ class PackageTest(QuiltTestCase):
 
             list_object_versions_mock.assert_called_with('bucket', 'foo/')
 
-
     def test_package_entry_meta(self):
         pkg = (
             Package()
@@ -680,7 +676,6 @@ class PackageTest(QuiltTestCase):
         pkg['foo'].set_meta({'value': 'other value'})
         assert pkg['foo'].meta == {'value': 'other value'}
         assert pkg['foo']._meta == {'target': 'unicode', 'user_meta': {'value': 'other value'}}
-
 
     def test_list_local_packages(self):
         """Verify that list returns packages in the appdirs directory."""
@@ -770,7 +765,6 @@ class PackageTest(QuiltTestCase):
             file_path = pkg[lk].physical_key.path
             assert not pathlib.Path(file_path).exists(), "These temp files should have been deleted during push()"
 
-
     def test_tophash_changes(self):
         test_file = Path('test.txt')
         test_file.write_text('asdf', 'utf-8')
@@ -805,7 +799,6 @@ class PackageTest(QuiltTestCase):
 
         pkg.delete('asdf')
         assert set(pkg.keys()) == {'jkl;'}
-
 
     def test_iter(self):
         pkg = Package()
@@ -889,7 +882,6 @@ class PackageTest(QuiltTestCase):
         assert len(pkgs) == 1
         assert list(pkgs) == ['foo/bar']
 
-
     def test_validate_package_name(self):
         validate_package_name("a/b")
         validate_package_name("21312/bes")
@@ -924,7 +916,6 @@ class PackageTest(QuiltTestCase):
         p1 = Package.browse('Quilt/Test')
         p2 = Package.browse('Quilt/Test')
         assert p1.diff(p2) == ([], [], [])
-
 
     def test_dir_meta(self):
         test_meta = {'test': 'meta'}
@@ -963,7 +954,6 @@ class PackageTest(QuiltTestCase):
         assert pkg.top_hash == top_hash, \
             "Unexpected top_hash for {}/packages/.quilt/packages/{}".format(registry, top_hash)
 
-
     def test_local_package_delete(self):
         """Verify local package delete works."""
         top_hash = Package().build("Quilt/Test").top_hash
@@ -971,7 +961,6 @@ class PackageTest(QuiltTestCase):
 
         quilt3.delete_package('Quilt/Test')
         assert 'Quilt/Test' not in quilt3.list_packages()
-
 
     def test_remote_package_delete(self):
         """Verify remote package delete works."""
@@ -1006,7 +995,6 @@ class PackageTest(QuiltTestCase):
             )
 
         quilt3.delete_package('Quilt/Test', registry='s3://test-bucket')
-
 
     def test_push_restrictions(self):
         p = Package()
@@ -1115,7 +1103,6 @@ class PackageTest(QuiltTestCase):
         pkg2 = Package.browse('foo/bar', top_hash=top_hash)
         assert list(pkg.manifest) == list(pkg2.manifest)
 
-
     def test_map(self):
         pkg = Package()
         pkg.set('as/df', LOCAL_MANIFEST)
@@ -1125,7 +1112,6 @@ class PackageTest(QuiltTestCase):
         pkg['as'].set_meta({'foo': 'bar'})
         assert set(pkg.map(lambda lk, entry: lk, include_directories=True)) ==\
             {'as/df', 'as/qw', 'as/'}
-
 
     def test_filter(self):
         pkg = Package()
@@ -1149,7 +1135,6 @@ class PackageTest(QuiltTestCase):
                             include_directories=True)
         assert list(p_copy) == ['a'] and list(p_copy['a']) == ['df']
 
-
     def test_import(self):
         with patch('quilt3.Package._browse') as browse_mock, \
             patch('quilt3.imports._list_packages') as list_packages_mock:
@@ -1164,7 +1149,6 @@ class PackageTest(QuiltTestCase):
 
             from quilt3.data import foo
             assert hasattr(foo, 'bar') and hasattr(foo, 'baz')
-
 
     def test_invalid_key(self):
         pkg = Package()

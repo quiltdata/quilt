@@ -20,8 +20,6 @@ DISABLE_USAGE_METRICS_ENVVAR = "QUILT_DISABLE_USAGE_METRICS"
 MAX_CLEANUP_WAIT_SECS = 5
 
 
-
-
 class ApiTelemetry:
     session = None
     session_id = str(uuid.uuid4())
@@ -60,7 +58,6 @@ class ApiTelemetry:
             set_config_value("telemetry_disabled", False)
             return False
 
-
     @classmethod
     def check_telemetry_disabled_by_envvar(cls):
         envvar = os.environ.get(DISABLE_USAGE_METRICS_ENVVAR, "")
@@ -71,7 +68,6 @@ class ApiTelemetry:
         elif envvar == "0":
             envvar = False
         return bool(envvar)
-
 
     @classmethod
     def telemetry_is_disabled(cls):
@@ -90,7 +86,6 @@ class ApiTelemetry:
 
         return False
 
-
     @classmethod
     def cleanup_completed_requests(cls):
         if ApiTelemetry.telemetry_disabled:
@@ -101,7 +96,6 @@ class ApiTelemetry:
         # - https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Future.add_done_callback
         with ApiTelemetry.pending_reqs_lock:
             ApiTelemetry.pending_reqs = [r for r in ApiTelemetry.pending_reqs if not r.done()]
-
 
     @classmethod
     def report_api_use(cls, api_name, python_session_id):
@@ -126,9 +120,6 @@ class ApiTelemetry:
         with ApiTelemetry.pending_reqs_lock:
             r = ApiTelemetry.session.post(TELEMETRY_URL, json=data, headers={'User-Agent': TELEMETRY_USER_AGENT})
             ApiTelemetry.pending_reqs.append(r)
-
-
-
 
     def __call__(self, func):
         @functools.wraps(func)

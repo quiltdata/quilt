@@ -130,7 +130,6 @@ class S3ClientProvider:
         boto_session = boto3.Session(botocore_session=botocore_session)
         return boto_session
 
-
     def register_signals(self, s3_client):
         # Enable/disable file read callbacks when uploading files.
         # Copied from https://github.com/boto/s3transfer/blob/develop/s3transfer/manager.py#L501
@@ -153,13 +152,11 @@ class S3ClientProvider:
         self.register_signals(s3_client)
         self._standard_client = s3_client
 
-
     def _build_unsigned_client(self):
         boto_session = self.get_boto_session()
         s3_client = boto_session.client('s3', config=Config(signature_version=UNSIGNED))
         self.register_signals(s3_client)
         self._unsigned_client = s3_client
-
 
 
 def check_list_object_versions_works_for_client(s3_client, params):
@@ -204,7 +201,6 @@ def check_head_object_works_for_client(s3_client, params):
             # exist. Instead of returning a 404, S3 will return a 403.
             return False
     return True
-
 
 
 s3_transfer_config = TransferConfig()
@@ -294,7 +290,6 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path):
     s3_client = ctx.s3_client_provider.find_correct_client(S3Api.GET_OBJECT, src_bucket, params)
 
     dest_file.parent.mkdir(parents=True, exist_ok=True)
-
 
     if src_version is not None:
         params.update(dict(VersionId=src_version))
@@ -389,9 +384,6 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
 
 
 def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
-
-
-
     # Optimization: check if the remote file already exists and has the right ETag,
     # and skip the upload.
     if size >= UPLOAD_ETAG_OPTIMIZATION_THRESHOLD:
@@ -610,7 +602,6 @@ def list_object_versions(bucket, prefix, recursive=True):
         return versions, delete_markers
     else:
         return prefixes, versions, delete_markers
-
 
 
 def list_objects(bucket, prefix, recursive=True):

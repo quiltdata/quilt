@@ -18,7 +18,6 @@ ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_LIMIT_LINES = 100_000
 
 
-
 class NoopDecompressObj():
     @property
     def eof(self):
@@ -115,7 +114,6 @@ def extract_parquet(file_, as_html=True):
             if done:
                 break
         body = b"".join(buffer).decode()
-
 
     return body, info
 

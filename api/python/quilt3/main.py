@@ -56,7 +56,6 @@ def cmd_config_default_registry(default_remote_registry):
     print(f"Successfully set the default remote registry to {default_remote_registry}")
 
 
-
 def _test_url(url):
     try:
         response = requests.get(url)
@@ -106,8 +105,6 @@ def _launch_local_s3proxy():
 
     command += ["-p", "5002:80", "quiltdata/s3proxy"]
     subprocess.Popen(command)
-
-
 
 
 catalog_cmd_detailed_help = """
@@ -224,7 +221,6 @@ def create_parser():
             action="version",
             version=quilt3_version.strip()
     )
-
 
     subparsers = parser.add_subparsers(metavar="<command>")
     subparsers.required = True
