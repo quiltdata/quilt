@@ -299,7 +299,7 @@ export function NavBar() {
   const cfg = Config.use()
   const bucket = BucketConfig.useCurrentBucket()
   const { paths } = NamedRoutes.use()
-  const notSignIn = !useRoute(paths.signIn, { exact: true }).match
+  const isSignIn = !!useRoute(paths.signIn, { exact: true }).match
   const selector = React.useCallback(
     createStructuredSelector(
       R.pick(['error', 'waiting', 'authenticated'], authSelectors),
@@ -312,7 +312,7 @@ export function NavBar() {
   const links = useLinks()
   return (
     <Container>
-      {cfg.disableNavigator ? (
+      {cfg.disableNavigator || (cfg.alwaysRequiresAuth && isSignIn) ? (
         <M.Box flexGrow={1} />
       ) : (
         <Controls {...{ bucket, disableSearch: cfg.mode === 'LOCAL' }} />
@@ -333,7 +333,7 @@ export function NavBar() {
         (authenticated ? (
           <UserDropdown />
         ) : (
-          notSignIn && <SignIn error={error} waiting={waiting} />
+          !isSignIn && <SignIn error={error} waiting={waiting} />
         ))}
 
       {useHamburger &&
