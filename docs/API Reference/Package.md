@@ -43,6 +43,7 @@ __Arguments__
 ## Package.resolve\_hash(registry, hash\_prefix)  {#Package.resolve\_hash}
 
 Find a hash that starts with a given prefix.
+
 __Arguments__
 
 * __registry(string)__:  location of registry
@@ -53,6 +54,7 @@ __Arguments__
 
 Load a package into memory from a registry without making a local copy of
 the manifest.
+
 __Arguments__
 
 * __name(string)__:  name of package to load
@@ -370,6 +372,7 @@ __Arguments__
 
 * __src(str)__:  URL of the directory
 * __extra_files_ok(bool)__:  Whether extra files in the directory should cause a failure.
+
 __Returns__
 
 True if the package matches the directory; False otherwise.
@@ -473,6 +476,7 @@ __Arguments__
     returning the result directly.
 * __**format_opts__:  Some data formats may take options.  Though
     normally handled by metadata, these can be overridden here.
+
 __Returns__
 
 The deserialized object from the logical_key
