@@ -251,7 +251,6 @@ class TestIndex(TestCase):
 
         index.handler(event, MockContext())
 
-
     def test_unsupported_contents(self):
         contents = index.get_contents('test-bucket', 'foo.exe', '.exe', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
         assert contents == ""

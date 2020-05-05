@@ -23,7 +23,6 @@ def copy(src, dest):
     copy_file(PhysicalKey.from_url(fix_url(src)), PhysicalKey.from_url(fix_url(dest)))
 
 
-
 @ApiTelemetry("api.delete_package")
 def delete_package(name, registry=None, top_hash=None):
     """
@@ -223,7 +222,6 @@ def disable_telemetry():
 
 def _disable_telemetry():
     _config(telemetry_disabled=True)
-
 
 
 @ApiTelemetry("api.search")

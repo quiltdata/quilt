@@ -773,7 +773,6 @@ class CSVPandasFormatHandler(BaseFormatHandler):
 
         return result_kwargs
 
-
     def serialize(self, obj, meta=None, ext=None, **format_opts):
         opts = self.get_opts(meta, format_opts)
 

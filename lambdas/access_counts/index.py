@@ -387,7 +387,6 @@ def handler(event, context):
     # Save the end timestamp.
     s3.put_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY, Body=str(end_ts.timestamp()), ContentType='text/plain')
 
-
     queries = [
         ('Objects', OBJECT_ACCESS_COUNTS),
         ('Packages', PACKAGE_ACCESS_COUNTS),

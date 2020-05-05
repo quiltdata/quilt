@@ -376,7 +376,6 @@ class TestIndex():
             assert resp['statusCode'] == 200, 'preview lambda failed'
             get_preview_lines.assert_called_with(ANY, 'gz', count, index.CATALOG_LIMIT_BYTES)
 
-
     @responses.activate
     def test_txt_short(self):
         """test sending txt bytes"""
