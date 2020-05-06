@@ -47,6 +47,7 @@ class S3NoValidClientError(Exception):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
+
 class S3ClientProvider:
     """
     An s3_client is either signed with standard credentials or unsigned. This class exists to dynamically provide the
@@ -166,6 +167,7 @@ def check_list_object_versions_works_for_client(s3_client, params):
         return e.response["Error"]["Code"] != "AccessDenied"
     return True
 
+
 def check_list_objects_v2_works_for_client(s3_client, params):
     try:
         s3_client.list_objects_v2(**params, MaxKeys=1)  # Make this as fast as possible
@@ -173,6 +175,7 @@ def check_list_objects_v2_works_for_client(s3_client, params):
         if e.response["Error"]["Code"] == "AccessDenied":
             return False
     return True
+
 
 def check_get_object_works_for_client(s3_client, params):
     try:
@@ -191,6 +194,7 @@ def check_get_object_works_for_client(s3_client, params):
             return False
 
     return True
+
 
 def check_head_object_works_for_client(s3_client, params):
     try:
@@ -751,6 +755,7 @@ def put_bytes(data: bytes, dest: PhysicalKey):
             Body=data,
         )
 
+
 def get_bytes(src: PhysicalKey):
     if src.is_local():
         src_file = pathlib.Path(src.path)
@@ -763,6 +768,7 @@ def get_bytes(src: PhysicalKey):
         resp = s3_client.get_object(**params)
         data = resp['Body'].read()
     return data
+
 
 def get_size_and_version(src: PhysicalKey):
     """
@@ -792,6 +798,7 @@ def get_size_and_version(src: PhysicalKey):
         size = resp['ContentLength']
         version = resp.get('VersionId')
     return size, version
+
 
 def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
     assert len(src_list) == len(sizes)

@@ -40,6 +40,7 @@ TEST_EVENT = "s3:TestEvent"
 #  a custom user agent enables said filtration
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 
+
 def now_like_boto3():
     """ensure timezone UTC for consistency with boto3:
     Example of what boto3 returns on head_object:
@@ -47,10 +48,12 @@ def now_like_boto3():
     """
     return datetime.datetime.now(tz=datetime.timezone.utc)
 
+
 def should_retry_exception(exception):
     """don't retry certain 40X errors"""
     error_code = exception.response.get('Error', {}).get('Code', 218)
     return error_code not in ["402", "403", "404"]
+
 
 def infer_extensions(key, ext):
     """guess extensions if possible"""
@@ -59,6 +62,7 @@ def infer_extensions(key, ext):
     if re.fullmatch(r".c\d{3,5}", ext) or re.fullmatch(r".*-c\d{3,5}$", key):
         return ".parquet"
     return ext
+
 
 def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
     """get the byte contents of a file"""
@@ -112,6 +116,7 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
 
     return content
 
+
 def extract_text(notebook_str):
     """ Extract code and markdown
     Args:
@@ -141,6 +146,7 @@ def extract_text(notebook_str):
             text.append(cell["source"])
 
     return "\n".join(text)
+
 
 def get_notebook_cells(bucket, key, size, compression, *, etag, s3_client, version_id):
     """extract cells for ipynb notebooks for indexing"""
@@ -172,6 +178,7 @@ def get_notebook_cells(bucket, key, size, compression, *, etag, s3_client, versi
 
     return text
 
+
 def get_plain_text(bucket, key, size, compression, *, etag, s3_client, version_id):
     """get plain text object contents"""
     text = ""
@@ -198,11 +205,13 @@ def get_plain_text(bucket, key, size, compression, *, etag, s3_client, version_i
 
     return text
 
+
 def make_s3_client():
     """make a client with a custom user agent string so that we can
     filter the present lambda's requests to S3 from object analytics"""
     configuration = botocore.config.Config(user_agent_extra=USER_AGENT_EXTRA)
     return boto3.client("s3", config=configuration)
+
 
 def handler(event, context):
     """enumerate S3 keys in event, extract relevant data and metadata,
@@ -343,6 +352,7 @@ def handler(event, context):
         # re-raise so that get_contents() failures end up in the DLQ
         if content_exception:
             raise content_exception
+
 
 def retry_s3(
         operation,

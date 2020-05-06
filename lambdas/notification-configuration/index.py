@@ -7,6 +7,7 @@ import boto3
 
 from t4_lambda_shared.cfnresponse import send, SUCCESS, FAILED
 
+
 def set_mappings(params, *, delete=False):
     """ Sets up desired mappings after checking no mappings currently exist. """
     s3 = boto3.client('s3')
@@ -42,12 +43,14 @@ def set_mappings(params, *, delete=False):
 
     s3.put_bucket_notification_configuration(**params)
 
+
 def select_params(params):
     """ Grabs just the necessary keys from params """
     return {
         'Bucket': params['Bucket'],
         'NotificationConfiguration': params['NotificationConfiguration']
     }
+
 
 def handler(event, context):
     """ Top-level handler for custom resource """

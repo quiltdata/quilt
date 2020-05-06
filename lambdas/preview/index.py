@@ -70,6 +70,7 @@ SCHEMA = {
 # global option for pandas
 pandas.set_option('min_rows', 50)
 
+
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 def lambda_handler(request):
@@ -154,6 +155,7 @@ def lambda_handler(request):
         }
     return make_json_response(200, ret_val)
 
+
 def extract_csv(head, separator):
     """
     csv file => data frame => html
@@ -199,6 +201,7 @@ def extract_csv(head, separator):
         'warnings': warnings_.getvalue()
     }
 
+
 def extract_excel(file_):
     """
     excel file => data frame => html
@@ -211,6 +214,7 @@ def extract_excel(file_):
     first_sheet = pandas.read_excel(file_, sheet_name=0)
     html = first_sheet._repr_html_() # pylint: disable=protected-access
     return html, {}
+
 
 def extract_ipynb(file_, exclude_output):
     """
@@ -235,6 +239,7 @@ def extract_ipynb(file_, exclude_output):
     html, _ = html_exporter.from_notebook_node(notebook)
 
     return html, {}
+
 
 def extract_vcf(head):
     """
@@ -279,6 +284,7 @@ def extract_vcf(head):
 
     return '', info
 
+
 def extract_txt(head):
     """
     dummy formatting function
@@ -292,6 +298,7 @@ def extract_txt(head):
     }
 
     return '', info
+
 
 def _str_to_line_count(int_string, lower=1, upper=CATALOG_LIMIT_LINES):
     """

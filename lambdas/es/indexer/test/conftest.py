@@ -9,6 +9,7 @@ def pytest_addoption(parser):
         help="enable longrundecorated tests"
     )
 
+
 def pytest_configure(config):
     if not config.option.extended:
         setattr(config.option, 'markexpr', 'not extended')

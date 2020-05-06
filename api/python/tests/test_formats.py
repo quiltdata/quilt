@@ -28,6 +28,7 @@ def test_buggy_parquet():
             # Make sure this doesn't crash.
             parquet_handler.deserialize(bad_parq.read())
 
+
 def test_formats_for_obj():
     arr = np.ndarray(3)
 
@@ -105,6 +106,7 @@ def test_formats_csv_read():
 
     assert df.equals(expected_df)
     assert expected_bytes == FormatRegistry.serialize(df, meta)[0]
+
 
 def test_formats_csv_roundtrip():
     test_data = b'9,2,5\n7,2,6\n1,0,1\n'

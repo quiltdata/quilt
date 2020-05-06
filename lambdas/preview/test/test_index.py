@@ -17,6 +17,7 @@ MOCK_ORIGIN = 'http://localhost:3000'
 
 BASE_DIR = pathlib.Path(__file__).parent / 'data'
 
+
 # pylint: disable=no-member,invalid-sequence-index
 class TestIndex():
     """Class to test various inputs to the main indexing function"""
@@ -24,6 +25,7 @@ class TestIndex():
     # pylint: disable=too-many-function-args
     # pylint hates on index.lambda_handler(event, None), even though, without the
     # second arg we would get TypeError: wrapper() missing 1 required positional argument: '_'
+
     @classmethod
     def _make_event(cls, query, headers=None):
         return {
@@ -474,6 +476,7 @@ class TestIndex():
         meta = body['info']['metadata']
         assert meta['variant_count'] == 0, 'expected no variants'
         assert not body['info']['metadata']['variants'], 'expected no variants'
+
 
 def _check_vcf(resp):
     """common logic for checking vcf files, e.g. across compression settings"""

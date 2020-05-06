@@ -150,6 +150,7 @@ def get_preview_lines(chunk_iterator, compression, max_lines, max_bytes):
 
     return [l.decode('utf-8', 'ignore') for l in lines]
 
+
 def get_bytes(chunk_iterator, compression):
     """
     Read a (possibly compressed) file and return a BytesIO object with the contents.
@@ -161,6 +162,7 @@ def get_bytes(chunk_iterator, compression):
 
     buffer.seek(0)
     return buffer
+
 
 def trim_to_bytes(string, limit):
     """trim string to specified number of bytes"""

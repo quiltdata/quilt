@@ -20,6 +20,7 @@ TEST_YAML = """
     e: a not-so-hip MC from a relatively unknown nightclub    # do you like cats?
     """
 
+
 ### Code
 def test_write_yaml(tmpdir):
     fname = tmpdir / 'some_file.yml'
