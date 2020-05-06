@@ -52,14 +52,9 @@ export default function Buckets() {
   const [page, setPage] = React.useState(1)
   const scrollRef = React.useRef(null)
 
-  const terms = React.useMemo(
-    () =>
-      filter
-        .toLowerCase()
-        .split(/\s+/)
-        .filter(Boolean),
-    [filter],
-  )
+  const terms = React.useMemo(() => filter.toLowerCase().split(/\s+/).filter(Boolean), [
+    filter,
+  ])
 
   const tagIsMatching = React.useCallback((t) => filter.includes(t), [filter])
 
@@ -127,9 +122,7 @@ export default function Buckets() {
                 <M.Icon>clear</M.Icon>
               </M.IconButton>
             </M.InputAdornment>
-          ) : (
-            undefined
-          ),
+          ) : undefined,
         }}
       />
       <div ref={scrollRef} />

@@ -32,7 +32,12 @@ const PLANS = [
     name: 'Virtual Private Cloud',
     trackingName: 'marketplace',
     price: 600,
-    features: ['Unlimited data', 'Unlimited users', 'One S3 bucket', '30-day free trial'],
+    features: [
+      'Unlimited data',
+      'Unlimited users',
+      'Three S3 buckets',
+      '30-day free trial',
+    ],
     cta: 'Try Now',
     to: ({ urls }) => urls.install(),
     variant: 'primary',
