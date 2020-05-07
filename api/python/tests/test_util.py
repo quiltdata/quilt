@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """ Testing for util.py """
 
 ### Python imports

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 ### Python imports
 import pathlib
 
