@@ -96,7 +96,7 @@
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-github-btn": "^1.2.0",
-    "react-google-login": "^5.1.12",
+    "react-google-login": "^5.1.14",
     "react-helmet": "^6.0.0",
     "react-input-autosize": "^2.2.2",
     "react-intl": "^2.9.0",
