@@ -19,6 +19,7 @@ sts_client = boto3.client( # pylint: disable=invalid-name
     'sts',
 )
 
+
 class ApiException(Exception):
     """
     Base class for API exceptions.
@@ -28,7 +29,9 @@ class ApiException(Exception):
         self.status_code = status_code
         self.message = message
 
+
 CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
+
 
 @app.route('/api/buckets', methods=['GET'])
 @as_json
@@ -39,6 +42,7 @@ def list_buckets():
     return dict(
         buckets=[]
     )
+
 
 @app.route('/api/auth/get_credentials', methods=['GET'])
 @as_json

@@ -268,6 +268,7 @@ def query_finished(execution_id):
 # Athena limitation for DDL queries.
 MAX_CONCURRENT_QUERIES = 20
 
+
 def run_multiple_queries(query_list):
     results = [None] * len(query_list)
 

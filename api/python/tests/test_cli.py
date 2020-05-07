@@ -10,6 +10,7 @@ from .utils import QuiltTestCase
 
 create_parser = main.create_parser
 
+
 class CommandLineTestCase(QuiltTestCase):
     """
     Base TestCase class, sets up a CLI parser
@@ -18,6 +19,7 @@ class CommandLineTestCase(QuiltTestCase):
     def setUpClass(cls):
         parser = create_parser()
         cls.parser = parser
+
 
 class QuiltCLITestCase(CommandLineTestCase):
     def test_quilt_config(self):

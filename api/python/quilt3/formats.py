@@ -1019,6 +1019,7 @@ class ParquetFormatHandler(BaseFormatHandler):
             obj = newtable.to_pandas()
         return obj
 
+
 # compat -- also handle 'pyarrow' in meta['target'] and meta['format']['name'].
 ParquetFormatHandler('pyarrow').register()
 ParquetFormatHandler().register()  # latest is preferred

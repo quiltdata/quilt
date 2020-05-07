@@ -7,6 +7,7 @@ from unittest import TestCase
 
 from t4_lambda_shared.decorator import api, Request, validate
 
+
 # pylint: disable=invalid-sequence-index
 class TestDecorator(TestCase):
     """Tests for the @api and @validate decorators"""

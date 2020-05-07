@@ -25,6 +25,8 @@ class MockContext():
 
 
 BASE_DIR = Path(__file__).parent / 'data'
+
+
 class TestIndex(TestCase):
     def setUp(self):
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)

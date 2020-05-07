@@ -21,6 +21,7 @@ NB_EXTRACTS = {
     'normal.ipynb': NORMAL_EXTRACT,
 }
 
+
 def test_extract_text():
     """ test extraction of code + markdown with format_notebook
     this code was developed after running format_notebook on ~6400 notebooks

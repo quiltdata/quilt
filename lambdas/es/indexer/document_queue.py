@@ -59,6 +59,7 @@ def transform_meta(meta):
         "meta_text": " ".join(meta_text_parts)
     }
 
+
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
     def __init__(self, context):
@@ -189,6 +190,7 @@ class DocumentQueue:
         self.size = 0
         self.queue = []
 
+
 def get_time_remaining(context):
     """returns time remaining in seconds before lambda context is shut down"""
     time_remaining = floor(context.get_remaining_time_in_millis()/1000)
@@ -199,6 +201,7 @@ def get_time_remaining(context):
         )
 
     return time_remaining
+
 
 def bulk_send(elastic, list_):
     """make a bulk() call to elastic"""

@@ -16,6 +16,7 @@ from .session import open_url
 from .util import get_from_config, catalog_s3_url, catalog_package_url, QuiltException, PhysicalKey, \
     fix_url, get_package_registry
 
+
 def cmd_config(catalog_url, **kwargs):
     """
     Configure quilt3 to a Quilt stack
@@ -65,6 +66,7 @@ def _test_url(url):
     except requests.exceptions.ConnectionError:
         return False
 
+
 def _launch_local_catalog():
     """"
     Launches a docker container to run nginx hosting
@@ -84,6 +86,7 @@ def _launch_local_catalog():
         command += ["-e", var]
     command += ["-p", "3000:80", "quiltdata/catalog"]
     subprocess.Popen(command)
+
 
 def _launch_local_s3proxy():
     """"
@@ -129,6 +132,7 @@ We strongly encourage users with
 sensitive data in S3 to run a private Quilt deployment. Visit
 https://quiltdata.com for more information.
 """
+
 
 def cmd_catalog(navigation_target=None, detailed_help=False):
     """
@@ -187,14 +191,17 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
     open_url(catalog_url)
     app.run()
 
+
 def cmd_disable_telemetry():
     api._disable_telemetry()
     print("Successfully disabled telemetry.")
+
 
 def cmd_list_packages(registry):
     registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry)))
     for package_name in api._list_packages(registry=registry_parsed):
         print(package_name)
+
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
     pkg = api.Package._browse(name, registry, top_hash)
