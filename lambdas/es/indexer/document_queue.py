@@ -26,15 +26,15 @@ CONTENT_INDEX_EXTS = [
 # See https://amzn.to/2xJpngN for chunk size as a function of container size
 CHUNK_LIMIT_BYTES = int(os.getenv('CHUNK_LIMIT_BYTES') or 9_500_000)
 ELASTIC_TIMEOUT = 30
-MAX_BACKOFF = 360 #seconds
-MAX_RETRY = 4 # prevent long-running lambdas due to malformed calls
+MAX_BACKOFF = 360  # seconds
+MAX_RETRY = 4  # prevent long-running lambdas due to malformed calls
 # signifies that the object is truly deleted, not to be confused with
 # s3:ObjectRemoved:DeleteMarkerCreated, which we may see in versioned buckets
 # see https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
 OBJECT_DELETE = "ObjectRemoved:Delete"
 OBJECT_PUT = "ObjectCreated:Put"
 RETRY_429 = 5
-QUEUE_LIMIT_BYTES = 100_000_000# 100MB
+QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
 
 
 def transform_meta(meta):
@@ -97,12 +97,12 @@ class DocumentQueue:
             # Be VERY CAREFUL changing these values, as a type change can cause a
             # mapper_parsing_exception that below code won't handle
             "comment": derived_meta["comment"],
-            "content": text,# field for full-text search
+            "content": text,  # field for full-text search
             "etag": etag,
             "event": event_type,
             "ext": ext,
             "key": key,
-            #"key_text": created by mappings copy_to
+            # "key_text": created by mappings copy_to
             "last_modified": last_modified.isoformat(),
             "meta_text": derived_meta["meta_text"],
             "size": size,
@@ -210,7 +210,7 @@ def bulk_send(elastic, list_):
         list_,
         # Some magic numbers to reduce memory pressure
         # e.g. see https://github.com/wagtail/wagtail/issues/4554
-        chunk_size=100,# max number of documents sent in one chunk
+        chunk_size=100,  # max number of documents sent in one chunk
         # The stated default is max_chunk_bytes=10485760, but with default
         # ES will still return an exception stating that the very
         # same request size limit has been exceeded

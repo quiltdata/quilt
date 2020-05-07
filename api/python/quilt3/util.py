@@ -26,7 +26,7 @@ OPEN_DATA_URL = "https://open.quiltdata.com"
 PACKAGE_NAME_FORMAT = r"([\w-]+/[\w-]+)(?:/(.+))?$"
 DISABLE_TQDM = os.getenv('QUILT_MINIMIZE_STDOUT', '').lower() == 'true'
 
-## CONFIG_TEMPLATE
+# CONFIG_TEMPLATE
 # Must contain every permitted config key, as well as their default values (which can be 'null'/None).
 # Comments are retained and added to local config, unless overridden by autoconfig via `api.config(<url>)`
 CONFIG_TEMPLATE = """
@@ -146,7 +146,7 @@ class PhysicalKey:
             new_path = new_path.replace(os.path.sep, '/')
         # Add back a trailing '/' if the original path has it.
         if (path.endswith(os.path.sep) or
-            (os.path.altsep is not None and path.endswith(os.path.altsep))):
+                (os.path.altsep is not None and path.endswith(os.path.altsep))):
             new_path += '/'
         return cls(None, new_path, None)
 
@@ -267,7 +267,7 @@ def write_yaml(data, yaml_path, keep_backup=False):
             path.parent.mkdir(parents=True)
         with path.open('w') as config_file:
             yaml.dump(data, config_file)
-    except Exception:     #! intentionally wide catch -- reraised immediately.
+    except Exception:     # intentionally wide catch -- reraised immediately.
         if backup_path.exists():
             if path.exists():
                 path.unlink()
@@ -371,7 +371,7 @@ def configure_from_url(catalog_url):
 
     # Use our template + their configured values, keeping our comments.
     for key, value in new_config.items():
-        if not key in config_template:
+        if key not in config_template:
             continue
         config_template[key] = value
     write_yaml(config_template, CONFIG_PATH, keep_backup=True)

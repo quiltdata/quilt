@@ -715,12 +715,12 @@ class Package:
             readable_file.seek(0)
 
             reader = jsonlines.Reader(readable_file, loads=json.loads)
-            with tqdm(desc="Loading manifest", total=line_count, unit="entries", disable=DISABLE_TQDM) as tqdm_progress:
+            with tqdm(desc="Loading manifest", total=line_count, unit="entries", disable=DISABLE_TQDM) as progress:
                 meta = reader.read()
                 meta.pop('top_hash', None)  # Obsolete as of PR #130
                 pkg = cls()
                 pkg._meta = meta
-                tqdm_progress.update(1)
+                progress.update(1)
 
                 for obj in reader:
                     path = cls._split_key(obj.pop('logical_key'))
@@ -738,7 +738,7 @@ class Package:
                         obj['hash'],
                         obj['meta']
                     )
-                    tqdm_progress.update(1)
+                    progress.update(1)
         finally:
             gc.enable()
         return pkg
@@ -1006,9 +1006,9 @@ class Package:
             entry(PackageEntry OR string OR object): new entry to place at logical_key in the package.
                 If entry is a string, it is treated as a URL, and an entry is created based on it.
                 If entry is None, the logical key string will be substituted as the entry value.
-                If entry is an object and quilt knows how to serialize it, it will immediately be serialized and written
-                to disk, either to serialization_location or to a location managed by quilt. List of types that Quilt
-                can serialize is available by calling `quilt3.formats.FormatRegistry.all_supported_formats()`
+                If entry is an object and quilt knows how to serialize it, it will immediately be serialized and
+                written to disk, either to serialization_location or to a location managed by quilt. List of types that
+                Quilt can serialize is available by calling `quilt3.formats.FormatRegistry.all_supported_formats()`
             meta(dict): user level metadata dict to attach to entry
             serialization_format_opts(dict): Optional. If passed in, only used if entry is an object. Options to help
                 Quilt understand how the object should be serialized. Useful for underspecified file formats like csv
@@ -1208,8 +1208,8 @@ class Package:
             dest: where to copy the objects in the package
             registry: registry where to create the new package
             message: the commit message for the new package
-            selector_fn: An optional function that determines which package entries should be copied to S3. The function
-                takes in two arguments, logical_key and package_entry, and should return False if that
+            selector_fn: An optional function that determines which package entries should be copied to S3.
+                The function takes in two arguments, logical_key and package_entry, and should return False if that
                 PackageEntry should be skipped during push. If for example you have a package where the files
                 are spread over multiple buckets and you add a single local file, you can use selector_fn to
                 only push the local file to s3 (instead of pushing all data to the destination bucket).
@@ -1217,7 +1217,9 @@ class Package:
         Returns:
             A new package that points to the copied objects.
         """
-        selector_fn = lambda *args: True if selector_fn is None else selector_fn
+        if selector_fn is None:
+            def selector_fn(*args):
+                return True
 
         validate_package_name(name)
 
@@ -1273,8 +1275,10 @@ class Package:
             physical_key = entry.physical_key
 
             new_physical_key = dest_parsed.join(logical_key)
-            if (physical_key.bucket == new_physical_key.bucket and
-                physical_key.path == new_physical_key.path):
+            if (
+                physical_key.bucket == new_physical_key.bucket and
+                physical_key.path == new_physical_key.path
+            ):
                 # No need to copy - re-use the original physical key.
                 pkg._set(logical_key, entry)
             else:

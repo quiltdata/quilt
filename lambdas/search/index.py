@@ -54,7 +54,7 @@ def lambda_handler(request):
         query = request.args.get('query', '')
         body = {
             "query": {
-                "simple_query_string" : {
+                "simple_query_string": {
                     "query": query,
                     "fields": ['content', 'comment', 'key_text', 'meta_text']
                 }

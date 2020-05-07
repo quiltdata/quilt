@@ -582,9 +582,10 @@ def list_object_versions(bucket, prefix, recursive=True):
     if prefix and not prefix.endswith('/'):
         raise ValueError("Prefix must end with /")
 
-    list_obj_params = dict(Bucket=bucket,
-                           Prefix=prefix
-                          )
+    list_obj_params = dict(
+        Bucket=bucket,
+        Prefix=prefix
+    )
     if not recursive:
         # Treat '/' as a directory separator and only return one level of files instead of everything.
         list_obj_params.update(dict(Delimiter='/'))

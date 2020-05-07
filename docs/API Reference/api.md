@@ -107,7 +107,8 @@ __Arguments__
 * __limit (number)__:  maximum number of results to return. Defaults to 10
 
 Query Syntax:
-    [simple query string query](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
+    [simple query string query](
+        https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
 
 
 __Returns__
