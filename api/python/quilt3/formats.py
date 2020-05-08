@@ -81,9 +81,9 @@ from .util import QuiltException
 
 
 # Constants
-NOT_SET = type('NOT_SET', (object,), {'__doc__':
-    """A unique indicator of disuse when `None` is a valid value"""
-    })()
+NOT_SET = type('NOT_SET', (object,), {
+    '__doc__': "A unique indicator of disuse when `None` is a valid value",
+})()
 
 
 # Code
@@ -703,7 +703,8 @@ class CSVPandasFormatHandler(BaseFormatHandler):
     defaults = {
         'encoding': 'utf-8',
         'index_names_are_keys': False,
-        'na_values': ['', '#N/A', '#N/A N/A', '#NA',
+        'na_values': [
+            '', '#N/A', '#N/A N/A', '#NA',
             '-1.#IND', '-1.#QNAN', '-NaN', '-nan', '1.#IND', '1.#QNAN',
             'N/A', 'NA', 'NULL', 'NaN', 'n/a', 'nan', 'null'],
         'use_header': True,
@@ -980,7 +981,7 @@ class ParquetFormatHandler(BaseFormatHandler):
         import pandas as pd
         try:
             # intentional unused import -- verify we have pyarrow installed
-            import pyarrow as pa # pylint: disable=unused-import
+            import pyarrow as pa  # pylint: disable=unused-import
         except ImportError:
             return False
         self.handled_types.add(pd.DataFrame)
@@ -1018,6 +1019,7 @@ class ParquetFormatHandler(BaseFormatHandler):
             newtable = table.replace_schema_metadata(meta)
             obj = newtable.to_pandas()
         return obj
+
 
 # compat -- also handle 'pyarrow' in meta['target'] and meta['format']['name'].
 ParquetFormatHandler('pyarrow').register()

@@ -39,6 +39,7 @@ SAMPLE_EXTS = [
 README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
 SUMMARIZE_KEY = 'quilt_summarize.json'
 
+
 @api(cors_origins=get_default_origins())
 def lambda_handler(request):
     """
@@ -53,7 +54,7 @@ def lambda_handler(request):
         query = request.args.get('query', '')
         body = {
             "query": {
-                "simple_query_string" : {
+                "simple_query_string": {
                     "query": query,
                     "fields": ['content', 'comment', 'key_text', 'meta_text']
                 }

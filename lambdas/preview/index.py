@@ -24,7 +24,7 @@ from t4_lambda_shared.utils import get_default_origins, make_json_response
 # Number of bytes for read routines like decompress() and
 # response.content.iter_content()
 CHUNK = 1024*8
-MIN_VCF_COLS = 8 # per 4.2 spec on header and data lines
+MIN_VCF_COLS = 8  # per 4.2 spec on header and data lines
 
 S3_DOMAIN_SUFFIX = '.amazonaws.com'
 
@@ -44,13 +44,13 @@ SCHEMA = {
             'minLength': 1,
             'maxLength': 1
         },
-        'max_bytes' : {
+        'max_bytes': {
             'type': 'string',
         },
         # line_count used to be an integer with a max and min, which is more correct
         # nevertheless, request.args has it as a string, even if
         # the request specifies it as an integer
-        'line_count' : {
+        'line_count': {
             'type': 'string',
         },
         'input': {
@@ -69,6 +69,7 @@ SCHEMA = {
 
 # global option for pandas
 pandas.set_option('min_rows', 50)
+
 
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
@@ -154,6 +155,7 @@ def lambda_handler(request):
         }
     return make_json_response(200, ret_val)
 
+
 def extract_csv(head, separator):
     """
     csv file => data frame => html
@@ -184,7 +186,7 @@ def extract_csv(head, separator):
                 sep=None
             )
 
-    html = data._repr_html_() # pylint: disable=protected-access
+    html = data._repr_html_()  # pylint: disable=protected-access
     html = re.sub(
         r'(</table>\n<p>)\d+ rows × \d+ columns(</p>\n</div>)$',
         r'\1\2',
@@ -199,6 +201,7 @@ def extract_csv(head, separator):
         'warnings': warnings_.getvalue()
     }
 
+
 def extract_excel(file_):
     """
     excel file => data frame => html
@@ -209,8 +212,9 @@ def extract_excel(file_):
         info - metadata
     """
     first_sheet = pandas.read_excel(file_, sheet_name=0)
-    html = first_sheet._repr_html_() # pylint: disable=protected-access
+    html = first_sheet._repr_html_()  # pylint: disable=protected-access
     return html, {}
+
 
 def extract_ipynb(file_, exclude_output):
     """
@@ -236,6 +240,7 @@ def extract_ipynb(file_, exclude_output):
 
     return html, {}
 
+
 def extract_vcf(head):
     """
     Pull summary info from VCF: meta-information, header line, and data lines
@@ -250,7 +255,7 @@ def extract_vcf(head):
     header = None
     data = []
     variants = []
-    limit = MIN_VCF_COLS + 1 # +1 to get the FORMAT column
+    limit = MIN_VCF_COLS + 1  # +1 to get the FORMAT column
     for line in head:
         if line.startswith('##'):
             meta.append(line)
@@ -258,7 +263,7 @@ def extract_vcf(head):
             if header:
                 print('Unexpected multiple headers:', header)
             header = line
-            columns = header.split() # VCF is tab-delimited
+            columns = header.split()  # VCF is tab-delimited
             # only grab first "limit"-many rows
             header = columns[:limit]
             variants = columns[limit:]
@@ -279,6 +284,7 @@ def extract_vcf(head):
 
     return '', info
 
+
 def extract_txt(head):
     """
     dummy formatting function
@@ -292,6 +298,7 @@ def extract_txt(head):
     }
 
     return '', info
+
 
 def _str_to_line_count(int_string, lower=1, upper=CATALOG_LIMIT_LINES):
     """
