@@ -27,7 +27,8 @@ def generate_cli_api_reference_docs():
 
 
 if __name__ == "__main__":
-    generate_cli_api_reference_docs()  # CLI docs use custom script to generate documentation markdown, so do that first
+    # CLI docs use custom script to generate documentation markdown, so do that first
+    generate_cli_api_reference_docs()
 
     try:
         pydocmd_dist = pkg_resources.get_distribution('pydoc-markdown')  # install name, not module name

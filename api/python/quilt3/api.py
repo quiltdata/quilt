@@ -235,7 +235,8 @@ def search(query, limit=10):
         limit (number): maximum number of results to return. Defaults to 10
 
     Query Syntax:
-        [simple query string query](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
+        [simple query string query](
+            https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
 
 
     Returns:

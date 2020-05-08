@@ -117,7 +117,7 @@ Docker and a Python microservice that supplies temporary AWS
 credentials to the catalog. Temporary credentials are derived from
 your default AWS credentials (or active `AWS_PROFILE`) using
 `boto3.sts.get_session_token`. For more details about configuring and
-using AWS credentials in `boto3`, see the AWS documentation: 
+using AWS credentials in `boto3`, see the AWS documentation:
 https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html
 
 #### Previewing files in S3
@@ -267,7 +267,8 @@ def create_parser():
 
     # config-default-registry
     shorthelp = "Configure default remote registry for Quilt"
-    config_p = subparsers.add_parser("config-default-remote-registry", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    config_p = subparsers.add_parser("config-default-remote-registry",
+                                     description=shorthelp, help=shorthelp, allow_abbrev=False)
     config_p.add_argument(
             "default_remote_registry",
             help="The default remote registry to use, e.g. s3://quilt-ml",
@@ -281,8 +282,8 @@ def create_parser():
     catalog_p.add_argument(
             "navigation_target",
             help="Which page in the local catalog to open. Leave blank to go to the catalog landing page, pass in an "
-             "s3 url (e.g. 's3://bucket/myfile.txt') to go to file viewer, or pass in a package name in the form "
-             "'BUCKET:USER/PKG' to go to the package viewer.",
+                 "s3 url (e.g. 's3://bucket/myfile.txt') to go to file viewer, or pass in a package name in the form "
+                 "'BUCKET:USER/PKG' to go to the package viewer.",
             type=str,
             nargs="?"
     )
@@ -295,7 +296,8 @@ def create_parser():
 
     # disable-telemetry
     shorthelp = "Disable anonymous usage metrics"
-    disable_telemetry_p = subparsers.add_parser("disable-telemetry", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    disable_telemetry_p = subparsers.add_parser("disable-telemetry",
+                                                description=shorthelp, help=shorthelp, allow_abbrev=False)
     disable_telemetry_p.set_defaults(func=cmd_disable_telemetry)
 
     # install

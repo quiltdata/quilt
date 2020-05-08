@@ -654,7 +654,7 @@ class PackageTest(QuiltTestCase):
 
             assert pkg['bar']['a.txt'].get() == 's3://bucket/foo/a.txt?versionId=xyz'
             assert pkg['bar']['x']['y.txt'].get() == 's3://bucket/foo/x/y.txt?versionId=null'
-            assert pkg['bar']['a.txt'].size == 10 # GH368
+            assert pkg['bar']['a.txt'].size == 10  # GH368
 
             list_object_versions_mock.assert_called_with('bucket', 'foo/')
 
@@ -749,8 +749,8 @@ class PackageTest(QuiltTestCase):
 
         pkg._fix_sha256()
         for lk, entry in pkg.walk():
-            assert df.equals(entry.deserialize()), "The deserialized PackageEntry should be equal to the object that " \
-                                                   "was serialized"
+            assert df.equals(entry.deserialize()), "The deserialized PackageEntry should be equal to the object " \
+                                                   "that was serialized"
 
         # Test that push cleans up the temporary files, if and only if the serialization_location was not set
         with patch('quilt3.Package._build'), \
@@ -1019,7 +1019,7 @@ class PackageTest(QuiltTestCase):
     def test_commit_message_on_push(self):
         """ Verify commit messages populate correctly on push."""
         with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
-            patch('quilt3.Package._build') as build_mock:
+             patch('quilt3.Package._build') as build_mock:
             with open(REMOTE_MANIFEST) as fd:
                 pkg = Package.load(fd)
 
@@ -1137,7 +1137,7 @@ class PackageTest(QuiltTestCase):
 
     def test_import(self):
         with patch('quilt3.Package._browse') as browse_mock, \
-            patch('quilt3.imports._list_packages') as list_packages_mock:
+             patch('quilt3.imports._list_packages') as list_packages_mock:
             browse_mock.return_value = quilt3.Package()
             list_packages_mock.return_value = ['foo/bar', 'foo/baz']
 
@@ -1334,7 +1334,7 @@ class PackageTest(QuiltTestCase):
 
             with patch('quilt3.Package._browse') as browse_mock, pytest.raises(ImportError) as exc_info:
                 browse_mock.return_value = quilt3.Package()
-                from quilt3.data.Quilt import Foo # pylint: disable=unused-import
+                from quilt3.data.Quilt import Foo  # pylint: disable=unused-import
             assert "cannot import name 'Foo'" in str(exc_info.value)
 
         # make sure import works for an installed named package

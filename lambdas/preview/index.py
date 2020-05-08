@@ -24,7 +24,7 @@ from t4_lambda_shared.utils import get_default_origins, make_json_response
 # Number of bytes for read routines like decompress() and
 # response.content.iter_content()
 CHUNK = 1024*8
-MIN_VCF_COLS = 8 # per 4.2 spec on header and data lines
+MIN_VCF_COLS = 8  # per 4.2 spec on header and data lines
 
 S3_DOMAIN_SUFFIX = '.amazonaws.com'
 
@@ -44,13 +44,13 @@ SCHEMA = {
             'minLength': 1,
             'maxLength': 1
         },
-        'max_bytes' : {
+        'max_bytes': {
             'type': 'string',
         },
         # line_count used to be an integer with a max and min, which is more correct
         # nevertheless, request.args has it as a string, even if
         # the request specifies it as an integer
-        'line_count' : {
+        'line_count': {
             'type': 'string',
         },
         'input': {
@@ -186,7 +186,7 @@ def extract_csv(head, separator):
                 sep=None
             )
 
-    html = data._repr_html_() # pylint: disable=protected-access
+    html = data._repr_html_()  # pylint: disable=protected-access
     html = re.sub(
         r'(</table>\n<p>)\d+ rows × \d+ columns(</p>\n</div>)$',
         r'\1\2',
@@ -212,7 +212,7 @@ def extract_excel(file_):
         info - metadata
     """
     first_sheet = pandas.read_excel(file_, sheet_name=0)
-    html = first_sheet._repr_html_() # pylint: disable=protected-access
+    html = first_sheet._repr_html_()  # pylint: disable=protected-access
     return html, {}
 
 
@@ -255,7 +255,7 @@ def extract_vcf(head):
     header = None
     data = []
     variants = []
-    limit = MIN_VCF_COLS + 1 # +1 to get the FORMAT column
+    limit = MIN_VCF_COLS + 1  # +1 to get the FORMAT column
     for line in head:
         if line.startswith('##'):
             meta.append(line)
@@ -263,7 +263,7 @@ def extract_vcf(head):
             if header:
                 print('Unexpected multiple headers:', header)
             header = line
-            columns = header.split() # VCF is tab-delimited
+            columns = header.split()  # VCF is tab-delimited
             # only grab first "limit"-many rows
             header = columns[:limit]
             variants = columns[limit:]

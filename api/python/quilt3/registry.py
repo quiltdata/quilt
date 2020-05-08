@@ -11,11 +11,11 @@ from flask_cors import CORS
 from flask_json import as_json
 import requests
 
-app = Flask(__name__) # pylint: disable=invalid-name
+app = Flask(__name__)  # pylint: disable=invalid-name
 app.config['JSON_USE_ENCODE_METHODS'] = True
 app.config['JSON_ADD_STATUS'] = False
 
-sts_client = boto3.client( # pylint: disable=invalid-name
+sts_client = boto3.client(  # pylint: disable=invalid-name
     'sts',
 )
 

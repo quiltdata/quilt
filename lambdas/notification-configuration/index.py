@@ -25,7 +25,7 @@ def set_mappings(params, *, delete=False):
             if ty == 'TopicConfigurations':
                 if len(existing['TopicConfigurations']) > 1:
                     raise Exception('Unable to attach notification. Multiple Topic notifications '
-                            'present on bucket {}'.format(params['Bucket']))
+                                    'present on bucket {}'.format(params['Bucket']))
                 # If there's only one topic configuration and its arn matches our topic arn then
                 # we can safely overwrite it
                 try:
@@ -33,13 +33,13 @@ def set_mappings(params, *, delete=False):
                     new_arn = params['NotificationConfiguration']['TopicConfigurations'][0]['TopicArn']
                     if not existing_arn == new_arn:
                         raise Exception('Unable to attach notification. Existing '
-                                'notification for a different topic on bucket ' + params['Bucket'])
+                                        'notification for a different topic on bucket ' + params['Bucket'])
                 except KeyError:
                     raise Exception('Unable to attach notification. Existing topic configuration '
-                            'present on bucket {}.'.format(params['Bucket']))
+                                    'present on bucket {}.'.format(params['Bucket']))
             else:
-                raise Exception(('Unable to attach notification. Existing notification type {} present '
-                    'on bucket {}').format(ty, params['Bucket']))
+                raise Exception('Unable to attach notification. Existing notification type {} present '
+                                'on bucket {}'.format(ty, params['Bucket']))
 
     s3.put_bucket_notification_configuration(**params)
 
@@ -83,7 +83,7 @@ def handler(event, context):
         else:
             # unknown event type
             send(event, context, FAILED, physical_resource_id=current_resource_id,
-                    reason='Unknown event type ' + event['RequestType'])
+                 reason='Unknown event type ' + event['RequestType'])
             return
 
     except Exception as e:

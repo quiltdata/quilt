@@ -173,7 +173,7 @@ class TestBucket(QuiltTestCase):
     def test_bucket_put_file(self):
         with patch("quilt3.bucket.copy_file") as copy_mock:
             bucket = Bucket('s3://test-bucket')
-            bucket.put_file(key='README.md', path='./README') # put local file to bucket
+            bucket.put_file(key='README.md', path='./README')  # put local file to bucket
 
             copy_mock.assert_called_once_with(
                 PhysicalKey.from_path('README'), PhysicalKey.from_url('s3://test-bucket/README.md'))

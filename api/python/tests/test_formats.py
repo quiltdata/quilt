@@ -1,20 +1,20 @@
-### Python imports
+# Python imports
 import pathlib
 
-### Third Party imports
+# Third Party imports
 import numpy as np
 import pandas as pd
 import pytest
 
-### Project imports
+# Project imports
 from quilt3.formats import FormatRegistry
 from quilt3.util import QuiltException
 
 
-### Constants
+# Constants
 
 
-### Code
+# Code
 def test_buggy_parquet():
     """
     Test that Quilt avoids crashing on bad Pandas metadata from
