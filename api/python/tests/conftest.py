@@ -1,5 +1,5 @@
 
-### stdlib
+# stdlib
 import os
 from unittest import mock
 
@@ -31,13 +31,10 @@ def pytest_sessionstart(session):
     Vars.tmpdir_data = Vars.tmpdir_home.mkdir('appdirs_datadir')
     Vars.tmpdir_cache = Vars.tmpdir_home.mkdir('appdirs_cachedir')
 
-    user_data_dir = lambda *x: str(Vars.tmpdir_data / x[0] if x else Vars.tmpdir_data)
-    user_cache_dir = lambda *x: str(Vars.tmpdir_cache / x[0] if x else Vars.tmpdir_cache)
-
     # Mockers that need to be loaded before any of our code
     Vars.extrasession_mockers.extend([
-        mock.patch('appdirs.user_data_dir', user_data_dir),
-        mock.patch('appdirs.user_cache_dir', user_cache_dir),
+        mock.patch('appdirs.user_data_dir', lambda *x: str(Vars.tmpdir_data / x[0] if x else Vars.tmpdir_data)),
+        mock.patch('appdirs.user_cache_dir', lambda *x: str(Vars.tmpdir_cache / x[0] if x else Vars.tmpdir_cache)),
     ])
 
     for mocker in Vars.extrasession_mockers:

@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
+
 class TestUtils(TestCase):
     """Tests the helper functions"""
 

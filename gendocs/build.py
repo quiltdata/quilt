@@ -20,13 +20,15 @@ EXPECTED_VERSION_SUFFIX = '-quilt3'
 # Just the branch name right now, but anything following '@' in a github repo URL
 GH_HTTPS_REV = 'quilt'
 
+
 def generate_cli_api_reference_docs():
     # This script relies on relative paths so it should only run if the cwd is gendocs/
     subprocess.check_call(["./gen_cli_api_reference.sh"])
 
 
 if __name__ == "__main__":
-    generate_cli_api_reference_docs()  # CLI docs use custom script to generate documentation markdown, so do that first
+    # CLI docs use custom script to generate documentation markdown, so do that first
+    generate_cli_api_reference_docs()
 
     try:
         pydocmd_dist = pkg_resources.get_distribution('pydoc-markdown')  # install name, not module name

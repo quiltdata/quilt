@@ -11,6 +11,7 @@ from index import lambda_handler
 PORT = 8080
 LAMBDA_PATH = '/lambda'
 
+
 class Handler(BaseHTTPRequestHandler):
     def _handle_request(self, req_body):
         parsed_url = urlparse(self.path)

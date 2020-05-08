@@ -17,6 +17,7 @@ MOCK_ORIGIN = 'http://localhost:3000'
 
 BASE_DIR = pathlib.Path(__file__).parent / 'data'
 
+
 # pylint: disable=no-member,invalid-sequence-index
 class TestIndex():
     """Class to test various inputs to the main indexing function"""
@@ -24,6 +25,7 @@ class TestIndex():
     # pylint: disable=too-many-function-args
     # pylint hates on index.lambda_handler(event, None), even though, without the
     # second arg we would get TypeError: wrapper() missing 1 required positional argument: '_'
+
     @classmethod
     def _make_event(cls, query, headers=None):
         return {
@@ -171,8 +173,10 @@ class TestIndex():
         assert 'Preprocessing' in body_html, 'missing expected contents'
         assert '<pre>[&#39;SEE&#39;, &#39;SE&#39;, &#39;SHW&#39;, &#39;SIG&#39;,' in body_html, \
             'Cell 3 output seems off'
-        assert '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span><span class="p">' in body_html, \
-            'Last cell output missing'
+        assert (
+            '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span>'
+            '<span class="p">'
+        ) in body_html, 'Last cell output missing'
 
     @responses.activate
     def test_ipynb_exclude(self):
@@ -203,8 +207,10 @@ class TestIndex():
         assert 'Preprocessing' in body_html, 'missing expected contents'
         assert '<pre>[&#39;SEE&#39;, &#39;SE&#39;, &#39;SHW&#39;, &#39;SIG&#39;,' not in body_html, \
             'Unexpected output cell; exclude_output:true was given'
-        assert '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span><span class="p">' in body_html, \
-            'Last cell output missing'
+        assert (
+            '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span>'
+            '<span class="p">'
+        ) in body_html, 'Last cell output missing'
         assert len(body_html.encode()) < 19_000, \
             'Preview larger than expected; exclude_output:true was given'
 
@@ -291,7 +297,7 @@ class TestIndex():
         body_html = body['html']
         assert "<td>While dioxin levels in the environment were up" in body_html,\
             "missing expected cell"
-        assert "<td>In Soviet times the Beatles ' music \" was cons...</td>"  in body_html,\
+        assert "<td>In Soviet times the Beatles ' music \" was cons...</td>" in body_html,\
             "missing expected cell"
 
         warnings = body['info']['warnings']
@@ -475,6 +481,7 @@ class TestIndex():
         assert meta['variant_count'] == 0, 'expected no variants'
         assert not body['info']['metadata']['variants'], 'expected no variants'
 
+
 def _check_vcf(resp):
     """common logic for checking vcf files, e.g. across compression settings"""
     body = json.loads(resp)
@@ -491,7 +498,9 @@ def _check_vcf(resp):
     assert body['info']['metadata']['variants'] == ['NA00001', 'NA00002', 'NA00003'], \
         'unexpected variants'
     assert len(data['data'][0]) == index.MIN_VCF_COLS + 1, 'unexpected number of columns'
-    assert data['data'][0] == ['20', '14370', 'rs6054257', 'G', 'A', '29', 'PASS', 'NS=3;DP=14;AF=0.5;DB;H2', 'GT:GQ:DP:HQ'], \
-        'unexpected first data line'
-    assert data['data'][-1] == ['20', '1234567', 'microsat1', 'GTCT', 'G,GTACT', '50', 'PASS', 'NS=3;DP=9;AA=G', 'GT:GQ:DP'], \
-        'unexpected first data line'
+    assert data['data'][0] == [
+        '20', '14370', 'rs6054257', 'G', 'A', '29', 'PASS', 'NS=3;DP=14;AF=0.5;DB;H2', 'GT:GQ:DP:HQ'
+    ], 'unexpected first data line'
+    assert data['data'][-1] == [
+        '20', '1234567', 'microsat1', 'GTCT', 'G,GTACT', '50', 'PASS', 'NS=3;DP=9;AA=G', 'GT:GQ:DP'
+    ], 'unexpected first data line'

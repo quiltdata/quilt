@@ -26,7 +26,7 @@ OPEN_DATA_URL = "https://open.quiltdata.com"
 PACKAGE_NAME_FORMAT = r"([\w-]+/[\w-]+)(?:/(.+))?$"
 DISABLE_TQDM = os.getenv('QUILT_MINIMIZE_STDOUT', '').lower() == 'true'
 
-## CONFIG_TEMPLATE
+# CONFIG_TEMPLATE
 # Must contain every permitted config key, as well as their default values (which can be 'null'/None).
 # Comments are retained and added to local config, unless overridden by autoconfig via `api.config(<url>)`
 CONFIG_TEMPLATE = """
@@ -66,6 +66,7 @@ apiGatewayEndpoint:
 binaryApiGatewayEndpoint:
 
 """.format(BASE_PATH.as_uri() + '/packages')
+
 
 class QuiltException(Exception):
     def __init__(self, message, **kwargs):
@@ -145,7 +146,7 @@ class PhysicalKey:
             new_path = new_path.replace(os.path.sep, '/')
         # Add back a trailing '/' if the original path has it.
         if (path.endswith(os.path.sep) or
-            (os.path.altsep is not None and path.endswith(os.path.altsep))):
+                (os.path.altsep is not None and path.endswith(os.path.altsep))):
             new_path += '/'
         return cls(None, new_path, None)
 
@@ -266,7 +267,7 @@ def write_yaml(data, yaml_path, keep_backup=False):
             path.parent.mkdir(parents=True)
         with path.open('w') as config_file:
             yaml.dump(data, config_file)
-    except Exception:     #! intentionally wide catch -- reraised immediately.
+    except Exception:     # intentionally wide catch -- reraised immediately.
         if backup_path.exists():
             if path.exists():
                 path.unlink()
@@ -335,11 +336,13 @@ def validate_package_name(name):
     if not parts or parts[1]:
         raise QuiltException(f"Invalid package name: {name}.")
 
+
 def get_package_registry(path=None):
     """ Returns the package registry root for a given path """
     if path is None:
         path = get_from_config('default_local_registry')
     return path.rstrip('/') + '/.quilt'
+
 
 def configure_from_url(catalog_url):
     """ Read configuration settings from a Quilt catalog """
@@ -368,17 +371,19 @@ def configure_from_url(catalog_url):
 
     # Use our template + their configured values, keeping our comments.
     for key, value in new_config.items():
-        if not key in config_template:
+        if key not in config_template:
             continue
         config_template[key] = value
     write_yaml(config_template, CONFIG_PATH, keep_backup=True)
     return config_template
+
 
 def config_exists():
     """
     Returns True if a config file (config.yml) is installed.
     """
     return CONFIG_PATH.exists()
+
 
 def user_is_configured_to_custom_stack():
     """Look at the users stack to see if they have configured to their own stack. There is currently no way to
@@ -406,6 +411,7 @@ def configure_from_default():
         local_config = config_template
     return local_config
 
+
 def load_config():
     """
     Read the local config using defaults from CONFIG_TEMPLATE.
@@ -415,8 +421,10 @@ def load_config():
         local_config.update(read_yaml(CONFIG_PATH))
     return local_config
 
+
 def get_from_config(key):
     return load_config().get(key)
+
 
 def get_install_location():
     loc = get_from_config('default_install_location')
@@ -424,11 +432,13 @@ def get_install_location():
         loc = get_from_config('default_local_registry').rstrip('/')
     return loc
 
+
 def set_config_value(key, value):
     # Use local configuration (or defaults)
     local_config = load_config()
     local_config[key] = value
     write_yaml(local_config, CONFIG_PATH)
+
 
 def quiltignore_filter(paths, ignore, url_scheme):
     """Given a list of paths, filter out the paths which are captured by the
@@ -471,6 +481,7 @@ def quiltignore_filter(paths, ignore, url_scheme):
     else:
         raise NotImplementedError
 
+
 def validate_key(key):
     """
     Verify that a file path or S3 path does not contain any '.' or '..' separators or files.
@@ -486,6 +497,7 @@ def validate_key(key):
                 f"Invalid key {key!r}. "
                 f"A package entry key cannot contain a file or folder named '.' or '..' in its path."
             )
+
 
 def catalog_s3_url(catalog_url, s3_url):
     """
@@ -508,6 +520,7 @@ def catalog_s3_url(catalog_url, s3_url):
             params = {'version': pk.version_id}
             url += f"?{urlencode(params)}"
     return url
+
 
 def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="latest"):
     """

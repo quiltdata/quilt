@@ -25,6 +25,8 @@ class MockContext():
 
 
 BASE_DIR = Path(__file__).parent / 'data'
+
+
 class TestIndex(TestCase):
     def setUp(self):
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
@@ -55,6 +57,12 @@ class TestIndex(TestCase):
         self.s3_client_patcher.stop()
 
         self.requests_mock.stop()
+
+    def _get_contents(self, name, ext):
+        return index.get_contents(
+            'test-bucket', name, ext,
+            etag='etag', version_id=None, s3_client=self.s3_client, size=123,
+        )
 
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
@@ -252,11 +260,8 @@ class TestIndex(TestCase):
         index.handler(event, MockContext())
 
     def test_unsupported_contents(self):
-        contents = index.get_contents('test-bucket', 'foo.exe', '.exe', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
-        assert contents == ""
-
-        contents = index.get_contents('test-bucket', 'foo.exe.gz', '.exe.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
-        assert contents == ""
+        assert self._get_contents('foo.exe', '.exe') == ""
+        assert self._get_contents('foo.exe.gz', '.exe.gz') == ""
 
     def test_get_plain_text(self):
         self.s3_stubber.add_response(
@@ -301,8 +306,7 @@ class TestIndex(TestCase):
             }
         )
 
-        contents = index.get_contents('test-bucket', 'foo.txt', '.txt', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
-        assert contents == "Hello World!"
+        assert self._get_contents('foo.txt', '.txt') == "Hello World!"
 
     def test_gzipped_text_contents(self):
         self.s3_stubber.add_response(
@@ -320,8 +324,7 @@ class TestIndex(TestCase):
             }
         )
 
-        contents = index.get_contents('test-bucket', 'foo.txt.gz', '.txt.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
-        assert contents == "Hello World!"
+        assert self._get_contents('foo.txt.gz', '.txt.gz') == "Hello World!"
 
     def test_notebook_contents(self):
         notebook = (BASE_DIR / 'normal.ipynb').read_bytes()
@@ -340,8 +343,7 @@ class TestIndex(TestCase):
             }
         )
 
-        contents = index.get_contents('test-bucket', 'foo.ipynb', '.ipynb', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
-        assert "model.fit" in contents
+        assert "model.fit" in self._get_contents('foo.ipynb', '.ipynb')
 
     def test_gzipped_notebook_contents(self):
         notebook = compress((BASE_DIR / 'normal.ipynb').read_bytes())
@@ -360,8 +362,7 @@ class TestIndex(TestCase):
             }
         )
 
-        contents = index.get_contents('test-bucket', 'foo.ipynb.gz', '.ipynb.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
-        assert "Model results visualization" in contents
+        assert "Model results visualization" in self._get_contents('foo.ipynb.gz', '.ipynb.gz')
 
     def test_parquet_contents(self):
         parquet = (BASE_DIR / 'amazon-reviews-1000.snappy.parquet').read_bytes()
@@ -379,7 +380,7 @@ class TestIndex(TestCase):
             }
         )
 
-        contents = index.get_contents('test-bucket', 'foo.parquet', '.parquet', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
+        contents = self._get_contents('foo.parquet', '.parquet')
         size = len(contents.encode('utf-8', 'ignore'))
         assert size <= index.ELASTIC_LIMIT_BYTES
         # spot check for contents

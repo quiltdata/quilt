@@ -1,17 +1,15 @@
-# -*- coding: utf-8 -*-
-
 """ Testing for util.py """
 
-### Python imports
+# Python imports
 import pathlib
 
-### Third Party imports
+# Third Party imports
 import pytest
 
-### Project imports
+# Project imports
 from quilt3 import util
 
-### Constants
+# Constants
 TEST_YAML = """
     # This is an arbitrary comment solely for the purposes of testing.
     c: the speed of light
@@ -20,7 +18,8 @@ TEST_YAML = """
     e: a not-so-hip MC from a relatively unknown nightclub    # do you like cats?
     """
 
-### Code
+
+# Code
 def test_write_yaml(tmpdir):
     fname = tmpdir / 'some_file.yml'
 

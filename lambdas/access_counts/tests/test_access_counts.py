@@ -146,7 +146,9 @@ class TestAccessCounts(TestCase):
             service_response={}
         )
 
-        self._run_queries([index.INSERT_INTO_OBJECT_ACCESS_LOG.format(start_ts=start_ts.timestamp(), end_ts=end_ts.timestamp())])
+        self._run_queries([
+            index.INSERT_INTO_OBJECT_ACCESS_LOG.format(start_ts=start_ts.timestamp(), end_ts=end_ts.timestamp()),
+        ])
 
         self.s3_stubber.add_response(
             method='put_object',
@@ -159,8 +161,13 @@ class TestAccessCounts(TestCase):
             service_response={}
         )
 
-        self._run_queries([index.OBJECT_ACCESS_COUNTS, index.PACKAGE_ACCESS_COUNTS, index.PACKAGE_VERSION_ACCESS_COUNTS,
-                           index.BUCKET_ACCESS_COUNTS, index.EXTS_ACCESS_COUNTS])
+        self._run_queries([
+            index.OBJECT_ACCESS_COUNTS,
+            index.PACKAGE_ACCESS_COUNTS,
+            index.PACKAGE_VERSION_ACCESS_COUNTS,
+            index.BUCKET_ACCESS_COUNTS,
+            index.EXTS_ACCESS_COUNTS
+        ])
 
         for idx, name in enumerate(['Objects', 'Packages', 'PackageVersions', 'Bucket', 'Exts']):
             self.s3_stubber.add_response(

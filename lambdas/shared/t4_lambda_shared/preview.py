@@ -10,7 +10,7 @@ import zlib
 # Only applied to _from_stream() types. _to_memory types are size limited either
 # by pandas or by exclude_output='true'
 CATALOG_LIMIT_BYTES = 1024*1024
-CATALOG_LIMIT_LINES = 512 # must be positive int
+CATALOG_LIMIT_LINES = 512  # must be positive int
 # number of bytes we take from each document before sending to elastic-search
 # DOC_LIMIT_BYTES is the legacy variable name; leave as-is for now; requires
 # change to CloudFormation templates to use the new name
@@ -92,7 +92,7 @@ def extract_parquet(file_, as_html=True):
     # convert to str since FileMetaData is not JSON.dumps'able (below)
     dataframe = row_group.to_pandas()
     if as_html:
-        body = dataframe._repr_html_()# pylint: disable=protected-access
+        body = dataframe._repr_html_()  # pylint: disable=protected-access
     else:
         buffer = []
         size = 0
@@ -148,7 +148,8 @@ def get_preview_lines(chunk_iterator, compression, max_lines, max_bytes):
     # We may still be over max_bytes at this point, up to max_bytes + CHUNK,
     # but we don't really care.
 
-    return [l.decode('utf-8', 'ignore') for l in lines]
+    return [line.decode('utf-8', 'ignore') for line in lines]
+
 
 def get_bytes(chunk_iterator, compression):
     """
@@ -161,6 +162,7 @@ def get_bytes(chunk_iterator, compression):
 
     buffer.seek(0)
     return buffer
+
 
 def trim_to_bytes(string, limit):
     """trim string to specified number of bytes"""
