@@ -6,7 +6,7 @@ def pytest_addoption(parser):
         action='store_true',
         dest='extended',
         default=False,
-        help="enable longrundecorated tests"
+        help="enable extended decorated tests"
     )
 
 def pytest_configure(config):
