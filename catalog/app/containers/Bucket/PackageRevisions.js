@@ -80,7 +80,7 @@ function Counts({ counts, total, sparklineW, sparklineH }) {
         >
           {cursor === null
             ? 'Total views'
-            : dateFns.format(counts[cursor].date, `MMM Do`)}
+            : dateFns.format(counts[cursor].date, `MMM do`)}
           :
         </M.Typography>
         <M.Box
@@ -183,7 +183,7 @@ function Revision({ bucket, name, id, hash, stats, message, modified, counts }) 
   // eslint-disable-next-line no-nested-ternary
   const sparklineW = xs ? 176 : sm ? 300 : 400
   const sparklineH = xs ? 32 : 48
-  const dateFmt = xs ? 'MMM D YYYY - h:mma' : 'MMMM Do YYYY - h:mmA'
+  const dateFmt = xs ? 'MMM d yyyy - h:mmaaaaa' : 'MMMM do yyyy - h:mma'
   return (
     <M.Paper className={classes.root}>
       <M.Box pt={2} pl={2} pr={25}>

@@ -1,9 +1,12 @@
+import { join as pathJoin } from 'path'
+
+import S3 from 'aws-sdk/clients/s3'
 import * as dateFns from 'date-fns'
 import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
-import { resolveKey } from 'utils/s3paths'
+import { resolveKey, parseS3Url } from 'utils/s3paths'
 import * as Resource from 'utils/Resource'
 
 import * as errors from './errors'
@@ -53,7 +56,7 @@ const mergeAllP = (...ps) => Promise.all(ps).then(R.mergeAll)
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
 
-export const bucketListing = ({ s3req, bucket, path = '' }) =>
+export const bucketListing = ({ s3req, bucket, path = '', prev }) =>
   s3req({
     bucket,
     operation: 'listObjectsV2',
@@ -61,6 +64,7 @@ export const bucketListing = ({ s3req, bucket, path = '' }) =>
       Bucket: bucket,
       Delimiter: '/',
       Prefix: path,
+      ContinuationToken: prev ? prev.continuationToken : undefined,
     },
   })
     .then(
@@ -69,6 +73,7 @@ export const bucketListing = ({ s3req, bucket, path = '' }) =>
           R.prop('CommonPrefixes'),
           R.pluck('Prefix'),
           R.filter((d) => d !== '/' && d !== '../'),
+          (xs) => (prev && prev.dirs ? prev.dirs.concat(xs) : xs),
           R.uniq,
         ),
         files: R.pipe(
@@ -83,8 +88,10 @@ export const bucketListing = ({ s3req, bucket, path = '' }) =>
             size: i.Size,
             etag: i.ETag,
           })),
+          (xs) => (prev && prev.files ? prev.files.concat(xs) : xs),
         ),
         truncated: R.prop('IsTruncated'),
+        continuationToken: R.prop('NextContinuationToken'),
         bucket: () => bucket,
         path: () => path,
       }),
@@ -124,7 +131,7 @@ export const bucketAccessCounts = async ({
           const recordedCounts = JSON.parse(r.counts)
           const { counts, total } = dates.reduce(
             (acc, date) => {
-              const value = recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0
+              const value = recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0
               const sum = acc.total + value
               return {
                 total: sum,
@@ -183,28 +190,39 @@ export const bucketAccessCounts = async ({
     console.log('Unable to fetch bucket access counts:')
     // eslint-disable-next-line no-console
     console.error(e)
-    return []
+    return {
+      byExt: [],
+      byExtCollapsed: [],
+      combined: { total: 0, counts: [] },
+    }
   }
 }
 
 const parseDate = (d) => d && new Date(d)
 
-export const bucketExists = ({ s3req, bucket }) =>
-  s3req({ bucket, operation: 'headBucket', params: { Bucket: bucket } }).catch(
-    catchErrors([
-      [
-        R.propEq('code', 'NotFound'),
-        () => {
-          throw new errors.NoSuchBucket()
-        },
-      ],
-    ]),
-  )
+export function bucketExists({ s3req, bucket, cache }) {
+  if (S3.prototype.bucketRegionCache[bucket]) return Promise.resolve()
+  if (cache && cache[bucket]) return Promise.resolve()
+  return s3req({ bucket, operation: 'headBucket', params: { Bucket: bucket } })
+    .then(() => {
+      // eslint-disable-next-line no-param-reassign
+      if (cache) cache[bucket] = true
+    })
+    .catch(
+      catchErrors([
+        [
+          R.propEq('code', 'NotFound'),
+          () => {
+            throw new errors.NoSuchBucket()
+          },
+        ],
+      ]),
+    )
+}
 
-const S3_REGEXP = /s3:\/\/(?<bucket>[^/]+)\/(?<path>.*)/
-
-const getOverviewBucket = (url) => url.match(S3_REGEXP).groups.bucket
-const getOverviewPath = (url) => url.match(S3_REGEXP).groups.path
+const getOverviewBucket = (url) => parseS3Url(url).bucket
+const getOverviewPrefix = (url) => parseS3Url(url).key
+const getOverviewKey = (url, path) => pathJoin(getOverviewPrefix(url), path)
 
 const processStats = R.applySpec({
   exts: R.pipe(
@@ -229,7 +247,7 @@ export const bucketStats = async ({ es, s3req, bucket, overviewUrl }) => {
         operation: 'getObject',
         params: {
           Bucket: getOverviewBucket(overviewUrl),
-          Key: `${unescape(getOverviewPath(overviewUrl))}/stats.json`,
+          Key: getOverviewKey(overviewUrl, 'stats.json'),
         },
       })
         .then((r) => JSON.parse(r.Body.toString('utf-8')))
@@ -297,7 +315,7 @@ export const bucketSummary = async ({ s3req, es, bucket, overviewUrl, inStack })
         operation: 'getObject',
         params: {
           Bucket: getOverviewBucket(overviewUrl),
-          Key: `${unescape(getOverviewPath(overviewUrl))}/summary.json`,
+          Key: getOverviewKey(overviewUrl, 'summary.json'),
         },
       }).then(
         R.pipe(
@@ -388,7 +406,7 @@ export const bucketReadmes = ({ s3req, bucket, overviewUrl }) =>
       headObject({
         s3req,
         bucket: getOverviewBucket(overviewUrl),
-        key: `${unescape(getOverviewPath(overviewUrl))}/README.md`,
+        key: getOverviewKey(overviewUrl, 'README.md'),
       }),
     discovered: Promise.all(
       README_KEYS.map((key) => headObject({ s3req, bucket, key })),
@@ -403,7 +421,7 @@ export const bucketImgs = async ({ es, s3req, bucket, overviewUrl, inStack }) =>
         operation: 'getObject',
         params: {
           Bucket: getOverviewBucket(overviewUrl),
-          Key: `${unescape(getOverviewPath(overviewUrl))}/summary.json`,
+          Key: getOverviewKey(overviewUrl, 'summary.json'),
         },
       }).then(
         R.pipe(
@@ -588,7 +606,7 @@ const fetchPackagesAccessCounts = async ({
         const date = dateFns.subDays(today, window - i - 1)
         return {
           date,
-          value: recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0,
+          value: recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0,
         }
       }, window)
 
@@ -715,7 +733,7 @@ const fetchRevisionsAccessCounts = async ({
         const date = dateFns.subDays(today, window - i - 1)
         return {
           date,
-          value: recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0,
+          value: recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0,
         }
       }, window)
 
@@ -909,7 +927,7 @@ const queryAccessCounts = async ({
       const date = dateFns.subDays(today, window - i - 1)
       return {
         date,
-        value: recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0,
+        value: recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0,
       }
     }, window)
 

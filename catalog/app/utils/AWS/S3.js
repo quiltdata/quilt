@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as reduxHook from 'redux-react-hook'
 
 import * as Auth from 'containers/Auth'
+import * as BucketConfig from 'utils/BucketConfig'
 import { useConfig } from 'utils/Config'
 import * as RT from 'utils/reactTools'
 import useMemoEq from 'utils/useMemoEq'
@@ -42,11 +43,13 @@ const PROXIED = Symbol('proxied')
 
 export const useRequest = (extra) => {
   const cfg = useConfig()
+  const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
+  const isInStack = BucketConfig.useIsInStack()
   const proxyEndpoint = React.useMemo(() => new AWS.Endpoint(cfg.s3Proxy), [cfg.s3Proxy])
   const customRequestHandler = React.useCallback(
     (req) => {
       const b = req.params.Bucket
-      if (b && cfg.shouldProxy(b)) {
+      if (b) {
         req.on(
           'sign',
           () => {
@@ -90,20 +93,32 @@ export const useRequest = (extra) => {
     s3ForcePathStyle: true,
     ...extra,
   })
-  const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
-  return React.useMemo(
-    () => ({ bucket, operation, params }) => {
-      const client =
-        !authenticated && operation === 'selectObjectContent'
-          ? s3SelectClient
-          : regularClient
-      const method =
-        cfg.mode === 'LOCAL' || (authenticated && cfg.shouldSign(bucket))
-          ? 'makeRequest'
-          : 'makeUnauthenticatedRequest'
+  return React.useCallback(
+    ({ operation, params }) => {
+      let type = 'unsigned'
+      if (cfg.mode === 'LOCAL') {
+        type = 'signed'
+      } else if (authenticated) {
+        if (
+          // sign if operation is not bucket-specific
+          // (not sure if there are any such operations that can be used from the browser)
+          !params.Bucket ||
+          (cfg.analyticsBucket && cfg.analyticsBucket === params.Bucket) ||
+          (cfg.mode !== 'OPEN' && isInStack(params.Bucket))
+        ) {
+          type = 'signed'
+        }
+      } else if (operation === 'selectObjectContent') {
+        type = 'select'
+      }
+      const [client, method] = {
+        signed: [regularClient, 'makeRequest'],
+        unsigned: [regularClient, 'makeUnauthenticatedRequest'],
+        select: [s3SelectClient, 'makeUnauthenticatedRequest'],
+      }[type]
       return client[method](operation, params).promise()
     },
-    [regularClient, s3SelectClient, authenticated, cfg],
+    [regularClient, s3SelectClient, authenticated, cfg, isInStack],
   )
 }
 

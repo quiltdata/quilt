@@ -5,7 +5,10 @@ import AsyncResult from 'utils/AsyncResult'
 import { PreviewData } from '../types'
 import * as utils from './utils'
 
-export const detect = R.pipe(utils.stripCompression, utils.extIs('.parquet'))
+export const detect = R.pipe(
+  utils.stripCompression,
+  R.anyPass([utils.extIs('.parquet'), R.test(/[.-]c\d{3,5}$/gi)]),
+)
 
 export const load = utils.previewFetcher(
   'parquet',

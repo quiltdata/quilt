@@ -27,3 +27,28 @@ export const UsersResource = Cache.createResource({
     ),
   key: () => null,
 })
+
+export const bucketFromJSON = (b) => ({
+  name: b.name,
+  title: b.title,
+  description: b.description,
+  iconUrl: b.icon_url,
+  overviewUrl: b.overview_url,
+  linkedData: b.schema_org, // object
+  relevanceScore: b.relevance_score, // integer
+  tags: b.tags, // list of strings
+  lastIndexed: b.last_indexed && new Date(b.last_indexed),
+  fileExtensionsToIndex: b.file_extensions_to_index, // list of strings
+  scannerParallelShardsDepth: b.scanner_parallel_shards_depth, // integer
+  skipMetaDataIndexing: b.skip_meta_data_indexing, // bool
+  snsNotificationArn: b.sns_notification_arn,
+})
+
+export const BucketsResource = Cache.createResource({
+  name: 'Admin.data.buckets',
+  fetch: ({ req }) =>
+    req({ endpoint: '/admin/buckets' }).then(
+      R.pipe(R.prop('results'), R.map(bucketFromJSON)),
+    ),
+  key: () => null,
+})

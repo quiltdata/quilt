@@ -118,6 +118,11 @@ text box for further details. Service Catalog users require a license key. See
 
     ![](./imgs/stack-details.png)
 
+    If you wish to use a service role, specify it as follows:
+
+    ![](./imgs/service-role.png)
+
+
 1. Service Catalog users, skip this step. Under Stack creation options, enable termination protection.
 
     ![](./imgs/term_protect.png)

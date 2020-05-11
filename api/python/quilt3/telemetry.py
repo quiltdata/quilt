@@ -14,12 +14,10 @@ from . import __version__ as quilt3_version
 TELEMETRY_URL = "https://telemetry.quiltdata.cloud/Prod/metrics"
 TELEMETRY_USER_AGENT = "QuiltCli"
 TELEMETRY_CLIENT_TYPE = "quilt3-python-client"
-TELEMETRY_SCHEMA_VERSION = "pyclient-usage-metrics-v0"
+TELEMETRY_SCHEMA_VERSION = "pyclient-usage-metrics-v1"
 
 DISABLE_USAGE_METRICS_ENVVAR = "QUILT_DISABLE_USAGE_METRICS"
 MAX_CLEANUP_WAIT_SECS = 5
-
-
 
 
 class ApiTelemetry:
@@ -60,7 +58,6 @@ class ApiTelemetry:
             set_config_value("telemetry_disabled", False)
             return False
 
-
     @classmethod
     def check_telemetry_disabled_by_envvar(cls):
         envvar = os.environ.get(DISABLE_USAGE_METRICS_ENVVAR, "")
@@ -71,7 +68,6 @@ class ApiTelemetry:
         elif envvar == "0":
             envvar = False
         return bool(envvar)
-
 
     @classmethod
     def telemetry_is_disabled(cls):
@@ -90,7 +86,6 @@ class ApiTelemetry:
 
         return False
 
-
     @classmethod
     def cleanup_completed_requests(cls):
         if ApiTelemetry.telemetry_disabled:
@@ -102,16 +97,17 @@ class ApiTelemetry:
         with ApiTelemetry.pending_reqs_lock:
             ApiTelemetry.pending_reqs = [r for r in ApiTelemetry.pending_reqs if not r.done()]
 
-
     @classmethod
     def report_api_use(cls, api_name, python_session_id):
         if ApiTelemetry.telemetry_disabled:
             return
 
+        navigator_url = get_from_config("navigator_url")
         data = {
             "api_name": api_name,
             "python_session_id": python_session_id,
             "telemetry_schema_version": TELEMETRY_SCHEMA_VERSION,
+            "navigator_url": navigator_url,
             'client_type': TELEMETRY_CLIENT_TYPE,
             'client_version': quilt3_version,
             'platform': sys.platform,
@@ -124,9 +120,6 @@ class ApiTelemetry:
         with ApiTelemetry.pending_reqs_lock:
             r = ApiTelemetry.session.post(TELEMETRY_URL, json=data, headers={'User-Agent': TELEMETRY_USER_AGENT})
             ApiTelemetry.pending_reqs.append(r)
-
-
-
 
     def __call__(self, func):
         @functools.wraps(func)
@@ -155,5 +148,3 @@ def cleanup():
     with ApiTelemetry.pending_reqs_lock:  # Not sure why we would need this lock...
         wait(ApiTelemetry.pending_reqs, timeout=MAX_CLEANUP_WAIT_SECS)
     # t.stop()
-
-

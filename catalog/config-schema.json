@@ -17,10 +17,6 @@
       "type": "string",
       "description": "Endpoint to use for thumbnails. Should be auto-populated by your stack."
     },
-    "defaultBucket": {
-      "type": "string",
-      "description": "Default bucket users will see upon navigating to the catalog."
-    },
     "googleClientId": {
       "type": "string",
       "description": "Client ID for Google Sign-In"
@@ -53,6 +49,10 @@
     "mixpanelToken": {
       "type": "string",
       "description": "Token for Mixpanel analytics service"
+    },
+    "noDownload": {
+      "type": "boolean",
+      "description": "If true, hide download buttons in the catalog."
     },
     "passwordAuth": {
       "$ref": "#/definitions/AuthMethodConfig",
@@ -92,7 +92,6 @@
     "alwaysRequiresAuth",
     "apiGatewayEndpoint",
     "binaryApiGatewayEndpoint",
-    "defaultBucket",
     "mixpanelToken",
     "mode",
     "passwordAuth",

@@ -50,6 +50,7 @@ const Search = mkLazy(() => import('containers/Search'))
 
 const Landing = mkLazy(() => import('website/pages/Landing'))
 const OpenLanding = mkLazy(() => import('website/pages/OpenLanding'))
+const OpenProfile = requireAuth()(mkLazy(() => import('website/pages/OpenProfile')))
 const Install = mkLazy(() => import('website/pages/Install'))
 
 const MAbout = mkLazy(() => import('website/pages/About'))
@@ -83,7 +84,9 @@ export default function App() {
           <Route path={paths.legacyPackages} component={LegacyPackages} />
         )}
 
-        {!cfg.disableNavigator && <Route path={paths.search} component={Search} exact />}
+        {!cfg.disableNavigator && (
+          <Route path={paths.search} component={protect(Search)} exact />
+        )}
 
         {cfg.mode === 'MARKETING' && (
           <Route path={paths.about} component={MAbout} exact />
@@ -125,8 +128,12 @@ export default function App() {
           <Route path={paths.activationError} component={AuthActivationError} exact />
         )}
 
+        {cfg.mode === 'OPEN' && (
+          <Route path={paths.profile} component={OpenProfile} exact />
+        )}
+
         {!cfg.disableNavigator && (
-          <Route path={paths.admin} component={requireAdmin(Admin)} exact />
+          <Route path={paths.admin} component={requireAdmin(Admin)} />
         )}
 
         {!cfg.disableNavigator && (

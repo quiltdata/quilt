@@ -33,13 +33,16 @@ export function useData(request, params, { noAutoFetch = false } = {}) {
 
   const fetch = React.useCallback(() => {
     dispatch(Action.Request({ request, params }))
-    request(params)
+    return request(params)
       .then(AsyncResult.Ok)
       .catch(AsyncResult.Err)
       .then((result) => {
         dispatch(Action.Response({ request, params, result }))
+        return result
       })
   }, [request, params])
+  // FIXME: probably memoization doesnt work here bc params is an object and it
+  // gets constructed anew every time on the caller side
 
   usePrevious({ params, noAutoFetch }, (prev) => {
     if (R.equals({ params, noAutoFetch }, prev)) return

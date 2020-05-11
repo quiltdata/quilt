@@ -6,6 +6,7 @@ import { styled } from '@material-ui/styles'
 
 import * as Preview from 'components/Preview'
 import AsyncResult from 'utils/AsyncResult'
+import * as Config from 'utils/Config'
 
 import { withSignedUrl } from './utils'
 
@@ -14,8 +15,9 @@ const Message = styled('div')({
   width: '100%',
 })
 
-export default ({ handle }) =>
-  Preview.load(
+export default function FilePreview({ handle }) {
+  const cfg = Config.use()
+  return Preview.load(
     handle,
     AsyncResult.case({
       Ok: AsyncResult.case({
@@ -50,22 +52,27 @@ export default ({ handle }) =>
         TooLarge: () => (
           <Message>
             <Typography variant="body1" gutterBottom>
-              Object is too large to preview in browser
+              Object is too large to preview
             </Typography>
-            {withSignedUrl(handle, (url) => (
-              <Button variant="outlined" href={url}>
-                View in Browser
-              </Button>
-            ))}
+            {!cfg.noDownload &&
+              withSignedUrl(handle, (url) => (
+                <Button variant="outlined" href={url}>
+                  Download and view in Browser
+                </Button>
+              ))}
           </Message>
         ),
         Unsupported: () => (
           <Message>
-            {withSignedUrl(handle, (url) => (
-              <Button variant="outlined" href={url} download>
-                Download and view in Browser
-              </Button>
-            ))}
+            <Typography variant="body1" gutterBottom>
+              Preview not available
+            </Typography>
+            {!cfg.noDownload &&
+              withSignedUrl(handle, (url) => (
+                <Button variant="outlined" href={url}>
+                  Download and view in Browser
+                </Button>
+              ))}
           </Message>
         ),
         DoesNotExist: () => (
@@ -98,3 +105,4 @@ export default ({ handle }) =>
       ),
     }),
   )
+}

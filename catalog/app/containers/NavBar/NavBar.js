@@ -55,8 +55,11 @@ const userDisplay = (user) => (
 )
 
 function UserDropdown() {
+  const cfg = Config.useConfig()
   const user = reduxHook.useMappedState(selectUser)
-  const { urls } = NamedRoutes.use()
+  const { urls, paths } = NamedRoutes.use()
+  const isProfile = !!useRoute(paths.profile, { exact: true }).match
+  const isAdmin = !!useRoute(paths.admin).match
   const [anchor, setAnchor] = React.useState(null)
 
   const open = React.useCallback(
@@ -78,8 +81,13 @@ function UserDropdown() {
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
           {user.isAdmin && (
-            <Item to={urls.admin()} onClick={close} divider>
-              <M.Icon fontSize="small">security</M.Icon>&nbsp;Users and roles
+            <Item to={urls.admin()} onClick={close} selected={isAdmin} divider>
+              <M.Icon fontSize="small">security</M.Icon>&nbsp;Users and buckets
+            </Item>
+          )}
+          {cfg.mode === 'OPEN' && (
+            <Item to={urls.profile()} onClick={close} selected={isProfile}>
+              Profile
             </Item>
           )}
           <Item to={urls.signOut()} onClick={close}>
@@ -130,8 +138,11 @@ function useHam() {
 }
 
 function AuthHamburger({ authenticated, waiting, error }) {
+  const cfg = Config.useConfig()
   const user = reduxHook.useMappedState(selectUser)
-  const { urls } = NamedRoutes.use()
+  const { urls, paths } = NamedRoutes.use()
+  const isProfile = !!useRoute(paths.profile, { exact: true }).match
+  const isAdmin = !!useRoute(paths.admin).match
   const ham = useHam()
   const links = useLinks()
   return ham.render([
@@ -142,10 +153,21 @@ function AuthHamburger({ authenticated, waiting, error }) {
             {userDisplay(user)}
           </M.MenuItem>,
           user.isAdmin && (
-            <Item key="admin" to={urls.admin()} onClick={ham.close}>
+            <Item key="admin" to={urls.admin()} onClick={ham.close} selected={isAdmin}>
               <M.Box component="span" pr={2} />
               <M.Icon fontSize="small">security</M.Icon>
-              &nbsp;Users and roles
+              &nbsp;Users and buckets
+            </Item>
+          ),
+          cfg.mode === 'OPEN' && (
+            <Item
+              key="profile"
+              to={urls.profile()}
+              onClick={ham.close}
+              selected={isProfile}
+            >
+              <M.Box component="span" pr={2} />
+              Profile
             </Item>
           ),
           <Item key="signout" to={urls.signOut()} onClick={ham.close}>
@@ -277,7 +299,7 @@ export function NavBar() {
   const cfg = Config.use()
   const bucket = BucketConfig.useCurrentBucket()
   const { paths } = NamedRoutes.use()
-  const notSignIn = !useRoute(paths.signIn, { exact: true }).match
+  const isSignIn = !!useRoute(paths.signIn, { exact: true }).match
   const selector = React.useCallback(
     createStructuredSelector(
       R.pick(['error', 'waiting', 'authenticated'], authSelectors),
@@ -290,7 +312,7 @@ export function NavBar() {
   const links = useLinks()
   return (
     <Container>
-      {cfg.disableNavigator ? (
+      {cfg.disableNavigator || (cfg.alwaysRequiresAuth && isSignIn) ? (
         <M.Box flexGrow={1} />
       ) : (
         <Controls {...{ bucket, disableSearch: cfg.mode === 'LOCAL' }} />
@@ -311,7 +333,7 @@ export function NavBar() {
         (authenticated ? (
           <UserDropdown />
         ) : (
-          notSignIn && <SignIn error={error} waiting={waiting} />
+          !isSignIn && <SignIn error={error} waiting={waiting} />
         ))}
 
       {useHamburger &&

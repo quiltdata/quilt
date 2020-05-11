@@ -1,6 +1,5 @@
 import re
 from collections import OrderedDict
-from collections.abc import Mapping, Sequence, Set
 import datetime
 import json
 import os
@@ -10,7 +9,7 @@ from urllib.request import pathname2url, url2pathname
 import warnings
 
 # Third-Party
-import ruamel.yaml
+import yaml
 from appdirs import user_cache_dir, user_data_dir
 import requests
 
@@ -24,9 +23,10 @@ TEMPFILE_DIR_PATH = BASE_PATH / "tempfiles"
 CONFIG_PATH = BASE_PATH / 'config.yml'
 OPEN_DATA_URL = "https://open.quiltdata.com"
 
-PACKAGE_NAME_FORMAT = r"[\w-]+/[\w-]+$"
+PACKAGE_NAME_FORMAT = r"([\w-]+/[\w-]+)(?:/(.+))?$"
+DISABLE_TQDM = os.getenv('QUILT_MINIMIZE_STDOUT', '').lower() == 'true'
 
-## CONFIG_TEMPLATE
+# CONFIG_TEMPLATE
 # Must contain every permitted config key, as well as their default values (which can be 'null'/None).
 # Comments are retained and added to local config, unless overridden by autoconfig via `api.config(<url>)`
 CONFIG_TEMPLATE = """
@@ -67,6 +67,7 @@ binaryApiGatewayEndpoint:
 
 """.format(BASE_PATH.as_uri() + '/packages')
 
+
 class QuiltException(Exception):
     def __init__(self, message, **kwargs):
         # We use NewError("Prefix: " + str(error)) a lot.
@@ -79,7 +80,7 @@ class QuiltException(Exception):
             setattr(self, k, v)
 
 
-class PhysicalKey(object):
+class PhysicalKey:
     __slots__ = ['bucket', 'path', 'version_id']
 
     def __init__(self, bucket, path, version_id):
@@ -145,7 +146,7 @@ class PhysicalKey(object):
             new_path = new_path.replace(os.path.sep, '/')
         # Add back a trailing '/' if the original path has it.
         if (path.endswith(os.path.sep) or
-            (os.path.altsep is not None and path.endswith(os.path.altsep))):
+                (os.path.altsep is not None and path.endswith(os.path.altsep))):
             new_path += '/'
         return cls(None, new_path, None)
 
@@ -234,10 +235,12 @@ def extract_file_extension(file_path_or_url):
 
 
 def read_yaml(yaml_stream):
-    yaml = ruamel.yaml.YAML()
     try:
-        return yaml.load(yaml_stream)
-    except ruamel.yaml.parser.ParserError as error:
+        if isinstance(yaml_stream, pathlib.Path):
+            with yaml_stream.open(mode='r') as stream:
+                return yaml.safe_load(stream)
+        return yaml.safe_load(yaml_stream)
+    except yaml.YAMLError as error:
         raise QuiltException(str(error), original_error=error)
 
 
@@ -248,7 +251,6 @@ def write_yaml(data, yaml_path, keep_backup=False):
     :param yaml_path: Destination. Can be a string or pathlib path.
     :param keep_backup: If set, a timestamped backup will be kept in the same dir.
     """
-    yaml = ruamel.yaml.YAML()
     path = pathlib.Path(yaml_path)
     now = str(datetime.datetime.now())
 
@@ -265,7 +267,7 @@ def write_yaml(data, yaml_path, keep_backup=False):
             path.parent.mkdir(parents=True)
         with path.open('w') as config_file:
             yaml.dump(data, config_file)
-    except Exception:     #! intentionally wide catch -- reraised immediately.
+    except Exception:     # intentionally wide catch -- reraised immediately.
         if backup_path.exists():
             if path.exists():
                 path.unlink()
@@ -274,36 +276,6 @@ def write_yaml(data, yaml_path, keep_backup=False):
 
     if backup_path.exists() and not keep_backup:
         backup_path.unlink()
-
-
-def yaml_has_comments(parsed):
-    """Determine if parsed YAML data has comments.
-
-    Any object can be given, but only objects based on `ruamel.yaml`'s
-    `CommentedBase` class can be True.
-
-    :returns: True if object has retained comments, False otherwise
-    """
-    # Is this even a parse result object that stores comments?
-    if not isinstance(parsed, ruamel.yaml.comments.CommentedBase):
-        return False
-
-    # Are there comments on this object?
-    if parsed.ca.items or parsed.ca.comment or parsed.ca.end:
-        return True
-
-    # Is this a container that might have values with comments?
-    values = ()
-    if isinstance(parsed, (Sequence, Set)):
-        values = parsed
-    if isinstance(parsed, Mapping):
-        values = parsed.values()
-    # If so, do any of them have comments?
-    for value in values:
-        if yaml_has_comments(value):
-            return True
-    # no comments found.
-    return False
 
 
 def validate_url(url):
@@ -348,10 +320,22 @@ class QuiltConfig(OrderedDict):
     def __repr__(self):
         return "<{} at {!r} {}>".format(type(self).__name__, str(self.filepath), json.dumps(self, indent=4))
 
+
+def parse_sub_package_name(name):
+    """
+    Extract package name and optional sub-package path as tuple.
+    """
+    m = re.match(PACKAGE_NAME_FORMAT, name)
+    if m:
+        return tuple(m.groups())
+
+
 def validate_package_name(name):
     """ Verify that a package name is two alphanumeric strings separated by a slash."""
-    if not re.match(PACKAGE_NAME_FORMAT, name):
+    parts = parse_sub_package_name(name)
+    if not parts or parts[1]:
         raise QuiltException(f"Invalid package name: {name}.")
+
 
 def get_package_registry(path=None):
     """ Returns the package registry root for a given path """
@@ -360,6 +344,7 @@ def get_package_registry(path=None):
     if path.rstrip("/").endswith(".quilt/v2"):
         return path.rstrip("/")
     return path.rstrip('/') + '/.quilt/v2'
+
 
 def configure_from_url(catalog_url):
     """ Read configuration settings from a Quilt catalog """
@@ -388,17 +373,19 @@ def configure_from_url(catalog_url):
 
     # Use our template + their configured values, keeping our comments.
     for key, value in new_config.items():
-        if not key in config_template:
+        if key not in config_template:
             continue
         config_template[key] = value
     write_yaml(config_template, CONFIG_PATH, keep_backup=True)
     return config_template
+
 
 def config_exists():
     """
     Returns True if a config file (config.yml) is installed.
     """
     return CONFIG_PATH.exists()
+
 
 def user_is_configured_to_custom_stack():
     """Look at the users stack to see if they have configured to their own stack. There is currently no way to
@@ -426,6 +413,7 @@ def configure_from_default():
         local_config = config_template
     return local_config
 
+
 def load_config():
     """
     Read the local config using defaults from CONFIG_TEMPLATE.
@@ -435,8 +423,10 @@ def load_config():
         local_config.update(read_yaml(CONFIG_PATH))
     return local_config
 
+
 def get_from_config(key):
     return load_config().get(key)
+
 
 def get_install_location():
     loc = get_from_config('default_install_location')
@@ -444,11 +434,13 @@ def get_install_location():
         loc = get_from_config('default_local_registry').rstrip('/')
     return loc
 
+
 def set_config_value(key, value):
     # Use local configuration (or defaults)
     local_config = load_config()
     local_config[key] = value
     write_yaml(local_config, CONFIG_PATH)
+
 
 def quiltignore_filter(paths, ignore, url_scheme):
     """Given a list of paths, filter out the paths which are captured by the
@@ -491,6 +483,7 @@ def quiltignore_filter(paths, ignore, url_scheme):
     else:
         raise NotImplementedError
 
+
 def validate_key(key):
     """
     Verify that a file path or S3 path does not contain any '.' or '..' separators or files.
@@ -506,6 +499,7 @@ def validate_key(key):
                 f"Invalid key {key!r}. "
                 f"A package entry key cannot contain a file or folder named '.' or '..' in its path."
             )
+
 
 def catalog_s3_url(catalog_url, s3_url):
     """
@@ -529,6 +523,7 @@ def catalog_s3_url(catalog_url, s3_url):
             url += f"?{urlencode(params)}"
     return url
 
+
 def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="latest"):
     """
     Generate a URL to the Quilt catalog page of a package. By default will go to the latest version of the package,
@@ -541,6 +536,3 @@ def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="la
     validate_package_name(package_name)
 
     return f"{catalog_url}/b/{bucket}/packages/{package_name}/tree/{package_timestamp}"
-
-
-

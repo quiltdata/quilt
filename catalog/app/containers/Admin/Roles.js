@@ -107,7 +107,7 @@ const Create = RT.composeComponent(
     return (
       <Form.ReduxForm form="Admin.Roles.Create" onSubmit={onSubmit}>
         {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
-          <React.Fragment>
+          <>
             <DialogTitle>Create a role</DialogTitle>
             <DialogContent>
               <form onSubmit={handleSubmit}>
@@ -162,7 +162,7 @@ const Create = RT.composeComponent(
                 Create
               </Button>
             </DialogActions>
-          </React.Fragment>
+          </>
         )}
       </Form.ReduxForm>
     )
@@ -201,7 +201,7 @@ const Delete = RT.composeComponent(
     }, [role, close, req, cache, push])
 
     return (
-      <React.Fragment>
+      <>
         <DialogTitle>Delete a role</DialogTitle>
         <DialogContent>
           You are about to delete the &quot;{role.name}&quot; role. This operation is
@@ -215,7 +215,7 @@ const Delete = RT.composeComponent(
             Delete
           </Button>
         </DialogActions>
-      </React.Fragment>
+      </>
     )
   },
 )
@@ -267,7 +267,7 @@ const Edit = RT.composeComponent(
         initialValues={R.pick(['name', 'arn'], role)}
       >
         {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
-          <React.Fragment>
+          <>
             <DialogTitle>Edit the &quot;{role.name}&quot; role</DialogTitle>
             <DialogContent>
               <form onSubmit={handleSubmit}>
@@ -322,7 +322,7 @@ const Edit = RT.composeComponent(
                 Save
               </Button>
             </DialogActions>
-          </React.Fragment>
+          </>
         )}
       </Form.ReduxForm>
     )

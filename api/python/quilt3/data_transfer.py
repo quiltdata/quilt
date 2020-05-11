@@ -1,31 +1,34 @@
-from collections import deque
+from collections import defaultdict, deque
 from codecs import iterdecode
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
+import concurrent
+import functools
 import hashlib
 import pathlib
 import shutil
 from threading import Lock
-from typing import List, Tuple
+from typing import List
 import warnings
 from datetime import datetime
 
 from botocore import UNSIGNED
 from botocore.client import Config
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ConnectionError, HTTPClientError, ReadTimeoutError
 import boto3
 from boto3.s3.transfer import TransferConfig
 from s3transfer.utils import ChunksizeAdjuster, OSUtils, signal_transferring, signal_not_transferring
 
 import jsonlines
+from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_exponential, retry_if_result
 from tqdm import tqdm
 
 from .session import create_botocore_session
-from .util import PhysicalKey, QuiltException
+from .util import PhysicalKey, QuiltException, DISABLE_TQDM
 from .dotquilt_layout import DotQuiltLayout
 
-
-
+MAX_COPY_FILE_LIST_RETRIES = 3
+MAX_FIX_HASH_RETRIES = 3
 
 
 class S3Api(Enum):
@@ -45,6 +48,7 @@ class S3NoValidClientError(Exception):
         self.message = message
         for k, v in kwargs.items():
             setattr(self, k, v)
+
 
 class S3ClientProvider:
     """
@@ -132,7 +136,6 @@ class S3ClientProvider:
         boto_session = boto3.Session(botocore_session=botocore_session)
         return boto_session
 
-
     def register_signals(self, s3_client):
         # Enable/disable file read callbacks when uploading files.
         # Copied from https://github.com/boto/s3transfer/blob/develop/s3transfer/manager.py#L501
@@ -155,13 +158,11 @@ class S3ClientProvider:
         self.register_signals(s3_client)
         self._standard_client = s3_client
 
-
     def _build_unsigned_client(self):
         boto_session = self.get_boto_session()
         s3_client = boto_session.client('s3', config=Config(signature_version=UNSIGNED))
         self.register_signals(s3_client)
         self._unsigned_client = s3_client
-
 
 
 def check_list_object_versions_works_for_client(s3_client, params):
@@ -171,6 +172,7 @@ def check_list_object_versions_works_for_client(s3_client, params):
         return e.response["Error"]["Code"] != "AccessDenied"
     return True
 
+
 def check_list_objects_v2_works_for_client(s3_client, params):
     try:
         s3_client.list_objects_v2(**params, MaxKeys=1)  # Make this as fast as possible
@@ -178,6 +180,7 @@ def check_list_objects_v2_works_for_client(s3_client, params):
         if e.response["Error"]["Code"] == "AccessDenied":
             return False
     return True
+
 
 def check_get_object_works_for_client(s3_client, params):
     try:
@@ -197,6 +200,7 @@ def check_get_object_works_for_client(s3_client, params):
 
     return True
 
+
 def check_head_object_works_for_client(s3_client, params):
     try:
         s3_client.head_object(**params)
@@ -206,7 +210,6 @@ def check_head_object_works_for_client(s3_client, params):
             # exist. Instead of returning a 404, S3 will return a 403.
             return False
     return True
-
 
 
 s3_transfer_config = TransferConfig()
@@ -296,7 +299,6 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path):
     s3_client = ctx.s3_client_provider.find_correct_client(S3Api.GET_OBJECT, src_bucket, params)
 
     dest_file.parent.mkdir(parents=True, exist_ok=True)
-
 
     if src_version is not None:
         params.update(dict(VersionId=src_version))
@@ -390,11 +392,7 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
             ctx.run(upload_part, i, start, end)
 
 
-
 def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
-
-
-
     # Optimization: check if the remote file already exists and has the right ETag,
     # and skip the upload.
     if size >= UPLOAD_ETAG_OPTIMIZATION_THRESHOLD:
@@ -427,7 +425,7 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
     _upload_file(ctx, size, src_path, dest_bucket, dest_path)
 
 
-class WorkerContext(object):
+class WorkerContext:
     def __init__(self, s3_client_provider, progress, done, run):
         self.s3_client_provider = s3_client_provider
         self.progress = progress
@@ -435,25 +433,40 @@ class WorkerContext(object):
         self.run = run
 
 
-def _copy_file_list_internal(file_list, message, callback):
+def _copy_file_list_last_retry(retry_state):
+    return retry_state.fn(
+        *retry_state.args,
+        **{**retry_state.kwargs, 'exceptions_to_ignore': ()},
+    )
+
+
+@retry(stop=stop_after_attempt(MAX_COPY_FILE_LIST_RETRIES - 1),
+       wait=wait_exponential(multiplier=1, min=1, max=10),
+       retry=retry_if_not_result(all),
+       retry_error_callback=_copy_file_list_last_retry)
+def _copy_file_list_internal(file_list, results, message, callback, exceptions_to_ignore=(ClientError,)):
     """
     Takes a list of tuples (src, dest, size) and copies the data in parallel.
+    `results` is the list where results will be stored.
     Returns versioned URLs for S3 destinations and regular file URLs for files.
     """
     if not file_list:
         return []
 
-    total_size = sum(size for _, _, size in file_list)
+    assert len(file_list) == len(results)
+
+    total_size = sum(size for (_, _, size), result in zip(file_list, results) if result is None)
 
     lock = Lock()
     futures = deque()
-    results = [None] * len(file_list)
+    future_to_idx = {}
+    idx_to_futures = defaultdict(list)
 
     stopped = False
 
     s3_client_provider = S3ClientProvider()  # Share provider across threads to reduce redundant public bucket checks
 
-    with tqdm(desc=message, total=total_size, unit='B', unit_scale=True) as progress, \
+    with tqdm(desc=message, total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress, \
          ThreadPoolExecutor(s3_transfer_config.max_request_concurrency) as executor:
 
         def progress_callback(bytes_transferred):
@@ -462,10 +475,12 @@ def _copy_file_list_internal(file_list, message, callback):
             with lock:
                 progress.update(bytes_transferred)
 
-        def run_task(func, *args):
+        def run_task(idx, func, *args):
             future = executor.submit(func, *args)
             with lock:
                 futures.append(future)
+                future_to_idx[future] = idx
+                idx_to_futures[idx].append(future)
 
         def worker(idx, src, dest, size):
             if stopped:
@@ -482,7 +497,7 @@ def _copy_file_list_internal(file_list, message, callback):
             ctx = WorkerContext(s3_client_provider=s3_client_provider,
                                 progress=progress_callback,
                                 done=done_callback,
-                                run=run_task)
+                                run=functools.partial(run_task, idx))
 
             if dest.version_id:
                 raise ValueError("Cannot set VersionId on destination")
@@ -502,8 +517,10 @@ def _copy_file_list_internal(file_list, message, callback):
                                       dest.bucket, dest.path)
 
         try:
-            for idx, args in enumerate(file_list):
-                run_task(worker, idx, *args)
+            for idx, (args, result) in enumerate(zip(file_list, results)):
+                if result is not None:
+                    continue
+                run_task(idx, worker, idx, *args)
 
             # ThreadPoolExecutor does not appear to have a way to just wait for everything to complete.
             # Shutting it down will cause it to wait - but will prevent any new tasks from starting.
@@ -514,12 +531,20 @@ def _copy_file_list_internal(file_list, message, callback):
                     if not futures:
                         break
                     future = futures.popleft()
-                future.result()
+                if future.cancelled():
+                    continue
+                try:
+                    future.result()
+                except exceptions_to_ignore:
+                    with lock:
+                        idx = future_to_idx[future]
+                        futures_to_cancel = idx_to_futures[idx]
+                        for f in futures_to_cancel:
+                            f.cancel()
+                        futures_to_cancel.clear()
         finally:
             # Make sure all tasks exit quickly if the main thread exits before they're done.
             stopped = True
-
-    assert all(results)
 
     return results
 
@@ -562,9 +587,10 @@ def list_object_versions(bucket, prefix, recursive=True):
     if prefix and not prefix.endswith('/'):
         raise ValueError("Prefix must end with /")
 
-    list_obj_params = dict(Bucket=bucket,
-                           Prefix=prefix
-                          )
+    list_obj_params = dict(
+        Bucket=bucket,
+        Prefix=prefix
+    )
     if not recursive:
         # Treat '/' as a directory separator and only return one level of files instead of everything.
         list_obj_params.update(dict(Delimiter='/'))
@@ -586,7 +612,6 @@ def list_object_versions(bucket, prefix, recursive=True):
         return versions, delete_markers
     else:
         return prefixes, versions, delete_markers
-
 
 
 def list_objects(bucket, prefix, recursive=True):
@@ -764,7 +789,7 @@ def copy_file_list(file_list, message=None, callback=None):
         if _looks_like_dir(src) or _looks_like_dir(dest):
             raise ValueError("Directories are not allowed")
 
-    return _copy_file_list_internal(file_list, message, callback)
+    return _copy_file_list_internal(file_list, [None] * len(file_list), message, callback)
 
 
 def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, callback=None):
@@ -797,7 +822,7 @@ def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, call
             size, _ = get_size_and_version(src)
         url_list.append((src, dest, size))
 
-    _copy_file_list_internal(url_list, message, callback)
+    _copy_file_list_internal(url_list, [None] * len(url_list), message, callback)
 
 
 def put_bytes(data: bytes, dest: PhysicalKey):
@@ -817,6 +842,7 @@ def put_bytes(data: bytes, dest: PhysicalKey):
             Key=dest.path,
             Body=data,
         )
+
 
 def get_bytes(src: PhysicalKey):
     if src.is_local():
@@ -861,13 +887,29 @@ def get_size_and_version(src: PhysicalKey):
         version = resp.get('VersionId')
     return size, version
 
+
 def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
     assert len(src_list) == len(sizes)
 
-    total_size = sum(sizes)
+    if not src_list:
+        return []
+    return _calculate_sha256_internal(src_list, sizes, [None] * len(src_list))
+
+
+@retry(stop=stop_after_attempt(MAX_FIX_HASH_RETRIES),
+       wait=wait_exponential(multiplier=1, min=1, max=10),
+       retry=retry_if_result(lambda results: any(r is None or isinstance(r, Exception) for r in results)),
+       retry_error_callback=lambda retry_state: retry_state.outcome.result(),
+       )
+def _calculate_sha256_internal(src_list, sizes, results):
+    total_size = sum(
+        size
+        for size, result in zip(sizes, results)
+        if result is None or isinstance(result, Exception)
+    )
     lock = Lock()
 
-    with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True) as progress:
+    with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress:
         def _process_url(src, size):
             hash_obj = hashlib.sha256()
             if src.is_local():
@@ -894,17 +936,27 @@ def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
                 params = dict(Bucket=src.bucket, Key=src.path)
                 if src.version_id is not None:
                     params.update(dict(VersionId=src.version_id))
-                s3_client = S3ClientProvider().find_correct_client(S3Api.GET_OBJECT, src.bucket, params)
-                resp = s3_client.get_object(**params)
-                body = resp['Body']
-                for chunk in body:
-                    hash_obj.update(chunk)
-                    with lock:
-                        progress.update(len(chunk))
+                try:
+                    s3_client = S3ClientProvider().find_correct_client(S3Api.GET_OBJECT, src.bucket, params)
+
+                    resp = s3_client.get_object(**params)
+                    body = resp['Body']
+                    for chunk in body:
+                        hash_obj.update(chunk)
+                        with lock:
+                            progress.update(len(chunk))
+                except (ConnectionError, HTTPClientError, ReadTimeoutError) as e:
+                    return e
             return hash_obj.hexdigest()
 
         with ThreadPoolExecutor() as executor:
-            results = executor.map(_process_url, src_list, sizes)
+            future_to_idx = {
+                executor.submit(_process_url, src, size): i
+                for i, (src, size, result) in enumerate(zip(src_list, sizes, results))
+                if result is None or isinstance(result, Exception)
+            }
+            for future in concurrent.futures.as_completed(future_to_idx):
+                results[future_to_idx[future]] = future.result()
 
     return results
 
@@ -1087,3 +1139,4 @@ def select(src, query, meta=None, raw=False, **kwargs):
         # raw response.
     # !! if this response type is modified, update related docstrings on Bucket.select().
     return response
+

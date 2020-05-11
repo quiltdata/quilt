@@ -53,6 +53,7 @@ const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
 function VersionInfo({ bucket, path, version }) {
   const s3req = AWS.S3.useRequest()
   const { urls } = NamedRoutes.use()
+  const cfg = Config.use()
 
   const [anchor, setAnchor] = React.useState()
   const [opened, setOpened] = React.useState(false)
@@ -103,7 +104,7 @@ function VersionInfo({ bucket, path, version }) {
                         </span>
                       }
                     />
-                    {!v.deleteMarker && (
+                    {!cfg.noDownload && !v.deleteMarker && (
                       <M.ListItemSecondaryAction>
                         {withSignedUrl({ bucket, key: path, version: v.id }, (url) => (
                           <M.IconButton href={url}>
@@ -191,7 +192,7 @@ function Analytics({ analyticsBucket, bucket, path }) {
   const formatDate = (date) =>
     dateFns.format(
       date,
-      today.getFullYear() === date.getFullYear() ? `D MMM` : `D MMM YYYY`,
+      today.getFullYear() === date.getFullYear() ? 'd MMM' : 'd MMM yyyy',
     )
 
   return (
@@ -293,7 +294,7 @@ export default function File({
   const { version } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const { analyticsBucket } = Config.useConfig()
+  const { analyticsBucket, noDownload } = Config.use()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
 
@@ -317,30 +318,31 @@ export default function File({
           <VersionInfo bucket={bucket} path={path} version={version} />
         </div>
         <div className={classes.spacer} />
-        {withSignedUrl({ bucket, key: path, version }, (url) =>
-          xs ? (
-            <M.IconButton
-              className={classes.button}
-              href={url}
-              edge="end"
-              size="small"
-              download
-            >
-              <M.Icon>arrow_downward</M.Icon>
-            </M.IconButton>
-          ) : (
-            <M.Button
-              href={url}
-              className={classes.button}
-              variant="outlined"
-              size="small"
-              startIcon={<M.Icon>arrow_downward</M.Icon>}
-              download
-            >
-              Download file
-            </M.Button>
-          ),
-        )}
+        {!noDownload &&
+          withSignedUrl({ bucket, key: path, version }, (url) =>
+            xs ? (
+              <M.IconButton
+                className={classes.button}
+                href={url}
+                edge="end"
+                size="small"
+                download
+              >
+                <M.Icon>arrow_downward</M.Icon>
+              </M.IconButton>
+            ) : (
+              <M.Button
+                href={url}
+                className={classes.button}
+                variant="outlined"
+                size="small"
+                startIcon={<M.Icon>arrow_downward</M.Icon>}
+                download
+              >
+                Download file
+              </M.Button>
+            ),
+          )}
       </div>
       <Section icon="code" heading="Code">
         <Code>{code}</Code>

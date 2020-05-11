@@ -1,6 +1,8 @@
 """
 Test functions for preview endpoint
 """
+from base64 import b64decode
+import gzip
 import json
 import pathlib
 import re
@@ -15,6 +17,7 @@ MOCK_ORIGIN = 'http://localhost:3000'
 
 BASE_DIR = pathlib.Path(__file__).parent / 'data'
 
+
 # pylint: disable=no-member,invalid-sequence-index
 class TestIndex():
     """Class to test various inputs to the main indexing function"""
@@ -22,6 +25,7 @@ class TestIndex():
     # pylint: disable=too-many-function-args
     # pylint hates on index.lambda_handler(event, None), even though, without the
     # second arg we would get TypeError: wrapper() missing 1 required positional argument: '_'
+
     @classmethod
     def _make_event(cls, query, headers=None):
         return {
@@ -33,6 +37,15 @@ class TestIndex():
             'body': None,
             'isBase64Encoded': False,
         }
+
+    @classmethod
+    def _read_body(cls, resp):
+        body = resp['body']
+        if resp['isBase64Encoded']:
+            body = b64decode(body)
+        if resp['headers'].get('Content-Encoding') == 'gzip':
+            body = gzip.decompress(body)
+        return body
 
     def test_bad(self):
         """send a known bad event (no input query parameter)"""
@@ -47,7 +60,7 @@ class TestIndex():
         event = self._make_event({'url': bad_url, 'input': 'txt'}, {'origin': MOCK_ORIGIN})
         resp = index.lambda_handler(event, None)
         assert resp['statusCode'] == 400, 'Expected 400 on event with a non-S3 URL'
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         assert 'S3' in body['title'], 'Expected 400 explanation'
 
     def test_bad_line_count(self):
@@ -59,7 +72,7 @@ class TestIndex():
             'line_count': garbage}, {'origin': MOCK_ORIGIN})
         resp = index.lambda_handler(event, None)
         assert resp['statusCode'] == 400, f'Expected 400 on event with line_count of {garbage}'
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         assert 'Unexpected line_count=' in body['title'], 'Expected 400 explanation'
         assert 'out of range' in body['detail'], 'Expected 400 explanation'
 
@@ -70,7 +83,7 @@ class TestIndex():
             'line_count': garbage}, {'origin': MOCK_ORIGIN})
         resp = index.lambda_handler(event, None)
         assert resp['statusCode'] == 400, 'Expected 400 on event with line_count of 123notint'
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         assert 'Unexpected line_count=' in body['title'], 'Expected 400 explanation'
         assert 'invalid literal' in body['detail'], 'Expected 400 explanation'
 
@@ -83,7 +96,7 @@ class TestIndex():
             'max_bytes': garbage}, {'origin': MOCK_ORIGIN})
         resp = index.lambda_handler(event, None)
         assert resp['statusCode'] == 400, f'Expected 400 on event with line_count of {garbage}'
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         assert 'Unexpected max_bytes=' in body['title'], 'Expected 400 explanation'
 
     @responses.activate
@@ -97,7 +110,7 @@ class TestIndex():
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'csv'})
         resp = index.lambda_handler(event, None)
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on sample.csv'
         body_html = body['html']
         assert body_html.count('<table') == 1, 'expected one HTML table'
@@ -120,7 +133,7 @@ class TestIndex():
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'excel'})
         resp = index.lambda_handler(event, None)
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on sample.xlsx'
         body_html = body['html']
         assert '700 rows' in body_html, 'unexpected row count'
@@ -141,7 +154,7 @@ class TestIndex():
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'ipynb'})
         resp = index.lambda_handler(event, None)
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
         body_html = body['html']
 
@@ -160,8 +173,10 @@ class TestIndex():
         assert 'Preprocessing' in body_html, 'missing expected contents'
         assert '<pre>[&#39;SEE&#39;, &#39;SE&#39;, &#39;SHW&#39;, &#39;SIG&#39;,' in body_html, \
             'Cell 3 output seems off'
-        assert '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span><span class="p">' in body_html, \
-            'Last cell output missing'
+        assert (
+            '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span>'
+            '<span class="p">'
+        ) in body_html, 'Last cell output missing'
 
     @responses.activate
     def test_ipynb_exclude(self):
@@ -174,7 +189,7 @@ class TestIndex():
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'ipynb', 'exclude_output': 'true'})
         resp = index.lambda_handler(event, None)
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
         body_html = body['html']
         # neither lxml, nor py_w3c.validators.html.validator works to validate
@@ -192,8 +207,10 @@ class TestIndex():
         assert 'Preprocessing' in body_html, 'missing expected contents'
         assert '<pre>[&#39;SEE&#39;, &#39;SE&#39;, &#39;SHW&#39;, &#39;SIG&#39;,' not in body_html, \
             'Unexpected output cell; exclude_output:true was given'
-        assert '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span><span class="p">' in body_html, \
-            'Last cell output missing'
+        assert (
+            '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span>'
+            '<span class="p">'
+        ) in body_html, 'Last cell output missing'
         assert len(body_html.encode()) < 19_000, \
             'Preview larger than expected; exclude_output:true was given'
 
@@ -210,7 +227,7 @@ class TestIndex():
         event = self._make_event({'url': self.FILE_URL, 'input': 'parquet'})
         resp = index.lambda_handler(event, None)
         assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         with open(info_response, 'r') as info_json:
             expected = json.load(info_json)
         assert (body['info'] == expected), \
@@ -229,13 +246,13 @@ class TestIndex():
         event = self._make_event({'url': self.FILE_URL, 'input': 'parquet'})
         resp = index.lambda_handler(event, None)
         assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
 
         with open(info_response, 'r') as info_json:
             expected = json.load(info_json)
         assert (body['info'] == expected), \
             f'Unexpected body["info"] for {parquet}'
- 
+
     @responses.activate
     def test_tsv(self):
         """test returning HTML previews of TSV (via pandas)"""
@@ -247,7 +264,7 @@ class TestIndex():
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'csv', 'sep': '\t'})
         resp = index.lambda_handler(event, None)
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         assert resp['statusCode'] == 200, f'preview failed on {csv}'
         body_html = body['html']
         assert body_html.count('<table') == 1, 'expected one HTML table'
@@ -274,18 +291,18 @@ class TestIndex():
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'csv', 'sep': '\t'})
         resp = index.lambda_handler(event, None)
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         assert resp['statusCode'] == 200, f'preview failed on {csv}'
 
         body_html = body['html']
-        assert "<td>While dioxin levels in the environment were up" in body_html ,\
+        assert "<td>While dioxin levels in the environment were up" in body_html,\
             "missing expected cell"
-        assert "<td>In Soviet times the Beatles ' music \" was cons...</td>"  in body_html ,\
+        assert "<td>In Soviet times the Beatles ' music \" was cons...</td>" in body_html,\
             "missing expected cell"
 
         warnings = body['info']['warnings']
         assert warnings, f"expected warnings when parsing {csv}"
-        assert warnings.count("Skipping line") == 43, f"expected to skip 43 lines"
+        assert warnings.count("Skipping line") == 43, "expected to skip 43 lines"
 
     @responses.activate
     def test_tsv_as_csv(self):
@@ -298,7 +315,7 @@ class TestIndex():
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'csv'})
         resp = index.lambda_handler(event, None)
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         assert resp['statusCode'] == 200, f'preview failed on {csv}'
         body_html = body['html']
         assert body_html.count('<table') == 1, 'expected one HTML table'
@@ -365,7 +382,6 @@ class TestIndex():
             assert resp['statusCode'] == 200, 'preview lambda failed'
             get_preview_lines.assert_called_with(ANY, 'gz', count, index.CATALOG_LIMIT_BYTES)
 
-
     @responses.activate
     def test_txt_short(self):
         """test sending txt bytes"""
@@ -377,7 +393,7 @@ class TestIndex():
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'txt'})
         resp = index.lambda_handler(event, None)
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         assert resp['statusCode'] == 200, 'preview lambda failed on short.txt'
         headlist = body['info']['data']['head']
         assert len(headlist) == 98, 'unexpected number of lines head'
@@ -398,7 +414,7 @@ class TestIndex():
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'txt', 'max_bytes': '3'})
         resp = index.lambda_handler(event, None)
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         assert resp['statusCode'] == 200, 'preview lambda failed on short.txt'
         headlist = body['info']['data']['head']
         assert len(headlist) == 1, 'unexpected number of lines head'
@@ -415,7 +431,8 @@ class TestIndex():
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'vcf'})
         resp = index.lambda_handler(event, None)
-        _check_vcf(resp)
+        assert resp['statusCode'] == 200, 'preview failed on example.vcf'
+        _check_vcf(self._read_body(resp))
 
     @responses.activate
     def test_vcf_gz(self):
@@ -429,7 +446,8 @@ class TestIndex():
         event = self._make_event(
             {'url': self.FILE_URL, 'input': 'vcf', 'compression': 'gz'})
         resp = index.lambda_handler(event, None)
-        _check_vcf(resp)
+        assert resp['statusCode'] == 200, 'preview failed on example.vcf.gz'
+        _check_vcf(self._read_body(resp))
 
     # 513 = 128*4 + 1 => ensure there's a partial chunk in play
     @patch(__name__ + '.index.CATALOG_LIMIT_BYTES', 513)
@@ -451,7 +469,7 @@ class TestIndex():
             {'url': self.FILE_URL, 'input': 'vcf', 'compression': 'gz'})
         # test partial decode
         resp = index.lambda_handler(event, None)
-        body = json.loads(resp['body'])
+        body = json.loads(self._read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on example.vcf.gz, partial decode'
         data = body['info']['data']
         assert not data['data'], 'partial decode; did not expect any data'
@@ -463,10 +481,10 @@ class TestIndex():
         assert meta['variant_count'] == 0, 'expected no variants'
         assert not body['info']['metadata']['variants'], 'expected no variants'
 
+
 def _check_vcf(resp):
     """common logic for checking vcf files, e.g. across compression settings"""
-    body = json.loads(resp['body'])
-    assert resp['statusCode'] == 200, 'preview failed on example.vcf, or a compressed version of it'
+    body = json.loads(resp)
     assert body['info']['metadata']['variant_count'] == 3, 'expected 3 variants'
     data = body['info']['data']
     assert data['meta'][0] == '##fileformat=VCFv4.0', 'unexpected meta first line'
@@ -480,7 +498,9 @@ def _check_vcf(resp):
     assert body['info']['metadata']['variants'] == ['NA00001', 'NA00002', 'NA00003'], \
         'unexpected variants'
     assert len(data['data'][0]) == index.MIN_VCF_COLS + 1, 'unexpected number of columns'
-    assert data['data'][0] == ['20', '14370', 'rs6054257', 'G', 'A', '29', 'PASS', 'NS=3;DP=14;AF=0.5;DB;H2', 'GT:GQ:DP:HQ'], \
-        'unexpected first data line'
-    assert data['data'][-1] == ['20', '1234567', 'microsat1', 'GTCT', 'G,GTACT', '50', 'PASS', 'NS=3;DP=9;AA=G', 'GT:GQ:DP'], \
-        'unexpected first data line'
+    assert data['data'][0] == [
+        '20', '14370', 'rs6054257', 'G', 'A', '29', 'PASS', 'NS=3;DP=14;AF=0.5;DB;H2', 'GT:GQ:DP:HQ'
+    ], 'unexpected first data line'
+    assert data['data'][-1] == [
+        '20', '1234567', 'microsat1', 'GTCT', 'G,GTACT', '50', 'PASS', 'NS=3;DP=9;AA=G', 'GT:GQ:DP'
+    ], 'unexpected first data line'

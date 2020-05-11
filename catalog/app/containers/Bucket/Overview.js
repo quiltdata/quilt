@@ -8,7 +8,6 @@ import useComponentSize from '@rehooks/component-size'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
 import * as Pagination from 'components/Pagination'
-import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
 import Skeleton from 'components/Skeleton'
 import StackedAreaChart from 'components/StackedAreaChart'
@@ -25,7 +24,6 @@ import Link from 'utils/StyledLink'
 import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
-import { displayError } from './errors'
 import * as requests from './requests'
 
 import bg from './Overview-bg.jpg'
@@ -396,7 +394,7 @@ function StatsTip({ stats, colorPool, className, ...props }) {
   return (
     <M.Paper className={cx(classes.root, className)} elevation={8} {...props}>
       <div className={classes.head}>
-        <div className={classes.date}>{dateFns.format(stats.date, 'D MMM')}</div>
+        <div className={classes.date}>{dateFns.format(stats.date, 'd MMM')}</div>
         <div className={classes.total}>
           {readableQuantity(stats.combined.sum)} (+
           {readableQuantity(stats.combined.value)})
@@ -1154,42 +1152,33 @@ export default function Overview({
   },
 }) {
   const s3req = AWS.S3.useRequest()
-  const { shouldSign } = Config.useConfig()
-  const es = AWS.ES.use({ sign: shouldSign(bucket) })
+  const es = AWS.ES.use()
   const cfg = BucketConfig.useCurrentBucketConfig()
   const inStack = !!cfg
   const overviewUrl = cfg && cfg.overviewUrl
   const description = cfg && cfg.description
   return (
-    <Data fetch={requests.bucketExists} params={{ s3req, bucket }}>
-      {AsyncResult.case({
-        Ok: () => (
-          <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
-            {!!cfg && (
-              <React.Suspense fallback={null}>
-                <LinkedData.BucketData bucket={cfg} />
-              </React.Suspense>
-            )}
-            {cfg ? (
-              <Head {...{ es, s3req, bucket, overviewUrl, description }} />
-            ) : (
-              <M.Box
-                pt={2}
-                pb={{ xs: 2, sm: 0 }}
-                px={{ xs: 2, sm: 0 }}
-                textAlign={{ xs: 'center', sm: 'left' }}
-              >
-                <M.Typography variant="h5">{bucket}</M.Typography>
-              </M.Box>
-            )}
-            <Readmes {...{ s3req, bucket, overviewUrl }} />
-            <Imgs {...{ es, s3req, bucket, inStack, overviewUrl }} />
-            <Summary {...{ es, s3req, bucket, inStack, overviewUrl }} />
-          </M.Box>
-        ),
-        Err: displayError(),
-        _: () => <Placeholder color="text.secondary" />,
-      })}
-    </Data>
+    <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
+      {!!cfg && (
+        <React.Suspense fallback={null}>
+          <LinkedData.BucketData bucket={cfg} />
+        </React.Suspense>
+      )}
+      {cfg ? (
+        <Head {...{ es, s3req, bucket, overviewUrl, description }} />
+      ) : (
+        <M.Box
+          pt={2}
+          pb={{ xs: 2, sm: 0 }}
+          px={{ xs: 2, sm: 0 }}
+          textAlign={{ xs: 'center', sm: 'left' }}
+        >
+          <M.Typography variant="h5">{bucket}</M.Typography>
+        </M.Box>
+      )}
+      <Readmes {...{ s3req, bucket, overviewUrl }} />
+      <Imgs {...{ es, s3req, bucket, inStack, overviewUrl }} />
+      <Summary {...{ es, s3req, bucket, inStack, overviewUrl }} />
+    </M.Box>
   )
 }

@@ -1,22 +1,26 @@
 """ Testing for data_transfer.py """
 
-### Python imports
+# Python imports
+import io
 import pathlib
+import time
+from contextlib import redirect_stderr
 
 from unittest import mock
 
-### Third-party imports
+# Third-party imports
 from botocore.stub import ANY
+from botocore.exceptions import ClientError, ReadTimeoutError
 import pandas as pd
 import pytest
 
-### Project imports
+# Project imports
 from quilt3 import data_transfer
 from quilt3.util import PhysicalKey
 
 from .utils import QuiltTestCase
 
-### Code
+# Code
 
 # parquet test moved to test_formats.py
 
@@ -101,7 +105,8 @@ class DataTransferTest(QuiltTestCase):
 
         boto_return_val = {'Payload': iter(records)}
         with mock.patch.object(self.s3_client, 'select_object_content', return_value=boto_return_val) as patched:
-            result = data_transfer.select(PhysicalKey.from_url('s3://foo/bar/baz'), 'select * from S3Object', meta={'target': 'json'})
+            result = data_transfer.select(PhysicalKey.from_url('s3://foo/bar/baz'), 'select * from S3Object',
+                                          meta={'target': 'json'})
             assert result.equals(expected_result)
             patched.assert_called_once_with(**expected_args)
 
@@ -148,8 +153,8 @@ class DataTransferTest(QuiltTestCase):
 
     def test_etag(self):
         assert data_transfer._calculate_etag(DATA_DIR / 'small_file.csv') == '"0bec5bf6f93c547bc9c6774acaf85e1a"'
-        assert data_transfer._calculate_etag(DATA_DIR / 'buggy_parquet.parquet') == '"dfb5aca048931d396f4534395617363f"'
-
+        assert data_transfer._calculate_etag(
+            DATA_DIR / 'buggy_parquet.parquet') == '"dfb5aca048931d396f4534395617363f"'
 
     def test_simple_upload(self):
         path = DATA_DIR / 'small_file.csv'
@@ -237,7 +242,6 @@ class DataTransferTest(QuiltTestCase):
         ])
         assert urls[0] == PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1')
 
-
     def test_upload_large_file_etag_match(self):
         path = DATA_DIR / 'large_file.npy'
 
@@ -258,7 +262,6 @@ class DataTransferTest(QuiltTestCase):
             (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
         ])
         assert urls[0] == PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1')
-
 
     def test_upload_large_file_etag_mismatch(self):
         path = DATA_DIR / 'large_file.npy'
@@ -364,7 +367,6 @@ class DataTransferTest(QuiltTestCase):
                 (PhysicalKey.from_path(path), PhysicalKey.from_url(f's3://example/{name}'), path.stat().st_size),
             ])
 
-
     def test_multipart_copy(self):
         size = 100 * 1024 * 1024 * 1024
 
@@ -429,6 +431,83 @@ class DataTransferTest(QuiltTestCase):
         )
 
         with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
-            data_transfer.copy_file_list([
-                (PhysicalKey.from_url('s3://example1/large_file1.npy'), PhysicalKey.from_url('s3://example2/large_file2.npy'), size),
-            ])
+            stderr = io.StringIO()
+
+            with redirect_stderr(stderr), mock.patch('quilt3.data_transfer.DISABLE_TQDM', False):
+                data_transfer.copy_file_list([
+                    (
+                        PhysicalKey.from_url('s3://example1/large_file1.npy'),
+                        PhysicalKey.from_url('s3://example2/large_file2.npy'),
+                        size
+                    ),
+                ])
+            assert stderr.getvalue()
+
+    @mock.patch('botocore.client.BaseClient._make_api_call')
+    def test_calculate_sha256_read_timeout(self, mocked_api_call):
+        bucket = 'test-bucket'
+        key = 'dir/a'
+        vid = 'a1234'
+
+        a_contents = b'a' * 10
+
+        pk = PhysicalKey(bucket, key, vid)
+        exc = ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")
+        mocked_api_call.side_effect = exc
+        results = data_transfer.calculate_sha256([pk], [len(a_contents)])
+        assert mocked_api_call.call_count == data_transfer.MAX_FIX_HASH_RETRIES
+        assert results == [exc]
+
+    def test_copy_file_list_retry(self):
+        bucket = 'test-bucket'
+        other_bucket = f'{bucket}-other'
+        key = 'dir/a'
+        vid = None
+
+        src = PhysicalKey(bucket, key, vid)
+        dst = PhysicalKey(other_bucket, key, vid)
+
+        with mock.patch('botocore.client.BaseClient._make_api_call',
+                        side_effect=ClientError({}, 'CopyObject')) as mocked_api_call:
+            with pytest.raises(ClientError):
+                data_transfer.copy_file_list([(src, dst, 1)])
+            self.assertEqual(mocked_api_call.call_count, data_transfer.MAX_COPY_FILE_LIST_RETRIES)
+
+    def test_copy_file_list_retry_non_client_error(self):
+        """
+        copy_file_list() is not retrying on random exceptions.
+        """
+        bucket = 'test-bucket'
+        other_bucket = f'{bucket}-other'
+        key = 'dir/a'
+        vid = None
+
+        src = PhysicalKey(bucket, key, vid)
+        dst = PhysicalKey(other_bucket, key, vid)
+
+        with mock.patch('botocore.client.BaseClient._make_api_call',
+                        side_effect=Exception('test exception')) as mocked_api_call:
+            with pytest.raises(Exception, match='test exception'):
+                data_transfer.copy_file_list([(src, dst, 1)])
+            assert mocked_api_call.call_count == 1
+
+    def test_copy_file_list_multipart_retry(self):
+        bucket = 'test-bucket'
+        other_bucket = f'{bucket}-other'
+        key = 'dir/a'
+        vid = None
+
+        src = PhysicalKey(bucket, key, vid)
+        dst = PhysicalKey(other_bucket, key, vid)
+        parts = 2 * data_transfer.s3_transfer_config.max_request_concurrency
+        size = parts * data_transfer.s3_transfer_config.multipart_threshold
+
+        def side_effect(operation_name, *args, **kwargs):
+            if operation_name == 'CreateMultipartUpload':
+                return {'UploadId': '123'}
+            time.sleep(0.1)
+            raise ClientError({}, 'CopyObject')
+
+        with mock.patch('botocore.client.BaseClient._make_api_call', side_effect=side_effect):
+            with pytest.raises(ClientError):
+                data_transfer.copy_file_list([(src, dst, size)])

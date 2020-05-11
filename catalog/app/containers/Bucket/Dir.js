@@ -10,10 +10,11 @@ import Message from 'components/Message'
 import { docs } from 'constants/urls'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
-import Data from 'utils/Data'
+import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
+import usePrevious from 'utils/usePrevious'
 
 import Code from './Code'
 import Listing, { ListingItem } from './Listing'
@@ -90,6 +91,29 @@ export default function Dir({
     b.fetch("${path}", "./")
   `
 
+  const [prev, setPrev] = React.useState(null)
+  const prevPath = usePrevious(path, () => {
+    if (prevPath !== path) setPrev(null)
+  })
+  const data = useData(requests.bucketListing, {
+    s3req,
+    bucket,
+    path,
+    prev: prevPath === path ? prev : null,
+  })
+
+  const loadMore = React.useCallback(() => {
+    AsyncResult.case(
+      {
+        Ok: (res) => {
+          if (res.continuationToken) setPrev(res)
+        },
+        _: () => {},
+      },
+      data.result,
+    )
+  }, [data.result])
+
   return (
     <M.Box pt={2} pb={4}>
       <M.Box display="flex" alignItems="flex-start" mb={2}>
@@ -103,41 +127,48 @@ export default function Dir({
         <Code>{code}</Code>
       </Section>
 
-      <Data fetch={requests.bucketListing} params={{ s3req, bucket, path }}>
-        {AsyncResult.case({
-          Err: displayError(),
-          Ok: (res) => {
-            const items = formatListing({ urls }, res)
-            return items.length ? (
-              <>
-                <Listing items={items} truncated={res.truncated} />
-                <Summary files={res.files} />
-              </>
-            ) : (
+      {data.case({
+        Err: displayError(),
+        Init: () => null,
+        _: (x) => {
+          const res = AsyncResult.case(
+            {
+              Ok: R.identity,
+              Pending: AsyncResult.case({
+                Ok: R.identity,
+                _: () => null,
+              }),
+              _: () => null,
+            },
+            x,
+          )
+
+          if (!res) return <M.CircularProgress />
+
+          const items = formatListing({ urls }, res)
+
+          if (!items.length)
+            return (
               <Message headline="No files">
                 <Link href={HELP_LINK}>Learn how to upload files</Link>.
               </Message>
             )
-          },
-          Pending: AsyncResult.case({
-            Ok: (res) =>
-              res ? (
-                <>
-                  <Listing
-                    items={formatListing({ urls }, res)}
-                    truncated={res.truncated}
-                    locked
-                  />
-                  <Summary files={res.files} />
-                </>
-              ) : (
-                <M.CircularProgress />
-              ),
-            _: () => null,
-          }),
-          Init: () => null,
-        })}
-      </Data>
+
+          const locked = !AsyncResult.Ok.is(x)
+
+          return (
+            <>
+              <Listing
+                items={items}
+                truncated={res.truncated}
+                locked={locked}
+                loadMore={!!res.continuationToken && loadMore}
+              />
+              <Summary files={res.files} />
+            </>
+          )
+        },
+      })}
     </M.Box>
   )
 }

@@ -119,7 +119,7 @@ function RevisionInfo({ revision, bucket, name, path }) {
                                   Ok: (d) => (
                                     <>
                                       {' | '}
-                                      {dateFns.format(d, 'MMMM Do YYYY - h:mmA')}
+                                      {dateFns.format(d, 'MMMM do yyyy - h:mma')}
                                     </>
                                   ),
                                 },
@@ -362,7 +362,7 @@ export default function PackageTree({
   const s3req = AWS.S3.useRequest()
   const { urls } = NamedRoutes.use()
   const getSignedS3URL = AWS.Signer.useS3Signer()
-  const { apiGatewayEndpoint: endpoint } = Config.useConfig()
+  const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
   const bucketCfg = BucketConfig.useCurrentBucketConfig()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
@@ -437,38 +437,39 @@ export default function PackageTree({
                 {renderCrumbs(crumbs)}
               </div>
               <div className={classes.spacer} />
-              {AsyncResult.case(
-                {
-                  Ok: TreeDisplay.case({
-                    File: ({ key, version }) =>
-                      xs ? (
-                        <M.IconButton
-                          className={classes.button}
-                          href={getSignedS3URL({ bucket, key, version })}
-                          edge="end"
-                          size="small"
-                          download
-                        >
-                          <M.Icon>arrow_downward</M.Icon>
-                        </M.IconButton>
-                      ) : (
-                        <M.Button
-                          href={getSignedS3URL({ bucket, key, version })}
-                          className={classes.button}
-                          variant="outlined"
-                          size="small"
-                          startIcon={<M.Icon>arrow_downward</M.Icon>}
-                          download
-                        >
-                          Download file
-                        </M.Button>
-                      ),
+              {!noDownload &&
+                AsyncResult.case(
+                  {
+                    Ok: TreeDisplay.case({
+                      File: ({ key, version }) =>
+                        xs ? (
+                          <M.IconButton
+                            className={classes.button}
+                            href={getSignedS3URL({ bucket, key, version })}
+                            edge="end"
+                            size="small"
+                            download
+                          >
+                            <M.Icon>arrow_downward</M.Icon>
+                          </M.IconButton>
+                        ) : (
+                          <M.Button
+                            href={getSignedS3URL({ bucket, key, version })}
+                            className={classes.button}
+                            variant="outlined"
+                            size="small"
+                            startIcon={<M.Icon>arrow_downward</M.Icon>}
+                            download
+                          >
+                            Download file
+                          </M.Button>
+                        ),
+                      _: () => null,
+                    }),
                     _: () => null,
-                  }),
-                  _: () => null,
-                },
-                result,
-              )}
+                  },
+                  result,
+                )}
             </div>
 
             {AsyncResult.case(
@@ -477,9 +478,19 @@ export default function PackageTree({
                   Dir: () => (
                     <M.Box className={classes.warning} mb={2}>
                       <M.Icon className={classes.warningIcon}>warning</M.Icon>
-                      The Packages tab shows only the first 1,000 files. Use the Files tab
-                      (above) or Python code (below) to view all files. This is a
-                      temporary limitation.
+                      <div>
+                        The Packages tab shows only the first 1,000 files. Use the{' '}
+                        <M.Link
+                          to={urls.bucketDir(bucket)}
+                          color="inherit"
+                          underline="always"
+                          component={RRLink}
+                        >
+                          Files tab
+                        </M.Link>{' '}
+                        (above) or Python code (below) to view all files. This is a
+                        temporary limitation.
+                      </div>
                     </M.Box>
                   ),
                   _: () => null,

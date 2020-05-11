@@ -1,10 +1,6 @@
-from datetime import datetime, timedelta, timezone
-
-import numpy as np
 import pytest
 import responses
-from ruamel.yaml import YAML
-
+import yaml
 import quilt3 as he
 from quilt3 import util
 
@@ -26,8 +22,8 @@ class TestAPI(QuiltTestCase):
 
         he.config('https://foo.bar')
 
-        yaml = YAML()
-        config = yaml.load(util.CONFIG_PATH)
+        with open(util.CONFIG_PATH, 'r') as stream:
+            config = yaml.safe_load(stream)
 
         # These come from CONFIG_TEMPLATE, not the mocked config file.
         content['default_local_registry'] = util.BASE_PATH.as_uri() + '/packages'
@@ -46,9 +42,9 @@ class TestAPI(QuiltTestCase):
             he.config('https://fliff:fluff')
 
     def test_empty_list_role(self):
-        empty_list_response = { 'results': [] }
+        empty_list_response = {'results': []}
         self.requests_mock.add(responses.GET, DEFAULT_URL + '/api/roles',
-                json=empty_list_response, status=200)
+                               json=empty_list_response, status=200)
         assert he.admin.list_roles() == []
 
     def test_list_role(self):
@@ -57,9 +53,9 @@ class TestAPI(QuiltTestCase):
             'arn': 'asdf123',
             'id': '1234-1234'
         }
-        list_response = { 'results': [result] }
+        list_response = {'results': [result]}
         self.requests_mock.add(responses.GET, DEFAULT_URL + '/api/roles',
-                json=list_response, status=200)
+                               json=list_response, status=200)
         assert he.admin.list_roles() == [result]
 
     def test_get_role(self):
@@ -69,7 +65,7 @@ class TestAPI(QuiltTestCase):
             'id': '1234-1234'
         }
         self.requests_mock.add(responses.GET, DEFAULT_URL + '/api/roles/1234-1234',
-                json=result, status=200)
+                               json=result, status=200)
         assert he.admin.get_role('1234-1234') == result
 
     def test_create_role(self):
@@ -79,7 +75,7 @@ class TestAPI(QuiltTestCase):
             'id': '1234-1234'
         }
         self.requests_mock.add(responses.POST, DEFAULT_URL + '/api/roles',
-                json=result, status=200)
+                               json=result, status=200)
         assert he.admin.create_role('test', 'asdf123') == result
 
     def test_edit_role(self):
@@ -94,25 +90,25 @@ class TestAPI(QuiltTestCase):
             'id': '1234-1234'
         }
         self.requests_mock.add(responses.GET, DEFAULT_URL + '/api/roles/1234-1234',
-                json=get_result, status=200)
+                               json=get_result, status=200)
         self.requests_mock.add(responses.PUT, DEFAULT_URL + '/api/roles/1234-1234',
-                json=result, status=200)
+                               json=result, status=200)
         assert he.admin.edit_role('1234-1234', 'test_new_name', 'qwer456') == result
 
     def test_delete_role(self):
         self.requests_mock.add(responses.DELETE, DEFAULT_URL + '/api/roles/1234-1234',
-                status=200)
+                               status=200)
         he.admin.delete_role('1234-1234')
 
     def test_set_role(self):
         self.requests_mock.add(responses.POST, DEFAULT_URL + '/api/users/set_role',
-                json={}, status=200)
+                               json={}, status=200)
 
         not_found_result = {
             'message': "No user exists by the provided name."
         }
         self.requests_mock.add(responses.POST, DEFAULT_URL + '/api/users/set_role',
-                json=not_found_result, status=400)
+                               json=not_found_result, status=400)
 
         he.admin.set_role('test_user', 'test_role')
 

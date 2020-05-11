@@ -1,3 +1,12 @@
+## How do I sync my notebook and all of its data and models to S3 as a package?
+```
+p = quilt3.Package()
+p.set_dir(".", ".")
+p.push("USR/PKG", message="MSG", registry="s3://BUCKET")
+```
+> Use a [.quiltignore file](https://docs.quiltdata.com/advanced-usage/.quiltignore)
+for more control over which files `set_dir()` includes.
+
 ## How does Quilt versioning relate to S3 object versioning?
 Quilt packages are one level of abstraction above S3 object versions.
 Object versions track mutations to a single file,
@@ -22,3 +31,10 @@ $ export QUILT_DISABLE_USAGE_METRICS=true
 
 Or call `quilt3.disable_telemetry()`
 to persistently disable anonymous usage statistics.
+
+## Can I turn off progress bars for log files?
+
+Yes:
+```
+$ export QUILT_MINIMIZE_STDOUT=true
+```

@@ -68,6 +68,12 @@ export const activationError = {
   url: () => '/activation_error',
 }
 
+// profile
+export const profile = {
+  path: '/profile',
+  url: () => '/profile',
+}
+
 // global search
 export const search = {
   path: '/search',
@@ -125,4 +131,9 @@ export const legacyPackages = {
 export const admin = {
   path: '/admin',
   url: () => '/admin',
+}
+export const adminUsers = admin
+export const adminBuckets = {
+  path: '/admin/buckets',
+  url: () => '/admin/buckets',
 }

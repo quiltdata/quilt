@@ -121,7 +121,7 @@ const Invite = RT.composeComponent(
         initialValues={{ roleId: roles[0].id }}
       >
         {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
-          <React.Fragment>
+          <>
             <DialogTitle>Invite a user</DialogTitle>
             <DialogContent>
               <form onSubmit={handleSubmit}>
@@ -203,7 +203,7 @@ const Invite = RT.composeComponent(
                 Invite
               </Button>
             </DialogActions>
-          </React.Fragment>
+          </>
         )}
       </Form.ReduxForm>
     )
@@ -268,7 +268,7 @@ const Edit = RT.composeComponent(
         initialValues={{ email: oldEmail }}
       >
         {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
-          <React.Fragment>
+          <>
             <DialogTitle>Edit user: &quot;{username}&quot;</DialogTitle>
             <DialogContent>
               <form onSubmit={handleSubmit}>
@@ -313,7 +313,7 @@ const Edit = RT.composeComponent(
                 Save
               </Button>
             </DialogActions>
-          </React.Fragment>
+          </>
         )}
       </Form.ReduxForm>
     )
@@ -358,7 +358,7 @@ const Delete = RT.composeComponent(
     }, [user, close, req, cache, push])
 
     return (
-      <React.Fragment>
+      <>
         <DialogTitle>Delete a user</DialogTitle>
         <DialogContent>
           You are about to delete user &quot;{user.username}&quot;. This operation is
@@ -372,7 +372,7 @@ const Delete = RT.composeComponent(
             Delete
           </Button>
         </DialogActions>
-      </React.Fragment>
+      </>
     )
   },
 )
@@ -419,7 +419,7 @@ const AdminRights = RT.composeComponent(
     )
 
     return (
-      <React.Fragment>
+      <>
         <DialogTitle>{admin ? 'Grant' : 'Revoke'} admin rights</DialogTitle>
         <DialogContent>
           You are about to {admin ? 'grant admin rights to' : 'revoke admin rights from'}{' '}
@@ -433,7 +433,7 @@ const AdminRights = RT.composeComponent(
             {admin ? 'Grant' : 'Revoke'}
           </Button>
         </DialogActions>
-      </React.Fragment>
+      </>
     )
   },
 )
@@ -453,8 +453,8 @@ const Username = RT.composeComponent(
     },
     icon: {
       fontSize: '1em',
-      marginLeft: `calc(-1em - ${t.spacing.unit * 0.5}px)`,
-      marginRight: t.spacing.unit * 0.5,
+      marginLeft: `calc(-1em - ${t.spacing(0.5)}px)`,
+      marginRight: t.spacing(0.5),
     },
   })),
   ({ className, classes, admin = false, children, ...props }) => (
@@ -697,7 +697,7 @@ export default RT.composeComponent(
         {dialogs.render({ maxWidth: 'xs', fullWidth: true })}
         <Table.Toolbar heading="Users" actions={toolbarActions} />
         <Table.Wrapper>
-          <MuiTable padding="dense">
+          <MuiTable size="small">
             <Table.Head columns={columns} ordering={ordering} withInlineActions />
             <TableBody>
               {pagination.paginated.map((i) => (

@@ -15,20 +15,47 @@ from . import __version__ as quilt3_version
 from .session import open_url
 from .util import get_from_config, catalog_s3_url, catalog_package_url, QuiltException, PhysicalKey, \
     fix_url, get_package_registry
-from .registry import app
 
-def cmd_config(catalog_url):
+
+def cmd_config(catalog_url, **kwargs):
     """
     Configure quilt3 to a Quilt stack
     """
-    if catalog_url is None:
-        existing_catalog_url = get_from_config('navigator_url')
-        if existing_catalog_url is not None:
-            print(existing_catalog_url)
-        else:
-            print('<None>')
+    config_values = kwargs['set'] if kwargs['set'] else {}
+    if catalog_url and config_values:
+        raise QuiltException("Expected either an auto-config URL or key=value pairs, but got both.")
+
+    if config_values:
+        api.config(**config_values)
     else:
-        api.config(catalog_url)
+        if catalog_url is None:
+            existing_catalog_url = get_from_config('navigator_url')
+            if existing_catalog_url is not None:
+                print(existing_catalog_url)
+            else:
+                print('<None>')
+        else:
+            api.config(catalog_url)
+
+
+class ParseConfigDict(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        d = {}
+        if values:
+            for item in values:
+                split_items = item.split("=", 1)
+                key, value = split_items[0].strip(), split_items[1]
+                d[key] = value
+        setattr(namespace, self.dest, d)
+
+
+def cmd_config_default_registry(default_remote_registry):
+    """
+    Configure the default remote registry for quilt3
+    """
+    api.config(default_remote_registry=default_remote_registry)
+    print(f"Successfully set the default remote registry to {default_remote_registry}")
+
 
 def _test_url(url):
     try:
@@ -38,6 +65,7 @@ def _test_url(url):
         return False
     except requests.exceptions.ConnectionError:
         return False
+
 
 def _launch_local_catalog():
     """"
@@ -58,6 +86,7 @@ def _launch_local_catalog():
         command += ["-e", var]
     command += ["-p", "3000:80", "quiltdata/catalog"]
     subprocess.Popen(command)
+
 
 def _launch_local_s3proxy():
     """"
@@ -81,8 +110,6 @@ def _launch_local_s3proxy():
     subprocess.Popen(command)
 
 
-
-
 catalog_cmd_detailed_help = """
 Run the Quilt catalog on your machine (requires Docker). Running
 `quilt3 catalog` launches a webserver on your local machine using
@@ -90,7 +117,7 @@ Docker and a Python microservice that supplies temporary AWS
 credentials to the catalog. Temporary credentials are derived from
 your default AWS credentials (or active `AWS_PROFILE`) using
 `boto3.sts.get_session_token`. For more details about configuring and
-using AWS credentials in `boto3`, see the AWS documentation: 
+using AWS credentials in `boto3`, see the AWS documentation:
 https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html
 
 #### Previewing files in S3
@@ -105,6 +132,7 @@ We strongly encourage users with
 sensitive data in S3 to run a private Quilt deployment. Visit
 https://quiltdata.com for more information.
 """
+
 
 def cmd_catalog(navigation_target=None, detailed_help=False):
     """
@@ -163,14 +191,17 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
     open_url(catalog_url)
     app.run()
 
+
 def cmd_disable_telemetry():
     api._disable_telemetry()
     print("Successfully disabled telemetry.")
+
 
 def cmd_list_packages(registry):
     registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry)))
     for package_name in api._list_packages(registry=registry_parsed):
         print(package_name)
+
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
     pkg = api.Package._browse(name, registry, top_hash)
@@ -181,6 +212,14 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
         print("Verification failed")
         return 1
 
+
+def cmd_push(name, dir, registry, dest, message):
+    pkg = api.Package()
+    pkg.set_dir('.', dir)
+    pkg.push(name, registry=registry, dest=dest, message=message)
+    print("Successfully pushed the new package")
+
+
 def create_parser():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
@@ -189,7 +228,6 @@ def create_parser():
             action="version",
             version=quilt3_version.strip()
     )
-
 
     subparsers = parser.add_subparsers(metavar="<command>")
     subparsers.required = True
@@ -213,7 +251,30 @@ def create_parser():
         type=str,
         nargs="?"
     )
+    config_p.add_argument(
+            "--set",
+            metavar="KEY=VALUE",
+            nargs="+",
+            help="Set a number of key-value pairs for config_values"
+                 "(do not put spaces before or after the = sign). "
+                 "If a value contains spaces, you should define "
+                 "it with double quotes: "
+                 'foo="this is a sentence". Note that '
+                 "values are always treated as strings.",
+            action=ParseConfigDict,
+    )
     config_p.set_defaults(func=cmd_config)
+
+    # config-default-registry
+    shorthelp = "Configure default remote registry for Quilt"
+    config_p = subparsers.add_parser("config-default-remote-registry",
+                                     description=shorthelp, help=shorthelp, allow_abbrev=False)
+    config_p.add_argument(
+            "default_remote_registry",
+            help="The default remote registry to use, e.g. s3://quilt-ml",
+            type=str
+    )
+    config_p.set_defaults(func=cmd_config_default_registry)
 
     # catalog
     shorthelp = "Run Quilt catalog locally"
@@ -221,8 +282,8 @@ def create_parser():
     catalog_p.add_argument(
             "navigation_target",
             help="Which page in the local catalog to open. Leave blank to go to the catalog landing page, pass in an "
-             "s3 url (e.g. 's3://bucket/myfile.txt') to go to file viewer, or pass in a package name in the form "
-             "'BUCKET:USER/PKG' to go to the package viewer.",
+                 "s3 url (e.g. 's3://bucket/myfile.txt') to go to file viewer, or pass in a package name in the form "
+                 "'BUCKET:USER/PKG' to go to the package viewer.",
             type=str,
             nargs="?"
     )
@@ -235,7 +296,8 @@ def create_parser():
 
     # disable-telemetry
     shorthelp = "Disable anonymous usage metrics"
-    disable_telemetry_p = subparsers.add_parser("disable-telemetry", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    disable_telemetry_p = subparsers.add_parser("disable-telemetry",
+                                                description=shorthelp, help=shorthelp, allow_abbrev=False)
     disable_telemetry_p.set_defaults(func=cmd_disable_telemetry)
 
     # install
@@ -243,7 +305,7 @@ def create_parser():
     install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp, allow_abbrev=False)
     install_p.add_argument(
         "name",
-        help="Name of package, in the USER/PKG format",
+        help="Name of package, in the USER/PKG[/PATH] format",
         type=str,
     )
     install_p.add_argument(
@@ -310,10 +372,41 @@ def create_parser():
     )
     verify_p.add_argument(
         "--extra-files-ok",
-        help="Directory to verify",
+        help="Whether extra files in the directory should cause a failure",
         action="store_true"
     )
     verify_p.set_defaults(func=cmd_verify)
+
+    # push
+    shorthelp = "Pushes the new package to the remote registry"
+    push_p = subparsers.add_parser("push", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    push_p.add_argument(
+        "name",
+        help="Name of package, in the USER/PKG format",
+        type=str,
+    )
+    push_p.add_argument(
+        "--dir",
+        help="Directory to add to the new package",
+        type=str,
+        required=True,
+    )
+    push_p.add_argument(
+        "--registry",
+        help="Registry where to create the new package. Defaults to the default remote registry.",
+        type=str,
+    )
+    push_p.add_argument(
+        "--dest",
+        help="Where to copy the objects in the package",
+        type=str,
+    )
+    push_p.add_argument(
+        "--message",
+        help="The commit message for the new package",
+        type=str,
+    )
+    push_p.set_defaults(func=cmd_push)
 
     return parser
 
