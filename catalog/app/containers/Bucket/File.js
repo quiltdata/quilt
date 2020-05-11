@@ -153,6 +153,8 @@ function VersionInfo({ bucket, path, version }) {
                           onClick={copyS3Uri(v)}
                         >
                           <M.Box
+                            fontSize=".8em"
+                            padding=".1em"
                             height="1em"
                             width="1em"
                             lineHeight={1}
