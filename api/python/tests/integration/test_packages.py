@@ -33,8 +33,8 @@ def _mock_copy_file_list(file_list, callback=None, message=None):
 
 
 class PackageTest(QuiltTestCase):
-    def setup_s3_stubber(self, pkg_name, bucket, *, manifest=None, entries=()):
-        top_hash = 'abcdef'
+    def setup_s3_stubber(self, usr, pkg_name, bucket, *, manifest=None, entries=()):
+        top_hash = 'e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303'
 
         self.s3_stubber.add_response(
             method='get_object',
@@ -44,7 +44,7 @@ class PackageTest(QuiltTestCase):
             },
             expected_params={
                 'Bucket': bucket,
-                'Key': f'.quilt/named_packages/{pkg_name}/latest',
+                'Key': f'.quilt/v2/pointers/usr={usr}/pkg={pkg_name}/latest',
             }
         )
 
@@ -57,7 +57,7 @@ class PackageTest(QuiltTestCase):
                 },
                 expected_params={
                     'Bucket': bucket,
-                    'Key': f'.quilt/packages/{top_hash}',
+                    'Key': f'.quilt/v2/manifests/usr={usr}/pkg={pkg_name}/hash_prefix={top_hash[:2]}/{top_hash}.jsonl',
                 }
             )
 
@@ -70,7 +70,7 @@ class PackageTest(QuiltTestCase):
                 },
                 expected_params={
                     'Bucket': bucket,
-                    'Key': f'.quilt/packages/{top_hash}',
+                    'Key': f'.quilt/v2/manifests/usr={usr}/pkg={pkg_name}/hash_prefix={top_hash[:2]}/{top_hash}.jsonl',
                 }
             )
 
@@ -1341,7 +1341,9 @@ class PackageTest(QuiltTestCase):
     @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
     @patch('quilt3.packages.ObjectPathCache.set')
     def test_install_subpackage(self, mocked_cache_set):
-        pkg_name = 'Quilt/Foo'
+        usr = 'Quilt'
+        pkg_name = 'test'
+        handle = f'{usr}/{pkg_name}'
         bucket = 'my-test-bucket'
         subpackage_path = 'baz'
         entry_url = 's3://my_bucket/my_data_pkg/baz/bat'
@@ -1350,9 +1352,9 @@ class PackageTest(QuiltTestCase):
             (entry_url, entry_content),
         )
         dest = 'package'
-        self.setup_s3_stubber(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
+        self.setup_s3_stubber(usr, pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
 
-        Package.install(f'{pkg_name}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
+        Package.install(f'{handle}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
 
         path = pathlib.Path.cwd() / dest / 'bat'
         mocked_cache_set.assert_called_once_with(
@@ -1365,7 +1367,9 @@ class PackageTest(QuiltTestCase):
     @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
     @patch('quilt3.packages.ObjectPathCache.set')
     def test_install_entry(self, mocked_cache_set):
-        pkg_name = 'Quilt/Foo'
+        usr = 'Quilt'
+        pkg_name = 'test'
+        handle = f'{usr}/{pkg_name}'
         bucket = 'my-test-bucket'
         subpackage_path = 'baz/bat'
         entry_url = 's3://my_bucket/my_data_pkg/baz/bat'
@@ -1374,9 +1378,9 @@ class PackageTest(QuiltTestCase):
             (entry_url, entry_content),
         )
         dest = 'package'
-        self.setup_s3_stubber(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
+        self.setup_s3_stubber(usr, pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
 
-        Package.install(f'{pkg_name}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
+        Package.install(f'{handle}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
 
         path = pathlib.Path.cwd() / dest / 'bat'
         mocked_cache_set.assert_called_once_with(
