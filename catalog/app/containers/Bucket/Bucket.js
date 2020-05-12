@@ -69,9 +69,9 @@ const getBucketSection = (paths) =>
 
 const NavTab = RT.composeComponent(
   'Bucket.Layout.Tab',
-  M.withStyles(({ spacing: { unit } }) => ({
+  M.withStyles((t) => ({
     root: {
-      minHeight: 8 * unit,
+      minHeight: t.spacing(8),
       minWidth: 120,
     },
   })),
@@ -128,12 +128,12 @@ function BucketLayout({ bucket, section = false, children }) {
   )
 }
 
-export default ({
+export default function Bucket({
   location,
   match: {
     params: { bucket },
   },
-}) => {
+}) {
   const { paths } = NamedRoutes.use()
   return (
     <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
