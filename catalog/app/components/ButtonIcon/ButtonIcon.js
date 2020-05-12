@@ -1,27 +1,18 @@
 import cx from 'classnames'
-import PT from 'prop-types'
-import * as RC from 'recompose'
-import Icon from '@material-ui/core/Icon'
-import { withStyles } from '@material-ui/styles'
+import * as React from 'react'
+import * as M from '@material-ui/core'
 
-import * as RT from 'utils/reactTools'
+const useStyles = M.makeStyles((t) => ({
+  left: {
+    marginRight: t.spacing(1),
+  },
+  right: {
+    marginLeft: t.spacing(1),
+  },
+}))
 
-export default RT.composeComponent(
-  'ButtonIcon',
-  RC.setPropTypes({
-    position: PT.oneOf(['left', 'right']),
-  }),
-  withStyles(({ spacing: { unit } }) => ({
-    left: {
-      marginRight: unit,
-    },
-    right: {
-      marginLeft: unit,
-    },
-  })),
-  RC.mapProps(({ classes, className, position = 'left', ...props }) => ({
-    ...props,
-    className: cx(className, classes[position]),
-  })),
-  Icon,
-)
+// position: left | right
+export default function ButtonIcon({ className, position = 'left', ...props }) {
+  const classes = useStyles()
+  return <M.Icon {...props} className={cx(className, classes[position])} />
+}
