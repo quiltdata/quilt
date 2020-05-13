@@ -211,7 +211,7 @@ EXTS_ACCESS_COUNTS = textwrap.dedent("""\
             bucket,
             lower(CASE
                 WHEN cardinality(parts) > 2 AND lower(element_at(parts, -1)) = 'gz' THEN concat(element_at(parts, -2), '.', element_at(parts, -1))
-                WHEN cardinality(parts) = 2 THEN element_at(parts, -1)
+                WHEN cardinality(parts) >= 2 THEN element_at(parts, -1)
                 ELSE ''
                 END
             ) AS ext,
