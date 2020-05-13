@@ -175,12 +175,6 @@ export const handleFromUrl = (url, referrer) => {
 export const handleToHttpsUri = ({ bucket, key, version }) =>
   `https://${bucket}.s3.amazonaws.com/${encode(key)}${mkSearch({ versionId: version })}`
 
-export const handleToS3Uri = ({ bucket, key, version }) => {
-  const s3Part = `s3://${bucket}/${encode(key)}`
-  const versionPart = typeof version === 'undefined' ? '' : ` --version-id ${version}`
-  return s3Part + versionPart
-}
-
 /**
  * Get breadcrumbs for a path.
  *

@@ -20,13 +20,7 @@ import * as SVG from 'utils/SVG'
 import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 import parseSearch from 'utils/parseSearch'
-import {
-  getBreadCrumbs,
-  up,
-  decode,
-  handleToS3Uri,
-  handleToHttpsUri,
-} from 'utils/s3paths'
+import { getBreadCrumbs, up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from './Code'
@@ -74,7 +68,7 @@ function VersionInfo({ bucket, path, version }) {
   const classes = useVersionInfoStyles()
 
   const getHttpsUri = (v) => handleToHttpsUri({ bucket, key: path, version: v.id })
-  const getS3Uri = (v) => handleToS3Uri({ bucket, key: path, version: v.id })
+  const getCliArgs = (v) => `--bucket ${bucket} --key "${path}" --version-id ${v.id}`
 
   const copyHttpsUri = (v) => (e) => {
     e.preventDefault()
@@ -82,10 +76,10 @@ function VersionInfo({ bucket, path, version }) {
     push('HTTPS URI copied to clipboard')
   }
 
-  const copyS3Uri = (v) => (e) => {
+  const copyCliArgs = (v) => (e) => {
     e.preventDefault()
-    copyToClipboard(getS3Uri(v), { container: containerRef.current })
-    push('S3 URI copied to clipboard')
+    copyToClipboard(getCliArgs(v), { container: containerRef.current })
+    push('Object location copied to clipboard')
   }
 
   return (
@@ -140,30 +134,30 @@ function VersionInfo({ bucket, path, version }) {
                             <M.Icon>arrow_downward</M.Icon>
                           </M.IconButton>
                         ))}
-                        <M.IconButton
-                          title="Copy object version's canonical HTTPS URI to the clipboard"
-                          href={getHttpsUri(v)}
-                          onClick={copyHttpsUri(v)}
-                        >
-                          <M.Icon>link</M.Icon>
-                        </M.IconButton>
-                        <M.IconButton
-                          title="Copy object S3 URI with --version-id argument to the clipboard"
-                          href={getS3Uri(v)}
-                          onClick={copyS3Uri(v)}
-                        >
-                          <M.Box
-                            fontSize=".8em"
-                            padding=".1em"
-                            height="1em"
-                            width="1em"
-                            lineHeight={1}
-                            display="flex"
-                            justifyContent="center"
+                        <M.Hidden xsDown>
+                          <M.IconButton
+                            title="Copy object version's canonical HTTPS URI to the clipboard"
+                            href={getHttpsUri(v)}
+                            onClick={copyHttpsUri(v)}
                           >
-                            S3
-                          </M.Box>
-                        </M.IconButton>
+                            <M.Icon>link</M.Icon>
+                          </M.IconButton>
+                          <M.IconButton
+                            title="Copy object location in CLI format (aws s3api) to the clipboard"
+                            onClick={copyCliArgs(v)}
+                          >
+                            <M.Box
+                              fontSize={20}
+                              height={24}
+                              width={24}
+                              lineHeight={24 / 20}
+                              display="flex"
+                              justifyContent="center"
+                            >
+                              S3
+                            </M.Box>
+                          </M.IconButton>
+                        </M.Hidden>
                       </M.ListItemSecondaryAction>
                     )}
                   </M.ListItem>
