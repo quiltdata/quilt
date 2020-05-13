@@ -54,6 +54,10 @@
       "type": "boolean",
       "description": "If true, hide download buttons in the catalog."
     },
+    "noOverviewImages": {
+      "type": "boolean",
+      "description": "If true, hide the image grid on the bucket overview page."
+    },
     "passwordAuth": {
       "$ref": "#/definitions/AuthMethodConfig",
       "description": "Whether Quilt password authentication is enabled for sign in and sign up."
