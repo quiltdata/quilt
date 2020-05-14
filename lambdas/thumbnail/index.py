@@ -189,7 +189,7 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
         return np.pad(np.concatenate(merged, axis=0), ((0, 5), (0, 5)), mode="constant")
 
     if "Z" in img.reader.dims:
-        return Image.fromarray(norm_img(img.data[0, 0, 0, :, :, :].max(axis=0)))
+        return norm_img(img.data[0, 0, 0, :, :, :].max(axis=0))
 
     return norm_img(img.data[0, 0, 0, 0, :, :])
 
