@@ -18,6 +18,7 @@ import numpy as np
 import requests
 from aicsimageio import AICSImage, readers
 from PIL import Image
+
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
@@ -187,8 +188,11 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
         # Add padding on the entire bottom and entire right side of the thumbnail
         return np.pad(np.concatenate(merged, axis=0), ((0, 5), (0, 5)), mode="constant")
 
+    # If there is a Z dimension we need to do _something_ the get a 2D out.
+    # Without causing a war about which projection method is best
+    # we will simply use a max projection on files that contain a Z dimension
     if "Z" in img.reader.dims:
-        return Image.fromarray(norm_img(img.data[0, 0, 0, :, :, :].max(axis=0)))
+        return norm_img(img.data[0, 0, 0, :, :, :].max(axis=0))
 
     return norm_img(img.data[0, 0, 0, 0, :, :])
 
@@ -221,7 +225,12 @@ def lambda_handler(request):
     if resp.ok:
         # Get the original reader / format
         # If the original reader isn't in the supported formats map, use PNG as default presentation format
-        thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(imageio.get_reader(resp.content), "PNG")
+        try:
+            thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(imageio.get_reader(resp.content), "PNG")
+        # In the case imageio can't read the image, default to PNG
+        # Usually an OME-TIFF / CZI / some other bio-format
+        except ValueError:
+            thumbnail_format = "PNG"
 
         # Read image data
         img = AICSImage(resp.content)

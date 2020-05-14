@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 import responses
 from aicsimageio import AICSImage
+
 from t4_lambda_shared.utils import read_body
 
 from ..index import lambda_handler
@@ -34,7 +35,9 @@ def _make_event(query, headers=None):
     ("cell.tiff", "w640h480", "cell-480.png", [15, 1, 158, 100], [514, 480]),
     ("cell.png", "w64h64", "cell-64.png", [168, 104, 3], [39, 64]),
     ("sat_greyscale.tiff", "w640h480", "sat_greyscale-480.png", [512, 512], [480, 480]),
+    ("generated.ome.tiff", "w256h256", "generated-256.png", [6, 36, 76, 68], [224, 167]),
     ("sat_rgb.tiff", "w256h256", "sat_rgb-256.png", [256, 256, 4], [256, 256]),
+    ("single_cell.ome.tiff", "w256h256", "single_cell.png", [6, 40, 152, 126], [256, 205]),
     # Test for statusCode error
     pytest.param("cell.png", "w1h1", None, None, None, marks=pytest.mark.raises(exception=AssertionError))
 ])
