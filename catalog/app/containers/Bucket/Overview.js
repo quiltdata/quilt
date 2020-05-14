@@ -1153,6 +1153,7 @@ export default function Overview({
 }) {
   const s3req = AWS.S3.useRequest()
   const es = AWS.ES.use()
+  const { noOverviewImages } = Config.use()
   const cfg = BucketConfig.useCurrentBucketConfig()
   const inStack = !!cfg
   const overviewUrl = cfg && cfg.overviewUrl
@@ -1177,7 +1178,7 @@ export default function Overview({
         </M.Box>
       )}
       <Readmes {...{ s3req, bucket, overviewUrl }} />
-      <Imgs {...{ es, s3req, bucket, inStack, overviewUrl }} />
+      {!noOverviewImages && <Imgs {...{ es, s3req, bucket, inStack, overviewUrl }} />}
       <Summary {...{ es, s3req, bucket, inStack, overviewUrl }} />
     </M.Box>
   )
