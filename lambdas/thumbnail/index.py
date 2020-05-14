@@ -188,6 +188,9 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
         # Add padding on the entire bottom and entire right side of the thumbnail
         return np.pad(np.concatenate(merged, axis=0), ((0, 5), (0, 5)), mode="constant")
 
+    # If there is a Z dimension we need to do _something_ the get a 2D out.
+    # Without causing a war about which projection method is best
+    # we will simply use a max projection on files that contain a Z dimension
     if "Z" in img.reader.dims:
         return norm_img(img.data[0, 0, 0, :, :, :].max(axis=0))
 
