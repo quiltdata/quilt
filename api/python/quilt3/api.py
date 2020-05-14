@@ -23,7 +23,6 @@ def copy(src, dest):
     copy_file(PhysicalKey.from_url(fix_url(src)), PhysicalKey.from_url(fix_url(dest)))
 
 
-
 @ApiTelemetry("api.delete_package")
 def delete_package(name, registry=None, top_hash=None):
     """
@@ -221,9 +220,9 @@ def disable_telemetry():
     """ Permanently disable sending of anonymous usage metrics """
     _disable_telemetry()
 
+
 def _disable_telemetry():
     _config(telemetry_disabled=True)
-
 
 
 @ApiTelemetry("api.search")
@@ -236,7 +235,8 @@ def search(query, limit=10):
         limit (number): maximum number of results to return. Defaults to 10
 
     Query Syntax:
-        [simple query string query](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
+        [simple query string query](
+            https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
 
 
     Returns:

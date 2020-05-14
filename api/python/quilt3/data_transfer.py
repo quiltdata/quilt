@@ -2,12 +2,13 @@ from collections import defaultdict, deque
 from codecs import iterdecode
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
+import concurrent
 import functools
 import hashlib
 import pathlib
 import shutil
 from threading import Lock
-from typing import List, Tuple
+from typing import List
 import warnings
 
 from botocore import UNSIGNED
@@ -18,13 +19,14 @@ from boto3.s3.transfer import TransferConfig
 from s3transfer.utils import ChunksizeAdjuster, OSUtils, signal_transferring, signal_not_transferring
 
 import jsonlines
-from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_exponential, retry_if_result
 from tqdm import tqdm
 
 from .session import create_botocore_session
 from .util import PhysicalKey, QuiltException, DISABLE_TQDM
 
 MAX_COPY_FILE_LIST_RETRIES = 3
+MAX_FIX_HASH_RETRIES = 3
 
 
 class S3Api(Enum):
@@ -44,6 +46,7 @@ class S3NoValidClientError(Exception):
         self.message = message
         for k, v in kwargs.items():
             setattr(self, k, v)
+
 
 class S3ClientProvider:
     """
@@ -128,7 +131,6 @@ class S3ClientProvider:
         boto_session = boto3.Session(botocore_session=botocore_session)
         return boto_session
 
-
     def register_signals(self, s3_client):
         # Enable/disable file read callbacks when uploading files.
         # Copied from https://github.com/boto/s3transfer/blob/develop/s3transfer/manager.py#L501
@@ -151,13 +153,11 @@ class S3ClientProvider:
         self.register_signals(s3_client)
         self._standard_client = s3_client
 
-
     def _build_unsigned_client(self):
         boto_session = self.get_boto_session()
         s3_client = boto_session.client('s3', config=Config(signature_version=UNSIGNED))
         self.register_signals(s3_client)
         self._unsigned_client = s3_client
-
 
 
 def check_list_object_versions_works_for_client(s3_client, params):
@@ -167,6 +167,7 @@ def check_list_object_versions_works_for_client(s3_client, params):
         return e.response["Error"]["Code"] != "AccessDenied"
     return True
 
+
 def check_list_objects_v2_works_for_client(s3_client, params):
     try:
         s3_client.list_objects_v2(**params, MaxKeys=1)  # Make this as fast as possible
@@ -174,6 +175,7 @@ def check_list_objects_v2_works_for_client(s3_client, params):
         if e.response["Error"]["Code"] == "AccessDenied":
             return False
     return True
+
 
 def check_get_object_works_for_client(s3_client, params):
     try:
@@ -193,6 +195,7 @@ def check_get_object_works_for_client(s3_client, params):
 
     return True
 
+
 def check_head_object_works_for_client(s3_client, params):
     try:
         s3_client.head_object(**params)
@@ -202,7 +205,6 @@ def check_head_object_works_for_client(s3_client, params):
             # exist. Instead of returning a 404, S3 will return a 403.
             return False
     return True
-
 
 
 s3_transfer_config = TransferConfig()
@@ -292,7 +294,6 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path):
     s3_client = ctx.s3_client_provider.find_correct_client(S3Api.GET_OBJECT, src_bucket, params)
 
     dest_file.parent.mkdir(parents=True, exist_ok=True)
-
 
     if src_version is not None:
         params.update(dict(VersionId=src_version))
@@ -387,9 +388,6 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
 
 
 def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
-
-
-
     # Optimization: check if the remote file already exists and has the right ETag,
     # and skip the upload.
     if size >= UPLOAD_ETAG_OPTIMIZATION_THRESHOLD:
@@ -422,7 +420,7 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
     _upload_file(ctx, size, src_path, dest_bucket, dest_path)
 
 
-class WorkerContext(object):
+class WorkerContext:
     def __init__(self, s3_client_provider, progress, done, run):
         self.s3_client_provider = s3_client_provider
         self.progress = progress
@@ -584,9 +582,10 @@ def list_object_versions(bucket, prefix, recursive=True):
     if prefix and not prefix.endswith('/'):
         raise ValueError("Prefix must end with /")
 
-    list_obj_params = dict(Bucket=bucket,
-                           Prefix=prefix
-                          )
+    list_obj_params = dict(
+        Bucket=bucket,
+        Prefix=prefix
+    )
     if not recursive:
         # Treat '/' as a directory separator and only return one level of files instead of everything.
         list_obj_params.update(dict(Delimiter='/'))
@@ -608,7 +607,6 @@ def list_object_versions(bucket, prefix, recursive=True):
         return versions, delete_markers
     else:
         return prefixes, versions, delete_markers
-
 
 
 def list_objects(bucket, prefix, recursive=True):
@@ -758,6 +756,7 @@ def put_bytes(data: bytes, dest: PhysicalKey):
             Body=data,
         )
 
+
 def get_bytes(src: PhysicalKey):
     if src.is_local():
         src_file = pathlib.Path(src.path)
@@ -770,6 +769,7 @@ def get_bytes(src: PhysicalKey):
         resp = s3_client.get_object(**params)
         data = resp['Body'].read()
     return data
+
 
 def get_size_and_version(src: PhysicalKey):
     """
@@ -800,10 +800,26 @@ def get_size_and_version(src: PhysicalKey):
         version = resp.get('VersionId')
     return size, version
 
+
 def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
     assert len(src_list) == len(sizes)
 
-    total_size = sum(sizes)
+    if not src_list:
+        return []
+    return _calculate_sha256_internal(src_list, sizes, [None] * len(src_list))
+
+
+@retry(stop=stop_after_attempt(MAX_FIX_HASH_RETRIES),
+       wait=wait_exponential(multiplier=1, min=1, max=10),
+       retry=retry_if_result(lambda results: any(r is None or isinstance(r, Exception) for r in results)),
+       retry_error_callback=lambda retry_state: retry_state.outcome.result(),
+       )
+def _calculate_sha256_internal(src_list, sizes, results):
+    total_size = sum(
+        size
+        for size, result in zip(sizes, results)
+        if result is None or isinstance(result, Exception)
+    )
     lock = Lock()
 
     with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress:
@@ -842,13 +858,18 @@ def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
                         hash_obj.update(chunk)
                         with lock:
                             progress.update(len(chunk))
-                except (ConnectionError, HTTPClientError, ReadTimeoutError):
-                    # TODO: Find a better way to warn users that we failed to compute this hash
-                    return None
+                except (ConnectionError, HTTPClientError, ReadTimeoutError) as e:
+                    return e
             return hash_obj.hexdigest()
 
         with ThreadPoolExecutor() as executor:
-            results = executor.map(_process_url, src_list, sizes)
+            future_to_idx = {
+                executor.submit(_process_url, src, size): i
+                for i, (src, size, result) in enumerate(zip(src_list, sizes, results))
+                if result is None or isinstance(result, Exception)
+            }
+            for future in concurrent.futures.as_completed(future_to_idx):
+                results[future_to_idx[future]] = future.result()
 
     return results
 

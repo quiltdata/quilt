@@ -97,7 +97,7 @@ ADD_CLOUDTRAIL_PARTITION = textwrap.dedent(f"""\
     ALTER TABLE cloudtrail
     ADD PARTITION (account = '{{account}}', region = '{{region}}', year = '{{year:04d}}', month = '{{month:02d}}', day = '{{day:02d}}')
     LOCATION 's3://{sql_escape(CLOUDTRAIL_BUCKET)}/AWSLogs/{{account}}/CloudTrail/{{region}}/{{year:04d}}/{{month:02d}}/{{day:02d}}/'
-""")
+""")  # noqa: E501
 
 CREATE_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
     CREATE EXTERNAL TABLE object_access_log (
@@ -117,7 +117,7 @@ REPAIR_OBJECT_ACCESS_LOG = textwrap.dedent("""
     MSCK REPAIR TABLE object_access_log
 """)
 
-INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
+INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent("""\
     INSERT INTO object_access_log
     SELECT eventname, bucket, key, date_format(eventtime, '%Y-%m-%d') AS date
     FROM (
@@ -210,8 +210,9 @@ EXTS_ACCESS_COUNTS = textwrap.dedent("""\
             eventname,
             bucket,
             lower(CASE
-                WHEN cardinality(parts) > 2 THEN concat(element_at(parts, -2), '.', element_at(parts, -1))
-                WHEN cardinality(parts) = 2 THEN element_at(parts, -1)
+                WHEN cardinality(parts) > 2 AND lower(element_at(parts, -1)) = 'gz'
+                    THEN concat(element_at(parts, -2), '.', element_at(parts, -1))
+                WHEN cardinality(parts) >= 2 THEN element_at(parts, -1)
                 ELSE ''
                 END
             ) AS ext,
@@ -267,6 +268,7 @@ def query_finished(execution_id):
 
 # Athena limitation for DDL queries.
 MAX_CONCURRENT_QUERIES = 20
+
 
 def run_multiple_queries(query_list):
     results = [None] * len(query_list)
@@ -327,7 +329,8 @@ def now():
 
 
 def handler(event, context):
-    # End of the CloudTrail time range we're going to look at. Subtract 15min because events can be delayed by that much.
+    # End of the CloudTrail time range we're going to look at. Subtract 15min
+    # because events can be delayed by that much.
     end_ts = now() - timedelta(minutes=15)
 
     # Start of the CloudTrail time range: the end timestamp from the previous run, or a year ago if it's the first run.
@@ -340,7 +343,8 @@ def handler(event, context):
         delete_dir(QUERY_RESULT_BUCKET, OBJECT_ACCESS_LOG_DIR)
 
     # We can't write more than 100 days worth of data at a time due to Athena's partitioning limitations.
-    # Moreover, we don't want the lambda to time out, so just process 100 days and let the next invocation handle the rest.
+    # Moreover, we don't want the lambda to time out, so just process 100 days
+    # and let the next invocation handle the rest.
     end_ts = min(end_ts, start_ts + timedelta(days=MAX_OPEN_PARTITIONS-1))
 
     # Delete the temporary directory where Athena query results are written to.
@@ -349,9 +353,12 @@ def handler(event, context):
     # Create a CloudTrail table, but only with partitions for the last N days, to avoid scanning all of the data.
     # A bucket can have data for multiple accounts and multiple regions, so those need to be handled first.
     partition_queries = []
-    for account_response in s3.list_objects_v2(Bucket=CLOUDTRAIL_BUCKET, Prefix='AWSLogs/', Delimiter='/').get('CommonPrefixes') or []:
+    for account_response in s3.list_objects_v2(
+            Bucket=CLOUDTRAIL_BUCKET, Prefix='AWSLogs/', Delimiter='/').get('CommonPrefixes') or []:
         account = account_response['Prefix'].split('/')[1]
-        for region_response in s3.list_objects_v2(Bucket=CLOUDTRAIL_BUCKET, Prefix=f'AWSLogs/{account}/CloudTrail/', Delimiter='/').get('CommonPrefixes') or []:
+        for region_response in s3.list_objects_v2(
+                Bucket=CLOUDTRAIL_BUCKET,
+                Prefix=f'AWSLogs/{account}/CloudTrail/', Delimiter='/').get('CommonPrefixes') or []:
             region = region_response['Prefix'].split('/')[3]
             date = start_ts.date()
             while date <= end_ts.date():
@@ -385,8 +392,8 @@ def handler(event, context):
     run_multiple_queries([insert_query])
 
     # Save the end timestamp.
-    s3.put_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY, Body=str(end_ts.timestamp()), ContentType='text/plain')
-
+    s3.put_object(
+        Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY, Body=str(end_ts.timestamp()), ContentType='text/plain')
 
     queries = [
         ('Objects', OBJECT_ACCESS_COUNTS),

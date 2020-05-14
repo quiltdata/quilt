@@ -8,6 +8,7 @@ from setuptools.command.install import install
 
 VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text().strip()
 
+
 def readme():
     readme_short = """
     Quilt manages data like code (with packages, repositories, browsing and
@@ -34,6 +35,7 @@ class VerifyVersionCommand(install):
             )
             sys.exit(info)
 
+
 setup(
     name="quilt3",
     version=VERSION,
@@ -47,6 +49,7 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
     author='quiltdata',
     author_email='contact@quiltdata.io',
@@ -89,6 +92,7 @@ setup(
             'tox',
             'detox',
             'tox-pytest-summary',
+            'git-pylint-commit-hook',
         ],
     },
     include_package_data=True,

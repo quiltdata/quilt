@@ -98,4 +98,4 @@ model.fit(X, y, nb_epoch = 6, batch_size = 256, shuffle = True)
 model.fit(X, y, nb_epoch = 6, batch_size = 256, shuffle = True)
 model.fit(X, y, nb_epoch = 6, batch_size = 256, shuffle = True)
 plt.imshow(generate_visualization(model, 256))
-"""
+"""  # noqa: W293

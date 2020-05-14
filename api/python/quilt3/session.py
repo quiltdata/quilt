@@ -21,11 +21,13 @@ AUTH_PATH = BASE_PATH / 'auth.json'
 CREDENTIALS_PATH = BASE_PATH / 'credentials.json'
 VERSION = pkg_resources.require('quilt3')[0].version
 
+
 def _load_auth():
     if AUTH_PATH.exists():
         with open(AUTH_PATH) as fd:
             return json.load(fd)
     return {}
+
 
 def _save_auth(cfg):
     BASE_PATH.mkdir(parents=True, exist_ok=True)
@@ -33,11 +35,13 @@ def _save_auth(cfg):
         AUTH_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
         json.dump(cfg, fd)
 
+
 def _load_credentials():
     if CREDENTIALS_PATH.exists():
         with open(CREDENTIALS_PATH) as fd:
             return json.load(fd)
     return {}
+
 
 def _save_credentials(creds):
     BASE_PATH.mkdir(parents=True, exist_ok=True)
@@ -45,8 +49,10 @@ def _save_credentials(creds):
         CREDENTIALS_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
         json.dump(creds, fd)
 
+
 def get_registry_url():
     return get_from_config('registryUrl')
+
 
 def _update_auth(refresh_token, timeout=None):
     try:
@@ -74,6 +80,7 @@ def _update_auth(refresh_token, timeout=None):
         expires_at=data['expires_at']
     )
 
+
 def _handle_response(resp, **kwargs):
     if resp.status_code == requests.codes.unauthorized:
         raise QuiltException(
@@ -85,6 +92,7 @@ def _handle_response(resp, **kwargs):
             raise QuiltException(data['message'])
         except ValueError:
             raise QuiltException("Unexpected failure: error %s" % resp.status_code)
+
 
 def _create_auth(timeout=None):
     """
@@ -108,6 +116,7 @@ def _create_auth(timeout=None):
 
     return auth
 
+
 def _create_session(auth):
     """
     Creates a session object to be used for `push`, `install`, etc.
@@ -129,7 +138,9 @@ def _create_session(auth):
 
     return session
 
+
 _session = None
+
 
 def get_session(timeout=None):
     """
@@ -144,11 +155,13 @@ def get_session(timeout=None):
 
     return _session
 
+
 def clear_session():
     global _session
     if _session is not None:
         _session.close()
         _session = None
+
 
 def open_url(url):
     try:
@@ -163,6 +176,7 @@ def open_url(url):
     except Exception as ex:     # pylint:disable=W0703
         print("Failed to launch the browser: %s" % ex)
 
+
 def login():
     """
     Authenticate to your Quilt stack and assume the role assigned to you by
@@ -173,9 +187,9 @@ def login():
     registry_url = get_registry_url()
     if registry_url is None:
         raise QuiltException(
-            f"You attempted to authenticate to a Quilt catalog, but your home catalog is "
-            f"currently set to None. Please first specify your home catalog by running "
-            f"\"quilt3.config('$URL')\", replacing '$URL' with your catalog homepage."
+            "You attempted to authenticate to a Quilt catalog, but your home catalog is "
+            "currently set to None. Please first specify your home catalog by running "
+            "\"quilt3.config('$URL')\", replacing '$URL' with your catalog homepage."
         )
 
     login_url = "%s/login" % get_registry_url()
@@ -189,6 +203,7 @@ def login():
     refresh_token = input("Enter the code from the webpage: ")
 
     login_with_token(refresh_token)
+
 
 def login_with_token(refresh_token):
     """
@@ -207,6 +222,7 @@ def login_with_token(refresh_token):
     # use registry-provided credentials
     _refresh_credentials()
 
+
 def logout():
     """
     Do not use Quilt credentials. Useful if you have existing AWS credentials.
@@ -219,6 +235,7 @@ def logout():
         print("Already logged out.")
 
     clear_session()
+
 
 def _refresh_credentials():
     session = get_session()
@@ -235,6 +252,16 @@ def _refresh_credentials():
     }
     _save_credentials(result)
     return result
+
+
+def logged_in():
+    """
+    Return catalog URL if Quilt client is authenticated. Otherwise
+    return `None`.
+    """
+    url = get_registry_url()
+    if url in _load_auth():
+        return get_from_config('navigator_url')
 
 
 class QuiltProvider(CredentialProvider):

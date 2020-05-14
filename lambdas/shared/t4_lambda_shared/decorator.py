@@ -5,7 +5,6 @@ Decorators for using lambdas in API Gateway
 from base64 import b64decode, b64encode
 from functools import wraps
 import gzip
-import json
 import traceback
 
 from jsonschema import Draft4Validator, ValidationError
@@ -15,7 +14,7 @@ GZIP_MIN_LENGTH = 1024
 GZIP_TYPES = {'text/plain', 'application/json'}
 
 
-class Request(object):
+class Request:
     """
     Wraps a lambda event in an object similar to a Flask Request:
     http://flask.pocoo.org/docs/1.0/api/#flask.Request
@@ -33,7 +32,7 @@ class Request(object):
             self.data = event['body']
 
 
-def api(cors_origins=[]):
+def api(cors_origins=()):
     def innerdec(f):
         @wraps(f)
         def wrapper(event, _):

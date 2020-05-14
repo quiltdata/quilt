@@ -1,6 +1,6 @@
 """ Testing for data_transfer.py """
 
-### Python imports
+# Python imports
 import io
 import pathlib
 import time
@@ -8,19 +8,19 @@ from contextlib import redirect_stderr
 
 from unittest import mock
 
-### Third-party imports
+# Third-party imports
 from botocore.stub import ANY
 from botocore.exceptions import ClientError, ReadTimeoutError
 import pandas as pd
 import pytest
 
-### Project imports
+# Project imports
 from quilt3 import data_transfer
 from quilt3.util import PhysicalKey
 
 from .utils import QuiltTestCase
 
-### Code
+# Code
 
 # parquet test moved to test_formats.py
 
@@ -105,7 +105,8 @@ class DataTransferTest(QuiltTestCase):
 
         boto_return_val = {'Payload': iter(records)}
         with mock.patch.object(self.s3_client, 'select_object_content', return_value=boto_return_val) as patched:
-            result = data_transfer.select(PhysicalKey.from_url('s3://foo/bar/baz'), 'select * from S3Object', meta={'target': 'json'})
+            result = data_transfer.select(PhysicalKey.from_url('s3://foo/bar/baz'), 'select * from S3Object',
+                                          meta={'target': 'json'})
             assert result.equals(expected_result)
             patched.assert_called_once_with(**expected_args)
 
@@ -152,8 +153,8 @@ class DataTransferTest(QuiltTestCase):
 
     def test_etag(self):
         assert data_transfer._calculate_etag(DATA_DIR / 'small_file.csv') == '"0bec5bf6f93c547bc9c6774acaf85e1a"'
-        assert data_transfer._calculate_etag(DATA_DIR / 'buggy_parquet.parquet') == '"dfb5aca048931d396f4534395617363f"'
-
+        assert data_transfer._calculate_etag(
+            DATA_DIR / 'buggy_parquet.parquet') == '"dfb5aca048931d396f4534395617363f"'
 
     def test_simple_upload(self):
         path = DATA_DIR / 'small_file.csv'
@@ -241,7 +242,6 @@ class DataTransferTest(QuiltTestCase):
         ])
         assert urls[0] == PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1')
 
-
     def test_upload_large_file_etag_match(self):
         path = DATA_DIR / 'large_file.npy'
 
@@ -262,7 +262,6 @@ class DataTransferTest(QuiltTestCase):
             (PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/large_file.npy'), path.stat().st_size),
         ])
         assert urls[0] == PhysicalKey.from_url('s3://example/large_file.npy?versionId=v1')
-
 
     def test_upload_large_file_etag_mismatch(self):
         path = DATA_DIR / 'large_file.npy'
@@ -436,11 +435,16 @@ class DataTransferTest(QuiltTestCase):
 
             with redirect_stderr(stderr), mock.patch('quilt3.data_transfer.DISABLE_TQDM', False):
                 data_transfer.copy_file_list([
-                    (PhysicalKey.from_url('s3://example1/large_file1.npy'), PhysicalKey.from_url('s3://example2/large_file2.npy'), size),
+                    (
+                        PhysicalKey.from_url('s3://example1/large_file1.npy'),
+                        PhysicalKey.from_url('s3://example2/large_file2.npy'),
+                        size
+                    ),
                 ])
             assert stderr.getvalue()
 
-    def test_calculate_sha256_read_timeout(self):
+    @mock.patch('botocore.client.BaseClient._make_api_call')
+    def test_calculate_sha256_read_timeout(self, mocked_api_call):
         bucket = 'test-bucket'
         key = 'dir/a'
         vid = 'a1234'
@@ -448,10 +452,11 @@ class DataTransferTest(QuiltTestCase):
         a_contents = b'a' * 10
 
         pk = PhysicalKey(bucket, key, vid)
-        with mock.patch('botocore.client.BaseClient._make_api_call',
-                        side_effect=ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")):
-            results = data_transfer.calculate_sha256([pk], [len(a_contents)])
-            assert list(results) == [None]
+        exc = ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")
+        mocked_api_call.side_effect = exc
+        results = data_transfer.calculate_sha256([pk], [len(a_contents)])
+        assert mocked_api_call.call_count == data_transfer.MAX_FIX_HASH_RETRIES
+        assert results == [exc]
 
     def test_copy_file_list_retry(self):
         bucket = 'test-bucket'

@@ -11,7 +11,7 @@ from .search_util import search_api
 from .util import PhysicalKey, QuiltException, fix_url
 
 
-class Bucket(object):
+class Bucket:
     """Bucket interface for Quilt.
     """
     def __init__(self, bucket_uri):

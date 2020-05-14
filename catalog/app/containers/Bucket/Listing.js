@@ -260,7 +260,7 @@ export default function Listing({ items, truncated = false, locked = false, load
     if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
   })
 
-  const [useRE, setUseRE] = React.useState(false)
+  const [useRE, setUseRE] = React.useState(true)
   const filtering = useDebouncedInput('', 200)
   const filtered = React.useMemo(
     R.tryCatch(

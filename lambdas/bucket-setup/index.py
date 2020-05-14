@@ -8,6 +8,7 @@ import cfnresponse
 
 S3_CLIENT = boto3.client('s3')
 
+
 def handler(event, context):
     """entry point"""
     if event['RequestType'] == 'Delete':
@@ -27,6 +28,7 @@ def handler(event, context):
         cfnresponse.send(event, context, cfnresponse.FAILED, {})
         raise
 
+
 def enable_versioning(bucket):
     """switch on object versionsing"""
     S3_CLIENT.put_bucket_versioning(
@@ -35,6 +37,7 @@ def enable_versioning(bucket):
             'Status': 'Enabled'
         }
     )
+
 
 def set_cors(bucket, catalog_host):
     """set CORS so catalog works properly"""

@@ -7,10 +7,9 @@ import * as reduxHook from 'redux-react-hook'
 import * as Auth from 'containers/Auth'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
-import { mkSearch } from 'utils/NamedRoutes'
 import * as Resource from 'utils/Resource'
 import { composeComponent, composeHOC } from 'utils/reactTools'
-import { resolveKey, encode } from 'utils/s3paths'
+import { resolveKey, handleToHttpsUri } from 'utils/s3paths'
 
 import * as Credentials from './Credentials'
 import * as S3 from './S3'
@@ -32,13 +31,6 @@ export const useRequestSigner = () => {
   )
 }
 
-// AWS docs (https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html) state that
-// "buckets created in Regions launched after March 20, 2019 are not reachable via the
-// `https://bucket.s3.amazonaws.com naming scheme`", so probably we need to support
-// `https://bucket.s3.aws-region.amazonaws.com` scheme as well.
-const buildS3Url = ({ bucket, key, version }) =>
-  `https://${bucket}.s3.amazonaws.com/${encode(key)}${mkSearch({ versionId: version })}`
-
 export const useS3Signer = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {}) => {
   Credentials.use().suspend()
   const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
@@ -55,7 +47,7 @@ export const useS3Signer = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {}) => 
             Expires: urlExpiration,
             ...opts,
           })
-        : buildS3Url({ bucket, key, version }),
+        : handleToHttpsUri({ bucket, key, version }),
     [mode, isInStack, authenticated, s3, urlExpiration],
   )
 }

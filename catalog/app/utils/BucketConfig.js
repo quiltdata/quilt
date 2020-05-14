@@ -1,34 +1,38 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import * as reduxHook from 'redux-react-hook'
 
+import * as AuthSelectors from 'containers/Auth/selectors'
+import * as APIConnector from 'utils/APIConnector'
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
 import { useRoute } from 'utils/router'
 
-const fetchBuckets = async ({ registryUrl }) => {
-  const res = await fetch(`${registryUrl}/api/buckets`)
-  const text = await res.text()
-  if (!res.ok) {
-    throw new Error(`Unable to fetch buckets (${res.status}):\n${text}`)
-  }
-  const json = JSON.parse(text)
-  return json.buckets.map((b) => ({
-    ...R.omit(['icon_url', 'overview_url', 'relevance_score', 'schema_org'], b),
-    iconUrl: b.icon_url,
-    overviewUrl: b.overview_url,
-    relevance: b.relevance_score,
-    linkedData: b.schema_org,
-  }))
-}
-
-const BucketsResource = Cache.createResource({
+export const BucketsResource = Cache.createResource({
   name: 'BucketConfig.buckets',
-  fetch: fetchBuckets,
+  fetch: ({ req, empty }) =>
+    empty
+      ? Promise.resolve([])
+      : req({ endpoint: '/buckets' }).then((res) =>
+          res.buckets.map((b) => ({
+            ...R.omit(['icon_url', 'overview_url', 'relevance_score', 'schema_org'], b),
+            iconUrl: b.icon_url,
+            overviewUrl: b.overview_url,
+            relevance: b.relevance_score,
+            linkedData: b.schema_org,
+          })),
+        ),
+  key: ({ empty }) => ({ empty }),
 })
 
-export const useBucketConfigs = ({ suspend = true } = {}) =>
-  Cache.useData(BucketsResource, { registryUrl: Config.use().registryUrl }, { suspend })
+export function useBucketConfigs({ suspend = true } = {}) {
+  const authenticated = reduxHook.useMappedState(AuthSelectors.authenticated)
+  const cfg = Config.use()
+  const empty = cfg.alwaysRequiresAuth && !authenticated
+  const req = APIConnector.use()
+  return Cache.useData(BucketsResource, { req, empty }, { suspend })
+}
 
 export const useRelevantBucketConfigs = () => {
   const bs = useBucketConfigs()

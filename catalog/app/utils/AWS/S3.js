@@ -94,14 +94,17 @@ export const useRequest = (extra) => {
     ...extra,
   })
   return React.useCallback(
-    ({ bucket, operation, params }) => {
+    ({ operation, params }) => {
       let type = 'unsigned'
       if (cfg.mode === 'LOCAL') {
         type = 'signed'
       } else if (authenticated) {
         if (
-          (cfg.analyticsBucket && cfg.analyticsBucket === bucket) ||
-          (cfg.mode !== 'OPEN' && isInStack(bucket))
+          // sign if operation is not bucket-specific
+          // (not sure if there are any such operations that can be used from the browser)
+          !params.Bucket ||
+          (cfg.analyticsBucket && cfg.analyticsBucket === params.Bucket) ||
+          (cfg.mode !== 'OPEN' && isInStack(params.Bucket))
         ) {
           type = 'signed'
         }

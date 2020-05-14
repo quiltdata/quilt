@@ -48,14 +48,14 @@ def lambda_handler(request):
 
     url = f'{object_url}?{urlencode(request.args)}'
 
-    headers = { k: v for k, v in request.headers.items() if k in REQUEST_HEADERS_TO_FORWARD }
+    headers = {k: v for k, v in request.headers.items() if k in REQUEST_HEADERS_TO_FORWARD}
     headers['host'] = host
 
     aws_request = AWSRequest(
         method=request.method,
         url=url,
         data=request.data,
-        headers={ k: v for k, v in headers.items() if k in REQUEST_HEADERS_TO_SIGN }
+        headers={k: v for k, v in headers.items() if k in REQUEST_HEADERS_TO_SIGN}
     )
     credentials = Session().get_credentials()
     auth = SigV4Auth(credentials, SERVICE, REGION)
@@ -69,7 +69,7 @@ def lambda_handler(request):
         headers=headers,
     )
 
-    response_headers = { k: v for k, v in response.headers.items() if k in RESPONSE_HEADERS_TO_FORWARD }
+    response_headers = {k: v for k, v in response.headers.items() if k in RESPONSE_HEADERS_TO_FORWARD}
     # Add a default content type to prevent API Gateway from setting it to application/json.
     response_headers.setdefault('content-type', 'application/octet-stream')
 

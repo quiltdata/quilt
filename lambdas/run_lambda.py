@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import argparse
 from base64 import b64decode, b64encode
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import sys
@@ -11,6 +10,7 @@ from index import lambda_handler
 
 PORT = 8080
 LAMBDA_PATH = '/lambda'
+
 
 class Handler(BaseHTTPRequestHandler):
     def _handle_request(self, req_body):

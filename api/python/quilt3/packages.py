@@ -5,7 +5,6 @@ import io
 import json
 import pathlib
 import os
-import re
 import shutil
 import time
 from multiprocessing import Pool
@@ -13,7 +12,6 @@ import uuid
 import warnings
 
 import jsonlines
-from tenacity import retry, stop_after_attempt, wait_exponential
 from tqdm import tqdm
 
 from .data_transfer import (
@@ -27,10 +25,8 @@ from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
     validate_package_name, quiltignore_filter, validate_key, extract_file_extension,
     parse_sub_package_name)
-from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, get_from_config, \
+from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, \
     user_is_configured_to_custom_stack, catalog_package_url, DISABLE_TQDM
-
-MAX_FIX_HASH_RETRIES = 3
 
 
 def hash_file(readable_file):
@@ -50,12 +46,12 @@ def _delete_local_physical_key(pk):
 
 
 def _filesystem_safe_encode(key):
-    """Returns the sha256 of the key. This ensures there are no slashes, uppercase/lowercase conflicts, 
+    """Returns the sha256 of the key. This ensures there are no slashes, uppercase/lowercase conflicts,
     avoids `OSError: [Errno 36] File name too long:`, etc."""
     return hashlib.sha256(key.encode()).hexdigest()
 
 
-class ObjectPathCache(object):
+class ObjectPathCache:
     @classmethod
     def _cache_path(cls, url):
         url_hash = _filesystem_safe_encode(url)
@@ -95,11 +91,12 @@ class ObjectPathCache(object):
         shutil.rmtree(CACHE_PATH)
 
 
-class PackageEntry(object):
+class PackageEntry:
     """
     Represents an entry at a logical key inside a package.
     """
     __slots__ = ['physical_key', 'size', 'hash', '_meta']
+
     def __init__(self, physical_key, size, hash_obj, meta):
         """
         Creates an entry.
@@ -224,7 +221,6 @@ class PackageEntry(object):
         obj_bytes = self.get_bytes(use_cache_if_available=use_cache_if_available)
         return json.loads(obj_bytes.decode("utf-8"))
 
-
     def get_as_string(self, use_cache_if_available=True):
         """
         Return the object as a string. Assumes that the file is encoded using utf-8.
@@ -233,7 +229,6 @@ class PackageEntry(object):
         """
         obj_bytes = self.get_bytes(use_cache_if_available=use_cache_if_available)
         return obj_bytes.decode("utf-8")
-
 
     def deserialize(self, func=None, **format_opts):
         """
@@ -244,6 +239,7 @@ class PackageEntry(object):
                 returning the result directly.
             **format_opts: Some data formats may take options.  Though
                 normally handled by metadata, these can be overridden here.
+
         Returns:
             The deserialized object from the logical_key
 
@@ -290,7 +286,6 @@ class PackageEntry(object):
         # see GH#388 for context
         return self.with_physical_key(dest)
 
-
     def __call__(self, func=None, **kwargs):
         """
         Shorthand for self.deserialize()
@@ -308,7 +303,7 @@ class PackageEntry(object):
         return [self.physical_key]
 
 
-class Package(object):
+class Package:
     """ In-memory representation of a package """
 
     def __init__(self):
@@ -396,7 +391,7 @@ class Package(object):
             name(str): Name of package to install. It also can be passed as NAME/PATH,
                 in this case only the sub-package or the entry specified by PATH will
                 be downloaded.
-            registry(str): Registry where package is located. 
+            registry(str): Registry where package is located.
                 Defaults to the default remote registry.
             top_hash(str): Hash of package to install. Defaults to latest.
             dest(str): Local path to download files to.
@@ -483,11 +478,11 @@ class Package(object):
         short_tophash = Package._shorten_tophash(name, dest_registry_parsed, top_hash)
         print(f"Successfully installed package '{name}', tophash={short_tophash} from {registry}")
 
-
     @classmethod
     def resolve_hash(cls, registry, hash_prefix):
         """
         Find a hash that starts with a given prefix.
+
         Args:
             registry(string): location of registry
             hash_prefix(string): hash prefix with length between 6 and 64 characters
@@ -523,13 +518,13 @@ class Package(object):
             if len(matches) == 1:
                 return potential_shorthash
 
-
     @classmethod
     @ApiTelemetry("package.browse")
     def browse(cls, name, registry=None, top_hash=None):
         """
         Load a package into memory from a registry without making a local copy of
         the manifest.
+
         Args:
             name(string): name of package to load
             registry(string): location of registry to load package from
@@ -567,7 +562,6 @@ class Package(object):
                 tmp_path.rename(local_pkg_manifest)
 
         return cls._from_path(local_pkg_manifest)
-
 
     @classmethod
     def _from_path(cls, path):
@@ -721,12 +715,12 @@ class Package(object):
             readable_file.seek(0)
 
             reader = jsonlines.Reader(readable_file, loads=json.loads)
-            with tqdm(desc="Loading manifest", total=line_count, unit="entries", disable=DISABLE_TQDM) as tqdm_progress:
+            with tqdm(desc="Loading manifest", total=line_count, unit="entries", disable=DISABLE_TQDM) as progress:
                 meta = reader.read()
                 meta.pop('top_hash', None)  # Obsolete as of PR #130
                 pkg = cls()
                 pkg._meta = meta
-                tqdm_progress.update(1)
+                progress.update(1)
 
                 for obj in reader:
                     path = cls._split_key(obj.pop('logical_key'))
@@ -744,7 +738,7 @@ class Package(object):
                         obj['hash'],
                         obj['meta']
                     )
-                    tqdm_progress.update(1)
+                    progress.update(1)
         finally:
             gc.enable()
         return pkg
@@ -843,9 +837,6 @@ class Package(object):
             raise ValueError("Key does not point to a PackageEntry")
         return obj.get()
 
-
-
-
     def readme(self):
         """
         Returns the README PackageEntry
@@ -854,12 +845,11 @@ class Package(object):
         no such entry exists.
         """
         if "README.md" not in self:
-            ex_msg = f"This Package is missing a README file. A Quilt recognized README file is a  file named " \
-                     f"'README.md' (case-insensitive)"
+            ex_msg = "This Package is missing a README file. A Quilt recognized README file is a  file named " \
+                     "'README.md' (case-insensitive)"
             raise QuiltException(ex_msg)
 
         return self["README.md"]
-
 
     def set_meta(self, meta):
         """
@@ -868,9 +858,6 @@ class Package(object):
         self._meta['user_meta'] = meta
         return self
 
-    @retry(stop=stop_after_attempt(MAX_FIX_HASH_RETRIES),
-           wait=wait_exponential(multiplier=1, min=1, max=10),
-           reraise=True)
     def _fix_sha256(self):
         """
         Calculate and set missing hash values
@@ -884,19 +871,16 @@ class Package(object):
             sizes.append(entry.size)
 
         results = calculate_sha256(physical_keys, sizes)
-        
-        entries_w_missing_hash = []
+        exc = None
         for entry, obj_hash in zip(self._incomplete_entries, results):
-            if obj_hash is None:
-                entries_w_missing_hash.append(entry)
+            if isinstance(obj_hash, Exception):
+                exc = obj_hash
             else:
                 entry.hash = dict(type='SHA256', value=obj_hash)
-
-        self._incomplete_entries = entries_w_missing_hash
-        if self._incomplete_entries:
+        if exc:
             incomplete_manifest_path = self._dump_manifest_to_scratch()
             msg = "Unable to reach S3 for some hash values. Incomplete manifest saved to {path}."
-            raise PackageException(msg.format(path=incomplete_manifest_path))
+            raise PackageException(msg.format(path=incomplete_manifest_path)) from exc
 
     def _set_commit_message(self, msg):
         """
@@ -923,7 +907,7 @@ class Package(object):
         registry = get_from_config('default_local_registry')
         registry_parsed = PhysicalKey.from_url(registry)
         pkg_manifest_file = registry_parsed.join("scratch").join(str(int(time.time())))
-            
+
         manifest = io.BytesIO()
         self._dump(manifest)
         put_bytes(
@@ -931,7 +915,7 @@ class Package(object):
             pkg_manifest_file
         )
         return pkg_manifest_file.path
-        
+
     @ApiTelemetry("package.build")
     def build(self, name, registry=None, message=None):
         """
@@ -980,7 +964,6 @@ class Package(object):
 
         return self
 
-
     @ApiTelemetry("package.dump")
     def dump(self, writable_file):
         """
@@ -1014,7 +997,6 @@ class Package(object):
         for logical_key, entry in self.walk():
             yield {'logical_key': logical_key, **entry.as_dict()}
 
-
     def set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
         """
         Returns self with the object at logical_key set to entry.
@@ -1024,9 +1006,9 @@ class Package(object):
             entry(PackageEntry OR string OR object): new entry to place at logical_key in the package.
                 If entry is a string, it is treated as a URL, and an entry is created based on it.
                 If entry is None, the logical key string will be substituted as the entry value.
-                If entry is an object and quilt knows how to serialize it, it will immediately be serialized and written
-                to disk, either to serialization_location or to a location managed by quilt. List of types that Quilt
-                can serialize is available by calling `quilt3.formats.FormatRegistry.all_supported_formats()`
+                If entry is an object and quilt knows how to serialize it, it will immediately be serialized and
+                written to disk, either to serialization_location or to a location managed by quilt. List of types that
+                Quilt can serialize is available by calling `quilt3.formats.FormatRegistry.all_supported_formats()`
             meta(dict): user level metadata dict to attach to entry
             serialization_format_opts(dict): Optional. If passed in, only used if entry is an object. Options to help
                 Quilt understand how the object should be serialized. Useful for underspecified file formats like csv
@@ -1045,9 +1027,7 @@ class Package(object):
                          serialization_location=serialization_location,
                          serialization_format_opts=serialization_format_opts)
 
-
     def _set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
-
         if not logical_key or logical_key.endswith('/'):
             raise QuiltException(
                 f"Invalid logical key {logical_key!r}. "
@@ -1099,8 +1079,8 @@ class Package(object):
                 error_message = f'Quilt does not know how to serialize a {type(entry)}'
                 if ext is not None:
                     error_message += f' as a {ext} file.'
-                error_message += f'. If you think this should be supported, please open an issue or PR at ' \
-                                 f'https://github.com/quiltdata/quilt'
+                error_message += '. If you think this should be supported, please open an issue or PR at ' \
+                                 'https://github.com/quiltdata/quilt'
                 raise QuiltException(error_message)
 
             if serialization_format_opts is None:
@@ -1199,8 +1179,6 @@ class Package(object):
 
         return top_hash.hexdigest()
 
-
-
     @ApiTelemetry("package.push")
     def push(self, name, registry=None, dest=None, message=None, selector_fn=None):
         """
@@ -1230,8 +1208,8 @@ class Package(object):
             dest: where to copy the objects in the package
             registry: registry where to create the new package
             message: the commit message for the new package
-            selector_fn: An optional function that determines which package entries should be copied to S3. The function
-                takes in two arguments, logical_key and package_entry, and should return False if that
+            selector_fn: An optional function that determines which package entries should be copied to S3.
+                The function takes in two arguments, logical_key and package_entry, and should return False if that
                 PackageEntry should be skipped during push. If for example you have a package where the files
                 are spread over multiple buckets and you add a single local file, you can use selector_fn to
                 only push the local file to s3 (instead of pushing all data to the destination bucket).
@@ -1239,7 +1217,9 @@ class Package(object):
         Returns:
             A new package that points to the copied objects.
         """
-        selector_fn = lambda *args: True if selector_fn is None else selector_fn
+        if selector_fn is None:
+            def selector_fn(*args):
+                return True
 
         validate_package_name(name)
 
@@ -1295,8 +1275,10 @@ class Package(object):
             physical_key = entry.physical_key
 
             new_physical_key = dest_parsed.join(logical_key)
-            if (physical_key.bucket == new_physical_key.bucket and
-                physical_key.path == new_physical_key.path):
+            if (
+                physical_key.bucket == new_physical_key.bucket and
+                physical_key.path == new_physical_key.path
+            ):
                 # No need to copy - re-use the original physical key.
                 pkg._set(logical_key, entry)
             else:
@@ -1368,7 +1350,6 @@ class Package(object):
 
         put_bytes(top_hash.encode('utf-8'), latest_path)
 
-
     @ApiTelemetry("package.diff")
     def diff(self, other_pkg):
         """
@@ -1379,7 +1360,7 @@ class Package(object):
         Deleted: present in self, but not other_pkg.
 
         Args:
-            other_pkg: Package to diff 
+            other_pkg: Package to diff
 
         Returns:
             added, modified, deleted (all lists of logical keys)
@@ -1415,8 +1396,6 @@ class Package(object):
         """
         return self._map(f, include_directories=include_directories)
 
-
-
     def _map(self, f, include_directories=False):
 
         if include_directories:
@@ -1425,7 +1404,6 @@ class Package(object):
 
         for lk, entity in self.walk():
             yield f(lk, entity)
-
 
     @ApiTelemetry("package.filter")
     def filter(self, f, include_directories=False):
@@ -1445,7 +1423,6 @@ class Package(object):
             A new package with entries that evaluated to False removed
         """
         return self._filter(f=f, include_directories=include_directories)
-
 
     def _filter(self, f, include_directories=False):
         p = Package()
@@ -1471,6 +1448,7 @@ class Package(object):
         Args:
             src(str): URL of the directory
             extra_files_ok(bool): Whether extra files in the directory should cause a failure.
+
         Returns:
             True if the package matches the directory; False otherwise.
         """
@@ -1493,6 +1471,8 @@ class Package(object):
 
         hash_list = calculate_sha256(url_list, size_list)
         for (logical_key, entry), url_hash in zip(self.walk(), hash_list):
+            if isinstance(url_hash, Exception):
+                raise url_hash
             if entry.hash['value'] != url_hash:
                 return False
 

@@ -2,7 +2,7 @@
 
 # Suppress numpy warnings
 import warnings
-warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")  # noqa: E402
 
 from pathlib import Path
 
@@ -18,7 +18,7 @@ from .api import (
     search
 )
 
-from .session import login, logout
+from .session import logged_in, login, logout
 
 from .packages import Package
 

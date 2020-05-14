@@ -1,264 +1,229 @@
 import { push } from 'connected-react-router/esm/immutable'
 import deburr from 'lodash/deburr'
-import PT from 'prop-types'
+import matchSorter from 'match-sorter'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RC from 'recompose'
+import AutosizeInput from 'react-input-autosize'
 import * as reduxHook from 'redux-react-hook'
 import * as M from '@material-ui/core'
+import Autocomplete from '@material-ui/lab/Autocomplete'
 
 import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as RT from 'utils/reactTools'
-
-const NavInput = RT.composeComponent(
-  'NavBar.BucketSelect.NavInput',
-  M.withStyles(({ palette }) => ({
-    underline: {
-      '&:after': {
-        borderBottomColor: palette.primary.main,
-      },
-    },
-    input: {
-      textOverflow: 'ellipsis',
-    },
-  })),
-  M.Input,
-)
 
 const normalizeBucket = R.pipe(
   deburr,
   R.toLower,
-  R.replace(/^[^a-z0-9]/g, ''),
-  R.replace(/[^a-z0-9-.]/g, '-'),
+  R.replace(/^[^a-z0-9]+/g, ''),
+  R.replace(/[^a-z0-9-.]+/g, '-'),
+  R.replace(/[^a-z0-9]+$/g, ''),
 )
 
-const getCycled = (getter = R.identity) => (arr, val, offset) => {
-  const index =
-    arr.findIndex(
-      R.pipe(
-        getter,
-        R.equals(val),
-      ),
-    ) + offset
-  const cycledIndex = ((index + 1 + arr.length + 1) % (arr.length + 1)) - 1
-  return getter(arr[cycledIndex])
+function WrappedAutosizeInput({ className, ...props }) {
+  return <AutosizeInput inputClassName={className} placeholderIsMinWidth {...props} />
 }
 
-const getBucketCycled = getCycled()
-
-const useStyles = M.makeStyles((t) => ({
-  inputRoot: {
-    width: '100%',
-  },
+const useNavInputStyles = M.makeStyles((t) => ({
   input: {
     fontSize: t.typography.button.fontSize,
     fontWeight: t.typography.button.fontWeight,
     height: 18,
     letterSpacing: t.typography.button.letterSpacing,
     lineHeight: 18,
+    maxWidth: 200,
     paddingBottom: 7,
     paddingTop: 7,
   },
-  popper: {
-    zIndex: t.zIndex.appBar + 1,
+  underline: {
+    '&:after': {
+      borderBottomColor: t.palette.primary.main,
+    },
   },
-  paper: {
-    maxHeight: 'calc(100vh - 80px)',
-    maxWidth: 'calc(100vw - 8px)',
-    overflowY: 'auto',
-  },
-  item: {
-    minHeight: 60,
-  },
-  description: {
-    maxWidth: t.spacing(50),
+}))
+
+const NavInput = React.forwardRef(function NavInput(
+  { InputProps, InputLabelProps, ...props },
+  ref,
+) {
+  const classes = useNavInputStyles()
+  return (
+    <M.Input
+      ref={ref}
+      classes={classes}
+      inputComponent={WrappedAutosizeInput}
+      {...InputProps}
+      {...props}
+    />
+  )
+})
+
+const useBucketStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    maxWidth: '100%',
   },
   icon: {
     flexShrink: 0,
     height: 40,
     width: 40,
   },
+  text: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    paddingLeft: t.spacing(1),
+    '& > *': {
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    },
+  },
+  title: {
+    ...t.typography.body1,
+    lineHeight: '20px',
+  },
+  desc: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+  },
 }))
 
-// TODO: better placeholder styling
-const Placeholder = () => <Delay>{() => <M.CircularProgress />}</Delay>
-
-const Adornment = ({ children }) => {
-  const t = M.useTheme()
+function Bucket({ iconUrl, name, title, description }) {
+  const classes = useBucketStyles()
   return (
-    <M.InputAdornment disableTypography>
-      <M.Box
-        fontSize="button.fontSize"
-        fontWeight="button.fontWeight"
-        letterSpacing={t.typography.button.letterSpacing}
-      >
-        {children}
-      </M.Box>
-    </M.InputAdornment>
+    <div className={classes.root} title={description}>
+      {/* TODO: show text avatar or smth when iconUrl is empty */}
+      <img src={iconUrl} alt={title} className={classes.icon} />
+      <div className={classes.text}>
+        <div className={classes.title}>
+          {title} (s3://{name})
+        </div>
+        <div className={classes.desc}>{description}</div>
+      </div>
+    </div>
   )
 }
 
-const withForwardedRef = (prop = 'forwardedRef') => (Component) =>
-  React.forwardRef((props, ref) => <Component {...props} {...{ [prop]: ref }} />)
+function CustomPopper({ style: css, ...props }) {
+  return (
+    <M.Popper
+      {...props}
+      style={{ ...css, width: 'auto', maxWidth: 'min(calc(100vw - 8px), 680px)' }}
+      placement="bottom-start"
+    />
+  )
+}
 
-export default withForwardedRef()(
-  RT.composeComponent(
-    'NavBar.BucketSelect',
-    RC.setPropTypes({
-      autoFocus: PT.bool,
-      cancel: PT.func,
-    }),
-    RT.withSuspense(() => <Placeholder />),
-    ({ autoFocus = false, cancel, forwardedRef, ...props }) => {
-      const currentBucket = BucketConfig.useCurrentBucket()
-      const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-      const classes = useStyles()
-      const dispatch = reduxHook.useDispatch()
-      const { urls } = NamedRoutes.use()
+function BucketSelect({ cancel, forwardedRef, ...props }) {
+  const currentBucket = BucketConfig.useCurrentBucket()
+  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
+  const dispatch = reduxHook.useDispatch()
+  const { urls } = NamedRoutes.use()
 
-      const [value, setValue] = React.useState('')
-      const [popper, setPopper] = React.useState(false)
-      const inputRef = React.useRef()
-      const anchorRef = React.useRef()
+  const [inputValue, setInputValue] = React.useState('')
+  const inputRef = React.useRef()
 
-      React.useImperativeHandle(forwardedRef, () => ({
-        focus: () => {
-          inputRef.current.focus()
-        },
-      }))
-
-      const buckets = React.useMemo(() => bucketConfigs.map((b) => b.name), [
-        bucketConfigs,
-      ])
-
-      const nextSuggestion = React.useCallback(() => {
-        setValue(getBucketCycled(buckets, value, 1) || '')
-      }, [buckets, value])
-
-      const prevSuggestion = React.useCallback(() => {
-        setValue(getBucketCycled(buckets, value, -1) || '')
-      }, [buckets, value])
-
-      const go = React.useCallback(
-        (to) => {
-          if (to && currentBucket !== to) {
-            dispatch(push(urls.bucketRoot(to)))
-          }
-          if (cancel) cancel()
-        },
-        [currentBucket, urls, dispatch, cancel],
-      )
-
-      const handleChange = React.useCallback(
-        (evt) => {
-          setValue(normalizeBucket(evt.target.value))
-        },
-        [setValue],
-      )
-
-      const handleFocus = React.useCallback(() => {
-        setValue('')
-        setPopper(true)
-      }, [setValue, setPopper])
-
-      const handleBlur = React.useCallback(() => {
-        // without timeout popover click gets ignored
-        setTimeout(() => {
-          setPopper(false)
-          if (cancel) cancel()
-        }, 100)
-      }, [cancel])
-
-      const handleKey = React.useCallback(
-        (evt) => {
-          // eslint-disable-next-line default-case
-          switch (evt.key) {
-            case 'Enter':
-              go(value)
-              break
-            case 'Escape':
-              if (inputRef.current) inputRef.current.blur()
-              break
-            case 'ArrowUp':
-              prevSuggestion()
-              break
-            case 'ArrowDown':
-            case 'Tab':
-              // prevent Tab from switching focus
-              evt.preventDefault()
-              nextSuggestion()
-              break
-          }
-        },
-        [inputRef.current, go, value, nextSuggestion, prevSuggestion],
-      )
-
-      const handleSuggestion = (s) => {
-        setValue(s)
-        go(s)
-      }
-
-      return (
-        <>
-          <M.Box {...props} ref={anchorRef}>
-            <NavInput
-              startAdornment={<Adornment>s3://</Adornment>}
-              value={value}
-              className={classes.inputRoot}
-              classes={{ input: classes.input }}
-              autoFocus={autoFocus}
-              onKeyDown={handleKey}
-              onChange={handleChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              placeholder=" Enter bucket name"
-              inputRef={inputRef}
-            />
-          </M.Box>
-          <M.Popper
-            open={popper}
-            anchorEl={anchorRef.current}
-            placement="bottom-start"
-            className={classes.popper}
-            transition
-          >
-            {({ TransitionProps }) => (
-              <M.MuiThemeProvider theme={style.appTheme}>
-                <M.Fade {...TransitionProps} timeout={350}>
-                  <M.Paper className={classes.paper}>
-                    <M.MenuList>
-                      {bucketConfigs.map((b) => (
-                        <M.MenuItem
-                          className={classes.item}
-                          key={b.name}
-                          onClick={() => handleSuggestion(b.name)}
-                          selected={b.name === value}
-                        >
-                          {/* TODO: show text avatar or smth when iconUrl is empty */}
-                          <img src={b.iconUrl} alt={b.title} className={classes.icon} />
-                          <M.Box pr={2} />
-                          <M.ListItemText
-                            primary={b.title}
-                            secondary={b.description}
-                            secondaryTypographyProps={{
-                              noWrap: true,
-                              className: classes.description,
-                            }}
-                            title={b.description}
-                          />
-                        </M.MenuItem>
-                      ))}
-                    </M.MenuList>
-                  </M.Paper>
-                </M.Fade>
-              </M.MuiThemeProvider>
-            )}
-          </M.Popper>
-        </>
-      )
+  React.useImperativeHandle(forwardedRef, () => ({
+    focus: () => {
+      if (inputRef.current) inputRef.current.focus()
     },
-  ),
-)
+  }))
+
+  return (
+    <M.Box {...props}>
+      <M.MuiThemeProvider theme={style.appTheme}>
+        <Autocomplete
+          PopperComponent={CustomPopper}
+          freeSolo
+          disableClearable
+          openOnFocus
+          options={bucketConfigs}
+          value=""
+          inputValue={inputValue}
+          onInputChange={(event, newValue) => setInputValue(newValue)}
+          onChange={(event, newValue, reason) => {
+            if (reason === 'select-option' || reason === 'create-option') {
+              const to =
+                typeof newValue === 'string' ? normalizeBucket(newValue) : newValue.name
+              if (to && currentBucket !== to) {
+                dispatch(push(urls.bucketRoot(to)))
+              }
+            }
+          }}
+          onClose={() => {
+            if (inputRef.current) inputRef.current.blur()
+          }}
+          filterOptions={(options, params) => {
+            const filtered = params.inputValue
+              ? matchSorter(options, params.inputValue, {
+                  keys: [
+                    'name',
+                    'title',
+                    {
+                      key: 'tags',
+                      threshold: matchSorter.rankings.WORD_STARTS_WITH,
+                    },
+                    {
+                      key: 'description',
+                      maxRanking: matchSorter.rankings.STARTS_WITH,
+                      threshold: matchSorter.rankings.ACRONYM,
+                    },
+                  ],
+                })
+              : options
+
+            if (
+              normalizeBucket(params.inputValue) !== '' &&
+              !filtered.find((b) => b.name === params.inputValue)
+            ) {
+              filtered.unshift(params.inputValue)
+            }
+
+            return filtered
+          }}
+          getOptionLabel={(option) => (typeof option === 'string' ? option : option.name)}
+          renderOption={(option) =>
+            typeof option === 'string' ? (
+              <>
+                <M.Box display="flex" pr={1} fontSize={40}>
+                  <M.Icon fontSize="inherit">arrow_forward</M.Icon>
+                </M.Box>
+                <span>
+                  Go to <b>s3://{normalizeBucket(option)}</b>
+                </span>
+              </>
+            ) : (
+              <Bucket {...option} />
+            )
+          }
+          renderInput={(inputProps) => (
+            <M.MuiThemeProvider theme={style.navTheme}>
+              <NavInput
+                {...inputProps}
+                onBlur={() => {
+                  if (cancel) cancel()
+                  setTimeout(() => {
+                    setInputValue('')
+                  }, 100)
+                }}
+                placeholder="Go to bucket"
+                inputRef={inputRef}
+              />
+            </M.MuiThemeProvider>
+          )}
+        />
+      </M.MuiThemeProvider>
+    </M.Box>
+  )
+}
+
+export default React.forwardRef(function BucketSelectSuspended(props, ref) {
+  return (
+    <React.Suspense fallback={<Delay>{() => <M.CircularProgress />}</Delay>}>
+      <BucketSelect {...props} forwardedRef={ref} />
+    </React.Suspense>
+  )
+})

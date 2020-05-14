@@ -8,9 +8,24 @@ import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { ThrowNotFound } from 'containers/NotFoundPage'
 import * as AWS from 'utils/AWS'
-import { useCurrentBucketConfig } from 'utils/BucketConfig'
+import AsyncResult from 'utils/AsyncResult'
+import Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
+
+import { displayError } from './errors'
+import * as requests from './requests'
+
+const CacheCtx = React.createContext()
+
+export function BucketCacheProvider({ children }) {
+  const ref = React.useRef({})
+  return <CacheCtx.Provider value={ref.current}>{children}</CacheCtx.Provider>
+}
+
+function useBucketCache() {
+  return React.useContext(CacheCtx)
+}
 
 const mkLazy = (load) =>
   RT.loadable(load, { fallback: () => <Placeholder color="text.secondary" /> })
@@ -54,9 +69,9 @@ const getBucketSection = (paths) =>
 
 const NavTab = RT.composeComponent(
   'Bucket.Layout.Tab',
-  M.withStyles(({ spacing: { unit } }) => ({
+  M.withStyles((t) => ({
     root: {
-      minHeight: 8 * unit,
+      minHeight: t.spacing(8),
       minWidth: 120,
     },
   })),
@@ -74,6 +89,8 @@ const useStyles = M.makeStyles((t) => ({
 function BucketLayout({ bucket, section = false, children }) {
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
+  const s3req = AWS.S3.useRequest()
+  const cache = useBucketCache()
   return (
     <Layout
       pre={
@@ -96,37 +113,41 @@ function BucketLayout({ bucket, section = false, children }) {
               )}
             </M.Tabs>
           </M.AppBar>
-          <M.Container maxWidth="lg">{children}</M.Container>
+          <M.Container maxWidth="lg">
+            <Data fetch={requests.bucketExists} params={{ s3req, bucket, cache }}>
+              {AsyncResult.case({
+                Ok: () => children,
+                Err: displayError(),
+                _: () => <Placeholder color="text.secondary" />,
+              })}
+            </Data>
+          </M.Container>
         </>
       }
     />
   )
 }
 
-export default ({
+export default function Bucket({
   location,
   match: {
     params: { bucket },
   },
-}) => {
+}) {
   const { paths } = NamedRoutes.use()
-  const bucketCfg = useCurrentBucketConfig()
-  const s3Props = bucketCfg && bucketCfg.region && { region: bucketCfg.region }
   return (
-    <AWS.S3.Provider {...s3Props}>
-      <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
-        <Switch>
-          <Route path={paths.bucketFile} component={File} exact strict />
-          <Route path={paths.bucketDir} component={Dir} exact />
-          <Route path={paths.bucketOverview} component={Overview} exact />
-          <Route path={paths.bucketSearch} component={Search} exact />
-          <Route path={paths.bucketPackageList} component={PackageList} exact />
-          <Route path={paths.bucketPackageDetail} component={PackageTree} exact />
-          <Route path={paths.bucketPackageTree} component={PackageTree} exact />
-          <Route path={paths.bucketPackageRevisions} component={PackageRevisions} exact />
-          <Route component={ThrowNotFound} />
-        </Switch>
-      </BucketLayout>
-    </AWS.S3.Provider>
+    <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
+      <Switch>
+        <Route path={paths.bucketFile} component={File} exact strict />
+        <Route path={paths.bucketDir} component={Dir} exact />
+        <Route path={paths.bucketOverview} component={Overview} exact />
+        <Route path={paths.bucketSearch} component={Search} exact />
+        <Route path={paths.bucketPackageList} component={PackageList} exact />
+        <Route path={paths.bucketPackageDetail} component={PackageTree} exact />
+        <Route path={paths.bucketPackageTree} component={PackageTree} exact />
+        <Route path={paths.bucketPackageRevisions} component={PackageRevisions} exact />
+        <Route component={ThrowNotFound} />
+      </Switch>
+    </BucketLayout>
   )
 }

@@ -25,7 +25,7 @@ Docker and a Python microservice that supplies temporary AWS
 credentials to the catalog. Temporary credentials are derived from
 your default AWS credentials (or active `AWS_PROFILE`) using
 `boto3.sts.get_session_token`. For more details about configuring and
-using AWS credentials in `boto3`, see the AWS documentation: 
+using AWS credentials in `boto3`, see the AWS documentation:
 https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html
 
 #### Previewing files in S3

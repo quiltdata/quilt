@@ -7,6 +7,7 @@ import * as M from '@material-ui/core'
 import * as Pagination from 'components/Pagination'
 import * as Notifications from 'containers/Notifications'
 import * as APIConnector from 'utils/APIConnector'
+import * as BucketConfig from 'utils/BucketConfig'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
 import * as Cache from 'utils/ResourceCache'
@@ -255,6 +256,18 @@ const formToJSON = (values) => {
   return R.reject(isMissing, json)
 }
 
+const toBucketConfig = (b) => ({
+  name: b.name,
+  title: b.title,
+  // default icon as returned by the registry
+  iconUrl: b.iconUrl || 'https://d1zvn9rasera71.cloudfront.net/q-128-square.png',
+  description: b.description,
+  overviewUrl: b.overviewUrl,
+  linkedData: b.linkedData,
+  tags: b.tags,
+  relevance: b.relevanceScore,
+})
+
 function Add({ close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
@@ -270,6 +283,12 @@ function Add({ close }) {
         })
         const b = data.bucketFromJSON(res)
         cache.patchOk(data.BucketsResource, null, R.append(b))
+        cache.patchOk(
+          BucketConfig.BucketsResource,
+          { empty: false },
+          R.append(toBucketConfig(b)),
+          true,
+        )
         push(`Bucket "${b.name}" added`)
         t.track('WEB', { type: 'admin', action: 'bucket add', bucket: b.name })
         close()
@@ -353,6 +372,12 @@ function Edit({ bucket, close }) {
           data.BucketsResource,
           null,
           R.map((b) => (b.name === bucket.name ? updated : b)),
+        )
+        cache.patchOk(
+          BucketConfig.BucketsResource,
+          { empty: false },
+          R.map((b) => (b.name === bucket.name ? toBucketConfig(updated) : b)),
+          true,
         )
         close()
       } catch (e) {
@@ -452,11 +477,23 @@ function Delete({ bucket, close }) {
     try {
       // optimistically remove the bucket from cache
       cache.patchOk(data.BucketsResource, null, R.reject(R.propEq('name', bucket.name)))
+      cache.patchOk(
+        BucketConfig.BucketsResource,
+        { empty: false },
+        R.reject(R.propEq('name', bucket.name)),
+        true,
+      )
       await req({ endpoint: `/admin/buckets/${bucket.name}`, method: 'DELETE' })
       t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
     } catch (e) {
       // put the bucket back into cache if it hasnt been deleted properly
       cache.patchOk(data.BucketsResource, null, R.append(bucket))
+      cache.patchOk(
+        BucketConfig.BucketsResource,
+        { empty: false },
+        R.append(toBucketConfig(bucket)),
+        true,
+      )
       push(`Error deleting bucket "${bucket.name}"`)
       // eslint-disable-next-line no-console
       console.error('Error deleting bucket')

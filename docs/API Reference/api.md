@@ -78,6 +78,12 @@ __Returns__
 A sequence of strings containing the names of the packages
 
 
+## logged\_in()  {#logged\_in}
+
+Return catalog URL if Quilt client is authenticated. Otherwise
+return `None`.
+
+
 ## login()  {#login}
 
 Authenticate to your Quilt stack and assume the role assigned to you by
@@ -101,7 +107,8 @@ __Arguments__
 * __limit (number)__:  maximum number of results to return. Defaults to 10
 
 Query Syntax:
-    [simple query string query](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
+    [simple query string query](
+        https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
 
 
 __Returns__

@@ -14,8 +14,7 @@ import pytest
 
 import quilt3
 from quilt3 import Package
-from quilt3.packages import MAX_FIX_HASH_RETRIES
-from quilt3.util import PhysicalKey, QuiltException, validate_package_name, fix_url
+from quilt3.util import PhysicalKey, QuiltException, validate_package_name
 
 from ..utils import QuiltTestCase
 
@@ -88,7 +87,6 @@ class PackageTest(QuiltTestCase):
                     'Key': key.path,
                 }
             )
-
 
     def test_build(self):
         """Verify that build dumps the manifest to appdirs directory."""
@@ -541,7 +539,6 @@ class PackageTest(QuiltTestCase):
                 remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
             assert not stderr.getvalue()
 
-
     def test_package_deserialize(self):
         """ Verify loading data from a local file. """
         pkg = (
@@ -585,7 +582,7 @@ class PackageTest(QuiltTestCase):
         assert pkg.meta == "test_meta"
 
         pkg = Package()
-        pkg = pkg.set_dir('/','foo_dir/baz_dir/')
+        pkg = pkg.set_dir('/', 'foo_dir/baz_dir/')
         # todo nested at set_dir site or relative to set_dir path.
         assert PhysicalKey.from_path(bazdir / 'baz') == pkg['baz'].physical_key
 
@@ -631,7 +628,6 @@ class PackageTest(QuiltTestCase):
         assert PhysicalKey.from_path('foo') == pkg['foo'].physical_key
         assert PhysicalKey.from_path('bar') == pkg['bar'].physical_key
 
-
     def test_s3_set_dir(self):
         """ Verify building a package from an S3 directory. """
         with patch('quilt3.packages.list_object_versions') as list_object_versions_mock:
@@ -658,10 +654,9 @@ class PackageTest(QuiltTestCase):
 
             assert pkg['bar']['a.txt'].get() == 's3://bucket/foo/a.txt?versionId=xyz'
             assert pkg['bar']['x']['y.txt'].get() == 's3://bucket/foo/x/y.txt?versionId=null'
-            assert pkg['bar']['a.txt'].size == 10 # GH368
+            assert pkg['bar']['a.txt'].size == 10  # GH368
 
             list_object_versions_mock.assert_called_with('bucket', 'foo/')
-
 
     def test_package_entry_meta(self):
         pkg = (
@@ -681,7 +676,6 @@ class PackageTest(QuiltTestCase):
         pkg['foo'].set_meta({'value': 'other value'})
         assert pkg['foo'].meta == {'value': 'other value'}
         assert pkg['foo']._meta == {'target': 'unicode', 'user_meta': {'value': 'other value'}}
-
 
     def test_list_local_packages(self):
         """Verify that list returns packages in the appdirs directory."""
@@ -755,8 +749,8 @@ class PackageTest(QuiltTestCase):
 
         pkg._fix_sha256()
         for lk, entry in pkg.walk():
-            assert df.equals(entry.deserialize()), "The deserialized PackageEntry should be equal to the object that " \
-                                                   "was serialized"
+            assert df.equals(entry.deserialize()), "The deserialized PackageEntry should be equal to the object " \
+                                                   "that was serialized"
 
         # Test that push cleans up the temporary files, if and only if the serialization_location was not set
         with patch('quilt3.Package._build'), \
@@ -770,7 +764,6 @@ class PackageTest(QuiltTestCase):
         for lk in ["mydataframe4.parquet", "mydataframe5.csv", "mydataframe6.tsv"]:
             file_path = pkg[lk].physical_key.path
             assert not pathlib.Path(file_path).exists(), "These temp files should have been deleted during push()"
-
 
     def test_tophash_changes(self):
         test_file = Path('test.txt')
@@ -806,7 +799,6 @@ class PackageTest(QuiltTestCase):
 
         pkg.delete('asdf')
         assert set(pkg.keys()) == {'jkl;'}
-
 
     def test_iter(self):
         pkg = Package()
@@ -890,7 +882,6 @@ class PackageTest(QuiltTestCase):
         assert len(pkgs) == 1
         assert list(pkgs) == ['foo/bar']
 
-
     def test_validate_package_name(self):
         validate_package_name("a/b")
         validate_package_name("21312/bes")
@@ -925,7 +916,6 @@ class PackageTest(QuiltTestCase):
         p1 = Package.browse('Quilt/Test')
         p2 = Package.browse('Quilt/Test')
         assert p1.diff(p2) == ([], [], [])
-
 
     def test_dir_meta(self):
         test_meta = {'test': 'meta'}
@@ -964,7 +954,6 @@ class PackageTest(QuiltTestCase):
         assert pkg.top_hash == top_hash, \
             "Unexpected top_hash for {}/packages/.quilt/packages/{}".format(registry, top_hash)
 
-
     def test_local_package_delete(self):
         """Verify local package delete works."""
         top_hash = Package().build("Quilt/Test").top_hash
@@ -972,7 +961,6 @@ class PackageTest(QuiltTestCase):
 
         quilt3.delete_package('Quilt/Test')
         assert 'Quilt/Test' not in quilt3.list_packages()
-
 
     def test_remote_package_delete(self):
         """Verify remote package delete works."""
@@ -1008,7 +996,6 @@ class PackageTest(QuiltTestCase):
 
         quilt3.delete_package('Quilt/Test', registry='s3://test-bucket')
 
-
     def test_push_restrictions(self):
         p = Package()
 
@@ -1032,7 +1019,7 @@ class PackageTest(QuiltTestCase):
     def test_commit_message_on_push(self):
         """ Verify commit messages populate correctly on push."""
         with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
-            patch('quilt3.Package._build') as build_mock:
+             patch('quilt3.Package._build') as build_mock:
             with open(REMOTE_MANIFEST) as fd:
                 pkg = Package.load(fd)
 
@@ -1116,7 +1103,6 @@ class PackageTest(QuiltTestCase):
         pkg2 = Package.browse('foo/bar', top_hash=top_hash)
         assert list(pkg.manifest) == list(pkg2.manifest)
 
-
     def test_map(self):
         pkg = Package()
         pkg.set('as/df', LOCAL_MANIFEST)
@@ -1126,7 +1112,6 @@ class PackageTest(QuiltTestCase):
         pkg['as'].set_meta({'foo': 'bar'})
         assert set(pkg.map(lambda lk, entry: lk, include_directories=True)) ==\
             {'as/df', 'as/qw', 'as/'}
-
 
     def test_filter(self):
         pkg = Package()
@@ -1150,10 +1135,9 @@ class PackageTest(QuiltTestCase):
                             include_directories=True)
         assert list(p_copy) == ['a'] and list(p_copy['a']) == ['df']
 
-
     def test_import(self):
         with patch('quilt3.Package._browse') as browse_mock, \
-            patch('quilt3.imports._list_packages') as list_packages_mock:
+             patch('quilt3.imports._list_packages') as list_packages_mock:
             browse_mock.return_value = quilt3.Package()
             list_packages_mock.return_value = ['foo/bar', 'foo/baz']
 
@@ -1165,7 +1149,6 @@ class PackageTest(QuiltTestCase):
 
             from quilt3.data import foo
             assert hasattr(foo, 'bar') and hasattr(foo, 'baz')
-
 
     def test_invalid_key(self):
         pkg = Package()
@@ -1351,7 +1334,7 @@ class PackageTest(QuiltTestCase):
 
             with patch('quilt3.Package._browse') as browse_mock, pytest.raises(ImportError) as exc_info:
                 browse_mock.return_value = quilt3.Package()
-                from quilt3.data.Quilt import Foo
+                from quilt3.data.Quilt import Foo  # pylint: disable=unused-import
             assert "cannot import name 'Foo'" in str(exc_info.value)
 
         # make sure import works for an installed named package
@@ -1471,11 +1454,13 @@ class PackageTest(QuiltTestCase):
         pkg.set('foo', data)
         _, entry = next(pkg.walk())
 
-        mocked_calculate_sha256.return_value = [None]
-        with self.assertRaises(quilt3.exceptions.PackageException):
+        exc = Exception('test exception')
+        mocked_calculate_sha256.return_value = [exc]
+        with pytest.raises(quilt3.exceptions.PackageException) as excinfo:
             pkg._fix_sha256()
-        mocked_calculate_sha256.assert_has_calls([call([entry.physical_key], [len(data)])] * MAX_FIX_HASH_RETRIES)
+        mocked_calculate_sha256.assert_called_once_with([entry.physical_key], [len(data)])
         assert entry.hash is None
+        assert excinfo.value.__cause__ == exc
 
     @patch('quilt3.packages.calculate_sha256')
     def test_fix_sha256(self, mocked_calculate_sha256):
@@ -1485,7 +1470,7 @@ class PackageTest(QuiltTestCase):
         _, entry = next(pkg.walk())
 
         hash_ = object()
-        mocked_calculate_sha256.side_effect = ([None], [hash_])
+        mocked_calculate_sha256.return_value = [hash_]
         pkg._fix_sha256()
-        mocked_calculate_sha256.assert_has_calls([call([entry.physical_key], [len(data)])] * 2)
+        mocked_calculate_sha256.assert_called_once_with([entry.physical_key], [len(data)])
         assert entry.hash == {'type': 'SHA256', 'value': hash_}

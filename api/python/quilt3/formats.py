@@ -81,9 +81,9 @@ from .util import QuiltException
 
 
 # Constants
-NOT_SET = type('NOT_SET', (object,), {'__doc__':
-    """A unique indicator of disuse when `None` is a valid value"""
-    })()
+NOT_SET = type('NOT_SET', (object,), {
+    '__doc__': "A unique indicator of disuse when `None` is a valid value",
+})()
 
 
 # Code
@@ -361,11 +361,11 @@ class BaseFormatHandler(ABC):
 
     def __init__(self, name=None, handled_extensions=tuple(), handled_types=tuple()):
         """Common initialization for BaseFormat subclasses
-        
+
         Subclasses implement the `serialize()` and `deserialize()` methods,
         which are passed the object/bytes to handle, as well as metadata and
         runtime kwargs.
-        
+
         Subclasses *may* implement custom `handles_ext`, `handles_type` methods
         if there is a scenario which requires it (such as lazy load of a large
         module).
@@ -377,10 +377,10 @@ class BaseFormatHandler(ABC):
         which can potentially cause security issues should be avoided
         altogether.  `cls.opts` are useful to handle quirks in poorly-defined
         formats, such as CSV, TSV, and similar.
-        
+
         Args:
             name(str): Name of new format.  Use existing name if your
-                format is compatible with existing formats, if practicable.  
+                format is compatible with existing formats, if practicable.
                 I.e., two different CSV format handlers should both use 'csv'.
 
             handled_extensions(iterable(str)): filename extensions that can be
@@ -703,7 +703,8 @@ class CSVPandasFormatHandler(BaseFormatHandler):
     defaults = {
         'encoding': 'utf-8',
         'index_names_are_keys': False,
-        'na_values': ['', '#N/A', '#N/A N/A', '#NA',
+        'na_values': [
+            '', '#N/A', '#N/A N/A', '#NA',
             '-1.#IND', '-1.#QNAN', '-NaN', '-nan', '1.#IND', '1.#QNAN',
             'N/A', 'NA', 'NULL', 'NaN', 'n/a', 'nan', 'null'],
         'use_header': True,
@@ -772,7 +773,6 @@ class CSVPandasFormatHandler(BaseFormatHandler):
                 result_kwargs[name] = value
 
         return result_kwargs
-
 
     def serialize(self, obj, meta=None, ext=None, **format_opts):
         opts = self.get_opts(meta, format_opts)
@@ -981,7 +981,7 @@ class ParquetFormatHandler(BaseFormatHandler):
         import pandas as pd
         try:
             # intentional unused import -- verify we have pyarrow installed
-            import pyarrow as pa
+            import pyarrow as pa  # pylint: disable=unused-import
         except ImportError:
             return False
         self.handled_types.add(pd.DataFrame)
@@ -1019,6 +1019,7 @@ class ParquetFormatHandler(BaseFormatHandler):
             newtable = table.replace_schema_metadata(meta)
             obj = newtable.to_pandas()
         return obj
+
 
 # compat -- also handle 'pyarrow' in meta['target'] and meta['format']['name'].
 ParquetFormatHandler('pyarrow').register()

@@ -50,7 +50,7 @@ const NotAuthorized = RT.composeComponent(
   'Auth.Wrapper.NotAuthorized',
   withStyles((t) => ({
     heading: {
-      marginTop: t.spacing.unit * 10,
+      marginTop: t.spacing(10),
     },
   })),
   ({ classes }) => (
