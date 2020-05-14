@@ -44,6 +44,7 @@ workflows:
           path: "shared"
           sub-path: "[tests]"
       - test-lambda:
+          name: test-lambda-thumbnail
           path: "thumbnail"
 
   build_and_deploy:
