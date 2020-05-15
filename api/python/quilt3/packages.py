@@ -423,8 +423,7 @@ class Package:
             )
 
         if dest is None:
-            dest = PhysicalKey.from_url(get_install_location()).join('named_packages')
-            dest_parsed = dest.join(name)
+            dest_parsed = PhysicalKey.from_url(get_install_location()).join(name)
         else:
             dest_parsed = PhysicalKey.from_url(fix_url(dest))
             if not dest_parsed.is_local():
