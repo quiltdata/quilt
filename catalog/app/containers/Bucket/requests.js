@@ -6,8 +6,9 @@ import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
-import { resolveKey, parseS3Url } from 'utils/s3paths'
 import * as Resource from 'utils/Resource'
+import { resolveKey, parseS3Url } from 'utils/s3paths'
+import tagged from 'utils/tagged'
 
 import * as errors from './errors'
 
@@ -285,20 +286,60 @@ const SAMPLE_SIZE = 10
 const SUMMARIZE_KEY = 'quilt_summarize.json'
 const MAX_IMGS = 100
 
-const headObject = ({ s3req, bucket, key }) =>
-  s3req({
-    bucket,
+export const ObjectExistence = tagged(['Exists', 'DoesNotExist'])
+
+export async function getObjectExistence({ s3req, bucket, key, version }) {
+  const req = s3req({
     operation: 'headObject',
-    params: { Bucket: bucket, Key: key },
+    params: { Bucket: bucket, Key: key, VersionId: version },
+    promise: false,
   })
-    .then((h) => (h.DeleteMarker ? null : { bucket, key, version: h.VersionId }))
-    .catch((e) => {
-      if (e.code === 'NotFound') return null
-      throw e
+
+  try {
+    const h = await req.promise()
+    return ObjectExistence.Exists({
+      bucket,
+      key,
+      version: h.VersionId,
+      deleted: !!h.DeleteMarker,
     })
+  } catch (e) {
+    if (e.code === 405 && version != null) {
+      // assume delete marker when 405 and version is defined,
+      // since GET and HEAD methods are not allowed on delete markers
+      // (https://github.com/boto/botocore/issues/674)
+      return ObjectExistence.Exists({ bucket, key, version, deleted: true })
+    }
+    if (e.code === 'BadRequest' && version != null) {
+      // assume invalid version when 400 and version is defined
+      return ObjectExistence.DoesNotExist()
+    }
+    if (e.code === 'NotFound') {
+      const { headers } = req.response.httpResponse
+      if (headers['x-amz-delete-marker'] === 'true') {
+        return ObjectExistence.Exists({
+          bucket,
+          key,
+          version: headers['x-amz-version-id'],
+          deleted: true,
+        })
+      }
+      return ObjectExistence.DoesNotExist()
+    }
+    throw e
+  }
+}
+
+const ensureObjectIsPresent = (...args) =>
+  getObjectExistence(...args).then(
+    ObjectExistence.case({
+      Exists: ({ deleted, ...h }) => (deleted ? null : h),
+      _: () => null,
+    }),
+  )
 
 export const bucketSummary = async ({ s3req, es, bucket, overviewUrl, inStack }) => {
-  const handle = await headObject({ s3req, bucket, key: SUMMARIZE_KEY })
+  const handle = await ensureObjectIsPresent({ s3req, bucket, key: SUMMARIZE_KEY })
   if (handle) {
     try {
       return await summarize({ s3req, handle })
@@ -403,13 +444,13 @@ export const bucketReadmes = ({ s3req, bucket, overviewUrl }) =>
   promiseProps({
     forced:
       overviewUrl &&
-      headObject({
+      ensureObjectIsPresent({
         s3req,
         bucket: getOverviewBucket(overviewUrl),
         key: getOverviewKey(overviewUrl, 'README.md'),
       }),
     discovered: Promise.all(
-      README_KEYS.map((key) => headObject({ s3req, bucket, key })),
+      README_KEYS.map((key) => ensureObjectIsPresent({ s3req, bucket, key })),
     ).then(R.filter(Boolean)),
   })
 
