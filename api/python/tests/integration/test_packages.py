@@ -1320,11 +1320,40 @@ class PackageTest(QuiltTestCase):
             method='get_object',
             service_response={
                 'VersionId': 'v1',
-                'Body': BytesIO(b'abcdef'),
+                'Body': BytesIO(b'e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303'),
             },
             expected_params={
                 'Bucket': 'my-test-bucket',
-                'Key': ".quilt/v2/pointers/usr=Quilt/pkg=Foo/latest",
+                'Key': ".quilt/v2/pointers/usr=test/pkg=foo/latest",
+            }
+        )
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'VersionId': 'v1',
+                'ContentLength': REMOTE_MANIFEST.stat().st_size,
+            },
+            expected_params={
+                'Bucket': 'my-test-bucket',
+                'Key': (
+                    '.quilt/v2/manifests/usr=test/pkg=foo/'
+                    'hash_prefix=e9/e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303.jsonl'
+                ),
+            }
+        )
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': BytesIO(REMOTE_MANIFEST.read_bytes()),
+                'ContentLength': REMOTE_MANIFEST.stat().st_size,
+            },
+            expected_params={
+                'Bucket': 'my-test-bucket',
+                'Key': (
+                    '.quilt/v2/manifests/usr=test/pkg=foo/'
+                    'hash_prefix=e9/e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303.jsonl'
+                ),
             }
         )
 

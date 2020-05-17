@@ -3,7 +3,7 @@
 from importlib.machinery import ModuleSpec
 import sys
 
-from quilt3.util import get_from_config, PhysicalKey, get_package_registry
+from quilt3.util import get_from_config
 from quilt3.api import _list_packages
 from quilt3 import Package
 
@@ -42,7 +42,7 @@ class DataPackageImporter:
         elif len(name_parts) == 3:  # e.g. module.__name__ == quilt3.data.foo
             namespace = name_parts[2]
             # we do not know the name the user will ask for, so populate all valid names
-            for pkg in _list_packages(PhysicalKey.from_url(get_package_registry(registry))):
+            for pkg in _list_packages(registry):
                 pkg_user, pkg_name = pkg.split('/')
                 if pkg_user == namespace:
                     module.__dict__[pkg_name] = Package._browse(pkg, registry=registry)
