@@ -15,13 +15,13 @@ const useStyles = M.makeStyles((t) => ({
     fontFamily: t.typography.monospace.fontFamily,
   },
   row: {
-    height: t.spacing.unit * 3,
+    height: t.spacing(3),
   },
   cell: {
     border: 'none',
     whiteSpace: 'nowrap',
     '&, &:last-child': {
-      padding: [[0, 0, 0, t.spacing.unit * 2]],
+      padding: [[0, 0, 0, t.spacing(2)]],
     },
     '&:first-child': {
       paddingLeft: 0,
@@ -36,7 +36,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   variants: {
     columns: '4em',
-    columnGap: t.spacing.unit * 2,
+    columnGap: t.spacing(2),
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.pxToRem(12),
     maxHeight: 'calc(100vh - 5rem)',

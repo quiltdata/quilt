@@ -10,6 +10,7 @@ import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import Sparkline from 'components/Sparkline'
+import * as Notifications from 'containers/Notifications'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
@@ -17,8 +18,9 @@ import Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import { linkStyle } from 'utils/StyledLink'
+import copyToClipboard from 'utils/clipboard'
 import parseSearch from 'utils/parseSearch'
-import { getBreadCrumbs, up, decode } from 'utils/s3paths'
+import { getBreadCrumbs, up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from './Code'
@@ -46,6 +48,7 @@ const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
     fontFamily: typography.monospace.fontFamily,
   },
   list: {
+    maxWidth: '100%',
     width: 420,
   },
 }))
@@ -54,13 +57,30 @@ function VersionInfo({ bucket, path, version }) {
   const s3req = AWS.S3.useRequest()
   const { urls } = NamedRoutes.use()
   const cfg = Config.use()
+  const { push } = Notifications.use()
 
+  const containerRef = React.useRef()
   const [anchor, setAnchor] = React.useState()
   const [opened, setOpened] = React.useState(false)
   const open = React.useCallback(() => setOpened(true), [])
   const close = React.useCallback(() => setOpened(false), [])
 
   const classes = useVersionInfoStyles()
+
+  const getHttpsUri = (v) => handleToHttpsUri({ bucket, key: path, version: v.id })
+  const getCliArgs = (v) => `--bucket ${bucket} --key "${path}" --version-id ${v.id}`
+
+  const copyHttpsUri = (v) => (e) => {
+    e.preventDefault()
+    copyToClipboard(getHttpsUri(v), { container: containerRef.current })
+    push('HTTPS URI copied to clipboard')
+  }
+
+  const copyCliArgs = (v) => (e) => {
+    e.preventDefault()
+    copyToClipboard(getCliArgs(v), { container: containerRef.current })
+    push('Object location copied to clipboard')
+  }
 
   return (
     <>
@@ -77,7 +97,7 @@ function VersionInfo({ bucket, path, version }) {
         {R.pipe(
           AsyncResult.case({
             Ok: (versions) => (
-              <M.List className={classes.list}>
+              <M.List className={classes.list} ref={containerRef}>
                 {versions.map((v) => (
                   <M.ListItem
                     key={v.id}
@@ -107,10 +127,37 @@ function VersionInfo({ bucket, path, version }) {
                     {!cfg.noDownload && !v.deleteMarker && (
                       <M.ListItemSecondaryAction>
                         {withSignedUrl({ bucket, key: path, version: v.id }, (url) => (
-                          <M.IconButton href={url}>
+                          <M.IconButton
+                            href={url}
+                            title="Download this version of the object"
+                          >
                             <M.Icon>arrow_downward</M.Icon>
                           </M.IconButton>
                         ))}
+                        <M.Hidden xsDown>
+                          <M.IconButton
+                            title="Copy object version's canonical HTTPS URI to the clipboard"
+                            href={getHttpsUri(v)}
+                            onClick={copyHttpsUri(v)}
+                          >
+                            <M.Icon>link</M.Icon>
+                          </M.IconButton>
+                          <M.IconButton
+                            title="Copy object location in CLI format (aws s3api) to the clipboard"
+                            onClick={copyCliArgs(v)}
+                          >
+                            <M.Box
+                              fontSize={20}
+                              height={24}
+                              width={24}
+                              lineHeight={24 / 20}
+                              display="flex"
+                              justifyContent="center"
+                            >
+                              S3
+                            </M.Box>
+                          </M.IconButton>
+                        </M.Hidden>
                       </M.ListItemSecondaryAction>
                     )}
                   </M.ListItem>

@@ -43,7 +43,10 @@ const useNavInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-const NavInput = React.forwardRef(function NavInput({ InputProps, ...props }, ref) {
+const NavInput = React.forwardRef(function NavInput(
+  { InputProps, InputLabelProps, ...props },
+  ref,
+) {
   const classes = useNavInputStyles()
   return (
     <M.Input

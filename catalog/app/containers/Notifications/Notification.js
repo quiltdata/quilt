@@ -1,61 +1,52 @@
 import PT from 'prop-types'
 import React from 'react'
-import { setPropTypes } from 'recompose'
-import { makeStyles } from '@material-ui/styles'
-import Button from '@material-ui/core/Button'
-import Snackbar from '@material-ui/core/Snackbar'
-import Icon from '@material-ui/core/Icon'
-import IconButton from '@material-ui/core/IconButton'
+import * as M from '@material-ui/core'
 
-import { composeComponent } from 'utils/reactTools'
-
-const useStyles = makeStyles((t) => ({
+const useStyles = M.makeStyles((t) => ({
   close: {
-    padding: t.spacing.unit / 2,
+    padding: t.spacing(0.5),
   },
 }))
 
-export default composeComponent(
-  'Notifications.Notification',
-  setPropTypes({
-    id: PT.string.isRequired,
-    ttl: PT.number.isRequired,
-    message: PT.node.isRequired,
-    action: PT.shape({
-      label: PT.string.isRequired,
-      onClick: PT.func.isRequired,
-    }),
-    dismiss: PT.func.isRequired,
+export default function Notification({ id, ttl, message, action, dismiss }) {
+  const classes = useStyles()
+
+  const handleClose = React.useCallback(() => dismiss(id), [dismiss, id])
+
+  return (
+    <M.Snackbar
+      open
+      message={message}
+      autoHideDuration={ttl}
+      onClose={handleClose}
+      action={
+        <>
+          {!!action && (
+            <M.Button color="secondary" size="small" onClick={action.onClick}>
+              {action.label}
+            </M.Button>
+          )}
+          <M.IconButton
+            aria-label="Close"
+            color="inherit"
+            className={classes.close}
+            onClick={handleClose}
+          >
+            <M.Icon>close</M.Icon>
+          </M.IconButton>
+        </>
+      }
+    />
+  )
+}
+
+Notification.propTypes = {
+  id: PT.string.isRequired,
+  ttl: PT.number.isRequired,
+  message: PT.node.isRequired,
+  action: PT.shape({
+    label: PT.string.isRequired,
+    onClick: PT.func.isRequired,
   }),
-  ({ id, ttl, message, action, dismiss }) => {
-    const classes = useStyles()
-
-    const handleClose = React.useCallback(() => dismiss(id), [dismiss, id])
-
-    return (
-      <Snackbar
-        open
-        message={message}
-        autoHideDuration={ttl}
-        onClose={handleClose}
-        action={
-          <React.Fragment>
-            {!!action && (
-              <Button color="secondary" size="small" onClick={action.onClick}>
-                {action.label}
-              </Button>
-            )}
-            <IconButton
-              aria-label="Close"
-              color="inherit"
-              className={classes.close}
-              onClick={handleClose}
-            >
-              <Icon>close</Icon>
-            </IconButton>
-          </React.Fragment>
-        }
-      />
-    )
-  },
-)
+  dismiss: PT.func.isRequired,
+}

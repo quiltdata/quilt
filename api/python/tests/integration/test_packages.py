@@ -1,5 +1,6 @@
 """ Integration tests for Quilt Packages. """
 import io
+import tempfile
 from contextlib import redirect_stderr
 from io import BytesIO
 import os
@@ -1303,6 +1304,18 @@ class PackageTest(QuiltTestCase):
             }
         )
 
+        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
+            Package.install('Quilt/Foo', registry='s3://my-test-bucket', dest='package/')
+
+            # import works for installation outside named package directory
+            with patch('quilt3.Package._browse') as browse_mock:
+                browse_mock.return_value = quilt3.Package()
+                from quilt3.data.Quilt import Foo
+
+                assert isinstance(Foo, Package)
+                browse_mock.assert_called_once()
+
+        # make sure import works for an installed named package
         self.s3_stubber.add_response(
             method='get_object',
             service_response={
@@ -1315,27 +1328,31 @@ class PackageTest(QuiltTestCase):
             }
         )
 
-        # import fails for installation outside named package directory
-
-        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
-            Package.install('Quilt/Foo', registry='s3://my-test-bucket', dest='package/')
-
-            with patch('quilt3.Package._browse') as browse_mock, pytest.raises(ImportError) as exc_info:
-                browse_mock.return_value = quilt3.Package()
-                from quilt3.data.Quilt import Foo  # pylint: disable=unused-import
-            assert "cannot import name 'Foo'" in str(exc_info.value)
-
-        # make sure import works for an installed named package
-
-        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
+        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1), \
+             tempfile.TemporaryDirectory() as tmp_dir, \
+             patch(
+                 'quilt3.packages.get_install_location',
+                 return_value=str(PhysicalKey.from_path(tmp_dir))
+             ) as mocked_get_install_location:
             Package.install('test/foo', registry='s3://my-test-bucket')
 
-            with patch('quilt3.Package._browse') as browse_mock:
-                browse_mock.return_value = quilt3.Package()
-                from quilt3.data.test import foo
-
-                assert isinstance(foo, Package)
-                browse_mock.assert_called_once()
+            mocked_get_install_location.assert_called_once_with()
+            items = []
+            for dirpath, dirnames, filenames in os.walk(tmp_dir):
+                dirpath = pathlib.Path(dirpath)
+                for dirname in dirnames:
+                    items.append((dirpath / dirname).relative_to(tmp_dir))
+                for filename in filenames:
+                    items.append((dirpath / filename).relative_to(tmp_dir))
+            items.sort()
+            assert items == list(map(pathlib.Path, (
+                'test',
+                'test/foo',
+                'test/foo/bar.csv',
+                'test/foo/baz',
+                'test/foo/baz/bat',
+                'test/foo/foo',
+            )))
 
     @pytest.mark.usefixtures('isolate_packages_cache')
     @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
