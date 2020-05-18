@@ -5,10 +5,9 @@ import time
 def get_athena_client():
     return boto3.client("athena")
 
+
 def get_glue_client():
     return boto3.client("glue")
-
-
 
 
 def query_and_wait(athena_client, sql, db_name, output_location):
@@ -46,7 +45,8 @@ def wait_for_query_to_complete(athena_client, query_execution_id):
 
 def retrieve_results(athena_client, query_execution_id):
     response = athena_client.get_query_results(QueryExecutionId=query_execution_id)
-    # return format: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/athena.html#Athena.Client.get_query_results
+    # return format:
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/athena.html#Athena.Client.get_query_results
     column_info_list = response['ResultSet']['ResultSetMetadata']['ColumnInfo']
 
     col_headers = [c['Name'] for c in column_info_list]
@@ -127,8 +127,6 @@ def transform_entry(var_char_value, col_type):
         raise NotImplementedError(f"Don't know how to parse {col_type}")
 
 
-
-
 def get_database_names(glue_client):
     # TODO: Paginate properly
     resp = glue_client.get_databases()
@@ -139,12 +137,14 @@ def get_database_names(glue_client):
         databases.append(db["Name"])
     return databases
 
+
 def database_exists(glue_client, db_name):
     return db_name in get_database_names(glue_client)
 
 
 def create_database(glue_client, db_name):
     glue_client.create_database(DatabaseInput={'Name': db_name})
+
 
 def list_tables(glue_client, db_name):
     # TODO: Paginate properly
@@ -156,6 +156,6 @@ def list_tables(glue_client, db_name):
 
     return table_names
 
+
 def table_exists(glue_client, db_name, table_name):
     return table_name in list_tables(glue_client, db_name)
-

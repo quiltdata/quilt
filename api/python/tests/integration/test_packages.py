@@ -104,7 +104,9 @@ class PackageTest(QuiltTestCase):
         top_hash = new_pkg.build("Quilt/Test").top_hash
 
         # Verify manifest is registered by hash.
-        out_path = LOCAL_REGISTRY / f".quilt/v2/manifests/usr=Quilt/pkg=Test/hash_prefix={top_hash[:2]}/{top_hash}.jsonl"
+        out_path = (
+            LOCAL_REGISTRY / f'.quilt/v2/manifests/usr=Quilt/pkg=Test/hash_prefix={top_hash[:2]}/{top_hash}.jsonl'
+        )
         with open(out_path) as fd:
             pkg = Package.load(fd)
             assert PhysicalKey.from_path(test_file) == pkg['foo'].physical_key
@@ -118,7 +120,9 @@ class PackageTest(QuiltTestCase):
         new_pkg = Package()
         new_pkg = new_pkg.set('bar', test_file_name)
         top_hash = new_pkg.build('Quilt/Test').top_hash
-        out_path = LOCAL_REGISTRY / f".quilt/v2/manifests/usr=Quilt/pkg=Test/hash_prefix={top_hash[:2]}/{top_hash}.jsonl"
+        out_path = (
+            LOCAL_REGISTRY / f'.quilt/v2/manifests/usr=Quilt/pkg=Test/hash_prefix={top_hash[:2]}/{top_hash}.jsonl'
+        )
         with open(out_path) as fd:
             pkg = Package.load(fd)
             assert PhysicalKey.from_path(test_file) == pkg['bar'].physical_key
@@ -137,7 +141,9 @@ class PackageTest(QuiltTestCase):
         top_hash = new_pkg.build("Quilt/Test").top_hash
 
         # Verify manifest is registered by hash.
-        out_path = LOCAL_REGISTRY / f".quilt/v2/manifests/usr=Quilt/pkg=Test/hash_prefix={top_hash[:2]}/{top_hash}.jsonl"
+        out_path = (
+            LOCAL_REGISTRY / f'.quilt/v2/manifests/usr=Quilt/pkg=Test/hash_prefix={top_hash[:2]}/{top_hash}.jsonl'
+        )
         with open(out_path) as fd:
             pkg = Package.load(fd)
             assert PhysicalKey.from_path(test_file) == pkg['foo'].physical_key
@@ -151,7 +157,9 @@ class PackageTest(QuiltTestCase):
         new_pkg = Package()
         new_pkg = new_pkg.set('bar', test_file_name)
         top_hash = new_pkg.build("Quilt/Test").top_hash
-        out_path = LOCAL_REGISTRY / f".quilt/v2/manifests/usr=Quilt/pkg=Test/hash_prefix={top_hash[:2]}/{top_hash}.jsonl"
+        out_path = (
+            LOCAL_REGISTRY / f'.quilt/v2/manifests/usr=Quilt/pkg=Test/hash_prefix={top_hash[:2]}/{top_hash}.jsonl'
+        )
         with open(out_path) as fd:
             pkg = Package.load(fd)
             assert PhysicalKey.from_path(test_file) == pkg['bar'].physical_key
@@ -271,11 +279,17 @@ class PackageTest(QuiltTestCase):
             service_response={
                 'Contents': [
                     {
-                        'Key': f".quilt/v2/manifests/usr={usr}/pkg={pkg_name}/hash_prefix={top_hash[:2]}/{top_hash}.jsonl",
+                        'Key': (
+                            f'.quilt/v2/manifests/usr={usr}/pkg={pkg_name}'
+                            f'/hash_prefix={top_hash[:2]}/{top_hash}.jsonl'
+                        ),
                         'Size': 64,
                     },
                     {
-                        'Key': f".quilt/v2/manifests/usr={usr}/pkg={pkg_name}/hash_prefix={top_hash2[:2]}/{top_hash2}.jsonl",
+                        'Key': (
+                            f'.quilt/v2/manifests/usr={usr}/pkg={pkg_name}'
+                            f'/hash_prefix={top_hash2[:2]}/{top_hash2}.jsonl'
+                        ),
                         'Size': 64,
                     }
                 ]
@@ -833,11 +847,17 @@ class PackageTest(QuiltTestCase):
             service_response={
                 'Contents': [
                     {
-                        'Key': '.quilt/v2/manifests/usr=foo/pkg=bar/hash_prefix=e9/e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303.jsonl',
+                        'Key': (
+                            '.quilt/v2/manifests/usr=foo/pkg=bar'
+                            '/hash_prefix=e9/e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303.jsonl'
+                        ),
                         'Size': 64,
                     },
                     {
-                        'Key': '.quilt/v2/manifests/usr=foo2/pkg=bar2/hash_prefix=20/20de5433549a4db332a11d8d64b934a82bdea8f144b4aecd901e7d4134f8e733.jsonl',
+                        'Key': (
+                            '.quilt/v2/manifests/usr=foo2/pkg=bar2'
+                            '/hash_prefix=20/20de5433549a4db332a11d8d64b934a82bdea8f144b4aecd901e7d4134f8e733.jsonl'
+                        ),
                         'Size': 64,
                     },
                 ]
@@ -852,7 +872,6 @@ class PackageTest(QuiltTestCase):
 
         assert len(pkgs) == 2
         assert set(pkgs) == {'foo/bar', 'foo2/bar2'}
-
 
     def test_validate_package_name(self):
         validate_package_name("a/b")
@@ -923,9 +942,10 @@ class PackageTest(QuiltTestCase):
 
         pkg = Package.browse('foo/bar', registry=registry, top_hash=top_hash)
 
-        assert pkg.top_hash == top_hash, \
-            f"Unexpected top_hash for {registry}/packages/.quilt/v2/manifests/usr=foo/pkg=bar/{top_hash[:2]}/{top_hash}.jsonl"
-
+        assert pkg.top_hash == top_hash, (
+            f'Unexpected top_hash for {registry}/packages/.quilt/v2/manifests/usr=foo/pkg=bar'
+            f'/{top_hash[:2]}/{top_hash}.jsonl'
+        )
 
     def test_local_package_delete(self):
         """Verify local package delete works."""
@@ -961,10 +981,10 @@ class PackageTest(QuiltTestCase):
             }
         )
 
-        for key in [
+        for key in (
             f'.quilt/v2/manifests/usr={usr}/pkg={pkg}/hash_prefix={tophash1[:2]}/{tophash1}.jsonl',
-            f'.quilt/v2/manifests/usr={usr}/pkg={pkg}/hash_prefix={tophash2[:2]}/{tophash2}.jsonl'
-            ]:
+            f'.quilt/v2/manifests/usr={usr}/pkg={pkg}/hash_prefix={tophash2[:2]}/{tophash2}.jsonl',
+        ):
             self.s3_stubber.add_response(
                 method='delete_object',
                 service_response={},
@@ -1197,7 +1217,10 @@ class PackageTest(QuiltTestCase):
             },
             expected_params={
                 'Bucket': 'my-test-bucket',
-                'Key': f".quilt/v2/manifests/usr=Quilt/pkg=Foo/hash_prefix=e9/e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303.jsonl",
+                'Key': (
+                    '.quilt/v2/manifests/usr=Quilt/pkg=Foo'
+                    '/hash_prefix=e9/e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303.jsonl'
+                ),
             }
         )
 
@@ -1210,7 +1233,10 @@ class PackageTest(QuiltTestCase):
             },
             expected_params={
                 'Bucket': 'my-test-bucket',
-                'Key': f".quilt/v2/manifests/usr=Quilt/pkg=Foo/hash_prefix=e9/e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303.jsonl",
+                'Key': (
+                    '.quilt/v2/manifests/usr=Quilt/pkg=Foo'
+                    '/hash_prefix=e9/e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303.jsonl'
+                ),
             }
         )
 
@@ -1512,4 +1538,3 @@ class PackageTest(QuiltTestCase):
         pkg._fix_sha256()
         mocked_calculate_sha256.assert_called_once_with([entry.physical_key], [len(data)])
         assert entry.hash == {'type': 'SHA256', 'value': hash_}
-

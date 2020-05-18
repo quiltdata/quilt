@@ -1,5 +1,6 @@
 from .util import PhysicalKey
 
+
 class DotQuiltLayout:
     latest_tag = "latest"
 
@@ -21,8 +22,6 @@ class DotQuiltLayout:
 
         user, pkg = package_name.split("/")
         return registry.join(f"pointers/usr={user}/pkg={pkg}/{cls.latest_tag}")
-
-
 
     @classmethod
     def package_manifest_dir(cls, registry: PhysicalKey, package_name) -> PhysicalKey:

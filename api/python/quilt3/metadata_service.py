@@ -1,8 +1,6 @@
-import athena
 from tabulate import tabulate
 
-
-
+from . import athena
 
 
 def setup(bucket, db_name="default", verbose=False):
@@ -11,9 +9,11 @@ def setup(bucket, db_name="default", verbose=False):
     create_tables_and_views_if_nonexistent(glue_client, athena_client, bucket, db_name=db_name, verbose=verbose)
     _recover_partitions(athena_client, bucket, db_name=db_name, verbose=verbose)
 
+
 def recover_partitions(bucket, db_name="default", verbose=False):
     athena_client = athena.get_athena_client()
     _recover_partitions(athena_client, bucket, db_name=db_name, verbose=verbose)
+
 
 def query(sql, bucket, db_name="default", verbose=False):
     def vlog(*s):
@@ -28,9 +28,7 @@ def query(sql, bucket, db_name="default", verbose=False):
     return col_headers, rows
 
 
-
 def create_tables_and_views_if_nonexistent(glue_client, athena_client, bucket, db_name="default", verbose=False):
-
     def vlog(*s):
         if verbose:
             print(*s)
@@ -43,7 +41,6 @@ def create_tables_and_views_if_nonexistent(glue_client, athena_client, bucket, d
     else:
         vlog(f"Database '{db_name}' already exists")
 
-
     if not athena.table_exists(glue_client, db_name, table_name(bucket)):
         vlog(f"Table '{db_name}.{table_name(bucket)}' doesn't exist, creating it.")
         # Query and wait raises exception if doesn't succeed
@@ -51,21 +48,12 @@ def create_tables_and_views_if_nonexistent(glue_client, athena_client, bucket, d
     else:
         vlog(f"Table '{db_name}.{table_name(bucket)}' already exists")
 
-
     if not athena.table_exists(glue_client, db_name, view_name(bucket)):
         vlog(f"View '{db_name}.{view_name(bucket)}' doesn't exist, creating it.")
         # Query and wait raises exception if doesn't succeed
         athena.query_and_wait(athena_client, view_creation_sql(db_name, bucket), db_name, output_location)
     else:
         vlog(f"View '{db_name}.{view_name(bucket)}' already exists")
-
-
-
-
-
-
-
-
 
 
 def table_creation_sql(bucket):
@@ -107,13 +95,13 @@ def table_name(bucket):
 
 
 def view_creation_sql(db_name, bucket):
-    return f"""\
+    return fr"""
 CREATE VIEW {view_name(bucket)} AS
 WITH
 manifest_table as (
   SELECT concat(usr, '/', pkg) AS package
   , usr
-  , pkg 
+  , pkg
   , manifest_commit_message
   , regexp_extract("$path",'[ \w-]+?(?=\.)') AS hash
   FROM "{db_name}"."{table_name(bucket)}"
@@ -151,18 +139,9 @@ ON entry_table.entry_table_package = manifest_table.package
 AND entry_table.entry_table_hash = manifest_table.hash;
     """
 
+
 def view_name(bucket):
     return f"quilt_metadata_service_{bucket.replace('-', '_')}"
-
-
-
-
-
-
-
-
-
-
 
 
 def _recover_partitions(athena_client, bucket, db_name="default", verbose=False):
@@ -174,8 +153,3 @@ def _recover_partitions(athena_client, bucket, db_name="default", verbose=False)
 
 def get_output_location(bucket):
     return f"s3://{bucket}/.quilt/v2/athena-results/"
-
-
-
-
-

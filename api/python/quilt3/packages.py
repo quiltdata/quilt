@@ -17,7 +17,7 @@ from botocore.exceptions import ClientError
 
 from .data_transfer import (
     calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_version,
-    list_object_versions, list_url, put_bytes, new_latest_manifest_tophash
+    list_object_versions, list_url, put_bytes
 )
 from .exceptions import PackageException
 from .formats import FormatRegistry
@@ -1480,4 +1480,3 @@ class Package:
                 return False
 
         return True
-

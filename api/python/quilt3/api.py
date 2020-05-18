@@ -1,4 +1,5 @@
-from .data_transfer import copy_file, get_bytes, delete_url, list_url, new_latest_manifest_tophash, put_bytes, list_url_with_datetime
+from .data_transfer import copy_file, get_bytes, delete_url, list_url, new_latest_manifest_tophash, put_bytes, \
+    list_url_with_datetime
 from .packages import Package
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
@@ -67,6 +68,7 @@ def _delete_package_version(registry: PhysicalKey, package_name, tophash: str):
             return
         put_bytes(new_latest_tophash.encode('utf-8'), latest_pointer_pk)
 
+
 def _delete_all_package_versions(registry: PhysicalKey, package_name):
     assert isinstance(registry, PhysicalKey)
     manifest_dir_pk = DotQuiltLayout.package_manifest_dir(registry, package_name)
@@ -75,6 +77,7 @@ def _delete_all_package_versions(registry: PhysicalKey, package_name):
         tophash = DotQuiltLayout.extract_tophash(rel_path)
         delete_url(DotQuiltLayout.manifest_pk(registry, package_name, tophash))
     delete_url(DotQuiltLayout.latest_pointer_pk(registry, package_name))
+
 
 @ApiTelemetry("api.list_packages")
 def list_packages(registry=None):
@@ -112,7 +115,6 @@ def _list_packages(registry=None):
             yield pkg_name
 
 
-
 @ApiTelemetry("api.list_package_versions")
 def list_package_versions(name, registry=None):
     """Lists versions of a given package.
@@ -142,7 +144,6 @@ def _list_package_versions(name, registry=None):
     for path, _, dt in list_url_with_datetime(package_manifest_dir_pk):
         tophash = DotQuiltLayout.extract_tophash(path)
         yield tophash, dt.strftime("%Y-%m-%d %H:%M:%S")
-
 
 
 @ApiTelemetry("api.config")

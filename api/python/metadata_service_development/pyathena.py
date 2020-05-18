@@ -1,10 +1,11 @@
-from pyathena import connect
+from pyathena import connect  # pylint: disable=import-self
 
 # This file contains example code for how to query Athena via the
 # PyAthena library both with and without SQLAlchemy
 
-AWS_ACCESS_KEY="REDACTED"
-AWS_SECRET_ACCESS_KEY="REDACTED"
+AWS_ACCESS_KEY = "REDACTED"
+AWS_SECRET_ACCESS_KEY = "REDACTED"
+
 
 def direct_access():
     cursor = connect(aws_access_key_id=AWS_ACCESS_KEY,
@@ -16,11 +17,9 @@ def direct_access():
     for row in cursor:
         print(row)
 
-from urllib.parse import quote_plus  # PY2: from urllib import quote_plus
-from sqlalchemy.engine import create_engine
-from sqlalchemy.sql.expression import select
-from sqlalchemy.sql.functions import func
-from sqlalchemy.sql.schema import Table, MetaData
+
+from sqlalchemy.engine import create_engine  # noqa: E402
+from sqlalchemy.sql.schema import Table, MetaData  # noqa: E402
 
 
 def main():

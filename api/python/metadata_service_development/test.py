@@ -3,9 +3,10 @@ import time
 import quilt3
 from quilt3 import PhysicalKey
 
-REGISTRY="s3://armand-dotquilt-dev"
+REGISTRY = "s3://armand-dotquilt-dev"
 PACKAGE_NAME = "test/test"
-MESSAGE="none"
+MESSAGE = "none"
+
 
 def create_packages():
     # NOTE: This code relies on browse working with the old registry format while push works with new registries
@@ -22,8 +23,6 @@ def create_packages():
 
     pkg["CoLA/dev.tsv"].set_meta({"k1": "v3"})
     pkg.push("test/glue", registry=REGISTRY)
-
-
 
     pkg = quilt3.Package.browse("cv/coco2017", registry="s3://quilt-ml")
     pkg.push("test/coco2017", registry=REGISTRY, selector_fn=lambda x, y: False)
@@ -51,10 +50,12 @@ def test_resolve_hash():
     tophash = quilt3.Package.resolve_hash(PhysicalKey.from_url(REGISTRY), "test/glue", hash_prefix=shorthash)
     print("Shorthash", shorthash, "translates to", tophash)
 
+
 def test_shorten_tophash():
     fullhash = "e99b760a05539460ac0a7349abb8f476e8c75282a38845fa828f8a5d28374303"
     shorthash = quilt3.Package._shorten_tophash("test/glue", PhysicalKey.from_url(REGISTRY), fullhash)
     print("Full tophash", fullhash, "shortened to", shorthash)
+
 
 def gen_test_pkg():
     pkg = quilt3.Package()
@@ -104,9 +105,6 @@ def test_build_and_rollback():
     quilt3.Package.rollback(PACKAGE_NAME, registry=REGISTRY, top_hash=original_latest_tophash)
     most_recent_latest_tophash = quilt3.Package.browse(PACKAGE_NAME, registry=REGISTRY).top_hash
     assert most_recent_latest_tophash == original_latest_tophash
-
-
-
 
 
 if __name__ == '__main__':

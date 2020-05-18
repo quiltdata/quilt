@@ -44,10 +44,8 @@ class MetadataQuery:
         for inp in inputs:
             assert isinstance(inp, (str, dict, PrestoJsonSugarInstance))
 
-
         # Build any PrestoJsonSugarInstances to string
-        for i in range(len(inputs)):
-            clause = inputs[i]
+        for i, clause in enumerate(inputs):
             if isinstance(clause, PrestoJsonSugarInstance):
                 clause = clause.build()
             if isinstance(clause, dict):
@@ -59,13 +57,14 @@ class MetadataQuery:
         # Convert various types to string representations:
         #   - strings are unchanged
         #   - dicts are converted to f"{key} AS {value}"
-        for i in range(len(inputs)):
-            col = inputs[i]
+        for i, col in enumerate(inputs):
             if isinstance(col, str):
                 continue
             elif isinstance(col, dict):
-                assert len(col.keys()) == 1, "Currently only dictionaries with a single mapping are supported. Use a " \
-                                             "list of dictionaries rather than a dictionary with multiple mappings"
+                assert len(col.keys()) == 1, (
+                    "Currently only dictionaries with a single mapping are supported. Use a list of dictionaries "
+                    "rather than a dictionary with multiple mappings"
+                )
                 col_exp = col.keys()[0]
                 col_name = col.values()[0]
                 inputs[i] = f"{col_exp} as {col_name}"
@@ -78,7 +77,6 @@ class MetadataQuery:
         self.select_params = inputs
         return self
 
-
     def where(self, where_clauses):
         if isinstance(where_clauses, (str, PrestoJsonSugarInstance)):
             where_clauses = [where_clauses]
@@ -88,8 +86,7 @@ class MetadataQuery:
             assert isinstance(p, (str, PrestoJsonSugarInstance)), f"Unexpected where clause type: {type(p)}"
 
         # Build where clauses that use PrestoJsonSugarInstance
-        for i in range(len(where_clauses)):
-            clause = where_clauses[i]
+        for i, clause in enumerate(where_clauses):
             if isinstance(clause, PrestoJsonSugarInstance):
                 clause = clause.build()
             where_clauses[i] = clause
@@ -106,11 +103,9 @@ class MetadataQuery:
         self.limit_val = limit_val
         return self
 
-
     def _gen_select_sql(self):
         """Convert select_clauses into a single SELECT string"""
         return "SELECT " + "\n, ".join(self.select_params)
-
 
     def _gen_where_sql(self):
         if self.package is not None:
@@ -121,10 +116,9 @@ class MetadataQuery:
             self.where_clauses.append(f"""   hash = '{self.tophash}'   """)
             self.where_clauses.append(f"""   hash_prefix = '{self.tophash[:2]}'   """)
 
-
         where_sql = ""
         for i, clause in enumerate(self.where_clauses):
-            clause_sql = "WHERE" if i==0 else "\nAND"
+            clause_sql = "WHERE" if i == 0 else "\nAND"
             clause_sql += f" {clause}"
             where_sql += clause_sql
         return where_sql
@@ -136,16 +130,11 @@ class MetadataQuery:
         return f"LIMIT {self.limit_val}"
 
     def _gen_sql(self):
-        sql = f"""\
+        return f"""\
 {self._gen_select_sql()}
-FROM "{self.db_name}"."{metadata_service.view_name(self.bucket)}" 
+FROM "{self.db_name}"."{metadata_service.view_name(self.bucket)}"
 {self._gen_where_sql()}
 {self._gen_limit_sql()}"""
-
-
-        return sql
-
-
 
     def display_sql(self):
         print(self._gen_sql())
@@ -156,17 +145,13 @@ FROM "{self.db_name}"."{metadata_service.view_name(self.bucket)}"
         return df
 
 
-
-
-
-
-
 def python_var_to_sql_str(v):
     assert isinstance(v, (str, int, float)), "Can only convert str/int/float to SQL str"
     if isinstance(v, str):
         v = f"    '{v}'    "  # Whitespace to make quote marks easier to read
         v = v.strip()
     return v
+
 
 def list_to_sql(list_or_tuple):
     sql_items = [python_var_to_sql_str(v) for v in list_or_tuple]
@@ -202,6 +187,7 @@ class PrestoJsonSugar:
     @classmethod
     def contains(cls, item):
         return PrestoJsonSugarInstance().contains(item)
+
 
 class PrestoJsonSugarInstance:
     """
@@ -243,7 +229,6 @@ class PrestoJsonSugarInstance:
         chain_entry = "in_list", list_or_tuple
         self.chain.append(chain_entry)
         return self
-
 
     def build(self):
         cur = "meta"
@@ -309,7 +294,8 @@ if __name__ == '__main__':
         "package",  # Package name
         "manifest_commit_message",
         "hash",  # manifest top hash
-        "meta"  # user defined metadata for each logical_key (work with meta using Presto JSON tools or PrestoJsonSugar class)
+        # user defined metadata for each logical_key (work with meta using Presto JSON tools or PrestoJsonSugar class)
+        "meta",
     ]).where([
         "size > 1000000"
     ]).limit(
@@ -317,8 +303,6 @@ if __name__ == '__main__':
     )
 
     pd_df = query.execute(verbose=True)
-
-
 
     # meta = PrestoJsonSugar()
     # tophash = "5708d60b8f27213ce3936d79a698916b68415e3efa0b5474d913de59f8ed999c"

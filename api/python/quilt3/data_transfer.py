@@ -672,7 +672,6 @@ def list_url(src: PhysicalKey):
                 yield key[len(src_path):], obj['Size']
 
 
-
 def list_url_with_datetime(src: PhysicalKey):
     # Returns created time for local items and last modified time for s3 items
     if src.is_local():
@@ -732,13 +731,11 @@ def new_latest_manifest_tophash(registry: PhysicalKey, package_name: str, tophas
             except FileNotFoundError:
                 # If a file does not exist, is it really a file?
                 pass
-
-
     else:
-
         src_path = manifest_dir_pk.path
         list_obj_params = dict(Bucket=manifest_dir_pk.bucket, Prefix=src_path)
-        s3_client = S3ClientProvider().find_correct_client(S3Api.LIST_OBJECTS_V2, manifest_dir_pk.bucket, list_obj_params)
+        s3_client = S3ClientProvider().find_correct_client(
+            S3Api.LIST_OBJECTS_V2, manifest_dir_pk.bucket, list_obj_params)
         paginator = s3_client.get_paginator('list_objects_v2')
         for response in paginator.paginate(**list_obj_params):
             for obj in response.get('Contents', []):
@@ -1139,4 +1136,3 @@ def select(src, query, meta=None, raw=False, **kwargs):
         # raw response.
     # !! if this response type is modified, update related docstrings on Bucket.select().
     return response
-
