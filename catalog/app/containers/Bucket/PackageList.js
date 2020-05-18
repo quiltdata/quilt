@@ -41,7 +41,7 @@ const Counts = ({ counts, total }) => {
   const sparklineH = xs ? 32 : 40
   return (
     <M.Box position="absolute" right={0} top={0} bottom={0}>
-      <M.Box position="absolute" right={16} top={16}>
+      <M.Box position="absolute" right={16} top={16} whiteSpace="nowrap">
         <M.Typography
           variant="body2"
           color={cursor === null ? 'textSecondary' : 'textPrimary'}
