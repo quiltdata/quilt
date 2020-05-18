@@ -1,4 +1,4 @@
-# Quilt3 CLI
+# Quilt3 CLI and Shell
 
 ## `catalog`
 ```
@@ -158,3 +158,24 @@ optional arguments:
   --dest DEST          Where to copy the objects in the package
   --message MESSAGE    The commit message for the new package
 ```
+## Environment variables
+#### `QUILT_DISABLE_USAGE_METRICS`
+Disable anonymous usage collection. Defaults to `False`
+```
+$ export QUILT_DISABLE_USAGE_METRICS=true
+```
+#### `QUILT_MINIMIZE_STDOUT`
+Turn off TQDM progress bars for log files. Defaults to `False`
+```
+$ export QUILT_MINIMIZE_STDOUT=true
+```
+## Constants
+#### `APP_NAME`
+#### `APP_AUTHOR`
+#### `BASE_DIR`
+#### `BASE_PATH`
+#### `CACHE_PATH`
+#### `TEMPFILE_DIR_PATH`
+#### `CONFIG_PATH`
+#### `OPEN_DATA_URL`
+#### `PACKAGE_NAME_FORMAT`
