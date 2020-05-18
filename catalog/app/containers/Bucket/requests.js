@@ -631,10 +631,11 @@ const listPackageOwnerPrefixes = ({ s3req, bucket }) =>
   }).then((r) => r.CommonPrefixes.map((p) => p.Prefix))
 
 const listPackagePrefixes = ({ s3req, bucket, ownerPrefix }) =>
-  s3req({
-    bucket,
-    operation: 'listObjectsV2',
-    params: { Bucket: bucket, Prefix: ownerPrefix, Delimiter: '/' },
+  drainObjectList({
+    s3req,
+    Bucket: bucket,
+    Prefix: ownerPrefix,
+    Delimiter: '/',
   }).then((r) => r.CommonPrefixes.map((p) => p.Prefix))
 
 const fetchPackageLatest = ({ s3req, bucket, prefix }) =>
@@ -752,20 +753,23 @@ const fetchRevisionsAccessCounts = async ({
 
 const MAX_DRAIN_REQUESTS = 10
 
-const drainObjectList = async ({ s3req, bucket, prefix }) => {
+const drainObjectList = async ({ s3req, Bucket, ...params }) => {
   let reqNo = 0
   let Contents = []
+  let CommonPrefixes = []
   let ContinuationToken
   while (true) {
     // eslint-disable-next-line no-await-in-loop
     const r = await s3req({
-      bucket,
+      bucket: Bucket,
       operation: 'listObjectsV2',
-      params: { Bucket: bucket, Prefix: prefix, ContinuationToken },
+      params: { Bucket, ContinuationToken, ...params },
     })
     Contents = Contents.concat(r.Contents)
+    CommonPrefixes = CommonPrefixes.concat(r.CommonPrefixes)
     reqNo += 1
-    if (!r.IsTruncated || reqNo >= MAX_DRAIN_REQUESTS) return { ...r, Contents }
+    if (!r.IsTruncated || reqNo >= MAX_DRAIN_REQUESTS)
+      return { ...r, Contents, CommonPrefixes }
     ContinuationToken = r.NextContinuationToken
   }
 }
@@ -784,8 +788,8 @@ export const getPackageRevisions = withErrorHandling(
       : Promise.resolve({})
     const { revisions, isTruncated } = await drainObjectList({
       s3req,
-      bucket,
-      prefix: `${PACKAGES_PREFIX}${name}/`,
+      Bucket: bucket,
+      Prefix: `${PACKAGES_PREFIX}${name}/`,
     }).then((r) => ({
       revisions: r.Contents.reduce((acc, { Key: key }) => {
         const id = getRevisionIdFromKey(key)
