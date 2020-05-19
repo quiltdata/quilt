@@ -1175,20 +1175,28 @@ class Package:
         """
         top_hash = hashlib.sha256()
         assert 'top_hash' not in self._meta
-        top_meta = json.dumps(self._meta, sort_keys=True, separators=(',', ':'))
-        top_hash.update(top_meta.encode('utf-8'))
+
+        json_encode = json.JSONEncoder(sort_keys=True, separators=(',', ':')).encode
+        for part in self._get_top_hash_parts():
+            top_hash.update(json_encode(part).encode())
+
+        return top_hash.hexdigest()
+
+    def _get_top_hash_parts(self):
+        yield self._meta
+        for logical_key, meta in self._walk_dir_meta():
+            yield {'logical_key': logical_key, 'meta': meta}
         for logical_key, entry in self.walk():
             if entry.hash is None or entry.size is None:
                 raise QuiltException(
                     "PackageEntry missing hash and/or size: %s" % entry.physical_key
                 )
-            entry_dict = entry.as_dict()
-            entry_dict['logical_key'] = logical_key
-            entry_dict.pop('physical_keys', None)
-            entry_dict_str = json.dumps(entry_dict, sort_keys=True, separators=(',', ':'))
-            top_hash.update(entry_dict_str.encode('utf-8'))
-
-        return top_hash.hexdigest()
+            yield {
+                'hash': entry.hash,
+                'logical_key': logical_key,
+                'meta': entry._meta,
+                'size': entry.size,
+            }
 
     @ApiTelemetry("package.push")
     def push(self, name, registry=None, dest=None, message=None, selector_fn=None):
