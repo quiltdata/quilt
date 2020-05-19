@@ -822,7 +822,7 @@ def copy_file(src: PhysicalKey, dest: PhysicalKey, size=None, message=None, call
     _copy_file_list_internal(url_list, [None] * len(url_list), message, callback)
 
 
-def put_bytes(data: bytes, dest: PhysicalKey):
+def put_bytes(data: bytes, dest: PhysicalKey, *, s3_client_provider=None):
     if _looks_like_dir(dest):
         raise ValueError("Invalid path: %r" % dest.path)
 
@@ -833,7 +833,7 @@ def put_bytes(data: bytes, dest: PhysicalKey):
     else:
         if dest.version_id is not None:
             raise ValueError("Cannot set VersionId on destination")
-        s3_client = S3ClientProvider().standard_client
+        s3_client = (s3_client_provider or S3ClientProvider()).standard_client
         s3_client.put_object(
             Bucket=dest.bucket,
             Key=dest.path,
@@ -841,7 +841,7 @@ def put_bytes(data: bytes, dest: PhysicalKey):
         )
 
 
-def get_bytes(src: PhysicalKey):
+def get_bytes(src: PhysicalKey, *, s3_client_provider=None):
     if src.is_local():
         src_file = pathlib.Path(src.path)
         data = src_file.read_bytes()
@@ -849,7 +849,8 @@ def get_bytes(src: PhysicalKey):
         params = dict(Bucket=src.bucket, Key=src.path)
         if src.version_id is not None:
             params.update(dict(VersionId=src.version_id))
-        s3_client = S3ClientProvider().find_correct_client(S3Api.GET_OBJECT, src.bucket, params)
+        s3_client = (s3_client_provider or S3ClientProvider()).find_correct_client(
+            S3Api.GET_OBJECT, src.bucket, params)
         resp = s3_client.get_object(**params)
         data = resp['Body'].read()
     return data
