@@ -67,7 +67,7 @@ setup(
         'jsonlines==1.2.0',
         'packaging>=16.8',
         'python-dateutil<=2.8.0',           # 2.8.1 conflicts with botocore
-        'PyYAML>=5.3',
+        'PyYAML>=5.1',
         'requests>=2.12.4',
         'tenacity>=5.1.1',
         'tqdm>=4.26.0',
