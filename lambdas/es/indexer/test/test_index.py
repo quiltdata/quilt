@@ -87,14 +87,6 @@ RECORDS = {
                 "sequencer": "0A1B2C3D4E5F678901"
             }
         }
-    },
-    "s3:TestEvent": {
-        "Service":"Amazon S3",
-        "Event":"s3:TestEvent",
-        "Time":"2014-10-13T15:57:02.089Z",
-        "Bucket":"test-bucket",
-        "RequestId":"5582815E1AEA5ADF",
-        "HostId":"8cLeGAmw098X5cv4Zkwcmo8vvZa3eH3eKxsPzbB9wrR+YstdA6Knx4Ip8EXAMPLE"
     }
 }
 # No known docs the structure of delete markers. See also:
@@ -191,12 +183,16 @@ class TestIndex(TestCase):
             "Records": [{
                 "body": json.dumps({
                     "Message": json.dumps({
-                        "Event": "s3:TestEvent"
+                        "Service":"Amazon S3",
+                        "Event":"s3:TestEvent",
+                        "Time":"2014-10-13T15:57:02.089Z",
+                        "Bucket":"test-bucket",
+                        "RequestId":"5582815E1AEA5ADF",
+                        "HostId":"8cLeGAmw098X5cv4Zkwcmo8vvZa3eH3eKxsPzbB9wrR+YstdA6Knx4Ip8EXAMPLE"
                     })
                 })
             }]
         }
-
         index.handler(event, None)
 
     def test_index_file(self):
