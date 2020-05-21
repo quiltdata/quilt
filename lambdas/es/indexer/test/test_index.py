@@ -2,6 +2,7 @@
 Tests for the ES indexer
 """
 from gzip import compress
+from copy import deepcopy
 from io import BytesIO
 import json
 import os
@@ -18,46 +19,93 @@ import responses
 
 from .. import index
 
+BASE_DIR = Path(__file__).parent / 'data'
 # From the AWS Lambda Console Test feature https://console.aws.amazon.com/lambda/
-DELETE_RECORD = {
-    "eventVersion": "2.0",
-    "eventSource": "aws:s3",
-    "awsRegion": "us-east-1",
-    "eventTime": "1970-01-01T00:00:00.000Z",
-    "eventName": "ObjectRemoved:Delete",
-    "userIdentity": {
-        "principalId": "EXAMPLE"
-    },
-    "requestParameters": {
-        "sourceIPAddress": "127.0.0.1"
-    },
-    "responseElements": {
-        "x-amz-request-id": "EXAMPLE123456789",
-        "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH"
-    },
-    "s3": {
-        "s3SchemaVersion": "1.0",
-        "configurationId": "testConfigRule",
-        "bucket": {
-            "name": "test-bucket",
-            "ownerIdentity": {
-                "principalId": "EXAMPLE"
-            },
-            "arn": "arn:aws:s3:::test-bucket"
+RECORDS = {
+    index.OBJECT_DELETE: {
+        "eventVersion": "2.0",
+        "eventSource": "aws:s3",
+        "awsRegion": "us-east-1",
+        "eventTime": "1970-01-01T00:00:00.000Z",
+        "eventName": "ObjectRemoved:Delete",
+        "userIdentity": {
+            "principalId": "EXAMPLE"
         },
-        "object": {
-            "key": "hello+world.txt",
-            "sequencer": "0A1B2C3D4E5F678901"
+        "requestParameters": {
+            "sourceIPAddress": "127.0.0.1"
+        },
+        "responseElements": {
+            "x-amz-request-id": "EXAMPLE123456789",
+            "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH"
+        },
+        "s3": {
+            "s3SchemaVersion": "1.0",
+            "configurationId": "testConfigRule",
+            "bucket": {
+                "name": "test-bucket",
+                "ownerIdentity": {
+                    "principalId": "EXAMPLE"
+                },
+                "arn": "arn:aws:s3:::test-bucket"
+            },
+            "object": {
+                "key": "hello+world.txt",
+                "sequencer": "0A1B2C3D4E5F678901"
+            }
         }
+    },
+    index.OBJECT_PUT: {
+        "eventVersion": "2.0",
+        "eventSource": "aws:s3",
+        "awsRegion": "us-east-1",
+        "eventTime": "1970-01-01T00:00:00.000Z",
+        "eventName": "ObjectCreated:Put",
+        "userIdentity": {
+            "principalId": "EXAMPLE"
+        },
+        "requestParameters": {
+            "sourceIPAddress": "127.0.0.1"
+        },
+        "responseElements": {
+            "x-amz-request-id": "EXAMPLE123456789",
+            "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH"
+        },
+        "s3": {
+            "s3SchemaVersion": "1.0",
+            "configurationId": "testConfigRule",
+            "bucket": {
+                "name": "test-bucket",
+                "ownerIdentity": {
+                "principalId": "EXAMPLE"
+                },
+                "arn": "arn:aws:s3:::test-bucket"
+            },
+            "object": {
+                "key": "hello+world.txt",
+                "size": 123,
+                "eTag": "123456",
+                "sequencer": "0A1B2C3D4E5F678901"
+            }
+        }
+    },
+    "s3:TestEvent": {
+        "Service":"Amazon S3",
+        "Event":"s3:TestEvent",
+        "Time":"2014-10-13T15:57:02.089Z",
+        "Bucket":"test-bucket",
+        "RequestId":"5582815E1AEA5ADF",
+        "HostId":"8cLeGAmw098X5cv4Zkwcmo8vvZa3eH3eKxsPzbB9wrR+YstdA6Knx4Ip8EXAMPLE"
     }
 }
+# No known docs the structure of delete markers. See also:
+# https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html
+RECORDS["ObjectRemoved:DeleteMarkerCreated"] = deepcopy(RECORDS[index.OBJECT_DELETE])
+# This is not a proper DELETE event so remove the sequencer? (per above)
+del RECORDS["ObjectRemoved:DeleteMarkerCreated"]["s3"]["object"]["sequencer"]
 
 class MockContext():
     def get_remaining_time_in_millis(self):
         return 30000
-
-
-BASE_DIR = Path(__file__).parent / 'data'
 
 
 class TestIndex(TestCase):
@@ -180,7 +228,7 @@ class TestIndex(TestCase):
                 "Records": [{
                     "body": json.dumps({
                         "Message": json.dumps({
-                            "Records": [DELETE_RECORD]
+                            "Records": [RECORDS[index.OBJECT_DELETE]]
                         })
                     })
                 }]
