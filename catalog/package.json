@@ -182,7 +182,7 @@
     "rimraf": "^3.0.2",
     "shelljs": "^0.8.4",
     "style-loader": "^1.2.1",
-    "stylelint": "^13.3.3",
+    "stylelint": "^13.5.0",
     "stylelint-config-recommended": "^3.0.0",
     "svg-url-loader": "^5.0.0",
     "terser-webpack-plugin": "^1.4.3",
