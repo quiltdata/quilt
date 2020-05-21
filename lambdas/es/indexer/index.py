@@ -248,7 +248,8 @@ def handler(event, context):
                 key = unquote_plus(event_["s3"]["object"]["key"])
                 version_id = event_["s3"]["object"].get("versionId")
                 version_id = unquote(version_id) if version_id else None
-                etag = unquote(event_["s3"]["object"]["eTag"])
+                # OBJECT_DELETE does not include "eTag"
+                etag = unquote(event_["s3"]["object"].get("eTag", ""))
 
                 # Get two levels of extensions to handle files like .csv.gz
                 path = pathlib.PurePosixPath(key)
