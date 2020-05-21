@@ -18,6 +18,39 @@ import responses
 
 from .. import index
 
+# From the AWS Lambda Console Test feature https://console.aws.amazon.com/lambda/
+DELETE_RECORD = {
+    "eventVersion": "2.0",
+    "eventSource": "aws:s3",
+    "awsRegion": "us-east-1",
+    "eventTime": "1970-01-01T00:00:00.000Z",
+    "eventName": "ObjectRemoved:Delete",
+    "userIdentity": {
+        "principalId": "EXAMPLE"
+    },
+    "requestParameters": {
+        "sourceIPAddress": "127.0.0.1"
+    },
+    "responseElements": {
+        "x-amz-request-id": "EXAMPLE123456789",
+        "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH"
+    },
+    "s3": {
+        "s3SchemaVersion": "1.0",
+        "configurationId": "testConfigRule",
+        "bucket": {
+            "name": "test-bucket",
+            "ownerIdentity": {
+                "principalId": "EXAMPLE"
+            },
+            "arn": "arn:aws:s3:::test-bucket"
+        },
+        "object": {
+            "key": "hello+world.txt",
+            "sequencer": "0A1B2C3D4E5F678901"
+        }
+    }
+}
 
 class MockContext():
     def get_remaining_time_in_millis(self):
@@ -142,26 +175,37 @@ class TestIndex(TestCase):
         """
         Reusable helper function to test indexing a single text file.
         """
-        event = {
-            "Records": [{
-                "body": json.dumps({
-                    "Message": json.dumps({
-                        "Records": [{
-                            "eventName": event_name,
-                            "s3": {
-                                "bucket": {
-                                    "name": "test-bucket"
-                                },
-                                "object": {
-                                    "key": "hello+world.txt",
-                                    "eTag": "123456"
-                                }
-                            }
-                        }]
+        if event_name == index.OBJECT_DELETE:
+            records = {
+                "Records": [{
+                    "body": json.dumps({
+                        "Message": json.dumps({
+                            "Records": [DELETE_RECORD]
+                        })
                     })
-                })
-            }]
-        }
+                }]
+            }
+        else:
+            records = {
+                "Records": [{
+                    "body": json.dumps({
+                        "Message": json.dumps({
+                            "Records": [{
+                                "eventName": event_name,
+                                "s3": {
+                                    "bucket": {
+                                        "name": "test-bucket"
+                                    },
+                                    "object": {
+                                        "key": "hello+world.txt",
+                                        "eTag": "123456"
+                                    }
+                                }
+                            }]
+                        })
+                    })
+                }]
+            }
 
         now = index.now_like_boto3()
 
@@ -257,7 +301,7 @@ class TestIndex(TestCase):
                 content_type='application/json'
             )
 
-        index.handler(event, MockContext())
+        index.handler(records, MockContext())
 
     def test_unsupported_contents(self):
         assert self._get_contents('foo.exe', '.exe') == ""
