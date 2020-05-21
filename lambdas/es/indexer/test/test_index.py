@@ -222,16 +222,16 @@ class TestIndex(TestCase):
         """
         Reusable helper function to test indexing a single text file.
         """
-        if event_name in RECORDS:
-            records = {
-                "Records": [{
-                    "body": json.dumps({
-                        "Message": json.dumps({
-                            "Records": [RECORDS[event_name]]
-                        })
+        assert event_name in RECORDS, f"unexpected event: {event_name}"
+        records = {
+            "Records": [{
+                "body": json.dumps({
+                    "Message": json.dumps({
+                        "Records": [RECORDS[event_name]]
                     })
-                }]
-            }
+                })
+            }]
+        }
 
         now = index.now_like_boto3()
 
