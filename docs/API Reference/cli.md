@@ -1,4 +1,4 @@
-# Quilt3 CLI and Shell
+# Quilt3 CLI and environment
 
 ## `catalog`
 ```
@@ -159,23 +159,23 @@ optional arguments:
   --message MESSAGE    The commit message for the new package
 ```
 ## Environment variables
-#### `QUILT_DISABLE_USAGE_METRICS`
+### `QUILT_DISABLE_USAGE_METRICS`
 Disable anonymous usage collection. Defaults to `False`
 ```
 $ export QUILT_DISABLE_USAGE_METRICS=true
 ```
-#### `QUILT_MINIMIZE_STDOUT`
+### `QUILT_MINIMIZE_STDOUT`
 Turn off TQDM progress bars for log files. Defaults to `False`
 ```
 $ export QUILT_MINIMIZE_STDOUT=true
 ```
-## Constants
-#### `APP_NAME`
-#### `APP_AUTHOR`
-#### `BASE_DIR`
-#### `BASE_PATH`
-#### `CACHE_PATH`
-#### `TEMPFILE_DIR_PATH`
-#### `CONFIG_PATH`
-#### `OPEN_DATA_URL`
-#### `PACKAGE_NAME_FORMAT`
+## Constants (see [util.py](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/util.py) for more)
+- `APP_NAME` - Name of the application
+- `APP_AUTHOR` - Author
+- `BASE_DIR` - Base directory of the application
+- `BASE_PATH` - Base path(pathlib) of the application directory
+- `CACHE_PATH` - User cache directory 
+- `TEMPFILE_DIR_PATH` - Tempfile directory
+- `CONFIG_PATH` - Application configuration directory
+- `OPEN_DATA_URL` - Application data url
+- `PACKAGE_NAME_FORMAT` - Package name format
