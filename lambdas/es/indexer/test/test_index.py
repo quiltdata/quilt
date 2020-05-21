@@ -82,7 +82,7 @@ RECORDS = {
             },
             "object": {
                 "key": "hello+world.txt",
-                "size": 123,
+                "size": 100,
                 "eTag": "123456",
                 "sequencer": "0A1B2C3D4E5F678901"
             }
@@ -92,8 +92,10 @@ RECORDS = {
 # No known docs the structure of delete markers. See also:
 # https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html
 RECORDS["ObjectRemoved:DeleteMarkerCreated"] = deepcopy(RECORDS[index.OBJECT_DELETE])
+RECORDS["ObjectRemoved:DeleteMarkerCreated"]["eventName"] = "ObjectRemoved:DeleteMarkerCreated"
 # This is not a proper DELETE event so remove the sequencer? (per above)
 del RECORDS["ObjectRemoved:DeleteMarkerCreated"]["s3"]["object"]["sequencer"]
+
 
 class MockContext():
     def get_remaining_time_in_millis(self):
@@ -177,7 +179,7 @@ class TestIndex(TestCase):
 
     def test_test_event(self):
         """
-        Check that the indexer doesn't do anything when it gets S3 test notification.
+        Check that the indexer does not barf when it gets an S3 test notification.
         """
         event = {
             "Records": [{
@@ -193,6 +195,7 @@ class TestIndex(TestCase):
                 })
             }]
         }
+
         index.handler(event, None)
 
     def test_index_file(self):
@@ -219,33 +222,12 @@ class TestIndex(TestCase):
         """
         Reusable helper function to test indexing a single text file.
         """
-        if event_name == index.OBJECT_DELETE:
+        if event_name in RECORDS:
             records = {
                 "Records": [{
                     "body": json.dumps({
                         "Message": json.dumps({
-                            "Records": [RECORDS[index.OBJECT_DELETE]]
-                        })
-                    })
-                }]
-            }
-        else:
-            records = {
-                "Records": [{
-                    "body": json.dumps({
-                        "Message": json.dumps({
-                            "Records": [{
-                                "eventName": event_name,
-                                "s3": {
-                                    "bucket": {
-                                        "name": "test-bucket"
-                                    },
-                                    "object": {
-                                        "key": "hello+world.txt",
-                                        "eTag": "123456"
-                                    }
-                                }
-                            }]
+                            "Records": [RECORDS[event_name]]
                         })
                     })
                 }]
