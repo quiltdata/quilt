@@ -248,7 +248,7 @@ def handler(event, context):
                 key = unquote_plus(event_["s3"]["object"]["key"])
                 version_id = event_["s3"]["object"].get("versionId")
                 version_id = unquote(version_id) if version_id else None
-                etag = "" # OBJECT_DELETE does not include eTag
+                etag = ""  # OBJECT_DELETE does not include "eTag"
                 if "eTag" in event_["s3"]["object"]:
                     etag = unquote(event_["s3"]["object"]["eTag"])
 
