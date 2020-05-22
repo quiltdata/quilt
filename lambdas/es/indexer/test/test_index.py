@@ -1,8 +1,7 @@
 """
-Tests for the ES indexer
+Tests for the ES indexer. This function consumes events from SQS.
 """
 from gzip import compress
-from copy import deepcopy
 from io import BytesIO
 import json
 import os
