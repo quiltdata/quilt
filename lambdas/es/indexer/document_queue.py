@@ -1,6 +1,7 @@
 """ core logic for fetching documents from S3 and queueing them locally before
 sending to elastic search in memory-limited batches"""
 from datetime import datetime
+from enum import Enum
 from math import floor
 import json
 import os
@@ -31,10 +32,21 @@ MAX_RETRY = 4  # prevent long-running lambdas due to malformed calls
 # signifies that the object is truly deleted, not to be confused with
 # s3:ObjectRemoved:DeleteMarkerCreated, which we may see in versioned buckets
 # see https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
+OBJECT_COPY = "ObjectCreated:Copy"
 OBJECT_DELETE = "ObjectRemoved:Delete"
+OBJECT_DELETE_MARKER = "ObjectRemoved:DeleteMarkerCreated"
 OBJECT_PUT = "ObjectCreated:Put"
 RETRY_429 = 5
+
 QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
+
+
+class S3Event(Enum):
+    """S3 Events the indexer family actively handles"""
+    Copy = "ObjectCreated:Copy"
+    Delete = "ObjectRemoved:Delete"
+    DeleteMarker = "ObjectRemoved:DeleteMarkerCreated"
+    Put = "ObjectCreated:Put"
 
 
 def transform_meta(meta):

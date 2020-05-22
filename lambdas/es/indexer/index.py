@@ -29,7 +29,8 @@ from document_queue import (
     CONTENT_INDEX_EXTS,
     MAX_RETRY,
     OBJECT_DELETE,
-    OBJECT_PUT
+    OBJECT_PUT,
+    S3Event
 )
 
 # 10 MB, see https://amzn.to/2xJpngN
