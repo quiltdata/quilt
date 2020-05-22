@@ -49,15 +49,15 @@ gen_env_docs QUILT_MINIMIZE_STDOUT '$ export QUILT_MINIMIZE_STDOUT=true' \
 
 # Document Constants
 echo '## Constants (see [util.py](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/util.py) for more)' >> cli.md
-echo '- `APP_NAME` - Name of the application' >> cli.md
-echo '- `APP_AUTHOR` - Author' >> cli.md
+echo '- `APP_NAME`' >> cli.md
+echo '- `APP_AUTHOR`' >> cli.md
 echo '- `BASE_DIR` - Base directory of the application' >> cli.md
-echo '- `BASE_PATH` - Base path(pathlib) of the application directory' >> cli.md
-echo '- `CACHE_PATH` - User cache directory ' >> cli.md
-echo '- `TEMPFILE_DIR_PATH` - Tempfile directory' >> cli.md
-echo '- `CONFIG_PATH` - Application configuration directory' >> cli.md
+echo '- `BASE_PATH` - Base pathlib path for the application directory' >> cli.md
+echo '- `CACHE_PATH` - Pathlib path for the user cache directory' >> cli.md
+echo '- `TEMPFILE_DIR_PATH` - Base pathlib path for the application `tempfiles`' >> cli.md
+echo '- `CONFIG_PATH` - Base pathlib path for the application configuration file' >> cli.md
 echo '- `OPEN_DATA_URL` - Application data url' >> cli.md
-echo '- `PACKAGE_NAME_FORMAT` - Package name format' >> cli.md
+echo '- `PACKAGE_NAME_FORMAT` - Regex for legal package names' >> cli.md
 
 
 mv cli.md "../docs/API Reference/cli.md"
