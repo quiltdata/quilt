@@ -1,8 +1,7 @@
 """
-Tests for the ES indexer
+Tests for the ES indexer. This function consumes events from SQS.
 """
 from gzip import compress
-from copy import deepcopy
 from io import BytesIO
 import json
 import os
@@ -20,7 +19,10 @@ import responses
 from .. import index
 
 BASE_DIR = Path(__file__).parent / 'data'
-# From the AWS Lambda Console Test feature https://console.aws.amazon.com/lambda/
+
+# Record event structure from
+# AWS Lambda Console Test feature https://console.aws.amazon.com/lambda/
+# and https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html
 RECORDS = {
     index.OBJECT_DELETE: {
         "eventVersion": "2.0",
@@ -87,14 +89,44 @@ RECORDS = {
                 "sequencer": "0A1B2C3D4E5F678901"
             }
         }
+    },
+    # This template is based on an actual S3 event on 5-21-2020, no known docs
+    # on this particular event type
+    "ObjectRemoved:DeleteMarkerCreated": {
+        "awsRegion": "us-west-1",
+        "eventName": "ObjectRemoved:DeleteMarkerCreated",
+        "eventSource": "aws:s3",
+        "eventTime": "2020-05-22T00:32:20.515Z",
+        "eventVersion": "2.1",
+        "requestParameters": {
+            "sourceIPAddress": "70.175.88.131"
+        },
+        "responseElements": {
+            "x-amz-request-id": "EXAMPLE123456789",
+            "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH"
+        },
+        "s3": {
+            "bucket": {
+                "name": "test-bucket",
+                "ownerIdentity": {
+                    "principalId": "EXAMPLE"
+                },
+                "arn": "arn:aws:s3:::test-bucket"
+            },
+            "configurationId": "testConfigRule",
+            "object": {
+                "key": "hello+world.txt",
+                "eTag": "123456",
+                "sequencer": "0A1B2C3D4E5F678901",
+                "versionId": "1313131313131.Vier50HdNbi7ZirO65"
+            },
+            "s3SchemaVersion": "1.0"
+        },
+        "userIdentity": {
+            "principalId": "EXAMPLE"
+        }
     }
 }
-# No known docs the structure of delete markers. See also:
-# https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html
-RECORDS["ObjectRemoved:DeleteMarkerCreated"] = deepcopy(RECORDS[index.OBJECT_DELETE])
-RECORDS["ObjectRemoved:DeleteMarkerCreated"]["eventName"] = "ObjectRemoved:DeleteMarkerCreated"
-# This is not a proper DELETE event so remove the sequencer? (per above)
-del RECORDS["ObjectRemoved:DeleteMarkerCreated"]["s3"]["object"]["sequencer"]
 
 
 class MockContext():
