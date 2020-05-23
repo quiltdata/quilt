@@ -246,10 +246,8 @@ def handler(event, context):
                 # Process all Create:* and Remove:* events except for delete markers,
                 # which have no contents, don't signify an actual delete, and don't
                 # belong in the index as documents
-                print(event_name)
                 if (event_name == "ObjectRemoved:DeleteMarkerCreated"
                         or not any(event_name.startswith(n) for n in EVENT_PREFIX.values())):
-                    print("CONTINUE")
                     continue
                 bucket = unquote(event_["s3"]["bucket"]["name"])
                 # In the grand tradition of IE6, S3 events turn spaces into '+'
@@ -268,7 +266,6 @@ def handler(event, context):
                 # Handle delete  first and then continue so that
                 # head_object and get_object (below) don't fail
                 if event_name.startswith(EVENT_PREFIX["Removed"]):
-                    print("DOIN A DELETE")
                     batch_processor.append(
                         event_name,
                         bucket=bucket,
