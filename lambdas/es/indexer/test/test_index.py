@@ -1,6 +1,8 @@
 """
 Tests for the ES indexer. This function consumes events from SQS.
 """
+from copy import deepcopy
+
 from gzip import compress
 from io import BytesIO
 import json
@@ -20,113 +22,81 @@ from .. import index
 
 BASE_DIR = Path(__file__).parent / 'data'
 
-# Record event structure from
-# AWS Lambda Console Test feature https://console.aws.amazon.com/lambda/
-# and https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html
-RECORDS = {
-    index.OBJECT_DELETE: {
-        "eventVersion": "2.0",
-        "eventSource": "aws:s3",
-        "awsRegion": "us-east-1",
-        "eventTime": "1970-01-01T00:00:00.000Z",
-        "eventName": "ObjectRemoved:Delete",
-        "userIdentity": {
-            "principalId": "EXAMPLE"
-        },
-        "requestParameters": {
-            "sourceIPAddress": "127.0.0.1"
-        },
-        "responseElements": {
-            "x-amz-request-id": "EXAMPLE123456789",
-            "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH"
-        },
-        "s3": {
-            "s3SchemaVersion": "1.0",
+# See the following AWS docs for event structure:
+EVENT_CORE = {
+    "awsRegion": "us-east-1",
+    "eventName": "ObjectCreated:Put",
+    "eventSource": "aws:s3",
+    "eventTime": "2020-05-22T00:32:20.515Z",
+    "eventVersion": "2.1",
+    "requestParameters": {"sourceIPAddress": "127.0.0.1"},
+    "responseElements": {
+        "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH",
+        "x-amz-request-id": "EXAMPLE123456789"
+    },
+    "s3": {
+        "bucket": {
+            "arn": "arn:aws:s3:::test-bucket",
+            "name": "test-bucket",
+            "ownerIdentity": {"principalId": "EXAMPLE"}},
             "configurationId": "testConfigRule",
-            "bucket": {
-                "name": "test-bucket",
-                "ownerIdentity": {
-                    "principalId": "EXAMPLE"
-                },
-                "arn": "arn:aws:s3:::test-bucket"
-            },
             "object": {
                 "key": "hello+world.txt",
                 "sequencer": "0A1B2C3D4E5F678901"
-            }
-        }
-    },
-    index.OBJECT_PUT: {
-        "eventVersion": "2.0",
-        "eventSource": "aws:s3",
-        "awsRegion": "us-east-1",
-        "eventTime": "1970-01-01T00:00:00.000Z",
-        "eventName": "ObjectCreated:Put",
-        "userIdentity": {
-            "principalId": "EXAMPLE"
-        },
-        "requestParameters": {
-            "sourceIPAddress": "127.0.0.1"
-        },
-        "responseElements": {
-            "x-amz-request-id": "EXAMPLE123456789",
-            "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH"
-        },
-        "s3": {
-            "s3SchemaVersion": "1.0",
-            "configurationId": "testConfigRule",
-            "bucket": {
-                "name": "test-bucket",
-                "ownerIdentity": {
-                    "principalId": "EXAMPLE"
-                },
-                "arn": "arn:aws:s3:::test-bucket"
-            },
-            "object": {
-                "key": "hello+world.txt",
-                "size": 100,
-                "eTag": "123456",
-                "sequencer": "0A1B2C3D4E5F678901"
-            }
-        }
-    },
-    # This template is based on an actual S3 event on 5-21-2020, no known docs
-    # on this particular event type
-    "ObjectRemoved:DeleteMarkerCreated": {
-        "awsRegion": "us-west-1",
-        "eventName": "ObjectRemoved:DeleteMarkerCreated",
-        "eventSource": "aws:s3",
-        "eventTime": "2020-05-22T00:32:20.515Z",
-        "eventVersion": "2.1",
-        "requestParameters": {
-            "sourceIPAddress": "70.175.88.131"
-        },
-        "responseElements": {
-            "x-amz-request-id": "EXAMPLE123456789",
-            "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH"
-        },
-        "s3": {
-            "bucket": {
-                "name": "test-bucket",
-                "ownerIdentity": {
-                    "principalId": "EXAMPLE"
-                },
-                "arn": "arn:aws:s3:::test-bucket"
-            },
-            "configurationId": "testConfigRule",
-            "object": {
-                "key": "hello+world.txt",
-                "eTag": "123456",
-                "sequencer": "0A1B2C3D4E5F678901",
-                "versionId": "1313131313131.Vier50HdNbi7ZirO65"
             },
             "s3SchemaVersion": "1.0"
         },
-        "userIdentity": {
-            "principalId": "EXAMPLE"
-        }
-    }
+    "userIdentity": {"principalId": "EXAMPLE"}
 }
+
+
+def make_event(
+    name,
+    eTag="123456",
+    key="hello+world.txt",
+    size=100,
+    versionId="1313131313131.Vier50HdNbi7ZirO65"
+):
+    """this function builds event types off of EVENT_CORE and adds fields
+    to match organic AWS events"""
+    if name == "ObjectCreated:Put":
+        return _make_event(
+            name,
+            eTag=eTag,
+            key=key,
+            size=size
+        )
+    elif name == "ObjectRemoved:Delete":
+        return _make_event(name)
+    elif name == "ObjectRemoved:DeleteMarkerCreated":
+        return _make_event(
+            name,
+            eTag=eTag,
+            key=key,
+            versionId=versionId
+        )
+    else:
+        raise ValueError(f"Unexpected event type: {name}")
+
+def _make_event(name, eTag="", key="",  size=0, versionId=""):
+    """make events in the pattern of
+    https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html
+    and
+    AWS Lambda > Console > Test Event
+    """
+    e = deepcopy(EVENT_CORE)
+    e["eventName"] = name
+
+    if key:
+        e["s3"]["object"]["key"] = key
+    if eTag:
+        e["s3"]["object"]["eTag"] = eTag
+    if size:
+        e["s3"]["object"]["size"] = size
+    if versionId:
+        e["s3"]["object"]["versionId"] = versionId
+    
+    return e
 
 
 class MockContext():
@@ -254,12 +224,11 @@ class TestIndex(TestCase):
         """
         Reusable helper function to test indexing a single text file.
         """
-        assert event_name in RECORDS, f"unexpected event: {event_name}"
         records = {
             "Records": [{
                 "body": json.dumps({
                     "Message": json.dumps({
-                        "Records": [RECORDS[event_name]]
+                        "Records": [make_event(event_name)]
                     })
                 })
             }]
@@ -310,7 +279,7 @@ class TestIndex(TestCase):
             )
 
         def es_callback(request):
-            response_key = 'delete' if event_name == index.OBJECT_DELETE else 'index'
+            response_key = 'delete' if event_name.startswith(index.EVENT_PREFIX["Removed"]) else 'index'
             actions = [json.loads(line) for line in request.body.splitlines()]
             expected = [
                 {

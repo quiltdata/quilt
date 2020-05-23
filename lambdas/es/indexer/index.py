@@ -28,11 +28,13 @@ from document_queue import (
     DocumentQueue,
     CONTENT_INDEX_EXTS,
     MAX_RETRY,
-    OBJECT_DELETE,
-    OBJECT_PUT,
-    S3Event
 )
 
+
+EVENT_PREFIX = {
+    "Created": "ObjectCreated:",
+    "Removed": "ObjectRemoved:"
+}
 # 10 MB, see https://amzn.to/2xJpngN
 NB_VERSION = 4  # default notebook version for nbformat
 TEST_EVENT = "s3:TestEvent"
@@ -241,15 +243,20 @@ def handler(event, context):
         for event_ in events:
             try:
                 event_name = event_["eventName"]
-                # only process these two event types
-                if event_name not in [OBJECT_DELETE, OBJECT_PUT]:
+                # Process all Create:* and Remove:* events except for delete markers,
+                # which have no contents, don't signify an actual delete, and don't
+                # belong in the index as documents
+                print(event_name)
+                if (event_name == "ObjectRemoved:DeleteMarkerCreated"
+                    or not any(event_name.startswith(n) for n in EVENT_PREFIX.values())):
+                    print("CONTINUE")
                     continue
                 bucket = unquote(event_["s3"]["bucket"]["name"])
                 # In the grand tradition of IE6, S3 events turn spaces into '+'
                 key = unquote_plus(event_["s3"]["object"]["key"])
                 version_id = event_["s3"]["object"].get("versionId")
                 version_id = unquote(version_id) if version_id else None
-                # OBJECT_DELETE does not include "eTag"
+                # ObjectRemoved:Delete does not include "eTag"
                 etag = unquote(event_["s3"]["object"].get("eTag", ""))
 
                 # Get two levels of extensions to handle files like .csv.gz
@@ -260,7 +267,8 @@ def handler(event, context):
 
                 # Handle delete  first and then continue so that
                 # head_object and get_object (below) don't fail
-                if event_name == OBJECT_DELETE:
+                if event_name.startswith(EVENT_PREFIX["Removed"]):
+                    print("DOIN A DELETE")
                     batch_processor.append(
                         event_name,
                         bucket=bucket,

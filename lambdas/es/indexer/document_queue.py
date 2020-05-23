@@ -32,21 +32,8 @@ MAX_RETRY = 4  # prevent long-running lambdas due to malformed calls
 # signifies that the object is truly deleted, not to be confused with
 # s3:ObjectRemoved:DeleteMarkerCreated, which we may see in versioned buckets
 # see https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
-OBJECT_COPY = "ObjectCreated:Copy"
-OBJECT_DELETE = "ObjectRemoved:Delete"
-OBJECT_DELETE_MARKER = "ObjectRemoved:DeleteMarkerCreated"
-OBJECT_PUT = "ObjectCreated:Put"
-RETRY_429 = 5
-
 QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
-
-
-class S3Event(Enum):
-    """S3 Events the indexer family actively handles"""
-    Copy = "ObjectCreated:Copy"
-    Delete = "ObjectRemoved:Delete"
-    DeleteMarker = "ObjectRemoved:DeleteMarkerCreated"
-    Put = "ObjectCreated:Put"
+RETRY_429 = 5
 
 
 def transform_meta(meta):
@@ -103,7 +90,7 @@ class DocumentQueue:
             "_id": f"{key}:{version_id}",
             "_index": bucket,
             # index will upsert (and clobber existing equivalent _ids)
-            "_op_type": "delete" if event_type == OBJECT_DELETE else "index",
+            "_op_type": "delete" if event_type.startswith("ObjectRemoved:") else "index",
             "_type": "_doc",
             # Quilt keys
             # Be VERY CAREFUL changing these values, as a type change can cause a
