@@ -1,7 +1,6 @@
 """ core logic for fetching documents from S3 and queueing them locally before
 sending to elastic search in memory-limited batches"""
 from datetime import datetime
-from enum import Enum
 from math import floor
 import json
 import os

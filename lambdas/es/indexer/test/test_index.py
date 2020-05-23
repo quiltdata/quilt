@@ -95,7 +95,7 @@ def _make_event(name, eTag="", key="", size=0, versionId=""):
         e["s3"]["object"]["size"] = size
     if versionId:
         e["s3"]["object"]["versionId"] = versionId
-    
+
     return e
 
 
