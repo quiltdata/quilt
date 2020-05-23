@@ -27,14 +27,11 @@ from t4_lambda_shared.preview import (
 from document_queue import (
     DocumentQueue,
     CONTENT_INDEX_EXTS,
-    MAX_RETRY,
+    EVENT_PREFIX,
+    MAX_RETRY
 )
 
 
-EVENT_PREFIX = {
-    "Created": "ObjectCreated:",
-    "Removed": "ObjectRemoved:"
-}
 # 10 MB, see https://amzn.to/2xJpngN
 NB_VERSION = 4  # default notebook version for nbformat
 TEST_EVENT = "s3:TestEvent"

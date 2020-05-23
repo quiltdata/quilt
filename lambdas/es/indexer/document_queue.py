@@ -23,6 +23,11 @@ CONTENT_INDEX_EXTS = [
     ".txt"
 ]
 
+EVENT_PREFIX = {
+    "Created": "ObjectCreated:",
+    "Removed": "ObjectRemoved:"
+}
+
 # See https://amzn.to/2xJpngN for chunk size as a function of container size
 CHUNK_LIMIT_BYTES = int(os.getenv('CHUNK_LIMIT_BYTES') or 9_500_000)
 ELASTIC_TIMEOUT = 30
@@ -89,7 +94,7 @@ class DocumentQueue:
             "_id": f"{key}:{version_id}",
             "_index": bucket,
             # index will upsert (and clobber existing equivalent _ids)
-            "_op_type": "delete" if event_type.startswith("ObjectRemoved:") else "index",
+            "_op_type": "delete" if event_type.startswith(EVENT_PREFIX["Removed"]) else "index",
             "_type": "_doc",
             # Quilt keys
             # Be VERY CAREFUL changing these values, as a type change can cause a
