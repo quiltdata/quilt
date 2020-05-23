@@ -248,7 +248,7 @@ def handler(event, context):
                 # belong in the index as documents
                 print(event_name)
                 if (event_name == "ObjectRemoved:DeleteMarkerCreated"
-                    or not any(event_name.startswith(n) for n in EVENT_PREFIX.values())):
+                        or not any(event_name.startswith(n) for n in EVENT_PREFIX.values())):
                     print("CONTINUE")
                     continue
                 bucket = unquote(event_["s3"]["bucket"]["name"])
