@@ -78,7 +78,7 @@ def make_event(
     else:
         raise ValueError(f"Unexpected event type: {name}")
 
-def _make_event(name, eTag="", key="",  size=0, versionId=""):
+def _make_event(name, eTag="", key="", size=0, versionId=""):
     """make events in the pattern of
     https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html
     and
