@@ -38,24 +38,27 @@ EVENT_CORE = {
         "bucket": {
             "arn": "arn:aws:s3:::test-bucket",
             "name": "test-bucket",
-            "ownerIdentity": {"principalId": "EXAMPLE"}},
-            "configurationId": "testConfigRule",
-            "object": {
-                "key": "hello+world.txt",
-                "sequencer": "0A1B2C3D4E5F678901"
-            },
-            "s3SchemaVersion": "1.0"
+            "ownerIdentity": {
+                "principalId": "EXAMPLE"
+            }
         },
+        "configurationId": "testConfigRule",
+        "object": {
+            "key": "hello+world.txt",
+            "sequencer": "0A1B2C3D4E5F678901"
+        },
+        "s3SchemaVersion": "1.0"
+    },
     "userIdentity": {"principalId": "EXAMPLE"}
 }
 
 
 def make_event(
-    name,
-    eTag="123456",
-    key="hello+world.txt",
-    size=100,
-    versionId="1313131313131.Vier50HdNbi7ZirO65"
+        name,
+        eTag="123456",
+        key="hello+world.txt",
+        size=100,
+        versionId="1313131313131.Vier50HdNbi7ZirO65"
 ):
     """this function builds event types off of EVENT_CORE and adds fields
     to match organic AWS events"""
@@ -112,7 +115,10 @@ class TestIndex(TestCase):
         # Create a dummy S3 client that (hopefully) can't do anything.
         self.s3_client = boto3.client('s3', config=Config(signature_version=UNSIGNED))
 
-        self.s3_client_patcher = patch(__name__ + '.index.make_s3_client', return_value=self.s3_client)
+        self.s3_client_patcher = patch(
+            __name__ + '.index.make_s3_client',
+            return_value=self.s3_client
+        )
         self.s3_client_patcher.start()
 
         self.s3_stubber = Stubber(self.s3_client)
@@ -215,11 +221,11 @@ class TestIndex(TestCase):
             self._test_index_event("ObjectCreated:Put", mock_object=False)
 
     def _test_index_event(
-        self,
-        event_name,
-        mock_elastic=True,
-        mock_head=True,
-        mock_object=True
+            self,
+            event_name,
+            mock_elastic=True,
+            mock_head=True,
+            mock_object=True
     ):
         """
         Reusable helper function to test indexing a single text file.
