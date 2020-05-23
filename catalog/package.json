@@ -119,7 +119,7 @@
     "sanitize.css": "^8.0.1",
     "use-debounce": "^3.4.2",
     "uuid": "^3.4.0",
-    "vega": "^5.12.2",
+    "vega": "^5.12.3",
     "vega-embed": "^4.2.5",
     "vega-lite": "^3.4.0",
     "warning": "^4.0.3"
