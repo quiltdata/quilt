@@ -1,4 +1,4 @@
-# Quilt3 CLI
+# Quilt3 CLI and environment
 
 ## `catalog`
 ```
@@ -158,3 +158,24 @@ optional arguments:
   --dest DEST          Where to copy the objects in the package
   --message MESSAGE    The commit message for the new package
 ```
+## Environment variables
+### `QUILT_DISABLE_USAGE_METRICS`
+Disable anonymous usage collection. Defaults to `False`
+```
+$ export QUILT_DISABLE_USAGE_METRICS=true
+```
+### `QUILT_MINIMIZE_STDOUT`
+Turn off TQDM progress bars for log files. Defaults to `False`
+```
+$ export QUILT_MINIMIZE_STDOUT=true
+```
+## Constants (see [util.py](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/util.py) for more)
+- `APP_NAME`
+- `APP_AUTHOR`
+- `BASE_DIR` - Base directory of the application
+- `BASE_PATH` - Base pathlib path for the application directory
+- `CACHE_PATH` - Pathlib path for the user cache directory
+- `TEMPFILE_DIR_PATH` - Base pathlib path for the application `tempfiles`
+- `CONFIG_PATH` - Base pathlib path for the application configuration file
+- `OPEN_DATA_URL` - Application data url
+- `PACKAGE_NAME_FORMAT` - Regex for legal package names
