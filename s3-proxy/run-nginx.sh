@@ -10,6 +10,6 @@ then
 fi
 
 # Add it to the NGINX config
-echo "resolver $nameserver;" > /etc/nginx/conf.d/resolver.conf
+echo "resolver $nameserver ipv6=off;" > /etc/nginx/conf.d/resolver.conf
 
 exec nginx -g 'daemon off;'
