@@ -166,6 +166,7 @@ class TestIndex(TestCase):
             key="events/copy-one/0.png",
             size=73499,
             eTag="7b4b71116bb21d3ea7138dfe7aabf036",
+            versionId="Yj1vyLWcE9FTFIIrsgk.yAX7NbJrAW7g"
         )
         # actual event from S3 with a few obfuscations to protect the innocent
         organic = {
@@ -203,16 +204,17 @@ class TestIndex(TestCase):
                 }
             }
         }
-
-        assert organic.keys() == synthetic.keys(), \
-            "Expected same keys for organic and synthetic events"
-        assert organic["s3"].keys() == synthetic["s3"].keys(), \
-            "Expected same keys for organic and synthetic events"
+        # Ensure that synthetic events have the same shape as actual organic ones,
+        # and that overridden properties like bucket, key, eTag are properly set
+        assert organic.keys() == synthetic.keys()
+        assert organic["s3"].keys() == synthetic["s3"].keys()
         assert organic["s3"]["bucket"]["name"] == synthetic["s3"]["bucket"]["name"]
+        assert organic["s3"]["bucket"]["arn"] == synthetic["s3"]["bucket"]["arn"]
+        assert organic["s3"]["object"]["key"] == synthetic["s3"]["object"]["key"]
+        assert organic["s3"]["object"]["eTag"] == synthetic["s3"]["object"]["eTag"]
+        assert organic["s3"]["object"]["size"] == synthetic["s3"]["object"]["size"]
+        assert organic["s3"]["object"]["size"] == synthetic["s3"]["object"]["size"]
 
-
-
-    
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
         # parquet
