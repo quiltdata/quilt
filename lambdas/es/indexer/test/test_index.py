@@ -166,7 +166,7 @@ class TestIndex(TestCase):
             key="events/copy-one/0.png",
             eTag="7b4b71116bb21d3ea7138dfe7aabf036",
         )
-
+        # actual event from S3 with a few obfuscations to protect the innocent
         organic = {
             "eventVersion": "2.1",
             "eventSource": "aws:s3",
@@ -191,14 +191,26 @@ class TestIndex(TestCase):
                     "ownerIdentity": {
                         "principalId": "SAMPLE"
                     },
-                    "arn": "arn:aws:s3:::somebucket"},
-                "object": {"key": "events/copy-one/0.png",
-                "size": 73499,
-                "eTag": "7b4b71116bb21d3ea7138dfe7aabf036",
-                "versionId": "Yj1vyLWcE9FTFIIrsgk.yAX7NbJrAW7g",
-                "sequencer": "005ECD94EFA9B09DD8"}
+                    "arn": "arn:aws:s3:::somebucket"
+                },
+                "object": {
+                    "key": "events/copy-one/0.png",
+                    "size": 73499,
+                    "eTag": "7b4b71116bb21d3ea7138dfe7aabf036",
+                    "versionId": "Yj1vyLWcE9FTFIIrsgk.yAX7NbJrAW7g",
+                    "sequencer": "005ECD94EFA9B09DD8"
+                }
             }
         }
+
+        assert organic.keys() == synthetic.keys(), \
+            "Expected same keys for organic and synthetic events"
+        assert organic["s3"].keys() == synthetic["s3"].keys(), \
+            "Expected same keys for organic and synthetic events"
+
+
+
+    
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
         # parquet
