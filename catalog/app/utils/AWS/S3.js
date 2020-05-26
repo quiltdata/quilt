@@ -14,6 +14,7 @@ import * as Credentials from './Credentials'
 
 const DEFAULT_OPTS = {
   signatureVersion: 'v4',
+  s3UsEast1RegionalEndpoint: 'regional',
 }
 
 const Ctx = React.createContext(DEFAULT_OPTS)
@@ -50,18 +51,19 @@ export const useRequest = (extra) => {
     (req) => {
       const b = req.params.Bucket
       if (b) {
+        req.on('sign', () => {
+          // Monkey-patch the request object after it has been signed and save the original
+          // values in case of retry.
+          req.httpRequest[PROXIED] = {
+            endpoint: req.httpRequest.endpoint,
+            path: req.httpRequest.path,
+          }
+          req.httpRequest.endpoint = proxyEndpoint
+          req.httpRequest.path = `/${req.httpRequest.region}/${b}${req.httpRequest.path}`
+        })
         req.on(
-          'sign',
+          'retry',
           () => {
-            // This is the ultimate hack to get the signing process working.
-            // On non-default regions, when the AWS SDK, after some retries, discovers the
-            // proper (it thinks) region-based endpoint, e.g. $bucket.s3.$region.amazonaws.com,
-            // AWS S3 responds with an error saying that canonical request should contain the
-            // host WITHOUT the region, e.g. $bucket.s3.amazonaws.com ¯\_(°_o)_/¯
-            req.httpRequest.headers.Host = req.httpRequest.headers.Host.replace(
-              /s3\.([a-z]{2}-[a-z]+-\d)\.amazonaws.com/,
-              's3.amazonaws.com',
-            )
             // Revert our patch so that the request can be re-signed in case of retry.
             // AWS SDK reuses and mutates the httpRequest object, so we have to track our
             // monkey-patching to avoid applying it repeatedly.
@@ -73,16 +75,6 @@ export const useRequest = (extra) => {
           },
           true,
         )
-        req.on('sign', () => {
-          // Monkey-patch the request object after it has been signed and save the original
-          // values in case of retry.
-          req.httpRequest[PROXIED] = {
-            endpoint: req.httpRequest.endpoint,
-            path: req.httpRequest.path,
-          }
-          req.httpRequest.endpoint = proxyEndpoint
-          req.httpRequest.path = `/${b}${req.httpRequest.path}`
-        })
       }
     },
     [cfg, proxyEndpoint],
