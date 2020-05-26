@@ -55,6 +55,7 @@ EVENT_CORE = {
 
 def make_event(
         name,
+        bucket="test-bucket",
         eTag="123456",
         key="hello+world.txt",
         size=100,
@@ -62,18 +63,24 @@ def make_event(
 ):
     """this function builds event types off of EVENT_CORE and adds fields
     to match organic AWS events"""
-    if name == "ObjectCreated:Put":
+    if name in {"ObjectCreated:Put", "ObjectCreated:Copy"}:
         return _make_event(
             name,
+            bucket=bucket,
             eTag=eTag,
             key=key,
             size=size
         )
     elif name == "ObjectRemoved:Delete":
-        return _make_event(name)
+        return _make_event(
+            name,
+            bucket=bucket,
+            key=key
+        )
     elif name == "ObjectRemoved:DeleteMarkerCreated":
         return _make_event(
             name,
+            bucket=bucket,
             eTag=eTag,
             key=key,
             versionId=versionId
@@ -82,7 +89,7 @@ def make_event(
         raise ValueError(f"Unexpected event type: {name}")
 
 
-def _make_event(name, eTag="", key="", size=0, versionId=""):
+def _make_event(name, bucket="", eTag="", key="", size=0, versionId=""):
     """make events in the pattern of
     https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html
     and
@@ -91,6 +98,9 @@ def _make_event(name, eTag="", key="", size=0, versionId=""):
     e = deepcopy(EVENT_CORE)
     e["eventName"] = name
 
+    if bucket:
+        e["s3"]["bucket"]["name"] = bucket
+        e["s3"]["bucket"]["arn"] = f"arn:aws:s3:::{bucket}"
     if key:
         e["s3"]["object"]["key"] = key
     if eTag:
@@ -148,6 +158,47 @@ class TestIndex(TestCase):
             etag='etag', version_id=None, s3_client=self.s3_client, size=123,
         )
 
+    def test_created_copy_event(self):
+        """check synthetic ObjectCreated:Copy event vs organic obtained on 26-May-2020"""
+        synthetic = make_event(
+            "ObjectCreated:Copy", 
+            bucket="somebucket",
+            key="events/copy-one/0.png",
+            eTag="7b4b71116bb21d3ea7138dfe7aabf036",
+        )
+
+        organic = {
+            "eventVersion": "2.1",
+            "eventSource": "aws:s3",
+            "awsRegion": "us-west-1",
+            "eventTime": "2020-05-26T22:15:10.906Z",
+            "eventName": "ObjectCreated:Copy",
+            "userIdentity": {
+                "principalId": "AWS:EXAMPLEDUDE"
+            },
+            "requestParameters": {
+                "sourceIPAddress": "07.571.22.131"
+            },
+            "responseElements": {
+                "x-amz-request-id": "CEF0E4FD6D0944D7",
+                "x-amz-id-2": "EXAMPLE/+63rMdcLBMWNcsgKSIvm5wESswLYR2Vw32z4Zg4fUo8qkP4dZJoBH9m0gvhZ9/m/HAApWP+3arsz0QPph7OBVdl1"
+            },
+            "s3": {
+                "s3SchemaVersion": "1.0",
+                "configurationId": "YmJkYWUyYmYtNzg5OC00NGRiLTk0NmItNDMxNzA4NzhiZDNk",
+                "bucket": {
+                    "name": "somebucket",
+                    "ownerIdentity": {
+                        "principalId": "SAMPLE"
+                    },
+                    "arn": "arn:aws:s3:::somebucket"},
+                "object": {"key": "events/copy-one/0.png",
+                "size": 73499,
+                "eTag": "7b4b71116bb21d3ea7138dfe7aabf036",
+                "versionId": "Yj1vyLWcE9FTFIIrsgk.yAX7NbJrAW7g",
+                "sequencer": "005ECD94EFA9B09DD8"}
+            }
+        }
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
         # parquet
