@@ -84,12 +84,14 @@ def check_event(synthetic, organic):
 
 def make_event(
         name,
+        *,
         bucket="test-bucket",
         eTag="123456",
         key="hello+world.txt",
         region="us-east-1",
         size=100,
-        versionId="1313131313131.Vier50HdNbi7ZirO65"
+        versionId="1313131313131.Vier50HdNbi7ZirO65",
+        bucket_versioning=True
 ):
     """this function builds event types off of EVENT_CORE and adds fields
     to match organic AWS events"""
