@@ -101,14 +101,17 @@ def make_event(
         "ObjectCreated:Post",
         "ObjectCreated:CompleteMultipartUpload"
     }:
+        args = {}
+        args["bucket"] = bucket
+        args["eTag"] = eTag
+        args["key"] = key
+        args["region"] = region
+        args["size"] = size
+        if bucket_versioning:
+            args["versionId"] = versionId
         return _make_event(
             name,
-            bucket=bucket,
-            eTag=eTag,
-            key=key,
-            region=region,
-            size=size,
-            versionId=versionId
+            **args
         )
     # no versionId or eTag in this case
     elif name == "ObjectRemoved:Delete":
@@ -119,6 +122,7 @@ def make_event(
             region=region
         )
     elif name == "ObjectRemoved:DeleteMarkerCreated":
+        assert bucket_versioning, "Delete markers only possible in versioned buckets"
         return _make_event(
             name,
             bucket=bucket,
@@ -136,6 +140,7 @@ def make_event(
 
 def _make_event(
         name,
+        *,
         bucket="",
         eTag="",
         key="",
