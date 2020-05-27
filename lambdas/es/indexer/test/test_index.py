@@ -22,6 +22,7 @@ import responses
 from .. import index
 
 BASE_DIR = Path(__file__).parent / 'data'
+UNKNOWN_EVENT_TYPE = "Event:WeNeverHeardOf"
 
 # See the following AWS docs for event structure:
 EVENT_CORE = {
@@ -118,6 +119,9 @@ def make_event(
             region=region,
             versionId=versionId
         )
+    elif name == UNKNOWN_EVENT_TYPE:
+        return _make_event(UNKNOWN_EVENT_TYPE)
+
     else:
         raise ValueError(f"Unexpected event type: {name}")
 
@@ -354,6 +358,20 @@ class TestIndex(TestCase):
 
         index.handler(event, None)
 
+    def test_delete_marker_event(self):
+        """
+        Common event in versioned; buckets, should no-op
+        """
+        # don't mock head or get; this event should never call them
+        self._test_index_event(
+            "ObjectRemoved:DeleteMarkerCreated",
+            # we should never call Elastic in this case
+            mock_elastic=False,
+            mock_head=False,
+            mock_object=False
+        )
+
+
     def test_index_file(self):
         """test indexing a single file"""
         # test all known created events
@@ -502,6 +520,18 @@ class TestIndex(TestCase):
             )
 
         index.handler(records, MockContext())
+
+    def test_unexpected_event(self):
+        """
+        Test unknown events
+        """
+        # the indexer should just pass over this event without touching S3 or ES
+        self._test_index_event(
+            UNKNOWN_EVENT_TYPE,
+            mock_elastic=False,
+            mock_head=False,
+            mock_object=False
+        )
 
     def test_unsupported_contents(self):
         assert self._get_contents('foo.exe', '.exe') == ""
