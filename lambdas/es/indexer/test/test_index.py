@@ -64,17 +64,23 @@ def check_event(synthetic, organic):
         {type(v) for v in synthetic.values()}
     # same keys and nested under "s3"
     assert organic["s3"].keys() == synthetic["s3"].keys()
+    assert organic["s3"]["bucket"].keys() == synthetic["s3"]["bucket"].keys()
     # same value types under S3 (values might differ and that's OK)
     assert {type(v) for v in organic["s3"].values()} == \
         {type(v) for v in synthetic["s3"].values()}
     # spot checks for overridden properties
+    # size absent on delete
+    if "size" in organic["s3"]["bucket"]:
+        assert organic["s3"]["object"]["size"] == synthetic["s3"]["object"]["size"]
+    # versionId absent when unversioned bucket or hard delete
+    if "versionId" in organic["s3"]["bucket"]:
+        assert organic["s3"]["object"]["versionId"] == synthetic["s3"]["object"]["versionId"]
+    # should always be present
     assert organic["awsRegion"] == synthetic["awsRegion"]
-    assert organic["s3"]["bucket"]["name"] == synthetic["s3"]["bucket"]["name"]
     assert organic["s3"]["bucket"]["arn"] == synthetic["s3"]["bucket"]["arn"]
+    assert organic["s3"]["bucket"]["name"] == synthetic["s3"]["bucket"]["name"]
     assert organic["s3"]["object"]["key"] == synthetic["s3"]["object"]["key"]
     assert organic["s3"]["object"]["eTag"] == synthetic["s3"]["object"]["eTag"]
-    assert organic["s3"]["object"]["size"] == synthetic["s3"]["object"]["size"]
-    assert organic["s3"]["object"]["versionId"] == synthetic["s3"]["object"]["versionId"]
 
 def make_event(
         name,
@@ -206,7 +212,9 @@ class TestIndex(TestCase):
         )
 
     def test_synthetic_copy_event(self):
-        """check synthetic ObjectCreated:Copy event vs organic obtained on 26-May-2020"""
+        """check synthetic ObjectCreated:Copy event vs organic obtained on 26-May-2020
+        (bucket versioning on)
+        """
         synthetic = make_event(
             "ObjectCreated:Copy",
             bucket="somebucket",
@@ -227,7 +235,7 @@ class TestIndex(TestCase):
                 "principalId": "AWS:EXAMPLEDUDE"
             },
             "requestParameters": {
-                "sourceIPAddress": "07.571.22.131"
+                "sourceIPAddress": "12.999.99.999"
             },
             "responseElements": {
                 "x-amz-request-id": "CEF0E4FD6D0944D7",
@@ -254,8 +262,52 @@ class TestIndex(TestCase):
         }
         check_event(synthetic, organic)
 
+    def test_synthetic_copy_event_no_versioning(self):
+        """check synthetic ObjectCreated:Copy event vs organic obtained on 26-May-2020
+        (this is for a bucket with versioning turned off)
+        """
+        synthetic = make_event(
+            "ObjectCreated:Copy",
+            bucket="somebucket",
+            key="events/copy-one-noversioning/0.png",
+            size=73499,
+            eTag="7b4b71116bb21d3ea7138dfe7aabf036",
+            region="us-west-1",
+        )
+        # actual event from S3 with a few obfuscations to protect the innocent
+        organic = {
+            "eventVersion": "2.1",
+            "eventSource": "aws:s3",
+            "awsRegion": "us-west-1",
+            "eventTime": "2020-05-27T20:31:45.823Z",
+            "eventName": "ObjectCreated:Copy",
+            "userIdentity": {"principalId": "AWS:boombomakasdfsdf"},
+            "requestParameters": {
+                "sourceIPAddress": "07.123.45.899"},
+                "responseElements": {
+                    "x-amz-request-id": "DECF307B5F55C78D",
+                    "x-amz-id-2": "guid/hash/tG++guid/stuff"
+                },
+            "s3": {
+                "s3SchemaVersion": "1.0",
+                "configurationId": "stuff",
+                "bucket": {
+                    "name": "somebucket",
+                    "ownerIdentity": {"principalId": "B3ASKDFASDFAF"},
+                    "arn": "arn:aws:s3:::somebucket"},
+                "object": {
+                    "key": "events/copy-one-noversioning/0.png",
+                    "size": 73499,
+                    "eTag": "7b4b71116bb21d3ea7138dfe7aabf036",
+                    "sequencer": "005ECECE336C7A4715"
+                }
+            }
+        } 
+        check_event(synthetic, organic)
+
     def test_synthetic_put_event(self):
-        """check synthetic ObjectCreated:Put event vs organic obtained on 27-May-2020"""
+        """check synthetic ObjectCreated:Put event vs organic obtained on 27-May-2020
+        (bucket versioning on)"""
         synthetic = make_event(
             "ObjectCreated:Copy",
             bucket="anybucket",
@@ -298,7 +350,8 @@ class TestIndex(TestCase):
         check_event(synthetic, organic)
 
     def test_synthetic_multipart_event(self):
-        """check synthetic ObjectCreated:Put event vs organic obtained on 27-May-2020"""
+        """check synthetic ObjectCreated:Put event vs organic obtained on 27-May-2020
+        (bucket versioning on)"""
         synthetic = make_event(
             "ObjectCreated:CompleteMultipartUpload",
             bucket="anybucket",
@@ -316,7 +369,7 @@ class TestIndex(TestCase):
             "eventTime": "2020-05-27T20:13:18.791Z",
             "eventName": "ObjectCreated:CompleteMultipartUpload",
             "userIdentity": {"principalId": "AWS:nogonnabehere"},
-            "requestParameters": {"sourceIPAddress": "70.175.88.131"},
+            "requestParameters": {"sourceIPAddress": "12.999.88.131"},
             "responseElements": {
                 "x-amz-request-id": "9F9BABC04A681C48",
                 "x-amz-id-2": "Lfs+guid/anotherguid"
