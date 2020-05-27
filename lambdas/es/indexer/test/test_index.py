@@ -53,6 +53,27 @@ EVENT_CORE = {
     "userIdentity": {"principalId": "EXAMPLE"}
 }
 
+def check_event(synthetic, organic):
+    # Ensure that synthetic events have the same shape as actual organic ones,
+    # and that overridden properties like bucket, key, eTag are properly set
+    # same keys at top level
+    assert organic.keys() == synthetic.keys()
+    # same value types (values might differ and that's OK)
+    assert {type(v) for v in organic.values()} == \
+        {type(v) for v in synthetic.values()}
+    # same keys and nested under "s3"
+    assert organic["s3"].keys() == synthetic["s3"].keys()
+    # same value types under S3 (values might differ and that's OK)
+    assert {type(v) for v in organic["s3"].values()} == \
+        {type(v) for v in synthetic["s3"].values()}
+    # spot checks for overridden properties
+    assert organic["awsRegion"] == synthetic["awsRegion"]
+    assert organic["s3"]["bucket"]["name"] == synthetic["s3"]["bucket"]["name"]
+    assert organic["s3"]["bucket"]["arn"] == synthetic["s3"]["bucket"]["arn"]
+    assert organic["s3"]["object"]["key"] == synthetic["s3"]["object"]["key"]
+    assert organic["s3"]["object"]["eTag"] == synthetic["s3"]["object"]["eTag"]
+    assert organic["s3"]["object"]["size"] == synthetic["s3"]["object"]["size"]
+    assert organic["s3"]["object"]["versionId"] == synthetic["s3"]["object"]["versionId"]
 
 def make_event(
         name,
@@ -222,26 +243,48 @@ class TestIndex(TestCase):
                 }
             }
         }
-        # Ensure that synthetic events have the same shape as actual organic ones,
-        # and that overridden properties like bucket, key, eTag are properly set
-        # same keys at top level
-        assert organic.keys() == synthetic.keys()
-        # same value types (values might differ and that's OK)
-        assert {type(v) for v in organic.values()} == \
-            {type(v) for v in synthetic.values()}
-        # same keys and nested under "s3"
-        assert organic["s3"].keys() == synthetic["s3"].keys()
-        # same value types under S3 (values might differ and that's OK)
-        assert {type(v) for v in organic["s3"].values()} == \
-            {type(v) for v in synthetic["s3"].values()}
-        # spot checks for overridden properties
-        assert organic["awsRegion"] == synthetic["awsRegion"]
-        assert organic["s3"]["bucket"]["name"] == synthetic["s3"]["bucket"]["name"]
-        assert organic["s3"]["bucket"]["arn"] == synthetic["s3"]["bucket"]["arn"]
-        assert organic["s3"]["object"]["key"] == synthetic["s3"]["object"]["key"]
-        assert organic["s3"]["object"]["eTag"] == synthetic["s3"]["object"]["eTag"]
-        assert organic["s3"]["object"]["size"] == synthetic["s3"]["object"]["size"]
-        assert organic["s3"]["object"]["versionId"] == synthetic["s3"]["object"]["versionId"]
+        check_event(synthetic, organic)
+
+    def test_synthetic_put_event(self):
+        """check synthetic ObjectCreated:Put event vs organic obtained on 27-May-2020"""
+        synthetic = make_event(
+            "ObjectCreated:Copy",
+            bucket="anybucket",
+            key="events/put-one/storms.parquet",
+            size=923078,
+            eTag="502f21cfc143fb0c35f563eda5699fa9",
+            region="us-west-1",
+            versionId="yYSoQSg3.BfosdUxnRSv9vFg.WAPMmfn"
+        )
+        # actual event from S3 with a few obfuscations to protect the innocent
+        organic ={
+            "eventVersion": "2.1",
+            "eventSource": "aws:s3",
+            "awsRegion": "us-west-1",
+            "eventTime": "2020-05-27T18:57:36.268Z",
+            "eventName": "ObjectCreated:Put",
+            "userIdentity": {"principalId": "AWS:notgonnabehereanyway"},
+            "requestParameters": {"sourceIPAddress": "12.345.67.890"},
+            "responseElements": {"x-amz-request-id": "371A83BCE4341D7D",
+            "x-amz-id-2": "a+example+morestuff+01343413434234234234"},
+            "s3": {
+                "s3SchemaVersion": "1.0",
+                "configurationId": "YmJkYWUyYmYtNzg5OC00NGRiLTk0NmItNDMxNzA4NzhiZDNk",
+                "bucket": {
+                    "name": "anybucket",
+                    "ownerIdentity": {"principalId": "myidhere"},
+                    "arn": "arn:aws:s3:::anybucket"
+                },
+                "object": {
+                    "key": "events/put-one/storms.parquet",
+                    "size": 923078,
+                    "eTag": "502f21cfc143fb0c35f563eda5699fa9",
+                    "versionId": "yYSoQSg3.BfosdUxnRSv9vFg.WAPMmfn",
+                    "sequencer": "005ECEB81C34962CFC"
+                }
+            }
+        }
+        check_event(synthetic, organic)
 
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
