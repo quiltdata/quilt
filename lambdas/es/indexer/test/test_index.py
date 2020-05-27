@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import ANY, patch
+from urllib.parse import unquote, unquote_plus
 
 import boto3
 from botocore import UNSIGNED
@@ -58,6 +59,7 @@ def make_event(
         bucket="test-bucket",
         eTag="123456",
         key="hello+world.txt",
+        region="us-east-1",
         size=100,
         versionId="1313131313131.Vier50HdNbi7ZirO65"
 ):
@@ -69,13 +71,17 @@ def make_event(
             bucket=bucket,
             eTag=eTag,
             key=key,
-            size=size
+            region=region,
+            size=size,
+            versionId=versionId
         )
+    # no versionId or eTag in this case
     elif name == "ObjectRemoved:Delete":
         return _make_event(
             name,
             bucket=bucket,
-            key=key
+            key=key,
+            region=region
         )
     elif name == "ObjectRemoved:DeleteMarkerCreated":
         return _make_event(
@@ -83,13 +89,22 @@ def make_event(
             bucket=bucket,
             eTag=eTag,
             key=key,
+            region=region,
             versionId=versionId
         )
     else:
         raise ValueError(f"Unexpected event type: {name}")
 
 
-def _make_event(name, bucket="", eTag="", key="", size=0, versionId=""):
+def _make_event(
+        name,
+        bucket="",
+        eTag="",
+        key="",
+        region="",
+        size=0,
+        versionId=""
+):
     """make events in the pattern of
     https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html
     and
@@ -107,6 +122,8 @@ def _make_event(name, bucket="", eTag="", key="", size=0, versionId=""):
         e["s3"]["object"]["eTag"] = eTag
     if size:
         e["s3"]["object"]["size"] = size
+    if region:
+        e["awsRegion"] = region
     if versionId:
         e["s3"]["object"]["versionId"] = versionId
 
@@ -166,6 +183,7 @@ class TestIndex(TestCase):
             key="events/copy-one/0.png",
             size=73499,
             eTag="7b4b71116bb21d3ea7138dfe7aabf036",
+            region="us-west-1",
             versionId="Yj1vyLWcE9FTFIIrsgk.yAX7NbJrAW7g"
         )
         # actual event from S3 with a few obfuscations to protect the innocent
@@ -206,14 +224,24 @@ class TestIndex(TestCase):
         }
         # Ensure that synthetic events have the same shape as actual organic ones,
         # and that overridden properties like bucket, key, eTag are properly set
+        # same keys at top level
         assert organic.keys() == synthetic.keys()
+        # same value types (values might differ and that's OK)
+        assert {type(v) for v in organic.values()} == \
+            {type(v) for v in synthetic.values()}
+        # same keys and nested under "s3"
         assert organic["s3"].keys() == synthetic["s3"].keys()
+        # same value types under S3 (values might differ and that's OK)
+        assert {type(v) for v in organic["s3"].values()} == \
+            {type(v) for v in synthetic["s3"].values()}
+        # spot checks for overridden properties
+        assert organic["awsRegion"] == synthetic["awsRegion"]
         assert organic["s3"]["bucket"]["name"] == synthetic["s3"]["bucket"]["name"]
         assert organic["s3"]["bucket"]["arn"] == synthetic["s3"]["bucket"]["arn"]
         assert organic["s3"]["object"]["key"] == synthetic["s3"]["object"]["key"]
         assert organic["s3"]["object"]["eTag"] == synthetic["s3"]["object"]["eTag"]
         assert organic["s3"]["object"]["size"] == synthetic["s3"]["object"]["size"]
-        assert organic["s3"]["object"]["size"] == synthetic["s3"]["object"]["size"]
+        assert organic["s3"]["object"]["versionId"] == synthetic["s3"]["object"]["versionId"]
 
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
@@ -238,7 +266,11 @@ class TestIndex(TestCase):
         Check that the indexer doesn't blow up on delete events.
         """
         # don't mock head or get; they should never be called for deleted objects
-        self._test_index_event("ObjectRemoved:Delete", mock_head=False, mock_object=False)
+        self._test_index_event(
+            "ObjectRemoved:Delete",
+            mock_head=False,
+            mock_object=False
+        )
 
     def test_delete_marker_event(self):
         """
@@ -298,11 +330,12 @@ class TestIndex(TestCase):
         """
         Reusable helper function to test indexing a single text file.
         """
+        event = make_event(event_name)
         records = {
             "Records": [{
                 "body": json.dumps({
                     "Message": json.dumps({
-                        "Records": [make_event(event_name)]
+                        "Records": [event]
                     })
                 })
             }]
@@ -319,20 +352,31 @@ class TestIndex(TestCase):
                 'x': 'y'
             })
         }
+        # the handler unquotes keys (see index.py) so that's what we should
+        # expect back from ES, hence unkey
+        unkey = unquote_plus(event["s3"]["object"]["key"])
+        eTag = event["s3"]["object"].get("eTag", None)
+        versionId = event["s3"]["object"].get("versionId", None)
+        expected_params = {
+            'Bucket': event["s3"]["bucket"]["name"],
+            'Key': unkey,
+        }
+        # We only get versionId for certain events and if bucket versioning is
+        # (or was at one time?) on
+        if versionId:
+            expected_params["VersionId"] = versionId
+        elif eTag:
+            expected_params["IfMatch"] = eTag
 
         if mock_head:
             self.s3_stubber.add_response(
                 method='head_object',
                 service_response={
                     'Metadata': metadata,
-                    'ContentLength': 100,
+                    'ContentLength': event["s3"]["object"]["size"],
                     'LastModified': now,
                 },
-                expected_params={
-                    'Bucket': 'test-bucket',
-                    'Key': 'hello world.txt',
-                    'IfMatch': '123456',
-                }
+                expected_params=expected_params
             )
 
         if mock_object:
@@ -340,14 +384,12 @@ class TestIndex(TestCase):
                 method='get_object',
                 service_response={
                     'Metadata': metadata,
-                    'ContentLength': 100,
+                    'ContentLength': event["s3"]["object"]["size"],
                     'LastModified': now,
                     'Body': BytesIO(b'Hello World!'),
                 },
                 expected_params={
-                    'Bucket': 'test-bucket',
-                    'Key': 'hello world.txt',
-                    'IfMatch': '123456',
+                    **expected_params,
                     'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
                 }
             )
@@ -358,27 +400,31 @@ class TestIndex(TestCase):
             expected = [
                 {
                     response_key: {
-                        '_index': 'test-bucket',
+                        '_index':  event["s3"]["bucket"]["name"],
                         '_type': '_doc',
-                        '_id': 'hello world.txt:None'
+                        '_id': f'{unkey}:{versionId}'
                     }
                 },
                 {
                     'comment': 'blah',
                     'content': '' if not mock_object else 'Hello World!',
-                    'etag': '123456',
                     'event': event_name,
-                    'ext': '.txt',
-                    'key': 'hello world.txt',
+                    'ext': os.path.splitext(unkey)[1],
+                    'key': unkey,
                     'last_modified': now.isoformat(),
                     'meta_text': 'blah  {"x": "y"} {"foo": "bar"}',
-                    'size': 100,
                     'target': '',
                     'updated': ANY,
-                    'version_id': None
                 }
             ]
-
+            # conditionally define fields not present in all events
+            if event["s3"]["object"].get("eTag", None):
+                expected[1]["etag"] = event["s3"]["object"]["eTag"]
+            if event["s3"]["object"].get("size", None):
+                expected[1]["size"] = event["s3"]["object"]["size"]
+            if versionId:
+                expected[1]["version_id"] = versionId
+ 
             if response_key == 'delete':
                 # delete events do not include request body
                 expected.pop()
