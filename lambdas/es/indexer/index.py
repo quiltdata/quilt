@@ -51,7 +51,6 @@ def now_like_boto3():
 
 def should_retry_exception(exception):
     """don't retry certain 40X errors"""
-    print(exception)
     error_code = exception.response.get('Error', {}).get('Code', 218)
     return error_code not in ["402", "403", "404"]
 

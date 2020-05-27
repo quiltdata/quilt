@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import ANY, patch
-from urllib.parse import unquote, unquote_plus
+from urllib.parse import unquote_plus
 
 import boto3
 from botocore import UNSIGNED
@@ -175,10 +175,10 @@ class TestIndex(TestCase):
             etag='etag', version_id=None, s3_client=self.s3_client, size=123,
         )
 
-    def test_created_copy_event(self):
+    def test_synthetic_copy_event(self):
         """check synthetic ObjectCreated:Copy event vs organic obtained on 26-May-2020"""
         synthetic = make_event(
-            "ObjectCreated:Copy", 
+            "ObjectCreated:Copy",
             bucket="somebucket",
             key="events/copy-one/0.png",
             size=73499,
@@ -424,7 +424,7 @@ class TestIndex(TestCase):
                 expected[1]["size"] = event["s3"]["object"]["size"]
             if versionId:
                 expected[1]["version_id"] = versionId
- 
+
             if response_key == 'delete':
                 # delete events do not include request body
                 expected.pop()
