@@ -158,6 +158,19 @@ optional arguments:
   --dest DEST          Where to copy the objects in the package
   --message MESSAGE    The commit message for the new package
 ```
+## `config-default-remote-registry`
+```
+usage: quilt3 config-default-remote-registry [-h] default_remote_registry
+
+Configure default remote registry for Quilt
+
+positional arguments:
+  default_remote_registry
+                        The default remote registry to use, e.g. s3://quilt-ml
+
+optional arguments:
+  -h, --help            show this help message and exit
+```
 ## Environment variables
 ### `QUILT_DISABLE_USAGE_METRICS`
 Disable anonymous usage collection. Defaults to `False`

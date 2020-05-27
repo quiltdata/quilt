@@ -37,6 +37,7 @@ gen_cmd_docs 'config'
 gen_cmd_docs 'disable-telemetry'
 gen_cmd_docs 'list-packages'
 gen_cmd_docs 'push'
+gen_cmd_docs 'config-default-remote-registry'
 
 # Document environment variables
 echo '## Environment variables' >> cli.md
@@ -61,7 +62,3 @@ echo '- `PACKAGE_NAME_FORMAT` - Regex for legal package names' >> cli.md
 
 
 mv cli.md "../docs/API Reference/cli.md"
-
-
-
-
