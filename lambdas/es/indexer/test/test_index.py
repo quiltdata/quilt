@@ -86,7 +86,12 @@ def make_event(
 ):
     """this function builds event types off of EVENT_CORE and adds fields
     to match organic AWS events"""
-    if name in {"ObjectCreated:Put", "ObjectCreated:Copy"}:
+    if name in {
+        "ObjectCreated:Put",
+        "ObjectCreated:Copy",
+        "ObjectCreated:Post",
+        "ObjectCreated:CompleteMultipartUpload"
+    }:
         return _make_event(
             name,
             bucket=bucket,
@@ -351,7 +356,12 @@ class TestIndex(TestCase):
 
     def test_index_file(self):
         """test indexing a single file"""
+        # test all known created events
+        # https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
         self._test_index_event("ObjectCreated:Put")
+        self._test_index_event("ObjectCreated:Copy")
+        self._test_index_event("ObjectCreated:Post")
+        self._test_index_event("ObjectCreated:CompleteMultipartUpload")
 
     @patch(__name__ + '.index.get_contents')
     def test_index_exception(self, get_mock):
