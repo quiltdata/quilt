@@ -274,8 +274,10 @@ class TestIndex(TestCase):
             "eventName": "ObjectCreated:Put",
             "userIdentity": {"principalId": "AWS:notgonnabehereanyway"},
             "requestParameters": {"sourceIPAddress": "12.345.67.890"},
-            "responseElements": {"x-amz-request-id": "371A83BCE4341D7D",
-            "x-amz-id-2": "a+example+morestuff+01343413434234234234"},
+            "responseElements": {
+                "x-amz-request-id": "371A83BCE4341D7D",
+                "x-amz-id-2": "a+example+morestuff+01343413434234234234"
+            },
             "s3": {
                 "s3SchemaVersion": "1.0",
                 "configurationId": "YmJkYWUyYmYtNzg5OC00NGRiLTk0NmItNDMxNzA4NzhiZDNk",
@@ -294,6 +296,48 @@ class TestIndex(TestCase):
             }
         }
         check_event(synthetic, organic)
+
+    def test_synthetic_multipart_event(self):
+        """check synthetic ObjectCreated:Put event vs organic obtained on 27-May-2020"""
+        synthetic = make_event(
+            "ObjectCreated:CompleteMultipartUpload",
+            bucket="anybucket",
+            key="events/multipart-one/part-00006-495c48e6-96d6-4650-aa65-3c36a3516ddd.c000.snappy.parquet",
+            size=135397292,
+            eTag="0eb149127d0277326dedcf0c530ca966-17",
+            region="us-west-1",
+            versionId="bKufwe3zvJ3SQn3F9Z.akBkenOYl_SIz"
+        )
+        # actual event from S3 with a few obfuscations to protect the innocent
+        organic = {
+            "eventVersion": "2.1",
+            "eventSource": "aws:s3",
+            "awsRegion": "us-west-1",
+            "eventTime": "2020-05-27T20:13:18.791Z",
+            "eventName": "ObjectCreated:CompleteMultipartUpload",
+            "userIdentity": {"principalId": "AWS:nogonnabehere"},
+            "requestParameters": {"sourceIPAddress": "70.175.88.131"},
+            "responseElements": {
+                "x-amz-request-id": "9F9BABC04A681C48",
+                "x-amz-id-2": "Lfs+guid/anotherguid"
+            },
+            "s3": {
+                "s3SchemaVersion": "1.0",
+                "configurationId": "XSASFASFASDFASFASFYGUID",
+                "bucket": {
+                    "name": "searchminimal",
+                    "ownerIdentity": {"principalId": "A13432523432423535"},
+                    "arn": "arn:aws:s3:::searchminimal"
+                },
+                "object": {
+                    "key": "events/multipart-one/part-00006-495c48e6-96d6-4650-aa65-3c36a3516ddd.c000.snappy.parquet",
+                    "size": 135397292,
+                    "eTag": "0eb149127d0277326dedcf0c530ca966-17",
+                    "versionId": "bKufwe3zvJ3SQn3F9Z.akBkenOYl_SIz",
+                    "sequencer": "005ECEC96FC6B634D7"
+                }
+            }
+        }
 
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
