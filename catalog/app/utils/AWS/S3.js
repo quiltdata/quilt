@@ -86,7 +86,7 @@ export const useRequest = (extra) => {
     ...extra,
   })
   return React.useCallback(
-    ({ operation, params }) => {
+    ({ operation, params, promise = true }) => {
       let type = 'unsigned'
       if (cfg.mode === 'LOCAL') {
         type = 'signed'
@@ -108,7 +108,8 @@ export const useRequest = (extra) => {
         unsigned: [regularClient, 'makeUnauthenticatedRequest'],
         select: [s3SelectClient, 'makeUnauthenticatedRequest'],
       }[type]
-      return client[method](operation, params).promise()
+      const req = client[method](operation, params)
+      return promise ? req.promise() : req
     },
     [regularClient, s3SelectClient, authenticated, cfg, isInStack],
   )
