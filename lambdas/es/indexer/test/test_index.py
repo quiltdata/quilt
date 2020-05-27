@@ -262,7 +262,7 @@ class TestIndex(TestCase):
             versionId="yYSoQSg3.BfosdUxnRSv9vFg.WAPMmfn"
         )
         # actual event from S3 with a few obfuscations to protect the innocent
-        organic ={
+        organic = {
             "eventVersion": "2.1",
             "eventSource": "aws:s3",
             "awsRegion": "us-west-1",
