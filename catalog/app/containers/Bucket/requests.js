@@ -59,7 +59,6 @@ const promiseProps = (obj) =>
 
 export const bucketListing = ({ s3req, bucket, path = '', prev }) =>
   s3req({
-    bucket,
     operation: 'listObjectsV2',
     params: {
       Bucket: bucket,
@@ -204,7 +203,7 @@ const parseDate = (d) => d && new Date(d)
 export function bucketExists({ s3req, bucket, cache }) {
   if (S3.prototype.bucketRegionCache[bucket]) return Promise.resolve()
   if (cache && cache[bucket]) return Promise.resolve()
-  return s3req({ bucket, operation: 'headBucket', params: { Bucket: bucket } })
+  return s3req({ operation: 'headBucket', params: { Bucket: bucket } })
     .then(() => {
       // eslint-disable-next-line no-param-reassign
       if (cache) cache[bucket] = true
@@ -244,7 +243,6 @@ export const bucketStats = async ({ es, s3req, bucket, overviewUrl }) => {
   if (overviewUrl) {
     try {
       return await s3req({
-        bucket: getOverviewBucket(overviewUrl),
         operation: 'getObject',
         params: {
           Bucket: getOverviewBucket(overviewUrl),
@@ -352,7 +350,6 @@ export const bucketSummary = async ({ s3req, es, bucket, overviewUrl, inStack })
   if (overviewUrl) {
     try {
       return await s3req({
-        bucket: getOverviewBucket(overviewUrl),
         operation: 'getObject',
         params: {
           Bucket: getOverviewBucket(overviewUrl),
@@ -410,7 +407,6 @@ export const bucketSummary = async ({ s3req, es, bucket, overviewUrl, inStack })
   }
   try {
     return await s3req({
-      bucket,
       operation: 'listObjectsV2',
       params: { Bucket: bucket },
     }).then(
@@ -458,7 +454,6 @@ export const bucketImgs = async ({ es, s3req, bucket, overviewUrl, inStack }) =>
   if (overviewUrl) {
     try {
       return await s3req({
-        bucket: getOverviewBucket(overviewUrl),
         operation: 'getObject',
         params: {
           Bucket: getOverviewBucket(overviewUrl),
@@ -508,7 +503,6 @@ export const bucketImgs = async ({ es, s3req, bucket, overviewUrl, inStack }) =>
   }
   try {
     return await s3req({
-      bucket,
       operation: 'listObjectsV2',
       params: { Bucket: bucket },
     }).then(
@@ -536,7 +530,6 @@ export const bucketImgs = async ({ es, s3req, bucket, overviewUrl, inStack }) =>
 
 export const objectVersions = ({ s3req, bucket, path }) =>
   s3req({
-    bucket,
     operation: 'listObjectVersions',
     params: { Bucket: bucket, Prefix: path },
   }).then(
@@ -556,7 +549,6 @@ export const objectVersions = ({ s3req, bucket, path }) =>
 
 export const objectMeta = ({ s3req, bucket, path, version }) =>
   s3req({
-    bucket,
     operation: 'headObject',
     params: {
       Bucket: bucket,
@@ -572,7 +564,6 @@ export const summarize = async ({ s3req, handle }) => {
 
   try {
     const file = await s3req({
-      bucket: handle.bucket,
       operation: 'getObject',
       params: {
         Bucket: handle.bucket,
@@ -666,7 +657,6 @@ const fetchPackagesAccessCounts = async ({
 
 const listPackageOwnerPrefixes = ({ s3req, bucket }) =>
   s3req({
-    bucket,
     operation: 'listObjectsV2',
     params: { Bucket: bucket, Prefix: PACKAGES_PREFIX, Delimiter: '/' },
   }).then((r) => r.CommonPrefixes.map((p) => p.Prefix))
@@ -681,7 +671,6 @@ const listPackagePrefixes = ({ s3req, bucket, ownerPrefix }) =>
 
 const fetchPackageLatest = ({ s3req, bucket, prefix }) =>
   s3req({
-    bucket,
     operation: 'listObjectsV2',
     params: { Bucket: bucket, Prefix: `${prefix}latest` },
   }).then(({ Contents: [latest] }) => {
@@ -700,7 +689,6 @@ const fetchPackageLatest = ({ s3req, bucket, prefix }) =>
 
 const fetchPackageRevisions = ({ s3req, bucket, prefix }) =>
   s3req({
-    bucket,
     operation: 'listObjectsV2',
     params: {
       Bucket: bucket,
@@ -802,7 +790,6 @@ const drainObjectList = async ({ s3req, Bucket, ...params }) => {
   while (true) {
     // eslint-disable-next-line no-await-in-loop
     const r = await s3req({
-      bucket: Bucket,
       operation: 'listObjectsV2',
       params: { Bucket, ContinuationToken, ...params },
     })
@@ -846,7 +833,6 @@ export const getPackageRevisions = withErrorHandling(
 
 const loadRevisionHash = ({ s3req, bucket, name, id }) =>
   s3req({
-    bucket,
     operation: 'getObject',
     params: { Bucket: bucket, Key: getRevisionKeyFromId(name, id) },
   }).then((res) => ({
@@ -892,7 +878,6 @@ const s3Select = ({
   ...rest
 }) =>
   s3req({
-    bucket: rest.Bucket,
     operation: 'selectObjectContent',
     params: {
       ExpressionType,
