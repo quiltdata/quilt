@@ -254,7 +254,7 @@ class MockContext():
 
 class TestIndex(TestCase):
     def setUp(self):
-        self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=True)
+        self.requests_mock = responses.RequestsMock()
         self.requests_mock.start()
 
         # Create a dummy S3 client that (hopefully) can't do anything.
@@ -512,7 +512,7 @@ class TestIndex(TestCase):
             mock_object=False,
             bucket_versioning=False
         )
- 
+
     def test_delete_marker_event(self):
         """
         Common event in versioned; buckets, should no-op
@@ -548,7 +548,7 @@ class TestIndex(TestCase):
         index.handler(event, None)
 
     def test_index_file(self):
-        """test indexing a single file fro ma create event"""
+        """test indexing a single file from a variety of create events"""
         # test all known created events
         # https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
         self._test_index_event("ObjectCreated:Put")
@@ -556,7 +556,7 @@ class TestIndex(TestCase):
         self._test_index_event("ObjectCreated:Post")
         self._test_index_event("ObjectCreated:CompleteMultipartUpload")
         self._test_index_event("ObjectCreated:Put", bucket_versioning=False)
- 
+
 
     @patch(__name__ + '.index.get_contents')
     def test_index_exception(self, get_mock):
