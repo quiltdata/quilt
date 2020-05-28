@@ -380,7 +380,7 @@ class TestIndex(TestCase):
                     "sequencer": "005ECECE336C7A4715"
                 }
             }
-        } 
+        }
         _check_event(synthetic, organic)
 
     def test_synthetic_put_event(self):
@@ -532,20 +532,6 @@ class TestIndex(TestCase):
         }
 
         index.handler(event, None)
-
-    def test_delete_marker_event(self):
-        """
-        Common event in versioned; buckets, should no-op
-        """
-        # don't mock head or get; this event should never call them
-        self._test_index_event(
-            "ObjectRemoved:DeleteMarkerCreated",
-            # we should never call Elastic in this case
-            mock_elastic=False,
-            mock_head=False,
-            mock_object=False
-        )
-
 
     def test_index_file(self):
         """test indexing a single file"""
