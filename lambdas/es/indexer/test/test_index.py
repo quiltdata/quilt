@@ -196,7 +196,7 @@ def make_event(
             region=region
         )
     elif name == "ObjectRemoved:DeleteMarkerCreated":
-        assert bucket_versioning, "Delete markers only possible in versioned buckets"
+        # these are possible in both versioned and unversioned buckets
         return _make_event(
             name,
             bucket=bucket,
@@ -368,7 +368,7 @@ class TestIndex(TestCase):
                 "x-amz-request-id": "DECF307B5F55C78D",
                 "x-amz-id-2": "guid/hash/tG++guid/stuff"
             },
-        "s3": {
+            "s3": {
                 "s3SchemaVersion": "1.0",
                 "configurationId": "stuff",
                 "bucket": {
@@ -556,7 +556,6 @@ class TestIndex(TestCase):
         self._test_index_event("ObjectCreated:Post")
         self._test_index_event("ObjectCreated:CompleteMultipartUpload")
         self._test_index_event("ObjectCreated:Put", bucket_versioning=False)
-
 
     @patch(__name__ + '.index.get_contents')
     def test_index_exception(self, get_mock):
