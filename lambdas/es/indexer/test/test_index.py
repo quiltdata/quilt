@@ -196,14 +196,20 @@ def make_event(
             region=region
         )
     elif name == "ObjectRemoved:DeleteMarkerCreated":
-        # these are possible in both versioned and unversioned buckets
+        # these events are possible in both versioned and unversioned buckets
+        # (e.g. bucket now unversioned that was versioned will generate a 
+        # delete marker on `aws s3 rm`)
+        args = {}
+        args["bucket"] = bucket
+        args["eTag"] = eTag
+        args["key"] = key
+        args["region"] = region
+        args["size"] = size
+        if bucket_versioning:
+            args["versionId"] = versionId
         return _make_event(
             name,
-            bucket=bucket,
-            eTag=eTag,
-            key=key,
-            region=region,
-            versionId=versionId
+            **args
         )
     elif name == UNKNOWN_EVENT_TYPE:
         return _make_event(UNKNOWN_EVENT_TYPE)
@@ -515,16 +521,32 @@ class TestIndex(TestCase):
 
     def test_delete_marker_event(self):
         """
-        Common event in versioned; buckets, should no-op
+        common event in versioned; buckets, should no-op
         """
         # don't mock head or get; this event should never call them
         self._test_index_event(
             "ObjectRemoved:DeleteMarkerCreated",
-            # we should never call Elastic in this case
+            # we should never call elastic in this case
             mock_elastic=False,
             mock_head=False,
             mock_object=False
         )
+
+    def test_delete_marker_event_no_versioning(self):
+        """
+        this can happen if a bucket was verisoned, and now isn't, followed by
+        `aws s3 rm`
+        """
+        # don't mock head or get; this event should never call them
+        self._test_index_event(
+            "ObjectRemoved:DeleteMarkerCreated",
+            # we should never call elastic in this case
+            mock_elastic=False,
+            mock_head=False,
+            mock_object=False,
+            bucket_versioning=False
+        )
+
 
     def test_test_event(self):
         """
