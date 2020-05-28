@@ -54,6 +54,7 @@ EVENT_CORE = {
     "userIdentity": {"principalId": "EXAMPLE"}
 }
 
+
 def _check_event(synthetic, organic):
     # Ensure that synthetic events have the same shape as actual organic ones,
     # and that overridden properties like bucket, key, eTag are properly set
@@ -81,6 +82,7 @@ def _check_event(synthetic, organic):
     assert organic["s3"]["bucket"]["name"] == synthetic["s3"]["bucket"]["name"]
     assert organic["s3"]["object"]["key"] == synthetic["s3"]["object"]["key"]
     assert organic["s3"]["object"]["eTag"] == synthetic["s3"]["object"]["eTag"]
+
 
 def _make_callback(
         event_name,
@@ -153,6 +155,7 @@ def _make_callback(
         return (200, {}, json.dumps(response))
 
     return check_response
+
 
 def make_event(
         name,
@@ -317,7 +320,7 @@ class TestIndex(TestCase):
             },
             "responseElements": {
                 "x-amz-request-id": "CEF0E4FD6D0944D7",
-                "x-amz-id-2": "EXAMPLE/+63rMdcLBMWNcsgKSIvm5wESswLYR2Vw32z4Zg4fUo8qkP4dZJoBH9m0gvhZ9/m/HAApWP+3arsz0QPph7OBVdl1"
+                "x-amz-id-2": "EXAMPLE/+GUID/m/HAApWP+3arsz0QPph7OBVdl1"
             },
             "s3": {
                 "s3SchemaVersion": "1.0",
@@ -360,13 +363,12 @@ class TestIndex(TestCase):
             "eventTime": "2020-05-27T20:31:45.823Z",
             "eventName": "ObjectCreated:Copy",
             "userIdentity": {"principalId": "AWS:boombomakasdfsdf"},
-            "requestParameters": {
-                "sourceIPAddress": "07.123.45.899"},
-                "responseElements": {
-                    "x-amz-request-id": "DECF307B5F55C78D",
-                    "x-amz-id-2": "guid/hash/tG++guid/stuff"
-                },
-            "s3": {
+            "requestParameters": {"sourceIPAddress": "07.123.45.899"},
+            "responseElements": {
+                "x-amz-request-id": "DECF307B5F55C78D",
+                "x-amz-id-2": "guid/hash/tG++guid/stuff"
+            },
+        "s3": {
                 "s3SchemaVersion": "1.0",
                 "configurationId": "stuff",
                 "bucket": {
@@ -499,6 +501,18 @@ class TestIndex(TestCase):
             mock_object=False
         )
 
+    def test_delete_event_no_versioning(self):
+        """
+        Check that the indexer doesn't blow up on delete events.
+        """
+        # don't mock head or get; they should never be called for deleted objects
+        self._test_index_event(
+            "ObjectRemoved:Delete",
+            mock_head=False,
+            mock_object=False,
+            bucket_versioning=False
+        )
+ 
     def test_delete_marker_event(self):
         """
         Common event in versioned; buckets, should no-op
@@ -534,7 +548,7 @@ class TestIndex(TestCase):
         index.handler(event, None)
 
     def test_index_file(self):
-        """test indexing a single file"""
+        """test indexing a single file fro ma create event"""
         # test all known created events
         # https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
         self._test_index_event("ObjectCreated:Put")
@@ -542,6 +556,7 @@ class TestIndex(TestCase):
         self._test_index_event("ObjectCreated:Post")
         self._test_index_event("ObjectCreated:CompleteMultipartUpload")
         self._test_index_event("ObjectCreated:Put", bucket_versioning=False)
+ 
 
     @patch(__name__ + '.index.get_contents')
     def test_index_exception(self, get_mock):
