@@ -245,11 +245,7 @@ def handler(event, context):
                 # belong in the index as documents
                 if (event_name == "ObjectRemoved:DeleteMarkerCreated"
                         or not any(event_name.startswith(n) for n in EVENT_PREFIX.values())):
-                    # TODO delete this print
-                    print(f"skipping {event_name}:", event_)
-                    continue
-                # TODO delete this print
-                print(f"processing {event_name}:", event_)
+                   continue
                 bucket = unquote(event_["s3"]["bucket"]["name"])
                 # In the grand tradition of IE6, S3 events turn spaces into '+'
                 key = unquote_plus(event_["s3"]["object"]["key"])
@@ -257,7 +253,9 @@ def handler(event, context):
                 version_id = unquote(version_id) if version_id else None
                 # ObjectRemoved:Delete does not include "eTag"
                 etag = unquote(event_["s3"]["object"].get("eTag", ""))
-
+                # TODO delete this print
+                print(f"processing {event_name}@{version_id}:")
+ 
                 # Get two levels of extensions to handle files like .csv.gz
                 path = pathlib.PurePosixPath(key)
                 ext1 = path.suffix

@@ -54,7 +54,7 @@ EVENT_CORE = {
     "userIdentity": {"principalId": "EXAMPLE"}
 }
 
-def check_event(synthetic, organic):
+def _check_event(synthetic, organic):
     # Ensure that synthetic events have the same shape as actual organic ones,
     # and that overridden properties like bucket, key, eTag are properly set
     # same keys at top level
@@ -82,6 +82,78 @@ def check_event(synthetic, organic):
     assert organic["s3"]["object"]["key"] == synthetic["s3"]["object"]["key"]
     assert organic["s3"]["object"]["eTag"] == synthetic["s3"]["object"]["eTag"]
 
+def _make_callback(
+        event_name,
+        *,
+        event,
+        now,
+        un_key,
+        eTag,
+        versionId,
+        mock_object
+):
+    """
+    create a callback that checks the shape of the response
+    """
+    # the handler unquotes keys (see index.py) so that's what we should
+    # expect back from ES, hence un_key
+    expected_params = {
+        'Bucket': event["s3"]["bucket"]["name"],
+        'Key': un_key,
+    }
+    # We only get versionId for certain events and if bucket versioning is
+    # (or was at one time?) on
+    if versionId:
+        expected_params["VersionId"] = versionId
+    elif eTag:
+        expected_params["IfMatch"] = eTag
+
+    response_key = 'delete' if event_name.startswith(index.EVENT_PREFIX["Removed"]) else 'index'
+    expected = [
+        {
+            response_key: {
+                '_index':  event["s3"]["bucket"]["name"],
+                '_type': '_doc',
+                '_id': f'{un_key}:{versionId}'
+            }
+        },
+        {
+            'comment': '',
+            'content': '' if not mock_object else 'Hello World!',
+            'event': event_name,
+            'ext': os.path.splitext(un_key)[1],
+            'key': un_key,
+            'last_modified': now.isoformat(),
+            'meta_text': ' ',
+            'target': '',
+            'updated': ANY,
+            'version_id': versionId
+        }
+    ]
+    # conditionally define fields not present in all events
+    if event["s3"]["object"].get("eTag"):
+        expected[1]["etag"] = event["s3"]["object"]["eTag"]
+    if event["s3"]["object"].get("size"):
+        expected[1]["size"] = event["s3"]["object"]["size"]
+
+    if response_key == 'delete':
+        # delete events do not include request body
+        expected.pop()
+
+    def check_response(request):
+        actions = [json.loads(line) for line in request.body.splitlines()]
+        assert actions == expected, "Unexpected request to ElasticSearch"
+        response = {
+            'items': [{
+                response_key: {
+                    'status': 200
+                }
+            }]
+        }
+        return (200, {}, json.dumps(response))
+
+    return check_response
+
 def make_event(
         name,
         *,
@@ -93,8 +165,7 @@ def make_event(
         versionId="1313131313131.Vier50HdNbi7ZirO65",
         bucket_versioning=True
 ):
-    """this function builds event types off of EVENT_CORE and adds fields
-    to match organic AWS events"""
+    """return an event based on EVENT_CORE, add fields to match organic AWS events"""
     if name in {
         "ObjectCreated:Put",
         "ObjectCreated:Copy",
@@ -180,7 +251,7 @@ class MockContext():
 
 class TestIndex(TestCase):
     def setUp(self):
-        self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
+        self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=True)
         self.requests_mock.start()
 
         # Create a dummy S3 client that (hopefully) can't do anything.
@@ -267,7 +338,7 @@ class TestIndex(TestCase):
                 }
             }
         }
-        check_event(synthetic, organic)
+        _check_event(synthetic, organic)
 
     def test_synthetic_copy_event_no_versioning(self):
         """check synthetic ObjectCreated:Copy event vs organic obtained on 26-May-2020
@@ -310,7 +381,7 @@ class TestIndex(TestCase):
                 }
             }
         } 
-        check_event(synthetic, organic)
+        _check_event(synthetic, organic)
 
     def test_synthetic_put_event(self):
         """check synthetic ObjectCreated:Put event vs organic obtained on 27-May-2020
@@ -354,7 +425,7 @@ class TestIndex(TestCase):
                 }
             }
         }
-        check_event(synthetic, organic)
+        _check_event(synthetic, organic)
 
     def test_synthetic_multipart_event(self):
         """check synthetic ObjectCreated:Put event vs organic obtained on 27-May-2020
@@ -484,6 +555,7 @@ class TestIndex(TestCase):
         self._test_index_event("ObjectCreated:Copy")
         self._test_index_event("ObjectCreated:Post")
         self._test_index_event("ObjectCreated:CompleteMultipartUpload")
+        self._test_index_event("ObjectCreated:Put", bucket_versioning=False)
 
     @patch(__name__ + '.index.get_contents')
     def test_index_exception(self, get_mock):
@@ -498,6 +570,8 @@ class TestIndex(TestCase):
     def _test_index_event(
             self,
             event_name,
+            *,
+            bucket_versioning=True,
             mock_elastic=True,
             mock_head=True,
             mock_object=True
@@ -505,36 +579,16 @@ class TestIndex(TestCase):
         """
         Reusable helper function to test indexing a single text file.
         """
-        event = make_event(event_name)
-        records = {
-            "Records": [{
-                "body": json.dumps({
-                    "Message": json.dumps({
-                        "Records": [event]
-                    })
-                })
-            }]
-        }
-
+        event = make_event(event_name, bucket_versioning=bucket_versioning)
         now = index.now_like_boto3()
 
-        metadata = {
-            'helium': json.dumps({
-                'comment': 'blah',
-                'user_meta': {
-                    'foo': 'bar'
-                },
-                'x': 'y'
-            })
-        }
-        # the handler unquotes keys (see index.py) so that's what we should
-        # expect back from ES, hence unkey
-        unkey = unquote_plus(event["s3"]["object"]["key"])
-        eTag = event["s3"]["object"].get("eTag", None)
-        versionId = event["s3"]["object"].get("versionId", None)
+        un_key = unquote_plus(event["s3"]["object"]["key"])
+        eTag = event["s3"]["object"].get("eTag")
+        versionId = event["s3"]["object"].get("versionId")
+
         expected_params = {
             'Bucket': event["s3"]["bucket"]["name"],
-            'Key': unkey,
+            'Key': un_key,
         }
         # We only get versionId for certain events and if bucket versioning is
         # (or was at one time?) on
@@ -547,7 +601,7 @@ class TestIndex(TestCase):
             self.s3_stubber.add_response(
                 method='head_object',
                 service_response={
-                    'Metadata': metadata,
+                    'Metadata': {},
                     'ContentLength': event["s3"]["object"]["size"],
                     'LastModified': now,
                 },
@@ -558,7 +612,7 @@ class TestIndex(TestCase):
             self.s3_stubber.add_response(
                 method='get_object',
                 service_response={
-                    'Metadata': metadata,
+                    'Metadata': {},
                     'ContentLength': event["s3"]["object"]["size"],
                     'LastModified': now,
                     'Body': BytesIO(b'Hello World!'),
@@ -569,59 +623,31 @@ class TestIndex(TestCase):
                 }
             )
 
-        def es_callback(request):
-            response_key = 'delete' if event_name.startswith(index.EVENT_PREFIX["Removed"]) else 'index'
-            actions = [json.loads(line) for line in request.body.splitlines()]
-            expected = [
-                {
-                    response_key: {
-                        '_index':  event["s3"]["bucket"]["name"],
-                        '_type': '_doc',
-                        '_id': f'{unkey}:{versionId}'
-                    }
-                },
-                {
-                    'comment': 'blah',
-                    'content': '' if not mock_object else 'Hello World!',
-                    'event': event_name,
-                    'ext': os.path.splitext(unkey)[1],
-                    'key': unkey,
-                    'last_modified': now.isoformat(),
-                    'meta_text': 'blah  {"x": "y"} {"foo": "bar"}',
-                    'target': '',
-                    'updated': ANY,
-                }
-            ]
-            # conditionally define fields not present in all events
-            if event["s3"]["object"].get("eTag", None):
-                expected[1]["etag"] = event["s3"]["object"]["eTag"]
-            if event["s3"]["object"].get("size", None):
-                expected[1]["size"] = event["s3"]["object"]["size"]
-            if versionId:
-                expected[1]["version_id"] = versionId
-
-            if response_key == 'delete':
-                # delete events do not include request body
-                expected.pop()
-
-            assert actions == expected, "Unexpected request to ElasticSearch"
-
-            response = {
-                'items': [{
-                    response_key: {
-                        'status': 200
-                    }
-                }]
-            }
-            return (200, {}, json.dumps(response))
-
         if mock_elastic:
             self.requests_mock.add_callback(
                 responses.POST,
                 'https://example.com:443/_bulk',
-                callback=es_callback,
+                callback=_make_callback(
+                    event_name,
+                    event=event,
+                    eTag=eTag,
+                    now=now,
+                    un_key=un_key,
+                    versionId=versionId,
+                    mock_object=mock_object
+                ),
                 content_type='application/json'
             )
+
+        records = {
+            "Records": [{
+                "body": json.dumps({
+                    "Message": json.dumps({
+                        "Records": [event]
+                    })
+                })
+            }]
+        }
 
         index.handler(records, MockContext())
 
