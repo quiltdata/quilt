@@ -543,8 +543,8 @@ class TestIndex(TestCase):
         Check that the indexer doesn't blow up on delete events.
         """
         # don't mock head or get; they should never be called for deleted objects
-        self._test_index_event(
-            "ObjectRemoved:Delete",
+        self._test_index_events(
+            ["ObjectRemoved:Delete"],
             mock_head=False,
             mock_object=False
         )
@@ -554,8 +554,8 @@ class TestIndex(TestCase):
         Check that the indexer doesn't blow up on delete events.
         """
         # don't mock head or get; they should never be called for deleted objects
-        self._test_index_event(
-            "ObjectRemoved:Delete",
+        self._test_index_events(
+            ["ObjectRemoved:Delete"],
             mock_head=False,
             mock_object=False,
             bucket_versioning=False
@@ -566,8 +566,8 @@ class TestIndex(TestCase):
         common event in versioned; buckets, should no-op
         """
         # don't mock head or get; this event should never call them
-        self._test_index_event(
-            "ObjectRemoved:DeleteMarkerCreated",
+        self._test_index_events(
+            ["ObjectRemoved:DeleteMarkerCreated"],
             # we should never call elastic in this case
             mock_elastic=False,
             mock_head=False,
@@ -580,8 +580,8 @@ class TestIndex(TestCase):
         `aws s3 rm`
         """
         # don't mock head or get; this event should never call them
-        self._test_index_event(
-            "ObjectRemoved:DeleteMarkerCreated",
+        self._test_index_events(
+            ["ObjectRemoved:DeleteMarkerCreated"],
             # we should never call elastic in this case
             mock_elastic=False,
             mock_head=False,
@@ -603,7 +603,7 @@ class TestIndex(TestCase):
                         "Time": "2014-10-13T15:57:02.089Z",
                         "Bucket": "test-bucket",
                         "RequestId": "5582815E1AEA5ADF",
-                        "HostId": "8cLeGAmw098X5cv4Zkwcmo8vvZa3eH3eKxsPzbB9wrR+YstdA6Knx4Ip8EXAMPLE"
+                        "HostId": "fakeGUIDhere+YstdA6Knx4Ip8EXAMPLE"
                     })
                 })
             }]
@@ -611,15 +611,15 @@ class TestIndex(TestCase):
 
         index.handler(event, None)
 
-    def test_index_file(self):
+    def test_index_events(self):
         """test indexing a single file from a variety of create events"""
         # test all known created events
         # https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
-        self._test_index_event("ObjectCreated:Put")
-        self._test_index_event("ObjectCreated:Copy")
-        self._test_index_event("ObjectCreated:Post")
-        self._test_index_event("ObjectCreated:CompleteMultipartUpload")
-        self._test_index_event("ObjectCreated:Put", bucket_versioning=False)
+        self._test_index_events(["ObjectCreated:Put"])
+        self._test_index_events(["ObjectCreated:Copy"])
+        self._test_index_events(["ObjectCreated:Post"])
+        self._test_index_events(["ObjectCreated:CompleteMultipartUpload"])
+        self._test_index_events(["ObjectCreated:Put"], bucket_versioning=False)
 
     @patch(__name__ + '.index.get_contents')
     def test_index_exception(self, get_mock):
@@ -629,11 +629,11 @@ class TestIndex(TestCase):
         get_mock.side_effect = ContentException("Unable to get contents")
         with pytest.raises(ContentException):
             # get_mock already mocks get_object, so don't mock it in _test_index_event
-            self._test_index_event("ObjectCreated:Put", mock_object=False)
+            self._test_index_events(["ObjectCreated:Put"], mock_object=False)
 
-    def _test_index_event(
+    def _test_index_events(
             self,
-            event_name,
+            event_names,
             *,
             bucket_versioning=True,
             mock_elastic=True,
@@ -643,71 +643,74 @@ class TestIndex(TestCase):
         """
         Reusable helper function to test indexing a single text file.
         """
-        event = make_event(event_name, bucket_versioning=bucket_versioning)
-        now = index.now_like_boto3()
+        inner_records = []
+        for name in event_names:
+            event = make_event(name, bucket_versioning=bucket_versioning)
+            inner_records.append(event)
+            now = index.now_like_boto3()
 
-        un_key = unquote_plus(event["s3"]["object"]["key"])
-        eTag = event["s3"]["object"].get("eTag")
-        versionId = event["s3"]["object"].get("versionId")
+            un_key = unquote_plus(event["s3"]["object"]["key"])
+            eTag = event["s3"]["object"].get("eTag")
+            versionId = event["s3"]["object"].get("versionId")
 
-        expected_params = {
-            'Bucket': event["s3"]["bucket"]["name"],
-            'Key': un_key,
-        }
-        # We only get versionId for certain events and if bucket versioning is
-        # (or was at one time?) on
-        if versionId:
-            expected_params["VersionId"] = versionId
-        elif eTag:
-            expected_params["IfMatch"] = eTag
+            expected_params = {
+                'Bucket': event["s3"]["bucket"]["name"],
+                'Key': un_key,
+            }
+            # We only get versionId for certain events and if bucket versioning is
+            # (or was at one time?) on
+            if versionId:
+                expected_params["VersionId"] = versionId
+            elif eTag:
+                expected_params["IfMatch"] = eTag
 
-        if mock_head:
-            self.s3_stubber.add_response(
-                method='head_object',
-                service_response={
-                    'Metadata': {},
-                    'ContentLength': event["s3"]["object"]["size"],
-                    'LastModified': now,
-                },
-                expected_params=expected_params
-            )
+            if mock_head:
+                self.s3_stubber.add_response(
+                    method='head_object',
+                    service_response={
+                        'Metadata': {},
+                        'ContentLength': event["s3"]["object"]["size"],
+                        'LastModified': now,
+                    },
+                    expected_params=expected_params
+                )
 
-        if mock_object:
-            self.s3_stubber.add_response(
-                method='get_object',
-                service_response={
-                    'Metadata': {},
-                    'ContentLength': event["s3"]["object"]["size"],
-                    'LastModified': now,
-                    'Body': BytesIO(b'Hello World!'),
-                },
-                expected_params={
-                    **expected_params,
-                    'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
-                }
-            )
+            if mock_object:
+                self.s3_stubber.add_response(
+                    method='get_object',
+                    service_response={
+                        'Metadata': {},
+                        'ContentLength': event["s3"]["object"]["size"],
+                        'LastModified': now,
+                        'Body': BytesIO(b'Hello World!'),
+                    },
+                    expected_params={
+                        **expected_params,
+                        'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                    }
+                )
 
-        if mock_elastic:
-            self.requests_mock.add_callback(
-                responses.POST,
-                'https://example.com:443/_bulk',
-                callback=_make_callback(
-                    event_name,
-                    event=event,
-                    eTag=eTag,
-                    now=now,
-                    un_key=un_key,
-                    versionId=versionId,
-                    mock_object=mock_object
-                ),
-                content_type='application/json'
-            )
+            if mock_elastic:
+                self.requests_mock.add_callback(
+                    responses.POST,
+                    'https://example.com:443/_bulk',
+                    callback=_make_callback(
+                        name,
+                        event=event,
+                        eTag=eTag,
+                        now=now,
+                        un_key=un_key,
+                        versionId=versionId,
+                        mock_object=mock_object
+                    ),
+                    content_type='application/json'
+                )
 
         records = {
             "Records": [{
                 "body": json.dumps({
                     "Message": json.dumps({
-                        "Records": [event]
+                        "Records": inner_records
                     })
                 })
             }]
@@ -720,8 +723,8 @@ class TestIndex(TestCase):
         Test unknown events
         """
         # the indexer should just pass over this event without touching S3 or ES
-        self._test_index_event(
-            UNKNOWN_EVENT_TYPE,
+        self._test_index_events(
+            [UNKNOWN_EVENT_TYPE],
             mock_elastic=False,
             mock_head=False,
             mock_object=False
