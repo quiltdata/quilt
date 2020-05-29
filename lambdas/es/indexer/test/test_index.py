@@ -391,6 +391,48 @@ class TestIndex(TestCase):
         }
         _check_event(synthetic, organic)
 
+    def test_synthetic_delete_marker_event_no_versioning(self):
+        """check synthetic ObjectRemoved:DeleteMarkerCreated event vs organic
+        obtained on 27-May-2020
+        (this is for a bucket that had versioning on but now off)
+        note: this is a standard delete marker minus the versionId
+        """
+        synthetic = make_event(
+            "ObjectRemoved:DeleteMarkerCreated",
+            key="events/copy-many-noversioning/0.png",
+            eTag="d41d8cd98f00b204e9800998ecf8427e",
+            region="us-west-1",
+        )
+        # actual event from S3 with a few obfuscations to protect the innocent
+        organic = {
+            "eventVersion": "2.1",
+            "eventSource": "aws:s3",
+            "awsRegion": "us-west-1",
+            "eventTime": "2020-05-28T23:53:24.662Z",
+            "eventName": "ObjectRemoved:DeleteMarkerCreated",
+            "userIdentity": {"principalId": "AWS:boommasdfagnag"},
+            "requestParameters": {"sourceIPAddress": "12.888.91.910"},
+            "responseElements": {
+                "x-amz-request-id": "35781DEB9DA7612E",
+                "x-amz-id-2": "Qguid+Oguid+WRa/guid/guid+AwtLbBepO7QEBNbwguid/LfQguid"
+            },
+            "s3": {
+                "s3SchemaVersion": "1.0",
+                "configurationId": "guiadskfjasdlfkjasdklfjasdfd",
+                "bucket": {
+                    "name": "test-bucket",
+                    "ownerIdentity": {"principalId": "adflkjasdklfjadf"},
+                    "arn": "arn:aws:s3:::test-bucket"
+                },
+                "object": {
+                    "key": "events/copy-many-noversioning/0.png",
+                    "eTag": "d41d8cd98f00b204e9800998ecf8427e",
+                    "sequencer": "005ED04EF537DAB0EE"
+                }
+            }
+        }
+        _check_event(synthetic, organic)
+
     def test_synthetic_put_event(self):
         """check synthetic ObjectCreated:Put event vs organic obtained on 27-May-2020
         (bucket versioning on)"""
