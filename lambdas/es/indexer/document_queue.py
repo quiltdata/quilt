@@ -156,6 +156,7 @@ class DocumentQueue:
         )
 
         _, errors = bulk_send(elastic, self.queue)
+        print("document_queue.py bulk_send:", _, errors)
         if errors:
             id_to_doc = {d["_id"]: d for d in self.queue}
             send_again = []

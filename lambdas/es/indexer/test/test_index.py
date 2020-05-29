@@ -565,7 +565,7 @@ class TestIndex(TestCase):
         """
         common event in versioned; buckets, should no-op
         """
-        # don't mock head or get; this event should never call them
+        # don't mock head or get; these events should never call them
         self._test_index_events(
             ["ObjectRemoved:DeleteMarkerCreated"],
             # we should never call elastic in this case
@@ -589,7 +589,6 @@ class TestIndex(TestCase):
             bucket_versioning=False
         )
 
-
     def test_test_event(self):
         """
         Check that the indexer does not barf when it gets an S3 test notification.
@@ -611,7 +610,7 @@ class TestIndex(TestCase):
 
         index.handler(event, None)
 
-    def test_index_events(self):
+    def test_create_index_events(self):
         """test indexing a single file from a variety of create events"""
         # test all known created events
         # https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
@@ -641,7 +640,8 @@ class TestIndex(TestCase):
             mock_object=True
     ):
         """
-        Reusable helper function to test indexing a single text file.
+        Reusable helper function to test indexing files based on on or more
+        events
         """
         inner_records = []
         for name in event_names:
@@ -690,21 +690,21 @@ class TestIndex(TestCase):
                     }
                 )
 
-            if mock_elastic:
-                self.requests_mock.add_callback(
-                    responses.POST,
-                    'https://example.com:443/_bulk',
-                    callback=_make_callback(
-                        name,
-                        event=event,
-                        eTag=eTag,
-                        now=now,
-                        un_key=un_key,
-                        versionId=versionId,
-                        mock_object=mock_object
-                    ),
-                    content_type='application/json'
-                )
+        if mock_elastic:
+            self.requests_mock.add_callback(
+                responses.POST,
+                'https://example.com:443/_bulk',
+                callback=_make_callback(
+                    name,
+                    event=event,
+                    eTag=eTag,
+                    now=now,
+                    un_key=un_key,
+                    versionId=versionId,
+                    mock_object=mock_object
+                ),
+                content_type='application/json'
+            )
 
         records = {
             "Records": [{
@@ -717,6 +717,18 @@ class TestIndex(TestCase):
         }
 
         index.handler(records, MockContext())
+
+    def test_multiple_index_events(self):
+        """
+        Messages from SQS contain up to N messages.
+        Currently N=10, this number is determined on the backend by CloudFormation
+        """
+        self._test_index_events(
+            [
+                # TODO: add multiple events and fix this test
+                "ObjectCreated:Put"
+            ]
+        )
 
     def test_unexpected_event(self):
         """
