@@ -684,7 +684,15 @@ class TestIndex(TestCase):
             [
                 # TODO: add multiple events and fix this test
                 "ObjectCreated:Put",
-                #"ObjectCreated:Copy"
+                "ObjectCreated:Put",
+                "ObjectCreated:Put",
+                "ObjectCreated:Put",
+                "ObjectCreated:Put",
+                "ObjectCreated:Copy",
+                "ObjectCreated:Copy",
+                "ObjectCreated:Copy",
+                "ObjectCreated:Copy",
+                "ObjectCreated:Copy"
             ]
         )
 
