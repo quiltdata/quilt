@@ -95,7 +95,6 @@ class DocumentQueue:
             "_index": bucket,
             # index will upsert (and clobber existing equivalent _ids)
             "_op_type": "delete" if event_type.startswith(EVENT_PREFIX["Removed"]) else "index",
-            "_type": "_doc",
             # Quilt keys
             # Be VERY CAREFUL changing these values, as a type change can cause a
             # mapper_parsing_exception that below code won't handle
@@ -154,7 +153,11 @@ class DocumentQueue:
             verify_certs=True,
             connection_class=RequestsHttpConnection
         )
-
+        # For response format see
+        # https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
+        # (We currently use Elastic 6.7 per quiltdata/deployment search.py)
+        # note that `elasticsearch` post-processes this response
+        print("document_queue.py:", self.queue)
         _, errors = bulk_send(elastic, self.queue)
         print("document_queue.py bulk_send:", _, errors)
         if errors:
