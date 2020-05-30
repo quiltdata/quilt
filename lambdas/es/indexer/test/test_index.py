@@ -84,7 +84,7 @@ def _check_event(synthetic, organic):
     assert organic["s3"]["object"]["eTag"] == synthetic["s3"]["object"]["eTag"]
 
 
-def _make_callback(
+def _make_es_callback(
         event_name,
         *,
         event,
@@ -97,22 +97,29 @@ def _make_callback(
     """
     create a callback that checks the shape of the response
     """
-    response_key = 'delete' if event_name.startswith(index.EVENT_PREFIX["Removed"]) else 'index'
     def check_response(request):
         raw = [json.loads(line) for line in request.body.splitlines()]
         # drop the optional source and isolate the actions
         # see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
-        actions = [l for l in raw if ("index" in l or "delete" in l)]
-        assert all(len(a.keys()) == 1 for a in actions)
-        print("ACTIONS", actions)
+        actions = [deepcopy(l) for l in raw if len(l.keys()) == 1]
+        def to_response(d):
+            top_key = next(iter(d.keys()))
+            values = d[top_key]
+            return {
+                top_key: {
+                    "_id": values["_id"],
+                    "_index": values["_index"],
+                    "_type": "_doc",
+                    "status": 200
+                }
+            }
+        items = list(map(to_response, actions))
+        # see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
+        # for response format
         response = {
             'took': 5*len(actions),
             'errors': False,
-            'items': [{
-                response_key: {
-                    'status': 200
-                }
-            }]
+            'items': items
         }
         return (200, {}, json.dumps(response))
 
@@ -660,7 +667,7 @@ class TestIndex(TestCase):
             self.requests_mock.add_callback(
                 responses.POST,
                 'https://example.com:443/_bulk',
-                callback=_make_callback(
+                callback=_make_es_callback(
                     name,
                     event=event,
                     eTag=eTag,
