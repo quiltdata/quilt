@@ -84,16 +84,7 @@ def _check_event(synthetic, organic):
     assert organic["s3"]["object"]["eTag"] == synthetic["s3"]["object"]["eTag"]
 
 
-def _make_es_callback(
-        event_name,
-        *,
-        event,
-        now,
-        un_key,
-        eTag,
-        versionId,
-        mock_object
-):
+def _make_es_callback():
     """
     create a callback that checks the shape of the response
     """
@@ -668,13 +659,6 @@ class TestIndex(TestCase):
                 responses.POST,
                 'https://example.com:443/_bulk',
                 callback=_make_es_callback(
-                    name,
-                    event=event,
-                    eTag=eTag,
-                    now=now,
-                    un_key=un_key,
-                    versionId=versionId,
-                    mock_object=mock_object
                 ),
                 content_type='application/json'
             )
