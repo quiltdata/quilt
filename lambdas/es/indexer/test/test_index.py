@@ -22,8 +22,13 @@ import responses
 from .. import index
 
 BASE_DIR = Path(__file__).parent / 'data'
+CREATE_EVENT_TYPES ={
+    "ObjectCreated:Put",
+    "ObjectCreated:Copy",
+    "ObjectCreated:Post",
+    "ObjectCreated:CompleteMultipartUpload"
+}
 UNKNOWN_EVENT_TYPE = "Event:WeNeverHeardOf"
-
 # See the following AWS docs for event structure:
 EVENT_CORE = {
     "awsRegion": "us-east-1",
@@ -87,6 +92,7 @@ def _check_event(synthetic, organic):
 def _make_es_callback():
     """
     create a callback that checks the shape of the response
+    TODO: handle errors and delete actions
     """
     def check_response(request):
         raw = [json.loads(line) for line in request.body.splitlines()]
@@ -129,12 +135,7 @@ def make_event(
         bucket_versioning=True
 ):
     """return an event based on EVENT_CORE, add fields to match organic AWS events"""
-    if name in {
-            "ObjectCreated:Put",
-            "ObjectCreated:Copy",
-            "ObjectCreated:Post",
-            "ObjectCreated:CompleteMultipartUpload"
-    }:
+    if name in CREATE_EVENT_TYPES:
         args = {}
         args["bucket"] = bucket
         args["eTag"] = eTag
@@ -505,21 +506,14 @@ class TestIndex(TestCase):
         Check that the indexer doesn't blow up on delete events.
         """
         # don't mock head or get; they should never be called for deleted objects
-        self._test_index_events(
-            ["ObjectRemoved:Delete"],
-            mock_head=False,
-            mock_object=False
-        )
+        self._test_index_events(["ObjectRemoved:Delete"])
 
     def test_delete_event_no_versioning(self):
         """
         Check that the indexer doesn't blow up on delete events.
         """
-        # don't mock head or get; they should never be called for deleted objects
         self._test_index_events(
             ["ObjectRemoved:Delete"],
-            mock_head=False,
-            mock_object=False,
             bucket_versioning=False
         )
 
@@ -527,13 +521,10 @@ class TestIndex(TestCase):
         """
         common event in versioned; buckets, should no-op
         """
-        # don't mock head or get; these events should never call them
         self._test_index_events(
             ["ObjectRemoved:DeleteMarkerCreated"],
             # we should never call elastic in this case
-            mock_elastic=False,
-            mock_head=False,
-            mock_object=False
+            mock_elastic=False
         )
 
     def test_delete_marker_event_no_versioning(self):
@@ -546,8 +537,6 @@ class TestIndex(TestCase):
             ["ObjectRemoved:DeleteMarkerCreated"],
             # we should never call elastic in this case
             mock_elastic=False,
-            mock_head=False,
-            mock_object=False,
             bucket_versioning=False
         )
 
@@ -591,7 +580,12 @@ class TestIndex(TestCase):
         get_mock.side_effect = ContentException("Unable to get contents")
         with pytest.raises(ContentException):
             # get_mock already mocks get_object, so don't mock it in _test_index_event
-            self._test_index_events(["ObjectCreated:Put"], mock_object=False)
+            self._test_index_events(
+                ["ObjectCreated:Put"],
+                mock_overrides={
+                    "mock_object": False
+                }
+            )
 
     def _test_index_events(
             self,
@@ -599,8 +593,7 @@ class TestIndex(TestCase):
             *,
             bucket_versioning=True,
             mock_elastic=True,
-            mock_head=True,
-            mock_object=True
+            mock_overrides=None
     ):
         """
         Reusable helper function to test indexing files based on on or more
@@ -628,6 +621,13 @@ class TestIndex(TestCase):
                 expected_params["VersionId"] = versionId
             elif eTag:
                 expected_params["IfMatch"] = eTag
+            mock_head = name in CREATE_EVENT_TYPES
+            mock_object = name in CREATE_EVENT_TYPES
+            # only mock head and object for create events
+            if mock_overrides and "mock_head" in mock_overrides:
+                mock_head = mock_overrides.get("mock_head")
+            if mock_overrides and "mock_object" in mock_overrides:
+                mock_object = mock_overrides.get("mock_object")
 
             if mock_head:
                 self.s3_stubber.add_response(
@@ -682,7 +682,6 @@ class TestIndex(TestCase):
         """
         self._test_index_events(
             [
-                # TODO: add multiple events and fix this test
                 "ObjectCreated:Put",
                 "ObjectCreated:Put",
                 "ObjectCreated:Put",
@@ -692,7 +691,7 @@ class TestIndex(TestCase):
                 "ObjectCreated:Copy",
                 "ObjectCreated:Copy",
                 "ObjectCreated:Copy",
-                "ObjectCreated:Copy"
+                "ObjectRemoved:Delete"
             ]
         )
 
@@ -701,12 +700,7 @@ class TestIndex(TestCase):
         Test unknown events
         """
         # the indexer should just pass over this event without touching S3 or ES
-        self._test_index_events(
-            [UNKNOWN_EVENT_TYPE],
-            mock_elastic=False,
-            mock_head=False,
-            mock_object=False
-        )
+        self._test_index_events([UNKNOWN_EVENT_TYPE], mock_elastic=False)
 
     def test_unsupported_contents(self):
         assert self._get_contents('foo.exe', '.exe') == ""
