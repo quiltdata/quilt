@@ -63,6 +63,13 @@ class DocumentQueue:
             version_id
     ):
         """format event as a document and then queue the document"""
+        if event_type.startswith(EVENT_PREFIX["Created"]):
+            _op_type = "index"
+        elif event_type.startswith(EVENT_PREFIX["Removed"]):
+            _op_type = "delete"
+        else:
+            print("Skipping unrecognized event type {event_type}")
+            return
         # On types and fields, see
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
         body = {
@@ -141,29 +148,25 @@ class DocumentQueue:
             id_to_doc = {d["_id"]: d for d in self.queue}
             send_again = []
             for error in errors:
-                # only retry index call errors, not delete errors
-                if "index" in error:
-                    inner = error["index"]
+                # retry index and delete errors
+                if "index" in error or "delete" in error:
+                    if "index" in error:
+                        inner = error["index"]
+                    if "delete" in error:
+                        inner = error["delete"]
                     info = inner.get("error")
                     doc = id_to_doc[inner["_id"]]
-                    # because error.error might be a string *sigh*
-                    if isinstance(info, dict):
-                        if "mapper_parsing_exception" in info.get("type", ""):
-                            print("mapper_parsing_exception", error, inner)
-                            # clear out structured metadata and try again
-                            doc["user_meta"] = doc["system"] = {}
-                        else:
-                            print("unhandled indexer error:", error)
                     # Always retry, regardless of whether we know to handle and clean the request
                     # or not. This can catch temporary 403 on index write blocks and other
                     # transient issues.
                     send_again.append(doc)
+                # retry the batch
                 else:
-                    # If index not in error, then retry the whole batch. Unclear what would cause
-                    # that, but if there's an error without an id we need to assume it applies to
+                    # Unclear what would cause an error that's neither index nor delete
+                    # but if there's an error without an id we need to assume it applies to
                     # the batch.
                     send_again = self.queue
-                    print("unhandled indexer error (missing index field):", error)
+                    print("Unhandled document_queue error, retrying record batch:", error)
 
             # we won't retry after this (elasticsearch might retry 429s tho)
             if send_again:
