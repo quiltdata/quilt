@@ -621,9 +621,10 @@ class TestIndex(TestCase):
                 expected_params["VersionId"] = versionId
             elif eTag:
                 expected_params["IfMatch"] = eTag
+            # infer mock status (we only talk to S3 on create events)
             mock_head = name in CREATE_EVENT_TYPES
             mock_object = name in CREATE_EVENT_TYPES
-            # only mock head and object for create events
+            # check for occasional overrides (which can be false)
             if mock_overrides and "mock_head" in mock_overrides:
                 mock_head = mock_overrides.get("mock_head")
             if mock_overrides and "mock_object" in mock_overrides:

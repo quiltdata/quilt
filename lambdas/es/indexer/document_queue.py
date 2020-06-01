@@ -40,29 +40,6 @@ QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
 RETRY_429 = 5
 
 
-def transform_meta(meta):
-    """ Reshapes metadata for indexing in ES """
-    helium = meta.get("helium", {})
-    user_meta = helium.pop("user_meta", {}) or {}
-    comment = helium.pop("comment", "") or ""
-    target = helium.pop("target", "") or ""
-
-    meta_text_parts = [comment, target]
-
-    if helium:
-        meta_text_parts.append(json.dumps(helium))
-    if user_meta:
-        meta_text_parts.append(json.dumps(user_meta))
-
-    return {
-        "system_meta": helium,
-        "user_meta": user_meta,
-        "comment": comment,
-        "target": target,
-        "meta_text": " ".join(meta_text_parts)
-    }
-
-
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
     def __init__(self, context):
@@ -86,7 +63,6 @@ class DocumentQueue:
             version_id
     ):
         """format event as a document and then queue the document"""
-        derived_meta = transform_meta(meta or {})
         # On types and fields, see
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
         body = {
@@ -98,7 +74,8 @@ class DocumentQueue:
             # Quilt keys
             # Be VERY CAREFUL changing these values, as a type change can cause a
             # mapper_parsing_exception that below code won't handle
-            "comment": derived_meta["comment"],
+            # TODO: remove this field (now deprecated and unused)
+            "comment": "",
             "content": text,  # field for full-text search
             "etag": etag,
             "event": event_type,
@@ -106,9 +83,10 @@ class DocumentQueue:
             "key": key,
             # "key_text": created by mappings copy_to
             "last_modified": last_modified.isoformat(),
-            "meta_text": derived_meta["meta_text"],
+            # TODO: remove this field (now deprecated and unused)
+            "meta_text": "",
             "size": size,
-            "target": derived_meta["target"],
+            "target": "",
             "updated": datetime.utcnow().isoformat(),
             "version_id": version_id
         }
