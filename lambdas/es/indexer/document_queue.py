@@ -157,7 +157,6 @@ class DocumentQueue:
         # https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
         # (We currently use Elastic 6.7 per quiltdata/deployment search.py)
         # note that `elasticsearch` post-processes this response
-        print("document_queue.py:", self.queue)
         _, errors = bulk_send(elastic, self.queue)
         print("document_queue.py bulk_send:", _, errors)
         if errors:

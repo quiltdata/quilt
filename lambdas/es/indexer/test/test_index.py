@@ -222,7 +222,7 @@ class TestIndex(TestCase):
     def setUp(self):
         # TODO: figure out why this is required. If =True it will cause
         # test_create_index_events to fail for no obvious reason
-        self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
+        self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=True)
         self.requests_mock.start()
 
         # Create a dummy S3 client that (hopefully) can't do anything.
@@ -576,11 +576,12 @@ class TestIndex(TestCase):
         """test indexing a single file from a variety of create events"""
         # test all known created events
         # https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
-        self._test_index_events(["ObjectCreated:Put"])
         self._test_index_events(["ObjectCreated:Copy"])
-        self._test_index_events(["ObjectCreated:Post"])
+        self._test_index_events(["ObjectCreated:Put"], mock_elastic=False)
+        # Elastic only needs to be mocked once per test
+        self._test_index_events(["ObjectCreated:Post"], mock_elastic=False)
         self._test_index_events(["ObjectCreated:CompleteMultipartUpload"])
-        self._test_index_events(["ObjectCreated:Put"], bucket_versioning=False)
+        self._test_index_events(["ObjectCreated:Put"], mock_elastic=False, bucket_versioning=False)
 
     @patch(__name__ + '.index.get_contents')
     def test_index_exception(self, get_mock):
@@ -658,8 +659,7 @@ class TestIndex(TestCase):
             self.requests_mock.add_callback(
                 responses.POST,
                 'https://example.com:443/_bulk',
-                callback=_make_es_callback(
-                ),
+                callback=_make_es_callback(),
                 content_type='application/json'
             )
 
