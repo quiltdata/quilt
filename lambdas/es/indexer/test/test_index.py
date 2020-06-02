@@ -745,7 +745,7 @@ class TestIndex(TestCase):
         ensure indexer doesn't barf on unexpected error responses
         """
         # TODO, why does pytest.raises(RetryError not work?)
-        with pytest.raises(Exception, match="Failed to load"):
+        with pytest.raises(Exception, match="xFailed to load"):
             self._test_index_events(
                 ["ObjectCreated:Put"],
                 errors=True,
