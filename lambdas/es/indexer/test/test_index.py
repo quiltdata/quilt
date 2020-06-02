@@ -20,6 +20,7 @@ import pytest
 import responses
 
 from .. import index
+from document_queue import RetryError
 
 
 BASE_DIR = Path(__file__).parent / 'data'
@@ -273,7 +274,7 @@ class TestIndex(TestCase):
         Check that the indexer doesn't blow up on create event failures.
         """
         # TODO, why does pytest.raises(RetryError not work?)
-        with pytest.raises(Exception, match="Failed to load"):
+        with pytest.raises(RetryError, match="Failed to load"):
             self._test_index_events(
                 ["ObjectCreated:Put"],
                 errors=True,
@@ -312,7 +313,7 @@ class TestIndex(TestCase):
         Check that the indexer doesn't blow up on delete event failures.
         """
         # TODO, why does pytest.raises(RetryError not work?)
-        with pytest.raises(Exception, match="Failed to load"):
+        with pytest.raises(RetryError, match="Failed to load"):
             self._test_index_events(
                 ["ObjectRemoved:Delete"],
                 errors=True,
@@ -755,7 +756,7 @@ class TestIndex(TestCase):
         ensure indexer doesn't barf on unexpected error responses
         """
         # TODO, why does pytest.raises(RetryError not work?)
-        with pytest.raises(Exception, match="Failed to load"):
+        with pytest.raises(RetryError, match="Failed to load"):
             self._test_index_events(
                 ["ObjectCreated:Put"],
                 errors=True,
