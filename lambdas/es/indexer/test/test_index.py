@@ -230,8 +230,6 @@ class MockContext():
 
 class TestIndex(TestCase):
     def setUp(self):
-        # TODO: figure out why this is required. If =True it will cause
-        # test_create_index_events to fail for no obvious reason
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=True)
         self.requests_mock.start()
 
