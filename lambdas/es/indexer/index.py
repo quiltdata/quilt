@@ -230,9 +230,8 @@ def handler(event, context):
                 # Consume and ignore this event, which is an initial message from
                 # SQS; see https://forums.aws.amazon.com/thread.jspa?threadID=84331
                 continue
-            else:
-                print("Unexpected message['body']. No 'Records' key.", message)
-                raise Exception("Unexpected message['body']. No 'Records' key.")
+            print("Unexpected message['body']. No 'Records' key.", message)
+            raise Exception("Unexpected message['body']. No 'Records' key.")
         batch_processor = DocumentQueue(context)
         events = body_message.get("Records", [])
         s3_client = make_s3_client()
@@ -346,11 +345,10 @@ def handler(event, context):
             except botocore.exceptions.ClientError as boto_exc:
                 if not should_retry_exception(boto_exc):
                     continue
-                else:
-                    print("Fatal exception for record", event_, boto_exc)
-                    import traceback
-                    traceback.print_tb(boto_exc.__traceback__)
-                    raise boto_exc
+                print("Fatal exception for record", event_, boto_exc)
+                import traceback
+                traceback.print_tb(boto_exc.__traceback__)
+                raise boto_exc
         # flush the queue
         batch_processor.send_all()
         # note: if there are multiple content exceptions in the batch, this will
