@@ -105,7 +105,7 @@ def _make_es_callback(
         raw = [json.loads(line) for line in request.body.splitlines()]
         # drop the optional source and isolate the actions
         # see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
-        actions = [l for l in raw if len(l.keys()) == 1]
+        actions = [line for line in raw if len(line.keys()) == 1]
         items = [
             {
                 top_key: {

@@ -245,10 +245,10 @@ def handler(event, context):
                 # belong in the index as documents
                 if (event_name == "ObjectRemoved:DeleteMarkerCreated"
                         or not any(event_name.startswith(n) for n in EVENT_PREFIX.values())):
-                    #TODO: delete this print
+                    # TODO: delete this print
                     print(f"index.py skipping event {event_name}", event_)
                     continue
-                #TODO: delete this print
+                # TODO: delete this print
                 print(f"index.py processing event {event_name}", event_)
                 bucket = unquote(event_["s3"]["bucket"]["name"])
                 # In the grand tradition of IE6, S3 events turn spaces into '+'
