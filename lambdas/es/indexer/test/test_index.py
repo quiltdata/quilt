@@ -9,7 +9,7 @@ import json
 import os
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import ANY, patch
+from unittest.mock import patch
 from urllib.parse import unquote_plus
 
 import boto3
@@ -21,8 +21,10 @@ import responses
 
 from .. import index
 
+
 BASE_DIR = Path(__file__).parent / 'data'
-CREATE_EVENT_TYPES ={
+
+CREATE_EVENT_TYPES = {
     "ObjectCreated:Put",
     "ObjectCreated:Copy",
     "ObjectCreated:Post",
@@ -89,7 +91,12 @@ def _check_event(synthetic, organic):
     assert organic["s3"]["object"]["eTag"] == synthetic["s3"]["object"]["eTag"]
 
 
-def _make_es_callback():
+def _make_es_callback(
+        *,
+        errors=False,
+        status=200,
+        unknown_items=False
+):
     """
     create a callback that checks the shape of the response
     TODO: handle errors and delete actions
@@ -101,6 +108,8 @@ def _make_es_callback():
         actions = [deepcopy(l) for l in raw if len(l.keys()) == 1]
         def to_response(d):
             top_key = next(iter(d.keys()))
+            if unknown_items:
+                top_key = "key_document_queue_is_not_expecting"
             values = d[top_key]
             return {
                 top_key: {
@@ -114,11 +123,11 @@ def _make_es_callback():
         # see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
         # for response format
         response = {
-            'took': 5*len(actions),
-            'errors': False,
-            'items': items
+            "took": 5*len(actions),
+            "errors": errors,
+            "items": items
         }
-        return (200, {}, json.dumps(response))
+        return (status, {}, json.dumps(response))
 
     return check_response
 
@@ -259,6 +268,218 @@ class TestIndex(TestCase):
         return index.get_contents(
             'test-bucket', name, ext,
             etag='etag', version_id=None, s3_client=self.s3_client, size=123,
+        )
+
+    def test_create_index_events(self):
+        """test indexing a single file from a variety of create events"""
+        # test all known created events
+        # https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
+        self._test_index_events(["ObjectCreated:Copy"])
+        self._test_index_events(["ObjectCreated:Put"], mock_elastic=False)
+        # Elastic only needs to be mocked once per test
+        self._test_index_events(["ObjectCreated:Post"], mock_elastic=False)
+        self._test_index_events(["ObjectCreated:CompleteMultipartUpload"])
+        self._test_index_events(["ObjectCreated:Put"], mock_elastic=False, bucket_versioning=False)
+
+    def test_delete_event(self):
+        """
+        Check that the indexer doesn't blow up on delete events.
+        """
+        self._test_index_events(["ObjectRemoved:Delete"])
+
+    def test_delete_event_failure(self):
+        """
+        Check that the indexer doesn't blow up on delete events.
+        """
+        # TODO, why does pytest.raises(RetryError not work?)
+        with pytest.raises(Exception):
+            self._test_index_events(
+                ["ObjectRemoved:Delete"],
+                errors=True,
+                status=400
+            )
+
+    def test_delete_event_no_versioning(self):
+        """
+        Check that the indexer doesn't blow up on delete events.
+        """
+        self._test_index_events(
+            ["ObjectRemoved:Delete"],
+            bucket_versioning=False
+        )
+
+    def test_delete_marker_event(self):
+        """
+        common event in versioned; buckets, should no-op
+        """
+        self._test_index_events(
+            ["ObjectRemoved:DeleteMarkerCreated"],
+            # we should never call elastic in this case
+            mock_elastic=False
+        )
+
+    def test_delete_marker_event_no_versioning(self):
+        """
+        this can happen if a bucket was verisoned, and now isn't, followed by
+        `aws s3 rm`
+        """
+        # don't mock head or get; this event should never call them
+        self._test_index_events(
+            ["ObjectRemoved:DeleteMarkerCreated"],
+            # we should never call elastic in this case
+            mock_elastic=False,
+            bucket_versioning=False
+        )
+
+
+
+    @patch(__name__ + '.index.get_contents')
+    def test_index_exception(self, get_mock):
+        """test indexing a single file that throws an exception"""
+        class ContentException(Exception):
+            pass
+        get_mock.side_effect = ContentException("Unable to get contents")
+        with pytest.raises(ContentException):
+            # get_mock already mocks get_object, so don't mock it in _test_index_event
+            self._test_index_events(
+                ["ObjectCreated:Put"],
+                mock_overrides={
+                    "mock_object": False
+                }
+            )
+
+    def _test_index_events(
+            self,
+            event_names,
+            *,
+            bucket_versioning=True,
+            errors=False,
+            mock_elastic=True,
+            mock_overrides=None,
+            status=200,
+            unknown_items=False
+    ):
+        """
+        Reusable helper function to test indexing files based on on or more
+        events
+        """
+        inner_records = []
+        # the responses that ES should produce for each action
+        inner_responses = []
+        for name in event_names:
+            event = make_event(name, bucket_versioning=bucket_versioning)
+            inner_records.append(event)
+            now = index.now_like_boto3()
+
+            un_key = unquote_plus(event["s3"]["object"]["key"])
+            eTag = event["s3"]["object"].get("eTag")
+            versionId = event["s3"]["object"].get("versionId")
+
+            expected_params = {
+                'Bucket': event["s3"]["bucket"]["name"],
+                'Key': un_key,
+            }
+            # We only get versionId for certain events and if bucket versioning is
+            # (or was at one time?) on
+            if versionId:
+                expected_params["VersionId"] = versionId
+            elif eTag:
+                expected_params["IfMatch"] = eTag
+            # infer mock status (we only talk to S3 on create events)
+            mock_head = name in CREATE_EVENT_TYPES
+            mock_object = name in CREATE_EVENT_TYPES
+            # check for occasional overrides (which can be false)
+            if mock_overrides and "mock_head" in mock_overrides:
+                mock_head = mock_overrides.get("mock_head")
+            if mock_overrides and "mock_object" in mock_overrides:
+                mock_object = mock_overrides.get("mock_object")
+
+            if mock_head:
+                self.s3_stubber.add_response(
+                    method='head_object',
+                    service_response={
+                        'Metadata': {},
+                        'ContentLength': event["s3"]["object"]["size"],
+                        'LastModified': now,
+                    },
+                    expected_params=expected_params
+                )
+
+            if mock_object:
+                self.s3_stubber.add_response(
+                    method='get_object',
+                    service_response={
+                        'Metadata': {},
+                        'ContentLength': event["s3"]["object"]["size"],
+                        'LastModified': now,
+                        'Body': BytesIO(b'Hello World!'),
+                    },
+                    expected_params={
+                        **expected_params,
+                        'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                    }
+                )
+
+        if mock_elastic:
+            self.requests_mock.add_callback(
+                responses.POST,
+                'https://example.com:443/_bulk',
+                callback=_make_es_callback(
+                    errors=errors,
+                    status=status,
+                    unknown_items=unknown_items
+                ),
+                content_type='application/json'
+            )
+
+        records = {
+            "Records": [{
+                "body": json.dumps({
+                    "Message": json.dumps({
+                        "Records": inner_records
+                    })
+                })
+            }]
+        }
+
+        index.handler(records, MockContext())
+
+    def test_infer_extensions(self):
+        """ensure we are guessing file types well"""
+        # parquet
+        assert index.infer_extensions("s3/some/file.c000", ".c000") == ".parquet", \
+            "Expected .c0000 to infer as .parquet"
+        # parquet, nonzero part number
+        assert index.infer_extensions("s3/some/file.c001", ".c001") == ".parquet", \
+            "Expected .c0001 to infer as .parquet"
+        # -c0001 file
+        assert index.infer_extensions("s3/some/file-c0001", "") == ".parquet", \
+            "Expected -c0001 to infer as .parquet"
+        # -c00111 file (should never happen)
+        assert index.infer_extensions("s3/some/file-c000121", "") == "", \
+            "Expected -c000121 not to infer as .parquet"
+        # .txt file, should be unchanged
+        assert index.infer_extensions("s3/some/file-c0000.txt", ".txt") == ".txt", \
+            "Expected .txt to infer as .txt"
+
+    def test_multiple_index_events(self):
+        """
+        Messages from SQS contain up to N messages.
+        Currently N=10, this number is determined on the backend by CloudFormation
+        """
+        self._test_index_events(
+            [
+                "ObjectCreated:Put",
+                "ObjectCreated:Put",
+                "ObjectCreated:Put",
+                "ObjectCreated:Put",
+                "ObjectCreated:Put",
+                "ObjectCreated:Copy",
+                "ObjectCreated:Copy",
+                "ObjectCreated:Copy",
+                "ObjectCreated:Copy",
+                "ObjectRemoved:Delete"
+            ]
         )
 
     def test_synthetic_copy_event(self):
@@ -483,63 +704,6 @@ class TestIndex(TestCase):
             }
         }
 
-    def test_infer_extensions(self):
-        """ensure we are guessing file types well"""
-        # parquet
-        assert index.infer_extensions("s3/some/file.c000", ".c000") == ".parquet", \
-            "Expected .c0000 to infer as .parquet"
-        # parquet, nonzero part number
-        assert index.infer_extensions("s3/some/file.c001", ".c001") == ".parquet", \
-            "Expected .c0001 to infer as .parquet"
-        # -c0001 file
-        assert index.infer_extensions("s3/some/file-c0001", "") == ".parquet", \
-            "Expected -c0001 to infer as .parquet"
-        # -c00111 file (should never happen)
-        assert index.infer_extensions("s3/some/file-c000121", "") == "", \
-            "Expected -c000121 not to infer as .parquet"
-        # .txt file, should be unchanged
-        assert index.infer_extensions("s3/some/file-c0000.txt", ".txt") == ".txt", \
-            "Expected .txt to infer as .txt"
-
-    def test_delete_event(self):
-        """
-        Check that the indexer doesn't blow up on delete events.
-        """
-        # don't mock head or get; they should never be called for deleted objects
-        self._test_index_events(["ObjectRemoved:Delete"])
-
-    def test_delete_event_no_versioning(self):
-        """
-        Check that the indexer doesn't blow up on delete events.
-        """
-        self._test_index_events(
-            ["ObjectRemoved:Delete"],
-            bucket_versioning=False
-        )
-
-    def test_delete_marker_event(self):
-        """
-        common event in versioned; buckets, should no-op
-        """
-        self._test_index_events(
-            ["ObjectRemoved:DeleteMarkerCreated"],
-            # we should never call elastic in this case
-            mock_elastic=False
-        )
-
-    def test_delete_marker_event_no_versioning(self):
-        """
-        this can happen if a bucket was verisoned, and now isn't, followed by
-        `aws s3 rm`
-        """
-        # don't mock head or get; this event should never call them
-        self._test_index_events(
-            ["ObjectRemoved:DeleteMarkerCreated"],
-            # we should never call elastic in this case
-            mock_elastic=False,
-            bucket_versioning=False
-        )
-
     def test_test_event(self):
         """
         Check that the indexer does not barf when it gets an S3 test notification.
@@ -560,141 +724,6 @@ class TestIndex(TestCase):
         }
 
         index.handler(event, None)
-
-    def test_create_index_events(self):
-        """test indexing a single file from a variety of create events"""
-        # test all known created events
-        # https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
-        self._test_index_events(["ObjectCreated:Copy"])
-        self._test_index_events(["ObjectCreated:Put"], mock_elastic=False)
-        # Elastic only needs to be mocked once per test
-        self._test_index_events(["ObjectCreated:Post"], mock_elastic=False)
-        self._test_index_events(["ObjectCreated:CompleteMultipartUpload"])
-        self._test_index_events(["ObjectCreated:Put"], mock_elastic=False, bucket_versioning=False)
-
-    @patch(__name__ + '.index.get_contents')
-    def test_index_exception(self, get_mock):
-        """test indexing a single file that throws an exception"""
-        class ContentException(Exception):
-            pass
-        get_mock.side_effect = ContentException("Unable to get contents")
-        with pytest.raises(ContentException):
-            # get_mock already mocks get_object, so don't mock it in _test_index_event
-            self._test_index_events(
-                ["ObjectCreated:Put"],
-                mock_overrides={
-                    "mock_object": False
-                }
-            )
-
-    def _test_index_events(
-            self,
-            event_names,
-            *,
-            bucket_versioning=True,
-            mock_elastic=True,
-            mock_overrides=None
-    ):
-        """
-        Reusable helper function to test indexing files based on on or more
-        events
-        """
-        inner_records = []
-        # the responses that ES should produce for each action
-        inner_responses = []
-        for name in event_names:
-            event = make_event(name, bucket_versioning=bucket_versioning)
-            inner_records.append(event)
-            now = index.now_like_boto3()
-
-            un_key = unquote_plus(event["s3"]["object"]["key"])
-            eTag = event["s3"]["object"].get("eTag")
-            versionId = event["s3"]["object"].get("versionId")
-
-            expected_params = {
-                'Bucket': event["s3"]["bucket"]["name"],
-                'Key': un_key,
-            }
-            # We only get versionId for certain events and if bucket versioning is
-            # (or was at one time?) on
-            if versionId:
-                expected_params["VersionId"] = versionId
-            elif eTag:
-                expected_params["IfMatch"] = eTag
-            # infer mock status (we only talk to S3 on create events)
-            mock_head = name in CREATE_EVENT_TYPES
-            mock_object = name in CREATE_EVENT_TYPES
-            # check for occasional overrides (which can be false)
-            if mock_overrides and "mock_head" in mock_overrides:
-                mock_head = mock_overrides.get("mock_head")
-            if mock_overrides and "mock_object" in mock_overrides:
-                mock_object = mock_overrides.get("mock_object")
-
-            if mock_head:
-                self.s3_stubber.add_response(
-                    method='head_object',
-                    service_response={
-                        'Metadata': {},
-                        'ContentLength': event["s3"]["object"]["size"],
-                        'LastModified': now,
-                    },
-                    expected_params=expected_params
-                )
-
-            if mock_object:
-                self.s3_stubber.add_response(
-                    method='get_object',
-                    service_response={
-                        'Metadata': {},
-                        'ContentLength': event["s3"]["object"]["size"],
-                        'LastModified': now,
-                        'Body': BytesIO(b'Hello World!'),
-                    },
-                    expected_params={
-                        **expected_params,
-                        'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
-                    }
-                )
-
-        if mock_elastic:
-            self.requests_mock.add_callback(
-                responses.POST,
-                'https://example.com:443/_bulk',
-                callback=_make_es_callback(),
-                content_type='application/json'
-            )
-
-        records = {
-            "Records": [{
-                "body": json.dumps({
-                    "Message": json.dumps({
-                        "Records": inner_records
-                    })
-                })
-            }]
-        }
-
-        index.handler(records, MockContext())
-
-    def test_multiple_index_events(self):
-        """
-        Messages from SQS contain up to N messages.
-        Currently N=10, this number is determined on the backend by CloudFormation
-        """
-        self._test_index_events(
-            [
-                "ObjectCreated:Put",
-                "ObjectCreated:Put",
-                "ObjectCreated:Put",
-                "ObjectCreated:Put",
-                "ObjectCreated:Put",
-                "ObjectCreated:Copy",
-                "ObjectCreated:Copy",
-                "ObjectCreated:Copy",
-                "ObjectCreated:Copy",
-                "ObjectRemoved:Delete"
-            ]
-        )
 
     def test_unexpected_event(self):
         """

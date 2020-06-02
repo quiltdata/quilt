@@ -2,7 +2,6 @@
 sending to elastic search in memory-limited batches"""
 from datetime import datetime
 from math import floor
-import json
 import os
 
 from aws_requests_auth.aws_auth import AWSRequestsAuth
@@ -40,6 +39,13 @@ QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
 RETRY_429 = 5
 
 
+# pylint: disable=super-init-not-called
+class RetryError(Exception):
+    """Fatal and final error if docs fail after multiple retries"""
+    def __init__(self, message):
+        pass
+
+
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
     def __init__(self, context):
@@ -52,7 +58,6 @@ class DocumentQueue:
             self,
             event_type,
             size=0,
-            meta=None,
             *,
             last_modified,
             bucket,
@@ -154,7 +159,6 @@ class DocumentQueue:
                         inner = error["index"]
                     if "delete" in error:
                         inner = error["delete"]
-                    info = inner.get("error")
                     doc = id_to_doc[inner["_id"]]
                     # Always retry, regardless of whether we know to handle and clean the request
                     # or not. This can catch temporary 403 on index write blocks and other
@@ -167,12 +171,14 @@ class DocumentQueue:
                     # the batch.
                     send_again = self.queue
                     print("Unhandled document_queue error, retrying record batch:", error)
-
             # we won't retry after this (elasticsearch might retry 429s tho)
             if send_again:
                 _, errors = bulk_send(elastic, send_again)
                 if errors:
-                    raise Exception("Failed to load messages into Elastic on second retry.")
+                    raise RetryError(
+                        "Failed to load messages into Elastic on second retry.\n"
+                        f"{_}\nErrors: {errors}\nTo resend:{send_again}"
+                    )
             # empty the queue
         self.size = 0
         self.queue = []

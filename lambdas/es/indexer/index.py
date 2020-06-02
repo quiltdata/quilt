@@ -337,7 +337,6 @@ def handler(event, context):
                     bucket=bucket,
                     key=key,
                     ext=ext,
-                    meta=meta,
                     etag=etag,
                     version_id=version_id,
                     last_modified=last_modified,
