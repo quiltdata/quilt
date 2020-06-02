@@ -81,6 +81,7 @@ class DocumentQueue:
             # Elastic native keys
             "_id": f"{key}:{version_id}",
             "_index": bucket,
+            "_type": "_doc",
             # index will upsert (and clobber existing equivalent _ids)
             "_op_type": "delete" if event_type.startswith(EVENT_PREFIX["Removed"]) else "index",
             # Quilt keys
