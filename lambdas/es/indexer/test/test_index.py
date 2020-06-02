@@ -105,13 +105,9 @@ def _make_es_callback(
         raw = [json.loads(line) for line in request.body.splitlines()]
         # drop the optional source and isolate the actions
         # see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
-        actions = [deepcopy(l) for l in raw if len(l.keys()) == 1]
-        def to_response(d):
-            top_key = next(iter(d.keys()))
-            if unknown_items:
-                top_key = "key_document_queue_is_not_expecting"
-            values = d[top_key]
-            return {
+        actions = [l for l in raw if len(l.keys()) == 1]
+        items = [
+            {
                 top_key: {
                     "_id": values["_id"],
                     "_index": values["_index"],
@@ -119,7 +115,9 @@ def _make_es_callback(
                     "status": 200
                 }
             }
-        items = list(map(to_response, actions))
+            for action in actions
+            for top_key, values in action.items()
+        ]
         # see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
         # for response format
         response = {
