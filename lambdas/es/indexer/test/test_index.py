@@ -143,12 +143,13 @@ def make_event(
 ):
     """return an event based on EVENT_CORE, add fields to match organic AWS events"""
     if name in CREATE_EVENT_TYPES:
-        args = {}
-        args["bucket"] = bucket
-        args["eTag"] = eTag
-        args["key"] = key
-        args["region"] = region
-        args["size"] = size
+        args = {
+            "bucket": bucket,
+            "eTag": eTag,
+            "key": key,
+            "region": region,
+            "size": size
+        }
         if bucket_versioning:
             args["versionId"] = versionId
         return _make_event(
@@ -167,12 +168,13 @@ def make_event(
         # these events are possible in both versioned and unversioned buckets
         # (e.g. bucket now unversioned that was versioned will generate a
         # delete marker on `aws s3 rm`)
-        args = {}
-        args["bucket"] = bucket
-        args["eTag"] = eTag
-        args["key"] = key
-        args["region"] = region
-        args["size"] = size
+        args = {
+            "bucket": bucket,
+            "eTag": eTag,
+            "key": key,
+            "region": region,
+            "size": size
+        }
         if bucket_versioning:
             args["versionId"] = versionId
         return _make_event(
