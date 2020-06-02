@@ -270,6 +270,18 @@ class TestIndex(TestCase):
             etag='etag', version_id=None, s3_client=self.s3_client, size=123,
         )
 
+    def test_create_event_failure(self):
+        """
+        Check that the indexer doesn't blow up on create event failures.
+        """
+        # TODO, why does pytest.raises(RetryError not work?)
+        with pytest.raises(Exception, match="Failed to load"):
+            self._test_index_events(
+                ["ObjectCreated:Put"],
+                errors=True,
+                status=400
+            )
+
     def test_create_index_events(self):
         """test indexing a single file from a variety of create events"""
         # test all known created events
@@ -289,10 +301,10 @@ class TestIndex(TestCase):
 
     def test_delete_event_failure(self):
         """
-        Check that the indexer doesn't blow up on delete events.
+        Check that the indexer doesn't blow up on delete event failures.
         """
         # TODO, why does pytest.raises(RetryError not work?)
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match="Failed to load"):
             self._test_index_events(
                 ["ObjectRemoved:Delete"],
                 errors=True,
@@ -330,8 +342,6 @@ class TestIndex(TestCase):
             mock_elastic=False,
             bucket_versioning=False
         )
-
-
 
     @patch(__name__ + '.index.get_contents')
     def test_index_exception(self, get_mock):
@@ -731,6 +741,19 @@ class TestIndex(TestCase):
         """
         # the indexer should just pass over this event without touching S3 or ES
         self._test_index_events([UNKNOWN_EVENT_TYPE], mock_elastic=False)
+
+    def test_unknown_event_failure(self):
+        """
+        ensure indexer doesn't barf on unexpected error responses
+        """
+        # TODO, why does pytest.raises(RetryError not work?)
+        with pytest.raises(Exception, match="Failed to load"):
+            self._test_index_events(
+                ["ObjectCreated:Put"],
+                errors=True,
+                status=400,
+                unknown_items=True
+            )
 
     def test_unsupported_contents(self):
         assert self._get_contents('foo.exe', '.exe') == ""
