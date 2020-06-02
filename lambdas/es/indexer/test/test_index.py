@@ -282,16 +282,26 @@ class TestIndex(TestCase):
                 status=400
             )
 
-    def test_create_index_events(self):
-        """test indexing a single file from a variety of create events"""
-        # test all known created events
-        # https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
+    def test_create_copy_index(self):
+        """test indexing a single file from copy event"""
         self._test_index_events(["ObjectCreated:Copy"])
-        self._test_index_events(["ObjectCreated:Put"], mock_elastic=False)
         # Elastic only needs to be mocked once per test
-        self._test_index_events(["ObjectCreated:Post"], mock_elastic=False)
+
+    def test_create_put_index(self):
+        """test indexing a single file from put event"""
+        self._test_index_events(["ObjectCreated:Put"])
+
+    def test_create_put_index_unversioned(self):
+        """test indexing a single file from put event"""
+        self._test_index_events(["ObjectCreated:Put"], bucket_versioning=False)
+
+    def test_create_post_index(self):
+        """test indexing a single file from post event"""
+        self._test_index_events(["ObjectCreated:Post"])
+
+    def test_create_multipart_index(self):
+        """test indexing a single file from post event"""
         self._test_index_events(["ObjectCreated:CompleteMultipartUpload"])
-        self._test_index_events(["ObjectCreated:Put"], mock_elastic=False, bucket_versioning=False)
 
     def test_delete_event(self):
         """
