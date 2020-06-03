@@ -60,7 +60,7 @@ __Arguments__
 
 __Returns__
 
-A sequence of tuples containing the named version and hash.
+A sequence of tuples containing the version and hash for the package.
 
 
 ## list\_packages(registry=None)  {#list\_packages}

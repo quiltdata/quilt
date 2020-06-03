@@ -398,10 +398,8 @@ __Returns__
 a PackageEntry
 
 ## __slots__
-Built-in mutable sequence.
-
-If no argument is given, the constructor creates a new empty list.
-The argument must be an iterable if specified.
+list() -> new empty list
+list(iterable) -> new list initialized from iterable's items
 
 ## physical_keys
 
