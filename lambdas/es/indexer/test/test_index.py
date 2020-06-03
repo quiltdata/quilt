@@ -61,7 +61,6 @@ EVENT_CORE = {
     "userIdentity": {"principalId": "EXAMPLE"}
 }
 
-
 def _check_event(synthetic, organic):
     # Ensure that synthetic events have the same shape as actual organic ones,
     # and that overridden properties like bucket, key, eTag are properly set
@@ -89,8 +88,6 @@ def _check_event(synthetic, organic):
     assert organic["s3"]["bucket"]["name"] == synthetic["s3"]["bucket"]["name"]
     assert organic["s3"]["object"]["key"] == synthetic["s3"]["object"]["key"]
     assert organic["s3"]["object"]["eTag"] == synthetic["s3"]["object"]["eTag"]
-
-
 
 def make_event(
         name,
@@ -379,7 +376,6 @@ class TestIndex(TestCase):
                 f"Expected ES endpoint to be called {expected_es_calls} times, "
                 "got {self.expected_es_calls} calls instead"
             )
-
 
     def test_create_event_failure(self):
         """
