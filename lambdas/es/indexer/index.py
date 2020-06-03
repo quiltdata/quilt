@@ -1,9 +1,41 @@
 """
-phone data into elastic for supported file extensions.
+send documents representing object data to elasticsearch for supported file extensions.
 note: we truncate outbound documents to DOC_SIZE_LIMIT characters
 (to bound memory pressure and request size to elastic)
-"""
 
+a little knowledge on deletes and delete markers:
+if bucket versioning is on:
+    - `aws s3api delete-object (no --version-id)` or `aws s3 rm`
+        - push a new delete marker onto the stack with a version-id
+        - generate ObjectRemoved:DeleteMarkerCreated
+
+if bucket versioning was on and is then turned off:
+    - `aws s3 rm` or `aws s3api delete-object (no --version-id)`
+        - replace event at top of stack
+            - if delete marker, create a new one
+            - if object, destroy object
+        - generate ObjectRemoved:DeleteMarkerCreated
+            - problem: no way of knowing if DeleteMarkerCreated destroyed bytes
+            or just created a DeleteMarker; this is usually given by the return
+            value of `delete-object` but the S3
+    - `aws s3api delete-object --version-id VERSION`
+        - destroy corresponding delete marker or object; v may be null in which
+        case it will destroy the object with version null (occurs when adding
+        new objects to a bucket that aws versioned but is no longer)
+        - generate ObjectRemoved:Deleted
+
+if bucket version is off and has always been off:
+    - `aws s3 rm` or `aws s3api delete-object`
+        - destroy object
+        - generate a single ObjectRemoved:Deleted
+
+the short of all of this: object version history is a stack of depth N:
+    - N=1 forever for keys with a single write in unversioned buckets
+    - N>=1 for buckets that have or had versioning on
+    - rm or delete-object with no version-id replace top of stack in unversioned buckets,
+    push delete-marker onto stack with versioned buckets
+    - delete-object with version-id pulls removes specified element from stack
+"""
 import datetime
 import json
 import pathlib
@@ -214,8 +246,8 @@ def make_s3_client():
 
 
 def handler(event, context):
-    """enumerate S3 keys in event, extract relevant data and metadata,
-    queue events, send to elastic via bulk() API
+    """enumerate S3 keys in event, extract relevant data, queue events, send to
+    elastic via bulk() API
     """
     # message is a proper SQS message, which either contains a single event
     # (from the bucket notification system) or batch-many events as determined
@@ -244,11 +276,7 @@ def handler(event, context):
                 # belong in the index as documents
                 if (event_name == "ObjectRemoved:DeleteMarkerCreated"
                         or not any(event_name.startswith(n) for n in EVENT_PREFIX.values())):
-                    # TODO: delete this print
-                    print(f"index.py skipping event {event_name}", event_)
                     continue
-                # TODO: delete this print
-                print(f"index.py processing event {event_name}", event_)
                 bucket = unquote(event_["s3"]["bucket"]["name"])
                 # In the grand tradition of IE6, S3 events turn spaces into '+'
                 key = unquote_plus(event_["s3"]["object"]["key"])
@@ -304,7 +332,6 @@ def handler(event, context):
 
                 size = head["ContentLength"]
                 last_modified = head["LastModified"]
-                meta = head["Metadata"]
 
                 try:
                     text = get_contents(
@@ -322,14 +349,6 @@ def handler(event, context):
                     text = ""
                     content_exception = exc
                     print("Content extraction failed", exc, bucket, key, etag, version_id)
-
-                # decode Quilt-specific metadata
-                if meta and "helium" in meta:
-                    try:
-                        decoded_helium = json.loads(meta["helium"])
-                        meta["helium"] = decoded_helium or {}
-                    except (KeyError, json.JSONDecodeError):
-                        print("Unable to parse Quilt 'helium' metadata", meta)
 
                 batch_processor.append(
                     event_name,

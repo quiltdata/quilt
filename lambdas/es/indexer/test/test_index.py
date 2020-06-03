@@ -2,7 +2,6 @@
 Tests for the ES indexer. This function consumes events from SQS.
 """
 from copy import deepcopy
-
 from gzip import compress
 from io import BytesIO
 import json
@@ -19,8 +18,8 @@ from botocore.stub import Stubber
 import pytest
 import responses
 
-from .. import index
 from document_queue import RetryError
+from .. import index
 
 
 BASE_DIR = Path(__file__).parent / 'data'
@@ -91,44 +90,6 @@ def _check_event(synthetic, organic):
     assert organic["s3"]["object"]["key"] == synthetic["s3"]["object"]["key"]
     assert organic["s3"]["object"]["eTag"] == synthetic["s3"]["object"]["eTag"]
 
-
-def _make_es_callback(
-        *,
-        errors=False,
-        status=200,
-        unknown_items=False
-):
-    """
-    create a callback that checks the shape of the response
-    TODO: handle errors and delete actions
-    """
-    def check_response(request):
-        raw = [json.loads(line) for line in request.body.splitlines()]
-        # drop the optional source and isolate the actions
-        # see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
-        actions = [line for line in raw if len(line.keys()) == 1]
-        items = [
-            {
-                top_key: {
-                    "_id": values["_id"],
-                    "_index": values["_index"],
-                    "_type": "_doc",
-                    "status": 200
-                }
-            }
-            for action in actions
-            for top_key, values in action.items()
-        ]
-        # see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
-        # for response format
-        response = {
-            "took": 5*len(actions),
-            "errors": errors,
-            "items": items
-        }
-        return (status, {}, json.dumps(response))
-
-    return check_response
 
 
 def make_event(
@@ -231,6 +192,10 @@ class MockContext():
 
 class TestIndex(TestCase):
     def setUp(self):
+        # total number of times we expect the ES _bulk API is called
+        # we do not use `len(responses.calls)` because it always evaluates to 0
+        # during both setup and teardown; reason is that we are using add_callback()?
+        self.actual_es_calls = 0
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=True)
         self.requests_mock.start()
 
@@ -269,103 +234,52 @@ class TestIndex(TestCase):
             etag='etag', version_id=None, s3_client=self.s3_client, size=123,
         )
 
-    def test_create_event_failure(self):
+    def _make_es_callback(
+            self,
+            *,
+            errors=False,
+            status=200,
+            unknown_items=False
+    ):
         """
-        Check that the indexer doesn't blow up on create event failures.
+        create a callback that checks the shape of the response
+        TODO: handle errors and delete actions
         """
-        # TODO, why does pytest.raises(RetryError not work?)
-        with pytest.raises(RetryError, match="Failed to load"):
-            self._test_index_events(
-                ["ObjectCreated:Put"],
-                errors=True,
-                status=400
-            )
-
-    def test_create_copy_index(self):
-        """test indexing a single file from copy event"""
-        self._test_index_events(["ObjectCreated:Copy"])
-        # Elastic only needs to be mocked once per test
-
-    def test_create_put_index(self):
-        """test indexing a single file from put event"""
-        self._test_index_events(["ObjectCreated:Put"])
-
-    def test_create_put_index_unversioned(self):
-        """test indexing a single file from put event"""
-        self._test_index_events(["ObjectCreated:Put"], bucket_versioning=False)
-
-    def test_create_post_index(self):
-        """test indexing a single file from post event"""
-        self._test_index_events(["ObjectCreated:Post"])
-
-    def test_create_multipart_index(self):
-        """test indexing a single file from post event"""
-        self._test_index_events(["ObjectCreated:CompleteMultipartUpload"])
-
-    def test_delete_event(self):
-        """
-        Check that the indexer doesn't blow up on delete events.
-        """
-        self._test_index_events(["ObjectRemoved:Delete"])
-
-    def test_delete_event_failure(self):
-        """
-        Check that the indexer doesn't blow up on delete event failures.
-        """
-        # TODO, why does pytest.raises(RetryError not work?)
-        with pytest.raises(RetryError, match="Failed to load"):
-            self._test_index_events(
-                ["ObjectRemoved:Delete"],
-                errors=True,
-                status=400
-            )
-
-    def test_delete_event_no_versioning(self):
-        """
-        Check that the indexer doesn't blow up on delete events.
-        """
-        self._test_index_events(
-            ["ObjectRemoved:Delete"],
-            bucket_versioning=False
-        )
-
-    def test_delete_marker_event(self):
-        """
-        common event in versioned; buckets, should no-op
-        """
-        self._test_index_events(
-            ["ObjectRemoved:DeleteMarkerCreated"],
-            # we should never call elastic in this case
-            mock_elastic=False
-        )
-
-    def test_delete_marker_event_no_versioning(self):
-        """
-        this can happen if a bucket was verisoned, and now isn't, followed by
-        `aws s3 rm`
-        """
-        # don't mock head or get; this event should never call them
-        self._test_index_events(
-            ["ObjectRemoved:DeleteMarkerCreated"],
-            # we should never call elastic in this case
-            mock_elastic=False,
-            bucket_versioning=False
-        )
-
-    @patch(__name__ + '.index.get_contents')
-    def test_index_exception(self, get_mock):
-        """test indexing a single file that throws an exception"""
-        class ContentException(Exception):
-            pass
-        get_mock.side_effect = ContentException("Unable to get contents")
-        with pytest.raises(ContentException):
-            # get_mock already mocks get_object, so don't mock it in _test_index_event
-            self._test_index_events(
-                ["ObjectCreated:Put"],
-                mock_overrides={
-                    "mock_object": False
+        def check_response(request):
+            raw = [json.loads(line) for line in request.body.splitlines()]
+            # drop the optional source and isolate the actions
+            # see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
+            actions = [line for line in raw if len(line.keys()) == 1]
+            items = [
+                {
+                    top_key: {
+                        "_id": values["_id"],
+                        "_index": values["_index"],
+                        "_type": "_doc",
+                        "status": 200
+                    }
                 }
-            )
+                for action in actions
+                for top_key, values in action.items()
+            ]
+            if unknown_items:
+                items = [
+                    {"event_we_never_heard_of": value}
+                    for item in items
+                    for value in item.values()
+                ]
+            # see https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
+            # for response format
+            response = {
+                "took": 5*len(actions),
+                "errors": errors,
+                "items": items
+            }
+            self.actual_es_calls = self.actual_es_calls + 1
+
+            return (status, {}, json.dumps(response))
+
+        return check_response
 
     def _test_index_events(
             self,
@@ -373,6 +287,7 @@ class TestIndex(TestCase):
             *,
             bucket_versioning=True,
             errors=False,
+            expected_es_calls=0,
             mock_elastic=True,
             mock_overrides=None,
             status=200,
@@ -383,13 +298,10 @@ class TestIndex(TestCase):
         events
         """
         inner_records = []
-        # the responses that ES should produce for each action
-        inner_responses = []
         for name in event_names:
             event = make_event(name, bucket_versioning=bucket_versioning)
             inner_records.append(event)
             now = index.now_like_boto3()
-
             un_key = unquote_plus(event["s3"]["object"]["key"])
             eTag = event["s3"]["object"].get("eTag")
             versionId = event["s3"]["object"].get("versionId")
@@ -398,8 +310,8 @@ class TestIndex(TestCase):
                 'Bucket': event["s3"]["bucket"]["name"],
                 'Key': un_key,
             }
-            # We only get versionId for certain events and if bucket versioning is
-            # (or was at one time?) on
+            # We only get versionId for certain events (when bucket versioning is
+            # on (or was on and a delete-object is issued with a particular version-id?)
             if versionId:
                 expected_params["VersionId"] = versionId
             elif eTag:
@@ -443,7 +355,7 @@ class TestIndex(TestCase):
             self.requests_mock.add_callback(
                 responses.POST,
                 'https://example.com:443/_bulk',
-                callback=_make_es_callback(
+                callback=self._make_es_callback(
                     errors=errors,
                     status=status,
                     unknown_items=unknown_items
@@ -462,6 +374,129 @@ class TestIndex(TestCase):
         }
 
         index.handler(records, MockContext())
+        assert self.actual_es_calls == expected_es_calls, \
+            (
+                f"Expected ES endpoint to be called {expected_es_calls} times, "
+                "got {self.expected_es_calls} calls instead"
+            )
+
+
+    def test_create_event_failure(self):
+        """
+        Check that the indexer doesn't blow up on create event failures.
+        """
+        with pytest.raises(RetryError, match="Failed to load"):
+            self._test_index_events(
+                ["ObjectCreated:Put"],
+                errors=True,
+                status=400
+            )
+
+    def test_create_copy_index(self):
+        """test indexing a single file from copy event"""
+        self._test_index_events(
+            ["ObjectCreated:Copy"],
+            expected_es_calls=1
+        )
+        # Elastic only needs to be mocked once per test
+
+    def test_create_put_index(self):
+        """test indexing a single file from put event"""
+        self._test_index_events(
+            ["ObjectCreated:Put"],
+            expected_es_calls=1
+        )
+
+    def test_create_put_index_unversioned(self):
+        """test indexing a single file from put event"""
+        self._test_index_events(
+            ["ObjectCreated:Put"],
+            bucket_versioning=False,
+            expected_es_calls=1
+        )
+
+    def test_create_post_index(self):
+        """test indexing a single file from post event"""
+        self._test_index_events(
+            ["ObjectCreated:Post"],
+            expected_es_calls=1
+        )
+
+    def test_create_multipart_index(self):
+        """test indexing a single file from post event"""
+        self._test_index_events(
+            ["ObjectCreated:CompleteMultipartUpload"],
+            expected_es_calls=1
+        )
+
+    def test_delete_event(self):
+        """
+        Check that the indexer doesn't blow up on delete events.
+        """
+        self._test_index_events(
+            ["ObjectRemoved:Delete"],
+            expected_es_calls=1
+        )
+
+    def test_delete_event_failure(self):
+        """
+        Check that the indexer doesn't blow up on delete event failures.
+        """
+        # TODO, why does pytest.raises(RetryError not work?)
+        with pytest.raises(RetryError, match="Failed to load"):
+            self._test_index_events(
+                ["ObjectRemoved:Delete"],
+                errors=True,
+                status=400
+            )
+
+    def test_delete_event_no_versioning(self):
+        """
+        Check that the indexer doesn't blow up on delete events.
+        """
+        self._test_index_events(
+            ["ObjectRemoved:Delete"],
+            bucket_versioning=False,
+            expected_es_calls=1
+        )
+
+    def test_delete_marker_event(self):
+        """
+        common event in versioned; buckets, should no-op
+        """
+        self._test_index_events(
+            ["ObjectRemoved:DeleteMarkerCreated"],
+            # we should never call elastic in this case
+            mock_elastic=False
+        )
+
+    def test_delete_marker_event_no_versioning(self):
+        """
+        this can happen if a bucket was verisoned, and now isn't, followed by
+        `aws s3 rm`
+        """
+        # don't mock head or get; this event should never call them
+        self._test_index_events(
+            ["ObjectRemoved:DeleteMarkerCreated"],
+            # we should never call elastic in this case
+            mock_elastic=False,
+            bucket_versioning=False
+        )
+
+    @patch(__name__ + '.index.get_contents')
+    def test_index_exception(self, get_mock):
+        """test indexing a single file that throws an exception"""
+        class ContentException(Exception):
+            pass
+        get_mock.side_effect = ContentException("Unable to get contents")
+        with pytest.raises(ContentException):
+            # get_mock already mocks get_object, so don't mock it in _test_index_event
+            self._test_index_events(
+                ["ObjectCreated:Put"],
+                mock_overrides={
+                    "mock_object": False
+                }
+            )
 
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
@@ -498,7 +533,8 @@ class TestIndex(TestCase):
                 "ObjectCreated:Copy",
                 "ObjectCreated:Copy",
                 "ObjectRemoved:Delete"
-            ]
+            ],
+            expected_es_calls=1
         )
 
     def test_synthetic_copy_event(self):
@@ -746,23 +782,25 @@ class TestIndex(TestCase):
 
     def test_unexpected_event(self):
         """
-        Test unknown events
+        Test unknown event types
         """
         # the indexer should just pass over this event without touching S3 or ES
         self._test_index_events([UNKNOWN_EVENT_TYPE], mock_elastic=False)
 
     def test_unknown_event_failure(self):
         """
-        ensure indexer doesn't barf on unexpected error responses
+        send unrecognizable error keys back from ES
         """
-        # TODO, why does pytest.raises(RetryError not work?)
         with pytest.raises(RetryError, match="Failed to load"):
+            # we don't set expected_es_calls here because the assert is never hit
+            # because of the exceptions, but we do check it directly
             self._test_index_events(
                 ["ObjectCreated:Put"],
                 errors=True,
                 status=400,
                 unknown_items=True
             )
+        assert self.actual_es_calls == 2, "Two failures should have called _bulk twice"
 
     def test_unsupported_contents(self):
         assert self._get_contents('foo.exe', '.exe') == ""

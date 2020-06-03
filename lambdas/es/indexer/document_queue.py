@@ -87,7 +87,7 @@ class DocumentQueue:
             # Quilt keys
             # Be VERY CAREFUL changing these values, as a type change can cause a
             # mapper_parsing_exception that below code won't handle
-            # TODO: remove this field (now deprecated and unused)
+            # TODO: remove this field from ES in /enterprise (now deprecated and unused)
             "comment": "",
             "content": text,  # field for full-text search
             "etag": etag,
@@ -96,7 +96,7 @@ class DocumentQueue:
             "key": key,
             # "key_text": created by mappings copy_to
             "last_modified": last_modified.isoformat(),
-            # TODO: remove this field (now deprecated and unused)
+            # TODO: remove this field from ES in /enterprise (now deprecated and unused)
             "meta_text": "",
             "size": size,
             "target": "",
@@ -149,7 +149,6 @@ class DocumentQueue:
         # (We currently use Elastic 6.7 per quiltdata/deployment search.py)
         # note that `elasticsearch` post-processes this response
         _, errors = bulk_send(elastic, self.queue)
-        print("document_queue.py bulk_send:", _, errors)
         if errors:
             id_to_doc = {d["_id"]: d for d in self.queue}
             send_again = []
@@ -160,19 +159,19 @@ class DocumentQueue:
                         inner = error["index"]
                     if "delete" in error:
                         inner = error["delete"]
-                    doc = id_to_doc[inner["_id"]]
-                    # Always retry, regardless of whether we know to handle and clean the request
-                    # or not. This can catch temporary 403 on index write blocks and other
-                    # transient issues.
-                    send_again.append(doc)
-                # retry the batch
+                    if "_id" in inner:
+                        doc = id_to_doc[inner["_id"]]
+                        # Always retry the source document if we can identify it.
+                        # This catches temporary 403 on index write blocks & other
+                        # transient issues.
+                        send_again.append(doc)
+                # retry the entire batch
                 else:
                     # Unclear what would cause an error that's neither index nor delete
-                    # but if there's an error without an id we need to assume it applies to
+                    # but if there's an unknown error we need to assume it applies to
                     # the batch.
                     send_again = self.queue
-                    print("Unhandled document_queue error, retrying record batch:", error)
-            # we won't retry after this (elasticsearch might retry 429s tho)
+            # Last retry (though elasticsearch might retry 429s tho)
             if send_again:
                 _, errors = bulk_send(elastic, send_again)
                 if errors:
@@ -180,7 +179,7 @@ class DocumentQueue:
                         "Failed to load messages into Elastic on second retry.\n"
                         f"{_}\nErrors: {errors}\nTo resend:{send_again}"
                     )
-            # empty the queue
+        # empty the queue
         self.size = 0
         self.queue = []
 
