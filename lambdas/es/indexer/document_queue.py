@@ -68,6 +68,13 @@ class DocumentQueue:
             version_id
     ):
         """format event as a document and then queue the document"""
+        if not isinstance(version_id, (str, type(None))):
+            # should never raise given how index.py, the only caller of .append(),
+            # works
+            raise ValueError(
+                f".append() must set version_id even if missing from event; "
+                f"got {version_id}"
+            )
         if event_type.startswith(EVENT_PREFIX["Created"]):
             _op_type = "index"
         elif event_type.startswith(EVENT_PREFIX["Removed"]):
