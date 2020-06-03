@@ -12,12 +12,15 @@ if bucket versioning is on:
 if bucket versioning was on and is then turned off:
     - `aws s3 rm` or `aws s3api delete-object (no --version-id)`
         - replace event at top of stack
-            - if delete marker, create a new one
+            - if a versioned delete marker, push a new one on top of it
+            - if an unversioned delete marker, replace that marker with new marker
+            with version "null" (ObjectCreate will similarly replace the same with an object
+            of version "null")
             - if object, destroy object
         - generate ObjectRemoved:DeleteMarkerCreated
             - problem: no way of knowing if DeleteMarkerCreated destroyed bytes
             or just created a DeleteMarker; this is usually given by the return
-            value of `delete-object` but the S3
+            value of `delete-object` but the S3 event has no knowledge of the same
     - `aws s3api delete-object --version-id VERSION`
         - destroy corresponding delete marker or object; v may be null in which
         case it will destroy the object with version null (occurs when adding
@@ -29,12 +32,10 @@ if bucket version is off and has always been off:
         - destroy object
         - generate a single ObjectRemoved:Deleted
 
-the short of all of this: object version history is a stack of depth N:
-    - N=1 forever for keys with a single write in unversioned buckets
-    - N>=1 for buckets that have or had versioning on
-    - rm or delete-object with no version-id replace top of stack in unversioned buckets,
-    push delete-marker onto stack with versioned buckets
-    - delete-object with version-id pulls removes specified element from stack
+counterintuitive things:
+    - turning off versioning doesn't mean version stack can't get deeper (by at
+    least 1) as indicated above in the case where a new marker is pushed onto
+    the version stack
 """
 import datetime
 import json
