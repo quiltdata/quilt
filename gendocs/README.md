@@ -7,9 +7,18 @@ ungainly to work with.  Instead, it's a mixture of google docstrings and markdow
 which works a bit better.  Also, though the API of pydoc-markdown is less
 formalized, implementing changes is also less convoluted than for sphinx.
 
+### PRE: Installation
+You probably want to run the following because the auto-magic install doesn't work:
+```
+pip install git+https://github.com/quiltdata/pydoc-markdown.git@quilt
+```
 
 ### From the `gendocs` dir:
-Using the venv that t4 is installed with, execute build.py.
+Using the venv that t4 is installed with, execute build.py:
+```
+python build.py
+```
+
 If params are given, they are passed through to pydocmd.  Otherwise, 'build' is
 assumed.
 
