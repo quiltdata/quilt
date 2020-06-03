@@ -127,7 +127,7 @@ def list_package_versions(name, registry=None):
         registry(string): location of registry to load package from.
 
     Returns:
-        A sequence of tuples containing the named version and hash.
+        A sequence of tuples containing the version and hash for the package.
     """
     validate_package_name(name)
     registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
