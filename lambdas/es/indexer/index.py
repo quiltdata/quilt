@@ -34,7 +34,7 @@ the short of all of this: object version history is a stack of depth N:
     - N>=1 for buckets that have or had versioning on
     - rm or delete-object with no version-id replace top of stack in unversioned buckets,
     push delete-marker onto stack with versioned buckets
-    - delete-object with version-id pulls removes specified element from stack
+    - delete-object with version-id removes specified element from stack
 """
 import datetime
 import json
