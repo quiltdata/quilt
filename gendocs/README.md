@@ -14,7 +14,11 @@ pip install git+https://github.com/quiltdata/pydoc-markdown.git@quilt
 ```
 
 ### From the `gendocs` dir:
-Using the venv that t4 is installed with, execute build.py.
+Using the venv that t4 is installed with, execute build.py:
+```
+python build.py
+```
+
 If params are given, they are passed through to pydocmd.  Otherwise, 'build' is
 assumed.
 
