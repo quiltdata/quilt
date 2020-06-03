@@ -63,9 +63,13 @@ The bucket should not have any notifications attached to it
 Quilt will need to install its own notifications.
 Installing Quilt will modify the following Bucket characteristics:
     * Permissions > CORS configuration (will be modified for secure web access)
-    * Properties > Versioning (will be enabled)
     * Properties > Object-level logging (will be enabled)
     * Properties > Events (will add one notification)
+
+Buckets in Quilt may choose to enable versioning or disable versioning, but it
+is recommended that you avoid enabling versioning followed by disabling versioning
+as this can cause bugs in the object statistics for the bucket, shown in the Quilt
+catalog, due to inconsistent semantics of `ObjectRemoved:DeleteMarkerCreated`.
 
 1. A **subdomain that is as yet not mapped in DNS** where users will access Quilt on the web. For example `quilt.mycompany.com`.
 
