@@ -347,11 +347,29 @@ export default function File({
 
   const path = decode(encodedPath)
 
-  const code = dedent`
-    import quilt3
-    b = quilt3.Bucket("s3://${bucket}")
-    b.fetch("${path}", "./${basename(path)}")
-  `
+  const code = React.useMemo(
+    () => [
+      {
+        label: 'Python',
+        hl: 'python',
+        contents: dedent`
+          TODO
+          import quilt3
+          b = quilt3.Bucket("s3://${bucket}")
+          b.fetch("${path}", "./${basename(path)}")
+        `,
+      },
+      {
+        label: 'CLI',
+        hl: 'bash',
+        contents: dedent`
+          TODO
+          quilt3 --bucket ${bucket} "${path}" "./${basename(path)}"
+        `,
+      },
+    ],
+    [bucket, path],
+  )
 
   const objExistsData = useData(requests.getObjectExistence, { s3req, bucket, key: path })
   const versionExistsData = useData(requests.getObjectExistence, {
@@ -433,9 +451,7 @@ export default function File({
         Ok: requests.ObjectExistence.case({
           Exists: () => (
             <>
-              <Section icon="code" heading="Code">
-                <Code>{code}</Code>
-              </Section>
+              <Code>{code}</Code>
               {!!analyticsBucket && <Analytics {...{ analyticsBucket, bucket, path }} />}
               <Section icon="remove_red_eye" heading="Contents" defaultExpanded>
                 {versionExistsData.case({

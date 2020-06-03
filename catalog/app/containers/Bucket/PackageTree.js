@@ -370,10 +370,28 @@ export default function PackageTree({
   const path = decode(encodedPath)
 
   // TODO: handle revision / hash
-  const code = dedent`
-    import quilt3
-    p = quilt3.Package.browse("${name}", registry="s3://${bucket}")
-  `
+  const code = React.useMemo(
+    () => [
+      {
+        label: 'Python',
+        hl: 'python',
+        contents: dedent`
+          TODO
+          import quilt3
+          p = quilt3.Package.browse("${name}", registry="s3://${bucket}")
+        `,
+      },
+      {
+        label: 'CLI',
+        hl: 'bash',
+        contents: dedent`
+          TODO
+          quilt3 stuff here
+        `,
+      },
+    ],
+    [bucket, name, revision],
+  )
 
   const crumbs = React.useMemo(() => {
     const segments = getBreadCrumbs(path)
@@ -507,9 +525,7 @@ export default function PackageTree({
                   result,
                 )}
 
-                <Section icon="code" heading="Code">
-                  <Code>{code}</Code>
-                </Section>
+                <Code>{code}</Code>
 
                 {AsyncResult.case(
                   {
