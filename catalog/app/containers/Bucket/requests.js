@@ -787,6 +787,7 @@ const drainObjectList = async ({ s3req, Bucket, ...params }) => {
   let Contents = []
   let CommonPrefixes = []
   let ContinuationToken
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     // eslint-disable-next-line no-await-in-loop
     const r = await s3req({
@@ -814,6 +815,7 @@ export const getPackageRevisions = withErrorHandling(
           window: analyticsWindow,
         })
       : Promise.resolve({})
+    let latestFound = false
     const { revisions, isTruncated } = await drainObjectList({
       s3req,
       Bucket: bucket,
@@ -821,12 +823,16 @@ export const getPackageRevisions = withErrorHandling(
     }).then((r) => ({
       revisions: r.Contents.reduce((acc, { Key: key }) => {
         const id = getRevisionIdFromKey(key)
-        if (id === 'latest') return acc
+        if (id === 'latest') {
+          latestFound = true
+          return acc
+        }
         return [id, ...acc]
       }, []),
       isTruncated: r.IsTruncated,
     }))
-    revisions.unshift('latest')
+    if (latestFound) revisions.unshift('latest')
+    if (!revisions.length) throw new errors.NoSuchPackage()
     return { revisions, isTruncated, counts: await countsP }
   },
 )
@@ -928,6 +934,14 @@ export const fetchPackageTree = withErrorHandling(
     })
     return { id: revision, hash, keys, truncated }
   },
+  [
+    [
+      (e) => e.code === 'NoSuchKey',
+      () => {
+        throw new errors.NoSuchPackage()
+      },
+    ],
+  ],
 )
 
 const sqlEscape = (arg) => arg.replace(/'/g, "''")
