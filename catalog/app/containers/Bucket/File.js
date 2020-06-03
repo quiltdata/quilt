@@ -132,16 +132,17 @@ function VersionInfo({ bucket, path, version }) {
                       </span>
                     }
                   />
-                  {!cfg.noDownload && !v.deleteMarker && (
+                  {!cfg.noDownload && (
                     <M.ListItemSecondaryAction>
-                      {withSignedUrl({ bucket, key: path, version: v.id }, (url) => (
-                        <M.IconButton
-                          href={url}
-                          title="Download this version of the object"
-                        >
-                          <M.Icon>arrow_downward</M.Icon>
-                        </M.IconButton>
-                      ))}
+                      {!v.deleteMarker &&
+                        withSignedUrl({ bucket, key: path, version: v.id }, (url) => (
+                          <M.IconButton
+                            href={url}
+                            title="Download this version of the object"
+                          >
+                            <M.Icon>arrow_downward</M.Icon>
+                          </M.IconButton>
+                        ))}
                       <M.Hidden xsDown>
                         <M.IconButton
                           title="Copy object version's canonical HTTPS URI to the clipboard"
@@ -478,7 +479,7 @@ export default function File({
               <Annotations bucket={bucket} path={path} version={version} />
             </>
           ),
-          _: () => <Message headline="Object Does Not Exist" />,
+          _: () => <Message headline="No Such Object" />,
         }),
       })}
     </M.Box>
