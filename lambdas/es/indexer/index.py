@@ -272,17 +272,17 @@ def handler(event, context):
         for event_ in events:
             try:
                 event_name = event_["eventName"]
-                # Process all Create:* and Remove:* events except for delete markers,
-                # which have no contents, don't signify an actual delete, and don't
-                # belong in the index as documents
-                if (event_name == "ObjectRemoved:DeleteMarkerCreated"
-                        or not any(event_name.startswith(n) for n in EVENT_PREFIX.values())):
+                # Process all Create:* and Remove:* events
+                if not any(event_name.startswith(n) for n in EVENT_PREFIX.values()):
                     continue
                 bucket = unquote(event_["s3"]["bucket"]["name"])
                 # In the grand tradition of IE6, S3 events turn spaces into '+'
                 key = unquote_plus(event_["s3"]["object"]["key"])
                 version_id = event_["s3"]["object"].get("versionId")
                 version_id = unquote(version_id) if version_id else None
+                # Skip delete markers when versioning is on
+                if version_id and event_name == "ObjectRemoved:DeleteMarkerCreated":
+                    continue
                 # ObjectRemoved:Delete does not include "eTag"
                 etag = unquote(event_["s3"]["object"].get("eTag", ""))
                 # Get two levels of extensions to handle files like .csv.gz

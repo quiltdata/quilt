@@ -476,9 +476,8 @@ class TestIndex(TestCase):
         # don't mock head or get; this event should never call them
         self._test_index_events(
             ["ObjectRemoved:DeleteMarkerCreated"],
-            # we should never call elastic in this case
-            mock_elastic=False,
-            bucket_versioning=False
+            bucket_versioning=False,
+            expected_es_calls=1
         )
 
     @patch(__name__ + '.index.get_contents')
