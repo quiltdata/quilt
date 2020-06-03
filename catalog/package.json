@@ -183,7 +183,7 @@
     "style-loader": "^1.2.1",
     "stylelint": "^13.6.1",
     "stylelint-config-recommended": "^3.0.0",
-    "svg-url-loader": "^5.0.1",
+    "svg-url-loader": "^6.0.0",
     "terser-webpack-plugin": "^1.4.4",
     "url-loader": "^4.1.0",
     "webpack": "^4.44.1",
