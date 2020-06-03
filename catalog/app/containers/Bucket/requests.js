@@ -6,8 +6,9 @@ import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
-import { resolveKey, parseS3Url } from 'utils/s3paths'
 import * as Resource from 'utils/Resource'
+import { resolveKey, parseS3Url } from 'utils/s3paths'
+import tagged from 'utils/tagged'
 
 import * as errors from './errors'
 
@@ -58,7 +59,6 @@ const promiseProps = (obj) =>
 
 export const bucketListing = ({ s3req, bucket, path = '', prev }) =>
   s3req({
-    bucket,
     operation: 'listObjectsV2',
     params: {
       Bucket: bucket,
@@ -203,7 +203,7 @@ const parseDate = (d) => d && new Date(d)
 export function bucketExists({ s3req, bucket, cache }) {
   if (S3.prototype.bucketRegionCache[bucket]) return Promise.resolve()
   if (cache && cache[bucket]) return Promise.resolve()
-  return s3req({ bucket, operation: 'headBucket', params: { Bucket: bucket } })
+  return s3req({ operation: 'headBucket', params: { Bucket: bucket } })
     .then(() => {
       // eslint-disable-next-line no-param-reassign
       if (cache) cache[bucket] = true
@@ -243,7 +243,6 @@ export const bucketStats = async ({ es, s3req, bucket, overviewUrl }) => {
   if (overviewUrl) {
     try {
       return await s3req({
-        bucket: getOverviewBucket(overviewUrl),
         operation: 'getObject',
         params: {
           Bucket: getOverviewBucket(overviewUrl),
@@ -285,20 +284,60 @@ const SAMPLE_SIZE = 10
 const SUMMARIZE_KEY = 'quilt_summarize.json'
 const MAX_IMGS = 100
 
-const headObject = ({ s3req, bucket, key }) =>
-  s3req({
-    bucket,
+export const ObjectExistence = tagged(['Exists', 'DoesNotExist'])
+
+export async function getObjectExistence({ s3req, bucket, key, version }) {
+  const req = s3req({
     operation: 'headObject',
-    params: { Bucket: bucket, Key: key },
+    params: { Bucket: bucket, Key: key, VersionId: version },
+    promise: false,
   })
-    .then((h) => (h.DeleteMarker ? null : { bucket, key, version: h.VersionId }))
-    .catch((e) => {
-      if (e.code === 'NotFound') return null
-      throw e
+
+  try {
+    const h = await req.promise()
+    return ObjectExistence.Exists({
+      bucket,
+      key,
+      version: h.VersionId,
+      deleted: !!h.DeleteMarker,
     })
+  } catch (e) {
+    if (e.code === 405 && version != null) {
+      // assume delete marker when 405 and version is defined,
+      // since GET and HEAD methods are not allowed on delete markers
+      // (https://github.com/boto/botocore/issues/674)
+      return ObjectExistence.Exists({ bucket, key, version, deleted: true })
+    }
+    if (e.code === 'BadRequest' && version != null) {
+      // assume invalid version when 400 and version is defined
+      return ObjectExistence.DoesNotExist()
+    }
+    if (e.code === 'NotFound') {
+      const { headers } = req.response.httpResponse
+      if (headers['x-amz-delete-marker'] === 'true') {
+        return ObjectExistence.Exists({
+          bucket,
+          key,
+          version: headers['x-amz-version-id'],
+          deleted: true,
+        })
+      }
+      return ObjectExistence.DoesNotExist()
+    }
+    throw e
+  }
+}
+
+const ensureObjectIsPresent = (...args) =>
+  getObjectExistence(...args).then(
+    ObjectExistence.case({
+      Exists: ({ deleted, ...h }) => (deleted ? null : h),
+      _: () => null,
+    }),
+  )
 
 export const bucketSummary = async ({ s3req, es, bucket, overviewUrl, inStack }) => {
-  const handle = await headObject({ s3req, bucket, key: SUMMARIZE_KEY })
+  const handle = await ensureObjectIsPresent({ s3req, bucket, key: SUMMARIZE_KEY })
   if (handle) {
     try {
       return await summarize({ s3req, handle })
@@ -311,7 +350,6 @@ export const bucketSummary = async ({ s3req, es, bucket, overviewUrl, inStack })
   if (overviewUrl) {
     try {
       return await s3req({
-        bucket: getOverviewBucket(overviewUrl),
         operation: 'getObject',
         params: {
           Bucket: getOverviewBucket(overviewUrl),
@@ -369,7 +407,6 @@ export const bucketSummary = async ({ s3req, es, bucket, overviewUrl, inStack })
   }
   try {
     return await s3req({
-      bucket,
       operation: 'listObjectsV2',
       params: { Bucket: bucket },
     }).then(
@@ -403,13 +440,13 @@ export const bucketReadmes = ({ s3req, bucket, overviewUrl }) =>
   promiseProps({
     forced:
       overviewUrl &&
-      headObject({
+      ensureObjectIsPresent({
         s3req,
         bucket: getOverviewBucket(overviewUrl),
         key: getOverviewKey(overviewUrl, 'README.md'),
       }),
     discovered: Promise.all(
-      README_KEYS.map((key) => headObject({ s3req, bucket, key })),
+      README_KEYS.map((key) => ensureObjectIsPresent({ s3req, bucket, key })),
     ).then(R.filter(Boolean)),
   })
 
@@ -417,7 +454,6 @@ export const bucketImgs = async ({ es, s3req, bucket, overviewUrl, inStack }) =>
   if (overviewUrl) {
     try {
       return await s3req({
-        bucket: getOverviewBucket(overviewUrl),
         operation: 'getObject',
         params: {
           Bucket: getOverviewBucket(overviewUrl),
@@ -467,7 +503,6 @@ export const bucketImgs = async ({ es, s3req, bucket, overviewUrl, inStack }) =>
   }
   try {
     return await s3req({
-      bucket,
       operation: 'listObjectsV2',
       params: { Bucket: bucket },
     }).then(
@@ -495,7 +530,6 @@ export const bucketImgs = async ({ es, s3req, bucket, overviewUrl, inStack }) =>
 
 export const objectVersions = ({ s3req, bucket, path }) =>
   s3req({
-    bucket,
     operation: 'listObjectVersions',
     params: { Bucket: bucket, Prefix: path },
   }).then(
@@ -515,7 +549,6 @@ export const objectVersions = ({ s3req, bucket, path }) =>
 
 export const objectMeta = ({ s3req, bucket, path, version }) =>
   s3req({
-    bucket,
     operation: 'headObject',
     params: {
       Bucket: bucket,
@@ -531,7 +564,6 @@ export const summarize = async ({ s3req, handle }) => {
 
   try {
     const file = await s3req({
-      bucket: handle.bucket,
       operation: 'getObject',
       params: {
         Bucket: handle.bucket,
@@ -625,7 +657,6 @@ const fetchPackagesAccessCounts = async ({
 
 const listPackageOwnerPrefixes = ({ s3req, bucket }) =>
   s3req({
-    bucket,
     operation: 'listObjectsV2',
     params: { Bucket: bucket, Prefix: PACKAGES_PREFIX, Delimiter: '/' },
   }).then((r) => r.CommonPrefixes.map((p) => p.Prefix))
@@ -640,7 +671,6 @@ const listPackagePrefixes = ({ s3req, bucket, ownerPrefix }) =>
 
 const fetchPackageLatest = ({ s3req, bucket, prefix }) =>
   s3req({
-    bucket,
     operation: 'listObjectsV2',
     params: { Bucket: bucket, Prefix: `${prefix}latest` },
   }).then(({ Contents: [latest] }) => {
@@ -659,7 +689,6 @@ const fetchPackageLatest = ({ s3req, bucket, prefix }) =>
 
 const fetchPackageRevisions = ({ s3req, bucket, prefix }) =>
   s3req({
-    bucket,
     operation: 'listObjectsV2',
     params: {
       Bucket: bucket,
@@ -758,10 +787,10 @@ const drainObjectList = async ({ s3req, Bucket, ...params }) => {
   let Contents = []
   let CommonPrefixes = []
   let ContinuationToken
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     // eslint-disable-next-line no-await-in-loop
     const r = await s3req({
-      bucket: Bucket,
       operation: 'listObjectsV2',
       params: { Bucket, ContinuationToken, ...params },
     })
@@ -786,6 +815,7 @@ export const getPackageRevisions = withErrorHandling(
           window: analyticsWindow,
         })
       : Promise.resolve({})
+    let latestFound = false
     const { revisions, isTruncated } = await drainObjectList({
       s3req,
       Bucket: bucket,
@@ -793,19 +823,22 @@ export const getPackageRevisions = withErrorHandling(
     }).then((r) => ({
       revisions: r.Contents.reduce((acc, { Key: key }) => {
         const id = getRevisionIdFromKey(key)
-        if (id === 'latest') return acc
+        if (id === 'latest') {
+          latestFound = true
+          return acc
+        }
         return [id, ...acc]
       }, []),
       isTruncated: r.IsTruncated,
     }))
-    revisions.unshift('latest')
+    if (latestFound) revisions.unshift('latest')
+    if (!revisions.length) throw new errors.NoSuchPackage()
     return { revisions, isTruncated, counts: await countsP }
   },
 )
 
 const loadRevisionHash = ({ s3req, bucket, name, id }) =>
   s3req({
-    bucket,
     operation: 'getObject',
     params: { Bucket: bucket, Key: getRevisionKeyFromId(name, id) },
   }).then((res) => ({
@@ -851,7 +884,6 @@ const s3Select = ({
   ...rest
 }) =>
   s3req({
-    bucket: rest.Bucket,
     operation: 'selectObjectContent',
     params: {
       ExpressionType,
@@ -902,6 +934,14 @@ export const fetchPackageTree = withErrorHandling(
     })
     return { id: revision, hash, keys, truncated }
   },
+  [
+    [
+      (e) => e.code === 'NoSuchKey',
+      () => {
+        throw new errors.NoSuchPackage()
+      },
+    ],
+  ],
 )
 
 const sqlEscape = (arg) => arg.replace(/'/g, "''")
