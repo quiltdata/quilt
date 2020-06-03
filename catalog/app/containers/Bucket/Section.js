@@ -1,15 +1,10 @@
 import cx from 'classnames'
 import * as React from 'react'
-import ExpansionPanel from '@material-ui/core/ExpansionPanel'
-import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails'
-import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary'
-import Icon from '@material-ui/core/Icon'
-import Typography from '@material-ui/core/Typography'
-import { makeStyles } from '@material-ui/styles'
+import * as M from '@material-ui/core'
 
 import ButtonIcon from 'components/ButtonIcon'
 
-const useStyles = makeStyles({
+const useStyles = M.makeStyles((t) => ({
   summaryExpanded: {},
   summaryRoot: {
     '&$summaryExpanded': {
@@ -25,14 +20,25 @@ const useStyles = makeStyles({
     display: 'flex',
   },
   gutterBottom: {
-    marginBottom: 16,
+    marginBottom: t.spacing(2),
   },
   gutterTop: {
-    marginTop: 16,
+    marginTop: t.spacing(2),
   },
-})
+}))
 
-const useExpandedState = ({ expandable, defaultExpanded }) => {
+export default function Section({
+  icon,
+  heading,
+  defaultExpanded = false,
+  expandable = true,
+  gutterBottom = false,
+  gutterTop = false,
+  extraSummary,
+  children,
+  ...props
+}) {
+  const classes = useStyles()
   const [expandedState, setExpanded] = React.useState(null)
   const expanded =
     !expandable || (expandedState != null ? expandedState : defaultExpanded)
@@ -44,43 +50,34 @@ const useExpandedState = ({ expandable, defaultExpanded }) => {
     [setExpanded],
   )
 
-  return { expanded, onChange }
-}
-
-export default ({
-  icon,
-  heading,
-  defaultExpanded = false,
-  expandable = true,
-  gutterBottom = false,
-  gutterTop = false,
-  children,
-}) => {
-  const classes = useStyles()
-  const expandedState = useExpandedState({ expandable, defaultExpanded })
+  const renderNodeOrFn = (nodeOrFn) =>
+    typeof nodeOrFn === 'function' ? nodeOrFn({ expanded, setExpanded }) : nodeOrFn
 
   return (
-    <ExpansionPanel
-      {...expandedState}
+    <M.ExpansionPanel
+      expanded={expanded}
+      onChange={onChange}
       className={cx({
         [classes.gutterBottom]: gutterBottom,
         [classes.gutterTop]: gutterTop,
       })}
+      {...props}
     >
-      <ExpansionPanelSummary
-        expandIcon={expandable && <Icon>expand_more</Icon>}
+      <M.ExpansionPanelSummary
+        expandIcon={expandable && <M.Icon>expand_more</M.Icon>}
         classes={{
           expanded: classes.summaryExpanded,
           root: classes.summaryRoot,
           content: classes.summaryContent,
         }}
       >
-        <Typography variant="button" className={classes.heading}>
+        <M.Typography variant="button" className={classes.heading}>
           {!!icon && <ButtonIcon>{icon}</ButtonIcon>}
-          {heading}
-        </Typography>
-      </ExpansionPanelSummary>
-      <ExpansionPanelDetails>{children}</ExpansionPanelDetails>
-    </ExpansionPanel>
+          {renderNodeOrFn(heading)}
+        </M.Typography>
+        {renderNodeOrFn(extraSummary)}
+      </M.ExpansionPanelSummary>
+      <M.ExpansionPanelDetails>{renderNodeOrFn(children)}</M.ExpansionPanelDetails>
+    </M.ExpansionPanel>
   )
 }
