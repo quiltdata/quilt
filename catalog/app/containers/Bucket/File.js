@@ -121,7 +121,7 @@ function VersionInfo({ bucket, path, version }) {
                         <FormattedRelative value={v.lastModified} />
                         {v.isLatest && ' (latest)'}
                         {' | '}
-                        {v.size != null ? readableBytes(v.size) : <b>DELETE MARKER</b>}
+                        {v.size != null ? readableBytes(v.size) : 'Delete Marker'}
                       </span>
                     }
                     secondary={
