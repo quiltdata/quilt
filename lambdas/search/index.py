@@ -149,36 +149,10 @@ def lambda_handler(request):
         timeout=MAX_QUERY_DURATION
     )
 
-    return make_json_response(200, result)
+    return make_json_response(200, post_process(result, action))
 
 def post_process(result: dict, action: str) -> dict:
     """post process result from elastic conditional on action
-    Sample expected response from ES:
-    {
-        'took': 22,
-        'timed_out': False,
-        '_shards': {'total': 5, 'successful': 5, 'skipped': 0, 'failed': 0},
-        'hits': {'total': 450147, 'max_score': 0.0, 'hits': []},
-        'aggregations': {
-            'totalBytes': {'value': 103112621206.0},
-            'exts': {
-                'doc_count_error_upper_bound': 206,
-                'sum_other_doc_count': 27280,
-                'buckets': [
-                    {'key': '.jpg', 'doc_count': 149011, 'size': {'value': 52630080862.0}},
-                    {'key': '.js', 'doc_count': 143724, 'size': {'value': 715229022.0}},
-                    {'key': '', 'doc_count': 44744, 'size': {'value': 14009020283.0}},
-                    {'key': '.ipynb', 'doc_count': 18379, 'size': {'value': 5765196199.0}},
-                    {'key': '.md', 'doc_count': 16668, 'size': {'value': 88149434.0}},
-                    {'key': '.d.ts', 'doc_count': 16440, 'size': {'value': 151459434.0}},
-                    {'key': '.json', 'doc_count': 15643, 'size': {'value': 910035640.0}},
-                    {'key': '.js.map', 'doc_count': 9594, 'size': {'value': 178589610.0}},
-                    {'key': '.ts', 'doc_count': 5178, 'size': {'value': 10703322.0}},
-                    {'key': '.ts.map', 'doc_count': 3486, 'size': {'value': 2949678.0}}
-                ]
-            }
-        }
-    }
     """
     if action == "stats":
         counts = result["aggregations"]["exts"]["buckets"]
@@ -207,7 +181,8 @@ def post_process(result: dict, action: str) -> dict:
         ]
         # rewrite aggregation buckets so gz aggregates use two-level extensions
         # and all other extensions are single-level
-        result["aggregations"]["exts"]["buckets"] = corrected.extend(gz)
+        corrected.extend(gz)
+        result["aggregations"]["exts"]["buckets"] = corrected
 
     return result
 
