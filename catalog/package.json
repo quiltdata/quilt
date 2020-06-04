@@ -65,7 +65,7 @@
     "@material-ui/system": "^4.9.14",
     "@rehooks/component-size": "^1.0.3",
     "@sentry/browser": "^5.16.1",
-    "@testing-library/react": "^10.0.6",
+    "@testing-library/react": "^10.1.0",
     "ajv": "^6.12.2",
     "assert": "^1.5.0",
     "autobind-decorator": "^2.4.0",
