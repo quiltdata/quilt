@@ -29,7 +29,6 @@ import * as requests from './requests'
 import bg from './Overview-bg.jpg'
 
 const RODA_LINK = 'https://registry.opendata.aws'
-const EXAMPLE_BUCKET = 'quilt-example'
 const RODA_BUCKET = 'quilt-open-data-bucket'
 const MAX_EXTS = 7
 // must have length >= MAX_EXTS
@@ -870,23 +869,6 @@ function Section({ heading, children, ...props }) {
   )
 }
 
-function GettingStarted({ bucket }) {
-  const { urls } = NamedRoutes.use()
-  return (
-    <Section heading="Getting Started">
-      <M.Typography>
-        Welcome to the Quilt 3 catalog for the <strong>{bucket}</strong> bucket.
-        <br />
-        For help getting started with Quilt 3 check out{' '}
-        <Link to={urls.bucketRoot(EXAMPLE_BUCKET)}>the demo bucket</Link>.
-        <br />
-        To overwrite this landing page with your own, create a new{' '}
-        <strong>README.md</strong> file at the top level of this bucket.
-      </M.Typography>
-    </Section>
-  )
-}
-
 function ContentSkel({ lines = 15, ...props }) {
   const widths = React.useMemo(() => R.times(() => 80 + Math.random() * 20, lines), [
     lines,
@@ -1083,7 +1065,7 @@ function Readmes({ s3req, overviewUrl, bucket }) {
     <Data fetch={requests.bucketReadmes} params={{ s3req, overviewUrl, bucket }}>
       {AsyncResult.case({
         Ok: (rs) =>
-          rs.discovered.length > 0 || rs.forced ? (
+          (rs.discovered.length > 0 || !!rs.forced) && (
             <>
               {!!rs.forced && (
                 <FilePreview
@@ -1096,8 +1078,6 @@ function Readmes({ s3req, overviewUrl, bucket }) {
                 <FilePreview key={`readme:${h.bucket}/${h.key}`} handle={h} />
               ))}
             </>
-          ) : (
-            <GettingStarted bucket={bucket} />
           ),
         _: () => <FilePreviewSkel key="readme:skeleton" />,
       })}
