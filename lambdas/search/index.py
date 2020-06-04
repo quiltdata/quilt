@@ -157,7 +157,7 @@ def post_process(result: dict, action: str) -> dict:
     if action == "stats":
         counts = result["aggregations"]["exts"]["buckets"]
         non_gz, gz = partition(
-            lambda c: any(c.get("key", "").lower() in ext for ext in COMPRESSION_EXTS),
+            lambda c: any(c.get("key", "").lower().endswith(ext) for ext in COMPRESSION_EXTS),
             counts
         )
         ext_counts = {}
@@ -181,7 +181,8 @@ def post_process(result: dict, action: str) -> dict:
         ]
         # rewrite aggregation buckets so gz aggregates use two-level extensions
         # and all other extensions are single-level
-        corrected.extend(gz)
+        corrected.extend(list(gz))
+        print(corrected)
         result["aggregations"]["exts"]["buckets"] = corrected
 
     return result
