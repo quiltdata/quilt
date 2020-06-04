@@ -353,7 +353,6 @@ export default function File({
         label: 'Python',
         hl: 'python',
         contents: dedent`
-          TODO
           import quilt3
           b = quilt3.Bucket("s3://${bucket}")
           b.fetch("${path}", "./${basename(path)}")
@@ -363,8 +362,7 @@ export default function File({
         label: 'CLI',
         hl: 'bash',
         contents: dedent`
-          TODO
-          quilt3 --bucket ${bucket} "${path}" "./${basename(path)}"
+          aws s3 cp "s3://${bucket}/${path}" .
         `,
       },
     ],
