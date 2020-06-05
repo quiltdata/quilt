@@ -212,7 +212,6 @@ class TestSearch(TestCase):
         assert map_stats['size']['value'] == sum(raw_stats[i]['size']['value'] for i in (7, 9)), \
             'Unexpected size for .map'
 
-
     def test_search(self):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
             timeout='15s',
