@@ -81,6 +81,7 @@ ES_STATS_RESPONSES = {
     }
 }
 
+
 def check_stats_record_format(record):
     """check that the aggregation buckets have the expected format"""
     assert {'key', 'doc_count', 'size'} == set(record.keys())
@@ -198,7 +199,7 @@ class TestSearch(TestCase):
             "Mangled bucket records"
         actual_exts = set(s['key'] for s in actual_stats)
         assert actual_exts == expected_exts, 'Unexpected extension set'
-       # make sure *.gz are unchanged
+        # make sure *.gz are unchanged
         gzs = [r for r in actual_stats if r['key'].endswith('.gz')]
         assert gzs == [
             {'key': '.csv.gz', 'doc_count': 149011, 'size': {'value': 52630080862.0}},
