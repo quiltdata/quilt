@@ -14,7 +14,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
-import Data from 'utils/Data'
+import Data, { useData } from 'utils/Data'
 import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link, { linkStyle } from 'utils/StyledLink'
@@ -304,15 +304,6 @@ const formatListing = ({ urls }, r) => {
   ]
 }
 
-const withComputedTree = (params, fn) =>
-  R.pipe(
-    AsyncResult.case({
-      Ok: R.pipe(computeTree(params), AsyncResult.Ok),
-      _: R.identity,
-    }),
-    fn,
-  )
-
 const useStyles = M.makeStyles((t) => ({
   topBar: {
     alignItems: 'flex-end',
@@ -369,11 +360,29 @@ export default function PackageTree({
 
   const path = decode(encodedPath)
 
-  // TODO: handle revision / hash
-  const code = dedent`
-    import quilt3
-    p = quilt3.Package.browse("${name}", registry="s3://${bucket}")
-  `
+  const getCode = ({ hash }) => {
+    const nameWithPath = path ? `${name}/${path}` : name
+    const hashDisplay = revision === 'latest' ? '' : hash.substring(0, 10)
+    const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
+    const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
+    return [
+      {
+        label: 'Python',
+        hl: 'python',
+        contents: dedent`
+          import quilt3
+          quilt3.Package.install("${nameWithPath}"${hashPy}, registry="s3://${bucket}", dest=".")
+        `,
+      },
+      {
+        label: 'CLI',
+        hl: 'bash',
+        contents: dedent`
+          quilt3 install ${nameWithPath}${hashCli} --registry s3://${bucket} --dest .
+        `,
+      },
+    ]
+  }
 
   const crumbs = React.useMemo(() => {
     const segments = getBreadCrumbs(path)
@@ -391,6 +400,22 @@ export default function PackageTree({
       ),
     ).concat(path.endsWith('/') ? Crumb.Sep(<>&nbsp;/</>) : [])
   }, [bucket, name, revision, path, urls])
+
+  const data = useData(requests.fetchPackageTree, {
+    s3req,
+    sign: getSignedS3URL,
+    endpoint,
+    bucket,
+    name,
+    revision,
+  })
+
+  const treeRes = AsyncResult.mapCase(
+    {
+      Ok: computeTree({ bucket, name, revision, path }),
+    },
+    data.result,
+  )
 
   return (
     <M.Box pt={2} pb={4}>
@@ -419,142 +444,128 @@ export default function PackageTree({
           })}
         </Data>
       )}
-      <Data
-        fetch={requests.fetchPackageTree}
-        params={{ s3req, sign: getSignedS3URL, endpoint, bucket, name, revision }}
-      >
-        {withComputedTree(
-          { bucket, name, revision, path },
-          AsyncResult.case({
-            Err: displayError(),
-            _: (result) => (
-              <>
-                <M.Typography variant="body1">
-                  <Link
-                    to={urls.bucketPackageDetail(bucket, name)}
-                    className={classes.name}
-                  >
-                    {name}
-                  </Link>
-                  {' @ '}
-                  <RevisionInfo {...{ revision, bucket, name, path }} />
-                </M.Typography>
-                <div className={classes.topBar}>
-                  <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-                    {renderCrumbs(crumbs)}
-                  </div>
-                  <div className={classes.spacer} />
-                  {!noDownload &&
-                    AsyncResult.case(
-                      {
-                        Ok: TreeDisplay.case({
-                          File: ({ key, version }) =>
-                            xs ? (
-                              <M.IconButton
-                                className={classes.button}
-                                href={getSignedS3URL({ bucket, key, version })}
-                                edge="end"
-                                size="small"
-                                download
-                              >
-                                <M.Icon>arrow_downward</M.Icon>
-                              </M.IconButton>
-                            ) : (
-                              <M.Button
-                                href={getSignedS3URL({ bucket, key, version })}
-                                className={classes.button}
-                                variant="outlined"
-                                size="small"
-                                startIcon={<M.Icon>arrow_downward</M.Icon>}
-                                download
-                              >
-                                Download file
-                              </M.Button>
-                            ),
-                          _: () => null,
-                        }),
-                        _: () => null,
-                      },
-                      result,
-                    )}
-                </div>
-
-                {AsyncResult.case(
+      {data.case({
+        Err: displayError(),
+        _: () => (
+          <>
+            <M.Typography variant="body1">
+              <Link to={urls.bucketPackageDetail(bucket, name)} className={classes.name}>
+                {name}
+              </Link>
+              {' @ '}
+              <RevisionInfo {...{ revision, bucket, name, path }} />
+            </M.Typography>
+            <div className={classes.topBar}>
+              <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
+                {renderCrumbs(crumbs)}
+              </div>
+              <div className={classes.spacer} />
+              {!noDownload &&
+                AsyncResult.case(
                   {
                     Ok: TreeDisplay.case({
-                      Dir: () => (
-                        <M.Box className={classes.warning} mb={2}>
-                          <M.Icon className={classes.warningIcon}>warning</M.Icon>
-                          <div>
-                            The Packages tab shows only the first 1,000 files. Use the{' '}
-                            <M.Link
-                              to={urls.bucketDir(bucket)}
-                              color="inherit"
-                              underline="always"
-                              component={RRLink}
-                            >
-                              Files tab
-                            </M.Link>{' '}
-                            (above) or Python code (below) to view all files. This is a
-                            temporary limitation.
-                          </div>
-                        </M.Box>
-                      ),
+                      File: ({ key, version }) =>
+                        xs ? (
+                          <M.IconButton
+                            className={classes.button}
+                            href={getSignedS3URL({ bucket, key, version })}
+                            edge="end"
+                            size="small"
+                            download
+                          >
+                            <M.Icon>arrow_downward</M.Icon>
+                          </M.IconButton>
+                        ) : (
+                          <M.Button
+                            href={getSignedS3URL({ bucket, key, version })}
+                            className={classes.button}
+                            variant="outlined"
+                            size="small"
+                            startIcon={<M.Icon>arrow_downward</M.Icon>}
+                            download
+                          >
+                            Download file
+                          </M.Button>
+                        ),
                       _: () => null,
                     }),
                     _: () => null,
                   },
-                  result,
+                  treeRes,
                 )}
+            </div>
 
-                <Section icon="code" heading="Code">
-                  <Code>{code}</Code>
-                </Section>
-
-                {AsyncResult.case(
-                  {
-                    Ok: TreeDisplay.case({
-                      File: (handle) => (
-                        <Section
-                          icon="remove_red_eye"
-                          heading="Contents"
-                          expandable={false}
+            {AsyncResult.case(
+              {
+                Ok: TreeDisplay.case({
+                  Dir: () => (
+                    <M.Box className={classes.warning} mb={2}>
+                      <M.Icon className={classes.warningIcon}>warning</M.Icon>
+                      <div>
+                        The Packages tab shows only the first 1,000 files. Use the{' '}
+                        <M.Link
+                          to={urls.bucketDir(bucket)}
+                          color="inherit"
+                          underline="always"
+                          component={RRLink}
                         >
-                          <FilePreview handle={handle} />
-                        </Section>
-                      ),
-                      Dir: ({ truncated, ...dir }) => (
-                        <M.Box mt={2}>
-                          <Listing
-                            items={formatListing({ urls }, dir)}
-                            truncated={truncated}
-                          />
-                          {/* TODO: use proper versions */}
-                          <Summary files={dir.files} />
-                        </M.Box>
-                      ),
-                      NotFound: () => (
-                        <M.Box mt={4}>
-                          <M.Typography variant="h4" align="center">
-                            No such file
-                          </M.Typography>
-                        </M.Box>
-                      ),
-                    }),
-                    _: () => (
-                      // TODO: skeleton placeholder
-                      <M.Box mt={2}>
-                        <M.CircularProgress />
-                      </M.Box>
-                    ),
-                  },
-                  result,
-                )}
-              </>
-            ),
-          }),
-        )}
-      </Data>
+                          Files tab
+                        </M.Link>{' '}
+                        (above) or Python code (below) to view all files. This is a
+                        temporary limitation.
+                      </div>
+                    </M.Box>
+                  ),
+                  _: () => null,
+                }),
+                _: () => null,
+              },
+              treeRes,
+            )}
+
+            {data.case({
+              Ok: ({ hash }) => <Code>{getCode({ hash })}</Code>,
+              _: () => null,
+            })}
+
+            {AsyncResult.case(
+              {
+                Ok: TreeDisplay.case({
+                  File: (handle) => (
+                    <Section icon="remove_red_eye" heading="Contents" expandable={false}>
+                      <FilePreview handle={handle} />
+                    </Section>
+                  ),
+                  Dir: ({ truncated, ...dir }) => (
+                    <M.Box mt={2}>
+                      <Listing
+                        items={formatListing({ urls }, dir)}
+                        truncated={truncated}
+                      />
+                      {/* TODO: use proper versions */}
+                      <Summary files={dir.files} />
+                    </M.Box>
+                  ),
+                  NotFound: () => (
+                    <M.Box mt={4}>
+                      <M.Typography variant="h4" align="center">
+                        No such file
+                      </M.Typography>
+                    </M.Box>
+                  ),
+                }),
+                _: () => (
+                  // TODO: skeleton placeholder
+                  <M.Box mt={2}>
+                    <M.CircularProgress />
+                  </M.Box>
+                ),
+              },
+              treeRes,
+            )}
+          </>
+        ),
+      })}
     </M.Box>
   )
 }

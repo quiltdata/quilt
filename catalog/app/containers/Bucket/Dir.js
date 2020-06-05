@@ -18,7 +18,6 @@ import usePrevious from 'utils/usePrevious'
 
 import Code from './Code'
 import Listing, { ListingItem } from './Listing'
-import Section from './Section'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
@@ -85,11 +84,30 @@ export default function Dir({
   const { urls } = NamedRoutes.use()
   const s3req = AWS.S3.useRequest()
   const path = decode(encodedPath)
-  const code = dedent`
-    import quilt3
-    b = quilt3.Bucket("s3://${bucket}")
-    b.fetch("${path}", "./")
-  `
+
+  const code = React.useMemo(
+    () => [
+      {
+        label: 'Python',
+        hl: 'python',
+        contents: dedent`
+          import quilt3
+          b = quilt3.Bucket("s3://${bucket}")
+          b.fetch("${path}", "./${path ? basename(path) : bucket}")
+        `,
+      },
+      {
+        label: 'CLI',
+        hl: 'bash',
+        contents: dedent`
+          aws s3 cp --recursive "s3://${bucket}/${path}" "./${
+          path ? basename(path) : bucket
+        }"
+        `,
+      },
+    ],
+    [bucket, path],
+  )
 
   const [prev, setPrev] = React.useState(null)
   const prevPath = usePrevious(path, () => {
@@ -123,9 +141,7 @@ export default function Dir({
         <M.Box flexGrow={1} />
       </M.Box>
 
-      <Section icon="code" heading="Code" gutterBottom>
-        <Code>{code}</Code>
-      </Section>
+      <Code gutterBottom>{code}</Code>
 
       {data.case({
         Err: displayError(),
