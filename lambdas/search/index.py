@@ -3,6 +3,7 @@ Sends the request to ElasticSearch.
 
 TODO: Implement a higher-level search API.
 """
+from copy import deepcopy
 import os
 from itertools import filterfalse, tee
 
@@ -155,6 +156,8 @@ def post_process(result: dict, action: str) -> dict:
     """post process result from elastic conditional on action
     """
     if action == "stats":
+        # don't modify the original to avoid side-effects
+        result = deepcopy(result)
         counts = result["aggregations"]["exts"]["buckets"]
         non_gz, gz = partition(
             lambda c: any(c.get("key", "").lower().endswith(ext) for ext in COMPRESSION_EXTS),
@@ -181,8 +184,7 @@ def post_process(result: dict, action: str) -> dict:
         ]
         # rewrite aggregation buckets so gz aggregates use two-level extensions
         # and all other extensions are single-level
-        corrected.extend(list(gz))
-        print(corrected)
+        corrected.extend(gz)
         result["aggregations"]["exts"]["buckets"] = corrected
 
     return result

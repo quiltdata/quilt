@@ -110,9 +110,9 @@ class TestSearch(TestCase):
             'isBase64Encoded': False,
         }
 
-    def test_post_process_stats_no_gz(self):
-        """test stats when no *.gz in bucket"""
-        es_response = ES_STATS_RESPONSES['no_gz']
+    def test_post_process_stats_all_gz(self):
+        """test stats when all *.gz in bucket"""
+        es_response = ES_STATS_RESPONSES['all_gz']
         processed = post_process(es_response, 'stats')
         assert es_response == processed, 'No processing expected'
         assert set(processed.keys()) == set(es_response.keys()), 'Unexpected top-level key change'
@@ -120,8 +120,49 @@ class TestSearch(TestCase):
         for key in ['took', 'timed_out', '_shards', 'hits']:
             assert es_response[key] == processed[key], 'Unexpected side-effect'
  
+    def test_post_process_stats_no_gz(self):
+        """test stats when no *.gz in bucket"""
+        es_response = ES_STATS_RESPONSES['no_gz']
+        processed = post_process(es_response, 'stats')
+        assert set(processed.keys()) == set(es_response.keys()), 'Unexpected top-level key change'
+        # we shouldn't change any of these values
+        for key in ['took', 'timed_out', '_shards', 'hits']:
+            assert es_response[key] == processed[key], 'Unexpected side-effect'
+        # expected extensions after processing
+        expected_exts = {
+            '.ipynb',
+            '.jpg',
+            '.json',
+            '.js',
+            '.map',
+            '.md',
+            '.ts',
+            '',
+        }
+        actual_stats = processed['aggregations']['exts']['buckets']
+        actual_exts = set(s['key'] for s in actual_stats)
+        assert actual_exts == expected_exts, 'Unexpected extension set'
+        # check math on .md files
+        dot_md = [r for r in actual_stats if r['key'] == '.md'] 
+        assert len(dot_md) == 1, 'Each uncompressed extension should be unique'
+        md_stats = dot_md[0]
+        raw_stats = es_response['aggregations']['exts']['buckets']
+        assert md_stats['doc_count'] == raw_stats[4]['doc_count'], \
+            'Unexpected doc_count for .md'
+        assert md_stats['size']['value'] == raw_stats[4]['size']['value'], \
+            'Unexpected size for .md'
+        # check math on .ts files
+        dot_ts = [r for r in actual_stats if r['key'] == '.ts'] 
+        assert len(dot_ts) == 1, 'Each noncompressed extension should be unique'
+        ts_stats = dot_ts[0]
+        assert ts_stats['doc_count'] == sum(raw_stats[i]['doc_count'] for i in (5, 8)), \
+            'Unexpected doc_count for .ts'
+        assert ts_stats['size']['value'] == sum(raw_stats[i]['size']['value'] for i in (5, 8)), \
+            'Unexpected size for .ts'
+ 
+ 
     def test_post_process_stats_some_gz(self):
-        """test stats when some *.*.gz in bucket"""
+        """test stats when some *.gz in bucket"""
         es_response = ES_STATS_RESPONSES['some_gz']
         processed = post_process(es_response, 'stats')
         # we shouldn't change any of these values
@@ -137,10 +178,38 @@ class TestSearch(TestCase):
             '.ts',
             '',
         }
-        stats = es_response['aggregations']['exts']['buckets']
-        actual_exts = set(s['key'] for s in stats)
-        print("ACTUAL", actual_exts, expected_exts)
+        actual_stats = processed['aggregations']['exts']['buckets']
+        actual_exts = set(s['key'] for s in actual_stats)
         assert actual_exts == expected_exts, 'Unexpected extension set'
+        # make sure *.gz are unchanged
+        gzs = [r for r in actual_stats if r['key'].endswith('.gz')]
+        assert gzs == [
+            {'key': '.csv.gz', 'doc_count': 149011, 'size': {'value': 52630080862.0}},
+            {'key': '.json.gz', 'doc_count': 15643, 'size': {'value': 910035640.0}}
+        ], 'Unexpected alteration of compressed extensions'
+        # make sure not(*.gz) are aggregated
+        non_gzs = [r for r in actual_stats if not r['key'].endswith('.gz')]
+        assert {r['key'] for r in non_gzs} == {'', '.ts', '.map', '.js', '.ipynb'}, \
+            'Unexpected alteration of non-compressed extensions'
+        assert len(non_gzs) == 5, 'Unexpected number of non-compressed extensions'
+        # check math on .js files
+        dot_js = [r for r in non_gzs if r['key'] == '.js'] 
+        assert len(dot_js) == 1, 'Each uncompressed extension should be unique'
+        js_stats = dot_js[0]
+        raw_stats = es_response['aggregations']['exts']['buckets']
+        assert js_stats['doc_count'] == sum(raw_stats[i]['doc_count'] for i in (1, 4)), \
+            'Unexpected doc_count for .js'
+        assert js_stats['size']['value'] == sum(raw_stats[i]['size']['value'] for i in (1, 4)), \
+            'Unexpected size for .js'
+        # check math on .map files
+        dot_map = [r for r in non_gzs if r['key'] == '.map'] 
+        assert len(dot_map) == 1, 'Each noncompressed extension should be unique'
+        map_stats = dot_map[0]
+        assert map_stats['doc_count'] == sum(raw_stats[i]['doc_count'] for i in (7, 9)), \
+            'Unexpected doc_count for .map'
+        assert map_stats['size']['value'] == sum(raw_stats[i]['size']['value'] for i in (7, 9)), \
+            'Unexpected size for .map'
+ 
 
     def test_search(self):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
@@ -205,7 +274,7 @@ class TestSearch(TestCase):
                     },
                 }
             }
-            return 200, {}, json.dumps(ES_STATS_RESPONSES['no_gz'])
+            return 200, {}, json.dumps(ES_STATS_RESPONSES['some_gz'])
 
         self.requests_mock.add_callback(
             responses.GET,
@@ -223,4 +292,3 @@ class TestSearch(TestCase):
         event = self._make_event(query)
         resp = lambda_handler(event, None)
         assert resp['statusCode'] == 200
-        assert json.loads(resp['body']) == ES_STATS_RESPONSES['no_gz']
