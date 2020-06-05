@@ -152,6 +152,7 @@ def lambda_handler(request):
 
     return make_json_response(200, post_process(result, action))
 
+
 def post_process(result: dict, action: str) -> dict:
     """post process result from elastic conditional on action
     """
@@ -188,6 +189,7 @@ def post_process(result: dict, action: str) -> dict:
         result["aggregations"]["exts"]["buckets"] = corrected
 
     return result
+
 
 def partition(pred, iterable):
     """Use a predicate to partition entries into false entries and true entries
