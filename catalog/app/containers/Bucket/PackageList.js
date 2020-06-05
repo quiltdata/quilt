@@ -28,8 +28,7 @@ import Pagination from './Pagination'
 import { displayError } from './errors'
 import * as requests from './requests'
 
-const EXAMPLE_PACKAGE_URL =
-  'https://open.quiltdata.com/b/quilt-example/packages/aleksey/hurdat/tree/latest/'
+const EXAMPLE_PACKAGE_URL = 'https://docs.quiltdata.com/walkthrough/editing-a-package'
 
 const Counts = ({ counts, total }) => {
   const [cursor, setCursor] = React.useState(null)
