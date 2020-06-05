@@ -81,6 +81,16 @@ ES_STATS_RESPONSES = {
     }
 }
 
+def check_stats_record_format(record):
+    """check that the aggregation buckets have the expected format"""
+    assert {'key', 'doc_count', 'size'} == set(record.keys())
+    assert set(record['size'].keys()) == {'value'}
+    assert isinstance(record['key'], str)
+    assert isinstance(record['doc_count'], int)
+    assert isinstance(record['size']['value'], float)
+
+    return True
+
 
 class TestSearch(TestCase):
     """Tests Search functions"""
@@ -119,9 +129,9 @@ class TestSearch(TestCase):
         processed = post_process(es_response, 'stats')
         assert es_response == processed, 'No processing expected'
         assert set(processed.keys()) == set(es_response.keys()), 'Unexpected top-level key change'
-        # we shouldn't change any of these values
-        for key in ['took', 'timed_out', '_shards', 'hits']:
-            assert es_response[key] == processed[key], 'Unexpected side-effect'
+        # we shouldn't change anything in this case
+        assert es_response == processed, \
+            'Unexpected side-effect, post_processing should have no effect'
 
     def test_post_process_stats_no_gz(self):
         """test stats when no *.gz in bucket"""
@@ -143,6 +153,8 @@ class TestSearch(TestCase):
             '',
         }
         actual_stats = processed['aggregations']['exts']['buckets']
+        assert all(check_stats_record_format(r) for r in actual_stats), \
+            "Mangled bucket records"
         actual_exts = set(s['key'] for s in actual_stats)
         assert actual_exts == expected_exts, 'Unexpected extension set'
         # check math on .md files
@@ -167,6 +179,7 @@ class TestSearch(TestCase):
         """test stats when some *.gz in bucket"""
         es_response = ES_STATS_RESPONSES['some_gz']
         processed = post_process(es_response, 'stats')
+        assert set(processed.keys()) == set(es_response.keys()), 'Unexpected top-level key change'
         # we shouldn't change any of these values
         for key in ['took', 'timed_out', '_shards', 'hits']:
             assert es_response[key] == processed[key], 'Unexpected side-effect'
@@ -181,9 +194,11 @@ class TestSearch(TestCase):
             '',
         }
         actual_stats = processed['aggregations']['exts']['buckets']
+        assert all(check_stats_record_format(r) for r in actual_stats), \
+            "Mangled bucket records"
         actual_exts = set(s['key'] for s in actual_stats)
         assert actual_exts == expected_exts, 'Unexpected extension set'
-        # make sure *.gz are unchanged
+       # make sure *.gz are unchanged
         gzs = [r for r in actual_stats if r['key'].endswith('.gz')]
         assert gzs == [
             {'key': '.csv.gz', 'doc_count': 149011, 'size': {'value': 52630080862.0}},
