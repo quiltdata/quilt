@@ -1,3 +1,6 @@
+"""
+Test the ES service that talks to ES for stats, queries, etc.
+"""
 import json
 import os
 from unittest import TestCase
@@ -26,7 +29,7 @@ ES_STATS_RESPONSES = {
             }
         }
     },
-   'no_gz': {
+    'no_gz': {
         'took': 22,
         'timed_out': False,
         '_shards': {'total': 5, 'successful': 5, 'skipped': 0, 'failed': 0},
@@ -119,7 +122,7 @@ class TestSearch(TestCase):
         # we shouldn't change any of these values
         for key in ['took', 'timed_out', '_shards', 'hits']:
             assert es_response[key] == processed[key], 'Unexpected side-effect'
- 
+
     def test_post_process_stats_no_gz(self):
         """test stats when no *.gz in bucket"""
         es_response = ES_STATS_RESPONSES['no_gz']
@@ -143,7 +146,7 @@ class TestSearch(TestCase):
         actual_exts = set(s['key'] for s in actual_stats)
         assert actual_exts == expected_exts, 'Unexpected extension set'
         # check math on .md files
-        dot_md = [r for r in actual_stats if r['key'] == '.md'] 
+        dot_md = [r for r in actual_stats if r['key'] == '.md']
         assert len(dot_md) == 1, 'Each uncompressed extension should be unique'
         md_stats = dot_md[0]
         raw_stats = es_response['aggregations']['exts']['buckets']
@@ -152,15 +155,14 @@ class TestSearch(TestCase):
         assert md_stats['size']['value'] == raw_stats[4]['size']['value'], \
             'Unexpected size for .md'
         # check math on .ts files
-        dot_ts = [r for r in actual_stats if r['key'] == '.ts'] 
+        dot_ts = [r for r in actual_stats if r['key'] == '.ts']
         assert len(dot_ts) == 1, 'Each noncompressed extension should be unique'
         ts_stats = dot_ts[0]
         assert ts_stats['doc_count'] == sum(raw_stats[i]['doc_count'] for i in (5, 8)), \
             'Unexpected doc_count for .ts'
         assert ts_stats['size']['value'] == sum(raw_stats[i]['size']['value'] for i in (5, 8)), \
             'Unexpected size for .ts'
- 
- 
+
     def test_post_process_stats_some_gz(self):
         """test stats when some *.gz in bucket"""
         es_response = ES_STATS_RESPONSES['some_gz']
@@ -193,7 +195,7 @@ class TestSearch(TestCase):
             'Unexpected alteration of non-compressed extensions'
         assert len(non_gzs) == 5, 'Unexpected number of non-compressed extensions'
         # check math on .js files
-        dot_js = [r for r in non_gzs if r['key'] == '.js'] 
+        dot_js = [r for r in non_gzs if r['key'] == '.js']
         assert len(dot_js) == 1, 'Each uncompressed extension should be unique'
         js_stats = dot_js[0]
         raw_stats = es_response['aggregations']['exts']['buckets']
@@ -202,14 +204,14 @@ class TestSearch(TestCase):
         assert js_stats['size']['value'] == sum(raw_stats[i]['size']['value'] for i in (1, 4)), \
             'Unexpected size for .js'
         # check math on .map files
-        dot_map = [r for r in non_gzs if r['key'] == '.map'] 
+        dot_map = [r for r in non_gzs if r['key'] == '.map']
         assert len(dot_map) == 1, 'Each noncompressed extension should be unique'
         map_stats = dot_map[0]
         assert map_stats['doc_count'] == sum(raw_stats[i]['doc_count'] for i in (7, 9)), \
             'Unexpected doc_count for .map'
         assert map_stats['size']['value'] == sum(raw_stats[i]['size']['value'] for i in (7, 9)), \
             'Unexpected size for .map'
- 
+
 
     def test_search(self):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
