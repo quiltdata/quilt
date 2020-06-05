@@ -129,7 +129,6 @@ class TestSearch(TestCase):
         es_response = ES_STATS_RESPONSES['all_gz']
         processed = post_process(es_response, 'stats')
         assert es_response == processed, 'No processing expected'
-        assert set(processed.keys()) == set(es_response.keys()), 'Unexpected top-level key change'
         # we shouldn't change anything in this case
         assert es_response == processed, \
             'Unexpected side-effect, post_processing should have no effect'
