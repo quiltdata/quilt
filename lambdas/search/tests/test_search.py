@@ -275,7 +275,7 @@ class TestSearch(TestCase):
     def test_stats(self):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
             timeout='15s',
-            size=1000,
+            size=0,
             _source='',
         ))
 
@@ -291,7 +291,8 @@ class TestSearch(TestCase):
                     },
                 }
             }
-            return 200, {}, json.dumps(ES_STATS_RESPONSES['some_gz'])
+            # use 'all_gz' since it's not altered by the handler
+            return 200, {}, json.dumps(ES_STATS_RESPONSES['all_gz'])
 
         self.requests_mock.add_callback(
             responses.GET,
@@ -309,3 +310,4 @@ class TestSearch(TestCase):
         event = self._make_event(query)
         resp = lambda_handler(event, None)
         assert resp['statusCode'] == 200
+        assert json.loads(resp['body']) == ES_STATS_RESPONSES['all_gz']

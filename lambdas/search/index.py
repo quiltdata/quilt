@@ -77,7 +77,7 @@ def lambda_handler(request):
                 },
             }
         }
-        size = 1000
+        size = 0 # We still get all aggregates, just don't need the results
         _source = []
         # Consider all documents when computing counts, etc.
         terminate_after = None
