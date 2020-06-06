@@ -534,7 +534,6 @@ class TestIndex(TestCase):
             expected_es_calls=1
         )
 
-
     def test_extension_overrides(self):
         """ensure that only the file extensions in override are indexed"""
         with patch(__name__ + '.index.CONTENT_INDEX_EXTS', {'.unique1', '.unique2'}):

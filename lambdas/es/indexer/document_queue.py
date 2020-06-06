@@ -21,6 +21,7 @@ def _get_extension_overrides():
         if t.strip().startswith(".")
     }
 
+
 CONTENT_INDEX_EXTS = _get_extension_overrides() or {
     ".csv",
     ".ipynb",
