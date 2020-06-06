@@ -582,7 +582,7 @@ class TestIndex(TestCase):
             assert _get_extension_overrides() == {'.txt'}
         with patch.dict(os.environ, {'CONTENT_INDEX_EXTS': ' garbage  gar.bage  '}):
             assert _get_extension_overrides() == set()
-        with patch.dict(os.environ, {'CONTENT_INDEX_EXTS': ' .Parquet, .csv, .tsv'}):
+        with patch.dict(os.environ, {'CONTENT_INDEX_EXTS': ' .Parquet,.csv, .tsv'}):
             assert _get_extension_overrides() == {'.parquet', '.csv', '.tsv'}
 
     def test_synthetic_copy_event(self):
