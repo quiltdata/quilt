@@ -12,7 +12,16 @@ from elasticsearch.helpers import bulk
 from t4_lambda_shared.preview import ELASTIC_LIMIT_BYTES
 
 
-CONTENT_INDEX_EXTS = [
+def _get_extension_overrides():
+    """check the environment for index extension overrides; this is a standalone
+    function so that it can be unit tested"""
+    return {
+        t.strip().lower()
+        for t in os.getenv("CONTENT_INDEX_EXTS", "").split(",")
+        if t.strip().startswith(".")
+    }
+
+CONTENT_INDEX_EXTS = _get_extension_overrides() or {
     ".csv",
     ".ipynb",
     ".md",
@@ -20,7 +29,7 @@ CONTENT_INDEX_EXTS = [
     ".rmd",
     ".tsv",
     ".txt"
-]
+}
 
 EVENT_PREFIX = {
     "Created": "ObjectCreated:",
