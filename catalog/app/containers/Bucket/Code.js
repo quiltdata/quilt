@@ -88,7 +88,7 @@ export default function Code({ defaultSelected = 0, children, ...props }) {
             </Lab.ToggleButtonGroup>
             <M.Box ml={1} />
             <M.IconButton onClick={handleCopy} title="Copy to clipboard">
-              <M.Icon>file_copy</M.Icon>
+              <M.Icon style={{ fontSize: 18 }}>file_copy</M.Icon>
             </M.IconButton>
           </div>
         </M.Fade>
