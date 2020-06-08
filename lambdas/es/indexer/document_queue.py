@@ -9,10 +9,11 @@ import boto3
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 
+from t4_lambda_shared.utils import separated_env_to_iter
 from t4_lambda_shared.preview import ELASTIC_LIMIT_BYTES
 
 
-CONTENT_INDEX_EXTS = [
+CONTENT_INDEX_EXTS = separated_env_to_iter("CONTENT_INDEX_EXTS") or {
     ".csv",
     ".ipynb",
     ".md",
@@ -20,7 +21,7 @@ CONTENT_INDEX_EXTS = [
     ".rmd",
     ".tsv",
     ".txt"
-]
+}
 
 EVENT_PREFIX = {
     "Created": "ObjectCreated:",

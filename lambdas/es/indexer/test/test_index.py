@@ -534,6 +534,44 @@ class TestIndex(TestCase):
             expected_es_calls=1
         )
 
+    def test_extension_overrides(self):
+        """ensure that only the file extensions in override are indexed"""
+        with patch(__name__ + '.index.CONTENT_INDEX_EXTS', {'.unique1', '.unique2'}):
+            self.s3_stubber.add_response(
+                method='get_object',
+                service_response={
+                    'Metadata': {},
+                    'ContentLength': 123,
+                    'Body': BytesIO(b'Hello World!'),
+                },
+                expected_params={
+                    'Bucket': 'test-bucket',
+                    'Key': 'foo.unique1',
+                    'IfMatch': 'etag',
+                    'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                }
+            )
+            self.s3_stubber.add_response(
+                method='get_object',
+                service_response={
+                    'Metadata': {},
+                    'ContentLength': 123,
+                    'Body': BytesIO(b'Hello World!'),
+                },
+                expected_params={
+                    'Bucket': 'test-bucket',
+                    'Key': 'foo.unique2',
+                    'IfMatch': 'etag',
+                    'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                }
+            )
+            # only these two file types should be indexed
+            assert self._get_contents('foo.unique1', '.unique1') == "Hello World!"
+            assert self._get_contents('foo.unique2', '.unique2') == "Hello World!"
+            # these files should not get content indexed, therefore no S3 mock
+            assert self._get_contents('foo.txt', '.txt') == ""
+            assert self._get_contents('foo.ipynb', '.ipynb') == ""
+
     def test_synthetic_copy_event(self):
         """check synthetic ObjectCreated:Copy event vs organic obtained on 26-May-2020
         (bucket versioning on)
