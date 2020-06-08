@@ -19,7 +19,6 @@ import pytest
 import responses
 
 from document_queue import RetryError
-from t4_lambda_shared.utils import separated_env_to_iter
 from .. import index
 
 
