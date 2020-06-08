@@ -16,9 +16,7 @@ def separated_env_to_iter(
         predicate=None,
         separator=","
 ) -> Iterable[str]:
-    """turn a comma-separated string in the environment into a python list
-    repeats will be de-duplicated
-    """
+    """turn a comma-separated string in the environment into a python list"""
     candidate = os.getenv(env_var, "")
     result = []
     if candidate:
