@@ -18,7 +18,8 @@ from botocore.stub import Stubber
 import pytest
 import responses
 
-from document_queue import _get_extension_overrides, RetryError
+from document_queue import RetryError
+from t4_lambda_shared.utils import separated_env_to_iter
 from .. import index
 
 
@@ -571,19 +572,6 @@ class TestIndex(TestCase):
             # these files should not get content indexed, therefore no S3 mock
             assert self._get_contents('foo.txt', '.txt') == ""
             assert self._get_contents('foo.ipynb', '.ipynb') == ""
-
-    def test_extension_overrides_parsing(self):
-        """ensure the function that infers overrides from the env works:
-            always returns a valid set(), perhaps empty, lowercases extensions
-        """
-        with patch.dict(os.environ, {'CONTENT_INDEX_EXTS': '.txt'}):
-            assert _get_extension_overrides() == {'.txt'}
-        with patch.dict(os.environ, {'CONTENT_INDEX_EXTS': ' .tXt   '}):
-            assert _get_extension_overrides() == {'.txt'}
-        with patch.dict(os.environ, {'CONTENT_INDEX_EXTS': ' garbage  gar.bage  '}):
-            assert _get_extension_overrides() == set()
-        with patch.dict(os.environ, {'CONTENT_INDEX_EXTS': ' .Parquet, .csv, .tsv'}):
-            assert _get_extension_overrides() == {'.parquet', '.csv', '.tsv'}
 
     def test_synthetic_copy_event(self):
         """check synthetic ObjectCreated:Copy event vs organic obtained on 26-May-2020

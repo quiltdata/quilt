@@ -1,10 +1,35 @@
 """
 Helper functions.
 """
+from base64 import b64decode
 import gzip
+from typing import Iterable
 import json
 import os
-from base64 import b64decode
+
+
+def separated_env_to_iter(
+        env_var: str,
+        *,
+        deduplicate=True,
+        lower=True,
+        predicate=None,
+        separator=","
+) -> Iterable[str]:
+    """turn a comma-separated string in the environment into a python list
+    repeats will be de-duplicated
+    """
+    candidate = os.getenv(env_var, "")
+    result = []
+    if candidate:
+        for c in candidate.split(separator):
+            token = c.strip().lower() if lower else c.strip()
+            if predicate:
+                if predicate(token):
+                    result.append(token)
+            else:
+                result.append(token)
+    return set(result) if deduplicate else result
 
 
 def get_default_origins():

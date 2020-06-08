@@ -9,20 +9,11 @@ import boto3
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 
+from t4_lambda_shared.utils import separated_env_to_iter
 from t4_lambda_shared.preview import ELASTIC_LIMIT_BYTES
 
 
-def _get_extension_overrides():
-    """check the environment for index extension overrides; this is a standalone
-    function so that it can be unit tested"""
-    return {
-        t.strip().lower()
-        for t in os.getenv("CONTENT_INDEX_EXTS", "").split(",")
-        if t.strip().startswith(".")
-    }
-
-
-CONTENT_INDEX_EXTS = _get_extension_overrides() or {
+CONTENT_INDEX_EXTS = separated_env_to_iter("CONTENT_INDEX_EXTS") or {
     ".csv",
     ".ipynb",
     ".md",
