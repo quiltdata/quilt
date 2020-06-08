@@ -31,9 +31,8 @@ class TestUtils(TestCase):
         with patch.dict(os.environ, {'CONTENT_INDEX_EXTS': ' .Parquet, .csv, .tsv'}):
             assert separated_env_to_iter('CONTENT_INDEX_EXTS') == {'.parquet', '.csv', '.tsv'}
         with patch.dict(os.environ, {'CONTENT_INDEX_EXTS': ''}):
-            assert not separated_env_to_iter('CONTENT_INDEX_EXTS') == True, \
+            assert not separated_env_to_iter('CONTENT_INDEX_EXTS') == set(), \
                 "Invalid sets should be empty and falsy"
-
 
     def test_origins(self):
         """
