@@ -16,6 +16,7 @@ from t4_lambda_shared.preview import ELASTIC_LIMIT_BYTES
 CONTENT_INDEX_EXTS = separated_env_to_iter("CONTENT_INDEX_EXTS") or {
     ".csv",
     ".ipynb",
+    ".json",
     ".md",
     ".parquet",
     ".rmd",
