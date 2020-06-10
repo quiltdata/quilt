@@ -371,6 +371,9 @@ export default function PackageTree({
         hl: 'python',
         contents: dedent`
           import quilt3
+          # browse
+          quilt3.Package.browse("${nameWithPath}"${hashPy}, registry="s3://${bucket}")
+          # download
           quilt3.Package.install("${nameWithPath}"${hashPy}, registry="s3://${bucket}", dest=".")
         `,
       },
