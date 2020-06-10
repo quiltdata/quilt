@@ -84,6 +84,7 @@ export default function Dir({
   const { urls } = NamedRoutes.use()
   const s3req = AWS.S3.useRequest()
   const path = decode(encodedPath)
+  const dest = path ? basename(path) : bucket
 
   const code = React.useMemo(
     () => [
@@ -93,20 +94,24 @@ export default function Dir({
         contents: dedent`
           import quilt3
           b = quilt3.Bucket("s3://${bucket}")
-          b.fetch("${path}", "./${path ? basename(path) : bucket}")
+          # list files
+          b.ls("${path}")
+          # download
+          b.fetch("${path}", "./${dest}")
         `,
       },
       {
         label: 'CLI',
         hl: 'bash',
         contents: dedent`
-          aws s3 cp --recursive "s3://${bucket}/${path}" "./${
-          path ? basename(path) : bucket
-        }"
+          # list files
+          aws s3 ls "s3://${bucket}/${path}"
+          # download
+          aws s3 cp --recursive "s3://${bucket}/${path}" "./${dest}"
         `,
       },
     ],
-    [bucket, path],
+    [bucket, path, dest],
   )
 
   const [prev, setPrev] = React.useState(null)
