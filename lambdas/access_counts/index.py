@@ -132,7 +132,7 @@ INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent("""\
     -- Filter out non-S3 events, or S3 events like ListBucket that have no object
     -- Select the correct time range
     WHERE bucket IS NOT NULL AND key IS NOT NULL AND
-          eventtime >= from_unixtime({{start_ts:f}}) AND eventtime < from_unixtime({{end_ts:f}})
+          eventtime >= from_unixtime({start_ts:f}) AND eventtime < from_unixtime({end_ts:f})
 """)
 
 CREATE_PACKAGE_HASHES = textwrap.dedent(f"""\
