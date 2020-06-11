@@ -186,10 +186,10 @@ $ export QUILT_MINIMIZE_STDOUT=true
 
 Quilt uses appdirs for Python to determine where to write data. You can therefore
 override the following path constants with environment variables using the XDG
-standard (see [appdirs docs](https://pypi.org/project/appdirs/).
+standard (see [appdirs docs](https://pypi.org/project/appdirs/)).
 
 For instance, AWS Lambda, requires the user to use `tmp/*` as the scratch
-directory.the You can override `CACHE_PATH`, to allow `quilt3 install` to succeed
+directory. You can override `CACHE_PATH`, to allow `quilt3 install` to succeed
 in Lambda, by setting the `XDG_CACHE_HOME` environment varible.
 
 - `APP_NAME`
