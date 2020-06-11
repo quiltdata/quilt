@@ -3,6 +3,7 @@
 * [Introduction](README.md)
 * [Installation](Installation.md)
 * [Quickstart](Quickstart.md)
+* [Mental model](MentalModel.md)
 
 ### Walkthrough
 
@@ -31,6 +32,6 @@
 ### References
 
 * [Frequently Asked Questions](FAQ.md)
-* [Technical Reference](Technical Reference.md)
+* [CloudFormation Reference](Technical%20Reference.md)
 * [Contributing](CONTRIBUTING.md)
 * [Further Reading](Further Reading.md)
