@@ -39,16 +39,7 @@ gen_cmd_docs 'list-packages'
 gen_cmd_docs 'push'
 gen_cmd_docs 'config-default-remote-registry'
 
-# Document environment variables
-echo '## Environment variables' >> cli.md
-gen_env_docs QUILT_DISABLE_USAGE_METRICS '$ export QUILT_DISABLE_USAGE_METRICS=true' \
-'Disable anonymous usage collection. Defaults to `False`'
-
-gen_env_docs QUILT_MINIMIZE_STDOUT '$ export QUILT_MINIMIZE_STDOUT=true' \
-'Turn off TQDM progress bars for log files. Defaults to `False`'
-
-
-# Document Constants
-cat constants.md >> cli.md
+# Document environment varialbes and constants
+cat env_constants.md >> cli.md
 
 mv cli.md "../docs/API Reference/cli.md"
