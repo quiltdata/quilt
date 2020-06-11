@@ -29,9 +29,8 @@
 * [quilt3.Bucket](API Reference/Bucket.md)
 * [CLI, environment](API Reference/cli.md)
 
-### References
+### More
 
 * [Frequently Asked Questions](FAQ.md)
 * [CloudFormation Reference](Technical Reference.md)
 * [Contributing](CONTRIBUTING.md)
-* [Further Reading](Further Reading.md)
