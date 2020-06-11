@@ -32,6 +32,6 @@
 ### References
 
 * [Frequently Asked Questions](FAQ.md)
-* [CloudFormation Reference](Technical%20Reference.md)
+* [CloudFormation Reference](Technical Reference.md)
 * [Contributing](CONTRIBUTING.md)
 * [Further Reading](Further Reading.md)
