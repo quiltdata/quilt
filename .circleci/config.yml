@@ -223,5 +223,5 @@ jobs:
           command: |
             . venv/bin/activate
             cd api/python
-            pip install twine==3.1.1
+            pip install --user twine==3.1.1
             twine upload dist/*
