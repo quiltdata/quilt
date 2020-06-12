@@ -25,9 +25,7 @@ import * as Auth from 'containers/Auth'
 import * as Notifications from 'containers/Notifications'
 import * as routes from 'constants/routes'
 import * as style from 'constants/style'
-import * as AWSCredentials from 'utils/AWS/Credentials'
-import * as AWSConfig from 'utils/AWS/Config'
-import * as AWSSigner from 'utils/AWS/Signer'
+import * as AWS from 'utils/AWS'
 import * as APIConnector from 'utils/APIConnector'
 import * as Config from 'utils/Config'
 import { createBoundary } from 'utils/ErrorBoundary'
@@ -134,9 +132,10 @@ const render = (messages) => {
           userSelector: Auth.selectors.username,
         },
       ],
-      AWSCredentials.Provider,
-      AWSConfig.Provider,
-      AWSSigner.Provider,
+      AWS.Credentials.Provider,
+      AWS.Config.Provider,
+      AWS.S3.Provider,
+      AWS.Signer.Provider,
       Notifications.WithNotifications,
       ErrorBoundary,
       BucketCacheProvider,
