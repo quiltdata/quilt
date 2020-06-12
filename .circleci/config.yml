@@ -10,7 +10,7 @@ commands:
       - run:
           name: Setup venv
           command: |
-            pip install virtualenv==20.0.23
+            pip install --user virtualenv==20.0.23
             virtualenv venv
             if [ -e venv/bin/activate ]; then
               echo ". venv/bin/activate" >> $BASH_ENV
