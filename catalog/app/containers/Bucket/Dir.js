@@ -82,7 +82,7 @@ export default function Dir({
 }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const path = decode(encodedPath)
 
   const code = React.useMemo(
@@ -114,7 +114,7 @@ export default function Dir({
     if (prevPath !== path) setPrev(null)
   })
   const data = useData(requests.bucketListing, {
-    s3req,
+    s3,
     bucket,
     path,
     prev: prevPath === path ? prev : null,

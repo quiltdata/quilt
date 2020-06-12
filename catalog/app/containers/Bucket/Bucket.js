@@ -89,7 +89,7 @@ const useStyles = M.makeStyles((t) => ({
 function BucketLayout({ bucket, section = false, children }) {
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const cache = useBucketCache()
   return (
     <Layout
@@ -114,7 +114,7 @@ function BucketLayout({ bucket, section = false, children }) {
             </M.Tabs>
           </M.AppBar>
           <M.Container maxWidth="lg">
-            <Data fetch={requests.bucketExists} params={{ s3req, bucket, cache }}>
+            <Data fetch={requests.bucketExists} params={{ s3, bucket, cache }}>
               {AsyncResult.case({
                 Ok: () => children,
                 Err: displayError(),

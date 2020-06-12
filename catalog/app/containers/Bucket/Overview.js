@@ -518,7 +518,7 @@ const useDownloadsStyles = M.makeStyles((t) => ({
 
 function Downloads({ bucket, colorPool, ...props }) {
   const { analyticsBucket } = Config.useConfig()
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const today = React.useMemo(() => new Date(), [])
   const classes = useDownloadsStyles()
   const ref = React.useRef(null)
@@ -553,7 +553,7 @@ function Downloads({ bucket, colorPool, ...props }) {
   return (
     <Data
       fetch={requests.bucketAccessCounts}
-      params={{ s3req, analyticsBucket, bucket, today, window }}
+      params={{ s3, analyticsBucket, bucket, today, window }}
     >
       {(data) => (
         <M.Box className={classes.root} {...props} ref={ref}>
@@ -749,12 +749,12 @@ const useHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Head({ es, s3req, overviewUrl, bucket, description }) {
+function Head({ es, s3, overviewUrl, bucket, description }) {
   const classes = useHeadStyles()
   const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
   const colorPool = useConst(() => mkKeyedPool(COLOR_MAP))
   return (
-    <Data fetch={requests.bucketStats} params={{ es, s3req, bucket, overviewUrl }}>
+    <Data fetch={requests.bucketStats} params={{ es, s3, bucket, overviewUrl }}>
       {(res) => (
         <M.Paper className={classes.root}>
           <M.Box className={classes.top}>
@@ -1060,9 +1060,9 @@ const FilePreviewSkel = () => (
   </Section>
 )
 
-function Readmes({ s3req, overviewUrl, bucket }) {
+function Readmes({ s3, overviewUrl, bucket }) {
   return (
-    <Data fetch={requests.bucketReadmes} params={{ s3req, overviewUrl, bucket }}>
+    <Data fetch={requests.bucketReadmes} params={{ s3, overviewUrl, bucket }}>
       {AsyncResult.case({
         Ok: (rs) =>
           (rs.discovered.length > 0 || !!rs.forced) && (
@@ -1085,12 +1085,9 @@ function Readmes({ s3req, overviewUrl, bucket }) {
   )
 }
 
-function Imgs({ es, s3req, overviewUrl, inStack, bucket }) {
+function Imgs({ es, s3, overviewUrl, inStack, bucket }) {
   return (
-    <Data
-      fetch={requests.bucketImgs}
-      params={{ es, s3req, overviewUrl, inStack, bucket }}
-    >
+    <Data fetch={requests.bucketImgs} params={{ es, s3, overviewUrl, inStack, bucket }}>
       {AsyncResult.case({
         Ok: (images) => (images.length ? <Thumbnails images={images} /> : null),
         _: () => (
@@ -1111,11 +1108,11 @@ function Imgs({ es, s3req, overviewUrl, inStack, bucket }) {
   )
 }
 
-function Summary({ es, s3req, bucket, inStack, overviewUrl }) {
+function Summary({ es, s3, bucket, inStack, overviewUrl }) {
   return (
     <Data
       fetch={requests.bucketSummary}
-      params={{ es, s3req, bucket, inStack, overviewUrl }}
+      params={{ es, s3, bucket, inStack, overviewUrl }}
     >
       {AsyncResult.case({
         Ok: R.map((h) => <FilePreview key={`${h.bucket}/${h.key}`} handle={h} />),
@@ -1131,7 +1128,7 @@ export default function Overview({
     params: { bucket },
   },
 }) {
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const es = AWS.ES.use()
   const { noOverviewImages } = Config.use()
   const cfg = BucketConfig.useCurrentBucketConfig()
@@ -1146,7 +1143,7 @@ export default function Overview({
         </React.Suspense>
       )}
       {cfg ? (
-        <Head {...{ es, s3req, bucket, overviewUrl, description }} />
+        <Head {...{ es, s3, bucket, overviewUrl, description }} />
       ) : (
         <M.Box
           pt={2}
@@ -1157,9 +1154,9 @@ export default function Overview({
           <M.Typography variant="h5">{bucket}</M.Typography>
         </M.Box>
       )}
-      <Readmes {...{ s3req, bucket, overviewUrl }} />
-      {!noOverviewImages && <Imgs {...{ es, s3req, bucket, inStack, overviewUrl }} />}
-      <Summary {...{ es, s3req, bucket, inStack, overviewUrl }} />
+      <Readmes {...{ s3, bucket, overviewUrl }} />
+      {!noOverviewImages && <Imgs {...{ es, s3, bucket, inStack, overviewUrl }} />}
+      <Summary {...{ es, s3, bucket, inStack, overviewUrl }} />
     </M.Box>
   )
 }
