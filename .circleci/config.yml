@@ -10,7 +10,7 @@ commands:
       - run:
           name: Setup venv
           command: |
-            pip install virtualenv
+            pip install virtualenv==20.0.23
             virtualenv venv
             if [ -e venv/bin/activate ]; then
               echo ". venv/bin/activate" >> $BASH_ENV
@@ -223,5 +223,5 @@ jobs:
           command: |
             . venv/bin/activate
             cd api/python
-            pip install twine
+            pip install twine==3.1.1
             twine upload dist/*
