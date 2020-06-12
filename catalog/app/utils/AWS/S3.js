@@ -258,18 +258,8 @@ export function useS3() {
 
 export const use = useS3
 
-// TODO: deprecate
-export function useRequest() {
-  const client = useS3()
-  return React.useCallback(
-    ({ operation, params, promise = true, extraArgs = [] }) => {
-      const req = client[operation](params, ...extraArgs)
-      return promise ? req.promise() : req
-    },
-    [client],
-  )
+export function InjectS3({ children }) {
+  return children(useS3())
 }
 
-export const Inject = ({ children }) => children(use())
-
-export const InjectRequest = ({ children }) => children(useRequest())
+export const Inject = InjectS3
