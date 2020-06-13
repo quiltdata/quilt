@@ -81,7 +81,7 @@ test-base: &test-base
 jobs:
   linter:
     docker:
-      - image: circleci/python:3.6-jessie
+      - image: circleci/python:3.6
     steps:
       - checkout
       - setup-venv
@@ -121,7 +121,7 @@ jobs:
 
   test-lambda:
     docker:
-      - image: circleci/python:3.6-jessie
+      - image: circleci/python:3.6
     description: "Test lambdas"
     environment:
       QUILT_DISABLE_USAGE_METRICS: true
@@ -155,7 +155,7 @@ jobs:
 
   build:
     docker:
-      - image: circleci/python:3.6-jessie
+      - image: circleci/python:3.6
     environment:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
@@ -183,7 +183,7 @@ jobs:
 
   deploy:
     docker:
-      - image: circleci/python:3.6-jessie
+      - image: circleci/python:3.6
     environment:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
