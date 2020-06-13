@@ -27,7 +27,7 @@ OBJECT_ACCESS_LOG_DIR = 'ObjectAccessLog'
 # Timestamp for the dir above.
 LAST_UPDATE_KEY = f'{OBJECT_ACCESS_LOG_DIR}.last_updated_ts.txt'
 
-# How far back to example cloudtrail data; all values should be equivalent
+# How far back to sample cloudtrail data; all values should be equivalent
 LOOKBACK = {
     'years': 1,
     'months': 12,
@@ -149,7 +149,6 @@ CREATE_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
     )
 """)
 
-# Not currently used; can add for efficiency
 SET_OBJECT_ACCESS_LOG_RANGES = textwrap.dedent("""
     ALTER TABLE object_access_log
     SET TBLPROPERTIES(
