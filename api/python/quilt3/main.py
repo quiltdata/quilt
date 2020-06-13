@@ -77,6 +77,7 @@ def _launch_local_catalog():
     env = dict(REGISTRY_URL="http://localhost:5000",
                S3_PROXY_URL=open_config["s3Proxy"],
                ALWAYS_REQUIRE_AUTH="false",
+               NO_DOWNLOAD="false",
                CATALOG_MODE="LOCAL",
                SSO_AUTH="DISABLED",
                PASSWORD_AUTH="ENABLED",
