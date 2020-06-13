@@ -10,7 +10,7 @@ commands:
       - run:
           name: Setup venv
           command: |
-            sudo pip install virtualenv==20.0.23
+            pip install virtualenv==20.0.23
             virtualenv venv
             if [ -e venv/bin/activate ]; then
               echo ". venv/bin/activate" >> $BASH_ENV
@@ -100,7 +100,7 @@ jobs:
 
   test-36:
     docker:
-      - image: circleci/python:3.6-jessie
+      - image: circleci/python:3.6
     <<: *test-base
 
   test-37:
@@ -223,5 +223,5 @@ jobs:
           command: |
             . venv/bin/activate
             cd api/python
-            sudio pip install twine==3.1.1
+            pip install twine==3.1.1
             twine upload dist/*
