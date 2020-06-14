@@ -8,7 +8,6 @@ On Athena partition projection see:
 """
 
 from datetime import date, datetime, timedelta, timezone
-from typing import Iterable
 import os
 import textwrap
 import time
@@ -49,10 +48,11 @@ def month_range(start: date, finish: date) -> set:
         raise ValueError("Expected start <= finish")
     if start.year == finish.year:
         return start.month, finish.month
-    else:
-        months = set(range(start.month, 13))
-        months = months.union(range(1, finish.month))
-        return min(months), max(months)
+
+    months = set(range(start.month, 13))
+    months = months.union(range(1, finish.month))
+
+    return min(months), max(months)
 
 
 def sql_escape(s):
