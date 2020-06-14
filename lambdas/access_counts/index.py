@@ -49,8 +49,8 @@ def month_range(start: date, finish: date) -> set:
     if start.year == finish.year:
         return start.month, finish.month
 
-    months = set(range(start.month, 13))
-    months = months.union(range(1, finish.month))
+    months = set(range(start.month, 12 + 1))
+    months = months.union(range(1, finish.month + 1))
 
     return min(months), max(months)
 
@@ -126,9 +126,9 @@ CREATE_CLOUDTRAIL = textwrap.dedent(f"""\
         'projection.year.type'='integer',
         'projection.year.range'='2020,2020',
         'projection.month.type'='integer',
-        'projection.month.range'='01,12',
+        'projection.month.range'='01,01',
         'projection.day.type'='integer'
-        'projection.day.range'='01,31'
+        'projection.day.range'='01,01'
     )
 """)
 
@@ -410,11 +410,6 @@ def handler(event, context):
                 Prefix=f'AWSLogs/{account}/CloudTrail/', Delimiter='/').get('CommonPrefixes') or []:
             region = region_response['Prefix'].split('/')[3]
             regions.add(region)
-            # list year and month is to minimize empty partition projections
-            # (per AWS, if more than 50% of partition projections are failing
-            # it's better to use standard partitions)
-            # new cloudtrails, for example, would have a lot of partition
-            # failures for ~182 days
             for year_response in s3.list_objects_v2(
                     Bucket=CLOUDTRAIL_BUCKET,
                     Prefix=f'AWSLogs/{account}/CloudTrail/{region}/', Delimiter='/').get('CommonPrefixes') or []:
@@ -423,6 +418,8 @@ def handler(event, context):
                         Bucket=CLOUDTRAIL_BUCKET,
                         Prefix=f'AWSLogs/{account}/CloudTrail/{region}/{year}', Delimiter='/').get('CommonPrefixes') or []:
                     month = month_response['Prefix'].split('/')[3]
+                    # bound start / finish in cloudtrail so as to mostly project
+                    # non-empty partitions (AWS recommends < 50% empty)
                     earliest = min(earliest, date(year, month, 1))
                     latest = max(latest, date(year, month, 31))
 
