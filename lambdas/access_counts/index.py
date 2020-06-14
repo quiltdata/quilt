@@ -1,9 +1,14 @@
 """
 Lambda function that runs Athena queries over CloudTrail logs and .quilt/named_packages/
 and creates summaries of object and package access events.
+
+On Athena partition projection see:
+* Overview - https://docs.aws.amazon.com/athena/latest/ug/partition-projection.html
+* Types -https://docs.aws.amazon.com/athena/latest/ug/partition-projection-supported-types.html
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
+from typing import Iterable
 import os
 import textwrap
 import time
@@ -36,6 +41,18 @@ LOOKBACK = {
 
 # Athena does not allow us to write more than 100 partitions at once.
 MAX_OPEN_PARTITIONS = 100
+
+
+def month_range(start: date, finish: date) -> set:
+    """set of all months between date and finish, inclusive"""
+    if start > finish:
+        raise ValueError("Expected start <= finish")
+    if start.year == finish.year:
+        return start.month, finish.month
+    else:
+        months = set(range(start.month, 13))
+        months = months.union(range(1, finish.month))
+        return min(months), max(months)
 
 
 def sql_escape(s):
@@ -98,7 +115,7 @@ CREATE_CLOUDTRAIL = textwrap.dedent(f"""\
     OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
     LOCATION 's3://{sql_escape(CLOUDTRAIL_BUCKET)}/AWSLogs/'
     -- Use projection for speed; specify projection values
-    -- Provide innocuous values because they are required, we'll change them later
+    -- Provide estimated values because they are required, we'll change them later
     TBLPROPERTIES (
         'classification'='cloudtrail',
         'projection.enabled'='true',
@@ -106,21 +123,18 @@ CREATE_CLOUDTRAIL = textwrap.dedent(f"""\
         'projection.account.values'='unknown',
         'projection.region.type'='enum',
         'projection.region.values'='us-east-1',
-        'projection.year.type'='date',
-        'projection.year.range'='NOW-{LOOKBACK['years']}YEARS,NOW',
-        'projection.year.format'='yyyy',
-        'projection.month.type'='date',
-        'projection.month.range'='NOW-{LOOKBACK['months']}MONTHS,NOW',
-        'projection.month.format'='MM',
-        'projection.day.type'='date'
-        'projection.day.range'='NOW-{LOOKBACK['days']}DAYS,NOW'
-        'projection.day.format'='dd',
+        'projection.year.type'='integer',
+        'projection.year.range'='2020,2020',
+        'projection.month.type'='integer',
+        'projection.month.range'='01,12',
+        'projection.day.type'='integer'
+        'projection.day.range'='01,31'
     )
 """)
 
 SET_CLOUDTRAIL_RANGES = textwrap.dedent("""\
     ALTER TABLE cloudtrail
-    SET TBLPROPERTIES(
+    SET TBLPROPERTIES (
         'projection.account.values'='{account_values}',
         'projection.region.values'='{region_values}',
         'projection.year.range'='{year_range}',
@@ -144,7 +158,7 @@ CREATE_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
         'parquet.compression'='SNAPPY'
         'projection.enabled'='true',
         'projection.date.type'='date',
-        'projection.date.range'='NOW-1YEAR,NOW',
+        'projection.date.range'='NOW-{LOOKBACK['years']}YEARS,NOW',
         'projection.date.format'='yyyy-MM-dd'
     )
 """)
@@ -382,48 +396,50 @@ def handler(event, context):
 
     # Create a CloudTrail table, but only with partitions for the last N days, to avoid scanning all of the data.
     # A bucket can have data for multiple accounts and multiple regions, so those need to be handled first.
-    accounts = []
-    regions = []
-    years = []
-    months = []
+    accounts = set()
+    regions = set()
+    earliest = date.max
+    latest = date.min
+    range_update_queries = []
     for account_response in s3.list_objects_v2(
             Bucket=CLOUDTRAIL_BUCKET, Prefix='AWSLogs/', Delimiter='/').get('CommonPrefixes') or []:
         account = account_response['Prefix'].split('/')[1]
-        accounts.append(account)
+        accounts.add(account)
         for region_response in s3.list_objects_v2(
                 Bucket=CLOUDTRAIL_BUCKET,
                 Prefix=f'AWSLogs/{account}/CloudTrail/', Delimiter='/').get('CommonPrefixes') or []:
             region = region_response['Prefix'].split('/')[3]
-            regions.append(region)
-            # we bother to list year and month is to minimize empty partition
-            # projections (per AWS, if more than 50% of partition projections are failing
+            regions.add(region)
+            # list year and month is to minimize empty partition projections
+            # (per AWS, if more than 50% of partition projections are failing
             # it's better to use standard partitions)
-            # new cloudtrails, for example, would have a lot of partition failures for
-            # ~182 days
+            # new cloudtrails, for example, would have a lot of partition
+            # failures for ~182 days
             for year_response in s3.list_objects_v2(
                     Bucket=CLOUDTRAIL_BUCKET,
                     Prefix=f'AWSLogs/{account}/CloudTrail/{region}/', Delimiter='/').get('CommonPrefixes') or []:
                 year = year_response['Prefix'].split('/')[3]
-                years.append(year)
                 for month_response in s3.list_objects_v2(
                         Bucket=CLOUDTRAIL_BUCKET,
                         Prefix=f'AWSLogs/{account}/CloudTrail/{region}/{year}', Delimiter='/').get('CommonPrefixes') or []:
                     month = month_response['Prefix'].split('/')[3]
-                    months.append(month)
+                    earliest = min(earliest, date(year, month, 1))
+                    latest = max(latest, date(year, month, 31))
 
-    range_update_queries = [
-        SET_CLOUDTRAIL_RANGES.format(
-            account_values=','.join(accounts),
-            region_values=','.join(regions),
-            year_range=f'{min(years),max(years)}',
-            month_range=f'{min(months),max(months)}',
-            day_range='1,31'
-        ),
-        SET_OBJECT_ACCESS_LOG_RANGES.format(
-            # oldest yyyy-MM-dd to now
-            date_range=(f'{min(years)}-{min(months)}-01,NOW')
-        )
-    ]
+    if earliest <= latest:
+        range_update_queries.extend([
+            SET_CLOUDTRAIL_RANGES.format(
+                account_values=','.join(accounts),
+                region_values=','.join(regions),
+                year_range='{:04d},{:04d}'.format(earliest.year, latest.year),
+                month_range='{:02d},{:02d}'.format(*month_range(earliest, latest)),
+                day_range='01,31'  # project all days for simplicity (might be empty)
+            ),
+            SET_OBJECT_ACCESS_LOG_RANGES.format(
+                # oldest yyyy-MM-dd to NOW
+                date_range='{:04d}-{:02d}-01,NOW'.format(earliest.year, earliest.month)
+            )
+        ])
 
     # Drop old Athena tables from previous runs.
     # (They're in the DB owned by the stack, so safe to do.)
@@ -434,12 +450,14 @@ def handler(event, context):
     # Create new Athena tables.
     run_multiple_queries([CREATE_CLOUDTRAIL, CREATE_OBJECT_ACCESS_LOG, CREATE_PACKAGE_HASHES])
 
-    # Load object access log partitions, after the object access log table is created.
-    # Create CloudTrail partitions, after the CloudTrail table is created.
+    # Update partition projections of cloudtrail and object_access_log tables
     run_multiple_queries(range_update_queries)
 
     # Scan CloudTrail and insert new data into "object_access_log".
-    insert_query = INSERT_INTO_OBJECT_ACCESS_LOG.format(start_ts=start_ts.timestamp(), end_ts=end_ts.timestamp())
+    insert_query = INSERT_INTO_OBJECT_ACCESS_LOG.format(
+        start_ts=start_ts.timestamp(),
+        end_ts=end_ts.timestamp()
+    )
     run_multiple_queries([insert_query])
 
     queries = [
