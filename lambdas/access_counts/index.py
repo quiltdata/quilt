@@ -4,7 +4,7 @@ and creates summaries of object and package access events.
 
 On Athena partition projection see:
 * Overview - https://docs.aws.amazon.com/athena/latest/ug/partition-projection.html
-* Types -https://docs.aws.amazon.com/athena/latest/ug/partition-projection-supported-types.html
+* Types - https://docs.aws.amazon.com/athena/latest/ug/partition-projection-supported-types.html
 """
 
 from datetime import date, datetime, timedelta, timezone
@@ -21,7 +21,6 @@ CLOUDTRAIL_BUCKET = os.environ['CLOUDTRAIL_BUCKET']
 QUERY_RESULT_BUCKET = os.environ['QUERY_RESULT_BUCKET']
 # Directory where the summary files will be stored.
 ACCESS_COUNTS_OUTPUT_DIR = os.environ['ACCESS_COUNTS_OUTPUT_DIR']
-
 # A temporary directory where Athena query results will be written.
 QUERY_TEMP_DIR = 'AthenaQueryResults'
 
@@ -42,17 +41,25 @@ LOOKBACK = {
 MAX_OPEN_PARTITIONS = 100
 
 
-def month_range(start: date, finish: date) -> set:
-    """set of all months between date and finish, inclusive"""
+def date_part_as_string(start: int, stop: int) -> str:
+    """turn integers into strings always two-wide to match CloudTrail naming
+    convention: 01 for January, 09 for day 9, etc.
+    interval matches range(): [start, stop)
+    """
+    return ','.join('{:02d}'.format(d) for d in range(start, stop))
+
+
+def month_values(start: date, finish: date) -> set:
+    """enum values of all months between date and finish, inclusive"""
     if start > finish:
         raise ValueError("Expected start <= finish")
     if start.year == finish.year:
-        return start.month, finish.month
+        return date_part_as_string(start.month, finish.month + 1)
 
     months = set(range(start.month, 12 + 1))
     months = months.union(range(1, finish.month + 1))
 
-    return min(months), max(months)
+    return month_values(min(months), max(months) + 1)
 
 
 def sql_escape(s):
@@ -64,7 +71,7 @@ DROP_OBJECT_ACCESS_LOG = """DROP TABLE IF EXISTS object_access_log"""
 DROP_PACKAGE_HASHES = """DROP TABLE IF EXISTS package_hashes"""
 
 CREATE_CLOUDTRAIL = textwrap.dedent(f"""\
-    CREATE EXTERNAL TABLE cloudtrail IF NOT EXISTS (
+    CREATE EXTERNAL TABLE IF NOT EXISTS cloudtrail (
         eventVersion STRING,
         userIdentity STRUCT<
             type: STRING,
@@ -115,7 +122,7 @@ CREATE_CLOUDTRAIL = textwrap.dedent(f"""\
     OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
     LOCATION 's3://{sql_escape(CLOUDTRAIL_BUCKET)}/AWSLogs/'
     -- Use projection for speed; specify projection values
-    -- Provide estimated values because they are required, we'll change them later
+    -- Provide estimated values because they are required; change them later
     TBLPROPERTIES (
         'classification'='cloudtrail',
         'projection.enabled'='true',
@@ -125,10 +132,11 @@ CREATE_CLOUDTRAIL = textwrap.dedent(f"""\
         'projection.region.values'='us-east-1',
         'projection.year.type'='integer',
         'projection.year.range'='2020,2020',
-        'projection.month.type'='integer',
-        'projection.month.range'='01,01',
-        'projection.day.type'='integer'
-        'projection.day.range'='01,01'
+        'projection.month.type'='enum',
+        'projection.month.values'='{date_part_as_string(1, 13)}',
+        'projection.day.type'='enum',
+        'projection.day.values'='{date_part_as_string(1, 32)}',
+        'storage.location.template'='s3://{sql_escape(CLOUDTRAIL_BUCKET)}/AWSLogs/${{account}}/CloudTrail/${{region}}/${{year}}/${{month}}/${{day}}/'
     )
 """)
 
@@ -138,8 +146,7 @@ SET_CLOUDTRAIL_RANGES = textwrap.dedent("""\
         'projection.account.values'='{account_values}',
         'projection.region.values'='{region_values}',
         'projection.year.range'='{year_range}',
-        'projection.month.range'='{month_range}',
-        'projection.day.range'='{day_range}'
+        'projection.month.values'='{month_values}'
     )
 """)  # noqa: E501
 
@@ -388,7 +395,7 @@ def handler(event, context):
     end_ts = now() - timedelta(minutes=15)
 
     start_ts = end_ts - timedelta(days=LOOKBACK['days'])
-    # We start from scratch, so make sure we don't aave any old data.
+    # We start from scratch, so make sure we don't have any old data.
     delete_dir(QUERY_RESULT_BUCKET, OBJECT_ACCESS_LOG_DIR)
 
     # Delete the temporary directory where Athena query results are written to.
@@ -416,10 +423,11 @@ def handler(event, context):
                 year = year_response['Prefix'].split('/')[3]
                 for month_response in s3.list_objects_v2(
                         Bucket=CLOUDTRAIL_BUCKET,
-                        Prefix=f'AWSLogs/{account}/CloudTrail/{region}/{year}', Delimiter='/').get('CommonPrefixes') or []:
+                        Prefix=f'AWSLogs/{account}/CloudTrail/{region}/{year}/', Delimiter='/').get('CommonPrefixes') or []:
                     month = month_response['Prefix'].split('/')[3]
                     # bound start / finish in cloudtrail so as to mostly project
                     # non-empty partitions (AWS recommends < 50% empty)
+                    # (guess at days since it's too tedious to check)
                     earliest = min(earliest, date(year, month, 1))
                     latest = max(latest, date(year, month, 31))
 
@@ -429,8 +437,7 @@ def handler(event, context):
                 account_values=','.join(accounts),
                 region_values=','.join(regions),
                 year_range='{:04d},{:04d}'.format(earliest.year, latest.year),
-                month_range='{:02d},{:02d}'.format(*month_range(earliest, latest)),
-                day_range='01,31'  # project all days for simplicity (might be empty)
+                month_values='{:02d},{:02d}'.format(*month_values(earliest, latest))
             ),
             SET_OBJECT_ACCESS_LOG_RANGES.format(
                 # oldest yyyy-MM-dd to NOW

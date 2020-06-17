@@ -15,7 +15,7 @@ class TestAccessCounts(TestCase):
             'AWS_SECRET_ACCESS_KEY': 'test_secret',
             'AWS_DEFAULT_REGION': 'ng-north-1',
             'ATHENA_DATABASE': 'athena-db',
-            'CLOUDTRAIL_BUCKET': 'cloudtrail-bucket',
+            'CLOUDTRAIL_BUCKET': 'quilt-staging-cloudtrail',
             'QUERY_RESULT_BUCKET': 'results-bucket',
             'ACCESS_COUNTS_OUTPUT_DIR': 'AccessCounts',
         })
@@ -196,3 +196,7 @@ class TestAccessCounts(TestCase):
         with patch('index.now', return_value=now), \
              patch('time.sleep', return_value=None):
             index.handler(None, None)
+
+    def test_create_cloudtrail(self):
+        import index
+        print(index.CREATE_CLOUDTRAIL)
