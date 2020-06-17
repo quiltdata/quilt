@@ -2,7 +2,7 @@
 
 * [Introduction](README.md)
 * [Installation](Installation.md)
-* [Quickstart](Quickstart.md)
+* [Quick start](Quickstart.md)
 * [Mental model](MentalModel.md)
 
 ### Walkthrough

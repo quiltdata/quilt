@@ -28,6 +28,9 @@ workflows:
       - test-38
       - test-windows
       - test-lambda:
+          name: test-lambda-access_counts
+          path: "access_counts"
+      - test-lambda:
           name: test-lambda-indexer
           path: "es/indexer"
       - test-lambda:
