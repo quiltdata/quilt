@@ -386,11 +386,9 @@ def config_exists():
 
 
 def user_is_configured_to_custom_stack():
-    """Look at the users stack to see if they have configured to their own stack. There is currently no way to
-    distinguish between someone who has not configured their stack and someone who has intentionally configured
-    their stack to use open.quiltdata.com"""
+    """Look at the users stack to see if they have configured to their own stack."""
     configured_nav_url = get_from_config("navigator_url")
-    return configured_nav_url is not None and configured_nav_url != OPEN_DATA_URL
+    return configured_nav_url is not None
 
 
 def configure_from_default():
