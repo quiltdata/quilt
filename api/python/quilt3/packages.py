@@ -947,21 +947,22 @@ class Package:
         manifest = io.BytesIO()
         self._dump(manifest)
 
-        pkg_manifest_file = registry_parsed.join(f'.quilt/packages/{self.top_hash}')
+        top_hash = self.top_hash
+        pkg_manifest_file = registry_parsed.join(f'.quilt/packages/{top_hash}')
         put_bytes(
             manifest.getvalue(),
             pkg_manifest_file
         )
 
         named_path = registry_parsed.join(f'.quilt/named_packages/{name}')
-        hash_bytes = self.top_hash.encode('utf-8')
+        hash_bytes = top_hash.encode()
         # TODO: use a float to string formater instead of double casting
         timestamp_path = named_path.join(str(int(time.time())))
         latest_path = named_path.join("latest")
         put_bytes(hash_bytes, timestamp_path)
         put_bytes(hash_bytes, latest_path)
 
-        return self
+        return top_hash
 
     @ApiTelemetry("package.dump")
     def dump(self, writable_file):
@@ -1308,9 +1309,9 @@ class Package:
         for lk in temp_file_logical_keys:
             self._set(lk, pkg[lk])
 
-        pkg._build(name, registry=registry, message=message)
+        top_hash = pkg._build(name, registry=registry, message=message)
 
-        shorthash = Package._shorten_tophash(name, PhysicalKey.from_url(registry), pkg.top_hash)
+        shorthash = Package._shorten_tophash(name, PhysicalKey.from_url(registry), top_hash)
         print(f"Package {name}@{shorthash} pushed to s3://{dest_parsed.bucket}")
 
         if user_is_configured_to_custom_stack():
