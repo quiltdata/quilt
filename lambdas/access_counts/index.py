@@ -169,24 +169,40 @@ OBJECT_ACCESS_COUNTS = textwrap.dedent("""\
 PACKAGE_ACCESS_COUNTS = textwrap.dedent("""\
     SELECT
         eventname,
-        package_hashes.bucket AS bucket,
+        bucket,
         name,
-        CAST(histogram(date) AS JSON) AS counts
-    FROM object_access_log JOIN package_hashes
-    ON object_access_log.bucket = package_hashes.bucket AND key = concat('.quilt/packages/', hash)
+        CAST(map_agg(date, count) AS JSON) AS counts
+    FROM (
+        SELECT
+            eventname,
+            t.bucket AS bucket,
+            name,
+            date,
+            sum(count) AS count
+        FROM (
+            SELECT eventname, bucket, substr(key, 17) AS hash, date, count(*) AS count from object_access_log
+            WHERE substr(key, 1, 16) = '.quilt/packages/'
+            GROUP BY 4, 3, 2, 1
+        ) t JOIN package_hashes
+        ON t.bucket = package_hashes.bucket AND t.hash = package_hashes.hash
+        GROUP BY 4, 3, 2, 1
+    )
     GROUP BY 3, 2, 1
 """)
 
 PACKAGE_VERSION_ACCESS_COUNTS = textwrap.dedent("""\
     SELECT
         eventname,
-        package_hashes.bucket AS bucket,
+        t.bucket AS bucket,
         name,
-        hash,
-        CAST(histogram(date) AS JSON) AS counts
-    FROM object_access_log JOIN package_hashes
-    ON object_access_log.bucket = package_hashes.bucket AND key = concat('.quilt/packages/', hash)
-    GROUP BY 4, 3, 2, 1
+        t.hash AS hash,
+        counts
+    FROM (
+        SELECT eventname, bucket, substr(key, 17) AS hash, CAST(histogram(date) AS JSON) AS counts from object_access_log
+        WHERE substr(key, 1, 16) = '.quilt/packages/'
+        GROUP BY 3, 2, 1
+    ) t JOIN package_hashes
+    ON t.bucket = package_hashes.bucket AND t.hash = package_hashes.hash
 """)
 
 BUCKET_ACCESS_COUNTS = textwrap.dedent("""\
