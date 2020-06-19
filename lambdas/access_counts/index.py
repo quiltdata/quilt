@@ -2,6 +2,9 @@
 Lambda function that runs Athena queries over CloudTrail logs and .quilt/named_packages/
 and creates summaries of object and package access events.
 
+Gotchas: using integers for date parts with leading zeroes will cause partitions
+to show up empty since, e.g., CloudTrail expects days and months as '01' not '1'.
+
 On Athena partition projection see:
 * Overview - https://docs.aws.amazon.com/athena/latest/ug/partition-projection.html
 * Types - https://docs.aws.amazon.com/athena/latest/ug/partition-projection-supported-types.html
