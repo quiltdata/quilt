@@ -21,6 +21,8 @@ export class CORSError extends BucketError {}
 
 export class NoSuchBucket extends BucketError {}
 
+export class NoSuchPackage extends BucketError {}
+
 const WhenAuth = connect(
   createStructuredSelector({
     authenticated: Auth.selectors.authenticated,
@@ -68,6 +70,14 @@ const defaultHandlers = [
     R.is(NoSuchBucket),
     () => (
       <Message headline="No Such Bucket">The specified bucket does not exist.</Message>
+    ),
+  ],
+  [
+    R.is(NoSuchPackage),
+    () => (
+      <Message headline="No Such Package">
+        The specified package could not be found in this bucket.
+      </Message>
     ),
   ],
   [

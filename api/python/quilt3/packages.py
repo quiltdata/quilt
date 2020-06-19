@@ -723,31 +723,31 @@ class Package:
                 line_count += 1
             readable_file.seek(0)
 
-            reader = jsonlines.Reader(readable_file, loads=json.loads)
-            with tqdm(desc="Loading manifest", total=line_count, unit="entries", disable=DISABLE_TQDM) as progress:
-                meta = reader.read()
-                meta.pop('top_hash', None)  # Obsolete as of PR #130
-                pkg = cls()
-                pkg._meta = meta
-                progress.update(1)
+            reader = jsonlines.Reader(
+                tqdm(readable_file, desc="Loading manifest", total=line_count, unit="entries", disable=DISABLE_TQDM),
+                loads=json.loads,
+            )
+            meta = reader.read()
+            meta.pop('top_hash', None)  # Obsolete as of PR #130
+            pkg = cls()
+            pkg._meta = meta
 
-                for obj in reader:
-                    path = cls._split_key(obj.pop('logical_key'))
-                    subpkg = pkg._ensure_subpackage(path[:-1])
-                    key = path[-1]
-                    if not obj.get('physical_keys', None):
-                        # directory-level metadata
-                        subpkg.set_meta(obj['meta'])
-                        continue
-                    if key in subpkg._children:
-                        raise PackageException("Duplicate logical key while loading package")
-                    subpkg._children[key] = PackageEntry(
-                        PhysicalKey.from_url(obj['physical_keys'][0]),
-                        obj['size'],
-                        obj['hash'],
-                        obj['meta']
-                    )
-                    progress.update(1)
+            for obj in reader:
+                path = cls._split_key(obj.pop('logical_key'))
+                subpkg = pkg._ensure_subpackage(path[:-1])
+                key = path[-1]
+                if not obj.get('physical_keys', None):
+                    # directory-level metadata
+                    subpkg.set_meta(obj['meta'])
+                    continue
+                if key in subpkg._children:
+                    raise PackageException("Duplicate logical key while loading package")
+                subpkg._children[key] = PackageEntry(
+                    PhysicalKey.from_url(obj['physical_keys'][0]),
+                    obj['size'],
+                    obj['hash'],
+                    obj['meta'],
+                )
         finally:
             gc.enable()
         return pkg

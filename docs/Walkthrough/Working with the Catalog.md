@@ -8,6 +8,8 @@ Note that you can use the Quilt Python API without using the catalog product, bu
 
 The Quilt catalog provides a homepage for your catalog, based on a `README.md` file that you can optionally create at the top of your bucket.
 
+### Browse
+
 ![](../imgs/catalog_homepage.png)
 
 The catalog lets you navigate packages in the registry on the packages tab.
@@ -18,15 +20,19 @@ You can also browse the underlying S3 files using the files tab.
 
 ![](../imgs/catalog_files_tab.png)
 
+### Search
+
 Catalogs also enable you to search the contents of your bucket. We support both unstructured  (e.g. "`San Francisco`") and structured (e.g. "`metadata_key: metadata_value`") search. Hits are previewed right in the search results.
 
 ![](../imgs/catalog_search.png)
+
+### Summarize
 
 Adding a `quilt_summarize.json` file to a data package (or S3 directory path) will enable content preview right on the landing page.
 
 ![](../imgs/catalog_package_landing_page.png)
 
-Colocating data with context in this way is a powerful way of making your data projects approachable and accessible to collaborators.
+Colocating data with context in this way is a simple way of making your data projects approachable and accessible to collaborators.
 
 `quilt_summarize.json` can be a list of paths to files in S3 that you want to include in your summary. For example: `["description.md", "../notebooks/exploration.ipynb"]`. Additionally, note that if a `README.md` file is present, it will always be rendered as well.
 

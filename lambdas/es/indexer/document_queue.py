@@ -2,7 +2,6 @@
 sending to elastic search in memory-limited batches"""
 from datetime import datetime
 from math import floor
-import json
 import os
 
 from aws_requests_auth.aws_auth import AWSRequestsAuth
@@ -10,18 +9,25 @@ import boto3
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 
+from t4_lambda_shared.utils import separated_env_to_iter
 from t4_lambda_shared.preview import ELASTIC_LIMIT_BYTES
 
 
-CONTENT_INDEX_EXTS = [
+CONTENT_INDEX_EXTS = separated_env_to_iter("CONTENT_INDEX_EXTS") or {
     ".csv",
     ".ipynb",
+    ".json",
     ".md",
     ".parquet",
     ".rmd",
     ".tsv",
     ".txt"
-]
+}
+
+EVENT_PREFIX = {
+    "Created": "ObjectCreated:",
+    "Removed": "ObjectRemoved:"
+}
 
 # See https://amzn.to/2xJpngN for chunk size as a function of container size
 CHUNK_LIMIT_BYTES = int(os.getenv('CHUNK_LIMIT_BYTES') or 9_500_000)
@@ -31,33 +37,15 @@ MAX_RETRY = 4  # prevent long-running lambdas due to malformed calls
 # signifies that the object is truly deleted, not to be confused with
 # s3:ObjectRemoved:DeleteMarkerCreated, which we may see in versioned buckets
 # see https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
-OBJECT_DELETE = "ObjectRemoved:Delete"
-OBJECT_PUT = "ObjectCreated:Put"
-RETRY_429 = 5
 QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
+RETRY_429 = 5
 
 
-def transform_meta(meta):
-    """ Reshapes metadata for indexing in ES """
-    helium = meta.get("helium", {})
-    user_meta = helium.pop("user_meta", {}) or {}
-    comment = helium.pop("comment", "") or ""
-    target = helium.pop("target", "") or ""
-
-    meta_text_parts = [comment, target]
-
-    if helium:
-        meta_text_parts.append(json.dumps(helium))
-    if user_meta:
-        meta_text_parts.append(json.dumps(user_meta))
-
-    return {
-        "system_meta": helium,
-        "user_meta": user_meta,
-        "comment": comment,
-        "target": target,
-        "meta_text": " ".join(meta_text_parts)
-    }
+# pylint: disable=super-init-not-called
+class RetryError(Exception):
+    """Fatal and final error if docs fail after multiple retries"""
+    def __init__(self, message):
+        pass
 
 
 class DocumentQueue:
@@ -72,7 +60,6 @@ class DocumentQueue:
             self,
             event_type,
             size=0,
-            meta=None,
             *,
             last_modified,
             bucket,
@@ -83,20 +70,34 @@ class DocumentQueue:
             version_id
     ):
         """format event as a document and then queue the document"""
-        derived_meta = transform_meta(meta or {})
+        if not isinstance(version_id, (str, type(None))):
+            # should never raise given how index.py, the only caller of .append(),
+            # works
+            raise ValueError(
+                f".append() must set version_id even if missing from event; "
+                f"got {version_id}"
+            )
+        if event_type.startswith(EVENT_PREFIX["Created"]):
+            _op_type = "index"
+        elif event_type.startswith(EVENT_PREFIX["Removed"]):
+            _op_type = "delete"
+        else:
+            print("Skipping unrecognized event type {event_type}")
+            return
         # On types and fields, see
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
         body = {
             # Elastic native keys
             "_id": f"{key}:{version_id}",
             "_index": bucket,
-            # index will upsert (and clobber existing equivalent _ids)
-            "_op_type": "delete" if event_type == OBJECT_DELETE else "index",
             "_type": "_doc",
+            # index will upsert (and clobber existing equivalent _ids)
+            "_op_type": "delete" if event_type.startswith(EVENT_PREFIX["Removed"]) else "index",
             # Quilt keys
             # Be VERY CAREFUL changing these values, as a type change can cause a
             # mapper_parsing_exception that below code won't handle
-            "comment": derived_meta["comment"],
+            # TODO: remove this field from ES in /enterprise (now deprecated and unused)
+            "comment": "",
             "content": text,  # field for full-text search
             "etag": etag,
             "event": event_type,
@@ -104,9 +105,10 @@ class DocumentQueue:
             "key": key,
             # "key_text": created by mappings copy_to
             "last_modified": last_modified.isoformat(),
-            "meta_text": derived_meta["meta_text"],
+            # TODO: remove this field from ES in /enterprise (now deprecated and unused)
+            "meta_text": "",
             "size": size,
-            "target": derived_meta["target"],
+            "target": "",
             "updated": datetime.utcnow().isoformat(),
             "version_id": version_id
         }
@@ -151,42 +153,42 @@ class DocumentQueue:
             verify_certs=True,
             connection_class=RequestsHttpConnection
         )
-
+        # For response format see
+        # https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
+        # (We currently use Elastic 6.7 per quiltdata/deployment search.py)
+        # note that `elasticsearch` post-processes this response
         _, errors = bulk_send(elastic, self.queue)
         if errors:
             id_to_doc = {d["_id"]: d for d in self.queue}
             send_again = []
             for error in errors:
-                # only retry index call errors, not delete errors
-                if "index" in error:
-                    inner = error["index"]
-                    info = inner.get("error")
-                    doc = id_to_doc[inner["_id"]]
-                    # because error.error might be a string *sigh*
-                    if isinstance(info, dict):
-                        if "mapper_parsing_exception" in info.get("type", ""):
-                            print("mapper_parsing_exception", error, inner)
-                            # clear out structured metadata and try again
-                            doc["user_meta"] = doc["system"] = {}
-                        else:
-                            print("unhandled indexer error:", error)
-                    # Always retry, regardless of whether we know to handle and clean the request
-                    # or not. This can catch temporary 403 on index write blocks and other
-                    # transient issues.
-                    send_again.append(doc)
+                # retry index and delete errors
+                if "index" in error or "delete" in error:
+                    if "index" in error:
+                        inner = error["index"]
+                    if "delete" in error:
+                        inner = error["delete"]
+                    if "_id" in inner:
+                        doc = id_to_doc[inner["_id"]]
+                        # Always retry the source document if we can identify it.
+                        # This catches temporary 403 on index write blocks & other
+                        # transient issues.
+                        send_again.append(doc)
+                # retry the entire batch
                 else:
-                    # If index not in error, then retry the whole batch. Unclear what would cause
-                    # that, but if there's an error without an id we need to assume it applies to
+                    # Unclear what would cause an error that's neither index nor delete
+                    # but if there's an unknown error we need to assume it applies to
                     # the batch.
                     send_again = self.queue
-                    print("unhandled indexer error (missing index field):", error)
-
-            # we won't retry after this (elasticsearch might retry 429s tho)
+            # Last retry (though elasticsearch might retry 429s tho)
             if send_again:
                 _, errors = bulk_send(elastic, send_again)
                 if errors:
-                    raise Exception("Failed to load messages into Elastic on second retry.")
-            # empty the queue
+                    raise RetryError(
+                        "Failed to load messages into Elastic on second retry.\n"
+                        f"{_}\nErrors: {errors}\nTo resend:{send_again}"
+                    )
+        # empty the queue
         self.size = 0
         self.queue = []
 

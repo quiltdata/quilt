@@ -1,9 +1,42 @@
 """
-phone data into elastic for supported file extensions.
+send documents representing object data to elasticsearch for supported file extensions.
 note: we truncate outbound documents to DOC_SIZE_LIMIT characters
 (to bound memory pressure and request size to elastic)
-"""
 
+a little knowledge on deletes and delete markers:
+if bucket versioning is on:
+    - `aws s3api delete-object (no --version-id)` or `aws s3 rm`
+        - push a new delete marker onto the stack with a version-id
+        - generate ObjectRemoved:DeleteMarkerCreated
+
+if bucket versioning was on and is then turned off:
+    - `aws s3 rm` or `aws s3api delete-object (no --version-id)`
+        - replace event at top of stack
+            - if a versioned delete marker, push a new one on top of it
+            - if an unversioned delete marker, replace that marker with new marker
+            with version "null" (ObjectCreate will similarly replace the same with an object
+            of version "null")
+            - if object, destroy object
+        - generate ObjectRemoved:DeleteMarkerCreated
+            - problem: no way of knowing if DeleteMarkerCreated destroyed bytes
+            or just created a DeleteMarker; this is usually given by the return
+            value of `delete-object` but the S3 event has no knowledge of the same
+    - `aws s3api delete-object --version-id VERSION`
+        - destroy corresponding delete marker or object; v may be null in which
+        case it will destroy the object with version null (occurs when adding
+        new objects to a bucket that aws versioned but is no longer)
+        - generate ObjectRemoved:Deleted
+
+if bucket version is off and has always been off:
+    - `aws s3 rm` or `aws s3api delete-object`
+        - destroy object
+        - generate a single ObjectRemoved:Deleted
+
+counterintuitive things:
+    - turning off versioning doesn't mean version stack can't get deeper (by at
+    least 1) as indicated above in the case where a new marker is pushed onto
+    the version stack
+"""
 import datetime
 import json
 import pathlib
@@ -27,10 +60,10 @@ from t4_lambda_shared.preview import (
 from document_queue import (
     DocumentQueue,
     CONTENT_INDEX_EXTS,
-    MAX_RETRY,
-    OBJECT_DELETE,
-    OBJECT_PUT
+    EVENT_PREFIX,
+    MAX_RETRY
 )
+
 
 # 10 MB, see https://amzn.to/2xJpngN
 NB_VERSION = 4  # default notebook version for nbformat
@@ -214,8 +247,8 @@ def make_s3_client():
 
 
 def handler(event, context):
-    """enumerate S3 keys in event, extract relevant data and metadata,
-    queue events, send to elastic via bulk() API
+    """enumerate S3 keys in event, extract relevant data, queue events, send to
+    elastic via bulk() API
     """
     # message is a proper SQS message, which either contains a single event
     # (from the bucket notification system) or batch-many events as determined
@@ -230,9 +263,8 @@ def handler(event, context):
                 # Consume and ignore this event, which is an initial message from
                 # SQS; see https://forums.aws.amazon.com/thread.jspa?threadID=84331
                 continue
-            else:
-                print("Unexpected message['body']. No 'Records' key.", message)
-                raise Exception("Unexpected message['body']. No 'Records' key.")
+            print("Unexpected message['body']. No 'Records' key.", message)
+            raise Exception("Unexpected message['body']. No 'Records' key.")
         batch_processor = DocumentQueue(context)
         events = body_message.get("Records", [])
         s3_client = make_s3_client()
@@ -240,16 +272,19 @@ def handler(event, context):
         for event_ in events:
             try:
                 event_name = event_["eventName"]
-                # only process these two event types
-                if event_name not in [OBJECT_DELETE, OBJECT_PUT]:
+                # Process all Create:* and Remove:* events
+                if not any(event_name.startswith(n) for n in EVENT_PREFIX.values()):
                     continue
                 bucket = unquote(event_["s3"]["bucket"]["name"])
                 # In the grand tradition of IE6, S3 events turn spaces into '+'
                 key = unquote_plus(event_["s3"]["object"]["key"])
                 version_id = event_["s3"]["object"].get("versionId")
                 version_id = unquote(version_id) if version_id else None
-                etag = unquote(event_["s3"]["object"]["eTag"])
-
+                # Skip delete markers when versioning is on
+                if version_id and event_name == "ObjectRemoved:DeleteMarkerCreated":
+                    continue
+                # ObjectRemoved:Delete does not include "eTag"
+                etag = unquote(event_["s3"]["object"].get("eTag", ""))
                 # Get two levels of extensions to handle files like .csv.gz
                 path = pathlib.PurePosixPath(key)
                 ext1 = path.suffix
@@ -258,7 +293,7 @@ def handler(event, context):
 
                 # Handle delete  first and then continue so that
                 # head_object and get_object (below) don't fail
-                if event_name == OBJECT_DELETE:
+                if event_name.startswith(EVENT_PREFIX["Removed"]):
                     batch_processor.append(
                         event_name,
                         bucket=bucket,
@@ -298,7 +333,6 @@ def handler(event, context):
 
                 size = head["ContentLength"]
                 last_modified = head["LastModified"]
-                meta = head["Metadata"]
 
                 try:
                     text = get_contents(
@@ -317,20 +351,11 @@ def handler(event, context):
                     content_exception = exc
                     print("Content extraction failed", exc, bucket, key, etag, version_id)
 
-                # decode Quilt-specific metadata
-                if meta and "helium" in meta:
-                    try:
-                        decoded_helium = json.loads(meta["helium"])
-                        meta["helium"] = decoded_helium or {}
-                    except (KeyError, json.JSONDecodeError):
-                        print("Unable to parse Quilt 'helium' metadata", meta)
-
                 batch_processor.append(
                     event_name,
                     bucket=bucket,
                     key=key,
                     ext=ext,
-                    meta=meta,
                     etag=etag,
                     version_id=version_id,
                     last_modified=last_modified,
@@ -340,11 +365,10 @@ def handler(event, context):
             except botocore.exceptions.ClientError as boto_exc:
                 if not should_retry_exception(boto_exc):
                     continue
-                else:
-                    print("Fatal exception for record", event_, boto_exc)
-                    import traceback
-                    traceback.print_tb(boto_exc.__traceback__)
-                    raise boto_exc
+                print("Fatal exception for record", event_, boto_exc)
+                import traceback
+                traceback.print_tb(boto_exc.__traceback__)
+                raise boto_exc
         # flush the queue
         batch_processor.send_all()
         # note: if there are multiple content exceptions in the batch, this will

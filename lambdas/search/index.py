@@ -3,7 +3,9 @@ Sends the request to ElasticSearch.
 
 TODO: Implement a higher-level search API.
 """
+from copy import deepcopy
 import os
+from itertools import filterfalse, tee
 
 from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 from elasticsearch import Elasticsearch, RequestsHttpConnection
@@ -14,6 +16,7 @@ from t4_lambda_shared.utils import get_default_origins, make_json_response
 MAX_QUERY_DURATION = '15s'
 NUM_PREVIEW_IMAGES = 100
 NUM_PREVIEW_FILES = 100
+COMPRESSION_EXTS = ['.gz']
 IMG_EXTS = [
     '.jpg',
     '.jpeg',
@@ -74,7 +77,7 @@ def lambda_handler(request):
                 },
             }
         }
-        size = 0
+        size = 0  # We still get all aggregates, just don't need the results
         _source = []
         # Consider all documents when computing counts, etc.
         terminate_after = None
@@ -147,4 +150,51 @@ def lambda_handler(request):
         timeout=MAX_QUERY_DURATION
     )
 
-    return make_json_response(200, result)
+    return make_json_response(200, post_process(result, action))
+
+
+def post_process(result: dict, action: str) -> dict:
+    """post process result from elastic conditional on action
+    """
+    if action == "stats":
+        # don't modify the original to avoid side-effects
+        result = deepcopy(result)
+        counts = result["aggregations"]["exts"]["buckets"]
+        non_gz, gz = partition(
+            lambda c: any(c.get("key", "").lower().endswith(ext) for ext in COMPRESSION_EXTS),
+            counts
+        )
+        ext_counts = {}
+        # ES reports double extensions e.g. file.foo.ext, get down to just .ext
+        # for any .ext that is not .gz
+        # populate ext_counts
+        for record in non_gz:
+            _, ext = os.path.splitext(f"fakename{record['key']}")
+            if ext not in ext_counts:
+                ext_counts[ext] = {'doc_count': 0, 'size': 0}
+            ext_counts[ext]['doc_count'] += record.get('doc_count', 0)
+            ext_counts[ext]['size'] += record.get('size', {}).get('value', 0)
+
+        corrected = [
+            {
+                'key': ext,
+                'doc_count': val['doc_count'],
+                'size': {'value': val['size']}
+            }
+            for ext, val in ext_counts.items()
+        ]
+        # rewrite aggregation buckets so gz aggregates use two-level extensions
+        # and all other extensions are single-level
+        corrected.extend(gz)
+        result["aggregations"]["exts"]["buckets"] = corrected
+
+    return result
+
+
+def partition(pred, iterable):
+    """Use a predicate to partition entries into false entries and true entries
+    partition(is_odd, range(10)) --> 0 2 4 6 8   and  1 3 5 7 9
+    from https://docs.python.org/dev/library/itertools.html#itertools-recipes
+    """
+    t1, t2 = tee(iterable)
+    return filterfalse(pred, t1), filter(pred, t2)

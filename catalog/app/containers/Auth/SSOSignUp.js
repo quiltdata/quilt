@@ -113,7 +113,7 @@ export default ({ location: { search } }) => {
                 invalid: <FM {...msg.signUpUsernameInvalid} />,
               }}
             />
-            {!!cfg.passwordAuth && (
+            {cfg.passwordAuth === true && (
               <>
                 <Field
                   component={Layout.Field}
