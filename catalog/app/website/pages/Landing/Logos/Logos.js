@@ -72,7 +72,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function CaseStudies() {
+export default function Logos() {
   const classes = useStyles()
   return (
     <div className={classes.root}>
