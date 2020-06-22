@@ -11,6 +11,8 @@ import { useTracker } from 'utils/tracking'
 import Bar from 'website/components/Bar'
 import Backlight from 'website/components/Backgrounds/Backlight4'
 
+import { useTalkToUs } from '../TalkToUs/TalkToUs'
+
 import bgPri from './bg-primary.png'
 import bgPri2x from './bg-primary@2x.png'
 import bgSec from './bg-secondary.png'
@@ -21,43 +23,53 @@ import bgTer2x from './bg-tertiary@2x.png'
 const PLANS = [
   {
     name: 'open.quiltdata.com',
-    trackingName: 'open',
     price: 'Free',
     features: ['Unlimited public packages'],
-    cta: 'Explore',
-    href: 'https://open.quiltdata.com',
+    cta: ({ className }) => (
+      <Btn className={className} href="https://open.quiltdata.com" trackingName="open">
+        Explore
+      </Btn>
+    ),
     variant: 'tertiary',
   },
   {
     name: 'Virtual Private Cloud',
-    trackingName: 'marketplace',
-    price: 600,
+    price: 1000,
+    perMonth: true,
     features: [
       'Unlimited data',
       'Unlimited users',
       'Three S3 buckets',
       '30-day free trial',
     ],
-    cta: 'Try Now',
-    to: ({ urls }) => urls.install(),
+    cta: ({ talk, className }) => (
+      <Btn
+        className={className}
+        color="primary"
+        onClick={talk}
+        trackingName="marketplace"
+      >
+        Talk To Us
+      </Btn>
+    ),
     variant: 'primary',
     featured: true,
   },
   {
     name: 'Enterprise',
-    trackingName: 'contact',
     price: 'Contact us',
     features: [
       'Unlimited data',
       'Unlimited users',
-      'Up to five S3 buckets',
       'Priority support',
       'Custom features',
       'Education and instruction',
-      '30-day free trial',
     ],
-    cta: 'Contact',
-    href: 'mailto:sales@quiltdata.io?subject=Quilt Enterprise',
+    cta: ({ talk, className }) => (
+      <Btn className={className} color="secondary" onClick={talk} trackingName="contact">
+        Talk To Us
+      </Btn>
+    ),
     variant: 'secondary',
   },
 ]
@@ -71,7 +83,7 @@ function Btn({ to, trackingName, ...rest }) {
     [t, to, trackingName],
   )
   const props = to ? { component: Link, to: to({ urls }), ...rest } : rest
-  return <M.Button onClick={track} {...props} />
+  return <M.Button variant="contained" onClick={track} {...props} />
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -176,6 +188,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Pricing() {
   const classes = useStyles()
+  const talk = useTalkToUs()
   return (
     <M.Box position="relative">
       <Backlight top={-320} />
@@ -211,7 +224,9 @@ export default function Pricing() {
             >
               <div className={classes.name}>{p.name}</div>
               <div className={classes.price}>{p.price}</div>
-              <div className={classes.perMonth}>$ per month</div>
+              <div className={classes.perMonth}>
+                {p.perMonth ? '$ per month' : <>&nbsp;</>}
+              </div>
 
               <div className={classes.featureBox}>
                 {p.features.map((f) => (
@@ -221,16 +236,7 @@ export default function Pricing() {
                 ))}
               </div>
 
-              <Btn
-                variant="contained"
-                className={classes.btn}
-                color={p.variant !== 'tertiary' ? p.variant : undefined}
-                href={p.href}
-                to={p.to}
-                trackingName={p.trackingName}
-              >
-                {p.cta}
-              </Btn>
+              {p.cta({ talk, className: classes.btn })}
             </div>
           ))}
         </div>
