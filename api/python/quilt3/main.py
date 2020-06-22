@@ -218,7 +218,6 @@ def cmd_push(name, dir, registry, dest, message):
     pkg = api.Package()
     pkg.set_dir('.', dir)
     pkg.push(name, registry=registry, dest=dest, message=message)
-    print("Successfully pushed the new package")
 
 
 def create_parser():

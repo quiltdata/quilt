@@ -1316,12 +1316,14 @@ class Package:
         if user_is_configured_to_custom_stack():
             navigator_url = get_from_config("navigator_url")
 
-            print(f"Visit {catalog_package_url(navigator_url, dest_parsed.bucket, name)}")
+            print(f"Successfully pushed the new package to "
+                  f"{catalog_package_url(navigator_url, dest_parsed.bucket, name)}")
         else:
             dest_s3_url = str(dest_parsed)
             if not dest_s3_url.endswith("/"):
                 dest_s3_url += "/"
             print(f"Run `quilt3 catalog {dest_s3_url}` to browse.")
+            print("Successfully pushed the new package")
 
         return pkg
 
