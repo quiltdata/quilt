@@ -856,6 +856,12 @@ class Package:
         """
         self._meta['user_meta'] = meta
         return self
+    
+    def get_meta(self):
+        """
+        Gets user metadata on this Package.
+        """
+        return self.meta or None
 
     def _fix_sha256(self):
         """
