@@ -12,6 +12,7 @@ import Buckets from './Buckets'
 import CaseStudies from './CaseStudies'
 import Highlights from './Highlights'
 import LocalMode from './LocalMode'
+import Logos from './Logos'
 import Platform from './Platform'
 import Pricing from './Pricing'
 import Showcase from './Showcase'
@@ -30,6 +31,7 @@ export default function Landing() {
       {cfg.mode === 'LOCAL' ? <LocalMode /> : <Showcase />}
       {cfg.mode !== 'LOCAL' && <Videos />}
       {cfg.mode !== 'LOCAL' && <Platform />}
+      {cfg.mode !== 'LOCAL' && <Logos />}
       {cfg.mode !== 'LOCAL' && <CaseStudies />}
       {cfg.mode !== 'LOCAL' && <Testimonials />}
       {cfg.mode !== 'LOCAL' && <UseQuilt />}
