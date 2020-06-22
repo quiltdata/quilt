@@ -16,6 +16,7 @@ import Logos from './Logos'
 import Platform from './Platform'
 import Pricing from './Pricing'
 import Showcase from './Showcase'
+import StickyFooter from './StickyFooter'
 import Testimonials from './Testimonials'
 import UseQuilt from './UseQuilt'
 
@@ -38,6 +39,7 @@ export default function Landing() {
       {cfg.mode !== 'LOCAL' && <Highlights />}
       {cfg.mode === 'MARKETING' && <Pricing />}
       {cfg.mode !== 'LOCAL' && <Contribute />}
+      {cfg.mode !== 'LOCAL' && <StickyFooter />}
     </Layout>
   )
 }

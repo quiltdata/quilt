@@ -8,7 +8,9 @@ import * as style from 'constants/style'
 
 // TODO: ensure proper variants
 const variants = {
-  cta: ['CTA 1', 'CTA 2'],
+  cta: [
+    'Ready to synchronize your data?',
+  ],
   lede: [
     'Maximize your return on data by managing data like code',
     'Experiment faster by managing data like code',
