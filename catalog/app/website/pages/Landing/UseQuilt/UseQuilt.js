@@ -71,7 +71,9 @@ const SECTIONS = [
     ],
   },
   {
-    title: 'Heads of data, executives',
+    // TODO: avoid repeatition?
+    // title: 'Heads of data, executives',
+    title: 'Heads of data',
     img: {
       src: img2x(artExe, artExe2x),
       width: 436,
@@ -94,6 +96,27 @@ const SECTIONS = [
       <>
         Improve security, audit-ability, and compliance by centralizing your data in the
         worlds most advanced and popular cloud storage formats.
+      </>,
+    ],
+  },
+  {
+    title: 'Executives',
+    img: {
+      src: img2x(artExe, artExe2x), // TODO: distinct art
+      width: 436,
+      mt: -40 / 8,
+    },
+    bullets: [
+      <>Maximize Your Return on Data.</>,
+      <>
+        Turn S3 into a business-user friendly catalogue of all your data with configurable
+        access for your tech users, business users, and customers.
+      </>,
+      <>Reduce costs by improving data searchability and accessibility.</>,
+      <>Reduce errors and increase velocity by making data centralized and immutable.</>,
+      <>
+        Improve security, compliance by centralizing your data in the world’s most
+        advanced and popular cloud storage formats.
       </>,
     ],
   },
