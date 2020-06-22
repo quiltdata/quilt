@@ -6,6 +6,7 @@ import { createStructuredSelector } from 'reselect'
 import * as M from '@material-ui/core'
 
 import Logo from 'components/Logo'
+import { useTalkToUs } from 'components/TalkToUs'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
@@ -295,6 +296,15 @@ function useLinks() {
   ].filter(Boolean)
 }
 
+function Talk() {
+  const talk = useTalkToUs()
+  return (
+    <M.Button variant="contained" color="primary" onClick={talk}>
+      Talk To Us
+    </M.Button>
+  )
+}
+
 export function NavBar() {
   const cfg = Config.use()
   const bucket = BucketConfig.useCurrentBucket()
@@ -326,6 +336,8 @@ export function NavBar() {
           ))}
         </M.Box>
       )}
+
+      {cfg.mode === 'MARKETING' && !useHamburger && <Talk />}
 
       {!cfg.disableNavigator &&
         cfg.mode !== 'LOCAL' &&
