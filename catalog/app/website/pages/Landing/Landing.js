@@ -20,9 +20,13 @@ import { TalkToUsProvider } from './TalkToUs'
 import Testimonials from './Testimonials'
 import UseQuilt from './UseQuilt'
 
+// TODO: ensure proper variants
 const variants = {
   cta: ['CTA 1', 'CTA 2'],
-  lede: ['LEDE 1', 'LEDE 2'],
+  lede: [
+    'Maximize your return on data by managing data like code',
+    'Experiment faster by managing data like code',
+  ],
 }
 
 export default function Landing() {

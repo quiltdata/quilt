@@ -9,6 +9,8 @@ import Overlay1Full from 'website/components/Backgrounds/Overlay1Full'
 import Overlay2 from 'website/components/Backgrounds/Overlay2'
 import Screenshots from 'website/components/Screenshots'
 
+import { useExperiments } from '../Experiments'
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     paddingTop: t.spacing(9),
@@ -53,6 +55,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Showcase() {
   const classes = useStyles()
+  const lede = useExperiments('lede')
   return (
     <div className={classes.root}>
       <Overlay2 />
@@ -63,7 +66,7 @@ export default function Showcase() {
             <Bar color="primary" />
             <M.Box mt={5}>
               <M.Typography variant="h1" color="textPrimary">
-                Experiment faster by managing data like code
+                {lede}
               </M.Typography>
             </M.Box>
             <M.Box mt={4}>
