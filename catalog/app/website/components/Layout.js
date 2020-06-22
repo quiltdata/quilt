@@ -1,11 +1,26 @@
 import * as React from 'react'
 import { ThemeProvider } from '@material-ui/styles'
 
-import * as style from 'constants/style'
+import { ExperimentsProvider } from 'components/Experiments'
 import * as Layout from 'components/Layout'
+import { TalkToUsProvider } from 'components/TalkToUs'
+import * as style from 'constants/style'
+
+// TODO: ensure proper variants
+const variants = {
+  cta: ['CTA 1', 'CTA 2'],
+  lede: [
+    'Maximize your return on data by managing data like code',
+    'Experiment faster by managing data like code',
+  ],
+}
 
 export default ({ children, ...props }) => (
   <ThemeProvider theme={style.websiteTheme}>
-    <Layout.Layout pre={children} {...props} />
+    <ExperimentsProvider variants={variants}>
+      <TalkToUsProvider>
+        <Layout.Layout pre={children} {...props} />
+      </TalkToUsProvider>
+    </ExperimentsProvider>
   </ThemeProvider>
 )

@@ -3,6 +3,7 @@ import * as React from 'react'
 const Ctx = React.createContext()
 
 export function TalkToUsProvider({ children }) {
+  // TODO: memoize
   function talkToUs() {
     // TODO: open meetingbird popup
     alert('talk to us')

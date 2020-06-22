@@ -3,6 +3,7 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import { useTalkToUs } from 'components/TalkToUs'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import img2x from 'utils/img2x'
 import scrollIntoView from 'utils/scrollIntoView'
@@ -10,8 +11,6 @@ import { useTracker } from 'utils/tracking'
 
 import Bar from 'website/components/Bar'
 import Backlight from 'website/components/Backgrounds/Backlight4'
-
-import { useTalkToUs } from '../TalkToUs/TalkToUs'
 
 import bgPri from './bg-primary.png'
 import bgPri2x from './bg-primary@2x.png'

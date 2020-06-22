@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { useExperiments } from 'components/Experiments'
+import { useTalkToUs } from 'components/TalkToUs'
 import * as URLS from 'constants/urls'
 
 import Bar from 'website/components/Bar'
@@ -8,9 +10,6 @@ import ChevronLink from 'website/components/ChevronLink'
 import Overlay1Full from 'website/components/Backgrounds/Overlay1Full'
 import Overlay2 from 'website/components/Backgrounds/Overlay2'
 import Screenshots from 'website/components/Screenshots'
-
-import { useExperiments } from '../Experiments'
-import { useTalkToUs } from '../TalkToUs'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
