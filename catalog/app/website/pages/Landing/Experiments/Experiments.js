@@ -11,8 +11,9 @@ const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)]
 export function ExperimentsProvider({ variants, children }) {
   const selected = useConstant(() => {
     // choose random variant for every experiment
-    R.map(pickRandom, variants)
+    const sel = R.map(pickRandom, variants)
     // TODO: save as mixpanel user data
+    return sel
   })
 
   // eslint-disable-next-line no-underscore-dangle
