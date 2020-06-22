@@ -10,6 +10,7 @@ import Overlay2 from 'website/components/Backgrounds/Overlay2'
 import Screenshots from 'website/components/Screenshots'
 
 import { useExperiments } from '../Experiments'
+import { useTalkToUs } from '../TalkToUs'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -56,6 +57,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Showcase() {
   const classes = useStyles()
   const lede = useExperiments('lede')
+  const talk = useTalkToUs()
   return (
     <div className={classes.root}>
       <Overlay2 />
@@ -89,12 +91,8 @@ export default function Showcase() {
               </M.Typography>
             </M.Box>
             <M.Box mt={5}>
-              <M.Button
-                variant="contained"
-                color="primary"
-                href="https://www.meetingbird.com/m/S19vxyVOH"
-              >
-                Book demo
+              <M.Button variant="contained" color="primary" onClick={talk}>
+                Book a demo
               </M.Button>
               <M.Box display="inline-block" ml={2} />
               <M.Button
