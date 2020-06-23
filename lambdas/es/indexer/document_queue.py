@@ -74,6 +74,7 @@ class DocumentQueue:
             version_id=None,
             *,
             bucket,
+            comment='',
             key,
             etag,
             last_modified,
@@ -94,41 +95,46 @@ class DocumentQueue:
             return
         # On types and fields, see
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
-        # Form the appropriate document type
+        # Set common properties on the document
+        body = {
+            "_index": bucket,
+            "_op_type": "delete" if event_type.startswith(EVENT_PREFIX["Removed"]) else "index",
+            "comment": comment,
+            "etag": etag,
+            "last_modified": last_modified.isoformat(),
+            "key": key,
+            "size": size,
+        }
         if doc_type == DocTypes.PACKAGE:
             if not handle or not package_hash:
                 raise ValueError("missing required argument for package document")
-            body = {
+            body.update({
                 "_id": f"{handle}:{package_hash}",
-                "_index": "bucket"
-            }
+                "metadata": metadata
+            })
         elif doc_type == DocTypes.OBJECT:
-            body = {
+            body.update({
                 # Elastic native keys
                 "_id": f"{key}:{version_id}",
-                "_index": bucket,
                 "_type": "_doc",
                 # index will upsert (and clobber existing equivalent _ids)
-                "_op_type": "delete" if event_type.startswith(EVENT_PREFIX["Removed"]) else "index",
                 # Quilt keys
                 # Be VERY CAREFUL changing these values, as a type change can cause a
                 # mapper_parsing_exception that below code won't handle
                 # TODO: remove this field from ES in /enterprise (now deprecated and unused)
+                # here we explicitly drop the comment
                 "comment": "",
                 "content": text,  # field for full-text search
-                "etag": etag,
                 "event": event_type,
                 "ext": ext,
-                "key": key,
-                # "key_text": created by mappings copy_to
-                "last_modified": last_modified.isoformat(),
                 # TODO: remove this field from ES in /enterprise (now deprecated and unused)
                 "meta_text": "",
-                "size": size,
                 "target": "",
                 "updated": datetime.utcnow().isoformat(),
                 "version_id": version_id
-            }
+            })
+        else:
+            print(f"Skipping unhandled document type: {doc_type}")
 
         self.append_document(body)
 
