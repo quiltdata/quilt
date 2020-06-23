@@ -64,8 +64,8 @@ class DocumentQueue:
 
     def append(
             self,
-            event_type,
-            doc_type,
+            event_type: str,
+            doc_type: DocTypes,
             ext='',
             handle='',
             metadata='',
@@ -73,16 +73,14 @@ class DocumentQueue:
             text='',
             version_id=None,
             *,
-            bucket,
+            bucket: str,
             comment='',
-            key,
-            etag,
-            last_modified,
+            key: str,
+            etag: str,
+            last_modified: datetime,
             size=0
     ):
         """format event as a document and then queue the document"""
-        if doc_type not in DocTypes:
-            raise ValueError("doc_type must be a member of document_queue.DocTypes")
         if not bucket:
             raise ValueError("argument bucket= required for all documents")
 
