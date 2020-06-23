@@ -36,7 +36,7 @@ def get_logical_key_folder_view(s3response):
     """
     buffer = io.StringIO()
     for event in req['Payload']:
-            if 'Records' in event:
+        if 'Records' in event:
             records = event['Records']['Payload'].decode('utf-8')
             buffer.write(records)
         elif 'Stats' in event:
