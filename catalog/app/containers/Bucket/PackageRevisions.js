@@ -388,7 +388,7 @@ function Revisions({ revisions, isTruncated, counts, bucket, name, page }) {
   const { apiGatewayEndpoint: endpoint } = Config.useConfig()
   const bucketCfg = BucketConfig.useCurrentBucketConfig()
   const sign = AWS.Signer.useS3Signer()
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
 
   const actualPage = page || 1
 
@@ -427,7 +427,7 @@ function Revisions({ revisions, isTruncated, counts, bucket, name, page }) {
         <Data
           key={r}
           fetch={requests.getRevisionData}
-          params={{ s3req, sign, endpoint, bucket, name, id: r }}
+          params={{ s3, sign, endpoint, bucket, name, id: r }}
         >
           {(res) => (
             <>
@@ -482,7 +482,7 @@ export default function PackageRevisions({
 }) {
   const { p } = parseSearch(location.search)
   const page = p && parseInt(p, 10)
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const { analyticsBucket } = Config.useConfig()
   const today = React.useMemo(() => new Date(), [])
 
@@ -495,7 +495,7 @@ export default function PackageRevisions({
   return (
     <Data
       fetch={requests.getPackageRevisions}
-      params={{ s3req, analyticsBucket, bucket, name, today }}
+      params={{ s3, analyticsBucket, bucket, name, today }}
     >
       {AsyncResult.case({
         _: () => (

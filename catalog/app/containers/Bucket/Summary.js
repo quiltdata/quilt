@@ -234,9 +234,9 @@ export default function BucketSummary({ files, whenEmpty = () => null }) {
       )}
       {!!images.length && <Thumbnails images={images} />}
       {summarize && (
-        <AWS.S3.InjectRequest>
-          {(s3req) => (
-            <Data fetch={requests.summarize} params={{ s3req, handle: summarize }}>
+        <AWS.S3.Inject>
+          {(s3) => (
+            <Data fetch={requests.summarize} params={{ s3, handle: summarize }}>
               {AsyncResult.case({
                 Err: () => null,
                 _: () => <M.CircularProgress className={classes.progress} />,
@@ -251,7 +251,7 @@ export default function BucketSummary({ files, whenEmpty = () => null }) {
               })}
             </Data>
           )}
-        </AWS.S3.InjectRequest>
+        </AWS.S3.Inject>
       )}
     </>
   )
