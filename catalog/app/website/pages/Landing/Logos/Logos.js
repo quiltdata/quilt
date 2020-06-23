@@ -50,6 +50,8 @@ const logos = [
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    display: 'flex',
+    flexDirection: 'column',
     paddingBottom: t.spacing(14),
     paddingTop: t.spacing(2),
     position: 'relative',
@@ -57,15 +59,29 @@ const useStyles = M.makeStyles((t) => ({
   logos: {
     alignItems: 'center',
     display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginTop: t.spacing(2),
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    marginTop: t.spacing(9),
+    maskImage:
+      'linear-gradient(to right, rgba(0,0,0,0), rgba(0,0,0,1) 64px calc(100% - 64px), rgba(0,0,0,0))',
+    maxWidth: '100%',
+    overflowX: 'auto',
+    scrollbarWidth: 'none',
+    MsOverflowStyle: 'none',
+    '&::-webkit-scrollbar': {
+      display: 'none',
+    },
   },
   link: {
     cursor: 'pointer',
-    marginLeft: t.spacing(4),
-    marginRight: t.spacing(4),
-    marginTop: t.spacing(7),
+    paddingLeft: t.spacing(4),
+    paddingRight: t.spacing(4),
+    '&:first-child': {
+      paddingLeft: t.spacing(8),
+    },
+    '&:last-child': {
+      paddingRight: t.spacing(8),
+    },
   },
   img: {
     display: 'block',
@@ -80,20 +96,20 @@ export default function Logos() {
         <M.Typography variant="h1" color="textPrimary" align="center">
           Companies that love Quilt
         </M.Typography>
-        <div className={classes.logos}>
-          {logos.map((l) => (
-            <a href={l.href} className={classes.link} key={l.title}>
-              <img
-                title={l.title}
-                alt={l.title}
-                src={l.src}
-                className={classes.img}
-                style={{ height: l.height }}
-              />
-            </a>
-          ))}
-        </div>
       </M.Container>
+      <div className={classes.logos}>
+        {logos.map((l) => (
+          <a href={l.href} className={classes.link} key={l.title}>
+            <img
+              title={l.title}
+              alt={l.title}
+              src={l.src}
+              className={classes.img}
+              style={{ height: l.height }}
+            />
+          </a>
+        ))}
+      </div>
     </div>
   )
 }
