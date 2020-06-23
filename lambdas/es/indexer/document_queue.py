@@ -48,9 +48,10 @@ class RetryError(Exception):
     def __init__(self, message):
         pass
 
-class DocType(Enum):
-    OBJECT = 1
-    PACKAGE = 2
+
+class DocTypes(Enum):
+    OBJECT = 1  # S3 objects
+    PACKAGE = 2  # Quilt packages
 
 
 class DocumentQueue:
@@ -64,8 +65,8 @@ class DocumentQueue:
     def append(
             self,
             event_type,
+            doc_type,
             *,
-            doc_type=DocType.OBJECT,
             bucket,
             etag,
             ext,
@@ -76,6 +77,9 @@ class DocumentQueue:
             version_id=None
     ):
         """format event as a document and then queue the document"""
+        if doc_type not in DocTypes:
+            raise ValueError(f"doc_type must be a member of document_queue.DocTypes")
+
         if event_type.startswith(EVENT_PREFIX["Created"]):
             _op_type = "index"
         elif event_type.startswith(EVENT_PREFIX["Removed"]):
@@ -85,32 +89,36 @@ class DocumentQueue:
             return
         # On types and fields, see
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
-        body = {
-            # Elastic native keys
-            "_id": f"{key}:{version_id}",
-            "_index": bucket,
-            "_type": "_doc",
-            # index will upsert (and clobber existing equivalent _ids)
-            "_op_type": "delete" if event_type.startswith(EVENT_PREFIX["Removed"]) else "index",
-            # Quilt keys
-            # Be VERY CAREFUL changing these values, as a type change can cause a
-            # mapper_parsing_exception that below code won't handle
-            # TODO: remove this field from ES in /enterprise (now deprecated and unused)
-            "comment": "",
-            "content": text,  # field for full-text search
-            "etag": etag,
-            "event": event_type,
-            "ext": ext,
-            "key": key,
-            # "key_text": created by mappings copy_to
-            "last_modified": last_modified.isoformat(),
-            # TODO: remove this field from ES in /enterprise (now deprecated and unused)
-            "meta_text": "",
-            "size": size,
-            "target": "",
-            "updated": datetime.utcnow().isoformat(),
-            "version_id": version_id
-        }
+        # Form the appropriate document type
+        if doc_type == DocTypes.PACKAGE:
+            pass
+        elif doc_type == DocTypes.OBJECT:
+            body = {
+                # Elastic native keys
+                "_id": f"{key}:{version_id}",
+                "_index": bucket,
+                "_type": "_doc",
+                # index will upsert (and clobber existing equivalent _ids)
+                "_op_type": "delete" if event_type.startswith(EVENT_PREFIX["Removed"]) else "index",
+                # Quilt keys
+                # Be VERY CAREFUL changing these values, as a type change can cause a
+                # mapper_parsing_exception that below code won't handle
+                # TODO: remove this field from ES in /enterprise (now deprecated and unused)
+                "comment": "",
+                "content": text,  # field for full-text search
+                "etag": etag,
+                "event": event_type,
+                "ext": ext,
+                "key": key,
+                # "key_text": created by mappings copy_to
+                "last_modified": last_modified.isoformat(),
+                # TODO: remove this field from ES in /enterprise (now deprecated and unused)
+                "meta_text": "",
+                "size": size,
+                "target": "",
+                "updated": datetime.utcnow().isoformat(),
+                "version_id": version_id
+            }
 
         self.append_document(body)
 
