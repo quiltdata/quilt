@@ -1,6 +1,7 @@
 """ core logic for fetching documents from S3 and queueing them locally before
 sending to elastic search in memory-limited batches"""
 from datetime import datetime
+from enum import Enum
 from math import floor
 import os
 
@@ -47,6 +48,10 @@ class RetryError(Exception):
     def __init__(self, message):
         pass
 
+class DocType(Enum):
+    OBJECT = 1
+    PACKAGE = 2
+
 
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
@@ -59,24 +64,18 @@ class DocumentQueue:
     def append(
             self,
             event_type,
-            size=0,
             *,
-            last_modified,
+            doc_type=DocType.OBJECT,
             bucket,
-            ext,
-            key,
-            text,
             etag,
-            version_id
+            ext,
+            last_modified,
+            key,
+            size=0,
+            text,
+            version_id=None
     ):
         """format event as a document and then queue the document"""
-        if not isinstance(version_id, (str, type(None))):
-            # should never raise given how index.py, the only caller of .append(),
-            # works
-            raise ValueError(
-                f".append() must set version_id even if missing from event; "
-                f"got {version_id}"
-            )
         if event_type.startswith(EVENT_PREFIX["Created"]):
             _op_type = "index"
         elif event_type.startswith(EVENT_PREFIX["Removed"]):
