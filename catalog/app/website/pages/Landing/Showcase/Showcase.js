@@ -56,7 +56,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Showcase() {
   const classes = useStyles()
   const lede = useExperiments('lede')
-  const talk = useTalkToUs()
+  const talk = useTalkToUs({ src: 'lede' })
   return (
     <div className={classes.root}>
       <Overlay2 />

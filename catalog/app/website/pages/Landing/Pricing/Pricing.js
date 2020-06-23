@@ -45,7 +45,7 @@ const PLANS = [
       <Btn
         className={className}
         color="primary"
-        onClick={talk}
+        onClick={() => talk({ src: 'pricing/marketplace' })}
         trackingName="marketplace"
       >
         Talk To Us
@@ -65,7 +65,12 @@ const PLANS = [
       'Education and instruction',
     ],
     cta: ({ talk, className }) => (
-      <Btn className={className} color="secondary" onClick={talk} trackingName="contact">
+      <Btn
+        className={className}
+        color="secondary"
+        onClick={() => talk({ src: 'pricing/enterprise' })}
+        trackingName="contact"
+      >
         Talk To Us
       </Btn>
     ),
