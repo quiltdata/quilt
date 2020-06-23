@@ -52,48 +52,31 @@ def get_logical_key_folder_view(s3response):
 @api(cors_origins=get_default_origins())
 def lambda_handler(request):
     """
-    Sign the request and forward it to S3.
+    Parse a manifest to return a virtual folder-level view inside
+    a package.
     """
-    if not (request.method == 'POST' and 'select' in request.args):
-        return requests.codes.bad_request, 'Not an S3 select', {'content-type': 'text/plain'}
 
-    bucket, key = request.pathParameters['proxy'].split('/', 1)
-    host = f'{bucket}.s3.amazonaws.com'
+    folder = "/".join(pathlib.PurePosixPath(prefix).parts) if prefix else ""
 
-    # Make an unsigned HEAD request to test anonymous access.
+    sql_stmt = "SELECT s.logical_key from s3object s"
+    if prefix:
+        sql_stmt += f" WHERE s.logical_key LIKE ('{prefix}%')" 
 
-    object_url = f'https://{host}/{key}'
-    head_response = session.head(object_url)
-    if not head_response.ok:
-        return requests.codes.forbidden, 'Not allowed', {'content-type': 'text/plain'}
+    bucket_name = "allencell"
+    file_name = ".quilt/packages/7fd488f05ec41968607c7263cb13b3e70812972a24e832ef6f72195bdd35f1b2"
 
-    # Sign the full S3 select request.
 
-    url = f'{object_url}?{urlencode(request.args)}'
-
-    headers = {k: v for k, v in request.headers.items() if k in REQUEST_HEADERS_TO_FORWARD}
-    headers['host'] = host
-
-    aws_request = AWSRequest(
-        method=request.method,
-        url=url,
-        data=request.data,
-        headers={k: v for k, v in headers.items() if k in REQUEST_HEADERS_TO_SIGN}
-    )
-    credentials = Session().get_credentials()
-    auth = SigV4Auth(credentials, SERVICE, REGION)
-    auth.add_auth(aws_request)
-
-    headers.update(aws_request.headers)
-
-    response = session.post(
-        url=url,
-        data=request.data,  # Forward the POST data.
-        headers=headers,
+    response = s3.select_object_content(
+        Bucket=bucket_name,
+        Key=file_name,
+        ExpressionType='SQL',
+        Expression=sql_stmt,
+        InputSerialization = {'JSON': {'Type': 'DOCUMENT'}},
+        OutputSerialization = {'JSON': { 'RecordDelimiter': '\n',}}
     )
 
     response_headers = {k: v for k, v in response.headers.items() if k in RESPONSE_HEADERS_TO_FORWARD}
     # Add a default content type to prevent API Gateway from setting it to application/json.
     response_headers.setdefault('content-type', 'application/octet-stream')
 
-    return response.status_code, get_logical_key_folder_view(response.content), response_headers
+    return response.status_code, get_logical_key_folder_view(response), response_headers

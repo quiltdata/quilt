@@ -12,11 +12,12 @@ import uuid
 import warnings
 
 import jsonlines
+import pandas as pd
 from tqdm import tqdm
 
 from .data_transfer import (
     calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_version,
-    list_object_versions, list_url, put_bytes
+    list_object_versions, list_url, put_bytes, select
 )
 from .exceptions import PackageException
 from .formats import FormatRegistry
@@ -1478,3 +1479,78 @@ class Package:
                 return False
 
         return True
+
+    def ls(self, prefix=None):
+        """
+        List a virtual folder in the package logical key space.
+        """
+
+        folder = "/".join(pathlib.PurePosixPath(prefix).parts) if prefix else ""
+        
+        sql_stmt = "SELECT s.logical_key from s3object s"
+        if prefix:
+            sql_stmt += f" WHERE s.logical_key LIKE ('{prefix}%')" 
+
+        bucket_name = "allencell"
+        file_name = ".quilt/packages/7fd488f05ec41968607c7263cb13b3e70812972a24e832ef6f72195bdd35f1b2"
+
+        pkey = PhysicalKey(bucket_name, file_name, None)
+        """
+        req = s3.select_object_content(
+            Bucket=bucket_name,
+            Key=file_name,
+            ExpressionType='SQL',
+            Expression=sql_stmt,
+            InputSerialization = {'JSON': {'Type': 'DOCUMENT'}},
+            OutputSerialization = {'JSON': { 'RecordDelimiter': '\n',}}
+        )
+        """
+        req = select(
+            pkey,
+            sql_stmt,
+            raw=True,
+            meta={'target': "jsonl"},
+            InputSerialization = {'JSON': {'Type': 'DOCUMENT'}},
+            OutputSerialization = {'JSON': { 'RecordDelimiter': '\n',}}
+        )
+        
+        buffer = io.StringIO()
+        for event in req['Payload']:
+            if 'Records' in event:
+                records = event['Records']['Payload'].decode('utf-8')
+                buffer.write(records)
+            elif 'Stats' in event:
+                statsDetails = event['Stats']['Details']
+        buffer.seek(0)
+        df = pd.read_json(buffer, lines=True)
+
+        buffer.seek(0)        
+        print("Python TIME!")
+        start = time.time()
+        folders = set()
+
+        for line in list(buffer):
+            obj = json.loads(line)
+            lkey = obj.get('logical_key')
+            if lkey:
+                folder = pathlib.PurePosixPath(lkey).parts[0]
+                folders.add(folder)
+
+        end = time.time()
+        print(f"TIME in s: {end - start}")
+        print("OBJ FOLDERS:")
+        print(folders)
+
+        print("PANDAS TIME!")
+        print(df.shape)
+        start = time.time()
+        #folders = pd.Series(stripped.str.extract('(\w*)/')[0].unique())
+        #split = df.logical_key.str.split('/', expand=True)
+        #folders = split.groupby([split[0], split[1]]).count()
+        #folders = df.groupby([df.logical_key.str.split('/', expand=True)[0], df.logical_key.str.contains('/')]).count()
+        folders = df.logical_key.str.extract('([^/]+/?).*')[0].unique()
+        end = time.time()
+        print(f"TIME in s: {end - start}")
+
+        return folders
+
