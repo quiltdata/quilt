@@ -296,12 +296,17 @@ function useLinks() {
   ].filter(Boolean)
 }
 
-function Talk() {
+// pad: 'l' | 'r'
+function Talk({ pad }) {
   const talk = useTalkToUs({ src: 'header' })
+  const props = {}
+  if (pad) props[`m${pad}`] = 1
   return (
-    <M.Button variant="contained" color="primary" onClick={talk}>
-      Talk To Us
-    </M.Button>
+    <M.Box {...props}>
+      <M.Button variant="contained" color="primary" onClick={talk}>
+        Talk To Us
+      </M.Button>
+    </M.Box>
   )
 }
 
@@ -337,8 +342,6 @@ export function NavBar() {
         </M.Box>
       )}
 
-      {cfg.mode === 'MARKETING' && !useHamburger && <Talk />}
-
       {!cfg.disableNavigator &&
         cfg.mode !== 'LOCAL' &&
         !useHamburger &&
@@ -347,6 +350,8 @@ export function NavBar() {
         ) : (
           !isSignIn && <SignIn error={error} waiting={waiting} />
         ))}
+
+      {cfg.mode === 'MARKETING' && <Talk pad={useHamburger ? 'r' : 'l'} />}
 
       {useHamburger &&
         (cfg.disableNavigator || cfg.mode === 'LOCAL' ? (
