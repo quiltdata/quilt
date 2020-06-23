@@ -58,6 +58,7 @@ from t4_lambda_shared.preview import (
 )
 
 from document_queue import (
+    DocTypes,
     DocumentQueue,
     CONTENT_INDEX_EXTS,
     EVENT_PREFIX,
@@ -296,6 +297,7 @@ def handler(event, context):
                 if event_name.startswith(EVENT_PREFIX["Removed"]):
                     batch_processor.append(
                         event_name,
+                        DocTypes.OBJECT,
                         bucket=bucket,
                         ext=ext,
                         etag=etag,
@@ -353,6 +355,7 @@ def handler(event, context):
 
                 batch_processor.append(
                     event_name,
+                    DocTypes.OBJECT,
                     bucket=bucket,
                     key=key,
                     ext=ext,
