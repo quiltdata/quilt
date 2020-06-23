@@ -89,18 +89,21 @@ export default function Showcase() {
                 data sets in S3.
               </M.Typography>
             </M.Box>
-            <M.Box mt={5}>
-              <M.Button variant="contained" color="primary" onClick={talk}>
-                Book a demo
-              </M.Button>
-              <M.Box display="inline-block" ml={2} />
-              <M.Button
-                variant="contained"
-                color="secondary"
-                href="https://open.quiltdata.com"
-              >
-                Explore data with Quilt
-              </M.Button>
+            <M.Box mt={3}>
+              <M.Box mt={2} mr={2} display="inline-block">
+                <M.Button variant="contained" color="primary" onClick={talk}>
+                  Book a demo
+                </M.Button>
+              </M.Box>
+              <M.Box mt={2} display="inline-block">
+                <M.Button
+                  variant="contained"
+                  color="secondary"
+                  href="https://open.quiltdata.com"
+                >
+                  Explore data with Quilt
+                </M.Button>
+              </M.Box>
             </M.Box>
             <M.Box mt={5}>
               <ChevronLink href="https://docs.quiltdata.com/installation">
