@@ -66,19 +66,24 @@ class DocumentQueue:
             self,
             event_type,
             doc_type,
+            ext='',
+            handle='',
+            metadata='',
+            package_hash='',
+            text='',
+            version_id=None,
             *,
             bucket,
-            etag,
-            ext,
-            last_modified,
             key,
-            size=0,
-            text,
-            version_id=None
+            etag,
+            last_modified,
+            size=0
     ):
         """format event as a document and then queue the document"""
         if doc_type not in DocTypes:
-            raise ValueError(f"doc_type must be a member of document_queue.DocTypes")
+            raise ValueError("doc_type must be a member of document_queue.DocTypes")
+        if not bucket:
+            raise ValueError("argument bucket= required for all documents")
 
         if event_type.startswith(EVENT_PREFIX["Created"]):
             _op_type = "index"
@@ -91,7 +96,12 @@ class DocumentQueue:
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
         # Form the appropriate document type
         if doc_type == DocTypes.PACKAGE:
-            pass
+            if not handle or not package_hash:
+                raise ValueError("missing required argument for package document")
+            body = {
+                "_id": f"{handle}:{package_hash}",
+                "_index": "bucket"
+            }
         elif doc_type == DocTypes.OBJECT:
             body = {
                 # Elastic native keys
