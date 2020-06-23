@@ -18,6 +18,10 @@ function insertEl(tag, attrs) {
 function getCalendlyPromise() {
   if (!window[CALENDLY_PROMISE]) {
     window[CALENDLY_PROMISE] = new Promise((resolve, reject) => {
+      if (window.Calendly) {
+        resolve(window.Calendly)
+        return
+      }
       insertEl('script', {
         src: CALENDLY_JS,
         async: true,
