@@ -1541,14 +1541,18 @@ class Package:
         print("OBJ FOLDERS:")
         print(folders)
 
-        print("PANDAS TIME!")
+        print("REGEX TIME!")
         print(df.shape)
         start = time.time()
-        #folders = pd.Series(stripped.str.extract('(\w*)/')[0].unique())
-        #split = df.logical_key.str.split('/', expand=True)
-        #folders = split.groupby([split[0], split[1]]).count()
-        #folders = df.groupby([df.logical_key.str.split('/', expand=True)[0], df.logical_key.str.contains('/')]).count()
         folders = df.logical_key.str.extract('([^/]+/?).*')[0].unique()
+        end = time.time()
+        print(f"TIME in s: {end - start}")
+
+        print("PARTITION TIME!")
+        print(df.shape)
+        start = time.time()
+        split = df.logical_key.str.split('/', expand=True)
+        folders = split.groupby([split[0], split[1].notna()]).count()
         end = time.time()
         print(f"TIME in s: {end - start}")
 
