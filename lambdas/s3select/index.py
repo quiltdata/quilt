@@ -92,8 +92,10 @@ def lambda_handler(request):
         headers=headers,
     )
 
+    content = get_logical_key_folder_view(response.json())
+
     response_headers = {k: v for k, v in response.headers.items() if k in RESPONSE_HEADERS_TO_FORWARD}
     # Add a default content type to prevent API Gateway from setting it to application/json.
     response_headers.setdefault('content-type', 'application/octet-stream')
 
-    return response.status_code, get_logical_key_folder_view(response.content), response_headers
+    return response.status_code, content, response_headers
