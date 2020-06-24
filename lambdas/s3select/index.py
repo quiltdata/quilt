@@ -4,6 +4,7 @@ Sign S3 select requests (because S3 select does not allow anonymous access).
 The implementation doesn't care what the request is, and just signs it using
 the current AWS credentials.
 """
+import json
 import os
 from urllib.parse import urlencode
 
@@ -37,44 +38,23 @@ def lambda_handler(request):
     bucket, key = request.pathParameters['proxy'].split('/', 1)
     host = f'{bucket}.s3.amazonaws.com'
 
-    # Make an unsigned HEAD request to test anonymous access.
+    # Call S3 Select
+    sql_stmt = "SELECT s.logical_key from s3object s"
+        if prefix:
+        sql_stmt += f" WHERE s.logical_key LIKE ('{prefix}%')" 
 
-    object_url = f'https://{host}/{key}'
-    head_response = session.head(object_url)
-    if not head_response.ok:
-        return requests.codes.forbidden, 'Not allowed', {'content-type': 'text/plain'}
-
-    # Sign the full S3 select request.
-
-    url = f'{object_url}?{urlencode(request.args)}'
-
-    headers = {k: v for k, v in request.headers.items() if k in REQUEST_HEADERS_TO_FORWARD}
-    headers['host'] = host
-
-    print(url)
-    
-    aws_request = AWSRequest(
-        method=request.method,
-        url=url,
-        data=request.data,
-        headers={k: v for k, v in headers.items() if k in REQUEST_HEADERS_TO_SIGN}
+    repsonse = s3.select_object_content(
+        Bucket=bucket_name,
+        Key=key,
+        ExpressionType='SQL',
+        Expression=sql_stmt,
+        InputSerialization = {'JSON': {'Type': 'DOCUMENT'}},
+        OutputSerialization = {'JSON': { 'RecordDelimiter': '\n',}}
     )
-    credentials = Session().get_credentials()
-    auth = SigV4Auth(credentials, SERVICE, REGION)
-    auth.add_auth(aws_request)
-
-    headers.update(aws_request.headers)
-
-    response = session.post(
-        url=url,
-        data=request.data,  # Forward the POST data.
-        headers=headers,
-    )
-
-    content = get_logical_key_folder_view(response.json())
+    content = get_logical_key_folder_view(response)
 
     response_headers = {k: v for k, v in response.headers.items() if k in RESPONSE_HEADERS_TO_FORWARD}
     # Add a default content type to prevent API Gateway from setting it to application/json.
-    response_headers.setdefault('content-type', 'application/octet-stream')
+    #response_headers.setdefault('content-type', 'application/octet-stream')
 
-    return response.status_code, content, response_headers
+    return response.status_code, json.dumps(content), response_headers

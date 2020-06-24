@@ -1552,7 +1552,7 @@ class Package:
         print(df.shape)
         start = time.time()
         split = df.logical_key.str.split('/', expand=True)
-        folders = split.groupby([split[0], split[1].notna()]).count()
+        folders = split.groupby([split[0], split[1]]).count()
         end = time.time()
         print(f"TIME in s: {end - start}")
 
