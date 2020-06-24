@@ -101,7 +101,7 @@ class PackageTest(QuiltTestCase):
 
         # Build a new package into the local registry.
         new_pkg = new_pkg.set('foo', test_file_name)
-        top_hash = new_pkg.build("Quilt/Test").top_hash
+        top_hash = new_pkg.build("Quilt/Test")
 
         # Verify manifest is registered by hash.
         out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
@@ -117,7 +117,7 @@ class PackageTest(QuiltTestCase):
         # Test unnamed packages.
         new_pkg = Package()
         new_pkg = new_pkg.set('bar', test_file_name)
-        top_hash = new_pkg.build('Quilt/Test').top_hash
+        top_hash = new_pkg.build('Quilt/Test')
         out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
         with open(out_path) as fd:
             pkg = Package.load(fd)
@@ -134,7 +134,7 @@ class PackageTest(QuiltTestCase):
 
         # Build a new package into the local registry.
         new_pkg = new_pkg.set('foo', test_file_name)
-        top_hash = new_pkg.build("Quilt/Test").top_hash
+        top_hash = new_pkg.build("Quilt/Test")
 
         # Verify manifest is registered by hash.
         out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
@@ -150,7 +150,7 @@ class PackageTest(QuiltTestCase):
         # Test unnamed packages.
         new_pkg = Package()
         new_pkg = new_pkg.set('bar', test_file_name)
-        top_hash = new_pkg.build("Quilt/Test").top_hash
+        top_hash = new_pkg.build("Quilt/Test")
         out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
         with open(out_path) as fd:
             pkg = Package.load(fd)
@@ -957,7 +957,7 @@ class PackageTest(QuiltTestCase):
 
     def test_local_package_delete(self):
         """Verify local package delete works."""
-        top_hash = Package().build("Quilt/Test").top_hash
+        top_hash = Package().build("Quilt/Test")
         assert 'Quilt/Test' in quilt3.list_packages()
 
         quilt3.delete_package('Quilt/Test')
@@ -1098,7 +1098,7 @@ class PackageTest(QuiltTestCase):
         pkg = Package()
         pkg.set('as/df', LOCAL_MANIFEST)
         pkg.set('as/qw', LOCAL_MANIFEST)
-        top_hash = pkg.build('foo/bar').top_hash
+        top_hash = pkg.build('foo/bar')
         manifest = list(pkg.manifest)
 
         pkg2 = Package.browse('foo/bar', top_hash=top_hash)
