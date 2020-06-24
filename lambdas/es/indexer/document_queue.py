@@ -3,6 +3,7 @@ sending to elastic search in memory-limited batches"""
 from datetime import datetime
 from enum import Enum
 from math import floor
+from typing import List
 import os
 
 from aws_requests_auth.aws_auth import AWSRequestsAuth
@@ -71,6 +72,7 @@ class DocumentQueue:
             handle: str = '',
             metadata: str = '',
             package_hash: str = '',
+            tags: List[str] = (),
             text: str = '',
             version_id=None,
             *,
@@ -100,15 +102,17 @@ class DocumentQueue:
             "_index": bucket,
             "comment": comment,
             "etag": etag,
-            "last_modified": last_modified.isoformat(),
             "key": key,
-            "size": size,
+            "last_modified": last_modified.isoformat(),
+            "size": size
         }
         if doc_type == DocTypes.PACKAGE:
             if not handle or not package_hash:
                 raise ValueError("missing required argument for package document")
             body.update({
                 "_id": f"{handle}:{package_hash}",
+                "handle": handle,
+                "hash": package_hash,
                 "metadata": metadata
             })
         elif doc_type == DocTypes.OBJECT:
