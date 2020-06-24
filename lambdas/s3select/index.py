@@ -35,7 +35,7 @@ def get_logical_key_folder_view(s3response):
     lambda).
     """
     buffer = io.StringIO()
-    for event in req['Payload']:
+    for event in s3response['Payload']:
         if 'Records' in event:
             records = event['Records']['Payload'].decode('utf-8')
             buffer.write(records)
