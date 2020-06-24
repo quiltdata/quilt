@@ -8,6 +8,7 @@ import json
 import os
 from urllib.parse import urlencode
 
+import boto3
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
 from botocore.session import Session
@@ -40,11 +41,12 @@ def lambda_handler(request):
 
     # Call S3 Select
     sql_stmt = "SELECT s.logical_key from s3object s"
-        if prefix:
-        sql_stmt += f" WHERE s.logical_key LIKE ('{prefix}%')" 
+    #if prefix:
+    #        sql_stmt += f" WHERE s.logical_key LIKE ('{prefix}%')" 
 
-    repsonse = s3.select_object_content(
-        Bucket=bucket_name,
+    s3 = boto3.client('s3')
+    response = s3.select_object_content(
+        Bucket=bucket,
         Key=key,
         ExpressionType='SQL',
         Expression=sql_stmt,
@@ -53,8 +55,9 @@ def lambda_handler(request):
     )
     content = get_logical_key_folder_view(response)
 
-    response_headers = {k: v for k, v in response.headers.items() if k in RESPONSE_HEADERS_TO_FORWARD}
+    #response_headers = {k: v for k, v in response.headers.items() if k in RESPONSE_HEADERS_TO_FORWARD}
+    response_headers = {}
     # Add a default content type to prevent API Gateway from setting it to application/json.
     #response_headers.setdefault('content-type', 'application/octet-stream')
 
-    return response.status_code, json.dumps(content), response_headers
+    return requests.codes.ok, json.dumps(content), response_headers

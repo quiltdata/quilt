@@ -20,5 +20,5 @@ def get_logical_key_folder_view(s3response):
 
     # matches all strings; everything before and including the first
     # / is extracted
-    folder = df.logical_key.dropna().str.extract('([^/]+/?).*')[0].unique()
+    folder = df.logical_key.dropna().str.extract('([^/]+/?).*')[0].unique().tolist()
     return folder
