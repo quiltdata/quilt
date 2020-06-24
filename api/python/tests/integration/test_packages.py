@@ -675,12 +675,8 @@ class PackageTest(QuiltTestCase):
         assert pkg['bar']._meta == {'target': 'unicode', 'user_meta': {'value': 'blah2'}}
 
         pkg['foo'].set_meta({'value': 'other value'})
-        pkg['bar'].set_meta({})
         assert pkg['foo'].meta == {'value': 'other value'}
         assert pkg['foo']._meta == {'target': 'unicode', 'user_meta': {'value': 'other value'}}
-
-        assert pkg['foo'].get_meta() == {'value': 'other value'}
-        assert pkg['bar'].get_meta() is None
 
     def test_list_local_packages(self):
         """Verify that list returns packages in the appdirs directory."""

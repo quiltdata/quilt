@@ -149,12 +149,6 @@ class PackageEntry:
         """
         self._meta['user_meta'] = meta
 
-    def get_meta(self):
-        """
-        Gets the user_meta for this PackageEntry.
-        """
-        return self.meta or None
-
     def _verify_hash(self, read_bytes):
         """
         Verifies hash of bytes
@@ -382,10 +376,6 @@ class Package:
             repr_str += ' ' + '...\n'
 
         return repr_str
-
-    @property
-    def meta(self):
-        return self._meta.get('user_meta', dict())
 
     @classmethod
     @ApiTelemetry("package.install")
@@ -856,18 +846,16 @@ class Package:
 
         return self["README.md"]
 
+    @property
+    def meta(self):
+        return self._meta.get('user_meta', dict())
+
     def set_meta(self, meta):
         """
         Sets user metadata on this Package.
         """
         self._meta['user_meta'] = meta
         return self
-
-    def get_meta(self):
-        """
-        Gets user metadata on this Package.
-        """
-        return self.meta or None
 
     def _fix_sha256(self):
         """
