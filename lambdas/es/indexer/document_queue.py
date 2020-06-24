@@ -66,19 +66,21 @@ class DocumentQueue:
             self,
             event_type: str,
             doc_type: DocTypes,
-            ext='',
-            handle='',
-            metadata='',
-            package_hash='',
-            text='',
+            # properties unique to a document type are non-required kwargs
+            ext: str = '',
+            handle: str = '',
+            metadata: str = '',
+            package_hash: str = '',
+            text: str = '',
             version_id=None,
             *,
+            # common properties are required kwargs
             bucket: str,
-            comment='',
+            comment: str = '',
             key: str,
             etag: str,
             last_modified: datetime,
-            size=0
+            size: int = 0
     ):
         """format event as a document and then queue the document"""
         if not bucket:
@@ -96,7 +98,6 @@ class DocumentQueue:
         # Set common properties on the document
         body = {
             "_index": bucket,
-            "_op_type": "delete" if event_type.startswith(EVENT_PREFIX["Removed"]) else "index",
             "comment": comment,
             "etag": etag,
             "last_modified": last_modified.isoformat(),
