@@ -74,6 +74,8 @@ def lambda_handler(request):
     headers = {k: v for k, v in request.headers.items() if k in REQUEST_HEADERS_TO_FORWARD}
     headers['host'] = host
 
+    print(url)
+    
     aws_request = AWSRequest(
         method=request.method,
         url=url,
