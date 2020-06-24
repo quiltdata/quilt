@@ -4,7 +4,6 @@ Sign S3 select requests (because S3 select does not allow anonymous access).
 The implementation doesn't care what the request is, and just signs it using
 the current AWS credentials.
 """
-import io
 import os
 from urllib.parse import urlencode
 
@@ -12,10 +11,10 @@ from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
 from botocore.session import Session
 
-import pandas as pd
 import requests
 
 from t4_lambda_shared.decorator import api
+from t4_lambda_shared.package_browse import get_logical_key_folder_view
 from t4_lambda_shared.utils import get_default_origins
 
 SERVICE = 's3'
@@ -26,28 +25,6 @@ REQUEST_HEADERS_TO_SIGN = {'host', 'x-amz-content-sha256', 'x-amz-user-agent'}
 RESPONSE_HEADERS_TO_FORWARD = {'content-type'}
 
 session = requests.Session()
-
-
-def get_logical_key_folder_view(s3response):
-    """
-    Post process a set of logical keys to return only the
-    top-level folder view (a special case of the s3-select
-    lambda).
-    """
-    buffer = io.StringIO()
-    for event in s3response['Payload']:
-        if 'Records' in event:
-            records = event['Records']['Payload'].decode('utf-8')
-            buffer.write(records)
-        elif 'Stats' in event:
-            statsDetails = event['Stats']['Details']
-    buffer.seek(0)
-    df = pd.read_json(buffer, lines=True)
-
-    # matches all strings; everything before and including the first
-    # / is extracted
-    folder = df.logical_key.str.extract('([^/]+/?).*')[0].unique()
-    return folder
 
 @api(cors_origins=get_default_origins())
 def lambda_handler(request):
