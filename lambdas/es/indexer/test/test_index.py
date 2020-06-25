@@ -499,6 +499,7 @@ class TestIndex(TestCase):
                 "skip_byte_range": True
             }
         )
+        get_mock.assert_called_once()
 
     @patch.object(index.DocumentQueue, 'append')
     @patch.object(index, 'get_contents')
