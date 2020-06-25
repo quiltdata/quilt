@@ -485,9 +485,9 @@ class TestIndex(TestCase):
         )
 
     @patch.object(index, 'extract_parquet')
-    def test_index_c000(self, get_mock):
+    def test_index_c000(self, extract_mock):
         """ensure files with special extensions get treated as parquet"""
-        get_mock.return_value = ('parquet-body', 'parquet-info')
+        extract_mock.return_value = ('parquet-body', 'parquet-info')
         self._test_index_events(
             ["ObjectCreated:Put"],
             expected_es_calls=1,
@@ -499,14 +499,14 @@ class TestIndex(TestCase):
                 "skip_byte_range": True
             }
         )
-        get_mock.assert_called_once()
+        extract_mock.assert_called_once()
 
     @patch.object(index.DocumentQueue, 'append')
     @patch.object(index, 'get_contents')
-    def test_index_c000_contents(self, fake_get_contents, fake_append):
+    def test_index_c000_contents(self, get_mock, append_mock):
         """ensure files with special extensions get treated as parquet"""
         parquet_data = b'@@parquet-data@@'
-        fake_get_contents.return_value = parquet_data
+        get_mock.return_value = parquet_data
         self._test_index_events(
             ["ObjectCreated:Put"],
             # we're mocking append so ES will never get called
@@ -522,9 +522,9 @@ class TestIndex(TestCase):
                 "skip_byte_range": True
             }
         )
-        fake_get_contents.assert_called_once()
+        get_mock.assert_called_once()
         # ensure parquet data is getting to elastic
-        fake_append.assert_called_once_with(
+        append_mock.assert_called_once_with(
             'ObjectCreated:Put',
             bucket='test-bucket',
             etag='123456',
