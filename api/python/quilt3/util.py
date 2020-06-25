@@ -520,10 +520,11 @@ def catalog_s3_url(catalog_url, s3_url):
     return url
 
 
-def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="latest"):
+def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="latest", tree=True):
     """
     Generate a URL to the Quilt catalog page of a package. By default will go to the latest version of the package,
     but the user can pass in the appropriate timestamp to go to a different version.
+    Disabling tree by passing `tree=False` will generate a package URL without tree path.
 
     Note: There is currently no good way to generate the URL given a specific tophash
     """
@@ -531,4 +532,7 @@ def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="la
     assert package_name is not None, "The package_name parameter must not be None"
     validate_package_name(package_name)
 
-    return f"{catalog_url}/b/{bucket}/packages/{package_name}/tree/{package_timestamp}"
+    package_url = f"{catalog_url}/b/{bucket}/packages/{package_name}"
+    if tree:
+        package_url = package_url + f"/tree/{package_timestamp}"
+    return package_url
