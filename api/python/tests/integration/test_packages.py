@@ -1019,7 +1019,7 @@ class PackageTest(QuiltTestCase):
             }
         )
 
-        for path in ['Quilt/Test/0', 'Quilt/Test/latest', 'Quilt/Test/', 'Quilt/']:
+        for path in ['Quilt/Test/0', 'Quilt/Test/latest']:
             self.s3_stubber.add_response(
                 method='delete_object',
                 service_response={},

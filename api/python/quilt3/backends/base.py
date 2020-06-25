@@ -1,7 +1,7 @@
 import abc
 import time
 
-from quilt3.data_transfer import list_url, get_bytes, delete_url, copy_file, put_bytes
+from quilt3.data_transfer import list_url, delete_url, copy_file, put_bytes, get_bytes
 from quilt3.util import PhysicalKey, QuiltException
 
 
@@ -108,25 +108,6 @@ class PackageRegistryV1(PackageRegistry):
     def manifest_pk(self, pkg_name: str, top_hash: str) -> PhysicalKey:
         return self.root.join(f'packages/{top_hash}')
 
-    def list_packages(self):
-        prev_pkg = None
-        for path, _ in list_url(self.pointers_global_dir):
-            parts = path.split('/')
-            if len(parts) == 3:
-                pkg = f'{parts[0]}/{parts[1]}'
-                # A package can have multiple versions, but we should only return the name once.
-                if pkg != prev_pkg:
-                    prev_pkg = pkg
-                    yield pkg
-
-    def list_package_versions(self, pkg_name: str):
-        package_dir = self.pointers_dir(pkg_name)
-        for path, _ in list_url(package_dir):
-            parts = path.split('/')
-            if len(parts) == 1:
-                pkg_hash = get_bytes(package_dir.join(parts[0]))
-                yield parts[0], pkg_hash.decode().strip()
-
     def delete_package(self, pkg_name: str, top_hash: str = None):
         package_path = self.pointers_dir(pkg_name)
         paths = list(list_url(package_path))
@@ -138,32 +119,20 @@ class PackageRegistryV1(PackageRegistry):
             deleted = []
             remaining = []
             for path, _ in paths:
-                parts = path.split('/')
-                if len(parts) == 1:
-                    pkg_hash = get_bytes(package_path.join(parts[0]))
-                    if pkg_hash.decode().strip() == top_hash:
-                        deleted.append(parts[0])
-                    else:
-                        remaining.append(parts[0])
+                pkg_hash = get_bytes(self.pointer_pk(pkg_name, path)).decode()
+                (deleted if pkg_hash == top_hash else remaining).append(path)
             if not deleted:
                 raise QuiltException("No such package version exists in the given directory.")
             for path in deleted:
-                delete_url(package_path.join(path))
+                delete_url(self.pointer_pk(pkg_name, path))
             if 'latest' in deleted and remaining:
                 # Create a new "latest". Technically, we need to compare numerically,
                 # but string comparisons will be fine till year 2286.
                 new_latest = max(remaining)
-                copy_file(package_path.join(new_latest), package_path.join('latest'))
+                copy_file(self.pointer_pk(pkg_name, new_latest), self.pointer_latest_pk(pkg_name))
         else:
             for path, _ in paths:
-                delete_url(package_path.join(path))
-
-        # TODO: move to LocalRegistry?
-        # Will ignore non-empty dirs.
-        # TODO: .join('') adds a trailing slash - but need a better way.
-        delete_url(package_path.join(''))
-        usr = pkg_name.split('/')[0]
-        delete_url(self.pointers_global_dir.join(usr).join(''))
+                delete_url(self.pointer_pk(pkg_name, path))
 
     def push_manifest(self, pkg_name: str, top_hash: str, manifest_data: bytes):
         put_bytes(manifest_data, self.manifest_pk(pkg_name, top_hash))
