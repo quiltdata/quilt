@@ -336,7 +336,7 @@ class TestIndex(TestCase):
                 )
 
             if mock_object:
-                if mock_overrides and 'skip_byte_range' in mock_overrides:
+                if mock_overrides and mock_overrides.get('skip_byte_range'):
                     expected = expected_params.copy()
                 else:
                     expected = {
