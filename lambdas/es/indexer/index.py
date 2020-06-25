@@ -362,6 +362,7 @@ def handler(event, context):
                     size=size,
                     text=text
                 )
+
             except botocore.exceptions.ClientError as boto_exc:
                 if not should_retry_exception(boto_exc):
                     continue
