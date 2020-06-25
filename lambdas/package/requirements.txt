@@ -1,0 +1,33 @@
+# TODO: Should include ../shared/, but relative paths don't work as expected.
+# https://github.com/pypa/pip/issues/3772
+attrs==19.1.0
+bleach==3.1.4
+certifi==2020.4.5.1
+chardet==3.0.4
+decorator==4.4.0
+defusedxml==0.6.0
+entrypoints==0.3
+idna==2.8
+ipython-genutils==0.2.0
+Jinja2==2.10.1
+jsonschema==3.2.0
+jupyter-core==4.4.0
+MarkupSafe==1.1.1
+mistune==0.8.4
+nbconvert==5.5.0
+nbformat==4.4.0
+numpy==1.16.4
+pandas==0.25.1
+pandocfilters==1.4.2
+pyarrow==0.17.0
+Pygments==2.4.2
+pyrsistent==0.15.2
+python-dateutil==2.8.0
+pytz==2019.1
+requests==2.22.0
+six==1.12.0
+testpath==0.4.2
+traitlets==4.3.2
+urllib3==1.25.3
+webencodings==0.5.1
+xlrd==1.2.0
