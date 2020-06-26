@@ -963,6 +963,30 @@ class PackageTest(QuiltTestCase):
         quilt3.delete_package('Quilt/Test')
         assert 'Quilt/Test' not in quilt3.list_packages()
 
+    def test_local_delete_package_revision(self):
+        pkg_name = 'Quilt/Test'
+        top_hash1 = 'top_hash1'
+        top_hash2 = 'top_hash2'
+
+        with patch('quilt3.Package.top_hash', top_hash1), \
+             patch('time.time', return_value=1):
+            Package().build(pkg_name)
+
+        with patch('quilt3.Package.top_hash', top_hash2), \
+             patch('time.time', return_value=2):
+            Package().build(pkg_name)
+
+        assert pkg_name in quilt3.list_packages()
+        assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hash1, top_hash2}
+
+        quilt3.delete_package(pkg_name, top_hash=top_hash1)
+        assert pkg_name in quilt3.list_packages()
+        assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hash2}
+
+        quilt3.delete_package(pkg_name, top_hash=top_hash2)
+        assert pkg_name not in quilt3.list_packages()
+        assert not list(quilt3.list_package_versions(pkg_name))
+
     def test_remote_package_delete(self):
         """Verify remote package delete works."""
         self.s3_stubber.add_response(

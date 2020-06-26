@@ -487,6 +487,7 @@ class Package:
             hash_prefix(string): hash prefix with length between 6 and 64 characters
         """
         assert isinstance(registry, PhysicalKey)
+        assert not str(registry).rstrip('/').endswith('.quilt')
         if len(hash_prefix) == 64:
             top_hash = hash_prefix
         elif 6 <= len(hash_prefix) < 64:
