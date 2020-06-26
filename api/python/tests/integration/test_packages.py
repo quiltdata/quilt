@@ -681,6 +681,9 @@ class PackageTest(QuiltTestCase):
     def test_list_local_packages(self):
         """Verify that list returns packages in the appdirs directory."""
 
+        assert not list(quilt3.list_packages())
+        assert not list(quilt3.list_package_versions('test/not-exists'))
+
         # Build a new package into the local registry.
         with patch('time.time', return_value=1234567890):
             Package().build("Quilt/Foo")
