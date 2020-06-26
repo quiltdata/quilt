@@ -897,7 +897,7 @@ class TestIndex(TestCase):
     def test_unsupported_contents(self):
         assert self._get_contents('foo.exe', '.exe') == ""
         assert self._get_contents('foo.exe.gz', '.exe.gz') == ""
-    
+
     @patch.object(index, 'ELASTIC_LIMIT_BYTES', 100)
     def test_get_contents(self):
         parquet = (BASE_DIR / 'onlycolumns-c000').read_bytes()
@@ -959,7 +959,6 @@ class TestIndex(TestCase):
             )
             assert len(contents.encode()) <= index.ELASTIC_LIMIT_BYTES, \
                 'contents return more data than expected'
-
 
     def test_get_plain_text(self):
         self.s3_stubber.add_response(
