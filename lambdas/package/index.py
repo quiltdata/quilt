@@ -8,6 +8,7 @@ import io
 from contextlib import redirect_stderr
 from urllib.parse import urlparse
 
+import boto3
 import pandas
 import requests
 
@@ -20,47 +21,32 @@ from t4_lambda_shared.preview import (
     get_preview_lines
 )
 from t4_lambda_shared.utils import get_default_origins, make_json_response
-
+from t4_lambda_shared.package_browse import get_logical_key_folder_view, load_df
 
 S3_DOMAIN_SUFFIX = '.amazonaws.com'
 
 SCHEMA = {
     'type': 'object',
     'properties': {
-        'url': {
+        'bucket': {
             'type': 'string'
         },
-        # separator for CSV files
-        'sep': {
-            'minLength': 1,
-            'maxLength': 1
+        'key': {
+            'type': 'string'
         },
-        'max_bytes': {
-            'type': 'string',
+        'access_key': {
+            'type': 'string'
         },
-        # line_count used to be an integer with a max and min, which is more correct
-        # nevertheless, request.args has it as a string, even if
-        # the request specifies it as an integer
-        'line_count': {
-            'type': 'string',
+        'secret_key': {
+            'type': 'string'
         },
-        'input': {
-            'enum': FILE_EXTENSIONS
+        'prefix': {
+            'type': 'string'
         },
-        'exclude_output': {
-            'enum': ['true', 'false']
-        },
-        'compression': {
-            'enum': ['gz']
-        }
     },
-    'required': ['url', 'input'],
+    'required': ['bucket', 'key', 'access_key', 'secret_key'],
     'additionalProperties': False
 }
-
-# global option for pandas
-pandas.set_option('min_rows', 50)
-
 
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
@@ -71,21 +57,23 @@ def lambda_handler(request):
     Returns:
         JSON response
     """
-    url = request.args['url']
-    input_type = request.args.get('input')
-    compression = request.args.get('compression')
-    separator = request.args.get('sep') or ','
-    exclude_output = request.args.get('exclude_output') == 'true'
-
-    bucket, key = request.pathParameters['proxy'].split('/', 1)
+    bucket = request.args['bucket']
+    key = request.args['key']
+    aws_access_key_id = request.args['access_key']
+    aws_secret_access_key = request.args['secret_key']
+    prefix = request.args.get('prefix')
     host = f'{bucket}.s3.amazonaws.com'
 
     # Call S3 Select
     sql_stmt = "SELECT s.logical_key from s3object s"
-    #if prefix:
-    #        sql_stmt += f" WHERE s.logical_key LIKE ('{prefix}%')" 
+    if prefix:
+        sql_stmt += f" WHERE s.logical_key LIKE ('{prefix}%')" 
 
-    s3 = boto3.client('s3')
+    session = boto3.Session(
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key
+    )
+    s3 = session.client('s3')
     response = s3.select_object_content(
         Bucket=bucket,
         Key=key,
@@ -94,8 +82,11 @@ def lambda_handler(request):
         InputSerialization = {'JSON': {'Type': 'DOCUMENT'}},
         OutputSerialization = {'JSON': { 'RecordDelimiter': '\n',}}
     )
+
+    df, stats = load_df(response)
+
     ret_val = {
-        'contents': get_logical_key_folder_view(response)
+        'contents': get_logical_key_folder_view(df, prefix)
     }
 
-    return make_json_response(200, content)
+    return make_json_response(200, ret_val)
