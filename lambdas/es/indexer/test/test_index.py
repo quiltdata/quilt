@@ -1,6 +1,7 @@
 """
 Tests for the ES indexer. This function consumes events from SQS.
 """
+from string import ascii_lowercase
 from copy import deepcopy
 from gzip import compress
 from io import BytesIO
@@ -487,7 +488,7 @@ class TestIndex(TestCase):
     @patch.object(index, 'extract_parquet')
     def test_index_c000(self, extract_mock):
         """ensure files with special extensions get treated as parquet"""
-        extract_mock.return_value = ('parquet-body', 'parquet-info')
+        extract_mock.return_value = ('parquet-body', {'schema': {}})
         self._test_index_events(
             ["ObjectCreated:Put"],
             expected_es_calls=1,
@@ -896,6 +897,69 @@ class TestIndex(TestCase):
     def test_unsupported_contents(self):
         assert self._get_contents('foo.exe', '.exe') == ""
         assert self._get_contents('foo.exe.gz', '.exe.gz') == ""
+    
+    @patch.object(index, 'ELASTIC_LIMIT_BYTES', 100)
+    def test_get_contents(self):
+        parquet = (BASE_DIR / 'onlycolumns-c000').read_bytes()
+        # mock up the responses
+        size = len(parquet)
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'Metadata': {},
+                'ContentLength': size,
+                'Body': BytesIO(parquet),
+            }
+        )
+        contents = index.get_contents(
+            'test-bucket',
+            'some/dir/data.parquet',
+            '.parquet',
+            s3_client=self.s3_client,
+            etag='11223344',
+            size=size,
+            version_id='abcde',
+        )
+        # test return val
+        assert len(contents.encode()) == index.ELASTIC_LIMIT_BYTES, \
+            'contents return more data than expected'
+        # we know from ELASTIC_LIMIT_BYTES=1000 that column_k is the last one
+        present, _, absent = ascii_lowercase.partition('l')
+        for letter in present:
+            col = f'column_{letter}'
+            assert col in contents, f'missing column: {col}'
+        for letter in absent:
+            col = f'column_{letter}'
+            assert col not in contents, f'missing column: {col}'
+
+    @pytest.mark.extended
+    @patch.object(index, 'ELASTIC_LIMIT_BYTES', 64_000)
+    def test_get_contents_extended(self):
+        directory = (BASE_DIR / 'extended')
+        files = directory.glob('**/*-c000')
+        for f in files:
+            parquet = f.read_bytes()
+            size = len(parquet)
+            self.s3_stubber.add_response(
+                method='get_object',
+                service_response={
+                    'Metadata': {},
+                    'ContentLength': size,
+                    'Body': BytesIO(parquet),
+                }
+            )
+            contents = index.get_contents(
+                'test-bucket',
+                'some/dir/data.parquet',
+                '.parquet',
+                s3_client=self.s3_client,
+                etag='11223344',
+                size=size,
+                version_id='abcde',
+            )
+            assert len(contents.encode()) <= index.ELASTIC_LIMIT_BYTES, \
+                'contents return more data than expected'
+
 
     def test_get_plain_text(self):
         self.s3_stubber.add_response(
@@ -1025,7 +1089,7 @@ class TestIndex(TestCase):
     # see PRE conditions in conftest.py
     @pytest.mark.extended
     def test_parquet_extended(self):
-        directory = (BASE_DIR / 'amazon-reviews-pds')
+        directory = (BASE_DIR / 'extended')
         files = directory.glob('**/*.parquet')
         for f in files:
             print(f"Testing {f}")

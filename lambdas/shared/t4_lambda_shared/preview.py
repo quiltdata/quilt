@@ -88,10 +88,15 @@ def extract_parquet(file_, as_html=True):
     info['serialized_size'] = meta.serialized_size
     info['shape'] = [meta.num_rows, meta.num_columns]
 
+    # it's possible to have a row_group without rows, so don't fill a bunch
+    # of garbage into the slice
+    if meta.num_row_groups:
+        dataframe = pf.read_row_group(0)[0:MAX_PREVIEW_ROWS].to_pandas()
     # sometimes there are neither rows nor row_groups, just columns
     # therefore we do not call read_row_group because (with 0 row_groups)
     # it would barf
-    dataframe = pf.read()[0:MAX_PREVIEW_ROWS].to_pandas()
+    else:
+        dataframe = pf.read()[0:MAX_PREVIEW_ROWS].to_pandas()
     if as_html:
         body = dataframe._repr_html_()  # pylint: disable=protected-access
     else:

@@ -135,7 +135,10 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                 version_id=version_id
             )
             body, info = extract_parquet(get_bytes(obj["Body"], compression), as_html=False)
-            content = trim_to_bytes(f"{str(info)}\n{body}", ELASTIC_LIMIT_BYTES)
+            # be smart and just send column names to ES (instead of bloated full schema)
+            # if this is not an HTML/catalog preview
+            columns = ','.join(list(info['schema'].keys()))
+            content = trim_to_bytes(f"{columns}\n{body}", ELASTIC_LIMIT_BYTES)
         else:
             content = get_plain_text(
                 bucket,
