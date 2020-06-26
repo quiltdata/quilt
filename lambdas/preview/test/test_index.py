@@ -225,6 +225,23 @@ class TestIndex():
             f'Unexpected body["info"] for {parquet}'
 
     @responses.activate
+    def test_parquet_empty(self):
+        """test a parquet file with columns but no rows"""
+        parquet = BASE_DIR / 'onlycolumns-c000'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=parquet.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'parquet'})
+        resp = index.lambda_handler(event, None)
+        assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
+        body = json.loads(read_body(resp))
+        assert '<th>column_a</th>' in body['html'], 'Missing column_a'
+        assert '<th>column_k</th>' in body['html'], 'Missing column_k'
+        assert '<th>column_z</th>' in body['html'], 'Missing column_z'
+
+    @responses.activate
     def test_parquet_no_pandas(self):
         """test sending parquet bytes, but with a different metadata format"""
         parquet = BASE_DIR / 'parquet_no_pandas.snappy.parquet'
