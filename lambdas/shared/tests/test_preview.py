@@ -8,7 +8,6 @@ from unittest.mock import patch
 import pyarrow.parquet as pq
 
 from t4_lambda_shared.preview import (
-    ELASTIC_LIMIT_BYTES,
     extract_parquet,
     get_bytes,
     get_preview_lines

@@ -86,7 +86,7 @@ def extract_parquet(file_, as_html=True):
     # of garbage into the slice
     if meta.num_row_groups:
         # guess because we meta doesn't reveal how many rows in first group
-        num_rows_guess = math.ceil(meta.num_rows/meta.num_row_groups) 
+        num_rows_guess = math.ceil(meta.num_rows/meta.num_row_groups)
         if (num_rows_guess * meta.num_columns) > MAX_LOAD_CELLS:
             import pandas
             # minimal dataframe with all columns and one row
