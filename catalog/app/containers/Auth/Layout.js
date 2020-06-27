@@ -12,8 +12,7 @@ export const Container = styled('div')(
   {
     marginLeft: 'auto',
     marginRight: 'auto',
-    maxWidth: 280,
-    minHeight: 'calc(100vh - 300px)',
+    maxWidth: 300,
     width: '100%',
   },
   { name: 'Auth.Container' },
@@ -101,17 +100,20 @@ export const Hint = styled('p')(
   { name: 'Auth.Hint' },
 )
 
-export const Message = styled('p')(
-  {
-    textAlign: 'center',
-  },
-  { name: 'Auth.Message' },
-)
+export function Message(props) {
+  return (
+    <M.Box pt={2}>
+      <M.Typography align="center" {...props} />
+    </M.Box>
+  )
+}
 
 export const mkLayout = (heading) => ({ children, ...props }) => (
   <Layout>
     <Container>
-      <Heading>{typeof heading === 'function' ? heading(props) : heading}</Heading>
+      <M.Box pt={5} pb={2}>
+        <Heading>{typeof heading === 'function' ? heading(props) : heading}</Heading>
+      </M.Box>
       {children}
     </Container>
   </Layout>
