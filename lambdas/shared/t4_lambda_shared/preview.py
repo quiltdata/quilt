@@ -185,6 +185,7 @@ def remove_pandas_footer(html: str) -> str:
         html
     )
 
+
 def trim_to_bytes(string, limit):
     """trim string to specified number of bytes"""
     encoded = string.encode("utf-8")
