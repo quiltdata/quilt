@@ -20,6 +20,7 @@ import pytest
 import responses
 
 from document_queue import RetryError
+from t4_lambda_shared.preview import extract_parquet
 from .. import index
 
 

@@ -3,8 +3,17 @@ Preview helper functions
 """
 import pathlib
 from unittest import TestCase
+from unittest.mock import patch
 
-from t4_lambda_shared.preview import get_bytes, get_preview_lines
+import pyarrow.parquet as pq
+
+from t4_lambda_shared.preview import (
+    ELASTIC_LIMIT_BYTES,
+    extract_parquet,
+    get_bytes,
+    get_preview_lines
+)
+
 
 BASE_DIR = pathlib.Path(__file__).parent / 'data'
 
@@ -15,6 +24,31 @@ def iterate_chunks(file_obj, chunk_size=4096):
 
 class TestPreview(TestCase):
     """Tests the preview functions"""
+    # 15_000 is magic = exact number of cells (cols*rows) in test file
+    def test_extract_parquet(self):
+        file = BASE_DIR / 'amazon-reviews-1000.snappy.parquet'
+        # test giant files
+        with patch('t4_lambda_shared.preview.MAX_LOAD_CELLS', 14_999):
+            with open(file, mode='rb') as parquet:
+                body, info = extract_parquet(parquet)
+                assert all(bracket in body for bracket in ('<', '>'))
+                assert body.count('<') == body.count('>'), \
+                    'expected matching HTML tags'
+                assert '(Rows not loaded to conserve memory)' in body
+
+        with open(file, mode='rb') as parquet:
+            body, info = extract_parquet(parquet, as_html=False)
+            assert all(bracket not in body for bracket in ('<', '>')), \
+                'did not expect HTML'
+            assert '(Rows not loaded to conserve memory)' not in body
+            parquet_file = pq.ParquetFile(file)
+            assert all(
+                column in info['schema']['names']
+                for column in parquet_file.schema.names
+            )
+            assert [
+                parquet_file.metadata.num_rows, parquet_file.metadata.num_columns
+            ] == info['shape'], 'Unexpected number of rows or columns'
 
     def test_long(self):
         """test a text file with lots of lines"""
