@@ -17,7 +17,8 @@ from t4_lambda_shared.preview import (
     CATALOG_LIMIT_LINES,
     extract_parquet,
     get_bytes,
-    get_preview_lines
+    get_preview_lines,
+    remove_pandas_footer
 )
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
@@ -165,8 +166,6 @@ def extract_csv(head, separator):
         html - html version of *first sheet only* in workbook
         info - metadata
     """
-    import re
-
     warnings_ = io.StringIO()
     # this shouldn't balloon memory because head is limited in size by get_preview_lines
     try:
@@ -186,12 +185,7 @@ def extract_csv(head, separator):
                 sep=None
             )
 
-    html = data._repr_html_()  # pylint: disable=protected-access
-    html = re.sub(
-        r'(</table>\n<p>)\d+ rows × \d+ columns(</p>\n</div>)$',
-        r'\1\2',
-        html
-    )
+    html = remove_pandas_footer(data._repr_html_())  # pylint: disable=protected-access
 
     return html, {
         'note': (
@@ -212,7 +206,7 @@ def extract_excel(file_):
         info - metadata
     """
     first_sheet = pandas.read_excel(file_, sheet_name=0)
-    html = first_sheet._repr_html_()  # pylint: disable=protected-access
+    html = remove_pandas_footer(first_sheet._repr_html_())  # pylint: disable=protected-access
     return html, {}
 
 

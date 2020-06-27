@@ -128,8 +128,6 @@ class TestIndex():
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on sample.xlsx'
         body_html = body['html']
-        assert '700 rows' in body_html, 'unexpected row count'
-        assert '16 columns' in body_html, 'unexpected column count'
         assert body_html.count('Germany') == 13, 'unexpected data contents'
         assert body_html.count('Enterprise') == 7, 'unexpected data contents'
         assert body_html.count('Midmarket') == 13, 'unexpected data contents'

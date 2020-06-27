@@ -4,6 +4,7 @@ Shared helper functions for generating previews for the preview lambda and the E
 from io import BytesIO
 import math
 import os
+import re
 import zlib
 
 # CATALOG_LIMIT_BYTES is bytes scanned, so acts as an upper bound on bytes returned
@@ -103,7 +104,7 @@ def extract_parquet(file_, as_html=True):
         # :0 is a safety valve but there really should be no rows in this case
         dataframe = pf.read()[:0].to_pandas()
     if as_html:
-        body = dataframe._repr_html_()  # pylint: disable=protected-access
+        body = remove_pandas_footer(dataframe._repr_html_())  # pylint: disable=protected-access
     else:
         buffer = []
         size = 0
@@ -174,6 +175,15 @@ def get_bytes(chunk_iterator, compression):
     buffer.seek(0)
     return buffer
 
+
+def remove_pandas_footer(html: str) -> str:
+    """don't include table dimensions in footer as it's confusing to the user,
+    since preview dimensions may be much smaller than file shape"""
+    return re.sub(
+        r'(</table>\n<p>)\d+ rows × \d+ columns(</p>\n</div>)$',
+        r'\1\2',
+        html
+    )
 
 def trim_to_bytes(string, limit):
     """trim string to specified number of bytes"""
