@@ -73,10 +73,6 @@ def extract_parquet(file_, as_html=True):
     info = {}
     info['created_by'] = meta.created_by
     info['format_version'] = meta.format_version
-    info['metadata'] = {
-        k.decode(): v.decode()
-        for k, v in meta.metadata.items()
-    } if meta.metadata is not None else {}
     info['num_row_groups'] = meta.num_row_groups
     # in previous versions (git blame) we sent a lot more schema information
     # but it's heavy on the browser and low information; just send column names
