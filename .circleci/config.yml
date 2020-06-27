@@ -148,7 +148,7 @@ jobs:
             if [ << parameters.path >> != "shared" ]
             then
               pip install lambdas/<< parameters.path >>
-           fi
+            fi
       - run:
           name: Pytest
           command: |
