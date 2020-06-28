@@ -535,7 +535,7 @@ export default function PackageTree({
               {
                 Ok: TreeDisplay.case({
                   File: (handle) => (
-                    <Section icon="remove_red_eye" heading="Contents" expandable={false}>
+                    <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                       <FilePreview handle={handle} />
                     </Section>
                   ),
