@@ -20,8 +20,13 @@ ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_LIMIT_LINES = 100_000
 # this is a heuristic we use to only deserialize parquet when lambda (at 3008MB)
 # can hold the result in memory
-MAX_LOAD_CELLS = 400_000_000
+MAX_LOAD_CELLS = 250_000_000
 MAX_PREVIEW_ROWS = 1_000
+# common string used to explain truncation to user
+TRUNCATED = (
+    'Rows and columns truncated for preview. '
+    'S3 object contains more data than shown.'
+)
 
 
 class NoopDecompressObj():
@@ -66,14 +71,15 @@ def extract_parquet(file_, as_html=True):
     # is slanted towards the first row_group
     # local import reduces amortized latency, saves memory
     import pyarrow.parquet as pq
+    import pyarrow.dataset as ds
 
     pf = pq.ParquetFile(file_)
-
     meta = pf.metadata
 
     info = {}
     info['created_by'] = meta.created_by
     info['format_version'] = meta.format_version
+    info['note'] = TRUNCATED
     info['num_row_groups'] = meta.num_row_groups
     # in previous versions (git blame) we sent a lot more schema information
     # but it's heavy on the browser and low information; just send column names
@@ -82,19 +88,17 @@ def extract_parquet(file_, as_html=True):
     }
     info['serialized_size'] = meta.serialized_size
     info['shape'] = [meta.num_rows, meta.num_columns]
-    # avoid flooding memory
-    # it's possible to have a row_group without rows, so don't fill a bunch
-    # of garbage into the slice
+    # TODO: refactor preview code to use dask/s3fs and pyarrow.dataset scanner to
+    # spare memory; part of the reason this is so inefficient: we've already read
+    # the entire parquet file into a BytesIO by the time we get here
     if meta.num_row_groups:
         # guess because we meta doesn't reveal how many rows in first group
         num_rows_guess = math.ceil(meta.num_rows/meta.num_row_groups)
         if (num_rows_guess * meta.num_columns) > MAX_LOAD_CELLS:
             import pandas
             # minimal dataframe with all columns and one row
-            dataframe = pandas.DataFrame(columns=meta.schema.names).append(
-                {meta.schema.names[0]: '(Rows not loaded to conserve memory)'},
-                ignore_index=True
-            )
+            dataframe = pandas.DataFrame(columns=meta.schema.names)
+            info['warnings']: 'Large file: skip rows to conserve memory, only showing column names'
         else:
             dataframe = pf.read_row_group(0)[0:MAX_PREVIEW_ROWS].to_pandas()
     # sometimes there are neither rows nor row_groups, just columns

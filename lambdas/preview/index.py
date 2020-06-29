@@ -18,7 +18,8 @@ from t4_lambda_shared.preview import (
     extract_parquet,
     get_bytes,
     get_preview_lines,
-    remove_pandas_footer
+    remove_pandas_footer,
+    TRUNCATED
 )
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
@@ -188,10 +189,7 @@ def extract_csv(head, separator):
     html = remove_pandas_footer(data._repr_html_())  # pylint: disable=protected-access
 
     return html, {
-        'note': (
-            'Object truncated for preview. '
-            'S3 data remain intact, full length.'
-        ),
+        'note': TRUNCATED,
         'warnings': warnings_.getvalue()
     }
 
