@@ -51,31 +51,32 @@ __Arguments__
 ## list\_package\_versions(name, registry=None)  {#list\_package\_versions}
 Lists versions of a given package.
 
-Returns a sequence of (version, hash) of a package in a registry.
+Returns an iterable of (version, hash) of a package in a registry.
 If the registry is None, default to the local registry.
 
 __Arguments__
 
-* __registry(string)__:  location of registry to load package from.
+* __name (str)__:  Name of the package
+* __registry (str)__:  location of registry to load package from.
 
 __Returns__
 
-A sequence of tuples containing the version and hash for the package.
+An iterable of tuples containing the version and hash for the package.
 
 
 ## list\_packages(registry=None)  {#list\_packages}
 Lists Packages in the registry.
 
-Returns a sequence of all named packages in a registry.
+Returns an iterable of all named packages in a registry.
 If the registry is None, default to the local registry.
 
 __Arguments__
 
-* __registry(string)__:  location of registry to load package from.
+* __registry (str)__:  location of registry to load package from.
 
 __Returns__
 
-A sequence of strings containing the names of the packages
+An iterable of strings containing the names of the packages
 
 
 ## logged\_in()  {#logged\_in}
