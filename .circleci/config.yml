@@ -10,7 +10,7 @@ commands:
       - run:
           name: Setup venv
           command: |
-            pip install virtualenv
+            pip install virtualenv==20.0.23
             virtualenv venv
             if [ -e venv/bin/activate ]; then
               echo ". venv/bin/activate" >> $BASH_ENV
@@ -84,7 +84,7 @@ test-base: &test-base
 jobs:
   linter:
     docker:
-      - image: circleci/python:3.6-jessie
+      - image: circleci/python:3.6
     steps:
       - checkout
       - setup-venv
@@ -103,7 +103,7 @@ jobs:
 
   test-36:
     docker:
-      - image: circleci/python:3.6-jessie
+      - image: circleci/python:3.6
     <<: *test-base
 
   test-37:
@@ -124,7 +124,7 @@ jobs:
 
   test-lambda:
     docker:
-      - image: circleci/python:3.6-jessie
+      - image: circleci/python:3.6
     description: "Test lambdas"
     environment:
       QUILT_DISABLE_USAGE_METRICS: true
@@ -158,7 +158,7 @@ jobs:
 
   build:
     docker:
-      - image: circleci/python:3.6-jessie
+      - image: circleci/python:3.6
     environment:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
@@ -186,7 +186,7 @@ jobs:
 
   deploy:
     docker:
-      - image: circleci/python:3.6-jessie
+      - image: circleci/python:3.6
     environment:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
@@ -226,5 +226,5 @@ jobs:
           command: |
             . venv/bin/activate
             cd api/python
-            pip install twine
+            pip install twine==3.1.1
             twine upload dist/*
