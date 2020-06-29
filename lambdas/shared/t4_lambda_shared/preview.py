@@ -71,7 +71,6 @@ def extract_parquet(file_, as_html=True):
     # is slanted towards the first row_group
     # local import reduces amortized latency, saves memory
     import pyarrow.parquet as pq
-    import pyarrow.dataset as ds
 
     pf = pq.ParquetFile(file_)
     meta = pf.metadata

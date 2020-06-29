@@ -33,13 +33,11 @@ class TestPreview(TestCase):
                 assert all(bracket in body for bracket in ('<', '>'))
                 assert body.count('<') == body.count('>'), \
                     'expected matching HTML tags'
-                assert '(Rows not loaded to conserve memory)' in body
 
         with open(file, mode='rb') as parquet:
             body, info = extract_parquet(parquet, as_html=False)
             assert all(bracket not in body for bracket in ('<', '>')), \
                 'did not expect HTML'
-            assert '(Rows not loaded to conserve memory)' not in body
             parquet_file = pq.ParquetFile(file)
             assert all(
                 column in info['schema']['names']
