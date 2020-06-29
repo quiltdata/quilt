@@ -488,7 +488,7 @@ class TestIndex(TestCase):
     @patch.object(index, 'extract_parquet')
     def test_index_c000(self, extract_mock):
         """ensure files with special extensions get treated as parquet"""
-        extract_mock.return_value = ('parquet-body', {'schema': {}})
+        extract_mock.return_value = ('parquet-body', {'schema': {'names': []}})
         self._test_index_events(
             ["ObjectCreated:Put"],
             expected_es_calls=1,

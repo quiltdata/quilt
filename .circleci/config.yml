@@ -144,11 +144,10 @@ jobs:
             virtualenv venv
             . venv/bin/activate
             pip install lambdas/shared/<< parameters.sub-path >>
+            pip install -r lambdas/<< parameters.path >>/requirements.txt -r lambdas/<< parameters.path >>/test-requirements.txt
             if [ << parameters.path >> != "shared" ]
             then
               pip install lambdas/<< parameters.path >>
-              pip install -r lambdas/<< parameters.path >>/requirements.txt
-              pip install -r lambdas/<< parameters.path >>/test-requirements.txt
             fi
       - run:
           name: Pytest

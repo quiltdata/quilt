@@ -2,7 +2,9 @@
 Shared helper functions for generating previews for the preview lambda and the ES indexer.
 """
 from io import BytesIO
+import math
 import os
+import re
 import zlib
 
 # CATALOG_LIMIT_BYTES is bytes scanned, so acts as an upper bound on bytes returned
@@ -16,7 +18,15 @@ CATALOG_LIMIT_LINES = 512  # must be positive int
 # change to CloudFormation templates to use the new name
 ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_LIMIT_LINES = 100_000
+# this is a heuristic we use to only deserialize parquet when lambda (at 3008MB)
+# can hold the result in memory
+MAX_LOAD_CELLS = 250_000_000
 MAX_PREVIEW_ROWS = 1_000
+# common string used to explain truncation to user
+TRUNCATED = (
+    'Rows and columns truncated for preview. '
+    'S3 object contains more data than shown.'
+)
 
 
 class NoopDecompressObj():
@@ -63,42 +73,41 @@ def extract_parquet(file_, as_html=True):
     import pyarrow.parquet as pq
 
     pf = pq.ParquetFile(file_)
-
     meta = pf.metadata
 
     info = {}
     info['created_by'] = meta.created_by
     info['format_version'] = meta.format_version
-    info['metadata'] = {
-        k.decode(): v.decode()
-        for k, v in meta.metadata.items()
-    } if meta.metadata is not None else {}
+    info['note'] = TRUNCATED
     info['num_row_groups'] = meta.num_row_groups
-
+    # in previous versions (git blame) we sent a lot more schema information
+    # but it's heavy on the browser and low information; just send column names
     info['schema'] = {
-        name: {
-            'logical_type': meta.schema.column(i).logical_type.type,
-            'max_definition_level': meta.schema.column(i).max_definition_level,
-            'max_repetition_level': meta.schema.column(i).max_repetition_level,
-            'path': meta.schema.column(i).path,
-            'physical_type': meta.schema.column(i).physical_type,
-        }
-        for i, name in enumerate(meta.schema.names)
+        'names': meta.schema.names
     }
     info['serialized_size'] = meta.serialized_size
     info['shape'] = [meta.num_rows, meta.num_columns]
-
-    # it's possible to have a row_group without rows, so don't fill a bunch
-    # of garbage into the slice
+    # TODO: refactor preview code to use dask/s3fs and pyarrow.dataset scanner to
+    # spare memory; part of the reason this is so inefficient: we've already read
+    # the entire parquet file into a BytesIO by the time we get here
     if meta.num_row_groups:
-        dataframe = pf.read_row_group(0)[0:MAX_PREVIEW_ROWS].to_pandas()
+        # guess because we meta doesn't reveal how many rows in first group
+        num_rows_guess = math.ceil(meta.num_rows/meta.num_row_groups)
+        if (num_rows_guess * meta.num_columns) > MAX_LOAD_CELLS:
+            import pandas
+            # minimal dataframe with all columns and one row
+            dataframe = pandas.DataFrame(columns=meta.schema.names)
+            info['warnings']: 'Large file: skip rows to conserve memory, only showing column names'
+        else:
+            dataframe = pf.read_row_group(0)[0:MAX_PREVIEW_ROWS].to_pandas()
     # sometimes there are neither rows nor row_groups, just columns
     # therefore we do not call read_row_group because (with 0 row_groups)
     # it would barf
     else:
-        dataframe = pf.read()[0:MAX_PREVIEW_ROWS].to_pandas()
+        # :0 is a safety valve but there really should be no rows in this case
+        dataframe = pf.read()[:0].to_pandas()
     if as_html:
-        body = dataframe._repr_html_()  # pylint: disable=protected-access
+        body = remove_pandas_footer(dataframe._repr_html_())  # pylint: disable=protected-access
     else:
         buffer = []
         size = 0
@@ -168,6 +177,16 @@ def get_bytes(chunk_iterator, compression):
 
     buffer.seek(0)
     return buffer
+
+
+def remove_pandas_footer(html: str) -> str:
+    """don't include table dimensions in footer as it's confusing to the user,
+    since preview dimensions may be much smaller than file shape"""
+    return re.sub(
+        r'(</table>\n<p>)\d+ rows × \d+ columns(</p>\n</div>)$',
+        r'\1\2',
+        html
+    )
 
 
 def trim_to_bytes(string, limit):
