@@ -100,16 +100,16 @@ def infer_extensions(key, ext):
     return ext
 
 
-def get_contents(bucket, key, inferred_ext, *, etag, version_id, s3_client, size):
+def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
     """get the byte contents of a file"""
-    if inferred_ext.endswith('.gz'):
+    if ext.endswith('.gz'):
         compression = 'gz'
-        inferred_ext = inferred_ext[:-len('.gz')]
+        ext = ext[:-len('.gz')]
     else:
         compression = None
 
     content = ""
-    inferred_ext = infer_extensions(key, inferred_ext)
+    inferred_ext = infer_extensions(key, ext)
     if inferred_ext in CONTENT_INDEX_EXTS:
         if inferred_ext == ".ipynb":
             content = trim_to_bytes(
