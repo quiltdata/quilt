@@ -24,7 +24,7 @@ from .telemetry import ApiTelemetry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
     validate_package_name, quiltignore_filter, validate_key, extract_file_extension,
-    parse_sub_package_name)
+    parse_sub_package_name, RemovedInQuilt4Warning)
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, \
     user_is_configured_to_custom_stack, catalog_package_url, DISABLE_TQDM
 
@@ -383,12 +383,13 @@ class Package:
 
     @classmethod
     @ApiTelemetry("package.install")
-    def install(cls, name, registry=None, top_hash=None, dest=None, dest_registry=None):
+    def install(cls, name, registry=None, top_hash=None, dest=None, dest_registry=None, *, path=None):
         """
         Installs a named package to the local registry and downloads its files.
 
         Args:
-            name(str): Name of package to install. It also can be passed as NAME/PATH,
+            name(str): Name of package to install. It also can be passed as NAME/PATH
+                (/PATH is deprecated, use the `path` parameter instead),
                 in this case only the sub-package or the entry specified by PATH will
                 be downloaded.
             registry(str): Registry where package is located.
@@ -396,6 +397,7 @@ class Package:
             top_hash(str): Hash of package to install. Defaults to latest.
             dest(str): Local path to download files to.
             dest_registry(str): Registry to install package to. Defaults to local registry.
+            path(str): If specified, downloads only `path` or its children.
         """
         if registry is None:
             registry = get_from_config('default_remote_registry')
@@ -435,8 +437,18 @@ class Package:
 
         parts = parse_sub_package_name(name)
         if parts and parts[1]:
+            warnings.warn(
+                "Passing path via package name is deprecated, use the 'path' parameter instead.",
+                category=RemovedInQuilt4Warning,
+                stacklevel=3,
+            )
             name, subpkg_key = parts
             validate_key(subpkg_key)
+            if path:
+                raise ValueError("You must not pass path via package name and 'path' parameter.")
+        elif path:
+            validate_key(path)
+            subpkg_key = path
         else:
             subpkg_key = None
 

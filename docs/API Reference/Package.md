@@ -24,13 +24,14 @@ A string that represents the top hash of the package
 String representation of the Package.
 
 
-## Package.install(name, registry=None, top\_hash=None, dest=None, dest\_registry=None)  {#Package.install}
+## Package.install(name, registry=None, top\_hash=None, dest=None, dest\_registry=None, \*, path=None)  {#Package.install}
 
 Installs a named package to the local registry and downloads its files.
 
 __Arguments__
 
-* __name(str)__:  Name of package to install. It also can be passed as NAME/PATH,
+* __name(str)__:  Name of package to install. It also can be passed as NAME/PATH
+    (/PATH is deprecated, use the `path` parameter instead),
     in this case only the sub-package or the entry specified by PATH will
     be downloaded.
 * __registry(str)__:  Registry where package is located.
@@ -38,6 +39,7 @@ __Arguments__
 * __top_hash(str)__:  Hash of package to install. Defaults to latest.
 * __dest(str)__:  Local path to download files to.
 * __dest_registry(str)__:  Registry to install package to. Defaults to local registry.
+* __path(str)__:  If specified, downloads only `path` or its children.
 
 
 ## Package.resolve\_hash(registry, hash\_prefix)  {#Package.resolve\_hash}
