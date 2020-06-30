@@ -19,6 +19,7 @@ from botocore.stub import Stubber
 import pytest
 import responses
 
+from t4_lambda_shared.utils import separated_env_to_iter
 from document_queue import RetryError
 from .. import index
 
@@ -628,6 +629,23 @@ class TestIndex(TestCase):
             # these files should not get content indexed, therefore no S3 mock
             assert self._get_contents('foo.txt', '.txt') == ""
             assert self._get_contents('foo.ipynb', '.ipynb') == ""
+
+    def test_skip_rows_env(self):
+        """test whether or not index skips rows per SKIP_ROWS_EXTS=LIST"""
+        # because of module caching we can't just patch the environment variable
+        # since index.SKIP_ROWS_EXTS will never change after import
+        with patch.dict(os.environ, {'SKIP_ROWS_EXTS': '.txt,.csv'}):
+            exts = separated_env_to_iter('SKIP_ROWS_EXTS')
+            with patch('index.SKIP_ROWS_EXTS', exts):
+                assert '.parquet' not in exts
+                assert '.csv' in exts
+                assert '.txt' in exts
+
+        with patch.dict(os.environ, {'SKIP_ROWS_EXTS': '.parquet,.tsvl'}):
+            exts = separated_env_to_iter('SKIP_ROWS_EXTS')
+            with patch('index.SKIP_ROWS_EXTS', exts):
+                assert '.parquet' in exts
+                assert '.csv' not in exts
 
     def test_synthetic_copy_event(self):
         """check synthetic ObjectCreated:Copy event vs organic obtained on 26-May-2020

@@ -22,15 +22,13 @@ ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_LIMIT_LINES = 100_000
 # this is a heuristic we use to only deserialize parquet when lambda (at 3008MB)
 # can hold the result in memory
-MAX_LOAD_CELLS = 250_000_000
+MAX_LOAD_CELLS = 400_000_000
 MAX_PREVIEW_ROWS = 1_000
 # common string used to explain truncation to user
 TRUNCATED = (
     'Rows and columns truncated for preview. '
     'S3 object contains more data than shown.'
 )
-# currently only affects .parquet, TODO: extend to other extensions
-SKIP_ROWS_EXTS = separated_env_to_iter('SKIP_ROWS_EXTS')
 
 
 class NoopDecompressObj():
