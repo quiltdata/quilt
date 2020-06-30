@@ -7,6 +7,8 @@ import os
 import re
 import zlib
 
+from .utils import separated_env_to_iter
+
 # CATALOG_LIMIT_BYTES is bytes scanned, so acts as an upper bound on bytes returned
 # we need a largish number for things like VCF where we will discard many bytes
 # Only applied to _from_stream() types. _to_memory types are size limited either
@@ -27,8 +29,8 @@ TRUNCATED = (
     'Rows and columns truncated for preview. '
     'S3 object contains more data than shown.'
 )
-# currently only implemented for .parquet
-SKIP_ROWS_EXTS = set(os.getenv('SKIP_ROWS_EXTS', ''))
+# currently only affects .parquet, TODO: extend to other extensions
+SKIP_ROWS_EXTS = separated_env_to_iter('SKIP_ROWS_EXTS')
 
 
 class NoopDecompressObj():
@@ -94,15 +96,15 @@ def extract_parquet(file_, as_html=True, skip_rows=False):
     # the entire parquet file into a BytesIO by the time we get here
     if meta.num_row_groups:
         # guess because we meta doesn't reveal how many rows in first group
-        num_rows_guess = math.ceil(meta.num_rows/meta.num_row_groups)
+        num_rows_guess = math.ceil(meta.num_rows / meta.num_row_groups)
         cells_guess = num_rows_guess * meta.num_columns
         if skip_rows or (cells_guess > MAX_LOAD_CELLS):
             import pandas
             # minimal dataframe with all columns and one row
             dataframe = pandas.DataFrame(columns=meta.schema.names)
-            info['warnings']: 'Large file: skip rows to conserve memory, only showing column names'
+            info['warnings'] = 'Large file: skipped rows to conserve memory, only showing column names'
         else:
-            dataframe = pf.read_row_group(0)[0:MAX_PREVIEW_ROWS].to_pandas()
+            dataframe = pf.read_row_group(0)[:MAX_PREVIEW_ROWS].to_pandas()
     # sometimes there are neither rows nor row_groups, just columns
     # therefore we do not call read_row_group because (with 0 row_groups)
     # it would barf
