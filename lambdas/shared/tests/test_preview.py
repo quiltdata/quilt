@@ -26,13 +26,25 @@ class TestPreview(TestCase):
     # 15_000 is magic = exact number of cells (cols*rows) in test file
     def test_extract_parquet(self):
         file = BASE_DIR / 'amazon-reviews-1000.snappy.parquet'
-        # test giant files
+        cell_value = '<td>TSD Airsoft/Paintball Full-Face Mask, Goggle Lens</td>'
+
         with patch('t4_lambda_shared.preview.MAX_LOAD_CELLS', 14_999):
             with open(file, mode='rb') as parquet:
                 body, info = extract_parquet(parquet)
                 assert all(bracket in body for bracket in ('<', '>'))
                 assert body.count('<') == body.count('>'), \
                     'expected matching HTML tags'
+                assert cell_value not in body, 'only expected columns'
+                assert 'skipped rows' in info['warnings']
+
+        with open(file, mode='rb') as parquet:
+            body, info = extract_parquet(parquet, as_html=True)
+            assert cell_value in body, 'missing expected HTML cell'
+
+        with open(file, mode='rb') as parquet:
+            body, info = extract_parquet(parquet, skip_rows=True)
+            assert 'skipped rows' in info['warnings']
+            assert cell_value not in body, 'only expected columns'
 
         with open(file, mode='rb') as parquet:
             body, info = extract_parquet(parquet, as_html=False)

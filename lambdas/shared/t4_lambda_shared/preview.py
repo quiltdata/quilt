@@ -7,6 +7,7 @@ import os
 import re
 import zlib
 
+
 # CATALOG_LIMIT_BYTES is bytes scanned, so acts as an upper bound on bytes returned
 # we need a largish number for things like VCF where we will discard many bytes
 # Only applied to _from_stream() types. _to_memory types are size limited either
@@ -20,7 +21,7 @@ ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_LIMIT_LINES = 100_000
 # this is a heuristic we use to only deserialize parquet when lambda (at 3008MB)
 # can hold the result in memory
-MAX_LOAD_CELLS = 250_000_000
+MAX_LOAD_CELLS = 400_000_000
 MAX_PREVIEW_ROWS = 1_000
 # common string used to explain truncation to user
 TRUNCATED = (
@@ -54,7 +55,7 @@ def decompress_stream(chunk_iterator, compression):
             break
 
 
-def extract_parquet(file_, as_html=True):
+def extract_parquet(file_, as_html=True, skip_rows=False):
     """
     parse and extract key metadata from parquet files
 
@@ -92,14 +93,15 @@ def extract_parquet(file_, as_html=True):
     # the entire parquet file into a BytesIO by the time we get here
     if meta.num_row_groups:
         # guess because we meta doesn't reveal how many rows in first group
-        num_rows_guess = math.ceil(meta.num_rows/meta.num_row_groups)
-        if (num_rows_guess * meta.num_columns) > MAX_LOAD_CELLS:
+        num_rows_guess = math.ceil(meta.num_rows / meta.num_row_groups)
+        cells_guess = num_rows_guess * meta.num_columns
+        if skip_rows or (cells_guess > MAX_LOAD_CELLS):
             import pandas
             # minimal dataframe with all columns and one row
             dataframe = pandas.DataFrame(columns=meta.schema.names)
-            info['warnings']: 'Large file: skip rows to conserve memory, only showing column names'
+            info['warnings'] = 'Large file: skipped rows to conserve memory, only showing column names'
         else:
-            dataframe = pf.read_row_group(0)[0:MAX_PREVIEW_ROWS].to_pandas()
+            dataframe = pf.read_row_group(0)[:MAX_PREVIEW_ROWS].to_pandas()
     # sometimes there are neither rows nor row_groups, just columns
     # therefore we do not call read_row_group because (with 0 row_groups)
     # it would barf
