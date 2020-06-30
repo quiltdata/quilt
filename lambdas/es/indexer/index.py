@@ -54,6 +54,7 @@ from t4_lambda_shared.preview import (
     extract_parquet,
     get_bytes,
     get_preview_lines,
+    SKIP_ROWS_EXTS,
     trim_to_bytes
 )
 
@@ -134,7 +135,11 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                 s3_client=s3_client,
                 version_id=version_id
             )
-            body, info = extract_parquet(get_bytes(obj["Body"], compression), as_html=False)
+            body, info = extract_parquet(
+                get_bytes(obj["Body"], compression),
+                as_html=False,
+                skip_rows=('.parquet' in SKIP_ROWS_EXTS)
+            )
             # be smart and just send column names to ES (instead of bloated full schema)
             # if this is not an HTML/catalog preview
             columns = ','.join(list(info['schema']['names']))

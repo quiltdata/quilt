@@ -27,6 +27,8 @@ TRUNCATED = (
     'Rows and columns truncated for preview. '
     'S3 object contains more data than shown.'
 )
+# currently only implemented for .parquet
+SKIP_ROWS_EXTS = set(os.getenv('SKIP_ROWS_EXTS', ''))
 
 
 class NoopDecompressObj():
@@ -54,7 +56,7 @@ def decompress_stream(chunk_iterator, compression):
             break
 
 
-def extract_parquet(file_, as_html=True):
+def extract_parquet(file_, as_html=True, skip_rows=False):
     """
     parse and extract key metadata from parquet files
 
@@ -93,7 +95,8 @@ def extract_parquet(file_, as_html=True):
     if meta.num_row_groups:
         # guess because we meta doesn't reveal how many rows in first group
         num_rows_guess = math.ceil(meta.num_rows/meta.num_row_groups)
-        if (num_rows_guess * meta.num_columns) > MAX_LOAD_CELLS:
+        cells_guess = num_rows_guess * meta.num_columns
+        if skip_rows or (cells_guess > MAX_LOAD_CELLS):
             import pandas
             # minimal dataframe with all columns and one row
             dataframe = pandas.DataFrame(columns=meta.schema.names)
