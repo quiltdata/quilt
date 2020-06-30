@@ -7,7 +7,6 @@ import os
 import re
 import zlib
 
-from .utils import separated_env_to_iter
 
 # CATALOG_LIMIT_BYTES is bytes scanned, so acts as an upper bound on bytes returned
 # we need a largish number for things like VCF where we will discard many bytes
