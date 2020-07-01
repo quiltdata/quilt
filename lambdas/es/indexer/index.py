@@ -80,7 +80,7 @@ USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 
 def get_available_memory():
     """how much virtual memory is available to us (bytes)?"""
-    return getattr(virtual_memory(), 'available')
+    return virtual_memory().available
 
 
 def now_like_boto3():
