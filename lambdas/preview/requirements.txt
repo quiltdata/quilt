@@ -19,6 +19,7 @@ nbformat==4.4.0
 numpy==1.16.4
 pandas==0.25.1
 pandocfilters==1.4.2
+psutil==5.7.0
 pyarrow==0.17.1
 Pygments==2.4.2
 pyrsistent==0.15.2

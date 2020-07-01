@@ -47,7 +47,6 @@ import boto3
 import botocore
 import nbformat
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
-from psutil import virtual_memory
 
 from t4_lambda_shared.preview import (
     ELASTIC_LIMIT_BYTES,
@@ -57,7 +56,10 @@ from t4_lambda_shared.preview import (
     get_preview_lines,
     trim_to_bytes
 )
-from t4_lambda_shared.utils import separated_env_to_iter
+from t4_lambda_shared.utils import (
+    get_available_memory,
+    separated_env_to_iter
+)
 
 from document_queue import (
     DocumentQueue,
@@ -76,11 +78,6 @@ TEST_EVENT = "s3:TestEvent"
 #  lambda in order to display accurate analytics in the Quilt catalog
 #  a custom user agent enables said filtration
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
-
-
-def get_available_memory():
-    """how much virtual memory is available to us (bytes)?"""
-    return virtual_memory().available
 
 
 def now_like_boto3():

@@ -28,7 +28,8 @@ class TestPreview(TestCase):
         file = BASE_DIR / 'amazon-reviews-1000.snappy.parquet'
         cell_value = '<td>TSD Airsoft/Paintball Full-Face Mask, Goggle Lens</td>'
 
-        with patch('t4_lambda_shared.preview.MAX_LOAD_CELLS', 14_999):
+        with patch('t4_lambda_shared.preview.get_available_memory') as mem_mock:
+            mem_mock.return_value = 1
             with open(file, mode='rb') as parquet:
                 body, info = extract_parquet(parquet)
                 assert all(bracket in body for bracket in ('<', '>'))
