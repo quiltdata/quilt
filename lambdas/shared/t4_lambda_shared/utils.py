@@ -9,6 +9,7 @@ import os
 
 from psutil import virtual_memory
 
+
 def separated_env_to_iter(
         env_var: str,
         *,
