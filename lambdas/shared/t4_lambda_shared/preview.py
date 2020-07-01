@@ -10,7 +10,7 @@ import zlib
 from .utils import get_available_memory
 
 
-AVG_PARQUET_CELL_BYTES = 100  # a heuristic to avoid floding memory
+AVG_PARQUET_CELL_BYTES = 100  # a heuristic to avoid flooding memory
 # CATALOG_LIMIT_BYTES is bytes scanned, so acts as an upper bound on bytes returned
 # we need a largish number for things like VCF where we will discard many bytes
 # Only applied to _from_stream() types. _to_memory types are size limited either
