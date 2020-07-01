@@ -47,6 +47,7 @@ import boto3
 import botocore
 import nbformat
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+from psutil import virtual_memory
 
 from t4_lambda_shared.preview import (
     ELASTIC_LIMIT_BYTES,
@@ -75,6 +76,11 @@ TEST_EVENT = "s3:TestEvent"
 #  lambda in order to display accurate analytics in the Quilt catalog
 #  a custom user agent enables said filtration
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
+
+
+def get_available_memory():
+    """how much virtual memory is available to us (bytes)?"""
+    return getattr(virtual_memory(), 'available')
 
 
 def now_like_boto3():
@@ -128,6 +134,11 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                 ELASTIC_LIMIT_BYTES
             )
         elif inferred_ext == ".parquet":
+            if size >= get_available_memory():
+                print(f"{bucket}/{key} too large to deserialize; skipping contents")
+                # at least index the key and other stats, but don't overrun memory
+                # and fail indexing altogether
+                return ""
             obj = retry_s3(
                 "get",
                 bucket,

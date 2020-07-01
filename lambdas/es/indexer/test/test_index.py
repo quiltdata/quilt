@@ -950,6 +950,25 @@ class TestIndex(TestCase):
             col = f'column_{letter}'
             assert col not in contents, f'missing column: {col}'
 
+    @patch.object(index, 'get_available_memory')
+    def test_get_contents_large(self, get_memory_mock):
+        get_memory_mock.return_value = 1
+        parquet = (BASE_DIR / 'amazon-reviews-1000.snappy.parquet').read_bytes()
+        # mock up the responses
+        size = len(parquet)
+        contents = index.get_contents(
+            'test-bucket',
+            'some/dir/data.parquet',
+            '.parquet',
+            s3_client=self.s3_client,
+            etag='11223344',
+            size=size,
+            version_id='abcde',
+        )
+        # we should never touch S3 in this case and skip deserialization to avoid
+        # crashing lambda by flooding memory
+        assert contents == ""
+
     @pytest.mark.extended
     @patch.object(index, 'ELASTIC_LIMIT_BYTES', 64_000)
     def test_get_contents_extended(self):
