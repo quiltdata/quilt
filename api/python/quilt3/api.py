@@ -84,14 +84,14 @@ def delete_package(name, registry=None, top_hash=None):
 def list_packages(registry=None):
     """Lists Packages in the registry.
 
-    Returns a sequence of all named packages in a registry.
+    Returns an iterable of all named packages in a registry.
     If the registry is None, default to the local registry.
 
     Args:
-        registry(string): location of registry to load package from.
+        registry (str): location of registry to load package from.
 
     Returns:
-        A sequence of strings containing the names of the packages
+        An iterable of strings containing the names of the packages
     """
     registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
 
@@ -124,14 +124,15 @@ def _list_packages(registry):
 def list_package_versions(name, registry=None):
     """Lists versions of a given package.
 
-    Returns a sequence of (version, hash) of a package in a registry.
+    Returns an iterable of (version, hash) of a package in a registry.
     If the registry is None, default to the local registry.
 
     Args:
-        registry(string): location of registry to load package from.
+        name (str): Name of the package
+        registry (str): location of registry to load package from.
 
     Returns:
-        A sequence of tuples containing the version and hash for the package.
+        An iterable of tuples containing the version and hash for the package.
     """
     validate_package_name(name)
     registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
