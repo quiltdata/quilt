@@ -956,6 +956,7 @@ class TestIndex(TestCase):
         parquet = (BASE_DIR / 'amazon-reviews-1000.snappy.parquet').read_bytes()
         # mock up the responses
         size = len(parquet)
+        assert size > 1, 'supposed to test files larger than available memory'
         contents = index.get_contents(
             'test-bucket',
             'some/dir/data.parquet',
