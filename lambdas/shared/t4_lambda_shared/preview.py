@@ -7,7 +7,10 @@ import os
 import re
 import zlib
 
+from .utils import get_available_memory
 
+
+AVG_PARQUET_CELL_BYTES = 100  # a heuristic to avoid flooding memory
 # CATALOG_LIMIT_BYTES is bytes scanned, so acts as an upper bound on bytes returned
 # we need a largish number for things like VCF where we will discard many bytes
 # Only applied to _from_stream() types. _to_memory types are size limited either
@@ -19,9 +22,6 @@ CATALOG_LIMIT_LINES = 512  # must be positive int
 # change to CloudFormation templates to use the new name
 ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_LIMIT_LINES = 100_000
-# this is a heuristic we use to only deserialize parquet when lambda (at 3008MB)
-# can hold the result in memory
-MAX_LOAD_CELLS = 400_000_000
 MAX_PREVIEW_ROWS = 1_000
 # common string used to explain truncation to user
 TRUNCATED = (
@@ -94,8 +94,8 @@ def extract_parquet(file_, as_html=True, skip_rows=False):
     if meta.num_row_groups:
         # guess because we meta doesn't reveal how many rows in first group
         num_rows_guess = math.ceil(meta.num_rows / meta.num_row_groups)
-        cells_guess = num_rows_guess * meta.num_columns
-        if skip_rows or (cells_guess > MAX_LOAD_CELLS):
+        size_guess = num_rows_guess * meta.num_columns * AVG_PARQUET_CELL_BYTES
+        if skip_rows or (size_guess > get_available_memory()):
             import pandas
             # minimal dataframe with all columns and one row
             dataframe = pandas.DataFrame(columns=meta.schema.names)
