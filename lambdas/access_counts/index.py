@@ -166,27 +166,56 @@ OBJECT_ACCESS_COUNTS = textwrap.dedent("""\
     GROUP BY 3, 2, 1
 """)
 
-PACKAGE_ACCESS_COUNTS = textwrap.dedent("""\
+MANIFEST_PREFIX = '.quilt/packages/'
+
+PACKAGE_ACCESS_COUNTS = textwrap.dedent(f"""\
     SELECT
         eventname,
-        package_hashes.bucket AS bucket,
+        bucket,
         name,
-        CAST(histogram(date) AS JSON) AS counts
-    FROM object_access_log JOIN package_hashes
-    ON object_access_log.bucket = package_hashes.bucket AND key = concat('.quilt/packages/', hash)
+        CAST(map_agg(date, count) AS JSON) AS counts
+    FROM (
+        SELECT
+            eventname,
+            access_counts.bucket AS bucket,
+            name,
+            date,
+            sum(count) AS count
+        FROM (
+            SELECT
+                eventname,
+                bucket,
+                substr(key, {len(MANIFEST_PREFIX) + 1}) AS hash,
+                date,
+                count(*) AS count
+            FROM object_access_log
+            WHERE substr(key, 1, {len(MANIFEST_PREFIX)}) = '{sql_escape(MANIFEST_PREFIX)}'
+            GROUP BY 4, 3, 2, 1
+        ) access_counts JOIN package_hashes
+        ON access_counts.bucket = package_hashes.bucket AND access_counts.hash = package_hashes.hash
+        GROUP BY 4, 3, 2, 1
+    )
     GROUP BY 3, 2, 1
 """)
 
-PACKAGE_VERSION_ACCESS_COUNTS = textwrap.dedent("""\
+PACKAGE_VERSION_ACCESS_COUNTS = textwrap.dedent(f"""\
     SELECT
         eventname,
-        package_hashes.bucket AS bucket,
+        access_counts.bucket AS bucket,
         name,
-        hash,
-        CAST(histogram(date) AS JSON) AS counts
-    FROM object_access_log JOIN package_hashes
-    ON object_access_log.bucket = package_hashes.bucket AND key = concat('.quilt/packages/', hash)
-    GROUP BY 4, 3, 2, 1
+        access_counts.hash AS hash,
+        counts
+    FROM (
+        SELECT
+            eventname,
+            bucket,
+            substr(key, {len(MANIFEST_PREFIX) + 1}) AS hash,
+            CAST(histogram(date) AS JSON) AS counts
+        FROM object_access_log
+        WHERE substr(key, 1, {len(MANIFEST_PREFIX)}) = '{sql_escape(MANIFEST_PREFIX)}'
+        GROUP BY 3, 2, 1
+    ) access_counts JOIN package_hashes
+    ON access_counts.bucket = package_hashes.bucket AND access_counts.hash = package_hashes.hash
 """)
 
 BUCKET_ACCESS_COUNTS = textwrap.dedent("""\

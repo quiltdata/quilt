@@ -55,7 +55,7 @@ const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
 }))
 
 function VersionInfo({ bucket, path, version }) {
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
   const cfg = Config.use()
   const { push } = Notifications.use()
@@ -83,7 +83,7 @@ function VersionInfo({ bucket, path, version }) {
     push('Object location copied to clipboard')
   }
 
-  const data = useData(requests.objectVersions, { s3req, bucket, path })
+  const data = useData(requests.objectVersions, { s3, bucket, path })
 
   return (
     <>
@@ -212,8 +212,8 @@ const AnnotationsBox = M.styled('div')(({ theme: t }) => ({
 }))
 
 function Annotations({ bucket, path, version }) {
-  const s3req = AWS.S3.useRequest()
-  const data = useData(requests.objectMeta, { s3req, bucket, path, version })
+  const s3 = AWS.S3.use()
+  const data = useData(requests.objectMeta, { s3, bucket, path, version })
   return data.case({
     Ok: (meta) =>
       !!meta &&
@@ -228,7 +228,7 @@ function Annotations({ bucket, path, version }) {
 
 function Analytics({ analyticsBucket, bucket, path }) {
   const [cursor, setCursor] = React.useState(null)
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const today = React.useMemo(() => new Date(), [])
   const formatDate = (date) =>
     dateFns.format(
@@ -236,7 +236,7 @@ function Analytics({ analyticsBucket, bucket, path }) {
       today.getFullYear() === date.getFullYear() ? 'd MMM' : 'd MMM yyyy',
     )
   const data = useData(requests.objectAccessCounts, {
-    s3req,
+    s3,
     analyticsBucket,
     bucket,
     path,
@@ -343,7 +343,7 @@ export default function File({
   const { analyticsBucket, noDownload } = Config.use()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
 
   const path = decode(encodedPath)
 
@@ -369,9 +369,9 @@ export default function File({
     [bucket, path],
   )
 
-  const objExistsData = useData(requests.getObjectExistence, { s3req, bucket, key: path })
+  const objExistsData = useData(requests.getObjectExistence, { s3, bucket, key: path })
   const versionExistsData = useData(requests.getObjectExistence, {
-    s3req,
+    s3,
     bucket,
     key: path,
     version,
@@ -451,7 +451,7 @@ export default function File({
             <>
               <Code>{code}</Code>
               {!!analyticsBucket && <Analytics {...{ analyticsBucket, bucket, path }} />}
-              <Section icon="remove_red_eye" heading="Contents" defaultExpanded>
+              <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
                 {versionExistsData.case({
                   _: () => <CenteredProgress />,
                   Err: (e) => {

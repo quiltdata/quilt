@@ -5,7 +5,7 @@ from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
                    CONFIG_TEMPLATE, configure_from_default, config_exists,
                    configure_from_url, fix_url, get_package_registry,
                    load_config, PhysicalKey, read_yaml, validate_package_name,
-                   write_yaml)
+                   write_yaml, get_from_config)
 from .telemetry import ApiTelemetry
 
 
@@ -36,8 +36,12 @@ def delete_package(name, registry=None, top_hash=None):
     validate_package_name(name)
     usr, pkg = name.split('/')
 
-    registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
-
+    registry = (
+        get_from_config('default_local_registry')
+        if registry is None else
+        fix_url(registry)
+    )
+    registry_parsed = PhysicalKey.from_url(get_package_registry(registry))
     named_packages = registry_parsed.join('named_packages')
     package_path = named_packages.join(name)
 
@@ -46,7 +50,7 @@ def delete_package(name, registry=None, top_hash=None):
         raise QuiltException("No such package exists in the given directory.")
 
     if top_hash is not None:
-        top_hash = Package.resolve_hash(registry_parsed, top_hash)
+        top_hash = Package.resolve_hash(PhysicalKey.from_url(registry), top_hash)
         deleted = []
         remaining = []
         for path, _ in paths:
@@ -80,14 +84,14 @@ def delete_package(name, registry=None, top_hash=None):
 def list_packages(registry=None):
     """Lists Packages in the registry.
 
-    Returns a sequence of all named packages in a registry.
+    Returns an iterable of all named packages in a registry.
     If the registry is None, default to the local registry.
 
     Args:
-        registry(string): location of registry to load package from.
+        registry (str): location of registry to load package from.
 
     Returns:
-        A sequence of strings containing the names of the packages
+        An iterable of strings containing the names of the packages
     """
     registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))
 
@@ -120,14 +124,15 @@ def _list_packages(registry):
 def list_package_versions(name, registry=None):
     """Lists versions of a given package.
 
-    Returns a sequence of (version, hash) of a package in a registry.
+    Returns an iterable of (version, hash) of a package in a registry.
     If the registry is None, default to the local registry.
 
     Args:
-        registry(string): location of registry to load package from.
+        name (str): Name of the package
+        registry (str): location of registry to load package from.
 
     Returns:
-        A sequence of tuples containing the version and hash for the package.
+        An iterable of tuples containing the version and hash for the package.
     """
     validate_package_name(name)
     registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry) if registry else None))

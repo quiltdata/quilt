@@ -55,7 +55,7 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
 }))
 
 function RevisionInfo({ revision, bucket, name, path }) {
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const sign = AWS.Signer.useS3Signer()
   const { apiGatewayEndpoint: endpoint } = Config.useConfig()
   const { urls } = NamedRoutes.use()
@@ -79,7 +79,7 @@ function RevisionInfo({ revision, bucket, name, path }) {
         )}{' '}
         <M.Icon>expand_more</M.Icon>
       </span>
-      <Data fetch={requests.getPackageRevisions} params={{ s3req, bucket, name, today }}>
+      <Data fetch={requests.getPackageRevisions} params={{ s3, bucket, name, today }}>
         {R.pipe(
           AsyncResult.case({
             Ok: ({ revisions, isTruncated }) => {
@@ -87,7 +87,7 @@ function RevisionInfo({ revision, bucket, name, path }) {
                 <Data
                   key={r}
                   fetch={requests.getRevisionData}
-                  params={{ s3req, sign, endpoint, bucket, name, id: r, maxKeys: 0 }}
+                  params={{ s3, sign, endpoint, bucket, name, id: r, maxKeys: 0 }}
                 >
                   {(res) => {
                     const modified =
@@ -350,7 +350,7 @@ export default function PackageTree({
   },
 }) {
   const classes = useStyles()
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
   const getSignedS3URL = AWS.Signer.useS3Signer()
   const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
@@ -372,7 +372,7 @@ export default function PackageTree({
         contents: dedent`
           import quilt3
           # browse
-          quilt3.Package.browse("${nameWithPath}"${hashPy}, registry="s3://${bucket}")
+          quilt3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
           # download
           quilt3.Package.install("${nameWithPath}"${hashPy}, registry="s3://${bucket}", dest=".")
         `,
@@ -405,7 +405,7 @@ export default function PackageTree({
   }, [bucket, name, revision, path, urls])
 
   const data = useData(requests.fetchPackageTree, {
-    s3req,
+    s3,
     sign: getSignedS3URL,
     endpoint,
     bucket,
@@ -426,7 +426,7 @@ export default function PackageTree({
         <Data
           fetch={requests.getRevisionData}
           params={{
-            s3req,
+            s3,
             sign: getSignedS3URL,
             endpoint,
             bucket,
@@ -535,7 +535,7 @@ export default function PackageTree({
               {
                 Ok: TreeDisplay.case({
                   File: (handle) => (
-                    <Section icon="remove_red_eye" heading="Contents" expandable={false}>
+                    <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                       <FilePreview handle={handle} />
                     </Section>
                   ),

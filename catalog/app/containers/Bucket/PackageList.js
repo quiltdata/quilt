@@ -426,12 +426,12 @@ export default function PackageList({
 }) {
   const { filter, sort, p } = parseSearch(location.search)
   const page = p && parseInt(p, 10)
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const sign = AWS.Signer.useS3Signer()
   const { analyticsBucket, apiGatewayEndpoint: endpoint } = Config.useConfig()
   const bucketCfg = BucketConfig.useCurrentBucketConfig()
   const today = React.useMemo(() => new Date(), [])
-  const data = Data.use(requests.listPackages, { s3req, analyticsBucket, bucket, today })
+  const data = Data.use(requests.listPackages, { s3, analyticsBucket, bucket, today })
   return data.case({
     _: () => (
       <M.Box display="flex" pt={5} justifyContent="center">
@@ -447,7 +447,7 @@ export default function PackageList({
             <Data.Fetcher
               key={name}
               fetch={requests.getRevisionData}
-              params={{ s3req, sign, endpoint, bucket, name, id: 'latest', maxKeys: 0 }}
+              params={{ s3, sign, endpoint, bucket, name, id: 'latest', maxKeys: 0 }}
             >
               {AsyncResult.case({
                 _: () => null,

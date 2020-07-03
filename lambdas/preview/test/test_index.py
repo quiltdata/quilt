@@ -7,6 +7,7 @@ import pathlib
 import re
 from unittest.mock import ANY, patch
 
+import pyarrow.parquet as pq
 import responses
 
 from t4_lambda_shared.utils import read_body
@@ -127,8 +128,6 @@ class TestIndex():
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on sample.xlsx'
         body_html = body['html']
-        assert '700 rows' in body_html, 'unexpected row count'
-        assert '16 columns' in body_html, 'unexpected column count'
         assert body_html.count('Germany') == 13, 'unexpected data contents'
         assert body_html.count('Enterprise') == 7, 'unexpected data contents'
         assert body_html.count('Midmarket') == 13, 'unexpected data contents'
@@ -209,7 +208,6 @@ class TestIndex():
     def test_parquet(self):
         """test sending parquet bytes"""
         parquet = BASE_DIR / 'atlantic_storms.parquet'
-        info_response = BASE_DIR / 'parquet_info_response.json'
         responses.add(
             responses.GET,
             self.FILE_URL,
@@ -219,16 +217,37 @@ class TestIndex():
         resp = index.lambda_handler(event, None)
         assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
         body = json.loads(read_body(resp))
-        with open(info_response, 'r') as info_json:
-            expected = json.load(info_json)
-        assert (body['info'] == expected), \
-            f'Unexpected body["info"] for {parquet}'
+        # open file and check body return against parquet metadata
+        pf = pq.ParquetFile(parquet)
+        assert all(f'<th>{col}</th>' in body['html'] for col in pf.schema.names), \
+            'missing a column header in the preview'
+        assert body['html'].count('<') > 0, 'expected tags in HTML'
+        assert body['html'].count('<') == body['html'].count('>'), \
+            'unmatched HTML tags'
+        assert set(pf.schema.names) == set(body['info']['schema']['names']), \
+            'unexpected difference of columns'
+
+    @responses.activate
+    def test_parquet_empty(self):
+        """test a parquet file with columns but no rows"""
+        parquet = BASE_DIR / 'onlycolumns-c000'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=parquet.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'parquet'})
+        resp = index.lambda_handler(event, None)
+        assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
+        body = json.loads(read_body(resp))
+        assert '<th>column_a</th>' in body['html'], 'Missing column_a'
+        assert '<th>column_k</th>' in body['html'], 'Missing column_k'
+        assert '<th>column_z</th>' in body['html'], 'Missing column_z'
 
     @responses.activate
     def test_parquet_no_pandas(self):
         """test sending parquet bytes, but with a different metadata format"""
         parquet = BASE_DIR / 'parquet_no_pandas.snappy.parquet'
-        info_response = BASE_DIR / 'parquet_info_no_pandas_response.json'
         responses.add(
             responses.GET,
             self.FILE_URL,
@@ -238,11 +257,15 @@ class TestIndex():
         resp = index.lambda_handler(event, None)
         assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
         body = json.loads(read_body(resp))
-
-        with open(info_response, 'r') as info_json:
-            expected = json.load(info_json)
-        assert (body['info'] == expected), \
-            f'Unexpected body["info"] for {parquet}'
+        # open file and check body return against parquet metadata
+        pf = pq.ParquetFile(parquet)
+        assert all(f'<th>{col}</th>' in body['html'] for col in pf.schema.names), \
+            'missing a column header in the preview'
+        assert body['html'].count('<') > 0, 'expected tags in HTML'
+        assert body['html'].count('<') == body['html'].count('>'), \
+            'unmatched HTML tags'
+        assert set(pf.schema.names) == set(body['info']['schema']['names']), \
+            'unexpected difference of columns'
 
     @responses.activate
     def test_tsv(self):
