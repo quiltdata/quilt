@@ -22,7 +22,7 @@ class Request:
     def __init__(self, event):
         self.event = event
         self.method = event['httpMethod']
-        self.path = event.get('path')
+        self.path = event['path']
         self.pathParameters = event['pathParameters']
         self.headers = event['headers'] or {}
         self.args = event['queryStringParameters'] or {}

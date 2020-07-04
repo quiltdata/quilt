@@ -85,8 +85,12 @@ def lambda_handler(request):
 
     df, stats = load_df(response)
 
-    ret_val = {
-        'contents': get_logical_key_folder_view(df, prefix)
-    }
+    ret_val = make_json_response(
+        200,
+        {
+            'contents': get_logical_key_folder_view(df, prefix)
+        }
+    )
+    print(ret_val)
 
-    return make_json_response(200, ret_val)
+    return ret_val
