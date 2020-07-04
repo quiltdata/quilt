@@ -21,6 +21,7 @@ pandas==0.25.1
 pandocfilters==1.4.2
 pyarrow==0.17.0
 Pygments==2.4.2
+psutil==5.7.0
 pyrsistent==0.15.2
 python-dateutil==2.8.0
 pytz==2019.1
