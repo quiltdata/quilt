@@ -42,14 +42,15 @@ __Arguments__
 * __path(str)__:  If specified, downloads only `path` or its children.
 
 
-## Package.resolve\_hash(registry, hash\_prefix)  {#Package.resolve\_hash}
+## Package.resolve\_hash(name, registry, hash\_prefix)  {#Package.resolve\_hash}
 
 Find a hash that starts with a given prefix.
 
 __Arguments__
 
-* __registry(string)__:  location of registry
-* __hash_prefix(string)__:  hash prefix with length between 6 and 64 characters
+* __name (str)__:  name of package
+* __registry (str)__:  location of registry
+* __hash_prefix (str)__:  hash prefix with length between 6 and 64 characters
 
 
 ## Package.browse(name, registry=None, top\_hash=None)  {#Package.browse}

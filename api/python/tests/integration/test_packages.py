@@ -1587,7 +1587,7 @@ class PackageTest(QuiltTestCase):
         hash_prefix = 'top_hash1'
 
         with pytest.raises(QuiltException, match='Found zero matches'):
-            Package.resolve_hash(LOCAL_REGISTRY, hash_prefix)
+            Package.resolve_hash(pkg_name, LOCAL_REGISTRY, hash_prefix)
 
         with patch('quilt3.Package.top_hash', top_hash1), \
              patch('time.time', return_value=1):
@@ -1597,11 +1597,16 @@ class PackageTest(QuiltTestCase):
              patch('time.time', return_value=2):
             Package().build(pkg_name)
 
-        assert Package.resolve_hash(LOCAL_REGISTRY, hash_prefix) == top_hash1
+        assert Package.resolve_hash(pkg_name, LOCAL_REGISTRY, hash_prefix) == top_hash1
+        with pytest.raises(QuiltException, match='Invalid package name'):
+            Package.resolve_hash('?', LOCAL_REGISTRY, hash_prefix)
+        msg = r"Calling resolve_hash\(\) without the 'name' parameter is deprecated."
+        with pytest.warns(RemovedInQuilt4Warning, match=msg):
+            assert Package.resolve_hash(LOCAL_REGISTRY, hash_prefix) == top_hash1
 
         with patch('quilt3.Package.top_hash', top_hash3), \
              patch('time.time', return_value=3):
             Package().build(pkg_name)
 
         with pytest.raises(QuiltException, match='Found multiple matches'):
-            Package.resolve_hash(LOCAL_REGISTRY, hash_prefix)
+            Package.resolve_hash(pkg_name, LOCAL_REGISTRY, hash_prefix)
