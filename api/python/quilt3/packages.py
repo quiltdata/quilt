@@ -486,7 +486,8 @@ class Package:
             registry(string): location of registry
             hash_prefix(string): hash prefix with length between 6 and 64 characters
         """
-        assert isinstance(registry, PhysicalKey)
+        if not isinstance(registry, PhysicalKey):
+            registry = PhysicalKey.from_url(fix_url(registry))
         assert not str(registry).rstrip('/').endswith('.quilt')
         if len(hash_prefix) == 64:
             top_hash = hash_prefix

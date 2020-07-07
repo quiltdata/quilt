@@ -1518,3 +1518,30 @@ class PackageTest(QuiltTestCase):
         pkg._fix_sha256()
         mocked_calculate_sha256.assert_called_once_with([entry.physical_key], [len(data)])
         assert entry.hash == {'type': 'SHA256', 'value': hash_}
+
+    def test_resolve_hash(self):
+        pkg_name = 'Quilt/Test'
+        top_hash1 = 'top_hash11'
+        top_hash2 = 'top_hash22'
+        top_hash3 = 'top_hash13'
+        hash_prefix = 'top_hash1'
+
+        with pytest.raises(QuiltException, match='Found zero matches'):
+            Package.resolve_hash(LOCAL_REGISTRY, hash_prefix)
+
+        with patch('quilt3.Package.top_hash', top_hash1), \
+             patch('time.time', return_value=1):
+            Package().build(pkg_name)
+
+        with patch('quilt3.Package.top_hash', top_hash2), \
+             patch('time.time', return_value=2):
+            Package().build(pkg_name)
+
+        assert Package.resolve_hash(LOCAL_REGISTRY, hash_prefix) == top_hash1
+
+        with patch('quilt3.Package.top_hash', top_hash3), \
+             patch('time.time', return_value=3):
+            Package().build(pkg_name)
+
+        with pytest.raises(QuiltException, match='Found multiple matches'):
+            Package.resolve_hash(LOCAL_REGISTRY, hash_prefix)
