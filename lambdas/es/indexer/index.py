@@ -98,8 +98,13 @@ def infer_extensions(key, ext):
     """guess extensions if possible"""
     # Handle special case of hive partitions
     # see https://www.qubole.com/blog/direct-writes-to-increase-spark-performance/
-    if re.fullmatch(r".c\d{3,5}", ext) or re.fullmatch(r".*-c\d{3,5}$", key):
+    if (
+            re.fullmatch(r".c\d{3,5}", ext) or re.fullmatch(r".*-c\d{3,5}$", key)
+            or key.endswith("_0")
+            or ext == ".pq"
+    ):
         return ".parquet"
+
     return ext
 
 
