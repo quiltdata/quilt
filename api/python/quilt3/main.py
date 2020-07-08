@@ -305,7 +305,9 @@ def create_parser():
     install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp, allow_abbrev=False)
     install_p.add_argument(
         "name",
-        help="Name of package, in the USER/PKG[/PATH] format",
+        help=(
+            "Name of package, in the USER/PKG[/PATH] format ([/PATH] is deprecated, use --path parameter instead)"
+        ),
         type=str,
     )
     install_p.add_argument(
@@ -329,6 +331,12 @@ def create_parser():
     install_p.add_argument(
         "--dest-registry",
         help="Registry to install package to. Defaults to local registry.",
+        type=str,
+        required=False,
+    )
+    install_p.add_argument(
+        "--path",
+        help="If specified, downloads only PATH or its children.",
         type=str,
         required=False,
     )

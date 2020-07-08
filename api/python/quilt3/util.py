@@ -80,6 +80,10 @@ class QuiltException(Exception):
             setattr(self, k, v)
 
 
+class RemovedInQuilt4Warning(FutureWarning):
+    pass
+
+
 class PhysicalKey:
     __slots__ = ['bucket', 'path', 'version_id']
 
