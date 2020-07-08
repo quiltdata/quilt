@@ -1,3 +1,4 @@
+import inspect
 from collections import deque
 import gc
 import hashlib
@@ -490,14 +491,35 @@ class Package:
         print(f"Successfully installed package '{name}', tophash={short_tophash} from {registry}")
 
     @classmethod
-    def resolve_hash(cls, registry, hash_prefix):
+    def _parse_resolve_hash_args(cls, name, registry, hash_prefix):
+        return name, registry, hash_prefix
+
+    @staticmethod
+    def _parse_resolve_hash_args_old(registry, hash_prefix):
+        return None, registry, hash_prefix
+
+    @classmethod
+    def resolve_hash(cls, *args, **kwargs):
         """
         Find a hash that starts with a given prefix.
 
         Args:
-            registry(string): location of registry
-            hash_prefix(string): hash prefix with length between 6 and 64 characters
+            name (str): name of package
+            registry (str): location of registry
+            hash_prefix (str): hash prefix with length between 6 and 64 characters
         """
+        try:
+            name, registry, hash_prefix = cls._parse_resolve_hash_args_old(*args, **kwargs)
+        except TypeError:
+            name, registry, hash_prefix = cls._parse_resolve_hash_args(*args, **kwargs)
+            validate_package_name(name)
+        else:
+            warnings.warn(
+                "Calling resolve_hash() without the 'name' parameter is deprecated.",
+                category=RemovedInQuilt4Warning,
+                stacklevel=2,
+            )
+
         if not isinstance(registry, PhysicalKey):
             registry = PhysicalKey.from_url(fix_url(registry))
         assert not str(registry).rstrip('/').endswith('.quilt')
@@ -516,6 +538,8 @@ class Package:
         else:
             raise QuiltException("Invalid hash: %r" % hash_prefix)
         return top_hash
+    # This is needed for nice signature in docs.
+    resolve_hash.__func__.__signature__ = inspect.signature(_parse_resolve_hash_args.__func__)
 
     @classmethod
     def _shorten_tophash(cls, package_name, registry: PhysicalKey, top_hash):
@@ -558,7 +582,7 @@ class Package:
             top_hash_file = registry_parsed.join(f'.quilt/named_packages/{name}/latest')
             top_hash = get_bytes(top_hash_file).decode('utf-8').strip()
         else:
-            top_hash = cls.resolve_hash(registry_parsed, top_hash)
+            top_hash = cls.resolve_hash(name, registry_parsed, top_hash)
 
         # TODO: verify that name is correct with respect to this top_hash
         pkg_manifest = registry_parsed.join(f'.quilt/packages/{top_hash}')
@@ -1355,7 +1379,7 @@ class Package:
         registry = PhysicalKey.from_url(fix_url(registry))
         validate_package_name(name)
 
-        top_hash = cls.resolve_hash(registry, top_hash)
+        top_hash = cls.resolve_hash(name, registry, top_hash)
 
         hash_path = registry.join(f'.quilt/packages/{top_hash}')
         latest_path = registry.join(f'.quilt/named_packages/{name}/latest')

@@ -50,7 +50,7 @@ def delete_package(name, registry=None, top_hash=None):
         raise QuiltException("No such package exists in the given directory.")
 
     if top_hash is not None:
-        top_hash = Package.resolve_hash(PhysicalKey.from_url(registry), top_hash)
+        top_hash = Package.resolve_hash(name, PhysicalKey.from_url(registry), top_hash)
         deleted = []
         remaining = []
         for path, _ in paths:
