@@ -16,6 +16,7 @@ import pytest
 import quilt3
 from quilt3 import Package
 from quilt3.util import PhysicalKey, QuiltException, validate_package_name, RemovedInQuilt4Warning
+from quilt3.backends.local import LocalPackageRegistryV1
 
 from ..utils import QuiltTestCase
 
@@ -157,14 +158,20 @@ class PackageTest(QuiltTestCase):
             assert PhysicalKey.from_path(test_file) == pkg['bar'].physical_key
 
     @patch('quilt3.Package._browse', lambda name, registry, top_hash: Package())
-    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
     def test_default_install_location(self):
         """Verify that pushes to the default local install location work as expected"""
         with patch('quilt3.Package._build') as build_mock:
             pkg_name = 'Quilt/nice-name'
             Package.install(pkg_name, registry='s3://my-test-bucket')
 
-            build_mock.assert_called_once_with(pkg_name, registry=quilt3.util.get_install_location(), message=None)
+            build_mock.assert_called_once_with(
+                pkg_name,
+                registry=LocalPackageRegistryV1(
+                    PhysicalKey.from_url(quilt3.util.get_install_location())
+                ),
+                message=None
+            )
 
     def test_read_manifest(self):
         """ Verify reading serialized manifest from disk. """
@@ -398,7 +405,7 @@ class PackageTest(QuiltTestCase):
                 PhysicalKey.from_path('foo.txt')
             )
 
-    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
     def test_load_into_quilt(self):
         """ Verify loading local manifest and data into S3. """
         top_hash1 = 'abbf5f171cf20bfb2313ecd8684546958cd72ac4f3ec635e4510d9c771168226'
@@ -726,7 +733,7 @@ class PackageTest(QuiltTestCase):
         pkg = Package().set('bar.txt')
         assert PhysicalKey.from_path(test_file) == pkg['bar.txt'].physical_key
 
-    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
     def test_set_package_entry_as_object(self):
         pkg = Package()
         nasty_string = 'a,"\tb'
@@ -1012,7 +1019,7 @@ class PackageTest(QuiltTestCase):
             }
         )
 
-        for path in ['Quilt/Test/0', 'Quilt/Test/latest', 'Quilt/Test/', 'Quilt/']:
+        for path in ['Quilt/Test/0', 'Quilt/Test/latest']:
             self.s3_stubber.add_response(
                 method='delete_object',
                 service_response={},
@@ -1043,7 +1050,7 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(QuiltException):
             p.push('Quilt/Test', 's3://test-bucket', dest='s3://other-test-bucket')
 
-    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
     def test_commit_message_on_push(self):
         """ Verify commit messages populate correctly on push."""
         with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
@@ -1165,7 +1172,7 @@ class PackageTest(QuiltTestCase):
 
     def test_import(self):
         with patch('quilt3.Package._browse') as browse_mock, \
-             patch('quilt3.imports._list_packages') as list_packages_mock:
+             patch('quilt3.backends.local.LocalPackageRegistryV1.list_packages') as list_packages_mock:
             browse_mock.return_value = quilt3.Package()
             list_packages_mock.return_value = ['foo/bar', 'foo/baz']
 
@@ -1212,7 +1219,7 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(QuiltException):
             pkg.set('s3://foo/..', LOCAL_MANIFEST)
 
-    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
     def test_install(self):
         # Manifest
 
@@ -1529,7 +1536,7 @@ class PackageTest(QuiltTestCase):
         with self.assertRaises(QuiltException):
             Package.rollback('quilt/blah', LOCAL_REGISTRY, good_hash)
 
-    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
     def test_verify(self):
         pkg = Package()
 
