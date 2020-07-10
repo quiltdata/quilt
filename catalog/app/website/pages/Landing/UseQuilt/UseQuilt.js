@@ -241,7 +241,7 @@ export default function UseQuilt() {
         <Bar color="primary" />
         <M.Box mt={5} maxWidth={520} textAlign={{ sm: 'center' }}>
           <M.Typography variant="h1" color="textPrimary">
-            Coordinate your team with shared truth
+            Accelerate from experiment to impact
           </M.Typography>
         </M.Box>
         <M.Box mt={4} mb={5} maxWidth={620}>
