@@ -15,6 +15,7 @@ import 'sanitize.css'
 
 // Import root app
 import Error from 'components/Error'
+import { ExperimentsProvider } from 'components/Experiments'
 import * as Intercom from 'components/Intercom'
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
@@ -125,6 +126,7 @@ const render = (messages) => {
           vertical_padding: 59,
         },
       ],
+      ExperimentsProvider,
       [
         Tracking.Provider,
         {

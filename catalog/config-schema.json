@@ -17,6 +17,10 @@
       "type": "string",
       "description": "Endpoint to use for thumbnails. Should be auto-populated by your stack."
     },
+    "calendlyLink": {
+      "type": "string",
+      "description": "Calendly.com scheduling link (e.g. https://calendly.com/$username/$event) used for meeting scheduling popup aka Talk To Us."
+    },
     "googleClientId": {
       "type": "string",
       "description": "Client ID for Google Sign-In"

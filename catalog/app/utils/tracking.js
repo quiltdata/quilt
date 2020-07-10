@@ -2,6 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as reduxHook from 'redux-react-hook'
 
+import { useExperiments } from 'components/Experiments'
 import * as Config from 'utils/Config'
 import usePrevious from 'utils/usePrevious'
 
@@ -44,6 +45,7 @@ const withTimeout = (p, timeout) =>
   })
 
 export function Provider({ locationSelector, userSelector, children }) {
+  const { getSelectedVariants } = useExperiments()
   const cfg = Config.useConfig()
   // workaround to avoid changing client configs
   const token = cfg.mixpanelToken || cfg.mixPanelToken
@@ -71,9 +73,15 @@ export function Provider({ locationSelector, userSelector, children }) {
     (evt, opts) =>
       tracker.then(
         (inst) =>
-          new Promise((resolve) => inst.track(evt, { ...commonOpts, ...opts }, resolve)),
+          new Promise((resolve) =>
+            inst.track(
+              evt,
+              { ...commonOpts, ...getSelectedVariants('experiment:'), ...opts },
+              resolve,
+            ),
+          ),
       ),
-    [tracker, commonOpts],
+    [tracker, commonOpts, getSelectedVariants],
   )
 
   const trackLink = React.useCallback(
