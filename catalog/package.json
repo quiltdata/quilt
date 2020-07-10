@@ -100,6 +100,7 @@
     "react-helmet": "^6.0.0",
     "react-input-autosize": "^2.2.2",
     "react-intl": "^2.9.0",
+    "react-multi-carousel": "^2.5.5",
     "react-redux": "^7.2.0",
     "react-router-dom": "^5.1.2",
     "react-router-hash-link": "^1.2.2",
