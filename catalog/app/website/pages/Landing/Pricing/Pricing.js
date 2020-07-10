@@ -154,7 +154,6 @@ const useStyles = M.makeStyles((t) => ({
   price: {
     ...t.typography.h1,
     color: t.palette.text.primary,
-    fontWeight: t.typography.fontWeightMedium,
     lineHeight: 1.5,
   },
   perMonth: {
