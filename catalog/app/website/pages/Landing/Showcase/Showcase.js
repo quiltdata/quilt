@@ -101,7 +101,7 @@ export default function Showcase() {
                   color="secondary"
                   href="https://open.quiltdata.com"
                 >
-                  Explore data with Quilt
+                  Explore open data
                 </M.Button>
               </M.Box>
             </M.Box>
