@@ -1,13 +1,17 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
-// TODO: ensure proper variants
 // map of experiment name to array of variants
 const EXPERIMENTS = {
-  cta: ['Ready to synchronize your data?'],
+  cta: [
+    'Ready to get your data organized?',
+    'Ready to experiment faster?',
+    'Ready to maximize return on data?',
+  ],
   lede: [
     'Maximize your return on data by managing data like code',
-    'Experiment faster by managing data like code',
+    'Accelerate from experiment to impact',
+    'Quilt is a versioned data portal for AWS',
   ],
 }
 
