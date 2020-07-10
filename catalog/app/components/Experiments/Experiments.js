@@ -11,7 +11,7 @@ const EXPERIMENTS = {
   lede: [
     'Maximize your return on data by managing data like code',
     'Accelerate from experiment to impact',
-    'Quilt is a versioned data portal for AWS',
+    'Quilt is an experiment discovery platform',
   ],
 }
 
