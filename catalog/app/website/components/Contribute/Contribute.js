@@ -28,7 +28,7 @@ const usePanelStyles = M.makeStyles((t) => ({
     color: t.palette.common.white,
     display: 'flex',
     fontSize: '1.75rem',
-    fontWeight: t.typography.fontWeightBold,
+    fontWeight: t.typography.fontWeightMedium,
     height: 150,
     lineHeight: 2 / 1.75,
     textAlign: 'center',
