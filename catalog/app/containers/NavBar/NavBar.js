@@ -6,7 +6,6 @@ import { createStructuredSelector } from 'reselect'
 import * as M from '@material-ui/core'
 
 import Logo from 'components/Logo'
-import { useTalkToUs } from 'components/TalkToUs'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
@@ -296,20 +295,6 @@ function useLinks() {
   ].filter(Boolean)
 }
 
-// pad: 'l' | 'r'
-function Talk({ pad }) {
-  const talk = useTalkToUs({ src: 'header' })
-  const props = {}
-  if (pad) props[`m${pad}`] = 1
-  return (
-    <M.Box {...props}>
-      <M.Button variant="contained" color="primary" onClick={talk}>
-        Talk To Us
-      </M.Button>
-    </M.Box>
-  )
-}
-
 export function NavBar() {
   const cfg = Config.use()
   const bucket = BucketConfig.useCurrentBucket()
@@ -350,8 +335,6 @@ export function NavBar() {
         ) : (
           !isSignIn && <SignIn error={error} waiting={waiting} />
         ))}
-
-      {cfg.mode === 'MARKETING' && <Talk pad={useHamburger ? 'r' : 'l'} />}
 
       {useHamburger &&
         (cfg.disableNavigator || cfg.mode === 'LOCAL' ? (
