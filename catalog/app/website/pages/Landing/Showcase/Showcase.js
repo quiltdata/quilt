@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { useExperiments } from 'components/Experiments'
+import { useTalkToUs } from 'components/TalkToUs'
 import * as URLS from 'constants/urls'
 
 import Bar from 'website/components/Bar'
@@ -53,6 +55,8 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Showcase() {
   const classes = useStyles()
+  const lede = useExperiments('lede')
+  const talk = useTalkToUs({ src: 'lede' })
   return (
     <div className={classes.root}>
       <Overlay2 />
@@ -63,7 +67,7 @@ export default function Showcase() {
             <Bar color="primary" />
             <M.Box mt={5}>
               <M.Typography variant="h1" color="textPrimary">
-                Experiment faster by managing data like code
+                {lede}
               </M.Typography>
             </M.Box>
             <M.Box mt={4}>
@@ -85,22 +89,21 @@ export default function Showcase() {
                 data sets in S3.
               </M.Typography>
             </M.Box>
-            <M.Box mt={5}>
-              <M.Button
-                variant="contained"
-                color="primary"
-                href="https://www.meetingbird.com/m/S19vxyVOH"
-              >
-                Book demo
-              </M.Button>
-              <M.Box display="inline-block" ml={2} />
-              <M.Button
-                variant="contained"
-                color="secondary"
-                href="https://open.quiltdata.com"
-              >
-                Explore data with Quilt
-              </M.Button>
+            <M.Box mt={3}>
+              <M.Box mt={2} mr={2} display="inline-block">
+                <M.Button variant="contained" color="primary" onClick={talk}>
+                  Book a demo
+                </M.Button>
+              </M.Box>
+              <M.Box mt={2} display="inline-block">
+                <M.Button
+                  variant="contained"
+                  color="secondary"
+                  href="https://open.quiltdata.com"
+                >
+                  Explore open data
+                </M.Button>
+              </M.Box>
             </M.Box>
             <M.Box mt={5}>
               <ChevronLink href="https://docs.quiltdata.com/installation">

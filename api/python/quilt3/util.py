@@ -80,6 +80,10 @@ class QuiltException(Exception):
             setattr(self, k, v)
 
 
+class RemovedInQuilt4Warning(FutureWarning):
+    pass
+
+
 class PhysicalKey:
     __slots__ = ['bucket', 'path', 'version_id']
 
@@ -335,13 +339,6 @@ def validate_package_name(name):
     parts = parse_sub_package_name(name)
     if not parts or parts[1]:
         raise QuiltException(f"Invalid package name: {name}.")
-
-
-def get_package_registry(path=None):
-    """ Returns the package registry root for a given path """
-    if path is None:
-        path = get_from_config('default_local_registry')
-    return path.rstrip('/') + '/.quilt'
 
 
 def configure_from_url(catalog_url):

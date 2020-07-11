@@ -1,3 +1,4 @@
+import inspect
 from collections import deque
 import gc
 import hashlib
@@ -14,6 +15,7 @@ import warnings
 import jsonlines
 from tqdm import tqdm
 
+from .backends import get_package_registry
 from .data_transfer import (
     calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_version,
     list_object_versions, list_url, put_bytes
@@ -24,7 +26,7 @@ from .telemetry import ApiTelemetry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
     validate_package_name, quiltignore_filter, validate_key, extract_file_extension,
-    parse_sub_package_name)
+    parse_sub_package_name, RemovedInQuilt4Warning)
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, \
     user_is_configured_to_custom_stack, catalog_package_url, DISABLE_TQDM
 
@@ -383,12 +385,13 @@ class Package:
 
     @classmethod
     @ApiTelemetry("package.install")
-    def install(cls, name, registry=None, top_hash=None, dest=None, dest_registry=None):
+    def install(cls, name, registry=None, top_hash=None, dest=None, dest_registry=None, *, path=None):
         """
         Installs a named package to the local registry and downloads its files.
 
         Args:
-            name(str): Name of package to install. It also can be passed as NAME/PATH,
+            name(str): Name of package to install. It also can be passed as NAME/PATH
+                (/PATH is deprecated, use the `path` parameter instead),
                 in this case only the sub-package or the entry specified by PATH will
                 be downloaded.
             registry(str): Registry where package is located.
@@ -396,6 +399,7 @@ class Package:
             top_hash(str): Hash of package to install. Defaults to latest.
             dest(str): Local path to download files to.
             dest_registry(str): Registry to install package to. Defaults to local registry.
+            path(str): If specified, downloads only `path` or its children.
         """
         if registry is None:
             registry = get_from_config('default_remote_registry')
@@ -406,16 +410,8 @@ class Package:
                 )
         else:
             registry = fix_url(registry)
-
-        registry_parsed = PhysicalKey.from_url(registry)
-
-        if dest_registry is None:
-            dest_registry = get_from_config('default_local_registry')
-        else:
-            dest_registry = fix_url(dest_registry)
-
-        dest_registry_parsed = PhysicalKey.from_url(dest_registry)
-        if not dest_registry_parsed.is_local():
+        dest_registry = get_package_registry(dest_registry)
+        if not dest_registry.is_local:
             raise QuiltException(
                 f"Can only 'install' to a local registry, but 'dest_registry' "
                 f"{dest_registry!r} is a remote path. To store a package in a remote "
@@ -435,8 +431,18 @@ class Package:
 
         parts = parse_sub_package_name(name)
         if parts and parts[1]:
+            warnings.warn(
+                "Passing path via package name is deprecated, use the 'path' parameter instead.",
+                category=RemovedInQuilt4Warning,
+                stacklevel=3,
+            )
             name, subpkg_key = parts
             validate_key(subpkg_key)
+            if path:
+                raise ValueError("You must not pass path via package name and 'path' parameter.")
+        elif path:
+            validate_key(path)
+            subpkg_key = path
         else:
             subpkg_key = None
 
@@ -474,48 +480,42 @@ class Package:
         pkg._build(name, registry=dest_registry, message=message)
         if top_hash is None:
             top_hash = pkg.top_hash
-        short_tophash = Package._shorten_tophash(name, dest_registry_parsed, top_hash)
-        print(f"Successfully installed package '{name}', tophash={short_tophash} from {registry}")
+        short_top_hash = dest_registry.shorten_top_hash(name, top_hash)
+        print(f"Successfully installed package '{name}', tophash={short_top_hash} from {registry}")
 
     @classmethod
-    def resolve_hash(cls, registry, hash_prefix):
+    def _parse_resolve_hash_args(cls, name, registry, hash_prefix):
+        return name, registry, hash_prefix
+
+    @staticmethod
+    def _parse_resolve_hash_args_old(registry, hash_prefix):
+        return None, registry, hash_prefix
+
+    @classmethod
+    def resolve_hash(cls, *args, **kwargs):
         """
         Find a hash that starts with a given prefix.
 
         Args:
-            registry(string): location of registry
-            hash_prefix(string): hash prefix with length between 6 and 64 characters
+            name (str): name of package
+            registry (str): location of registry
+            hash_prefix (str): hash prefix with length between 6 and 64 characters
         """
-        assert isinstance(registry, PhysicalKey)
-        if len(hash_prefix) == 64:
-            top_hash = hash_prefix
-        elif 6 <= len(hash_prefix) < 64:
-            matching_hashes = [h for h, _
-                               in list_url(registry.join('.quilt/packages/'))
-                               if h.startswith(hash_prefix)]
-            if not matching_hashes:
-                raise QuiltException("Found zero matches for %r" % hash_prefix)
-            elif len(matching_hashes) > 1:
-                raise QuiltException("Found multiple matches: %r" % hash_prefix)
-            else:
-                top_hash = matching_hashes[0]
+        try:
+            name, registry, hash_prefix = cls._parse_resolve_hash_args_old(*args, **kwargs)
+        except TypeError:
+            name, registry, hash_prefix = cls._parse_resolve_hash_args(*args, **kwargs)
+            validate_package_name(name)
         else:
-            raise QuiltException("Invalid hash: %r" % hash_prefix)
-        return top_hash
+            warnings.warn(
+                "Calling resolve_hash() without the 'name' parameter is deprecated.",
+                category=RemovedInQuilt4Warning,
+                stacklevel=2,
+            )
 
-    @classmethod
-    def _shorten_tophash(cls, package_name, registry: PhysicalKey, top_hash):
-        min_shorthash_len = 7
-
-        matches = [h for h, _ in list_url(registry.join('.quilt/packages/'))
-                   if h.startswith(top_hash[:min_shorthash_len])]
-        if len(matches) == 0:
-            raise ValueError(f"Tophash {top_hash} was not found in registry {registry}")
-        for prefix_length in range(min_shorthash_len, 64):
-            potential_shorthash = top_hash[:prefix_length]
-            matches = [h for h in matches if h.startswith(potential_shorthash)]
-            if len(matches) == 1:
-                return potential_shorthash
+        return get_package_registry(registry).resolve_top_hash(name, hash_prefix)
+    # This is needed for nice signature in docs.
+    resolve_hash.__func__.__signature__ = inspect.signature(_parse_resolve_hash_args.__func__)
 
     @classmethod
     @ApiTelemetry("package.browse")
@@ -534,21 +534,14 @@ class Package:
     @classmethod
     def _browse(cls, name, registry=None, top_hash=None):
         validate_package_name(name)
-        if registry is None:
-            registry = get_from_config('default_local_registry')
-        else:
-            registry = fix_url(registry)
-        registry_parsed = PhysicalKey.from_url(registry)
+        registry = get_package_registry(registry)
 
-        if top_hash is None:
-            top_hash_file = registry_parsed.join(f'.quilt/named_packages/{name}/latest')
-            top_hash = get_bytes(top_hash_file).decode('utf-8').strip()
-        else:
-            top_hash = cls.resolve_hash(registry_parsed, top_hash)
-
-        # TODO: verify that name is correct with respect to this top_hash
-        pkg_manifest = registry_parsed.join(f'.quilt/packages/{top_hash}')
-
+        top_hash = (
+            get_bytes(registry.pointer_latest_pk(name)).decode()
+            if top_hash is None else
+            registry.resolve_top_hash(name, top_hash)
+        )
+        pkg_manifest = registry.manifest_pk(name, top_hash)
         if pkg_manifest.is_local():
             local_pkg_manifest = pkg_manifest.path
         else:
@@ -933,13 +926,7 @@ class Package:
 
     def _build(self, name, registry, message):
         validate_package_name(name)
-
-        if registry is None:
-            registry = get_from_config('default_local_registry')
-        else:
-            registry = fix_url(registry)
-
-        registry_parsed = PhysicalKey.from_url(registry)
+        registry = get_package_registry(registry)
 
         self._set_commit_message(message)
 
@@ -947,21 +934,10 @@ class Package:
         manifest = io.BytesIO()
         self._dump(manifest)
 
-        pkg_manifest_file = registry_parsed.join(f'.quilt/packages/{self.top_hash}')
-        put_bytes(
-            manifest.getvalue(),
-            pkg_manifest_file
-        )
+        top_hash = self.top_hash
+        registry.push_manifest(name, top_hash, manifest.getvalue())
 
-        named_path = registry_parsed.join(f'.quilt/named_packages/{name}')
-        hash_bytes = self.top_hash.encode('utf-8')
-        # TODO: use a float to string formater instead of double casting
-        timestamp_path = named_path.join(str(int(time.time())))
-        latest_path = named_path.join("latest")
-        put_bytes(hash_bytes, timestamp_path)
-        put_bytes(hash_bytes, latest_path)
-
-        return self
+        return top_hash
 
     @ApiTelemetry("package.dump")
     def dump(self, writable_file):
@@ -1308,9 +1284,9 @@ class Package:
         for lk in temp_file_logical_keys:
             self._set(lk, pkg[lk])
 
-        pkg._build(name, registry=registry, message=message)
+        top_hash = pkg._build(name, registry=registry, message=message)
 
-        shorthash = Package._shorten_tophash(name, PhysicalKey.from_url(registry), pkg.top_hash)
+        shorthash = get_package_registry(registry).shorten_top_hash(name, top_hash)
         print(f"Package {name}@{shorthash} pushed to s3://{dest_parsed.bucket}")
 
         if user_is_configured_to_custom_stack():
@@ -1337,17 +1313,14 @@ class Package:
             registry(str): Registry where package is located.
             top_hash(str): Hash to rollback to.
         """
-        registry = PhysicalKey.from_url(fix_url(registry))
         validate_package_name(name)
-
-        top_hash = cls.resolve_hash(registry, top_hash)
-
-        hash_path = registry.join(f'.quilt/packages/{top_hash}')
-        latest_path = registry.join(f'.quilt/named_packages/{name}/latest')
+        registry = get_package_registry(registry)
+        top_hash = registry.resolve_top_hash(name, top_hash)
 
         # Check that both latest and top_hash actually exist.
-        get_size_and_version(hash_path)
-        get_size_and_version(latest_path)
+        get_size_and_version(registry.manifest_pk(name, top_hash))
+        latest_path = registry.pointer_latest_pk(name)
+        get_size_and_version(registry.pointer_latest_pk(name))
 
         put_bytes(top_hash.encode('utf-8'), latest_path)
 

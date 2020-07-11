@@ -8,6 +8,7 @@ elasticsearch==7.0.4
 idna==2.8
 jmespath==0.9.4
 jsonschema==3.0.2
+psutil==5.7.0
 pyrsistent==0.15.4
 python-dateutil==2.8.0
 requests==2.22.0

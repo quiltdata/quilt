@@ -7,6 +7,8 @@ from typing import Iterable
 import json
 import os
 
+from psutil import virtual_memory
+
 
 def separated_env_to_iter(
         env_var: str,
@@ -38,6 +40,11 @@ def get_default_origins():
         'http://localhost:3000',
         os.environ.get('WEB_ORIGIN')
     ]
+
+
+def get_available_memory():
+    """how much virtual memory is available to us (bytes)?"""
+    return virtual_memory().available
 
 
 def make_json_response(status_code, json_object, extra_headers=None):

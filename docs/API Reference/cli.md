@@ -44,12 +44,14 @@ https://quiltdata.com for more information.
 ```
 usage: quilt3 install [-h] [--registry REGISTRY] [--top-hash TOP_HASH]
                       [--dest DEST] [--dest-registry DEST_REGISTRY]
+                      [--path PATH]
                       name
 
 Install a package
 
 positional arguments:
   name                  Name of package, in the USER/PKG[/PATH] format
+                        ([/PATH] is deprecated, use --path parameter instead)
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -60,6 +62,7 @@ optional arguments:
   --dest-registry DEST_REGISTRY
                         Registry to install package to. Defaults to local
                         registry.
+  --path PATH           If specified, downloads only PATH or its children.
 ```
 ## `verify`
 ```
@@ -189,7 +192,7 @@ override the following path constants with environment variables using the XDG
 standard (see [appdirs docs](https://pypi.org/project/appdirs/)).
 
 For instance, AWS Lambda requires the user to use `tmp/*` as the scratch
-directory. You can override `quilt3.utils.CACHE_PATH`, so that `quilt3 install` will succeed
+directory. You can override `quilt3.util.CACHE_PATH`, so that `quilt3 install` will succeed
 in Lambda, by setting the `XDG_CACHE_HOME` environment variable.
 
 

@@ -451,7 +451,7 @@ export default function File({
             <>
               <Code>{code}</Code>
               {!!analyticsBucket && <Analytics {...{ analyticsBucket, bucket, path }} />}
-              <Section icon="remove_red_eye" heading="Contents" defaultExpanded>
+              <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
                 {versionExistsData.case({
                   _: () => <CenteredProgress />,
                   Err: (e) => {

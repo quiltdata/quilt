@@ -3,6 +3,7 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import { useTalkToUs } from 'components/TalkToUs'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import img2x from 'utils/img2x'
 import scrollIntoView from 'utils/scrollIntoView'
@@ -21,43 +22,58 @@ import bgTer2x from './bg-tertiary@2x.png'
 const PLANS = [
   {
     name: 'open.quiltdata.com',
-    trackingName: 'open',
     price: 'Free',
     features: ['Unlimited public packages'],
-    cta: 'Explore',
-    href: 'https://open.quiltdata.com',
+    cta: ({ className }) => (
+      <Btn className={className} href="https://open.quiltdata.com" trackingName="open">
+        Explore
+      </Btn>
+    ),
     variant: 'tertiary',
   },
   {
     name: 'Virtual Private Cloud',
-    trackingName: 'marketplace',
-    price: 600,
+    price: 1000,
+    perMonth: true,
     features: [
       'Unlimited data',
       'Unlimited users',
       'Three S3 buckets',
       '30-day free trial',
     ],
-    cta: 'Try Now',
-    to: ({ urls }) => urls.install(),
+    cta: ({ talk, className }) => (
+      <Btn
+        className={className}
+        color="primary"
+        onClick={() => talk({ src: 'pricing/marketplace' })}
+        trackingName="marketplace"
+      >
+        Talk To Us
+      </Btn>
+    ),
     variant: 'primary',
     featured: true,
   },
   {
     name: 'Enterprise',
-    trackingName: 'contact',
     price: 'Contact us',
     features: [
       'Unlimited data',
       'Unlimited users',
-      'Up to five S3 buckets',
       'Priority support',
       'Custom features',
       'Education and instruction',
-      '30-day free trial',
     ],
-    cta: 'Contact',
-    href: 'mailto:sales@quiltdata.io?subject=Quilt Enterprise',
+    cta: ({ talk, className }) => (
+      <Btn
+        className={className}
+        color="secondary"
+        onClick={() => talk({ src: 'pricing/enterprise' })}
+        trackingName="contact"
+      >
+        Talk To Us
+      </Btn>
+    ),
     variant: 'secondary',
   },
 ]
@@ -71,7 +87,7 @@ function Btn({ to, trackingName, ...rest }) {
     [t, to, trackingName],
   )
   const props = to ? { component: Link, to: to({ urls }), ...rest } : rest
-  return <M.Button onClick={track} {...props} />
+  return <M.Button variant="contained" onClick={track} {...props} />
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -138,7 +154,6 @@ const useStyles = M.makeStyles((t) => ({
   price: {
     ...t.typography.h1,
     color: t.palette.text.primary,
-    fontWeight: t.typography.fontWeightMedium,
     lineHeight: 1.5,
   },
   perMonth: {
@@ -176,6 +191,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Pricing() {
   const classes = useStyles()
+  const talk = useTalkToUs()
   return (
     <M.Box position="relative">
       <Backlight top={-320} />
@@ -211,7 +227,9 @@ export default function Pricing() {
             >
               <div className={classes.name}>{p.name}</div>
               <div className={classes.price}>{p.price}</div>
-              <div className={classes.perMonth}>$ per month</div>
+              <div className={classes.perMonth}>
+                {p.perMonth ? '$ per month' : <>&nbsp;</>}
+              </div>
 
               <div className={classes.featureBox}>
                 {p.features.map((f) => (
@@ -221,16 +239,7 @@ export default function Pricing() {
                 ))}
               </div>
 
-              <Btn
-                variant="contained"
-                className={classes.btn}
-                color={p.variant !== 'tertiary' ? p.variant : undefined}
-                href={p.href}
-                to={p.to}
-                trackingName={p.trackingName}
-              >
-                {p.cta}
-              </Btn>
+              {p.cta({ talk, className: classes.btn })}
             </div>
           ))}
         </div>

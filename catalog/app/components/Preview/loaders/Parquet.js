@@ -7,7 +7,11 @@ import * as utils from './utils'
 
 export const detect = R.pipe(
   utils.stripCompression,
-  R.anyPass([utils.extIs('.parquet'), R.test(/[.-]c\d{3,5}$/gi)]),
+  R.anyPass([
+    utils.extIn(['.parquet', '.pq']),
+    R.test(/.+_0$/),
+    R.test(/[.-]c\d{3,5}$/gi),
+  ]),
 )
 
 export const load = utils.previewFetcher(
@@ -19,16 +23,7 @@ export const load = utils.previewFetcher(
       formatVersion: info.format_version,
       metadata: info.metadata,
       numRowGroups: info.num_row_groups,
-      schema: R.map(
-        (i) => ({
-          path: i.path,
-          logicalType: i.logical_type,
-          physicalType: i.physical_type,
-          maxDefinitionLevel: i.max_definition_level,
-          maxRepetitionLevel: i.max_repetition_level,
-        }),
-        info.schema,
-      ),
+      schema: info.schema,
       serializedSize: info.serialized_size,
       shape: { rows: info.shape[0], columns: info.shape[1] },
       note: info.note,

@@ -1,6 +1,7 @@
 """
 Tests for the ES indexer. This function consumes events from SQS.
 """
+from string import ascii_lowercase
 from copy import deepcopy
 from gzip import compress
 from io import BytesIO
@@ -8,7 +9,7 @@ import json
 import os
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 from urllib.parse import unquote_plus
 
 import boto3
@@ -18,6 +19,7 @@ from botocore.stub import Stubber
 import pytest
 import responses
 
+from t4_lambda_shared.utils import separated_env_to_iter
 from document_queue import RetryError
 from .. import index
 
@@ -298,7 +300,8 @@ class TestIndex(TestCase):
         """
         inner_records = []
         for name in event_names:
-            event = make_event(name, bucket_versioning=bucket_versioning)
+            event_kwargs = mock_overrides.get('event_kwargs', {}) if mock_overrides else {}
+            event = make_event(name, bucket_versioning=bucket_versioning, **event_kwargs)
             inner_records.append(event)
             now = index.now_like_boto3()
             un_key = unquote_plus(event["s3"]["object"]["key"])
@@ -316,8 +319,7 @@ class TestIndex(TestCase):
             elif eTag:
                 expected_params["IfMatch"] = eTag
             # infer mock status (we only talk to S3 on create events)
-            mock_head = name in CREATE_EVENT_TYPES
-            mock_object = name in CREATE_EVENT_TYPES
+            mock_head = mock_object = name in CREATE_EVENT_TYPES
             # check for occasional overrides (which can be false)
             if mock_overrides and "mock_head" in mock_overrides:
                 mock_head = mock_overrides.get("mock_head")
@@ -336,6 +338,13 @@ class TestIndex(TestCase):
                 )
 
             if mock_object:
+                if mock_overrides and mock_overrides.get('skip_byte_range'):
+                    expected = expected_params.copy()
+                else:
+                    expected = {
+                        **expected_params,
+                        'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}'
+                    }
                 self.s3_stubber.add_response(
                     method='get_object',
                     service_response={
@@ -344,10 +353,7 @@ class TestIndex(TestCase):
                         'LastModified': now,
                         'Body': BytesIO(b'Hello World!'),
                     },
-                    expected_params={
-                        **expected_params,
-                        'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
-                    }
+                    expected_params=expected
                 )
 
         if mock_elastic:
@@ -480,7 +486,59 @@ class TestIndex(TestCase):
             expected_es_calls=1
         )
 
-    @patch(__name__ + '.index.get_contents')
+    @patch.object(index, 'extract_parquet')
+    def test_index_c000(self, extract_mock):
+        """ensure files with special extensions get treated as parquet"""
+        extract_mock.return_value = ('parquet-body', {'schema': {'names': []}})
+        self._test_index_events(
+            ["ObjectCreated:Put"],
+            expected_es_calls=1,
+            mock_overrides={
+                "event_kwargs": {
+                    "key": "obscure_path/long-complicated-name-c000",
+                },
+                # no byte ranges for parquet files
+                "skip_byte_range": True
+            }
+        )
+        extract_mock.assert_called_once()
+
+    @patch.object(index.DocumentQueue, 'append')
+    @patch.object(index, 'get_contents')
+    def test_index_c000_contents(self, get_mock, append_mock):
+        """ensure files with special extensions get treated as parquet"""
+        parquet_data = b'@@parquet-data@@'
+        get_mock.return_value = parquet_data
+        self._test_index_events(
+            ["ObjectCreated:Put"],
+            # we're mocking append so ES will never get called
+            mock_elastic=False,
+            mock_overrides={
+                "event_kwargs": {
+                    # this key should infer to parquet
+                    "key": "obscure_path/long-complicated-name-c000"
+                },
+                # we patch get_contents so _test_index_events doesn't need to
+                "mock_object": False,
+                # no byte ranges for parquet files
+                "skip_byte_range": True
+            }
+        )
+        get_mock.assert_called_once()
+        # ensure parquet data is getting to elastic
+        append_mock.assert_called_once_with(
+            'ObjectCreated:Put',
+            bucket='test-bucket',
+            etag='123456',
+            ext='',
+            key='obscure_path/long-complicated-name-c000',
+            last_modified=ANY,
+            size=100,
+            text=parquet_data,
+            version_id='1313131313131.Vier50HdNbi7ZirO65'
+        )
+
+    @patch.object(index, 'get_contents')
     def test_index_exception(self, get_mock):
         """test indexing a single file that throws an exception"""
         class ContentException(Exception):
@@ -509,6 +567,10 @@ class TestIndex(TestCase):
         # -c00111 file (should never happen)
         assert index.infer_extensions("s3/some/file-c000121", "") == "", \
             "Expected -c000121 not to infer as .parquet"
+        assert index.infer_extensions("s3/some/file-boom-boom!bam.pq", ".pq") == ".parquet", \
+            "Expected .pq to infer as .parquet"
+        assert index.infer_extensions("s3/some/file-boom-boom!maga_0", "") == ".parquet", \
+            "Expected *_0 to infer as .parquet"
         # .txt file, should be unchanged
         assert index.infer_extensions("s3/some/file-c0000.txt", ".txt") == ".txt", \
             "Expected .txt to infer as .txt"
@@ -571,6 +633,23 @@ class TestIndex(TestCase):
             # these files should not get content indexed, therefore no S3 mock
             assert self._get_contents('foo.txt', '.txt') == ""
             assert self._get_contents('foo.ipynb', '.ipynb') == ""
+
+    def test_skip_rows_env(self):
+        """test whether or not index skips rows per SKIP_ROWS_EXTS=LIST"""
+        # because of module caching we can't just patch the environment variable
+        # since index.SKIP_ROWS_EXTS will never change after import
+        with patch.dict(os.environ, {'SKIP_ROWS_EXTS': '.txt,.csv'}):
+            exts = separated_env_to_iter('SKIP_ROWS_EXTS')
+            with patch('index.SKIP_ROWS_EXTS', exts):
+                assert '.parquet' not in exts
+                assert '.csv' in exts
+                assert '.txt' in exts
+
+        with patch.dict(os.environ, {'SKIP_ROWS_EXTS': '.parquet,.tsvl'}):
+            exts = separated_env_to_iter('SKIP_ROWS_EXTS')
+            with patch('index.SKIP_ROWS_EXTS', exts):
+                assert '.parquet' in exts
+                assert '.csv' not in exts
 
     def test_synthetic_copy_event(self):
         """check synthetic ObjectCreated:Copy event vs organic obtained on 26-May-2020
@@ -841,6 +920,88 @@ class TestIndex(TestCase):
         assert self._get_contents('foo.exe', '.exe') == ""
         assert self._get_contents('foo.exe.gz', '.exe.gz') == ""
 
+    @patch.object(index, 'ELASTIC_LIMIT_BYTES', 100)
+    def test_get_contents(self):
+        parquet = (BASE_DIR / 'onlycolumns-c000').read_bytes()
+        # mock up the responses
+        size = len(parquet)
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'Metadata': {},
+                'ContentLength': size,
+                'Body': BytesIO(parquet),
+            }
+        )
+        contents = index.get_contents(
+            'test-bucket',
+            'some/dir/data.parquet',
+            '.parquet',
+            s3_client=self.s3_client,
+            etag='11223344',
+            size=size,
+            version_id='abcde',
+        )
+        # test return val
+        assert len(contents.encode()) == index.ELASTIC_LIMIT_BYTES, \
+            'contents return more data than expected'
+        # we know from ELASTIC_LIMIT_BYTES=1000 that column_k is the last one
+        present, _, absent = ascii_lowercase.partition('l')
+        for letter in present:
+            col = f'column_{letter}'
+            assert col in contents, f'missing column: {col}'
+        for letter in absent:
+            col = f'column_{letter}'
+            assert col not in contents, f'missing column: {col}'
+
+    @patch.object(index, 'get_available_memory')
+    def test_get_contents_large(self, get_memory_mock):
+        get_memory_mock.return_value = 1
+        parquet = (BASE_DIR / 'amazon-reviews-1000.snappy.parquet').read_bytes()
+        # mock up the responses
+        size = len(parquet)
+        assert size > 1, 'supposed to test files larger than available memory'
+        contents = index.get_contents(
+            'test-bucket',
+            'some/dir/data.parquet',
+            '.parquet',
+            s3_client=self.s3_client,
+            etag='11223344',
+            size=size,
+            version_id='abcde',
+        )
+        # we should never touch S3 in this case and skip deserialization to avoid
+        # crashing lambda by flooding memory
+        assert contents == ""
+
+    @pytest.mark.extended
+    @patch.object(index, 'ELASTIC_LIMIT_BYTES', 64_000)
+    def test_get_contents_extended(self):
+        directory = (BASE_DIR / 'extended')
+        files = directory.glob('**/*-c000')
+        for f in files:
+            parquet = f.read_bytes()
+            size = len(parquet)
+            self.s3_stubber.add_response(
+                method='get_object',
+                service_response={
+                    'Metadata': {},
+                    'ContentLength': size,
+                    'Body': BytesIO(parquet),
+                }
+            )
+            contents = index.get_contents(
+                'test-bucket',
+                'some/dir/data.parquet',
+                '.parquet',
+                s3_client=self.s3_client,
+                etag='11223344',
+                size=size,
+                version_id='abcde',
+            )
+            assert len(contents.encode()) <= index.ELASTIC_LIMIT_BYTES, \
+                'contents return more data than expected'
+
     def test_get_plain_text(self):
         self.s3_stubber.add_response(
             method='get_object',
@@ -969,7 +1130,7 @@ class TestIndex(TestCase):
     # see PRE conditions in conftest.py
     @pytest.mark.extended
     def test_parquet_extended(self):
-        directory = (BASE_DIR / 'amazon-reviews-pds')
+        directory = (BASE_DIR / 'extended')
         files = directory.glob('**/*.parquet')
         for f in files:
             print(f"Testing {f}")

@@ -15,7 +15,8 @@ import pytest
 
 import quilt3
 from quilt3 import Package
-from quilt3.util import PhysicalKey, QuiltException, validate_package_name
+from quilt3.util import PhysicalKey, QuiltException, validate_package_name, RemovedInQuilt4Warning
+from quilt3.backends.local import LocalPackageRegistryV1
 
 from ..utils import QuiltTestCase
 
@@ -101,7 +102,7 @@ class PackageTest(QuiltTestCase):
 
         # Build a new package into the local registry.
         new_pkg = new_pkg.set('foo', test_file_name)
-        top_hash = new_pkg.build("Quilt/Test").top_hash
+        top_hash = new_pkg.build("Quilt/Test")
 
         # Verify manifest is registered by hash.
         out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
@@ -117,7 +118,7 @@ class PackageTest(QuiltTestCase):
         # Test unnamed packages.
         new_pkg = Package()
         new_pkg = new_pkg.set('bar', test_file_name)
-        top_hash = new_pkg.build('Quilt/Test').top_hash
+        top_hash = new_pkg.build('Quilt/Test')
         out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
         with open(out_path) as fd:
             pkg = Package.load(fd)
@@ -134,7 +135,7 @@ class PackageTest(QuiltTestCase):
 
         # Build a new package into the local registry.
         new_pkg = new_pkg.set('foo', test_file_name)
-        top_hash = new_pkg.build("Quilt/Test").top_hash
+        top_hash = new_pkg.build("Quilt/Test")
 
         # Verify manifest is registered by hash.
         out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
@@ -150,21 +151,27 @@ class PackageTest(QuiltTestCase):
         # Test unnamed packages.
         new_pkg = Package()
         new_pkg = new_pkg.set('bar', test_file_name)
-        top_hash = new_pkg.build("Quilt/Test").top_hash
+        top_hash = new_pkg.build("Quilt/Test")
         out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
         with open(out_path) as fd:
             pkg = Package.load(fd)
             assert PhysicalKey.from_path(test_file) == pkg['bar'].physical_key
 
     @patch('quilt3.Package._browse', lambda name, registry, top_hash: Package())
-    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
     def test_default_install_location(self):
         """Verify that pushes to the default local install location work as expected"""
         with patch('quilt3.Package._build') as build_mock:
             pkg_name = 'Quilt/nice-name'
             Package.install(pkg_name, registry='s3://my-test-bucket')
 
-            build_mock.assert_called_once_with(pkg_name, registry=quilt3.util.get_install_location(), message=None)
+            build_mock.assert_called_once_with(
+                pkg_name,
+                registry=LocalPackageRegistryV1(
+                    PhysicalKey.from_url(quilt3.util.get_install_location())
+                ),
+                message=None
+            )
 
     def test_read_manifest(self):
         """ Verify reading serialized manifest from disk. """
@@ -398,7 +405,7 @@ class PackageTest(QuiltTestCase):
                 PhysicalKey.from_path('foo.txt')
             )
 
-    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
     def test_load_into_quilt(self):
         """ Verify loading local manifest and data into S3. """
         top_hash1 = 'abbf5f171cf20bfb2313ecd8684546958cd72ac4f3ec635e4510d9c771168226'
@@ -681,6 +688,9 @@ class PackageTest(QuiltTestCase):
     def test_list_local_packages(self):
         """Verify that list returns packages in the appdirs directory."""
 
+        assert not list(quilt3.list_packages())
+        assert not list(quilt3.list_package_versions('test/not-exists'))
+
         # Build a new package into the local registry.
         with patch('time.time', return_value=1234567890):
             Package().build("Quilt/Foo")
@@ -723,7 +733,7 @@ class PackageTest(QuiltTestCase):
         pkg = Package().set('bar.txt')
         assert PhysicalKey.from_path(test_file) == pkg['bar.txt'].physical_key
 
-    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
     def test_set_package_entry_as_object(self):
         pkg = Package()
         nasty_string = 'a,"\tb'
@@ -957,11 +967,35 @@ class PackageTest(QuiltTestCase):
 
     def test_local_package_delete(self):
         """Verify local package delete works."""
-        top_hash = Package().build("Quilt/Test").top_hash
+        top_hash = Package().build("Quilt/Test")
         assert 'Quilt/Test' in quilt3.list_packages()
 
         quilt3.delete_package('Quilt/Test')
         assert 'Quilt/Test' not in quilt3.list_packages()
+
+    def test_local_delete_package_revision(self):
+        pkg_name = 'Quilt/Test'
+        top_hash1 = 'top_hash1'
+        top_hash2 = 'top_hash2'
+
+        with patch('quilt3.Package.top_hash', top_hash1), \
+             patch('time.time', return_value=1):
+            Package().build(pkg_name)
+
+        with patch('quilt3.Package.top_hash', top_hash2), \
+             patch('time.time', return_value=2):
+            Package().build(pkg_name)
+
+        assert pkg_name in quilt3.list_packages()
+        assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hash1, top_hash2}
+
+        quilt3.delete_package(pkg_name, top_hash=top_hash1)
+        assert pkg_name in quilt3.list_packages()
+        assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hash2}
+
+        quilt3.delete_package(pkg_name, top_hash=top_hash2)
+        assert pkg_name not in quilt3.list_packages()
+        assert not list(quilt3.list_package_versions(pkg_name))
 
     def test_remote_package_delete(self):
         """Verify remote package delete works."""
@@ -985,7 +1019,7 @@ class PackageTest(QuiltTestCase):
             }
         )
 
-        for path in ['Quilt/Test/0', 'Quilt/Test/latest', 'Quilt/Test/', 'Quilt/']:
+        for path in ['Quilt/Test/0', 'Quilt/Test/latest']:
             self.s3_stubber.add_response(
                 method='delete_object',
                 service_response={},
@@ -1016,7 +1050,7 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(QuiltException):
             p.push('Quilt/Test', 's3://test-bucket', dest='s3://other-test-bucket')
 
-    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
     def test_commit_message_on_push(self):
         """ Verify commit messages populate correctly on push."""
         with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
@@ -1098,7 +1132,7 @@ class PackageTest(QuiltTestCase):
         pkg = Package()
         pkg.set('as/df', LOCAL_MANIFEST)
         pkg.set('as/qw', LOCAL_MANIFEST)
-        top_hash = pkg.build('foo/bar').top_hash
+        top_hash = pkg.build('foo/bar')
         manifest = list(pkg.manifest)
 
         pkg2 = Package.browse('foo/bar', top_hash=top_hash)
@@ -1138,7 +1172,7 @@ class PackageTest(QuiltTestCase):
 
     def test_import(self):
         with patch('quilt3.Package._browse') as browse_mock, \
-             patch('quilt3.imports._list_packages') as list_packages_mock:
+             patch('quilt3.backends.local.LocalPackageRegistryV1.list_packages') as list_packages_mock:
             browse_mock.return_value = quilt3.Package()
             list_packages_mock.return_value = ['foo/bar', 'foo/baz']
 
@@ -1185,7 +1219,7 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(QuiltException):
             pkg.set('s3://foo/..', LOCAL_MANIFEST)
 
-    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
     def test_install(self):
         # Manifest
 
@@ -1366,10 +1400,20 @@ class PackageTest(QuiltTestCase):
                 'test/foo/foo',
             )))
 
+    def test_install_subpackage_deprecated_and_new(self):
+        pkg_name = 'Quilt/Foo'
+        bucket = 'my-test-bucket'
+        path = 'baz'
+        dest = 'package'
+
+        with pytest.warns(RemovedInQuilt4Warning):
+            with pytest.raises(ValueError):
+                Package.install(f'{pkg_name}/{path}', registry=f's3://{bucket}', dest=dest, path=path)
+
     @pytest.mark.usefixtures('isolate_packages_cache')
     @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
     @patch('quilt3.packages.ObjectPathCache.set')
-    def test_install_subpackage(self, mocked_cache_set):
+    def test_install_subpackage_deprecated(self, mocked_cache_set):
         pkg_name = 'Quilt/Foo'
         bucket = 'my-test-bucket'
         subpackage_path = 'baz'
@@ -1381,7 +1425,57 @@ class PackageTest(QuiltTestCase):
         dest = 'package'
         self.setup_s3_stubber(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
 
-        Package.install(f'{pkg_name}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
+        with pytest.warns(RemovedInQuilt4Warning):
+            Package.install(f'{pkg_name}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
+
+        path = pathlib.Path.cwd() / dest / 'bat'
+        mocked_cache_set.assert_called_once_with(
+            entry_url,
+            PhysicalKey.from_path(path).path,
+        )
+        assert path.read_bytes() == entry_content
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
+    @patch('quilt3.packages.ObjectPathCache.set')
+    def test_install_entry_deprecated(self, mocked_cache_set):
+        pkg_name = 'Quilt/Foo'
+        bucket = 'my-test-bucket'
+        subpackage_path = 'baz/bat'
+        entry_url = 's3://my_bucket/my_data_pkg/baz/bat'
+        entry_content = b'42'
+        entries = (
+            (entry_url, entry_content),
+        )
+        dest = 'package'
+        self.setup_s3_stubber(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
+
+        with pytest.warns(RemovedInQuilt4Warning):
+            Package.install(f'{pkg_name}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
+
+        path = pathlib.Path.cwd() / dest / 'bat'
+        mocked_cache_set.assert_called_once_with(
+            entry_url,
+            PhysicalKey.from_path(path).path,
+        )
+        assert path.read_bytes() == entry_content
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
+    @patch('quilt3.packages.ObjectPathCache.set')
+    def test_install_subpackage(self, mocked_cache_set):
+        pkg_name = 'Quilt/Foo'
+        bucket = 'my-test-bucket'
+        path = 'baz'
+        entry_url = 's3://my_bucket/my_data_pkg/baz/bat'
+        entry_content = b'42'
+        entries = (
+            (entry_url, entry_content),
+        )
+        dest = 'package'
+        self.setup_s3_stubber(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
+
+        Package.install(pkg_name, registry=f's3://{bucket}', dest=dest, path=path)
 
         path = pathlib.Path.cwd() / dest / 'bat'
         mocked_cache_set.assert_called_once_with(
@@ -1396,7 +1490,7 @@ class PackageTest(QuiltTestCase):
     def test_install_entry(self, mocked_cache_set):
         pkg_name = 'Quilt/Foo'
         bucket = 'my-test-bucket'
-        subpackage_path = 'baz/bat'
+        path = 'baz/bat'
         entry_url = 's3://my_bucket/my_data_pkg/baz/bat'
         entry_content = b'42'
         entries = (
@@ -1405,7 +1499,7 @@ class PackageTest(QuiltTestCase):
         dest = 'package'
         self.setup_s3_stubber(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
 
-        Package.install(f'{pkg_name}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
+        Package.install(pkg_name, registry=f's3://{bucket}', dest=dest, path=path)
 
         path = pathlib.Path.cwd() / dest / 'bat'
         mocked_cache_set.assert_called_once_with(
@@ -1442,7 +1536,7 @@ class PackageTest(QuiltTestCase):
         with self.assertRaises(QuiltException):
             Package.rollback('quilt/blah', LOCAL_REGISTRY, good_hash)
 
-    @patch('quilt3.Package._shorten_tophash', lambda package_name, registry, top_hash: "7a67ff4")
+    @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
     def test_verify(self):
         pkg = Package()
 
@@ -1491,3 +1585,35 @@ class PackageTest(QuiltTestCase):
         pkg._fix_sha256()
         mocked_calculate_sha256.assert_called_once_with([entry.physical_key], [len(data)])
         assert entry.hash == {'type': 'SHA256', 'value': hash_}
+
+    def test_resolve_hash(self):
+        pkg_name = 'Quilt/Test'
+        top_hash1 = 'top_hash11'
+        top_hash2 = 'top_hash22'
+        top_hash3 = 'top_hash13'
+        hash_prefix = 'top_hash1'
+
+        with pytest.raises(QuiltException, match='Found zero matches'):
+            Package.resolve_hash(pkg_name, LOCAL_REGISTRY, hash_prefix)
+
+        with patch('quilt3.Package.top_hash', top_hash1), \
+             patch('time.time', return_value=1):
+            Package().build(pkg_name)
+
+        with patch('quilt3.Package.top_hash', top_hash2), \
+             patch('time.time', return_value=2):
+            Package().build(pkg_name)
+
+        assert Package.resolve_hash(pkg_name, LOCAL_REGISTRY, hash_prefix) == top_hash1
+        with pytest.raises(QuiltException, match='Invalid package name'):
+            Package.resolve_hash('?', LOCAL_REGISTRY, hash_prefix)
+        msg = r"Calling resolve_hash\(\) without the 'name' parameter is deprecated."
+        with pytest.warns(RemovedInQuilt4Warning, match=msg):
+            assert Package.resolve_hash(LOCAL_REGISTRY, hash_prefix) == top_hash1
+
+        with patch('quilt3.Package.top_hash', top_hash3), \
+             patch('time.time', return_value=3):
+            Package().build(pkg_name)
+
+        with pytest.raises(QuiltException, match='Found multiple matches'):
+            Package.resolve_hash(pkg_name, LOCAL_REGISTRY, hash_prefix)
