@@ -8,37 +8,51 @@ import logoCredit from './logo-credit.png'
 import logoHudl from './logo-hudl.png'
 import logoRibon from './logo-ribon.png'
 import logoSight from './logo-sight.png'
+import logoAI2 from './logo-ai2.png'
+import logoNetguru from './logo-netguru.png'
+import logoBT from './logo-bt.png'
+import logoZee5 from './logo-zee5.png'
 
 const logos = [
   {
     src: logoAics,
-    height: 55,
     title: 'Allen Institute for Cell Science',
   },
   {
     src: logoSight,
     title: 'Sighthound',
-    height: 60,
   },
   {
     src: logoHudl,
-    height: 55,
     title: 'hudl',
   },
   {
     src: logoCelsius,
-    height: 48,
     title: 'Celsius',
   },
   {
     src: logoRibon,
     title: 'Ribon Therapeutics',
-    height: 65,
   },
   {
     src: logoCredit,
-    height: 61,
     title: 'The Credit Junction',
+  },
+  {
+    src: logoAI2,
+    title: 'Allen Institute for AI',
+  },
+  {
+    src: logoNetguru,
+    title: 'Netguru',
+  },
+  {
+    src: logoBT,
+    title: 'BlackThorn Therapeutics',
+  },
+  {
+    src: logoZee5,
+    title: 'Zee5',
   },
 ]
 
@@ -84,6 +98,8 @@ const useStyles = M.makeStyles((t) => ({
   },
   img: {
     display: 'block',
+    maxHeight: 64,
+    maxWidth: 240,
   },
 }))
 
@@ -137,7 +153,6 @@ export default function Logos() {
             alt={l.title}
             src={l.src}
             className={classes.img}
-            style={{ height: l.height }}
           />
         ))}
       </Carousel>
