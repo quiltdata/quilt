@@ -15,7 +15,6 @@ import jackowski from './people/jackowski.jpeg'
 import karr from './people/karr.jpeg'
 import knaap from './people/knaap.jpeg'
 import mrukwa from './people/mrukwa.jpeg'
-import prawiro from './people/prawiro.jpeg'
 
 const Swipeable = autoPlay(virtualize(SwipeableViews))
 
@@ -142,17 +141,6 @@ const testimonials = [
       </>
     ),
   },
-  {
-    avatar: prawiro,
-    name: 'Guenevere Prawiroatmodjo',
-    title: 'Data Scientist, Perfect Day',
-    contents: (
-      <p>
-        Quilt is a great way for our team to find, inspect, and share their data sets via
-        the web.
-      </p>
-    ),
-  },
 ]
 
 const SLIDE_COUNT_FACTOR = 1000000
@@ -169,6 +157,7 @@ const useStyles = M.makeStyles((t) => ({
     minHeight: 720, // for sm+
     paddingTop: t.spacing(15),
     position: 'relative',
+    zIndex: 1,
     [t.breakpoints.down('xs')]: {
       minHeight: 960,
     },
