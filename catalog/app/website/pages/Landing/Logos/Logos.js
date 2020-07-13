@@ -4,7 +4,6 @@ import * as M from '@material-ui/core'
 
 import logoAics from './logo-aics.png'
 import logoCelsius from './logo-celsius.png'
-import logoCredit from './logo-credit.png'
 import logoHudl from './logo-hudl.png'
 import logoRibon from './logo-ribon.png'
 import logoSight from './logo-sight.png'
@@ -19,12 +18,16 @@ const logos = [
     title: 'Allen Institute for Cell Science',
   },
   {
-    src: logoSight,
-    title: 'Sighthound',
+    src: logoBT,
+    title: 'BlackThorn Therapeutics',
   },
   {
     src: logoHudl,
     title: 'hudl',
+  },
+  {
+    src: logoAI2,
+    title: 'Allen Institute for AI',
   },
   {
     src: logoCelsius,
@@ -35,20 +38,12 @@ const logos = [
     title: 'Ribon Therapeutics',
   },
   {
-    src: logoCredit,
-    title: 'The Credit Junction',
-  },
-  {
-    src: logoAI2,
-    title: 'Allen Institute for AI',
+    src: logoSight,
+    title: 'Sighthound',
   },
   {
     src: logoNetguru,
     title: 'Netguru',
-  },
-  {
-    src: logoBT,
-    title: 'BlackThorn Therapeutics',
   },
   {
     src: logoZee5,
