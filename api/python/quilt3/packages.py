@@ -740,7 +740,7 @@ class Package:
             gc.enable()
         return pkg
 
-    def set_dir(self, lkey, path=None, meta=None):
+    def set_dir(self, lkey, path=None, meta=None, update_policy="incoming"):
         """
         Adds all files from `path` to the package.
 
@@ -753,6 +753,10 @@ class Package:
             path(string): path to scan for files to add to package.
                 If None, lkey will be substituted in as the path.
             meta(dict): user level metadata dict to attach to lkey directory entry.
+            update_policy(str): can be either `incoming` (default) or `existing`.
+                If `incoming`, then we overwrite existing matching keys.
+                If `existing`, then we skip entry for matching keys.
+                Note that this policy have NO EFFECT on totally new logical keys.
 
         Returns:
             self
@@ -761,6 +765,7 @@ class Package:
             When `path` doesn't exist
         """
         lkey = lkey.strip("/")
+        existing_policy = 'existing'
 
         if not lkey or lkey == '.' or lkey == './':
             root = self
@@ -789,8 +794,14 @@ class Package:
             for f in files:
                 if not f.is_file():
                     continue
-                entry = PackageEntry(PhysicalKey.from_path(f), f.stat().st_size, None, None)
+
                 logical_key = f.relative_to(src_path).as_posix()
+
+                # check update policy
+                if update_policy == existing_policy and root.__contains__(logical_key):
+                    continue
+
+                entry = PackageEntry(PhysicalKey.from_path(f), f.stat().st_size, None, None)
                 root._set(logical_key, entry)
         else:
             if src.version_id is not None:
@@ -808,8 +819,13 @@ class Package:
                         warnings.warn(f'Logical keys cannot end in "/", skipping: {obj["Key"]}')
                     continue
                 obj_pk = PhysicalKey(src.bucket, obj['Key'], obj.get('VersionId'))
-                entry = PackageEntry(obj_pk, obj['Size'], None, None)
                 logical_key = obj['Key'][len(src_path):]
+
+                # check update policy
+                if update_policy == existing_policy and root.__contains__(logical_key):
+                    continue
+
+                entry = PackageEntry(obj_pk, obj['Size'], None, None)
                 root._set(logical_key, entry)
 
         return self
