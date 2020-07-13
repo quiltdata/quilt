@@ -12,6 +12,8 @@ import artEng from './art-eng.png'
 import artEng2x from './art-eng@2x.png'
 import artSci from './art-sci.png'
 import artSci2x from './art-sci@2x.png'
+import artHead from './art-head.png'
+import artHead2x from './art-head@2x.png'
 import artExe from './art-exe.png'
 import artExe2x from './art-exe@2x.png'
 
@@ -71,11 +73,9 @@ const SECTIONS = [
     ],
   },
   {
-    // TODO: avoid repeatition?
-    // title: 'Heads of data, executives',
     title: 'Heads of data',
     img: {
-      src: img2x(artExe, artExe2x),
+      src: img2x(artHead, artHead2x),
       width: 436,
       mt: -40 / 8,
     },
@@ -102,9 +102,9 @@ const SECTIONS = [
   {
     title: 'Executives',
     img: {
-      src: img2x(artExe, artExe2x), // TODO: distinct art
-      width: 436,
-      mt: -40 / 8,
+      src: img2x(artExe, artExe2x),
+      width: 220,
+      mt: -32 / 8,
     },
     bullets: [
       <>Maximize Your Return on Data.</>,
