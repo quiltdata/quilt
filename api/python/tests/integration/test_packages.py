@@ -90,54 +90,33 @@ class PackageTest(QuiltTestCase):
                 }
             )
 
-    def test_build(self):
-        """Verify that build dumps the manifest to appdirs directory."""
-        new_pkg = Package()
-
+    def test_build_default_registry(self):
+        """
+        build() dumps the manifest to location specified by 'default_local_registry' in config.
+        """
         # Create a dummy file to add to the package.
         test_file_name = 'bar'
-        with open(test_file_name, "w") as fd:
-            fd.write('test_file_content_string')
-            test_file = Path(fd.name)
+        test_file = Path(test_file_name).resolve()
+        test_file.write_text('test_file_content_string')
 
-        # Build a new package into the local registry.
-        new_pkg = new_pkg.set('foo', test_file_name)
-        top_hash = new_pkg.build("Quilt/Test")
+        for suffix in ('suffix1', 'suffix2'):
+            with patch('quilt3.backends.get_from_config') as mocked_get_from_config:
+                local_registry_path = Path.cwd() / LOCAL_REGISTRY / suffix
+                mocked_get_from_config.return_value = local_registry_path.as_uri()
+                new_pkg = Package()
 
-        # Verify manifest is registered by hash.
-        out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
-        with open(out_path) as fd:
-            pkg = Package.load(fd)
-            assert PhysicalKey.from_path(test_file) == pkg['foo'].physical_key
+                # Build a new package into the local registry.
+                new_pkg = new_pkg.set('foo', test_file_name)
+                top_hash = new_pkg.build('Quilt/Test')
+                mocked_get_from_config.assert_called_once_with('default_local_registry')
 
-        # Verify latest points to the new location.
-        named_pointer_path = LOCAL_REGISTRY / ".quilt/named_packages/Quilt/Test/latest"
-        with open(named_pointer_path) as fd:
-            assert fd.read().replace('\n', '') == top_hash
+                # Verify manifest is registered by hash.
+                with (local_registry_path / '.quilt/packages' / top_hash).open() as fd:
+                    pkg = Package.load(fd)
+                    assert PhysicalKey.from_path(test_file) == pkg['foo'].physical_key
 
-    def test_default_registry(self):
-        new_pkg = Package()
-
-        # Create a dummy file to add to the package.
-        test_file_name = 'bar'
-        with open(test_file_name, "w") as fd:
-            fd.write('test_file_content_string')
-            test_file = Path(fd.name)
-
-        # Build a new package into the local registry.
-        new_pkg = new_pkg.set('foo', test_file_name)
-        top_hash = new_pkg.build("Quilt/Test")
-
-        # Verify manifest is registered by hash.
-        out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
-        with open(out_path) as fd:
-            pkg = Package.load(fd)
-            assert PhysicalKey.from_path(test_file) == pkg['foo'].physical_key
-
-        # Verify latest points to the new location.
-        named_pointer_path = LOCAL_REGISTRY / ".quilt/named_packages/Quilt/Test/latest"
-        with open(named_pointer_path) as fd:
-            assert fd.read().replace('\n', '') == top_hash
+                # Verify latest points to the new location.
+                assert (local_registry_path / '.quilt/named_packages/Quilt/Test/latest').read_text() == top_hash
 
     @patch('quilt3.Package._browse', lambda name, registry, top_hash: Package())
     @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
