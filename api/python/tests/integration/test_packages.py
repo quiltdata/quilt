@@ -1499,6 +1499,10 @@ class PackageTest(QuiltTestCase):
         with self.assertRaises(QuiltException):
             Package.rollback('quilt/blah', LOCAL_REGISTRY, good_hash)
 
+    def test_rollback_none_registry(self):
+        with pytest.raises(ValueError):
+            Package.rollback('quilt/tmp', None, '12345678' * 8)
+
     @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
     def test_verify(self):
         pkg = Package()
