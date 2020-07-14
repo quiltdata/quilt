@@ -115,15 +115,6 @@ class PackageTest(QuiltTestCase):
         with open(named_pointer_path) as fd:
             assert fd.read().replace('\n', '') == top_hash
 
-        # Test unnamed packages.
-        new_pkg = Package()
-        new_pkg = new_pkg.set('bar', test_file_name)
-        top_hash = new_pkg.build('Quilt/Test')
-        out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
-        with open(out_path) as fd:
-            pkg = Package.load(fd)
-            assert PhysicalKey.from_path(test_file) == pkg['bar'].physical_key
-
     def test_default_registry(self):
         new_pkg = Package()
 
@@ -147,15 +138,6 @@ class PackageTest(QuiltTestCase):
         named_pointer_path = LOCAL_REGISTRY / ".quilt/named_packages/Quilt/Test/latest"
         with open(named_pointer_path) as fd:
             assert fd.read().replace('\n', '') == top_hash
-
-        # Test unnamed packages.
-        new_pkg = Package()
-        new_pkg = new_pkg.set('bar', test_file_name)
-        top_hash = new_pkg.build("Quilt/Test")
-        out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
-        with open(out_path) as fd:
-            pkg = Package.load(fd)
-            assert PhysicalKey.from_path(test_file) == pkg['bar'].physical_key
 
     @patch('quilt3.Package._browse', lambda name, registry, top_hash: Package())
     @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
