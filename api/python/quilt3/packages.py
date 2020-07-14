@@ -1314,7 +1314,7 @@ class Package:
             top_hash(str): Hash to rollback to.
         """
         validate_package_name(name)
-        registry = get_package_registry(registry)
+        registry = get_package_registry(PhysicalKey.from_url(fix_url(registry)))
         top_hash = registry.resolve_top_hash(name, top_hash)
 
         # Check that both latest and top_hash actually exist.
