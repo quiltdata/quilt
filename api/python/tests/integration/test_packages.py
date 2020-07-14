@@ -1,6 +1,7 @@
 """ Integration tests for Quilt Packages. """
 import io
 import tempfile
+from collections import Counter
 from contextlib import redirect_stderr
 from io import BytesIO
 import os
@@ -825,22 +826,26 @@ class PackageTest(QuiltTestCase):
 
     def test_list_remote_packages(self):
         """Verify that listing remote packages works as expected."""
+        pointers = (
+            'foo/bar/1549931300',
+            'foo/bar/1549931634',
+            'foo/bar/latest',
+            'foo/bar1/1549931301',
+            'foo/bar1/1549931634',
+            'foo/bar1/latest',
+            'foo1/bar/1549931300',
+            'foo1/bar/1549931635',
+            'foo1/bar/latest',
+        )
         self.s3_stubber.add_response(
             method='list_objects_v2',
             service_response={
                 'Contents': [
                     {
-                        'Key': '.quilt/named_packages/foo/bar/1549931300',
-                        'Size': 64,
-                    },
-                    {
-                        'Key': '.quilt/named_packages/foo/bar/1549931634',
-                        'Size': 64,
-                    },
-                    {
-                        'Key': '.quilt/named_packages/foo/bar/latest',
+                        'Key': f'.quilt/named_packages/{pointer}',
                         'Size': 64,
                     }
+                    for pointer in pointers
                 ]
             },
             expected_params={
@@ -849,10 +854,7 @@ class PackageTest(QuiltTestCase):
             }
         )
 
-        pkgs = list(quilt3.list_packages('s3://my_test_bucket/'))
-
-        assert len(pkgs) == 1
-        assert list(pkgs) == ['foo/bar']
+        assert Counter(quilt3.list_packages('s3://my_test_bucket/')) == Counter(('foo/bar', 'foo/bar1', 'foo1/bar'))
 
     def test_validate_package_name(self):
         validate_package_name("a/b")
