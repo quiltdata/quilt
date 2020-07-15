@@ -110,7 +110,11 @@
     "ssoAuth",
     "ssoProviders"
   ],
-  "additionalProperties": false,
+  "additionalProperties": {
+    "build_version": {
+        "type": "string"
+    }
+  },
   "definitions": {
     "Url": {
       "type": "string",
