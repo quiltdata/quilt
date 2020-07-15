@@ -11,7 +11,7 @@ import pandas as pd
 import shutil
 
 import jsonlines
-from unittest.mock import patch, call, ANY
+from unittest.mock import patch, call, ANY, Mock
 import pytest
 
 import quilt3
@@ -1553,6 +1553,10 @@ class PackageTest(QuiltTestCase):
         mocked_calculate_sha256.assert_called_once_with([entry.physical_key], [len(data)])
         assert entry.hash == {'type': 'SHA256', 'value': hash_}
 
+    def test_resolve_hash_invalid_pkg_name(self):
+        with pytest.raises(QuiltException, match='Invalid package name'):
+            Package.resolve_hash('?', Mock(), Mock())
+
     def test_resolve_hash(self):
         pkg_name = 'Quilt/Test'
         top_hash1 = 'top_hash11'
@@ -1572,8 +1576,6 @@ class PackageTest(QuiltTestCase):
             Package().build(pkg_name)
 
         assert Package.resolve_hash(pkg_name, LOCAL_REGISTRY, hash_prefix) == top_hash1
-        with pytest.raises(QuiltException, match='Invalid package name'):
-            Package.resolve_hash('?', LOCAL_REGISTRY, hash_prefix)
         msg = r"Calling resolve_hash\(\) without the 'name' parameter is deprecated."
         with pytest.warns(RemovedInQuilt4Warning, match=msg):
             assert Package.resolve_hash(LOCAL_REGISTRY, hash_prefix) == top_hash1
