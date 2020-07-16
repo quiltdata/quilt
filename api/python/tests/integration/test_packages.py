@@ -18,6 +18,7 @@ import quilt3
 from quilt3 import Package
 from quilt3.util import PhysicalKey, QuiltException, validate_package_name, RemovedInQuilt4Warning
 from quilt3.backends.local import LocalPackageRegistryV1
+from quilt3.backends.s3 import S3PackageRegistryV1
 
 from ..utils import QuiltTestCase
 
@@ -36,7 +37,7 @@ def _mock_copy_file_list(file_list, callback=None, message=None):
 
 
 class PackageTest(QuiltTestCase):
-    def setup_s3_stubber(self, pkg_name, bucket, *, manifest=None, entries=()):
+    def setup_s3_stubber_pkg_install(self, pkg_name, bucket, *, manifest=None, entries=()):
         top_hash = 'abcdef'
 
         self.s3_stubber.add_response(
@@ -90,6 +91,24 @@ class PackageTest(QuiltTestCase):
                     'Key': key.path,
                 }
             )
+
+    def setup_s3_stubber_list_top_hash_candidates(self, pkg_registry, pkg_name, top_hashes):
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            service_response={
+                'Contents': [
+                    {
+                        'Key': pkg_registry.manifest_pk(pkg_name, top_hash).path,
+                        'Size': 64,
+                    }
+                    for top_hash in top_hashes
+                ]
+            },
+            expected_params={
+                'Bucket': pkg_registry.root.bucket,
+                'Prefix': pkg_registry.manifests_package_dir(pkg_name).path,
+            }
+        )
 
     def test_build_default_registry(self):
         """
@@ -162,6 +181,7 @@ class PackageTest(QuiltTestCase):
     def test_remote_browse(self):
         """ Verify loading manifest from s3 """
         registry = 's3://test-bucket'
+        pkg_registry = S3PackageRegistryV1(PhysicalKey.from_url(registry))
 
         top_hash = 'abcdefgh' * 8
 
@@ -230,27 +250,7 @@ class PackageTest(QuiltTestCase):
         assert 'foo' in pkg3
 
         # Make a request with a short hash.
-
-        self.s3_stubber.add_response(
-            method='list_objects_v2',
-            service_response={
-                'Contents': [
-                    {
-                        'Key': f'.quilt/packages/{top_hash}',
-                        'Size': 64,
-                    },
-                    {
-                        'Key': f'.quilt/packages/{"a" * 64}',
-                        'Size': 64,
-                    }
-                ]
-            },
-            expected_params={
-                'Bucket': 'test-bucket',
-                'Prefix': '.quilt/packages/',
-            }
-        )
-
+        self.setup_s3_stubber_list_top_hash_candidates(pkg_registry, 'Quilt/test', (top_hash, 'a' * 64))
         pkg3 = Package.browse('Quilt/test', top_hash='abcdef', registry=registry)
         assert 'foo' in pkg3
 
@@ -262,26 +262,7 @@ class PackageTest(QuiltTestCase):
             Package.browse('Quilt/test', top_hash='a' * 65, registry=registry)
 
         # Make a request with a non-existant short hash.
-
-        self.s3_stubber.add_response(
-            method='list_objects_v2',
-            service_response={
-                'Contents': [
-                    {
-                        'Key': f'.quilt/packages/{top_hash}',
-                        'Size': 64,
-                    },
-                    {
-                        'Key': f'.quilt/packages/{"a" * 64}',
-                        'Size': 64,
-                    }
-                ]
-            },
-            expected_params={
-                'Bucket': 'test-bucket',
-                'Prefix': '.quilt/packages/',
-            }
-        )
+        self.setup_s3_stubber_list_top_hash_candidates(pkg_registry, 'Quilt/test', (top_hash, 'a' * 64))
 
         with pytest.raises(QuiltException, match='Found zero matches'):
             Package.browse('Quilt/test', top_hash='123456', registry=registry)
@@ -1386,7 +1367,7 @@ class PackageTest(QuiltTestCase):
             (entry_url, entry_content),
         )
         dest = 'package'
-        self.setup_s3_stubber(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
+        self.setup_s3_stubber_pkg_install(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
 
         with pytest.warns(RemovedInQuilt4Warning):
             Package.install(f'{pkg_name}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
@@ -1411,7 +1392,7 @@ class PackageTest(QuiltTestCase):
             (entry_url, entry_content),
         )
         dest = 'package'
-        self.setup_s3_stubber(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
+        self.setup_s3_stubber_pkg_install(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
 
         with pytest.warns(RemovedInQuilt4Warning):
             Package.install(f'{pkg_name}/{subpackage_path}', registry=f's3://{bucket}', dest=dest)
@@ -1436,7 +1417,7 @@ class PackageTest(QuiltTestCase):
             (entry_url, entry_content),
         )
         dest = 'package'
-        self.setup_s3_stubber(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
+        self.setup_s3_stubber_pkg_install(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
 
         Package.install(pkg_name, registry=f's3://{bucket}', dest=dest, path=path)
 
@@ -1460,7 +1441,7 @@ class PackageTest(QuiltTestCase):
             (entry_url, entry_content),
         )
         dest = 'package'
-        self.setup_s3_stubber(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
+        self.setup_s3_stubber_pkg_install(pkg_name, bucket, manifest=REMOTE_MANIFEST.read_bytes(), entries=entries)
 
         Package.install(pkg_name, registry=f's3://{bucket}', dest=dest, path=path)
 
