@@ -101,6 +101,7 @@ CREATE_CLOUDTRAIL = textwrap.dedent("""\
         'projection.date.range' = '{start_date},{end_date}',
         'projection.date.format' = 'yyyy/MM/dd',
         'projection.date.interval' = '1',
+        'projection.date.interval.unit' = 'DAYS',
         'storage.location.template' = 's3://{bucket}/AWSLogs/${{account}}/CloudTrail/${{region}}/${{date}}'
     )
 """)
