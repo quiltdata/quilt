@@ -39,7 +39,7 @@ DROP_CLOUDTRAIL = """DROP TABLE IF EXISTS cloudtrail"""
 DROP_OBJECT_ACCESS_LOG = """DROP TABLE IF EXISTS object_access_log"""
 DROP_PACKAGE_HASHES = """DROP TABLE IF EXISTS package_hashes"""
 
-CREATE_CLOUDTRAIL = textwrap.dedent(f"""\
+CREATE_CLOUDTRAIL = textwrap.dedent("""\
     CREATE EXTERNAL TABLE cloudtrail (
         eventVersion STRING,
         userIdentity STRUCT<
@@ -85,19 +85,26 @@ CREATE_CLOUDTRAIL = textwrap.dedent(f"""\
         sharedEventID STRING,
         vpcEndpointId STRING
     )
-    PARTITIONED BY (account STRING, region STRING, year STRING, month STRING, day STRING)
+    PARTITIONED BY (account STRING, region STRING, date STRING)
     ROW FORMAT SERDE 'com.amazon.emr.hive.serde.CloudTrailSerde'
     STORED AS INPUTFORMAT 'com.amazon.emr.cloudtrail.CloudTrailInputFormat'
     OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-    LOCATION 's3://{sql_escape(CLOUDTRAIL_BUCKET)}/AWSLogs/'
-    TBLPROPERTIES ('classification'='cloudtrail')
+    LOCATION 's3://{bucket}/AWSLogs/'
+    TBLPROPERTIES (
+        'classification' = 'cloudtrail',
+        'projection.enabled' = 'true',
+        'projection.account.type' = 'enum',
+        'projection.account.values' = '{accounts}',
+        'projection.region.type' = 'enum',
+        'projection.region.values' = '{regions}',
+        'projection.date.type' = 'date',
+        'projection.date.range' = '{start_date},{end_date}',
+        'projection.date.format' = 'yyyy/MM/dd',
+        'projection.date.interval' = '1',
+        'projection.date.interval.unit' = 'DAYS',
+        'storage.location.template' = 's3://{bucket}/AWSLogs/${{account}}/CloudTrail/${{region}}/${{date}}'
+    )
 """)
-
-ADD_CLOUDTRAIL_PARTITION = textwrap.dedent(f"""\
-    ALTER TABLE cloudtrail
-    ADD PARTITION (account = '{{account}}', region = '{{region}}', year = '{{year:04d}}', month = '{{month:02d}}', day = '{{day:02d}}')
-    LOCATION 's3://{sql_escape(CLOUDTRAIL_BUCKET)}/AWSLogs/{{account}}/CloudTrail/{{region}}/{{year:04d}}/{{month:02d}}/{{day:02d}}/'
-""")  # noqa: E501
 
 CREATE_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
     CREATE EXTERNAL TABLE object_access_log (
@@ -379,38 +386,33 @@ def handler(event, context):
     # Delete the temporary directory where Athena query results are written to.
     delete_dir(QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
 
-    # Create a CloudTrail table, but only with partitions for the last N days, to avoid scanning all of the data.
-    # A bucket can have data for multiple accounts and multiple regions, so those need to be handled first.
-    partition_queries = []
+    # Find all accounts in the CloudTrail.
+    accounts = []
     for account_response in s3.list_objects_v2(
             Bucket=CLOUDTRAIL_BUCKET, Prefix='AWSLogs/', Delimiter='/').get('CommonPrefixes') or []:
         account = account_response['Prefix'].split('/')[1]
-        for region_response in s3.list_objects_v2(
-                Bucket=CLOUDTRAIL_BUCKET,
-                Prefix=f'AWSLogs/{account}/CloudTrail/', Delimiter='/').get('CommonPrefixes') or []:
-            region = region_response['Prefix'].split('/')[3]
-            date = start_ts.date()
-            while date <= end_ts.date():
-                query = ADD_CLOUDTRAIL_PARTITION.format(
-                    account=sql_escape(account),
-                    region=sql_escape(region),
-                    year=date.year,
-                    month=date.month,
-                    day=date.day
-                )
-                partition_queries.append(query)
-                date += timedelta(days=1)
+        accounts.append(account)
+
+    # Does not make network calls; appears to be hardcoded in the botocore library.
+    regions = boto3.Session().get_available_regions('s3')
 
     # Drop old Athena tables from previous runs.
     # (They're in the DB owned by the stack, so safe to do.)
     run_multiple_queries([DROP_CLOUDTRAIL, DROP_OBJECT_ACCESS_LOG, DROP_PACKAGE_HASHES])
 
+    create_cloudtrail_query = CREATE_CLOUDTRAIL.format(
+        bucket=sql_escape(CLOUDTRAIL_BUCKET),
+        accounts=','.join(accounts),
+        regions=','.join(regions),
+        start_date=start_ts.date().strftime('%Y/%m/%d'),
+        end_date=end_ts.date().strftime('%Y/%m/%d'),
+    )
+
     # Create new Athena tables.
-    run_multiple_queries([CREATE_CLOUDTRAIL, CREATE_OBJECT_ACCESS_LOG, CREATE_PACKAGE_HASHES])
+    run_multiple_queries([create_cloudtrail_query, CREATE_OBJECT_ACCESS_LOG, CREATE_PACKAGE_HASHES])
 
     # Load object access log partitions, after the object access log table is created.
-    # Create CloudTrail partitions, after the CloudTrail table is created.
-    run_multiple_queries([REPAIR_OBJECT_ACCESS_LOG] + partition_queries)
+    run_multiple_queries([REPAIR_OBJECT_ACCESS_LOG])
 
     # Delete the old timestamp: if the INSERT query or put_object fail, make sure we regenerate everything next time,
     # instead of ending up with duplicate logs.
