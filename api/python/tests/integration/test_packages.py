@@ -256,9 +256,9 @@ class PackageTest(QuiltTestCase):
 
         # Make a request with a bad short hash.
 
-        with self.assertRaises(QuiltException):
+        with pytest.raises(QuiltException, match='Invalid hash'):
             Package.browse('Quilt/test', top_hash='abcde', registry=registry)
-        with self.assertRaises(QuiltException):
+        with pytest.raises(QuiltException, match='Invalid hash'):
             Package.browse('Quilt/test', top_hash='a' * 65, registry=registry)
 
         # Make a request with a non-existant short hash.
@@ -283,7 +283,7 @@ class PackageTest(QuiltTestCase):
             }
         )
 
-        with self.assertRaises(QuiltException):
+        with pytest.raises(QuiltException, match='Found zero matches'):
             Package.browse('Quilt/test', top_hash='123456', registry=registry)
 
     def test_install_restrictions(self):
