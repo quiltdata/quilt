@@ -110,6 +110,54 @@ class PackageTest(QuiltTestCase):
             }
         )
 
+    def setup_s3_stubber_push_manifest(self, pkg_registry, pkg_name, top_hash, *, pointer_name):
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v2'
+            },
+            expected_params={
+                'Body': ANY,
+                'Bucket': pkg_registry.root.bucket,
+                'Key': pkg_registry.manifest_pk(pkg_name, top_hash).path,
+            }
+        )
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v3'
+            },
+            expected_params={
+                'Body': top_hash.encode(),
+                'Bucket': pkg_registry.root.bucket,
+                'Key': pkg_registry.pointer_pk(pkg_name, pointer_name).path,
+            }
+        )
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v4'
+            },
+            expected_params={
+                'Body': top_hash.encode(),
+                'Bucket': pkg_registry.root.bucket,
+                'Key': pkg_registry.pointer_latest_pk(pkg_name).path,
+            }
+        )
+
+    def setup_s3_stubber_upload_pkg_data(self, pkg_registry, pkg_name, *, lkey, data, version):
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': version,
+            },
+            expected_params={
+                'Body': ANY,  # TODO: use data here.
+                'Bucket': pkg_registry.root.bucket,
+                'Key': f'{pkg_name}/{lkey}',
+            }
+        )
+
     def test_build_default_registry(self):
         """
         build() dumps the manifest to location specified by 'default_local_registry' in config.
@@ -351,143 +399,49 @@ class PackageTest(QuiltTestCase):
     @patch('quilt3.backends.base.PackageRegistryV1.shorten_top_hash', lambda self, pkg_name, top_hash: "7a67ff4")
     def test_load_into_quilt(self):
         """ Verify loading local manifest and data into S3. """
-        top_hash1 = 'abbf5f171cf20bfb2313ecd8684546958cd72ac4f3ec635e4510d9c771168226'
+        registry = 's3://my_test_bucket/'
+        pkg_registry = S3PackageRegistryV1(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/package'
 
-        self.s3_stubber.add_response(
-            method='put_object',
-            service_response={
-                'VersionId': 'v1'
-            },
-            expected_params={
-                'Body': ANY,
-                'Bucket': 'my_test_bucket',
-                'Key': 'Quilt/package/foo1',
-            }
-        )
-
-        self.s3_stubber.add_response(
-            method='put_object',
-            service_response={
-                'VersionId': 'v1'
-            },
-            expected_params={
-                'Body': ANY,
-                'Bucket': 'my_test_bucket',
-                'Key': 'Quilt/package/foo2',
-            }
-        )
-
-        self.s3_stubber.add_response(
-            method='put_object',
-            service_response={
-                'VersionId': 'v2'
-            },
-            expected_params={
-                'Body': ANY,
-                'Bucket': 'my_test_bucket',
-                'Key': '.quilt/packages/' + top_hash1,
-            }
-        )
-
-        self.s3_stubber.add_response(
-            method='put_object',
-            service_response={
-                'VersionId': 'v3'
-            },
-            expected_params={
-                'Body': top_hash1.encode(),
-                'Bucket': 'my_test_bucket',
-                'Key': '.quilt/named_packages/Quilt/package/1234567890',
-            }
-        )
-
-        self.s3_stubber.add_response(
-            method='put_object',
-            service_response={
-                'VersionId': 'v4'
-            },
-            expected_params={
-                'Body': top_hash1.encode(),
-                'Bucket': 'my_test_bucket',
-                'Key': '.quilt/named_packages/Quilt/package/latest',
-            }
-        )
+        def add_pkg_file(pkg, lk, filename, data, *, version):
+            path = Path(filename)
+            path.write_text(data)
+            pkg.set(lk, path)
+            self.setup_s3_stubber_upload_pkg_data(pkg_registry, pkg_name, lkey=lk, data=data, version=version)
 
         new_pkg = Package()
         # Create two dummy files to add to the package.
-        test_file1 = Path('bar1')
-        test_file1.write_text('blah')
-        new_pkg.set('foo1', test_file1)
-        test_file2 = Path('bar2')
-        test_file2.write_text('omg')
-        new_pkg.set('foo2', test_file1)
+        add_pkg_file(new_pkg, 'foo1', 'bar1', 'blah', version='v1')
+        add_pkg_file(new_pkg, 'foo2', 'bar2', 'omg', version='v1')
 
-        with patch('time.time', return_value=1234567890), \
+        timestamp1 = 1234567890
+        self.setup_s3_stubber_push_manifest(
+            pkg_registry,
+            pkg_name,
+            '7fd8e7f49a344aadf4154a2210fe6b08297ecb23218d95027963dc0410548440',
+            pointer_name=str(timestamp1),
+        )
+        with patch('time.time', return_value=timestamp1), \
              patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
-            remote_pkg = new_pkg.push('Quilt/package', 's3://my_test_bucket/')
+            remote_pkg = new_pkg.push(pkg_name, registry)
 
         # Modify one file, and check that only that file gets uploaded.
-        top_hash2 = 'd4efbb1734a53726d97086824d153e6cb5e9d8bc31d15ead0dbc019022cfe539'
+        add_pkg_file(remote_pkg, 'foo2', 'bar3', '!!!', version='v2')
 
-        self.s3_stubber.add_response(
-            method='put_object',
-            service_response={
-                'VersionId': 'v2'
-            },
-            expected_params={
-                'Body': ANY,
-                'Bucket': 'my_test_bucket',
-                'Key': 'Quilt/package/foo2',
-            }
+        timestamp2 = 1234567891
+        self.setup_s3_stubber_push_manifest(
+            pkg_registry,
+            pkg_name,
+            'd4efbb1734a53726d97086824d153e6cb5e9d8bc31d15ead0dbc019022cfe539',
+            pointer_name=str(timestamp2),
         )
-
-        self.s3_stubber.add_response(
-            method='put_object',
-            service_response={
-                'VersionId': 'v2'
-            },
-            expected_params={
-                'Body': ANY,
-                'Bucket': 'my_test_bucket',
-                'Key': '.quilt/packages/' + top_hash2,
-            }
-        )
-
-        self.s3_stubber.add_response(
-            method='put_object',
-            service_response={
-                'VersionId': 'v3'
-            },
-            expected_params={
-                'Body': top_hash2.encode(),
-                'Bucket': 'my_test_bucket',
-                'Key': '.quilt/named_packages/Quilt/package/1234567891',
-            }
-        )
-
-        self.s3_stubber.add_response(
-            method='put_object',
-            service_response={
-                'VersionId': 'v4'
-            },
-            expected_params={
-                'Body': top_hash2.encode(),
-                'Bucket': 'my_test_bucket',
-                'Key': '.quilt/named_packages/Quilt/package/latest',
-            }
-        )
-
-        test_file3 = Path('bar3')
-        test_file3.write_text('!!!')
-        remote_pkg.set('foo2', test_file3)
-
-        with patch('time.time', return_value=1234567891), \
+        with patch('time.time', return_value=timestamp2), \
              patch('quilt3.packages.DISABLE_TQDM', True), patch('quilt3.data_transfer.DISABLE_TQDM', True), \
              patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
             stderr = io.StringIO()
 
             with redirect_stderr(stderr), patch('quilt3.packages.DISABLE_TQDM', True):
-                remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
+                remote_pkg.push(pkg_name, registry)
             assert not stderr.getvalue()
 
     def test_package_deserialize(self):
