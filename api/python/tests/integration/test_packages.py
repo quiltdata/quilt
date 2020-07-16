@@ -928,6 +928,15 @@ class PackageTest(QuiltTestCase):
 
         assert pkg.top_hash == top_hash, f'Unexpected top_hash for {manifest_path}'
 
+    def test_top_hash_stable_dir_meta(self):
+        registry = DATA_DIR.as_posix()
+        top_hash = '20de5433549a4db332a11d8d64b934a82bdea8f144b4aecd901e7d4134f8e733'
+
+        pkg = Package.browse('foo/bar', registry=registry, top_hash=top_hash)
+        pkg['b'].set_meta({'key': 'value'})
+
+        assert pkg.top_hash == 'd606d6c32a11229c7bdbcb5d88a464ce5f03974f9f40096f387f6cdb752bb5d0'
+
     def test_local_package_delete(self):
         """Verify local package delete works."""
         top_hash = Package().build("Quilt/Test")
