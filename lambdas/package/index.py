@@ -39,7 +39,6 @@ SCHEMA = {
 }
 
 
-
 def load_df(s3response):
     """
     Read a streaming response from s3 select into a
@@ -55,7 +54,8 @@ def load_df(s3response):
     buffer.seek(0)
     df = pd.read_json(buffer, lines=True)
     return df, statsDetails
-    
+
+
 def get_logical_key_folder_view(df, prefix=None):
     """
     Post process a set of logical keys to return only the
@@ -71,7 +71,6 @@ def get_logical_key_folder_view(df, prefix=None):
     # / is extracted
     folder = col.dropna().str.extract('([^/]+/?).*')[0].unique().tolist()
     return folder
- 
 
 
 @api(cors_origins=get_default_origins())
