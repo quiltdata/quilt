@@ -588,26 +588,23 @@ class PackageTest(QuiltTestCase):
         assert not list(quilt3.list_packages())
         assert not list(quilt3.list_package_versions('test/not-exists'))
 
+        pkg_names = ('Quilt/Foo', 'Quilt/Bar', 'Quilt/Test')
         # Build a new package into the local registry.
         with patch('time.time', return_value=1234567890):
-            Package().build("Quilt/Foo")
-            Package().build("Quilt/Bar")
-            Package().build("Quilt/Test")
+            for pkg_name in pkg_names:
+                Package().build(pkg_name)
 
         # Verify packages are returned.
-        pkgs = list(quilt3.list_packages())
-        assert len(pkgs) == 3
-        assert "Quilt/Foo" in pkgs
-        assert "Quilt/Bar" in pkgs
+        assert sorted(quilt3.list_packages()) == sorted(pkg_names)
 
-        versions = set(quilt3.list_package_versions('Quilt/Foo'))
+        versions = set(quilt3.list_package_versions(pkg_names[0]))
         assert versions == {
             ('latest', '2a5a67156ca9238c14d12042db51c5b52260fdd5511b61ea89b58929d6e1769b'),
             ('1234567890', '2a5a67156ca9238c14d12042db51c5b52260fdd5511b61ea89b58929d6e1769b'),
         }
 
         # Verify specifying a local path explicitly works as expected.
-        assert list(pkgs) == list(quilt3.list_packages(LOCAL_REGISTRY.as_posix()))
+        assert sorted(quilt3.list_packages()) == sorted(quilt3.list_packages(LOCAL_REGISTRY.as_posix()))
 
     def test_set_package_entry(self):
         """ Set the physical key for a PackageEntry"""
