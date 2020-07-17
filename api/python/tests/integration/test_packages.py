@@ -1181,10 +1181,10 @@ class PackageTest(QuiltTestCase):
         self.setup_s3_stubber_pkg_install(pkg_registry, pkg_name2)
         with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1), \
              tempfile.TemporaryDirectory() as tmp_dir, \
-            patch(
-                'quilt3.packages.get_install_location',
-                return_value=str(PhysicalKey.from_path(tmp_dir))
-            ) as mocked_get_install_location:
+             patch(
+                 'quilt3.packages.get_install_location',
+                 return_value=str(PhysicalKey.from_path(tmp_dir))
+             ) as mocked_get_install_location:
             Package.install(pkg_name2, registry=registry)
 
             mocked_get_install_location.assert_called_once_with()
