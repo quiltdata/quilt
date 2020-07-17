@@ -37,8 +37,8 @@ def _mock_copy_file_list(file_list, callback=None, message=None):
 
 
 class PackageTest(QuiltTestCase):
-    def setup_s3_stubber_pkg_install(self, pkg_registry, pkg_name, *, manifest=None, entries=()):
-        top_hash = 'abcdef'
+    def setup_s3_stubber_pkg_install(self, pkg_registry, pkg_name, *, top_hash=None, manifest=None, entries=()):
+        top_hash = top_hash or 'abcdef'
 
         self.s3_stubber.add_response(
             method='get_object',
@@ -230,90 +230,45 @@ class PackageTest(QuiltTestCase):
         """ Verify loading manifest from s3 """
         registry = 's3://test-bucket'
         pkg_registry = S3PackageRegistryV1(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/test'
 
         top_hash = 'abcdefgh' * 8
 
         # Make the first request.
-
-        self.s3_stubber.add_response(
-            method='get_object',
-            service_response={
-                'VersionId': 'v1',
-                'Body': BytesIO(top_hash.encode()),
-            },
-            expected_params={
-                'Bucket': 'test-bucket',
-                'Key': '.quilt/named_packages/Quilt/test/latest',
-            }
-        )
-
-        self.s3_stubber.add_response(
-            method='head_object',
-            service_response={
-                'VersionId': 'v1',
-                'ContentLength': REMOTE_MANIFEST.stat().st_size,
-            },
-            expected_params={
-                'Bucket': 'test-bucket',
-                'Key': f'.quilt/packages/{top_hash}',
-            }
-        )
-
-        self.s3_stubber.add_response(
-            method='get_object',
-            service_response={
-                'VersionId': 'v1',
-                'Body': BytesIO(REMOTE_MANIFEST.read_bytes()),
-                'ContentLength': REMOTE_MANIFEST.stat().st_size,
-            },
-            expected_params={
-                'Bucket': 'test-bucket',
-                'Key': f'.quilt/packages/{top_hash}',
-            }
-        )
+        self.setup_s3_stubber_pkg_install(
+            pkg_registry, pkg_name, top_hash=top_hash, manifest=REMOTE_MANIFEST.read_bytes())
 
         pkg = Package.browse('Quilt/test', registry=registry)
         assert 'foo' in pkg
 
         # Make the second request. Gets "latest" - but the rest should be cached.
+        self.setup_s3_stubber_pkg_install(pkg_registry, pkg_name, top_hash=top_hash)
 
-        self.s3_stubber.add_response(
-            method='get_object',
-            service_response={
-                'VersionId': 'v1',
-                'Body': BytesIO(top_hash.encode()),
-            },
-            expected_params={
-                'Bucket': 'test-bucket',
-                'Key': '.quilt/named_packages/Quilt/test/latest',
-            }
-        )
-
-        pkg2 = Package.browse('Quilt/test', registry=registry)
+        pkg2 = Package.browse(pkg_name, registry=registry)
         assert 'foo' in pkg2
 
         # Make another request with a top hash. Everything should be cached.
 
-        pkg3 = Package.browse('Quilt/test', top_hash=top_hash, registry=registry)
+        pkg3 = Package.browse(pkg_name, top_hash=top_hash, registry=registry)
         assert 'foo' in pkg3
 
         # Make a request with a short hash.
-        self.setup_s3_stubber_list_top_hash_candidates(pkg_registry, 'Quilt/test', (top_hash, 'a' * 64))
-        pkg3 = Package.browse('Quilt/test', top_hash='abcdef', registry=registry)
+        self.setup_s3_stubber_list_top_hash_candidates(pkg_registry, pkg_name, (top_hash, 'a' * 64))
+        pkg3 = Package.browse(pkg_name, top_hash='abcdef', registry=registry)
         assert 'foo' in pkg3
 
         # Make a request with a bad short hash.
 
         with pytest.raises(QuiltException, match='Invalid hash'):
-            Package.browse('Quilt/test', top_hash='abcde', registry=registry)
+            Package.browse(pkg_name, top_hash='abcde', registry=registry)
         with pytest.raises(QuiltException, match='Invalid hash'):
-            Package.browse('Quilt/test', top_hash='a' * 65, registry=registry)
+            Package.browse(pkg_name, top_hash='a' * 65, registry=registry)
 
         # Make a request with a non-existant short hash.
-        self.setup_s3_stubber_list_top_hash_candidates(pkg_registry, 'Quilt/test', (top_hash, 'a' * 64))
+        self.setup_s3_stubber_list_top_hash_candidates(pkg_registry, pkg_name, (top_hash, 'a' * 64))
 
         with pytest.raises(QuiltException, match='Found zero matches'):
-            Package.browse('Quilt/test', top_hash='123456', registry=registry)
+            Package.browse(pkg_name, top_hash='123456', registry=registry)
 
     def test_install_restrictions(self):
         """Verify that install can only operate remote -> local."""
