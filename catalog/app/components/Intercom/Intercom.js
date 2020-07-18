@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import * as reduxHook from 'redux-react-hook'
+import * as redux from 'react-redux'
 
 import * as Config from 'utils/Config'
 import usePrevious from 'utils/usePrevious'
@@ -11,7 +11,14 @@ const canUseDOM = !!(
   window.document.createElement
 )
 
-const Ctx = React.createContext()
+function dummyIntercomApi(...args) {
+  // eslint-disable-next-line no-console
+  console.log("Trying to call Intercom, but it's unavailable", args)
+}
+dummyIntercomApi.dummy = true
+dummyIntercomApi.isAvailable = () => false
+
+const Ctx = React.createContext(dummyIntercomApi)
 
 const mkPlaceholder = () => {
   const i = (...args) => i.c(args)
@@ -25,12 +32,7 @@ const mkPlaceholder = () => {
 // should return undefined or { name, email, user_id }
 const defaultUserSelector = () => undefined
 
-const IntercomProvider = ({
-  appId,
-  userSelector = defaultUserSelector,
-  children,
-  ...props
-}) => {
+function APILoader({ appId, userSelector = defaultUserSelector, children, ...props }) {
   const settings = { app_id: appId, ...props }
 
   if (!window.Intercom) window.Intercom = mkPlaceholder()
@@ -56,7 +58,7 @@ const IntercomProvider = ({
     }
   }, [])
 
-  const user = reduxHook.useMappedState(userSelector)
+  const user = redux.useSelector(userSelector)
 
   usePrevious(user, (prevUser) => {
     if (!R.equals(user, prevUser)) {
@@ -72,26 +74,20 @@ const IntercomProvider = ({
   return children(api)
 }
 
-const DummyProvider = ({ children }) => {
-  const api = React.useCallback((...args) => {
-    // eslint-disable-next-line no-console
-    console.log("Trying to call Intercom, but it's unavailable", args)
-  }, [])
-  if (!('dummy' in api)) api.dummy = true
-  if (!('isAvailable' in api)) api.isAvailable = () => false
-
-  return children(api)
-}
-
-export const Provider = ({ children, ...props }) => {
+export function IntercomProvider({ children, ...props }) {
   const { intercomAppId: appId } = Config.useConfig()
-  const P = canUseDOM && appId ? IntercomProvider : DummyProvider
+  if (!canUseDOM || !appId) {
+    return children
+  }
   return (
-    <P appId={appId} {...props}>
+    <APILoader appId={appId} {...props}>
       {(api) => <Ctx.Provider value={api}>{children}</Ctx.Provider>}
-    </P>
+    </APILoader>
   )
 }
 
-// eslint-disable-next-line react-hooks/rules-of-hooks
-export const use = () => React.useContext(Ctx)
+export function useIntercom() {
+  return React.useContext(Ctx)
+}
+
+export { IntercomProvider as Provider, useIntercom as use }

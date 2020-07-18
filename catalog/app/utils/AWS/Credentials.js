@@ -72,12 +72,14 @@ function useCredentialsMemo({ local }) {
 
 const Ctx = React.createContext()
 
-export function Provider({ children }) {
+export function AWSCredentialsProvider({ children }) {
   const cfg = Config.use()
   const local = cfg.mode === 'LOCAL'
   return <Ctx.Provider value={useCredentialsMemo({ local })}>{children}</Ctx.Provider>
 }
 
-export const useCredentials = () => React.useContext(Ctx)
+export function useCredentials() {
+  return React.useContext(Ctx)
+}
 
-export const use = useCredentials
+export { AWSCredentialsProvider as Provider, useCredentials as use }

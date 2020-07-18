@@ -2,14 +2,9 @@ import invariant from 'invariant'
 import isEmpty from 'lodash/isEmpty'
 import isFunction from 'lodash/isFunction'
 import isString from 'lodash/isString'
-import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RC from 'recompose'
 import { StoreContext } from 'redux-react-hook'
-
-import * as RT from 'utils/reactTools'
-import { withInitialState } from 'utils/reduxTools'
 
 const scope = 'app/utils/ReducerInjector'
 
@@ -85,67 +80,24 @@ export const useReducer = (mountpoint, reducer, { remount = true } = {}) => {
 /**
  * Component that injects a given reducer into the store on mount.
  */
-export const Inject = RT.composeComponent(
-  'ReducerInjector.Inject',
-  RC.setPropTypes({
-    /**
-     * A key under which the reducer gets injected.
-     */
-    mount: PT.string.isRequired,
-    /**
-     * A reducer that gets injected.
-     */
-    reducer: PT.func.isRequired,
-    /**
-     * Whether to remount reducer when given a new one.
-     */
-    remount: PT.bool,
-  }),
-  ({ children, mount, reducer, remount }) => {
-    useReducer(mount, reducer, { remount })
-    return children
-  },
-)
-
-/**
- * Create a HOC that creates a reducer based on props and injects it into the
- * store on mount.
- * Inject component is used under the hood.
- *
- * @param {string} mount
- *   A key under which the reducer gets injected.
- *
- * @param {function} reducerFactory
- *   A function that accepts props and creates a reducer .
- *
- * @returns {reactTools.HOC}
- */
-export const injectReducerFactory = (mount, reducerFactory) =>
-  RT.composeHOC(`injectReducer(${mount})`, (Component) => (props) => {
-    useReducer(mount, reducerFactory(props), { remount: false })
-    return <Component {...props} />
-  })
-
-/**
- * Create a HOC that injects a given reducer into the store on mount.
- * Inject component is used under the hood.
- *
- * @param {string} mount
- *   A key under which the reducer gets injected.
- *
- * @param {reduxTools.Reducer} reducer
- *
- * @param {function} initial
- *   A function to populate the reducer's initial state.
- *   Gets called with the props passed to the resulting component.
- *
- * @returns {reactTools.HOC}
- */
-export const injectReducer = (mount, reducer, initial) =>
-  injectReducerFactory(
-    mount,
-    initial ? (props) => withInitialState(initial(props), reducer) : () => reducer,
-  )
+export const Inject = function ReducerInjector({
+  children,
+  /**
+   * A key under which the reducer gets injected.
+   */
+  mount, // string.isRequired
+  /**
+   * A reducer that gets injected.
+   */
+  reducer, // func.isRequired
+  /**
+   * Whether to remount reducer when given a new one.
+   */
+  remount, // bool
+}) {
+  useReducer(mount, reducer, { remount })
+  return children
+}
 
 /**
  * Create a store enhancer that attaches `injectReducer` method to the store.

@@ -3,11 +3,11 @@ import {
   connectRouter,
   LOCATION_CHANGE,
 } from 'connected-react-router/esm/immutable'
+import * as React from 'react'
 import { matchPath } from 'react-router-dom'
-import * as reduxHook from 'redux-react-hook'
+import * as redux from 'react-redux'
 
-import { composeComponent } from 'utils/reactTools'
-import { injectReducerFactory } from 'utils/ReducerInjector'
+import * as ReducerInjector from 'utils/ReducerInjector'
 
 export { LOCATION_CHANGE }
 
@@ -15,7 +15,7 @@ export const REDUX_KEY = 'router'
 
 export const selectLocation = (s) => s.getIn([REDUX_KEY, 'location']).toJS()
 
-export const useLocation = () => reduxHook.useMappedState(selectLocation)
+export const useLocation = () => redux.useSelector(selectLocation)
 
 export const useRoute = (path, opts) => {
   const location = useLocation()
@@ -23,8 +23,8 @@ export const useRoute = (path, opts) => {
   return { location, match }
 }
 
-export default composeComponent(
-  'RouterProvider',
-  injectReducerFactory(REDUX_KEY, ({ history }) => connectRouter(history)),
-  ConnectedRouter,
-)
+export default function RouterProvider(props) {
+  const reducer = React.useMemo(() => connectRouter(props.history), [props.history])
+  ReducerInjector.useReducer(REDUX_KEY, reducer)
+  return <ConnectedRouter {...props} />
+}

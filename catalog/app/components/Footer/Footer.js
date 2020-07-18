@@ -90,7 +90,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default () => {
+export default function Footer() {
   const cfg = Config.useConfig()
   const classes = useStyles()
   const { urls } = NamedRoutes.use()

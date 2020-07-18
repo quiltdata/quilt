@@ -1,7 +1,7 @@
 import * as I from 'immutable'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as reduxHook from 'redux-react-hook'
+import * as redux from 'react-redux'
 import * as effects from 'redux-saga/effects'
 import uuid from 'uuid'
 
@@ -124,10 +124,10 @@ export const suspend = ({ promise, result }) =>
     result,
   )
 
-export const Provider = ({ children }) => {
+export const Provider = function ResourceCacheProvider({ children }) {
   useSaga(saga)
   useReducer(REDUX_KEY, reducer)
-  const store = React.useContext(reduxHook.StoreContext)
+  const { store } = React.useContext(redux.ReactReduxContext)
   const accessResult = React.useCallback(
     (resource, input) => {
       const getEntry = () => selectEntry(resource, input)(store.getState())
@@ -170,12 +170,14 @@ export const Provider = ({ children }) => {
   return <Ctx.Provider value={inst}>{children}</Ctx.Provider>
 }
 
-export const useResourceCache = () => React.useContext(Ctx)
+export function useResourceCache() {
+  return React.useContext(Ctx)
+}
 
 export const use = useResourceCache
 
 // TODO: claim / release in useEffect
-export const useData = (resource, input, opts = {}) => {
+export function useData(resource, input, opts = {}) {
   const cache = use()
   const get = React.useCallback(() => cache.access(resource, input), [
     cache,
@@ -183,7 +185,7 @@ export const useData = (resource, input, opts = {}) => {
     input,
   ])
   const [entry, setEntry] = React.useState(get())
-  const store = React.useContext(reduxHook.StoreContext)
+  const { store } = React.useContext(redux.ReactReduxContext)
   React.useEffect(
     () =>
       store.subscribe(() => {
