@@ -3,8 +3,7 @@ import isEmpty from 'lodash/isEmpty'
 import isFunction from 'lodash/isFunction'
 import isString from 'lodash/isString'
 import * as R from 'ramda'
-import * as React from 'react'
-import { StoreContext } from 'redux-react-hook'
+import * as redux from 'react-redux'
 
 const scope = 'app/utils/ReducerInjector'
 
@@ -68,7 +67,7 @@ const createReducerInjector = (onSet) => {
  *   and should be removed once the migration to hooks is complete.
  */
 export const useReducer = (mountpoint, reducer, { remount = true } = {}) => {
-  const { injector } = React.useContext(StoreContext)
+  const { injector } = redux.useStore()
   const shouldInject = remount
     ? !injector.injected(mountpoint, reducer)
     : !injector.injected(mountpoint)

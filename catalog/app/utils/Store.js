@@ -5,13 +5,10 @@ import { Provider as ReduxProvider } from 'react-redux'
 import { createStore, applyMiddleware } from 'redux'
 import { composeWithDevTools } from 'redux-devtools-extension'
 import { combineReducers } from 'redux-immutable'
-import { StoreContext } from 'redux-react-hook'
 
 import { withInjectableReducers } from 'utils/ReducerInjector'
 import { withSaga } from 'utils/SagaInjector'
 import * as Sentry from 'utils/Sentry'
-
-export { StoreContext as Ctx }
 
 export const Provider = function StoreProvider({ initialState = {}, history, children }) {
   const sentry = Sentry.use()
@@ -45,13 +42,5 @@ export const Provider = function StoreProvider({ initialState = {}, history, chi
     )
   })
 
-  return (
-    <ReduxProvider store={store}>
-      <StoreContext.Provider value={store}>{children}</StoreContext.Provider>
-    </ReduxProvider>
-  )
+  return <ReduxProvider store={store}>{children}</ReduxProvider>
 }
-
-export const useStore = () => React.useContext(StoreContext)
-
-export const use = useStore
