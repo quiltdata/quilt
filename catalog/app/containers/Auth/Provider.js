@@ -71,7 +71,9 @@ export default function AuthProvider({
     const init = fromJS(storage.load())
       .filter(Boolean)
       .update((s) =>
-        s.set('state', s.getIn(['user', 'current_user']) ? 'SIGNED_IN' : 'SIGNED_OUT'),
+        s
+          .set('state', s.getIn(['user', 'current_user']) ? 'SIGNED_IN' : 'SIGNED_OUT')
+          .set('sessionId', 0),
       )
     return withInitialState(init, reducer)
   }, [])
