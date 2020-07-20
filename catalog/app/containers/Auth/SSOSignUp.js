@@ -1,9 +1,9 @@
 import { goBack, push } from 'connected-react-router'
 import * as React from 'react'
 import { FormattedMessage as FM } from 'react-intl'
+import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
 import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
-import * as reduxHook from 'redux-react-hook'
 import * as M from '@material-ui/core'
 
 import { push as notify } from 'containers/Notifications/actions'
@@ -30,10 +30,10 @@ const Form = reduxForm({ form: 'Auth.SSO.SignUp' })(({ children, ...props }) => 
 export default ({ location: { search } }) => {
   const { provider, token, next } = parseSearch(search)
 
-  const dispatch = reduxHook.useDispatch()
+  const dispatch = redux.useDispatch()
   const { urls } = NamedRoutes.use()
   const sentry = Sentry.use()
-  const authenticated = reduxHook.useMappedState(selectors.authenticated)
+  const authenticated = redux.useSelector(selectors.authenticated)
   const cfg = Config.useConfig()
 
   const back = React.useCallback(() => dispatch(goBack()), [dispatch])

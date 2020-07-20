@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import * as reduxHook from 'redux-react-hook'
+import * as redux from 'react-redux'
 
 import { useExperiments } from 'components/Experiments'
 import * as Config from 'utils/Config'
@@ -54,8 +54,8 @@ export function TrackingProvider({ locationSelector, userSelector, children }) {
     token,
   ])
 
-  const location = mkLocation(reduxHook.useMappedState(locationSelector))
-  const user = reduxHook.useMappedState(userSelector)
+  const location = mkLocation(redux.useSelector(locationSelector))
+  const user = redux.useSelector(userSelector)
 
   const commonOpts = React.useMemo(
     () => ({

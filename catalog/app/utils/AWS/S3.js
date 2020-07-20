@@ -1,7 +1,7 @@
 import S3 from 'aws-sdk/clients/s3'
 import AWS from 'aws-sdk/lib/core'
 import * as React from 'react'
-import * as reduxHook from 'redux-react-hook'
+import * as redux from 'react-redux'
 
 import * as Auth from 'containers/Auth'
 import * as BucketConfig from 'utils/BucketConfig'
@@ -36,9 +36,7 @@ function useTrackingFn(fn) {
 function useSmartS3() {
   const cfg = useConfig()
   const selectEndpoint = `${cfg.binaryApiGatewayEndpoint}/s3select/`
-  const isAuthenticated = useTracking(
-    reduxHook.useMappedState(Auth.selectors.authenticated),
-  )
+  const isAuthenticated = useTracking(redux.useSelector(Auth.selectors.authenticated))
   const isInStack = useTrackingFn(BucketConfig.useIsInStack())
 
   return useConstant(() => {
