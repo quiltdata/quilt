@@ -830,20 +830,24 @@ class PackageTest(QuiltTestCase):
 
         with patch('quilt3.Package.top_hash', top_hash1), \
              patch('time.time', return_value=1):
-            Package().build(pkg_name)
+            Path(top_hash1).write_text(top_hash1)
+            Package().set(top_hash1, top_hash1).build(pkg_name)
 
         with patch('quilt3.Package.top_hash', top_hash2), \
              patch('time.time', return_value=2):
-            Package().build(pkg_name)
+            Path(top_hash2).write_text(top_hash2)
+            Package().set(top_hash2, top_hash2).build(pkg_name)
 
         assert pkg_name in quilt3.list_packages()
         assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hash1, top_hash2}
-
-        quilt3.delete_package(pkg_name, top_hash=top_hash1)
-        assert pkg_name in quilt3.list_packages()
-        assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hash2}
+        assert Package.browse(pkg_name)[top_hash2].get_as_string() == top_hash2
 
         quilt3.delete_package(pkg_name, top_hash=top_hash2)
+        assert pkg_name in quilt3.list_packages()
+        assert {top_hash for _, top_hash in quilt3.list_package_versions(pkg_name)} == {top_hash1}
+        assert Package.browse(pkg_name)[top_hash1].get_as_string() == top_hash1
+
+        quilt3.delete_package(pkg_name, top_hash=top_hash1)
         assert pkg_name not in quilt3.list_packages()
         assert not list(quilt3.list_package_versions(pkg_name))
 
