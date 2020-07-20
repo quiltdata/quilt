@@ -12,6 +12,7 @@ import defer from 'utils/defer'
 import * as reduxTools from 'utils/reduxTools'
 import * as sagaTools from 'utils/sagaTools'
 import tagged from 'utils/tagged'
+import useMemoEq from 'utils/useMemoEq'
 
 const REDUX_KEY = 'app/ResourceCache'
 
@@ -31,6 +32,7 @@ const Ctx = React.createContext()
 //     Err: any
 //     Ok: O
 //   }),
+//   claimed: number,
 // }
 // State = Map<string, Map<I, Entry<O>>>
 
@@ -46,8 +48,8 @@ const Action = tagged([
   'Request', // { resource, input: any }
   'Response', // { resource, input: any, result: Result }
   'Patch', // { resource, input: any, update: fn, silent: bool }
-  // TODO
-  // 'Dispose', // { fetch: fn, input: any }
+  'Claim', // { resource, input: any }
+  'Release', // { resource, input: any }
 ])
 
 const keyFor = (resource, input) => [resource.id, I.fromJS(resource.key(input))]
@@ -58,7 +60,7 @@ const reducer = reduxTools.withInitialState(
     Init: ({ resource, input, promise }) => (s) =>
       s.updateIn(keyFor(resource, input), (entry) => {
         if (entry) throw new Error('Init: entry already exists')
-        return { promise, result: AsyncResult.Init() }
+        return { promise, result: AsyncResult.Init(), claimed: 0 }
       }),
     Request: ({ resource, input }) => (s) =>
       s.updateIn(keyFor(resource, input), (entry) => {
@@ -70,7 +72,7 @@ const reducer = reduxTools.withInitialState(
       }),
     Response: ({ resource, input, result }) => (s) =>
       s.updateIn(keyFor(resource, input), (entry) => {
-        if (!entry) throw new Error('Response: entry does not exist')
+        if (!entry) return undefined // released before response
         if (!AsyncResult.Pending.is(entry.result)) {
           throw new Error('Response: invalid transition')
         }
@@ -84,6 +86,19 @@ const reducer = reduxTools.withInitialState(
         }
         return update(entry)
       }),
+    Claim: ({ resource, input }) => (s) =>
+      s.updateIn(keyFor(resource, input), (entry) => {
+        if (!entry) throw new Error('Claim: entry does not exist')
+        return { ...entry, claimed: entry.claimed + 1 }
+      }),
+    Release: ({ resource, input }) => (s) => {
+      const key = keyFor(resource, input)
+      const entry = s.getIn(key)
+      if (!entry) throw new Error('Release: entry does not exist')
+      return entry.claimed <= 1
+        ? s.removeIn(key)
+        : s.updateIn(key, R.evolve({ claimed: R.dec }))
+    },
     __: () => R.identity,
   }),
 )
@@ -127,7 +142,7 @@ export const suspend = ({ promise, result }) =>
 export const Provider = function ResourceCacheProvider({ children }) {
   useSaga(saga)
   useReducer(REDUX_KEY, reducer)
-  const { store } = React.useContext(redux.ReactReduxContext)
+  const store = redux.useStore()
   const accessResult = React.useCallback(
     (resource, input) => {
       const getEntry = () => selectEntry(resource, input)(store.getState())
@@ -165,7 +180,21 @@ export const Provider = function ResourceCacheProvider({ children }) {
     [patch],
   )
 
-  const inst = { access: accessResult, get, patch, patchOk }
+  const claim = React.useCallback(
+    (resource, input) => {
+      store.dispatch(Action.Claim({ resource, input }))
+    },
+    [store],
+  )
+
+  const release = React.useCallback(
+    (resource, input) => {
+      store.dispatch(Action.Release({ resource, input }))
+    },
+    [store],
+  )
+
+  const inst = { access: accessResult, get, patch, patchOk, claim, release }
 
   return <Ctx.Provider value={inst}>{children}</Ctx.Provider>
 }
@@ -176,26 +205,26 @@ export function useResourceCache() {
 
 export const use = useResourceCache
 
-// TODO: claim / release in useEffect
 export function useData(resource, input, opts = {}) {
   const cache = use()
-  const get = React.useCallback(() => cache.access(resource, input), [
-    cache,
-    resource,
-    input,
-  ])
-  const [entry, setEntry] = React.useState(get())
-  const { store } = React.useContext(redux.ReactReduxContext)
-  React.useEffect(
-    () =>
-      store.subscribe(() => {
-        const newEntry = get()
-        if (!R.equals(newEntry, entry)) {
-          setEntry(newEntry)
-        }
-      }),
-    [store, get],
+  const get = useMemoEq({ cache, resource, input }, (args) => () =>
+    args.cache.access(args.resource, args.input),
   )
+  const [entry, setEntry] = React.useState(get())
+  const store = redux.useStore()
+  React.useEffect(() => {
+    cache.claim(resource, input)
+    const unsubscribe = store.subscribe(() => {
+      const newEntry = get()
+      if (!R.equals(newEntry, entry)) {
+        setEntry(newEntry)
+      }
+    })
+    return () => {
+      unsubscribe()
+      cache.release(resource, input)
+    }
+  }, [store, get])
 
   return opts.suspend ? suspend(entry) : entry
 }
