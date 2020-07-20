@@ -676,17 +676,17 @@ def delete_url(src: PhysicalKey):
     if src.is_local():
         src_file = pathlib.Path(src.path)
 
-        if src_file.is_dir():
-            try:
-                src_file.rmdir()
-            except OSError:
-                # Ignore non-empty directories, for consistency with S3
-                pass
-        else:
-            try:
+        try:
+            if src_file.is_dir():
+                try:
+                    src_file.rmdir()
+                except OSError:
+                    # Ignore non-empty directories, for consistency with S3
+                    pass
+            else:
                 src_file.unlink()
-            except FileExistsError:
-                pass
+        except FileNotFoundError:
+            pass
     else:
         s3_client = S3ClientProvider().standard_client
         s3_client.delete_object(Bucket=src.bucket, Key=src.path)
