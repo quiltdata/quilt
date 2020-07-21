@@ -1,8 +1,8 @@
 import SignerV4 from 'aws-sdk/lib/signers/v4'
 import PT from 'prop-types'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import { setPropTypes } from 'recompose'
-import * as reduxHook from 'redux-react-hook'
 
 import * as Auth from 'containers/Auth'
 import * as BucketConfig from 'utils/BucketConfig'
@@ -17,7 +17,7 @@ import * as S3 from './S3'
 const DEFAULT_URL_EXPIRATION = 5 * 60 // in seconds
 
 export const useRequestSigner = () => {
-  const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
+  const authenticated = redux.useSelector(Auth.selectors.authenticated)
   const { mode } = Config.useConfig()
   const credentials = Credentials.use().suspend()
   return React.useCallback(
@@ -33,7 +33,7 @@ export const useRequestSigner = () => {
 
 export const useS3Signer = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {}) => {
   Credentials.use().suspend()
-  const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
+  const authenticated = redux.useSelector(Auth.selectors.authenticated)
   const { mode } = Config.useConfig()
   const isInStack = BucketConfig.useIsInStack()
   const s3 = S3.use()

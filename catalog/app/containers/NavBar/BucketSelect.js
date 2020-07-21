@@ -4,7 +4,7 @@ import matchSorter from 'match-sorter'
 import * as R from 'ramda'
 import * as React from 'react'
 import AutosizeInput from 'react-input-autosize'
-import * as reduxHook from 'redux-react-hook'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 
@@ -120,7 +120,7 @@ function CustomPopper({ style: css, ...props }) {
 function BucketSelect({ cancel, forwardedRef, ...props }) {
   const currentBucket = BucketConfig.useCurrentBucket()
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const dispatch = reduxHook.useDispatch()
+  const dispatch = redux.useDispatch()
   const { urls } = NamedRoutes.use()
 
   const [inputValue, setInputValue] = React.useState('')

@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import * as reduxHook from 'redux-react-hook'
+import * as redux from 'react-redux'
 
 import { useExperiments } from 'components/Experiments'
 import * as Config from 'utils/Config'
@@ -44,7 +44,7 @@ const withTimeout = (p, timeout) =>
     p.then(settle(resolve), settle(reject))
   })
 
-export function Provider({ locationSelector, userSelector, children }) {
+export function TrackingProvider({ locationSelector, userSelector, children }) {
   const { getSelectedVariants } = useExperiments()
   const cfg = Config.useConfig()
   // workaround to avoid changing client configs
@@ -54,8 +54,8 @@ export function Provider({ locationSelector, userSelector, children }) {
     token,
   ])
 
-  const location = mkLocation(reduxHook.useMappedState(locationSelector))
-  const user = reduxHook.useMappedState(userSelector)
+  const location = mkLocation(redux.useSelector(locationSelector))
+  const user = redux.useSelector(userSelector)
 
   const commonOpts = React.useMemo(
     () => ({
@@ -103,4 +103,8 @@ export function Provider({ locationSelector, userSelector, children }) {
   return <Ctx.Provider value={instance}>{children}</Ctx.Provider>
 }
 
-export const useTracker = () => React.useContext(Ctx)
+export function useTracker() {
+  return React.useContext(Ctx)
+}
+
+export { TrackingProvider as Provider, useTracker as use }
