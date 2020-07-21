@@ -210,14 +210,16 @@ export function useData(resource, input, opts = {}) {
   const get = useMemoEq({ cache, resource, input }, (args) => () =>
     args.cache.access(args.resource, args.input),
   )
-  const [entry, setEntry] = React.useState(get())
+  const [entry, setEntry] = React.useState(get)
   const store = redux.useStore()
   React.useEffect(() => {
+    let prevEntry = get()
     cache.claim(resource, input)
     const unsubscribe = store.subscribe(() => {
       const newEntry = get()
-      if (!R.equals(newEntry, entry)) {
+      if (!R.equals(newEntry, prevEntry)) {
         setEntry(newEntry)
+        prevEntry = newEntry
       }
     })
     return () => {
