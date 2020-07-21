@@ -7,7 +7,11 @@ import * as utils from './utils'
 
 export const detect = R.pipe(
   utils.stripCompression,
-  R.anyPass([utils.extIs('.parquet'), R.test(/[.-]c\d{3,5}$/gi)]),
+  R.anyPass([
+    utils.extIn(['.parquet', '.pq']),
+    R.test(/.+_0$/),
+    R.test(/[.-]c\d{3,5}$/gi),
+  ]),
 )
 
 export const load = utils.previewFetcher(

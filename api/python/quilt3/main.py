@@ -10,11 +10,11 @@ import sys
 import dns.resolver
 import requests
 
-from . import api, session
+from . import api, session, Package
 from . import __version__ as quilt3_version
+from .backends import get_package_registry
 from .session import open_url
-from .util import get_from_config, catalog_s3_url, catalog_package_url, QuiltException, PhysicalKey, \
-    fix_url, get_package_registry
+from .util import get_from_config, catalog_s3_url, catalog_package_url, QuiltException
 
 
 def cmd_config(catalog_url, **kwargs):
@@ -199,13 +199,12 @@ def cmd_disable_telemetry():
 
 
 def cmd_list_packages(registry):
-    registry_parsed = PhysicalKey.from_url(get_package_registry(fix_url(registry)))
-    for package_name in api._list_packages(registry=registry_parsed):
+    for package_name in get_package_registry(registry).list_packages:
         print(package_name)
 
 
 def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
-    pkg = api.Package._browse(name, registry, top_hash)
+    pkg = Package._browse(name, registry, top_hash)
     if pkg.verify(dir, extra_files_ok):
         print("Verification succeeded")
         return 0
@@ -215,7 +214,7 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
 
 
 def cmd_push(name, dir, registry, dest, message):
-    pkg = api.Package()
+    pkg = Package()
     pkg.set_dir('.', dir)
     pkg.push(name, registry=registry, dest=dest, message=message)
 
@@ -305,7 +304,9 @@ def create_parser():
     install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp, allow_abbrev=False)
     install_p.add_argument(
         "name",
-        help="Name of package, in the USER/PKG[/PATH] format",
+        help=(
+            "Name of package, in the USER/PKG[/PATH] format ([/PATH] is deprecated, use --path parameter instead)"
+        ),
         type=str,
     )
     install_p.add_argument(
@@ -332,7 +333,13 @@ def create_parser():
         type=str,
         required=False,
     )
-    install_p.set_defaults(func=api.Package.install)
+    install_p.add_argument(
+        "--path",
+        help="If specified, downloads only PATH or its children.",
+        type=str,
+        required=False,
+    )
+    install_p.set_defaults(func=Package.install)
 
     # list-packages
     shorthelp = "List all packages in a registry"

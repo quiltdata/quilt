@@ -6,6 +6,7 @@ import * as reduxHook from 'redux-react-hook'
 import * as Auth from 'containers/Auth'
 import * as BucketConfig from 'utils/BucketConfig'
 import { useConfig } from 'utils/Config'
+import useConstant from 'utils/useConstant'
 import useMemoEqLazy from 'utils/useMemoEqLazy'
 
 import * as Config from './Config'
@@ -20,14 +21,6 @@ const PROXIED = Symbol('proxied')
 const PRESIGN = Symbol('presign')
 
 const Ctx = React.createContext()
-
-function useConstant(cons) {
-  const ref = React.useRef()
-  if (!ref.current) {
-    ref.current = cons()
-  }
-  return ref.current
-}
 
 function useTracking(val) {
   const ref = React.useRef()

@@ -16,7 +16,7 @@ data portal that runs on Quilt
 * [quiltdata.com](https://quiltdata.com) includes case studies, use cases, videos,
 and instructions on how to run a private Quilt instance
 * [Versioning data and models for rapid experimentation in machine learning](https://medium.com/pytorch/how-to-iterate-faster-in-machine-learning-by-versioning-data-and-models-featuring-detectron2-4fd2f9338df5)
-demonstrates how to use Quilt for real world projects
+shows how to use Quilt for real world projects
 
 ## Who is Quilt for?
 Quilt is for data-driven teams and offers features for coders (data scientists,
@@ -64,8 +64,4 @@ that scale to 10M keys; consider abbreviated "fast manifests" for lazy browsing
 * [ ] Shim lambdas (consider serverless.com)
 * [ ] Shim ElasticSearch (consider SOLR)
 * [ ] Shim IAM via RBAC
-
-## Where are the Quilt 2 docs?
-See [here](https://docs.quiltdata.com/v/quilt-2-master/) and
-[here](https://github.com/quiltdata/quilt/tree/quilt-2-master).
 

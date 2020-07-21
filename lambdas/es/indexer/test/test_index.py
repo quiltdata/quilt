@@ -567,6 +567,10 @@ class TestIndex(TestCase):
         # -c00111 file (should never happen)
         assert index.infer_extensions("s3/some/file-c000121", "") == "", \
             "Expected -c000121 not to infer as .parquet"
+        assert index.infer_extensions("s3/some/file-boom-boom!bam.pq", ".pq") == ".parquet", \
+            "Expected .pq to infer as .parquet"
+        assert index.infer_extensions("s3/some/file-boom-boom!maga_0", "") == ".parquet", \
+            "Expected *_0 to infer as .parquet"
         # .txt file, should be unchanged
         assert index.infer_extensions("s3/some/file-c0000.txt", ".txt") == ".txt", \
             "Expected .txt to infer as .txt"
