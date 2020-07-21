@@ -16,7 +16,7 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
-import Data from 'utils/Data'
+import Data, { useData } from 'utils/Data'
 import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
@@ -1108,19 +1108,35 @@ function Imgs({ es, s3, overviewUrl, inStack, bucket }) {
   )
 }
 
+const SUMMARY_ENTRIES = 5
+
 function Summary({ es, s3, bucket, inStack, overviewUrl }) {
-  return (
-    <Data
-      fetch={requests.bucketSummary}
-      params={{ es, s3, bucket, inStack, overviewUrl }}
-    >
-      {AsyncResult.case({
-        Ok: R.map((h) => <FilePreview key={`${h.bucket}/${h.key}`} handle={h} />),
-        Pending: () => <FilePreviewSkel />,
-        _: () => null,
-      })}
-    </Data>
-  )
+  const data = useData(requests.bucketSummary, { es, s3, bucket, inStack, overviewUrl })
+  const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
+  const showMore = React.useCallback(() => {
+    setShown(R.add(SUMMARY_ENTRIES))
+  }, [setShown])
+  return data.case({
+    Ok: (entries) => {
+      const shownEntries = R.take(shown, entries)
+      return (
+        <>
+          {shownEntries.map((h) => (
+            <FilePreview key={`${h.bucket}/${h.key}`} handle={h} />
+          ))}
+          {shown < entries.length && (
+            <M.Box mt={2} display="flex" justifyContent="center">
+              <M.Button variant="contained" color="primary" onClick={showMore}>
+                Show more
+              </M.Button>
+            </M.Box>
+          )}
+        </>
+      )
+    },
+    Pending: () => <FilePreviewSkel />,
+    _: () => null,
+  })
 }
 
 export default function Overview({
