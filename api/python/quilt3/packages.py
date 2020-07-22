@@ -303,7 +303,7 @@ class PackageEntry:
         Deprecated
         """
         warnings.warn(
-            "PackageEntry.physical_keys is deprecated, use PackageEntry.psysical_key instead.",
+            "PackageEntry.physical_keys is deprecated, use PackageEntry.physical_key instead.",
             category=RemovedInQuilt4Warning,
             stacklevel=2,
         )
