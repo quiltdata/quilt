@@ -37,7 +37,7 @@ export default function Landing() {
       {cfg.mode !== 'LOCAL' && <Highlights />}
       {cfg.mode === 'MARKETING' && <Pricing />}
       {cfg.mode !== 'LOCAL' && <Contribute />}
-      {cfg.mode !== 'LOCAL' && <StickyFooter />}
+      {cfg.mode === 'MARKETING' && <StickyFooter />}
     </Layout>
   )
 }
