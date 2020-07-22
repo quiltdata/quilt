@@ -280,7 +280,7 @@ const SAMPLE_EXTS = [
   '.md',
   '.json',
 ]
-const SAMPLE_SIZE = 10
+const SAMPLE_SIZE = 20
 const SUMMARIZE_KEY = 'quilt_summarize.json'
 const MAX_IMGS = 100
 

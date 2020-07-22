@@ -891,7 +891,69 @@ function ContentSkel({ lines = 15, ...props }) {
 
 const CrumbLink = M.styled(Link)({ wordBreak: 'break-word' })
 
-function FilePreview({ handle, headingOverride, fallback }) {
+const usePreviewBoxStyles = M.makeStyles((t) => ({
+  root: {
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    maxHeight: t.spacing(30),
+    minHeight: t.spacing(15),
+    position: 'relative',
+
+    // workarounds to speed-up notebook preview rendering:
+    '&:not($expanded)': {
+      // hide overflow only when not expanded, using this while expanded
+      // slows down the page in chrome
+      overflow: 'hidden',
+
+      // only show 2 first cells unless expanded
+      '& .ipynb-preview .cell:nth-child(n+3)': {
+        display: 'none',
+      },
+    },
+  },
+  expanded: {
+    maxHeight: 'none',
+  },
+  fade: {
+    alignItems: 'flex-end',
+    background: `linear-gradient(to top,
+      rgba(255, 255, 255, 1),
+      rgba(255, 255, 255, 0.9),
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.1)
+    )`,
+    bottom: 0,
+    display: 'flex',
+    height: '100%',
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    width: '100%',
+    zIndex: 1,
+  },
+}))
+
+function PreviewBox({ data, expanded: defaultExpanded = false }) {
+  const classes = usePreviewBoxStyles()
+  const [expanded, setExpanded] = React.useState(defaultExpanded)
+  const expand = React.useCallback(() => {
+    setExpanded(true)
+  }, [setExpanded])
+  return (
+    <div className={cx(classes.root, { [classes.expanded]: expanded })}>
+      {Preview.render(data)}
+      {!expanded && (
+        <div className={classes.fade}>
+          <M.Button variant="outlined" onClick={expand}>
+            Expand
+          </M.Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FilePreview({ handle, headingOverride, fallback, expanded }) {
   const { urls } = NamedRoutes.use()
 
   const crumbs = React.useMemo(() => {
@@ -952,7 +1014,7 @@ function FilePreview({ handle, headingOverride, fallback }) {
         ),
         Ok: (data) => (
           <Section heading={heading}>
-            <M.Box mx="auto">{Preview.render(data)}</M.Box>
+            <PreviewBox data={data} expanded={expanded} />
           </Section>
         ),
       }),
@@ -1072,10 +1134,11 @@ function Readmes({ s3, overviewUrl, bucket }) {
                   key="readme:forced"
                   headingOverride={false}
                   handle={rs.forced}
+                  expanded
                 />
               )}
               {rs.discovered.map((h) => (
-                <FilePreview key={`readme:${h.bucket}/${h.key}`} handle={h} />
+                <FilePreview key={`readme:${h.bucket}/${h.key}`} handle={h} expanded />
               ))}
             </>
           ),
@@ -1108,7 +1171,7 @@ function Imgs({ es, s3, overviewUrl, inStack, bucket }) {
   )
 }
 
-const SUMMARY_ENTRIES = 5
+const SUMMARY_ENTRIES = 7
 
 function Summary({ es, s3, bucket, inStack, overviewUrl }) {
   const data = useData(requests.bucketSummary, { es, s3, bucket, inStack, overviewUrl })
@@ -1152,7 +1215,7 @@ export default function Overview({
   const overviewUrl = cfg && cfg.overviewUrl
   const description = cfg && cfg.description
   return (
-    <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
+    <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }} position="relative" zIndex={1}>
       {!!cfg && (
         <React.Suspense fallback={null}>
           <LinkedData.BucketData bucket={cfg} />
