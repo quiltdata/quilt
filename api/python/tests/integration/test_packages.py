@@ -416,6 +416,14 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(QuiltException):
             pkg['bar'].deserialize()
 
+    def test_package_entry_physical_keys(self):
+        pkg = Package().set('foo', DATA_DIR / 'foo.txt')
+        entry = pkg['foo']
+        physical_key = entry.physical_key
+        with pytest.warns(RemovedInQuilt4Warning, match='PackageEntry.physical_keys is deprecated'):
+            physical_keys = entry.physical_keys
+        assert [physical_key] == physical_keys
+
     def test_local_set_dir(self):
         """ Verify building a package from a local directory. """
         pkg = Package()
