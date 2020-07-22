@@ -273,7 +273,7 @@ class TestSearch(TestCase):
 
     def test_stats(self):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
-            _source='false', # must emulate JSON; False causes match_querystring to fail
+            _source='false',  # must match JSON; False will fail match_querystring
             size=0,
             timeout='15s'
         ))
