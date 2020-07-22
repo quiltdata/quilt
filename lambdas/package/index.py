@@ -52,11 +52,11 @@ def load_df(s3response):
         elif 'Stats' in event:
             stats = event['Stats']['Details']
     buffer.seek(0)
-    df = pd.read_json(buffer, lines=True) #pylint: disable=invalid-name
+    df = pd.read_json(buffer, lines=True)  # pylint: disable=invalid-name
     return df, stats
 
 
-def get_logical_key_folder_view(df, prefix=None): #pylint: disable=invalid-name
+def get_logical_key_folder_view(df, prefix=None):  # pylint: disable=invalid-name
     """
     Post process a set of logical keys to return only the
     top-level folder view (a special case of the s3-select
@@ -104,7 +104,7 @@ def call_s3_select(s3_client, bucket, key, prefix):
             'JSON': {'Type': 'DOCUMENT'},
             'CompressionType': 'NONE'
         },
-        OutputSerialization={'JSON': {'RecordDelimiter': '\n',}}
+        OutputSerialization={'JSON': {'RecordDelimiter': '\n'}}
     )
     return response
 
@@ -132,7 +132,7 @@ def lambda_handler(request):
     response = call_s3_select(s3_client, bucket, key, prefix)
 
     # Parse the response into a logical folder view
-    df, _ = load_df(response) #pylint: disable=invalid-name
+    df, _ = load_df(response)  # pylint: disable=invalid-name
 
     ret_val = make_json_response(
         200,
