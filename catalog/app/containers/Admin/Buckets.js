@@ -1,13 +1,16 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import * as RF from 'redux-form/es/immutable'
 import * as M from '@material-ui/core'
 
 import * as Pagination from 'components/Pagination'
+import * as AuthSelectors from 'containers/Auth/selectors'
 import * as Notifications from 'containers/Notifications'
 import * as APIConnector from 'utils/APIConnector'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as Config from 'utils/Config'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
 import * as Cache from 'utils/ResourceCache'
@@ -268,9 +271,16 @@ const toBucketConfig = (b) => ({
   relevance: b.relevanceScore,
 })
 
+function useAuthSession() {
+  const cfg = Config.use()
+  const sessionId = redux.useSelector(AuthSelectors.sessionId)
+  return cfg.alwaysRequiresAuth && sessionId
+}
+
 function Add({ close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
+  const session = useAuthSession()
   const { push } = Notifications.use()
   const t = useTracker()
   const onSubmit = React.useCallback(
@@ -285,7 +295,7 @@ function Add({ close }) {
         cache.patchOk(data.BucketsResource, null, R.append(b))
         cache.patchOk(
           BucketConfig.BucketsResource,
-          { empty: false },
+          { empty: false, session },
           R.append(toBucketConfig(b)),
           true,
         )
@@ -303,7 +313,7 @@ function Add({ close }) {
         throw new RF.SubmissionError({ _error: 'unexpected' })
       }
     },
-    [req, cache, push, close],
+    [req, cache, push, close, session],
   )
 
   return (
@@ -359,6 +369,7 @@ function Add({ close }) {
 function Edit({ bucket, close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
+  const session = useAuthSession()
   const onSubmit = React.useCallback(
     async (values) => {
       try {
@@ -375,7 +386,7 @@ function Edit({ bucket, close }) {
         )
         cache.patchOk(
           BucketConfig.BucketsResource,
-          { empty: false },
+          { empty: false, session },
           R.map((b) => (b.name === bucket.name ? toBucketConfig(updated) : b)),
           true,
         )
@@ -388,7 +399,7 @@ function Edit({ bucket, close }) {
         throw new RF.SubmissionError({ _error: 'unexpected' })
       }
     },
-    [req, cache, close],
+    [req, cache, close, session],
   )
 
   const initialValues = {
@@ -470,6 +481,7 @@ function Edit({ bucket, close }) {
 function Delete({ bucket, close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
+  const session = useAuthSession()
   const { push } = Notifications.use()
   const t = useTracker()
   const doDelete = React.useCallback(async () => {
@@ -479,7 +491,7 @@ function Delete({ bucket, close }) {
       cache.patchOk(data.BucketsResource, null, R.reject(R.propEq('name', bucket.name)))
       cache.patchOk(
         BucketConfig.BucketsResource,
-        { empty: false },
+        { empty: false, session },
         R.reject(R.propEq('name', bucket.name)),
         true,
       )
@@ -490,7 +502,7 @@ function Delete({ bucket, close }) {
       cache.patchOk(data.BucketsResource, null, R.append(bucket))
       cache.patchOk(
         BucketConfig.BucketsResource,
-        { empty: false },
+        { empty: false, session },
         R.append(toBucketConfig(bucket)),
         true,
       )
@@ -500,7 +512,7 @@ function Delete({ bucket, close }) {
       // eslint-disable-next-line no-console
       console.dir(e)
     }
-  }, [bucket, close, req, cache, push])
+  }, [bucket, close, req, cache, push, session])
 
   return (
     <>
