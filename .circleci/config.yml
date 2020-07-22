@@ -78,8 +78,8 @@ test-base: &test-base
     - run:
         name: Run Pytest
         command: |
-          cd api/python && pytest --cov=./
-          codecov
+          pytest --cov=api/python api/python
+          bash <(curl -s https://codecov.io/bash) -n $CIRCLE_JOB -F api-python
 
 jobs:
   linter:
@@ -143,17 +143,18 @@ jobs:
           command: |
             virtualenv venv
             . venv/bin/activate
-            pip install lambdas/shared/<< parameters.sub-path >>
+            pip install -e lambdas/shared/<< parameters.sub-path >>
             pip install -r lambdas/<< parameters.path >>/requirements.txt -r lambdas/<< parameters.path >>/test-requirements.txt
             if [ << parameters.path >> != "shared" ]
             then
-              pip install lambdas/<< parameters.path >>
+              pip install -e lambdas/<< parameters.path >>
             fi
       - run:
           name: Pytest
           command: |
             . venv/bin/activate
-            cd lambdas/<< parameters.path >> && pytest --cov=./
+            pytest --cov=lambdas lambdas/<< parameters.path >>
+            bash <(curl -s https://codecov.io/bash) -n $CIRCLE_JOB -F lambda
 
   build:
     docker:
@@ -178,8 +179,8 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            cd api/python && pytest --cov=./
-            codecov
+            pytest --cov=api/python api/python
+            bash <(curl -s https://codecov.io/bash) -n $CIRCLE_JOB -F api-python
       - store_artifacts:
           path: htmlcov/
 
