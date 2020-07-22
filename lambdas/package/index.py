@@ -50,13 +50,13 @@ def load_df(s3response):
             records = event['Records']['Payload'].decode('utf-8')
             buffer.write(records)
         elif 'Stats' in event:
-            statsDetails = event['Stats']['Details']
+            stats = event['Stats']['Details']
     buffer.seek(0)
-    df = pd.read_json(buffer, lines=True)
-    return df, statsDetails
+    df = pd.read_json(buffer, lines=True) #pylint: disable=invalid-name
+    return df, stats
 
 
-def get_logical_key_folder_view(df, prefix=None):
+def get_logical_key_folder_view(df, prefix=None): #pylint: disable=invalid-name
     """
     Post process a set of logical keys to return only the
     top-level folder view (a special case of the s3-select
@@ -66,7 +66,7 @@ def get_logical_key_folder_view(df, prefix=None):
         col = df.logical_key.str.slice(start=len(prefix))
     else:
         col = df.logical_key
-        
+
     # matches all strings; everything before and including the first
     # / is extracted
     folder = col.dropna().str.extract('([^/]+/?).*')[0].unique().tolist()
@@ -74,6 +74,9 @@ def get_logical_key_folder_view(df, prefix=None):
 
 
 def get_s3_client(aws_access_key_id, aws_secret_access_key):
+    """
+    Create an S3 Client using the provided credentials
+    """
     session = boto3.Session(
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key
@@ -83,7 +86,11 @@ def get_s3_client(aws_access_key_id, aws_secret_access_key):
 
 
 def call_s3_select(s3_client, bucket, key, prefix):
-    # Call S3 Select
+    """
+    Call S3 Select to read only the logical keys from a
+    package manifest that match the desired folder path
+    prefix
+    """
     sql_stmt = "SELECT s.logical_key from s3object s"
     if prefix:
         sql_stmt += f" WHERE s.logical_key LIKE ('{prefix}%')"
@@ -93,11 +100,11 @@ def call_s3_select(s3_client, bucket, key, prefix):
         Key=key,
         ExpressionType='SQL',
         Expression=sql_stmt,
-        InputSerialization = {
+        InputSerialization={
             'JSON': {'Type': 'DOCUMENT'},
             'CompressionType': 'NONE'
         },
-        OutputSerialization = {'JSON': { 'RecordDelimiter': '\n',}}
+        OutputSerialization={'JSON': {'RecordDelimiter': '\n',}}
     )
     return response
 
@@ -118,14 +125,14 @@ def lambda_handler(request):
     prefix = request.args.get('prefix')
 
     # Create an s3 client using the provided credentials
-    s3 = get_s3_client(aws_access_key_id, aws_secret_access_key)
+    s3_client = get_s3_client(aws_access_key_id, aws_secret_access_key)
 
     # Call s3 select to fetch only logical keys matching the
     # desired prefix (folder path)
-    response = call_s3_select(s3, bucket, key, prefix)
+    response = call_s3_select(s3_client, bucket, key, prefix)
 
     # Parse the response into a logical folder view
-    df, stats = load_df(response)
+    df, _ = load_df(response) #pylint: disable=invalid-name
 
     ret_val = make_json_response(
         200,
