@@ -12,6 +12,7 @@ import responses
 
 from ..index import call_s3_select, get_logical_key_folder_view, load_df
 
+
 class TestPackageBrowse(TestCase):
     """
     Unit tests for thhe Package API endpoint.
@@ -74,7 +75,6 @@ class TestPackageBrowse(TestCase):
     def tearDown(self):
         self.env_patcher.stop()
         self.requests_mock.stop()
-
 
     @classmethod
     def _make_event(cls, params, headers=None):
@@ -154,7 +154,7 @@ class TestPackageBrowse(TestCase):
         Test that the S3 Select response is parsed
         into the correct top-level folder view.
         """
-        df, _ = load_df(self.s3response) #pylint: disable=invalid-name
+        df, _ = load_df(self.s3response)  # pylint: disable=invalid-name
         assert isinstance(df, pd.DataFrame)
 
         folder = get_logical_key_folder_view(df)
@@ -168,7 +168,7 @@ class TestPackageBrowse(TestCase):
         into the correct sub-folder view.
         """
         prefix = "bar/"
-        df, _ = load_df(self.s3response) #pylint: disable=invalid-name
+        df, _ = load_df(self.s3response)  # pylint: disable=invalid-name
         assert isinstance(df, pd.DataFrame)
 
         filtered_df = df[df['logical_key'].str.startswith(prefix)]
@@ -184,7 +184,7 @@ class TestPackageBrowse(TestCase):
         into the correct sub-sub-folder view.
         """
         prefix = "bar/baz/"
-        df, _ = load_df(self.s3response) #pylint: disable=invalid-name
+        df, _ = load_df(self.s3response)  # pylint: disable=invalid-name
         assert isinstance(df, pd.DataFrame)
 
         filtered_df = df[df['logical_key'].str.startswith(prefix)]
