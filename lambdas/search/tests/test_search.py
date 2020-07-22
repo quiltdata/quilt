@@ -96,7 +96,7 @@ def check_stats_record_format(record):
 class TestSearch(TestCase):
     """Tests Search functions"""
     def setUp(self):
-        self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
+        self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=True)
         self.requests_mock.start()
 
         self.env_patcher = patch.dict(os.environ, {
@@ -273,9 +273,9 @@ class TestSearch(TestCase):
 
     def test_stats(self):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
-            timeout='15s',
+            _source='false',  # must match JSON; False will fail match_querystring
             size=0,
-            _source='',
+            timeout='15s'
         ))
 
         def _callback(request):
@@ -283,10 +283,10 @@ class TestSearch(TestCase):
             assert payload == {
                 "query": {"match_all": {}},
                 "aggs": {
-                    "totalBytes": {"sum": {"field": 'size'}},
+                    "totalBytes": {"sum": {"field": "size"}},
                     "exts": {
                         "terms": {"field": 'ext'},
-                        "aggs": {"size": {"sum": {"field": 'size'}}},
+                        "aggs": {"size": {"sum": {"field": "size"}}},
                     },
                 }
             }
