@@ -275,7 +275,7 @@ class TestSearch(TestCase):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
             timeout='15s',
             size=0,
-            _source='',
+            _source=False,
         ))
 
         def _callback(request):
