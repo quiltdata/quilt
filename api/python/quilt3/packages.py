@@ -302,6 +302,11 @@ class PackageEntry:
         """
         Deprecated
         """
+        warnings.warn(
+            "PackageEntry.physical_keys is deprecated, use PackageEntry.physical_key instead.",
+            category=RemovedInQuilt4Warning,
+            stacklevel=2,
+        )
         return [self.physical_key]
 
 

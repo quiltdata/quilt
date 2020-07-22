@@ -123,7 +123,12 @@ export const bucketAccessCounts = async ({
         WHERE eventname = 'GetObject'
         AND bucket = '${sqlEscape(bucket)}'
       `,
-      InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
+      InputSerialization: {
+        CSV: {
+          FileHeaderInfo: 'Use',
+          AllowQuotedRecordDelimiter: true,
+        },
+      },
     }).then(
       R.pipe(
         R.map((r) => {
@@ -622,7 +627,12 @@ const fetchPackagesAccessCounts = async ({
         WHERE eventname = 'GetObject'
         AND bucket = '${sqlEscape(bucket)}'
       `,
-      InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
+      InputSerialization: {
+        CSV: {
+          FileHeaderInfo: 'Use',
+          AllowQuotedRecordDelimiter: true,
+        },
+      },
     })
 
     return records.reduce((acc, r) => {
@@ -747,7 +757,12 @@ const fetchRevisionsAccessCounts = async ({
         AND bucket = '${sqlEscape(bucket)}'
         AND name = '${sqlEscape(name)}'
       `,
-      InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
+      InputSerialization: {
+        CSV: {
+          FileHeaderInfo: 'Use',
+          AllowQuotedRecordDelimiter: true,
+        },
+      },
     })
 
     return records.reduce((acc, r) => {
@@ -953,7 +968,12 @@ const queryAccessCounts = async ({
       Bucket: analyticsBucket,
       Key: `${ACCESS_COUNTS_PREFIX}/${type}.csv`,
       Expression: query,
-      InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
+      InputSerialization: {
+        CSV: {
+          FileHeaderInfo: 'Use',
+          AllowQuotedRecordDelimiter: true,
+        },
+      },
     })
 
     const recordedCounts = records.length ? JSON.parse(records[0].counts) : {}

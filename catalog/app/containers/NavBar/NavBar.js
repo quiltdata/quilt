@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import { Link } from 'react-router-dom'
-import * as reduxHook from 'redux-react-hook'
 import { createStructuredSelector } from 'reselect'
 import * as M from '@material-ui/core'
 
@@ -56,7 +56,7 @@ const userDisplay = (user) => (
 
 function UserDropdown() {
   const cfg = Config.useConfig()
-  const user = reduxHook.useMappedState(selectUser)
+  const user = redux.useSelector(selectUser)
   const { urls, paths } = NamedRoutes.use()
   const isProfile = !!useRoute(paths.profile, { exact: true }).match
   const isAdmin = !!useRoute(paths.admin).match
@@ -139,7 +139,7 @@ function useHam() {
 
 function AuthHamburger({ authenticated, waiting, error }) {
   const cfg = Config.useConfig()
-  const user = reduxHook.useMappedState(selectUser)
+  const user = redux.useSelector(selectUser)
   const { urls, paths } = NamedRoutes.use()
   const isProfile = !!useRoute(paths.profile, { exact: true }).match
   const isAdmin = !!useRoute(paths.admin).match
@@ -306,7 +306,7 @@ export function NavBar() {
     ),
     [],
   )
-  const { error, waiting, authenticated } = reduxHook.useMappedState(selector)
+  const { error, waiting, authenticated } = redux.useSelector(selector)
   const t = M.useTheme()
   const useHamburger = M.useMediaQuery(t.breakpoints.down('sm'))
   const links = useLinks()

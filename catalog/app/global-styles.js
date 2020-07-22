@@ -31,14 +31,16 @@ const useGlobalStyles = makeStyles({
   },
 })
 
-const GlobalStyles = () => {
+function GlobalStyles() {
   useGlobalStyles()
   return null
 }
 
-export default ({ children }) => (
-  <CssBaseline>
-    <GlobalStyles />
-    {children}
-  </CssBaseline>
-)
+export default function WithGlobalStyles({ children }) {
+  return (
+    <CssBaseline>
+      <GlobalStyles />
+      {children}
+    </CssBaseline>
+  )
+}
