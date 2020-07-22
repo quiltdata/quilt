@@ -73,6 +73,35 @@ def get_logical_key_folder_view(df, prefix=None):
     return folder
 
 
+def get_s3_client(aws_access_key_id, aws_secret_access_key):
+    session = boto3.Session(
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key
+    )
+    s3_client = session.client('s3')
+    return s3_client
+
+
+def call_s3_select(s3_client, bucket, key, prefix):
+    # Call S3 Select
+    sql_stmt = "SELECT s.logical_key from s3object s"
+    if prefix:
+        sql_stmt += f" WHERE s.logical_key LIKE ('{prefix}%')"
+
+    response = s3_client.select_object_content(
+        Bucket=bucket,
+        Key=key,
+        ExpressionType='SQL',
+        Expression=sql_stmt,
+        InputSerialization = {
+            'JSON': {'Type': 'DOCUMENT'},
+            'CompressionType': 'NONE'
+        },
+        OutputSerialization = {'JSON': { 'RecordDelimiter': '\n',}}
+    )
+    return response
+
+
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 def lambda_handler(request):
@@ -87,27 +116,15 @@ def lambda_handler(request):
     aws_access_key_id = request.args['access_key']
     aws_secret_access_key = request.args['secret_key']
     prefix = request.args.get('prefix')
-    host = f'{bucket}.s3.amazonaws.com'
 
-    # Call S3 Select
-    sql_stmt = "SELECT s.logical_key from s3object s"
-    if prefix:
-        sql_stmt += f" WHERE s.logical_key LIKE ('{prefix}%')" 
+    # Create an s3 client using the provided credentials
+    s3 = get_s3_client(aws_access_key_id, aws_secret_access_key)
 
-    session = boto3.Session(
-        aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key
-    )
-    s3 = session.client('s3')
-    response = s3.select_object_content(
-        Bucket=bucket,
-        Key=key,
-        ExpressionType='SQL',
-        Expression=sql_stmt,
-        InputSerialization = {'JSON': {'Type': 'DOCUMENT'}},
-        OutputSerialization = {'JSON': { 'RecordDelimiter': '\n',}}
-    )
+    # Call s3 select to fetch only logical keys matching the
+    # desired prefix (folder path)
+    response = call_s3_select(s3, bucket, key, prefix)
 
+    # Parse the response into a logical folder view
     df, stats = load_df(response)
 
     ret_val = make_json_response(
@@ -116,6 +133,5 @@ def lambda_handler(request):
             'contents': get_logical_key_folder_view(df, prefix)
         }
     )
-    print(ret_val)
 
     return ret_val

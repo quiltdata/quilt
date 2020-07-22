@@ -2,18 +2,20 @@
 Test functions for package endpoint
 """
 
-import json
 import os
 from unittest import TestCase
 from unittest.mock import patch
 
+import boto3
 import pandas as pd
 import responses
 
-from ..index import get_logical_key_folder_view, lambda_handler, load_df
+from ..index import call_s3_select, get_logical_key_folder_view, load_df
 
 class TestPackageBrowse(TestCase):
-
+    """
+    Unit tests for thhe Package API endpoint.
+    """
     def setUp(self):
         """
         Mocks to tests calls to S3 Select
@@ -59,7 +61,7 @@ class TestPackageBrowse(TestCase):
                 }
             ]
         }
-        
+
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
         self.requests_mock.start()
 
@@ -85,12 +87,74 @@ class TestPackageBrowse(TestCase):
             'body': None,
             'isBase64Encoded': False,
         }
-    
-    def test_call_s3select(self):
-        pass
 
-    def test_browse_no_prefix(self):
-        df, stats = load_df(self.s3response)
+    def test_call_s3select_no_prefix(self):
+        """
+        Test that parameters are correctly passed to
+        S3 Select (without a prefix)
+        """
+        bucket = "bucket"
+        key = ".quilt/packages/manifest_hash"
+
+        expected_args = {
+            'Bucket': bucket,
+            'Key': key,
+            'Expression': "SELECT s.logical_key from s3object s",
+            'ExpressionType': 'SQL',
+            'InputSerialization': {
+                'CompressionType': 'NONE',
+                'JSON': {'Type': 'DOCUMENT'}
+                },
+            'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
+        }
+
+        mock_s3 = boto3.client('s3')
+        with patch.object(
+                mock_s3,
+                'select_object_content',
+                return_value=self.s3response
+        ) as patched:
+            call_s3_select(mock_s3, bucket, key, "")
+            patched.assert_called_once_with(**expected_args)
+
+    def test_call_s3select_prefix(self):
+        """
+        Test that parameters are correctly passed to
+        S3 Select (with a prefix)
+        """
+        bucket = "bucket"
+        key = ".quilt/packages/manifest_hash"
+        prefix = "bar/"
+
+        expected_sql = "SELECT s.logical_key from s3object s"
+        expected_sql += f" WHERE s.logical_key LIKE ('{prefix}%')"
+        expected_args = {
+            'Bucket': bucket,
+            'Key': key,
+            'Expression': expected_sql,
+            'ExpressionType': 'SQL',
+            'InputSerialization': {
+                'CompressionType': 'NONE',
+                'JSON': {'Type': 'DOCUMENT'}
+                },
+            'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
+        }
+
+        mock_s3 = boto3.client('s3')
+        with patch.object(
+                mock_s3,
+                'select_object_content',
+                return_value=self.s3response
+        ) as patched:
+            call_s3_select(mock_s3, bucket, key, prefix)
+            patched.assert_called_once_with(**expected_args)
+
+    def test_browse_top_level(self):
+        """
+        Test that the S3 Select response is parsed
+        into the correct top-level folder view.
+        """
+        df, _ = load_df(self.s3response) #pylint: disable=invalid-name
         assert isinstance(df, pd.DataFrame)
 
         folder = get_logical_key_folder_view(df)
@@ -99,8 +163,12 @@ class TestPackageBrowse(TestCase):
         assert 'bar/' in folder
 
     def test_browse_subfolder(self):
+        """
+        Test that the S3 Select response is parsed
+        into the correct sub-folder view.
+        """
         prefix = "bar/"
-        df, stats = load_df(self.s3response)
+        df, _ = load_df(self.s3response) #pylint: disable=invalid-name
         assert isinstance(df, pd.DataFrame)
 
         filtered_df = df[df['logical_key'].str.startswith(prefix)]
@@ -111,8 +179,12 @@ class TestPackageBrowse(TestCase):
         assert "baz/" in folder
 
     def test_browse_subsubfolder(self):
+        """
+        Test that the S3 Select response is parsed
+        into the correct sub-sub-folder view.
+        """
         prefix = "bar/baz/"
-        df, stats = load_df(self.s3response)
+        df, _ = load_df(self.s3response) #pylint: disable=invalid-name
         assert isinstance(df, pd.DataFrame)
 
         filtered_df = df[df['logical_key'].str.startswith(prefix)]
@@ -120,8 +192,3 @@ class TestPackageBrowse(TestCase):
         assert len(folder) == 2
         assert "file3.txt" in folder
         assert "file4.txt" in folder
-
-    def test_browse_bad_manifest(self):
-        pass
-
-        
