@@ -1,3 +1,4 @@
+import enum
 import inspect
 from collections import deque
 import gc
@@ -308,6 +309,15 @@ class PackageEntry:
             stacklevel=2,
         )
         return [self.physical_key]
+
+
+class PackageUpdatePolicy(enum.Enum):
+    INCOMING = 'incoming'
+    EXISTING = 'existing'
+
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._value2member_map_
 
 
 class Package:
@@ -740,7 +750,7 @@ class Package:
             gc.enable()
         return pkg
 
-    def set_dir(self, lkey, path=None, meta=None, update_policy="incoming"):
+    def set_dir(self, lkey, path=None, meta=None, update_policy=PackageUpdatePolicy.INCOMING.value):
         """
         Adds all files from `path` to the package.
 
@@ -753,19 +763,22 @@ class Package:
             path(string): path to scan for files to add to package.
                 If None, lkey will be substituted in as the path.
             meta(dict): user level metadata dict to attach to lkey directory entry.
-            update_policy(str): can be either `incoming` (default) or `existing`.
-                If `incoming`, then we overwrite existing matching keys.
-                If `existing`, then we skip entry for matching keys.
-                Note that this policy have NO EFFECT on totally new logical keys.
+            update_policy(str): can be either 'incoming' (default) or 'existing'.
+                If 'incoming', whenever logical keys match, always take the new entry from set_dir.
+                If 'existing', whenever logical keys match, retain existing entries
+                and ignore new entries from set_dir.
 
         Returns:
             self
 
         Raises:
             When `path` doesn't exist
+            ValueError: if the 'update_policy' is not a PackageUpdatePolicy enum value.
         """
+        if not PackageUpdatePolicy.has_value(update_policy):
+            raise ValueError(f"{update_policy} does not exist in PackageUpdatePolicy enum")
+
         lkey = lkey.strip("/")
-        existing_policy = 'existing'
 
         if not lkey or lkey == '.' or lkey == './':
             root = self
@@ -794,11 +807,9 @@ class Package:
             for f in files:
                 if not f.is_file():
                     continue
-
                 logical_key = f.relative_to(src_path).as_posix()
-
                 # check update policy
-                if update_policy == existing_policy and root.__contains__(logical_key):
+                if update_policy == PackageUpdatePolicy.EXISTING.value and root.__contains__(logical_key):
                     continue
 
                 entry = PackageEntry(PhysicalKey.from_path(f), f.stat().st_size, None, None)
@@ -822,7 +833,7 @@ class Package:
                 logical_key = obj['Key'][len(src_path):]
 
                 # check update policy
-                if update_policy == existing_policy and root.__contains__(logical_key):
+                if update_policy == PackageUpdatePolicy.EXISTING.value and root.__contains__(logical_key):
                     continue
 
                 entry = PackageEntry(obj_pk, obj['Size'], None, None)
