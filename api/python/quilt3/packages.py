@@ -800,7 +800,7 @@ class Package:
                     continue
                 logical_key = f.relative_to(src_path).as_posix()
                 # check update policy
-                if update_policy == PackageUpdatePolicy.EXISTING.value and logical_key in root:
+                if update_policy == 'existing' and logical_key in root:
                     continue
 
                 entry = PackageEntry(PhysicalKey.from_path(f), f.stat().st_size, None, None)
@@ -823,7 +823,7 @@ class Package:
                 obj_pk = PhysicalKey(src.bucket, obj['Key'], obj.get('VersionId'))
                 logical_key = obj['Key'][len(src_path):]
                 # check update policy
-                if update_policy == PackageUpdatePolicy.EXISTING.value and logical_key in root:
+                if update_policy == 'existing' and logical_key in root:
                     continue
                 entry = PackageEntry(obj_pk, obj['Size'], None, None)
                 root._set(logical_key, entry)
