@@ -21,6 +21,9 @@ import * as Form from './Form'
 import * as Table from './Table'
 import * as data from './data'
 
+// default icon as returned by the registry
+const DEFAULT_ICON = 'https://d1zvn9rasera71.cloudfront.net/q-128-square.png'
+
 const useBucketFieldsStyles = M.makeStyles((t) => ({
   group: {
     '& > *:first-child': {
@@ -57,6 +60,7 @@ function BucketFields({ add = false }) {
           errors={{
             required: 'Enter a bucket name',
             conflict: 'Bucket already added',
+            noSuchBucket: 'No such bucket',
           }}
           fullWidth
           margin="normal"
@@ -77,8 +81,9 @@ function BucketFields({ add = false }) {
         <RF.Field
           component={Form.Field}
           name="iconUrl"
-          label="Icon URL"
+          label="Icon URL (optional, defaults to Quilt logo)"
           placeholder="e.g. https://some-cdn.com/icon.png"
+          helperText="Recommended size: 80x80px"
           normalize={R.pipe(R.trim, R.take(1024))}
           fullWidth
           margin="normal"
@@ -262,8 +267,7 @@ const formToJSON = (values) => {
 const toBucketConfig = (b) => ({
   name: b.name,
   title: b.title,
-  // default icon as returned by the registry
-  iconUrl: b.iconUrl || 'https://d1zvn9rasera71.cloudfront.net/q-128-square.png',
+  iconUrl: b.iconUrl || DEFAULT_ICON,
   description: b.description,
   overviewUrl: b.overviewUrl,
   linkedData: b.linkedData,
@@ -305,6 +309,9 @@ function Add({ close }) {
       } catch (e) {
         if (APIConnector.HTTPError.is(e, 409, /Bucket already added/)) {
           throw new RF.SubmissionError({ name: 'conflict' })
+        }
+        if (APIConnector.HTTPError.is(e, 404, /NoSuchBucket/)) {
+          throw new RF.SubmissionError({ name: 'noSuchBucket' })
         }
         // eslint-disable-next-line no-console
         console.error('Error adding bucket')
@@ -555,18 +562,19 @@ const columns = [
     sortable: false,
     align: 'center',
     getValue: R.prop('iconUrl'),
-    getDisplay: (v) =>
-      !!v && (
-        <M.Box
-          component="img"
-          src={v}
-          alt=""
-          height={40}
-          width={40}
-          mt={-0.25}
-          mb={-0.25}
-        />
-      ),
+    getDisplay: (v) => (
+      <M.Box
+        component="img"
+        src={v || DEFAULT_ICON}
+        alt=""
+        title={v ? undefined : 'Default icon'}
+        height={40}
+        width={40}
+        mt={-0.25}
+        mb={-0.25}
+        style={{ opacity: v ? undefined : 0.7 }}
+      />
+    ),
   },
   {
     id: 'title',
