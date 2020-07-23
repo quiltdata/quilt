@@ -3,7 +3,7 @@ import invariant from 'invariant'
 import * as React from 'react'
 import GoogleLogin from 'react-google-login'
 import { FormattedMessage as FM } from 'react-intl'
-import * as reduxHook from 'redux-react-hook'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import { useIntl } from 'containers/LanguageProvider'
@@ -29,7 +29,7 @@ export default ({ mutex, next }) => {
   invariant(!!cfg.googleClientId, 'Auth.SSO.Google: config missing "googleClientId"')
 
   const sentry = Sentry.use()
-  const dispatch = reduxHook.useDispatch()
+  const dispatch = redux.useDispatch()
   const intl = useIntl()
   const { push: notify } = Notifications.use()
   const { urls } = NamedRoutes.use()

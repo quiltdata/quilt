@@ -1,8 +1,8 @@
 import * as React from 'react'
 import { FormattedMessage as FM } from 'react-intl'
+import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
 import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
-import * as reduxHook from 'redux-react-hook'
 
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -173,7 +173,7 @@ const PasswordSignUp = composeComponent(
 )
 
 export default ({ location: { search } }) => {
-  const authenticated = reduxHook.useMappedState(selectors.authenticated)
+  const authenticated = redux.useSelector(selectors.authenticated)
   const cfg = Config.useConfig()
   const mutex = useMutex()
 

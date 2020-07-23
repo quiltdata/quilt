@@ -444,6 +444,13 @@ export default function File({
       {objExistsData.case({
         _: () => <CenteredProgress />,
         Err: (e) => {
+          if (e.code === 'Forbidden') {
+            return (
+              <Message headline="Access Denied">
+                You don&apos;t have access to this object.
+              </Message>
+            )
+          }
           throw e
         },
         Ok: requests.ObjectExistence.case({

@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import { push } from 'connected-react-router/esm/immutable'
 import * as React from 'react'
-import * as reduxHook from 'redux-react-hook'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 
@@ -91,7 +91,7 @@ function SearchBox({ bucket, disabled, iconized, hidden, focused, ...props }) {
 }
 
 function State({ query, makeUrl, children, onFocus, onBlur }) {
-  const dispatch = reduxHook.useDispatch()
+  const dispatch = redux.useDispatch()
 
   const [value, change] = React.useState(null)
   const [focused, setFocused] = React.useState(false)

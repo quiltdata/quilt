@@ -160,11 +160,11 @@ export default defineMessages({
   },
   signInUsernameLabel: {
     id: `${scope}.SignIn.usernameLabel`,
-    defaultMessage: 'Username',
+    defaultMessage: 'Username or email',
   },
   signInUsernameRequired: {
     id: `${scope}.SignIn.usernameRequired`,
-    defaultMessage: 'Enter your username',
+    defaultMessage: 'Enter your username or email',
   },
   signInPassLabel: {
     id: `${scope}.SignIn.passLabel`,

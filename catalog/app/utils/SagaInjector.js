@@ -2,9 +2,9 @@ import invariant from 'invariant'
 import isFunction from 'lodash/isFunction'
 import PT from 'prop-types'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import * as RC from 'recompose'
 import { applyMiddleware } from 'redux'
-import { StoreContext } from 'redux-react-hook'
 import createSagaMiddleware from 'redux-saga'
 
 import * as RT from 'utils/reactTools'
@@ -15,7 +15,7 @@ export const useSaga = (saga, ...args) => {
   const innerScope = `${scope}/SagaInjector/useSaga`
   invariant(isFunction(saga), `${innerScope}: Expected 'saga' to be a function`)
 
-  const { runSaga } = React.useContext(StoreContext)
+  const { runSaga } = redux.useStore()
   const running = React.useRef()
 
   if (running.current && running.current.saga !== saga) {

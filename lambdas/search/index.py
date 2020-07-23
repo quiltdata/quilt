@@ -15,7 +15,7 @@ from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 MAX_QUERY_DURATION = '15s'
 NUM_PREVIEW_IMAGES = 100
-NUM_PREVIEW_FILES = 100
+NUM_PREVIEW_FILES = 20
 COMPRESSION_EXTS = ['.gz']
 IMG_EXTS = [
     '.jpg',
@@ -78,7 +78,7 @@ def lambda_handler(request):
             }
         }
         size = 0  # We still get all aggregates, just don't need the results
-        _source = []
+        _source = False
         # Consider all documents when computing counts, etc.
         terminate_after = None
     elif action == 'images':
@@ -95,7 +95,7 @@ def lambda_handler(request):
             },
         }
         size = NUM_PREVIEW_IMAGES
-        _source = []
+        _source = False
     elif action == 'sample':
         body = {
             'query': {
@@ -118,7 +118,7 @@ def lambda_handler(request):
             },
         }
         size = NUM_PREVIEW_FILES
-        _source = []
+        _source = False
     else:
         return make_json_response(400, {"title": "Invalid action"})
 

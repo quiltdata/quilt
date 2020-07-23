@@ -2,8 +2,8 @@ import memoize from 'lodash/memoize'
 import * as R from 'ramda'
 import * as React from 'react'
 import { FormattedMessage as FM } from 'react-intl'
+import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
-import * as reduxHook from 'redux-react-hook'
 import { createStructuredSelector } from 'reselect'
 import Button from '@material-ui/core/Button'
 import Typography from '@material-ui/core/Typography'
@@ -22,7 +22,7 @@ import msg from './messages'
 import * as selectors from './selectors'
 
 const ErrorScreen = () => {
-  const dispatch = reduxHook.useDispatch()
+  const dispatch = redux.useDispatch()
   const retry = React.useCallback(() => dispatch(check()), [dispatch])
 
   return (
@@ -79,7 +79,7 @@ export default ({ authorizedSelector = R.T } = {}) =>
           }),
         [authorizedSelector],
       )
-      const state = reduxHook.useMappedState(select)
+      const state = redux.useSelector(select)
       const { urls } = NamedRoutes.use()
 
       if (state.error && !(state.error instanceof InvalidToken)) {

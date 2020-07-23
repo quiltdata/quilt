@@ -6,8 +6,8 @@ import isTypedArray from 'lodash/isTypedArray'
 import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import { setPropTypes } from 'recompose'
-import * as reduxHook from 'redux-react-hook'
 import { takeEvery, call, put } from 'redux-saga/effects'
 
 import * as Config from 'utils/Config'
@@ -81,6 +81,7 @@ const response = actionCreator(actions.API_RESPONSE, (payload, requestOpts) => (
 const test = R.ifElse(R.is(RegExp), R.test, R.equals)
 
 export class HTTPError extends BaseError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'HTTPError'
 
   static is = (e, status, msg) => {
@@ -319,7 +320,7 @@ export const Provider = composeComponent(
     const base = `${Config.useConfig().registryUrl}/api`
     SagaInjector.useSaga(apiSaga, { fetch, base, middleware })
 
-    const dispatch = reduxHook.useDispatch()
+    const dispatch = redux.useDispatch()
     const req = React.useCallback(
       (opts) => {
         const dfd = defer()

@@ -71,7 +71,18 @@ const ErrorBoundary = composeComponent(
 
 // error gets automatically logged to the console, so no need to do it explicitly
 const FinalBoundary = createBoundary(() => (/* error, info */) => (
-  <h1 style={{ textAlign: 'center' }}>Something went wrong</h1>
+  <h1
+    style={{
+      alignItems: 'center',
+      color: '#fff',
+      display: 'flex',
+      height: '90vh',
+      justifyContent: 'center',
+      maxHeight: '600px',
+    }}
+  >
+    Something went wrong
+  </h1>
 ))
 
 const history = createHistory()
