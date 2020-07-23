@@ -12,7 +12,6 @@ import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/Bre
 import Message from 'components/Message'
 import Sparkline from 'components/Sparkline'
 import * as Notifications from 'containers/Notifications'
-import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
@@ -243,47 +242,51 @@ function Analytics({ analyticsBucket, bucket, path }) {
     today,
   })
 
+  const defaultExpanded = data.case({
+    Ok: ({ total }) => !!total,
+    _: () => false,
+  })
+
   return (
-    <Section
-      icon="bar_charts"
-      heading="Analytics"
-      defaultExpanded={AsyncResult.Ok.is(data.result)}
-    >
+    <Section icon="bar_charts" heading="Analytics" defaultExpanded={defaultExpanded}>
       {data.case({
-        Ok: ({ counts, total }) => (
-          <M.Box
-            display="flex"
-            width="100%"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <M.Box>
-              <M.Typography variant="h5">Downloads</M.Typography>
-              <M.Typography variant="h4" component="div">
-                {readableQuantity(cursor === null ? total : counts[cursor].value)}
-              </M.Typography>
-              <M.Typography variant="overline" component="span">
-                {cursor === null
-                  ? `${counts.length} days`
-                  : formatDate(counts[cursor].date)}
-              </M.Typography>
+        Ok: ({ counts, total }) =>
+          total ? (
+            <M.Box
+              display="flex"
+              width="100%"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <M.Box>
+                <M.Typography variant="h5">Downloads</M.Typography>
+                <M.Typography variant="h4" component="div">
+                  {readableQuantity(cursor === null ? total : counts[cursor].value)}
+                </M.Typography>
+                <M.Typography variant="overline" component="span">
+                  {cursor === null
+                    ? `${counts.length} days`
+                    : formatDate(counts[cursor].date)}
+                </M.Typography>
+              </M.Box>
+              <M.Box width="calc(100% - 7rem)">
+                <Sparkline
+                  data={R.pluck('value', counts)}
+                  onCursor={setCursor}
+                  width={1000}
+                  height={60}
+                  stroke={SVG.Paint.Server(
+                    <linearGradient x2="0" y2="100%" gradientUnits="userSpaceOnUse">
+                      <stop offset="0" stopColor={M.colors.blueGrey[800]} />
+                      <stop offset="100%" stopColor={M.colors.blueGrey[100]} />
+                    </linearGradient>,
+                  )}
+                />
+              </M.Box>
             </M.Box>
-            <M.Box width="calc(100% - 7rem)">
-              <Sparkline
-                data={R.pluck('value', counts)}
-                onCursor={setCursor}
-                width={1000}
-                height={60}
-                stroke={SVG.Paint.Server(
-                  <linearGradient x2="0" y2="100%" gradientUnits="userSpaceOnUse">
-                    <stop offset="0" stopColor={M.colors.blueGrey[800]} />
-                    <stop offset="100%" stopColor={M.colors.blueGrey[100]} />
-                  </linearGradient>,
-                )}
-              />
-            </M.Box>
-          </M.Box>
-        ),
+          ) : (
+            <M.Typography>No analytics available</M.Typography>
+          ),
         Err: () => <M.Typography>No analytics available</M.Typography>,
         _: () => <M.CircularProgress />,
       })}
