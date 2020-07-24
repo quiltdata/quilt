@@ -62,6 +62,7 @@ from t4_lambda_shared.preview import (
 from t4_lambda_shared.utils import (
     get_available_memory,
     MANIFEST_PREFIX,
+    POINTER_PREFIX,
     separated_env_to_iter
 )
 
@@ -113,6 +114,30 @@ def infer_extensions(key, ext):
     return ext
 
 
+def get_first_line(s3_client, bucket: str, key: str):
+    """use s3 select to quickly extract line 1 of manifest
+        returns:
+            * first line (if found), None if not found or error
+    """
+    statement = "SELECT * from S3Object o WHERE o.version IS NOT MISSING LIMIT 1"
+    try:
+        raw = s3_client.select_object_content(
+            Bucket=bucket,
+            Key=key,
+            Expression=statement,
+            ExpressionType="SQL",
+            InputSerialization={"JSON": {"Type": "LINES"}},
+            OutputSerialization={"JSON": {}}
+        )
+        for event in raw["Payload"]:
+            if "Records" in event:
+                data = event["Records"]["Payload"]
+                return data
+    except botocore.exceptions.ClientError as cle:
+        print(f"Unable to S3 select manifest: {cle}")
+    return None
+
+
 def index_if_manifest(
         s3_client,
         doc_queue: DocumentQueue,
@@ -132,7 +157,7 @@ def index_if_manifest(
             - False if not a manifest (no attempt at indexing)
     """
     prefix, file_name = split(key)
-    if not prefix.startswith(MANIFEST_PREFIX):
+    if not prefix.startswith(POINTER_PREFIX):
         return False
     try:
         unix_time = int(file_name)
@@ -158,27 +183,7 @@ def index_if_manifest(
         print(f"Not a manifest file s3://{bucket}/{key}: {err}")
         return False
 
-    def get_first_line(bucket: str, key: str):
-        """use s3 select to quickly extract line 1 of manifest"""
-        statement = "SELECT * from S3Object o WHERE o.version IS NOT MISSING LIMIT 1"
-        try:
-            raw = s3_client.select_object_content(
-                Bucket=bucket,
-                Key=key,
-                Expression=statement,
-                ExpressionType="SQL",
-                InputSerialization={"JSON": {"Type": "LINES"}},
-                OutputSerialization={"JSON": {}}
-            )
-            for event in raw["Payload"]:
-                if "Records" in event:
-                    data = event["Records"]["Payload"]
-                    return data
-        except botocore.exceptions.ClientError as cle:
-            print(f"Unable to S3 select manifest: {cle}")
-        return None
-
-    first = get_first_line(bucket, f".quilt/named_packages/{package_hash}")
+    first = get_first_line(s3_client, bucket, f"{MANIFEST_PREFIX}{package_hash}")
     if not first:
         return False
     try:
@@ -189,7 +194,7 @@ def index_if_manifest(
             bucket=bucket,
             etag=etag,
             ext=ext,
-            handle=prefix[len(MANIFEST_PREFIX):],
+            handle=prefix[len(POINTER_PREFIX):],
             last_modified=last_modified,
             package_hash=package_hash,
             comment=first_dict.get("message"),
