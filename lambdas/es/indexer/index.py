@@ -156,17 +156,17 @@ def index_if_manifest(
             - True if manifest (and passes to doc_queue for indexing)
             - False if not a manifest (no attempt at indexing)
     """
-    prefix, file_name = split(key)
-    if not prefix.startswith(POINTER_PREFIX):
+    pointer_prefix, pointer_file = split(key)
+    if not pointer_prefix.startswith(POINTER_PREFIX):
         return False
     try:
-        unix_time = int(file_name)
+        unix_time = int(pointer_file)
         if (
                 unix_time < 1451631600  # 1/1/2016, no manifest should be older than this
                 or unix_time > 1767250800  # 1/1/2026, shouldn't be using V1 anymore :)
                 or size != 64
         ):
-            raise ValueError(f"Invalid file timestamp s3://{bucket}{key}")
+            raise ValueError(f"Invalid manifest pointer s3://{bucket}{key}")
         package_hash = get_plain_text(
             bucket,
             key,
@@ -180,7 +180,7 @@ def index_if_manifest(
         if len(package_hash) != 64:
             raise ValueError(f"Invalid file hash s3://{bucket}{key}")
     except ValueError as err:
-        print(f"Not a manifest file s3://{bucket}/{key}: {err}")
+        print(f"Unexpected manifest pointer s3://{bucket}/{key}: {err}")
         return False
 
     first = get_first_line(s3_client, bucket, f"{MANIFEST_PREFIX}{package_hash}")
@@ -194,18 +194,20 @@ def index_if_manifest(
             bucket=bucket,
             etag=etag,
             ext=ext,
-            handle=prefix[len(POINTER_PREFIX):],
+            handle=pointer_prefix[len(POINTER_PREFIX):],
             last_modified=last_modified,
             package_hash=package_hash,
             comment=first_dict.get("message"),
             metadata=first_dict("user_meta")
         )
+        return True
     except (json.JSONDecodeError, botocore.exceptions.ClientError) as exc:
         print(
             f"{exc}\n"
-            f"Failed to select first line of manifest s3://{bucket}/{key}."
-            f"Got {first}."
+            f"\tFailed to select first line of manifest s3://{bucket}/{key}."
+            f"\tGot {first}."
         )
+        return False
 
 
 def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
