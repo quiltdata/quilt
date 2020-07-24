@@ -115,14 +115,15 @@ class DocumentQueue:
                 "_id": f"{handle}:{package_hash}",
                 "handle": handle,
                 "hash": package_hash,
-                "metadata": metadata
+                "metadata": metadata,
+                "tags": ",".join(tags)
             })
         elif doc_type == DocTypes.OBJECT:
             body.update({
                 # Elastic native keys
                 "_id": f"{key}:{version_id}",
                 "_type": "_doc",
-               # TODO: remove this field from ES in /enterprise (now deprecated and unused)
+                # TODO: remove this field from ES in /enterprise (now deprecated and unused)
                 # here we explicitly drop the comment
                 "comment": "",
                 "content": text,  # field for full-text search

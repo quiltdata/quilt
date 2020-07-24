@@ -10,7 +10,8 @@ import os
 from psutil import virtual_memory
 
 
-MANIFEST_PREFIX = ".quilt/named_packages/"
+POINTER_PREFIX = ".quilt/named_packages/"
+MANIFEST_PREFIX = ".quilt/packages/"
 
 
 def separated_env_to_iter(
