@@ -554,6 +554,43 @@ class TestIndex(TestCase):
                 }
             )
 
+    @patch.object(index.DocumentQueue, 'append')
+    @patch.object(index, 'get_contents')
+    @patch.object(index, 'index_if_manifest')
+    def test_index_if_manifest_negative(self, index_mock, get_mock, append_mock):
+        """test that index_if_manifest is called"""
+        json_data = '{"foo": 1}'
+        get_mock.return_value =  json_data
+        self._test_index_events(
+            ["ObjectCreated:Put"],
+            # we're mocking append so ES will never get called
+            mock_elastic=False,
+            mock_overrides={
+                "event_kwargs": {
+                    # this key should infer to parquet
+                    "key": "obscure_path/long-complicated-name-c000"
+                },
+                # we patch get_contents so _test_index_events doesn't need to
+                "mock_object": False,
+                # no byte ranges for parquet files
+                "skip_byte_range": True
+            }
+        )
+        get_mock.assert_called_once()
+        index_mock.assert_called_once()
+        append_mock.assert_called_once_with(
+            'ObjectCreated:Put',
+            DocTypes.OBJECT,
+            bucket='test-bucket',
+            etag='123456',
+            ext='',
+            key='obscure_path/long-complicated-name-c000',
+            last_modified=ANY,
+            size=100,
+            text=json_data,
+            version_id='1313131313131.Vier50HdNbi7ZirO65'
+        )
+
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
         # parquet

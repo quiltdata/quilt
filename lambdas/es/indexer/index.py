@@ -160,10 +160,10 @@ def index_if_manifest(
     if not pointer_prefix.startswith(POINTER_PREFIX):
         return False
     try:
-        unix_time = int(pointer_file)
+        manifest_timestamp = int(pointer_file)
         if (
-                unix_time < 1451631600  # 1/1/2016, no manifest should be older than this
-                or unix_time > 1767250800  # 1/1/2026, shouldn't be using V1 anymore :)
+                manifest_timestamp < 1451631600  # 1/1/2016 (oldest manifest)
+                or manifest_timestamp > 1767250800  # 1/1/2026 (no V1 anymore)
                 or size != 64
         ):
             raise ValueError(f"Invalid manifest pointer s3://{bucket}{key}")
@@ -175,12 +175,15 @@ def index_if_manifest(
             etag=etag,
             s3_client=s3_client,
             version_id=version_id
-        )
-        package_hash = package_hash.strip()
+        ).strip()
+
         if len(package_hash) != 64:
-            raise ValueError(f"Invalid file hash s3://{bucket}{key}")
+            raise ValueError(
+                f"Invalid manifest hash in s3://{bucket}/{key}: "
+                f"{package_hash}"
+            )
     except ValueError as err:
-        print(f"Unexpected manifest pointer s3://{bucket}/{key}: {err}")
+        print(f"Unexpected manifest pointer file: s3://{bucket}/{key}: {err}")
         return False
 
     first = get_first_line(s3_client, bucket, f"{MANIFEST_PREFIX}{package_hash}")
