@@ -20,7 +20,7 @@ import pytest
 import responses
 
 from t4_lambda_shared.utils import separated_env_to_iter
-from document_queue import RetryError
+from document_queue import DocTypes, RetryError
 from .. import index
 
 
@@ -528,6 +528,7 @@ class TestIndex(TestCase):
         # ensure parquet data is getting to elastic
         append_mock.assert_called_once_with(
             'ObjectCreated:Put',
+            DocTypes.OBJECT,
             bucket='test-bucket',
             etag='123456',
             ext='',
