@@ -13,7 +13,7 @@ if bucket versioning was on and is then turned off:
     - `aws s3 rm` or `aws s3api delete-object (no --version-id)`
         - replace event at top of stack
             - if a versioned delete marker, push a new one on top of it
-            - if an unversioned delete marker, replace that marker with new marker
+            - if an un-versioned delete marker, replace that marker with new marker
             with version "null" (ObjectCreate will similarly replace the same with an object
             of version "null")
             - if object, destroy object
@@ -39,8 +39,11 @@ counterintuitive things:
 """
 import datetime
 import json
+from typing import Optional
 import pathlib
 import re
+from os.path import split
+import traceback
 from urllib.parse import unquote, unquote_plus
 
 import boto3
@@ -58,6 +61,7 @@ from t4_lambda_shared.preview import (
 )
 from t4_lambda_shared.utils import (
     get_available_memory,
+    MANIFEST_PREFIX,
     separated_env_to_iter
 )
 
@@ -107,6 +111,96 @@ def infer_extensions(key, ext):
         return ".parquet"
 
     return ext
+
+
+def index_if_manifest(
+        s3_client,
+        doc_queue: DocumentQueue,
+        event_type: str,
+        *,
+        bucket: str,
+        etag: str,
+        ext: str,
+        key: str,
+        last_modified: str,
+        version_id: Optional[str],
+        size: int
+) -> bool:
+    """index manifest files as package documents in ES
+        Returns:
+            - True if manifest (and passes to doc_queue for indexing)
+            - False if not a manifest (no attempt at indexing)
+    """
+    prefix, file_name = split(key)
+    if not prefix.startswith(MANIFEST_PREFIX):
+        return False
+    try:
+        unix_time = int(file_name)
+        if (
+                unix_time < 1451631600  # 1/1/2016, no manifest should be older than this
+                or unix_time > 1767250800  # 1/1/2026, shouldn't be using V1 anymore :)
+                or size != 64
+        ):
+            raise ValueError(f"Invalid file timestamp s3://{bucket}{key}")
+        package_hash = get_plain_text(
+            bucket,
+            key,
+            size,
+            None,
+            etag=etag,
+            s3_client=s3_client,
+            version_id=version_id
+        )
+        package_hash = package_hash.strip()
+        if len(package_hash) != 64:
+            raise ValueError(f"Invalid file hash s3://{bucket}{key}")
+    except ValueError as err:
+        print(f"Not a manifest file s3://{bucket}/{key}: {err}")
+        return False
+
+    def get_first_line(bucket: str, key: str):
+        """use s3 select to quickly extract line 1 of manifest"""
+        statement = "SELECT * from S3Object o WHERE o.version IS NOT MISSING LIMIT 1"
+        try:
+            raw = s3_client.select_object_content(
+                Bucket=bucket,
+                Key=key,
+                Expression=statement,
+                ExpressionType="SQL",
+                InputSerialization={"JSON": {"Type": "LINES"}},
+                OutputSerialization={"JSON": {}}
+            )
+            for event in raw["Payload"]:
+                if "Records" in event:
+                    data = event["Records"]["Payload"]
+                    return data
+        except botocore.exceptions.ClientError as cle:
+            print(f"Unable to S3 select manifest: {cle}")
+        return None
+
+    first = get_first_line(bucket, f".quilt/named_packages/{package_hash}")
+    if not first:
+        return False
+    try:
+        first_dict = json.loads(first)
+        doc_queue.append(
+            event_type,
+            DocTypes.PACKAGE,
+            bucket=bucket,
+            etag=etag,
+            ext=ext,
+            handle=prefix[len(MANIFEST_PREFIX):],
+            last_modified=last_modified,
+            package_hash=package_hash,
+            comment=first_dict.get("message"),
+            metadata=first_dict("user_meta")
+        )
+    except (json.JSONDecodeError, botocore.exceptions.ClientError) as exc:
+        print(
+            f"{exc}\n"
+            f"Failed to select first line of manifest s3://{bucket}/{key}."
+            f"Got {first}."
+        )
 
 
 def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
@@ -236,7 +330,16 @@ def get_notebook_cells(bucket, key, size, compression, *, etag, s3_client, versi
     return text
 
 
-def get_plain_text(bucket, key, size, compression, *, etag, s3_client, version_id):
+def get_plain_text(
+        bucket,
+        key,
+        size,
+        compression,
+        *,
+        etag,
+        s3_client,
+        version_id
+) -> str:
     """get plain text object contents"""
     text = ""
     try:
@@ -315,7 +418,7 @@ def handler(event, context):
                 ext2 = path.with_suffix('').suffix
                 ext = (ext2 + ext1).lower()
 
-                # Handle delete  first and then continue so that
+                # Handle delete first and then continue so that
                 # head_object and get_object (below) don't fail
                 if event_name.startswith(EVENT_PREFIX["Removed"]):
                     batch_processor.append(
@@ -359,6 +462,19 @@ def handler(event, context):
                 size = head["ContentLength"]
                 last_modified = head["LastModified"]
 
+                index_if_manifest(
+                    s3_client,
+                    batch_processor,
+                    event_name,
+                    bucket=bucket,
+                    etag=etag,
+                    ext=ext,
+                    key=key,
+                    last_modified=last_modified,
+                    size=size,
+                    version_id=version_id
+                )
+
                 try:
                     text = get_contents(
                         bucket,
@@ -393,7 +509,6 @@ def handler(event, context):
                 if not should_retry_exception(boto_exc):
                     continue
                 print("Fatal exception for record", event_, boto_exc)
-                import traceback
                 traceback.print_tb(boto_exc.__traceback__)
                 raise boto_exc
         # flush the queue

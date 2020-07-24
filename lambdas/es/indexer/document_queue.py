@@ -98,6 +98,8 @@ class DocumentQueue:
         # On types and fields, see
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
         # Set common properties on the document
+        # BE CAREFUL changing these values, as type changes or missing fields
+        # can cause exceptions from ES
         body = {
             "_index": bucket,
             "comment": comment,
@@ -120,11 +122,7 @@ class DocumentQueue:
                 # Elastic native keys
                 "_id": f"{key}:{version_id}",
                 "_type": "_doc",
-                # index will upsert (and clobber existing equivalent _ids)
-                # Quilt keys
-                # Be VERY CAREFUL changing these values, as a type change can cause a
-                # mapper_parsing_exception that below code won't handle
-                # TODO: remove this field from ES in /enterprise (now deprecated and unused)
+               # TODO: remove this field from ES in /enterprise (now deprecated and unused)
                 # here we explicitly drop the comment
                 "comment": "",
                 "content": text,  # field for full-text search
@@ -139,12 +137,12 @@ class DocumentQueue:
         else:
             print(f"Skipping unhandled document type: {doc_type}")
 
-        self.append_document(body)
+        self._append_document(body)
 
         if self.size >= QUEUE_LIMIT_BYTES:
             self.send_all()
 
-    def append_document(self, doc):
+    def _append_document(self, doc):
         """append well-formed documents (used for retry or by append())"""
         if doc["content"]:
             # document text dominates memory footprint; OK to neglect the
