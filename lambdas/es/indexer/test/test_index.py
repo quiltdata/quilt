@@ -2,6 +2,7 @@
 Tests for the ES indexer. This function consumes events from SQS.
 """
 from string import ascii_lowercase
+import datetime
 from copy import deepcopy
 from gzip import compress
 from io import BytesIO
@@ -11,6 +12,7 @@ from pathlib import Path
 from unittest import TestCase
 from unittest.mock import ANY, patch
 from urllib.parse import unquote_plus
+from dateutil.tz import tzutc
 
 import boto3
 from botocore import UNSIGNED
@@ -62,7 +64,20 @@ EVENT_CORE = {
     },
     "userIdentity": {"principalId": "EXAMPLE"}
 }
-
+# typical response to head_object or get_object
+OBJECT_RESPONSE = {
+    'ResponseMetadata': ANY,
+    'AcceptRanges': 'bytes',
+    'LastModified': datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+    'ContentLength': 1555,
+    'ETag': '"8dbf7b98d5458a46327fb58f27b9af6e"',
+    'VersionId': 'wcOZpjy5G.tJ2N.rwPhiR.NY_RftJ3A_',
+    'ContentType': 'binary/octet-stream',
+    'Metadata': {
+        'helium': '{"user_meta": {}}'
+    },
+    'Body': ANY
+}
 
 def _check_event(synthetic, organic):
     # Ensure that synthetic events have the same shape as actual organic ones,
@@ -559,8 +574,8 @@ class TestIndex(TestCase):
     @patch.object(index, 'index_if_manifest')
     def test_index_if_manifest_negative(self, index_mock, get_mock, append_mock):
         """test that index_if_manifest is called"""
-        json_data = '{"foo": 1}'
-        get_mock.return_value =  json_data
+        json_data = json.dumps({"version": 1})
+        get_mock.return_value = json_data
         self._test_index_events(
             ["ObjectCreated:Put"],
             # we're mocking append so ES will never get called
@@ -589,6 +604,95 @@ class TestIndex(TestCase):
             size=100,
             text=json_data,
             version_id='1313131313131.Vier50HdNbi7ZirO65'
+        )
+
+    @patch.object(index.DocumentQueue, 'append')
+    def test_index_if_manifest_positive(self, append_mock):
+        """test that index_if_manifest is called, fetches timestamp, manifest"""
+        timestamp = 1595616294
+        pointer_key = f".quilt/named_packages/author/semantic/{timestamp}"
+        sha_hash = b"50f4d0fc2c22a70893a7f356a4929046ce529b53c1ef87e28378d92b884691a5"
+        manifest_data = {
+            "version": "v0",
+            "user_meta": {
+                "arbitrary": "metadata",
+                "list": [5, 9, 19],
+                "int": 42,
+                "object": {"treble": "is", "a": "friend"}
+            },
+            "message": "interesting comment with interesting symbols #$%@☮ 😎!"
+        }
+        # first, handler() will head the object
+        self.s3_stubber.add_response(
+            method="head_object",
+            service_response={
+                **OBJECT_RESPONSE,
+                "ContentLength": 64
+            },
+            expected_params={
+                "Bucket": "test-bucket",
+                "Key": pointer_key,
+                "VersionId": "1313131313131.Vier50HdNbi7ZirO65",
+                "ETag": "123456"
+            }
+        )
+        # next, handler() calls index_if_manifest which gets the hash from pointer_file
+        self.s3_stubber.add_response(
+            method="get_object",
+            service_response={
+                **OBJECT_RESPONSE,
+                "ContentLength": 64,
+                "Body": BytesIO(sha_hash)
+            },
+            expected_params={
+                "Bucket": "test-bucket",
+                "Key": pointer_key,
+                "VersionId": "1313131313131.Vier50HdNbi7ZirO65",
+            }
+        )
+        # next, handler() S3 selects the manifest
+        self.s3_stubber.add_response(
+            method="select_object_content",
+            service_response={
+                **OBJECT_RESPONSE,
+                "ContentLength": 64,
+                "Payload": [
+                    {"Records": {"Payload": manifest_data}}
+                ]
+            },
+            expected_params={
+                "Bucket": "test-bucket",
+                "Key": f".quilt/named_packages/{sha_hash}",
+                "VersionId": "1313131313131.Vier50HdNbi7ZirO65"
+            }
+        )
+        # call the indexer
+        self._test_index_events(
+            ["ObjectCreated:Put"],
+            # we're mocking append so ES will never get called
+            mock_elastic=False,
+            mock_overrides={
+                "event_kwargs": {
+                    "key": f".quilt/packages/{timestamp}"
+                },
+                # we, not _test_index_events, patch all the S3 calls in this test
+                "mock_object": False,
+                "mock_head": False
+            }
+        )
+
+        append_mock.assert_called_once_with(
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            bucket="test-bucket",
+            etag="123456",
+            ext="",
+            handle="author/semantic",
+            key=f".quilt/packages/{sha_hash}",
+            last_modified=ANY,
+            package_hash=sha_hash,
+            comment=manifest_data["message"],
+            metadata=json.dumps(manifest_data["user_meta"])
         )
 
     def test_infer_extensions(self):

@@ -61,8 +61,8 @@ from t4_lambda_shared.preview import (
 )
 from t4_lambda_shared.utils import (
     get_available_memory,
-    MANIFEST_PREFIX,
-    POINTER_PREFIX,
+    MANIFEST_PREFIX_V1,
+    POINTER_PREFIX_V1,
     separated_env_to_iter
 )
 
@@ -157,7 +157,7 @@ def index_if_manifest(
             - False if not a manifest (no attempt at indexing)
     """
     pointer_prefix, pointer_file = split(key)
-    if not pointer_prefix.startswith(POINTER_PREFIX):
+    if not pointer_prefix.startswith(POINTER_PREFIX_V1):
         return False
     try:
         manifest_timestamp = int(pointer_file)
@@ -186,7 +186,8 @@ def index_if_manifest(
         print(f"Unexpected manifest pointer file: s3://{bucket}/{key}: {err}")
         return False
 
-    first = get_first_line(s3_client, bucket, f"{MANIFEST_PREFIX}{package_hash}")
+    manifest_key = f"{MANIFEST_PREFIX_V1}{package_hash}"
+    first = get_first_line(s3_client, bucket, manifest_key)
     if not first:
         return False
     try:
@@ -197,11 +198,12 @@ def index_if_manifest(
             bucket=bucket,
             etag=etag,
             ext=ext,
-            handle=pointer_prefix[len(POINTER_PREFIX):],
+            handle=pointer_prefix[len(POINTER_PREFIX_V1):],
+            key=manifest_key,
             last_modified=last_modified,
             package_hash=package_hash,
-            comment=first_dict.get("message"),
-            metadata=first_dict("user_meta")
+            comment=str(first_dict.get("message", "")),
+            metadata=json.dumps(first_dict("user_meta"))
         )
         return True
     except (json.JSONDecodeError, botocore.exceptions.ClientError) as exc:
