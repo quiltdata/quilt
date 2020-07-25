@@ -736,6 +736,22 @@ class TestIndex(TestCase):
             metadata=json.dumps(manifest_data["user_meta"])
         )
 
+        append_mock.assert_any_call(
+            "ObjectCreated:Put",
+            DocTypes.OBJECT,
+            bucket="test-bucket",
+            key=pointer_key,
+            ext="",
+            etag="123456",
+            version_id="1313131313131.Vier50HdNbi7ZirO65",
+            last_modified=ANY,
+            size=64,
+            text=""
+        )
+
+        assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
+
+
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
         # parquet

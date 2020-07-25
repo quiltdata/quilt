@@ -101,7 +101,7 @@ class DocumentQueue:
         # BE CAREFUL changing these values, as type changes or missing fields
         # can cause exceptions from ES
         body = {
-            "_index": bucket,
+            "_index": bucket + '_packages' if doc_type == DocTypes.PACKAGE else '',
             "comment": comment,
             "etag": etag,
             "key": key,
