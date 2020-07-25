@@ -135,6 +135,7 @@ def select_manifest_meta(s3_client, bucket: str, key: str):
                 return data
     except botocore.exceptions.ClientError as cle:
         print(f"Unable to S3 select manifest: {cle}")
+
     return None
 
 
