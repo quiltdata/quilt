@@ -97,8 +97,10 @@ def now_like_boto3():
 
 def should_retry_exception(exception):
     """don't retry certain 40X errors"""
-    error_code = exception.response.get('Error', {}).get('Code', 218)
-    return error_code not in ["402", "403", "404"]
+    if hasattr(exception, 'response'):
+        error_code = exception.response.get('Error', {}).get('Code', 218)
+        return error_code not in ["402", "403", "404"]
+    return False
 
 
 def infer_extensions(key, ext):
@@ -115,6 +117,11 @@ def infer_extensions(key, ext):
     return ext
 
 
+@retry(
+    stop=stop_after_attempt(MAX_RETRY),
+    wait=wait_exponential(multiplier=2, min=4, max=30),
+    retry=(retry_if_exception(should_retry_exception))
+)
 def select_manifest_meta(s3_client, bucket: str, key: str):
     """use s3 select to quickly extract line 1 of manifest
         returns:
@@ -165,7 +172,6 @@ def index_if_manifest(
         if (
                 manifest_timestamp < 1451631600  # 1/1/2016 (oldest manifest)
                 or manifest_timestamp > 1767250800  # 1/1/2026 (no V1 anymore)
-                or size != 64
         ):
             raise ValueError(f"Invalid manifest pointer s3://{bucket}{key}")
         package_hash = get_plain_text(
@@ -177,12 +183,6 @@ def index_if_manifest(
             s3_client=s3_client,
             version_id=version_id
         ).strip()
-
-        if len(package_hash) != 64:
-            raise ValueError(
-                f"Invalid manifest hash in s3://{bucket}/{key}: "
-                f"{package_hash}"
-            )
     except ValueError as err:
         print(f"Unexpected manifest pointer file: s3://{bucket}/{key}: {err}")
         return False
@@ -561,7 +561,7 @@ def retry_s3(
     }
     if operation == 'get' and size and limit:
         # can only request range if file is not empty
-        arguments['Range'] = f"bytes=0-{limit}"
+        arguments['Range'] = f"bytes=0-{min(size, limit)}"
     if version_id:
         arguments['VersionId'] = version_id
     else:
