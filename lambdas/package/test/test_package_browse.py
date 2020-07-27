@@ -64,18 +64,16 @@ class TestPackageBrowse(TestCase):
             ]
         }
 
-        self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
-        self.requests_mock.start()
+        requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
+        requests_mock.start()
+        self.addCleanup(requests_mock.stop)
 
-        self.env_patcher = patch.dict(os.environ, {
+        env_patcher = patch.dict(os.environ, {
             'AWS_ACCESS_KEY_ID': 'test_key',
             'AWS_SECRET_ACCESS_KEY': 'test_secret',
         })
-        self.env_patcher.start()
-
-    def tearDown(self):
-        self.env_patcher.stop()
-        self.requests_mock.stop()
+        env_patcher.start()
+        self.addCleanup(env_patcher.stop)
 
     @classmethod
     def _make_event(cls, params, headers=None):
