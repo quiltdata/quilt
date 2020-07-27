@@ -1,18 +1,20 @@
 """
 Tests for the ES indexer. This function consumes events from SQS.
 """
-from string import ascii_lowercase
 import datetime
+from dateutil.tz import tzutc
 from copy import deepcopy
 from gzip import compress
 from io import BytesIO
 import json
 import os
+from math import floor
 from pathlib import Path
+from time import time
+from string import ascii_lowercase
 from unittest import TestCase
 from unittest.mock import ANY, patch
 from urllib.parse import unquote_plus
-from dateutil.tz import tzutc
 
 import boto3
 from botocore import UNSIGNED
@@ -81,6 +83,18 @@ OBJECT_RESPONSE = {
         'helium': '{"user_meta": {}}'
     }
 }
+# Simulated first line of manifest
+MANIFEST_DATA = {
+    "version": "v0",
+    "user_meta": {
+        "arbitrary": "metadata",
+        "list": [5, 9, 19],
+        "int": 42,
+        "object": {"treble": "is", "a": "friend"}
+    },
+    "message": "interesting comment with interesting symbols #$%@☮ 😎!"
+}
+
 
 def _check_event(synthetic, organic):
     # Ensure that synthetic events have the same shape as actual organic ones,
@@ -122,7 +136,7 @@ def make_event(
         versionId="1313131313131.Vier50HdNbi7ZirO65",
         bucket_versioning=True
 ):
-    """return an event based on EVENT_CORE, add fields to match organic AWS events"""
+    """create an event based on EVENT_CORE, add fields to match organic AWS events"""
     if name in CREATE_EVENT_TYPES:
         args = {
             "bucket": bucket,
@@ -361,7 +375,7 @@ class TestIndex(TestCase):
                 else:
                     expected = {
                         **expected_params,
-                        'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}'
+                        'Range': f'bytes=0-100'
                     }
                 self.s3_stubber.add_response(
                     method='get_object',
@@ -572,11 +586,40 @@ class TestIndex(TestCase):
                 }
             )
 
+    def test_index_if_manifest_skip(self):
+        """test cases where index_if_manifest ignores input for different reasons"""
+        for failure in {"key", "young", "old"}:
+            # too far in the future
+            if failure == "young":
+                timestamp = 1451631500
+            elif failure == "old":
+                timestamp = 1767250801
+            else:
+                timestamp = floor(time())
+            pointer_key = (
+                ".quilt/badfile/stuff.txt" if failure == 'key'
+                else f".quilt/named_packages/foo/bar/{timestamp}"
+            )
+            indexed = index.index_if_manifest(
+                self.s3_client,
+                index.DocumentQueue(None),
+                "ObjectCreated:Put",
+                bucket="quilt-example",
+                etag="123",
+                ext="",
+                # emulate a recent unix stamp from quilt3
+                key=pointer_key,
+                last_modified="faketimestamp",
+                version_id="random.version.id",
+                size=64
+            )
+            assert not indexed
+
     @patch.object(index.DocumentQueue, 'append')
     @patch.object(index, 'maybe_get_contents')
     @patch.object(index, 'index_if_manifest')
     def test_index_if_manifest_negative(self, index_mock, get_mock, append_mock):
-        """test that index_if_manifest is called"""
+        """test non-manifest file (still calls index_if_manifest)"""
         json_data = json.dumps({"version": 1})
         get_mock.return_value = json_data
         self._test_index_events(
@@ -611,7 +654,7 @@ class TestIndex(TestCase):
 
     @patch.object(index.DocumentQueue, 'append')
     def test_index_if_manifest_positive(self, append_mock):
-        """test that index_if_manifest is called, fetches timestamp, manifest"""
+        """test manifest file and its indexing"""
         timestamp = 1595616294
         pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
         # first, handler() will head the object
@@ -641,23 +684,13 @@ class TestIndex(TestCase):
                 "Bucket": "test-bucket",
                 "Key": pointer_key,
                 "VersionId": "1313131313131.Vier50HdNbi7ZirO65",
-                'Range': f"bytes=0-{index.ELASTIC_LIMIT_BYTES}"
+                'Range': f"bytes=0-64"
             }
         )
 
-        manifest_data = {
-            "version": "v0",
-            "user_meta": {
-                "arbitrary": "metadata",
-                "list": [5, 9, 19],
-                "int": 42,
-                "object": {"treble": "is", "a": "friend"}
-            },
-            "message": "interesting comment with interesting symbols #$%@☮ 😎!"
-        }
         manifest_key = f"{MANIFEST_PREFIX_V1}{sha_hash}"
-
         # next, handler() S3 selects the manifest
+        # pylint: disable=W0105
         """
         # this SHOULD work, but due to botocore bugs it does not
         self.s3_stubber.add_response(
@@ -670,7 +703,7 @@ class TestIndex(TestCase):
                 # see https://github.com/boto/botocore/issues/1621
                 "Payload": [{
                     "Records": {
-                        "Payload": json.dumps(manifest_data).encode()
+                        "Payload": json.dumps(MANIFEST_DATA).encode()
                     },
                     "Stats": {},
                     "End": {}
@@ -692,7 +725,7 @@ class TestIndex(TestCase):
                 "ResponseMetadata": ANY,
                 "Payload": [{
                     "Records": {
-                        "Payload": json.dumps(manifest_data).encode()
+                        "Payload": json.dumps(MANIFEST_DATA).encode()
                     },
                     "Stats": {},
                     "End": {}
@@ -732,8 +765,8 @@ class TestIndex(TestCase):
             key=f".quilt/packages/{sha_hash}",
             last_modified=ANY,
             package_hash=sha_hash,
-            comment=manifest_data["message"],
-            metadata=json.dumps(manifest_data["user_meta"])
+            comment=MANIFEST_DATA["message"],
+            metadata=json.dumps(MANIFEST_DATA["user_meta"])
         )
 
         append_mock.assert_any_call(
@@ -809,7 +842,7 @@ class TestIndex(TestCase):
                     'Bucket': 'test-bucket',
                     'Key': 'foo.unique1',
                     'IfMatch': 'etag',
-                    'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                    'Range': 'bytes=0-123',
                 }
             )
             self.s3_stubber.add_response(
@@ -823,7 +856,7 @@ class TestIndex(TestCase):
                     'Bucket': 'test-bucket',
                     'Key': 'foo.unique2',
                     'IfMatch': 'etag',
-                    'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                    'Range': 'bytes=0-123',
                 }
             )
             # only these two file types should be indexed
@@ -1183,7 +1216,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt',
                 'IfMatch': 'etag',
-                'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                'Range': 'bytes=0-123',
             }
         )
 
@@ -1210,7 +1243,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt',
                 'IfMatch': 'etag',
-                'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                'Range': f'bytes=0-123',
             }
         )
 
@@ -1228,7 +1261,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt.gz',
                 'IfMatch': 'etag',
-                'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                'Range': f'bytes=0-123',
             }
         )
 
