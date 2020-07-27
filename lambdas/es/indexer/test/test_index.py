@@ -375,7 +375,7 @@ class TestIndex(TestCase):
                 else:
                     expected = {
                         **expected_params,
-                        'Range': f'bytes=0-100'
+                        'Range': 'bytes=0-100'
                     }
                 self.s3_stubber.add_response(
                     method='get_object',
@@ -684,7 +684,7 @@ class TestIndex(TestCase):
                 "Bucket": "test-bucket",
                 "Key": pointer_key,
                 "VersionId": "1313131313131.Vier50HdNbi7ZirO65",
-                'Range': f"bytes=0-64"
+                'Range': "bytes=0-64"
             }
         )
 
@@ -1243,7 +1243,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt',
                 'IfMatch': 'etag',
-                'Range': f'bytes=0-123',
+                'Range': 'bytes=0-123',
             }
         )
 
@@ -1261,7 +1261,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt.gz',
                 'IfMatch': 'etag',
-                'Range': f'bytes=0-123',
+                'Range': 'bytes=0-123',
             }
         )
 
