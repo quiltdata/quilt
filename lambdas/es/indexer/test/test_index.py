@@ -784,7 +784,6 @@ class TestIndex(TestCase):
 
         assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
 
-
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
         # parquet
