@@ -52,7 +52,7 @@ def load_df(s3response):
     end_event_received = False
     for event in s3response['Payload']:
         if 'Records' in event:
-            records = event['Records']['Payload'].decode('utf-8')
+            records = event['Records']['Payload'].decode()
             buffer.write(records)
         elif 'Progress' in event:
             print(event['Progress']['Details'])

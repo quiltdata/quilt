@@ -15,7 +15,7 @@ from ..index import call_s3_select, get_logical_key_folder_view, load_df
 
 class TestPackageBrowse(TestCase):
     """
-    Unit tests for thhe Package API endpoint.
+    Unit tests for the Package API endpoint.
     """
     def setUp(self):
         """
@@ -33,22 +33,13 @@ class TestPackageBrowse(TestCase):
         for key in logical_keys:
             jsonl += "{\"logical_key\": \"%s\"}\n" % key
         print(jsonl)
-        streambytes = jsonl.encode('utf-8')
+        streambytes = jsonl.encode()
 
         self.s3response = {
             'Payload': [
                 {
                     'Records': {
                         'Payload': streambytes
-                    }
-                },
-                {
-                    'Stats': {
-                        'Details': {
-                            'BytesScanned': 123,
-                            'BytesProcessed': 123,
-                            'BytesReturned': 123
-                        }
                     }
                 },
                 {
@@ -59,7 +50,17 @@ class TestPackageBrowse(TestCase):
                             'BytesReturned': 123
                         }
                     }
-                }
+                },
+                {
+                    'End' : True,
+                    'Stats': {
+                        'Details': {
+                            'BytesScanned': 123,
+                            'BytesProcessed': 123,
+                            'BytesReturned': 123
+                        }
+                    }
+                },
             ]
         }
 
