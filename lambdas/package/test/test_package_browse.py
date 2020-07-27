@@ -10,7 +10,7 @@ import boto3
 import pandas as pd
 import responses
 
-from ..index import call_s3_select, get_logical_key_folder_view, load_df
+from ..index import call_s3_select, get_logical_key_folder_view, load_df, IncompleteResultException
 
 
 class TestPackageBrowse(TestCase):
@@ -52,7 +52,6 @@ class TestPackageBrowse(TestCase):
                     }
                 },
                 {
-                    'End' : True,
                     'Stats': {
                         'Details': {
                             'BytesScanned': 123,
@@ -61,6 +60,28 @@ class TestPackageBrowse(TestCase):
                         }
                     }
                 },
+                {
+                    'End': {}
+                }
+            ]
+        }
+
+        self.s3response_incomplete = {
+            'Payload': [
+                {
+                    'Records': {
+                        'Payload': streambytes
+                    }
+                },
+                {
+                    'Stats': {
+                        'Details': {
+                            'BytesScanned': 123,
+                            'BytesProcessed': 123,
+                            'BytesReturned': 123
+                        }
+                    }
+                }
             ]
         }
 
@@ -87,7 +108,7 @@ class TestPackageBrowse(TestCase):
             'isBase64Encoded': False,
         }
 
-    def test_call_s3select_no_prefix(self):
+    def test_call_s3select_top_level(self):
         """
         Test that parameters are correctly passed to
         S3 Select (without a prefix)
@@ -98,7 +119,7 @@ class TestPackageBrowse(TestCase):
         expected_args = {
             'Bucket': bucket,
             'Key': key,
-            'Expression': "SELECT s.logical_key from s3object s",
+            'Expression': "SELECT SUBSTRING(s.logical_key, 1) AS logical_key FROM s3object s",
             'ExpressionType': 'SQL',
             'InputSerialization': {
                 'CompressionType': 'NONE',
@@ -111,7 +132,7 @@ class TestPackageBrowse(TestCase):
         with patch.object(
                 mock_s3,
                 'select_object_content',
-                return_value=self.s3response
+                return_value=self.s3response_incomplete
         ) as patched:
             call_s3_select(mock_s3, bucket, key, "")
             patched.assert_called_once_with(**expected_args)
@@ -125,8 +146,8 @@ class TestPackageBrowse(TestCase):
         key = ".quilt/packages/manifest_hash"
         prefix = "bar/"
 
-        expected_sql = "SELECT s.logical_key from s3object s"
-        expected_sql += f" WHERE s.logical_key LIKE ('{prefix}%')"
+        expected_sql = "SELECT SUBSTRING(s.logical_key, 5) AS logical_key FROM s3object s"
+        expected_sql += f" WHERE SUBSTRING(s.logical_key, 1, 4) = '{prefix}'"
         expected_args = {
             'Bucket': bucket,
             'Key': key,
@@ -147,6 +168,14 @@ class TestPackageBrowse(TestCase):
         ) as patched:
             call_s3_select(mock_s3, bucket, key, prefix)
             patched.assert_called_once_with(**expected_args)
+
+    def test_incomplete_response(self):
+        """
+        Test that an incomplete response from S3 Select is
+        detected and an exception is raised.
+        """
+        with self.assertRaises(IncompleteResultException):
+            _, _ = load_df(self.s3response_incomplete)  # pylint: disable=invalid-name
 
     def test_browse_top_level(self):
         """
@@ -171,7 +200,9 @@ class TestPackageBrowse(TestCase):
         assert isinstance(df, pd.DataFrame)
 
         filtered_df = df[df['logical_key'].str.startswith(prefix)]
-        folder = get_logical_key_folder_view(filtered_df, prefix)
+        stripped = filtered_df['logical_key'].str.slice(start=len(prefix))
+        folder = get_logical_key_folder_view(stripped.to_frame('logical_key'))
+        print(folder)
         assert len(folder) == 3
         assert "file1.txt" in folder
         assert "file2.txt" in folder
@@ -185,9 +216,9 @@ class TestPackageBrowse(TestCase):
         prefix = "bar/baz/"
         df, _ = load_df(self.s3response)  # pylint: disable=invalid-name
         assert isinstance(df, pd.DataFrame)
-
         filtered_df = df[df['logical_key'].str.startswith(prefix)]
-        folder = get_logical_key_folder_view(filtered_df, prefix)
+        stripped = filtered_df['logical_key'].str.slice(start=len(prefix))
+        folder = get_logical_key_folder_view(stripped.to_frame('logical_key'))
         assert len(folder) == 2
         assert "file3.txt" in folder
         assert "file4.txt" in folder

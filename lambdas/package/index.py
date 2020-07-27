@@ -40,7 +40,10 @@ SCHEMA = {
 
 
 class IncompleteResultException(Exception):
-    pass
+    """
+    Exception indicating an incomplete response
+    (e.g., from S3 Select)
+    """
 
 
 def load_df(s3response):
@@ -64,27 +67,22 @@ def load_df(s3response):
             end_event_received = True
 
     if not end_event_received:
-        raise IncompleteResultException()
+        raise IncompleteResultException("Should be failing")
 
     buffer.seek(0)
     df = pd.read_json(buffer, lines=True)  # pylint: disable=invalid-name
     return df, stats
 
 
-def get_logical_key_folder_view(df, prefix=None):  # pylint: disable=invalid-name
+def get_logical_key_folder_view(df):  # pylint: disable=invalid-name
     """
     Post process a set of logical keys to return only the
     top-level folder view (a special case of the s3-select
     lambda).
     """
-    if prefix:
-        col = df.logical_key.str.slice(start=len(prefix))
-    else:
-        col = df.logical_key
-
     # matches all strings; everything before and including the first
     # / is extracted
-    folder = col.dropna().str.extract('([^/]+/?).*')[0].unique().tolist()
+    folder = df.logical_key.dropna().str.extract('([^/]+/?).*')[0].unique().tolist()
     return folder
 
 
@@ -106,9 +104,9 @@ def call_s3_select(s3_client, bucket, key, prefix):
     package manifest that match the desired folder path
     prefix
     """
-    sql_stmt = "SELECT s.logical_key from s3object s"
+    sql_stmt = f"SELECT SUBSTRING(s.logical_key, {len(prefix) + 1}) AS logical_key FROM s3object s"
     if prefix:
-        sql_stmt += f" WHERE s.logical_key LIKE ('{prefix}%')"
+        sql_stmt += f" WHERE SUBSTRING(s.logical_key, 1, {len(prefix)}) = '{prefix}'"
 
     response = s3_client.select_object_content(
         Bucket=bucket,
@@ -152,7 +150,7 @@ def lambda_handler(request):
     ret_val = make_json_response(
         200,
         {
-            'contents': get_logical_key_folder_view(df, prefix)
+            'contents': get_logical_key_folder_view(df)
         }
     )
 
