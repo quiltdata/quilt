@@ -26,6 +26,9 @@ cov_html/*
 # Pytest cache
 api/python/.pytest_cache/*
 
+# Setup for lambda testing
+lambdas/setup.py
+
 ### emacs
 *~
 [#]*

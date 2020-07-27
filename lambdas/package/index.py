@@ -50,16 +50,18 @@ def load_df(s3response):
     """
     buffer = io.StringIO()
     end_event_received = False
+    stats = None
     for event in s3response['Payload']:
         if 'Records' in event:
             records = event['Records']['Payload'].decode()
             buffer.write(records)
         elif 'Progress' in event:
             print(event['Progress']['Details'])
+        elif 'Stats' in event:
+            stats = event['Stats']['Details']
         elif 'End' in event:
             # End event indicates that the request finished successfully
             end_event_received = True
-            stats = event['Stats']['Details']
 
     if not end_event_received:
         raise IncompleteResultException()
