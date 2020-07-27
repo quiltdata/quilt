@@ -39,18 +39,31 @@ SCHEMA = {
 }
 
 
+class IncompleteResultException(Exception):
+    pass
+
+
 def load_df(s3response):
     """
     Read a streaming response from s3 select into a
     Pandas DataFrame
     """
     buffer = io.StringIO()
+    end_event_received = False
     for event in s3response['Payload']:
         if 'Records' in event:
             records = event['Records']['Payload'].decode('utf-8')
             buffer.write(records)
-        elif 'Stats' in event:
+        elif 'Progress' in event:
+            print(event['Progress']['Details'])
+        elif 'End' in event:
+            # End event indicates that the request finished successfully
+            end_event_received = True
             stats = event['Stats']['Details']
+
+    if not end_event_received:
+        raise IncompleteResultException()
+
     buffer.seek(0)
     df = pd.read_json(buffer, lines=True)  # pylint: disable=invalid-name
     return df, stats
