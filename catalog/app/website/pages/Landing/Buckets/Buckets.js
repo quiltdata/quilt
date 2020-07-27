@@ -11,7 +11,7 @@ import usePrevious from 'utils/usePrevious'
 import Backlight from 'website/components/Backgrounds/Backlight1'
 import BucketGrid from 'website/components/BucketGrid'
 
-const PER_PAGE = 3
+const PER_PAGE = 9
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -68,7 +68,7 @@ export default function Buckets() {
 
   usePrevious(page, (prev) => {
     if (prev && page !== prev && scrollRef.current) {
-      scrollRef.current.scrollIntoView()
+      scrollRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   })
 
@@ -76,15 +76,12 @@ export default function Buckets() {
     <div className={classes.root}>
       <Backlight style={{ opacity: 0.5 }} />
       <M.Container maxWidth="lg" className={classes.container}>
+        <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
         <M.Typography variant="h1" color="textPrimary">
           Explore your buckets
         </M.Typography>
         <M.Box mt={4} />
-        <BucketGrid
-          buckets={paginated}
-          ref={scrollRef}
-          showAddLink={buckets.length <= 2}
-        />
+        <BucketGrid buckets={paginated} showAddLink={buckets.length <= PER_PAGE - 1} />
         <div className={classes.controls}>
           <M.Box mt={2}>
             {buckets.length > 2 && (
