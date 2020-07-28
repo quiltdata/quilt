@@ -88,7 +88,7 @@
     "ip": "^1.1.5",
     "katex": "^0.10.2",
     "lodash": "^4.17.19",
-    "match-sorter": "^4.1.0",
+    "match-sorter": "^4.2.0",
     "minimist": "^1.2.5",
     "mixpanel-browser": "^2.37.0",
     "prop-types": "^15.7.2",
