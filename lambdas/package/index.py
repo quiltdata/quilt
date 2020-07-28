@@ -182,7 +182,7 @@ def lambda_handler(request):
     aws_secret_access_key = request.args['secret_key']
     prefix = request.args.get('prefix')
     logical_key = request.args.get('logical_key')
-    
+
     # Create an s3 client using the provided credentials
     s3_client = get_s3_client(aws_access_key_id, aws_secret_access_key)
 
