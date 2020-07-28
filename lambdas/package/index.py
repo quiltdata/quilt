@@ -19,7 +19,7 @@ SCHEMA = {
         'bucket': {
             'type': 'string'
         },
-        'key': {
+        'manifest': {
             'type': 'string'
         },
         'access_key': {
