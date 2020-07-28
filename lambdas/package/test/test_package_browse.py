@@ -169,6 +169,39 @@ class TestPackageBrowse(TestCase):
             call_s3_select(mock_s3, bucket, key, prefix)
             patched.assert_called_once_with(**expected_args)
 
+    def test_call_s3select_quote_in_prefix(self):
+        """
+        Test that parameters are correctly passed to
+        S3 Select (with a prefix)
+        """
+        bucket = "bucket"
+        key = ".quilt/packages/manifest_hash"
+        prefix = "Alice's files/"
+
+        expected_sql = "SELECT SUBSTRING(s.logical_key, 15) AS logical_key FROM s3object s"
+        expected_sql += f" WHERE SUBSTRING(s.logical_key, 1, 14) = 'Alice''s files/'"
+        expected_args = {
+            'Bucket': bucket,
+            'Key': key,
+            'Expression': expected_sql,
+            'ExpressionType': 'SQL',
+            'InputSerialization': {
+                'CompressionType': 'NONE',
+                'JSON': {'Type': 'DOCUMENT'}
+                },
+            'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
+        }
+
+        mock_s3 = boto3.client('s3')
+        with patch.object(
+                mock_s3,
+                'select_object_content',
+                return_value=self.s3response
+        ) as patched:
+            call_s3_select(mock_s3, bucket, key, prefix)
+            patched.assert_called_once_with(**expected_args)
+
+
     def test_incomplete_response(self):
         """
         Test that an incomplete response from S3 Select is

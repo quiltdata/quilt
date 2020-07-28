@@ -133,15 +133,22 @@ def call_s3_select(s3_client, bucket, key, logical_key_prefix, detail=False):
     prefix
     """
 
+    if logical_key_prefix is None:
+        logical_key_prefix = ""
+
+    prefix_length = len(logical_key_prefix)
+    sanitized = logical_key_prefix.replace("'", "''")
+    
     if detail:
-        logical_key = logical_key_prefix
+        logical_key = sanitized
         sql_stmt = f"SELECT s.* FROM s3object s WHERE s.logical_key = '{logical_key}' LIMIT 1"
     else:
-        prefix = logical_key_prefix
-        sql_stmt = f"SELECT SUBSTRING(s.logical_key, {len(prefix) + 1}) AS logical_key FROM s3object s"
+        prefix = sanitized
+        sql_stmt = f"SELECT SUBSTRING(s.logical_key, {prefix_length + 1}) AS logical_key FROM s3object s"
         if prefix:
-            sql_stmt += f" WHERE SUBSTRING(s.logical_key, 1, {len(prefix)}) = '{prefix}'"
+            sql_stmt += f" WHERE SUBSTRING(s.logical_key, 1, {prefix_length}) = '{prefix}'"
 
+    print(sql_stmt)
     response = s3_client.select_object_content(
         Bucket=bucket,
         Key=key,
