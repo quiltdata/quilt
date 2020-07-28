@@ -107,8 +107,11 @@ def get_logical_key_folder_view(df):  # pylint: disable=invalid-name
     """
     # matches all strings; everything before and including the first
     # / is extracted
-    folder = df.logical_key.dropna().str.extract('([^/]+/?).*')[0].unique().tolist()
-    return folder
+    folder = pd.Series(df.logical_key.dropna().str.extract('([^/]+/?).*')[0].unique())
+    return dict(
+        prefixes=folder[folder.str.endswith('/')].sort_values().tolist(),
+        obects=folder[~folder.str.endswith('/')].sort_values().tolist()
+    )
 
 
 def get_s3_client(aws_access_key_id, aws_secret_access_key):
