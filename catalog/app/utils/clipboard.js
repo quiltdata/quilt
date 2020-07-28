@@ -14,7 +14,7 @@
  *
  * @returns {boolean}
  */
-export default (text) => {
+export default function copyToClipboard(text, { container = document.body } = {}) {
   if (window.clipboardData && window.clipboardData.setData) {
     // IE specific code path to prevent textarea being shown while dialog is visible.
     return window.clipboardData.setData('Text', text)
@@ -28,14 +28,15 @@ export default (text) => {
   textarea.textContent = text
   // Prevent scrolling to bottom of page in MS Edge.
   textarea.style.position = 'fixed'
-  document.body.appendChild(textarea)
+  container.appendChild(textarea)
   textarea.select()
   try {
     // Security exception may be thrown by some browsers.
     return document.execCommand('copy')
   } catch (e) {
+    console.warn('copy to clipboard failed', e)
     return false
   } finally {
-    document.body.removeChild(textarea)
+    container.removeChild(textarea)
   }
 }

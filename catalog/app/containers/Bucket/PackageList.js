@@ -28,8 +28,7 @@ import Pagination from './Pagination'
 import { displayError } from './errors'
 import * as requests from './requests'
 
-const EXAMPLE_PACKAGE_URL =
-  'https://open.quiltdata.com/b/quilt-example/packages/aleksey/hurdat/tree/latest/'
+const EXAMPLE_PACKAGE_URL = 'https://docs.quiltdata.com/walkthrough/editing-a-package'
 
 const Counts = ({ counts, total }) => {
   const [cursor, setCursor] = React.useState(null)
@@ -41,7 +40,7 @@ const Counts = ({ counts, total }) => {
   const sparklineH = xs ? 32 : 40
   return (
     <M.Box position="absolute" right={0} top={0} bottom={0}>
-      <M.Box position="absolute" right={16} top={16}>
+      <M.Box position="absolute" right={16} top={16} whiteSpace="nowrap">
         <M.Typography
           variant="body2"
           color={cursor === null ? 'textSecondary' : 'textPrimary'}
@@ -427,12 +426,12 @@ export default function PackageList({
 }) {
   const { filter, sort, p } = parseSearch(location.search)
   const page = p && parseInt(p, 10)
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const sign = AWS.Signer.useS3Signer()
   const { analyticsBucket, apiGatewayEndpoint: endpoint } = Config.useConfig()
   const bucketCfg = BucketConfig.useCurrentBucketConfig()
   const today = React.useMemo(() => new Date(), [])
-  const data = Data.use(requests.listPackages, { s3req, analyticsBucket, bucket, today })
+  const data = Data.use(requests.listPackages, { s3, analyticsBucket, bucket, today })
   return data.case({
     _: () => (
       <M.Box display="flex" pt={5} justifyContent="center">
@@ -448,7 +447,7 @@ export default function PackageList({
             <Data.Fetcher
               key={name}
               fetch={requests.getRevisionData}
-              params={{ s3req, sign, endpoint, bucket, name, id: 'latest', maxKeys: 0 }}
+              params={{ s3, sign, endpoint, bucket, name, id: 'latest', maxKeys: 0 }}
             >
               {AsyncResult.case({
                 _: () => null,

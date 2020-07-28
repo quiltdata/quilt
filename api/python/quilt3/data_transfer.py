@@ -47,6 +47,7 @@ class S3NoValidClientError(Exception):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
+
 class S3ClientProvider:
     """
     An s3_client is either signed with standard credentials or unsigned. This class exists to dynamically provide the
@@ -130,7 +131,6 @@ class S3ClientProvider:
         boto_session = boto3.Session(botocore_session=botocore_session)
         return boto_session
 
-
     def register_signals(self, s3_client):
         # Enable/disable file read callbacks when uploading files.
         # Copied from https://github.com/boto/s3transfer/blob/develop/s3transfer/manager.py#L501
@@ -153,13 +153,11 @@ class S3ClientProvider:
         self.register_signals(s3_client)
         self._standard_client = s3_client
 
-
     def _build_unsigned_client(self):
         boto_session = self.get_boto_session()
         s3_client = boto_session.client('s3', config=Config(signature_version=UNSIGNED))
         self.register_signals(s3_client)
         self._unsigned_client = s3_client
-
 
 
 def check_list_object_versions_works_for_client(s3_client, params):
@@ -169,6 +167,7 @@ def check_list_object_versions_works_for_client(s3_client, params):
         return e.response["Error"]["Code"] != "AccessDenied"
     return True
 
+
 def check_list_objects_v2_works_for_client(s3_client, params):
     try:
         s3_client.list_objects_v2(**params, MaxKeys=1)  # Make this as fast as possible
@@ -176,6 +175,7 @@ def check_list_objects_v2_works_for_client(s3_client, params):
         if e.response["Error"]["Code"] == "AccessDenied":
             return False
     return True
+
 
 def check_get_object_works_for_client(s3_client, params):
     try:
@@ -195,6 +195,7 @@ def check_get_object_works_for_client(s3_client, params):
 
     return True
 
+
 def check_head_object_works_for_client(s3_client, params):
     try:
         s3_client.head_object(**params)
@@ -204,7 +205,6 @@ def check_head_object_works_for_client(s3_client, params):
             # exist. Instead of returning a 404, S3 will return a 403.
             return False
     return True
-
 
 
 s3_transfer_config = TransferConfig()
@@ -294,7 +294,6 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path):
     s3_client = ctx.s3_client_provider.find_correct_client(S3Api.GET_OBJECT, src_bucket, params)
 
     dest_file.parent.mkdir(parents=True, exist_ok=True)
-
 
     if src_version is not None:
         params.update(dict(VersionId=src_version))
@@ -389,9 +388,6 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
 
 
 def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path):
-
-
-
     # Optimization: check if the remote file already exists and has the right ETag,
     # and skip the upload.
     if size >= UPLOAD_ETAG_OPTIMIZATION_THRESHOLD:
@@ -586,9 +582,10 @@ def list_object_versions(bucket, prefix, recursive=True):
     if prefix and not prefix.endswith('/'):
         raise ValueError("Prefix must end with /")
 
-    list_obj_params = dict(Bucket=bucket,
-                           Prefix=prefix
-                          )
+    list_obj_params = dict(
+        Bucket=bucket,
+        Prefix=prefix
+    )
     if not recursive:
         # Treat '/' as a directory separator and only return one level of files instead of everything.
         list_obj_params.update(dict(Delimiter='/'))
@@ -610,7 +607,6 @@ def list_object_versions(bucket, prefix, recursive=True):
         return versions, delete_markers
     else:
         return prefixes, versions, delete_markers
-
 
 
 def list_objects(bucket, prefix, recursive=True):
@@ -680,17 +676,17 @@ def delete_url(src: PhysicalKey):
     if src.is_local():
         src_file = pathlib.Path(src.path)
 
-        if src_file.is_dir():
-            try:
-                src_file.rmdir()
-            except OSError:
-                # Ignore non-empty directories, for consistency with S3
-                pass
-        else:
-            try:
+        try:
+            if src_file.is_dir():
+                try:
+                    src_file.rmdir()
+                except OSError:
+                    # Ignore non-empty directories, for consistency with S3
+                    pass
+            else:
                 src_file.unlink()
-            except FileExistsError:
-                pass
+        except FileNotFoundError:
+            pass
     else:
         s3_client = S3ClientProvider().standard_client
         s3_client.delete_object(Bucket=src.bucket, Key=src.path)
@@ -760,6 +756,7 @@ def put_bytes(data: bytes, dest: PhysicalKey):
             Body=data,
         )
 
+
 def get_bytes(src: PhysicalKey):
     if src.is_local():
         src_file = pathlib.Path(src.path)
@@ -772,6 +769,7 @@ def get_bytes(src: PhysicalKey):
         resp = s3_client.get_object(**params)
         data = resp['Body'].read()
     return data
+
 
 def get_size_and_version(src: PhysicalKey):
     """
@@ -802,9 +800,12 @@ def get_size_and_version(src: PhysicalKey):
         version = resp.get('VersionId')
     return size, version
 
+
 def calculate_sha256(src_list: List[PhysicalKey], sizes: List[int]):
     assert len(src_list) == len(sizes)
 
+    if not src_list:
+        return []
     return _calculate_sha256_internal(src_list, sizes, [None] * len(src_list))
 
 

@@ -2,7 +2,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import AsyncResult from 'utils/AsyncResult'
-import * as RT from 'utils/reactTools'
 import tagged from 'utils/tagged'
 import useMemoEq from 'utils/useMemoEq'
 import usePrevious from 'utils/usePrevious'
@@ -68,15 +67,3 @@ export function Fetcher({ fetch, params, noAutoFetch, children }) {
 }
 
 export default Fetcher
-
-export const withData = ({
-  params: getParams = R.identity,
-  fetch,
-  name = 'data',
-  autoFetch = true,
-}) =>
-  RT.composeHOC('Data.withData', (Component) => (props) => (
-    <Fetcher fetch={fetch} params={getParams(props)} noAutoFetch={!autoFetch}>
-      {(result, opts) => <Component {...{ ...props, [name]: { result, ...opts } }} />}
-    </Fetcher>
-  ))

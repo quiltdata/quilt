@@ -12,8 +12,7 @@ export const Container = styled('div')(
   {
     marginLeft: 'auto',
     marginRight: 'auto',
-    maxWidth: 280,
-    minHeight: 'calc(100vh - 300px)',
+    maxWidth: 300,
     width: '100%',
   },
   { name: 'Auth.Container' },
@@ -56,7 +55,7 @@ export const Error = composeComponent(
   withStyles((t) => ({
     root: {
       color: t.palette.error.main,
-      marginTop: t.spacing.unit * 3,
+      marginTop: t.spacing(3),
       textAlign: 'center',
 
       '& a': {
@@ -80,7 +79,7 @@ export const Actions = styled('div')(
   ({ theme: t }) => ({
     display: 'flex',
     justifyContent: 'center',
-    marginTop: t.spacing.unit * 4,
+    marginTop: t.spacing(4),
   }),
   { name: 'Auth.Actions' },
 )
@@ -89,29 +88,32 @@ export const Hint = styled('p')(
   ({ theme: t }) => ({
     fontSize: 12,
     lineHeight: '16px',
-    marginBottom: t.spacing.unit * 1.5,
-    marginTop: t.spacing.unit * 4,
+    marginBottom: t.spacing(1.5),
+    marginTop: t.spacing(4),
     textAlign: 'center',
 
     // TODO: this selector is quite fragile, we should fix this
     'p + &': {
-      marginTop: t.spacing.unit * 1.5,
+      marginTop: t.spacing(1.5),
     },
   }),
   { name: 'Auth.Hint' },
 )
 
-export const Message = styled('p')(
-  {
-    textAlign: 'center',
-  },
-  { name: 'Auth.Message' },
-)
+export function Message(props) {
+  return (
+    <M.Box pt={2}>
+      <M.Typography align="center" {...props} />
+    </M.Box>
+  )
+}
 
 export const mkLayout = (heading) => ({ children, ...props }) => (
   <Layout>
     <Container>
-      <Heading>{typeof heading === 'function' ? heading(props) : heading}</Heading>
+      <M.Box pt={5} pb={2}>
+        <Heading>{typeof heading === 'function' ? heading(props) : heading}</Heading>
+      </M.Box>
       {children}
     </Container>
   </Layout>
@@ -130,7 +132,7 @@ export const Submit = composeComponent(
       {label}
       {children}
       {busy && (
-        <React.Fragment>
+        <>
           &nbsp;
           <Spinner
             style={{
@@ -140,7 +142,7 @@ export const Submit = composeComponent(
               right: '-1.5em',
             }}
           />
-        </React.Fragment>
+        </>
       )}
     </M.Button>
   ),
@@ -153,14 +155,14 @@ export const Or = composeComponent(
       alignItems: 'center',
       display: 'flex',
       justifyContent: 'space-between',
-      paddingTop: t.spacing.unit * 4,
+      paddingTop: t.spacing(4),
     },
     divider: {
       flexGrow: 1,
     },
     text: {
-      paddingLeft: t.spacing.unit,
-      paddingRight: t.spacing.unit,
+      paddingLeft: t.spacing(1),
+      paddingRight: t.spacing(1),
     },
   })),
   ({ classes }) => (

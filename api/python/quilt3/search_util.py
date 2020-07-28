@@ -32,12 +32,14 @@ def search_credentials(host, region, service):
 
     return auth
 
+
 def _bucket_index_name(bucket_name):
     if bucket_name is None:
         return '_all'
     else:
         es_index = ",".join([bucket_name, 'drive'])
         return es_index
+
 
 def search_api(query, index, limit=10):
     """

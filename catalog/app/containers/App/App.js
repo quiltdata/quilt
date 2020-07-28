@@ -84,7 +84,9 @@ export default function App() {
           <Route path={paths.legacyPackages} component={LegacyPackages} />
         )}
 
-        {!cfg.disableNavigator && <Route path={paths.search} component={Search} exact />}
+        {!cfg.disableNavigator && (
+          <Route path={paths.search} component={protect(Search)} exact />
+        )}
 
         {cfg.mode === 'MARKETING' && (
           <Route path={paths.about} component={MAbout} exact />

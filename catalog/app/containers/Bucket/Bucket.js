@@ -69,9 +69,9 @@ const getBucketSection = (paths) =>
 
 const NavTab = RT.composeComponent(
   'Bucket.Layout.Tab',
-  M.withStyles(({ spacing: { unit } }) => ({
+  M.withStyles((t) => ({
     root: {
-      minHeight: 8 * unit,
+      minHeight: t.spacing(8),
       minWidth: 120,
     },
   })),
@@ -89,7 +89,7 @@ const useStyles = M.makeStyles((t) => ({
 function BucketLayout({ bucket, section = false, children }) {
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const cache = useBucketCache()
   return (
     <Layout
@@ -114,7 +114,7 @@ function BucketLayout({ bucket, section = false, children }) {
             </M.Tabs>
           </M.AppBar>
           <M.Container maxWidth="lg">
-            <Data fetch={requests.bucketExists} params={{ s3req, bucket, cache }}>
+            <Data fetch={requests.bucketExists} params={{ s3, bucket, cache }}>
               {AsyncResult.case({
                 Ok: () => children,
                 Err: displayError(),
@@ -128,12 +128,12 @@ function BucketLayout({ bucket, section = false, children }) {
   )
 }
 
-export default ({
+export default function Bucket({
   location,
   match: {
     params: { bucket },
   },
-}) => {
+}) {
   const { paths } = NamedRoutes.use()
   return (
     <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>

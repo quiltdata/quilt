@@ -3,6 +3,8 @@ import { parse as parseUrl } from 'url'
 
 import * as R from 'ramda'
 
+import { mkSearch } from 'utils/NamedRoutes'
+
 /**
  * Handle for an S3 object.
  *
@@ -166,6 +168,13 @@ export const handleFromUrl = (url, referrer) => {
   return { bucket: referrer.bucket, key: resolveKey(referrer.key, url) }
 }
 
+// AWS docs (https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html) state that
+// "buckets created in Regions launched after March 20, 2019 are not reachable via the
+// `https://bucket.s3.amazonaws.com naming scheme`", so probably we need to support
+// `https://bucket.s3.aws-region.amazonaws.com` scheme as well.
+export const handleToHttpsUri = ({ bucket, key, version }) =>
+  `https://${bucket}.s3.amazonaws.com/${encode(key)}${mkSearch({ versionId: version })}`
+
 /**
  * Get breadcrumbs for a path.
  *
@@ -176,14 +185,6 @@ export const handleFromUrl = (url, referrer) => {
 export const getBreadCrumbs = (path) =>
   path ? [...getBreadCrumbs(up(path)), { label: basename(path), path }] : []
 
-export const encode = R.pipe(
-  R.split('/'),
-  R.map(encodeURIComponent),
-  R.join('/'),
-)
+export const encode = R.pipe(R.split('/'), R.map(encodeURIComponent), R.join('/'))
 
-export const decode = R.pipe(
-  R.split('/'),
-  R.map(decodeURIComponent),
-  R.join('/'),
-)
+export const decode = R.pipe(R.split('/'), R.map(decodeURIComponent), R.join('/'))

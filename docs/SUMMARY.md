@@ -2,7 +2,8 @@
 
 * [Introduction](README.md)
 * [Installation](Installation.md)
-* [Quickstart](Quickstart.md)
+* [Quick start](Quickstart.md)
+* [Mental model](MentalModel.md)
 
 ### Walkthrough
 
@@ -26,11 +27,10 @@
 * [quilt3](API Reference/api.md)
 * [quilt3.Package](API Reference/Package.md)
 * [quilt3.Bucket](API Reference/Bucket.md)
-* [quilt3 CLI](API Reference/cli.md)
+* [CLI, environment](API Reference/cli.md)
 
-### References
+### More
 
 * [Frequently Asked Questions](FAQ.md)
-* [Technical Reference](Technical Reference.md)
+* [CloudFormation Reference](Technical Reference.md)
 * [Contributing](CONTRIBUTING.md)
-* [Further Reading](Further Reading.md)

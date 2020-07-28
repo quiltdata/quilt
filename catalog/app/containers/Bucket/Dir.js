@@ -18,7 +18,6 @@ import usePrevious from 'utils/usePrevious'
 
 import Code from './Code'
 import Listing, { ListingItem } from './Listing'
-import Section from './Section'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
@@ -83,20 +82,44 @@ export default function Dir({
 }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const path = decode(encodedPath)
-  const code = dedent`
-    import quilt3
-    b = quilt3.Bucket("s3://${bucket}")
-    b.fetch("${path}", "./")
-  `
+  const dest = path ? basename(path) : bucket
+
+  const code = React.useMemo(
+    () => [
+      {
+        label: 'Python',
+        hl: 'python',
+        contents: dedent`
+          import quilt3
+          b = quilt3.Bucket("s3://${bucket}")
+          # list files
+          b.ls("${path}")
+          # download
+          b.fetch("${path}", "./${dest}")
+        `,
+      },
+      {
+        label: 'CLI',
+        hl: 'bash',
+        contents: dedent`
+          # list files
+          aws s3 ls "s3://${bucket}/${path}"
+          # download
+          aws s3 cp --recursive "s3://${bucket}/${path}" "./${dest}"
+        `,
+      },
+    ],
+    [bucket, path, dest],
+  )
 
   const [prev, setPrev] = React.useState(null)
   const prevPath = usePrevious(path, () => {
     if (prevPath !== path) setPrev(null)
   })
   const data = useData(requests.bucketListing, {
-    s3req,
+    s3,
     bucket,
     path,
     prev: prevPath === path ? prev : null,
@@ -123,9 +146,7 @@ export default function Dir({
         <M.Box flexGrow={1} />
       </M.Box>
 
-      <Section icon="code" heading="Code" gutterBottom>
-        <Code>{code}</Code>
-      </Section>
+      <Code gutterBottom>{code}</Code>
 
       {data.case({
         Err: displayError(),

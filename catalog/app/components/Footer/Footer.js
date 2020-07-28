@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import { FormattedMessage } from 'react-intl'
 import { Link } from 'react-router-dom'
@@ -19,48 +20,6 @@ import iconGithub from './icon-github.svg'
 import iconSlack from './icon-slack.svg'
 import iconTwitter from './icon-twitter.svg'
 
-const Footer = M.styled('footer')(({ theme: t }) => ({
-  background: `left / 64px url(${bg})`,
-  boxShadow: [
-    '0px -12px 24px 0px rgba(25, 22, 59, 0.05)',
-    '0px -16px 40px 0px rgba(25, 22, 59, 0.07)',
-    '0px -24px 88px 0px rgba(25, 22, 59, 0.16)',
-  ],
-  height: 230,
-  paddingTop: t.spacing(6),
-  position: 'relative',
-  [t.breakpoints.down('xs')]: {
-    alignItems: 'center',
-    display: 'flex',
-    paddingTop: 0,
-  },
-}))
-
-const Container = M.styled(M.Container)(({ theme: t }) => ({
-  alignItems: 'center',
-  display: 'grid',
-  [t.breakpoints.up('sm')]: {
-    gridRowGap: t.spacing(6),
-    gridTemplateColumns: 'auto 1fr auto',
-    gridTemplateRows: '36px auto',
-    gridTemplateAreas: `
-      "logo . links"
-      "copy . icons"
-    `,
-  },
-  [t.breakpoints.down('xs')]: {
-    gridRowGap: t.spacing(3),
-    gridTemplateColumns: '1fr',
-    gridTemplateRows: '36px auto auto auto',
-    gridTemplateAreas: `
-      "logo"
-      "links"
-      "icons"
-      "copy"
-    `,
-  },
-}))
-
 const NavLink = (props) => (
   <M.Link
     variant="button"
@@ -79,14 +38,69 @@ const NavIcon = ({ icon, ...props }) => (
   </M.Box>
 )
 
-export default () => {
+const useStyles = M.makeStyles((t) => ({
+  padded: {},
+  root: {
+    background: `left / 64px url(${bg})`,
+    boxShadow: [
+      '0px -12px 24px 0px rgba(25, 22, 59, 0.05)',
+      '0px -16px 40px 0px rgba(25, 22, 59, 0.07)',
+      '0px -24px 88px 0px rgba(25, 22, 59, 0.16)',
+    ],
+    height: 230,
+    paddingTop: t.spacing(6),
+    position: 'relative',
+    [t.breakpoints.down('xs')]: {
+      alignItems: 'center',
+      display: 'flex',
+      paddingTop: 0,
+    },
+    // padding for marketing CTA
+    '&$padded': {
+      [t.breakpoints.down('sm')]: {
+        backgroundSize: 'contain',
+        height: 230 + 64,
+        paddingBottom: 64,
+      },
+    },
+  },
+  container: {
+    alignItems: 'center',
+    display: 'grid',
+    [t.breakpoints.up('sm')]: {
+      gridRowGap: t.spacing(6),
+      gridTemplateColumns: 'auto 1fr auto',
+      gridTemplateRows: '36px auto',
+      gridTemplateAreas: `
+        "logo . links"
+        "copy . icons"
+      `,
+    },
+    [t.breakpoints.down('xs')]: {
+      gridRowGap: t.spacing(3),
+      gridTemplateColumns: '1fr',
+      gridTemplateRows: '36px auto auto auto',
+      gridTemplateAreas: `
+        "logo"
+        "links"
+        "icons"
+        "copy"
+      `,
+    },
+  },
+}))
+
+export default function Footer() {
   const cfg = Config.useConfig()
+  const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const intercom = Intercom.use()
   return (
     <M.MuiThemeProvider theme={style.navTheme}>
-      <Footer>
-        <Container maxWidth="lg">
+      <footer
+        className={cx(classes.root, { [classes.padded]: cfg.mode === 'MARKETING' })}
+      >
+        <M.Container maxWidth="lg" className={classes.container}>
           <M.Box
             style={{ gridArea: 'logo' }}
             display="flex"
@@ -158,8 +172,8 @@ export default () => {
               <M.Box ml={4} width={60} display={{ xs: 'none', sm: 'block' }} />
             )}
           </M.Box>
-        </Container>
-      </Footer>
+        </M.Container>
+      </footer>
     </M.MuiThemeProvider>
   )
 }

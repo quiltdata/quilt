@@ -2,7 +2,7 @@
 # https://github.com/pypa/pip/issues/3772
 attrs==19.1.0
 bleach==3.1.4
-certifi==2019.6.16
+certifi==2020.4.5.1
 chardet==3.0.4
 decorator==4.4.0
 defusedxml==0.6.0
@@ -10,7 +10,7 @@ entrypoints==0.3
 idna==2.8
 ipython-genutils==0.2.0
 Jinja2==2.10.1
-jsonschema==3.0.1
+jsonschema==3.2.0
 jupyter-core==4.4.0
 MarkupSafe==1.1.1
 mistune==0.8.4
@@ -19,7 +19,8 @@ nbformat==4.4.0
 numpy==1.16.4
 pandas==0.25.1
 pandocfilters==1.4.2
-pyarrow==0.14.1
+psutil==5.7.0
+pyarrow==0.17.1
 Pygments==2.4.2
 pyrsistent==0.15.2
 python-dateutil==2.8.0

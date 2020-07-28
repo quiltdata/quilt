@@ -1,13 +1,16 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import * as RF from 'redux-form/es/immutable'
 import * as M from '@material-ui/core'
 
 import * as Pagination from 'components/Pagination'
+import * as AuthSelectors from 'containers/Auth/selectors'
 import * as Notifications from 'containers/Notifications'
 import * as APIConnector from 'utils/APIConnector'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as Config from 'utils/Config'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
 import * as Cache from 'utils/ResourceCache'
@@ -17,6 +20,9 @@ import * as validators from 'utils/validators'
 import * as Form from './Form'
 import * as Table from './Table'
 import * as data from './data'
+
+// default icon as returned by the registry
+const DEFAULT_ICON = 'https://d1zvn9rasera71.cloudfront.net/q-128-square.png'
 
 const useBucketFieldsStyles = M.makeStyles((t) => ({
   group: {
@@ -54,6 +60,7 @@ function BucketFields({ add = false }) {
           errors={{
             required: 'Enter a bucket name',
             conflict: 'Bucket already added',
+            noSuchBucket: 'No such bucket',
           }}
           fullWidth
           margin="normal"
@@ -74,8 +81,9 @@ function BucketFields({ add = false }) {
         <RF.Field
           component={Form.Field}
           name="iconUrl"
-          label="Icon URL"
+          label="Icon URL (optional, defaults to Quilt logo)"
           placeholder="e.g. https://some-cdn.com/icon.png"
+          helperText="Recommended size: 80x80px"
           normalize={R.pipe(R.trim, R.take(1024))}
           fullWidth
           margin="normal"
@@ -259,8 +267,7 @@ const formToJSON = (values) => {
 const toBucketConfig = (b) => ({
   name: b.name,
   title: b.title,
-  // default icon as returned by the registry
-  iconUrl: b.iconUrl || 'https://d1zvn9rasera71.cloudfront.net/q-128-square.png',
+  iconUrl: b.iconUrl || DEFAULT_ICON,
   description: b.description,
   overviewUrl: b.overviewUrl,
   linkedData: b.linkedData,
@@ -268,9 +275,16 @@ const toBucketConfig = (b) => ({
   relevance: b.relevanceScore,
 })
 
+function useAuthSession() {
+  const cfg = Config.use()
+  const sessionId = redux.useSelector(AuthSelectors.sessionId)
+  return cfg.alwaysRequiresAuth && sessionId
+}
+
 function Add({ close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
+  const session = useAuthSession()
   const { push } = Notifications.use()
   const t = useTracker()
   const onSubmit = React.useCallback(
@@ -283,13 +297,21 @@ function Add({ close }) {
         })
         const b = data.bucketFromJSON(res)
         cache.patchOk(data.BucketsResource, null, R.append(b))
-        cache.patchOk(BucketConfig.BucketsResource, null, R.append(toBucketConfig(b)))
+        cache.patchOk(
+          BucketConfig.BucketsResource,
+          { empty: false, session },
+          R.append(toBucketConfig(b)),
+          true,
+        )
         push(`Bucket "${b.name}" added`)
         t.track('WEB', { type: 'admin', action: 'bucket add', bucket: b.name })
         close()
       } catch (e) {
         if (APIConnector.HTTPError.is(e, 409, /Bucket already added/)) {
           throw new RF.SubmissionError({ name: 'conflict' })
+        }
+        if (APIConnector.HTTPError.is(e, 404, /NoSuchBucket/)) {
+          throw new RF.SubmissionError({ name: 'noSuchBucket' })
         }
         // eslint-disable-next-line no-console
         console.error('Error adding bucket')
@@ -298,7 +320,7 @@ function Add({ close }) {
         throw new RF.SubmissionError({ _error: 'unexpected' })
       }
     },
-    [req, cache, push, close],
+    [req, cache, push, close, session],
   )
 
   return (
@@ -354,6 +376,7 @@ function Add({ close }) {
 function Edit({ bucket, close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
+  const session = useAuthSession()
   const onSubmit = React.useCallback(
     async (values) => {
       try {
@@ -370,8 +393,9 @@ function Edit({ bucket, close }) {
         )
         cache.patchOk(
           BucketConfig.BucketsResource,
-          null,
+          { empty: false, session },
           R.map((b) => (b.name === bucket.name ? toBucketConfig(updated) : b)),
+          true,
         )
         close()
       } catch (e) {
@@ -382,7 +406,7 @@ function Edit({ bucket, close }) {
         throw new RF.SubmissionError({ _error: 'unexpected' })
       }
     },
-    [req, cache, close],
+    [req, cache, close, session],
   )
 
   const initialValues = {
@@ -464,6 +488,7 @@ function Edit({ bucket, close }) {
 function Delete({ bucket, close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
+  const session = useAuthSession()
   const { push } = Notifications.use()
   const t = useTracker()
   const doDelete = React.useCallback(async () => {
@@ -473,22 +498,28 @@ function Delete({ bucket, close }) {
       cache.patchOk(data.BucketsResource, null, R.reject(R.propEq('name', bucket.name)))
       cache.patchOk(
         BucketConfig.BucketsResource,
-        null,
+        { empty: false, session },
         R.reject(R.propEq('name', bucket.name)),
+        true,
       )
       await req({ endpoint: `/admin/buckets/${bucket.name}`, method: 'DELETE' })
       t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
     } catch (e) {
       // put the bucket back into cache if it hasnt been deleted properly
       cache.patchOk(data.BucketsResource, null, R.append(bucket))
-      cache.patchOk(BucketConfig.BucketsResource, null, R.append(toBucketConfig(bucket)))
+      cache.patchOk(
+        BucketConfig.BucketsResource,
+        { empty: false, session },
+        R.append(toBucketConfig(bucket)),
+        true,
+      )
       push(`Error deleting bucket "${bucket.name}"`)
       // eslint-disable-next-line no-console
       console.error('Error deleting bucket')
       // eslint-disable-next-line no-console
       console.dir(e)
     }
-  }, [bucket, close, req, cache, push])
+  }, [bucket, close, req, cache, push, session])
 
   return (
     <>
@@ -531,18 +562,19 @@ const columns = [
     sortable: false,
     align: 'center',
     getValue: R.prop('iconUrl'),
-    getDisplay: (v) =>
-      !!v && (
-        <M.Box
-          component="img"
-          src={v}
-          alt=""
-          height={40}
-          width={40}
-          mt={-0.25}
-          mb={-0.25}
-        />
-      ),
+    getDisplay: (v) => (
+      <M.Box
+        component="img"
+        src={v || DEFAULT_ICON}
+        alt=""
+        title={v ? undefined : 'Default icon'}
+        height={40}
+        width={40}
+        mt={-0.25}
+        mb={-0.25}
+        style={{ opacity: v ? undefined : 0.7 }}
+      />
+    ),
   },
   {
     id: 'title',

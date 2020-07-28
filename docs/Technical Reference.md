@@ -63,9 +63,13 @@ The bucket should not have any notifications attached to it
 Quilt will need to install its own notifications.
 Installing Quilt will modify the following Bucket characteristics:
     * Permissions > CORS configuration (will be modified for secure web access)
-    * Properties > Versioning (will be enabled)
     * Properties > Object-level logging (will be enabled)
     * Properties > Events (will add one notification)
+
+Buckets in Quilt may choose to enable versioning or disable versioning, but it
+is recommended that you avoid enabling versioning followed by disabling versioning
+as this can cause bugs in the object statistics for the bucket, shown in the Quilt
+catalog, due to inconsistent semantics of `ObjectRemoved:DeleteMarkerCreated`.
 
 1. A **subdomain that is as yet not mapped in DNS** where users will access Quilt on the web. For example `quilt.mycompany.com`.
 
@@ -117,6 +121,11 @@ text box for further details. Service Catalog users require a license key. See
 [Before you install Quilt](#before-you-install-quilt) for how to obtain a license key.
 
     ![](./imgs/stack-details.png)
+
+    If you wish to use a service role, specify it as follows:
+
+    ![](./imgs/service-role.png)
+
 
 1. Service Catalog users, skip this step. Under Stack creation options, enable termination protection.
 
@@ -217,47 +226,3 @@ Note the comma after the object. Your trust relationship should now look somethi
 ```
 
 You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt3.admin.create_role`).
-
-# Mental model for a Quilt package
-
-Quilt represents datasets as *packages*. A package is an immutable collection of
-related files with a handle of the form `AUTHOR/DESCRIPTION`, a cryptographic
-*top-hash* (or hash of hashes) that uniquely identifies package contents,
-and a backing *manifest*.
-
-The manifest is serialized as file that contains *entries*.
-Manifest entries are tuples of the following form:
-
-`(LOGICAL_KEY, PHYSICAL_KEYS, HASH, METADATA)`
-
-*Logical keys* are user-facing friendly names, like `"README.md"`.
-*Physical keys* are fully qualified paths to bytes on disk, or bytes in S3.
-A *hash* is a digest of the physical key's contents, usually SHA-256.
-*Metadata* are a dictionary that may contain user-defined keys for metadata
-like bounding boxes, labels, or provenance information
-(e.g. {"algorithm_version": "4.4.1"} to indicate how a given file was created).
-
-Package manifests are stored in *registries*.
-Quilt supports both local disk and Amazon S3 buckets as registry.
-A registry may store manifests as well as the primary data.
-S3 was chosen for its widespread adoption, first-class versioning support,
-and cost/performance profile.
-The Quilt roadmap includes plans to support more storage formats in the future
-(e.g. GCP, Azure, NAS, etc.).
-
-By way of illustration first entry of a package manifest for the COCO machine learning
-dataset are shown below.
-
-```json
-{
-    "logical_key": "annotations/captions_train2017.json",
-    "physical_keys":
-    ["s3://quilt-ml-data/data/raw/annotations/captions_train2017.json?versionId=UtzkAN8FP4irtroeN9bfYP1yKzX7ko3G"],
-    "size": 91865115,
-    "hash": {
-    "type": "SHA256",
-    "value":
-    "4b62086319480e0739ef390d04084515defb9c213ff13605a036061e33314317"},
-    "meta": {}
-}
-```

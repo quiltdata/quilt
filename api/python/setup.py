@@ -8,6 +8,7 @@ from setuptools.command.install import install
 
 VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text().strip()
 
+
 def readme():
     readme_short = """
     Quilt manages data like code (with packages, repositories, browsing and
@@ -33,6 +34,7 @@ class VerifyVersionCommand(install):
                 tag, VERSION
             )
             sys.exit(info)
+
 
 setup(
     name="quilt3",
@@ -64,12 +66,10 @@ setup(
         'flask_json',
         'jsonlines==1.2.0',
         'packaging>=16.8',
-        'python-dateutil<=2.8.0',           # 2.8.1 conflicts with botocore
-        'PyYAML>=5.3',
+        'PyYAML>=5.1',
         'requests>=2.12.4',
         'tenacity>=5.1.1',
         'tqdm>=4.26.0',
-        'urllib3<1.25,>=1.21.1',            # required by requests
         'requests_futures==1.0.0',
     ],
     extras_require={

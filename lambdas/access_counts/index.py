@@ -39,7 +39,7 @@ DROP_CLOUDTRAIL = """DROP TABLE IF EXISTS cloudtrail"""
 DROP_OBJECT_ACCESS_LOG = """DROP TABLE IF EXISTS object_access_log"""
 DROP_PACKAGE_HASHES = """DROP TABLE IF EXISTS package_hashes"""
 
-CREATE_CLOUDTRAIL = textwrap.dedent(f"""\
+CREATE_CLOUDTRAIL = textwrap.dedent("""\
     CREATE EXTERNAL TABLE cloudtrail (
         eventVersion STRING,
         userIdentity STRUCT<
@@ -85,18 +85,25 @@ CREATE_CLOUDTRAIL = textwrap.dedent(f"""\
         sharedEventID STRING,
         vpcEndpointId STRING
     )
-    PARTITIONED BY (account STRING, region STRING, year STRING, month STRING, day STRING)
+    PARTITIONED BY (account STRING, region STRING, date STRING)
     ROW FORMAT SERDE 'com.amazon.emr.hive.serde.CloudTrailSerde'
     STORED AS INPUTFORMAT 'com.amazon.emr.cloudtrail.CloudTrailInputFormat'
     OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-    LOCATION 's3://{sql_escape(CLOUDTRAIL_BUCKET)}/AWSLogs/'
-    TBLPROPERTIES ('classification'='cloudtrail')
-""")
-
-ADD_CLOUDTRAIL_PARTITION = textwrap.dedent(f"""\
-    ALTER TABLE cloudtrail
-    ADD PARTITION (account = '{{account}}', region = '{{region}}', year = '{{year:04d}}', month = '{{month:02d}}', day = '{{day:02d}}')
-    LOCATION 's3://{sql_escape(CLOUDTRAIL_BUCKET)}/AWSLogs/{{account}}/CloudTrail/{{region}}/{{year:04d}}/{{month:02d}}/{{day:02d}}/'
+    LOCATION 's3://{bucket}/AWSLogs/'
+    TBLPROPERTIES (
+        'classification' = 'cloudtrail',
+        'projection.enabled' = 'true',
+        'projection.account.type' = 'enum',
+        'projection.account.values' = '{accounts}',
+        'projection.region.type' = 'enum',
+        'projection.region.values' = '{regions}',
+        'projection.date.type' = 'date',
+        'projection.date.range' = '{start_date},{end_date}',
+        'projection.date.format' = 'yyyy/MM/dd',
+        'projection.date.interval' = '1',
+        'projection.date.interval.unit' = 'DAYS',
+        'storage.location.template' = 's3://{bucket}/AWSLogs/${{account}}/CloudTrail/${{region}}/${{date}}'
+    )
 """)
 
 CREATE_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
@@ -132,7 +139,7 @@ INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent("""\
     -- Filter out non-S3 events, or S3 events like ListBucket that have no object
     -- Select the correct time range
     WHERE bucket IS NOT NULL AND key IS NOT NULL AND
-          eventtime >= from_unixtime({{start_ts:f}}) AND eventtime < from_unixtime({{end_ts:f}})
+          eventtime >= from_unixtime({start_ts:f}) AND eventtime < from_unixtime({end_ts:f})
 """)
 
 CREATE_PACKAGE_HASHES = textwrap.dedent(f"""\
@@ -166,27 +173,56 @@ OBJECT_ACCESS_COUNTS = textwrap.dedent("""\
     GROUP BY 3, 2, 1
 """)
 
-PACKAGE_ACCESS_COUNTS = textwrap.dedent("""\
+MANIFEST_PREFIX = '.quilt/packages/'
+
+PACKAGE_ACCESS_COUNTS = textwrap.dedent(f"""\
     SELECT
         eventname,
-        package_hashes.bucket AS bucket,
+        bucket,
         name,
-        CAST(histogram(date) AS JSON) AS counts
-    FROM object_access_log JOIN package_hashes
-    ON object_access_log.bucket = package_hashes.bucket AND key = concat('.quilt/packages/', hash)
+        CAST(map_agg(date, count) AS JSON) AS counts
+    FROM (
+        SELECT
+            eventname,
+            access_counts.bucket AS bucket,
+            name,
+            date,
+            sum(count) AS count
+        FROM (
+            SELECT
+                eventname,
+                bucket,
+                substr(key, {len(MANIFEST_PREFIX) + 1}) AS hash,
+                date,
+                count(*) AS count
+            FROM object_access_log
+            WHERE substr(key, 1, {len(MANIFEST_PREFIX)}) = '{sql_escape(MANIFEST_PREFIX)}'
+            GROUP BY 4, 3, 2, 1
+        ) access_counts JOIN package_hashes
+        ON access_counts.bucket = package_hashes.bucket AND access_counts.hash = package_hashes.hash
+        GROUP BY 4, 3, 2, 1
+    )
     GROUP BY 3, 2, 1
 """)
 
-PACKAGE_VERSION_ACCESS_COUNTS = textwrap.dedent("""\
+PACKAGE_VERSION_ACCESS_COUNTS = textwrap.dedent(f"""\
     SELECT
         eventname,
-        package_hashes.bucket AS bucket,
+        access_counts.bucket AS bucket,
         name,
-        hash,
-        CAST(histogram(date) AS JSON) AS counts
-    FROM object_access_log JOIN package_hashes
-    ON object_access_log.bucket = package_hashes.bucket AND key = concat('.quilt/packages/', hash)
-    GROUP BY 4, 3, 2, 1
+        access_counts.hash AS hash,
+        counts
+    FROM (
+        SELECT
+            eventname,
+            bucket,
+            substr(key, {len(MANIFEST_PREFIX) + 1}) AS hash,
+            CAST(histogram(date) AS JSON) AS counts
+        FROM object_access_log
+        WHERE substr(key, 1, {len(MANIFEST_PREFIX)}) = '{sql_escape(MANIFEST_PREFIX)}'
+        GROUP BY 3, 2, 1
+    ) access_counts JOIN package_hashes
+    ON access_counts.bucket = package_hashes.bucket AND access_counts.hash = package_hashes.hash
 """)
 
 BUCKET_ACCESS_COUNTS = textwrap.dedent("""\
@@ -210,8 +246,9 @@ EXTS_ACCESS_COUNTS = textwrap.dedent("""\
             eventname,
             bucket,
             lower(CASE
-                WHEN cardinality(parts) > 2 THEN concat(element_at(parts, -2), '.', element_at(parts, -1))
-                WHEN cardinality(parts) = 2 THEN element_at(parts, -1)
+                WHEN cardinality(parts) > 2 AND lower(element_at(parts, -1)) = 'gz'
+                    THEN concat(element_at(parts, -2), '.', element_at(parts, -1))
+                WHEN cardinality(parts) >= 2 THEN element_at(parts, -1)
                 ELSE ''
                 END
             ) AS ext,
@@ -267,6 +304,7 @@ def query_finished(execution_id):
 
 # Athena limitation for DDL queries.
 MAX_CONCURRENT_QUERIES = 20
+
 
 def run_multiple_queries(query_list):
     results = [None] * len(query_list)
@@ -327,7 +365,8 @@ def now():
 
 
 def handler(event, context):
-    # End of the CloudTrail time range we're going to look at. Subtract 15min because events can be delayed by that much.
+    # End of the CloudTrail time range we're going to look at. Subtract 15min
+    # because events can be delayed by that much.
     end_ts = now() - timedelta(minutes=15)
 
     # Start of the CloudTrail time range: the end timestamp from the previous run, or a year ago if it's the first run.
@@ -340,41 +379,40 @@ def handler(event, context):
         delete_dir(QUERY_RESULT_BUCKET, OBJECT_ACCESS_LOG_DIR)
 
     # We can't write more than 100 days worth of data at a time due to Athena's partitioning limitations.
-    # Moreover, we don't want the lambda to time out, so just process 100 days and let the next invocation handle the rest.
+    # Moreover, we don't want the lambda to time out, so just process 100 days
+    # and let the next invocation handle the rest.
     end_ts = min(end_ts, start_ts + timedelta(days=MAX_OPEN_PARTITIONS-1))
 
     # Delete the temporary directory where Athena query results are written to.
     delete_dir(QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
 
-    # Create a CloudTrail table, but only with partitions for the last N days, to avoid scanning all of the data.
-    # A bucket can have data for multiple accounts and multiple regions, so those need to be handled first.
-    partition_queries = []
-    for account_response in s3.list_objects_v2(Bucket=CLOUDTRAIL_BUCKET, Prefix='AWSLogs/', Delimiter='/').get('CommonPrefixes') or []:
+    # Find all accounts in the CloudTrail.
+    accounts = []
+    for account_response in s3.list_objects_v2(
+            Bucket=CLOUDTRAIL_BUCKET, Prefix='AWSLogs/', Delimiter='/').get('CommonPrefixes') or []:
         account = account_response['Prefix'].split('/')[1]
-        for region_response in s3.list_objects_v2(Bucket=CLOUDTRAIL_BUCKET, Prefix=f'AWSLogs/{account}/CloudTrail/', Delimiter='/').get('CommonPrefixes') or []:
-            region = region_response['Prefix'].split('/')[3]
-            date = start_ts.date()
-            while date <= end_ts.date():
-                query = ADD_CLOUDTRAIL_PARTITION.format(
-                    account=sql_escape(account),
-                    region=sql_escape(region),
-                    year=date.year,
-                    month=date.month,
-                    day=date.day
-                )
-                partition_queries.append(query)
-                date += timedelta(days=1)
+        accounts.append(account)
+
+    # Does not make network calls; appears to be hardcoded in the botocore library.
+    regions = boto3.Session().get_available_regions('s3')
 
     # Drop old Athena tables from previous runs.
     # (They're in the DB owned by the stack, so safe to do.)
     run_multiple_queries([DROP_CLOUDTRAIL, DROP_OBJECT_ACCESS_LOG, DROP_PACKAGE_HASHES])
 
+    create_cloudtrail_query = CREATE_CLOUDTRAIL.format(
+        bucket=sql_escape(CLOUDTRAIL_BUCKET),
+        accounts=','.join(accounts),
+        regions=','.join(regions),
+        start_date=start_ts.date().strftime('%Y/%m/%d'),
+        end_date=end_ts.date().strftime('%Y/%m/%d'),
+    )
+
     # Create new Athena tables.
-    run_multiple_queries([CREATE_CLOUDTRAIL, CREATE_OBJECT_ACCESS_LOG, CREATE_PACKAGE_HASHES])
+    run_multiple_queries([create_cloudtrail_query, CREATE_OBJECT_ACCESS_LOG, CREATE_PACKAGE_HASHES])
 
     # Load object access log partitions, after the object access log table is created.
-    # Create CloudTrail partitions, after the CloudTrail table is created.
-    run_multiple_queries([REPAIR_OBJECT_ACCESS_LOG] + partition_queries)
+    run_multiple_queries([REPAIR_OBJECT_ACCESS_LOG])
 
     # Delete the old timestamp: if the INSERT query or put_object fail, make sure we regenerate everything next time,
     # instead of ending up with duplicate logs.
@@ -385,8 +423,8 @@ def handler(event, context):
     run_multiple_queries([insert_query])
 
     # Save the end timestamp.
-    s3.put_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY, Body=str(end_ts.timestamp()), ContentType='text/plain')
-
+    s3.put_object(
+        Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY, Body=str(end_ts.timestamp()), ContentType='text/plain')
 
     queries = [
         ('Objects', OBJECT_ACCESS_COUNTS),

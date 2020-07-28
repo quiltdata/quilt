@@ -11,13 +11,14 @@ from flask_cors import CORS
 from flask_json import as_json
 import requests
 
-app = Flask(__name__) # pylint: disable=invalid-name
+app = Flask(__name__)  # pylint: disable=invalid-name
 app.config['JSON_USE_ENCODE_METHODS'] = True
 app.config['JSON_ADD_STATUS'] = False
 
-sts_client = boto3.client( # pylint: disable=invalid-name
+sts_client = boto3.client(  # pylint: disable=invalid-name
     'sts',
 )
+
 
 class ApiException(Exception):
     """
@@ -28,7 +29,9 @@ class ApiException(Exception):
         self.status_code = status_code
         self.message = message
 
+
 CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
+
 
 @app.route('/api/buckets', methods=['GET'])
 @as_json
@@ -39,6 +42,7 @@ def list_buckets():
     return dict(
         buckets=[]
     )
+
 
 @app.route('/api/auth/get_credentials', methods=['GET'])
 @as_json

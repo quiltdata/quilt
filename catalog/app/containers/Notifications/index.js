@@ -1,9 +1,8 @@
 import PT from 'prop-types'
 import * as React from 'react'
-import { connect } from 'react-redux'
-import { defaultProps, setPropTypes, withProps } from 'recompose'
+import * as redux from 'react-redux'
+import { defaultProps, setPropTypes } from 'recompose'
 import { bindActionCreators } from 'redux'
-import * as reduxHook from 'redux-react-hook'
 
 import { composeComponent } from 'utils/reactTools'
 import * as ReducerInjector from 'utils/ReducerInjector'
@@ -14,18 +13,14 @@ import reducer from './reducer'
 import selector from './selectors'
 import Notification from './Notification'
 
-export const Provider = composeComponent(
-  'Notifications.Provider',
-  withProps({ mount: REDUX_KEY, reducer }),
-  ReducerInjector.Inject,
-)
+export const Provider = function NotificationsProvider({ children }) {
+  ReducerInjector.useReducer(REDUX_KEY, reducer)
+  return children
+}
 
 export const Display = composeComponent(
   'Notifications.Display',
-  connect(
-    selector,
-    actions,
-  ),
+  redux.connect(selector, actions),
   setPropTypes({
     notifications: PT.arrayOf(
       PT.shape({
@@ -48,19 +43,18 @@ export const Display = composeComponent(
     )),
 )
 
-export const WithNotifications = composeComponent(
-  'Notifications.WithNotifications',
-  ({ children }) => (
-    <React.Fragment>
+export function WithNotifications({ children }) {
+  return (
+    <>
       {children}
       <Display />
-    </React.Fragment>
-  ),
-)
+    </>
+  )
+}
 
 export const useNotifications = () => {
-  const dispatch = reduxHook.useDispatch()
+  const dispatch = redux.useDispatch()
   return React.useMemo(() => bindActionCreators(actions, dispatch), [dispatch])
 }
 
-export const use = useNotifications
+export { useNotifications as use }

@@ -8,6 +8,7 @@ import * as Preview from 'components/Preview'
 import { Section, Heading } from 'components/ResponsiveSection'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink, { linkStyle } from 'utils/StyledLink'
 import { getBreadCrumbs } from 'utils/s3paths'
@@ -58,22 +59,25 @@ function Crumbs({ handle, showBucket = false }) {
 
 function Header({ handle, showBucket }) {
   const getUrl = AWS.Signer.useS3Signer()
+  const cfg = Config.use()
   return (
     <Heading display="flex" mb={1}>
       <Crumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
-      <M.Box
-        alignItems="center"
-        display="flex"
-        height={32}
-        justifyContent="center"
-        width={24}
-        my={{ xs: -0.25, md: 0 }}
-      >
-        <M.IconButton href={getUrl(handle)} title="Download" download>
-          <M.Icon>arrow_downward</M.Icon>
-        </M.IconButton>
-      </M.Box>
+      {!cfg.noDownload && (
+        <M.Box
+          alignItems="center"
+          display="flex"
+          height={32}
+          justifyContent="center"
+          width={24}
+          my={{ xs: -0.25, md: 0 }}
+        >
+          <M.IconButton href={getUrl(handle)} title="Download" download>
+            <M.Icon>arrow_downward</M.Icon>
+          </M.IconButton>
+        </M.Box>
+      )}
     </Heading>
   )
 }

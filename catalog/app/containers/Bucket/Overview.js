@@ -16,7 +16,7 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
-import Data from 'utils/Data'
+import Data, { useData } from 'utils/Data'
 import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
@@ -29,7 +29,6 @@ import * as requests from './requests'
 import bg from './Overview-bg.jpg'
 
 const RODA_LINK = 'https://registry.opendata.aws'
-const EXAMPLE_BUCKET = 'quilt-example'
 const RODA_BUCKET = 'quilt-open-data-bucket'
 const MAX_EXTS = 7
 // must have length >= MAX_EXTS
@@ -519,7 +518,7 @@ const useDownloadsStyles = M.makeStyles((t) => ({
 
 function Downloads({ bucket, colorPool, ...props }) {
   const { analyticsBucket } = Config.useConfig()
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const today = React.useMemo(() => new Date(), [])
   const classes = useDownloadsStyles()
   const ref = React.useRef(null)
@@ -554,7 +553,7 @@ function Downloads({ bucket, colorPool, ...props }) {
   return (
     <Data
       fetch={requests.bucketAccessCounts}
-      params={{ s3req, analyticsBucket, bucket, today, window }}
+      params={{ s3, analyticsBucket, bucket, today, window }}
     >
       {(data) => (
         <M.Box className={classes.root} {...props} ref={ref}>
@@ -750,12 +749,12 @@ const useHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Head({ es, s3req, overviewUrl, bucket, description }) {
+function Head({ es, s3, overviewUrl, bucket, description }) {
   const classes = useHeadStyles()
   const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
   const colorPool = useConst(() => mkKeyedPool(COLOR_MAP))
   return (
-    <Data fetch={requests.bucketStats} params={{ es, s3req, bucket, overviewUrl }}>
+    <Data fetch={requests.bucketStats} params={{ es, s3, bucket, overviewUrl }}>
       {(res) => (
         <M.Paper className={classes.root}>
           <M.Box className={classes.top}>
@@ -870,23 +869,6 @@ function Section({ heading, children, ...props }) {
   )
 }
 
-function GettingStarted({ bucket }) {
-  const { urls } = NamedRoutes.use()
-  return (
-    <Section heading="Getting Started">
-      <M.Typography>
-        Welcome to the Quilt 3 catalog for the <strong>{bucket}</strong> bucket.
-        <br />
-        For help getting started with Quilt 3 check out{' '}
-        <Link to={urls.bucketRoot(EXAMPLE_BUCKET)}>the demo bucket</Link>.
-        <br />
-        To overwrite this landing page with your own, create a new{' '}
-        <strong>README.md</strong> file at the top level of this bucket.
-      </M.Typography>
-    </Section>
-  )
-}
-
 function ContentSkel({ lines = 15, ...props }) {
   const widths = React.useMemo(() => R.times(() => 80 + Math.random() * 20, lines), [
     lines,
@@ -909,7 +891,69 @@ function ContentSkel({ lines = 15, ...props }) {
 
 const CrumbLink = M.styled(Link)({ wordBreak: 'break-word' })
 
-function FilePreview({ handle, headingOverride, fallback }) {
+const usePreviewBoxStyles = M.makeStyles((t) => ({
+  root: {
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    maxHeight: t.spacing(30),
+    minHeight: t.spacing(15),
+    position: 'relative',
+
+    // workarounds to speed-up notebook preview rendering:
+    '&:not($expanded)': {
+      // hide overflow only when not expanded, using this while expanded
+      // slows down the page in chrome
+      overflow: 'hidden',
+
+      // only show 2 first cells unless expanded
+      '& .ipynb-preview .cell:nth-child(n+3)': {
+        display: 'none',
+      },
+    },
+  },
+  expanded: {
+    maxHeight: 'none',
+  },
+  fade: {
+    alignItems: 'flex-end',
+    background: `linear-gradient(to top,
+      rgba(255, 255, 255, 1),
+      rgba(255, 255, 255, 0.9),
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.1)
+    )`,
+    bottom: 0,
+    display: 'flex',
+    height: '100%',
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    width: '100%',
+    zIndex: 1,
+  },
+}))
+
+function PreviewBox({ data, expanded: defaultExpanded = false }) {
+  const classes = usePreviewBoxStyles()
+  const [expanded, setExpanded] = React.useState(defaultExpanded)
+  const expand = React.useCallback(() => {
+    setExpanded(true)
+  }, [setExpanded])
+  return (
+    <div className={cx(classes.root, { [classes.expanded]: expanded })}>
+      {Preview.render(data)}
+      {!expanded && (
+        <div className={classes.fade}>
+          <M.Button variant="outlined" onClick={expand}>
+            Expand
+          </M.Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FilePreview({ handle, headingOverride, fallback, expanded }) {
   const { urls } = NamedRoutes.use()
 
   const crumbs = React.useMemo(() => {
@@ -970,7 +1014,7 @@ function FilePreview({ handle, headingOverride, fallback }) {
         ),
         Ok: (data) => (
           <Section heading={heading}>
-            <M.Box mx="auto">{Preview.render(data)}</M.Box>
+            <PreviewBox data={data} expanded={expanded} />
           </Section>
         ),
       }),
@@ -1078,26 +1122,25 @@ const FilePreviewSkel = () => (
   </Section>
 )
 
-function Readmes({ s3req, overviewUrl, bucket }) {
+function Readmes({ s3, overviewUrl, bucket }) {
   return (
-    <Data fetch={requests.bucketReadmes} params={{ s3req, overviewUrl, bucket }}>
+    <Data fetch={requests.bucketReadmes} params={{ s3, overviewUrl, bucket }}>
       {AsyncResult.case({
         Ok: (rs) =>
-          rs.discovered.length > 0 || rs.forced ? (
+          (rs.discovered.length > 0 || !!rs.forced) && (
             <>
               {!!rs.forced && (
                 <FilePreview
                   key="readme:forced"
                   headingOverride={false}
                   handle={rs.forced}
+                  expanded
                 />
               )}
               {rs.discovered.map((h) => (
-                <FilePreview key={`readme:${h.bucket}/${h.key}`} handle={h} />
+                <FilePreview key={`readme:${h.bucket}/${h.key}`} handle={h} expanded />
               ))}
             </>
-          ) : (
-            <GettingStarted bucket={bucket} />
           ),
         _: () => <FilePreviewSkel key="readme:skeleton" />,
       })}
@@ -1105,12 +1148,9 @@ function Readmes({ s3req, overviewUrl, bucket }) {
   )
 }
 
-function Imgs({ es, s3req, overviewUrl, inStack, bucket }) {
+function Imgs({ es, s3, overviewUrl, inStack, bucket }) {
   return (
-    <Data
-      fetch={requests.bucketImgs}
-      params={{ es, s3req, overviewUrl, inStack, bucket }}
-    >
+    <Data fetch={requests.bucketImgs} params={{ es, s3, overviewUrl, inStack, bucket }}>
       {AsyncResult.case({
         Ok: (images) => (images.length ? <Thumbnails images={images} /> : null),
         _: () => (
@@ -1131,19 +1171,35 @@ function Imgs({ es, s3req, overviewUrl, inStack, bucket }) {
   )
 }
 
-function Summary({ es, s3req, bucket, inStack, overviewUrl }) {
-  return (
-    <Data
-      fetch={requests.bucketSummary}
-      params={{ es, s3req, bucket, inStack, overviewUrl }}
-    >
-      {AsyncResult.case({
-        Ok: R.map((h) => <FilePreview key={`${h.bucket}/${h.key}`} handle={h} />),
-        Pending: () => <FilePreviewSkel />,
-        _: () => null,
-      })}
-    </Data>
-  )
+const SUMMARY_ENTRIES = 7
+
+function Summary({ es, s3, bucket, inStack, overviewUrl }) {
+  const data = useData(requests.bucketSummary, { es, s3, bucket, inStack, overviewUrl })
+  const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
+  const showMore = React.useCallback(() => {
+    setShown(R.add(SUMMARY_ENTRIES))
+  }, [setShown])
+  return data.case({
+    Ok: (entries) => {
+      const shownEntries = R.take(shown, entries)
+      return (
+        <>
+          {shownEntries.map((h) => (
+            <FilePreview key={`${h.bucket}/${h.key}`} handle={h} />
+          ))}
+          {shown < entries.length && (
+            <M.Box mt={2} display="flex" justifyContent="center">
+              <M.Button variant="contained" color="primary" onClick={showMore}>
+                Show more
+              </M.Button>
+            </M.Box>
+          )}
+        </>
+      )
+    },
+    Pending: () => <FilePreviewSkel />,
+    _: () => null,
+  })
 }
 
 export default function Overview({
@@ -1151,21 +1207,22 @@ export default function Overview({
     params: { bucket },
   },
 }) {
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const es = AWS.ES.use()
+  const { noOverviewImages } = Config.use()
   const cfg = BucketConfig.useCurrentBucketConfig()
   const inStack = !!cfg
   const overviewUrl = cfg && cfg.overviewUrl
   const description = cfg && cfg.description
   return (
-    <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
+    <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }} position="relative" zIndex={1}>
       {!!cfg && (
         <React.Suspense fallback={null}>
           <LinkedData.BucketData bucket={cfg} />
         </React.Suspense>
       )}
       {cfg ? (
-        <Head {...{ es, s3req, bucket, overviewUrl, description }} />
+        <Head {...{ es, s3, bucket, overviewUrl, description }} />
       ) : (
         <M.Box
           pt={2}
@@ -1176,9 +1233,9 @@ export default function Overview({
           <M.Typography variant="h5">{bucket}</M.Typography>
         </M.Box>
       )}
-      <Readmes {...{ s3req, bucket, overviewUrl }} />
-      <Imgs {...{ es, s3req, bucket, inStack, overviewUrl }} />
-      <Summary {...{ es, s3req, bucket, inStack, overviewUrl }} />
+      <Readmes {...{ s3, bucket, overviewUrl }} />
+      {!noOverviewImages && <Imgs {...{ es, s3, bucket, inStack, overviewUrl }} />}
+      <Summary {...{ es, s3, bucket, inStack, overviewUrl }} />
     </M.Box>
   )
 }

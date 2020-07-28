@@ -1,10 +1,35 @@
 """
 Helper functions.
 """
+from base64 import b64decode
 import gzip
+from typing import Iterable
 import json
 import os
-from base64 import b64decode
+
+from psutil import virtual_memory
+
+
+def separated_env_to_iter(
+        env_var: str,
+        *,
+        deduplicate=True,
+        lower=True,
+        predicate=None,
+        separator=","
+) -> Iterable[str]:
+    """turn a comma-separated string in the environment into a python list"""
+    candidate = os.getenv(env_var, "")
+    result = []
+    if candidate:
+        for c in candidate.split(separator):
+            token = c.strip().lower() if lower else c.strip()
+            if predicate:
+                if predicate(token):
+                    result.append(token)
+            else:
+                result.append(token)
+    return set(result) if deduplicate else result
 
 
 def get_default_origins():
@@ -15,6 +40,11 @@ def get_default_origins():
         'http://localhost:3000',
         os.environ.get('WEB_ORIGIN')
     ]
+
+
+def get_available_memory():
+    """how much virtual memory is available to us (bytes)?"""
+    return virtual_memory().available
 
 
 def make_json_response(status_code, json_object, extra_headers=None):

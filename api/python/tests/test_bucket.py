@@ -109,7 +109,6 @@ class TestBucket(QuiltTestCase):
         with pytest.raises(QuiltException):
             bucket.fetch('does/not/exist/', './')
 
-
     def test_bucket_select(self):
         # Stubber doesn't have an accurate shape for the results of select_object_content
         chunks = [
@@ -171,11 +170,10 @@ class TestBucket(QuiltTestCase):
 
     # Further testing specific to select() is in test_data_transfer
 
-
     def test_bucket_put_file(self):
         with patch("quilt3.bucket.copy_file") as copy_mock:
             bucket = Bucket('s3://test-bucket')
-            bucket.put_file(key='README.md', path='./README') # put local file to bucket
+            bucket.put_file(key='README.md', path='./README')  # put local file to bucket
 
             copy_mock.assert_called_once_with(
                 PhysicalKey.from_path('README'), PhysicalKey.from_url('s3://test-bucket/README.md'))
@@ -222,7 +220,6 @@ class TestBucket(QuiltTestCase):
 
         with pytest.raises(QuiltException):
             bucket.delete('dir/')
-
 
     def test_remote_delete_dir(self):
         self.s3_stubber.add_response(

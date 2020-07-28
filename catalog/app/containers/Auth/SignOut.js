@@ -1,15 +1,13 @@
 import * as React from 'react'
 import { FormattedMessage as FM } from 'react-intl'
 import { Redirect } from 'react-router-dom'
-import * as reduxHook from 'redux-react-hook'
+import * as redux from 'react-redux'
 import { createStructuredSelector } from 'reselect'
 
-import Lifecycle from 'components/Lifecycle'
 import Working from 'components/Working'
 import * as Config from 'utils/Config'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
-import { composeComponent } from 'utils/reactTools'
 
 import { signOut } from './actions'
 import msg from './messages'
@@ -20,9 +18,9 @@ const selector = createStructuredSelector({
   waiting: selectors.waiting,
 })
 
-export const useSignOut = () => {
+export function useSignOut() {
   const sentry = Sentry.use()
-  const dispatch = reduxHook.useDispatch()
+  const dispatch = redux.useDispatch()
   return React.useCallback(() => {
     const result = defer()
     dispatch(signOut(result.resolver))
@@ -31,17 +29,19 @@ export const useSignOut = () => {
   }, [dispatch])
 }
 
-export default composeComponent('Auth.SignOut', () => {
+export default function SignOut() {
   const cfg = Config.useConfig()
   const doSignOut = useSignOut()
-  const { waiting, authenticated } = reduxHook.useMappedState(selector)
+  const { waiting, authenticated } = redux.useSelector(selector)
+  React.useEffect(() => {
+    if (!waiting && authenticated) doSignOut()
+  }, [waiting, authenticated])
   return (
-    <React.Fragment>
-      {!waiting && authenticated && <Lifecycle willMount={doSignOut} />}
+    <>
       {!authenticated && <Redirect to={cfg.signOutRedirect} />}
       <Working>
         <FM {...msg.signOutWaiting} />
       </Working>
-    </React.Fragment>
+    </>
   )
-})
+}

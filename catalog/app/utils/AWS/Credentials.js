@@ -1,7 +1,7 @@
 import AWS from 'aws-sdk/lib/core'
 import 'aws-sdk/lib/credentials'
 import * as React from 'react'
-import * as reduxHook from 'redux-react-hook'
+import * as redux from 'react-redux'
 
 import * as Auth from 'containers/Auth'
 import * as APIConnector from 'utils/APIConnector'
@@ -60,7 +60,7 @@ function useCredentialsMemo({ local }) {
   return useMemoEq(
     {
       local,
-      auth: reduxHook.useMappedState(Auth.selectors.authenticated),
+      auth: redux.useSelector(Auth.selectors.authenticated),
       reg,
       anon,
       empty,
@@ -72,12 +72,14 @@ function useCredentialsMemo({ local }) {
 
 const Ctx = React.createContext()
 
-export function Provider({ children }) {
+export function AWSCredentialsProvider({ children }) {
   const cfg = Config.use()
   const local = cfg.mode === 'LOCAL'
   return <Ctx.Provider value={useCredentialsMemo({ local })}>{children}</Ctx.Provider>
 }
 
-export const useCredentials = () => React.useContext(Ctx)
+export function useCredentials() {
+  return React.useContext(Ctx)
+}
 
-export const use = useCredentials
+export { AWSCredentialsProvider as Provider, useCredentials as use }

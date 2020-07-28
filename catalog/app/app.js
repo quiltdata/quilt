@@ -15,6 +15,7 @@ import 'sanitize.css'
 
 // Import root app
 import Error from 'components/Error'
+import { ExperimentsProvider } from 'components/Experiments'
 import * as Intercom from 'components/Intercom'
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
@@ -25,9 +26,7 @@ import * as Auth from 'containers/Auth'
 import * as Notifications from 'containers/Notifications'
 import * as routes from 'constants/routes'
 import * as style from 'constants/style'
-import * as AWSCredentials from 'utils/AWS/Credentials'
-import * as AWSConfig from 'utils/AWS/Config'
-import * as AWSSigner from 'utils/AWS/Signer'
+import * as AWS from 'utils/AWS'
 import * as APIConnector from 'utils/APIConnector'
 import * as Config from 'utils/Config'
 import { createBoundary } from 'utils/ErrorBoundary'
@@ -72,7 +71,18 @@ const ErrorBoundary = composeComponent(
 
 // error gets automatically logged to the console, so no need to do it explicitly
 const FinalBoundary = createBoundary(() => (/* error, info */) => (
-  <h1 style={{ textAlign: 'center' }}>Something went wrong</h1>
+  <h1
+    style={{
+      alignItems: 'center',
+      color: '#fff',
+      display: 'flex',
+      height: '90vh',
+      justifyContent: 'center',
+      maxHeight: '600px',
+    }}
+  >
+    Something went wrong
+  </h1>
 ))
 
 const history = createHistory()
@@ -127,6 +137,7 @@ const render = (messages) => {
           vertical_padding: 59,
         },
       ],
+      ExperimentsProvider,
       [
         Tracking.Provider,
         {
@@ -134,9 +145,10 @@ const render = (messages) => {
           userSelector: Auth.selectors.username,
         },
       ],
-      AWSCredentials.Provider,
-      AWSConfig.Provider,
-      AWSSigner.Provider,
+      AWS.Credentials.Provider,
+      AWS.Config.Provider,
+      AWS.S3.Provider,
+      AWS.Signer.Provider,
       Notifications.WithNotifications,
       ErrorBoundary,
       BucketCacheProvider,

@@ -1,6 +1,7 @@
 """Provides admin-only functions for Quilt."""
 from .session import get_registry_url, get_session
 
+
 def create_role(name, arn):
     """
     Create a new role in your registry. Admins only.
@@ -21,6 +22,7 @@ def create_role(name, arn):
     )
 
     return response.json()
+
 
 def edit_role(role_id, new_name=None, new_arn=None):
     """
@@ -49,6 +51,7 @@ def edit_role(role_id, new_name=None, new_arn=None):
 
     return response.json()
 
+
 def delete_role(role_id):
     """
     Delete a role in your registry. Admins only.
@@ -63,6 +66,7 @@ def delete_role(role_id):
             role_id=role_id
             )
         )
+
 
 def get_role(role_id):
     """
@@ -81,6 +85,7 @@ def get_role(role_id):
 
     return response.json()
 
+
 def list_roles():
     """
     List configured roles. Admins only.
@@ -92,6 +97,7 @@ def list_roles():
         ))
 
     return response.json()['results']
+
 
 def set_role(username, role_name=''):
     """

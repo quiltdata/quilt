@@ -2,21 +2,32 @@
 Shared helper functions for generating previews for the preview lambda and the ES indexer.
 """
 from io import BytesIO
+import math
 import os
+import re
 import zlib
 
+from .utils import get_available_memory
+
+
+AVG_PARQUET_CELL_BYTES = 100  # a heuristic to avoid flooding memory
 # CATALOG_LIMIT_BYTES is bytes scanned, so acts as an upper bound on bytes returned
 # we need a largish number for things like VCF where we will discard many bytes
 # Only applied to _from_stream() types. _to_memory types are size limited either
 # by pandas or by exclude_output='true'
 CATALOG_LIMIT_BYTES = 1024*1024
-CATALOG_LIMIT_LINES = 512 # must be positive int
+CATALOG_LIMIT_LINES = 512  # must be positive int
 # number of bytes we take from each document before sending to elastic-search
 # DOC_LIMIT_BYTES is the legacy variable name; leave as-is for now; requires
 # change to CloudFormation templates to use the new name
 ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_LIMIT_LINES = 100_000
-
+MAX_PREVIEW_ROWS = 1_000
+# common string used to explain truncation to user
+TRUNCATED = (
+    'Rows and columns truncated for preview. '
+    'S3 object contains more data than shown.'
+)
 
 
 class NoopDecompressObj():
@@ -44,7 +55,7 @@ def decompress_stream(chunk_iterator, compression):
             break
 
 
-def extract_parquet(file_, as_html=True):
+def extract_parquet(file_, as_html=True, skip_rows=False):
     """
     parse and extract key metadata from parquet files
 
@@ -63,37 +74,42 @@ def extract_parquet(file_, as_html=True):
     import pyarrow.parquet as pq
 
     pf = pq.ParquetFile(file_)
-
     meta = pf.metadata
 
     info = {}
     info['created_by'] = meta.created_by
     info['format_version'] = meta.format_version
-    info['metadata'] = {
-        k.decode(): v.decode()
-        for k, v in meta.metadata.items()
-    } if meta.metadata is not None else {}
+    info['note'] = TRUNCATED
     info['num_row_groups'] = meta.num_row_groups
-
+    # in previous versions (git blame) we sent a lot more schema information
+    # but it's heavy on the browser and low information; just send column names
     info['schema'] = {
-        name: {
-            'logical_type': meta.schema.column(i).logical_type.type,
-            'max_definition_level': meta.schema.column(i).max_definition_level,
-            'max_repetition_level': meta.schema.column(i).max_repetition_level,
-            'path': meta.schema.column(i).path,
-            'physical_type': meta.schema.column(i).physical_type,
-        }
-        for i, name in enumerate(meta.schema.names)
+        'names': meta.schema.names
     }
     info['serialized_size'] = meta.serialized_size
     info['shape'] = [meta.num_rows, meta.num_columns]
-
-    # TODO: make this faster with n_threads > 1?
-    row_group = pf.read_row_group(0)
-    # convert to str since FileMetaData is not JSON.dumps'able (below)
-    dataframe = row_group.to_pandas()
+    # TODO: refactor preview code to use dask/s3fs and pyarrow.dataset scanner to
+    # spare memory; part of the reason this is so inefficient: we've already read
+    # the entire parquet file into a BytesIO by the time we get here
+    if meta.num_row_groups:
+        # guess because we meta doesn't reveal how many rows in first group
+        num_rows_guess = math.ceil(meta.num_rows / meta.num_row_groups)
+        size_guess = num_rows_guess * meta.num_columns * AVG_PARQUET_CELL_BYTES
+        if skip_rows or (size_guess > get_available_memory()):
+            import pandas
+            # minimal dataframe with all columns and one row
+            dataframe = pandas.DataFrame(columns=meta.schema.names)
+            info['warnings'] = 'Large file: skipped rows to conserve memory, only showing column names'
+        else:
+            dataframe = pf.read_row_group(0)[:MAX_PREVIEW_ROWS].to_pandas()
+    # sometimes there are neither rows nor row_groups, just columns
+    # therefore we do not call read_row_group because (with 0 row_groups)
+    # it would barf
+    else:
+        # :0 is a safety valve but there really should be no rows in this case
+        dataframe = pf.read()[:0].to_pandas()
     if as_html:
-        body = dataframe._repr_html_()# pylint: disable=protected-access
+        body = remove_pandas_footer(dataframe._repr_html_())  # pylint: disable=protected-access
     else:
         buffer = []
         size = 0
@@ -115,7 +131,6 @@ def extract_parquet(file_, as_html=True):
             if done:
                 break
         body = b"".join(buffer).decode()
-
 
     return body, info
 
@@ -150,7 +165,8 @@ def get_preview_lines(chunk_iterator, compression, max_lines, max_bytes):
     # We may still be over max_bytes at this point, up to max_bytes + CHUNK,
     # but we don't really care.
 
-    return [l.decode('utf-8', 'ignore') for l in lines]
+    return [line.decode('utf-8', 'ignore') for line in lines]
+
 
 def get_bytes(chunk_iterator, compression):
     """
@@ -163,6 +179,17 @@ def get_bytes(chunk_iterator, compression):
 
     buffer.seek(0)
     return buffer
+
+
+def remove_pandas_footer(html: str) -> str:
+    """don't include table dimensions in footer as it's confusing to the user,
+    since preview dimensions may be much smaller than file shape"""
+    return re.sub(
+        r'(</table>\n<p>)\d+ rows × \d+ columns(</p>\n</div>)$',
+        r'\1\2',
+        html
+    )
+
 
 def trim_to_bytes(string, limit):
     """trim string to specified number of bytes"""

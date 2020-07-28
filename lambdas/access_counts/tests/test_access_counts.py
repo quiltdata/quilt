@@ -4,6 +4,7 @@ import os
 from unittest import TestCase
 from unittest.mock import patch
 
+from botocore.session import Session
 from botocore.stub import Stubber
 
 
@@ -113,29 +114,18 @@ class TestAccessCounts(TestCase):
             }
         )
 
-        self.s3_stubber.add_response(
-            method='list_objects_v2',
-            expected_params={
-                'Bucket': 'cloudtrail-bucket',
-                'Prefix': 'AWSLogs/123456/CloudTrail/',
-                'Delimiter': '/',
-            },
-            service_response={
-                'CommonPrefixes': [{
-                    'Prefix': 'AWSLogs/123456/CloudTrail/ng-north-1/'
-                }]
-            }
-        )
-
         self._run_queries([index.DROP_CLOUDTRAIL, index.DROP_OBJECT_ACCESS_LOG, index.DROP_PACKAGE_HASHES])
 
-        self._run_queries([index.CREATE_CLOUDTRAIL, index.CREATE_OBJECT_ACCESS_LOG, index.CREATE_PACKAGE_HASHES])
+        cloudtrail_query = index.CREATE_CLOUDTRAIL.format(
+            bucket='cloudtrail-bucket',
+            accounts='123456',
+            regions=','.join(Session().get_available_regions('s3')),
+            start_date='2009/02/12',
+            end_date='2009/02/13',
+        )
+        self._run_queries([cloudtrail_query, index.CREATE_OBJECT_ACCESS_LOG, index.CREATE_PACKAGE_HASHES])
 
-        self._run_queries([
-            index.REPAIR_OBJECT_ACCESS_LOG,
-            index.ADD_CLOUDTRAIL_PARTITION.format(account='123456', region='ng-north-1', year=2009, month=2, day=12),
-            index.ADD_CLOUDTRAIL_PARTITION.format(account='123456', region='ng-north-1', year=2009, month=2, day=13),
-        ])
+        self._run_queries([index.REPAIR_OBJECT_ACCESS_LOG])
 
         self.s3_stubber.add_response(
             method='delete_object',
@@ -146,7 +136,9 @@ class TestAccessCounts(TestCase):
             service_response={}
         )
 
-        self._run_queries([index.INSERT_INTO_OBJECT_ACCESS_LOG.format(start_ts=start_ts.timestamp(), end_ts=end_ts.timestamp())])
+        self._run_queries([
+            index.INSERT_INTO_OBJECT_ACCESS_LOG.format(start_ts=start_ts.timestamp(), end_ts=end_ts.timestamp()),
+        ])
 
         self.s3_stubber.add_response(
             method='put_object',
@@ -159,8 +151,13 @@ class TestAccessCounts(TestCase):
             service_response={}
         )
 
-        self._run_queries([index.OBJECT_ACCESS_COUNTS, index.PACKAGE_ACCESS_COUNTS, index.PACKAGE_VERSION_ACCESS_COUNTS,
-                           index.BUCKET_ACCESS_COUNTS, index.EXTS_ACCESS_COUNTS])
+        self._run_queries([
+            index.OBJECT_ACCESS_COUNTS,
+            index.PACKAGE_ACCESS_COUNTS,
+            index.PACKAGE_VERSION_ACCESS_COUNTS,
+            index.BUCKET_ACCESS_COUNTS,
+            index.EXTS_ACCESS_COUNTS
+        ])
 
         for idx, name in enumerate(['Objects', 'Packages', 'PackageVersions', 'Bucket', 'Exts']):
             self.s3_stubber.add_response(

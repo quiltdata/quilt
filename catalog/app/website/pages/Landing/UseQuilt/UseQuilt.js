@@ -12,6 +12,8 @@ import artEng from './art-eng.png'
 import artEng2x from './art-eng@2x.png'
 import artSci from './art-sci.png'
 import artSci2x from './art-sci@2x.png'
+import artHead from './art-head.png'
+import artHead2x from './art-head@2x.png'
 import artExe from './art-exe.png'
 import artExe2x from './art-exe@2x.png'
 
@@ -71,9 +73,9 @@ const SECTIONS = [
     ],
   },
   {
-    title: 'Heads of data, executives',
+    title: 'Heads of data',
     img: {
-      src: img2x(artExe, artExe2x),
+      src: img2x(artHead, artHead2x),
       width: 436,
       mt: -40 / 8,
     },
@@ -94,6 +96,27 @@ const SECTIONS = [
       <>
         Improve security, audit-ability, and compliance by centralizing your data in the
         worlds most advanced and popular cloud storage formats.
+      </>,
+    ],
+  },
+  {
+    title: 'Executives',
+    img: {
+      src: img2x(artExe, artExe2x),
+      width: 220,
+      mt: -32 / 8,
+    },
+    bullets: [
+      <>Maximize Your Return on Data.</>,
+      <>
+        Turn S3 into a business-user friendly catalogue of all your data with configurable
+        access for your tech users, business users, and customers.
+      </>,
+      <>Reduce costs by improving data searchability and accessibility.</>,
+      <>Reduce errors and increase velocity by making data centralized and immutable.</>,
+      <>
+        Improve security, compliance by centralizing your data in the world’s most
+        advanced and popular cloud storage formats.
       </>,
     ],
   },
@@ -218,7 +241,7 @@ export default function UseQuilt() {
         <Bar color="primary" />
         <M.Box mt={5} maxWidth={520} textAlign={{ sm: 'center' }}>
           <M.Typography variant="h1" color="textPrimary">
-            Coordinate your team with shared truth
+            Accelerate from experiment to impact
           </M.Typography>
         </M.Box>
         <M.Box mt={4} mb={5} maxWidth={620}>

@@ -65,7 +65,3 @@ that scale to 10M keys; consider abbreviated "fast manifests" for lazy browsing
 * [ ] Shim ElasticSearch (consider SOLR)
 * [ ] Shim IAM via RBAC
 
-## Where are the Quilt 2 docs?
-See [here](https://docs.quiltdata.com/v/quilt-2-master/) and
-[here](https://github.com/quiltdata/quilt/tree/quilt-2-master).
-

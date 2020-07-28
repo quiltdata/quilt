@@ -1,22 +1,20 @@
-# -*- coding: utf-8 -*-
-
-### Python imports
+# Python imports
 import pathlib
 
-### Third Party imports
+# Third Party imports
 import numpy as np
 import pandas as pd
 import pytest
 
-### Project imports
+# Project imports
 from quilt3.formats import FormatRegistry
 from quilt3.util import QuiltException
 
 
-### Constants
+# Constants
 
 
-### Code
+# Code
 def test_buggy_parquet():
     """
     Test that Quilt avoids crashing on bad Pandas metadata from
@@ -27,6 +25,7 @@ def test_buggy_parquet():
         with open(path / 'data' / 'buggy_parquet.parquet', 'rb') as bad_parq:
             # Make sure this doesn't crash.
             parquet_handler.deserialize(bad_parq.read())
+
 
 def test_formats_for_obj():
     arr = np.ndarray(3)
@@ -105,6 +104,7 @@ def test_formats_csv_read():
 
     assert df.equals(expected_df)
     assert expected_bytes == FormatRegistry.serialize(df, meta)[0]
+
 
 def test_formats_csv_roundtrip():
     test_data = b'9,2,5\n7,2,6\n1,0,1\n'

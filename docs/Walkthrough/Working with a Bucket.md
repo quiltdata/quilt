@@ -36,19 +36,6 @@ b.fetch("path/to/directory", "path/to/local")
 b.fetch("path/to/file", "path/to/local")
 ```
 
-To read a file or folder out of a bucket directly into memory use `deserialize`:
-
-```python
-obj = b.deserialize("path/to/file")
-obj = b("path/to/file")  # sugar
-```
-
-To read the metadata on an object, use `get_meta`:
-
-```python
-meta = b.get_meta("path/to/file")
-```
-
 ## Writing to a bucket
 
 You can write data to a bucket.

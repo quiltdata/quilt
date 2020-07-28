@@ -24,13 +24,14 @@ A string that represents the top hash of the package
 String representation of the Package.
 
 
-## Package.install(name, registry=None, top\_hash=None, dest=None, dest\_registry=None)  {#Package.install}
+## Package.install(name, registry=None, top\_hash=None, dest=None, dest\_registry=None, \*, path=None)  {#Package.install}
 
 Installs a named package to the local registry and downloads its files.
 
 __Arguments__
 
-* __name(str)__:  Name of package to install. It also can be passed as NAME/PATH,
+* __name(str)__:  Name of package to install. It also can be passed as NAME/PATH
+    (/PATH is deprecated, use the `path` parameter instead),
     in this case only the sub-package or the entry specified by PATH will
     be downloaded.
 * __registry(str)__:  Registry where package is located.
@@ -38,21 +39,25 @@ __Arguments__
 * __top_hash(str)__:  Hash of package to install. Defaults to latest.
 * __dest(str)__:  Local path to download files to.
 * __dest_registry(str)__:  Registry to install package to. Defaults to local registry.
+* __path(str)__:  If specified, downloads only `path` or its children.
 
 
-## Package.resolve\_hash(registry, hash\_prefix)  {#Package.resolve\_hash}
+## Package.resolve\_hash(name, registry, hash\_prefix)  {#Package.resolve\_hash}
 
 Find a hash that starts with a given prefix.
+
 __Arguments__
 
-* __registry(string)__:  location of registry
-* __hash_prefix(string)__:  hash prefix with length between 6 and 64 characters
+* __name (str)__:  name of package
+* __registry (str)__:  location of registry
+* __hash_prefix (str)__:  hash prefix with length between 6 and 64 characters
 
 
 ## Package.browse(name, registry=None, top\_hash=None)  {#Package.browse}
 
 Load a package into memory from a registry without making a local copy of
 the manifest.
+
 __Arguments__
 
 * __name(string)__:  name of package to load
@@ -229,9 +234,9 @@ __Arguments__
 * __entry(PackageEntry OR string OR object)__:  new entry to place at logical_key in the package.
     If entry is a string, it is treated as a URL, and an entry is created based on it.
     If entry is None, the logical key string will be substituted as the entry value.
-    If entry is an object and quilt knows how to serialize it, it will immediately be serialized and written
-    to disk, either to serialization_location or to a location managed by quilt. List of types that Quilt
-    can serialize is available by calling `quilt3.formats.FormatRegistry.all_supported_formats()`
+    If entry is an object and quilt knows how to serialize it, it will immediately be serialized and
+    written to disk, either to serialization_location or to a location managed by quilt. List of types that
+    Quilt can serialize is available by calling `quilt3.formats.FormatRegistry.all_supported_formats()`
 * __meta(dict)__:  user level metadata dict to attach to entry
 * __serialization_format_opts(dict)__:  Optional. If passed in, only used if entry is an object. Options to help
     Quilt understand how the object should be serialized. Useful for underspecified file formats like csv
@@ -288,8 +293,8 @@ __Arguments__
 * __dest__:  where to copy the objects in the package
 * __registry__:  registry where to create the new package
 * __message__:  the commit message for the new package
-* __selector_fn__:  An optional function that determines which package entries should be copied to S3. The function
-    takes in two arguments, logical_key and package_entry, and should return False if that
+* __selector_fn__:  An optional function that determines which package entries should be copied to S3.
+    The function takes in two arguments, logical_key and package_entry, and should return False if that
     PackageEntry should be skipped during push. If for example you have a package where the files
     are spread over multiple buckets and you add a single local file, you can use selector_fn to
     only push the local file to s3 (instead of pushing all data to the destination bucket).
@@ -370,6 +375,7 @@ __Arguments__
 
 * __src(str)__:  URL of the directory
 * __extra_files_ok(bool)__:  Whether extra files in the directory should cause a failure.
+
 __Returns__
 
 True if the package matches the directory; False otherwise.
@@ -395,10 +401,8 @@ __Returns__
 a PackageEntry
 
 ## __slots__
-Built-in mutable sequence.
-
-If no argument is given, the constructor creates a new empty list.
-The argument must be an iterable if specified.
+list() -> new empty list
+list(iterable) -> new list initialized from iterable's items
 
 ## physical_keys
 
@@ -473,6 +477,7 @@ __Arguments__
     returning the result directly.
 * __**format_opts__:  Some data formats may take options.  Though
     normally handled by metadata, these can be overridden here.
+
 __Returns__
 
 The deserialized object from the logical_key

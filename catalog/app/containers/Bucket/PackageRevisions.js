@@ -388,7 +388,7 @@ function Revisions({ revisions, isTruncated, counts, bucket, name, page }) {
   const { apiGatewayEndpoint: endpoint } = Config.useConfig()
   const bucketCfg = BucketConfig.useCurrentBucketConfig()
   const sign = AWS.Signer.useS3Signer()
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
 
   const actualPage = page || 1
 
@@ -427,7 +427,7 @@ function Revisions({ revisions, isTruncated, counts, bucket, name, page }) {
         <Data
           key={r}
           fetch={requests.getRevisionData}
-          params={{ s3req, sign, endpoint, bucket, name, id: r }}
+          params={{ s3, sign, endpoint, bucket, name, id: r }}
         >
           {(res) => (
             <>
@@ -482,20 +482,25 @@ export default function PackageRevisions({
 }) {
   const { p } = parseSearch(location.search)
   const page = p && parseInt(p, 10)
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const { analyticsBucket } = Config.useConfig()
   const today = React.useMemo(() => new Date(), [])
+
+  const heading = (
+    <M.Box pt={{ xs: 2, sm: 3 }} pb={2}>
+      <M.Typography variant="h5">{name}</M.Typography>
+    </M.Box>
+  )
+
   return (
-    <>
-      <M.Box pt={{ xs: 2, sm: 3 }} pb={2}>
-        <M.Typography variant="h5">{name}</M.Typography>
-      </M.Box>
-      <Data
-        fetch={requests.getPackageRevisions}
-        params={{ s3req, analyticsBucket, bucket, name, today }}
-      >
-        {AsyncResult.case({
-          _: () => (
+    <Data
+      fetch={requests.getPackageRevisions}
+      params={{ s3, analyticsBucket, bucket, name, today }}
+    >
+      {AsyncResult.case({
+        _: () => (
+          <>
+            {heading}
             <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
               {R.times(
                 (i) => (
@@ -504,11 +509,16 @@ export default function PackageRevisions({
                 5,
               )}
             </M.Box>
-          ),
-          Err: displayError(),
-          Ok: (res) => <Revisions {...res} {...{ bucket, name, page }} />,
-        })}
-      </Data>
-    </>
+          </>
+        ),
+        Err: displayError(),
+        Ok: (res) => (
+          <>
+            {heading}
+            <Revisions {...res} {...{ bucket, name, page }} />
+          </>
+        ),
+      })}
+    </Data>
   )
 }

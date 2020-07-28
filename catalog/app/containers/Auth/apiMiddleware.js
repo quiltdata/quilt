@@ -55,13 +55,7 @@ export default function* authMiddleware({ auth = true, ...opts }, next) {
   try {
     return yield call(next, nextOpts)
   } catch (e) {
-    if (
-      handleInvalidToken &&
-      e instanceof HTTPError &&
-      e.status === 401 &&
-      e.json &&
-      e.json.message === 'Token invalid.'
-    ) {
+    if (handleInvalidToken && HTTPError.is(e, 401, 'Token invalid.')) {
       yield put(authLost(new InvalidToken({ originalError: e })))
     }
     throw e

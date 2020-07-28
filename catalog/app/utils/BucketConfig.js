@@ -1,35 +1,39 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 
+import * as AuthSelectors from 'containers/Auth/selectors'
+import * as APIConnector from 'utils/APIConnector'
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
 import { useRoute } from 'utils/router'
 
-const fetchBuckets = async ({ registryUrl }) => {
-  const res = await fetch(`${registryUrl}/api/buckets`)
-  const text = await res.text()
-  if (!res.ok) {
-    throw new Error(`Unable to fetch buckets (${res.status}):\n${text}`)
-  }
-  const json = JSON.parse(text)
-  return json.buckets.map((b) => ({
-    ...R.omit(['icon_url', 'overview_url', 'relevance_score', 'schema_org'], b),
-    iconUrl: b.icon_url,
-    overviewUrl: b.overview_url,
-    relevance: b.relevance_score,
-    linkedData: b.schema_org,
-  }))
-}
-
 export const BucketsResource = Cache.createResource({
   name: 'BucketConfig.buckets',
-  fetch: fetchBuckets,
-  key: () => null,
+  fetch: async ({ req, empty }) => {
+    if (empty) return []
+    const res = await req({ endpoint: '/buckets' })
+    return res.buckets.map((b) => ({
+      ...R.omit(['icon_url', 'overview_url', 'relevance_score', 'schema_org'], b),
+      iconUrl: b.icon_url,
+      overviewUrl: b.overview_url,
+      relevance: b.relevance_score,
+      linkedData: b.schema_org,
+    }))
+  },
+  key: ({ empty, session }) => ({ empty, session }),
 })
 
-export const useBucketConfigs = ({ suspend = true } = {}) =>
-  Cache.useData(BucketsResource, { registryUrl: Config.use().registryUrl }, { suspend })
+export function useBucketConfigs({ suspend = true } = {}) {
+  const cfg = Config.use()
+  const authenticated = redux.useSelector(AuthSelectors.authenticated)
+  const empty = cfg.alwaysRequiresAuth && !authenticated
+  const sessionId = redux.useSelector(AuthSelectors.sessionId)
+  const session = cfg.alwaysRequiresAuth && sessionId
+  const req = APIConnector.use()
+  return Cache.useData(BucketsResource, { req, empty, session }, { suspend })
+}
 
 export const useRelevantBucketConfigs = () => {
   const bs = useBucketConfigs()

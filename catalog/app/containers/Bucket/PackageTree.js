@@ -14,7 +14,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
-import Data from 'utils/Data'
+import Data, { useData } from 'utils/Data'
 import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link, { linkStyle } from 'utils/StyledLink'
@@ -55,7 +55,7 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
 }))
 
 function RevisionInfo({ revision, bucket, name, path }) {
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const sign = AWS.Signer.useS3Signer()
   const { apiGatewayEndpoint: endpoint } = Config.useConfig()
   const { urls } = NamedRoutes.use()
@@ -79,7 +79,7 @@ function RevisionInfo({ revision, bucket, name, path }) {
         )}{' '}
         <M.Icon>expand_more</M.Icon>
       </span>
-      <Data fetch={requests.getPackageRevisions} params={{ s3req, bucket, name, today }}>
+      <Data fetch={requests.getPackageRevisions} params={{ s3, bucket, name, today }}>
         {R.pipe(
           AsyncResult.case({
             Ok: ({ revisions, isTruncated }) => {
@@ -87,7 +87,7 @@ function RevisionInfo({ revision, bucket, name, path }) {
                 <Data
                   key={r}
                   fetch={requests.getRevisionData}
-                  params={{ s3req, sign, endpoint, bucket, name, id: r, maxKeys: 0 }}
+                  params={{ s3, sign, endpoint, bucket, name, id: r, maxKeys: 0 }}
                 >
                   {(res) => {
                     const modified =
@@ -304,15 +304,6 @@ const formatListing = ({ urls }, r) => {
   ]
 }
 
-const withComputedTree = (params, fn) =>
-  R.pipe(
-    AsyncResult.case({
-      Ok: R.pipe(computeTree(params), AsyncResult.Ok),
-      _: R.identity,
-    }),
-    fn,
-  )
-
 const useStyles = M.makeStyles((t) => ({
   topBar: {
     alignItems: 'flex-end',
@@ -359,21 +350,42 @@ export default function PackageTree({
   },
 }) {
   const classes = useStyles()
-  const s3req = AWS.S3.useRequest()
+  const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
   const getSignedS3URL = AWS.Signer.useS3Signer()
-  const { apiGatewayEndpoint: endpoint } = Config.useConfig()
+  const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
   const bucketCfg = BucketConfig.useCurrentBucketConfig()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
 
   const path = decode(encodedPath)
 
-  // TODO: handle revision / hash
-  const code = dedent`
-    import quilt3
-    p = quilt3.Package.browse("${name}", registry="s3://${bucket}")
-  `
+  const getCode = ({ hash }) => {
+    const nameWithPath = path ? `${name}/${path}` : name
+    const hashDisplay = revision === 'latest' ? '' : hash.substring(0, 10)
+    const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
+    const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
+    return [
+      {
+        label: 'Python',
+        hl: 'python',
+        contents: dedent`
+          import quilt3
+          # browse
+          quilt3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
+          # download
+          quilt3.Package.install("${nameWithPath}"${hashPy}, registry="s3://${bucket}", dest=".")
+        `,
+      },
+      {
+        label: 'CLI',
+        hl: 'bash',
+        contents: dedent`
+          quilt3 install ${nameWithPath}${hashCli} --registry s3://${bucket} --dest .
+        `,
+      },
+    ]
+  }
 
   const crumbs = React.useMemo(() => {
     const segments = getBreadCrumbs(path)
@@ -392,13 +404,29 @@ export default function PackageTree({
     ).concat(path.endsWith('/') ? Crumb.Sep(<>&nbsp;/</>) : [])
   }, [bucket, name, revision, path, urls])
 
+  const data = useData(requests.fetchPackageTree, {
+    s3,
+    sign: getSignedS3URL,
+    endpoint,
+    bucket,
+    name,
+    revision,
+  })
+
+  const treeRes = AsyncResult.mapCase(
+    {
+      Ok: computeTree({ bucket, name, revision, path }),
+    },
+    data.result,
+  )
+
   return (
     <M.Box pt={2} pb={4}>
       {!!bucketCfg && (
         <Data
           fetch={requests.getRevisionData}
           params={{
-            s3req,
+            s3,
             sign: getSignedS3URL,
             endpoint,
             bucket,
@@ -419,11 +447,9 @@ export default function PackageTree({
           })}
         </Data>
       )}
-      <Data
-        fetch={requests.fetchPackageTree}
-        params={{ s3req, sign: getSignedS3URL, endpoint, bucket, name, revision }}
-      >
-        {withComputedTree({ bucket, name, revision, path }, (result) => (
+      {data.case({
+        Err: displayError(),
+        _: () => (
           <>
             <M.Typography variant="body1">
               <Link to={urls.bucketPackageDetail(bucket, name)} className={classes.name}>
@@ -437,38 +463,39 @@ export default function PackageTree({
                 {renderCrumbs(crumbs)}
               </div>
               <div className={classes.spacer} />
-              {AsyncResult.case(
-                {
-                  Ok: TreeDisplay.case({
-                    File: ({ key, version }) =>
-                      xs ? (
-                        <M.IconButton
-                          className={classes.button}
-                          href={getSignedS3URL({ bucket, key, version })}
-                          edge="end"
-                          size="small"
-                          download
-                        >
-                          <M.Icon>arrow_downward</M.Icon>
-                        </M.IconButton>
-                      ) : (
-                        <M.Button
-                          href={getSignedS3URL({ bucket, key, version })}
-                          className={classes.button}
-                          variant="outlined"
-                          size="small"
-                          startIcon={<M.Icon>arrow_downward</M.Icon>}
-                          download
-                        >
-                          Download file
-                        </M.Button>
-                      ),
+              {!noDownload &&
+                AsyncResult.case(
+                  {
+                    Ok: TreeDisplay.case({
+                      File: ({ key, version }) =>
+                        xs ? (
+                          <M.IconButton
+                            className={classes.button}
+                            href={getSignedS3URL({ bucket, key, version })}
+                            edge="end"
+                            size="small"
+                            download
+                          >
+                            <M.Icon>arrow_downward</M.Icon>
+                          </M.IconButton>
+                        ) : (
+                          <M.Button
+                            href={getSignedS3URL({ bucket, key, version })}
+                            className={classes.button}
+                            variant="outlined"
+                            size="small"
+                            startIcon={<M.Icon>arrow_downward</M.Icon>}
+                            download
+                          >
+                            Download file
+                          </M.Button>
+                        ),
+                      _: () => null,
+                    }),
                     _: () => null,
-                  }),
-                  _: () => null,
-                },
-                result,
-              )}
+                  },
+                  treeRes,
+                )}
             </div>
 
             {AsyncResult.case(
@@ -496,18 +523,19 @@ export default function PackageTree({
                 }),
                 _: () => null,
               },
-              result,
+              treeRes,
             )}
 
-            <Section icon="code" heading="Code">
-              <Code>{code}</Code>
-            </Section>
+            {data.case({
+              Ok: ({ hash }) => <Code>{getCode({ hash })}</Code>,
+              _: () => null,
+            })}
 
             {AsyncResult.case(
               {
                 Ok: TreeDisplay.case({
                   File: (handle) => (
-                    <Section icon="remove_red_eye" heading="Contents" expandable={false}>
+                    <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                       <FilePreview handle={handle} />
                     </Section>
                   ),
@@ -529,7 +557,6 @@ export default function PackageTree({
                     </M.Box>
                   ),
                 }),
-                Err: displayError(),
                 _: () => (
                   // TODO: skeleton placeholder
                   <M.Box mt={2}>
@@ -537,11 +564,11 @@ export default function PackageTree({
                   </M.Box>
                 ),
               },
-              result,
+              treeRes,
             )}
           </>
-        ))}
-      </Data>
+        ),
+      })}
     </M.Box>
   )
 }

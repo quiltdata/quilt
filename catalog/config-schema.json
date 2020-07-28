@@ -17,6 +17,10 @@
       "type": "string",
       "description": "Endpoint to use for thumbnails. Should be auto-populated by your stack."
     },
+    "calendlyLink": {
+      "type": "string",
+      "description": "Calendly.com scheduling link (e.g. https://calendly.com/$username/$event) used for meeting scheduling popup aka Talk To Us."
+    },
     "googleClientId": {
       "type": "string",
       "description": "Client ID for Google Sign-In"
@@ -49,6 +53,14 @@
     "mixpanelToken": {
       "type": "string",
       "description": "Token for Mixpanel analytics service"
+    },
+    "noDownload": {
+      "type": "boolean",
+      "description": "If true, hide download buttons in the catalog."
+    },
+    "noOverviewImages": {
+      "type": "boolean",
+      "description": "If true, hide the image grid on the bucket overview page."
     },
     "passwordAuth": {
       "$ref": "#/definitions/AuthMethodConfig",
@@ -98,7 +110,11 @@
     "ssoAuth",
     "ssoProviders"
   ],
-  "additionalProperties": false,
+  "additionalProperties": {
+    "build_version": {
+        "type": "string"
+    }
+  },
   "definitions": {
     "Url": {
       "type": "string",

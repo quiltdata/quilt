@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import * as reduxHook from 'redux-react-hook'
+import * as redux from 'react-redux'
 
 import * as Config from 'utils/Config'
 
@@ -11,7 +11,7 @@ const dummy = async (method, args) => {
   console.log('Sentry(dummy):', method, args)
 }
 
-export const Provider = ({ children }) => {
+export const Provider = function SentryProvider({ children }) {
   const sentryRef = React.useRef(Promise.resolve(dummy))
   const sentry = React.useCallback(
     R.curryN(2, (method, ...args) =>
@@ -22,10 +22,10 @@ export const Provider = ({ children }) => {
   return <Ctx.Provider value={{ sentry, sentryRef }}>{children}</Ctx.Provider>
 }
 
-export const Loader = ({ children, userSelector }) => {
+export const Loader = function SentryLoader({ children, userSelector }) {
   const { promise: cfgP } = Config.useConfig({ suspend: false })
   const { sentry, sentryRef } = React.useContext(Ctx)
-  const user = reduxHook.useMappedState(userSelector)
+  const user = redux.useSelector(userSelector)
   const userRef = React.useRef(user)
 
   React.useEffect(() => {
@@ -61,11 +61,15 @@ export const Loader = ({ children, userSelector }) => {
   return children
 }
 
-export const useSentry = () => React.useContext(Ctx).sentry
+export function useSentry() {
+  return React.useContext(Ctx).sentry
+}
 
 export const use = useSentry
 
-export const Inject = ({ children }) => children(use())
+export const Inject = function InjectSentry({ children }) {
+  return children(use())
+}
 
 export const inject = (prop = 'sentry') => (Component) => (props) => (
   <Component {...props} {...{ [prop]: use() }} />

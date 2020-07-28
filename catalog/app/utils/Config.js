@@ -1,13 +1,10 @@
 import Ajv from 'ajv'
-import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RC from 'recompose'
 
 import AsyncResult from 'utils/AsyncResult'
 import * as Cache from 'utils/ResourceCache'
 import { BaseError } from 'utils/error'
-import * as RT from 'utils/reactTools'
 
 import configSchema from '../../config-schema.json'
 
@@ -81,17 +78,16 @@ const ConfigResource = Cache.createResource({
 
 const Ctx = React.createContext()
 
-export const Provider = RT.composeComponent(
-  'Config.Provider',
-  RC.setPropTypes({
-    path: PT.string.isRequired,
-  }),
-  ({ path, children }) => <Ctx.Provider value={path}>{children}</Ctx.Provider>,
-)
+export function ConfigProvider({ path, children }) {
+  return <Ctx.Provider value={path}>{children}</Ctx.Provider>
+}
 
-export const useConfig = ({ suspend = true } = {}) =>
-  Cache.useData(ConfigResource, React.useContext(Ctx), { suspend })
+export function useConfig({ suspend = true } = {}) {
+  return Cache.useData(ConfigResource, React.useContext(Ctx), { suspend })
+}
 
-export const use = useConfig
+export const Inject = function InjectConfig({ children }) {
+  return children(AsyncResult.Ok(useConfig()))
+}
 
-export const Inject = ({ children }) => children(AsyncResult.Ok(use()))
+export { ConfigProvider as Provider, useConfig as use }
