@@ -81,7 +81,7 @@ export default function Buckets() {
 
   usePrevious(page, (prev) => {
     if (prev && page !== prev && scrollRef.current) {
-      scrollRef.current.scrollIntoView()
+      scrollRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   })
 
@@ -102,6 +102,7 @@ export default function Buckets() {
       id="buckets"
       ref={scrollIntoView()}
     >
+      <div ref={scrollRef} style={{ position: 'relative', top: -72 }} />
       <M.TextField
         className={classes.filter}
         value={filter}
@@ -125,7 +126,6 @@ export default function Buckets() {
           ) : undefined,
         }}
       />
-      <div ref={scrollRef} />
       {paginated.length ? (
         <BucketGrid
           buckets={paginated}
