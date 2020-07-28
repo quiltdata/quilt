@@ -186,9 +186,10 @@ class TestPackageBrowse(TestCase):
         assert isinstance(df, pd.DataFrame)
 
         folder = get_logical_key_folder_view(df)
-        assert len(folder) == 2
-        assert 'foo.csv' in folder
-        assert 'bar/' in folder
+        assert len(folder['prefixes']) == 1
+        assert len(folder['objects']) == 1
+        assert 'foo.csv' in folder['objects']
+        assert 'bar/' in folder['prefixes']
 
     def test_browse_subfolder(self):
         """
@@ -203,10 +204,11 @@ class TestPackageBrowse(TestCase):
         stripped = filtered_df['logical_key'].str.slice(start=len(prefix))
         folder = get_logical_key_folder_view(stripped.to_frame('logical_key'))
         print(folder)
-        assert len(folder) == 3
-        assert "file1.txt" in folder
-        assert "file2.txt" in folder
-        assert "baz/" in folder
+        assert len(folder['prefixes']) == 1
+        assert len(folder['objects']) == 2
+        assert "file1.txt" in folder['objects']
+        assert "file2.txt" in folder['objects']
+        assert "baz/" in folder['prefixes']
 
     def test_browse_subsubfolder(self):
         """
@@ -219,6 +221,9 @@ class TestPackageBrowse(TestCase):
         filtered_df = df[df['logical_key'].str.startswith(prefix)]
         stripped = filtered_df['logical_key'].str.slice(start=len(prefix))
         folder = get_logical_key_folder_view(stripped.to_frame('logical_key'))
-        assert len(folder) == 2
-        assert "file3.txt" in folder
-        assert "file4.txt" in folder
+        assert "objects" in folder
+        assert "prefixes" in folder
+        assert folder['prefixes']
+        assert len(folder['objects']) == 2
+        assert "file3.txt" in folder['objects']
+        assert "file4.txt" in folder['objects']

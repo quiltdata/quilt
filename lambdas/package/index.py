@@ -110,7 +110,7 @@ def get_logical_key_folder_view(df):  # pylint: disable=invalid-name
     folder = pd.Series(df.logical_key.dropna().str.extract('([^/]+/?).*')[0].unique())
     return dict(
         prefixes=folder[folder.str.endswith('/')].sort_values().tolist(),
-        obects=folder[~folder.str.endswith('/')].sort_values().tolist()
+        objects=folder[~folder.str.endswith('/')].sort_values().tolist()
     )
 
 
