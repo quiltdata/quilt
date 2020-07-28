@@ -71,7 +71,7 @@ def load_df(s3response):
         raise IncompleteResultException("Error: Received an incomplete response from S3 Select.")
 
     buffer.seek(0)
-    df = pd.read_json(buffer, lines=True)  # pylint: disable=invalid-name
+    df = pd.read_json(buffer, lines=True)
     return df, stats
 
 
@@ -99,7 +99,7 @@ def load_manifest_detail(s3response):
     return response_data
 
 
-def get_logical_key_folder_view(df):  # pylint: disable=invalid-name
+def get_logical_key_folder_view(df):
     """
     Post process a set of logical keys to return only the
     top-level folder view (a special case of the s3-select
@@ -200,7 +200,7 @@ def lambda_handler(request):
         response = call_s3_select(s3_client, bucket, key, prefix)
 
         # Parse the response into a logical folder view
-        df, _ = load_df(response)  # pylint: disable=invalid-name
+        df, _ = load_df(response)
         response_data = get_logical_key_folder_view(df)
 
     ret_val = make_json_response(
