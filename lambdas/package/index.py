@@ -138,7 +138,7 @@ def call_s3_select(s3_client, bucket, key, logical_key_prefix, detail=False):
 
     prefix_length = len(logical_key_prefix)
     sanitized = logical_key_prefix.replace("'", "''")
-    
+
     if detail:
         logical_key = sanitized
         sql_stmt = f"SELECT s.* FROM s3object s WHERE s.logical_key = '{logical_key}' LIMIT 1"
