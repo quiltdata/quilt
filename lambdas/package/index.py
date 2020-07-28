@@ -1,11 +1,9 @@
 """
-Provide the head of a (potentially gzipped) file in S3. Stream to limit
-disk and RAM pressure.
-
-Lambda functions can have up to 3GB of RAM and only 512MB of disk.
+Provide a virtual-file-system view of a package's logical keys.
 """
 
 import io
+import json
 
 import boto3
 import pandas as pd
@@ -33,8 +31,11 @@ SCHEMA = {
         'prefix': {
             'type': 'string'
         },
+        'logical_key': {
+            'type': 'string'
+        }
     },
-    'required': ['bucket', 'key', 'access_key', 'secret_key'],
+    'required': ['bucket', 'manifest', 'access_key', 'secret_key'],
     'additionalProperties': False
 }
 
@@ -67,11 +68,35 @@ def load_df(s3response):
             end_event_received = True
 
     if not end_event_received:
-        raise IncompleteResultException("Should be failing")
+        raise IncompleteResultException("Error: Received an incomplete response from S3 Select.")
 
     buffer.seek(0)
     df = pd.read_json(buffer, lines=True)  # pylint: disable=invalid-name
     return df, stats
+
+
+def load_manifest_detail(s3response):
+    """
+    Read a streaming response from s3 select into a dict
+    """
+    end_event_received = False
+    response_data = None
+    for event in s3response['Payload']:
+        if 'Records' in event:
+            records = event['Records']['Payload'].decode()
+            response_data = json.loads(records)
+        elif 'Progress' in event:
+            print(event['Progress']['Details'])
+        elif 'Stats' in event:
+            print(event['Stats']['Details'])
+        elif 'End' in event:
+            # End event indicates that the request finished successfully
+            end_event_received = True
+
+    if not end_event_received:
+        raise IncompleteResultException("Error: Received an incomplete response from S3 Select.")
+
+    return response_data
 
 
 def get_logical_key_folder_view(df):  # pylint: disable=invalid-name
@@ -122,6 +147,26 @@ def call_s3_select(s3_client, bucket, key, prefix):
     return response
 
 
+def call_s3_select_detail(s3_client, bucket, key, logical_key):
+    """
+    Extract a single row from a manifest using S3 Select
+    """
+    sql_stmt = f"SELECT s.* FROM s3object s WHERE s.logical_key = '{logical_key}' LIMIT 1"
+    print(sql_stmt)
+    response = s3_client.select_object_content(
+        Bucket=bucket,
+        Key=key,
+        ExpressionType='SQL',
+        Expression=sql_stmt,
+        InputSerialization={
+            'JSON': {'Type': 'DOCUMENT'},
+            'CompressionType': 'NONE'
+        },
+        OutputSerialization={'JSON': {'RecordDelimiter': '\n'}}
+    )
+    return response
+
+
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 def lambda_handler(request):
@@ -132,25 +177,33 @@ def lambda_handler(request):
         JSON response
     """
     bucket = request.args['bucket']
-    key = request.args['key']
+    key = request.args['manifest']
     aws_access_key_id = request.args['access_key']
     aws_secret_access_key = request.args['secret_key']
     prefix = request.args.get('prefix')
-
+    logical_key = request.args.get('logical_key')
+    
     # Create an s3 client using the provided credentials
     s3_client = get_s3_client(aws_access_key_id, aws_secret_access_key)
 
-    # Call s3 select to fetch only logical keys matching the
-    # desired prefix (folder path)
-    response = call_s3_select(s3_client, bucket, key, prefix)
+    # Get details of a single file in the package
+    if logical_key is not None:
+        response = call_s3_select_detail(s3_client, bucket, key, logical_key)
+        # parse and prep response
+        response_data = load_manifest_detail(response)
+    else:
+        # Call s3 select to fetch only logical keys matching the
+        # desired prefix (folder path)
+        response = call_s3_select(s3_client, bucket, key, prefix)
 
-    # Parse the response into a logical folder view
-    df, _ = load_df(response)  # pylint: disable=invalid-name
+        # Parse the response into a logical folder view
+        df, _ = load_df(response)  # pylint: disable=invalid-name
+        response_data = get_logical_key_folder_view(df)
 
     ret_val = make_json_response(
         200,
         {
-            'contents': get_logical_key_folder_view(df)
+            'contents': response_data
         }
     )
 
