@@ -223,7 +223,7 @@ class TestPackageBrowse(TestCase):
         folder = get_logical_key_folder_view(stripped.to_frame('logical_key'))
         assert "objects" in folder
         assert "prefixes" in folder
-        assert folder['prefixes']
+        assert not folder['prefixes']
         assert len(folder['objects']) == 2
         assert "file3.txt" in folder['objects']
         assert "file4.txt" in folder['objects']

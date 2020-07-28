@@ -126,36 +126,22 @@ def get_s3_client(aws_access_key_id, aws_secret_access_key):
     return s3_client
 
 
-def call_s3_select(s3_client, bucket, key, prefix):
+def call_s3_select(s3_client, bucket, key, logical_key_prefix, detail=False):
     """
     Call S3 Select to read only the logical keys from a
     package manifest that match the desired folder path
     prefix
     """
-    sql_stmt = f"SELECT SUBSTRING(s.logical_key, {len(prefix) + 1}) AS logical_key FROM s3object s"
-    if prefix:
-        sql_stmt += f" WHERE SUBSTRING(s.logical_key, 1, {len(prefix)}) = '{prefix}'"
 
-    response = s3_client.select_object_content(
-        Bucket=bucket,
-        Key=key,
-        ExpressionType='SQL',
-        Expression=sql_stmt,
-        InputSerialization={
-            'JSON': {'Type': 'DOCUMENT'},
-            'CompressionType': 'NONE'
-        },
-        OutputSerialization={'JSON': {'RecordDelimiter': '\n'}}
-    )
-    return response
+    if detail:
+        logical_key = logical_key_prefix
+        sql_stmt = f"SELECT s.* FROM s3object s WHERE s.logical_key = '{logical_key}' LIMIT 1"
+    else:
+        prefix = logical_key_prefix
+        sql_stmt = f"SELECT SUBSTRING(s.logical_key, {len(prefix) + 1}) AS logical_key FROM s3object s"
+        if prefix:
+            sql_stmt += f" WHERE SUBSTRING(s.logical_key, 1, {len(prefix)}) = '{prefix}'"
 
-
-def call_s3_select_detail(s3_client, bucket, key, logical_key):
-    """
-    Extract a single row from a manifest using S3 Select
-    """
-    sql_stmt = f"SELECT s.* FROM s3object s WHERE s.logical_key = '{logical_key}' LIMIT 1"
-    print(sql_stmt)
     response = s3_client.select_object_content(
         Bucket=bucket,
         Key=key,
@@ -191,7 +177,7 @@ def lambda_handler(request):
 
     # Get details of a single file in the package
     if logical_key is not None:
-        response = call_s3_select_detail(s3_client, bucket, key, logical_key)
+        response = call_s3_select(s3_client, bucket, key, logical_key, detail=True)
         # parse and prep response
         response_data = load_manifest_detail(response)
     else:
