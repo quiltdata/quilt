@@ -80,7 +80,7 @@
     "dompurify": "^2.0.12",
     "express": "^4.17.1",
     "fontfaceobserver": "^2.1.0",
-    "highlight.js": "^9.18.1",
+    "highlight.js": "^9.18.2",
     "history": "^4.10.1",
     "immutable": "^3.8.2",
     "intl": "^1.2.5",
