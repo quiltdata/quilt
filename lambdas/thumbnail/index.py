@@ -15,6 +15,7 @@ from typing import List, Tuple
 
 import imageio
 import numpy as np
+from pdf2image import convert_from_bytes
 import requests
 from aicsimageio import AICSImage, readers
 from PIL import Image
@@ -55,8 +56,15 @@ SCHEMA = {
         'size': {
             'enum': list(SIZE_PARAMETER_MAP)
         },
+        'input': {
+            'enum': ['pdf']
+        },
         'output': {
             'enum': ['json', 'raw']
+        },
+        'page': {
+            'type': 'integer',
+            'minimum': 1
         }
     },
     'required': ['url', 'size'],
@@ -218,6 +226,7 @@ def lambda_handler(request):
     # Parse request info
     url = request.args['url']
     size = SIZE_PARAMETER_MAP[request.args['size']]
+    input_ = request.args.get('input', 'image')
     output = request.args.get('output', 'json')
 
     # Handle request
@@ -231,49 +240,47 @@ def lambda_handler(request):
         # Usually an OME-TIFF / CZI / some other bio-format
         except ValueError:
             thumbnail_format = "PNG"
-
-        # Read image data
-        img = AICSImage(resp.content)
-        orig_size = list(img.reader.data.shape)
-
-        # Generate a formatted ndarray using the image data
-        # Makes some assumptions for n-dim data
-        img = format_aicsimage_to_prepped(img)
-
-        # Send to Image object for thumbnail generation and saving to bytes
-        img = Image.fromarray(img)
-
-        # Generate thumbnail
-        img.thumbnail(size)
-        thumbnail_size = img.size
-
-        # Store the bytes
-        thumbnail_bytes = BytesIO()
-        img.save(thumbnail_bytes, thumbnail_format)
-
-        # Get bytes data
-        data = thumbnail_bytes.getvalue()
-
-        # Create metadata object
-        info = {
-            'original_size': orig_size,
-            'thumbnail_format': thumbnail_format,
-            'thumbnail_size': thumbnail_size,
-        }
-
-        # Store data
-        if output == 'json':
-            ret_val = {
-                'info': info,
-                'thumbnail': base64.b64encode(data).decode(),
+        
+        if input_ == 'pdf':
+            pass
+        else:
+            # Read image data
+            img = AICSImage(resp.content)
+            orig_size = list(img.reader.data.shape)
+            # Generate a formatted ndarray using the image data
+            # Makes some assumptions for n-dim data
+            img = format_aicsimage_to_prepped(img)
+            # Send to Image object for thumbnail generation and saving to bytes
+            img = Image.fromarray(img)
+            # Generate thumbnail
+            img.thumbnail(size)
+            thumbnail_size = img.size
+            # Store the bytes
+            thumbnail_bytes = BytesIO()
+            img.save(thumbnail_bytes, thumbnail_format)
+            # Get bytes data
+            data = thumbnail_bytes.getvalue()
+            # Create metadata object
+            info = {
+                'original_size': orig_size,
+                'thumbnail_format': thumbnail_format,
+                'thumbnail_size': thumbnail_size,
             }
-            return make_json_response(200, ret_val)
+            # Store data
+            if output == 'json':
+                ret_val = {
+                    'info': info,
+                    'thumbnail': base64.b64encode(data).decode(),
+                }
+                return make_json_response(200, ret_val)
 
-        # Not json response
-        headers = {
-            'Content-Type': Image.MIME[thumbnail_format],
-            'X-Quilt-Info': json.dumps(info)
-        }
+            # Not json response
+            headers = {
+                'Content-Type': Image.MIME[thumbnail_format],
+                'X-Quilt-Info': json.dumps(info)
+            }
+
+
         return 200, data, headers
 
     # Errored, return error code
