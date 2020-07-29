@@ -37,4 +37,27 @@ export FONTCONFIG_PATH=/io/fonts/
 ## `pdftoppm`
 * Page numbering starts at 1 (not 0)
 * Providing size=INT to a convert function ensures largest dimension == INT
+* first_page can be negative (lib rounds up to 1)
+* last_page can be > than total pages (lib takes min)
 
+No format (=ppm) faster than JPEG faster than PNG
+
+``` (=ppm)(=ppm) 
+In [8]: %timeit imgs = pdf2image.convert_from_path("tests/data/MUMmer.pdf", fmt="png",size=(1024,768))                                                             
+4.3 s ± 162 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+In [9]: %timeit imgs = pdf2image.convert_from_path("tests/data/MUMmer.pdf", fmt="jpeg", size=(1024,768))                                                            
+970 ms ± 58.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+In [10]: %timeit imgs = pdf2image.convert_from_path("tests/data/MUMmer.pdf", size=(1024,768))                                                                      
+798 ms ± 37.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+```
+
+jpeg also outputs faster:
+```
+In [14]: %timeit imgs[3].save("tmp-1024-768.png")                                     
+198 ms ± 4.97 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+In [15]: %timeit imgs[3].save("tmp-1024-768.jpeg")                                    
+44.1 ms ± 4.36 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+```

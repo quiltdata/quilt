@@ -16,6 +16,12 @@ from typing import List, Tuple
 import imageio
 import numpy as np
 from pdf2image import convert_from_bytes
+from pdf2image.exceptions import (
+    PDFInfoNotInstalledError,
+    PDFPageCountError,
+    PDFSyntaxError,
+    PopplerNotInstalledError
+)
 import requests
 from aicsimageio import AICSImage, readers
 from PIL import Image
@@ -228,6 +234,7 @@ def lambda_handler(request):
     size = SIZE_PARAMETER_MAP[request.args['size']]
     input_ = request.args.get('input', 'image')
     output = request.args.get('output', 'json')
+    page = request.args.get('page', 1)
 
     # Handle request
     resp = requests.get(url)
@@ -240,9 +247,38 @@ def lambda_handler(request):
         # Usually an OME-TIFF / CZI / some other bio-format
         except ValueError:
             thumbnail_format = "PNG"
-        
+
         if input_ == 'pdf':
-            pass
+            try:
+                pages = convert_from_bytes(
+                    resp.content,
+                    first_page=page,
+                    last_page=page,
+                    # preserve aspect ratio, our largest dimension will be
+                    # the largest requested dimension but could be width or height
+                    size=max(size)
+                )
+            except (
+                    PDFInfoNotInstalledError,
+                    PDFPageCountError,
+                    PDFSyntaxError,
+                    PopplerNotInstalledError
+            ) as exc:
+                return make_json_response(500, {'error': str(exc)})
+
+            assert len(pages) == 1, 'Expected to generate and return a single image'
+            assert output == 'raw', 'input=pdf only compatible with output=raw'
+            # singleton array of PIL images
+            data = pages[0].tobytes()
+            headers = {
+                # always return JPEG, it's faster
+                'Content-Type': Image.MIME["JPEG"],
+                'X-Quilt-Info': json.dumps({
+                    'thumbnail_format': "JPEG",
+                    'size_used': max(size)
+                })
+            }
+
         else:
             # Read image data
             img = AICSImage(resp.content)
