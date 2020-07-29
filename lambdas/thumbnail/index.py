@@ -261,7 +261,6 @@ def lambda_handler(request):
                 return make_json_response(500, {'error': str(exc)})
 
             assert len(pages) == 1, 'Expected to generate and return a single image'
-            # assert output == 'raw', 'input=pdf only compatible with output=raw'
             # singleton array of PIL images
             preview = pages[0]
             info = {
