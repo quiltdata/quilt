@@ -54,7 +54,7 @@ export default function Section({
     typeof nodeOrFn === 'function' ? nodeOrFn({ expanded, setExpanded }) : nodeOrFn
 
   return (
-    <M.ExpansionPanel
+    <M.Accordion
       expanded={expanded}
       onChange={onChange}
       className={cx({
@@ -63,7 +63,7 @@ export default function Section({
       })}
       {...props}
     >
-      <M.ExpansionPanelSummary
+      <M.AccordionSummary
         expandIcon={expandable && <M.Icon>expand_more</M.Icon>}
         classes={{
           expanded: classes.summaryExpanded,
@@ -76,8 +76,8 @@ export default function Section({
           {renderNodeOrFn(heading)}
         </M.Typography>
         {renderNodeOrFn(extraSummary)}
-      </M.ExpansionPanelSummary>
-      <M.ExpansionPanelDetails>{renderNodeOrFn(children)}</M.ExpansionPanelDetails>
-    </M.ExpansionPanel>
+      </M.AccordionSummary>
+      <M.AccordionDetails>{renderNodeOrFn(children)}</M.AccordionDetails>
+    </M.Accordion>
   )
 }
