@@ -248,6 +248,7 @@ def lambda_handler(request):
         except ValueError:
             thumbnail_format = "PNG"
 
+        # TODO: copy fonts, libraries, binaries to Lambda, set LIB and font ENV VARS 
         if input_ == 'pdf':
             try:
                 pages = convert_from_bytes(
@@ -315,7 +316,6 @@ def lambda_handler(request):
                 'Content-Type': Image.MIME[thumbnail_format],
                 'X-Quilt-Info': json.dumps(info)
             }
-
 
         return 200, data, headers
 
