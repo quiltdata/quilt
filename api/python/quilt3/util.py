@@ -25,7 +25,7 @@ OPEN_DATA_URL = "https://open.quiltdata.com"
 
 PACKAGE_NAME_FORMAT = r"([\w-]+/[\w-]+)(?:/(.+))?$"
 DISABLE_TQDM = os.getenv('QUILT_MINIMIZE_STDOUT', '').lower() == 'true'
-PACKAGE_UPDATE_POLICY = {'incoming', 'existing', }
+PACKAGE_UPDATE_POLICY = {'incoming', 'existing'}
 
 # CONFIG_TEMPLATE
 # Must contain every permitted config key, as well as their default values (which can be 'null'/None).

@@ -526,6 +526,61 @@ class PackageTest(QuiltTestCase):
 
             list_object_versions_mock.assert_called_with('bucket', 'foo/')
 
+    def test_set_dir_update_policy(self):
+        """Verify building a package with update policy. """
+
+        # Test for local src dir
+        foodir = pathlib.Path("foo_dir")
+        bazdir = pathlib.Path("baz_dir")
+        foodir.mkdir()
+        bazdir.mkdir()
+        with open(foodir / 'bar', 'w') as fd:
+            fd.write(fd.name)
+        with open(bazdir / 'bar', 'w') as fd:
+            fd.write(''.join([str(i) for i in range(1000)]))
+
+        pkg = Package()
+        pkg = pkg.set_dir("/", ".", meta={'name': 'test_meta'})
+        assert 'foo_dir' in pkg.keys()
+        existing_bar_size = pkg['foo_dir/bar'].size
+
+        # existing update policy
+        pkg = pkg.set_dir("foo_dir", bazdir, update_policy='existing')
+        assert 'foo_dir' in pkg.keys()
+        assert existing_bar_size == pkg['foo_dir/bar'].size
+
+        # incoming update policy
+        pkg = pkg.set_dir("foo_dir", bazdir)
+        assert 'foo_dir' in pkg.keys()
+        assert existing_bar_size != pkg['foo_dir/bar'].size
+
+        # verify non existing update policy raises value error
+        with pytest.raises(ValueError):
+            pkg.set_dir("foo_dir", foodir, update_policy='invalid_policy')
+
+        # Test for s3 src dir
+        with patch('quilt3.packages.list_object_versions') as list_object_versions_mock:
+            pkg = Package()
+
+            list_object_versions_mock.return_value = ([
+                dict(Key='foo/a.txt', VersionId='xyz', IsLatest=True, Size=10),
+            ], [])
+
+            pkg.set_dir('', 's3://bucket/foo/', meta={'name': 'test_meta'})
+            assert pkg['a.txt'].get() == 's3://bucket/foo/a.txt?versionId=xyz'
+
+            list_object_versions_mock.return_value = ([
+                dict(Key='bar/a.txt', VersionId='abc', IsLatest=True, Size=10),
+            ], [])
+
+            # existing update policy
+            pkg.set_dir('', 's3://bucket/bar', update_policy='existing')
+            assert pkg['a.txt'].get() == 's3://bucket/foo/a.txt?versionId=xyz'
+
+            # incoming update policy
+            pkg.set_dir('', 's3://bucket/bar')
+            assert pkg['a.txt'].get() == 's3://bucket/bar/a.txt?versionId=abc'
+
     def test_package_entry_meta(self):
         pkg = (
             Package()
