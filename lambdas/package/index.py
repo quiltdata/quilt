@@ -47,56 +47,30 @@ class IncompleteResultException(Exception):
     """
 
 
-def load_df(s3response):
+def buffer_s3response(s3response):
     """
     Read a streaming response from s3 select into a
-    Pandas DataFrame
+    StringIO buffer
     """
-    buffer = io.StringIO()
+    response = io.StringIO()
     end_event_received = False
     stats = None
     for event in s3response['Payload']:
         if 'Records' in event:
             records = event['Records']['Payload'].decode()
-            buffer.write(records)
+            response.write(records)
         elif 'Progress' in event:
             print(event['Progress']['Details'])
         elif 'Stats' in event:
-            stats = event['Stats']['Details']
+            print(stats)
         elif 'End' in event:
             # End event indicates that the request finished successfully
             end_event_received = True
 
     if not end_event_received:
         raise IncompleteResultException("Error: Received an incomplete response from S3 Select.")
-
-    buffer.seek(0)
-    df = pd.read_json(buffer, lines=True)
-    return df, stats
-
-
-def load_manifest_detail(s3response):
-    """
-    Read a streaming response from s3 select into a dict
-    """
-    end_event_received = False
-    response_data = None
-    for event in s3response['Payload']:
-        if 'Records' in event:
-            records = event['Records']['Payload'].decode()
-            response_data = json.loads(records)
-        elif 'Progress' in event:
-            print(event['Progress']['Details'])
-        elif 'Stats' in event:
-            print(event['Stats']['Details'])
-        elif 'End' in event:
-            # End event indicates that the request finished successfully
-            end_event_received = True
-
-    if not end_event_received:
-        raise IncompleteResultException("Error: Received an incomplete response from S3 Select.")
-
-    return response_data
+    response.seek(0)
+    return response
 
 
 def get_logical_key_folder_view(df):
@@ -186,14 +160,15 @@ def lambda_handler(request):
     if logical_key is not None:
         response = call_s3_select(s3_client, bucket, key, logical_key, detail=True)
         # parse and prep response
-        response_data = load_manifest_detail(response)
+        response_data = json.loads(buffer_s3response(response))
     else:
         # Call s3 select to fetch only logical keys matching the
         # desired prefix (folder path)
         response = call_s3_select(s3_client, bucket, key, prefix)
 
         # Parse the response into a logical folder view
-        df, _ = load_df(response)
+        result = buffer_s3response(response)
+        df = pd.read_json(result, lines=True)
         response_data = get_logical_key_folder_view(df)
 
     ret_val = make_json_response(

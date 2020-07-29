@@ -10,7 +10,10 @@ import boto3
 import pandas as pd
 import responses
 
-from ..index import call_s3_select, get_logical_key_folder_view, load_df, IncompleteResultException
+from ..index import (
+    buffer_s3response, call_s3_select, get_logical_key_folder_view,
+    IncompleteResultException
+)
 
 
 class TestPackageBrowse(TestCase):
@@ -208,14 +211,14 @@ class TestPackageBrowse(TestCase):
         detected and an exception is raised.
         """
         with self.assertRaises(IncompleteResultException):
-            _, _ = load_df(self.s3response_incomplete)  # pylint: disable=invalid-name
+            buffer_s3response(self.s3response_incomplete)
 
     def test_browse_top_level(self):
         """
         Test that the S3 Select response is parsed
         into the correct top-level folder view.
         """
-        df, _ = load_df(self.s3response)  # pylint: disable=invalid-name
+        df = pd.read_json(buffer_s3response(self.s3response), lines=True)
         assert isinstance(df, pd.DataFrame)
 
         folder = get_logical_key_folder_view(df)
@@ -230,7 +233,7 @@ class TestPackageBrowse(TestCase):
         into the correct sub-folder view.
         """
         prefix = "bar/"
-        df, _ = load_df(self.s3response)  # pylint: disable=invalid-name
+        df = pd.read_json(buffer_s3response(self.s3response), lines=True)
         assert isinstance(df, pd.DataFrame)
 
         filtered_df = df[df['logical_key'].str.startswith(prefix)]
@@ -249,7 +252,7 @@ class TestPackageBrowse(TestCase):
         into the correct sub-sub-folder view.
         """
         prefix = "bar/baz/"
-        df, _ = load_df(self.s3response)  # pylint: disable=invalid-name
+        df = pd.read_json(buffer_s3response(self.s3response), lines=True)
         assert isinstance(df, pd.DataFrame)
         filtered_df = df[df['logical_key'].str.startswith(prefix)]
         stripped = filtered_df['logical_key'].str.slice(start=len(prefix))
