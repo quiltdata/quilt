@@ -243,7 +243,6 @@ def lambda_handler(request):
             thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(imageio.get_reader(resp.content), "PNG")
         except ValueError:
             thumbnail_format = "JPEG" if input_ == "pdf" else "PNG"
-        # TODO: copy fonts, libraries, binaries to Lambda, set LIB and font ENV VARS
         if input_ == "pdf":
             try:
                 pages = convert_from_bytes(
