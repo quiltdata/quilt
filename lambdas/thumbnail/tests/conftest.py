@@ -10,4 +10,4 @@ def pytest_addoption(parser):
 
 def pytest_configure(config):
     if not config.option.poppler:
-        setattr(config.option, 'markexpr', 'not popplertools')
+        setattr(config.option, 'markexpr', 'not poppler')

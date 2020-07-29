@@ -1,0 +1,3 @@
+[pytest]
+markers =
+    pdf: pdf test requiring poppler-utils installed (incl. pdftoppm)

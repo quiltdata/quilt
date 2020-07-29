@@ -239,25 +239,19 @@ def lambda_handler(request):
     # Handle request
     resp = requests.get(url)
     if resp.ok:
-        # Get the original reader / format
-        # If the original reader isn't in the supported formats map, use PNG as default presentation format
         try:
             thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(imageio.get_reader(resp.content), "PNG")
-        # In the case imageio can't read the image, default to PNG
-        # Usually an OME-TIFF / CZI / some other bio-format
         except ValueError:
-            thumbnail_format = "PNG"
-
+            thumbnail_format = "JPEG" if input_ == "pdf" else "PNG"
         # TODO: copy fonts, libraries, binaries to Lambda, set LIB and font ENV VARS 
-        if input_ == 'pdf':
+        if input_ == "pdf":
             try:
                 pages = convert_from_bytes(
                     resp.content,
                     first_page=page,
                     last_page=page,
-                    # preserve aspect ratio, our largest dimension will be
-                    # the largest requested dimension but could be width or height
-                    size=max(size)
+                    # respect width but not necessarily height (to preserve aspect ratio)
+                    size=(size[0], None)
                 )
             except (
                     PDFInfoNotInstalledError,
@@ -268,18 +262,16 @@ def lambda_handler(request):
                 return make_json_response(500, {'error': str(exc)})
 
             assert len(pages) == 1, 'Expected to generate and return a single image'
-            assert output == 'raw', 'input=pdf only compatible with output=raw'
+            # assert output == 'raw', 'input=pdf only compatible with output=raw'
             # singleton array of PIL images
-            data = pages[0].tobytes()
-            headers = {
-                # always return JPEG, it's faster
-                'Content-Type': Image.MIME["JPEG"],
-                'X-Quilt-Info': json.dumps({
-                    'thumbnail_format': "JPEG",
-                    'size_used': max(size)
-                })
+            preview = pages[0]
+            info = {
+                'thumbnail_format': 'JPEG',
+                'thumbnail_size': preview.size,
             }
-
+            thumbnail_bytes = BytesIO()
+            preview.save(thumbnail_bytes, thumbnail_format)
+            data = thumbnail_bytes.getvalue()
         else:
             # Read image data
             img = AICSImage(resp.content)
@@ -303,20 +295,18 @@ def lambda_handler(request):
                 'thumbnail_format': thumbnail_format,
                 'thumbnail_size': thumbnail_size,
             }
-            # Store data
-            if output == 'json':
-                ret_val = {
-                    'info': info,
-                    'thumbnail': base64.b64encode(data).decode(),
-                }
-                return make_json_response(200, ret_val)
 
-            # Not json response
-            headers = {
-                'Content-Type': Image.MIME[thumbnail_format],
-                'X-Quilt-Info': json.dumps(info)
+        if output == 'json':
+            ret_val = {
+                'info': info,
+                'thumbnail': base64.b64encode(data).decode(),
             }
-
+            return make_json_response(200, ret_val)
+        # Not JSON response ('raw')
+        headers = {
+            'Content-Type': Image.MIME[thumbnail_format],
+            'X-Quilt-Info': json.dumps(info)
+        }
         return 200, data, headers
 
     # Errored, return error code
