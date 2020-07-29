@@ -28,6 +28,9 @@ SCHEMA = {
         'secret_key': {
             'type': 'string'
         },
+        'session_token': {
+            'type': 'string'
+        },
         'prefix': {
             'type': 'string'
         },
@@ -88,13 +91,14 @@ def get_logical_key_folder_view(df):
     )
 
 
-def get_s3_client(aws_access_key_id, aws_secret_access_key):
+def get_s3_client(aws_access_key_id, aws_secret_access_key, aws_session_token):
     """
     Create an S3 Client using the provided credentials
     """
     session = boto3.Session(
         aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key
+        aws_secret_access_key=aws_secret_access_key,
+        aws_session_token=aws_session_token
     )
     s3_client = session.client('s3')
     return s3_client
@@ -150,11 +154,12 @@ def lambda_handler(request):
     key = request.args['manifest']
     aws_access_key_id = request.args['access_key']
     aws_secret_access_key = request.args['secret_key']
+    aws_session_token = request.args['session_token']
     prefix = request.args.get('prefix')
     logical_key = request.args.get('logical_key')
 
     # Create an s3 client using the provided credentials
-    s3_client = get_s3_client(aws_access_key_id, aws_secret_access_key)
+    s3_client = get_s3_client(aws_access_key_id, aws_secret_access_key, aws_session_token)
 
     # Get details of a single file in the package
     if logical_key is not None:

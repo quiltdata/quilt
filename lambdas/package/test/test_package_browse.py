@@ -204,7 +204,6 @@ class TestPackageBrowse(TestCase):
             call_s3_select(mock_s3, bucket, key, prefix)
             patched.assert_called_once_with(**expected_args)
 
-
     def test_incomplete_response(self):
         """
         Test that an incomplete response from S3 Select is
