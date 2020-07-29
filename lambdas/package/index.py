@@ -165,14 +165,14 @@ def lambda_handler(request):
     if logical_key is not None:
         response = call_s3_select(s3_client, bucket, key, logical_key, detail=True)
         # parse and prep response
-        response_data = json.loads(buffer_s3response(response))
+        response_data = json.load(buffer_s3response(response))
     else:
         # Call s3 select to fetch only logical keys matching the
         # desired prefix (folder path)
         response = call_s3_select(s3_client, bucket, key, prefix)
+        result = buffer_s3response(response)
 
         # Parse the response into a logical folder view
-        result = buffer_s3response(response)
         df = pd.read_json(result, lines=True)
         response_data = get_logical_key_folder_view(df)
 
