@@ -1,6 +1,6 @@
 # Developer notes
 * How we get pdftoppm running with MS fonts
-* On MacBook testing: png faster than jpeg, pdftoppm faster than pdftocairo
+* On MacBook testing: jpeg faster than png, pdftoppm faster than pdftocairo
 
 ## Extracting pdftoppm, pdftocairo (via poppler-utils) as standalones
 ```
