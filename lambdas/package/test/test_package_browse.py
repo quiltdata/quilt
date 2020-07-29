@@ -12,7 +12,7 @@ import responses
 
 from ..index import (
     buffer_s3response, call_s3_select, get_logical_key_folder_view,
-    get_s3_client, lambda_handler, IncompleteResultException
+    IncompleteResultException
 )
 
 
