@@ -40,6 +40,8 @@ def _make_event(query, headers=None):
     ("generated.ome.tiff", {"size": "w256h256"}, "generated-256.png", [6, 36, 76, 68], [224, 167]),
     ("sat_rgb.tiff", {"size": "w256h256"}, "sat_rgb-256.png", [256, 256, 4], [256, 256]),
     ("single_cell.ome.tiff", {"size": "w256h256"}, "single_cell.png", [6, 40, 152, 126], [256, 205]),
+    # Following PDF tests should only be run if poppler-utils installed;
+    # then call pytest with --poppler
     pytest.param(
         "MUMmer.pdf",
         {"size": "w1024h768", "input": "pdf", "page": 4},
@@ -53,7 +55,6 @@ def _make_event(query, headers=None):
         "pdf-page8-256w.jpeg", None, [256, 363],
         marks=pytest.mark.poppler
     ),
-
     # Test for statusCode error
     pytest.param("cell.png", {"size": "w1h1"}, None, None, None, marks=pytest.mark.xfail(raises=AssertionError))
 ])
