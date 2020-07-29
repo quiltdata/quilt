@@ -182,7 +182,7 @@ class TestPackageBrowse(TestCase):
         prefix = "Alice's files/"
 
         expected_sql = "SELECT SUBSTRING(s.logical_key, 15) AS logical_key FROM s3object s"
-        expected_sql += f" WHERE SUBSTRING(s.logical_key, 1, 14) = 'Alice''s files/'"
+        expected_sql += " WHERE SUBSTRING(s.logical_key, 1, 14) = 'Alice''s files/'"
         expected_args = {
             'Bucket': bucket,
             'Key': key,
