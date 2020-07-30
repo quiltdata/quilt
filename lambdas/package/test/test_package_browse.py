@@ -2,6 +2,7 @@
 Test functions for package endpoint
 """
 
+import json
 import os
 from unittest import TestCase
 from unittest.mock import patch
@@ -10,9 +11,11 @@ import boto3
 import pandas as pd
 import responses
 
+from t4_lambda_shared.utils import read_body
+
 from ..index import (
     buffer_s3response, call_s3_select, get_logical_key_folder_view,
-    IncompleteResultException
+    lambda_handler, IncompleteResultException
 )
 
 
@@ -126,7 +129,7 @@ class TestPackageBrowse(TestCase):
             'ExpressionType': 'SQL',
             'InputSerialization': {
                 'CompressionType': 'NONE',
-                'JSON': {'Type': 'DOCUMENT'}
+                'JSON': {'Type': 'LINES'}
                 },
             'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
         }
@@ -158,7 +161,7 @@ class TestPackageBrowse(TestCase):
             'ExpressionType': 'SQL',
             'InputSerialization': {
                 'CompressionType': 'NONE',
-                'JSON': {'Type': 'DOCUMENT'}
+                'JSON': {'Type': 'LINES'}
                 },
             'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
         }
@@ -190,7 +193,7 @@ class TestPackageBrowse(TestCase):
             'ExpressionType': 'SQL',
             'InputSerialization': {
                 'CompressionType': 'NONE',
-                'JSON': {'Type': 'DOCUMENT'}
+                'JSON': {'Type': 'LINES'}
                 },
             'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
         }
@@ -262,3 +265,47 @@ class TestPackageBrowse(TestCase):
         assert len(folder['objects']) == 2
         assert "file3.txt" in folder['objects']
         assert "file4.txt" in folder['objects']
+
+    def test_lambda(self):
+        """
+        End-to-end test (folder view without a prefix)
+        """
+        bucket = "bucket"
+        key = ".quilt/packages/manifest_hash"
+        params = dict(
+            bucket=bucket,
+            manifest=key,
+            access_key="TESTKEY",
+            secret_key="TESTSECRET",
+            session_token="TESTSESSION"
+        )
+
+        expected_args = {
+            'Bucket': bucket,
+            'Key': key,
+            'Expression': "SELECT SUBSTRING(s.logical_key, 1) AS logical_key FROM s3object s",
+            'ExpressionType': 'SQL',
+            'InputSerialization': {
+                'CompressionType': 'NONE',
+                'JSON': {'Type': 'LINES'}
+                },
+            'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
+        }
+
+        mock_s3 = boto3.client('s3')
+        client_patch = patch.object(
+            mock_s3,
+            'select_object_content',
+            return_value=self.s3response
+        )
+        client_patch.start()
+        with patch('boto3.Session.client', return_value=mock_s3):
+            response = lambda_handler(self._make_event(params), None)
+            print(response)
+            assert response['statusCode'] == 200
+            folder = json.loads(read_body(response))['contents']
+            assert len(folder['prefixes']) == 1
+            assert len(folder['objects']) == 1
+            assert 'foo.csv' in folder['objects']
+            assert 'bar/' in folder['prefixes']
+        client_patch.stop()

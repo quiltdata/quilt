@@ -133,7 +133,7 @@ def call_s3_select(s3_client, bucket, key, logical_key_prefix, detail=False):
         ExpressionType='SQL',
         Expression=sql_stmt,
         InputSerialization={
-            'JSON': {'Type': 'DOCUMENT'},
+            'JSON': {'Type': 'LINES'},
             'CompressionType': 'NONE'
         },
         OutputSerialization={'JSON': {'RecordDelimiter': '\n'}}
