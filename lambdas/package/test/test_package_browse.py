@@ -11,11 +11,13 @@ import boto3
 import pandas as pd
 import responses
 
-from t4_lambda_shared.utils import read_body
+from t4_lambda_shared.utils import (
+    buffer_s3response, read_body, IncompleteResultException
+)
 
 from ..index import (
-    buffer_s3response, call_s3_select, get_logical_key_folder_view,
-    lambda_handler, IncompleteResultException
+    call_s3_select, get_logical_key_folder_view,
+    lambda_handler
 )
 
 

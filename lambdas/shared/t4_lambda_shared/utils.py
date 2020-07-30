@@ -4,6 +4,7 @@ Helper functions.
 from base64 import b64decode
 import gzip
 from typing import Iterable
+import io
 import json
 import os
 
@@ -71,3 +72,36 @@ def read_body(resp):
     if resp['headers'].get('Content-Encoding') == 'gzip':
         body = gzip.decompress(body)
     return body
+
+
+class IncompleteResultException(Exception):
+    """
+    Exception indicating an incomplete response
+    (e.g., from S3 Select)
+    """
+
+
+def buffer_s3response(s3response):
+    """
+    Read a streaming response (botocore.eventstream.EventStream) from s3 select
+    into a StringIO buffer
+    """
+    response = io.StringIO()
+    end_event_received = False
+    stats = None
+    for event in s3response['Payload']:
+        if 'Records' in event:
+            records = event['Records']['Payload'].decode()
+            response.write(records)
+        elif 'Progress' in event:
+            print(event['Progress']['Details'])
+        elif 'Stats' in event:
+            print(stats)
+        elif 'End' in event:
+            # End event indicates that the request finished successfully
+            end_event_received = True
+
+    if not end_event_received:
+        raise IncompleteResultException("Error: Received an incomplete response from S3 Select.")
+    response.seek(0)
+    return response

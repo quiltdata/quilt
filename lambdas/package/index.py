@@ -2,14 +2,13 @@
 Provide a virtual-file-system view of a package's logical keys.
 """
 
-import io
 import json
 
 import boto3
 import pandas as pd
 
 from t4_lambda_shared.decorator import api, validate
-from t4_lambda_shared.utils import get_default_origins, make_json_response
+from t4_lambda_shared.utils import buffer_s3response, get_default_origins, make_json_response
 
 S3_DOMAIN_SUFFIX = '.amazonaws.com'
 
@@ -41,39 +40,6 @@ SCHEMA = {
     'required': ['bucket', 'manifest', 'access_key', 'secret_key'],
     'additionalProperties': False
 }
-
-
-class IncompleteResultException(Exception):
-    """
-    Exception indicating an incomplete response
-    (e.g., from S3 Select)
-    """
-
-
-def buffer_s3response(s3response):
-    """
-    Read a streaming response from s3 select into a
-    StringIO buffer
-    """
-    response = io.StringIO()
-    end_event_received = False
-    stats = None
-    for event in s3response['Payload']:
-        if 'Records' in event:
-            records = event['Records']['Payload'].decode()
-            response.write(records)
-        elif 'Progress' in event:
-            print(event['Progress']['Details'])
-        elif 'Stats' in event:
-            print(stats)
-        elif 'End' in event:
-            # End event indicates that the request finished successfully
-            end_event_received = True
-
-    if not end_event_received:
-        raise IncompleteResultException("Error: Received an incomplete response from S3 Select.")
-    response.seek(0)
-    return response
 
 
 def get_logical_key_folder_view(df):
