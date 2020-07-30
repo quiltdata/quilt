@@ -1,5 +1,5 @@
 """
-Test functions for package endpoint
+Test functions for pkgselect endpoint
 """
 
 import json
@@ -21,9 +21,9 @@ from ..index import (
 )
 
 
-class TestPackageBrowse(TestCase):
+class TestPackageSelect(TestCase):
     """
-    Unit tests for the Package API endpoint.
+    Unit tests for the PackageSelect API endpoint.
     """
     def setUp(self):
         """
