@@ -537,7 +537,7 @@ class PackageTest(QuiltTestCase):
         with open(foodir / 'bar', 'w') as fd:
             fd.write(fd.name)
         with open(bazdir / 'bar', 'w') as fd:
-            fd.write(''.join([str(i) for i in range(1000)]))
+            fd.write(''.join([str(i) for i in range(100)]))
 
         pkg = Package()
         pkg = pkg.set_dir("/", ".", meta={'name': 'test_meta'})

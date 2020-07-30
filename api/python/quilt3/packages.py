@@ -766,7 +766,7 @@ class Package:
             ValueError: if the 'update_policy' is not a PackageUpdatePolicy enum value.
         """
         if update_policy not in PACKAGE_UPDATE_POLICY:
-            raise ValueError(f"{update_policy} is not a valid update policy")
+            raise ValueError(f"Update policy should be one of {str(PACKAGE_UPDATE_POLICY)}, not {update_policy}")
 
         lkey = lkey.strip("/")
 
@@ -801,7 +801,6 @@ class Package:
                 # check update policy
                 if update_policy == 'existing' and logical_key in root:
                     continue
-
                 entry = PackageEntry(PhysicalKey.from_path(f), f.stat().st_size, None, None)
                 root._set(logical_key, entry)
         else:
