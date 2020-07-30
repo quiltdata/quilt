@@ -225,15 +225,15 @@ def format_aicsimage_to_prepped(img: AICSImage) -> np.ndarray:
 
 
 def set_pdf_env():
-    """set env vars to support PDF binary, library, font discovery"""
-    # Set env vars, see https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html
+    """set env vars to support PDF binary, library, font discovery
+    see https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html"""
     prefix = 'quilt_binaries'
-    lambda_root = os.environ.get("LAMBDA_TASK_ROOT")
-    ## binaries
+    lambda_root = os.environ["LAMBDA_TASK_ROOT"]
+    # binaries
     os.environ["PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'bin')
-    ## libs
+    # libs
     os.environ["LD_LIBRARY_PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'lib64')
-    ## fonts
+    # fonts
     os.environ["FONTCONFIG_PATH"] = os.path.join(lambda_root, prefix, 'fonts')
 
 

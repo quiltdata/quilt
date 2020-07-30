@@ -99,6 +99,7 @@ def test_generate_thumbnail(
         expected = AICSImage(data_dir / expected_thumb).reader.data
     assert np.array_equal(actual, expected)
 
+
 @patch.dict(os.environ, {
     'LAMBDA_TASK_ROOT': str(Path('/var/task')),
     'PATH': str(Path('/one/two')) + os.pathsep + str(Path('/three')),
