@@ -10,8 +10,6 @@ import pandas as pd
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.utils import buffer_s3response, get_default_origins, make_json_response
 
-S3_DOMAIN_SUFFIX = '.amazonaws.com'
-
 SCHEMA = {
     'type': 'object',
     'properties': {
