@@ -49,6 +49,9 @@ workflows:
       - test-lambda:
           name: test-lambda-thumbnail
           path: "thumbnail"
+      - test-lambda:
+          name: test-lambda-package
+          path: "package"
 
   build_and_deploy:
     jobs:
