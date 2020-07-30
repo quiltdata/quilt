@@ -51,7 +51,7 @@ workflows:
           path: "thumbnail"
       - test-lambda:
           name: test-lambda-package
-          path: "package"
+          path: "pkgselect"
 
   build_and_deploy:
     jobs:
