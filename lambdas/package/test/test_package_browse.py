@@ -162,7 +162,7 @@ class TestPackageBrowse(TestCase):
             'InputSerialization': {
                 'CompressionType': 'NONE',
                 'JSON': {'Type': 'LINES'}
-                },
+            },
             'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
         }
 
