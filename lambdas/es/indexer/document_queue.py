@@ -106,7 +106,7 @@ class DocumentQueue:
             "etag": etag,
             "key": key,
             "last_modified": last_modified.isoformat(),
-            "size": size
+            "size": size,
         }
         if doc_type == DocTypes.PACKAGE:
             if not handle or not package_hash:
