@@ -8,6 +8,7 @@ Scene-Timepoint-Channel-SpacialZ-SpacialY-SpacialX.
 """
 import base64
 import json
+import os
 import sys
 from io import BytesIO
 from math import sqrt
@@ -223,6 +224,19 @@ def format_aicsimage_to_prepped(img: AICSImage) -> np.ndarray:
     return img.reader.data
 
 
+def set_pdf_env():
+    """set env vars to support PDF binary, library, font discovery"""
+    # Set env vars, see https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html
+    prefix = 'quilt_binaries'
+    lambda_root = os.environ.get("LAMBDA_TASK_ROOT")
+    ## binaries
+    os.environ["PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'bin')
+    ## libs
+    os.environ["LD_LIBRARY_PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'lib64')
+    ## fonts
+    os.environ["FONTCONFIG_PATH"] = os.path.join(lambda_root, prefix, 'fonts')
+
+
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 def lambda_handler(request):
@@ -244,6 +258,7 @@ def lambda_handler(request):
         except ValueError:
             thumbnail_format = "JPEG" if input_ == "pdf" else "PNG"
         if input_ == "pdf":
+            set_pdf_env()
             try:
                 pages = convert_from_bytes(
                     resp.content,

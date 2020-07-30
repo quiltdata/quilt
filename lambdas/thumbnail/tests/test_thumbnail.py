@@ -1,7 +1,9 @@
 import base64
 from io import BytesIO
 import json
+import os
 from pathlib import Path
+from unittest.mock import patch
 
 from PIL import Image
 import numpy as np
@@ -11,7 +13,7 @@ from aicsimageio import AICSImage
 
 from t4_lambda_shared.utils import read_body
 
-from ..index import lambda_handler
+from ..index import lambda_handler, set_pdf_env
 
 
 @pytest.fixture
@@ -96,3 +98,29 @@ def test_generate_thumbnail(
         actual = AICSImage(base64.b64decode(body['thumbnail'])).reader.data
         expected = AICSImage(data_dir / expected_thumb).reader.data
     assert np.array_equal(actual, expected)
+
+@patch.dict(os.environ, {
+    'LAMBDA_TASK_ROOT': str(Path('/var/task')),
+    'PATH': str(Path('/one/two')) + os.pathsep + str(Path('/three')),
+    'LD_LIBRARY_PATH': str(Path('/lib64')) + os.pathsep + str(Path('/usr/lib64'))
+})
+def test_pdf_env():
+    """test that env vars are set so that poppler, pdf2image work properly"""
+    set_pdf_env()
+    assert os.environ.get('FONTCONFIG_PATH') == os.path.join(
+        os.environ.get('LAMBDA_TASK_ROOT'),
+        'quilt_binaries',
+        'fonts'
+    )
+    assert os.environ.get('PATH') == os.pathsep.join([
+        str(Path('/one/two')),
+        str(Path('/three')),
+        str(Path('/var/task/quilt_binaries/usr/bin'))
+    ])
+    assert os.environ.get('LD_LIBRARY_PATH') == os.pathsep.join([
+        str(Path('/lib64')),
+        str(Path('/usr/lib64')),
+        str(Path('/var/task/quilt_binaries/usr/lib64'))
+    ])
+    # we should never mod this:
+    assert os.environ.get('LAMBDA_TASK_ROOT') == str(Path('/var/task'))
