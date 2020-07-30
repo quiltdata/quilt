@@ -40,7 +40,7 @@ SCHEMA = {
 }
 
 
-def get_logical_key_folder_view(df):
+def file_list_to_folder(df):
     """
     Post process a set of logical keys to return only the
     top-level folder view (a special case of the s3-select
@@ -138,7 +138,7 @@ def lambda_handler(request):
 
         # Parse the response into a logical folder view
         df = pd.read_json(result, lines=True)
-        response_data = get_logical_key_folder_view(df)
+        response_data = file_list_to_folder(df)
 
     ret_val = make_json_response(
         200,

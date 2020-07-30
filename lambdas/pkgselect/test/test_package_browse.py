@@ -16,7 +16,7 @@ from t4_lambda_shared.utils import (
 )
 
 from ..index import (
-    call_s3_select, get_logical_key_folder_view,
+    call_s3_select, file_list_to_folder,
     lambda_handler
 )
 
@@ -225,7 +225,7 @@ class TestPackageBrowse(TestCase):
         df = pd.read_json(buffer_s3response(self.s3response), lines=True)
         assert isinstance(df, pd.DataFrame)
 
-        folder = get_logical_key_folder_view(df)
+        folder = file_list_to_folder(df)
         assert len(folder['prefixes']) == 1
         assert len(folder['objects']) == 1
         assert 'foo.csv' in folder['objects']
@@ -242,7 +242,7 @@ class TestPackageBrowse(TestCase):
 
         filtered_df = df[df['logical_key'].str.startswith(prefix)]
         stripped = filtered_df['logical_key'].str.slice(start=len(prefix))
-        folder = get_logical_key_folder_view(stripped.to_frame('logical_key'))
+        folder = file_list_to_folder(stripped.to_frame('logical_key'))
         print(folder)
         assert len(folder['prefixes']) == 1
         assert len(folder['objects']) == 2
@@ -260,7 +260,7 @@ class TestPackageBrowse(TestCase):
         assert isinstance(df, pd.DataFrame)
         filtered_df = df[df['logical_key'].str.startswith(prefix)]
         stripped = filtered_df['logical_key'].str.slice(start=len(prefix))
-        folder = get_logical_key_folder_view(stripped.to_frame('logical_key'))
+        folder = file_list_to_folder(stripped.to_frame('logical_key'))
         assert "objects" in folder
         assert "prefixes" in folder
         assert not folder['prefixes']
