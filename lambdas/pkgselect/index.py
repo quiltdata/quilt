@@ -40,7 +40,7 @@ SCHEMA = {
 }
 
 
-def file_list_to_folder(df):
+def file_list_to_folder(df: pd.DataFrame) -> dict:
     """
     Post process a set of logical keys to return only the
     top-level folder view (a special case of the s3-select
@@ -55,7 +55,11 @@ def file_list_to_folder(df):
     )
 
 
-def get_s3_client(aws_access_key_id, aws_secret_access_key, aws_session_token):
+def get_s3_client(
+    aws_access_key_id: str,
+    aws_secret_access_key: str,
+    aws_session_token: str
+):
     """
     Create an S3 Client using the provided credentials
     """
@@ -68,7 +72,13 @@ def get_s3_client(aws_access_key_id, aws_secret_access_key, aws_session_token):
     return s3_client
 
 
-def call_s3_select(s3_client, bucket, key, logical_key_prefix, detail=False):
+def call_s3_select(
+    s3_client: str,
+    bucket: str,
+    key: str,
+    logical_key_prefix: str,
+    detail=False
+):
     """
     Call S3 Select to read only the logical keys from a
     package manifest that match the desired folder path
