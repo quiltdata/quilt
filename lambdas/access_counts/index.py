@@ -10,6 +10,8 @@ import time
 
 import boto3
 
+from t4_lambda_shared.utils import sql_escape
+
 ATHENA_DATABASE = os.environ['ATHENA_DATABASE']
 # Bucket where CloudTrail logs are located.
 CLOUDTRAIL_BUCKET = os.environ['CLOUDTRAIL_BUCKET']
@@ -29,11 +31,6 @@ LAST_UPDATE_KEY = f'{OBJECT_ACCESS_LOG_DIR}.last_updated_ts.txt'
 
 # Athena does not allow us to write more than 100 partitions at once.
 MAX_OPEN_PARTITIONS = 100
-
-
-def sql_escape(s):
-    return s.replace("'", "''")
-
 
 DROP_CLOUDTRAIL = """DROP TABLE IF EXISTS cloudtrail"""
 DROP_OBJECT_ACCESS_LOG = """DROP TABLE IF EXISTS object_access_log"""
