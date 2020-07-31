@@ -128,7 +128,7 @@ def query_manifest_content(
     prefix
     """
 
-    print(sql_stmt)
+    print(f"utils.py: manifest_select: {sql_stmt}")
     response = s3_client.select_object_content(
         Bucket=bucket,
         Key=key,
