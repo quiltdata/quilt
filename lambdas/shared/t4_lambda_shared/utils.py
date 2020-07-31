@@ -8,8 +8,6 @@ import io
 import json
 import os
 
-from psutil import virtual_memory
-
 
 POINTER_PREFIX_V1 = ".quilt/named_packages/"
 MANIFEST_PREFIX_V1 = ".quilt/packages/"
@@ -49,6 +47,7 @@ def get_default_origins():
 
 def get_available_memory():
     """how much virtual memory is available to us (bytes)?"""
+    from psutil import virtual_memory
     return virtual_memory().available
 
 
@@ -85,6 +84,15 @@ class IncompleteResultException(Exception):
     """
 
 
+def sql_escape(s):
+    """
+    Escape strings that might contain single quotes for use in Athena
+    or S3 Select
+    """
+    escaped = s or ""
+    return escaped.replace("'", "''")
+
+
 def buffer_s3response(s3response):
     """
     Read a streaming response (botocore.eventstream.EventStream) from s3 select
@@ -109,3 +117,31 @@ def buffer_s3response(s3response):
         raise IncompleteResultException("Error: Received an incomplete response from S3 Select.")
     response.seek(0)
     return response
+
+
+def query_manifest_content(
+    s3_client: str,
+    *,
+    bucket: str,
+    key: str,
+    sql_stmt: str
+) -> io.StringIO:
+    """
+    Call S3 Select to read only the logical keys from a
+    package manifest that match the desired folder path
+    prefix
+    """
+
+    print(f"utils.py: manifest_select: {sql_stmt}")
+    response = s3_client.select_object_content(
+        Bucket=bucket,
+        Key=key,
+        ExpressionType='SQL',
+        Expression=sql_stmt,
+        InputSerialization={
+            'JSON': {'Type': 'LINES'},
+            'CompressionType': 'NONE'
+        },
+        OutputSerialization={'JSON': {'RecordDelimiter': '\n'}}
+    )
+    return buffer_s3response(response)
