@@ -9,7 +9,6 @@ from unittest.mock import patch
 import boto3
 
 from t4_lambda_shared.utils import (
-    buffer_s3response,
     call_s3_select,
     separated_env_to_iter,
     get_default_origins,
