@@ -6,15 +6,84 @@ import os
 from unittest import TestCase
 from unittest.mock import patch
 
+import boto3
+
 from t4_lambda_shared.utils import (
+    buffer_s3response,
+    call_s3_select,
     separated_env_to_iter,
     get_default_origins,
-    make_json_response
+    make_json_response,
+    IncompleteResultException
 )
 
 
 class TestUtils(TestCase):
     """Tests the helper functions"""
+    def setUp(self):
+        logical_keys = [
+            "foo.csv",
+            "bar/file1.txt",
+            "bar/file2.txt",
+            "bar/baz/file3.txt",
+            "bar/baz/file4.txt"
+        ]
+        jsonl = ""
+        for key in logical_keys:
+            jsonl += "{\"logical_key\": \"%s\"}\n" % key
+        print(jsonl)
+        streambytes = jsonl.encode()
+
+        self.s3response = {
+            'Payload': [
+                {
+                    'Records': {
+                        'Payload': streambytes
+                    }
+                },
+                {
+                    'Progress': {
+                        'Details': {
+                            'BytesScanned': 123,
+                            'BytesProcessed': 123,
+                            'BytesReturned': 123
+                        }
+                    }
+                },
+                {
+                    'Stats': {
+                        'Details': {
+                            'BytesScanned': 123,
+                            'BytesProcessed': 123,
+                            'BytesReturned': 123
+                        }
+                    }
+                },
+                {
+                    'End': {}
+                }
+            ]
+        }
+
+        self.s3response_incomplete = {
+            'Payload': [
+                {
+                    'Records': {
+                        'Payload': streambytes
+                    }
+                },
+                {
+                    'Stats': {
+                        'Details': {
+                            'BytesScanned': 123,
+                            'BytesProcessed': 123,
+                            'BytesReturned': 123
+                        }
+                    }
+                }
+            ]
+        }
+
     def test_separated_env_to_iter(self):
         """ensure the function that infers overrides from the env works:
             always returns a valid set(), perhaps empty, lowercases extensions
@@ -54,3 +123,41 @@ class TestUtils(TestCase):
         assert status == 200
         assert json.loads(body) == {'foo': 'bar'}
         assert headers == {'Content-Type': 'application/json', 'Content-Length': '123'}
+
+    def test_call_s3select(self):
+        """
+        Test that parameters are correctly passed to
+        S3 Select (without a prefix)
+        """
+        bucket = "bucket"
+        key = ".quilt/packages/manifest_hash"
+
+        expected_sql = "SELECT SUBSTRING(s.logical_key, 1) AS logical_key FROM s3object s"
+        expected_args = {
+            'Bucket': bucket,
+            'Key': key,
+            'Expression': expected_sql,
+            'ExpressionType': 'SQL',
+            'InputSerialization': {
+                'CompressionType': 'NONE',
+                'JSON': {'Type': 'LINES'}
+                },
+            'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
+        }
+
+        mock_s3 = boto3.client('s3')
+        with patch.object(
+                mock_s3,
+                'select_object_content',
+                return_value=self.s3response
+        ) as patched:
+            call_s3_select(mock_s3, bucket, key, expected_sql)
+            patched.assert_called_once_with(**expected_args)
+
+    def test_call_s3select_incomplete_response(self):
+        """
+        Test that an incomplete response from S3 Select is
+        detected and an exception is raised.
+        """
+        with self.assertRaises(IncompleteResultException):
+            buffer_s3response(self.s3response_incomplete)
