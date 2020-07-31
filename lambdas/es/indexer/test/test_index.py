@@ -651,7 +651,6 @@ class TestIndex(TestCase):
             version_id='1313131313131.Vier50HdNbi7ZirO65'
         )
 
-
     @patch.object(index.DocumentQueue, 'append')
     def test_index_if_manifest_positive(self, append_mock):
         """test manifest file and its indexing"""
