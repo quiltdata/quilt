@@ -151,7 +151,11 @@ class TestUtils(TestCase):
                 'select_object_content',
                 return_value=self.s3response
         ) as patched:
-            call_s3_select(mock_s3, bucket, key, expected_sql)
+            call_s3_select(
+                mock_s3,
+                bucket=bucket,
+                key=key,
+                sql_stmt=expected_sql)
             patched.assert_called_once_with(**expected_args)
 
     def test_call_s3select_incomplete_response(self):
@@ -159,5 +163,33 @@ class TestUtils(TestCase):
         Test that an incomplete response from S3 Select is
         detected and an exception is raised.
         """
-        with self.assertRaises(IncompleteResultException):
-            buffer_s3response(self.s3response_incomplete)
+        bucket = "bucket"
+        key = ".quilt/packages/manifest_hash"
+
+        expected_sql = "SELECT SUBSTRING(s.logical_key, 1) AS logical_key FROM s3object s"
+        expected_args = {
+            'Bucket': bucket,
+            'Key': key,
+            'Expression': expected_sql,
+            'ExpressionType': 'SQL',
+            'InputSerialization': {
+                'CompressionType': 'NONE',
+                'JSON': {'Type': 'LINES'}
+                },
+            'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
+        }
+
+        mock_s3 = boto3.client('s3')
+        with patch.object(
+                mock_s3,
+                'select_object_content',
+                return_value=self.s3response_incomplete
+        ) as patched:
+            with self.assertRaises(IncompleteResultException):
+                call_s3_select(
+                    mock_s3,
+                    bucket=bucket,
+                    key=key,
+                    sql_stmt=expected_sql
+                )
+                patched.assert_called_once_with(**expected_args)

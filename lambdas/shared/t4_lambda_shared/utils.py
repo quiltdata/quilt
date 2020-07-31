@@ -117,6 +117,7 @@ def buffer_s3response(s3response):
 
 def call_s3_select(
     s3_client: str,
+    *,
     bucket: str,
     key: str,
     sql_stmt: str
