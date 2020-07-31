@@ -81,6 +81,15 @@ class IncompleteResultException(Exception):
     """
 
 
+def sql_escape(s):
+    """
+    Escape strings that might contain single quotes for use in Athena
+    or S3 Select
+    """
+    escaped = s or ""
+    return escaped.replace("'", "''")
+
+
 def buffer_s3response(s3response):
     """
     Read a streaming response (botocore.eventstream.EventStream) from s3 select
