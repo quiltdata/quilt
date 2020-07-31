@@ -2,7 +2,6 @@
 Tests for the ES indexer. This function consumes events from SQS.
 """
 import datetime
-from dateutil.tz import tzutc
 from copy import deepcopy
 from gzip import compress
 from io import BytesIO
@@ -20,6 +19,7 @@ import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
 from botocore.stub import Stubber
+from dateutil.tz import tzutc
 import pytest
 import responses
 
@@ -628,7 +628,6 @@ class TestIndex(TestCase):
             mock_elastic=False,
             mock_overrides={
                 "event_kwargs": {
-                    # this key should infer to parquet
                     "key": "obscure_path/long-complicated-name-c000"
                 },
                 # we patch maybe_get_contents so _test_index_events doesn't need to
@@ -651,6 +650,7 @@ class TestIndex(TestCase):
             text=json_data,
             version_id='1313131313131.Vier50HdNbi7ZirO65'
         )
+
 
     @patch.object(index.DocumentQueue, 'append')
     def test_index_if_manifest_positive(self, append_mock):
@@ -689,36 +689,6 @@ class TestIndex(TestCase):
         )
 
         manifest_key = f"{MANIFEST_PREFIX_V1}{sha_hash}"
-        # next, handler() S3 selects the manifest
-        # pylint: disable=W0105
-        """
-        # this SHOULD work, but due to botocore bugs it does not
-        self.s3_stubber.add_response(
-            method="select_object_content",
-            service_response={
-                "ResponseMetadata": ANY,
-                # it is sadly not possible to mock S3 select responses because
-                # boto incorrectly believes "Payload"'s value should be a dict
-                # but it's really an iterable in realworld code
-                # see https://github.com/boto/botocore/issues/1621
-                "Payload": [{
-                    "Records": {
-                        "Payload": json.dumps(MANIFEST_DATA).encode()
-                    },
-                    "Stats": {},
-                    "End": {}
-                }]
-            },
-            expected_params={
-                "Bucket": "test-bucket",
-                "Key": manifest_key,
-                "Expression": index.SELECT_PACKAGE_META,
-                "ExpressionType": "SQL",
-                "InputSerialization": {"JSON": {"Type": "LINES"}},
-                "OutputSerialization": {"JSON": {}}
-            }
-        )
-        """
         # patch select_object_content since boto can't
         with patch.object(self.s3_client, 'select_object_content') as mock_select:
             mock_select.return_value = {
@@ -754,6 +724,100 @@ class TestIndex(TestCase):
                 InputSerialization={"JSON": {"Type": "LINES"}},
                 OutputSerialization={"JSON": {}}
             )
+
+        append_mock.assert_any_call(
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            bucket="test-bucket",
+            etag="123456",
+            ext="",
+            handle="author/semantic",
+            key=f".quilt/packages/{sha_hash}",
+            last_modified=ANY,
+            package_hash=sha_hash,
+            comment=MANIFEST_DATA["message"],
+            metadata=json.dumps(MANIFEST_DATA["user_meta"])
+        )
+
+        append_mock.assert_any_call(
+            "ObjectCreated:Put",
+            DocTypes.OBJECT,
+            bucket="test-bucket",
+            key=pointer_key,
+            ext="",
+            etag="123456",
+            version_id="1313131313131.Vier50HdNbi7ZirO65",
+            last_modified=ANY,
+            size=64,
+            text=""
+        )
+
+        assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
+
+    @pytest.mark.xfail(reason="boto bug https://github.com/boto/botocore/issues/1621")
+    @patch.object(index.DocumentQueue, 'append')
+    def test_index_if_manifest_positive_boto(self, append_mock):
+        """test manifest file and its indexing; same as above but uses boto stubber"""
+        timestamp = 1595616294
+        pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
+        # first, handler() will head the object
+        self.s3_stubber.add_response(
+            method="head_object",
+            service_response={
+                **OBJECT_RESPONSE,
+                "ContentLength": 64
+            },
+            expected_params={
+                "Bucket": "test-bucket",
+                "Key": pointer_key,
+                "VersionId": "1313131313131.Vier50HdNbi7ZirO65"
+            }
+        )
+
+        sha_hash = "50f4d0fc2c22a70893a7f356a4929046ce529b53c1ef87e28378d92b884691a5"
+        # next, handler() calls index_if_manifest which gets the hash from pointer_file
+        self.s3_stubber.add_response(
+            method="get_object",
+            service_response={
+                **OBJECT_RESPONSE,
+                "ContentLength": 64,
+                "Body": BytesIO(sha_hash.encode())
+            },
+            expected_params={
+                "Bucket": "test-bucket",
+                "Key": pointer_key,
+                "VersionId": "1313131313131.Vier50HdNbi7ZirO65",
+                'Range': "bytes=0-64"
+            }
+        )
+
+        manifest_key = f"{MANIFEST_PREFIX_V1}{sha_hash}"
+        # this SHOULD work, but due to botocore bugs it does not
+        self.s3_stubber.add_response(
+            method="select_object_content",
+            service_response={
+                "ResponseMetadata": ANY,
+                # it is sadly not possible to mock S3 select responses because
+                # boto incorrectly believes "Payload"'s value should be a dict
+                # but it's really an iterable in realworld code
+                # see https://github.com/boto/botocore/issues/1621
+                "Payload": [{
+                    "Records": {
+                        "Payload": json.dumps(MANIFEST_DATA).encode()
+                    },
+                    "Stats": {},
+                    "End": {}
+                }]
+            },
+            expected_params={
+                "Bucket": "test-bucket",
+                "Key": manifest_key,
+                "Expression": index.SELECT_PACKAGE_META,
+                "ExpressionType": "SQL",
+                "InputSerialization": {"JSON": {"Type": "LINES"}},
+                "OutputSerialization": {"JSON": {}}
+            }
+        )
 
         append_mock.assert_any_call(
             "ObjectCreated:Put",
