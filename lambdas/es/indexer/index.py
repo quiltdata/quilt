@@ -63,6 +63,7 @@ from t4_lambda_shared.utils import (
     get_available_memory,
     MANIFEST_PREFIX_V1,
     POINTER_PREFIX_V1,
+    query_manifest_content,
     separated_env_to_iter
 )
 
@@ -123,23 +124,17 @@ def infer_extensions(key, ext):
     retry=(retry_if_exception(should_retry_exception))
 )
 def select_manifest_meta(s3_client, bucket: str, key: str):
-    """use s3 select to quickly extract line 1 of manifest
-        returns:
-            * first line (if found), None if not found or error
+    """
+    wrapper for retry and returning a string
     """
     try:
-        raw = s3_client.select_object_content(
-            Bucket=bucket,
-            Key=key,
-            Expression=SELECT_PACKAGE_META,
-            ExpressionType="SQL",
-            InputSerialization={"JSON": {"Type": "LINES"}},
-            OutputSerialization={"JSON": {}}
+        raw = query_manifest_content(
+            s3_client,
+            bucket=bucket,
+            key=key,
+            sql_stmt=SELECT_PACKAGE_META
         )
-        for event in raw["Payload"]:
-            if "Records" in event:
-                data = event["Records"]["Payload"]
-                return data
+        return raw.read()
     except botocore.exceptions.ClientError as cle:
         print(f"Unable to S3 select manifest: {cle}")
 

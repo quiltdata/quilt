@@ -18,6 +18,7 @@ from urllib.parse import unquote_plus
 import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
+from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
 import pytest
@@ -692,13 +693,19 @@ class TestIndex(TestCase):
         with patch.object(self.s3_client, 'select_object_content') as mock_select:
             mock_select.return_value = {
                 "ResponseMetadata": ANY,
-                "Payload": [{
-                    "Records": {
-                        "Payload": json.dumps(MANIFEST_DATA).encode()
+                "Payload": [
+                    {
+                        "Stats": {}
                     },
-                    "Stats": {},
-                    "End": {}
-                }]
+                    {
+                        "Records": {
+                            "Payload": json.dumps(MANIFEST_DATA).encode(),
+                        },
+                    },
+                    {
+                        "End": {}
+                    },
+                ]
             }
 
             self._test_index_events(
@@ -720,8 +727,12 @@ class TestIndex(TestCase):
                 Key=manifest_key,
                 Expression=index.SELECT_PACKAGE_META,
                 ExpressionType="SQL",
-                InputSerialization={"JSON": {"Type": "LINES"}},
-                OutputSerialization={"JSON": {}}
+                # copied from t4_lambda_shared > utils.py > query_manifest_content
+                InputSerialization={
+                    'JSON': {'Type': 'LINES'},
+                    'CompressionType': 'NONE'
+                },
+                OutputSerialization={'JSON': {'RecordDelimiter': '\n'}}
             )
 
         append_mock.assert_any_call(
@@ -753,43 +764,13 @@ class TestIndex(TestCase):
 
         assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
 
-    @pytest.mark.xfail(reason="boto bug https://github.com/boto/botocore/issues/1621")
-    @patch.object(index.DocumentQueue, 'append')
-    def test_index_if_manifest_positive_boto(self, append_mock):
-        """test manifest file and its indexing; same as above but uses boto stubber"""
-        timestamp = 1595616294
-        pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
-        # first, handler() will head the object
-        self.s3_stubber.add_response(
-            method="head_object",
-            service_response={
-                **OBJECT_RESPONSE,
-                "ContentLength": 64
-            },
-            expected_params={
-                "Bucket": "test-bucket",
-                "Key": pointer_key,
-                "VersionId": "1313131313131.Vier50HdNbi7ZirO65"
-            }
-        )
-
+    @pytest.mark.xfail(
+        raises=ParamValidationError,
+        reason="boto bug https://github.com/boto/botocore/issues/1621"
+    )
+    def test_index_if_manifest_boto(self):
+        """Demonstrate that mocking S3 select with boto3 is broken"""
         sha_hash = "50f4d0fc2c22a70893a7f356a4929046ce529b53c1ef87e28378d92b884691a5"
-        # next, handler() calls index_if_manifest which gets the hash from pointer_file
-        self.s3_stubber.add_response(
-            method="get_object",
-            service_response={
-                **OBJECT_RESPONSE,
-                "ContentLength": 64,
-                "Body": BytesIO(sha_hash.encode())
-            },
-            expected_params={
-                "Bucket": "test-bucket",
-                "Key": pointer_key,
-                "VersionId": "1313131313131.Vier50HdNbi7ZirO65",
-                'Range': "bytes=0-64"
-            }
-        )
-
         manifest_key = f"{MANIFEST_PREFIX_V1}{sha_hash}"
         # this SHOULD work, but due to botocore bugs it does not
         self.s3_stubber.add_response(
@@ -800,52 +781,32 @@ class TestIndex(TestCase):
                 # boto incorrectly believes "Payload"'s value should be a dict
                 # but it's really an iterable in realworld code
                 # see https://github.com/boto/botocore/issues/1621
-                "Payload": [{
-                    "Records": {
-                        "Payload": json.dumps(MANIFEST_DATA).encode()
+                "Payload": [
+                    {
+                        "Stats": {}
                     },
-                    "Stats": {},
-                    "End": {}
-                }]
+                    {
+                        "Records": {
+                            "Payload": json.dumps(MANIFEST_DATA).encode(),
+                        },
+                    },
+                    {
+                        "End": {}
+                    },
+                ]
             },
             expected_params={
                 "Bucket": "test-bucket",
                 "Key": manifest_key,
                 "Expression": index.SELECT_PACKAGE_META,
                 "ExpressionType": "SQL",
-                "InputSerialization": {"JSON": {"Type": "LINES"}},
-                "OutputSerialization": {"JSON": {}}
+                "InputSerialization": {
+                    'JSON': {'Type': 'LINES'},
+                    'CompressionType': 'NONE'
+                },
+                "OutputSerialization": {'JSON': {'RecordDelimiter': '\n'}}
             }
         )
-
-        append_mock.assert_any_call(
-            "ObjectCreated:Put",
-            DocTypes.PACKAGE,
-            bucket="test-bucket",
-            etag="123456",
-            ext="",
-            handle="author/semantic",
-            key=f".quilt/packages/{sha_hash}",
-            last_modified=ANY,
-            package_hash=sha_hash,
-            comment=MANIFEST_DATA["message"],
-            metadata=json.dumps(MANIFEST_DATA["user_meta"])
-        )
-
-        append_mock.assert_any_call(
-            "ObjectCreated:Put",
-            DocTypes.OBJECT,
-            bucket="test-bucket",
-            key=pointer_key,
-            ext="",
-            etag="123456",
-            version_id="1313131313131.Vier50HdNbi7ZirO65",
-            last_modified=ANY,
-            size=64,
-            text=""
-        )
-
-        assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
 
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
