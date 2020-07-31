@@ -16,6 +16,7 @@ import * as validators from 'utils/validators'
 
 import * as Layout from './Layout'
 import SSOGoogle from './SSOGoogle'
+import SSOOkta from './SSOOkta'
 import * as actions from './actions'
 import * as errors from './errors'
 import msg from './messages'
@@ -110,6 +111,7 @@ export default ({ location: { search } }) => {
   return (
     <Container>
       {ssoEnabled('google') && <SSOGoogle mutex={mutex} next={next} />}
+      {ssoEnabled('okta') && <SSOOkta mutex={mutex} next={next} />}
       {!!cfg.passwordAuth && ssoEnabled() && <Layout.Or />}
       {!!cfg.passwordAuth && <PasswordSignIn mutex={mutex} />}
       {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (

@@ -25,6 +25,14 @@
       "type": "string",
       "description": "Client ID for Google Sign-In"
     },
+    "oktaClientId": {
+      "type": "string",
+      "description": "Client ID for Okta Sign-In"
+    },
+    "oktaCompanyName": {
+      "type": "string",
+      "description": "Company name for Okta Sign-In (i.e., https://$company.okta.com)"
+    },
     "intercomAppId": {
       "type": "string",
       "description": "Connects orange chat icon to our Intercom. If absent, icon does not show."
@@ -92,8 +100,7 @@
     },
     "ssoProviders": {
       "type": "string",
-      "pattern": "^(google)?|(\\$\\{\\w+\\})$",
-      "description": "Space-separated list of SSO providers (must support template substitution)."
+      "description": "Space-separated list of SSO providers."
     }
   },
   "required": [
