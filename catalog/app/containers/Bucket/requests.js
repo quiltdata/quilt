@@ -6,8 +6,9 @@ import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
+import { mkSearch } from 'utils/NamedRoutes'
 import * as Resource from 'utils/Resource'
-import { resolveKey, parseS3Url } from 'utils/s3paths'
+import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 
 import * as errors from './errors'
@@ -226,8 +227,8 @@ export function bucketExists({ s3, bucket, cache }) {
     )
 }
 
-const getOverviewBucket = (url) => parseS3Url(url).bucket
-const getOverviewPrefix = (url) => parseS3Url(url).key
+const getOverviewBucket = (url) => s3paths.parseS3Url(url).bucket
+const getOverviewPrefix = (url) => s3paths.parseS3Url(url).key
 const getOverviewKey = (url, path) => pathJoin(getOverviewPrefix(url), path)
 
 const processStats = R.applySpec({
@@ -580,7 +581,7 @@ export const summarize = async ({ s3, handle }) => {
 
     const resolvePath = (path) => ({
       bucket: handle.bucket,
-      key: resolveKey(handle.key, path),
+      key: s3paths.resolveKey(handle.key, path),
     })
 
     // TODO: figure out versions of package-local referenced objects
@@ -843,7 +844,7 @@ export const getPackageRevisions = withErrorHandling(
   },
 )
 
-const loadRevisionHash = ({ s3, bucket, name, id }) =>
+export const loadRevisionHash = ({ s3, bucket, name, id }) =>
   s3
     .getObject({ Bucket: bucket, Key: getRevisionKeyFromId(name, id) })
     .promise()
@@ -851,6 +852,9 @@ const loadRevisionHash = ({ s3, bucket, name, id }) =>
       modified: res.LastModified,
       hash: res.Body.toString('utf-8'),
     }))
+
+// TODO: Preview endpoint only allows up to 512 lines right now. Increase it to 1000.
+const MAX_PACKAGE_ENTRIES = 500
 
 export const getRevisionData = async ({
   s3,
@@ -910,45 +914,50 @@ const s3Select = ({
       ),
     )
 
-// TODO: Preview endpoint only allows up to 512 lines right now. Increase it to 1000.
-const MAX_PACKAGE_ENTRIES = 500
+export async function packageSelect({
+  s3,
+  credentials,
+  endpoint,
+  bucket,
+  name,
+  revision,
+  ...args
+}) {
+  const { hash } = await loadRevisionHash({ s3, bucket, name, id: revision })
+  const manifest = `${MANIFESTS_PREFIX}${hash}`
 
-export const fetchPackageTree = withErrorHandling(
-  async ({ s3, sign, endpoint, bucket, name, revision }) => {
-    const { hash } = await loadRevisionHash({ s3, bucket, name, id: revision })
-    const manifestKey = `${MANIFESTS_PREFIX}${hash}`
+  await credentials.getPromise()
 
-    // We skip the first line - it contains the manifest version, etc.
-    // We also request one more line than we need to decide if the results are truncated.
-    const maxLines = MAX_PACKAGE_ENTRIES + 2
+  const r = await fetch(
+    `${endpoint}/pkgselect${mkSearch({
+      bucket,
+      manifest,
+      access_key: credentials.accessKeyId,
+      secret_key: credentials.secretAccessKey,
+      session_token: credentials.sessionToken,
+      ...args,
+    })}`,
+  )
 
-    const url = sign({ bucket, key: manifestKey })
-    const encodedUrl = encodeURIComponent(url)
-    const r = await fetch(
-      `${endpoint}/preview?url=${encodedUrl}&input=txt&line_count=${maxLines}`,
-    )
-    const json = await r.json()
-    const lines = json.info.data.head
-    const truncated = lines.length >= maxLines
-    const keys = lines.slice(1, maxLines - 1).map((line) => {
-      const {
-        logical_key: logicalKey,
-        physical_keys: [physicalKey],
-        size,
-      } = JSON.parse(line)
-      return { logicalKey, physicalKey, size }
-    })
-    return { id: revision, hash, keys, truncated }
-  },
-  [
-    [
-      (e) => e.code === 'NoSuchKey',
-      () => {
-        throw new errors.NoSuchPackage()
-      },
-    ],
-  ],
-)
+  console.log('pkg select resp', r)
+
+  if (r.status >= 400) {
+    const msg = await r.text()
+    throw new errors.BucketError(msg, { status: r.status })
+  }
+
+  const { contents: data } = await r.json()
+  return data
+}
+
+export async function packageFileDetail({ path, ...args }) {
+  const r = await packageSelect({ logical_key: path, ...args })
+  return {
+    ...s3paths.parseS3Url(r.physical_keys[0]),
+    size: r.size,
+    logicalKey: r.logical_key,
+  }
+}
 
 const sqlEscape = (arg) => arg.replace(/'/g, "''")
 

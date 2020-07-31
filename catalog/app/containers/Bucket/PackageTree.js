@@ -1,5 +1,3 @@
-import { basename } from 'path'
-
 import cx from 'classnames'
 import * as dateFns from 'date-fns'
 import dedent from 'dedent'
@@ -18,15 +16,14 @@ import Data, { useData } from 'utils/Data'
 import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link, { linkStyle } from 'utils/StyledLink'
-import { getBreadCrumbs, getPrefix, isDir, parseS3Url, up, decode } from 'utils/s3paths'
-import tagged from 'utils/tagged'
+import * as s3paths from 'utils/s3paths'
 
 import Code from './Code'
 import FilePreview from './FilePreview'
 import Listing, { ListingItem } from './Listing'
 import Section from './Section'
-import Summary from './Summary'
-import { displayError } from './errors'
+// import Summary from './Summary'
+// import { displayError } from './errors'
 import * as requests from './requests'
 
 const MAX_REVISIONS = 5
@@ -68,6 +65,8 @@ function RevisionInfo({ revision, bucket, name, path }) {
 
   const classes = useRevisionInfoStyles()
 
+  const data = useData(requests.getPackageRevisions, { s3, bucket, name, today })
+
   return (
     <>
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
@@ -79,9 +78,16 @@ function RevisionInfo({ revision, bucket, name, path }) {
         )}{' '}
         <M.Icon>expand_more</M.Icon>
       </span>
-      <Data fetch={requests.getPackageRevisions} params={{ s3, bucket, name, today }}>
-        {R.pipe(
-          AsyncResult.case({
+
+      <M.Popover
+        open={opened && !!anchor}
+        anchorEl={anchor}
+        onClose={close}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <M.List className={classes.list}>
+          {data.case({
             Ok: ({ revisions, isTruncated }) => {
               const revList = revisions.slice(0, MAX_REVISIONS).map((r) => (
                 <Data
@@ -207,101 +213,205 @@ function RevisionInfo({ revision, bucket, name, path }) {
                 <M.Typography variant="body1">Fetching revisions</M.Typography>
               </M.ListItem>
             ),
-          }),
-          (children) => (
-            <M.Popover
-              open={opened && !!anchor}
-              anchorEl={anchor}
-              onClose={close}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'center' }}
-            >
-              <M.List className={classes.list}>
-                {children}
-                <M.Divider />
-                <M.ListItem
-                  button
-                  onClick={close}
-                  component={RRLink}
-                  to={urls.bucketPackageRevisions(bucket, name)}
-                >
-                  <M.Box textAlign="center" width="100%">
-                    Show all revisions
-                  </M.Box>
-                </M.ListItem>
-              </M.List>
-            </M.Popover>
-          ),
-        )}
-      </Data>
+          })}
+          <M.Divider />
+          <M.ListItem
+            button
+            onClick={close}
+            component={RRLink}
+            to={urls.bucketPackageRevisions(bucket, name)}
+          >
+            <M.Box textAlign="center" width="100%">
+              Show all revisions
+            </M.Box>
+          </M.ListItem>
+        </M.List>
+      </M.Popover>
     </>
   )
 }
 
-const TreeDisplay = tagged([
-  'File', // S3Handle
-  'Dir', // { files, dirs, truncated }
-  'NotFound',
-])
-
-const mkHandle = ({ logicalKey, physicalKey, size }) => ({
-  ...parseS3Url(physicalKey),
-  size,
-  logicalKey,
-})
-
-const getParents = (path) => (path ? [...getParents(up(path)), path] : [])
-
-const computeTree = ({ bucket, name, revision, path }) => ({ keys, truncated }) => {
-  if (isDir(path)) {
-    return TreeDisplay.Dir({
-      dirs: R.pipe(
-        R.map((info) => getPrefix(info.logicalKey)),
-        R.uniq,
-        R.chain(getParents),
-        R.uniq,
-        R.filter((dir) => up(dir) === path),
-      )(keys),
-      files: keys.filter((info) => getPrefix(info.logicalKey) === path).map(mkHandle),
-      bucket,
-      name,
-      revision,
-      path,
-      truncated,
-    })
-  }
-
-  const key = keys.find(R.propEq('logicalKey', path))
-  return key ? TreeDisplay.File(mkHandle(key)) : TreeDisplay.NotFound()
+function ExposeLinkedData({ bucketCfg, bucket, name, revision }) {
+  const s3 = AWS.S3.use()
+  const sign = AWS.Signer.useS3Signer()
+  const { apiGatewayEndpoint: endpoint } = Config.use()
+  const data = useData(requests.getRevisionData, {
+    s3,
+    sign,
+    endpoint,
+    bucket,
+    name,
+    id: revision,
+    maxKeys: 0,
+  })
+  return data.case({
+    _: () => null,
+    Ok: ({ hash, modified, header }) => (
+      <React.Suspense fallback={null}>
+        <LinkedData.PackageData
+          {...{ bucket: bucketCfg, name, revision, hash, modified, header }}
+        />
+      </React.Suspense>
+    ),
+  })
 }
 
-const formatListing = ({ urls }, r) => {
-  const dirs = r.dirs.map((dir) =>
-    ListingItem.Dir({
-      name: basename(dir),
-      to: urls.bucketPackageTree(r.bucket, r.name, r.revision, dir),
-    }),
-  )
-  const files = r.files.map(({ logicalKey, size, modified }) =>
-    ListingItem.File({
-      name: basename(logicalKey),
-      to: urls.bucketPackageTree(r.bucket, r.name, r.revision, logicalKey),
-      size,
-      modified,
-    }),
-  )
-  return [
-    ...(r.path !== ''
-      ? [
-          ListingItem.Dir({
-            name: '..',
-            to: urls.bucketPackageTree(r.bucket, r.name, r.revision, up(r.path)),
-          }),
-        ]
-      : []),
-    ...dirs,
-    ...files,
-  ]
+function PkgCode({ data, bucket, name, revision, path }) {
+  const code = data.case({
+    Ok: ({ hash }) => {
+      const nameWithPath = path ? `${name}/${path}` : name
+      const hashDisplay = revision === 'latest' ? '' : hash.substring(0, 10)
+      const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
+      const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
+      return [
+        {
+          label: 'Python',
+          hl: 'python',
+          contents: dedent`
+            import quilt3
+            # browse
+            quilt3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
+            # download
+            quilt3.Package.install("${nameWithPath}"${hashPy}, registry="s3://${bucket}", dest=".")
+          `,
+        },
+        {
+          label: 'CLI',
+          hl: 'bash',
+          contents: dedent`
+            quilt3 install ${nameWithPath}${hashCli} --registry s3://${bucket} --dest .
+          `,
+        },
+      ]
+    },
+    _: () => null,
+  })
+  return code && <Code>{code}</Code>
+}
+
+function DirDisplay({ bucket, name, revision, path }) {
+  const s3 = AWS.S3.use()
+  const { apiGatewayEndpoint: endpoint } = Config.use()
+  const credentials = AWS.Credentials.use()
+  const { urls } = NamedRoutes.use()
+
+  const data = useData(requests.packageSelect, {
+    s3,
+    credentials,
+    endpoint,
+    bucket,
+    name,
+    revision,
+    prefix: path,
+  })
+
+  const hashData = useData(requests.loadRevisionHash, { s3, bucket, name, id: revision })
+
+  return data.case({
+    Ok: ({ objects, prefixes }) => {
+      const up =
+        path === ''
+          ? []
+          : [
+              ListingItem.Dir({
+                name: '..',
+                to: urls.bucketPackageTree(bucket, name, revision, s3paths.up(path)),
+              }),
+            ]
+      const dirs = prefixes.map((p) =>
+        ListingItem.Dir({
+          name: s3paths.ensureNoSlash(p),
+          to: urls.bucketPackageTree(bucket, name, revision, path + p),
+        }),
+      )
+      const files = objects.map((key) =>
+        ListingItem.File({
+          name: key,
+          to: urls.bucketPackageTree(bucket, name, revision, path + key),
+        }),
+      )
+      const items = [...up, ...dirs, ...files]
+      return (
+        <>
+          <PkgCode {...{ data: hashData, bucket, name, revision, path }} />
+          <M.Box mt={2}>
+            <Listing items={items} />
+            {/* TODO: use proper versions */}
+            {/* TODO: load physical keys
+            <Summary files={dir.files} />
+            */}
+          </M.Box>
+        </>
+      )
+    },
+    Err: (e) => {
+      console.error(e)
+      return (
+        <M.Box mt={4}>
+          <M.Typography variant="h4" align="center" gutterBottom>
+            Error loading directory
+          </M.Typography>
+          <M.Typography variant="body1" align="center">
+            Seems like there&apos;s no such directory in this package
+          </M.Typography>
+        </M.Box>
+      )
+    },
+    _: () => (
+      // TODO: skeleton placeholder
+      <M.Box mt={2}>
+        <M.CircularProgress />
+      </M.Box>
+    ),
+  })
+}
+
+function FileDisplay({ bucket, name, revision, path }) {
+  const s3 = AWS.S3.use()
+  const { apiGatewayEndpoint: endpoint } = Config.use()
+  const credentials = AWS.Credentials.use()
+
+  const data = useData(requests.packageFileDetail, {
+    s3,
+    credentials,
+    endpoint,
+    bucket,
+    name,
+    revision,
+    path,
+  })
+
+  const hashData = useData(requests.loadRevisionHash, { s3, bucket, name, id: revision })
+
+  return data.case({
+    Ok: (handle) => (
+      <>
+        <PkgCode {...{ data: hashData, bucket, name, revision, path }} />
+        <Section icon="remove_red_eye" heading="Preview" expandable={false}>
+          <FilePreview handle={handle} />
+        </Section>
+      </>
+    ),
+    Err: (e) => {
+      console.error(e)
+      return (
+        <M.Box mt={4}>
+          <M.Typography variant="h4" align="center" gutterBottom>
+            Error loading file
+          </M.Typography>
+          <M.Typography variant="body1" align="center">
+            Seems like there&apos;s no such file in this package
+          </M.Typography>
+        </M.Box>
+      )
+    },
+    _: () => (
+      // TODO: skeleton placeholder
+      <M.Box mt={2}>
+        <M.CircularProgress />
+      </M.Box>
+    ),
+  })
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -354,41 +464,16 @@ export default function PackageTree({
   const { urls } = NamedRoutes.use()
   const getSignedS3URL = AWS.Signer.useS3Signer()
   const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
-  const bucketCfg = BucketConfig.useCurrentBucketConfig()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const credentials = AWS.Credentials.use()
+  const bucketCfg = BucketConfig.useCurrentBucketConfig()
 
-  const path = decode(encodedPath)
-
-  const getCode = ({ hash }) => {
-    const nameWithPath = path ? `${name}/${path}` : name
-    const hashDisplay = revision === 'latest' ? '' : hash.substring(0, 10)
-    const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
-    const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
-    return [
-      {
-        label: 'Python',
-        hl: 'python',
-        contents: dedent`
-          import quilt3
-          # browse
-          quilt3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
-          # download
-          quilt3.Package.install("${nameWithPath}"${hashPy}, registry="s3://${bucket}", dest=".")
-        `,
-      },
-      {
-        label: 'CLI',
-        hl: 'bash',
-        contents: dedent`
-          quilt3 install ${nameWithPath}${hashCli} --registry s3://${bucket} --dest .
-        `,
-      },
-    ]
-  }
+  const path = s3paths.decode(encodedPath)
+  const isDir = s3paths.isDir(path)
 
   const crumbs = React.useMemo(() => {
-    const segments = getBreadCrumbs(path)
+    const segments = s3paths.getBreadCrumbs(path)
     if (path !== '') segments.unshift({ label: 'ROOT', path: '' })
     return R.intersperse(
       Crumb.Sep(<>&nbsp;/ </>),
@@ -404,171 +489,61 @@ export default function PackageTree({
     ).concat(path.endsWith('/') ? Crumb.Sep(<>&nbsp;/</>) : [])
   }, [bucket, name, revision, path, urls])
 
-  const data = useData(requests.fetchPackageTree, {
-    s3,
-    sign: getSignedS3URL,
-    endpoint,
-    bucket,
-    name,
-    revision,
-  })
-
-  const treeRes = AsyncResult.mapCase(
-    {
-      Ok: computeTree({ bucket, name, revision, path }),
-    },
-    data.result,
-  )
-
   return (
     <M.Box pt={2} pb={4}>
-      {!!bucketCfg && (
-        <Data
-          fetch={requests.getRevisionData}
-          params={{
-            s3,
-            sign: getSignedS3URL,
-            endpoint,
-            bucket,
-            name,
-            id: revision,
-            maxKeys: 0,
-          }}
-        >
-          {AsyncResult.case({
-            _: () => null,
-            Ok: ({ hash, modified, header }) => (
-              <React.Suspense fallback={null}>
-                <LinkedData.PackageData
-                  {...{ bucket: bucketCfg, name, revision, hash, modified, header }}
-                />
-              </React.Suspense>
-            ),
-          })}
-        </Data>
-      )}
-      {data.case({
-        Err: displayError(),
-        _: () => (
-          <>
-            <M.Typography variant="body1">
-              <Link to={urls.bucketPackageDetail(bucket, name)} className={classes.name}>
-                {name}
-              </Link>
-              {' @ '}
-              <RevisionInfo {...{ revision, bucket, name, path }} />
-            </M.Typography>
-            <div className={classes.topBar}>
-              <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-                {renderCrumbs(crumbs)}
-              </div>
-              <div className={classes.spacer} />
-              {!noDownload &&
-                AsyncResult.case(
-                  {
-                    Ok: TreeDisplay.case({
-                      File: ({ key, version }) =>
-                        xs ? (
-                          <M.IconButton
-                            className={classes.button}
-                            href={getSignedS3URL({ bucket, key, version })}
-                            edge="end"
-                            size="small"
-                            download
-                          >
-                            <M.Icon>arrow_downward</M.Icon>
-                          </M.IconButton>
-                        ) : (
-                          <M.Button
-                            href={getSignedS3URL({ bucket, key, version })}
-                            className={classes.button}
-                            variant="outlined"
-                            size="small"
-                            startIcon={<M.Icon>arrow_downward</M.Icon>}
-                            download
-                          >
-                            Download file
-                          </M.Button>
-                        ),
-                      _: () => null,
-                    }),
-                    _: () => null,
-                  },
-                  treeRes,
-                )}
-            </div>
-
-            {AsyncResult.case(
-              {
-                Ok: TreeDisplay.case({
-                  Dir: () => (
-                    <M.Box className={classes.warning} mb={2}>
-                      <M.Icon className={classes.warningIcon}>warning</M.Icon>
-                      <div>
-                        The Packages tab shows only the first 1,000 files. Use the{' '}
-                        <M.Link
-                          to={urls.bucketDir(bucket)}
-                          color="inherit"
-                          underline="always"
-                          component={RRLink}
-                        >
-                          Files tab
-                        </M.Link>{' '}
-                        (above) or Python code (below) to view all files. This is a
-                        temporary limitation.
-                      </div>
-                    </M.Box>
-                  ),
-                  _: () => null,
-                }),
-                _: () => null,
-              },
-              treeRes,
-            )}
-
-            {data.case({
-              Ok: ({ hash }) => <Code>{getCode({ hash })}</Code>,
+      {!!bucketCfg && <ExposeLinkedData {...{ bucketCfg, bucket, name, revision }} />}
+      <M.Typography variant="body1">
+        <Link to={urls.bucketPackageDetail(bucket, name)} className={classes.name}>
+          {name}
+        </Link>
+        {' @ '}
+        <RevisionInfo {...{ revision, bucket, name, path }} />
+      </M.Typography>
+      <div className={classes.topBar}>
+        <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
+          {renderCrumbs(crumbs)}
+        </div>
+        <div className={classes.spacer} />
+        {!noDownload && !isDir && (
+          <Data
+            fetch={requests.packageFileDetail}
+            params={{ s3, credentials, endpoint, bucket, name, revision, path }}
+          >
+            {AsyncResult.case({
+              Ok: (handle) =>
+                xs ? (
+                  <M.IconButton
+                    className={classes.button}
+                    href={getSignedS3URL(handle)}
+                    edge="end"
+                    size="small"
+                    download
+                  >
+                    <M.Icon>arrow_downward</M.Icon>
+                  </M.IconButton>
+                ) : (
+                  <M.Button
+                    href={getSignedS3URL(handle)}
+                    className={classes.button}
+                    variant="outlined"
+                    size="small"
+                    startIcon={<M.Icon>arrow_downward</M.Icon>}
+                    download
+                  >
+                    Download file
+                  </M.Button>
+                ),
               _: () => null,
             })}
+          </Data>
+        )}
+      </div>
 
-            {AsyncResult.case(
-              {
-                Ok: TreeDisplay.case({
-                  File: (handle) => (
-                    <Section icon="remove_red_eye" heading="Preview" expandable={false}>
-                      <FilePreview handle={handle} />
-                    </Section>
-                  ),
-                  Dir: ({ truncated, ...dir }) => (
-                    <M.Box mt={2}>
-                      <Listing
-                        items={formatListing({ urls }, dir)}
-                        truncated={truncated}
-                      />
-                      {/* TODO: use proper versions */}
-                      <Summary files={dir.files} />
-                    </M.Box>
-                  ),
-                  NotFound: () => (
-                    <M.Box mt={4}>
-                      <M.Typography variant="h4" align="center">
-                        No such file
-                      </M.Typography>
-                    </M.Box>
-                  ),
-                }),
-                _: () => (
-                  // TODO: skeleton placeholder
-                  <M.Box mt={2}>
-                    <M.CircularProgress />
-                  </M.Box>
-                ),
-              },
-              treeRes,
-            )}
-          </>
-        ),
-      })}
+      {isDir ? (
+        <DirDisplay {...{ bucket, name, revision, path }} />
+      ) : (
+        <FileDisplay {...{ bucket, name, revision, path }} />
+      )}
     </M.Box>
   )
 }
