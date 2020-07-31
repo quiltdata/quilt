@@ -12,11 +12,11 @@ import pandas as pd
 import responses
 
 from t4_lambda_shared.utils import (
-    buffer_s3response, read_body, IncompleteResultException
+    buffer_s3response, call_s3_select, read_body, IncompleteResultException
 )
 
 from ..index import (
-    call_s3_select, file_list_to_folder,
+    file_list_to_folder,
     lambda_handler
 )
 
@@ -124,10 +124,11 @@ class TestPackageSelect(TestCase):
         bucket = "bucket"
         key = ".quilt/packages/manifest_hash"
 
+        expected_sql = "SELECT SUBSTRING(s.logical_key, 1) AS logical_key FROM s3object s"
         expected_args = {
             'Bucket': bucket,
             'Key': key,
-            'Expression': "SELECT SUBSTRING(s.logical_key, 1) AS logical_key FROM s3object s",
+            'Expression': expected_sql,
             'ExpressionType': 'SQL',
             'InputSerialization': {
                 'CompressionType': 'NONE',
@@ -140,9 +141,9 @@ class TestPackageSelect(TestCase):
         with patch.object(
                 mock_s3,
                 'select_object_content',
-                return_value=self.s3response_incomplete
+                return_value=self.s3response
         ) as patched:
-            call_s3_select(mock_s3, bucket, key, "")
+            call_s3_select(mock_s3, bucket, key, expected_sql)
             patched.assert_called_once_with(**expected_args)
 
     def test_call_s3select_prefix(self):
@@ -174,7 +175,7 @@ class TestPackageSelect(TestCase):
                 'select_object_content',
                 return_value=self.s3response
         ) as patched:
-            call_s3_select(mock_s3, bucket, key, prefix)
+            call_s3_select(mock_s3, bucket, key, expected_sql)
             patched.assert_called_once_with(**expected_args)
 
     def test_call_s3select_quote_in_prefix(self):
@@ -206,7 +207,7 @@ class TestPackageSelect(TestCase):
                 'select_object_content',
                 return_value=self.s3response
         ) as patched:
-            call_s3_select(mock_s3, bucket, key, prefix)
+            call_s3_select(mock_s3, bucket, key, expected_sql)
             patched.assert_called_once_with(**expected_args)
 
     def test_incomplete_response(self):

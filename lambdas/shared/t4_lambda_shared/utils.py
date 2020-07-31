@@ -105,3 +105,30 @@ def buffer_s3response(s3response):
         raise IncompleteResultException("Error: Received an incomplete response from S3 Select.")
     response.seek(0)
     return response
+
+
+def call_s3_select(
+    s3_client: str,
+    bucket: str,
+    key: str,
+    sql_stmt: str
+) -> io.StringIO:
+    """
+    Call S3 Select to read only the logical keys from a
+    package manifest that match the desired folder path
+    prefix
+    """
+
+    print(sql_stmt)
+    response = s3_client.select_object_content(
+        Bucket=bucket,
+        Key=key,
+        ExpressionType='SQL',
+        Expression=sql_stmt,
+        InputSerialization={
+            'JSON': {'Type': 'LINES'},
+            'CompressionType': 'NONE'
+        },
+        OutputSerialization={'JSON': {'RecordDelimiter': '\n'}}
+    )
+    return buffer_s3response(response)
