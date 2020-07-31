@@ -264,7 +264,7 @@ class TestPackageSelect(TestCase):
             session_token="TESTSESSION"
         )
 
-        expected_sql = f"SELECT s.* FROM s3object s WHERE s.logical_key = 'bar/file1.txt' LIMIT 1"
+        expected_sql = "SELECT s.* FROM s3object s WHERE s.logical_key = 'bar/file1.txt' LIMIT 1"
         expected_args = {
             'Bucket': bucket,
             'Key': key,
