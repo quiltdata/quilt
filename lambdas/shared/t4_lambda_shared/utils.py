@@ -8,8 +8,6 @@ import io
 import json
 import os
 
-from psutil import virtual_memory
-
 
 def separated_env_to_iter(
         env_var: str,
@@ -45,6 +43,7 @@ def get_default_origins():
 
 def get_available_memory():
     """how much virtual memory is available to us (bytes)?"""
+    from psutil import virtual_memory
     return virtual_memory().available
 
 
