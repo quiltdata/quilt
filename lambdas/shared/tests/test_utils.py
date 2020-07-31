@@ -9,7 +9,7 @@ from unittest.mock import patch
 import boto3
 
 from t4_lambda_shared.utils import (
-    call_s3_select,
+    query_manifest_content,
     separated_env_to_iter,
     get_default_origins,
     make_json_response,
@@ -150,7 +150,7 @@ class TestUtils(TestCase):
                 'select_object_content',
                 return_value=self.s3response
         ) as patched:
-            call_s3_select(
+            query_manifest_content(
                 mock_s3,
                 bucket=bucket,
                 key=key,
@@ -185,7 +185,7 @@ class TestUtils(TestCase):
                 return_value=self.s3response_incomplete
         ) as patched:
             with self.assertRaises(IncompleteResultException):
-                call_s3_select(
+                query_manifest_content(
                     mock_s3,
                     bucket=bucket,
                     key=key,

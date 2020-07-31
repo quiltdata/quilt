@@ -115,7 +115,7 @@ def buffer_s3response(s3response):
     return response
 
 
-def call_s3_select(
+def query_manifest_content(
     s3_client: str,
     *,
     bucket: str,

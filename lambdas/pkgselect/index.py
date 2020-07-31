@@ -9,7 +9,7 @@ import pandas as pd
 
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.utils import (
-    call_s3_select,
+    query_manifest_content,
     get_default_origins,
     make_json_response,
     sql_escape
@@ -100,7 +100,7 @@ def lambda_handler(request):
     # Get details of a single file in the package
     if logical_key is not None:
         sql_stmt = f"SELECT s.* FROM s3object s WHERE s.logical_key = '{sql_escape(logical_key)}' LIMIT 1"
-        response_data = json.load(call_s3_select(
+        response_data = json.load(query_manifest_content(
             s3_client,
             bucket=bucket,
             key=key,
@@ -113,7 +113,7 @@ def lambda_handler(request):
         sql_stmt = f"SELECT SUBSTRING(s.logical_key, {prefix_length + 1}) AS logical_key FROM s3object s"
         if prefix:
             sql_stmt += f" WHERE SUBSTRING(s.logical_key, 1, {prefix_length}) = '{sql_escape(prefix)}'"
-        result = call_s3_select(
+        result = query_manifest_content(
             s3_client,
             bucket=bucket,
             key=key,
