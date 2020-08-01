@@ -13,10 +13,6 @@ POINTER_PREFIX_V1 = ".quilt/named_packages/"
 MANIFEST_PREFIX_V1 = ".quilt/packages/"
 
 
-POINTER_PREFIX_V1 = ".quilt/named_packages/"
-MANIFEST_PREFIX_V1 = ".quilt/packages/"
-
-
 def separated_env_to_iter(
         env_var: str,
         *,
@@ -124,11 +120,11 @@ def buffer_s3response(s3response):
 
 
 def query_manifest_content(
-    s3_client: str,
-    *,
-    bucket: str,
-    key: str,
-    sql_stmt: str
+        s3_client: str,
+        *,
+        bucket: str,
+        key: str,
+        sql_stmt: str
 ) -> io.StringIO:
     """
     Call S3 Select to read only the logical keys from a
