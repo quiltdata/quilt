@@ -763,7 +763,7 @@ class Package:
 
         Raises:
             When `path` doesn't exist
-            ValueError: if the 'update_policy' is not a PackageUpdatePolicy enum value.
+            ValueError: if the 'update_policy' is not in PACKAGE_UPDATE_POLICY set.
         """
         if update_policy not in PACKAGE_UPDATE_POLICY:
             raise ValueError(f"Update policy should be one of {str(PACKAGE_UPDATE_POLICY)}, not {update_policy}")

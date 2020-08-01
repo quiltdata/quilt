@@ -134,7 +134,7 @@ json decode error
 invalid package exception
 
 
-## Package.set\_dir(self, lkey, path=None, meta=None)  {#Package.set\_dir}
+## Package.set\_dir(self, lkey, path=None, meta=None, update\_policy='incoming')  {#Package.set\_dir}
 
 Adds all files from `path` to the package.
 
@@ -148,6 +148,10 @@ __Arguments__
 * __path(string)__:  path to scan for files to add to package.
     If None, lkey will be substituted in as the path.
 * __meta(dict)__:  user level metadata dict to attach to lkey directory entry.
+* __update_policy(str)__:  can be either 'incoming' (default) or 'existing'.
+    If 'incoming', whenever logical keys match, always take the new entry from set_dir.
+    If 'existing', whenever logical keys match, retain existing entries
+    and ignore new entries from set_dir.
 
 __Returns__
 
@@ -156,6 +160,7 @@ self
 __Raises__
 
 When `path` doesn't exist
+* `ValueError`:  if the 'update_policy' is not in PACKAGE_UPDATE_POLICY set.
 
 
 ## Package.get(self, logical\_key)  {#Package.get}

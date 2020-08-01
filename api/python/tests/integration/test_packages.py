@@ -16,7 +16,13 @@ import pytest
 
 import quilt3
 from quilt3 import Package
-from quilt3.util import PhysicalKey, QuiltException, validate_package_name, RemovedInQuilt4Warning
+from quilt3.util import (
+    PhysicalKey,
+    QuiltException,
+    validate_package_name,
+    RemovedInQuilt4Warning,
+    PACKAGE_UPDATE_POLICY
+)
 from quilt3.backends.local import LocalPackageRegistryV1
 from quilt3.backends.s3 import S3PackageRegistryV1
 
@@ -530,56 +536,65 @@ class PackageTest(QuiltTestCase):
         """Verify building a package with update policy. """
 
         # Test for local src dir
-        foodir = pathlib.Path("foo_dir")
-        bazdir = pathlib.Path("baz_dir")
-        foodir.mkdir()
-        bazdir.mkdir()
-        with open(foodir / 'bar', 'w') as fd:
-            fd.write(fd.name)
-        with open(bazdir / 'bar', 'w') as fd:
-            fd.write(''.join([str(i) for i in range(100)]))
-
+        path = pathlib.Path(__file__).parent
+        data_dir = pathlib.Path(path, "data")
         pkg = Package()
-        pkg = pkg.set_dir("/", ".", meta={'name': 'test_meta'})
-        assert 'foo_dir' in pkg.keys()
-        existing_bar_size = pkg['foo_dir/bar'].size
+        pkg = pkg.set_dir("/", data_dir, meta={'name': 'test_meta'})
+        assert 'nested' in pkg.keys()
+        assert pkg.meta == {'name': 'test_meta'}
+        existing_one_entry = pkg['nested/one.txt']
+
+        nested_dir = pathlib.Path(data_dir, "nested2")
+        nested_dir.mkdir(parents=True, exist_ok=True)
+        with open(nested_dir / 'one.txt', 'w') as fd:
+            fd.write(fd.name)
 
         # existing update policy
-        pkg = pkg.set_dir("foo_dir", bazdir, update_policy='existing')
-        assert 'foo_dir' in pkg.keys()
-        assert existing_bar_size == pkg['foo_dir/bar'].size
+        pkg = pkg.set_dir("nested", nested_dir, update_policy='existing')
+        assert 'nested' in pkg.keys()
+        assert existing_one_entry == pkg['nested/one.txt']
 
         # incoming update policy
-        pkg = pkg.set_dir("foo_dir", bazdir)
-        assert 'foo_dir' in pkg.keys()
-        assert existing_bar_size != pkg['foo_dir/bar'].size
+        pkg = pkg.set_dir("nested", nested_dir)
+        assert 'nested' in pkg.keys()
+        assert existing_one_entry != pkg['nested/one.txt']
 
         # verify non existing update policy raises value error
-        with pytest.raises(ValueError):
-            pkg.set_dir("foo_dir", foodir, update_policy='invalid_policy')
+        expected_err = f"Update policy should be one of {str(PACKAGE_UPDATE_POLICY)}, not invalid_policy"
+        with pytest.raises(ValueError) as e:
+            pkg.set_dir("nested", data_dir, update_policy='invalid_policy')
+        assert expected_err in str(e.value)
+
+        # remove created directory
+        shutil.rmtree(nested_dir)
 
         # Test for s3 src dir
         with patch('quilt3.packages.list_object_versions') as list_object_versions_mock:
-            pkg = Package()
-
             list_object_versions_mock.return_value = ([
                 dict(Key='foo/a.txt', VersionId='xyz', IsLatest=True, Size=10),
+                dict(Key='foo/x/y.txt', VersionId='null', IsLatest=True, Size=10),
+                dict(Key='foo/z.txt', VersionId='123', IsLatest=False, Size=10),
             ], [])
-
+            pkg = Package()
             pkg.set_dir('', 's3://bucket/foo/', meta={'name': 'test_meta'})
             assert pkg['a.txt'].get() == 's3://bucket/foo/a.txt?versionId=xyz'
+            assert pkg['x/y.txt'].get() == 's3://bucket/foo/x/y.txt?versionId=null'
 
             list_object_versions_mock.return_value = ([
                 dict(Key='bar/a.txt', VersionId='abc', IsLatest=True, Size=10),
+                dict(Key='bar/x/y.txt', VersionId='null', IsLatest=True, Size=10),
+                dict(Key='bar/z.txt', VersionId='123', IsLatest=False, Size=10),
             ], [])
 
             # existing update policy
             pkg.set_dir('', 's3://bucket/bar', update_policy='existing')
             assert pkg['a.txt'].get() == 's3://bucket/foo/a.txt?versionId=xyz'
+            assert pkg['x/y.txt'].get() == 's3://bucket/foo/x/y.txt?versionId=null'
 
             # incoming update policy
             pkg.set_dir('', 's3://bucket/bar')
             assert pkg['a.txt'].get() == 's3://bucket/bar/a.txt?versionId=abc'
+            assert pkg['x/y.txt'].get() == 's3://bucket/bar/x/y.txt?versionId=null'
 
     def test_package_entry_meta(self):
         pkg = (
