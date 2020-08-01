@@ -290,3 +290,21 @@ class TestPackageSelect(TestCase):
             assert response['statusCode'] == 200
             json.loads(read_body(response))['contents']
         client_patch.stop()
+
+    def test_incomplete_credentials(self):
+        """
+        Verify that a call with incomplete credentials fails.
+        """
+        bucket = "bucket"
+        key = ".quilt/packages/manifest_hash"
+        logical_key = "bar/file1.txt"
+        params = dict(
+            bucket=bucket,
+            manifest=key,
+            logical_key=logical_key,
+            access_key="TESTKEY",
+            secret_key="TESTSECRET",
+        )
+
+        response = lambda_handler(self._make_event(params), None)
+        assert response['statusCode'] == 400

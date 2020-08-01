@@ -5,6 +5,8 @@ Provide a virtual-file-system view of a package's logical keys.
 import json
 
 import boto3
+from botocore import UNSIGNED
+from botocore.client import Config
 import pandas as pd
 
 from t4_lambda_shared.decorator import api, validate
@@ -40,7 +42,7 @@ SCHEMA = {
             'type': 'string'
         }
     },
-    'required': ['bucket', 'manifest', 'access_key', 'secret_key'],
+    'required': ['bucket', 'manifest'],
     'additionalProperties': False
 }
 
@@ -60,21 +62,22 @@ def file_list_to_folder(df: pd.DataFrame) -> dict:
     )
 
 
-def get_s3_client(
+def create_s3_client(
+    *,
     aws_access_key_id: str,
     aws_secret_access_key: str,
     aws_session_token: str
 ):
     """
-    Create an S3 Client using the provided credentials
+    Create an S3 Client using caller-provided credentials.
     """
+    assert aws_access_key_id and aws_secret_access_key and aws_session_token
     session = boto3.Session(
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
         aws_session_token=aws_session_token
     )
-    s3_client = session.client('s3')
-    return s3_client
+    return session.client('s3')
 
 
 @api(cors_origins=get_default_origins())
@@ -88,14 +91,44 @@ def lambda_handler(request):
     """
     bucket = request.args['bucket']
     key = request.args['manifest']
-    aws_access_key_id = request.args['access_key']
-    aws_secret_access_key = request.args['secret_key']
-    aws_session_token = request.args['session_token']
     prefix = request.args.get('prefix')
     logical_key = request.args.get('logical_key')
+    access_key = request.args.get('access_key')
+    secret_key = request.args.get('secret_key')
+    session_token = request.args.get('session_token')
 
-    # Create an s3 client using the provided credentials
-    s3_client = get_s3_client(aws_access_key_id, aws_secret_access_key, aws_session_token)
+    # If credentials are passed in, use them
+    # for the client. If no credentials are supplied, test that
+    # the manifest object is publicly accessible. If so, create
+    # an s3 client using the underlying IAM role's permissions.
+
+    if access_key and secret_key and session_token:
+        s3_client = create_s3_client(
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            aws_session_token=session_token
+        )
+    elif (
+        access_key is None and
+        secret_key is None and
+        session_token is None
+    ):
+        # Test to see if the target key is publicly accessible. If not, the call
+        # below will raise and exception and return a 403 response
+        anons3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
+        response = anons3.head_object(Bucket=bucket, Key=key)
+
+        # Use the default S3 client configuration
+        s3_client = boto3.client('s3')
+    else:
+        return make_json_response(
+            400,
+            {
+                'title': 'Incomplete credentials',
+                'detail': "access_key, secret_key and session_token are required"
+            }
+        )
+    assert s3_client
 
     # Get details of a single file in the package
     if logical_key is not None:
