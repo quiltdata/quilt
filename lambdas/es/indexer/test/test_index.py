@@ -764,50 +764,6 @@ class TestIndex(TestCase):
 
         assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
 
-    @pytest.mark.xfail(
-        raises=ParamValidationError,
-        reason="boto bug https://github.com/boto/botocore/issues/1621"
-    )
-    def test_index_if_manifest_boto(self):
-        """Demonstrate that mocking S3 select with boto3 is broken"""
-        sha_hash = "50f4d0fc2c22a70893a7f356a4929046ce529b53c1ef87e28378d92b884691a5"
-        manifest_key = f"{MANIFEST_PREFIX_V1}{sha_hash}"
-        # this SHOULD work, but due to botocore bugs it does not
-        self.s3_stubber.add_response(
-            method="select_object_content",
-            service_response={
-                "ResponseMetadata": ANY,
-                # it is sadly not possible to mock S3 select responses because
-                # boto incorrectly believes "Payload"'s value should be a dict
-                # but it's really an iterable in realworld code
-                # see https://github.com/boto/botocore/issues/1621
-                "Payload": [
-                    {
-                        "Stats": {}
-                    },
-                    {
-                        "Records": {
-                            "Payload": json.dumps(MANIFEST_DATA).encode(),
-                        },
-                    },
-                    {
-                        "End": {}
-                    },
-                ]
-            },
-            expected_params={
-                "Bucket": "test-bucket",
-                "Key": manifest_key,
-                "Expression": index.SELECT_PACKAGE_META,
-                "ExpressionType": "SQL",
-                "InputSerialization": {
-                    'JSON': {'Type': 'LINES'},
-                    'CompressionType': 'NONE'
-                },
-                "OutputSerialization": {'JSON': {'RecordDelimiter': '\n'}}
-            }
-        )
-
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
         # parquet
@@ -905,6 +861,50 @@ class TestIndex(TestCase):
             with patch('index.SKIP_ROWS_EXTS', exts):
                 assert '.parquet' in exts
                 assert '.csv' not in exts
+
+    @pytest.mark.xfail(
+        raises=ParamValidationError,
+        reason="boto bug https://github.com/boto/botocore/issues/1621"
+    )
+    def test_stub_select_object_content(self):
+        """Demonstrate that mocking S3 select with boto3 is broken"""
+        sha_hash = "50f4d0fc2c22a70893a7f356a4929046ce529b53c1ef87e28378d92b884691a5"
+        manifest_key = f"{MANIFEST_PREFIX_V1}{sha_hash}"
+        # this SHOULD work, but due to botocore bugs it does not
+        self.s3_stubber.add_response(
+            method="select_object_content",
+            service_response={
+                "ResponseMetadata": ANY,
+                # it is sadly not possible to mock S3 select responses because
+                # boto incorrectly believes "Payload"'s value should be a dict
+                # but it's really an iterable in realworld code
+                # see https://github.com/boto/botocore/issues/1621
+                "Payload": [
+                    {
+                        "Stats": {}
+                    },
+                    {
+                        "Records": {
+                            "Payload": json.dumps(MANIFEST_DATA).encode(),
+                        },
+                    },
+                    {
+                        "End": {}
+                    },
+                ]
+            },
+            expected_params={
+                "Bucket": "test-bucket",
+                "Key": manifest_key,
+                "Expression": index.SELECT_PACKAGE_META,
+                "ExpressionType": "SQL",
+                "InputSerialization": {
+                    'JSON': {'Type': 'LINES'},
+                    'CompressionType': 'NONE'
+                },
+                "OutputSerialization": {'JSON': {'RecordDelimiter': '\n'}}
+            }
+        )
 
     def test_synthetic_copy_event(self):
         """check synthetic ObjectCreated:Copy event vs organic obtained on 26-May-2020

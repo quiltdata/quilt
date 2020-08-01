@@ -13,6 +13,10 @@ POINTER_PREFIX_V1 = ".quilt/named_packages/"
 MANIFEST_PREFIX_V1 = ".quilt/packages/"
 
 
+POINTER_PREFIX_V1 = ".quilt/named_packages/"
+MANIFEST_PREFIX_V1 = ".quilt/packages/"
+
+
 def separated_env_to_iter(
         env_var: str,
         *,
