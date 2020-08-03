@@ -130,6 +130,7 @@ def lambda_handler(request):
 
         # Use the default S3 client configuration
         s3_client = boto3.client('s3')
+        response = s3_client.head_object(Bucket=bucket, Key=key)
     else:
         return make_json_response(
             400,
