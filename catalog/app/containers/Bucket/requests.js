@@ -560,8 +560,12 @@ export const objectMeta = ({ s3, bucket, path, version }) =>
 
 const isValidManifest = R.both(Array.isArray, R.all(R.is(String)))
 
-export const summarize = async ({ s3, handle }) => {
-  if (!handle) return null
+export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) => {
+  if (!inputHandle) return null
+  const handle =
+    resolveLogicalKey && inputHandle.logicalKey && !inputHandle.key
+      ? await resolveLogicalKey(inputHandle.logicalKey)
+      : inputHandle
 
   try {
     const file = await s3
@@ -579,14 +583,20 @@ export const summarize = async ({ s3, handle }) => {
       throw new Error('Invalid manifest: must be a JSON array of file links')
     }
 
-    const resolvePath = (path) => ({
-      bucket: handle.bucket,
-      key: s3paths.resolveKey(handle.key, path),
-    })
+    const resolvePath = (path) =>
+      resolveLogicalKey && handle.logicalKey
+        ? resolveLogicalKey(s3paths.resolveKey(handle.logicalKey, path)).catch((e) => {
+            console.warn('Error resolving logical key for summary', { handle, path })
+            console.error(e)
+            return null
+          })
+        : {
+            bucket: handle.bucket,
+            key: s3paths.resolveKey(handle.key, path),
+          }
 
-    // TODO: figure out versions of package-local referenced objects
-    return manifest
-      .map(
+    const handles = await Promise.all(
+      manifest.map(
         R.pipe(
           Resource.parse,
           Resource.Pointer.case({
@@ -596,8 +606,9 @@ export const summarize = async ({ s3, handle }) => {
             Path: resolvePath,
           }),
         ),
-      )
-      .filter((h) => h)
+      ),
+    )
+    return handles.filter((h) => h)
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Error loading summary:')
@@ -938,8 +949,6 @@ export async function packageSelect({
       ...args,
     })}`,
   )
-
-  console.log('pkg select resp', r)
 
   if (r.status >= 400) {
     const msg = await r.text()

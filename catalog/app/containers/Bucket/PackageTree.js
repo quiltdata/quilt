@@ -22,8 +22,7 @@ import Code from './Code'
 import FilePreview from './FilePreview'
 import Listing, { ListingItem } from './Listing'
 import Section from './Section'
-// import Summary from './Summary'
-// import { displayError } from './errors'
+import Summary from './Summary'
 import * as requests from './requests'
 
 const MAX_REVISIONS = 5
@@ -307,6 +306,28 @@ function DirDisplay({ bucket, name, revision, path }) {
 
   const hashData = useData(requests.loadRevisionHash, { s3, bucket, name, id: revision })
 
+  const resolveLogicalKey = React.useCallback(
+    (logicalKey) =>
+      requests.packageFileDetail({
+        s3,
+        credentials,
+        endpoint,
+        bucket,
+        name,
+        revision,
+        path: logicalKey,
+      }),
+    [s3, credentials, endpoint, bucket, name, revision, path],
+  )
+
+  const mkUrl = React.useCallback(
+    (handle) => {
+      console.log('mkUrl', handle)
+      return urls.bucketPackageTree(bucket, name, revision, handle.logicalKey)
+    },
+    [urls.bucketPackageTree, bucket, name, revision, path],
+  )
+
   return data.case({
     Ok: ({ objects, prefixes }) => {
       const up =
@@ -324,22 +345,24 @@ function DirDisplay({ bucket, name, revision, path }) {
           to: urls.bucketPackageTree(bucket, name, revision, path + p),
         }),
       )
-      const files = objects.map((key) =>
+      const files = objects.map((basename) =>
         ListingItem.File({
-          name: key,
-          to: urls.bucketPackageTree(bucket, name, revision, path + key),
+          name: basename,
+          to: urls.bucketPackageTree(bucket, name, revision, path + basename),
         }),
       )
       const items = [...up, ...dirs, ...files]
+      const lazyHandles = objects.map((basename) => ({ logicalKey: path + basename }))
       return (
         <>
           <PkgCode {...{ data: hashData, bucket, name, revision, path }} />
           <M.Box mt={2}>
             <Listing items={items} />
-            {/* TODO: use proper versions */}
-            {/* TODO: load physical keys
-            <Summary files={dir.files} />
-            */}
+            <Summary
+              files={lazyHandles}
+              resolveLogicalKey={resolveLogicalKey}
+              mkUrl={mkUrl}
+            />
           </M.Box>
         </>
       )
