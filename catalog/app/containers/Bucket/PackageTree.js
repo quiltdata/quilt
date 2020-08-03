@@ -321,10 +321,7 @@ function DirDisplay({ bucket, name, revision, path }) {
   )
 
   const mkUrl = React.useCallback(
-    (handle) => {
-      console.log('mkUrl', handle)
-      return urls.bucketPackageTree(bucket, name, revision, handle.logicalKey)
-    },
+    (handle) => urls.bucketPackageTree(bucket, name, revision, handle.logicalKey),
     [urls.bucketPackageTree, bucket, name, revision, path],
   )
 
