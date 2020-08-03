@@ -53,12 +53,22 @@ def file_list_to_folder(df: pd.DataFrame) -> dict:
     top-level folder view (a special case of the s3-select
     lambda).
     """
-    # matches all strings; everything before and including the first
-    # / is extracted
-    folder = pd.Series(df.logical_key.dropna().str.extract('([^/]+/?).*')[0].unique())
-    return dict(
-        prefixes=folder[folder.str.endswith('/')].sort_values().tolist(),
+    # check for empty manifest (top-level meta only)
+    # calls below will fail if no rows are left after
+    # dropna.
+    if len(df.index) <= 1:
+        prefixes = []
+        objects = []
+    else:
+         # matches all strings; everything before and including the first
+         # / is extracted
+        folder = pd.Series(df.logical_key.dropna().str.extract('([^/]+/?).*')[0].unique())
+        prefixes=folder[folder.str.endswith('/')].sort_values().tolist()
         objects=folder[~folder.str.endswith('/')].sort_values().tolist()
+
+    return dict(
+        prefixes=prefixes,
+        objects=objects
     )
 
 
