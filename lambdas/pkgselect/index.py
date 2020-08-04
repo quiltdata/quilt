@@ -60,11 +60,11 @@ def file_list_to_folder(df: pd.DataFrame) -> dict:
         prefixes = []
         objects = []
     else:
-         # matches all strings; everything before and including the first
-         # / is extracted
+        # matches all strings; everything before and including the first
+        # / is extracted
         folder = pd.Series(df.logical_key.dropna().str.extract('([^/]+/?).*')[0].unique())
-        prefixes=folder[folder.str.endswith('/')].sort_values().tolist()
-        objects=folder[~folder.str.endswith('/')].sort_values().tolist()
+        prefixes = folder[folder.str.endswith('/')].sort_values().tolist()
+        objects = folder[~folder.str.endswith('/')].sort_values().tolist()
 
     return dict(
         prefixes=prefixes,
