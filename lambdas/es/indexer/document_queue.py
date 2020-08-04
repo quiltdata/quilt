@@ -1,7 +1,9 @@
 """ core logic for fetching documents from S3 and queueing them locally before
 sending to elastic search in memory-limited batches"""
 from datetime import datetime
+from enum import Enum
 from math import floor
+from typing import List
 import os
 
 from aws_requests_auth.aws_auth import AWSRequestsAuth
@@ -48,6 +50,11 @@ class RetryError(Exception):
         pass
 
 
+class DocTypes(Enum):
+    OBJECT = 1  # S3 objects
+    PACKAGE = 2  # Quilt packages
+
+
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
     def __init__(self, context):
@@ -58,25 +65,29 @@ class DocumentQueue:
 
     def append(
             self,
-            event_type,
-            size=0,
+            event_type: str,
+            doc_type: DocTypes,
+            # properties unique to a document type are non-required kwargs
+            ext: str = '',
+            handle: str = '',
+            metadata: str = '',
+            package_hash: str = '',
+            tags: List[str] = (),
+            text: str = '',
+            version_id=None,
             *,
-            last_modified,
-            bucket,
-            ext,
-            key,
-            text,
-            etag,
-            version_id
+            # common properties are required kwargs
+            bucket: str,
+            comment: str = '',
+            key: str,
+            etag: str,
+            last_modified: datetime,
+            size: int = 0
     ):
         """format event as a document and then queue the document"""
-        if not isinstance(version_id, (str, type(None))):
-            # should never raise given how index.py, the only caller of .append(),
-            # works
-            raise ValueError(
-                f".append() must set version_id even if missing from event; "
-                f"got {version_id}"
-            )
+        if not bucket:
+            raise ValueError("argument bucket= required for all documents")
+
         if event_type.startswith(EVENT_PREFIX["Created"]):
             _op_type = "index"
         elif event_type.startswith(EVENT_PREFIX["Removed"]):
@@ -86,39 +97,53 @@ class DocumentQueue:
             return
         # On types and fields, see
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
+        # Set common properties on the document
+        # BE CAREFUL changing these values, as type changes or missing fields
+        # can cause exceptions from ES
         body = {
-            # Elastic native keys
-            "_id": f"{key}:{version_id}",
-            "_index": bucket,
-            "_type": "_doc",
-            # index will upsert (and clobber existing equivalent _ids)
-            "_op_type": "delete" if event_type.startswith(EVENT_PREFIX["Removed"]) else "index",
-            # Quilt keys
-            # Be VERY CAREFUL changing these values, as a type change can cause a
-            # mapper_parsing_exception that below code won't handle
-            # TODO: remove this field from ES in /enterprise (now deprecated and unused)
-            "comment": "",
-            "content": text,  # field for full-text search
+            "_index": bucket + '_packages' if doc_type == DocTypes.PACKAGE else '',
+            "comment": comment,
             "etag": etag,
-            "event": event_type,
-            "ext": ext,
             "key": key,
-            # "key_text": created by mappings copy_to
             "last_modified": last_modified.isoformat(),
-            # TODO: remove this field from ES in /enterprise (now deprecated and unused)
-            "meta_text": "",
             "size": size,
-            "target": "",
-            "updated": datetime.utcnow().isoformat(),
-            "version_id": version_id
         }
+        if doc_type == DocTypes.PACKAGE:
+            if not handle or not package_hash:
+                raise ValueError("missing required argument for package document")
+            body.update({
+                "_id": f"{handle}:{package_hash}",
+                "handle": handle,
+                "hash": package_hash,
+                "metadata": metadata,
+                "tags": ",".join(tags)
+            })
+        elif doc_type == DocTypes.OBJECT:
+            body.update({
+                # Elastic native keys
+                "_id": f"{key}:{version_id}",
+                "_type": "_doc",
+                # TODO: remove this field from ES in /enterprise (now deprecated and unused)
+                # here we explicitly drop the comment
+                "comment": "",
+                "content": text,  # field for full-text search
+                "event": event_type,
+                "ext": ext,
+                # TODO: remove this field from ES in /enterprise (now deprecated and unused)
+                "meta_text": "",
+                "target": "",
+                "updated": datetime.utcnow().isoformat(),
+                "version_id": version_id
+            })
+        else:
+            print(f"Skipping unhandled document type: {doc_type}")
 
-        self.append_document(body)
+        self._append_document(body)
 
         if self.size >= QUEUE_LIMIT_BYTES:
             self.send_all()
 
-    def append_document(self, doc):
+    def _append_document(self, doc):
         """append well-formed documents (used for retry or by append())"""
         if doc["content"]:
             # document text dominates memory footprint; OK to neglect the

@@ -8,6 +8,7 @@ Scene-Timepoint-Channel-SpacialZ-SpacialY-SpacialX.
 """
 import base64
 import json
+import os
 import sys
 from io import BytesIO
 from math import sqrt
@@ -15,6 +16,13 @@ from typing import List, Tuple
 
 import imageio
 import numpy as np
+from pdf2image import convert_from_bytes
+from pdf2image.exceptions import (
+    PDFInfoNotInstalledError,
+    PDFPageCountError,
+    PDFSyntaxError,
+    PopplerNotInstalledError
+)
 import requests
 from aicsimageio import AICSImage, readers
 from PIL import Image
@@ -55,8 +63,15 @@ SCHEMA = {
         'size': {
             'enum': list(SIZE_PARAMETER_MAP)
         },
+        'input': {
+            'enum': ['pdf']
+        },
         'output': {
             'enum': ['json', 'raw']
+        },
+        'page': {
+            'type': 'integer',
+            'minimum': 1
         }
     },
     'required': ['url', 'size'],
@@ -209,6 +224,19 @@ def format_aicsimage_to_prepped(img: AICSImage) -> np.ndarray:
     return img.reader.data
 
 
+def set_pdf_env():
+    """set env vars to support PDF binary, library, font discovery
+    see https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html"""
+    prefix = 'quilt_binaries'
+    lambda_root = os.environ["LAMBDA_TASK_ROOT"]
+    # binaries
+    os.environ["PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'bin')
+    # libs
+    os.environ["LD_LIBRARY_PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'lib64')
+    # fonts
+    os.environ["FONTCONFIG_PATH"] = os.path.join(lambda_root, prefix, 'fonts')
+
+
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 def lambda_handler(request):
@@ -218,58 +246,76 @@ def lambda_handler(request):
     # Parse request info
     url = request.args['url']
     size = SIZE_PARAMETER_MAP[request.args['size']]
+    input_ = request.args.get('input', 'image')
     output = request.args.get('output', 'json')
+    page = request.args.get('page', 1)
 
     # Handle request
     resp = requests.get(url)
     if resp.ok:
-        # Get the original reader / format
-        # If the original reader isn't in the supported formats map, use PNG as default presentation format
         try:
             thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(imageio.get_reader(resp.content), "PNG")
-        # In the case imageio can't read the image, default to PNG
-        # Usually an OME-TIFF / CZI / some other bio-format
         except ValueError:
-            thumbnail_format = "PNG"
+            thumbnail_format = "JPEG" if input_ == "pdf" else "PNG"
+        if input_ == "pdf":
+            set_pdf_env()
+            try:
+                pages = convert_from_bytes(
+                    resp.content,
+                    first_page=page,
+                    last_page=page,
+                    # respect width but not necessarily height (to preserve aspect ratio)
+                    size=(size[0], None)
+                )
+            except (
+                    PDFInfoNotInstalledError,
+                    PDFPageCountError,
+                    PDFSyntaxError,
+                    PopplerNotInstalledError
+            ) as exc:
+                return make_json_response(500, {'error': str(exc)})
 
-        # Read image data
-        img = AICSImage(resp.content)
-        orig_size = list(img.reader.data.shape)
+            assert len(pages) == 1, 'Expected to generate and return a single image'
+            # singleton array of PIL images
+            preview = pages[0]
+            info = {
+                'thumbnail_format': 'JPEG',
+                'thumbnail_size': preview.size,
+            }
+            thumbnail_bytes = BytesIO()
+            preview.save(thumbnail_bytes, thumbnail_format)
+            data = thumbnail_bytes.getvalue()
+        else:
+            # Read image data
+            img = AICSImage(resp.content)
+            orig_size = list(img.reader.data.shape)
+            # Generate a formatted ndarray using the image data
+            # Makes some assumptions for n-dim data
+            img = format_aicsimage_to_prepped(img)
+            # Send to Image object for thumbnail generation and saving to bytes
+            img = Image.fromarray(img)
+            # Generate thumbnail
+            img.thumbnail(size)
+            thumbnail_size = img.size
+            # Store the bytes
+            thumbnail_bytes = BytesIO()
+            img.save(thumbnail_bytes, thumbnail_format)
+            # Get bytes data
+            data = thumbnail_bytes.getvalue()
+            # Create metadata object
+            info = {
+                'original_size': orig_size,
+                'thumbnail_format': thumbnail_format,
+                'thumbnail_size': thumbnail_size,
+            }
 
-        # Generate a formatted ndarray using the image data
-        # Makes some assumptions for n-dim data
-        img = format_aicsimage_to_prepped(img)
-
-        # Send to Image object for thumbnail generation and saving to bytes
-        img = Image.fromarray(img)
-
-        # Generate thumbnail
-        img.thumbnail(size)
-        thumbnail_size = img.size
-
-        # Store the bytes
-        thumbnail_bytes = BytesIO()
-        img.save(thumbnail_bytes, thumbnail_format)
-
-        # Get bytes data
-        data = thumbnail_bytes.getvalue()
-
-        # Create metadata object
-        info = {
-            'original_size': orig_size,
-            'thumbnail_format': thumbnail_format,
-            'thumbnail_size': thumbnail_size,
-        }
-
-        # Store data
         if output == 'json':
             ret_val = {
                 'info': info,
                 'thumbnail': base64.b64encode(data).decode(),
             }
             return make_json_response(200, ret_val)
-
-        # Not json response
+        # Not JSON response ('raw')
         headers = {
             'Content-Type': Image.MIME[thumbnail_format],
             'X-Quilt-Info': json.dumps(info)

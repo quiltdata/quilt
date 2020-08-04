@@ -1,13 +1,16 @@
 """
 Tests for the ES indexer. This function consumes events from SQS.
 """
-from string import ascii_lowercase
+import datetime
 from copy import deepcopy
 from gzip import compress
 from io import BytesIO
 import json
 import os
+from math import floor
 from pathlib import Path
+from time import time
+from string import ascii_lowercase
 from unittest import TestCase
 from unittest.mock import ANY, patch
 from urllib.parse import unquote_plus
@@ -15,12 +18,18 @@ from urllib.parse import unquote_plus
 import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
+from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
+from dateutil.tz import tzutc
 import pytest
 import responses
 
-from t4_lambda_shared.utils import separated_env_to_iter
-from document_queue import RetryError
+from t4_lambda_shared.utils import (
+    POINTER_PREFIX_V1,
+    MANIFEST_PREFIX_V1,
+    separated_env_to_iter
+)
+from document_queue import DocTypes, RetryError
 from .. import index
 
 
@@ -61,6 +70,30 @@ EVENT_CORE = {
         "s3SchemaVersion": "1.0"
     },
     "userIdentity": {"principalId": "EXAMPLE"}
+}
+# typical response to head_object or get_object
+OBJECT_RESPONSE = {
+    'ResponseMetadata': ANY,
+    'AcceptRanges': 'bytes',
+    'LastModified': datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+    'ContentLength': 1555,
+    'ETag': '"8dbf7b98d5458a46327fb58f27b9af6e"',
+    'VersionId': 'wcOZpjy5G.tJ2N.rwPhiR.NY_RftJ3A_',
+    'ContentType': 'binary/octet-stream',
+    'Metadata': {
+        'helium': '{"user_meta": {}}'
+    }
+}
+# Simulated first line of manifest
+MANIFEST_DATA = {
+    "version": "v0",
+    "user_meta": {
+        "arbitrary": "metadata",
+        "list": [5, 9, 19],
+        "int": 42,
+        "object": {"treble": "is", "a": "friend"}
+    },
+    "message": "interesting comment with interesting symbols #$%@☮ 😎!"
 }
 
 
@@ -104,7 +137,7 @@ def make_event(
         versionId="1313131313131.Vier50HdNbi7ZirO65",
         bucket_versioning=True
 ):
-    """return an event based on EVENT_CORE, add fields to match organic AWS events"""
+    """create an event based on EVENT_CORE, add fields to match organic AWS events"""
     if name in CREATE_EVENT_TYPES:
         args = {
             "bucket": bucket,
@@ -230,7 +263,7 @@ class TestIndex(TestCase):
         self.requests_mock.stop()
 
     def _get_contents(self, name, ext):
-        return index.get_contents(
+        return index.maybe_get_contents(
             'test-bucket', name, ext,
             etag='etag', version_id=None, s3_client=self.s3_client, size=123,
         )
@@ -343,7 +376,7 @@ class TestIndex(TestCase):
                 else:
                     expected = {
                         **expected_params,
-                        'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}'
+                        'Range': 'bytes=0-100'
                     }
                 self.s3_stubber.add_response(
                     method='get_object',
@@ -504,7 +537,7 @@ class TestIndex(TestCase):
         extract_mock.assert_called_once()
 
     @patch.object(index.DocumentQueue, 'append')
-    @patch.object(index, 'get_contents')
+    @patch.object(index, 'maybe_get_contents')
     def test_index_c000_contents(self, get_mock, append_mock):
         """ensure files with special extensions get treated as parquet"""
         parquet_data = b'@@parquet-data@@'
@@ -528,6 +561,7 @@ class TestIndex(TestCase):
         # ensure parquet data is getting to elastic
         append_mock.assert_called_once_with(
             'ObjectCreated:Put',
+            DocTypes.OBJECT,
             bucket='test-bucket',
             etag='123456',
             ext='',
@@ -538,7 +572,7 @@ class TestIndex(TestCase):
             version_id='1313131313131.Vier50HdNbi7ZirO65'
         )
 
-    @patch.object(index, 'get_contents')
+    @patch.object(index, 'maybe_get_contents')
     def test_index_exception(self, get_mock):
         """test indexing a single file that throws an exception"""
         class ContentException(Exception):
@@ -552,6 +586,183 @@ class TestIndex(TestCase):
                     "mock_object": False
                 }
             )
+
+    def test_index_if_manifest_skip(self):
+        """test cases where index_if_manifest ignores input for different reasons"""
+        for failure in {"key", "young", "old"}:
+            # too far in the future
+            if failure == "young":
+                timestamp = 1451631500
+            elif failure == "old":
+                timestamp = 1767250801
+            else:
+                timestamp = floor(time())
+            pointer_key = (
+                ".quilt/badfile/stuff.txt" if failure == 'key'
+                else f".quilt/named_packages/foo/bar/{timestamp}"
+            )
+            indexed = index.index_if_manifest(
+                self.s3_client,
+                index.DocumentQueue(None),
+                "ObjectCreated:Put",
+                bucket="quilt-example",
+                etag="123",
+                ext="",
+                # emulate a recent unix stamp from quilt3
+                key=pointer_key,
+                last_modified="faketimestamp",
+                version_id="random.version.id",
+                size=64
+            )
+            assert not indexed
+
+    @patch.object(index.DocumentQueue, 'append')
+    @patch.object(index, 'maybe_get_contents')
+    @patch.object(index, 'index_if_manifest')
+    def test_index_if_manifest_negative(self, index_mock, get_mock, append_mock):
+        """test non-manifest file (still calls index_if_manifest)"""
+        json_data = json.dumps({"version": 1})
+        get_mock.return_value = json_data
+        self._test_index_events(
+            ["ObjectCreated:Put"],
+            # we're mocking append so ES will never get called
+            mock_elastic=False,
+            mock_overrides={
+                "event_kwargs": {
+                    "key": "obscure_path/long-complicated-name-c000"
+                },
+                # we patch maybe_get_contents so _test_index_events doesn't need to
+                "mock_object": False,
+                # no byte ranges for parquet files
+                "skip_byte_range": True
+            }
+        )
+        get_mock.assert_called_once()
+        index_mock.assert_called_once()
+        append_mock.assert_called_once_with(
+            'ObjectCreated:Put',
+            DocTypes.OBJECT,
+            bucket='test-bucket',
+            etag='123456',
+            ext='',
+            key='obscure_path/long-complicated-name-c000',
+            last_modified=ANY,
+            size=100,
+            text=json_data,
+            version_id='1313131313131.Vier50HdNbi7ZirO65'
+        )
+
+    @patch.object(index.DocumentQueue, 'append')
+    def test_index_if_manifest_positive(self, append_mock):
+        """test manifest file and its indexing"""
+        timestamp = 1595616294
+        pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
+        # first, handler() will head the object
+        self.s3_stubber.add_response(
+            method="head_object",
+            service_response={
+                **OBJECT_RESPONSE,
+                "ContentLength": 64
+            },
+            expected_params={
+                "Bucket": "test-bucket",
+                "Key": pointer_key,
+                "VersionId": "1313131313131.Vier50HdNbi7ZirO65"
+            }
+        )
+
+        sha_hash = "50f4d0fc2c22a70893a7f356a4929046ce529b53c1ef87e28378d92b884691a5"
+        # next, handler() calls index_if_manifest which gets the hash from pointer_file
+        self.s3_stubber.add_response(
+            method="get_object",
+            service_response={
+                **OBJECT_RESPONSE,
+                "ContentLength": 64,
+                "Body": BytesIO(sha_hash.encode())
+            },
+            expected_params={
+                "Bucket": "test-bucket",
+                "Key": pointer_key,
+                "VersionId": "1313131313131.Vier50HdNbi7ZirO65",
+                'Range': "bytes=0-64"
+            }
+        )
+
+        manifest_key = f"{MANIFEST_PREFIX_V1}{sha_hash}"
+        # patch select_object_content since boto can't
+        with patch.object(self.s3_client, 'select_object_content') as mock_select:
+            mock_select.return_value = {
+                "ResponseMetadata": ANY,
+                "Payload": [
+                    {
+                        "Stats": {}
+                    },
+                    {
+                        "Records": {
+                            "Payload": json.dumps(MANIFEST_DATA).encode(),
+                        },
+                    },
+                    {
+                        "End": {}
+                    },
+                ]
+            }
+
+            self._test_index_events(
+                ["ObjectCreated:Put"],
+                # we're mocking append so ES will never get called
+                mock_elastic=False,
+                mock_overrides={
+                    "event_kwargs": {
+                        "key": pointer_key
+                    },
+                    # we, not _test_index_events, patch all the S3 calls in this test
+                    "mock_object": False,
+                    "mock_head": False
+                }
+            )
+
+            mock_select.assert_called_once_with(
+                Bucket="test-bucket",
+                Key=manifest_key,
+                Expression=index.SELECT_PACKAGE_META,
+                ExpressionType="SQL",
+                # copied from t4_lambda_shared > utils.py > query_manifest_content
+                InputSerialization={
+                    'JSON': {'Type': 'LINES'},
+                    'CompressionType': 'NONE'
+                },
+                OutputSerialization={'JSON': {'RecordDelimiter': '\n'}}
+            )
+
+        append_mock.assert_any_call(
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            bucket="test-bucket",
+            etag="123456",
+            ext="",
+            handle="author/semantic",
+            key=f".quilt/packages/{sha_hash}",
+            last_modified=ANY,
+            package_hash=sha_hash,
+            comment=MANIFEST_DATA["message"],
+            metadata=json.dumps(MANIFEST_DATA["user_meta"])
+        )
+
+        append_mock.assert_any_call(
+            "ObjectCreated:Put",
+            DocTypes.OBJECT,
+            bucket="test-bucket",
+            key=pointer_key,
+            ext="",
+            etag="123456",
+            version_id="1313131313131.Vier50HdNbi7ZirO65",
+            last_modified=ANY,
+            size=64,
+            text=""
+        )
+
+        assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
 
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
@@ -610,7 +821,7 @@ class TestIndex(TestCase):
                     'Bucket': 'test-bucket',
                     'Key': 'foo.unique1',
                     'IfMatch': 'etag',
-                    'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                    'Range': 'bytes=0-123',
                 }
             )
             self.s3_stubber.add_response(
@@ -624,7 +835,7 @@ class TestIndex(TestCase):
                     'Bucket': 'test-bucket',
                     'Key': 'foo.unique2',
                     'IfMatch': 'etag',
-                    'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                    'Range': 'bytes=0-123',
                 }
             )
             # only these two file types should be indexed
@@ -650,6 +861,50 @@ class TestIndex(TestCase):
             with patch('index.SKIP_ROWS_EXTS', exts):
                 assert '.parquet' in exts
                 assert '.csv' not in exts
+
+    @pytest.mark.xfail(
+        raises=ParamValidationError,
+        reason="boto bug https://github.com/boto/botocore/issues/1621"
+    )
+    def test_stub_select_object_content(self):
+        """Demonstrate that mocking S3 select with boto3 is broken"""
+        sha_hash = "50f4d0fc2c22a70893a7f356a4929046ce529b53c1ef87e28378d92b884691a5"
+        manifest_key = f"{MANIFEST_PREFIX_V1}{sha_hash}"
+        # this SHOULD work, but due to botocore bugs it does not
+        self.s3_stubber.add_response(
+            method="select_object_content",
+            service_response={
+                "ResponseMetadata": ANY,
+                # it is sadly not possible to mock S3 select responses because
+                # boto incorrectly believes "Payload"'s value should be a dict
+                # but it's really an iterable in realworld code
+                # see https://github.com/boto/botocore/issues/1621
+                "Payload": [
+                    {
+                        "Stats": {}
+                    },
+                    {
+                        "Records": {
+                            "Payload": json.dumps(MANIFEST_DATA).encode(),
+                        },
+                    },
+                    {
+                        "End": {}
+                    },
+                ]
+            },
+            expected_params={
+                "Bucket": "test-bucket",
+                "Key": manifest_key,
+                "Expression": index.SELECT_PACKAGE_META,
+                "ExpressionType": "SQL",
+                "InputSerialization": {
+                    'JSON': {'Type': 'LINES'},
+                    'CompressionType': 'NONE'
+                },
+                "OutputSerialization": {'JSON': {'RecordDelimiter': '\n'}}
+            }
+        )
 
     def test_synthetic_copy_event(self):
         """check synthetic ObjectCreated:Copy event vs organic obtained on 26-May-2020
@@ -842,36 +1097,6 @@ class TestIndex(TestCase):
             region="us-west-1",
             versionId="bKufwe3zvJ3SQn3F9Z.akBkenOYl_SIz"
         )
-        # actual event from S3 with a few obfuscations to protect the innocent
-        organic = {
-            "eventVersion": "2.1",
-            "eventSource": "aws:s3",
-            "awsRegion": "us-west-1",
-            "eventTime": "2020-05-27T20:13:18.791Z",
-            "eventName": "ObjectCreated:CompleteMultipartUpload",
-            "userIdentity": {"principalId": "AWS:nogonnabehere"},
-            "requestParameters": {"sourceIPAddress": "12.999.88.131"},
-            "responseElements": {
-                "x-amz-request-id": "9F9BABC04A681C48",
-                "x-amz-id-2": "Lfs+guid/anotherguid"
-            },
-            "s3": {
-                "s3SchemaVersion": "1.0",
-                "configurationId": "XSASFASFASDFASFASFYGUID",
-                "bucket": {
-                    "name": "searchminimal",
-                    "ownerIdentity": {"principalId": "A13432523432423535"},
-                    "arn": "arn:aws:s3:::searchminimal"
-                },
-                "object": {
-                    "key": "events/multipart-one/part-00006-495c48e6-96d6-4650-aa65-3c36a3516ddd.c000.snappy.parquet",
-                    "size": 135397292,
-                    "eTag": "0eb149127d0277326dedcf0c530ca966-17",
-                    "versionId": "bKufwe3zvJ3SQn3F9Z.akBkenOYl_SIz",
-                    "sequencer": "005ECEC96FC6B634D7"
-                }
-            }
-        }
 
     def test_test_event(self):
         """
@@ -933,7 +1158,7 @@ class TestIndex(TestCase):
                 'Body': BytesIO(parquet),
             }
         )
-        contents = index.get_contents(
+        contents = index.maybe_get_contents(
             'test-bucket',
             'some/dir/data.parquet',
             '.parquet',
@@ -961,7 +1186,7 @@ class TestIndex(TestCase):
         # mock up the responses
         size = len(parquet)
         assert size > 1, 'supposed to test files larger than available memory'
-        contents = index.get_contents(
+        contents = index.maybe_get_contents(
             'test-bucket',
             'some/dir/data.parquet',
             '.parquet',
@@ -990,7 +1215,7 @@ class TestIndex(TestCase):
                     'Body': BytesIO(parquet),
                 }
             )
-            contents = index.get_contents(
+            contents = index.maybe_get_contents(
                 'test-bucket',
                 'some/dir/data.parquet',
                 '.parquet',
@@ -1014,7 +1239,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt',
                 'IfMatch': 'etag',
-                'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                'Range': 'bytes=0-123',
             }
         )
 
@@ -1041,7 +1266,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt',
                 'IfMatch': 'etag',
-                'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                'Range': 'bytes=0-123',
             }
         )
 
@@ -1059,7 +1284,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt.gz',
                 'IfMatch': 'etag',
-                'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                'Range': 'bytes=0-123',
             }
         )
 
