@@ -28,7 +28,7 @@ export const BucketsResource = Cache.createResource({
 export function useBucketConfigs({ suspend = true } = {}) {
   const cfg = Config.use()
   const authenticated = redux.useSelector(AuthSelectors.authenticated)
-  const empty = cfg.alwaysRequiresAuth && !authenticated
+  const empty = cfg.mode === 'MARKETING' || (cfg.alwaysRequiresAuth && !authenticated)
   const sessionId = redux.useSelector(AuthSelectors.sessionId)
   const session = cfg.alwaysRequiresAuth && sessionId
   const req = APIConnector.use()
