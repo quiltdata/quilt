@@ -54,18 +54,20 @@ def file_list_to_folder(df: pd.DataFrame) -> dict:
     top-level folder view (a special case of the s3-select
     lambda).
     """
-    # check for empty manifest (top-level meta only)
-    # calls below will fail if no rows are left after
-    # dropna.
-    if len(df.index) <= 1:
-        prefixes = []
-        objects = []
-    else:
-        # matches all strings; everything before and including the first
-        # / is extracted
+    try:
         folder = pd.Series(df.logical_key.dropna().str.extract('([^/]+/?).*')[0].unique())
         prefixes = folder[folder.str.endswith('/')].sort_values().tolist()
         objects = folder[~folder.str.endswith('/')].sort_values().tolist()
+    except AttributeError:
+        # Pandas will raise an attribute error if the DataFrame has
+        # no rows with a non-null logical_key. We expect that case if
+        # either: (1) the package is empty (has zero package entries)
+        # or, (2) zero package entries match the prefix filter. The
+        # choice to allow this to raise the exception instead of
+        # testing for the empty case ahead of time optimizes the
+        # case where the result set is large.
+        prefixes = []
+        objects = []
 
     return dict(
         prefixes=prefixes,
