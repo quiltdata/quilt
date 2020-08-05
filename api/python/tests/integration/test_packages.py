@@ -560,7 +560,7 @@ class PackageTest(QuiltTestCase):
         assert existing_one_entry != pkg['nested/one.txt']
 
         # verify non existing update policy raises value error
-        expected_err = f"Update policy should be one of {str(PACKAGE_UPDATE_POLICY)}, not invalid_policy"
+        expected_err = f"Update policy should be one of {str(PACKAGE_UPDATE_POLICY)}, not 'invalid_policy'"
         with pytest.raises(ValueError) as e:
             pkg.set_dir("nested", data_dir, update_policy='invalid_policy')
         assert expected_err in str(e.value)
