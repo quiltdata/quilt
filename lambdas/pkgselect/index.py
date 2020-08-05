@@ -3,6 +3,7 @@ Provide a virtual-file-system view of a package's logical keys.
 """
 
 import json
+import os
 
 import boto3
 from botocore import UNSIGNED
@@ -106,6 +107,7 @@ def lambda_handler(request):
     access_key = request.args.get('access_key')
     secret_key = request.args.get('secret_key')
     session_token = request.args.get('session_token')
+    allow_anonymous_access = bool(os.getenv('ALLOW_ANONYMOUS_ACCESS'))
 
     # If credentials are passed in, use them
     # for the client. If no credentials are supplied, test that
@@ -119,6 +121,7 @@ def lambda_handler(request):
             aws_session_token=session_token
         )
     elif (
+        allow_anonymous_access and
         access_key is None and
         secret_key is None and
         session_token is None
