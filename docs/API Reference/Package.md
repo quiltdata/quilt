@@ -159,8 +159,8 @@ self
 
 __Raises__
 
-When `path` doesn't exist
-* `ValueError`:  if the 'update_policy' is not in PACKAGE_UPDATE_POLICY set.
+* `PackageException`:  When `path` doesn't exist.
+* `ValueError`:  When `update_policy` is invalid.
 
 
 ## Package.get(self, logical\_key)  {#Package.get}
