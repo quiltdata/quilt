@@ -1,11 +1,11 @@
 /* storage - abstract persistence; currently uses
  * enforce write/read from predefined keys only */
-import assert from 'assert'
+import invariant from 'invariant'
 import mapValues from 'lodash/mapValues'
 
 export default (keys) => {
   const assertKey = (key, scope) =>
-    assert(key in keys, `storage.${scope}: unexpected key: ${key}`)
+    invariant(key in keys, `storage.${scope}: unexpected key: ${key}`)
 
   function get(key) {
     assertKey(key, 'get')

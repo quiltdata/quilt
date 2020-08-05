@@ -1,4 +1,5 @@
 import hljs from 'highlight.js'
+import 'highlight.js/styles/default.css'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'

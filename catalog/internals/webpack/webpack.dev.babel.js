@@ -32,11 +32,13 @@ module.exports = require('./webpack.base.babel')({
 
   // Add development plugins
   plugins: [
-    new CopyWebpackPlugin([
-      {
-        from: 'static-dev',
-      },
-    ]),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: 'static-dev',
+        },
+      ],
+    }),
 
     new webpack.HotModuleReplacementPlugin(), // Tell webpack we want hot reloading
     new webpack.NoEmitOnErrorsPlugin(),
