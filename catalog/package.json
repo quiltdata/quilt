@@ -69,7 +69,7 @@
     "ajv": "^6.12.3",
     "autobind-decorator": "^2.4.0",
     "aws-sdk": "^2.726.0",
-    "chalk": "^2.4.2",
+    "chalk": "^4.1.0",
     "classnames": "^2.2.6",
     "compression": "^1.7.4",
     "connected-react-router": "^6.8.0",
