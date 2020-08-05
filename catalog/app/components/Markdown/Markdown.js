@@ -1,6 +1,7 @@
 import cx from 'classnames'
 import createDOMPurify from 'dompurify'
 import hljs from 'highlight.js'
+import 'highlight.js/styles/default.css'
 import memoize from 'lodash/memoize'
 import PT from 'prop-types'
 import * as R from 'ramda'
@@ -109,10 +110,7 @@ const highlight = (str, lang) => {
   return '' // use external default escaping
 }
 
-const escape = R.pipe(
-  replaceEntities,
-  escapeHtml,
-)
+const escape = R.pipe(replaceEntities, escapeHtml)
 
 /**
  * A Markdown (Remarkable) plugin. Takes a Remarkable instance and adjusts it.

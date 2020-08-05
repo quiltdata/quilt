@@ -1,4 +1,5 @@
 import cx from 'classnames'
+import 'highlight.js/styles/default.css'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
