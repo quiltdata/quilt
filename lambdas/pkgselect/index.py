@@ -6,6 +6,7 @@ import json
 import os
 
 import boto3
+import botocore
 from botocore import UNSIGNED
 from botocore.client import Config
 import pandas as pd
@@ -131,13 +132,26 @@ def lambda_handler(request):
         # Test to see if the target key is publicly accessible. If not, the call
         # below will raise and exception and return a 403 response
         anons3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
-        response = anons3.head_object(Bucket=bucket, Key=key)
+        try:
+            anons3.head_object(Bucket=bucket, Key=key)
+        except botocore.exceptions.ClientError as error:
+            if error.response.get('Error'):
+                code = error.response['Error']['Code']
+                if code == '403':
+                    return make_json_response(
+                        403,
+                        {
+                            'title': 'Access Denied',
+                            'detail': f"Access denied reading manifest: {key}"
+                        }
+                    )
+            raise error
 
         # Use the default S3 client configuration
         s3_client = boto3.client('s3')
     else:
         return make_json_response(
-            400,
+            401,
             {
                 'title': 'Incomplete credentials',
                 'detail': "access_key, secret_key and session_token are required"

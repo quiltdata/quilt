@@ -308,7 +308,7 @@ class TestPackageSelect(TestCase):
         )
 
         response = lambda_handler(self._make_event(params), None)
-        assert response['statusCode'] == 400
+        assert response['statusCode'] == 401
 
     def test_blocked_anon_access(self):
         """
@@ -325,7 +325,7 @@ class TestPackageSelect(TestCase):
         )
 
         response = lambda_handler(self._make_event(params), None)
-        assert response['statusCode'] == 400
+        assert response['statusCode'] == 401
 
     def test_anon_access(self):
         """
