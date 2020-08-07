@@ -260,7 +260,10 @@ def lambda_handler(request):
     resp = requests.get(url)
     if resp.ok:
         try:
-            thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(imageio.get_reader(resp.content), "PNG")
+            thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(
+                imageio.get_reader(resp.content),
+                "PNG"
+            )
         except ValueError:
             thumbnail_format = "JPEG" if input_ == "pdf" else "PNG"
         if input_ == "pdf":
