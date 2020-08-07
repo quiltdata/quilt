@@ -57,7 +57,7 @@ export default function SSOOkta({ mutex, next }) {
       }
     }, 500)
     popup.focus()
-    window.addEventListener('message', ({ origin, data }) => {
+    const handleMessage = ({ origin, data }) => {
       if (origin !== oktaDomain) return
       const { id_token: idToken, error, error_description: errorDetails } = data
       if (error) {
@@ -65,9 +65,11 @@ export default function SSOOkta({ mutex, next }) {
       } else {
         handleSuccess(idToken)
       }
+      window.removeEventListener('message', handleMessage)
       clearInterval(timer)
       popup.close()
-    })
+    }
+    window.addEventListener('message', handleMessage)
   }, [
     mutex.current,
     mutex.claim,
