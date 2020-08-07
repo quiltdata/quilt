@@ -43,7 +43,8 @@ def _make_event(query, headers=None):
     'FONT_CONFIG_PATH': ''
 })
 @responses.activate
-@pytest.mark.parametrize("input_file, params, expected_thumb, expected_original_size, expected_thumb_size, num_pages", [
+@pytest.mark.parametrize(
+    "input_file, params, expected_thumb, expected_original_size, expected_thumb_size, num_pages", [
     ("penguin.jpg", {"size": "w256h256"}, "penguin-256.jpg", [1526, 1290, 3], [217, 256], None),
     ("cell.tiff", {"size": "w640h480"}, "cell-480.png", [15, 1, 158, 100], [514, 480], None),
     ("cell.png", {"size": "w64h64"}, "cell-64.png", [168, 104, 3], [39, 64], None),
@@ -51,8 +52,15 @@ def _make_event(query, headers=None):
     ("generated.ome.tiff", {"size": "w256h256"}, "generated-256.png", [6, 36, 76, 68], [224, 167], None),
     ("sat_rgb.tiff", {"size": "w256h256"}, "sat_rgb-256.png", [256, 256, 4], [256, 256], None),
     ("single_cell.ome.tiff", {"size": "w256h256"}, "single_cell.png", [6, 40, 152, 126], [256, 205], None),
-    # Following PDF tests should only be run if poppler-utils installed;
-    # then call pytest with --poppler
+    # Test for statusCode error
+    pytest.param(
+        "cell.png",
+        {"size": "w1h1"},
+        None, None, None, None,
+        marks=pytest.mark.xfail(raises=AssertionError)
+    ),
+    # The following PDF tests should only run if poppler-utils is installed;
+    # then call `pytest --poppler` to execute
     pytest.param(
         "MUMmer.pdf",
         {"size": "w1024h768", "input": "pdf", "page": 4},
@@ -71,13 +79,6 @@ def _make_event(query, headers=None):
         "pdf-page4-1024w.jpeg", None, [1024, 1450], 8,
         marks=pytest.mark.poppler
     ),
-    # Test for statusCode error
-    pytest.param(
-        "cell.png",
-        {"size": "w1h1"},
-        None, None, None, None,
-        marks=pytest.mark.xfail(raises=AssertionError)
-    )
 ])
 def test_generate_thumbnail(
         data_dir,
