@@ -80,7 +80,8 @@ def _make_event(query, headers=None):
             "pdf-page4-1024w.jpeg", None, [1024, 1450], 8,
             marks=pytest.mark.poppler
         ),
-])
+    ]
+)
 def test_generate_thumbnail(
         data_dir,
         input_file,
