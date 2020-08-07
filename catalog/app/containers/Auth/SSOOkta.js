@@ -38,7 +38,7 @@ export default function SSOOkta({ mutex, next }) {
 
     const oktaDomain = `https://${cfg.oktaCompanyName}.okta.com`
     const nonce = '1' // TODO
-    const state = '2' // TODO
+    const state = Math.random().toString(36).substr(2)
     const query = NamedRoutes.mkSearch({
       client_id: cfg.oktaClientId,
       redirect_uri: window.location.origin,
@@ -57,9 +57,15 @@ export default function SSOOkta({ mutex, next }) {
       }
     }, 500)
     popup.focus()
-    const handleMessage = ({ origin, data }) => {
-      if (origin !== oktaDomain) return
-      const { id_token: idToken, error, error_description: errorDetails } = data
+    const handleMessage = ({ source, origin, data }) => {
+      if (source !== popup || origin !== oktaDomain) return
+      const {
+        id_token: idToken,
+        error,
+        error_description: errorDetails,
+        state: respState,
+      } = data
+      if (respState !== state) return
       if (error) {
         handleFailure(error, errorDetails)
       } else {
