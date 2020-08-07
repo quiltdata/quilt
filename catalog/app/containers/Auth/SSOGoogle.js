@@ -17,14 +17,11 @@ import * as actions from './actions'
 import * as errors from './errors'
 import googleLogo from './google-logo.svg'
 import msg from './messages'
-import * as Layout from './Layout'
-
-const GoogleLogo = (props) => <M.Box component="img" src={googleLogo} alt="" {...props} />
 
 const MUTEX_POPUP = 'sso:google:popup'
 const MUTEX_REQUEST = 'sso:google:request'
 
-export default ({ mutex, next }) => {
+export default function SSOGoogle({ mutex, next }) {
   const cfg = Config.useConfig()
   invariant(!!cfg.googleClientId, 'Auth.SSO.Google: config missing "googleClientId"')
 
@@ -80,25 +77,23 @@ export default ({ mutex, next }) => {
   )
 
   return (
-    <Layout.Actions>
-      <GoogleLogin
-        clientId={cfg.googleClientId}
-        onSuccess={handleSuccess}
-        onFailure={handleFailure}
-        cookiePolicy="single_host_origin"
-        disabled={!!mutex.current}
-        render={({ onClick, disabled }) => (
-          <M.Button variant="outlined" onClick={handleClick(onClick)} disabled={disabled}>
-            {mutex.current === MUTEX_REQUEST ? (
-              <M.CircularProgress size={18} />
-            ) : (
-              <GoogleLogo />
-            )}
-            <M.Box mr={1} />
-            <FM {...msg.ssoGoogleUse} />
-          </M.Button>
-        )}
-      />
-    </Layout.Actions>
+    <GoogleLogin
+      clientId={cfg.googleClientId}
+      onSuccess={handleSuccess}
+      onFailure={handleFailure}
+      cookiePolicy="single_host_origin"
+      disabled={!!mutex.current}
+      render={({ onClick, disabled }) => (
+        <M.Button variant="outlined" onClick={handleClick(onClick)} disabled={disabled}>
+          {mutex.current === MUTEX_REQUEST ? (
+            <M.CircularProgress size={18} />
+          ) : (
+            <M.Box component="img" src={googleLogo} alt="" />
+          )}
+          <M.Box mr={1} />
+          <FM {...msg.ssoGoogleUse} />
+        </M.Button>
+      )}
+    />
   )
 }

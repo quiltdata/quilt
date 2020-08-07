@@ -15,12 +15,13 @@ import defer from 'utils/defer'
 import * as actions from './actions'
 import * as errors from './errors'
 import msg from './messages'
-import * as Layout from './Layout'
+
+import oktaLogo from './okta-logo.svg'
 
 const MUTEX_POPUP = 'sso:okta:popup'
 const MUTEX_REQUEST = 'sso:okta:request'
 
-export default ({ mutex, next }) => {
+export default function SSOOkta({ mutex, next }) {
   const cfg = Config.useConfig()
   invariant(!!cfg.oktaClientId, 'Auth.SSO.Okta: config missing "oktaClientId"')
   invariant(!!cfg.oktaCompanyName, 'Auth.SSO.Okta: config missing "oktaCompanyName"')
@@ -31,7 +32,7 @@ export default ({ mutex, next }) => {
   const { push: notify } = Notifications.use()
   const { urls } = NamedRoutes.use()
 
-  const handleClick = () => {
+  const handleClick = React.useCallback(() => {
     if (mutex.current) return
     mutex.claim(MUTEX_POPUP)
 
@@ -49,6 +50,12 @@ export default ({ mutex, next }) => {
     })
     const url = `${oktaDomain}/oauth2/v1/authorize${query}`
     const popup = window.open(url, 'quilt_okta_popup', 'width=300,height=400')
+    const timer = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(timer)
+        handleFailure({ error: 'popup_closed_by_user' })
+      }
+    }, 500)
     popup.focus()
     window.addEventListener('message', ({ origin, data }) => {
       if (origin !== oktaDomain) return
@@ -58,9 +65,18 @@ export default ({ mutex, next }) => {
       } else {
         handleSuccess(idToken)
       }
+      clearInterval(timer)
       popup.close()
     })
-  }
+  }, [
+    mutex.current,
+    mutex.claim,
+    cfg.oktaCompanyName,
+    cfg.oktaClientId,
+    window.location.origin,
+    handleSuccess,
+    handleFailure,
+  ])
 
   const handleSuccess = React.useCallback(
     async (token) => {
@@ -90,7 +106,6 @@ export default ({ mutex, next }) => {
 
   const handleFailure = React.useCallback(
     ({ error: code, details }) => {
-      // TODO: Okta doesn't seem to return 'popup_closed_by_user'!
       if (code !== 'popup_closed_by_user') {
         notify(intl.formatMessage(msg.ssoOktaError, { details }))
         const e = new errors.SSOError({ provider: 'okta', code, details })
@@ -98,14 +113,18 @@ export default ({ mutex, next }) => {
       }
       mutex.release(MUTEX_POPUP)
     },
-    [mutex.release, sentry],
+    [mutex.release, notify, sentry],
   )
 
   return (
-    <Layout.Actions>
-      <M.Button variant="outlined" onClick={handleClick} disabled={!!mutex.current}>
-        <FM {...msg.ssoOktaUse} />
-      </M.Button>
-    </Layout.Actions>
+    <M.Button variant="outlined" onClick={handleClick} disabled={!!mutex.current}>
+      {mutex.current === MUTEX_REQUEST ? (
+        <M.CircularProgress size={18} />
+      ) : (
+        <M.Box component="img" src={oktaLogo} alt="" height={18} />
+      )}
+      <M.Box mr={1} />
+      <FM {...msg.ssoOktaUse} />
+    </M.Button>
   )
 }
