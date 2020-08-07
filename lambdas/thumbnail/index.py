@@ -72,6 +72,11 @@ SCHEMA = {
         'page': {
             'type': 'integer',
             'minimum': 1
+        },
+        # not boolean because URL params like "true" always get converted to strings
+        # clients should do this ONCE per document because it incurs latency and memory
+        'countPages': {
+            'enum': ['true']
         }
     },
     'required': ['url', 'size'],
@@ -249,6 +254,7 @@ def lambda_handler(request):
     input_ = request.args.get('input', 'image')
     output = request.args.get('output', 'json')
     page = request.args.get('page', 1)
+    count_pages = request.args.get('countPages') == 'true'
 
     # Handle request
     resp = requests.get(url)
@@ -260,14 +266,23 @@ def lambda_handler(request):
         if input_ == "pdf":
             set_pdf_env()
             try:
+                # respect width but not necessarily height (to preserve aspect ratio)
+                kwargs = {"size": (size[0], None)}
+                if not count_pages:
+                    kwargs["first_page"] = page
+                    kwargs["last_page"] = page
+
                 pages = convert_from_bytes(
                     resp.content,
-                    first_page=page,
-                    last_page=page,
-                    # respect width but not necessarily height (to preserve aspect ratio)
-                    size=(size[0], None)
+                    **kwargs,
                 )
+                num_pages = len(pages)
+                preview = pages[0]
+                if count_pages:
+                    # shift 1-index to 0-index
+                    preview = pages[page - 1]
             except (
+                    IndexError,
                     PDFInfoNotInstalledError,
                     PDFPageCountError,
                     PDFSyntaxError,
@@ -275,13 +290,13 @@ def lambda_handler(request):
             ) as exc:
                 return make_json_response(500, {'error': str(exc)})
 
-            assert len(pages) == 1, 'Expected to generate and return a single image'
-            # singleton array of PIL images
-            preview = pages[0]
             info = {
                 'thumbnail_format': 'JPEG',
                 'thumbnail_size': preview.size,
             }
+            if count_pages:
+                info['page_count'] = num_pages
+
             thumbnail_bytes = BytesIO()
             preview.save(thumbnail_bytes, thumbnail_format)
             data = thumbnail_bytes.getvalue()
