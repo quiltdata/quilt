@@ -37,7 +37,7 @@ export default function SSOOkta({ mutex, next }) {
     mutex.claim(MUTEX_POPUP)
 
     const oktaDomain = `https://${cfg.oktaCompanyName}.okta.com`
-    const nonce = '1' // TODO
+    const nonce = Math.random().toString(36).substr(2)
     const state = Math.random().toString(36).substr(2)
     const query = NamedRoutes.mkSearch({
       client_id: cfg.oktaClientId,
@@ -69,6 +69,8 @@ export default function SSOOkta({ mutex, next }) {
       if (error) {
         handleFailure(error, errorDetails)
       } else {
+        const { nonce: respNonce } = JSON.parse(atob(idToken.split('.')[1]))
+        if (respNonce !== nonce) return
         handleSuccess(idToken)
       }
       window.removeEventListener('message', handleMessage)
