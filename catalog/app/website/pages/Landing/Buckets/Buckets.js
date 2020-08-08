@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -22,6 +23,13 @@ const useStyles = M.makeStyles((t) => ({
     paddingTop: t.spacing(8),
     position: 'relative',
     zIndex: 1,
+  },
+  filter: {
+    marginBottom: t.spacing(5),
+    marginTop: 0,
+    [t.breakpoints.up('sm')]: {
+      maxWidth: 360,
+    },
   },
   controls: {
     display: 'flex',
@@ -56,14 +64,35 @@ export default function Buckets() {
   const classes = useStyles()
   const buckets = BucketConfig.useRelevantBucketConfigs()
   const { urls } = NamedRoutes.use()
+  const [filter, setFilter] = React.useState('')
   const [page, setPage] = React.useState(1)
   const scrollRef = React.useRef(null)
 
-  const pages = Math.ceil(buckets.length / PER_PAGE)
+  const terms = React.useMemo(() => filter.toLowerCase().split(/\s+/).filter(Boolean), [
+    filter,
+  ])
+
+  const tagIsMatching = React.useCallback((t) => filter.includes(t), [filter])
+
+  const filtered = React.useMemo(() => {
+    if (!terms.length) return buckets
+    const matches = R.allPass(R.map(R.includes, terms))
+    return buckets.filter(
+      R.pipe(
+        (b) => [b.title, b.name, b.description, ...(b.tags || [])],
+        R.filter(Boolean),
+        R.map(R.toLower),
+        R.any(matches),
+      ),
+    )
+  }, [terms, buckets])
+
+  const pages = Math.ceil(filtered.length / PER_PAGE)
 
   const paginated = React.useMemo(
-    () => (pages === 1 ? buckets : buckets.slice((page - 1) * PER_PAGE, page * PER_PAGE)),
-    [buckets, page],
+    () =>
+      pages === 1 ? filtered : filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE),
+    [filtered, page],
   )
 
   usePrevious(page, (prev) => {
@@ -71,6 +100,16 @@ export default function Buckets() {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   })
+
+  usePrevious(filtered, (prev) => {
+    if (prev && !R.equals(filtered, prev)) {
+      setPage(1)
+    }
+  })
+
+  const handleFilterChange = React.useCallback((e) => setFilter(e.target.value), [])
+
+  const clearFilter = React.useCallback(() => setFilter(''), [])
 
   return (
     <div className={classes.root}>
@@ -81,7 +120,41 @@ export default function Buckets() {
           Explore your buckets
         </M.Typography>
         <M.Box mt={4} />
-        <BucketGrid buckets={paginated} showAddLink={buckets.length <= PER_PAGE - 1} />
+        <M.TextField
+          className={classes.filter}
+          value={filter}
+          onChange={handleFilterChange}
+          placeholder="Find a bucket"
+          variant="outlined"
+          margin="dense"
+          fullWidth
+          InputProps={{
+            startAdornment: (
+              <M.InputAdornment position="start">
+                <M.Icon>search</M.Icon>
+              </M.InputAdornment>
+            ),
+            endAdornment: filter ? (
+              <M.InputAdornment position="end">
+                <M.IconButton edge="end" onClick={clearFilter}>
+                  <M.Icon>clear</M.Icon>
+                </M.IconButton>
+              </M.InputAdornment>
+            ) : undefined,
+          }}
+        />
+        {paginated.length || !filter ? (
+          <BucketGrid
+            buckets={paginated}
+            onTagClick={setFilter}
+            tagIsMatching={tagIsMatching}
+            showAddLink={!filter && buckets.length <= PER_PAGE - 1}
+          />
+        ) : (
+          <M.Typography color="textPrimary" variant="h4">
+            No buckets mathcing <b>&quot;{filter}&quot;</b>
+          </M.Typography>
+        )}
         <div className={classes.controls}>
           <M.Box mt={2}>
             {buckets.length > 2 && (
