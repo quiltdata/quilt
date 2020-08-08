@@ -8,6 +8,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 import boto3
+from botocore.stub import Stubber
 import pandas as pd
 import responses
 
@@ -290,3 +291,100 @@ class TestPackageSelect(TestCase):
             assert response['statusCode'] == 200
             json.loads(read_body(response))['contents']
         client_patch.stop()
+
+    def test_incomplete_credentials(self):
+        """
+        Verify that a call with incomplete credentials fails.
+        """
+        bucket = "bucket"
+        key = ".quilt/packages/manifest_hash"
+        logical_key = "bar/file1.txt"
+        params = dict(
+            bucket=bucket,
+            manifest=key,
+            logical_key=logical_key,
+            access_key="TESTKEY",
+            secret_key="TESTSECRET",
+        )
+
+        response = lambda_handler(self._make_event(params), None)
+        assert response['statusCode'] == 401
+
+    def test_blocked_anon_access(self):
+        """
+        Verify that an anonymous call fails if ALLOW_ANONYMOUS_ACCESS
+        is not set.
+        """
+        bucket = "bucket"
+        key = ".quilt/packages/manifest_hash"
+        logical_key = "bar/file1.txt"
+        params = dict(
+            bucket=bucket,
+            manifest=key,
+            logical_key=logical_key,
+        )
+
+        response = lambda_handler(self._make_event(params), None)
+        assert response['statusCode'] == 401
+
+    def test_anon_access(self):
+        """
+        Test anonymous call w/ ALLOW_ANONYMOUS_ACCESS
+        """
+        bucket = "bucket"
+        key = ".quilt/packages/manifest_hash"
+        params = dict(
+            bucket=bucket,
+            manifest=key,
+        )
+
+        expected_args = {
+            'Bucket': bucket,
+            'Key': key,
+            'Expression': "SELECT SUBSTRING(s.logical_key, 1) AS logical_key FROM s3object s",
+            'ExpressionType': 'SQL',
+            'InputSerialization': {
+                'CompressionType': 'NONE',
+                'JSON': {'Type': 'LINES'}
+                },
+            'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
+        }
+
+        env_patcher = patch.dict(os.environ, {
+            'AWS_ACCESS_KEY_ID': 'test_key',
+            'AWS_SECRET_ACCESS_KEY': 'test_secret',
+            'ALLOW_ANONYMOUS_ACCESS': '1'
+        })
+        env_patcher.start()
+
+        mock_s3 = boto3.client('s3')
+        client_patch = patch.object(
+            mock_s3,
+            'select_object_content',
+            return_value=self.s3response
+        )
+        client_patch.start()
+        response = {
+            'ETag': '12345',
+            'VersionId': '1.0',
+            'ContentLength': 123,
+        }
+        expected_params = {
+            'Bucket': bucket,
+            'Key': key,
+        }
+        s3_stubber = Stubber(mock_s3)
+        s3_stubber.activate()
+        s3_stubber.add_response('head_object', response, expected_params)
+        with patch('boto3.Session.client', return_value=mock_s3):
+            response = lambda_handler(self._make_event(params), None)
+            print(response)
+            assert response['statusCode'] == 200
+            folder = json.loads(read_body(response))['contents']
+            assert len(folder['prefixes']) == 1
+            assert len(folder['objects']) == 1
+            assert 'foo.csv' in folder['objects']
+            assert 'bar/' in folder['prefixes']
+        s3_stubber.deactivate()
+        client_patch.stop()
+        env_patcher.stop()
