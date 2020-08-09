@@ -44,6 +44,23 @@ export default defineMessages({
     defaultMessage:
       'No Quilt user linked to this Google account. Notify your Quilt administrator.',
   },
+  ssoOktaUse: {
+    id: `${scope}.SSO.Okta.use`,
+    defaultMessage: 'Use Okta Account',
+  },
+  ssoOktaError: {
+    id: `${scope}.SSO.Okta.error`,
+    defaultMessage: 'Unable to sign in with Okta. {details}',
+  },
+  ssoOktaErrorUnexpected: {
+    id: `${scope}.SSO.Okta.errorUnexpected`,
+    defaultMessage: 'Unable to sign in with Okta. Try again later or contact support.',
+  },
+  ssoOktaNotFound: {
+    id: `${scope}.SSO.Okta.notFound`,
+    defaultMessage:
+      'No Quilt user linked to this Okta account. Notify your Quilt administrator.',
+  },
   ssoSignUpHeading: {
     id: `${scope}.SSO.SignUp.heading`,
     defaultMessage: 'Complete sign-up',
