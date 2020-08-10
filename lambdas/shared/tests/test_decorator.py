@@ -97,8 +97,13 @@ class TestDecorator(TestCase):
 
         # Request with a correct origin.
         resp = handler(self._make_get(
-            {'foo': 'bar'},
-            {'origin': 'https://example.com', 'access-control-request-headers': 'x-foo'}
+            {
+                'foo': 'bar'
+            },
+            {
+                'origin': 'https://example.com',
+                'access-control-request-headers': 'X-Quilt-Info'
+            },
         ), None)
 
         assert resp['statusCode'] == 200
@@ -107,7 +112,8 @@ class TestDecorator(TestCase):
             'Content-Type': 'text/plain',
             'access-control-allow-origin': '*',
             'access-control-allow-methods': 'OPTIONS,HEAD,GET,POST',
-            'access-control-allow-headers': 'x-foo',
+            'access-control-allow-headers': 'X-Quilt-Info',
+            'access-control-expose-headers': 'X-Quilt-Info',
             'access-control-max-age': 86400
         }
 
@@ -153,6 +159,7 @@ class TestDecorator(TestCase):
             'access-control-allow-origin': '*',
             'access-control-allow-methods': 'OPTIONS,HEAD,GET,POST',
             'access-control-allow-headers': '',
+            'access-control-expose-headers': '',
             'access-control-max-age': 86400
         }
 
