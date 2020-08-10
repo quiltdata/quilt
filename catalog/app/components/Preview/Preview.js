@@ -19,6 +19,7 @@ const loaderChain = [
   loaders.Markdown,
   loaders.Notebook,
   loaders.Parquet,
+  loaders.Pdf,
   loaders.Vcf,
   loaders.Html,
   loaders.Text,
