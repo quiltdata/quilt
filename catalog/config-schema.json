@@ -29,9 +29,9 @@
       "type": "string",
       "description": "Client ID for Okta Sign-In"
     },
-    "oktaCompanyName": {
+    "oktaBaseUrl": {
       "type": "string",
-      "description": "Company name for Okta Sign-In (i.e., https://$company.okta.com)"
+      "description": "Base URL for Okta Sign-In (i.e., https://$company.okta.com or https://$company.oktapreview.com/oauth2/default)"
     },
     "intercomAppId": {
       "type": "string",
