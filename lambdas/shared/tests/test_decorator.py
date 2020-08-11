@@ -113,7 +113,7 @@ class TestDecorator(TestCase):
             'access-control-allow-origin': '*',
             'access-control-allow-methods': 'OPTIONS,HEAD,GET,POST',
             'access-control-allow-headers': 'X-Quilt-Info',
-            'access-control-expose-headers': 'X-Quilt-Info',
+            'access-control-expose-headers': '*, Authorization, X-Quilt-Info',
             'access-control-max-age': 86400
         }
 
@@ -159,7 +159,7 @@ class TestDecorator(TestCase):
             'access-control-allow-origin': '*',
             'access-control-allow-methods': 'OPTIONS,HEAD,GET,POST',
             'access-control-allow-headers': '',
-            'access-control-expose-headers': '',
+            'access-control-expose-headers': '*, Authorization, X-Quilt-Info',
             'access-control-max-age': 86400
         }
 
