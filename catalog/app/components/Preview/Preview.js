@@ -28,6 +28,7 @@ const loaderChain = [
 
 const chooseLoader = (key) => loaderChain.find((L) => L.detect(key))
 
-export const load = (handle, callback) => chooseLoader(handle.key).load(handle, callback)
+export const load = (handle, callback) =>
+  chooseLoader(handle.logicalKey || handle.key).load(handle, callback)
 
 export const render = PreviewData.case(renderers)

@@ -64,7 +64,7 @@ const fetcher = utils.previewFetcher(
   ({ info: { data, note, warnings } }, { handle, forceLang }) => {
     const head = data.head.join('\n')
     const tail = data.tail.join('\n')
-    const lang = forceLang || getLang(handle.key)
+    const lang = forceLang || getLang(handle.logicalKey || handle.key)
     const highlighted = R.map(hl(lang), { head, tail })
     return AsyncResult.Ok(
       PreviewData.Text({ head, tail, lang, highlighted, note, warnings }),
