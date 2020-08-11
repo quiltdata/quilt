@@ -64,19 +64,19 @@ def _make_event(query, headers=None):
         # then call `pytest --poppler` to execute
         pytest.param(
             "MUMmer.pdf",
-            {"size": "w1024h768", "input": "pdf", "page": 4},
+            {"size": "w1024h768", "input": "pdf", "page": "4"},
             "pdf-page4-1024w.jpeg", None, [1024, 1450], None,
             marks=pytest.mark.poppler
         ),
         pytest.param(
             "MUMmer.pdf",
-            {"size": "w256h256", "input": "pdf", "page": 8},
+            {"size": "w256h256", "input": "pdf", "page": "8"},
             "pdf-page8-256w.jpeg", None, [256, 363], None,
             marks=pytest.mark.poppler
         ),
         pytest.param(
             "MUMmer.pdf",
-            {"size": "w1024h768", "input": "pdf", "page": 4, "countPages": "true"},
+            {"size": "w1024h768", "input": "pdf", "page": "4", "countPages": "true"},
             "pdf-page4-1024w.jpeg", None, [1024, 1450], 8,
             marks=pytest.mark.poppler
         ),

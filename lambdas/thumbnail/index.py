@@ -70,13 +70,13 @@ SCHEMA = {
             'enum': ['json', 'raw']
         },
         'page': {
-            'type': 'integer',
-            'minimum': 1
+            'type': 'string',
+            'pattern': r'^\d+$',
         },
         # not boolean because URL params like "true" always get converted to strings
         # clients should do this ONCE per document because it incurs latency and memory
         'countPages': {
-            'enum': ['true']
+            'enum': ['true', 'false']
         }
     },
     'required': ['url', 'size'],
@@ -253,7 +253,7 @@ def lambda_handler(request):
     size = SIZE_PARAMETER_MAP[request.args['size']]
     input_ = request.args.get('input', 'image')
     output = request.args.get('output', 'json')
-    page = request.args.get('page', 1)
+    page = int(request.args.get('page', '1'))
     count_pages = request.args.get('countPages') == 'true'
 
     # Handle request
