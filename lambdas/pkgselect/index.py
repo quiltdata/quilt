@@ -57,11 +57,15 @@ def file_list_to_folder(df: pd.DataFrame) -> dict:
     """
     try:
         groups = df.groupby(df.logical_key.str.extract('([^/]+/?).*')[0], dropna=True)
-        folder = groups['size'].sum()
-        ser_pref = folder.filter(regex='/$')
-        ser_obj = folder.filter(regex='[^/]$')
-        prefixes = [dict(logical_key=label, size=size) for label, size in ser_pref.iteritems()]
-        objects = [dict(logical_key=label, size=size) for label, size in ser_obj.iteritems()]
+        folder = groups.agg(
+            logical_key=('logical_key', 'first'),
+            size=('size', 'sum'),
+            physical_key=('physical_key', 'first')
+        )
+        df_pref = folder.filter(regex='/$')
+        df_obj = folder.filter(regex='[^/]$')
+        prefixes = df_pref.to_json(orient='records')
+        objects = df_obj.to_json(orient='records')
     except AttributeError:
         # Pandas will raise an attribute error if the DataFrame has
         # no rows with a non-null logical_key. We expect that case if
@@ -175,7 +179,8 @@ def lambda_handler(request):
         # Call s3 select to fetch only logical keys matching the
         # desired prefix (folder path)
         prefix_length = len(prefix) if prefix is not None else 0
-        sql_stmt = f"SELECT SUBSTRING(s.logical_key, {prefix_length + 1}) AS logical_key, s.\"size\" FROM s3object s"
+        sql_stmt = f"SELECT SUBSTRING(s.logical_key, {prefix_length + 1}) AS logical_key"
+        sql_stmt += ", s.\"size\", s.physical_keys[0] as physical_key FROM s3object s"
         if prefix:
             sql_stmt += f" WHERE SUBSTRING(s.logical_key, 1, {prefix_length}) = '{sql_escape(prefix)}'"
         result = query_manifest_content(
