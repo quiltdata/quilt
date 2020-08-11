@@ -13,7 +13,6 @@ import * as utils from './utils'
 export const detect = utils.extIs('.pdf')
 
 async function loadPdf({ endpoint, sign, handle }) {
-  console.log('loadPdf', { endpoint, handle })
   try {
     const url = sign(handle)
     const search = mkSearch({
@@ -21,41 +20,28 @@ async function loadPdf({ endpoint, sign, handle }) {
       input: 'pdf',
       output: 'raw',
       size: 'w1024h768',
-      // countPages: true,
+      countPages: true,
     })
     const r = await fetch(`${endpoint}/thumbnail${search}`)
-    console.log('loadPdf resp', r)
     if (r.status >= 400) {
       const text = await r.text()
       throw new HTTPError(r, text)
     }
-    // get X-Quilt-Info header and parse it
-    // r.headers['X-Quilt-Info']
-    const size = 'tbd'
-    const pages = 10
+    const { page_count: pages } = JSON.parse(r.headers.get('X-Quilt-Info') || '{}')
     const firstPageBlob = await r.blob()
-    return AsyncResult.Ok(PreviewData.Pdf({ handle, pages, firstPageBlob, size }))
+    return AsyncResult.Ok(PreviewData.Pdf({ handle, pages, firstPageBlob }))
   } catch (e) {
     console.warn('error loading pdf preview')
     console.error(e)
-    // TODO: handle err
-    // if (HTTPError.is(e /*, status, msg*/)) {
-    // }
-    // PreviewError.DoesNotExist
     throw PreviewError.Unexpected({ handle, originalError: e })
   }
 }
 
-function PdfLoader({ handle, extra, children }) {
-  console.log('PdfLoader', { handle, extra })
+function PdfLoader({ handle, callback }) {
   const endpoint = Config.use().binaryApiGatewayEndpoint
   const sign = AWS.Signer.useS3Signer()
   const data = Data.use(loadPdf, { endpoint, sign, handle })
-  return children(data.result, { fetch: data.fetch })
+  return callback(data.result, { fetch: data.fetch })
 }
 
-export const load = (handle, callback, extra) => (
-  <PdfLoader handle={handle} extra={extra}>
-    {callback}
-  </PdfLoader>
-)
+export const load = (handle, callback) => <PdfLoader {...{ handle, callback }} />

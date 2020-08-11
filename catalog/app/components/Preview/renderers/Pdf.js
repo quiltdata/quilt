@@ -1,11 +1,15 @@
 import cx from 'classnames'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
+import * as Data from 'utils/Data'
 import { mkSearch } from 'utils/NamedRoutes'
+import usePrevious from 'utils/usePrevious'
 
 function useBlob(blob) {
   const url = React.useMemo(() => window.URL.createObjectURL(blob), [blob])
@@ -18,54 +22,29 @@ function useBlob(blob) {
   return url
 }
 
-const PdfCover = React.forwardRef(function PdfCover({ blob, ...props }, ref) {
-  const src = useBlob(blob)
-  return <img ref={ref} alt="" src={src} {...props} />
-})
-
-const PdfPage = React.forwardRef(function PdfPage(
-  { page, handle, className, ...props },
-  ref,
-) {
-  const [state, setState] = React.useState(AsyncResult.Init())
-
-  const endpoint = Config.use().binaryApiGatewayEndpoint
-  const sign = AWS.Signer.useS3Signer()
-
-  const url = React.useMemo(() => sign(handle), [handle])
-
-  const search = mkSearch({
-    url,
-    input: 'pdf',
-    output: 'raw',
-    size: 'w1024h768',
-    page,
-  })
-
-  const src = `${endpoint}/thumbnail${search}`
-
-  const handleError = React.useCallback(() => {
-    setState(AsyncResult.Err())
-  }, [setState])
-
-  const handleLoad = React.useCallback(() => {
-    setState(AsyncResult.Ok())
-  }, [setState])
-
-  return (
-    <div ref={ref} className={className}>
-      <img alt="" src={src} onError={handleError} onLoad={handleLoad} {...props} />
-      {AsyncResult.case(
-        {
-          Err: () => 'error',
-          Ok: () => null,
-          _: () => <M.CircularProgress />,
-        },
-        state,
-      )}
-    </div>
-  )
-})
+async function loadBlob({ endpoint, sign, handle, page, firstPageBlob }) {
+  if (page === 1) return firstPageBlob
+  try {
+    const url = sign(handle)
+    const search = mkSearch({
+      url,
+      input: 'pdf',
+      output: 'raw',
+      size: 'w1024h768',
+      page,
+    })
+    const r = await fetch(`${endpoint}/thumbnail${search}`)
+    if (r.status >= 400) {
+      const text = await r.text()
+      throw new HTTPError(r, text)
+    }
+    return await r.blob()
+  } catch (e) {
+    console.warn('error loading pdf preview')
+    console.error(e)
+    throw e
+  }
+}
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -76,9 +55,14 @@ const useStyles = M.makeStyles((t) => ({
     width: '100%',
   },
   btn: {
-    fontSize: 72,
-    position: 'absolute',
-    bottom: '50%',
+    marginBottom: -12,
+    marginTop: -12,
+    [t.breakpoints.up('sm')]: {
+      bottom: '50%',
+      fontSize: 72,
+      margin: 0,
+      position: 'absolute',
+    },
   },
   next: {
     right: 0,
@@ -87,6 +71,7 @@ const useStyles = M.makeStyles((t) => ({
     left: 0,
   },
   controls: {
+    display: 'flex',
     marginTop: t.spacing(2),
   },
   pageInput: {
@@ -103,15 +88,44 @@ const useStyles = M.makeStyles((t) => ({
     maxHeight: 'calc(100vh - 80px)',
     maxWidth: '100%',
   },
+  locked: {
+    opacity: 0.5,
+  },
+  progress: {
+    bottom: '50%',
+    position: 'absolute',
+  },
+  error: {
+    bottom: '50%',
+    position: 'absolute',
+    textAlign: 'center',
+  },
 }))
 
-function Pdf({ handle, firstPageBlob, pages }, props) {
-  console.log('Pdf', { handle, firstPageBlob, pages, props })
-
+function Pdf({ handle, firstPageBlob, pages }, { className, ...props }) {
+  const endpoint = Config.use().binaryApiGatewayEndpoint
+  const sign = AWS.Signer.useS3Signer()
   const classes = useStyles()
 
   const [page, setPage] = React.useState(1)
   const [pageValue, setPageValue] = React.useState(page)
+
+  const data = Data.use(loadBlob, { endpoint, sign, handle, page, firstPageBlob })
+
+  const [blob, setBlob] = React.useState(firstPageBlob)
+
+  usePrevious(data.result, (prevResult) => {
+    if (!R.equals(data.result, prevResult)) {
+      data.case({
+        Ok: (b) => {
+          setBlob(b)
+        },
+        _: () => {},
+      })
+    }
+  })
+
+  const src = useBlob(blob)
 
   const next = React.useCallback(() => {
     if (page >= pages) return
@@ -167,13 +181,22 @@ function Pdf({ handle, firstPageBlob, pages }, props) {
     [commitPageChange],
   )
 
+  const isPending = AsyncResult.Pending.is(data.result)
+  const isError = AsyncResult.Err.is(data.result)
+
   return (
-    <div className={classes.root}>
-      {page === 1 ? (
-        <PdfCover blob={firstPageBlob} className={classes.page} />
-      ) : (
-        // <PdfPage page={page} handle={handle} className={classes.page} />
-        <PdfCover blob={firstPageBlob} className={classes.page} />
+    <div className={cx(className, classes.root)} {...props}>
+      <img
+        alt=""
+        src={src}
+        className={cx(classes.page, (isPending || isError) && classes.locked)}
+      />
+      {isPending && <M.CircularProgress size={96} className={classes.progress} />}
+      {isError && (
+        <div className={classes.error}>
+          <M.Icon fontSize="large">error_outline</M.Icon>
+          <M.Typography>Unable to load page {page}</M.Typography>
+        </div>
       )}
       <div className={classes.controls}>
         <M.IconButton
