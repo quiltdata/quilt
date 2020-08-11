@@ -12,6 +12,8 @@ from jsonschema import Draft4Validator, ValidationError
 
 GZIP_MIN_LENGTH = 1024
 GZIP_TYPES = {'text/plain', 'application/json'}
+# Used, e.g., for binary responses when metadata belongs in headers, not body
+QUILT_INFO_HEADER = 'X-Quilt-Info'
 
 
 class Request:
@@ -73,7 +75,14 @@ def api(cors_origins=()):
                 response_headers.update({
                     'access-control-allow-origin': '*',
                     'access-control-allow-methods': 'OPTIONS,HEAD,GET,POST',
-                    'access-control-allow-headers': request.headers.get('access-control-request-headers', ''),
+                    'access-control-allow-headers': (
+                        request.headers.get('access-control-request-headers', '')
+                    ),
+                    # for preflight checks, not sure we need it for header to work?
+                    # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
+                    'access-control-expose-headers': (
+                        f"*, Authorization, {QUILT_INFO_HEADER}"
+                    ),
                     'access-control-max-age': 86400
                 })
 
