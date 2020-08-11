@@ -3,7 +3,9 @@ import { FormattedMessage as FM } from 'react-intl'
 import { Redirect } from 'react-router-dom'
 import * as redux from 'react-redux'
 import { createStructuredSelector } from 'reselect'
+import * as M from '@material-ui/core'
 
+import Layout from 'components/Layout'
 import Working from 'components/Working'
 import * as Config from 'utils/Config'
 import * as Sentry from 'utils/Sentry'
@@ -39,9 +41,13 @@ export default function SignOut() {
   return (
     <>
       {!authenticated && <Redirect to={cfg.signOutRedirect} />}
-      <Working>
-        <FM {...msg.signOutWaiting} />
-      </Working>
+      <Layout>
+        <M.Box mt={5} textAlign="center">
+          <Working>
+            <FM {...msg.signOutWaiting} />
+          </Working>
+        </M.Box>
+      </Layout>
     </>
   )
 }
