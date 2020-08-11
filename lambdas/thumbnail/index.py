@@ -71,7 +71,7 @@ SCHEMA = {
         },
         'page': {
             'type': 'string',
-            'pattern': r'^\d+$',
+            'pattern': r'^\d+\s+$',
         },
         # not boolean because URL params like "true" always get converted to strings
         # clients should do this ONCE per document because it incurs latency and memory
