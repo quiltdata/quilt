@@ -81,7 +81,7 @@ def api(cors_origins=()):
                     # for preflight checks, not sure we need it for header to work?
                     # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
                     'access-control-expose-headers': (
-                        request.headers.get('access-control-request-headers', '')
+                        f"*, Authorization, {QUILT_INFO_HEADER}"
                     ),
                     'access-control-max-age': 86400
                 })
