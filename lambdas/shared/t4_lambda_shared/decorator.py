@@ -12,7 +12,7 @@ from jsonschema import Draft4Validator, ValidationError
 
 GZIP_MIN_LENGTH = 1024
 GZIP_TYPES = {'text/plain', 'application/json'}
-# Used, e.g., for binayr responses when metadata belongs in headers, not body
+# Used, e.g., for binary responses when metadata belongs in headers, not body
 QUILT_INFO_HEADER = 'X-Quilt-Info'
 
 
