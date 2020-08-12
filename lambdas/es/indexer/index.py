@@ -389,7 +389,7 @@ def handler(event, context):
     """enumerate S3 keys in event, extract relevant data, queue events, send to
     elastic via bulk() API
     """
-    log = getLogger('quilt-lambda')
+    logger_ = getLogger('quilt-lambda')
     # message is a proper SQS message, which either contains a single event
     # (from the bucket notification system) or batch-many events as determined
     # by enterprise/**/bulk_loader.py
@@ -400,7 +400,7 @@ def handler(event, context):
         body_message = json.loads(body["Message"])
         if "Records" not in body_message:
             if body_message.get("Event") == TEST_EVENT:
-                log.debug("Skipping S3 Test Event")
+                logger_.debug("Skipping S3 Test Event")
                 # Consume and ignore this event, which is an initial message from
                 # SQS; see https://forums.aws.amazon.com/thread.jspa?threadID=84331
                 continue
@@ -411,7 +411,7 @@ def handler(event, context):
         s3_client = make_s3_client()
         # event is a single S3 event
         for event_ in events:
-            log.debug(f"Processing {event_}")
+            logger_.debug("Processing %s", _event)
             try:
                 event_name = event_["eventName"]
                 # Process all Create:* and Remove:* events
@@ -436,7 +436,7 @@ def handler(event, context):
                 # Handle delete first and then continue so that
                 # head_object and get_object (below) don't fail
                 if event_name.startswith(EVENT_PREFIX["Removed"]):
-                    log.debug("Object delete to queue")
+                    logger_.debug("Object delete to queue")
                     batch_processor.append(
                         event_name,
                         DocTypes.OBJECT,
@@ -451,7 +451,7 @@ def handler(event, context):
                     continue
 
                 try:
-                    log.debug("Get object head")
+                    logger_.debug("Get object head")
                     head = retry_s3(
                         "head",
                         bucket,
@@ -461,7 +461,7 @@ def handler(event, context):
                         etag=etag
                     )
                 except botocore.exceptions.ClientError as exception:
-                    log.debug("Get object head on ClientError")
+                    logger_.debug("Get object head on ClientError")
                     # "null" version sometimes results in 403s for buckets
                     # that have changed versioning, retry without it
                     if (exception.response.get('Error', {}).get('Code') == "403"
@@ -492,7 +492,7 @@ def handler(event, context):
                     size=size,
                     version_id=version_id
                 )
-                log.debug(f"Logged as manifest? {did_index}")
+                logger_.debug("Logged as manifest? %s", did_index)
 
                 try:
                     text = maybe_get_contents(
@@ -509,7 +509,7 @@ def handler(event, context):
                 except Exception as exc:  # pylint: disable=broad-except
                     text = ""
                     content_exception = exc
-                    log.error(f"Content extraction failed s3://{bucket}{key}: {exc}")
+                    logger_.error("Content extraction failed %s %s %s", bucket, key, exc)
 
                 batch_processor.append(
                     event_name,
@@ -526,9 +526,9 @@ def handler(event, context):
 
             except botocore.exceptions.ClientError as boto_exc:
                 if not should_retry_exception(boto_exc):
-                    log.warning(f"Got exception but retrying: {boto_exc}")
+                    logger_.warning("Got exception but retrying: %s", boto_exc)
                     continue
-                log.critical(f"Failed record: {event_}, {boto_exc})")
+                logger_.critical("Failed record: %s, %s", event, boto_exc)
                 raise boto_exc
         # flush the queue
         batch_processor.send_all()
@@ -536,7 +536,7 @@ def handler(event, context):
         # only raise the most recent one;
         # re-raise so that get_contents() failures end up in the DLQ
         if content_exception:
-            log.critical(f"Failed batch due to: {content_exception}")
+            logger_.critical("Failed batch due to %s", content_exception)
             raise content_exception
 
 
