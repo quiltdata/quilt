@@ -143,6 +143,7 @@ def select_manifest_meta(s3_client, bucket: str, key: str):
     return None
 
 
+@logger()
 def index_if_manifest(
         s3_client,
         doc_queue: DocumentQueue,
@@ -161,6 +162,7 @@ def index_if_manifest(
             - True if manifest (and passes to doc_queue for indexing)
             - False if not a manifest (no attempt at indexing)
     """
+    logger_ = 
     pointer_prefix, pointer_file = split(key)
     if not pointer_prefix.startswith(POINTER_PREFIX_V1):
         return False
@@ -169,6 +171,7 @@ def index_if_manifest(
         manifest_timestamp = int(pointer_file)
     except ValueError as err:
         err_msg = f"Unexpected manifest pointer file: s3://{bucket}/{key}: {err}"
+        return False
     else:
         if not 1451631600 <= manifest_timestamp <= 1767250800:
             err_msg = f"Invalid manifest pointer s3://{bucket}{key}"
