@@ -2,7 +2,6 @@
 const express = require('express')
 const path = require('path')
 const compression = require('compression')
-const pkg = require(path.resolve(process.cwd(), 'package.json'))
 
 // Dev middleware
 const addDevMiddlewares = (app, webpackConfig) => {
@@ -23,22 +22,18 @@ const addDevMiddlewares = (app, webpackConfig) => {
   // artifacts, we use it instead
   const fs = middleware.fileSystem
 
-  if (pkg.dllPlugin) {
-    app.get(/\.dll\.js$/, (req, res) => {
-      const filename = req.path.replace(/^\//, '')
-      res.sendFile(path.join(process.cwd(), pkg.dllPlugin.path, filename))
-    })
-  }
-
-  app.get('*', (req, res) => {
-    fs.readFile(path.join(compiler.outputPath, 'index.html'), (err, file) => {
+  const sendFile = (name) => (req, res) => {
+    fs.readFile(path.join(compiler.outputPath, name), (err, file) => {
       if (err) {
         res.sendStatus(404)
       } else {
         res.send(file.toString())
       }
     })
-  })
+  }
+
+  app.get('/__embed/*', sendFile('embed.html'))
+  app.get('*', sendFile('index.html'))
 }
 
 // Production middlewares
@@ -49,7 +44,9 @@ const addProdMiddlewares = (app, { publicPath, outputPath }) => {
   app.use(compression())
   app.use(publicPath, express.static(outputPath))
 
-  app.get('*', (req, res) => res.sendFile(path.resolve(outputPath, 'index.html')))
+  const sendFile = (name) => (req, res) => res.sendFile(path.resolve(outputPath, name))
+  app.get('/__embed/*', sendFile('embed.html'))
+  app.get('*', sendFile('index.html'))
 }
 
 /**
