@@ -411,7 +411,7 @@ def handler(event, context):
         s3_client = make_s3_client()
         # event is a single S3 event
         for event_ in events:
-            logger_.debug("Processing %s", _event)
+            logger_.debug("Processing %s", event_)
             try:
                 event_name = event_["eventName"]
                 # Process all Create:* and Remove:* events
