@@ -196,6 +196,7 @@ class TestUtils(TestCase):
                 )
                 patched.assert_called_once_with(**expected_args)
 
+
 @pytest.mark.parametrize(
     "level, call, message, expected",
     [

@@ -53,6 +53,7 @@ def logger():
     # See https://docs.python.org/3/library/logging.html#logging-levels
     level = os.environ.get("QUILT_LOG_LEVEL", "WARNING")
     logger_.setLevel(level)
+
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -60,6 +61,7 @@ def logger():
             return f(*args, **kwargs)
         return wrapper
     return innerdec
+
 
 
 def get_available_memory():
