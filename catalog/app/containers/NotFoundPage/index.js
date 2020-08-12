@@ -21,7 +21,7 @@ export const ThrowNotFound = () => {
   throw new NotFoundError()
 }
 
-export const CatchNotFound = createBoundary(
-  () => R.when(R.is(NotFoundError), () => <NotFoundPage />),
-  'CatchNotFound',
-)
+export const createNotFound = (Component) =>
+  createBoundary(() => R.when(R.is(NotFoundError), () => <Component />), 'CatchNotFound')
+
+export const CatchNotFound = createNotFound(NotFoundPage)
