@@ -58,15 +58,14 @@ def file_list_to_folder(df: pd.DataFrame) -> dict:
     try:
         groups = df.groupby(df.logical_key.str.extract('([^/]+/?).*')[0], dropna=True)
         folder = groups.agg(
-            logical_key=('logical_key', 'first'),
             size=('size', 'sum'),
             physical_key=('physical_key', 'first')
         )
-        df_pref = folder.filter(regex='/$')
-        df_obj = folder.filter(regex='[^/]$')
-        prefixes = df_pref.to_json(orient='records')
-        objects = df_obj.to_json(orient='records')
-    except AttributeError:
+        folder.reset_index(inplace=True)
+        folder.rename(columns={0: 'logical_key'}, inplace=True)
+        prefixes = folder[folder.logical_key.str.contains('/')].to_dict(orient='records')
+        objects = folder[~folder.logical_key.str.contains('/')].to_dict(orient='records')
+    except AttributeError as err:
         # Pandas will raise an attribute error if the DataFrame has
         # no rows with a non-null logical_key. We expect that case if
         # either: (1) the package is empty (has zero package entries)
