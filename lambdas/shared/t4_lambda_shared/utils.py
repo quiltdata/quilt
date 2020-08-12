@@ -1,16 +1,19 @@
 """
 Helper functions.
 """
+import logging
 from base64 import b64decode
 import gzip
 from typing import Iterable
 import io
 import json
 import os
+from functools import wraps
 
 
-POINTER_PREFIX_V1 = ".quilt/named_packages/"
+LOGGER_NAME = "quilt-lambda"
 MANIFEST_PREFIX_V1 = ".quilt/packages/"
+POINTER_PREFIX_V1 = ".quilt/named_packages/"
 
 
 def separated_env_to_iter(
@@ -43,6 +46,21 @@ def get_default_origins():
         'http://localhost:3000',
         os.environ.get('WEB_ORIGIN')
     ]
+
+
+def logger():
+    """inject a logger via kwargs, with level set by the environment"""
+    logger_ = logging.getLogger(LOGGER_NAME)
+    # See https://docs.python.org/3/library/logging.html#logging-levels
+    level = os.environ.get("QUILT_LOG_LEVEL", "WARNING")
+    logger_.setLevel(level)
+
+    def innerdec(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            return f(*args, **kwargs)
+        return wrapper
+    return innerdec
 
 
 def get_available_memory():
