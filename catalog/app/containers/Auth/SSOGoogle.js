@@ -21,7 +21,7 @@ import msg from './messages'
 const MUTEX_POPUP = 'sso:google:popup'
 const MUTEX_REQUEST = 'sso:google:request'
 
-export default function SSOGoogle({ mutex, next }) {
+export default function SSOGoogle({ mutex, next, ...props }) {
   const cfg = Config.useConfig()
   invariant(!!cfg.googleClientId, 'Auth.SSO.Google: config missing "googleClientId"')
 
@@ -84,7 +84,12 @@ export default function SSOGoogle({ mutex, next }) {
       cookiePolicy="single_host_origin"
       disabled={!!mutex.current}
       render={({ onClick, disabled }) => (
-        <M.Button variant="outlined" onClick={handleClick(onClick)} disabled={disabled}>
+        <M.Button
+          variant="outlined"
+          onClick={handleClick(onClick)}
+          disabled={disabled}
+          {...props}
+        >
           {mutex.current === MUTEX_REQUEST ? (
             <M.CircularProgress size={18} />
           ) : (

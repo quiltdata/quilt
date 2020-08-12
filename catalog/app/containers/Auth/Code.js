@@ -78,8 +78,10 @@ export default composeComponent(
     )),
   ),
   () => (
-    <Working>
-      <FM {...msg.codeWorking} />
-    </Working>
+    <Container>
+      <Working>
+        <FM {...msg.codeWorking} />
+      </Working>
+    </Container>
   ),
 )

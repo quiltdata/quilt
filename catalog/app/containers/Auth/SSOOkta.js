@@ -21,7 +21,7 @@ import oktaLogo from './okta-logo.svg'
 const MUTEX_POPUP = 'sso:okta:popup'
 const MUTEX_REQUEST = 'sso:okta:request'
 
-export default function SSOOkta({ mutex, next }) {
+export default function SSOOkta({ mutex, next, ...props }) {
   const cfg = Config.useConfig()
   invariant(!!cfg.oktaClientId, 'Auth.SSO.Okta: config missing "oktaClientId"')
   invariant(!!cfg.oktaCompanyName, 'Auth.SSO.Okta: config missing "oktaCompanyName"')
@@ -52,11 +52,11 @@ export default function SSOOkta({ mutex, next }) {
     const popup = window.open(url, 'quilt_okta_popup', 'width=300,height=400')
     const timer = setInterval(() => {
       if (popup.closed) {
+        window.removeEventListener('message', handleMessage)
         clearInterval(timer)
         handleFailure({ error: 'popup_closed_by_user' })
       }
     }, 500)
-    popup.focus()
     const handleMessage = ({ source, origin, data }) => {
       if (source !== popup || origin !== oktaDomain) return
       const {
@@ -78,6 +78,7 @@ export default function SSOOkta({ mutex, next }) {
       popup.close()
     }
     window.addEventListener('message', handleMessage)
+    popup.focus()
   }, [
     mutex.current,
     mutex.claim,
@@ -127,7 +128,12 @@ export default function SSOOkta({ mutex, next }) {
   )
 
   return (
-    <M.Button variant="outlined" onClick={handleClick} disabled={!!mutex.current}>
+    <M.Button
+      variant="outlined"
+      onClick={handleClick}
+      disabled={!!mutex.current}
+      {...props}
+    >
       {mutex.current === MUTEX_REQUEST ? (
         <M.CircularProgress size={18} />
       ) : (
