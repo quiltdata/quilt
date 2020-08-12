@@ -435,7 +435,7 @@ def handler(event, context, **kwargs):
                 # Handle delete first and then continue so that
                 # head_object and get_object (below) don't fail
                 if event_name.startswith(EVENT_PREFIX["Removed"]):
-                    log.debug(f"Object delete to queue")
+                    log.debug("Object delete to queue")
                     batch_processor.append(
                         event_name,
                         DocTypes.OBJECT,

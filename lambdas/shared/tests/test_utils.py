@@ -200,23 +200,24 @@ class TestUtils(TestCase):
     "level, call, message, expected",
     [
         (logging.WARNING, "debug", "IGNORE", ""),
-        (logging.INFO, "info", "HEARME", "HEARME"),
+        (logging.DEBUG, "debug", "HEARME", "HEARME"),
+        (logging.DEBUG, "info", "HEARME", "HEARME"),
     ],
 )
 @logger()
 def test_logger(level: int, message: str, call: str, expected: str, **kwargs):
     """test logging decorator"""
-    log = kwargs['logger']
-    assert isinstance(log, logging.Logger)
+    assert isinstance(kwargs['logger'], logging.Logger)
     with LogCapture(level=level) as buffer:
+        logger_mock = logging.getLogger('fake')
         if call == "debug":
-            log.debug(message)
+            logger_mock.debug(message)
         elif call == "info":
-            log.info(message)
+            logger_mock.info(message)
         else:
             raise ValueError("Unexpected call type")
 
         if expected:
-            buffer.check(('quilt-lambda', call.upper(), expected))
+            buffer.check(('fake', call.upper(), expected))
         else:
             buffer.check()

@@ -49,14 +49,14 @@ def get_default_origins():
 
 def logger():
     """inject a logger via kwargs, with level set by the environment"""
-    log = logging.getLogger("quilt-lambda")
+    logger_ = logging.getLogger("quilt-lambda")
     # See https://docs.python.org/3/library/logging.html#logging-levels
     level = os.environ.get("QUILT_LOG_LEVEL", "WARNING")
-    log.setLevel(level)
+    logger_.setLevel(level)
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            kwargs['logger'] = log
+            kwargs['logger'] = logger_
             return f(*args, **kwargs)
         return wrapper
     return innerdec
