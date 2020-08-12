@@ -32,7 +32,8 @@ const addDevMiddlewares = (app, webpackConfig) => {
     })
   }
 
-  app.get('/__embed/*', sendFile('embed.html'))
+  app.get('/__embed-debug', sendFile('embed-debug-harness.html'))
+  app.get('/__embed', sendFile('embed.html'))
   app.get('*', sendFile('index.html'))
 }
 
@@ -45,7 +46,7 @@ const addProdMiddlewares = (app, { publicPath, outputPath }) => {
   app.use(publicPath, express.static(outputPath))
 
   const sendFile = (name) => (req, res) => res.sendFile(path.resolve(outputPath, name))
-  app.get('/__embed/*', sendFile('embed.html'))
+  app.get('/__embed', sendFile('embed.html'))
   app.get('*', sendFile('index.html'))
 }
 

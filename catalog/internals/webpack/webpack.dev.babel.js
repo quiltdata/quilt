@@ -23,6 +23,10 @@ module.exports = require('./webpack.base.babel')({
       'webpack-hot-middleware/client?reload=true',
       path.join(process.cwd(), 'app/embed.js'), // Start with app/embed.js
     ],
+    'embed-debug-harness': [
+      'webpack-hot-middleware/client?reload=true',
+      path.join(process.cwd(), 'app/embed-debug-harness.js'),
+    ],
   },
 
   // Don't use hashes in dev mode for better performance
@@ -59,6 +63,12 @@ module.exports = require('./webpack.base.babel')({
       chunks: ['embed'],
       template: 'app/embed.html',
       filename: 'embed.html',
+    }),
+    new HtmlWebpackPlugin({
+      inject: true,
+      chunks: ['embed-debug-harness'],
+      template: 'app/embed-debug-harness.html',
+      filename: 'embed-debug-harness.html',
     }),
     new CircularDependencyPlugin({
       exclude: /a\.js|node_modules/, // exclude node_modules
