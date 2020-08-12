@@ -62,6 +62,7 @@ from t4_lambda_shared.preview import (
 from t4_lambda_shared.utils import (
     get_available_memory,
     logger,
+    LOGGER_NAME,
     MANIFEST_PREFIX_V1,
     POINTER_PREFIX_V1,
     query_manifest_content,
@@ -389,7 +390,7 @@ def handler(event, context):
     """enumerate S3 keys in event, extract relevant data, queue events, send to
     elastic via bulk() API
     """
-    logger_ = getLogger('quilt-lambda')
+    logger_ = getLogger(LOGGER_NAME)
     # message is a proper SQS message, which either contains a single event
     # (from the bucket notification system) or batch-many events as determined
     # by enterprise/**/bulk_loader.py

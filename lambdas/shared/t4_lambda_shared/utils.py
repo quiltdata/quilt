@@ -11,8 +11,9 @@ import os
 from functools import wraps
 
 
-POINTER_PREFIX_V1 = ".quilt/named_packages/"
+LOGGER_NAME = "quilt-lambda"
 MANIFEST_PREFIX_V1 = ".quilt/packages/"
+POINTER_PREFIX_V1 = ".quilt/named_packages/"
 
 
 def separated_env_to_iter(
@@ -49,7 +50,7 @@ def get_default_origins():
 
 def logger():
     """inject a logger via kwargs, with level set by the environment"""
-    logger_ = logging.getLogger("quilt-lambda")
+    logger_ = logging.getLogger(LOGGER_NAME)
     # See https://docs.python.org/3/library/logging.html#logging-levels
     level = os.environ.get("QUILT_LOG_LEVEL", "WARNING")
     logger_.setLevel(level)
