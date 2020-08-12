@@ -51,6 +51,7 @@ const useStyles = M.makeStyles((t) => ({
     gridArea: 'link',
   },
   studyLogo: {
+    backgroundRepeat: 'no-repeat',
     gridArea: 'logo',
   },
 }))
