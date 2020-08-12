@@ -62,7 +62,6 @@ def logger():
     return innerdec
 
 
-
 def get_available_memory():
     """how much virtual memory is available to us (bytes)?"""
     from psutil import virtual_memory

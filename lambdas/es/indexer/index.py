@@ -39,6 +39,7 @@ counterintuitive things:
 """
 import datetime
 import json
+from logging import getLogger
 from typing import Optional
 import pathlib
 import re
@@ -384,11 +385,11 @@ def make_s3_client():
 
 
 @logger()
-def handler(event, context, **kwargs):
+def handler(event, context):
     """enumerate S3 keys in event, extract relevant data, queue events, send to
     elastic via bulk() API
     """
-    log = kwargs["logger"]
+    log = getLogger('quilt-lambda')
     # message is a proper SQS message, which either contains a single event
     # (from the bucket notification system) or batch-many events as determined
     # by enterprise/**/bulk_loader.py
