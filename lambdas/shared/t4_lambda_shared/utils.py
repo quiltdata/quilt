@@ -57,7 +57,6 @@ def logger():
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            kwargs['logger'] = logger_
             return f(*args, **kwargs)
         return wrapper
     return innerdec

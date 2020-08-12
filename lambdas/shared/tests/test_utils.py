@@ -198,19 +198,25 @@ class TestUtils(TestCase):
 
 
 @pytest.mark.parametrize(
-    "level, call, message, expected",
+    "level, call, message, expected, name",
     [
-        (logging.WARNING, "debug", "IGNORE", ""),
-        (logging.DEBUG, "debug", "HEARME", "HEARME"),
-        (logging.DEBUG, "info", "HEARME", "HEARME"),
-    ],
+        (logging.WARNING, "debug", "IGNORE", "", "fake"),
+        (logging.DEBUG, "debug", "HEARME", "HEARME", "fake"),
+        (logging.DEBUG, "info", "HEARME", "HEARME", "fake"),
+        pytest.param(
+            logging.INFO, "info", "HEARME", "HEARME", "quilt-lambda",
+            marks=pytest.mark.xfail(
+                raises=AssertionError,
+                reason="unclear but logger from @logger doesn't get patched?"
+            )
+        )
+    ]
 )
 @logger()
-def test_logger(level: int, message: str, call: str, expected: str, **kwargs):
+def test_logger(level: int, message: str, call: str, expected: str, name: str):
     """test logging decorator"""
-    assert isinstance(kwargs['logger'], logging.Logger)
     with LogCapture(level=level) as buffer:
-        logger_mock = logging.getLogger('fake')
+        logger_mock = logging.getLogger(name)
         if call == "debug":
             logger_mock.debug(message)
         elif call == "info":
