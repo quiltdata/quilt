@@ -2,16 +2,20 @@
 Misc helper functions
 """
 import json
+import logging
 import os
 from unittest import TestCase
 from unittest.mock import patch
 
 import boto3
+import pytest
+from testfixtures import LogCapture
 
 from t4_lambda_shared.utils import (
     query_manifest_content,
     separated_env_to_iter,
     get_default_origins,
+    logger,
     make_json_response,
     IncompleteResultException
 )
@@ -30,7 +34,6 @@ class TestUtils(TestCase):
         jsonl = ""
         for key in logical_keys:
             jsonl += "{\"logical_key\": \"%s\"}\n" % key
-        print(jsonl)
         streambytes = jsonl.encode()
 
         self.s3response = {
@@ -192,3 +195,28 @@ class TestUtils(TestCase):
                     sql_stmt=expected_sql
                 )
                 patched.assert_called_once_with(**expected_args)
+
+@pytest.mark.parametrize(
+    "level, call, message, expected",
+    [
+        (logging.WARNING, "debug", "IGNORE", ""),
+        (logging.INFO, "info", "HEARME", "HEARME"),
+    ],
+)
+@logger()
+def test_logger(level: int, message: str, call: str, expected: str, **kwargs):
+    """test logging decorator"""
+    log = kwargs['logger']
+    assert isinstance(log, logging.Logger)
+    with LogCapture(level=level) as buffer:
+        if call == "debug":
+            log.debug(message)
+        elif call == "info":
+            log.info(message)
+        else:
+            raise ValueError("Unexpected call type")
+
+        if expected:
+            buffer.check(('quilt-lambda', call.upper(), expected))
+        else:
+            buffer.check()
