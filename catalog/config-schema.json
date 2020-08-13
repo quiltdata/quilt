@@ -31,7 +31,7 @@
     },
     "oktaBaseUrl": {
       "type": "string",
-      "description": "Base URL for Okta Sign-In (i.e., https://$company.okta.com or https://$company.oktapreview.com/oauth2/default)"
+      "description": "Base URL for Okta Sign-In (e.g., https://$company.okta.com/oauth2 or https://$company.oktapreview.com/oauth2/default)"
     },
     "intercomAppId": {
       "type": "string",
