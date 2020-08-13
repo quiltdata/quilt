@@ -219,6 +219,124 @@ def _make_event(
     return e
 
 
+@pytest.mark.parametrize(
+    "event_type, doc_type, kwargs",
+    [
+        (
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "package_hash": "abc",
+            }
+        ),
+        (
+            "FAKE:EVENT",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "package_hash": "abc",
+            }
+        ),
+        (
+            "ObjectRemoved:Delete",
+            DocTypes.OBJECT,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": ".txt",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "version_id": "abc",
+            }
+        ),
+        (
+            "ObjectCreated:Copy",
+            DocTypes.OBJECT,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": ".jsonl",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "size": 0,
+                "text": "iajsoeqroieurqwiuro•",
+                "version_id": "abc",
+            }
+        ),
+        pytest.param(
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "package_hash": "abc",
+            },
+            marks=pytest.mark.xfail(
+                raises=ValueError,
+                reason="missing bucket"
+            )
+        ),
+        pytest.param(
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "nice-bucket",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": "not_an_object",
+                "package_hash": "abc",
+            },
+            marks=pytest.mark.xfail(
+                raises=AttributeError,
+                reason="last_modified should be an object"
+            )
+        ),
+        pytest.param(
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "nice-bucket",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "package_hash": "",
+            },
+            marks=pytest.mark.xfail(
+                raises=ValueError,
+                reason="package_hash required"
+            )
+        ),
+    ]
+)
+@patch.object(index.DocumentQueue, '_append_document')
+def test_append(_append_mock, event_type, doc_type, kwargs):
+    """test document_queue.append; outside of class so we can parameterize"""
+    dq = index.DocumentQueue(None)
+    dq.append(event_type, doc_type, **kwargs)
+    if event_type == "FAKE:EVENT":
+        assert not _append_mock.call_count
+    else:
+        assert _append_mock.call_count == 1
+
 class MockContext():
     def get_remaining_time_in_millis(self):
         return 30000
@@ -599,7 +717,6 @@ class TestIndex(TestCase):
                 bucket="quilt-example",
                 etag="123",
                 ext="",
-                # emulate a recent unix stamp from quilt3
                 key=key,
                 last_modified="faketimestamp",
                 version_id="random.version.id",
@@ -1099,7 +1216,7 @@ class TestIndex(TestCase):
     def test_synthetic_multipart_event(self):
         """check synthetic ObjectCreated:Put event vs organic obtained on 27-May-2020
         (bucket versioning on)"""
-        synthetic = make_event(
+        make_event(
             "ObjectCreated:CompleteMultipartUpload",
             bucket="anybucket",
             key="events/multipart-one/part-00006-495c48e6-96d6-4650-aa65-3c36a3516ddd.c000.snappy.parquet",
