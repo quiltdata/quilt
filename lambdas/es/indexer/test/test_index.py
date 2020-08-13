@@ -589,19 +589,10 @@ class TestIndex(TestCase):
 
     def test_index_if_manifest_skip(self):
         """test cases where index_if_manifest ignores input for different reasons"""
-        for failure in {"key", "young", "old"}:
-            # too far in the future
-            if failure == "young":
-                timestamp = 1451631500
-            elif failure == "old":
-                timestamp = 1767250801
-            else:
-                timestamp = floor(time())
-            pointer_key = (
-                ".quilt/badfile/stuff.txt" if failure == 'key'
-                else f".quilt/named_packages/foo/bar/{timestamp}"
-            )
-            indexed = index.index_if_manifest(
+        # none of these should index due to out-of-range timestamp or non-integer name
+        for file_name in [1451631500, 1767250801, 'latest']:
+            key = f".quilt/named_packages/foo/bar/{file_name}"
+            assert not index.index_if_manifest(
                 self.s3_client,
                 index.DocumentQueue(None),
                 "ObjectCreated:Put",
@@ -609,12 +600,32 @@ class TestIndex(TestCase):
                 etag="123",
                 ext="",
                 # emulate a recent unix stamp from quilt3
-                key=pointer_key,
+                key=key,
                 last_modified="faketimestamp",
                 version_id="random.version.id",
                 size=64
             )
-            assert not indexed
+        # none of these should index due to bad file path
+        good_timestamp = floor(time())
+        for key in [
+                f".quilt/named_packages//{good_timestamp}.txt",
+                f".quilt/named_packages/{good_timestamp}",
+                f".quilt/named_packages/not-deep-enough/{good_timestamp}",
+                f"somewhere/else/foo/bar/{floor(time())}",
+        ]:
+            assert not index.index_if_manifest(
+                self.s3_client,
+                index.DocumentQueue(None),
+                "ObjectCreated:Put",
+                bucket="quilt-example",
+                etag="123",
+                ext="",
+                # emulate a recent unix stamp from quilt3
+                key=key,
+                last_modified="faketimestamp",
+                version_id="random.version.id",
+                size=64
+            )
 
     @patch.object(index.DocumentQueue, 'append')
     @patch.object(index, 'maybe_get_contents')
@@ -655,7 +666,7 @@ class TestIndex(TestCase):
     @patch.object(index.DocumentQueue, 'append')
     def test_index_if_manifest_positive(self, append_mock):
         """test manifest file and its indexing"""
-        timestamp = 1595616294
+        timestamp = floor(time())
         pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
         # first, handler() will head the object
         self.s3_stubber.add_response(
