@@ -149,7 +149,7 @@ class DocumentQueue:
 
     def _append_document(self, doc):
         """append well-formed documents (used for retry or by append())"""
-        if "content" in doc:
+        if doc.get("content"):
             # document text dominates memory footprint; OK to neglect the
             # small fixed size for the JSON metadata
             self.size += min(doc["size"], ELASTIC_LIMIT_BYTES)
