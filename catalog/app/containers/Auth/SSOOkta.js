@@ -24,7 +24,7 @@ const MUTEX_REQUEST = 'sso:okta:request'
 export default function SSOOkta({ mutex, next, ...props }) {
   const cfg = Config.useConfig()
   invariant(!!cfg.oktaClientId, 'Auth.SSO.Okta: config missing "oktaClientId"')
-  invariant(!!cfg.oktaCompanyName, 'Auth.SSO.Okta: config missing "oktaCompanyName"')
+  invariant(!!cfg.oktaBaseUrl, 'Auth.SSO.Okta: config missing "oktaBaseUrl"')
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
@@ -36,19 +36,18 @@ export default function SSOOkta({ mutex, next, ...props }) {
     if (mutex.current) return
     mutex.claim(MUTEX_POPUP)
 
-    const oktaDomain = `https://${cfg.oktaCompanyName}.okta.com`
     const nonce = Math.random().toString(36).substr(2)
     const state = Math.random().toString(36).substr(2)
     const query = NamedRoutes.mkSearch({
       client_id: cfg.oktaClientId,
-      redirect_uri: window.location.origin,
+      redirect_uri: `${window.location.origin}/auth/implicit/callback`, // TODO(dima): remove the path
       response_mode: 'okta_post_message',
       response_type: 'id_token',
       scope: 'openid email',
       nonce,
       state,
     })
-    const url = `${oktaDomain}/oauth2/v1/authorize${query}`
+    const url = `${cfg.oktaBaseUrl}/v1/authorize${query}`
     const popup = window.open(url, 'quilt_okta_popup', 'width=300,height=400')
     const timer = setInterval(() => {
       if (popup.closed) {
@@ -58,7 +57,7 @@ export default function SSOOkta({ mutex, next, ...props }) {
       }
     }, 500)
     const handleMessage = ({ source, origin, data }) => {
-      if (source !== popup || origin !== oktaDomain) return
+      if (source !== popup || !url.startsWith(`${origin}/`)) return
       const {
         id_token: idToken,
         error,
@@ -82,7 +81,7 @@ export default function SSOOkta({ mutex, next, ...props }) {
   }, [
     mutex.current,
     mutex.claim,
-    cfg.oktaCompanyName,
+    cfg.oktaBaseUrl,
     cfg.oktaClientId,
     window.location.origin,
     handleSuccess,
