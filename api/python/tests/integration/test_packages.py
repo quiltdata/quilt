@@ -20,8 +20,7 @@ from quilt3.util import (
     PhysicalKey,
     QuiltException,
     validate_package_name,
-    RemovedInQuilt4Warning,
-    PACKAGE_UPDATE_POLICY
+    RemovedInQuilt4Warning
 )
 from quilt3.backends.local import LocalPackageRegistryV1
 from quilt3.backends.s3 import S3PackageRegistryV1
@@ -536,7 +535,7 @@ class PackageTest(QuiltTestCase):
         """Verify non existing update policy raises value error."""
         data_dir = pathlib.Path(__file__).parent / "data"
         pkg = Package()
-        expected_err = f"Update policy should be one of"
+        expected_err = "Update policy should be one of"
         with pytest.raises(ValueError) as e:
             pkg.set_dir("nested", data_dir, update_policy='invalid_policy')
         assert expected_err in str(e.value)
