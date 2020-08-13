@@ -1,4 +1,4 @@
-/* embed-debug-harness.js - debug tool for embedded browser */
+/* embed/debug-harness.js - debug tool for embedded browser */
 import * as React from 'react'
 import ReactDOM from 'react-dom'
 import 'sanitize.css' // side-effect: inject global css

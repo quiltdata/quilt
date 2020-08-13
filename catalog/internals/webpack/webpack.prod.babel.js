@@ -16,7 +16,7 @@ module.exports = require('./webpack.base.babel')({
     ],
     embed: [
       require.resolve('react-app-polyfill/ie11'),
-      path.join(process.cwd(), 'app/embed.js'),
+      path.join(process.cwd(), 'app/embed/index.js'),
     ],
   },
 
@@ -92,7 +92,7 @@ module.exports = require('./webpack.base.babel')({
     new HtmlWebpackPlugin({
       inject: true,
       chunks: ['embed'],
-      template: 'app/embed.html',
+      template: 'app/embed/index.html',
       filename: 'embed.html',
       minify: {
         removeComments: true,

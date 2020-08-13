@@ -27,7 +27,7 @@ const HELP_LINK = `${docs}/walkthrough/working-with-a-bucket`
 const getCrumbs = R.compose(
   R.intersperse(Crumb.Sep(<>&nbsp;/ </>)),
   ({ bucket, path, urls }) =>
-    [{ label: bucket, path: '' }, ...getBreadCrumbs(path)].map(
+    [{ label: 'ROOT', path: '' }, ...getBreadCrumbs(path)].map(
       ({ label, path: segPath }) =>
         Crumb.Segment({
           label,
@@ -170,6 +170,7 @@ export default function Dir({
 
           if (!items.length)
             return (
+              // TODO: remove, just show "no files"
               <Message headline="No files">
                 <Link href={HELP_LINK}>Learn how to upload files</Link>.
               </Message>

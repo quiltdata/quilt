@@ -35,7 +35,7 @@ const getCrumbs = ({ bucket, path, urls }) =>
       Crumb.Segment({ label, to: urls.bucketDir(bucket, segPath) }),
       Crumb.Sep(<>&nbsp;/ </>),
     ],
-    [{ label: bucket, path: '' }, ...getBreadCrumbs(up(path))],
+    [{ label: 'ROOT', path: '' }, ...getBreadCrumbs(up(path))],
   )
 
 const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
