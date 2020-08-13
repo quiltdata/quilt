@@ -337,6 +337,7 @@ def test_append(_append_mock, event_type, doc_type, kwargs):
     else:
         assert _append_mock.call_count == 1
 
+
 class MockContext():
     def get_remaining_time_in_millis(self):
         return 30000
