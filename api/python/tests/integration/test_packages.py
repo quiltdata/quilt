@@ -532,6 +532,15 @@ class PackageTest(QuiltTestCase):
 
             list_object_versions_mock.assert_called_with('bucket', 'foo/')
 
+    def test_set_dir_wrong_update_policy(self):
+        """Verify non existing update policy raises value error."""
+        data_dir = pathlib.Path(__file__).parent / "data"
+        pkg = Package()
+        expected_err = f"Update policy should be one of"
+        with pytest.raises(ValueError) as e:
+            pkg.set_dir("nested", data_dir, update_policy='invalid_policy')
+        assert expected_err in str(e.value)
+
     def test_package_entry_meta(self):
         pkg = (
             Package()
@@ -1421,31 +1430,28 @@ class PackageTest(QuiltTestCase):
 # The following tests were moved out of the PackageTest class to enable parametrization.
 # see (https://docs.pytest.org/en/latest/unittest.html#pytest-features-in-unittest-testcase-subclasses)
 @pytest.mark.parametrize(
-    'update_policy, expected_size, expected_meta, expected_hash',
-    [('incoming', 6, {'name': 'incoming'}, None), ('existing', 1, {'name': 'existing'}, None)]
+    'update_policy, expected_one_byte',
+    [
+        ('incoming', b'one'),
+        ('existing', b'1')
+    ]
 )
-def test_set_dir_update_policy(update_policy, expected_size, expected_meta, expected_hash):
+def test_set_dir_update_policy(update_policy, expected_one_byte):
     """Verify building a package with update policy. """
-
     data_dir = pathlib.Path(__file__).parent / "data"
     nested_dir = data_dir / 'nested'
-    nested_dir_2 = data_dir / 'nested2'
     pkg = Package()
-    pkg = pkg.set_dir("/", nested_dir, meta={'name': 'test_meta'})
+    pkg.set_dir("/", nested_dir, meta={'name': 'test_meta'})
     assert 'one.txt' in pkg.keys()
+    assert 'two.txt' not in pkg.keys()
+    assert 'three.txt' not in pkg.keys()
     assert pkg.meta == {'name': 'test_meta'}
 
-    pkg = pkg.set_dir("/", nested_dir_2, meta={'name': update_policy}, update_policy=update_policy)
-    assert 'one.txt' in pkg.keys()
-    assert pkg['one.txt'].size == expected_size
-    assert pkg['one.txt'].hash == expected_hash
-    assert pkg.meta == expected_meta
-
-    # verify non existing update policy raises value error
-    expected_err = f"Update policy should be one of {str(PACKAGE_UPDATE_POLICY)}, not 'invalid_policy'"
-    with pytest.raises(ValueError) as e:
-        pkg.set_dir("nested", data_dir, update_policy='invalid_policy')
-    assert expected_err in str(e.value)
+    nested_dir_2 = data_dir / 'nested2'
+    pkg.set_dir("/", nested_dir_2, update_policy=update_policy)
+    assert pkg['one.txt'].get_bytes() == expected_one_byte
+    assert pkg['two.txt'].get_bytes() == b'2'
+    assert pkg['three.txt'].get_bytes() == b'3'
 
 
 @pytest.mark.parametrize(
@@ -1460,10 +1466,11 @@ def test_set_dir_update_policy_s3(update_policy, expected_a_url, expected_xy_url
         list_object_versions_mock.return_value = (
             [
                 dict(Key='foo/a.txt', VersionId='xyz', IsLatest=True, Size=10),
-                dict(Key='foo/x/y.txt', VersionId='null', IsLatest=True,
-                     Size=10),
+                dict(Key='foo/x/y.txt', VersionId='null', IsLatest=True, Size=10),
                 dict(Key='foo/z.txt', VersionId='123', IsLatest=False, Size=10),
-            ], [])
+            ],
+            []
+        )
         pkg = Package()
         pkg.set_dir('', 's3://bucket/foo/', meta={'name': 'test_meta'})
         assert pkg['a.txt'].get() == 's3://bucket/foo/a.txt?versionId=xyz'
@@ -1473,13 +1480,13 @@ def test_set_dir_update_policy_s3(update_policy, expected_a_url, expected_xy_url
         list_object_versions_mock.return_value = (
             [
                 dict(Key='bar/a.txt', VersionId='abc', IsLatest=True, Size=10),
-                dict(Key='bar/x/y.txt', VersionId='null', IsLatest=True,
-                     Size=10),
+                dict(Key='bar/x/y.txt', VersionId='null', IsLatest=True, Size=10),
                 dict(Key='bar/z.txt', VersionId='123', IsLatest=False, Size=10),
-            ], [])
-
+            ],
+            []
+        )
         pkg.set_dir('', 's3://bucket/bar', update_policy=update_policy)
         assert pkg['a.txt'].get() == expected_a_url
         assert pkg['x/y.txt'].get() == expected_xy_url
-        calls = [call('bucket', 'foo/'), call('bucket', 'bar/')]
-        list_object_versions_mock.assert_has_calls(calls)
+        assert list_object_versions_mock.call_count == 2
+        list_object_versions_mock.assert_has_calls([call('bucket', 'foo/'), call('bucket', 'bar/')])
