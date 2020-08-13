@@ -117,6 +117,7 @@ class DocumentQueue:
                 raise ValueError("missing required argument for package document")
             body.update({
                 "_id": f"{handle}:{package_hash}",
+                "_type": "_doc",
                 "handle": handle,
                 "hash": package_hash,
                 "metadata": metadata,
@@ -126,7 +127,6 @@ class DocumentQueue:
             body.update({
                 # Elastic native keys
                 "_id": f"{key}:{version_id}",
-                "_type": "_doc",
                 # TODO: remove this field from ES in /enterprise (now deprecated and unused)
                 # here we explicitly drop the comment
                 "comment": "",
