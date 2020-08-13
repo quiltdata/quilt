@@ -106,6 +106,7 @@ class DocumentQueue:
             raise ValueError(f"Can't infer index name; bucket={bucket}, doc_type={doc_type}")
         body = {
             "_index": index_name,
+            "_type": "_doc",
             "comment": comment,
             "etag": etag,
             "key": key,
@@ -117,7 +118,6 @@ class DocumentQueue:
                 raise ValueError("missing required argument for package document")
             body.update({
                 "_id": f"{handle}:{package_hash}",
-                "_type": "_doc",
                 "handle": handle,
                 "hash": package_hash,
                 "metadata": metadata,
