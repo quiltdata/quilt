@@ -85,9 +85,8 @@ class DocumentQueue:
             size: int = 0
     ):
         """format event as a document and then queue the document"""
-        if not bucket:
-            raise ValueError("argument bucket= required for all documents")
-
+        if not bucket or not key:
+            raise ValueError(f"bucket={bucket} or key={key} required but missing")
         if event_type.startswith(EVENT_PREFIX["Created"]):
             _op_type = "index"
         elif event_type.startswith(EVENT_PREFIX["Removed"]):
@@ -100,8 +99,14 @@ class DocumentQueue:
         # Set common properties on the document
         # BE CAREFUL changing these values, as type changes or missing fields
         # can cause exceptions from ES
+        index_name = bucket
+        if doc_type == DocTypes.PACKAGE:
+            index_name += "_packages"
+        if not index_name:
+            raise ValueError(f"Can't infer index name; bucket={bucket}, doc_type={doc_type}")
         body = {
-            "_index": bucket + '_packages' if doc_type == DocTypes.PACKAGE else '',
+            "_index": index_name,
+            "_type": "_doc",
             "comment": comment,
             "etag": etag,
             "key": key,
@@ -122,7 +127,6 @@ class DocumentQueue:
             body.update({
                 # Elastic native keys
                 "_id": f"{key}:{version_id}",
-                "_type": "_doc",
                 # TODO: remove this field from ES in /enterprise (now deprecated and unused)
                 # here we explicitly drop the comment
                 "comment": "",
@@ -145,7 +149,7 @@ class DocumentQueue:
 
     def _append_document(self, doc):
         """append well-formed documents (used for retry or by append())"""
-        if doc["content"]:
+        if doc.get("content"):
             # document text dominates memory footprint; OK to neglect the
             # small fixed size for the JSON metadata
             self.size += min(doc["size"], ELASTIC_LIMIT_BYTES)

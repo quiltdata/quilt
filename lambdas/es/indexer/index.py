@@ -143,6 +143,7 @@ def select_manifest_meta(s3_client, bucket: str, key: str):
     return None
 
 
+@logger()
 def index_if_manifest(
         s3_client,
         doc_queue: DocumentQueue,
@@ -161,20 +162,26 @@ def index_if_manifest(
             - True if manifest (and passes to doc_queue for indexing)
             - False if not a manifest (no attempt at indexing)
     """
+    logger_ = getLogger(LOGGER_NAME)
     pointer_prefix, pointer_file = split(key)
-    if not pointer_prefix.startswith(POINTER_PREFIX_V1):
+    handle = pointer_prefix[len(POINTER_PREFIX_V1):]
+    if (
+            not pointer_prefix.startswith(POINTER_PREFIX_V1)
+            or len(handle) < 3
+            or '/' not in handle
+    ):
+        logger_.info("Not indexing as manifest file s3://%s/%s", bucket, key)
         return False
-    err_msg = None
     try:
         manifest_timestamp = int(pointer_file)
     except ValueError as err:
-        err_msg = f"Unexpected manifest pointer file: s3://{bucket}/{key}: {err}"
+        logger_.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
+        # this is probably the latest pointer, skip it. manifest already indexed.
+        return False
     else:
         if not 1451631600 <= manifest_timestamp <= 1767250800:
-            err_msg = f"Invalid manifest pointer s3://{bucket}{key}"
-    if err_msg:
-        print(err_msg)
-        return False
+            logger_.warning("Unexpected manifest timestamp s3://%s/%s", bucket, key)
+            return False
 
     package_hash = get_plain_text(
         bucket,
@@ -198,7 +205,7 @@ def index_if_manifest(
             bucket=bucket,
             etag=etag,
             ext=ext,
-            handle=pointer_prefix[len(POINTER_PREFIX_V1):],
+            handle=handle,
             key=manifest_key,
             last_modified=last_modified,
             package_hash=package_hash,

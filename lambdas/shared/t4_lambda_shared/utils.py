@@ -111,22 +111,23 @@ def sql_escape(s):
     return escaped.replace("'", "''")
 
 
+@logger()
 def buffer_s3response(s3response):
     """
     Read a streaming response (botocore.eventstream.EventStream) from s3 select
     into a StringIO buffer
     """
+    logger_ = logging.getLogger(LOGGER_NAME)
     response = io.StringIO()
     end_event_received = False
-    stats = None
     for event in s3response['Payload']:
         if 'Records' in event:
             records = event['Records']['Payload'].decode()
             response.write(records)
         elif 'Progress' in event:
-            print(event['Progress']['Details'])
+            logger_.info("select progress: %s", event['Progress'].get('Details'))
         elif 'Stats' in event:
-            print(stats)
+            logger_.info("select stats: %s", event['Stats'])
         elif 'End' in event:
             # End event indicates that the request finished successfully
             end_event_received = True
@@ -137,6 +138,7 @@ def buffer_s3response(s3response):
     return response
 
 
+@logger()
 def query_manifest_content(
         s3_client: str,
         *,
@@ -149,8 +151,8 @@ def query_manifest_content(
     package manifest that match the desired folder path
     prefix
     """
-
-    print(f"utils.py: manifest_select: {sql_stmt}")
+    logger_ = logging.getLogger(LOGGER_NAME)
+    logger_.debug("utils.py: manifest_select: %s", sql_stmt)
     response = s3_client.select_object_content(
         Bucket=bucket,
         Key=key,
