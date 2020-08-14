@@ -1,6 +1,7 @@
 // side-effect: inject global css
 import 'sanitize.css'
 
+import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import { Route, Switch, useLocation } from 'react-router-dom'
@@ -30,6 +31,7 @@ import { ErrorDisplay } from 'utils/error'
 import * as RT from 'utils/reactTools'
 import RouterProvider from 'utils/router'
 import useConstant from 'utils/useConstant'
+import useMemoEq from 'utils/useMemoEq'
 import usePrevious from 'utils/usePrevious'
 
 // TODO: consider reimplementing these locally or moving to some shared location
@@ -142,7 +144,14 @@ function useInit() {
     ({ data }) => {
       if (!data || data.type !== 'init') return
       const { type, ...init } = data
-      setState(init)
+      try {
+        if (!init.bucket) throw new Error('missing .bucket')
+        setState(init)
+      } catch (e) {
+        console.error(`Configuration error: ${e.message}`)
+        console.log('init object:', init)
+        setState(e)
+      }
     },
     [setState],
   )
@@ -176,8 +185,6 @@ function Init({ messages }) {
   )
 }
 
-// TODO: validate init somewhere
-
 function usePostInit(init) {
   const dispatch = redux.useDispatch()
   const [state, setState] = React.useState(null)
@@ -206,6 +213,20 @@ function PostInit({ init, children }) {
   return children
 }
 
+function WithCustomTheme({ theme, children }) {
+  const customTheme = useMemoEq(theme, style.createCustomAppTheme)
+  return (
+    <M.MuiThemeProvider theme={customTheme}>
+      <WithGlobalStyles>{children}</WithGlobalStyles>
+    </M.MuiThemeProvider>
+  )
+}
+
+function CustomThemeProvider({ theme, children }) {
+  if (!theme || R.isEmpty(theme)) return children
+  return <WithCustomTheme theme={theme}>{children}</WithCustomTheme>
+}
+
 function App({ messages, init }) {
   const { urls } = NamedRoutes.use()
   const history = useConstant(() =>
@@ -219,7 +240,7 @@ function App({ messages, init }) {
   }))
 
   return RT.nest(
-    // TODO: customize theme
+    [CustomThemeProvider, { theme: init.theme }],
     [Store.Provider, { history }],
     [LanguageProvider, { messages }],
     [RouterProvider, { history }],

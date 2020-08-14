@@ -45,6 +45,7 @@ function Embedder() {
     credentials: useField('{}'),
     bucket: useField(''),
     path: useField(''),
+    rest: useField('{}'),
   }
 
   const initParams = React.useMemo(() => {
@@ -53,11 +54,17 @@ function Embedder() {
         bucket: fields.bucket.value,
         path: fields.path.value,
         credentials: JSON.parse(fields.credentials.value),
+        ...JSON.parse(fields.rest.value),
       }
     } catch (e) {
       return e
     }
-  }, [fields.credentials.value, fields.bucket.value, fields.path.value])
+  }, [
+    fields.credentials.value,
+    fields.bucket.value,
+    fields.path.value,
+    fields.rest.value,
+  ])
 
   const getOktaCredentials = React.useCallback(async () => {
     const token = await authenticate()
@@ -93,21 +100,30 @@ function Embedder() {
         <M.Button variant="outlined" onClick={getOktaCredentials}>
           Get credentials from Okta
         </M.Button>
-        <M.Box mt={2}>
-          <M.TextField
-            multiline
-            label="Credentials (JSON)"
-            rowsMax={10}
-            fullWidth
-            {...fields.credentials.input}
-          />
-        </M.Box>
-        <M.Box mt={2}>
-          <M.TextField label="Bucket" fullWidth {...fields.bucket.input} />
-        </M.Box>
-        <M.Box mt={2}>
-          <M.TextField label="Path" fullWidth {...fields.path.input} />
-        </M.Box>
+
+        <M.Box mt={2} />
+        <M.TextField
+          multiline
+          label="Credentials (JSON)"
+          rowsMax={10}
+          fullWidth
+          {...fields.credentials.input}
+        />
+
+        <M.Box mt={2} />
+        <M.TextField label="Bucket" fullWidth {...fields.bucket.input} />
+
+        <M.Box mt={2} />
+        <M.TextField label="Path" fullWidth {...fields.path.input} />
+
+        <M.Box mt={2} />
+        <M.TextField
+          multiline
+          label="Extra params (JSON, merged with the rest)"
+          rowsMax={10}
+          fullWidth
+          {...fields.rest.input}
+        />
 
         <M.Box mt={2} />
         <M.Button variant="outlined" onClick={postInit}>
