@@ -40,7 +40,7 @@ export default function SSOOkta({ mutex, next, ...props }) {
     const state = Math.random().toString(36).substr(2)
     const query = NamedRoutes.mkSearch({
       client_id: cfg.oktaClientId,
-      redirect_uri: `${window.location.origin}/auth/implicit/callback`, // TODO(dima): remove the path
+      redirect_uri: window.location.origin,
       response_mode: 'okta_post_message',
       response_type: 'id_token',
       scope: 'openid email',
