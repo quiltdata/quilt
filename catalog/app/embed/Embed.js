@@ -41,6 +41,7 @@ import * as requests from 'containers/Bucket/requests'
 import WithGlobalStyles from '../global-styles'
 
 import AppBar from './AppBar'
+import * as EmbedConfig from './EmbedConfig'
 
 const mkLazy = (load) =>
   RT.loadable(load, { fallback: () => <Placeholder color="text.secondary" /> })
@@ -267,6 +268,7 @@ function App({ messages, init }) {
   useCssFiles(init.css)
 
   return RT.nest(
+    [EmbedConfig.Provider, { config: init }],
     [CustomThemeProvider, { theme: init.theme }],
     [Store.Provider, { history }],
     [LanguageProvider, { messages }],

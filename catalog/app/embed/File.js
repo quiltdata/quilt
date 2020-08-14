@@ -29,6 +29,8 @@ import Section from 'containers/Bucket/Section'
 import * as requests from 'containers/Bucket/requests'
 import { withSignedUrl } from 'containers/Bucket/utils'
 
+import * as EmbedConfig from './EmbedConfig'
+
 const getCrumbs = ({ bucket, path, urls }) =>
   R.chain(
     ({ label, path: segPath }) => [
@@ -340,6 +342,7 @@ export default function File({
   },
   location,
 }) {
+  const cfg = EmbedConfig.use()
   const { version } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
@@ -459,8 +462,10 @@ export default function File({
         Ok: requests.ObjectExistence.case({
           Exists: () => (
             <>
-              <Code>{code}</Code>
-              {!!analyticsBucket && <Analytics {...{ analyticsBucket, bucket, path }} />}
+              {!cfg.hideCode && <Code>{code}</Code>}
+              {!cfg.hideAnalytics && !!analyticsBucket && (
+                <Analytics {...{ analyticsBucket, bucket, path }} />
+              )}
               <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
                 {versionExistsData.case({
                   _: () => <CenteredProgress />,

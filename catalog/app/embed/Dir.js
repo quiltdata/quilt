@@ -22,6 +22,8 @@ import Summary from 'containers/Bucket/Summary'
 import { displayError } from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 
+import * as EmbedConfig from './EmbedConfig'
+
 const HELP_LINK = `${docs}/walkthrough/working-with-a-bucket`
 
 const getCrumbs = R.compose(
@@ -80,6 +82,7 @@ export default function Dir({
     params: { bucket, path: encodedPath = '' },
   },
 }) {
+  const cfg = EmbedConfig.use()
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const s3 = AWS.S3.use()
@@ -146,7 +149,7 @@ export default function Dir({
         <M.Box flexGrow={1} />
       </M.Box>
 
-      <Code gutterBottom>{code}</Code>
+      {!cfg.hideCode && <Code gutterBottom>{code}</Code>}
 
       {data.case({
         Err: displayError(),
