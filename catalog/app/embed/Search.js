@@ -6,7 +6,6 @@ import Message from 'components/Message'
 import Pagination from 'components/Pagination2'
 import * as SearchResults from 'components/SearchResults'
 import * as AWS from 'utils/AWS'
-import * as BucketConfig from 'utils/BucketConfig'
 import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -120,7 +119,6 @@ export default function Search({
   },
   location: l,
 }) {
-  const cfg = BucketConfig.useCurrentBucketConfig()
   const { urls } = NamedRoutes.use()
   const { q: query = '', p } = parseSearch(l.search)
   const page = p && parseInt(p, 10)
@@ -130,11 +128,7 @@ export default function Search({
   )
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-      {cfg ? (
-        <Results {...{ bucket, query, page, makePageUrl }} />
-      ) : (
-        <M.Typography variant="body1">Search unavailable</M.Typography>
-      )}
+      <Results {...{ bucket, query, page, makePageUrl }} />
     </M.Box>
   )
 }

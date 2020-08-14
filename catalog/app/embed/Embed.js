@@ -2,13 +2,14 @@
 import 'sanitize.css'
 
 import * as React from 'react'
-import { Route, Switch, useHistory, useLocation } from 'react-router-dom'
+import * as redux from 'react-redux'
+import { Route, Switch, useLocation } from 'react-router-dom'
 import { createMemoryHistory as createHistory } from 'history'
 import * as M from '@material-ui/core'
 
 import * as Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
-// import * as Auth from 'containers/Auth'
+import * as Auth from 'containers/Auth'
 import { BucketCacheProvider, useBucketCache } from 'containers/Bucket'
 import LanguageProvider from 'containers/LanguageProvider'
 import { ThrowNotFound, createNotFound } from 'containers/NotFoundPage'
@@ -24,9 +25,12 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
 import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
+import defer from 'utils/defer'
+import { ErrorDisplay } from 'utils/error'
 import * as RT from 'utils/reactTools'
-import RouterProvider /* , { LOCATION_CHANGE } */ from 'utils/router'
+import RouterProvider from 'utils/router'
 import useConstant from 'utils/useConstant'
+import usePrevious from 'utils/usePrevious'
 
 // TODO: consider reimplementing these locally or moving to some shared location
 import { displayError } from 'containers/Bucket/errors'
@@ -43,7 +47,7 @@ const Dir = mkLazy(() => import('./Dir'))
 const File = mkLazy(() => import('./File'))
 const Search = mkLazy(() => import('./Search'))
 
-const FinalBoundary = createBoundary(() => () => (
+const FinalBoundary = createBoundary(() => (error) => (
   <h1
     style={{
       display: 'flex',
@@ -55,7 +59,7 @@ const FinalBoundary = createBoundary(() => () => (
       margin: 0,
     }}
   >
-    Something went wrong
+    {error.headline || 'Something went wrong'}
   </h1>
 ))
 
@@ -74,8 +78,8 @@ function StyledError({ children }) {
   )
 }
 
-const ErrorBoundary = createBoundary(() => () => (
-  <StyledError>Something went wrong</StyledError>
+const ErrorBoundary = createBoundary(() => (error) => (
+  <StyledError>{error.headline || 'Something went wrong'}</StyledError>
 ))
 
 const CatchNotFound = createNotFound(() => <StyledError>Page not found</StyledError>)
@@ -132,20 +136,15 @@ function BucketLayout({ bucket, children }) {
 }
 
 function useInit() {
-  const history = useHistory()
-  const { urls } = NamedRoutes.use()
   const [state, setState] = React.useState(null)
 
   const handleMessage = React.useCallback(
     ({ data }) => {
       if (!data || data.type !== 'init') return
-      const { bucket, path } = data
-      console.log('init', data)
-      // TODO: receive tokens
-      history.replace(urls.bucketDir(bucket, path))
-      setState(true)
+      const { type, ...init } = data
+      setState(init)
     },
-    [setState, history, urls],
+    [setState],
   )
 
   React.useEffect(() => {
@@ -158,38 +157,98 @@ function useInit() {
   return state
 }
 
-export default function Embed({ messages }) {
-  const history = useConstant(() => createHistory())
+function Init({ messages }) {
+  const [key, setKey] = React.useState(0)
+  const init = useInit()
+  usePrevious(init, (prev) => {
+    if (init !== prev) {
+      setKey((k) => k + 1)
+    }
+  })
+  if (!init) return <Placeholder color="text.secondary" />
+  if (init instanceof Error) {
+    return <StyledError>Configuration error</StyledError>
+  }
+  return (
+    <ErrorBoundary key={key}>
+      <App {...{ key, init, messages }} />
+    </ErrorBoundary>
+  )
+}
+
+// TODO: validate init somewhere
+
+function usePostInit(init) {
+  const dispatch = redux.useDispatch()
+  const [state, setState] = React.useState(null)
+
+  React.useEffect(() => {
+    const result = defer()
+    dispatch(Auth.actions.signIn(init.credentials, result.resolver))
+    result.promise
+      .then(() => {
+        setState(true)
+      })
+      .catch((e) => {
+        console.warn('Authentication failure:')
+        console.error(e)
+        setState(new ErrorDisplay('Authentication Failure'))
+      })
+  }, [init])
+
+  return state
+}
+
+function PostInit({ init, children }) {
+  const state = usePostInit(init)
+  if (!state) return <Placeholder color="text.secondary" />
+  if (state instanceof Error) throw state
+  return children
+}
+
+function App({ messages, init }) {
+  const { urls } = NamedRoutes.use()
+  const history = useConstant(() =>
+    createHistory({ initialEntries: [urls.bucketDir(init.bucket, init.path)] }),
+  )
+
+  const storage = useConstant(() => ({
+    load: () => ({}),
+    set: () => {},
+    remove: () => {},
+  }))
 
   return RT.nest(
-    FinalBoundary,
     // TODO: customize theme
-    [M.MuiThemeProvider, { theme: style.appTheme }],
-    WithGlobalStyles,
-    Layout.Root,
-    ErrorBoundary,
-    Sentry.Provider,
     [Store.Provider, { history }],
     [LanguageProvider, { messages }],
-    [NamedRoutes.Provider, { routes }],
     [RouterProvider, { history }],
     Cache.Provider,
-    // TODO: separate config if needed or maybe just init from postMessage
     [Config.Provider, { path: '/config.json' }],
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
     Notifications.Provider,
-    // [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
-    [APIConnector.Provider, { fetch }],
-    // [Auth.Provider, { checkOn: LOCATION_CHANGE, storage }],
+    [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
+    [Auth.Provider, { storage }],
     AWS.Credentials.Provider,
     AWS.Config.Provider,
     AWS.S3.Provider,
     AWS.Signer.Provider,
     Notifications.WithNotifications,
     BucketCacheProvider,
-    function HeadlessFileBrowser() {
-      const init = useInit()
-      return init ? <Root /> : <Placeholder color="text.secondary" />
-    },
+    [PostInit, { init }],
+    Root,
+  )
+}
+
+export default function Embed({ messages }) {
+  return RT.nest(
+    FinalBoundary,
+    [M.MuiThemeProvider, { theme: style.appTheme }],
+    WithGlobalStyles,
+    Layout.Root,
+    ErrorBoundary,
+    Sentry.Provider,
+    [NamedRoutes.Provider, { routes }],
+    [Init, { messages }],
   )
 }
