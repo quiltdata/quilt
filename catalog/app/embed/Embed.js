@@ -227,6 +227,31 @@ function CustomThemeProvider({ theme, children }) {
   return <WithCustomTheme theme={theme}>{children}</WithCustomTheme>
 }
 
+const appendLink = (el) => {
+  const x = window.document.getElementsByTagName('link')[0]
+  x.parentNode.insertBefore(el, x)
+}
+
+const removeLink = (el) => {
+  el.parentNode.removeChild(el)
+}
+
+function useCssFiles(files = []) {
+  React.useEffect(() => {
+    const els = files.map((href) => {
+      const el = window.document.createElement('link')
+      el.rel = 'stylesheet'
+      el.href = href
+      appendLink(el)
+      return el
+    })
+
+    return () => {
+      els.forEach(removeLink)
+    }
+  }, [files])
+}
+
 function App({ messages, init }) {
   const { urls } = NamedRoutes.use()
   const history = useConstant(() =>
@@ -238,6 +263,8 @@ function App({ messages, init }) {
     set: () => {},
     remove: () => {},
   }))
+
+  useCssFiles(init.css)
 
   return RT.nest(
     [CustomThemeProvider, { theme: init.theme }],
