@@ -23,7 +23,7 @@ export function BucketCacheProvider({ children }) {
   return <CacheCtx.Provider value={ref.current}>{children}</CacheCtx.Provider>
 }
 
-function useBucketCache() {
+export function useBucketCache() {
   return React.useContext(CacheCtx)
 }
 

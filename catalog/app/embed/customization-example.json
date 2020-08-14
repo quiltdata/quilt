@@ -1,0 +1,20 @@
+{
+  "theme": {
+    "palette": {
+      "primary": {
+        "main": "#016272"
+      },
+      "text": {
+        "primary": "#202d31"
+      }
+    },
+    "typography": {
+      "fontFamily": "'Open Sans', monospace"
+    }
+  },
+  "css": [
+    "https://fonts.googleapis.com/css2?family=Open+Sans"
+  ],
+  "hideCode": true,
+  "hideAnalytics": true
+}
