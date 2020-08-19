@@ -1429,15 +1429,24 @@ class PackageTest(QuiltTestCase):
 # The following tests were moved out of the PackageTest class to enable parametrization.
 # see (https://docs.pytest.org/en/latest/unittest.html#pytest-features-in-unittest-testcase-subclasses)
 @pytest.mark.parametrize(
-    'update_policy, expected_one_byte, expected_three_byte',
+    'target_dir, update_policy, expected_one_byte, expected_two_byte, expected_three_byte',
     [
-        (None, b'one', b'three'),
-        ('incoming', b'one', b'three'),
-        ('existing', b'1', b'3'),
-        pytest.param('bad_policy', b'1', b'3', marks=pytest.mark.xfail(raises=ValueError)),
+        ('/', None, b'one', b'2', b'3'),
+        ('/', 'incoming', b'one', b'2', b'3'),
+        ('/', 'existing', b'1', b'2', b'3'),
+        ('sub/', None, b'1', b'two', b'three'),
+        ('sub/', 'incoming', b'1', b'two', b'three'),
+        ('sub/', 'existing', b'1', b'2', b'3'),
+        pytest.param('/', 'bad_policy', b'1', b'2', b'3', marks=pytest.mark.xfail(raises=ValueError)),
     ]
 )
-def test_set_dir_update_policy(update_policy, expected_one_byte, expected_three_byte):
+def test_set_dir_update_policy(
+    target_dir: str,
+    update_policy,
+    expected_one_byte,
+    expected_two_byte,
+    expected_three_byte
+):
     """Verify building a package with update policy. """
     data_dir = pathlib.Path(__file__).parent / "data"
     nested_dir = data_dir / 'nested'
@@ -1450,23 +1459,17 @@ def test_set_dir_update_policy(update_policy, expected_one_byte, expected_three_
 
     nested_dir_2 = data_dir / 'nested2'
     if update_policy:
-        pkg.set_dir("/", nested_dir_2, update_policy=update_policy)
+        pkg.set_dir(target_dir, nested_dir_2, update_policy=update_policy)
     else:
-        pkg.set_dir("/", nested_dir_2)
+        pkg.set_dir(target_dir, nested_dir_2)
     assert pkg['one.txt'].get_bytes() == expected_one_byte
-    assert pkg['two.txt'].get_bytes() == b'two'
-    assert pkg['three.txt'].get_bytes() == b'three'
-    assert pkg['sub/three.txt'].get_bytes() == b'3'
-
-    # test set_dir for sub a directory
-    if update_policy:
-        pkg.set_dir("sub/", nested_dir_2, update_policy=update_policy)
-    else:
-        pkg.set_dir("sub/", nested_dir_2)
-    assert pkg['one.txt'].get_bytes() == expected_one_byte
-    assert pkg['two.txt'].get_bytes() == b'two'
-    assert pkg['three.txt'].get_bytes() == b'three'
+    assert pkg['sub/two.txt'].get_bytes() == expected_two_byte
     assert pkg['sub/three.txt'].get_bytes() == expected_three_byte
+    if target_dir == '/':
+        assert pkg['two.txt'].get_bytes() == b'two'
+        assert pkg['three.txt'].get_bytes() == b'three'
+    else:
+        assert pkg['sub/one.txt'].get_bytes() == b'one'
 
 
 @pytest.mark.parametrize(
