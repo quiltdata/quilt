@@ -1,4 +1,3 @@
-import { push } from 'connected-react-router/esm/immutable'
 import invariant from 'invariant'
 import * as React from 'react'
 import { FormattedMessage as FM } from 'react-intl'
@@ -8,7 +7,6 @@ import * as M from '@material-ui/core'
 import { useIntl } from 'containers/LanguageProvider'
 import * as Notifications from 'containers/Notifications'
 import * as Config from 'utils/Config'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Okta from 'utils/Okta'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
@@ -32,7 +30,6 @@ export default function SSOOkta({ mutex, next, ...props }) {
   const dispatch = redux.useDispatch()
   const intl = useIntl()
   const { push: notify } = Notifications.use()
-  const { urls } = NamedRoutes.use()
 
   const handleClick = React.useCallback(async () => {
     if (mutex.current) return
@@ -49,11 +46,20 @@ export default function SSOOkta({ mutex, next, ...props }) {
       } catch (e) {
         if (e instanceof errors.SSOUserNotFound) {
           if (cfg.ssoAuth === true) {
-            dispatch(push(urls.ssoSignUp({ provider, token, next })))
-            // dont release mutex on redirect
-            return
+            const result2 = defer()
+            const result3 = defer()
+            try {
+              dispatch(actions.signUp({ provider, token }, result2.resolver))
+              await result2.promise
+              dispatch(actions.signIn({ provider, token }, result3.resolver))
+              await result3.promise
+            } catch (e2) {
+              notify(intl.formatMessage(msg.ssoOktaErrorUnexpected))
+              sentry('captureException', e2)
+            }
+          } else {
+            notify(intl.formatMessage(msg.ssoOktaNotFound))
           }
-          notify(intl.formatMessage(msg.ssoOktaNotFound))
         } else {
           notify(intl.formatMessage(msg.ssoOktaErrorUnexpected))
           sentry('captureException', e)
