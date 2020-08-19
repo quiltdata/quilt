@@ -1442,10 +1442,10 @@ class PackageTest(QuiltTestCase):
 )
 def test_set_dir_update_policy(
     target_dir: str,
-    update_policy,
-    expected_one_byte,
-    expected_two_byte,
-    expected_three_byte
+    update_policy: str,
+    expected_one_byte: bytes,
+    expected_two_byte: bytes,
+    expected_three_byte: bytes
 ):
     """Verify building a package with update policy. """
     data_dir = pathlib.Path(__file__).parent / "data"
