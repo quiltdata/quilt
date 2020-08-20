@@ -1429,15 +1429,18 @@ class PackageTest(QuiltTestCase):
 # The following tests were moved out of the PackageTest class to enable parametrization.
 # see (https://docs.pytest.org/en/latest/unittest.html#pytest-features-in-unittest-testcase-subclasses)
 @pytest.mark.parametrize(
-    'target_dir, update_policy, expected_one_byte, expected_two_byte, expected_three_byte',
+    'target_dir, update_policy, expected_one_byte, expected_two_byte, expected_three_byte, expected_keys',
     [
-        ('/', None, b'one', b'2', b'3'),
-        ('/', 'incoming', b'one', b'2', b'3'),
-        ('/', 'existing', b'1', b'2', b'3'),
-        ('sub/', None, b'1', b'two', b'three'),
-        ('sub/', 'incoming', b'1', b'two', b'three'),
-        ('sub/', 'existing', b'1', b'2', b'3'),
-        pytest.param('/', 'bad_policy', b'1', b'2', b'3', marks=pytest.mark.xfail(raises=ValueError)),
+        ('/', None, b'one', b'two', b'three', {'one.txt', 'two.txt', 'three.txt', 'sub'}),
+        ('/', 'incoming', b'one', b'two', b'three', {'one.txt', 'two.txt', 'three.txt', 'sub'}),
+        ('/', 'existing', b'1', b'two', b'three', {'one.txt', 'two.txt', 'three.txt', 'sub'}),
+        ('', 'incoming', b'one', b'two', b'three', {'one.txt', 'two.txt', 'three.txt', 'sub'}),
+        ('', 'existing', b'1', b'two', b'three', {'one.txt', 'two.txt', 'three.txt', 'sub'}),
+        ('sub/', 'incoming', b'one', b'two', b'three', {'one.txt', 'sub'}),
+        ('sub/', 'existing', b'one', b'2', b'3', {'one.txt', 'sub'}),
+        ('new-sub/', 'incoming', b'one', b'two', b'three', {'one.txt', 'sub', 'new-sub'}),
+        ('new-sub/', 'existing', b'one', b'two', b'three', {'one.txt', 'sub', 'new-sub'}),
+        pytest.param('/', 'bad_policy', b'1', b'2', b'3', set(), marks=pytest.mark.xfail(raises=ValueError)),
     ]
 )
 def test_set_dir_update_policy(
@@ -1445,31 +1448,36 @@ def test_set_dir_update_policy(
     update_policy: str,
     expected_one_byte: bytes,
     expected_two_byte: bytes,
-    expected_three_byte: bytes
+    expected_three_byte: bytes,
+    expected_keys: set
 ):
     """Verify building a package with update policy. """
-    data_dir = pathlib.Path(__file__).parent / "data"
-    nested_dir = data_dir / 'nested'
+    nested_dir = DATA_DIR / 'nested'
     pkg = Package()
     pkg.set_dir("/", nested_dir, meta={'name': 'test_meta'})
-    assert 'one.txt' in pkg.keys()
-    assert 'two.txt' not in pkg.keys()
-    assert 'three.txt' not in pkg.keys()
+    assert set(pkg.keys()) == {'one.txt', 'sub'}
+    assert set(pkg['sub'].keys()) == {'two.txt', 'three.txt'}
     assert pkg.meta == {'name': 'test_meta'}
 
-    nested_dir_2 = data_dir / 'nested2'
+    nested_dir_2 = DATA_DIR / 'nested2'
     if update_policy:
         pkg.set_dir(target_dir, nested_dir_2, update_policy=update_policy)
     else:
         pkg.set_dir(target_dir, nested_dir_2)
-    assert pkg['one.txt'].get_bytes() == expected_one_byte
-    assert pkg['sub/two.txt'].get_bytes() == expected_two_byte
-    assert pkg['sub/three.txt'].get_bytes() == expected_three_byte
-    if target_dir == '/':
-        assert pkg['two.txt'].get_bytes() == b'two'
-        assert pkg['three.txt'].get_bytes() == b'three'
+    assert set(pkg.keys()) == expected_keys
+
+    target_dir = target_dir.strip("/")
+    if target_dir:
+        assert pkg['one.txt'].get_bytes() == b'1'
+        assert set(pkg[target_dir].keys()) == {'one.txt', 'two.txt', 'three.txt'}
+        assert pkg[target_dir + '/one.txt'].get_bytes() == expected_one_byte
+        assert pkg[target_dir + '/two.txt'].get_bytes() == expected_two_byte
+        assert pkg[target_dir + '/three.txt'].get_bytes() == expected_three_byte
     else:
-        assert pkg['sub/one.txt'].get_bytes() == b'one'
+        assert pkg['one.txt'].get_bytes() == expected_one_byte
+        assert pkg['two.txt'].get_bytes() == expected_two_byte
+        assert pkg['three.txt'].get_bytes() == expected_three_byte
+        assert set(pkg['sub'].keys()) == {'two.txt', 'three.txt'}
 
 
 @pytest.mark.parametrize(
