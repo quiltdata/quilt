@@ -170,7 +170,7 @@ def index_if_manifest(
             or len(handle) < 3
             or '/' not in handle
     ):
-        logger_.info("Not indexing as manifest file s3://%s/%s", bucket, key)
+        logger_.debug("Not indexing as manifest file s3://%s/%s", bucket, key)
         return False
     try:
         manifest_timestamp = int(pointer_file)
