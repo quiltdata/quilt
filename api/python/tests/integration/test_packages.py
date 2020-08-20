@@ -533,11 +533,10 @@ class PackageTest(QuiltTestCase):
 
     def test_set_dir_wrong_update_policy(self):
         """Verify non existing update policy raises value error."""
-        data_dir = pathlib.Path(__file__).parent / "data"
         pkg = Package()
         expected_err = "Update policy should be one of"
         with pytest.raises(ValueError) as e:
-            pkg.set_dir("nested", data_dir, update_policy='invalid_policy')
+            pkg.set_dir("nested", DATA_DIR, update_policy='invalid_policy')
         assert expected_err in str(e.value)
 
     def test_package_entry_meta(self):
