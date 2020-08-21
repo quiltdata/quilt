@@ -400,18 +400,17 @@ def create_parser():
         type=str,
         required=True,
     )
-    required_args.add_argument(
-        "--registry",
-        help="Registry where to create the new package. Defaults to the default remote registry.",
-        type=str,
-        required=True,
-    )
     optional_args.add_argument(
         '-h',
         '--help',
         action='help',
         default=argparse.SUPPRESS,
         help='show this help message and exit'
+    )
+    optional_args.add_argument(
+        "--registry",
+        help="Registry where to create the new package. Defaults to the default remote registry.",
+        type=str,
     )
     optional_args.add_argument(
         "--dest",
