@@ -26,7 +26,7 @@ from .telemetry import ApiTelemetry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
     validate_package_name, quiltignore_filter, validate_key, extract_file_extension,
-    parse_sub_package_name, RemovedInQuilt4Warning)
+    parse_sub_package_name, RemovedInQuilt4Warning, PACKAGE_UPDATE_POLICY)
 from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, \
     user_is_configured_to_custom_stack, catalog_package_url, DISABLE_TQDM
 
@@ -740,7 +740,7 @@ class Package:
             gc.enable()
         return pkg
 
-    def set_dir(self, lkey, path=None, meta=None):
+    def set_dir(self, lkey, path=None, meta=None, update_policy="incoming"):
         """
         Adds all files from `path` to the package.
 
@@ -753,13 +753,21 @@ class Package:
             path(string): path to scan for files to add to package.
                 If None, lkey will be substituted in as the path.
             meta(dict): user level metadata dict to attach to lkey directory entry.
+            update_policy(str): can be either 'incoming' (default) or 'existing'.
+                If 'incoming', whenever logical keys match, always take the new entry from set_dir.
+                If 'existing', whenever logical keys match, retain existing entries
+                and ignore new entries from set_dir.
 
         Returns:
             self
 
         Raises:
-            When `path` doesn't exist
+            PackageException: When `path` doesn't exist.
+            ValueError: When `update_policy` is invalid.
         """
+        if update_policy not in PACKAGE_UPDATE_POLICY:
+            raise ValueError(f"Update policy should be one of {PACKAGE_UPDATE_POLICY}, not {update_policy!r}")
+
         lkey = lkey.strip("/")
 
         if not lkey or lkey == '.' or lkey == './':
@@ -789,8 +797,11 @@ class Package:
             for f in files:
                 if not f.is_file():
                     continue
-                entry = PackageEntry(PhysicalKey.from_path(f), f.stat().st_size, None, None)
                 logical_key = f.relative_to(src_path).as_posix()
+                # check update policy
+                if update_policy == 'existing' and logical_key in root:
+                    continue
+                entry = PackageEntry(PhysicalKey.from_path(f), f.stat().st_size, None, None)
                 root._set(logical_key, entry)
         else:
             if src.version_id is not None:
@@ -808,8 +819,11 @@ class Package:
                         warnings.warn(f'Logical keys cannot end in "/", skipping: {obj["Key"]}')
                     continue
                 obj_pk = PhysicalKey(src.bucket, obj['Key'], obj.get('VersionId'))
-                entry = PackageEntry(obj_pk, obj['Size'], None, None)
                 logical_key = obj['Key'][len(src_path):]
+                # check update policy
+                if update_policy == 'existing' and logical_key in root:
+                    continue
+                entry = PackageEntry(obj_pk, obj['Size'], None, None)
                 root._set(logical_key, entry)
 
         return self
