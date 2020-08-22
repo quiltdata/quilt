@@ -42,7 +42,7 @@ class S3NoValidClientError(Exception):
         # To be consistent across Python 2.7 and 3.x:
         # 1) This `super` call must exist, or 2.7 will have no text for str(error)
         # 2) This `super` call must have only one argument (the message) or str(error) will be a repr of args
-        super(S3NoValidClientError, self).__init__(message)
+        super().__init__(message)
         self.message = message
         for k, v in kwargs.items():
             setattr(self, k, v)
