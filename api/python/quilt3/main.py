@@ -386,29 +386,38 @@ def create_parser():
 
     # push
     shorthelp = "Pushes the new package to the remote registry"
-    push_p = subparsers.add_parser("push", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    push_p = subparsers.add_parser("push", description=shorthelp, help=shorthelp, allow_abbrev=False, add_help=False)
+    required_args = push_p.add_argument_group('required arguments')
+    optional_args = push_p.add_argument_group('optional arguments')
     push_p.add_argument(
         "name",
         help="Name of package, in the USER/PKG format",
         type=str,
     )
-    push_p.add_argument(
+    required_args.add_argument(
         "--dir",
         help="Directory to add to the new package",
         type=str,
         required=True,
     )
-    push_p.add_argument(
+    optional_args.add_argument(
+        '-h',
+        '--help',
+        action='help',
+        default=argparse.SUPPRESS,
+        help='show this help message and exit'
+    )
+    optional_args.add_argument(
         "--registry",
         help="Registry where to create the new package. Defaults to the default remote registry.",
         type=str,
     )
-    push_p.add_argument(
+    optional_args.add_argument(
         "--dest",
         help="Where to copy the objects in the package",
         type=str,
     )
-    push_p.add_argument(
+    optional_args.add_argument(
         "--message",
         help="The commit message for the new package",
         type=str,
