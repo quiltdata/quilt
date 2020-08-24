@@ -9,6 +9,7 @@ import sys
 
 import dns.resolver
 import requests
+import yaml
 
 from . import api, session, Package
 from . import __version__ as quilt3_version
@@ -219,6 +220,23 @@ def cmd_push(name, dir, registry, dest, message):
     pkg.push(name, registry=registry, dest=dest, message=message)
 
 
+def cmd_install(name, **kwargs):
+    packages = [name]
+    if name.startswith('@'):
+        if name.endswith('.yml'):
+            try:
+                with open(name[1:], 'r') as stream:
+                    config = yaml.safe_load(stream)
+                    packages = config.get('packages')
+            except (FileNotFoundError, yaml.YAMLError) as error:
+                raise QuiltException(str(error), original_error=error)
+        else:
+            print(f'{name} is not a valid dependency file.')
+    for package in packages:
+        package = package.split(":")
+        Package.install(package[0], **kwargs)
+
+
 def create_parser():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
@@ -339,7 +357,7 @@ def create_parser():
         type=str,
         required=False,
     )
-    install_p.set_defaults(func=Package.install)
+    install_p.set_defaults(func=cmd_install)
 
     # list-packages
     shorthelp = "List all packages in a registry"
