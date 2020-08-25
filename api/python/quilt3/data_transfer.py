@@ -1,3 +1,4 @@
+import math
 import os
 import stat
 from collections import defaultdict, deque
@@ -216,15 +217,6 @@ s3_transfer_config = TransferConfig()
 UPLOAD_ETAG_OPTIMIZATION_THRESHOLD = 1024
 
 
-def get_chunk_ranges(file_size):
-    adjuster = ChunksizeAdjuster()
-    chunk_size = adjuster.adjust_chunksize(s3_transfer_config.multipart_chunksize, file_size)
-    return [
-        (start, min(start + chunk_size, file_size) - 1)
-        for start in range(0, file_size, chunk_size)
-    ]
-
-
 def _copy_local_file(ctx, size, src_path, dest_path):
     pathlib.Path(dest_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -256,16 +248,19 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key):
         )
         upload_id = resp['UploadId']
 
-        chunk_ranges = get_chunk_ranges(size)
+        adjuster = ChunksizeAdjuster()
+        chunksize = adjuster.adjust_chunksize(s3_transfer_config.multipart_chunksize, size)
+
+        chunk_offsets = list(range(0, size, chunksize))
 
         lock = Lock()
-        remaining = len(chunk_ranges)
+        remaining = len(chunk_offsets)
         parts = [None] * remaining
 
         def upload_part(i, start, end):
             nonlocal remaining
             part_id = i + 1
-            with OSUtils().open_file_chunk_reader(src_path, start, end - start + 1, [ctx.progress]) as fd:
+            with OSUtils().open_file_chunk_reader(src_path, start, end-start, [ctx.progress]) as fd:
                 part = s3_client.upload_part(
                     Body=fd,
                     Bucket=dest_bucket,
@@ -288,7 +283,8 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key):
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
                 ctx.done(PhysicalKey(dest_bucket, dest_key, version_id))
 
-        for i, (start, end) in enumerate(chunk_ranges):
+        for i, start in enumerate(chunk_offsets):
+            end = min(start + chunksize, size)
             ctx.run(upload_part, i, start, end)
 
 
@@ -316,20 +312,22 @@ def _download_file(ctx, size, src_bucket, src_key, src_version, dest_path):
     if src_version is not None:
         params.update(dict(VersionId=src_version))
 
-    chunk_ranges = (
-        get_chunk_ranges(size)
+    part_size = s3_transfer_config.multipart_chunksize
+    part_numbers = (
+        range(math.ceil(size / part_size))
         if is_regular_file and size >= s3_transfer_config.multipart_threshold and os.name != 'nt' else
         (None,)
     )
-    remaining_counter = len(chunk_ranges)
-    lock = Lock()
+    remaining_counter = len(part_numbers)
+    remaining_counter_lock = Lock()
 
-    def download_part(chunk_range):
+    def download_part(part_number):
         nonlocal remaining_counter
 
         with dest_file.open('w+b') as chunk_f:
-            if chunk_range:
-                start, end = chunk_range
+            if part_number is not None:
+                start = part_number * part_size
+                end = min(start + part_size, size) - 1
                 part_params = dict(params, Range=f'bytes={start}-{end}')
                 chunk_f.seek(start)
             else:
@@ -337,20 +335,19 @@ def _download_file(ctx, size, src_bucket, src_key, src_version, dest_path):
 
             resp = s3_client.get_object(**part_params)
             body = resp['Body']
-            chunk_size = 64 * 1024
             while True:
-                chunk = body.read(chunk_size)
+                chunk = body.read(64 * 1024)
                 if not chunk:
                     break
                 ctx.progress(chunk_f.write(chunk))
 
-        with lock:
+        with remaining_counter_lock:
             remaining_counter -= 1
         if not remaining_counter:
             ctx.done(PhysicalKey.from_path(dest_path))
 
-    for i, r in enumerate(chunk_ranges):
-        ctx.run(download_part, r)
+    for part_number in part_numbers:
+        ctx.run(download_part, part_number)
 
 
 def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
@@ -387,10 +384,13 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
         )
         upload_id = resp['UploadId']
 
-        chunk_ranges = get_chunk_ranges(size)
+        adjuster = ChunksizeAdjuster()
+        chunksize = adjuster.adjust_chunksize(s3_transfer_config.multipart_chunksize, size)
+
+        chunk_offsets = list(range(0, size, chunksize))
 
         lock = Lock()
-        remaining = len(chunk_ranges)
+        remaining = len(chunk_offsets)
         parts = [None] * remaining
 
         def upload_part(i, start, end):
@@ -398,7 +398,7 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
             part_id = i + 1
             part = s3_client.upload_part_copy(
                 CopySource=src_params,
-                CopySourceRange=f'bytes={start}-{end}',
+                CopySourceRange=f'bytes={start}-{end-1}',
                 Bucket=dest_bucket,
                 Key=dest_key,
                 UploadId=upload_id,
@@ -409,7 +409,7 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
                 remaining -= 1
                 done = remaining == 0
 
-            ctx.progress(end - start + 1)
+            ctx.progress(end - start)
 
             if done:
                 resp = s3_client.complete_multipart_upload(
@@ -421,7 +421,8 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
                 ctx.done(PhysicalKey(dest_bucket, dest_key, version_id))
 
-        for i, (start, end) in enumerate(chunk_ranges):
+        for i, start in enumerate(chunk_offsets):
+            end = min(start + chunksize, size)
             ctx.run(upload_part, i, start, end)
 
 
