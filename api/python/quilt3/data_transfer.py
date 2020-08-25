@@ -321,9 +321,12 @@ def _download_file(ctx, size, src_bucket, src_key, src_version, dest_path):
         if is_regular_file and size >= s3_transfer_config.multipart_threshold and os.name != 'nt' else
         (None,)
     )
-    remaining_counter = reversed(range(len(chunk_ranges)))
+    remaining_counter = len(chunk_ranges)
+    lock = Lock()
 
     def download_part(chunk_range):
+        nonlocal remaining_counter
+
         with dest_file.open('w+b') as chunk_f:
             if chunk_range:
                 start, end = chunk_range
@@ -341,7 +344,9 @@ def _download_file(ctx, size, src_bucket, src_key, src_version, dest_path):
                     break
                 ctx.progress(chunk_f.write(chunk))
 
-        if not next(remaining_counter):
+        with lock:
+            remaining_counter -= 1
+        if not remaining_counter:
             ctx.done(PhysicalKey.from_path(dest_path))
 
     for i, r in enumerate(chunk_ranges):
