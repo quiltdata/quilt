@@ -302,7 +302,7 @@ def _download_file(ctx, size, src_bucket, src_key, src_version, dest_path):
 
     dest_file.parent.mkdir(parents=True, exist_ok=True)
 
-    with dest_file.open('wb', buffering=0) as f:
+    with dest_file.open('wb') as f:
         fileno = f.fileno()
         is_regular_file = stat.S_ISREG(os.stat(fileno).st_mode)
 
