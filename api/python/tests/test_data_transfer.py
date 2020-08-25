@@ -547,8 +547,8 @@ class S3DownloadTest(QuiltTestCase):
                 self._stub_get_object(part_data, Range=r)
 
         with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1), \
-             mock.patch.object(data_transfer.s3_transfer_config, 'multipart_threshold', threshold), \
-             mock.patch.object(data_transfer.s3_transfer_config, 'multipart_chunksize', chunksize):
+             mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_threshold', threshold), \
+             mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_chunksize', chunksize):
             data_transfer.copy_file_list([(self.src, self.dst, self.size)])
 
         with open(self.filename, 'rb') as f:
