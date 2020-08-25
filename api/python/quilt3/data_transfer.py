@@ -302,20 +302,28 @@ def _download_file(ctx, size, src_bucket, src_key, src_version, dest_path):
         fileno = f.fileno()
         is_regular_file = stat.S_ISREG(os.stat(fileno).st_mode)
 
-        if is_regular_file:
-            # Preallocate file.
-            if hasattr(os, 'posix_fallocate'):
-                os.posix_fallocate(fileno, 0, size)
-            else:
-                f.truncate(size)
+        # TODO: To enable this we need to fix some tests in test_packages,
+        #       that setup mocked responses to return less data than expected/specified in the manifest.
+        # if is_regular_file:
+        #     # Preallocate file.
+        #     if hasattr(os, 'posix_fallocate'):
+        #         os.posix_fallocate(fileno, 0, size)
+        #     else:
+        #         f.truncate(size)
 
     if src_version is not None:
         params.update(dict(VersionId=src_version))
 
     part_size = s3_transfer_config.multipart_chunksize
+    is_multi_part = (
+        is_regular_file
+        and size >= s3_transfer_config.multipart_threshold
+        and size > part_size
+        and os.name != 'nt'
+    )
     part_numbers = (
         range(math.ceil(size / part_size))
-        if is_regular_file and size >= s3_transfer_config.multipart_threshold and os.name != 'nt' else
+        if is_multi_part else
         (None,)
     )
     remaining_counter = len(part_numbers)
@@ -324,7 +332,7 @@ def _download_file(ctx, size, src_bucket, src_key, src_version, dest_path):
     def download_part(part_number):
         nonlocal remaining_counter
 
-        with dest_file.open('w+b') as chunk_f:
+        with dest_file.open('r+b') as chunk_f:
             if part_number is not None:
                 start = part_number * part_size
                 end = min(start + part_size, size) - 1
@@ -336,7 +344,7 @@ def _download_file(ctx, size, src_bucket, src_key, src_version, dest_path):
             resp = s3_client.get_object(**part_params)
             body = resp['Body']
             while True:
-                chunk = body.read(64 * 1024)
+                chunk = body.read(s3_transfer_config.io_chunksize)
                 if not chunk:
                     break
                 ctx.progress(chunk_f.write(chunk))

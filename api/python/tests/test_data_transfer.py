@@ -2,6 +2,7 @@
 
 # Python imports
 import io
+import os
 import pathlib
 import time
 from contextlib import redirect_stderr
@@ -511,3 +512,64 @@ class DataTransferTest(QuiltTestCase):
         with mock.patch('botocore.client.BaseClient._make_api_call', side_effect=side_effect):
             with pytest.raises(ClientError):
                 data_transfer.copy_file_list([(src, dst, size)])
+
+
+class S3DownloadTest(QuiltTestCase):
+    data = b'0123456789abcdef'
+    size = len(data)
+
+    bucket = 'test-bucket'
+    key = 'test-key'
+    src = PhysicalKey(bucket, key, None)
+
+    filename = 'some-file-name'
+    dst = PhysicalKey(None, filename, None)
+
+    def _stub_get_object(self, part_data, **kwargs):
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'v1',
+                'Body': io.BytesIO(part_data),
+            },
+            expected_params={
+                'Bucket': self.bucket,
+                'Key': self.key,
+                **kwargs,
+            },
+        )
+
+    def _test_download(self, threshold, chunksize, parts=None):
+        if parts is None:
+            self._stub_get_object(self.data)
+        else:
+            for r, part_data in parts:
+                self._stub_get_object(part_data, Range=r)
+
+        with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1), \
+             mock.patch.object(data_transfer.s3_transfer_config, 'multipart_threshold', threshold), \
+             mock.patch.object(data_transfer.s3_transfer_config, 'multipart_chunksize', chunksize):
+            data_transfer.copy_file_list([(self.src, self.dst, self.size)])
+
+        with open(self.filename, 'rb') as f:
+            assert f.read() == self.data
+
+    def test_threshold_gt_size(self):
+        self._test_download(self.size + 1, 5)
+
+    def test_threshold_eq_size(self):
+        parts = (
+            ('bytes=0-4',  self.data[:5]),
+            ('bytes=5-9', self.data[5:10]),
+            ('bytes=10-14', self.data[10:15]),
+            ('bytes=15-15', self.data[15:]),
+        )
+        if os.name == 'nt':
+            parts = None
+        self._test_download(self.size, 5, parts)
+
+    def test_threshold_eq_chunk_gt_size(self):
+        self._test_download(self.size, self.size)
+
+    def test_threshold_eq_chunk_gte_size(self):
+        self._test_download(self.size, self.size + 1)
