@@ -319,7 +319,7 @@ def _download_file(ctx, size, src_bucket, src_key, src_version, dest_path):
         is_regular_file
         and size >= s3_transfer_config.multipart_threshold
         and size > part_size
-        and os.name != 'nt'
+        # and os.name != 'nt'
     )
     part_numbers = (
         range(math.ceil(size / part_size))

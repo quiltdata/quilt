@@ -572,8 +572,8 @@ class S3DownloadTest(QuiltTestCase):
             'bytes=10-14': self.data[10:15],
             'bytes=15-15': self.data[15:],
         }
-        if os.name == 'nt':
-            parts = None
+        # if os.name == 'nt':
+        #     parts = None
         self._test_download(threshold=self.size, chunksize=5, parts=parts)
 
     def test_threshold_eq_size_special_file(self):
