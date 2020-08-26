@@ -4,6 +4,7 @@
 import io
 import os
 import pathlib
+import threading
 import time
 from contextlib import redirect_stderr
 
@@ -525,51 +526,61 @@ class S3DownloadTest(QuiltTestCase):
     filename = 'some-file-name'
     dst = PhysicalKey(None, filename, None)
 
-    def _stub_get_object(self, part_data, **kwargs):
-        self.s3_stubber.add_response(
-            method='get_object',
-            service_response={
+    def _test_download(self, *, threshold, chunksize, parts=None, devnull=False):
+        num_parts = 1 if parts is None else len(parts)
+        barrier = threading.Barrier(num_parts, timeout=2)
+
+        def side_effect(*args, **kwargs):
+            barrier.wait()  # This ensures that we have concurrent calls to get_object().
+            return {
                 'VersionId': 'v1',
-                'Body': io.BytesIO(part_data),
-            },
-            expected_params={
+                'Body': io.BytesIO(self.data if parts is None else parts[kwargs['Range']]),
+            }
+
+        dst = PhysicalKey(None, os.devnull, None) if devnull else self.dst
+        with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', num_parts), \
+             mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_threshold', threshold), \
+             mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_chunksize', chunksize), \
+             mock.patch.object(self.s3_client, 'get_object', side_effect=side_effect) as get_object_mock:
+            data_transfer.copy_file_list([(self.src, dst, self.size)])
+
+            expected_params = {
                 'Bucket': self.bucket,
                 'Key': self.key,
-                **kwargs,
-            },
-        )
+            }
 
-    def _test_download(self, threshold, chunksize, parts=None):
-        if parts is None:
-            self._stub_get_object(self.data)
-        else:
-            for r, part_data in parts:
-                self._stub_get_object(part_data, Range=r)
+            if parts:
+                get_object_mock.assert_has_calls([
+                    mock.call(**expected_params, Range=r)
+                    for r in parts
+                ], any_order=True)
+                assert len(get_object_mock.call_args_list) == num_parts
+            else:
+                get_object_mock.assert_called_once_with(**expected_params)
 
-        with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1), \
-             mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_threshold', threshold), \
-             mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_chunksize', chunksize):
-            data_transfer.copy_file_list([(self.src, self.dst, self.size)])
-
-        with open(self.filename, 'rb') as f:
-            assert f.read() == self.data
+        if not devnull:
+            with open(self.filename, 'rb') as f:
+                assert f.read() == self.data
 
     def test_threshold_gt_size(self):
-        self._test_download(self.size + 1, 5)
+        self._test_download(threshold=self.size + 1, chunksize=5)
 
     def test_threshold_eq_size(self):
-        parts = (
-            ('bytes=0-4',  self.data[:5]),
-            ('bytes=5-9', self.data[5:10]),
-            ('bytes=10-14', self.data[10:15]),
-            ('bytes=15-15', self.data[15:]),
-        )
+        parts = {
+            'bytes=0-4':  self.data[:5],
+            'bytes=5-9': self.data[5:10],
+            'bytes=10-14': self.data[10:15],
+            'bytes=15-15': self.data[15:],
+        }
         if os.name == 'nt':
             parts = None
-        self._test_download(self.size, 5, parts)
+        self._test_download(threshold=self.size, chunksize=5, parts=parts)
+
+    def test_threshold_eq_size_special_file(self):
+        self._test_download(threshold=self.size, chunksize=5, devnull=True)
+
+    def test_threshold_eq_chunk_eq_size(self):
+        self._test_download(threshold=self.size, chunksize=self.size)
 
     def test_threshold_eq_chunk_gt_size(self):
-        self._test_download(self.size, self.size)
-
-    def test_threshold_eq_chunk_gte_size(self):
-        self._test_download(self.size, self.size + 1)
+        self._test_download(threshold=self.size, chunksize=self.size + 1)

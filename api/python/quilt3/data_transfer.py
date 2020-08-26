@@ -351,8 +351,8 @@ def _download_file(ctx, size, src_bucket, src_key, src_version, dest_path):
 
         with remaining_counter_lock:
             remaining_counter -= 1
-        if not remaining_counter:
-            ctx.done(PhysicalKey.from_path(dest_path))
+            if not remaining_counter:
+                ctx.done(PhysicalKey.from_path(dest_path))
 
     for part_number in part_numbers:
         ctx.run(download_part, part_number)
