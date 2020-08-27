@@ -58,6 +58,7 @@ def lambda_handler(request):
         body = {
             "query": {
                 "simple_query_string": {
+                    "analyze_wildcard": True,
                     "query": query,
                     "fields": ['content', 'comment', 'key_text', 'meta_text']
                 }
