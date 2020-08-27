@@ -240,6 +240,7 @@ class TestSearch(TestCase):
             assert payload == {
                 'query': {
                     'simple_query_string': {
+                        'analyze_wildcard': True,
                         'fields': [
                             'content',
                             'comment',
