@@ -1,3 +1,6 @@
+import math
+import os
+import stat
 from collections import defaultdict, deque
 from codecs import iterdecode
 from concurrent.futures import ThreadPoolExecutor
@@ -285,7 +288,7 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key):
             ctx.run(upload_part, i, start, end)
 
 
-def _download_file(ctx, src_bucket, src_key, src_version, dest_path):
+def _download_file(ctx, size, src_bucket, src_key, src_version, dest_path):
     dest_file = pathlib.Path(dest_path)
     if dest_file.is_reserved():
         raise ValueError("Cannot download to %r: reserved file name" % dest_path)
@@ -295,20 +298,64 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path):
 
     dest_file.parent.mkdir(parents=True, exist_ok=True)
 
+    with dest_file.open('wb') as f:
+        fileno = f.fileno()
+        is_regular_file = stat.S_ISREG(os.stat(fileno).st_mode)
+
+        # TODO: To enable this we need to fix some tests in test_packages,
+        #       that setup mocked responses to return less data than expected/specified in the manifest.
+        # if is_regular_file:
+        #     # Preallocate file.
+        #     if hasattr(os, 'posix_fallocate'):
+        #         os.posix_fallocate(fileno, 0, size)
+        #     else:
+        #         f.truncate(size)
+
     if src_version is not None:
         params.update(dict(VersionId=src_version))
-    resp = s3_client.get_object(**params)
 
-    body = resp['Body']
-    with open(dest_path, 'wb') as fd:
-        while True:
-            chunk = body.read(64 * 1024)
-            if not chunk:
-                break
-            fd.write(chunk)
-            ctx.progress(len(chunk))
+    part_size = s3_transfer_config.multipart_chunksize
+    is_multi_part = (
+        is_regular_file
+        and size >= s3_transfer_config.multipart_threshold
+        and size > part_size
+    )
+    part_numbers = (
+        range(math.ceil(size / part_size))
+        if is_multi_part else
+        (None,)
+    )
+    remaining_counter = len(part_numbers)
+    remaining_counter_lock = Lock()
 
-    ctx.done(PhysicalKey.from_path(dest_path))
+    def download_part(part_number):
+        nonlocal remaining_counter
+
+        with dest_file.open('r+b') as chunk_f:
+            if part_number is not None:
+                start = part_number * part_size
+                end = min(start + part_size, size) - 1
+                part_params = dict(params, Range=f'bytes={start}-{end}')
+                chunk_f.seek(start)
+            else:
+                part_params = params
+
+            resp = s3_client.get_object(**part_params)
+            body = resp['Body']
+            while True:
+                chunk = body.read(s3_transfer_config.io_chunksize)
+                if not chunk:
+                    break
+                ctx.progress(chunk_f.write(chunk))
+
+        with remaining_counter_lock:
+            remaining_counter -= 1
+            done = remaining_counter == 0
+        if done:
+            ctx.done(PhysicalKey.from_path(dest_path))
+
+    for part_number in part_numbers:
+        ctx.run(download_part, part_number)
 
 
 def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
@@ -506,7 +553,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
                     _upload_or_copy_file(ctx, size, src.path, dest.bucket, dest.path)
             else:
                 if dest.is_local():
-                    _download_file(ctx, src.bucket, src.path, src.version_id, dest.path)
+                    _download_file(ctx, size, src.bucket, src.path, src.version_id, dest.path)
                 else:
                     _copy_remote_file(ctx, size, src.bucket, src.path, src.version_id,
                                       dest.bucket, dest.path)
