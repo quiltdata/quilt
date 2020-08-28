@@ -51,16 +51,16 @@ function Hits({ hits, page, scrollRef, makePageUrl }) {
   return (
     <>
       {paginated.map((hit) => (
-        <SearchResults.Hit key={hit.path} hit={hit} showBucket />
+        <SearchResults.Hit key={hit.key} hit={hit} showBucket />
       ))}
       {pages > 1 && <Pagination {...{ pages, page: actualPage, makePageUrl }} />}
     </>
   )
 }
 
-function Results({ buckets, query, page, scrollRef, makePageUrl }) {
+function Results({ buckets, mode, query, page, scrollRef, makePageUrl }) {
   const es = AWS.ES.use()
-  const data = Data.use(search, { es, buckets, query })
+  const data = Data.use(search, { es, buckets, mode, query })
   return data.case({
     _: () => (
       <Alt>
@@ -198,23 +198,26 @@ function QueryInput({ query, buckets, onChange }) {
 }
 
 const useBucketSelectDropdownStyles = M.makeStyles((t) => ({
-  select: {
-    paddingTop: 10,
-    paddingBottom: 11,
-    paddingLeft: 12,
-    '&:hover': {
-      backgroundColor: t.palette.action.hover,
-    },
-  },
-  icon: {
-    right: 4,
-  },
-  root: {
-    paddingBottom: t.spacing(1),
-    paddingLeft: t.spacing(1.5),
-    paddingTop: t.spacing(1),
-    textTransform: 'none',
+  btn: {
+    // reset / normalize
+    MozAppearance: 'none', // Reset
+    WebkitAppearance: 'none', // Reset
+    WebkitTapHighlightColor: 'transparent',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent', // Reset default value
+    outline: 0, // We disable the focus ring for mouse, touch and keyboard users.
+    border: 0,
+    margin: 0, // Remove the margin in Safari
+    borderRadius: 0,
+    padding: 0, // Remove the padding in Firefox
+    userSelect: 'none',
+    verticalAlign: 'middle',
+
     ...t.typography.body1,
+    cursor: 'pointer',
+    fontWeight: t.typography.fontWeightMedium,
   },
 }))
 
@@ -224,8 +227,8 @@ function BucketSelectDropdown({ buckets, onChange }) {
 
   const options = BucketConfig.useRelevantBucketConfigs()
 
-  const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  // const t = M.useTheme()
+  // const xs = M.useMediaQuery(t.breakpoints.down('xs'))
 
   const anchorRef = React.useRef(null)
 
@@ -245,21 +248,20 @@ function BucketSelectDropdown({ buckets, onChange }) {
 
   return (
     <>
+      {/*
       {xs ? (
         <M.IconButton onClick={state.edit} ref={anchorRef}>
           <M.Icon>menu</M.Icon>
         </M.IconButton>
       ) : (
-        <M.Button onClick={state.edit} className={classes.root} ref={anchorRef}>
-          <span>
-            Searching{' '}
-            <M.Box component="span" fontWeight="fontWeightMedium">
-              {displaySelectedBuckets(state.value)}
-            </M.Box>
-          </span>
-          <M.Icon>expand_more</M.Icon>
-        </M.Button>
+      */}
+      <button type="button" onClick={state.edit} className={classes.btn} ref={anchorRef}>
+        {displaySelectedBuckets(state.value)}
+        <M.Icon fontSize="inherit">expand_more</M.Icon>
+      </button>
+      {/*
       )}
+      */}
       <M.Menu
         anchorEl={anchorRef.current}
         open={state.edited}
@@ -292,11 +294,63 @@ function BucketSelectDropdown({ buckets, onChange }) {
   )
 }
 
+const displayMode = (m) => {
+  if (m === 'packages') return 'packages'
+  if (m === 'objects') return 'objects'
+  return 'objects & packages'
+}
+
+function ModeSelectDropdown({ mode, onChange }) {
+  const classes = useBucketSelectDropdownStyles()
+  const options = [undefined, 'objects', 'packages']
+
+  const [edited, setEdited] = React.useState(false)
+
+  const edit = React.useCallback(() => setEdited(true), [setEdited])
+  const close = React.useCallback(() => setEdited(false), [setEdited])
+
+  // const t = M.useTheme()
+  // const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+
+  const anchorRef = React.useRef(null)
+
+  const handleSelect = (v) => () => {
+    onChange(v)
+    close()
+  }
+
+  return (
+    <>
+      <button type="button" onClick={edit} className={classes.btn} ref={anchorRef}>
+        {displayMode(mode)}
+        <M.Icon fontSize="inherit">expand_more</M.Icon>
+      </button>
+      <M.Menu
+        anchorEl={anchorRef.current}
+        open={edited}
+        onClose={close}
+        MenuListProps={{ dense: true }}
+      >
+        {options.map((o) => (
+          <M.MenuItem key={o} onClick={handleSelect(o)} selected={mode === o}>
+            <M.ListItemText primary={displayMode(o)} />
+          </M.MenuItem>
+        ))}
+      </M.Menu>
+    </>
+  )
+}
+
 const useSearchStyles = M.makeStyles((t) => ({
   paper: {
+    paddingLeft: t.spacing(1.5),
+    paddingRight: t.spacing(1),
+    lineHeight: '40px',
+
     [t.breakpoints.down('xs')]: {
       borderRadius: 0,
       boxShadow: 'none',
+      // TODO: check if these rules still required
       '&:first-child': {
         paddingLeft: t.spacing(0.5),
       },
@@ -311,7 +365,7 @@ export default function Search({ location: l }) {
   const classes = useSearchStyles()
 
   const params = parseSearch(l.search)
-  const { q, p } = params
+  const { q, p, mode } = params
   const buckets = params.buckets ? params.buckets.split(',').sort() : []
   const page = p && parseInt(p, 10)
 
@@ -323,17 +377,26 @@ export default function Search({ location: l }) {
   const handleQueryChange = React.useCallback(
     (newQuery) => {
       dispatch(
-        push(urls.search({ q: newQuery, buckets: buckets.join(',') || undefined })),
+        push(urls.search({ q: newQuery, buckets: buckets.join(',') || undefined, mode })),
       )
     },
-    [buckets, dispatch],
+    [buckets, mode, dispatch],
   )
 
   const handleBucketsChange = React.useCallback(
     (newBuckets) => {
-      dispatch(push(urls.search({ q, buckets: newBuckets.join(',') || undefined })))
+      dispatch(push(urls.search({ q, buckets: newBuckets.join(',') || undefined, mode })))
     },
-    [q, dispatch],
+    [q, mode, dispatch],
+  )
+
+  const handleModeChange = React.useCallback(
+    (newMode) => {
+      dispatch(
+        push(urls.search({ q, buckets: buckets.join(',') || undefined, mode: newMode })),
+      )
+    },
+    [buckets, q, dispatch],
   )
 
   const makePageUrl = React.useCallback(
@@ -342,8 +405,9 @@ export default function Search({ location: l }) {
         q,
         buckets: buckets.join(',') || undefined,
         p: newP !== 1 ? newP : undefined,
+        mode,
       }),
-    [q, buckets],
+    [q, buckets, mode],
   )
 
   return (
@@ -366,11 +430,14 @@ export default function Search({ location: l }) {
               </M.Box>
               <M.Box flexGrow={1} display={{ xs: 'none', sm: 'block' }} />
               <M.Box component={M.Paper} className={classes.paper}>
+                <M.Typography component="span">Searching </M.Typography>
+                <ModeSelectDropdown mode={mode} onChange={handleModeChange} />
+                <M.Typography component="span"> in </M.Typography>
                 <BucketSelectDropdown buckets={buckets} onChange={handleBucketsChange} />
               </M.Box>
             </M.Box>
             {q ? (
-              <Results {...{ query: q, buckets, page, scrollRef, makePageUrl }} />
+              <Results {...{ query: q, buckets, page, mode, scrollRef, makePageUrl }} />
             ) : (
               // TODO: revise copy
               <Alt>

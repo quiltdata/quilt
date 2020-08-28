@@ -16,7 +16,7 @@ import { readableBytes } from 'utils/string'
 
 const CrumbLink = M.styled(StyledLink)({ wordBreak: 'break-word' })
 
-function Crumbs({ handle, showBucket = false }) {
+function ObjectCrumbs({ handle, showBucket = false }) {
   const { urls } = NamedRoutes.use()
 
   const crumbs = React.useMemo(() => {
@@ -57,12 +57,15 @@ function Crumbs({ handle, showBucket = false }) {
   )
 }
 
-function Header({ handle, showBucket }) {
+function ObjectHeader({ handle, showBucket }) {
   const getUrl = AWS.Signer.useS3Signer()
   const cfg = Config.use()
   return (
-    <Heading display="flex" mb={1}>
-      <Crumbs {...{ handle, showBucket }} />
+    <Heading display="flex" alignItems="center" mb={1}>
+      <M.Box component={M.Icon} color="text.hint" mr={1} title="File">
+        insert_drive_file
+      </M.Box>
+      <ObjectCrumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
       {!cfg.noDownload && (
         <M.Box
@@ -78,6 +81,27 @@ function Header({ handle, showBucket }) {
           </M.IconButton>
         </M.Box>
       )}
+    </Heading>
+  )
+}
+
+function PackageHeader({ bucket, handle, showBucket }) {
+  const { urls } = NamedRoutes.use()
+  return (
+    <Heading display="flex" mb={1}>
+      <M.Box component={M.Icon} color="text.hint" mr={1} title="Package">
+        all_inbox
+      </M.Box>
+      <span>
+        {!!showBucket && (
+          <>
+            <CrumbLink to={urls.bucketPackageList(bucket)}>{bucket}</CrumbLink>
+            &nbsp;/{' '}
+          </>
+        )}
+        <CrumbLink to={urls.bucketPackageDetail(bucket, handle)}>{handle}</CrumbLink>
+      </span>
+      <M.Box flexGrow={1} />
     </Heading>
   )
 }
@@ -311,14 +335,31 @@ function Meta({ meta }) {
 
 const getDefaultVersion = (versions) => versions.find((v) => !!v.id) || versions[0]
 
-export function Hit({ showBucket, hit: { path, versions, bucket } }) {
+function ObjectHit({ showBucket, hit: { path, versions, bucket } }) {
   const v = getDefaultVersion(versions)
   return (
     <Section>
-      <Header handle={{ bucket, key: path, version: v.id }} showBucket={showBucket} />
+      <ObjectHeader
+        handle={{ bucket, key: path, version: v.id }}
+        showBucket={showBucket}
+      />
       <VersionInfo bucket={bucket} path={path} version={v} versions={versions} />
       <Meta meta={v.meta} />
       <PreviewDisplay handle={{ bucket, key: path, version: v.id }} />
     </Section>
   )
+}
+
+function PackageHit({ showBucket, hit: { bucket, handle, revisions } }) {
+  console.log('package hit', { bucket, handle, revisions })
+  return (
+    <Section>
+      <PackageHeader handle={handle} bucket={bucket} showBucket={showBucket} />
+    </Section>
+  )
+}
+
+export function Hit(props) {
+  const Component = props.hit.type === 'object' ? ObjectHit : PackageHit
+  return <Component {...props} />
 }
