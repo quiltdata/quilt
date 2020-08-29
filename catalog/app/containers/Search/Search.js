@@ -320,7 +320,7 @@ function ModeSelectDropdown({ mode, onChange }) {
         MenuListProps={{ dense: true }}
       >
         {options.map((o) => (
-          <M.MenuItem key={o} onClick={handleSelect(o)} selected={mode === o}>
+          <M.MenuItem key={o || 'all'} onClick={handleSelect(o)} selected={mode === o}>
             <M.ListItemText primary={displayMode(o)} />
           </M.MenuItem>
         ))}

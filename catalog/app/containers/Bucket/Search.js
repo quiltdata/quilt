@@ -58,7 +58,7 @@ function Hits({ hits, page, scrollRef, makePageUrl }) {
   return (
     <>
       {paginated.map((hit) => (
-        <SearchResults.Hit key={hit.path} hit={hit} showBucket />
+        <SearchResults.Hit key={hit.key} hit={hit} showBucket />
       ))}
       {pages > 1 && <Pagination {...{ pages, page: actualPage, makePageUrl }} />}
     </>
@@ -253,7 +253,7 @@ function ModeSelectDropdown({ mode, onChange }) {
         MenuListProps={{ dense: true }}
       >
         {options.map((o) => (
-          <M.MenuItem key={o} onClick={handleSelect(o)} selected={mode === o}>
+          <M.MenuItem key={o || 'all'} onClick={handleSelect(o)} selected={mode === o}>
             <M.ListItemText primary={displayMode(o)} />
           </M.MenuItem>
         ))}
