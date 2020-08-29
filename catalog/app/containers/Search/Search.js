@@ -60,7 +60,12 @@ function Hits({ hits, page, scrollRef, makePageUrl }) {
 
 function Results({ buckets, mode, query, page, scrollRef, makePageUrl }) {
   const es = AWS.ES.use()
-  const data = Data.use(search, { es, buckets, mode, query })
+  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
+  const actualBuckets = React.useMemo(
+    () => (buckets.length > 0 ? buckets : bucketConfigs.map((bc) => bc.name)),
+    [buckets, bucketConfigs],
+  )
+  const data = Data.use(search, { es, buckets: actualBuckets, mode, query })
   return data.case({
     _: () => (
       <Alt>
@@ -199,21 +204,19 @@ function QueryInput({ query, buckets, onChange }) {
 
 const useBucketSelectDropdownStyles = M.makeStyles((t) => ({
   btn: {
-    // reset / normalize
-    MozAppearance: 'none', // Reset
-    WebkitAppearance: 'none', // Reset
+    MozAppearance: 'none',
+    WebkitAppearance: 'none',
     WebkitTapHighlightColor: 'transparent',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent', // Reset default value
-    outline: 0, // We disable the focus ring for mouse, touch and keyboard users.
+    backgroundColor: 'transparent',
+    outline: 0,
     border: 0,
-    margin: 0, // Remove the margin in Safari
+    margin: 0,
     borderRadius: 0,
-    padding: 0, // Remove the padding in Firefox
+    padding: 0,
     userSelect: 'none',
-    verticalAlign: 'middle',
 
     ...t.typography.body1,
     cursor: 'pointer',
@@ -221,14 +224,11 @@ const useBucketSelectDropdownStyles = M.makeStyles((t) => ({
   },
 }))
 
-function BucketSelectDropdown({ buckets, onChange }) {
+function BucketSelectDropdown({ buckets, onChange, short = false }) {
   const classes = useBucketSelectDropdownStyles()
   const state = useEditableValue(buckets, onChange)
 
   const options = BucketConfig.useRelevantBucketConfigs()
-
-  // const t = M.useTheme()
-  // const xs = M.useMediaQuery(t.breakpoints.down('xs'))
 
   const anchorRef = React.useRef(null)
 
@@ -248,20 +248,12 @@ function BucketSelectDropdown({ buckets, onChange }) {
 
   return (
     <>
-      {/*
-      {xs ? (
-        <M.IconButton onClick={state.edit} ref={anchorRef}>
-          <M.Icon>menu</M.Icon>
-        </M.IconButton>
-      ) : (
-      */}
       <button type="button" onClick={state.edit} className={classes.btn} ref={anchorRef}>
-        {displaySelectedBuckets(state.value)}
+        <span>
+          {short ? <>{'s3://'}&hellip;</> : displaySelectedBuckets(state.value)}
+        </span>
         <M.Icon fontSize="inherit">expand_more</M.Icon>
       </button>
-      {/*
-      )}
-      */}
       <M.Menu
         anchorEl={anchorRef.current}
         open={state.edited}
@@ -309,9 +301,6 @@ function ModeSelectDropdown({ mode, onChange }) {
   const edit = React.useCallback(() => setEdited(true), [setEdited])
   const close = React.useCallback(() => setEdited(false), [setEdited])
 
-  // const t = M.useTheme()
-  // const xs = M.useMediaQuery(t.breakpoints.down('xs'))
-
   const anchorRef = React.useRef(null)
 
   const handleSelect = (v) => () => {
@@ -341,6 +330,62 @@ function ModeSelectDropdown({ mode, onChange }) {
   )
 }
 
+const useModeAndBucketSelectorStyles = M.makeStyles((t) => ({
+  overlay: {
+    background: t.palette.common.white,
+    bottom: 0,
+    display: 'flex',
+    justifyContent: 'space-between',
+    left: 44,
+    paddingRight: 4,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  controls: {
+    lineHeight: '48px',
+  },
+}))
+
+function ModeAndBucketSelector({ mode, onModeChange, buckets, onBucketsChange }) {
+  const classes = useModeAndBucketSelectorStyles()
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+
+  const [controlsShown, setControlsShown] = React.useState(false)
+  const showControls = React.useCallback(() => setControlsShown(true), [setControlsShown])
+  const hideControls = React.useCallback(() => setControlsShown(false), [
+    setControlsShown,
+  ])
+
+  const controls = (
+    <>
+      {!xs && <M.Typography component="span">Searching </M.Typography>}
+      <ModeSelectDropdown mode={mode} onChange={onModeChange} />
+      <M.Typography component="span"> in </M.Typography>
+      <BucketSelectDropdown buckets={buckets} onChange={onBucketsChange} short={xs} />
+    </>
+  )
+
+  return xs ? (
+    <>
+      <M.IconButton onClick={showControls}>
+        <M.Icon>menu</M.Icon>
+      </M.IconButton>
+      {controlsShown && (
+        <div className={classes.overlay}>
+          <div className={classes.controls}>{controls}</div>
+          <M.IconButton onClick={hideControls}>
+            <M.Icon>done</M.Icon>
+          </M.IconButton>
+        </div>
+      )}
+    </>
+  ) : (
+    controls
+  )
+}
+
 const useSearchStyles = M.makeStyles((t) => ({
   paper: {
     paddingLeft: t.spacing(1.5),
@@ -350,7 +395,6 @@ const useSearchStyles = M.makeStyles((t) => ({
     [t.breakpoints.down('xs')]: {
       borderRadius: 0,
       boxShadow: 'none',
-      // TODO: check if these rules still required
       '&:first-child': {
         paddingLeft: t.spacing(0.5),
       },
@@ -415,7 +459,12 @@ export default function Search({ location: l }) {
       pre={
         <M.Container maxWidth="lg">
           <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-            <M.Box display="flex" mt={{ xs: 0, sm: 3 }} ref={scrollRef}>
+            <M.Box
+              display="flex"
+              position="relative"
+              mt={{ xs: 0, sm: 3 }}
+              ref={scrollRef}
+            >
               <M.Box
                 component={M.Paper}
                 className={classes.paper}
@@ -430,10 +479,12 @@ export default function Search({ location: l }) {
               </M.Box>
               <M.Box flexGrow={1} display={{ xs: 'none', sm: 'block' }} />
               <M.Box component={M.Paper} className={classes.paper}>
-                <M.Typography component="span">Searching </M.Typography>
-                <ModeSelectDropdown mode={mode} onChange={handleModeChange} />
-                <M.Typography component="span"> in </M.Typography>
-                <BucketSelectDropdown buckets={buckets} onChange={handleBucketsChange} />
+                <ModeAndBucketSelector
+                  mode={mode}
+                  onModeChange={handleModeChange}
+                  buckets={buckets}
+                  onBucketsChange={handleBucketsChange}
+                />
               </M.Box>
             </M.Box>
             {q ? (

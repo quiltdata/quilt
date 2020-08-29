@@ -31,15 +31,10 @@ Package: {
   score: num,
   bucket: str,
   handle: str,
-  revisions: [
-    {
-      id: str,
-      hash: str,
-      score: num,
-      lastModified: ?Date,
-      meta: str, // should it be parsed?
-    },
-  ],
+  revision: str,
+  hash: str,
+  lastModified: ?Date,
+  meta: str, // should it be parsed?
 }
 */
 
@@ -77,7 +72,7 @@ const extractObjData = ({ bucket, score, src }) => {
 
 const extractPkgData = ({ bucket, id, score, src }) => {
   const [handle, hash] = id.split(':')
-  const key = `package:${bucket}/${handle}`
+  const key = `package:${bucket}/${handle}:${hash}`
   return {
     [key]: {
       key,
@@ -85,15 +80,16 @@ const extractPkgData = ({ bucket, id, score, src }) => {
       bucket,
       score,
       handle,
-      revisions: [
-        {
-          id: src.id, // TODO: see how it will be called in the index
-          hash,
-          score,
-          lastModified: parseDate(src.last_modified),
-          meta: src.metadata, // TODO: expose this in lambda
-        },
-      ],
+      // revision: src.id, // TODO: see how it will be called in the index
+      revision: 'latest',
+      hash,
+      lastModified: parseDate(src.last_modified),
+      // meta: src.metadata, // TODO: expose this in lambda, parse json
+      meta: { keyA: 'valueA', keyB: 123 },
+      // TODO: parse?
+      // tags: src.tags,
+      tags: ['quilt', 'data', 'rocks'],
+      comment: src.comment,
     },
   }
 }
@@ -112,10 +108,6 @@ const mergeHits = R.mergeDeepWithKey(
   mkMerger({
     score: R.max,
     versions: R.pipe(
-      R.concat,
-      R.sortBy((v) => -v.score),
-    ),
-    revisions: R.pipe(
       R.concat,
       R.sortBy((v) => -v.score),
     ),
@@ -153,7 +145,7 @@ export default async function search({
     const result = await es({ action: 'search', index, query })
     const hits = mergeAllHits(result.hits.hits)
     const total = Math.min(result.hits.total, result.hits.hits.length)
-    // TODO: calc number of objects + versions and packages + revisions separately
+    // TODO: calc number of objects + versions and packages separately
     return { total, hits }
   } catch (e) {
     // TODO: handle errors

@@ -40,6 +40,7 @@ function ObjectCrumbs({ handle, showBucket = false }) {
 
   return (
     <span onCopy={copyWithoutSpaces}>
+      <HeaderIcon title="File">insert_drive_file</HeaderIcon>
       {crumbs.bucket && (
         <>
           <CrumbLink {...crumbs.bucket} />
@@ -57,14 +58,23 @@ function ObjectCrumbs({ handle, showBucket = false }) {
   )
 }
 
+function HeaderIcon(props) {
+  return (
+    <M.Box
+      component={M.Icon}
+      color="text.hint"
+      mr={1}
+      style={{ verticalAlign: 'middle' }}
+      {...props}
+    />
+  )
+}
+
 function ObjectHeader({ handle, showBucket }) {
   const getUrl = AWS.Signer.useS3Signer()
   const cfg = Config.use()
   return (
     <Heading display="flex" alignItems="center" mb={1}>
-      <M.Box component={M.Icon} color="text.hint" mr={1} title="File">
-        insert_drive_file
-      </M.Box>
       <ObjectCrumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
       {!cfg.noDownload && (
@@ -85,13 +95,11 @@ function ObjectHeader({ handle, showBucket }) {
   )
 }
 
-function PackageHeader({ bucket, handle, showBucket }) {
+function PackageHeader({ bucket, handle, revision, showBucket }) {
   const { urls } = NamedRoutes.use()
   return (
-    <Heading display="flex" mb={1}>
-      <M.Box component={M.Icon} color="text.hint" mr={1} title="Package">
-        all_inbox
-      </M.Box>
+    <Heading mb={1}>
+      <HeaderIcon title="Package">all_inbox</HeaderIcon>
       <span>
         {!!showBucket && (
           <>
@@ -99,7 +107,13 @@ function PackageHeader({ bucket, handle, showBucket }) {
             &nbsp;/{' '}
           </>
         )}
-        <CrumbLink to={urls.bucketPackageDetail(bucket, handle)}>{handle}</CrumbLink>
+        <CrumbLink to={urls.bucketPackageTree(bucket, handle, revision)}>
+          {handle}
+          <M.Box component="span" color="text.hint">
+            @
+          </M.Box>
+          {revision}
+        </CrumbLink>
       </span>
       <M.Box flexGrow={1} />
     </Heading>
@@ -333,6 +347,62 @@ function Meta({ meta }) {
   )
 }
 
+const useRevisionInfoStyles = M.makeStyles((t) => ({
+  revision: {
+    ...t.typography.subtitle1,
+    color: t.palette.text.secondary,
+    fontWeight: t.typography.fontWeightLight,
+    marginTop: t.spacing(2),
+  },
+  mono: {
+    fontFamily: t.typography.monospace.fontFamily,
+    fontWeight: t.typography.fontWeightMedium,
+  },
+  msg: {
+    ...t.typography.body2,
+    WebkitBoxOrient: 'vertical',
+    WebkitLineClamp: 2,
+    display: '-webkit-box',
+    marginTop: t.spacing(1),
+    overflow: 'hidden',
+    overflowWrap: 'break-word',
+    textOverflow: 'ellipsis',
+  },
+  hash: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    fontFamily: t.typography.monospace.fontFamily,
+    marginTop: t.spacing(1),
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+}))
+
+function RevisionInfo({ bucket, handle, revision, hash, comment, lastModified }) {
+  const classes = useRevisionInfoStyles()
+  const { urls } = NamedRoutes.use()
+  return (
+    <M.Box>
+      <p className={classes.revision}>
+        <Nowrap>
+          Revision{' '}
+          <StyledLink
+            to={urls.bucketPackageTree(bucket, handle, revision)}
+            className={classes.mono}
+          >
+            {revision}
+          </StyledLink>
+        </Nowrap>{' '}
+        <Nowrap>
+          from <Bold>{lastModified.toLocaleString()}</Bold>
+        </Nowrap>
+      </p>
+      <p className={classes.msg}>{comment || <i>No message</i>}</p>
+      <p className={classes.hash}>{hash}</p>
+    </M.Box>
+  )
+}
+
 const getDefaultVersion = (versions) => versions.find((v) => !!v.id) || versions[0]
 
 function ObjectHit({ showBucket, hit: { path, versions, bucket } }) {
@@ -350,11 +420,24 @@ function ObjectHit({ showBucket, hit: { path, versions, bucket } }) {
   )
 }
 
-function PackageHit({ showBucket, hit: { bucket, handle, revisions } }) {
-  console.log('package hit', { bucket, handle, revisions })
+function PackageHit({
+  showBucket,
+  hit: { bucket, handle, revision, hash, lastModified, meta, tags, comment },
+}) {
   return (
     <Section>
-      <PackageHeader handle={handle} bucket={bucket} showBucket={showBucket} />
+      <PackageHeader {...{ handle, bucket, revision, showBucket }} />
+      <RevisionInfo {...{ bucket, handle, revision, hash, comment, lastModified }} />
+      {tags && tags.length > 0 && (
+        <M.Box mt={2}>
+          {tags.map((t) => (
+            <React.Fragment key={t}>
+              <M.Chip variant="outlined" size="small" label={t} />{' '}
+            </React.Fragment>
+          ))}
+        </M.Box>
+      )}
+      <Meta meta={meta} />
     </Section>
   )
 }
