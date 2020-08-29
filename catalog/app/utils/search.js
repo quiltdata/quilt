@@ -81,14 +81,14 @@ const extractPkgData = ({ bucket, id, score, src }) => {
       score,
       handle,
       // revision: src.id, // TODO: see how it will be called in the index
-      revision: 'latest',
+      revision: 'latest', // FIXME
       hash,
       lastModified: parseDate(src.last_modified),
       // meta: src.metadata, // TODO: expose this in lambda, parse json
-      meta: { keyA: 'valueA', keyB: 123 },
+      meta: { keyA: 'valueA', keyB: 123 }, // FIXME
       // TODO: parse?
       // tags: src.tags,
-      tags: ['quilt', 'data', 'rocks'],
+      tags: ['quilt', 'data', 'rocks'], // FIXME
       comment: src.comment,
     },
   }
@@ -145,7 +145,6 @@ export default async function search({
     const result = await es({ action: 'search', index, query })
     const hits = mergeAllHits(result.hits.hits)
     const total = Math.min(result.hits.total, result.hits.hits.length)
-    // TODO: calc number of objects + versions and packages separately
     return { total, hits }
   } catch (e) {
     // TODO: handle errors

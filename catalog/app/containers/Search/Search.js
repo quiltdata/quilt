@@ -1,7 +1,6 @@
-import { push } from 'connected-react-router/esm/immutable'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as redux from 'react-redux'
+import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -416,31 +415,31 @@ export default function Search({ location: l }) {
   const scrollRef = React.useRef(null)
 
   const { urls } = NamedRoutes.use()
-  const dispatch = redux.useDispatch()
+  const history = useHistory()
 
   const handleQueryChange = React.useCallback(
     (newQuery) => {
-      dispatch(
-        push(urls.search({ q: newQuery, buckets: buckets.join(',') || undefined, mode })),
+      history.push(
+        urls.search({ q: newQuery, buckets: buckets.join(',') || undefined, mode }),
       )
     },
-    [buckets, mode, dispatch],
+    [history, urls, buckets, mode],
   )
 
   const handleBucketsChange = React.useCallback(
     (newBuckets) => {
-      dispatch(push(urls.search({ q, buckets: newBuckets.join(',') || undefined, mode })))
+      history.push(urls.search({ q, buckets: newBuckets.join(',') || undefined, mode }))
     },
-    [q, mode, dispatch],
+    [history, urls, q, mode],
   )
 
   const handleModeChange = React.useCallback(
     (newMode) => {
-      dispatch(
-        push(urls.search({ q, buckets: buckets.join(',') || undefined, mode: newMode })),
+      history.push(
+        urls.search({ q, buckets: buckets.join(',') || undefined, mode: newMode }),
       )
     },
-    [buckets, q, dispatch],
+    [history, urls, buckets, q],
   )
 
   const makePageUrl = React.useCallback(
@@ -451,7 +450,7 @@ export default function Search({ location: l }) {
         p: newP !== 1 ? newP : undefined,
         mode,
       }),
-    [q, buckets, mode],
+    [urls, q, buckets, mode],
   )
 
   return (
