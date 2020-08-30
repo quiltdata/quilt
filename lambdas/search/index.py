@@ -99,7 +99,10 @@ def lambda_handler(request):
                 }
             }
         }
-        _source = ['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']
+        _source = [
+            'key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta',
+            'comment', 'handle', 'hash', 'tags', 'metadata_string', 'pointer_file'
+        ]
         size = DEFAULT_SIZE
     elif action == 'stats':
         body = {
