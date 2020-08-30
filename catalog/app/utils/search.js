@@ -4,8 +4,6 @@ const parseDate = (d) => d && new Date(d)
 
 const PACKAGES_SUFFIX = '_packages'
 
-const DEFAULT_INDEX = '*'
-
 /*
 File: {
   key: str,
@@ -70,34 +68,37 @@ const extractObjData = ({ bucket, score, src }) => {
   }
 }
 
-const extractPkgData = ({ bucket, id, score, src }) => {
-  const [handle, hash] = id.split(':')
-  const key = `package:${bucket}/${handle}:${hash}`
+const parseJSON = (s) => {
+  try {
+    return JSON.parse(s)
+  } catch (e) {
+    return s
+  }
+}
+
+const extractPkgData = ({ bucket, score, src }) => {
+  const key = `package:${bucket}/${src.handle}:${src.hash}`
   return {
     [key]: {
       key,
       type: 'package',
       bucket,
       score,
-      handle,
-      // revision: src.id, // TODO: see how it will be called in the index
-      revision: 'latest', // FIXME
-      hash,
+      handle: src.handle,
+      revision: src.pointer_file,
+      hash: src.hash,
       lastModified: parseDate(src.last_modified),
-      // meta: src.metadata, // TODO: expose this in lambda, parse json
-      meta: { keyA: 'valueA', keyB: 123 }, // FIXME
-      // TODO: parse?
-      // tags: src.tags,
-      tags: ['quilt', 'data', 'rocks'], // FIXME
+      meta: parseJSON(src.metadata_string),
+      tags: src.tags, // TODO: parse?
       comment: src.comment,
     },
   }
 }
 
-const extractData = ({ _id: id, _score: score, _source: src, _index: idx }) => {
+const extractData = ({ _score: score, _source: src, _index: idx }) => {
   const { type, bucket } = getTypeAndBucketFromIndex(idx)
   const extract = type === 'object' ? extractObjData : extractPkgData
-  return extract({ bucket, id, score, src })
+  return extract({ bucket, score, src })
 }
 
 const takeR = (l, r) => r
@@ -121,28 +122,33 @@ const mergeAllHits = R.pipe(
 )
 
 export default async function search({
-  es,
+  req,
   query,
   buckets = [],
   mode = 'all', // all | objects | packages
 }) {
-  // TODO: use APIGateway request directly
-  const index = R.pipe(
-    R.chain((b) => {
-      const idxs = []
-      if (mode === 'objects' || mode === 'all') {
-        idxs.push(b)
-      }
-      if (mode === 'packages' || mode === 'all') {
-        idxs.push(`${b}_packages`)
-      }
-      return idxs
-    }),
-    R.join(','),
-    (i) => i || DEFAULT_INDEX,
-  )(buckets)
+  // eslint-disable-next-line no-nested-ternary
+  const index = buckets.length
+    ? R.pipe(
+        R.chain((b) => {
+          const idxs = []
+          if (mode === 'objects' || mode === 'all') {
+            idxs.push(b)
+          }
+          if (mode === 'packages' || mode === 'all') {
+            idxs.push(`${b}${PACKAGES_SUFFIX}`)
+          }
+          return idxs
+        }),
+        R.join(','),
+      )(buckets)
+    : mode === 'objects' // eslint-disable-line no-nested-ternary
+    ? `*,-*${PACKAGES_SUFFIX}`
+    : mode === 'packages'
+    ? `*${PACKAGES_SUFFIX}`
+    : '*'
   try {
-    const result = await es({ action: 'search', index, query })
+    const result = await req('/search', { index, action: 'search', query })
     const hits = mergeAllHits(result.hits.hits)
     const total = Math.min(result.hits.total, result.hits.hits.length)
     return { total, hits }

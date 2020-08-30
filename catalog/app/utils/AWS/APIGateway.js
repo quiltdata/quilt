@@ -16,7 +16,7 @@ const getRegion = R.pipe(
   R.defaultTo('us-east-1'),
 )
 
-export const useAPIGatewayRequest = () => {
+export function useAPIGatewayRequest() {
   const { apiGatewayEndpoint: ep } = useConfig()
   const signRequest = Signer.useRequestSigner()
 

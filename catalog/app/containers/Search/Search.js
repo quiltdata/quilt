@@ -58,13 +58,8 @@ function Hits({ hits, page, scrollRef, makePageUrl }) {
 }
 
 function Results({ buckets, mode, query, page, scrollRef, makePageUrl }) {
-  const es = AWS.ES.use()
-  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const actualBuckets = React.useMemo(
-    () => (buckets.length > 0 ? buckets : bucketConfigs.map((bc) => bc.name)),
-    [buckets, bucketConfigs],
-  )
-  const data = Data.use(search, { es, buckets: actualBuckets, mode, query })
+  const req = AWS.APIGateway.use()
+  const data = Data.use(search, { req, buckets, mode, query })
   return data.case({
     _: () => (
       <Alt>

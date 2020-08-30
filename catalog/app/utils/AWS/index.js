@@ -1,3 +1,4 @@
+export * as APIGateway from './APIGateway'
 export * as Config from './Config'
 export * as Credentials from './Credentials'
 export * as ES from './ES'

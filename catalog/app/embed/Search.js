@@ -43,9 +43,9 @@ function Hits({ hits, page, scrollRef, makePageUrl }) {
 
 function Results({ bucket, query, page, makePageUrl }) {
   const { urls } = NamedRoutes.use()
-  const es = AWS.ES.use()
+  const req = AWS.APIGateway.use()
   const scrollRef = React.useRef(null)
-  const data = Data.use(search, { es, buckets: [bucket], query })
+  const data = Data.use(search, { req, buckets: [bucket], query })
   return data.case({
     _: () => (
       <Delay alwaysRender>

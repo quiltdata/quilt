@@ -66,8 +66,8 @@ function Hits({ hits, page, scrollRef, makePageUrl }) {
 }
 
 function Results({ bucket, query, page, mode, scrollRef, makePageUrl }) {
-  const es = AWS.ES.use()
-  const data = Data.use(search, { es, buckets: [bucket], mode, query })
+  const req = AWS.APIGateway.use()
+  const data = Data.use(search, { req, buckets: [bucket], mode, query })
   return data.case({
     _: () => (
       <Alt>
