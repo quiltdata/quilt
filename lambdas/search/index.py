@@ -14,7 +14,7 @@ from t4_lambda_shared.decorator import api
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 DEFAULT_SIZE = 1_000
-MAX_QUERY_DURATION = '30s'
+MAX_QUERY_DURATION = '27s'  # Just shy of 29s API Gateway limit
 NUM_PREVIEW_IMAGES = 100
 NUM_PREVIEW_FILES = 20
 COMPRESSION_EXTS = ['.gz']
@@ -58,6 +58,9 @@ def lambda_handler(request):
     user_source = request.args.get('_source', [])
     terminate_after = None  # see if we can skip os.getenv('MAX_DOCUMENTS_PER_SHARD')
 
+    if not user_indexes or not isinstance(user_indexes, str):
+        raise ValueError("Request must include index=<comma-separated string of indices>")
+
     if action == 'packages':
         query = request.args.get('query', '')
         body = user_body or {
@@ -74,6 +77,8 @@ def lambda_handler(request):
                 }
             }
         }
+        if not all(i.endswith('_packages') for i in user_indexes.split(',')):
+            raise ValueError("'packages' action searching indexes that don't end in '_packages'")
         _source = user_source
         size = user_size
     elif action == 'search':

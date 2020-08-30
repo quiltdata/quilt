@@ -7,9 +7,10 @@ from unittest import TestCase
 from unittest.mock import patch
 from urllib.parse import urlencode
 
+import pytest
 import responses
 
-from index import lambda_handler, post_process
+from index import lambda_handler, MAX_QUERY_DURATION, post_process
 
 ES_STATS_RESPONSES = {
     'all_gz': {
@@ -231,16 +232,16 @@ class TestSearch(TestCase):
         """test packages action"""
         query = {
             'action': 'packages',
-            'index': 'bucket',
+            'index': 'bucket_packages',
             'body': {'custom': 'body'},
             'size': 42,
             '_source': ['great', 'expectations']
         }
 
-        url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
+        url = f'https://www.example.com:443/{query["index"]}/_search?' + urlencode(dict(
             _source='great,expectations',
             size=42,
-            timeout='30s',
+            timeout=MAX_QUERY_DURATION,
         ))
 
         def _callback(request):
@@ -263,10 +264,23 @@ class TestSearch(TestCase):
         assert resp['statusCode'] == 200
         assert json.loads(resp['body']) == {'results': 'blah'}
 
+    def test_packages_bad(self):
+        """test packages action with known bad index param"""
+        query = {
+            'action': 'packages',
+            'index': 'bucket',
+            'body': {'custom': 'body'},
+            'size': 42,
+            '_source': ['great', 'expectations']
+        }
+        # try a known bad query
+        event = self._make_event(query)
+        resp = lambda_handler(event, None)
+        assert resp['statusCode'] == 500
 
     def test_search(self):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
-            timeout='15s',
+            timeout=MAX_QUERY_DURATION,
             size=1000,
             terminate_after=10000,
             _source=','.join(['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']),
@@ -304,7 +318,7 @@ class TestSearch(TestCase):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
             _source='false',  # must match JSON; False will fail match_querystring
             size=0,
-            timeout='30s'
+            timeout=MAX_QUERY_DURATION,
         ))
 
         def _callback(request):
