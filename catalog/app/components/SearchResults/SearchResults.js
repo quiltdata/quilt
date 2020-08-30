@@ -109,10 +109,14 @@ function PackageHeader({ bucket, handle, revision, showBucket }) {
         )}
         <CrumbLink to={urls.bucketPackageTree(bucket, handle, revision)}>
           {handle}
-          <M.Box component="span" color="text.hint">
-            @
-          </M.Box>
-          {revision}
+          {revision !== 'latest' && (
+            <>
+              <M.Box component="span" color="text.hint">
+                @
+              </M.Box>
+              {revision}
+            </>
+          )}
         </CrumbLink>
       </span>
       <M.Box flexGrow={1} />
