@@ -7,7 +7,6 @@ from unittest import TestCase
 from unittest.mock import patch
 from urllib.parse import urlencode
 
-import pytest
 import responses
 
 from index import lambda_handler, MAX_QUERY_DURATION, post_process
