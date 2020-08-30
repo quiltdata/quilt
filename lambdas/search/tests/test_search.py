@@ -263,7 +263,6 @@ class TestSearch(TestCase):
         assert resp['statusCode'] == 200
         assert json.loads(resp['body']) == {'results': 'blah'}
 
-
     def test_search(self):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
             timeout='15s',
