@@ -232,6 +232,7 @@ def _make_event(
                 "handle": "pkg/usr",
                 "key": "foo",
                 "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "pointer_file": "1598026253",
                 "package_hash": "abc",
             }
         ),
@@ -246,6 +247,7 @@ def _make_event(
                 "key": "foo",
                 "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
                 "package_hash": "abc",
+                "pointer_file": "1598026253",
             }
         ),
         (
@@ -285,6 +287,7 @@ def _make_event(
                 "key": "foo",
                 "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
                 "package_hash": "abc",
+                "pointer_file": "1598026253",
             },
             marks=pytest.mark.xfail(
                 raises=ValueError,
@@ -301,7 +304,9 @@ def _make_event(
                 "handle": "pkg/usr",
                 "key": "foo",
                 "last_modified": "not_an_object",
+                "pointer_file": "1598026253",
                 "package_hash": "abc",
+                "pointer_file": "1598026253",
             },
             marks=pytest.mark.xfail(
                 raises=AttributeError,
@@ -319,6 +324,7 @@ def _make_event(
                 "key": "foo",
                 "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
                 "package_hash": "",
+                "pointer_file": "1598026253",
             },
             marks=pytest.mark.xfail(
                 raises=ValueError,
@@ -874,6 +880,7 @@ class TestIndex(TestCase):
             key=f".quilt/packages/{sha_hash}",
             last_modified=ANY,
             package_hash=sha_hash,
+            pointer_file=ANY,
             comment=MANIFEST_DATA["message"],
             metadata=json.dumps(MANIFEST_DATA["user_meta"])
         )
