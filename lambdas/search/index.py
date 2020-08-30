@@ -113,6 +113,7 @@ def lambda_handler(request):
                     "terms": {"field": 'ext'},
                     "aggs": {"size": {"sum": {"field": 'size'}}},
                 },
+                "totalPackageHandles": { "value_count": { "field" : "handle" }},
             }
         }
         size = 0  # We still get all aggregates, just don't need the results
