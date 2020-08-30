@@ -13,7 +13,8 @@ from elasticsearch import Elasticsearch, RequestsHttpConnection
 from t4_lambda_shared.decorator import api
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
-MAX_QUERY_DURATION = '15s'
+DEFAULT_SIZE = 1_000
+MAX_QUERY_DURATION = '30s'
 NUM_PREVIEW_IMAGES = 100
 NUM_PREVIEW_FILES = 20
 COMPRESSION_EXTS = ['.gz']
@@ -50,23 +51,51 @@ def lambda_handler(request):
     """
 
     action = request.args.get('action')
-    indexes = request.args.get('index')
-    terminate_after = os.getenv('MAX_DOCUMENTS_PER_SHARD')
+    user_body = request.args.get('body', {})
+    user_fields = request.args.get('fields', [])
+    user_indexes = request.args.get('index', "")
+    user_size = request.args.get('size', DEFAULT_SIZE)
+    user_source = request.args.get('_source', [])
+    terminate_after = None  # see if we can skip os.getenv('MAX_DOCUMENTS_PER_SHARD')
 
-    if action == 'search':
+    if action == 'packages':
         query = request.args.get('query', '')
-        body = {
+        body = user_body or {
             "query": {
-                "simple_query_string": {
+                "query_string": {
                     "analyze_wildcard": True,
+                    "lenient": True,
                     "query": query,
-                    "fields": ['content', 'comment', 'key_text', 'meta_text']
+                    # see enterprise/**/bucket.py for mappings
+                    "fields": user_fields or [
+                        # package
+                        'comment', 'handle', 'handle_text^2', 'metadata_string', 'tags'
+                    ]
                 }
             }
         }
-        # TODO: should be user settable; we should proably forbid `content` (can be huge)
+        _source = user_source
+        size = user_size
+    elif action == 'search':
+        query = request.args.get('query', '')
+        body = {
+            "query": {
+                "query_string": {
+                    "analyze_wildcard": True,
+                    "lenient": True,
+                    "query": query,
+                    # see enterprise/**/bucket.py for mappings
+                    "fields": [
+                        # object
+                        'content', 'comment', 'ext', 'key_text^2', 'meta_text',
+                        # package
+                        'comment', 'handle', 'handle_text^2', 'metadata_string', 'tags'
+                    ]
+                }
+            }
+        }
         _source = ['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']
-        size = 1000
+        size = DEFAULT_SIZE
     elif action == 'stats':
         body = {
             "query": {"match_all": {}},
@@ -141,12 +170,14 @@ def lambda_handler(request):
         connection_class=RequestsHttpConnection
     )
 
-    to_search = f"{indexes},{index_overrides}" if index_overrides else indexes
+    to_search = f"{user_indexes},{index_overrides}" if index_overrides else user_indexes
+
     result = es_client.search(
-        to_search,
-        body,
+        index=to_search,
+        body=body,
         _source=_source,
         size=size,
+        # try turning this off to consider all documents
         terminate_after=terminate_after,
         timeout=MAX_QUERY_DURATION
     )

@@ -237,20 +237,11 @@ class TestSearch(TestCase):
 
         def _callback(request):
             payload = json.loads(request.body)
-            assert payload == {
-                'query': {
-                    'simple_query_string': {
-                        'analyze_wildcard': True,
-                        'fields': [
-                            'content',
-                            'comment',
-                            'key_text',
-                            'meta_text'
-                        ],
-                        'query': '123'
-                    }
-                }
-            }
+            assert payload['query']
+            assert payload['query']['query_string']
+            assert payload['query']['query_string']['fields']
+            assert payload['query']['query_string']['query']
+
             return 200, {}, json.dumps({'results': 'blah'})
 
         self.requests_mock.add_callback(
@@ -258,7 +249,7 @@ class TestSearch(TestCase):
             url,
             callback=_callback,
             content_type='application/json',
-            match_querystring=True
+            match_querystring=False
         )
 
         query = {
@@ -276,7 +267,7 @@ class TestSearch(TestCase):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
             _source='false',  # must match JSON; False will fail match_querystring
             size=0,
-            timeout='15s'
+            timeout='30s'
         ))
 
         def _callback(request):
