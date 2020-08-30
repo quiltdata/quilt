@@ -304,7 +304,6 @@ def _make_event(
                 "handle": "pkg/usr",
                 "key": "foo",
                 "last_modified": "not_an_object",
-                "pointer_file": "1598026253",
                 "package_hash": "abc",
                 "pointer_file": "1598026253",
             },
