@@ -227,6 +227,44 @@ class TestSearch(TestCase):
         assert map_stats['size']['value'] == sum(raw_stats[i]['size']['value'] for i in (7, 9)), \
             'Unexpected size for .map'
 
+    def test_packages(self):
+        """test packages action"""
+        # https://www.example.com:443/bucket/_search?_source=great%2Cexpectations&size=42&timeout=30s  
+        query = {
+            'action': 'packages',
+            'index': 'bucket',
+            'body': {'custom': 'body'},
+            'size': 42,
+            '_source': ['great', 'expectations']
+        }
+
+        url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
+            _source='great,expectations',
+            size=42,
+            timeout='30s',
+        ))
+
+        def _callback(request):
+            payload = json.loads(request.body)
+            # check that user can override body
+            assert payload == query['body']
+
+            return 200, {}, json.dumps({'results': 'blah'})
+
+        self.requests_mock.add_callback(
+            responses.GET,
+            url,
+            callback=_callback,
+            content_type='application/json',
+            match_querystring=True,
+        )
+
+        event = self._make_event(query)
+        resp = lambda_handler(event, None)
+        assert resp['statusCode'] == 200
+        assert json.loads(resp['body']) == {'results': 'blah'}
+
+
     def test_search(self):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
             timeout='15s',
