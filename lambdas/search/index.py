@@ -92,9 +92,9 @@ def lambda_handler(request):
                     # see enterprise/**/bucket.py for mappings
                     "fields": [
                         # object
-                        'content', 'comment', 'ext', 'key_text^2', 'meta_text',
-                        # package
-                        'comment', 'handle', 'handle_text^2', 'metadata_string', 'tags'
+                        'content', 'comment', 'key_text^2', 'meta_text',
+                        # package, and boost the fields
+                        'comment^2', 'handle^2', 'handle_text^2', 'metadata_string^2', 'tags^2'
                     ]
                 }
             }
