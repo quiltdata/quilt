@@ -229,7 +229,6 @@ class TestSearch(TestCase):
 
     def test_packages(self):
         """test packages action"""
-        # https://www.example.com:443/bucket/_search?_source=great%2Cexpectations&size=42&timeout=30s  
         query = {
             'action': 'packages',
             'index': 'bucket',
