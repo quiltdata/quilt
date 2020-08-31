@@ -540,7 +540,6 @@ def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="la
 def parse_package(package):
     """ Validate and parse a package."""
     ValidatedPackage = namedtuple('ValidatedPackage', 'name path top_hash')
-
     top_hash = None
     parts = package.split(':')
     if len(parts) == 2:
@@ -560,7 +559,7 @@ def parse_package(package):
     )
 
 
-class QuiltInstallPackageParser(object):
+class QuiltInstallPackageParser:
     __slots__ = ('packages', 'quilt_version', 'from_config_file')
 
     def __init__(self, arg):
