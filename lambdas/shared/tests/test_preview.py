@@ -1,7 +1,6 @@
 """
 Preview helper functions
 """
-import glob
 import os
 import pathlib
 from tempfile import TemporaryDirectory
@@ -10,7 +9,6 @@ from unittest.mock import patch
 
 import pyarrow.parquet as pq
 
-import t4_lambda_shared
 from t4_lambda_shared.preview import (
     extract_fcs,
     extract_parquet,

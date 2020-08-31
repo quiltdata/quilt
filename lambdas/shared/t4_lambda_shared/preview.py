@@ -144,7 +144,6 @@ def extract_parquet(file_, as_html=True, skip_rows=False):
         num_rows_guess = math.ceil(meta.num_rows / meta.num_row_groups)
         size_guess = num_rows_guess * meta.num_columns * AVG_PARQUET_CELL_BYTES
         if skip_rows or (size_guess > get_available_memory()):
-            import pandas  # pylint: disable=C0415
             # minimal dataframe with all columns and one row
             dataframe = pandas.DataFrame(columns=meta.schema.names)
             info['warnings'] = 'Large file: skipped rows to conserve memory, only showing column names'
