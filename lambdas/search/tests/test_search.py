@@ -291,7 +291,7 @@ class TestSearch(TestCase):
             assert payload['query']['query_string']
             assert payload['query']['query_string']['fields']
             assert payload['query']['query_string']['query']
-            
+
             return 200, {}, json.dumps({'results': 'blah'})
 
         self.requests_mock.add_callback(
