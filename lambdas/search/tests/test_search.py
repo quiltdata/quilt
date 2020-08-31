@@ -330,7 +330,7 @@ class TestSearch(TestCase):
                         "terms": {"field": 'ext'},
                         "aggs": {"size": {"sum": {"field": "size"}}},
                     },
-                    "totalPackageHandles": { "value_count": { "field" : "handle" }},
+                    "totalPackageHandles": {"value_count": {"field": "handle"}},
                 }
             }
             # use 'all_gz' since it's not altered by the handler
