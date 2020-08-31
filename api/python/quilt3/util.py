@@ -4,15 +4,8 @@ import os
 import pathlib
 import re
 import warnings
-from collections import OrderedDict
-from urllib.parse import (
-    parse_qs,
-    quote,
-    unquote,
-    urlencode,
-    urlparse,
-    urlunparse,
-)
+from collections import OrderedDict, namedtuple
+from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse, urlunparse
 from urllib.request import pathname2url, url2pathname
 
 import requests
@@ -542,3 +535,67 @@ def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="la
     if tree:
         package_url = package_url + f"/tree/{package_timestamp}"
     return package_url
+
+
+def parse_package(package):
+    """ Validate and parse a package."""
+    ValidatedPackage = namedtuple('ValidatedPackage', 'name path top_hash')
+
+    top_hash = None
+    parts = package.split(':')
+    if len(parts) == 2:
+        package = parts[0]
+        if parts[1] != 'latest':  # top_hash defaults to 'latest', so skip assignment
+            top_hash = parts[1]
+
+    package_parts = parse_sub_package_name(package)
+    if not package_parts:
+        raise QuiltException(f'invalid package name {package!r}')
+    package_name, sub_package = package_parts
+    validate_package_name(package_name)
+    return ValidatedPackage(
+        name=package_name,
+        path=sub_package,
+        top_hash=top_hash
+    )
+
+
+class QuiltInstallPackageParser(object):
+    __slots__ = ('packages', 'quilt_version', 'from_config_file')
+
+    def __init__(self, arg):
+        self.quilt_version = None
+        self.from_config_file = False
+        self.packages = list()
+
+        try:
+            # Try parsing for a single package
+            # ie `quilt install user/pkg`
+            validate_package_name(arg)
+            self.packages = parse_package(arg)
+        except QuiltException:
+            dependency_file = arg
+            if not dependency_file.endswith('.yml'):
+                raise QuiltException(f'{dependency_file!r} is not a valid dependency file.')
+            if dependency_file.startswith('@'):
+                dependency_file = dependency_file[1:]
+            path = pathlib.Path(dependency_file)
+            if not path.exists():
+                raise QuiltException(f'{dependency_file!r} does not exist in path.')
+            quilt_dep = read_yaml(path)
+            for pkg in quilt_dep.get('packages'):
+                try:
+                    pkg = parse_package(pkg)
+                    self.packages.append(pkg)
+                except QuiltException:
+                    print(f'skipping invalid package name {pkg!r}')
+                    continue
+
+            self.quilt_version = quilt_dep.get('quilt-version')
+            self.from_config_file = True
+
+    def get_packages(self):
+        return self.packages
+
+    def get_quilt_version(self):
+        return self.quilt_version

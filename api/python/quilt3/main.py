@@ -10,19 +10,13 @@ import time
 
 import dns.resolver
 import requests
-import yaml
 
 from . import Package
 from . import __version__ as quilt3_version
 from . import api, session
 from .backends import get_package_registry
 from .session import open_url
-from .util import (
-    QuiltException,
-    catalog_package_url,
-    catalog_s3_url,
-    get_from_config,
-)
+from .util import QuiltException, QuiltInstallPackageParser, catalog_package_url, catalog_s3_url, get_from_config
 
 
 def cmd_config(catalog_url, **kwargs):
@@ -232,21 +226,15 @@ def cmd_push(name, dir, registry, dest, message, meta):
     pkg.push(name, registry=registry, dest=dest, message=message)
 
 
-def cmd_install(name, **kwargs):
-    packages = [name]
-    if name.startswith('@'):
-        if name.endswith('.yml'):
-            try:
-                with open(name[1:], 'r') as stream:
-                    config = yaml.safe_load(stream)
-                    packages = config.get('packages')
-            except (FileNotFoundError, yaml.YAMLError) as error:
-                raise QuiltException(str(error), original_error=error)
-        else:
-            print(f'{name} is not a valid dependency file.')
-    for package in packages:
-        package = package.split(":")
-        Package.install(package[0], **kwargs)
+def cmd_install(name, top_hash, path, **kwargs):
+    parser = QuiltInstallPackageParser(name)
+    packages = parser.get_packages()
+    if parser.from_config_file:
+        for package in packages:
+            Package.install(package.name, top_hash=package.top_hash, path=package.path, **kwargs)
+    else:
+        package = packages[0]
+        Package.install(package.name, top_hash=top_hash, path=path, **kwargs)
 
 
 def create_parser():
