@@ -70,6 +70,7 @@ class TestPreview(TestCase):
         # store test files and expectations
         test_files = {
             'normal.fcs': {
+                'columns_string': 'FSC-A,SSC-A,FL1-A,FL2-A,FL3-A,FL4-A,FSC-H,SSC-H,FL1-H,FL2-H,FL3-H,FL4-H,Width,Time',
                 'in_body': '<th>FL3-H</th>',
                 'in_meta_keys': '#P1MaxUsefulDataChannel',
                 'in_meta_values': '491519',
@@ -95,6 +96,10 @@ class TestPreview(TestCase):
                         assert info['warnings']
                     assert test_files[file]['in_meta_keys'] in info['metadata'].keys()
                     assert test_files[file]['in_meta_values'] in info['metadata'].values()
+                    # when there's a body, check if columns only works
+                    if test_files[file].get('in_body'):
+                        body, info = extract_fcs(fcs, as_html=False)
+                        assert body == test_files[file]['columns_string']
 
     def test_long(self):
         """test a text file with lots of lines"""

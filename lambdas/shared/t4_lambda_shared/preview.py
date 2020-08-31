@@ -8,6 +8,7 @@ import re
 import zlib
 
 import fcsparser
+import pandas
 
 from .utils import get_available_memory
 
@@ -58,7 +59,7 @@ def decompress_stream(chunk_iterator, compression):
             break
 
 
-def extract_fcs(file_):
+def extract_fcs(file_, as_html=True):
     """
     parse and extract key metadata from parquet files
 
@@ -79,6 +80,8 @@ def extract_fcs(file_):
     # fcsparser only takes paths, so we need to write to disk; OK because
     # FCS files typically ~1MB
     with open(file_path, 'wb') as real_file:
+        # seek is actually for unit tests but is not dangerous otherwise
+        file_.seek(0)
         real_file.write(file_.read())
     try:
         meta, data = fcsparser.parse(file_path, reformat_meta=True)
@@ -87,7 +90,13 @@ def extract_fcs(file_):
         info['warnings'] = f".parse() exception: {exc}"
 
     if data is not None:
-        body = remove_pandas_footer(data._repr_html_())  # pylint: disable=protected-access
+        assert isinstance(data, pandas.DataFrame)
+        # preview
+        if as_html:
+            body = remove_pandas_footer(data._repr_html_())  # pylint: disable=protected-access
+        # indexing
+        else:
+            body = ",".join(data.columns)
     info['metadata'] = meta
 
     return body, info
