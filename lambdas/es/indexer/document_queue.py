@@ -71,6 +71,7 @@ class DocumentQueue:
             ext: str = '',
             handle: str = '',
             metadata: str = '',
+            pointer_file: str = '',
             package_hash: str = '',
             tags: List[str] = (),
             text: str = '',
@@ -114,13 +115,14 @@ class DocumentQueue:
             "size": size,
         }
         if doc_type == DocTypes.PACKAGE:
-            if not handle or not package_hash:
+            if not handle or not package_hash or not pointer_file:
                 raise ValueError("missing required argument for package document")
             body.update({
                 "_id": f"{handle}:{package_hash}",
                 "handle": handle,
                 "hash": package_hash,
-                "metadata": metadata,
+                "metadata_text": metadata,
+                "pointer_file": pointer_file,
                 "tags": ",".join(tags)
             })
         elif doc_type == DocTypes.OBJECT:

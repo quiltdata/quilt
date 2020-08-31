@@ -16,7 +16,12 @@ import pytest
 
 import quilt3
 from quilt3 import Package
-from quilt3.util import PhysicalKey, QuiltException, validate_package_name, RemovedInQuilt4Warning
+from quilt3.util import (
+    PhysicalKey,
+    QuiltException,
+    validate_package_name,
+    RemovedInQuilt4Warning
+)
 from quilt3.backends.local import LocalPackageRegistryV1
 from quilt3.backends.s3 import S3PackageRegistryV1
 
@@ -525,6 +530,14 @@ class PackageTest(QuiltTestCase):
             assert pkg['bar']['a.txt'].size == 10  # GH368
 
             list_object_versions_mock.assert_called_with('bucket', 'foo/')
+
+    def test_set_dir_wrong_update_policy(self):
+        """Verify non existing update policy raises value error."""
+        pkg = Package()
+        expected_err = "Update policy should be one of"
+        with pytest.raises(ValueError) as e:
+            pkg.set_dir("nested", DATA_DIR, update_policy='invalid_policy')
+        assert expected_err in str(e.value)
 
     def test_package_entry_meta(self):
         pkg = (
@@ -1410,3 +1423,106 @@ class PackageTest(QuiltTestCase):
 
         with pytest.raises(QuiltException, match='Found multiple matches'):
             Package.resolve_hash(pkg_name, LOCAL_REGISTRY, hash_prefix)
+
+
+# The following tests were moved out of the PackageTest class to enable parametrization.
+# see (https://docs.pytest.org/en/latest/unittest.html#pytest-features-in-unittest-testcase-subclasses)
+@pytest.mark.parametrize(
+    'target_dir, update_policy, expected_one_byte, expected_two_byte, expected_three_byte, expected_keys',
+    [
+        ('/', None, b'one', b'two', b'three', {'one.txt', 'two.txt', 'three.txt', 'sub'}),
+        ('/', 'incoming', b'one', b'two', b'three', {'one.txt', 'two.txt', 'three.txt', 'sub'}),
+        ('/', 'existing', b'1', b'two', b'three', {'one.txt', 'two.txt', 'three.txt', 'sub'}),
+        ('', 'incoming', b'one', b'two', b'three', {'one.txt', 'two.txt', 'three.txt', 'sub'}),
+        ('', 'existing', b'1', b'two', b'three', {'one.txt', 'two.txt', 'three.txt', 'sub'}),
+        ('sub/', 'incoming', b'one', b'two', b'three', {'one.txt', 'sub'}),
+        ('sub/', 'existing', b'one', b'2', b'3', {'one.txt', 'sub'}),
+        ('new-sub/', 'incoming', b'one', b'two', b'three', {'one.txt', 'sub', 'new-sub'}),
+        ('new-sub/', 'existing', b'one', b'two', b'three', {'one.txt', 'sub', 'new-sub'}),
+        pytest.param('/', 'bad_policy', b'1', b'2', b'3', set(), marks=pytest.mark.xfail(raises=ValueError)),
+    ]
+)
+def test_set_dir_update_policy(
+    target_dir: str,
+    update_policy: str,
+    expected_one_byte: bytes,
+    expected_two_byte: bytes,
+    expected_three_byte: bytes,
+    expected_keys: set
+):
+    """Verify building a package with update policy. """
+    nested_dir = DATA_DIR / 'nested'
+    pkg = Package()
+    pkg.set_dir("/", nested_dir, meta={'name': 'test_meta'})
+    assert set(pkg.keys()) == {'one.txt', 'sub'}
+    assert set(pkg['sub'].keys()) == {'two.txt', 'three.txt'}
+    assert pkg.meta == {'name': 'test_meta'}
+
+    nested_dir_2 = DATA_DIR / 'nested2'
+    if update_policy:
+        pkg.set_dir(target_dir, nested_dir_2, update_policy=update_policy)
+    else:
+        pkg.set_dir(target_dir, nested_dir_2)
+    assert set(pkg.keys()) == expected_keys
+
+    target_dir = target_dir.strip("/")
+    if target_dir:
+        assert pkg['one.txt'].get_bytes() == b'1'
+        assert set(pkg[target_dir].keys()) == {'one.txt', 'two.txt', 'three.txt'}
+        assert pkg[target_dir + '/one.txt'].get_bytes() == expected_one_byte
+        assert pkg[target_dir + '/two.txt'].get_bytes() == expected_two_byte
+        assert pkg[target_dir + '/three.txt'].get_bytes() == expected_three_byte
+    else:
+        assert pkg['one.txt'].get_bytes() == expected_one_byte
+        assert pkg['two.txt'].get_bytes() == expected_two_byte
+        assert pkg['three.txt'].get_bytes() == expected_three_byte
+        assert set(pkg['sub'].keys()) == {'two.txt', 'three.txt'}
+
+
+@pytest.mark.parametrize(
+    'update_policy, expected_a_url, expected_xy_url',
+    [
+        ('existing', 's3://bucket/foo/a.txt?versionId=xyz', 's3://bucket/foo/x/y.txt?versionId=null'),
+        ('incoming', 's3://bucket/bar/a.txt?versionId=abc', 's3://bucket/bar/x/y.txt?versionId=null'),
+        (None, 's3://bucket/bar/a.txt?versionId=abc', 's3://bucket/bar/x/y.txt?versionId=null')
+    ]
+)
+def test_set_dir_update_policy_s3(update_policy, expected_a_url, expected_xy_url):
+    with patch('quilt3.packages.list_object_versions') as list_object_versions_mock:
+        list_object_versions_mock.return_value = (
+            [
+                dict(Key='foo/a.txt', VersionId='xyz', IsLatest=True, Size=10),
+                dict(Key='foo/b.txt', VersionId='byc', IsLatest=True, Size=10),
+                dict(Key='foo/x/y.txt', VersionId='null', IsLatest=True, Size=10),
+                dict(Key='foo/z.txt', VersionId='123', IsLatest=False, Size=10),
+            ],
+            []
+        )
+        pkg = Package()
+        pkg.set_dir('', 's3://bucket/foo/', meta={'name': 'test_meta'})
+        assert 'c.txt' not in pkg.keys()
+        assert pkg['a.txt'].get() == 's3://bucket/foo/a.txt?versionId=xyz'
+        assert pkg['b.txt'].get() == 's3://bucket/foo/b.txt?versionId=byc'
+        assert pkg['x/y.txt'].get() == 's3://bucket/foo/x/y.txt?versionId=null'
+        list_object_versions_mock.assert_called_once_with('bucket', 'foo/')
+
+        list_object_versions_mock.return_value = (
+            [
+                dict(Key='bar/a.txt', VersionId='abc', IsLatest=True, Size=10),
+                dict(Key='bar/c.txt', VersionId='cyb', IsLatest=True, Size=10),
+                dict(Key='bar/x/y.txt', VersionId='null', IsLatest=True, Size=10),
+                dict(Key='bar/z.txt', VersionId='123', IsLatest=True, Size=10),
+            ],
+            []
+        )
+        if update_policy:
+            pkg.set_dir('', 's3://bucket/bar', update_policy=update_policy)
+        else:
+            pkg.set_dir('', 's3://bucket/bar')
+        assert pkg['a.txt'].get() == expected_a_url
+        assert pkg['b.txt'].get() == 's3://bucket/foo/b.txt?versionId=byc'
+        assert pkg['c.txt'].get() == 's3://bucket/bar/c.txt?versionId=cyb'
+        assert pkg['x/y.txt'].get() == expected_xy_url
+        assert pkg['z.txt'].get() == 's3://bucket/bar/z.txt?versionId=123'
+        assert list_object_versions_mock.call_count == 2
+        list_object_versions_mock.assert_has_calls([call('bucket', 'foo/'), call('bucket', 'bar/')])

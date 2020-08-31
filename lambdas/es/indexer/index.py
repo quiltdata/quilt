@@ -210,8 +210,9 @@ def index_if_manifest(
             key=manifest_key,
             last_modified=last_modified,
             package_hash=package_hash,
+            pointer_file=pointer_file,
             comment=str(first_dict.get("message", "")),
-            metadata=json.dumps(first_dict.get("user_meta", {}))
+            metadata=json.dumps(first_dict.get("user_meta", {})),
         )
         return True
     except (json.JSONDecodeError, botocore.exceptions.ClientError) as exc:

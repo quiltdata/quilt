@@ -44,7 +44,7 @@ const LANGS = {
   sql: /\.sql$/,
   typescript: /\.tsx?$/,
   xml: /\.(xml|x?html|rss|atom|xjb|xsd|xsl|plist)$/,
-  yaml: /\.ya?ml$/,
+  yaml: /((\.ya?ml$)|(^snakefile))/,
 }
 
 const langPairs = Object.entries(LANGS)

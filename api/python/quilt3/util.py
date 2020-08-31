@@ -25,6 +25,7 @@ OPEN_DATA_URL = "https://open.quiltdata.com"
 
 PACKAGE_NAME_FORMAT = r"([\w-]+/[\w-]+)(?:/(.+))?$"
 DISABLE_TQDM = os.getenv('QUILT_MINIMIZE_STDOUT', '').lower() == 'true'
+PACKAGE_UPDATE_POLICY = {'incoming', 'existing'}
 
 # CONFIG_TEMPLATE
 # Must contain every permitted config key, as well as their default values (which can be 'null'/None).
@@ -74,7 +75,7 @@ class QuiltException(Exception):
         # To be consistent across Python 2.7 and 3.x:
         # 1) This `super` call must exist, or 2.7 will have no text for str(error)
         # 2) This `super` call must have only one argument (the message) or str(error) will be a repr of args
-        super(QuiltException, self).__init__(message)
+        super().__init__(message)
         self.message = message
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -303,7 +304,7 @@ def validate_url(url):
 class QuiltConfig(OrderedDict):
     def __init__(self, filepath, *args, **kwargs):
         self.filepath = pathlib.Path(filepath)
-        super(QuiltConfig, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __setitem__(self, key, value):
         # Per chat in #engineering 4-5-19, strip navigator_url of trailing slash.

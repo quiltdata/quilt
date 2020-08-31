@@ -269,6 +269,7 @@ class QuiltProvider(CredentialProvider):
     CANONICAL_NAME = 'QuiltRegistry'
 
     def __init__(self, credentials):
+        super().__init__()
         self._credentials = credentials
 
     def load(self):

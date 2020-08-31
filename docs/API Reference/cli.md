@@ -144,7 +144,7 @@ optional arguments:
 ```
 ## `push`
 ```
-usage: quilt3 push [-h] --dir DIR [--registry REGISTRY] [--dest DEST]
+usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
                    [--message MESSAGE]
                    name
 
@@ -153,9 +153,11 @@ Pushes the new package to the remote registry
 positional arguments:
   name                 Name of package, in the USER/PKG format
 
+required arguments:
+  --dir DIR            Directory to add to the new package
+
 optional arguments:
   -h, --help           show this help message and exit
-  --dir DIR            Directory to add to the new package
   --registry REGISTRY  Registry where to create the new package. Defaults to
                        the default remote registry.
   --dest DEST          Where to copy the objects in the package
