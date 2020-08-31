@@ -15,6 +15,7 @@ from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.preview import (
     CATALOG_LIMIT_BYTES,
     CATALOG_LIMIT_LINES,
+    extract_fcs,
     extract_parquet,
     get_bytes,
     get_preview_lines,
@@ -128,6 +129,8 @@ def lambda_handler(request):
             )
         elif input_type == 'excel':
             html, info = extract_excel(get_bytes(content_iter, compression))
+        elif input_type == 'fcs':
+            html, info = extract_fcs(get_bytes(content_iter, compression))
         elif input_type == 'ipynb':
             html, info = extract_ipynb(get_bytes(content_iter, compression), exclude_output)
         elif input_type == 'parquet':
