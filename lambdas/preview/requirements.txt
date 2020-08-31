@@ -7,6 +7,7 @@ chardet==3.0.4
 decorator==4.4.0
 defusedxml==0.6.0
 entrypoints==0.3
+fcsparser==0.2.1
 idna==2.8
 ipython-genutils==0.2.0
 Jinja2==2.10.1
