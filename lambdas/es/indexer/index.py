@@ -54,6 +54,7 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 from t4_lambda_shared.preview import (
     ELASTIC_LIMIT_BYTES,
     ELASTIC_LIMIT_LINES,
+    extract_fcs,
     extract_parquet,
     get_bytes,
     get_preview_lines,
@@ -234,6 +235,20 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
     content = ""
     inferred_ext = infer_extensions(key, ext)
     if inferred_ext in CONTENT_INDEX_EXTS:
+        if inferred_ext == ".fcs":
+            obj = retry_s3(
+                "get",
+                bucket,
+                key,
+                size,
+                etag=etag,
+                s3_client=s3_client,
+                version_id=version_id
+            )
+            body, info = extract_fcs(get_bytes(obj["Body"], compression), as_html=False)
+            # be smart and just send column names to ES (instead of bloated full schema)
+            # if this is not an HTML/catalog preview
+            content = trim_to_bytes(f"{body}\n{info}", ELASTIC_LIMIT_BYTES)
         if inferred_ext == ".ipynb":
             content = trim_to_bytes(
                 # we have no choice but to fetch the entire notebook, because we

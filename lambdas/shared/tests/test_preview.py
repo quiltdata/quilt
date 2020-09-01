@@ -1,16 +1,19 @@
 """
 Preview helper functions
 """
+import os
 import pathlib
+from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
 import pyarrow.parquet as pq
 
 from t4_lambda_shared.preview import (
+    extract_fcs,
     extract_parquet,
     get_bytes,
-    get_preview_lines
+    get_preview_lines,
 )
 
 
@@ -59,6 +62,42 @@ class TestPreview(TestCase):
             assert [
                 parquet_file.metadata.num_rows, parquet_file.metadata.num_columns
             ] == info['shape'], 'Unexpected number of rows or columns'
+
+    def test_fcs(self):
+        """test FCS parsing"""
+        # store test files and expectations
+        test_files = {
+            'normal.fcs': {
+                'columns_string': 'FSC-A,SSC-A,FL1-A,FL2-A,FL3-A,FL4-A,FSC-H,SSC-H,FL1-H,FL2-H,FL3-H,FL4-H,Width,Time',
+                'in_body': '<th>FL3-H</th>',
+                'in_meta_keys': '#P1MaxUsefulDataChannel',
+                'in_meta_values': '491519',
+                'has_warnings': False,
+            },
+            'meta_only.fcs': {
+                'in_meta_keys': '_channel_names_',
+                'in_meta_values': 'Compensation Controls_G710 Stained Control.fcs',
+                'has_warnings': True,
+            },
+        }
+        with TemporaryDirectory() as tmp_dir, patch('t4_lambda_shared.preview.TEMP_DIR', tmp_dir):
+            for file in test_files:
+                in_file = os.path.join(BASE_DIR, 'fcs', file)
+
+                with open(in_file, mode='rb') as fcs:
+                    body, info = extract_fcs(fcs)
+                    if body != "":
+                        assert test_files[file]['in_body'] in body
+                        assert not test_files[file].get('has_warnings')
+                    else:
+                        assert test_files[file]['has_warnings']
+                        assert info['warnings']
+                    assert test_files[file]['in_meta_keys'] in info['metadata'].keys()
+                    assert test_files[file]['in_meta_values'] in info['metadata'].values()
+                    # when there's a body, check if columns only works
+                    if test_files[file].get('in_body'):
+                        body, info = extract_fcs(fcs, as_html=False)
+                        assert body == test_files[file]['columns_string']
 
     def test_long(self):
         """test a text file with lots of lines"""
