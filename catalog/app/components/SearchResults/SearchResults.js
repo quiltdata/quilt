@@ -99,7 +99,12 @@ function PackageHeader({ bucket, handle, revision, showBucket }) {
   const { urls } = NamedRoutes.use()
   return (
     <Heading mb={1}>
-      <HeaderIcon title="Package">all_inbox</HeaderIcon>
+      <HeaderIcon title="Package" component={M.SvgIcon} viewBox="-133 0 1264 1008">
+        <path
+          fill="currentColor"
+          d="M-2 918V446l1004 4v472c0 52-41 93-92 93H91c-52 0-93-43-93-97zM193 3h278v380H0c0-6 0-12 2-16L102 68c14-40 50-65 91-65zm709 63l100 299v2c2 4 2 8 2 12H534V1h277c41 0 77 25 91 65z"
+        />
+      </HeaderIcon>
       <span>
         {!!showBucket && (
           <>
