@@ -15,6 +15,7 @@ const fallback = {
 const loaderChain = [
   loaders.Csv,
   loaders.Excel,
+  loaders.Fcs,
   loaders.Json,
   loaders.Markdown,
   loaders.Notebook,
