@@ -121,7 +121,7 @@ class DocumentQueue:
                 "_id": f"{handle}:{package_hash}",
                 "handle": handle,
                 "hash": package_hash,
-                "metadata_text": metadata,
+                "metadata": metadata,
                 "pointer_file": pointer_file,
                 "tags": ",".join(tags)
             })
