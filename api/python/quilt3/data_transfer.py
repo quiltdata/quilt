@@ -312,7 +312,7 @@ def _download_file(ctx, size, src_bucket, src_key, src_version, dest_path):
         #         f.truncate(size)
 
     if src_version is not None:
-        params.update(dict(VersionId=src_version))
+        params.update(VersionId=src_version)
 
     part_size = s3_transfer_config.multipart_chunksize
     is_multi_part = (
@@ -635,7 +635,7 @@ def list_object_versions(bucket, prefix, recursive=True):
     )
     if not recursive:
         # Treat '/' as a directory separator and only return one level of files instead of everything.
-        list_obj_params.update(dict(Delimiter='/'))
+        list_obj_params.update(Delimiter='/')
 
     # TODO: make this a generator?
     versions = []
@@ -666,7 +666,7 @@ def list_objects(bucket, prefix, recursive=True):
                            Prefix=prefix)
     if not recursive:
         # Treat '/' as a directory separator and only return one level of files instead of everything.
-        list_obj_params.update(dict(Delimiter='/'))
+        list_obj_params.update(Delimiter='/')
 
     s3_client = S3ClientProvider().find_correct_client(S3Api.LIST_OBJECTS_V2, bucket, list_obj_params)
     paginator = s3_client.get_paginator('list_objects_v2')
@@ -811,7 +811,7 @@ def get_bytes(src: PhysicalKey):
     else:
         params = dict(Bucket=src.bucket, Key=src.path)
         if src.version_id is not None:
-            params.update(dict(VersionId=src.version_id))
+            params.update(VersionId=src.version_id)
         s3_client = S3ClientProvider().find_correct_client(S3Api.GET_OBJECT, src.bucket, params)
         resp = s3_client.get_object(**params)
         data = resp['Body'].read()
@@ -840,7 +840,7 @@ def get_size_and_version(src: PhysicalKey):
             Key=src.path
         )
         if src.version_id is not None:
-            params.update(dict(VersionId=src.version_id))
+            params.update(VersionId=src.version_id)
         s3_client = S3ClientProvider().find_correct_client(S3Api.HEAD_OBJECT, src.bucket, params)
         resp = s3_client.head_object(**params)
         size = resp['ContentLength']
@@ -895,7 +895,7 @@ def _calculate_sha256_internal(src_list, sizes, results):
             else:
                 params = dict(Bucket=src.bucket, Key=src.path)
                 if src.version_id is not None:
-                    params.update(dict(VersionId=src.version_id))
+                    params.update(VersionId=src.version_id)
                 try:
                     s3_client = S3ClientProvider().find_correct_client(S3Api.GET_OBJECT, src.bucket, params)
 
