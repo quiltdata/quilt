@@ -31,7 +31,7 @@ MIN_VCF_COLS = 8  # per 4.2 spec on header and data lines
 
 S3_DOMAIN_SUFFIX = '.amazonaws.com'
 
-FILE_EXTENSIONS = ["csv", "excel", "ipynb", "parquet", "vcf"]
+FILE_EXTENSIONS = ["csv", "excel", "fcs", "ipynb", "parquet", "vcf"]
 # BED https://genome.ucsc.edu/FAQ/FAQformat.html#format1
 TEXT_TYPES = ["bed", "txt"]
 FILE_EXTENSIONS.extend(TEXT_TYPES)
