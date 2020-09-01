@@ -88,8 +88,8 @@ const extractPkgData = ({ bucket, score, src }) => {
       revision: src.pointer_file || 'latest',
       hash: src.hash,
       lastModified: parseDate(src.last_modified),
-      meta: parseJSON(src.metadata_string),
-      tags: src.tags, // TODO: parse?
+      meta: parseJSON(src.metadata),
+      // tags: src.tags, // TODO: currently not provided
       comment: src.comment,
     },
   }
