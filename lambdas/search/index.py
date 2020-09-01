@@ -72,7 +72,7 @@ def lambda_handler(request):
                     # see enterprise/**/bucket.py for mappings
                     "fields": user_fields or [
                         # package
-                        'comment', 'handle', 'handle_text^2', 'metadata_string', 'tags'
+                        'comment', 'handle', 'handle_text^2', 'metadata', 'tags'
                     ]
                 }
             }
@@ -90,18 +90,18 @@ def lambda_handler(request):
                     "lenient": True,
                     "query": query,
                     # see enterprise/**/bucket.py for mappings
-                    "fields": [
+                    "fields": user_fields or [
                         # object
-                        'content', 'comment', 'key_text^2', 'meta_text',
+                        'content', 'comment^2', 'ext^2', 'key_text^2', 'meta_text',
                         # package, and boost the fields
-                        'comment^2', 'handle^2', 'handle_text^2', 'metadata_string^2', 'tags^2'
+                        'handle^2', 'handle_text^2', 'metadata^2', 'tags^2'
                     ]
                 }
             }
         }
-        _source = [
+        _source = user_source or [
             'key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta',
-            'comment', 'handle', 'hash', 'tags', 'metadata_string', 'pointer_file'
+            'comment', 'handle', 'hash', 'tags', 'metadata', 'pointer_file'
         ]
         size = DEFAULT_SIZE
     elif action == 'stats':
