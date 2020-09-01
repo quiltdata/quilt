@@ -76,7 +76,7 @@ def extract_fcs(file_, as_html=True):
     body = ""
     info = {}
     # per Lambda docs we can use tmp/*, OK to overwrite
-    file_path  = os.path.join(TEMP_DIR, "quilt-temp.fcs")
+    file_path = os.path.join(TEMP_DIR, "quilt-temp.fcs")
     # fcsparser only takes paths, so we need to write to disk; OK because
     # FCS files typically ~1MB
     with open(file_path, 'wb') as real_file:
@@ -100,7 +100,6 @@ def extract_fcs(file_, as_html=True):
     info['metadata'] = meta
 
     return body, info
-
 
 
 def extract_parquet(file_, as_html=True, skip_rows=False):
