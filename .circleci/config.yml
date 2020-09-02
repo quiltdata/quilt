@@ -26,7 +26,7 @@ commands:
       - run:
           name: Upload coverage report
           command: |
-            curl -sS --connect-timeout 5 --retry 10 -o codecov-upload.sh https://codecov.io/bash
+            curl --connect-timeout 5 --retry 10 -o codecov-upload.sh https://codecov.io/bash
             bash codecov-upload.sh -n "$CIRCLE_JOB" -F "<< parameters.flags >>" -Z
 
 workflows:
