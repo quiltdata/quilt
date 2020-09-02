@@ -17,6 +17,16 @@ commands:
             else
               echo ". venv/Scripts/activate" >> $BASH_ENV # for Windows
             fi
+  codecov:
+    parameters:
+      flags:
+        type: string
+        default: ""
+    steps:
+      - run:
+          name: Upload coverage report
+          command: |
+            curl -sS --retry 2 https://codecov.io/bash | bash -s -- -n "$CIRCLE_JOB" -F "<< parameters.flags >>" -Z
 
 workflows:
   version: 2
@@ -82,7 +92,8 @@ test-base: &test-base
         name: Run Pytest
         command: |
           pytest --cov=api/python api/python
-          bash <(curl -s https://codecov.io/bash) -n $CIRCLE_JOB -F api-python
+    - codecov:
+          flags: "api-python"
 
 jobs:
   linter:
@@ -155,7 +166,8 @@ jobs:
           name: Pytest
           command: |
             pytest --cov=lambdas lambdas/<< parameters.path >>
-            bash <(curl -s https://codecov.io/bash) -n $CIRCLE_JOB -F lambda
+      - codecov:
+          flags: "lambda"
 
   build:
     docker:
@@ -179,7 +191,8 @@ jobs:
           name: run tests
           command: |
             pytest --cov=api/python api/python
-            bash <(curl -s https://codecov.io/bash) -n $CIRCLE_JOB -F api-python
+      - codecov:
+          flags: "api-python"
       - store_artifacts:
           path: htmlcov/
 
@@ -220,5 +233,6 @@ jobs:
       - run:
           name: upload to pypi
           command: |
+            cd api/python
             pip install twine==3.1.1
             twine upload dist/*
