@@ -73,7 +73,11 @@ function Header({ handle, showBucket }) {
           width={24}
           my={{ xs: -0.25, md: 0 }}
         >
-          <M.IconButton href={getUrl(handle)} title="Download" download>
+          <M.IconButton
+            href={getUrl(handle, { ResponseContentDisposition: 'attachment' })}
+            title="Download"
+            download
+          >
             <M.Icon>arrow_downward</M.Icon>
           </M.IconButton>
         </M.Box>

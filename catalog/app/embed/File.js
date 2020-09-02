@@ -27,7 +27,7 @@ import Code from 'containers/Bucket/Code'
 import FilePreview from 'containers/Bucket/FilePreview'
 import Section from 'containers/Bucket/Section'
 import * as requests from 'containers/Bucket/requests'
-import { withSignedUrl } from 'containers/Bucket/utils'
+import { withDownloadUrl } from 'containers/Bucket/utils'
 
 import * as EmbedConfig from './EmbedConfig'
 
@@ -136,7 +136,7 @@ function VersionInfo({ bucket, path, version }) {
                   {!cfg.noDownload && (
                     <M.ListItemSecondaryAction>
                       {!v.deleteMarker &&
-                        withSignedUrl({ bucket, key: path, version: v.id }, (url) => (
+                        withDownloadUrl({ bucket, key: path, version: v.id }, (url) => (
                           <M.IconButton
                             href={url}
                             title="Download this version of the object"
@@ -422,7 +422,7 @@ export default function File({
         </div>
         <div className={classes.spacer} />
         {downloadable &&
-          withSignedUrl({ bucket, key: path, version }, (url) =>
+          withDownloadUrl({ bucket, key: path, version }, (url) =>
             xs ? (
               <M.IconButton
                 className={classes.button}

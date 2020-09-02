@@ -27,7 +27,7 @@ import Code from './Code'
 import FilePreview from './FilePreview'
 import Section from './Section'
 import * as requests from './requests'
-import { withSignedUrl } from './utils'
+import { withDownloadUrl } from './utils'
 
 const getCrumbs = ({ bucket, path, urls }) =>
   R.chain(
@@ -134,7 +134,7 @@ function VersionInfo({ bucket, path, version }) {
                   {!cfg.noDownload && (
                     <M.ListItemSecondaryAction>
                       {!v.deleteMarker &&
-                        withSignedUrl({ bucket, key: path, version: v.id }, (url) => (
+                        withDownloadUrl({ bucket, key: path, version: v.id }, (url) => (
                           <M.IconButton
                             href={url}
                             title="Download this version of the object"
@@ -419,7 +419,7 @@ export default function File({
         </div>
         <div className={classes.spacer} />
         {downloadable &&
-          withSignedUrl({ bucket, key: path, version }, (url) =>
+          withDownloadUrl({ bucket, key: path, version }, (url) =>
             xs ? (
               <M.IconButton
                 className={classes.button}
