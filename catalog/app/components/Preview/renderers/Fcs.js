@@ -1,5 +1,4 @@
 import cx from 'classnames'
-import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -10,12 +9,6 @@ import { renderWarnings } from './util'
 const useStyles = M.makeStyles((t) => ({
   root: {
     width: '100%',
-  },
-  meta: {},
-  metaName: {
-    paddingRight: t.spacing(1),
-    textAlign: 'left',
-    verticalAlign: 'top',
   },
   dataframe: {
     overflow: 'auto',
@@ -46,30 +39,18 @@ const useStyles = M.makeStyles((t) => ({
 
 function Fcs({ className, preview, metadata, note, warnings, ...props }) {
   const classes = useStyles()
-  const renderMeta = (name, value, render = R.identity) =>
-    !!value && (
-      <tr>
-        <th className={classes.metaName}>{name}</th>
-        <td>{render(value)}</td>
-      </tr>
-    )
-
   return (
     <div className={cx(className, classes.root)} {...props}>
       {renderWarnings(warnings)}
-      <table className={classes.meta}>
-        <tbody>
-          {renderMeta('Metadata:', metadata, (m) => (
-            <JsonDisplay value={m} />
-          ))}
-        </tbody>
-      </table>
-      <div
-        title={note}
-        className={classes.dataframe}
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: preview }}
-      />
+      {!!metadata && <JsonDisplay name="Metadata" value={metadata} />}
+      {!!preview && (
+        <div
+          title={note}
+          className={classes.dataframe}
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: preview }}
+        />
+      )}
     </div>
   )
 }
