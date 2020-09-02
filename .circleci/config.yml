@@ -26,7 +26,7 @@ commands:
       - run:
           name: Upload coverage report
           command: |
-            curl -sS --retry 2 https://codecov.io/bash | bash -s -- -n "$CIRCLE_JOB" -F "<< parameters.flags >>" -Z
+            curl -sS --retry 5 https://codecov.io/bash | bash -s -- -n "$CIRCLE_JOB" -F "<< parameters.flags >>" -Z
 
 workflows:
   version: 2
