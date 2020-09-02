@@ -8,7 +8,13 @@ const IconExpand = () => <Icon fontSize="small">chevron_right</Icon>
 const IconCollapse = () => <Icon fontSize="small">expand_more</Icon>
 
 function Key({ children, ...props }) {
-  return !!children && <Box {...props}>{children}: </Box>
+  return (
+    !!children && (
+      <Box fontWeight="fontWeightBold" {...props}>
+        {children}:{' '}
+      </Box>
+    )
+  )
 }
 
 const formatValue = R.cond([
