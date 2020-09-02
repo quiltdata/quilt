@@ -51,10 +51,6 @@ const catchErrors = (pairs = []) =>
 const withErrorHandling = (fn, pairs) => (...args) =>
   fn(...args).catch(catchErrors(pairs))
 
-const mapAllP = R.curry((fn, list) => Promise.all(list.map(fn)))
-
-const mergeAllP = (...ps) => Promise.all(ps).then(R.mergeAll)
-
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
 
@@ -620,7 +616,6 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
 
 const PACKAGES_PREFIX = '.quilt/named_packages/'
 const MANIFESTS_PREFIX = '.quilt/packages/'
-const MAX_REVISIONS = 100
 
 const fetchPackagesAccessCounts = async ({
   s3,
@@ -671,53 +666,48 @@ const fetchPackagesAccessCounts = async ({
   }
 }
 
-const listPackageOwnerPrefixes = ({ s3, bucket }) =>
-  s3
-    .listObjectsV2({ Bucket: bucket, Prefix: PACKAGES_PREFIX, Delimiter: '/' })
-    .promise()
-    .then((r) => r.CommonPrefixes.map((p) => p.Prefix))
-
-const listPackagePrefixes = ({ s3, bucket, ownerPrefix }) =>
-  drainObjectList({
-    s3,
-    Bucket: bucket,
-    Prefix: ownerPrefix,
-    Delimiter: '/',
-  }).then((r) => r.CommonPrefixes.map((p) => p.Prefix))
-
-const fetchPackageLatest = ({ s3, bucket, prefix }) =>
-  s3
-    .listObjectsV2({ Bucket: bucket, Prefix: `${prefix}latest` })
-    .promise()
-    .then(({ Contents: [latest] }) => {
-      const name = prefix.slice(PACKAGES_PREFIX.length, -1)
-      if (!latest) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `Unable to get latest revision: missing 'latest' file under the '${PACKAGES_PREFIX}${name}/' prefix`,
-        )
+const mkFilterQuery = (filter) =>
+  filter
+    ? {
+        wildcard: {
+          handle: {
+            value: filter.includes('*') ? filter : `*${filter}*`,
+          },
+        },
       }
-      return {
-        name,
-        modified: latest ? latest.LastModified : null,
-      }
-    })
+    : { match_all: {} }
 
-const fetchPackageRevisions = ({ s3, bucket, prefix }) =>
-  s3
-    .listObjectsV2({
-      Bucket: bucket,
-      Prefix: prefix,
-      MaxKeys: MAX_REVISIONS + 1, // 1 for `latest`
-    })
-    .promise()
-    .then(({ Contents, IsTruncated }) => ({
-      revisions: Contents.length - 1,
-      revisionsTruncated: IsTruncated,
-    }))
+export const countPackages = withErrorHandling(async ({ req, bucket, filter }) => {
+  const body = {
+    query: mkFilterQuery(filter),
+    aggs: {
+      total: {
+        cardinality: { field: 'handle' },
+      },
+    },
+  }
+  const result = await req('/search', {
+    index: `${bucket}_packages`,
+    action: 'packages',
+    body: JSON.stringify(body),
+    size: 0,
+  })
+  return result.aggregations.total.value
+})
 
 export const listPackages = withErrorHandling(
-  async ({ s3, analyticsBucket, bucket, today, analyticsWindow = 30 }) => {
+  async ({
+    req,
+    s3,
+    analyticsBucket,
+    bucket,
+    filter,
+    sort = 'name', // name | modified
+    perPage = 30,
+    page = 1,
+    today,
+    analyticsWindow = 30,
+  }) => {
     const countsP =
       analyticsBucket &&
       fetchPackagesAccessCounts({
@@ -727,20 +717,49 @@ export const listPackages = withErrorHandling(
         today,
         window: analyticsWindow,
       })
-    const packages = await listPackageOwnerPrefixes({ s3, bucket })
-      .then(
-        mapAllP((ownerPrefix) =>
-          listPackagePrefixes({ s3, bucket, ownerPrefix }).then(
-            mapAllP((prefix) =>
-              mergeAllP(
-                fetchPackageLatest({ s3, bucket, prefix }),
-                fetchPackageRevisions({ s3, bucket, prefix }),
-              ),
-            ),
-          ),
-        ),
-      )
-      .then(R.unnest)
+
+    const body = {
+      query: mkFilterQuery(filter),
+      aggs: {
+        packages: {
+          composite: {
+            // the limit is configured in ES cluster settings (search.max_buckets)
+            size: 10000,
+            sources: [
+              {
+                handle: {
+                  terms: { field: 'handle' },
+                },
+              },
+            ],
+          },
+          aggs: {
+            modified: {
+              max: { field: 'last_modified' },
+            },
+            sort: {
+              bucket_sort: {
+                sort: sort === 'modified' ? [{ modified: { order: 'desc' } }] : undefined,
+                size: perPage,
+                from: perPage * (page - 1),
+              },
+            },
+          },
+        },
+      },
+    }
+    const result = await req('/search', {
+      index: `${bucket}_packages`,
+      action: 'packages',
+      body: JSON.stringify(body),
+      size: 0,
+    })
+    const packages = result.aggregations.packages.buckets.map((b) => ({
+      name: b.key.handle,
+      modified: new Date(b.modified.value),
+      revisions: b.doc_count,
+    }))
+
     if (!countsP) return packages
     const counts = await countsP
     return packages.map((p) => ({ ...p, views: counts[p.name] }))

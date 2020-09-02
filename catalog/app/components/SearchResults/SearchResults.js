@@ -16,7 +16,7 @@ import { readableBytes } from 'utils/string'
 
 const CrumbLink = M.styled(StyledLink)({ wordBreak: 'break-word' })
 
-function Crumbs({ handle, showBucket = false }) {
+function ObjectCrumbs({ handle, showBucket = false }) {
   const { urls } = NamedRoutes.use()
 
   const crumbs = React.useMemo(() => {
@@ -40,6 +40,7 @@ function Crumbs({ handle, showBucket = false }) {
 
   return (
     <span onCopy={copyWithoutSpaces}>
+      <HeaderIcon title="File">insert_drive_file</HeaderIcon>
       {crumbs.bucket && (
         <>
           <CrumbLink {...crumbs.bucket} />
@@ -57,12 +58,24 @@ function Crumbs({ handle, showBucket = false }) {
   )
 }
 
-function Header({ handle, showBucket }) {
+function HeaderIcon(props) {
+  return (
+    <M.Box
+      component={M.Icon}
+      color="text.hint"
+      mr={1}
+      style={{ verticalAlign: 'middle' }}
+      {...props}
+    />
+  )
+}
+
+function ObjectHeader({ handle, showBucket }) {
   const getUrl = AWS.Signer.useS3Signer()
   const cfg = Config.use()
   return (
-    <Heading display="flex" mb={1}>
-      <Crumbs {...{ handle, showBucket }} />
+    <Heading display="flex" alignItems="center" mb={1}>
+      <ObjectCrumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
       {!cfg.noDownload && (
         <M.Box
@@ -82,6 +95,40 @@ function Header({ handle, showBucket }) {
           </M.IconButton>
         </M.Box>
       )}
+    </Heading>
+  )
+}
+
+function PackageHeader({ bucket, handle, revision, showBucket }) {
+  const { urls } = NamedRoutes.use()
+  return (
+    <Heading mb={1}>
+      <HeaderIcon title="Package" component={M.SvgIcon} viewBox="-133 0 1264 1008">
+        <path
+          fill="currentColor"
+          d="M-2 918V446l1004 4v472c0 52-41 93-92 93H91c-52 0-93-43-93-97zM193 3h278v380H0c0-6 0-12 2-16L102 68c14-40 50-65 91-65zm709 63l100 299v2c2 4 2 8 2 12H534V1h277c41 0 77 25 91 65z"
+        />
+      </HeaderIcon>
+      <span>
+        {!!showBucket && (
+          <>
+            <CrumbLink to={urls.bucketPackageList(bucket)}>{bucket}</CrumbLink>
+            &nbsp;/{' '}
+          </>
+        )}
+        <CrumbLink to={urls.bucketPackageTree(bucket, handle, revision)}>
+          {handle}
+          {revision !== 'latest' && (
+            <>
+              <M.Box component="span" color="text.hint">
+                @
+              </M.Box>
+              {revision}
+            </>
+          )}
+        </CrumbLink>
+      </span>
+      <M.Box flexGrow={1} />
     </Heading>
   )
 }
@@ -313,16 +360,102 @@ function Meta({ meta }) {
   )
 }
 
+const useRevisionInfoStyles = M.makeStyles((t) => ({
+  revision: {
+    ...t.typography.subtitle1,
+    color: t.palette.text.secondary,
+    fontWeight: t.typography.fontWeightLight,
+    marginTop: t.spacing(2),
+  },
+  mono: {
+    fontFamily: t.typography.monospace.fontFamily,
+    fontWeight: t.typography.fontWeightMedium,
+  },
+  msg: {
+    ...t.typography.body2,
+    WebkitBoxOrient: 'vertical',
+    WebkitLineClamp: 2,
+    display: '-webkit-box',
+    marginTop: t.spacing(1),
+    overflow: 'hidden',
+    overflowWrap: 'break-word',
+    textOverflow: 'ellipsis',
+  },
+  hash: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    fontFamily: t.typography.monospace.fontFamily,
+    marginTop: t.spacing(1),
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+}))
+
+function RevisionInfo({ bucket, handle, revision, hash, comment, lastModified }) {
+  const classes = useRevisionInfoStyles()
+  const { urls } = NamedRoutes.use()
+  return (
+    <M.Box>
+      <p className={classes.revision}>
+        <Nowrap>
+          Revision{' '}
+          <StyledLink
+            to={urls.bucketPackageTree(bucket, handle, revision)}
+            className={classes.mono}
+          >
+            {revision}
+          </StyledLink>
+        </Nowrap>{' '}
+        <Nowrap>
+          from <Bold>{lastModified.toLocaleString()}</Bold>
+        </Nowrap>
+      </p>
+      <p className={classes.msg}>{comment || <i>No message</i>}</p>
+      <p className={classes.hash}>{hash}</p>
+    </M.Box>
+  )
+}
+
 const getDefaultVersion = (versions) => versions.find((v) => !!v.id) || versions[0]
 
-export function Hit({ showBucket, hit: { path, versions, bucket } }) {
+function ObjectHit({ showBucket, hit: { path, versions, bucket } }) {
   const v = getDefaultVersion(versions)
   return (
     <Section>
-      <Header handle={{ bucket, key: path, version: v.id }} showBucket={showBucket} />
+      <ObjectHeader
+        handle={{ bucket, key: path, version: v.id }}
+        showBucket={showBucket}
+      />
       <VersionInfo bucket={bucket} path={path} version={v} versions={versions} />
       <Meta meta={v.meta} />
       <PreviewDisplay handle={{ bucket, key: path, version: v.id }} />
     </Section>
   )
+}
+
+function PackageHit({
+  showBucket,
+  hit: { bucket, handle, revision, hash, lastModified, meta, tags, comment },
+}) {
+  return (
+    <Section>
+      <PackageHeader {...{ handle, bucket, revision, showBucket }} />
+      <RevisionInfo {...{ bucket, handle, revision, hash, comment, lastModified }} />
+      {tags && tags.length > 0 && (
+        <M.Box mt={2}>
+          {tags.map((t) => (
+            <React.Fragment key={t}>
+              <M.Chip variant="outlined" size="small" label={t} />{' '}
+            </React.Fragment>
+          ))}
+        </M.Box>
+      )}
+      <Meta meta={meta} />
+    </Section>
+  )
+}
+
+export function Hit(props) {
+  const Component = props.hit.type === 'object' ? ObjectHit : PackageHit
+  return <Component {...props} />
 }

@@ -24,6 +24,8 @@ import WithGlobalStyles from '../global-styles'
 
 import { translationMessages } from '../i18n'
 
+const SRC = '/__embed'
+
 function useField(init) {
   const [value, set] = React.useState(init)
   const onChange = React.useCallback(
@@ -87,6 +89,12 @@ function Embedder() {
     postMessage({ type: 'init', ...initParams })
   }, [postMessage, initParams])
 
+  const reloadIframe = React.useCallback(() => {
+    if (iframeRef.current) {
+      iframeRef.current.src = SRC
+    }
+  }, [iframeRef])
+
   return (
     <M.Box display="flex" justifyContent="space-between" p={2} maxHeight="100vh">
       <M.Box
@@ -130,6 +138,11 @@ function Embedder() {
           init
         </M.Button>
 
+        <M.Box mt={1} />
+        <M.Button variant="outlined" onClick={reloadIframe}>
+          reload iframe
+        </M.Button>
+
         <M.Box
           component="pre"
           mt={2}
@@ -144,7 +157,7 @@ function Embedder() {
 
       <iframe
         title="embed"
-        src="/__embed"
+        src={SRC}
         width="900"
         height="600"
         ref={iframeRef}

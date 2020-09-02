@@ -1,5 +1,5 @@
+import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Message from 'components/Message'
@@ -14,6 +14,18 @@ import search from 'utils/search'
 import usePrevious from 'utils/usePrevious'
 
 const PER_PAGE = 10
+
+function Alt({ ...props }) {
+  return (
+    <M.Box
+      borderTop={{ xs: 1, sm: 0 }}
+      borderColor="divider"
+      pt={3}
+      px={{ xs: 2, sm: 0 }}
+      {...props}
+    />
+  )
+}
 
 function Hits({ hits, page, scrollRef, makePageUrl }) {
   const actualPage = page || 1
@@ -34,82 +46,77 @@ function Hits({ hits, page, scrollRef, makePageUrl }) {
   return (
     <>
       {paginated.map((hit) => (
-        <SearchResults.Hit key={hit.path} hit={hit} />
+        <SearchResults.Hit key={hit.key} hit={hit} />
       ))}
       {pages > 1 && <Pagination {...{ pages, page: actualPage, makePageUrl }} />}
     </>
   )
 }
 
-function Results({ bucket, query, page, makePageUrl }) {
-  const { urls } = NamedRoutes.use()
-  const es = AWS.ES.use()
-  const scrollRef = React.useRef(null)
-  const data = Data.use(search, { es, buckets: [bucket], query })
+function Results({ bucket, query, page, makePageUrl, scrollRef }) {
+  const req = AWS.APIGateway.use()
+  const data = Data.use(search, { req, buckets: [bucket], mode: 'objects', query })
   return data.case({
     _: () => (
-      <Delay alwaysRender>
-        {(ready) => (
-          <M.Fade in={ready}>
-            <M.Box
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              px={{ xs: 2, sm: 0 }}
-              pt={{ xs: 2, sm: 4 }}
-            >
-              <M.Box pr={2}>
-                <M.CircularProgress size={24} />
+      <Alt>
+        <Delay alwaysRender>
+          {(ready) => (
+            <M.Fade in={ready}>
+              <M.Box display="flex" alignItems="center">
+                <M.Box pr={2}>
+                  <M.CircularProgress size={24} />
+                </M.Box>
+                <M.Typography variant="body1">
+                  Searching s3://{bucket} for &quot;{query}&quot;
+                </M.Typography>
               </M.Box>
-              <M.Typography variant="body1">
-                Searching s3://{bucket} for &quot;{query}&quot;
-              </M.Typography>
-            </M.Box>
-          </M.Fade>
-        )}
-      </Delay>
+            </M.Fade>
+          )}
+        </Delay>
+      </Alt>
     ),
-    Err: () => (
-      <Message headline="Server Error">
-        Something went wrong.
-        <br />
-        <br />
-        <M.Button onClick={data.fetch} color="primary" variant="contained">
-          Retry
-        </M.Button>
-      </Message>
-    ),
-    Ok: ({ total, hits }) => (
-      <>
-        <div ref={scrollRef} />
-        {total ? (
-          <M.Box pt={{ xs: 2, sm: 3 }} pb={{ xs: 2, sm: 1 }} px={{ xs: 2, sm: 0 }}>
-            <M.Typography variant="h5">
-              Search results for &quot;{query}&quot; ({total} hits, {hits.length} files)
-            </M.Typography>
-            <Hits {...{ hits, page, scrollRef, makePageUrl }} />
-          </M.Box>
-        ) : (
-          <M.Box
-            pt={{ xs: 2, sm: 4 }}
-            pb={{ xs: 2, sm: 1 }}
-            px={{ xs: 2, sm: 0 }}
-            textAlign="center"
-          >
-            <M.Typography variant="h5" gutterBottom>
-              Nothing found for &quot;{query}&quot;
-            </M.Typography>
-            <M.Typography variant="body1">
-              We have not found anything matching your query
-            </M.Typography>
-            <br />
-            <M.Button component={Link} to={urls.bucketDir(bucket)} variant="outlined">
-              Browse the bucket
-            </M.Button>
-          </M.Box>
-        )}
-      </>
-    ),
+    Err: R.cond([
+      [
+        R.propEq('message', 'TooManyRequests'),
+        () => (
+          <Alt>
+            <Message headline="Too many requests">
+              Processing a lot of requests. Please try your search again in a few minutes.
+              <br />
+              <br />
+              <M.Button onClick={data.fetch} color="primary" variant="contained">
+                Retry
+              </M.Button>
+            </Message>
+          </Alt>
+        ),
+      ],
+      [
+        R.T,
+        () => (
+          <Alt>
+            <Message headline="Server Error">
+              Something went wrong.
+              <br />
+              <br />
+              <M.Button onClick={data.fetch} color="primary" variant="contained">
+                Retry
+              </M.Button>
+            </Message>
+          </Alt>
+        ),
+      ],
+    ]),
+    Ok: ({ total, hits }) =>
+      total ? (
+        <Hits {...{ hits, page, scrollRef, makePageUrl }} />
+      ) : (
+        <Alt>
+          <M.Typography variant="body1">
+            We have not found anything matching your query
+          </M.Typography>
+        </Alt>
+      ),
   })
 }
 
@@ -126,9 +133,11 @@ export default function Search({
     (newP) => urls.bucketSearch(bucket, query, newP !== 1 ? newP : undefined),
     [urls, bucket, query],
   )
+  const scrollRef = React.useRef(null)
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-      <Results {...{ bucket, query, page, makePageUrl }} />
+      <M.Box position="relative" top={-80} ref={scrollRef} />
+      <Results {...{ bucket, query, page, makePageUrl, scrollRef }} />
     </M.Box>
   )
 }
