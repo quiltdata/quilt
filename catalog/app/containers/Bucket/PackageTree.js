@@ -534,7 +534,9 @@ export default function PackageTree({
                 xs ? (
                   <M.IconButton
                     className={classes.button}
-                    href={getSignedS3URL(handle)}
+                    href={getSignedS3URL(handle, {
+                      ResponseContentDisposition: 'attachment',
+                    })}
                     edge="end"
                     size="small"
                     download
@@ -543,7 +545,9 @@ export default function PackageTree({
                   </M.IconButton>
                 ) : (
                   <M.Button
-                    href={getSignedS3URL(handle)}
+                    href={getSignedS3URL(handle, {
+                      ResponseContentDisposition: 'attachment',
+                    })}
                     className={classes.button}
                     variant="outlined"
                     size="small"

@@ -47,7 +47,7 @@ export const useS3Signer = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {}) => 
             Expires: urlExpiration,
             ...opts,
           })
-        : handleToHttpsUri({ bucket, key, version }),
+        : handleToHttpsUri({ bucket, key, version }), // TODO: handle ResponseContentDisposition for unsigned case
     [mode, isInStack, authenticated, s3, urlExpiration],
   )
 }
