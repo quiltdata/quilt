@@ -3,20 +3,23 @@ Test functions for preview endpoint
 """
 import json
 import os
-import pathlib
+from pathlib import Path
 import re
-from unittest.mock import ANY, patch
 
 import pyarrow.parquet as pq
 import responses
+from urllib.parse import quote
+from unittest.mock import ANY, patch
+
 
 from t4_lambda_shared.utils import read_body
-
 from .. import index
+
 
 MOCK_ORIGIN = 'http://localhost:3000'
 
-BASE_DIR = pathlib.Path(__file__).parent / 'data'
+
+BASE_DIR = Path(__file__).parent / 'data'
 
 
 # pylint: disable=no-member,invalid-sequence-index
@@ -38,6 +41,55 @@ class TestIndex():
             'body': None,
             'isBase64Encoded': False,
         }
+
+    @responses.activate
+    def test_fcs(self):
+        """test fcs extraction
+        for extended testing you can download FCS files here
+        https://flowrepository.org/experiments/4/download_ziped_files,
+        copy to data/fcs/ and run this unit test (and comment out the 3
+        `assert name ==` lines below)
+        """
+        parent = BASE_DIR / "fcs"
+        fcs_files = parent.glob("*.fcs")
+        first = True
+        for fcs in fcs_files:
+            _, name = os.path.split(fcs)
+            file_bytes = fcs.read_bytes()
+            if first:
+                responses.add(
+                    responses.GET,
+                    self.FILE_URL,
+                    body=file_bytes,
+                    status=200,
+                )
+                first = False
+            else:
+                responses.replace(
+                    responses.GET,
+                    self.FILE_URL,
+                    body=file_bytes,
+                    status=200,
+                )
+ 
+            event = self._make_event({'url': self.FILE_URL, 'input': 'fcs'})
+            resp = index.lambda_handler(event, None)
+            assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
+            body = json.loads(read_body(resp))
+            assert 'info' in body
+            if 'warnings' not in body['info']:
+                assert name == 'accuri-ao1.fcs'
+                assert body['html'].startswith('<div>')
+                assert body['html'].endswith('</div>')
+                assert body['info']['metadata'].keys()
+            else:
+                assert not body['html']
+                if 'metadata' not in body['info']:
+                    assert body['info']['warnings'].startswith('Unable')
+                    assert name == 'bad.fcs'
+                else:
+                    pass
+                    assert name == '3215apc 100004.fcs'
 
     def test_bad(self):
         """send a known bad event (no input query parameter)"""

@@ -96,6 +96,8 @@ class TestPreview(TestCase):
                     assert test_files[file]['in_meta_values'] in info['metadata'].values()
                     # when there's a body, check if columns only works
                     if test_files[file].get('in_body'):
+                        # move to start so we can use the file-like a second time
+                        fcs.seek(0)
                         body, info = extract_fcs(fcs, as_html=False)
                         assert body == test_files[file]['columns_string']
 

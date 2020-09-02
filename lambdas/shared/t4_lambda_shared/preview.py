@@ -80,14 +80,15 @@ def extract_fcs(file_, as_html=True):
     # fcsparser only takes paths, so we need to write to disk; OK because
     # FCS files typically ~1MB
     with open(file_path, 'wb') as real_file:
-        # seek is actually for unit tests but is not dangerous otherwise
-        file_.seek(0)
         real_file.write(file_.read())
     try:
         meta, data = fcsparser.parse(file_path, reformat_meta=True)
-    except Exception as exc:  # pylint: disable=broad-except
-        meta = fcsparser.parse(file_path, reformat_meta=True, meta_data_only=True)
-        info['warnings'] = f".parse() exception: {exc}"
+    except Exception as first:  # pylint: disable=broad-except
+        try:
+            meta = fcsparser.parse(file_path, reformat_meta=True, meta_data_only=True)
+            info['warnings'] = f"Metadata only. Parse exception: {first}"
+        except Exception as second:  # pylint: disable=broad-except
+            info['warnings'] = f"Unable to parse data or metadata: {second}"
 
     if data is not None:
         assert isinstance(data, pandas.DataFrame)
@@ -97,7 +98,10 @@ def extract_fcs(file_, as_html=True):
         # indexing
         else:
             body = ",".join(data.columns)
-    info['metadata'] = meta
+
+    if meta:
+        # make sure all the things are string so that json.dumps succeeds
+        info['metadata'] = {str(k): str(v) for k, v in meta.items()}
 
     return body, info
 
