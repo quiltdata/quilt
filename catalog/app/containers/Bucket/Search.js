@@ -315,6 +315,7 @@ function ModeSelector({ mode, onChange }) {
     controls
   )
 }
+
 const useSearchStyles = M.makeStyles((t) => ({
   paper: {
     paddingLeft: t.spacing(1.5),
