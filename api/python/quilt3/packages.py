@@ -1312,7 +1312,7 @@ class Package:
             navigator_url = get_from_config("navigator_url")
 
             print(f"Successfully pushed the new package to "
-                  f"{catalog_package_url(navigator_url, dest_parsed.bucket, name)}")
+                  f"{catalog_package_url(navigator_url, dest_parsed.bucket, name, tree=False)}")
         else:
             dest_s3_url = str(dest_parsed)
             if not dest_s3_url.endswith("/"):
