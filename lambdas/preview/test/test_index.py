@@ -8,7 +8,6 @@ import re
 
 import pyarrow.parquet as pq
 import responses
-from urllib.parse import quote
 from unittest.mock import ANY, patch
 
 
@@ -71,7 +70,7 @@ class TestIndex():
                     body=file_bytes,
                     status=200,
                 )
- 
+
             event = self._make_event({'url': self.FILE_URL, 'input': 'fcs'})
             resp = index.lambda_handler(event, None)
             assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
