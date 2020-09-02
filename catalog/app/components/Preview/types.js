@@ -27,6 +27,7 @@ export const PreviewData = tagged([
   'DataFrame', // { preview: string, ...PreviewStatus }
   'Image', // { handle: object }
   'IFrame', // { src: string }
+  'Fcs', // { preview: string, metadata: object, ...PreviewStatus }
   'Markdown', // { rendered: string }
   'Notebook', // { preview: string, ...PreviewStatus }
   'Parquet', // { preview: string, ...ParquetMeta, ...PreviewStatus }
