@@ -5,6 +5,7 @@ from io import BytesIO
 import math
 import os
 import re
+from uuid import uuid4
 import zlib
 
 import fcsparser
@@ -75,8 +76,9 @@ def extract_fcs(file_, as_html=True):
     data = None
     body = ""
     info = {}
+    # not using tempfile because not sure if it writes to the write place in lambda
     # per Lambda docs we can use tmp/*, OK to overwrite
-    file_path = os.path.join(TEMP_DIR, "quilt-temp.fcs")
+    file_path = os.path.join(TEMP_DIR, str(uuid4()))
     # fcsparser only takes paths, so we need to write to disk; OK because
     # FCS files typically ~1MB
     with open(file_path, 'wb') as real_file:
