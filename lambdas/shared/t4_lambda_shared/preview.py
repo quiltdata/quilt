@@ -27,7 +27,7 @@ CATALOG_LIMIT_LINES = 512  # must be positive int
 ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_LIMIT_LINES = 100_000
 MAX_PREVIEW_ROWS = 1_000
-TEMP_DIR = os.path.join('/tmp/', '')
+READ_CHUNK = 1024
 # common string used to explain truncation to user
 TRUNCATED = (
     'Rows and columns truncated for preview. '
@@ -79,10 +79,14 @@ def extract_fcs(file_, as_html=True):
     # fcsparser only takes paths, so we need to write to disk; OK because
     # FCS files typically < 500MB (Lambda disk)
     # per Lambda docs we can use tmp/*, OK to overwrite
-    with tempfile.NamedTemporaryFile(prefix=TEMP_DIR) as tmp:
-        inbound = file_.read()
-        tmp.write(inbound)
+    with tempfile.NamedTemporaryFile() as tmp:
+
+        chunk = file_.read(READ_CHUNK)
+        while chunk:
+            tmp.write(chunk)
+            chunk = file_.read(READ_CHUNK)
         tmp.flush()
+
         try:
             meta, data = fcsparser.parse(tmp.name, reformat_meta=True)
         # ValueError from fcsparser, TypeError from numpy
