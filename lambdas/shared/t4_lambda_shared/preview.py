@@ -27,7 +27,7 @@ CATALOG_LIMIT_LINES = 512  # must be positive int
 ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_LIMIT_LINES = 100_000
 MAX_PREVIEW_ROWS = 1_000
-TEMP_DIR = "/tmp/"
+TEMP_DIR = os.path.join('/tmp/', '')
 # common string used to explain truncation to user
 TRUNCATED = (
     'Rows and columns truncated for preview. '
@@ -81,7 +81,6 @@ def extract_fcs(file_, as_html=True):
     # per Lambda docs we can use tmp/*, OK to overwrite
     with tempfile.NamedTemporaryFile(prefix=TEMP_DIR) as tmp:
         tmp.write(file_.read())
-        tmp.seek(0)
         try:
             meta, data = fcsparser.parse(tmp.name, reformat_meta=True)
         except Exception as first:  # pylint: disable=broad-except
