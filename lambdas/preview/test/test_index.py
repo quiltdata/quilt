@@ -46,11 +46,16 @@ class TestIndex():
         """test fcs extraction
         for extended testing you can download FCS files here
         https://flowrepository.org/experiments/4/download_ziped_files,
-        copy to data/fcs/ and run this unit test (and comment out the 3
-        `assert name ==` lines below)
+        copy to data/fcs/ and run this unit test
         """
         parent = BASE_DIR / "fcs"
-        fcs_files = parent.glob("*.fcs")
+        fcs_files = list(parent.glob("*.fcs"))
+        extended = False
+        if (
+                set(os.path.split(f)[1] for f in fcs_files)
+                != set(['accuri-ao1.fcs', 'bad.fcs', '3215apc 100004.fcs'])
+         ):
+            extended = True
         first = True
         for fcs in fcs_files:
             _, name = os.path.split(fcs)
@@ -77,7 +82,8 @@ class TestIndex():
             body = json.loads(read_body(resp))
             assert 'info' in body
             if 'warnings' not in body['info']:
-                assert name == 'accuri-ao1.fcs'
+                if not extended:
+                    assert name == 'accuri-ao1.fcs'
                 assert body['html'].startswith('<div>')
                 assert body['html'].endswith('</div>')
                 assert body['info']['metadata'].keys()
@@ -85,10 +91,11 @@ class TestIndex():
                 assert not body['html']
                 if 'metadata' not in body['info']:
                     assert body['info']['warnings'].startswith('Unable')
-                    assert name == 'bad.fcs'
+                    if not extended:
+                        assert name == 'bad.fcs'
                 else:
-                    pass
-                    assert name == '3215apc 100004.fcs'
+                    if not extended:
+                        assert name == '3215apc 100004.fcs'
 
     def test_bad(self):
         """send a known bad event (no input query parameter)"""

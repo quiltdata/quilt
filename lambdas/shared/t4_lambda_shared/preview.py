@@ -5,6 +5,7 @@ from io import BytesIO
 import math
 import os
 import re
+import tempfile
 import zlib
 
 import fcsparser
@@ -26,7 +27,7 @@ CATALOG_LIMIT_LINES = 512  # must be positive int
 ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_LIMIT_LINES = 100_000
 MAX_PREVIEW_ROWS = 1_000
-TEMP_DIR = "/tmp"
+READ_CHUNK = 1024
 # common string used to explain truncation to user
 TRUNCATED = (
     'Rows and columns truncated for preview. '
@@ -75,20 +76,26 @@ def extract_fcs(file_, as_html=True):
     data = None
     body = ""
     info = {}
-    # per Lambda docs we can use tmp/*, OK to overwrite
-    file_path = os.path.join(TEMP_DIR, "quilt-temp.fcs")
     # fcsparser only takes paths, so we need to write to disk; OK because
-    # FCS files typically ~1MB
-    with open(file_path, 'wb') as real_file:
-        real_file.write(file_.read())
-    try:
-        meta, data = fcsparser.parse(file_path, reformat_meta=True)
-    except Exception as first:  # pylint: disable=broad-except
+    # FCS files typically < 500MB (Lambda disk)
+    # per Lambda docs we can use tmp/*, OK to overwrite
+    with tempfile.NamedTemporaryFile() as tmp:
+
+        chunk = file_.read(READ_CHUNK)
+        while chunk:
+            tmp.write(chunk)
+            chunk = file_.read(READ_CHUNK)
+        tmp.flush()
+
         try:
-            meta = fcsparser.parse(file_path, reformat_meta=True, meta_data_only=True)
-            info['warnings'] = f"Metadata only. Parse exception: {first}"
-        except Exception as second:  # pylint: disable=broad-except
-            info['warnings'] = f"Unable to parse data or metadata: {second}"
+            meta, data = fcsparser.parse(tmp.name, reformat_meta=True)
+        # ValueError from fcsparser, TypeError from numpy
+        except (ValueError, TypeError, fcsparser.api.ParserFeatureNotImplementedError) as first:
+            try:
+                meta = fcsparser.parse(tmp.name, reformat_meta=True, meta_data_only=True)
+                info['warnings'] = f"Metadata only. Parse exception: {first}"
+            except (ValueError, fcsparser.api.ParserFeatureNotImplementedError) as second:
+                info['warnings'] = f"Unable to parse data or metadata: {second}"
 
     if data is not None:
         assert isinstance(data, pandas.DataFrame)
