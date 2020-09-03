@@ -80,26 +80,25 @@ class TestPreview(TestCase):
                 'has_warnings': True,
             },
         }
-        with TemporaryDirectory() as tmp_dir, patch('t4_lambda_shared.preview.TEMP_DIR', os.path.join(tmp_dir, '')):
-            for file in test_files:
-                in_file = os.path.join(BASE_DIR, 'fcs', file)
+        for file in test_files:
+            in_file = os.path.join(BASE_DIR, 'fcs', file)
 
-                with open(in_file, mode='rb') as fcs:
-                    body, info = extract_fcs(fcs)
-                    if body != "":
-                        assert test_files[file]['in_body'] in body
-                        assert not test_files[file].get('has_warnings')
-                    else:
-                        assert test_files[file]['has_warnings']
-                        assert info['warnings']
-                    assert test_files[file]['in_meta_keys'] in info['metadata'].keys()
-                    assert test_files[file]['in_meta_values'] in info['metadata'].values()
-                    # when there's a body, check if columns only works
-                    if test_files[file].get('in_body'):
-                        # move to start so we can use the file-like a second time
-                        fcs.seek(0)
-                        body, info = extract_fcs(fcs, as_html=False)
-                        assert body == test_files[file]['columns_string']
+            with open(in_file, mode='rb') as fcs:
+                body, info = extract_fcs(fcs)
+                if body != "":
+                    assert test_files[file]['in_body'] in body
+                    assert not test_files[file].get('has_warnings')
+                else:
+                    assert test_files[file]['has_warnings']
+                    assert info['warnings']
+                assert test_files[file]['in_meta_keys'] in info['metadata'].keys()
+                assert test_files[file]['in_meta_values'] in info['metadata'].values()
+                # when there's a body, check if columns only works
+                if test_files[file].get('in_body'):
+                    # move to start so we can use the file-like a second time
+                    fcs.seek(0)
+                    body, info = extract_fcs(fcs, as_html=False)
+                    assert body == test_files[file]['columns_string']
 
     def test_long(self):
         """test a text file with lots of lines"""
