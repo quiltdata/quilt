@@ -80,7 +80,7 @@ class TestPreview(TestCase):
                 'has_warnings': True,
             },
         }
-        with TemporaryDirectory() as tmp_dir, patch('t4_lambda_shared.preview.TEMP_DIR', tmp_dir):
+        with TemporaryDirectory() as tmp_dir, patch('t4_lambda_shared.preview.TEMP_DIR', tmp_dir + os.path.sep):
             for file in test_files:
                 in_file = os.path.join(BASE_DIR, 'fcs', file)
 
