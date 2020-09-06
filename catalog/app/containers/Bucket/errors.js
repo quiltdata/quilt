@@ -118,3 +118,38 @@ export const displayError = (pairs = []) =>
       },
     ],
   ])
+
+export const catchErrors = (pairs = []) =>
+  R.cond([
+    [
+      R.propEq('message', 'Network Failure'),
+      () => {
+        throw new CORSError()
+      },
+    ],
+    [
+      R.propEq('message', 'Access Denied'),
+      () => {
+        throw new AccessDenied()
+      },
+    ],
+    [
+      R.propEq('code', 'Forbidden'),
+      () => {
+        throw new AccessDenied()
+      },
+    ],
+    [
+      R.propEq('code', 'NoSuchBucket'),
+      () => {
+        throw new NoSuchBucket()
+      },
+    ],
+    ...pairs,
+    [
+      R.T,
+      (e) => {
+        throw e
+      },
+    ],
+  ])
