@@ -1,5 +1,7 @@
 import * as R from 'ramda'
 
+import { BaseError } from 'utils/error'
+
 const parseDate = (d) => d && new Date(d)
 
 const PACKAGES_SUFFIX = '_packages'
@@ -153,9 +155,14 @@ export default async function search({
     const total = Math.min(result.hits.total, result.hits.hits.length)
     return { total, hits }
   } catch (e) {
-    // TODO: handle errors
-    // eslint-disable-next-line no-console
-    console.log('search error', e)
+    const match = e.message.match(
+      /^API Gateway Error: RequestError\(400, 'search_phase_execution_exception', 'token_mgr_error: (.+)'\)$/,
+    )
+    if (match) {
+      throw new BaseError('SearchSyntaxError', { details: match[1] })
+    }
+    console.log('Search error:', e.message)
+    console.error(e)
     throw e
   }
 }

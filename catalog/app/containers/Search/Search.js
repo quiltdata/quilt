@@ -4,122 +4,30 @@ import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
-import Message from 'components/Message'
-import Pagination from 'components/Pagination2'
 import * as SearchResults from 'components/SearchResults'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Data from 'utils/Data'
-import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import search from 'utils/search'
 import useEditableValue from 'utils/useEditableValue'
-import usePrevious from 'utils/usePrevious'
-
-const PER_PAGE = 10
-
-function Alt({ ...props }) {
-  return (
-    <M.Box
-      borderTop={{ xs: 1, sm: 0 }}
-      borderColor="divider"
-      pt={3}
-      px={{ xs: 2, sm: 0 }}
-      {...props}
-    />
-  )
-}
-
-function Hits({ hits, page, scrollRef, makePageUrl }) {
-  const actualPage = page || 1
-  const pages = Math.ceil(hits.length / PER_PAGE)
-
-  const paginated = React.useMemo(
-    () =>
-      pages === 1 ? hits : hits.slice((actualPage - 1) * PER_PAGE, actualPage * PER_PAGE),
-    [hits, actualPage],
-  )
-
-  usePrevious(actualPage, (prev) => {
-    if (prev && actualPage !== prev && scrollRef.current) {
-      scrollRef.current.scrollIntoView()
-    }
-  })
-
-  return (
-    <>
-      {paginated.map((hit) => (
-        <SearchResults.Hit key={hit.key} hit={hit} showBucket />
-      ))}
-      {pages > 1 && <Pagination {...{ pages, page: actualPage, makePageUrl }} />}
-    </>
-  )
-}
 
 function Results({ buckets, mode, query, page, scrollRef, makePageUrl }) {
   const req = AWS.APIGateway.use()
   const data = Data.use(search, { req, buckets, mode, query })
   return data.case({
     _: () => (
-      <Alt>
-        <Delay alwaysRender>
-          {(ready) => (
-            <M.Fade in={ready}>
-              <M.Box display="flex" alignItems="center">
-                <M.Box pr={2}>
-                  <M.CircularProgress size={24} />
-                </M.Box>
-                <M.Typography variant="body1">
-                  Searching {displaySelectedBuckets(buckets)} for &quot;{query}&quot;
-                </M.Typography>
-              </M.Box>
-            </M.Fade>
-          )}
-        </Delay>
-      </Alt>
+      <SearchResults.Progress>
+        Searching {displaySelectedBuckets(buckets)} for &quot;{query}&quot;
+      </SearchResults.Progress>
     ),
-    Err: R.cond([
-      [
-        R.propEq('message', 'TooManyRequests'),
-        () => (
-          <Alt>
-            <Message headline="Too many requests">
-              Processing a lot of requests. Please try your search again in a few minutes.
-              <br />
-              <br />
-              <M.Button onClick={data.fetch} color="primary" variant="contained">
-                Retry
-              </M.Button>
-            </Message>
-          </Alt>
-        ),
-      ],
-      [
-        R.T,
-        () => (
-          <Alt>
-            <Message headline="Server Error">
-              Something went wrong.
-              <br />
-              <br />
-              <M.Button onClick={data.fetch} color="primary" variant="contained">
-                Retry
-              </M.Button>
-            </Message>
-          </Alt>
-        ),
-      ],
-    ]),
+    Err: SearchResults.handleErr(data.fetch),
     Ok: ({ total, hits }) =>
       total ? (
-        <Hits {...{ hits, page, scrollRef, makePageUrl }} />
+        <SearchResults.Hits {...{ hits, page, scrollRef, makePageUrl }} showBucket />
       ) : (
-        <Alt>
-          <M.Typography variant="body1">
-            We have not found anything matching your query
-          </M.Typography>
-        </Alt>
+        <SearchResults.NothingFound />
       ),
   })
 }
@@ -485,9 +393,9 @@ export default function Search({ location: l }) {
               <Results {...{ query: q, buckets, page, mode, scrollRef, makePageUrl }} />
             ) : (
               // TODO: revise copy
-              <Alt>
+              <SearchResults.Alt>
                 <M.Typography variant="body1">Search for anything</M.Typography>
-              </Alt>
+              </SearchResults.Alt>
             )}
           </M.Box>
         </M.Container>
