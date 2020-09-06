@@ -10,6 +10,7 @@ import * as Preview from 'components/Preview'
 import { Section, Heading } from 'components/ResponsiveSection'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import { useBucketExistance } from 'utils/BucketCache'
 import * as Config from 'utils/Config'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -78,31 +79,35 @@ function HeaderIcon(props) {
   )
 }
 
-function ObjectHeader({ handle, showBucket }) {
+function ObjectHeader({ handle, showBucket, bucketExistanceData }) {
   const getUrl = AWS.Signer.useS3Signer()
   const cfg = Config.use()
   return (
     <Heading display="flex" alignItems="center" mb={1}>
       <ObjectCrumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
-      {!cfg.noDownload && (
-        <M.Box
-          alignItems="center"
-          display="flex"
-          height={32}
-          justifyContent="center"
-          width={24}
-          my={{ xs: -0.25, md: 0 }}
-        >
-          <M.IconButton
-            href={getUrl(handle, { ResponseContentDisposition: 'attachment' })}
-            title="Download"
-            download
-          >
-            <M.Icon>arrow_downward</M.Icon>
-          </M.IconButton>
-        </M.Box>
-      )}
+      {!cfg.noDownload &&
+        bucketExistanceData.case({
+          _: () => null,
+          Ok: () => (
+            <M.Box
+              alignItems="center"
+              display="flex"
+              height={32}
+              justifyContent="center"
+              width={24}
+              my={{ xs: -0.25, md: 0 }}
+            >
+              <M.IconButton
+                href={getUrl(handle, { ResponseContentDisposition: 'attachment' })}
+                title="Download"
+                download
+              >
+                <M.Icon>arrow_downward</M.Icon>
+              </M.IconButton>
+            </M.Box>
+          ),
+        })}
     </Heading>
   )
 }
@@ -311,38 +316,49 @@ function PreviewBox({ data }) {
   )
 }
 
-function PreviewDisplay({ handle }) {
+function PreviewDisplay({ handle, bucketExistanceData }) {
   if (!handle.version) return null
   return (
     <SmallerSection>
       <SectionHeading>Preview</SectionHeading>
-      {Preview.load(
-        handle,
-        AsyncResult.case({
-          Ok: AsyncResult.case({
-            Init: (_, { fetch }) => (
-              <M.Typography variant="body1">
-                Large files are not previewed by default{' '}
-                <M.Button variant="outlined" size="small" onClick={fetch}>
-                  Load preview
-                </M.Button>
-              </M.Typography>
-            ),
-            Pending: () => <M.CircularProgress />,
-            Err: (_, { fetch }) => (
-              <M.Typography variant="body1">
-                Error loading preview{' '}
-                <M.Button variant="outlined" size="small" onClick={fetch}>
-                  Retry
-                </M.Button>
-              </M.Typography>
-            ),
-            Ok: (data) => <PreviewBox data={data} />,
-          }),
-          Err: () => <M.Typography variant="body1">Preview not available</M.Typography>,
-          _: () => <M.CircularProgress />,
-        }),
-      )}
+      {bucketExistanceData.case({
+        _: () => <M.CircularProgress />,
+        Err: () => (
+          <M.Typography variant="body1">
+            Error loading preview: bucket does not exist
+          </M.Typography>
+        ),
+        Ok: () =>
+          Preview.load(
+            handle,
+            AsyncResult.case({
+              Ok: AsyncResult.case({
+                Init: (_, { fetch }) => (
+                  <M.Typography variant="body1">
+                    Large files are not previewed by default{' '}
+                    <M.Button variant="outlined" size="small" onClick={fetch}>
+                      Load preview
+                    </M.Button>
+                  </M.Typography>
+                ),
+                Pending: () => <M.CircularProgress />,
+                Err: (_, { fetch }) => (
+                  <M.Typography variant="body1">
+                    Error loading preview{' '}
+                    <M.Button variant="outlined" size="small" onClick={fetch}>
+                      Retry
+                    </M.Button>
+                  </M.Typography>
+                ),
+                Ok: (data) => <PreviewBox data={data} />,
+              }),
+              Err: () => (
+                <M.Typography variant="body1">Preview not available</M.Typography>
+              ),
+              _: () => <M.CircularProgress />,
+            }),
+          ),
+      })}
     </SmallerSection>
   )
 }
@@ -428,15 +444,20 @@ const getDefaultVersion = (versions) => versions.find((v) => !!v.id) || versions
 
 function ObjectHit({ showBucket, hit: { path, versions, bucket } }) {
   const v = getDefaultVersion(versions)
+  const data = useBucketExistance(bucket)
   return (
     <Section>
       <ObjectHeader
         handle={{ bucket, key: path, version: v.id }}
         showBucket={showBucket}
+        bucketExistanceData={data}
       />
       <VersionInfo bucket={bucket} path={path} version={v} versions={versions} />
       <Meta meta={v.meta} />
-      <PreviewDisplay handle={{ bucket, key: path, version: v.id }} />
+      <PreviewDisplay
+        handle={{ bucket, key: path, version: v.id }}
+        bucketExistanceData={data}
+      />
     </Section>
   )
 }
