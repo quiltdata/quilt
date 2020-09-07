@@ -7,7 +7,7 @@ import * as M from '@material-ui/core'
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { ThrowNotFound } from 'containers/NotFoundPage'
-import { useBucketExistance } from 'utils/BucketCache'
+import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
 
@@ -75,7 +75,7 @@ const useStyles = M.makeStyles((t) => ({
 function BucketLayout({ bucket, section = false, children }) {
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
-  const bucketExistanceData = useBucketExistance(bucket)
+  const bucketExistenceData = useBucketExistence(bucket)
   return (
     <Layout
       pre={
@@ -99,7 +99,7 @@ function BucketLayout({ bucket, section = false, children }) {
             </M.Tabs>
           </M.AppBar>
           <M.Container maxWidth="lg">
-            {bucketExistanceData.case({
+            {bucketExistenceData.case({
               Ok: () => children,
               Err: displayError(),
               _: () => <Placeholder color="text.secondary" />,

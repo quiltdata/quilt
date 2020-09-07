@@ -118,7 +118,7 @@ function Bucket({
 }
 
 function BucketLayout({ bucket, children }) {
-  const data = BucketCache.useBucketExistance(bucket)
+  const data = BucketCache.useBucketExistence(bucket)
   return (
     <>
       <AppBar bucket={bucket} />

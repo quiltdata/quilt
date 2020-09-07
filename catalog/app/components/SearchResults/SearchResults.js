@@ -10,7 +10,7 @@ import * as Preview from 'components/Preview'
 import { Section, Heading } from 'components/ResponsiveSection'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
-import { useBucketExistance } from 'utils/BucketCache'
+import { useBucketExistence } from 'utils/BucketCache'
 import * as Config from 'utils/Config'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -79,14 +79,14 @@ function HeaderIcon(props) {
   )
 }
 
-function ObjectHeader({ handle, showBucket, bucketExistanceData }) {
+function ObjectHeader({ handle, showBucket, bucketExistenceData }) {
   const cfg = Config.use()
   return (
     <Heading display="flex" alignItems="center" mb={1}>
       <ObjectCrumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
       {!cfg.noDownload &&
-        bucketExistanceData.case({
+        bucketExistenceData.case({
           _: () => null,
           Ok: () =>
             AWS.Signer.withDownloadUrl(handle, (url) => (
@@ -312,12 +312,12 @@ function PreviewBox({ data }) {
   )
 }
 
-function PreviewDisplay({ handle, bucketExistanceData }) {
+function PreviewDisplay({ handle, bucketExistenceData }) {
   if (!handle.version) return null
   return (
     <SmallerSection>
       <SectionHeading>Preview</SectionHeading>
-      {bucketExistanceData.case({
+      {bucketExistenceData.case({
         _: () => <M.CircularProgress />,
         Err: () => (
           <M.Typography variant="body1">
@@ -440,19 +440,19 @@ const getDefaultVersion = (versions) => versions.find((v) => !!v.id) || versions
 
 function ObjectHit({ showBucket, hit: { path, versions, bucket } }) {
   const v = getDefaultVersion(versions)
-  const data = useBucketExistance(bucket)
+  const data = useBucketExistence(bucket)
   return (
     <Section>
       <ObjectHeader
         handle={{ bucket, key: path, version: v.id }}
         showBucket={showBucket}
-        bucketExistanceData={data}
+        bucketExistenceData={data}
       />
       <VersionInfo bucket={bucket} path={path} version={v} versions={versions} />
       <Meta meta={v.meta} />
       <PreviewDisplay
         handle={{ bucket, key: path, version: v.id }}
-        bucketExistanceData={data}
+        bucketExistenceData={data}
       />
     </Section>
   )

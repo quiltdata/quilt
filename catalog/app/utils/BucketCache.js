@@ -35,7 +35,7 @@ function bucketExists({ s3, bucket, cache }) {
     )
 }
 
-export function useBucketExistance(bucket) {
+export function useBucketExistence(bucket) {
   const cache = React.useContext(CacheCtx)
   const s3 = AWS.S3.use()
   return Data.use(bucketExists, { s3, bucket, cache })
