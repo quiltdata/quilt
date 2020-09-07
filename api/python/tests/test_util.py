@@ -80,7 +80,7 @@ def test_validate_url():
         pytest.param('invalid package', 'invalid', None, None, marks=pytest.mark.xfail(raises=QuiltException)),
     ]
 )
-def test_parse_packages(package, expected_package_name, expected_sub_path, expected_top_hash):
+def test_parse_package(package, expected_package_name, expected_sub_path, expected_top_hash):
     parsed = util.parse_package(package)
     assert parsed.name == expected_package_name
     assert parsed.top_hash == expected_top_hash
@@ -88,24 +88,28 @@ def test_parse_packages(package, expected_package_name, expected_sub_path, expec
 
 
 @pytest.mark.parametrize(
-    'name, expected_quilt_version, no_of_packages',
+    'name, extension, expected_quilt_version, expected_registries',
     [
-        ('@quilt.yml', '3.1.10', 3),
-        ('quilt.yml', '3.1.10', 3),
-        ('akarve/cord19', None, 1)
+        ('@quilt.yml', 'yml', 1.0, {'s3://some-bucket': 2, 's3://another-bucket': 3}),
+        ('quilt.yml', 'yml', 1.0, {'s3://some-bucket': 2, 's3://another-bucket': 3}),
+        ('quilt.yaml', 'yaml', 1.0, {'s3://some-bucket': 2, 's3://another-bucket': 3}),
+        ('akarve/cord19', None, None, dict())
     ]
 )
-def test_quilt_install_package_parser(name, expected_quilt_version, no_of_packages):
+def test_quilt_install_package_parser(name, extension, expected_quilt_version, expected_registries):
     config_file = pathlib.Path(__file__).parent / 'data/quilt.yml'
-    shutil.copy(config_file, 'quilt.yml')
+    shutil.copy(config_file, f'quilt.{extension}')
     parser = util.QuiltInstallPackageParser(name)
-    packages = parser.get_packages()
+    registries = dict(parser.get_registries())
 
-    assert parser.get_quilt_version() == expected_quilt_version
-    assert len(packages) == 3
+    assert parser.get_yaml_version() == expected_quilt_version
+    assert registries.keys() == expected_registries.keys()
+
+    for key, value in expected_registries.items():
+        assert len(registries[key]) == value
 
     # remove created file
-    os.remove("quilt.yml")
+    os.remove(f"quilt.{extension}")
 
 
 def test_quilt_install_package_parse_failure():

@@ -1,6 +1,15 @@
-packages:
-  - greg/test-4
-  - greg/test-3:latest
-  - greg/test-5/sub/package/dir:00934has2
-  - invalid package
-quilt-version: 3.1.10
+version: 1.0
+registries:
+  s3://some-bucket:
+    packages:
+      - asah/gpt3:def132
+      - akarve/lmnb1:c698234
+  s3://another-bucket:
+    packages:
+      - asah/gpt3:def132
+      - akarve/lmnb1:c698234
+      - akarve/lmnb3:c698234
+  bad-bucket:
+    packages:
+      - asah/gpt3:def132
+      - akarve/lmnb1:c698234

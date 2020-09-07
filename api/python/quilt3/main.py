@@ -226,15 +226,26 @@ def cmd_push(name, dir, registry, dest, message, meta):
     pkg.push(name, registry=registry, dest=dest, message=message)
 
 
-def cmd_install(name, top_hash, path, **kwargs):
+def cmd_install(name, registry, top_hash, path, **kwargs):
     parser = QuiltInstallPackageParser(name)
-    packages = parser.get_packages()
-    if parser.from_config_file:
-        for package in packages:
-            Package.install(package.name, top_hash=package.top_hash, path=package.path, **kwargs)
+    if parser.from_yaml_file:
+        # raise exception if quilt.yml gets a registry
+        if registry:
+            raise QuiltException('--registry is not allowed while installing packages from yaml file.')
+        registries = parser.get_registries()
+        for registry, packages in registries:
+            print(f'Installing packages from {registry!r} registry')
+            for package in packages:
+                Package.install(
+                    package.name,
+                    registry=registry,
+                    top_hash=package.top_hash,
+                    path=package.path,
+                    **kwargs
+                )
     else:
-        package = packages[0]
-        Package.install(package.name, top_hash=top_hash, path=path, **kwargs)
+        package = parser.package
+        Package.install(package.name, registry=registry, top_hash=top_hash, path=path, **kwargs)
 
 
 def create_parser():

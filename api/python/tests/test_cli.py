@@ -1,3 +1,5 @@
+import os
+import shutil
 import tempfile
 from pathlib import Path
 from unittest import mock
@@ -7,6 +9,7 @@ import pytest
 
 import quilt3
 from quilt3 import main
+from quilt3.util import QuiltException
 
 from .utils import QuiltTestCase
 
@@ -45,6 +48,30 @@ class QuiltCLITestCase(CommandLineTestCase):
                 mocked_package_class.assert_called_once_with(quilt3.Package)
                 mocked_set_dir.assert_called_once_with('.', tmp_dir, meta=None)
                 mocked_push.assert_called_once_with(name, registry=None, dest=None, message=None)
+
+    def test_install(self):
+        name = 'asah/gpt3'
+        with mock.patch('quilt3.Package.install') as mocked_package_install:
+            main.main(('install', name, '--registry', 's3://some-bucket'))
+
+            mocked_package_install.assert_called_once_with(
+                name,
+                dest=None,
+                dest_registry=None,
+                path=None,
+                registry='s3://some-bucket',
+                top_hash=None
+            )
+
+        with mock.patch('quilt3.Package.install') as mocked_package_install:
+            config_file = Path(__file__).parent / 'data/quilt.yml'
+            shutil.copy(config_file, 'quilt.yml')
+
+            main.main(('install', 'quilt.yml'))
+
+            assert mocked_package_install.call_count == 5
+            # remove created file
+            os.remove(f"quilt.yml")
 
 
 @pytest.mark.parametrize(
