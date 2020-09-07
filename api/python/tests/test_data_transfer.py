@@ -1,9 +1,9 @@
 """ Testing for data_transfer.py """
 
+import hashlib
 import io
 import os
 import pathlib
-import threading
 import time
 from contextlib import redirect_stderr
 from unittest import mock
@@ -520,37 +520,13 @@ class S3DownloadTest(QuiltTestCase):
     filename = 'some-file-name'
     dst = PhysicalKey(None, filename, None)
 
-    def _test_download(self, *, threshold, chunksize, parts=None, devnull=False):
-        num_parts = 1 if parts is None else len(parts)
-        barrier = threading.Barrier(num_parts, timeout=2)
-
-        def side_effect(*args, **kwargs):
-            barrier.wait()  # This ensures that we have concurrent calls to get_object().
-            return {
-                'VersionId': 'v1',
-                'Body': io.BytesIO(self.data if parts is None else parts[kwargs['Range']]),
-            }
-
+    def _test_download(self, *, threshold, chunksize, parts=data, devnull=False):
         dst = PhysicalKey(None, os.devnull, None) if devnull else self.dst
-        with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', num_parts), \
-             mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_threshold', threshold), \
-             mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_chunksize', chunksize), \
-             mock.patch.object(self.s3_client, 'get_object', side_effect=side_effect) as get_object_mock:
+
+        with self.s3_test_multi_thread_download(
+            self.bucket, self.key, parts, threshold=threshold, chunksize=chunksize
+        ):
             data_transfer.copy_file_list([(self.src, dst, self.size)])
-
-            expected_params = {
-                'Bucket': self.bucket,
-                'Key': self.key,
-            }
-
-            if parts is None:
-                get_object_mock.assert_called_once_with(**expected_params)
-            else:
-                get_object_mock.assert_has_calls([
-                    mock.call(**expected_params, Range=r)
-                    for r in parts
-                ], any_order=True)
-                assert len(get_object_mock.call_args_list) == num_parts
 
         if not devnull:
             with open(self.filename, 'rb') as f:
@@ -580,3 +556,53 @@ class S3DownloadTest(QuiltTestCase):
 
     def test_threshold_eq_chunk_gt_size(self):
         self._test_download(threshold=self.size, chunksize=self.size + 1)
+
+
+class S3HashingTest(QuiltTestCase):
+    data = b'0123456789abcdef'
+    size = len(data)
+    hasher = hashlib.sha256
+
+    bucket = 'test-bucket'
+    key = 'test-key'
+    src = PhysicalKey(bucket, key, None)
+
+    def _hashing_subtest(self, *, threshold, chunksize, data=data):
+        with self.s3_test_multi_thread_download(
+            self.bucket, self.key, data, threshold=threshold, chunksize=chunksize
+        ):
+            assert data_transfer.calculate_sha256([self.src], [self.size]) == [self.hasher(self.data).hexdigest()]
+
+    def test_single_request(self):
+        params = (
+            (self.size + 1, 5),
+            (self.size, self.size),
+            (self.size, self.size + 1),
+            (5, self.size),
+        )
+        for threshold, chunksize in params:
+            with self.subTest(threshold=threshold, chunksize=chunksize):
+                self._hashing_subtest(threshold=threshold, chunksize=chunksize)
+
+    def test_multi_request(self):
+        params = (
+            (
+                self.size, 5, {
+                    'bytes=0-4': self.data[:5],
+                    'bytes=5-9': self.data[5:10],
+                    'bytes=10-14': self.data[10:15],
+                    'bytes=15-15': self.data[15:],
+                }
+            ),
+            (
+                5, self.size - 1, {
+                    'bytes=0-14': self.data[:15],
+                    'bytes=15-15': self.data[15:],
+                }
+            ),
+        )
+        for threshold, chunksize, data in params:
+            for concurrency in (len(data), 1):
+                with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', concurrency):
+                    with self.subTest(threshold=threshold, chunksize=chunksize, data=data, concurrency=concurrency):
+                        self._hashing_subtest(threshold=threshold, chunksize=chunksize, data=data)

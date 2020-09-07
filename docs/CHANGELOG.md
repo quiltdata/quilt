@@ -10,7 +10,8 @@
 # unreleased - YYYY-MM-DD
 ## Python API
 * [Performance] Improve performance of hashing of S3 files
-  ([#1816](https://github.com/quiltdata/quilt/issues/1816))
+  ([#1816](https://github.com/quiltdata/quilt/issues/1816),
+   [#1788](https://github.com/quiltdata/quilt/issues/1788)
 
 ## CLI
 * [Added] Add `meta` argument to the push command

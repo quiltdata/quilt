@@ -1,13 +1,17 @@
 """
 Unittest setup
 """
+import contextlib
+import io
 import pathlib
+import time
 from unittest import TestCase, mock
 
 import boto3
 import responses
 from botocore import UNSIGNED
 from botocore.client import Config
+from botocore.response import StreamingBody
 from botocore.stub import Stubber
 
 import quilt3
@@ -59,3 +63,50 @@ class QuiltTestCase(TestCase):
         self.s3_stubber.deactivate()
         self.s3_client_patcher.stop()
         self.requests_mock.stop()
+
+    def s3_streaming_body(self, data):
+        return StreamingBody(io.BytesIO(data), len(data))
+
+    @contextlib.contextmanager
+    def s3_test_multi_thread_download(self, bucket, key, data, *, threshold, chunksize):
+        """
+        Helper for testing multi-thread download of a single file.
+
+        data is either a bytes object if a single-request download is expected,
+        or a mapping like this:
+        {
+            'bytes=0-4': b'part1',
+            'bytes=5-9': b'part2',
+            ...
+        }
+        """
+        is_single_request = isinstance(data, bytes)
+        num_parts = 1 if is_single_request else len(data)
+        expected_params = {
+            'Bucket': bucket,
+            'Key': key,
+        }
+
+        def side_effect(*args, **kwargs):
+            body = self.s3_streaming_body(data if is_single_request else data[kwargs['Range']])
+            if not is_single_request:
+                # This ensures that we have concurrent calls to get_object().
+                time.sleep(0.1 * (1 - list(data).index(kwargs['Range']) / len(data)))
+            return {
+                'VersionId': 'v1',
+                'Body': body,
+            }
+
+        with mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_threshold', threshold), \
+             mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_chunksize', chunksize), \
+             mock.patch.object(self.s3_client, 'get_object', side_effect=side_effect) as get_object_mock:
+            yield
+
+            if is_single_request:
+                get_object_mock.assert_called_once_with(**expected_params)
+            else:
+                assert get_object_mock.call_count == num_parts
+                get_object_mock.assert_has_calls([
+                    mock.call(**expected_params, Range=r)
+                    for r in data
+                ], any_order=True)
