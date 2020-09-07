@@ -9,7 +9,6 @@ import pytest
 
 import quilt3
 from quilt3 import main
-from quilt3.util import QuiltException
 
 from .utils import QuiltTestCase
 
@@ -71,7 +70,7 @@ class QuiltCLITestCase(CommandLineTestCase):
 
             assert mocked_package_install.call_count == 5
             # remove created file
-            os.remove(f"quilt.yml")
+            os.remove("quilt.yml")
 
 
 @pytest.mark.parametrize(
