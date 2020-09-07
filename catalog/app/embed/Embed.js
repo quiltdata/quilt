@@ -278,7 +278,6 @@ function App({ messages, init }) {
     AWS.Credentials.Provider,
     AWS.Config.Provider,
     AWS.S3.Provider,
-    AWS.Signer.Provider,
     Notifications.WithNotifications,
     BucketCache.Provider,
     [PostInit, { init }],

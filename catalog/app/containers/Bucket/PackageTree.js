@@ -482,7 +482,6 @@ export default function PackageTree({
   const classes = useStyles()
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
-  const getSignedS3URL = AWS.Signer.useS3Signer()
   const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
@@ -531,31 +530,29 @@ export default function PackageTree({
           >
             {AsyncResult.case({
               Ok: (handle) =>
-                xs ? (
-                  <M.IconButton
-                    className={classes.button}
-                    href={getSignedS3URL(handle, {
-                      ResponseContentDisposition: 'attachment',
-                    })}
-                    edge="end"
-                    size="small"
-                    download
-                  >
-                    <M.Icon>arrow_downward</M.Icon>
-                  </M.IconButton>
-                ) : (
-                  <M.Button
-                    href={getSignedS3URL(handle, {
-                      ResponseContentDisposition: 'attachment',
-                    })}
-                    className={classes.button}
-                    variant="outlined"
-                    size="small"
-                    startIcon={<M.Icon>arrow_downward</M.Icon>}
-                    download
-                  >
-                    Download file
-                  </M.Button>
+                AWS.Signer.withDownloadUrl(handle, (url) =>
+                  xs ? (
+                    <M.IconButton
+                      className={classes.button}
+                      href={url}
+                      edge="end"
+                      size="small"
+                      download
+                    >
+                      <M.Icon>arrow_downward</M.Icon>
+                    </M.IconButton>
+                  ) : (
+                    <M.Button
+                      href={url}
+                      className={classes.button}
+                      variant="outlined"
+                      size="small"
+                      startIcon={<M.Icon>arrow_downward</M.Icon>}
+                      download
+                    >
+                      Download file
+                    </M.Button>
+                  ),
                 ),
               _: () => null,
             })}

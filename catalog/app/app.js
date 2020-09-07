@@ -148,7 +148,6 @@ const render = (messages) => {
       AWS.Credentials.Provider,
       AWS.Config.Provider,
       AWS.S3.Provider,
-      AWS.Signer.Provider,
       Notifications.WithNotifications,
       ErrorBoundary,
       BucketCacheProvider,

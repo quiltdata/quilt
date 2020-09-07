@@ -80,7 +80,6 @@ function HeaderIcon(props) {
 }
 
 function ObjectHeader({ handle, showBucket, bucketExistanceData }) {
-  const getUrl = AWS.Signer.useS3Signer()
   const cfg = Config.use()
   return (
     <Heading display="flex" alignItems="center" mb={1}>
@@ -89,24 +88,21 @@ function ObjectHeader({ handle, showBucket, bucketExistanceData }) {
       {!cfg.noDownload &&
         bucketExistanceData.case({
           _: () => null,
-          Ok: () => (
-            <M.Box
-              alignItems="center"
-              display="flex"
-              height={32}
-              justifyContent="center"
-              width={24}
-              my={{ xs: -0.25, md: 0 }}
-            >
-              <M.IconButton
-                href={getUrl(handle, { ResponseContentDisposition: 'attachment' })}
-                title="Download"
-                download
+          Ok: () =>
+            AWS.Signer.withDownloadUrl(handle, (url) => (
+              <M.Box
+                alignItems="center"
+                display="flex"
+                height={32}
+                justifyContent="center"
+                width={24}
+                my={{ xs: -0.25, md: 0 }}
               >
-                <M.Icon>arrow_downward</M.Icon>
-              </M.IconButton>
-            </M.Box>
-          ),
+                <M.IconButton href={url} title="Download" download>
+                  <M.Icon>arrow_downward</M.Icon>
+                </M.IconButton>
+              </M.Box>
+            )),
         })}
     </Heading>
   )

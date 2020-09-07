@@ -27,7 +27,6 @@ import Code from 'containers/Bucket/Code'
 import FilePreview from 'containers/Bucket/FilePreview'
 import Section from 'containers/Bucket/Section'
 import * as requests from 'containers/Bucket/requests'
-import { withDownloadUrl } from 'containers/Bucket/utils'
 
 import * as EmbedConfig from './EmbedConfig'
 
@@ -136,14 +135,17 @@ function VersionInfo({ bucket, path, version }) {
                   {!cfg.noDownload && (
                     <M.ListItemSecondaryAction>
                       {!v.deleteMarker &&
-                        withDownloadUrl({ bucket, key: path, version: v.id }, (url) => (
-                          <M.IconButton
-                            href={url}
-                            title="Download this version of the object"
-                          >
-                            <M.Icon>arrow_downward</M.Icon>
-                          </M.IconButton>
-                        ))}
+                        AWS.Signer.withDownloadUrl(
+                          { bucket, key: path, version: v.id },
+                          (url) => (
+                            <M.IconButton
+                              href={url}
+                              title="Download this version of the object"
+                            >
+                              <M.Icon>arrow_downward</M.Icon>
+                            </M.IconButton>
+                          ),
+                        )}
                       <M.Hidden xsDown>
                         <M.IconButton
                           title="Copy object version's canonical HTTPS URI to the clipboard"
@@ -422,7 +424,7 @@ export default function File({
         </div>
         <div className={classes.spacer} />
         {downloadable &&
-          withDownloadUrl({ bucket, key: path, version }, (url) =>
+          AWS.Signer.withDownloadUrl({ bucket, key: path, version }, (url) =>
             xs ? (
               <M.IconButton
                 className={classes.button}
