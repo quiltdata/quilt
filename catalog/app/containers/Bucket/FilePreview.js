@@ -5,10 +5,9 @@ import Typography from '@material-ui/core/Typography'
 import { styled } from '@material-ui/styles'
 
 import * as Preview from 'components/Preview'
+import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
-
-import { withDownloadUrl } from './utils'
 
 const Message = styled('div')({
   textAlign: 'center',
@@ -55,7 +54,7 @@ export default function FilePreview({ handle }) {
               Object is too large to preview
             </Typography>
             {!cfg.noDownload &&
-              withDownloadUrl(handle, (url) => (
+              AWS.Signer.withDownloadUrl(handle, (url) => (
                 <Button variant="outlined" href={url}>
                   Download and view in Browser
                 </Button>
@@ -68,7 +67,7 @@ export default function FilePreview({ handle }) {
               Preview not available
             </Typography>
             {!cfg.noDownload &&
-              withDownloadUrl(handle, (url) => (
+              AWS.Signer.withDownloadUrl(handle, (url) => (
                 <Button variant="outlined" href={url}>
                   Download and view in Browser
                 </Button>

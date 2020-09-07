@@ -1,6 +1,5 @@
 import { join as pathJoin } from 'path'
 
-import S3 from 'aws-sdk/clients/s3'
 import * as dateFns from 'date-fns'
 import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
@@ -13,43 +12,8 @@ import tagged from 'utils/tagged'
 
 import * as errors from './errors'
 
-const catchErrors = (pairs = []) =>
-  R.cond([
-    [
-      R.propEq('message', 'Network Failure'),
-      () => {
-        throw new errors.CORSError()
-      },
-    ],
-    [
-      R.propEq('message', 'Access Denied'),
-      () => {
-        throw new errors.AccessDenied()
-      },
-    ],
-    [
-      R.propEq('code', 'Forbidden'),
-      () => {
-        throw new errors.AccessDenied()
-      },
-    ],
-    [
-      R.propEq('code', 'NoSuchBucket'),
-      () => {
-        throw new errors.NoSuchBucket()
-      },
-    ],
-    ...pairs,
-    [
-      R.T,
-      (e) => {
-        throw e
-      },
-    ],
-  ])
-
 const withErrorHandling = (fn, pairs) => (...args) =>
-  fn(...args).catch(catchErrors(pairs))
+  fn(...args).catch(errors.catchErrors(pairs))
 
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
@@ -92,7 +56,7 @@ export const bucketListing = ({ s3, bucket, path = '', prev }) =>
         path: () => path,
       }),
     )
-    .catch(catchErrors())
+    .catch(errors.catchErrors())
 
 const MAX_BANDS = 10
 
@@ -200,28 +164,6 @@ export const bucketAccessCounts = async ({
 }
 
 const parseDate = (d) => d && new Date(d)
-
-export function bucketExists({ s3, bucket, cache }) {
-  if (S3.prototype.bucketRegionCache[bucket]) return Promise.resolve()
-  if (cache && cache[bucket]) return Promise.resolve()
-  return s3
-    .headBucket({ Bucket: bucket })
-    .promise()
-    .then(() => {
-      // eslint-disable-next-line no-param-reassign
-      if (cache) cache[bucket] = true
-    })
-    .catch(
-      catchErrors([
-        [
-          R.propEq('code', 'NotFound'),
-          () => {
-            throw new errors.NoSuchBucket()
-          },
-        ],
-      ]),
-    )
-}
 
 const getOverviewBucket = (url) => s3paths.parseS3Url(url).bucket
 const getOverviewPrefix = (url) => s3paths.parseS3Url(url).key

@@ -20,12 +20,6 @@ import * as requests from './requests'
 const README_RE = /^readme\.md$/i
 const SUMMARIZE_RE = /^quilt_summarize\.json$/i
 
-const withSignedUrl = (handle, callback) => (
-  <AWS.Signer.Inject>
-    {(signer) => callback(signer.getSignedS3URL(handle))}
-  </AWS.Signer.Inject>
-)
-
 const findFile = (re) => R.find((f) => re.test(getBasename(f.logicalKey || f.key)))
 
 const extractSummary = R.applySpec({
@@ -106,7 +100,7 @@ function SummaryItemFile({ handle, name, mkUrl, resolveLogicalKey }) {
                         <M.Typography variant="body1" gutterBottom>
                           Object is too large to preview in browser
                         </M.Typography>
-                        {withSignedUrl(resolved, (url) => (
+                        {AWS.Signer.withDownloadUrl(resolved, (url) => (
                           <M.Button variant="outlined" href={url}>
                             View in Browser
                           </M.Button>
@@ -118,7 +112,7 @@ function SummaryItemFile({ handle, name, mkUrl, resolveLogicalKey }) {
                         <M.Typography variant="body1" gutterBottom>
                           Preview not available
                         </M.Typography>
-                        {withSignedUrl(resolved, (url) => (
+                        {AWS.Signer.withDownloadUrl(resolved, (url) => (
                           <M.Button variant="outlined" href={url}>
                             View in Browser
                           </M.Button>

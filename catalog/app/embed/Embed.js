@@ -11,7 +11,6 @@ import * as M from '@material-ui/core'
 import * as Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import * as Auth from 'containers/Auth'
-import { BucketCacheProvider, useBucketCache } from 'containers/Bucket'
 import LanguageProvider from 'containers/LanguageProvider'
 import { ThrowNotFound, createNotFound } from 'containers/NotFoundPage'
 import * as Notifications from 'containers/Notifications'
@@ -19,8 +18,8 @@ import * as routes from 'constants/embed-routes'
 import * as style from 'constants/style'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
+import * as BucketCache from 'utils/BucketCache'
 import * as Config from 'utils/Config'
-import { useData } from 'utils/Data'
 import { createBoundary } from 'utils/ErrorBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
@@ -36,7 +35,6 @@ import usePrevious from 'utils/usePrevious'
 
 // TODO: consider reimplementing these locally or moving to some shared location
 import { displayError } from 'containers/Bucket/errors'
-import * as requests from 'containers/Bucket/requests'
 
 import WithGlobalStyles from '../global-styles'
 
@@ -120,9 +118,7 @@ function Bucket({
 }
 
 function BucketLayout({ bucket, children }) {
-  const s3 = AWS.S3.use()
-  const cache = useBucketCache()
-  const data = useData(requests.bucketExists, { s3, bucket, cache })
+  const data = BucketCache.useBucketExistence(bucket)
   return (
     <>
       <AppBar bucket={bucket} />
@@ -282,9 +278,8 @@ function App({ messages, init }) {
     AWS.Credentials.Provider,
     AWS.Config.Provider,
     AWS.S3.Provider,
-    AWS.Signer.Provider,
     Notifications.WithNotifications,
-    BucketCacheProvider,
+    BucketCache.Provider,
     [PostInit, { init }],
     Root,
   )

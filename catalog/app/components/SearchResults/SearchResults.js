@@ -4,15 +4,24 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
+import Message from 'components/Message'
+import Pagination from 'components/Pagination2'
 import * as Preview from 'components/Preview'
 import { Section, Heading } from 'components/ResponsiveSection'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import { useBucketExistence } from 'utils/BucketCache'
 import * as Config from 'utils/Config'
+import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink, { linkStyle } from 'utils/StyledLink'
 import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
+import usePrevious from 'utils/usePrevious'
+
+const PER_PAGE = 10
+const ES_V = '6.7'
+const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
 
 const CrumbLink = M.styled(StyledLink)({ wordBreak: 'break-word' })
 
@@ -70,31 +79,31 @@ function HeaderIcon(props) {
   )
 }
 
-function ObjectHeader({ handle, showBucket }) {
-  const getUrl = AWS.Signer.useS3Signer()
+function ObjectHeader({ handle, showBucket, bucketExistenceData }) {
   const cfg = Config.use()
   return (
     <Heading display="flex" alignItems="center" mb={1}>
       <ObjectCrumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
-      {!cfg.noDownload && (
-        <M.Box
-          alignItems="center"
-          display="flex"
-          height={32}
-          justifyContent="center"
-          width={24}
-          my={{ xs: -0.25, md: 0 }}
-        >
-          <M.IconButton
-            href={getUrl(handle, { ResponseContentDisposition: 'attachment' })}
-            title="Download"
-            download
-          >
-            <M.Icon>arrow_downward</M.Icon>
-          </M.IconButton>
-        </M.Box>
-      )}
+      {!cfg.noDownload &&
+        bucketExistenceData.case({
+          _: () => null,
+          Ok: () =>
+            AWS.Signer.withDownloadUrl(handle, (url) => (
+              <M.Box
+                alignItems="center"
+                display="flex"
+                height={32}
+                justifyContent="center"
+                width={24}
+                my={{ xs: -0.25, md: 0 }}
+              >
+                <M.IconButton href={url} title="Download" download>
+                  <M.Icon>arrow_downward</M.Icon>
+                </M.IconButton>
+              </M.Box>
+            )),
+        })}
     </Heading>
   )
 }
@@ -303,38 +312,49 @@ function PreviewBox({ data }) {
   )
 }
 
-function PreviewDisplay({ handle }) {
+function PreviewDisplay({ handle, bucketExistenceData }) {
   if (!handle.version) return null
   return (
     <SmallerSection>
       <SectionHeading>Preview</SectionHeading>
-      {Preview.load(
-        handle,
-        AsyncResult.case({
-          Ok: AsyncResult.case({
-            Init: (_, { fetch }) => (
-              <M.Typography variant="body1">
-                Large files are not previewed by default{' '}
-                <M.Button variant="outlined" size="small" onClick={fetch}>
-                  Load preview
-                </M.Button>
-              </M.Typography>
-            ),
-            Pending: () => <M.CircularProgress />,
-            Err: (_, { fetch }) => (
-              <M.Typography variant="body1">
-                Error loading preview{' '}
-                <M.Button variant="outlined" size="small" onClick={fetch}>
-                  Retry
-                </M.Button>
-              </M.Typography>
-            ),
-            Ok: (data) => <PreviewBox data={data} />,
-          }),
-          Err: () => <M.Typography variant="body1">Preview not available</M.Typography>,
-          _: () => <M.CircularProgress />,
-        }),
-      )}
+      {bucketExistenceData.case({
+        _: () => <M.CircularProgress />,
+        Err: () => (
+          <M.Typography variant="body1">
+            Error loading preview: bucket does not exist
+          </M.Typography>
+        ),
+        Ok: () =>
+          Preview.load(
+            handle,
+            AsyncResult.case({
+              Ok: AsyncResult.case({
+                Init: (_, { fetch }) => (
+                  <M.Typography variant="body1">
+                    Large files are not previewed by default{' '}
+                    <M.Button variant="outlined" size="small" onClick={fetch}>
+                      Load preview
+                    </M.Button>
+                  </M.Typography>
+                ),
+                Pending: () => <M.CircularProgress />,
+                Err: (_, { fetch }) => (
+                  <M.Typography variant="body1">
+                    Error loading preview{' '}
+                    <M.Button variant="outlined" size="small" onClick={fetch}>
+                      Retry
+                    </M.Button>
+                  </M.Typography>
+                ),
+                Ok: (data) => <PreviewBox data={data} />,
+              }),
+              Err: () => (
+                <M.Typography variant="body1">Preview not available</M.Typography>
+              ),
+              _: () => <M.CircularProgress />,
+            }),
+          ),
+      })}
     </SmallerSection>
   )
 }
@@ -420,15 +440,20 @@ const getDefaultVersion = (versions) => versions.find((v) => !!v.id) || versions
 
 function ObjectHit({ showBucket, hit: { path, versions, bucket } }) {
   const v = getDefaultVersion(versions)
+  const data = useBucketExistence(bucket)
   return (
     <Section>
       <ObjectHeader
         handle={{ bucket, key: path, version: v.id }}
         showBucket={showBucket}
+        bucketExistenceData={data}
       />
       <VersionInfo bucket={bucket} path={path} version={v} versions={versions} />
       <Meta meta={v.meta} />
-      <PreviewDisplay handle={{ bucket, key: path, version: v.id }} />
+      <PreviewDisplay
+        handle={{ bucket, key: path, version: v.id }}
+        bucketExistenceData={data}
+      />
     </Section>
   )
 }
@@ -458,4 +483,143 @@ function PackageHit({
 export function Hit(props) {
   const Component = props.hit.type === 'object' ? ObjectHit : PackageHit
   return <Component {...props} />
+}
+
+export function Hits({
+  hits,
+  page,
+  scrollRef,
+  makePageUrl,
+  perPage = PER_PAGE,
+  showBucket,
+}) {
+  const actualPage = page || 1
+  const pages = Math.ceil(hits.length / perPage)
+
+  const paginated = React.useMemo(
+    () =>
+      pages === 1 ? hits : hits.slice((actualPage - 1) * perPage, actualPage * perPage),
+    [hits, actualPage, perPage],
+  )
+
+  usePrevious(actualPage, (prev) => {
+    if (prev && actualPage !== prev && scrollRef.current) {
+      scrollRef.current.scrollIntoView()
+    }
+  })
+
+  return (
+    <>
+      {paginated.map((hit) => (
+        <Hit key={hit.key} hit={hit} showBucket={showBucket} />
+      ))}
+      {pages > 1 && <Pagination {...{ pages, page: actualPage, makePageUrl }} />}
+    </>
+  )
+}
+
+export function Alt({ ...props }) {
+  return (
+    <M.Box
+      borderTop={{ xs: 1, sm: 0 }}
+      borderColor="divider"
+      pt={3}
+      px={{ xs: 2, sm: 0 }}
+      {...props}
+    />
+  )
+}
+
+export function Progress({ children }) {
+  return (
+    <Alt>
+      <Delay alwaysRender>
+        {(ready) => (
+          <M.Fade in={ready}>
+            <M.Box display="flex" alignItems="center">
+              <M.Box pr={2}>
+                <M.CircularProgress size={24} />
+              </M.Box>
+              <M.Typography variant="body1">{children}</M.Typography>
+            </M.Box>
+          </M.Fade>
+        )}
+      </Delay>
+    </Alt>
+  )
+}
+
+export const handleErr = (retry) =>
+  R.cond([
+    [
+      R.propEq('message', 'SearchSyntaxError'),
+      (e) => (
+        <Alt>
+          <Message headline="Search syntax error">
+            Oops, couldn&apos;t parse that search.
+            <br />
+            Try quoting your query or read about{' '}
+            <StyledLink href={ES_REF}>supported query syntax</StyledLink>.
+            {!!e.details && (
+              <>
+                <br />
+                <br />
+                Error details:
+                <br />
+                {e.details}
+              </>
+            )}
+          </Message>
+        </Alt>
+      ),
+    ],
+    [
+      R.propEq('message', 'TooManyRequests'),
+      () => (
+        <Alt>
+          <Message headline="Too many requests">
+            Processing a lot of requests. Please try your search again in a few minutes.
+            {!!retry && (
+              <>
+                <br />
+                <br />
+                <M.Button onClick={retry} color="primary" variant="contained">
+                  Retry
+                </M.Button>
+              </>
+            )}
+          </Message>
+        </Alt>
+      ),
+    ],
+    [
+      R.T,
+      () => (
+        <Alt>
+          <Message headline="Server Error">
+            Something went wrong.
+            {!!retry && (
+              <>
+                <br />
+                <br />
+                <M.Button onClick={retry} color="primary" variant="contained">
+                  Retry
+                </M.Button>
+              </>
+            )}
+          </Message>
+        </Alt>
+      ),
+    ],
+  ])
+
+export function NothingFound({ children }) {
+  return (
+    <Alt>
+      <M.Typography variant="body1">
+        We have not found anything matching your query
+      </M.Typography>
+      {children}
+    </Alt>
+  )
 }

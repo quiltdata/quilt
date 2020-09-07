@@ -7,25 +7,11 @@ import * as M from '@material-ui/core'
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { ThrowNotFound } from 'containers/NotFoundPage'
-import * as AWS from 'utils/AWS'
-import AsyncResult from 'utils/AsyncResult'
-import Data from 'utils/Data'
+import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
 
 import { displayError } from './errors'
-import * as requests from './requests'
-
-const CacheCtx = React.createContext()
-
-export function BucketCacheProvider({ children }) {
-  const ref = React.useRef({})
-  return <CacheCtx.Provider value={ref.current}>{children}</CacheCtx.Provider>
-}
-
-export function useBucketCache() {
-  return React.useContext(CacheCtx)
-}
 
 const mkLazy = (load) =>
   RT.loadable(load, { fallback: () => <Placeholder color="text.secondary" /> })
@@ -89,8 +75,7 @@ const useStyles = M.makeStyles((t) => ({
 function BucketLayout({ bucket, section = false, children }) {
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
-  const s3 = AWS.S3.use()
-  const cache = useBucketCache()
+  const bucketExistenceData = useBucketExistence(bucket)
   return (
     <Layout
       pre={
@@ -114,13 +99,11 @@ function BucketLayout({ bucket, section = false, children }) {
             </M.Tabs>
           </M.AppBar>
           <M.Container maxWidth="lg">
-            <Data fetch={requests.bucketExists} params={{ s3, bucket, cache }}>
-              {AsyncResult.case({
-                Ok: () => children,
-                Err: displayError(),
-                _: () => <Placeholder color="text.secondary" />,
-              })}
-            </Data>
+            {bucketExistenceData.case({
+              Ok: () => children,
+              Err: displayError(),
+              _: () => <Placeholder color="text.secondary" />,
+            })}
           </M.Container>
         </>
       }
