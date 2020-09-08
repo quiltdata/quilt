@@ -5,4 +5,4 @@ py==1.8.0
 pytest==4.3.0
 pytest-cov==2.6.1
 pytest-raises==0.10
-responses==0.10.5
+responses==0.12.0

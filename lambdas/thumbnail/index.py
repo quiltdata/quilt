@@ -342,6 +342,7 @@ def lambda_handler(request):
 
     # Errored, return error code
     ret_val = {
-        'error': resp.reason
+        'error': resp.reason,
+        'text': resp.text,
     }
     return make_json_response(resp.status_code, ret_val)

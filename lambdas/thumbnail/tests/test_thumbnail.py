@@ -16,6 +16,15 @@ from t4_lambda_shared.utils import read_body
 from ..index import lambda_handler, set_pdf_env
 
 
+HEADER_403 = {
+    'x-amz-request-id': 'guid123',
+    'x-amz-id-2': 'some/dat/here/+xxxxx+=',
+    'Content-Type': 'application/xml',
+    'Transfer-Encoding': 'chunked',
+    'Date': 'Tue, 08 Sep 2020 00:01:06 GMT',
+    'Server': 'AmazonS3'
+}
+
 @pytest.fixture
 def data_dir():
     return Path(__file__).parent / 'data'
@@ -31,6 +40,25 @@ def _make_event(query, headers=None):
         'body': None,
         'isBase64Encoded': False,
     }
+
+
+@responses.activate
+def test_403():
+    """test 403 cases, such as like Glacier"""
+    url = "https://example.com/folder/file.ext"
+    responses.add(
+        responses.GET,
+        url=url,
+        status=403,
+        headers=HEADER_403,
+    )
+    params = {
+        "size": "w32h32"
+    }
+    event = _make_event({"url": url, **params})
+    # Get the response
+    response = lambda_handler(event, None)
+    assert response["statusCode"] == 403
 
 
 @patch.dict(os.environ, {
