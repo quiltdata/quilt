@@ -25,6 +25,7 @@ HEADER_403 = {
     'Server': 'AmazonS3'
 }
 
+
 @pytest.fixture
 def data_dir():
     return Path(__file__).parent / 'data'
