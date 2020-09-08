@@ -153,12 +153,13 @@ def lambda_handler(request):
             'info': info,
             'html': html,
         }
-
     else:
         ret_val = {
-            'error': resp.reason
+            'error': resp.reason,
+            'text': resp.text,
         }
-    return make_json_response(200, ret_val)
+
+    return make_json_response(resp.status_code, ret_val)
 
 
 def extract_csv(head, separator):

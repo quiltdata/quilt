@@ -44,7 +44,7 @@ def _make_event(query, headers=None):
 
 @responses.activate
 def test_403():
-    """test 403 cases, such as like Glacier"""
+    """test 403 cases, such as Glacier"""
     url = "https://example.com/folder/file.ext"
     responses.add(
         responses.GET,
@@ -59,6 +59,9 @@ def test_403():
     # Get the response
     response = lambda_handler(event, None)
     assert response["statusCode"] == 403
+    body = json.loads(response["body"])
+    assert "text" in body
+    assert "error" in body
 
 
 @patch.dict(os.environ, {

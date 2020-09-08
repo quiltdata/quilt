@@ -5,11 +5,10 @@ import json
 import os
 from pathlib import Path
 import re
+from unittest.mock import ANY, patch
 
 import pyarrow.parquet as pq
 import responses
-from unittest.mock import ANY, patch
-
 
 from t4_lambda_shared.utils import read_body
 from .. import index
@@ -40,6 +39,22 @@ class TestIndex():
             'body': None,
             'isBase64Encoded': False,
         }
+
+    @responses.activate
+    def test_403(self):
+        """test 403 cases, such as Glacier"""
+        url = self.FILE_URL
+        responses.add(
+            responses.GET,
+            url=url,
+            status=403,
+        )
+        event = self._make_event({'url': url, 'input': 'txt'})
+        response = index.lambda_handler(event, None)
+        assert response["statusCode"] == 403
+        body = json.loads(response["body"])
+        assert "text" in body
+        assert "error" in body
 
     @responses.activate
     def test_fcs(self):
