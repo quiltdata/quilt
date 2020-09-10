@@ -569,7 +569,14 @@ export const handleErr = (retry) =>
                 <br />
                 Error details:
                 <br />
-                {e.details}
+                <M.Box
+                  component="span"
+                  textAlign="left"
+                  display="inline-block"
+                  style={{ whiteSpace: 'pre' }}
+                >
+                  {e.details}
+                </M.Box>
               </>
             )}
           </Message>
