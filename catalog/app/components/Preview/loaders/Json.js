@@ -69,7 +69,7 @@ export const Loader = function JsonLoader({ handle, children }) {
       !!detectSchema(firstBytes) && contentLength <= MAX_SIZE ? (
         <VegaLoader {...{ handle, children }} />
       ) : (
-        <Text.Loader {...{ handle, children, forcelang: 'json' }} />
+        <Text.Loader {...{ handle, children, forceLang: 'json' }} />
       ),
     _: children,
   })
