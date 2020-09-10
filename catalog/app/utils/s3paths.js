@@ -45,6 +45,10 @@ export const ensureSlash = (str) => `${ensureNoSlash(str)}/`
  * @returns {string}
  */
 export const up = (prefix) => {
+  // handle double slashes
+  if (prefix.endsWith('//')) return prefix.substring(0, prefix.length - 1)
+  const m = prefix.match(/^(.*\/\/)[^/]+$/)
+  if (m) return m[1]
   const d = dirname(prefix)
   return d === '.' || d === '/' ? '' : ensureSlash(d)
 }
@@ -183,7 +187,12 @@ export const handleToHttpsUri = ({ bucket, key, version }) =>
  * @returns {[{ label: string, path: string }]}
  */
 export const getBreadCrumbs = (path) =>
-  path ? [...getBreadCrumbs(up(path)), { label: basename(path), path }] : []
+  path
+    ? [
+        ...getBreadCrumbs(up(path)),
+        { label: path.endsWith('//') ? '' : basename(path), path },
+      ]
+    : []
 
 export const encode = R.pipe(R.split('/'), R.map(encodeURIComponent), R.join('/'))
 
