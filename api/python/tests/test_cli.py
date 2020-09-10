@@ -5,7 +5,6 @@ from unittest import mock
 import pytest
 import quilt3
 from quilt3 import main
-from quilt3.util import QuiltException
 
 from .utils import QuiltTestCase
 
