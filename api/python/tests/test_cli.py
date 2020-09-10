@@ -8,6 +8,7 @@ from quilt3 import main
 
 from .utils import QuiltTestCase
 
+
 create_parser = main.create_parser
 
 
@@ -15,7 +16,6 @@ class CommandLineTestCase(QuiltTestCase):
     """
     Base TestCase class, sets up a CLI parser
     """
-
     @classmethod
     def setUpClass(cls):
         parser = create_parser()
@@ -37,8 +37,8 @@ class QuiltCLITestCase(CommandLineTestCase):
             (Path(tmp_dir) / 'bar' / 'baz')
 
             with mock.patch('quilt3.Package.__new__', return_value=pkg) as mocked_package_class, \
-                mock.patch.object(pkg, 'set_dir', wraps=pkg.set_dir) as mocked_set_dir, \
-                mock.patch.object(pkg, 'push') as mocked_push:
+                 mock.patch.object(pkg, 'set_dir', wraps=pkg.set_dir) as mocked_set_dir, \
+                 mock.patch.object(pkg, 'push') as mocked_push:
                 main.main(('push', '--dir', tmp_dir, name))
 
                 mocked_package_class.assert_called_once_with(quilt3.Package)
@@ -65,9 +65,9 @@ def test_push_with_meta_data(arg, meta, expected_set_dir_count, expected_push_co
         (Path(tmp_dir) / 'bar').mkdir()
         (Path(tmp_dir) / 'bar' / 'baz')
 
-        with mock.patch('quilt3.Package.__new__', return_value=pkg) as mocked_package_class, \
-            mock.patch.object(pkg, 'set_dir', wraps=pkg.set_dir) as mocked_set_dir, \
-            mock.patch.object(pkg, 'push') as mocked_push:
+        with mock.patch('quilt3.Package.__new__', return_value=pkg) as mocked_package_class,\
+             mock.patch.object(pkg, 'set_dir', wraps=pkg.set_dir) as mocked_set_dir, \
+             mock.patch.object(pkg, 'push') as mocked_push:
 
             if arg:
                 main.main(('push', '--dir', tmp_dir, name, arg, meta))
