@@ -42,7 +42,7 @@ class QuiltCLITestCase(CommandLineTestCase):
                 main.main(('push', '--dir', tmp_dir, name))
 
                 mocked_package_class.assert_called_once_with(quilt3.Package)
-                mocked_set_dir.assert_called_once_with('.', tmp_dir)
+                mocked_set_dir.assert_called_once_with('.', tmp_dir, meta=None)
                 mocked_push.assert_called_once_with(name, registry=None, dest=None, message=None)
 
 
