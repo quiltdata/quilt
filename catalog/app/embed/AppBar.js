@@ -1,7 +1,7 @@
 import { basename } from 'path'
 
 import * as React from 'react'
-import { useHistory, Link } from 'react-router-dom'
+import { useHistory, useRouteMatch, Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 
@@ -115,8 +115,16 @@ const useStyles = M.makeStyles((t) => ({
   appBar: {
     zIndex: t.zIndex.appBar + 1,
   },
-  link: {
-    ...t.typography.body1,
+  btn: {
+    color: t.palette.common.white,
+    backgroundColor: fade(t.palette.common.white, 0.1),
+    '&:hover': {
+      backgroundColor: fade(t.palette.common.white, 0.2),
+      // Reset on touch devices, it doesn't add specificity
+      '@media (hover: none)': {
+        backgroundColor: fade(t.palette.common.white, 0.1),
+      },
+    },
   },
 }))
 
@@ -124,10 +132,10 @@ export default function AppBar({ bucket }) {
   const cfg = EmbedConfig.use()
   const trigger = M.useScrollTrigger()
   const classes = useStyles()
-  const { urls } = NamedRoutes.use()
-  const root = cfg.scope
-    ? { to: urls.bucketDir(bucket, cfg.scope), label: basename(cfg.scope) }
-    : { to: urls.bucketDir(bucket), label: `s3://${bucket}` }
+  const { urls, paths } = NamedRoutes.use()
+  const isSearch = !!useRouteMatch(paths.bucketSearch)
+  const rootUrl = urls.bucketDir(bucket, cfg.scope)
+  const showRootLink = !cfg.hideRootLink || isSearch
   return (
     <>
       <M.Toolbar />
@@ -135,15 +143,33 @@ export default function AppBar({ bucket }) {
         <M.AppBar className={classes.appBar}>
           <M.Toolbar disableGutters>
             <M.Container maxWidth="lg" style={{ display: 'flex' }}>
-              <Link to={root.to} className={classes.link}>
-                {root.label}
-              </Link>
+              {showRootLink && (
+                <M.Button
+                  to={rootUrl}
+                  component={Link}
+                  variant="contained"
+                  className={classes.btn}
+                >
+                  {cfg.hideRootLink && isSearch ? ( // eslint-disable-line no-nested-ternary
+                    <>
+                      <M.Icon style={{ fontSize: 16, marginLeft: -2 }}>
+                        arrow_back_ios
+                      </M.Icon>{' '}
+                      Back
+                    </>
+                  ) : cfg.scope ? (
+                    basename(cfg.scope)
+                  ) : (
+                    `s3://${bucket}`
+                  )}
+                </M.Button>
+              )}
               <M.Box
                 display="flex"
                 alignItems="center"
                 position="relative"
                 flexGrow={1}
-                ml={2}
+                ml={showRootLink ? 2 : undefined}
               >
                 <SearchBox bucket={bucket} />
               </M.Box>

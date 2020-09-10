@@ -14,5 +14,6 @@
   },
   "css": ["https://fonts.googleapis.com/css2?family=Open+Sans"],
   "hideCode": true,
-  "hideAnalytics": true
+  "hideAnalytics": true,
+  "hideRootLink": true
 }
