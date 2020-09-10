@@ -168,10 +168,11 @@ def test_generate_thumbnail(
 def test_pdf_env():
     """test that env vars are set so that poppler, pdf2image work properly"""
     set_pdf_env()
-    assert os.environ.get('FONTCONFIG_PATH') == os.path.join(
+    assert os.environ.get('FONTCONFIG_FILE') == os.path.join(
         os.environ.get('LAMBDA_TASK_ROOT'),
         'quilt_binaries',
-        'fonts'
+        'fonts',
+        'fonts.conf',
     )
     assert os.environ.get('PATH') == os.pathsep.join([
         str(Path('/one/two')),
