@@ -1,8 +1,5 @@
-import * as React from 'react'
-
 import { HTTPError } from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
-import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import { mkSearch } from 'utils/NamedRoutes'
@@ -29,19 +26,23 @@ async function loadPdf({ endpoint, sign, handle }) {
     }
     const { page_count: pages } = JSON.parse(r.headers.get('X-Quilt-Info') || '{}')
     const firstPageBlob = await r.blob()
-    return AsyncResult.Ok(PreviewData.Pdf({ handle, pages, firstPageBlob }))
+    return PreviewData.Pdf({ handle, pages, firstPageBlob })
   } catch (e) {
-    console.warn('error loading pdf preview')
+    if (e instanceof HTTPError && e.json && e.json.error === 'Forbidden') {
+      if (e.json.text && e.json.text.match(utils.GLACIER_ERROR_RE)) {
+        throw PreviewError.Archived({ handle })
+      }
+      throw PreviewError.Forbidden({ handle })
+    }
+    console.warn('error loading pdf preview', { ...e })
     console.error(e)
-    throw PreviewError.Unexpected({ handle, originalError: e })
+    throw e
   }
 }
 
-function PdfLoader({ handle, callback }) {
+export const Loader = function PdfLoader({ handle, children }) {
   const endpoint = Config.use().binaryApiGatewayEndpoint
   const sign = AWS.Signer.useS3Signer()
   const data = Data.use(loadPdf, { endpoint, sign, handle })
-  return callback(data.result, { fetch: data.fetch })
+  return children(utils.useErrorHandling(data.result, { handle, retry: data.fetch }))
 }
-
-export const load = (handle, callback) => <PdfLoader {...{ handle, callback }} />
