@@ -239,7 +239,7 @@ def set_pdf_env():
     # libs
     os.environ["LD_LIBRARY_PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'lib64')
     # fonts
-    os.environ["FONTCONFIG_PATH"] = os.path.join(lambda_root, prefix, 'fonts')
+    os.environ["FONTCONFIG_FILE"] = os.path.join(lambda_root, prefix, 'fonts', 'fonts.conf')
 
 
 @api(cors_origins=get_default_origins())
