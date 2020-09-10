@@ -5,15 +5,13 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import { copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import Message from 'components/Message'
-import { docs } from 'constants/urls'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import Link from 'utils/StyledLink'
-import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
+import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 
 import Code from 'containers/Bucket/Code'
@@ -23,25 +21,12 @@ import { displayError } from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 
 import * as EmbedConfig from './EmbedConfig'
+import getCrumbs from './getCrumbs'
 
-const HELP_LINK = `${docs}/walkthrough/working-with-a-bucket`
-
-const getCrumbs = R.compose(
-  R.intersperse(Crumb.Sep(<>&nbsp;/ </>)),
-  ({ bucket, path, urls }) =>
-    [{ label: 'ROOT', path: '' }, ...getBreadCrumbs(path)].map(
-      ({ label, path: segPath }) =>
-        Crumb.Segment({
-          label,
-          to: segPath === path ? undefined : urls.bucketDir(bucket, segPath),
-        }),
-    ),
-)
-
-const formatListing = ({ urls }, r) => {
+const formatListing = ({ urls, scope }, r) => {
   const dirs = r.dirs.map((name) =>
     ListingItem.Dir({
-      name: ensureNoSlash(withoutPrefix(r.path, name)),
+      name: s3paths.ensureNoSlash(s3paths.withoutPrefix(r.path, name)),
       to: urls.bucketDir(r.bucket, name),
     }),
   )
@@ -53,18 +38,15 @@ const formatListing = ({ urls }, r) => {
       modified,
     }),
   )
-  const items = [
-    ...(r.path !== ''
-      ? [
-          ListingItem.Dir({
-            name: '..',
-            to: urls.bucketDir(r.bucket, up(r.path)),
-          }),
-        ]
-      : []),
-    ...dirs,
-    ...files,
-  ]
+  const items = [...dirs, ...files]
+  if (r.path !== '' && r.path !== scope) {
+    items.unshift(
+      ListingItem.Dir({
+        name: '..',
+        to: urls.bucketDir(r.bucket, s3paths.up(r.path)),
+      }),
+    )
+  }
   // filter-out files with same name as one of dirs
   return R.uniqBy(ListingItem.case({ Dir: R.prop('name'), File: R.prop('name') }), items)
 }
@@ -86,7 +68,7 @@ export default function Dir({
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const s3 = AWS.S3.use()
-  const path = decode(encodedPath)
+  const path = s3paths.decode(encodedPath)
   const dest = path ? basename(path) : bucket
 
   const code = React.useMemo(
@@ -144,7 +126,7 @@ export default function Dir({
     <M.Box pt={2} pb={4}>
       <M.Box display="flex" alignItems="flex-start" mb={2}>
         <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-          {renderCrumbs(getCrumbs({ bucket, path, urls }))}
+          {renderCrumbs(getCrumbs({ bucket, path, urls, scope: cfg.scope }))}
         </div>
         <M.Box flexGrow={1} />
       </M.Box>
@@ -169,15 +151,11 @@ export default function Dir({
 
           if (!res) return <M.CircularProgress />
 
-          const items = formatListing({ urls }, res)
+          const items = formatListing({ urls, scope: cfg.scope }, res)
 
-          if (!items.length)
-            return (
-              // TODO: remove, just show "no files"
-              <Message headline="No files">
-                <Link href={HELP_LINK}>Learn how to upload files</Link>.
-              </Message>
-            )
+          if (!items.length) {
+            return <Message headline="No files" />
+          }
 
           const locked = !AsyncResult.Ok.is(x)
 

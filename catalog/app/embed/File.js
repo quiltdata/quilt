@@ -8,7 +8,7 @@ import { FormattedRelative } from 'react-intl'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import { copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import Message from 'components/Message'
 import * as Preview from 'components/Preview'
 import Sparkline from 'components/Sparkline'
@@ -22,7 +22,7 @@ import * as SVG from 'utils/SVG'
 import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 import parseSearch from 'utils/parseSearch'
-import { getBreadCrumbs, up, decode, handleToHttpsUri } from 'utils/s3paths'
+import * as s3paths from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from 'containers/Bucket/Code'
@@ -32,15 +32,7 @@ import renderPreview from 'containers/Bucket/renderPreview'
 import * as requests from 'containers/Bucket/requests'
 
 import * as EmbedConfig from './EmbedConfig'
-
-const getCrumbs = ({ bucket, path, urls }) =>
-  R.chain(
-    ({ label, path: segPath }) => [
-      Crumb.Segment({ label, to: urls.bucketDir(bucket, segPath) }),
-      Crumb.Sep(<>&nbsp;/ </>),
-    ],
-    [{ label: 'ROOT', path: '' }, ...getBreadCrumbs(up(path))],
-  )
+import getCrumbs from './getCrumbs'
 
 const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   version: {
@@ -71,7 +63,8 @@ function VersionInfo({ bucket, path, version }) {
 
   const classes = useVersionInfoStyles()
 
-  const getHttpsUri = (v) => handleToHttpsUri({ bucket, key: path, version: v.id })
+  const getHttpsUri = (v) =>
+    s3paths.handleToHttpsUri({ bucket, key: path, version: v.id })
   const getCliArgs = (v) => `--bucket ${bucket} --key "${path}" --version-id ${v.id}`
 
   const copyHttpsUri = (v) => (e) => {
@@ -334,7 +327,7 @@ export default function File({
   const { analyticsBucket, noDownload } = Config.use()
   const s3 = AWS.S3.use()
 
-  const path = decode(encodedPath)
+  const path = s3paths.decode(encodedPath)
 
   const code = React.useMemo(
     () => [
@@ -404,7 +397,9 @@ export default function File({
   return (
     <FileView.Root>
       <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-        {renderCrumbs(getCrumbs({ bucket, path, urls }))}
+        {renderCrumbs(
+          getCrumbs({ bucket, path, urls, scope: cfg.scope, excludeBase: true }),
+        )}
       </div>
       <div className={classes.topBar}>
         <div className={classes.name}>

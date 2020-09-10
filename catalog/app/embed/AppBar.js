@@ -1,3 +1,5 @@
+import { basename } from 'path'
+
 import * as React from 'react'
 import { useHistory, Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -6,6 +8,8 @@ import { fade } from '@material-ui/core/styles/colorManipulator'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parse from 'utils/parseSearch'
 import { useRoute } from 'utils/router'
+
+import * as EmbedConfig from './EmbedConfig'
 
 const useSearchBoxStyles = M.makeStyles((t) => ({
   root: {
@@ -117,9 +121,13 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 export default function AppBar({ bucket }) {
+  const cfg = EmbedConfig.use()
   const trigger = M.useScrollTrigger()
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
+  const root = cfg.scope
+    ? { to: urls.bucketDir(bucket, cfg.scope), label: basename(cfg.scope) }
+    : { to: urls.bucketDir(bucket), label: `s3://${bucket}` }
   return (
     <>
       <M.Toolbar />
@@ -127,8 +135,8 @@ export default function AppBar({ bucket }) {
         <M.AppBar className={classes.appBar}>
           <M.Toolbar disableGutters>
             <M.Container maxWidth="lg" style={{ display: 'flex' }}>
-              <Link to={urls.bucketDir(bucket)} className={classes.link}>
-                s3://{bucket}
+              <Link to={root.to} className={classes.link}>
+                {root.label}
               </Link>
               <M.Box
                 display="flex"
