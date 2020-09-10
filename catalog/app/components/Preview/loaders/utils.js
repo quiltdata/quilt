@@ -113,9 +113,14 @@ const getFirstBytes = async ({ s3, bytes, handle }) => {
     const contentLength = parseRange(res.ContentRange) || 0
     return { firstBytes, contentLength }
   } catch (e) {
-    // TODO: handle glacier-specific errors
-    if (['NoSuchKey', 'NotFound'].includes(e.name)) {
+    if (['NoSuchKey', 'NotFound'].includes(e.code)) {
       throw PreviewError.DoesNotExist({ handle })
+    }
+    if (e.code === 'InvalidObjectState') {
+      throw PreviewError.Archived({ handle })
+    }
+    if (e.code === 'InvalidArgument' && e.message === 'Invalid version id specified') {
+      throw PreviewError.InvalidVersion({ handle })
     }
     // eslint-disable-next-line no-console
     console.error('Error loading preview')
@@ -139,7 +144,15 @@ const getObject = ({ s3, handle }) =>
     })
     .promise()
     .catch((e) => {
-      // TODO: handle errors
+      if (['NoSuchKey', 'NotFound'].includes(e.code)) {
+        throw PreviewError.DoesNotExist({ handle })
+      }
+      if (e.code === 'InvalidObjectState') {
+        throw PreviewError.Archived({ handle })
+      }
+      if (e.code === 'InvalidArgument' && e.message === 'Invalid version id specified') {
+        throw PreviewError.InvalidVersion({ handle })
+      }
       throw e
     })
 
