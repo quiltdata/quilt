@@ -51,16 +51,18 @@ function HandleResolver({ resolve, handle, children }) {
   return children(AsyncResult.Ok(handle))
 }
 
+const renderContents = (contents) => <M.Box mx="auto">{contents}</M.Box>
+
 function SummaryItemFile({ handle, name, mkUrl, resolveLogicalKey }) {
-  const renderErr = (_, { fetch }) => (
-    <>
-      <M.Typography variant="body1" gutterBottom>
-        Error loading preview
-      </M.Typography>
-      <M.Button variant="outlined" onClick={fetch}>
-        Retry
-      </M.Button>
-    </>
+  const withData = (callback) => (
+    <HandleResolver resolve={resolveLogicalKey} handle={handle}>
+      {AsyncResult.case({
+        Err: (e, { fetch }) =>
+          Preview.PreviewError.Unexpected({ handle, retry: fetch, originalError: e }),
+        Ok: (resolved) => Preview.load(resolved, callback),
+        _: callback,
+      })}
+    </HandleResolver>
   )
 
   return (
@@ -70,71 +72,7 @@ function SummaryItemFile({ handle, name, mkUrl, resolveLogicalKey }) {
           {name || basename(handle.logicalKey || handle.key)}
         </StyledLink>
       </Header>
-      <M.CardContent>
-        <HandleResolver resolve={resolveLogicalKey} handle={handle}>
-          {AsyncResult.case({
-            Err: renderErr,
-            _: () => <M.CircularProgress />,
-            Ok: (resolved) =>
-              Preview.load(
-                resolved,
-                AsyncResult.case({
-                  Ok: AsyncResult.case({
-                    Init: (_, { fetch }) => (
-                      <>
-                        <M.Typography variant="body1" gutterBottom>
-                          Large files are not previewed automatically
-                        </M.Typography>
-                        <M.Button variant="outlined" onClick={fetch}>
-                          Load preview
-                        </M.Button>
-                      </>
-                    ),
-                    Pending: () => <M.CircularProgress />,
-                    Err: renderErr,
-                    Ok: (data) => <M.Box mx="auto">{Preview.render(data)}</M.Box>,
-                  }),
-                  Err: Preview.PreviewError.case({
-                    TooLarge: () => (
-                      <>
-                        <M.Typography variant="body1" gutterBottom>
-                          Object is too large to preview in browser
-                        </M.Typography>
-                        {AWS.Signer.withDownloadUrl(resolved, (url) => (
-                          <M.Button variant="outlined" href={url}>
-                            View in Browser
-                          </M.Button>
-                        ))}
-                      </>
-                    ),
-                    Unsupported: () => (
-                      <>
-                        <M.Typography variant="body1" gutterBottom>
-                          Preview not available
-                        </M.Typography>
-                        {AWS.Signer.withDownloadUrl(resolved, (url) => (
-                          <M.Button variant="outlined" href={url}>
-                            View in Browser
-                          </M.Button>
-                        ))}
-                      </>
-                    ),
-                    DoesNotExist: () => (
-                      <M.Typography variant="body1">Object does not exist</M.Typography>
-                    ),
-                    MalformedJson: ({ originalError: { message } }) => (
-                      <M.Typography variant="body1" gutterBottom>
-                        Malformed JSON: {message}
-                      </M.Typography>
-                    ),
-                    Unexpected: renderErr,
-                  }),
-                  _: () => <M.CircularProgress />,
-                }),
-              ),
-          })}
-        </HandleResolver>
-      </M.CardContent>
+      <M.CardContent>{withData(Preview.display({ renderContents }))}</M.CardContent>
     </Container>
   )
 }

@@ -7,6 +7,7 @@ import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import * as Preview from 'components/Preview'
 import Skeleton from 'components/Skeleton'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -19,10 +20,11 @@ import Link, { linkStyle } from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
 
 import Code from './Code'
-import FilePreview from './FilePreview'
+import * as FileView from './FileView'
 import Listing, { ListingItem } from './Listing'
 import Section from './Section'
 import Summary from './Summary'
+import renderPreview from './renderPreview'
 import * as requests from './requests'
 
 const MAX_REVISIONS = 5
@@ -288,7 +290,39 @@ function PkgCode({ data, bucket, name, revision, path }) {
   return code && <Code>{code}</Code>
 }
 
-function DirDisplay({ bucket, name, revision, path }) {
+const useTopBarStyles = M.makeStyles((t) => ({
+  topBar: {
+    alignItems: 'flex-end',
+    display: 'flex',
+    marginBottom: t.spacing(2),
+  },
+  crumbs: {
+    ...t.typography.body1,
+    maxWidth: 'calc(100% - 160px)',
+    overflowWrap: 'break-word',
+    [t.breakpoints.down('xs')]: {
+      maxWidth: 'calc(100% - 40px)',
+    },
+  },
+  spacer: {
+    flexGrow: 1,
+  },
+}))
+
+function TopBar({ crumbs, children }) {
+  const classes = useTopBarStyles()
+  return (
+    <div className={classes.topBar}>
+      <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
+        {renderCrumbs(crumbs)}
+      </div>
+      <div className={classes.spacer} />
+      {children}
+    </div>
+  )
+}
+
+function DirDisplay({ bucket, name, revision, path, crumbs }) {
   const s3 = AWS.S3.use()
   const { apiGatewayEndpoint: endpoint } = Config.use()
   const credentials = AWS.Credentials.use()
@@ -352,6 +386,7 @@ function DirDisplay({ bucket, name, revision, path }) {
       const lazyHandles = objects.map((basename) => ({ logicalKey: path + basename }))
       return (
         <>
+          <TopBar crumbs={crumbs} />
           <PkgCode {...{ data: hashData, bucket, name, revision, path }} />
           <M.Box mt={2}>
             <Listing items={items} />
@@ -367,29 +402,35 @@ function DirDisplay({ bucket, name, revision, path }) {
     Err: (e) => {
       console.error(e)
       return (
-        <M.Box mt={4}>
-          <M.Typography variant="h4" align="center" gutterBottom>
-            Error loading directory
-          </M.Typography>
-          <M.Typography variant="body1" align="center">
-            Seems like there&apos;s no such directory in this package
-          </M.Typography>
-        </M.Box>
+        <>
+          <TopBar crumbs={crumbs} />
+          <M.Box mt={4}>
+            <M.Typography variant="h4" align="center" gutterBottom>
+              Error loading directory
+            </M.Typography>
+            <M.Typography variant="body1" align="center">
+              Seems like there&apos;s no such directory in this package
+            </M.Typography>
+          </M.Box>
+        </>
       )
     },
     _: () => (
       // TODO: skeleton placeholder
-      <M.Box mt={2}>
-        <M.CircularProgress />
-      </M.Box>
+      <>
+        <TopBar crumbs={crumbs} />
+        <M.Box mt={2}>
+          <M.CircularProgress />
+        </M.Box>
+      </>
     ),
   })
 }
 
-function FileDisplay({ bucket, name, revision, path }) {
+function FileDisplay({ bucket, name, revision, path, crumbs }) {
   const s3 = AWS.S3.use()
-  const { apiGatewayEndpoint: endpoint } = Config.use()
   const credentials = AWS.Credentials.use()
+  const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
 
   const data = useData(requests.packageFileDetail, {
     s3,
@@ -403,74 +444,87 @@ function FileDisplay({ bucket, name, revision, path }) {
 
   const hashData = useData(requests.loadRevisionHash, { s3, bucket, name, id: revision })
 
-  return data.case({
-    Ok: (handle) => (
-      <>
-        <PkgCode {...{ data: hashData, bucket, name, revision, path }} />
-        <Section icon="remove_red_eye" heading="Preview" expandable={false}>
-          <FilePreview handle={handle} />
-        </Section>
-      </>
-    ),
-    Err: (e) => {
-      console.error(e)
-      return (
-        <M.Box mt={4}>
-          <M.Typography variant="h4" align="center" gutterBottom>
-            Error loading file
-          </M.Typography>
-          <M.Typography variant="body1" align="center">
-            Seems like there&apos;s no such file in this package
-          </M.Typography>
-        </M.Box>
-      )
-    },
-    _: () => (
-      // TODO: skeleton placeholder
+  const renderProgress = () => (
+    // TODO: skeleton placeholder
+    <>
+      <TopBar crumbs={crumbs} />
       <M.Box mt={2}>
         <M.CircularProgress />
       </M.Box>
+    </>
+  )
+
+  const renderError = (headline, detail) => (
+    <>
+      <TopBar crumbs={crumbs} />
+      <M.Box mt={4}>
+        <M.Typography variant="h4" align="center" gutterBottom>
+          {headline}
+        </M.Typography>
+        {!!detail && (
+          <M.Typography variant="body1" align="center">
+            {detail}
+          </M.Typography>
+        )}
+      </M.Box>
+    </>
+  )
+
+  const withPreview = ({ archived, deleted, handle }, callback) => {
+    if (deleted) {
+      return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
+    }
+    if (archived) {
+      return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
+    }
+    return Preview.load(handle, callback)
+  }
+
+  return data.case({
+    Ok: (handle) => (
+      <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
+        {AsyncResult.case({
+          _: renderProgress,
+          Err: (e) => {
+            if (e.code === 'Forbidden') {
+              return renderError('Access Denied', "You don't have access to this object")
+            }
+            console.error(e)
+            return renderError('Error loading file', 'Something went wrong')
+          },
+          Ok: requests.ObjectExistence.case({
+            Exists: ({ archived, deleted }) => (
+              <>
+                <TopBar crumbs={crumbs}>
+                  {!noDownload && !deleted && !archived && (
+                    <FileView.DownloadButton handle={handle} />
+                  )}
+                </TopBar>
+                <PkgCode {...{ data: hashData, bucket, name, revision, path }} />
+                <Section icon="remove_red_eye" heading="Preview" expandable={false}>
+                  {withPreview({ archived, deleted, handle }, renderPreview)}
+                </Section>
+              </>
+            ),
+            _: () => renderError('No Such Object'),
+          }),
+        })}
+      </Data>
     ),
+    Err: (e) => {
+      console.error(e)
+      return renderError(
+        'Error loading file',
+        "Seems like there's no such file in this package",
+      )
+    },
+    _: renderProgress,
   })
 }
 
-const useStyles = M.makeStyles((t) => ({
-  topBar: {
-    alignItems: 'flex-end',
-    display: 'flex',
-    marginBottom: t.spacing(2),
-  },
-  crumbs: {
-    ...t.typography.body1,
-    maxWidth: 'calc(100% - 160px)',
-    overflowWrap: 'break-word',
-    [t.breakpoints.down('xs')]: {
-      maxWidth: 'calc(100% - 40px)',
-    },
-  },
+const useStyles = M.makeStyles(() => ({
   name: {
     wordBreak: 'break-all',
-  },
-  spacer: {
-    flexGrow: 1,
-  },
-  button: {
-    flexShrink: 0,
-    marginBottom: -3,
-    marginTop: -3,
-  },
-  warning: {
-    background: t.palette.warning.light,
-    borderRadius: t.shape.borderRadius,
-    display: 'flex',
-    padding: t.spacing(1.5),
-    ...t.typography.body2,
-  },
-  warningIcon: {
-    height: 20,
-    lineHeight: '20px',
-    marginRight: t.spacing(1),
-    opacity: 0.6,
   },
 }))
 
@@ -480,12 +534,7 @@ export default function PackageTree({
   },
 }) {
   const classes = useStyles()
-  const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
-  const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
-  const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
-  const credentials = AWS.Credentials.use()
   const bucketCfg = BucketConfig.useCurrentBucketConfig()
 
   const path = s3paths.decode(encodedPath)
@@ -509,7 +558,7 @@ export default function PackageTree({
   }, [bucket, name, revision, path, urls])
 
   return (
-    <M.Box pt={2} pb={4}>
+    <FileView.Root>
       {!!bucketCfg && <ExposeLinkedData {...{ bucketCfg, bucket, name, revision }} />}
       <M.Typography variant="body1">
         <Link to={urls.bucketPackageDetail(bucket, name)} className={classes.name}>
@@ -518,53 +567,12 @@ export default function PackageTree({
         {' @ '}
         <RevisionInfo {...{ revision, bucket, name, path }} />
       </M.Typography>
-      <div className={classes.topBar}>
-        <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
-          {renderCrumbs(crumbs)}
-        </div>
-        <div className={classes.spacer} />
-        {!noDownload && !isDir && (
-          <Data
-            fetch={requests.packageFileDetail}
-            params={{ s3, credentials, endpoint, bucket, name, revision, path }}
-          >
-            {AsyncResult.case({
-              Ok: (handle) =>
-                AWS.Signer.withDownloadUrl(handle, (url) =>
-                  xs ? (
-                    <M.IconButton
-                      className={classes.button}
-                      href={url}
-                      edge="end"
-                      size="small"
-                      download
-                    >
-                      <M.Icon>arrow_downward</M.Icon>
-                    </M.IconButton>
-                  ) : (
-                    <M.Button
-                      href={url}
-                      className={classes.button}
-                      variant="outlined"
-                      size="small"
-                      startIcon={<M.Icon>arrow_downward</M.Icon>}
-                      download
-                    >
-                      Download file
-                    </M.Button>
-                  ),
-                ),
-              _: () => null,
-            })}
-          </Data>
-        )}
-      </div>
 
       {isDir ? (
-        <DirDisplay {...{ bucket, name, revision, path }} />
+        <DirDisplay {...{ bucket, name, revision, path, crumbs }} />
       ) : (
-        <FileDisplay {...{ bucket, name, revision, path }} />
+        <FileDisplay {...{ bucket, name, revision, path, crumbs }} />
       )}
-    </M.Box>
+    </FileView.Root>
   )
 }
