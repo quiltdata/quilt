@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import AutosizeInput from 'react-input-autosize'
@@ -35,6 +36,9 @@ const useItemStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
   },
+  archived: {
+    opacity: 0.5,
+  },
   info: {
     display: 'flex',
   },
@@ -44,15 +48,21 @@ const useItemStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Item({ name, to, icon, children, ...props }) {
+function Item({ name, to, icon, children, archived, ...props }) {
   const classes = useItemStyles()
   return (
-    <M.ListItem component={Link} to={to} className={classes.root} {...props}>
-      <div className={classes.name}>
+    <M.ListItem
+      component={Link}
+      to={to}
+      className={classes.root}
+      title={archived ? 'Object archived' : undefined}
+      {...props}
+    >
+      <div className={cx(classes.name, archived && classes.archived)}>
         {!!icon && <M.Icon className={classes.icon}>{icon}</M.Icon>}
         {name}
       </div>
-      <div className={classes.info}>{children}</div>
+      <div className={cx(classes.info, archived && classes.archived)}>{children}</div>
     </M.ListItem>
   )
 }
@@ -346,8 +356,14 @@ export default function Listing({ items, truncated = false, locked = false, load
                 Dir: ({ name, to }) => (
                   <Item icon="folder_open" key={name} name={name || EMPTY} to={to} />
                 ),
-                File: ({ name, to, size, modified }) => (
-                  <Item icon="insert_drive_file" key={name} name={name} to={to}>
+                File: ({ name, to, size, modified, archived }) => (
+                  <Item
+                    icon="insert_drive_file"
+                    key={name}
+                    name={name}
+                    to={to}
+                    archived={archived}
+                  >
                     <div className={classes.size}>{readableBytes(size)}</div>
                     {!!modified && (
                       <div className={classes.modified}>{modified.toLocaleString()}</div>

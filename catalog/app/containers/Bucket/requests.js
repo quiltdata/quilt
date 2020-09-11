@@ -47,6 +47,7 @@ export const bucketListing = ({ s3, bucket, path = '', prev }) =>
             modified: i.LastModified,
             size: i.Size,
             etag: i.ETag,
+            archived: i.StorageClass === 'GLACIER' || i.StorageClass === 'DEEP_ARCHIVE',
           })),
           (xs) => (prev && prev.files ? prev.files.concat(xs) : xs),
         ),
