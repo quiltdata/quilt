@@ -7,5 +7,7 @@ import * as utils from './utils'
 
 export const detect = utils.extIn(SUPPORTED_EXTENSIONS)
 
-export const load = (handle, callback) =>
-  callback(AsyncResult.Ok(AsyncResult.Ok(PreviewData.Image({ handle }))))
+// TODO: issue a head request to ensure existance and get storage class
+export const Loader = function ImageLoader({ handle, children }) {
+  return children(AsyncResult.Ok(PreviewData.Image({ handle })))
+}

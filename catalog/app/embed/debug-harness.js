@@ -47,6 +47,7 @@ function Embedder() {
     credentials: useField('{}'),
     bucket: useField(''),
     path: useField(''),
+    scope: useField(''),
     rest: useField('{}'),
   }
 
@@ -55,8 +56,9 @@ function Embedder() {
       return {
         bucket: fields.bucket.value,
         path: fields.path.value,
+        scope: fields.scope.value,
         credentials: JSON.parse(fields.credentials.value),
-        ...JSON.parse(fields.rest.value),
+        ...JSON.parse(fields.rest.value || '{}'),
       }
     } catch (e) {
       return e
@@ -65,6 +67,7 @@ function Embedder() {
     fields.credentials.value,
     fields.bucket.value,
     fields.path.value,
+    fields.scope.value,
     fields.rest.value,
   ])
 
@@ -123,6 +126,9 @@ function Embedder() {
 
         <M.Box mt={2} />
         <M.TextField label="Path" fullWidth {...fields.path.input} />
+
+        <M.Box mt={2} />
+        <M.TextField label="Scope" fullWidth {...fields.scope.input} />
 
         <M.Box mt={2} />
         <M.TextField

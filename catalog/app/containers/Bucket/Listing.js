@@ -10,6 +10,8 @@ import tagged from 'utils/tagged'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
+const EMPTY = <i>{'<EMPTY>'}</i>
+
 function WrappedAutosizeInput({ className, ...props }) {
   return <AutosizeInput inputClassName={className} {...props} />
 }
@@ -342,7 +344,7 @@ export default function Listing({ items, truncated = false, locked = false, load
             {pagination.paginated.map(
               ListingItem.case({
                 Dir: ({ name, to }) => (
-                  <Item icon="folder_open" key={name} name={name} to={to} />
+                  <Item icon="folder_open" key={name} name={name || EMPTY} to={to} />
                 ),
                 File: ({ name, to, size, modified }) => (
                   <Item icon="insert_drive_file" key={name} name={name} to={to}>

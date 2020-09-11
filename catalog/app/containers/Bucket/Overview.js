@@ -933,7 +933,7 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ data, expanded: defaultExpanded = false }) {
+function PreviewBox({ contents, expanded: defaultExpanded = false }) {
   const classes = usePreviewBoxStyles()
   const [expanded, setExpanded] = React.useState(defaultExpanded)
   const expand = React.useCallback(() => {
@@ -941,7 +941,7 @@ function PreviewBox({ data, expanded: defaultExpanded = false }) {
   }, [setExpanded])
   return (
     <div className={cx(classes.root, { [classes.expanded]: expanded })}>
-      {Preview.render(data)}
+      {contents}
       {!expanded && (
         <div className={classes.fade}>
           <M.Button variant="outlined" onClick={expand}>
@@ -953,7 +953,7 @@ function PreviewBox({ data, expanded: defaultExpanded = false }) {
   )
 }
 
-function FilePreview({ handle, headingOverride, fallback, expanded }) {
+function FilePreview({ handle, headingOverride, expanded }) {
   const { urls } = NamedRoutes.use()
 
   const crumbs = React.useMemo(() => {
@@ -969,74 +969,32 @@ function FilePreview({ handle, headingOverride, fallback, expanded }) {
     return { dirs, file }
   }, [handle, urls])
 
-  const renderCrumbs = () => (
-    <span onCopy={copyWithoutSpaces}>
-      {crumbs.dirs.map((c) => (
-        <React.Fragment key={`crumb:${c.to}`}>
-          <CrumbLink {...c} />
-          &nbsp;/{' '}
-        </React.Fragment>
-      ))}
-      <CrumbLink {...crumbs.file} />
-    </span>
-  )
+  const heading =
+    headingOverride != null ? (
+      headingOverride
+    ) : (
+      <span onCopy={copyWithoutSpaces}>
+        {crumbs.dirs.map((c) => (
+          <React.Fragment key={`crumb:${c.to}`}>
+            <CrumbLink {...c} />
+            &nbsp;/{' '}
+          </React.Fragment>
+        ))}
+        <CrumbLink {...crumbs.file} />
+      </span>
+    )
 
-  const heading = headingOverride != null ? headingOverride : renderCrumbs()
-
-  return Preview.load(
-    handle,
-    AsyncResult.case({
-      Ok: AsyncResult.case({
-        Init: (_, { fetch }) => (
-          <Section heading={heading}>
-            <M.Typography variant="body1" gutterBottom>
-              Large files are not previewed automatically
-            </M.Typography>
-            <M.Button variant="outlined" onClick={fetch}>
-              Load preview
-            </M.Button>
-          </Section>
-        ),
-        Pending: () => (
-          <Section heading={heading}>
-            <ContentSkel />
-          </Section>
-        ),
-        Err: (_, { fetch }) => (
-          <Section heading={heading}>
-            <M.Typography variant="body1" gutterBottom>
-              Error loading preview
-            </M.Typography>
-            <M.Button variant="outlined" onClick={fetch}>
-              Retry
-            </M.Button>
-          </Section>
-        ),
-        Ok: (data) => (
-          <Section heading={heading}>
-            <PreviewBox data={data} expanded={expanded} />
-          </Section>
-        ),
-      }),
-      Err: Preview.PreviewError.case({
-        DoesNotExist: (...args) => (fallback ? fallback(...args) : null),
-        _: (_, { fetch }) => (
-          <Section heading={heading}>
-            <M.Typography variant="body1" gutterBottom>
-              Error loading preview
-            </M.Typography>
-            <M.Button variant="outlined" onClick={fetch}>
-              Retry
-            </M.Button>
-          </Section>
-        ),
-      }),
-      _: () => (
-        <Section heading={heading}>
-          <ContentSkel />
-        </Section>
-      ),
-    }),
+  // TODO: check for glacier and hide items
+  return (
+    <Section heading={heading}>
+      {Preview.load(
+        handle,
+        Preview.display({
+          renderContents: (contents) => <PreviewBox {...{ contents, expanded }} />,
+          renderProgress: () => <ContentSkel />,
+        }),
+      )}
+    </Section>
   )
 }
 

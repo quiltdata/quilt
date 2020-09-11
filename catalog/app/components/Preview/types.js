@@ -38,9 +38,14 @@ export const PreviewData = tagged([
 ])
 
 export const PreviewError = tagged([
+  'Deleted', // { handle }
+  'Archived', // { handle }
+  'InvalidVersion', // { handle }
+  'Forbidden', // { handle }
+  'Gated', // { handle, load }
   'TooLarge', // { handle }
   'Unsupported', // { handle }
   'DoesNotExist', // { handle }
-  'Unexpected', // { handle, originalError: any }
-  'MalformedJson', // { handle, originalError: SyntaxError }
+  'MalformedJson', // { handle, message }
+  'Unexpected', // { handle, retry, originalError: any }
 ])

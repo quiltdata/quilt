@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useIsInStack } from 'utils/BucketConfig'
+import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewData } from '../types'
 
@@ -10,26 +11,20 @@ import * as utils from './utils'
 
 export const detect = utils.extIn(['.htm', '.html'])
 
-const IFrameLoader = ({ handle, children }) => {
+function IFrameLoader({ handle, children }) {
   const sign = AWS.Signer.useS3Signer()
-  const src = React.useMemo(() => sign(handle, { ResponseContentType: 'text/html' }), [
-    handle.bucket,
-    handle.key,
-    handle.version,
-    sign,
-  ])
-  return children(AsyncResult.Ok(AsyncResult.Ok(PreviewData.IFrame({ src }))))
+  const src = useMemoEq([handle, sign], () =>
+    sign(handle, { ResponseContentType: 'text/html' }),
+  )
+  // TODO: issue a head request to ensure existence and get storage class
+  return children(AsyncResult.Ok(PreviewData.IFrame({ src })))
 }
 
-const HtmlLoader = ({ handle, children }) => {
+export const Loader = function HtmlLoader({ handle, children }) {
   const isInStack = useIsInStack()
   return isInStack(handle.bucket) ? (
-    <IFrameLoader handle={handle}>{children}</IFrameLoader>
+    <IFrameLoader {...{ handle, children }} />
   ) : (
-    Text.load(handle, children)
+    <Text.Loader {...{ handle, children }} />
   )
 }
-
-export const load = (handle, callback) => (
-  <HtmlLoader handle={handle}>{callback}</HtmlLoader>
-)

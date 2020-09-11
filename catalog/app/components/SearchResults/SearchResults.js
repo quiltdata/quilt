@@ -12,12 +12,15 @@ import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as Config from 'utils/Config'
+import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink, { linkStyle } from 'utils/StyledLink'
 import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
+
+import * as requests from 'containers/Bucket/requests'
 
 const PER_PAGE = 10
 const ES_V = '6.7'
@@ -79,31 +82,26 @@ function HeaderIcon(props) {
   )
 }
 
-function ObjectHeader({ handle, showBucket, bucketExistenceData }) {
-  const cfg = Config.use()
+function ObjectHeader({ handle, showBucket, downloadable }) {
   return (
     <Heading display="flex" alignItems="center" mb={1}>
       <ObjectCrumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
-      {!cfg.noDownload &&
-        bucketExistenceData.case({
-          _: () => null,
-          Ok: () =>
-            AWS.Signer.withDownloadUrl(handle, (url) => (
-              <M.Box
-                alignItems="center"
-                display="flex"
-                height={32}
-                justifyContent="center"
-                width={24}
-                my={{ xs: -0.25, md: 0 }}
-              >
-                <M.IconButton href={url} title="Download" download>
-                  <M.Icon>arrow_downward</M.Icon>
-                </M.IconButton>
-              </M.Box>
-            )),
-        })}
+      {downloadable &&
+        AWS.Signer.withDownloadUrl(handle, (url) => (
+          <M.Box
+            alignItems="center"
+            display="flex"
+            height={32}
+            justifyContent="center"
+            width={24}
+            my={{ xs: -0.25, md: 0 }}
+          >
+            <M.IconButton href={url} title="Download" download>
+              <M.Icon>arrow_downward</M.Icon>
+            </M.IconButton>
+          </M.Box>
+        ))}
     </Heading>
   )
 }
@@ -187,7 +185,10 @@ function VersionInfo({ bucket, path, version, versions }) {
 
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
-  const clip = (str, len) => (xs ? str.substring(0, len) : str)
+  const clip = (str, len) => {
+    const s = `${str}`
+    return xs ? s.substring(0, len) : s
+  }
 
   return (
     <>
@@ -292,7 +293,7 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ data }) {
+function PreviewBox({ contents }) {
   const classes = usePreviewBoxStyles()
   const [expanded, setExpanded] = React.useState(false)
   const expand = React.useCallback(() => {
@@ -300,7 +301,7 @@ function PreviewBox({ data }) {
   }, [setExpanded])
   return (
     <div className={cx(classes.root, { [classes.expanded]: expanded })}>
-      {Preview.render(data)}
+      {contents}
       {!expanded && (
         <div className={classes.fade}>
           <M.Button variant="outlined" onClick={expand}>
@@ -312,51 +313,41 @@ function PreviewBox({ data }) {
   )
 }
 
-function PreviewDisplay({ handle, bucketExistenceData }) {
-  if (!handle.version) return null
-  return (
-    <SmallerSection>
-      <SectionHeading>Preview</SectionHeading>
-      {bucketExistenceData.case({
-        _: () => <M.CircularProgress />,
-        Err: () => (
-          <M.Typography variant="body1">
-            Error loading preview: bucket does not exist
-          </M.Typography>
-        ),
-        Ok: () =>
-          Preview.load(
-            handle,
-            AsyncResult.case({
-              Ok: AsyncResult.case({
-                Init: (_, { fetch }) => (
-                  <M.Typography variant="body1">
-                    Large files are not previewed by default{' '}
-                    <M.Button variant="outlined" size="small" onClick={fetch}>
-                      Load preview
-                    </M.Button>
-                  </M.Typography>
-                ),
-                Pending: () => <M.CircularProgress />,
-                Err: (_, { fetch }) => (
-                  <M.Typography variant="body1">
-                    Error loading preview{' '}
-                    <M.Button variant="outlined" size="small" onClick={fetch}>
-                      Retry
-                    </M.Button>
-                  </M.Typography>
-                ),
-                Ok: (data) => <PreviewBox data={data} />,
-              }),
-              Err: () => (
-                <M.Typography variant="body1">Preview not available</M.Typography>
+const renderContents = (contents) => <PreviewBox {...{ contents }} />
+
+function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
+  const withData = (callback) =>
+    bucketExistenceData.case({
+      _: callback,
+      Err: () => callback(AsyncResult.Err(Preview.PreviewError.DoesNotExist({ handle }))),
+      Ok: () =>
+        versionExistenceData.case({
+          _: callback,
+          Err: (e) =>
+            callback(
+              AsyncResult.Err(
+                Preview.PreviewError.Unexpected({ handle, originalError: e }),
               ),
-              _: () => <M.CircularProgress />,
-            }),
-          ),
-      })}
-    </SmallerSection>
-  )
+            ),
+          Ok: requests.ObjectExistence.case({
+            Exists: (h) => {
+              if (h.deleted) {
+                return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
+              }
+              if (h.archived) {
+                return callback(
+                  AsyncResult.Err(Preview.PreviewError.Archived({ handle })),
+                )
+              }
+              return Preview.load(handle, callback)
+            },
+            DoesNotExist: () =>
+              callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
+          }),
+        }),
+    })
+
+  return <SmallerSection>{withData(Preview.display({ renderContents }))}</SmallerSection>
 }
 
 function Meta({ meta }) {
@@ -436,24 +427,36 @@ function RevisionInfo({ bucket, handle, revision, hash, comment, lastModified })
   )
 }
 
-const getDefaultVersion = (versions) => versions.find((v) => !!v.id) || versions[0]
-
 function ObjectHit({ showBucket, hit: { path, versions, bucket } }) {
-  const v = getDefaultVersion(versions)
-  const data = useBucketExistence(bucket)
+  const cfg = Config.use()
+  const s3 = AWS.S3.use()
+
+  const v = versions[0]
+  const handle = { bucket, key: path, version: v.id }
+
+  const bucketExistenceData = useBucketExistence(bucket)
+  const versionExistenceData = Data.use(requests.getObjectExistence, { s3, ...handle })
+
+  const downloadable =
+    !cfg.noDownload &&
+    bucketExistenceData.case({
+      _: () => false,
+      Ok: () =>
+        versionExistenceData.case({
+          _: () => false,
+          Ok: requests.ObjectExistence.case({
+            _: () => false,
+            Exists: ({ deleted, archived }) => !deleted && !archived,
+          }),
+        }),
+    })
+
   return (
     <Section>
-      <ObjectHeader
-        handle={{ bucket, key: path, version: v.id }}
-        showBucket={showBucket}
-        bucketExistenceData={data}
-      />
+      <ObjectHeader {...{ handle, showBucket, downloadable }} />
       <VersionInfo bucket={bucket} path={path} version={v} versions={versions} />
       <Meta meta={v.meta} />
-      <PreviewDisplay
-        handle={{ bucket, key: path, version: v.id }}
-        bucketExistenceData={data}
-      />
+      <PreviewDisplay {...{ handle, bucketExistenceData, versionExistenceData }} />
     </Section>
   )
 }
@@ -566,7 +569,14 @@ export const handleErr = (retry) =>
                 <br />
                 Error details:
                 <br />
-                {e.details}
+                <M.Box
+                  component="span"
+                  textAlign="left"
+                  display="inline-block"
+                  style={{ whiteSpace: 'pre' }}
+                >
+                  {e.details}
+                </M.Box>
               </>
             )}
           </Message>

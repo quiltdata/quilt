@@ -29,6 +29,7 @@ import defer from 'utils/defer'
 import { ErrorDisplay } from 'utils/error'
 import * as RT from 'utils/reactTools'
 import RouterProvider from 'utils/router'
+import * as s3paths from 'utils/s3paths'
 import useConstant from 'utils/useConstant'
 import useMemoEq from 'utils/useMemoEq'
 import usePrevious from 'utils/usePrevious'
@@ -143,6 +144,10 @@ function useInit() {
       const { type, ...init } = data
       try {
         if (!init.bucket) throw new Error('missing .bucket')
+        if (init.scope) {
+          if (typeof init.scope !== 'string') throw new Error('.scope must be a string')
+          init.scope = s3paths.ensureSlash(init.scope)
+        }
         setState(init)
       } catch (e) {
         console.error(`Configuration error: ${e.message}`)

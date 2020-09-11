@@ -1,22 +1,19 @@
 import * as R from 'ramda'
 
-import AsyncResult from 'utils/AsyncResult'
-
 import { PreviewData } from '../types'
 import * as utils from './utils'
 
 export const detect = R.pipe(utils.stripCompression, utils.extIs('.fcs'))
 
-export const load = utils.previewFetcher(
-  'fcs',
-  R.pipe(
-    ({ html, info }) => ({
+export const Loader = function FcsLoader({ handle, children }) {
+  const data = utils.usePreview({ type: 'fcs', handle })
+  const processed = utils.useProcessing(data.result, ({ html, info }) =>
+    PreviewData.Fcs({
       preview: html,
       metadata: info.metadata,
       note: info.note,
       warnings: info.warnings,
     }),
-    PreviewData.Fcs,
-    AsyncResult.Ok,
-  ),
-)
+  )
+  return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
+}

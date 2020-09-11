@@ -1,6 +1,7 @@
 import * as R from 'ramda'
+import * as React from 'react'
 
-import AsyncResult from 'utils/AsyncResult'
+import * as AWS from 'utils/AWS'
 import * as Resource from 'utils/Resource'
 
 import { PreviewData, PreviewError } from '../types'
@@ -12,18 +13,23 @@ const SCHEMA_RE = /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/([\w-]+)\/
 
 const map = (fn) => R.ifElse(Array.isArray, R.map(fn), fn)
 
-const signVegaSpec = ({ signer, handle }) =>
-  R.evolve({
-    data: map(
-      R.evolve({
-        url: (url) =>
-          signer.signResource({
-            ptr: Resource.parse(url),
-            ctx: { type: Resource.ContextType.Vega(), handle },
-          }),
-      }),
-    ),
-  })
+function useVegaSpecSigner(handle) {
+  const sign = AWS.Signer.useResourceSigner()
+  return React.useCallback(
+    R.evolve({
+      data: map(
+        R.evolve({
+          url: (url) =>
+            sign({
+              ptr: Resource.parse(url),
+              ctx: { type: Resource.ContextType.Vega(), handle },
+            }),
+        }),
+      ),
+    }),
+    [sign, handle],
+  )
+}
 
 const detectSchema = (txt) => {
   const m = txt.match(SCHEMA_RE)
@@ -33,40 +39,38 @@ const detectSchema = (txt) => {
   return { library, version }
 }
 
-const vegaFetcher = utils.objectGetter((r, { handle, signer }) => {
-  try {
-    const contents = r.Body.toString('utf-8')
-    const spec = JSON.parse(contents)
-    return PreviewData.Vega({ spec: signVegaSpec({ signer, handle })(spec) })
-  } catch (e) {
-    if (e instanceof SyntaxError) {
-      throw PreviewError.MalformedJson({ handle, originalError: e })
-    }
-    throw PreviewError.Unexpected({ handle, originalError: e })
-  }
-})
-
-const loadVega = (handle, callback) =>
-  utils.withSigner((signer) =>
-    utils.withS3((s3) => vegaFetcher({ s3, handle, signer }, callback)),
+function VegaLoader({ handle, children }) {
+  const signSpec = useVegaSpecSigner(handle)
+  const data = utils.useObjectGetter(handle)
+  const processed = utils.useProcessing(
+    data.result,
+    (r) => {
+      try {
+        const contents = r.Body.toString('utf-8')
+        const spec = JSON.parse(contents)
+        return PreviewData.Vega({ spec: signSpec(spec) })
+      } catch (e) {
+        if (e instanceof SyntaxError) {
+          throw PreviewError.MalformedJson({ handle, message: e.message })
+        }
+        throw e
+      }
+    },
+    [signSpec, handle],
   )
-
-const loadText = (handle, callback) =>
-  Text.load(
-    handle,
-    AsyncResult.case({
-      Ok: callback,
-      _: callback,
-    }),
-    { forceLang: 'json' },
-  )
+  return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
+}
 
 export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
 
-export const load = utils.withFirstBytes(
-  256,
-  ({ firstBytes, contentLength, handle }, callback) => {
-    const schema = detectSchema(firstBytes)
-    return (!!schema && contentLength <= MAX_SIZE ? loadVega : loadText)(handle, callback)
-  },
-)
+export const Loader = function JsonLoader({ handle, children }) {
+  return utils.useFirstBytes({ bytes: 256, handle }).case({
+    Ok: ({ firstBytes, contentLength }) =>
+      !!detectSchema(firstBytes) && contentLength <= MAX_SIZE ? (
+        <VegaLoader {...{ handle, children }} />
+      ) : (
+        <Text.Loader {...{ handle, children, forceLang: 'json' }} />
+      ),
+    _: children,
+  })
+}

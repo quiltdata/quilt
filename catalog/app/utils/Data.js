@@ -30,7 +30,7 @@ export function useData(request, params, { noAutoFetch = false } = {}) {
   // TODO: accept custom key extraction fn (params => key for comparison)
   const [state, dispatch] = React.useReducer(reducer, initial)
 
-  const fetch = React.useCallback(() => {
+  const fetch = useMemoEq([request, params], () => () => {
     dispatch(Action.Request({ request, params }))
     return request(params)
       .then(AsyncResult.Ok)
@@ -39,9 +39,7 @@ export function useData(request, params, { noAutoFetch = false } = {}) {
         dispatch(Action.Response({ request, params, result }))
         return result
       })
-  }, [request, params])
-  // FIXME: probably memoization doesnt work here bc params is an object and it
-  // gets constructed anew every time on the caller side
+  })
 
   usePrevious({ params, noAutoFetch }, (prev) => {
     if (R.equals({ params, noAutoFetch }, prev)) return
@@ -51,12 +49,11 @@ export function useData(request, params, { noAutoFetch = false } = {}) {
 
   const result = useMemoEq(state, mapResult)
 
-  const doCase = React.useMemo(
-    () => (cases, ...args) => AsyncResult.case(cases, result, ...args),
-    [result],
+  const doCase = useMemoEq([result], () => (cases, ...args) =>
+    AsyncResult.case(cases, result, ...args),
   )
 
-  return { result, fetch, case: doCase }
+  return useMemoEq({ result, fetch, case: doCase }, R.identity)
 }
 
 export const use = useData

@@ -3,8 +3,6 @@ import { basename } from 'path'
 import hljs from 'highlight.js'
 import * as R from 'ramda'
 
-import AsyncResult from 'utils/AsyncResult'
-
 import { PreviewData } from '../types'
 import * as utils from './utils'
 
@@ -59,18 +57,22 @@ const getLang = R.pipe(findLang, ([lang] = []) => lang)
 
 const hl = (lang) => (contents) => hljs.highlight(lang, contents).value
 
-const fetcher = utils.previewFetcher(
-  'txt',
-  ({ info: { data, note, warnings } }, { handle, forceLang }) => {
-    const head = data.head.join('\n')
-    const tail = data.tail.join('\n')
-    const lang = forceLang || getLang(handle.logicalKey || handle.key)
-    const highlighted = R.map(hl(lang), { head, tail })
-    return AsyncResult.Ok(
-      PreviewData.Text({ head, tail, lang, highlighted, note, warnings }),
-    )
-  },
-)
-
-export const load = (handle, callback, extra) =>
-  fetcher(handle, callback, { query: { max_bytes: MAX_BYTES }, ...extra })
+export const Loader = function TextLoader({ handle, forceLang, children }) {
+  const { result, fetch } = utils.usePreview({
+    type: 'txt',
+    handle,
+    query: { max_bytes: MAX_BYTES },
+  })
+  const processed = utils.useProcessing(
+    result,
+    ({ info: { data, note, warnings } }) => {
+      const head = data.head.join('\n')
+      const tail = data.tail.join('\n')
+      const lang = forceLang || getLang(handle.logicalKey || handle.key)
+      const highlighted = R.map(hl(lang), { head, tail })
+      return PreviewData.Text({ head, tail, lang, highlighted, note, warnings })
+    },
+    [forceLang, handle.logicalKey, handle.key],
+  )
+  return children(utils.useErrorHandling(processed, { handle, retry: fetch }))
+}

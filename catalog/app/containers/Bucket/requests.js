@@ -239,6 +239,7 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
       key,
       version: h.VersionId,
       deleted: !!h.DeleteMarker,
+      archived: h.StorageClass === 'GLACIER' || h.StorageClass === 'DEEP_ARCHIVE',
     })
   } catch (e) {
     if (e.code === 405 && version != null) {
@@ -270,7 +271,7 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
 const ensureObjectIsPresent = (...args) =>
   getObjectExistence(...args).then(
     ObjectExistence.case({
-      Exists: ({ deleted, ...h }) => (deleted ? null : h),
+      Exists: ({ deleted, archived, ...h }) => (deleted || archived ? null : h),
       _: () => null,
     }),
   )
@@ -481,6 +482,7 @@ export const objectVersions = ({ s3, bucket, path }) =>
           size: v.Size,
           id: v.VersionId,
           deleteMarker: v.Size == null,
+          archived: v.StorageClass === 'GLACIER' || v.StorageClass === 'DEEP_ARCHIVE',
         })),
         R.sort(R.descend(R.prop('lastModified'))),
       ),
