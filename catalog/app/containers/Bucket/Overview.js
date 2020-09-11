@@ -998,6 +998,13 @@ function FilePreview({ handle, headingOverride, expanded }) {
   )
 }
 
+function EnsureAvailability({ s3, handle, children }) {
+  return useData(requests.ensureObjectIsPresent, { s3, ...handle }).case({
+    _: () => null,
+    Ok: (h) => !!h && children(),
+  })
+}
+
 const HeadingSkel = (props) => (
   <Skeleton borderRadius="borderRadius" width={200} {...props}>
     &nbsp;
@@ -1143,7 +1150,9 @@ function Summary({ es, s3, bucket, inStack, overviewUrl }) {
       return (
         <>
           {shownEntries.map((h) => (
-            <FilePreview key={`${h.bucket}/${h.key}`} handle={h} />
+            <EnsureAvailability s3={s3} handle={h}>
+              {() => <FilePreview key={`${h.bucket}/${h.key}`} handle={h} />}
+            </EnsureAvailability>
           ))}
           {shown < entries.length && (
             <M.Box mt={2} display="flex" justifyContent="center">

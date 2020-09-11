@@ -10,6 +10,7 @@ const Image = RT.composeComponent(
   withStyles(() => ({
     root: {
       display: 'block',
+      margin: 'auto',
       maxWidth: '100%',
     },
   })),
@@ -19,6 +20,7 @@ const Image = RT.composeComponent(
       size="lg"
       className={cx(className, classes.root)}
       alt=""
+      skeletonProps={{ width: '100%' }}
       {...props}
     />
   ),

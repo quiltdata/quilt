@@ -97,7 +97,7 @@ export class HTTPError extends BaseError {
       json = JSON.parse(text)
     } catch (e) {} // eslint-disable-line no-empty
 
-    super((json && json.message) || resp.statusText, {
+    super((json && (json.message || json.error)) || resp.statusText, {
       response: resp,
       status: resp.status,
       text,
