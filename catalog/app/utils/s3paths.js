@@ -179,6 +179,9 @@ export const handleFromUrl = (url, referrer) => {
 export const handleToHttpsUri = ({ bucket, key, version }) =>
   `https://${bucket}.s3.amazonaws.com/${encode(key)}${mkSearch({ versionId: version })}`
 
+export const handleToS3Url = ({ bucket, key, version }) =>
+  `s3://${bucket}/${encode(key)}${mkSearch({ versionId: version })}`
+
 /**
  * Get breadcrumbs for a path.
  *
