@@ -25,10 +25,12 @@ const findFile = (re) => R.find((f) => re.test(getBasename(f.logicalKey || f.key
 const extractSummary = R.applySpec({
   readme: findFile(README_RE),
   summarize: findFile(SUMMARIZE_RE),
-  images: R.filter((f) =>
-    SUPPORTED_EXTENSIONS.some((ext) =>
-      (f.logicalKey || f.key).toLowerCase().endsWith(ext),
-    ),
+  images: R.filter(
+    (f) =>
+      !f.archived &&
+      SUPPORTED_EXTENSIONS.some((ext) =>
+        (f.logicalKey || f.key).toLowerCase().endsWith(ext),
+      ),
   ),
 })
 

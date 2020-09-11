@@ -269,7 +269,7 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
   }
 }
 
-const ensureObjectIsPresent = (...args) =>
+export const ensureObjectIsPresent = (...args) =>
   getObjectExistence(...args).then(
     ObjectExistence.case({
       Exists: ({ deleted, archived, ...h }) => (deleted || archived ? null : h),
@@ -450,13 +450,11 @@ export const bucketImgs = async ({ es, s3, bucket, overviewUrl, inStack }) => {
         R.pipe(
           R.path(['Contents']),
           R.filter(
-            R.propSatisfies(
-              R.allPass([
-                R.complement(R.startsWith('/')),
-                R.anyPass(IMG_EXTS.map(R.unary(R.endsWith))),
-              ]),
-              'Key',
-            ),
+            (i) =>
+              i.StorageClass !== 'GLACIER' &&
+              i.StorageClass !== 'DEEP_ARCHIVE' &&
+              !i.Key.startsWith('/') &&
+              IMG_EXTS.some((e) => i.Key.toLowerCase().endsWith(e)),
           ),
           sampleSize(MAX_IMGS),
           R.map(({ Key: key }) => ({ key, bucket })),
