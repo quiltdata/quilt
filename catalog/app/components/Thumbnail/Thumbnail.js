@@ -139,7 +139,12 @@ export default function Thumbnail({
         let title = 'Error loading image'
         let icon = 'error'
         if (e instanceof HTTPError) {
-          if (e.json.error === 'Forbidden' && e.json.text.match(/InvalidObjectState/)) {
+          if (
+            e.json &&
+            e.json.error === 'Forbidden' &&
+            e.json.text &&
+            e.json.text.match(/InvalidObjectState/)
+          ) {
             title = 'Object archived'
             icon = 'glacier'
           } else if (e.message) {
