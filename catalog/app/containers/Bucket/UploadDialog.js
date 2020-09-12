@@ -2,20 +2,19 @@ import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
-// import { useHistory, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
-// import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RF from 'utils/ReduxForm'
+import StyledLink from 'utils/StyledLink'
 import pipeThru from 'utils/pipeThru'
+import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
-
-// import * as requests from './requests'
 
 const getNormalizedPath = (f) => (f.path.startsWith('/') ? f.path.substring(1) : f.path)
 
@@ -264,9 +263,24 @@ const nonEmptyImmutable = (v) => v && validators.nonEmpty(v.toJS ? v.toJS() : v)
 export default function UploadDialog({ bucket, open, onClose }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
+  const { urls } = NamedRoutes.use()
   const [uploads, setUploads] = React.useState({})
+  const [success, setSuccess] = React.useState(null)
+  const formRef = React.useRef(null)
 
-  const handleClose = ({ submitting }) => () => {
+  const reset = React.useCallback(() => {
+    if (formRef.current) formRef.current.reset()
+    setSuccess(null)
+  }, [formRef, setSuccess])
+
+  const onSubmitSuccess = React.useCallback(
+    ({ name, revision }) => {
+      setSuccess({ name, revision })
+    },
+    [setSuccess],
+  )
+
+  const handleClose = ({ submitting = false } = {}) => () => {
     if (submitting) return
     // TODO: ask to abort if in progress
     onClose()
@@ -283,23 +297,22 @@ export default function UploadDialog({ bucket, open, onClose }) {
 
   const onSubmit = React.useCallback(
     async (values) => {
-      const { name, msg, files } = values.toJS()
-      console.log('submit', { name, msg, files })
+      const { name, msg, files, meta } = values.toJS()
       // TODO: rate-limited queue
       const uploadStates = files.map(({ path, file }) => {
-        console.log('uploading file', { path, file })
         const upload = s3.upload(
           {
             Bucket: bucket,
             Key: `${name}/${path}`,
             Body: file,
             // ACL:
-            // Metadata:
           },
+          /*
           {
-            // partSize:
-            // queueSize:
+            partSize:
+            queueSize:
           },
+          */
         )
         upload.on('httpUploadProgress', ({ loaded }) => {
           updateProgress(path, loaded)
@@ -319,9 +332,12 @@ export default function UploadDialog({ bucket, open, onClose }) {
       const contents = R.zipWith(
         (f, u) => ({
           logical_key: f.path,
-          physical_key: `s3://${bucket}/${u.Key}${NamedRoutes.mkSearch({
-            versionId: u.VersionId,
-          })}`,
+          physical_key: s3paths.handleToS3Url({
+            bucket,
+            key: u.key,
+            version: u.VersionId,
+          }),
+          size: f.file.size,
         }),
         files,
         uploaded,
@@ -333,108 +349,176 @@ export default function UploadDialog({ bucket, open, onClose }) {
           method: 'POST',
           body: {
             name,
-            registry: bucket,
+            registry: `s3://${bucket}`,
             message: msg,
             contents,
+            meta: meta ? JSON.parse(meta) : undefined,
           },
         })
         console.log('pkg create api resp', res)
+        // TODO: get revision from response
+        return { name, revision: 'latest' }
       } catch (e) {
-        console.log('pkg create api err', e)
-        // TODO
-        throw new RF.SubmissionError({ _error: 'unexpected' })
+        console.log('error creating manifest', e)
+        // TODO: handle specific cases?
+        throw new RF.SubmissionError({ _error: 'manifest' })
       }
     },
     [bucket, s3, updateProgress, setUploads, req],
   )
 
-  // TODO: success screen on submitSucceeded
-
   return (
     <RF.ReduxForm
       form="Bucket.PackageUpload"
       onSubmit={onSubmit}
+      onSubmitSuccess={onSubmitSuccess}
       initialValues={{ files: [] }}
+      ref={formRef}
     >
-      {({ handleSubmit, submitting, submitFailed, /* error, */ invalid }) => (
-        <M.Dialog open={open} onClose={handleClose({ submitting })} fullWidth>
+      {({ handleSubmit, submitting, submitFailed, error, invalid, pristine }) => (
+        <M.Dialog
+          open={open}
+          onClose={handleClose({ submitting })}
+          fullWidth
+          scroll="body"
+          onExited={reset}
+        >
           <M.DialogTitle>New package</M.DialogTitle>
-          <M.DialogContent style={{ paddingTop: 0 }}>
-            <form onSubmit={handleSubmit}>
-              <RF.Field
-                component={Field}
-                name="name"
-                label="Name"
-                placeholder="Enter a package name"
-                validate={[validators.required]}
-                errors={{
-                  required: 'Enter a package name',
-                }}
-                fullWidth
-              />
+          {success ? (
+            <>
+              <M.DialogContent style={{ paddingTop: 0 }}>
+                <M.Typography>
+                  Package{' '}
+                  <StyledLink
+                    to={urls.bucketPackageTree(bucket, success.name, success.revision)}
+                  >
+                    {success.name}@{success.revision}
+                  </StyledLink>{' '}
+                  successfully created
+                </M.Typography>
+              </M.DialogContent>
+              <M.DialogActions>
+                <M.Button onClick={handleClose()}>Close</M.Button>
+                <M.Button onClick={reset}>Create another one</M.Button>
+                <M.Button
+                  component={Link}
+                  to={urls.bucketPackageTree(bucket, success.name, success.revision)}
+                  variant="contained"
+                  color="primary"
+                >
+                  Go to package
+                </M.Button>
+              </M.DialogActions>
+            </>
+          ) : (
+            <>
+              <M.DialogContent style={{ paddingTop: 0 }}>
+                <form onSubmit={handleSubmit}>
+                  <RF.Field
+                    component={Field}
+                    name="name"
+                    label="Name"
+                    placeholder="Enter a package name"
+                    validate={[validators.required]}
+                    errors={{
+                      required: 'Enter a package name',
+                    }}
+                    fullWidth
+                  />
 
-              <RF.Field
-                component={Field}
-                name="msg"
-                label="Commit message"
-                placeholder="Enter a commit message"
-                validate={[validators.required]}
-                errors={{
-                  required: 'Enter a commit message',
-                }}
-                fullWidth
-                margin="normal"
-              />
+                  <RF.Field
+                    component={Field}
+                    name="msg"
+                    label="Commit message"
+                    placeholder="Enter a commit message"
+                    validate={[validators.required]}
+                    errors={{
+                      required: 'Enter a commit message',
+                    }}
+                    fullWidth
+                    margin="normal"
+                  />
 
-              <RF.Field
-                component={FilesInput}
-                name="files"
-                validate={[nonEmptyImmutable]}
-                errors={{
-                  nonEmpty: 'Add files to create a package',
-                }}
-                uploads={uploads}
-              />
+                  <RF.Field
+                    component={FilesInput}
+                    name="files"
+                    validate={[nonEmptyImmutable]}
+                    errors={{
+                      nonEmpty: 'Add files to create a package',
+                    }}
+                    uploads={uploads}
+                  />
 
-              <input type="submit" style={{ display: 'none' }} />
-            </form>
-          </M.DialogContent>
-          <M.DialogActions>
-            {submitting && (
-              <Delay ms={200} alwaysRender>
-                {(ready) => (
-                  <M.Fade in={ready}>
-                    <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
-                      <M.CircularProgress
-                        size={24}
-                        variant={totalProgress < 1 ? 'determinate' : 'indeterminate'}
-                        value={totalProgress < 1 ? totalProgress * 90 : undefined}
-                      />
-                      <M.Box pl={1} />
-                      <M.Typography variant="body2" color="textSecondary">
-                        {totalProgress < 1 ? 'Uploading files' : 'Creating a manifest'}
-                      </M.Typography>
-                    </M.Box>
-                  </M.Fade>
+                  <RF.Field
+                    component={Field}
+                    name="meta"
+                    label="Metadata"
+                    placeholder="Enter metadata (JSON) if necessary"
+                    validate={[validators.jsonObject]}
+                    errors={{
+                      jsonObject: 'Metadata must be a valid JSON object',
+                    }}
+                    fullWidth
+                    multiline
+                    rowsMax={5}
+                    margin="normal"
+                  />
+
+                  <input type="submit" style={{ display: 'none' }} />
+                </form>
+              </M.DialogContent>
+              <M.DialogActions>
+                {submitting && (
+                  <Delay ms={200} alwaysRender>
+                    {(ready) => (
+                      <M.Fade in={ready}>
+                        <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
+                          <M.CircularProgress
+                            size={24}
+                            variant={totalProgress < 1 ? 'determinate' : 'indeterminate'}
+                            value={totalProgress < 1 ? totalProgress * 90 : undefined}
+                          />
+                          <M.Box pl={1} />
+                          <M.Typography variant="body2" color="textSecondary">
+                            {totalProgress < 1
+                              ? 'Uploading files'
+                              : 'Creating a manifest'}
+                          </M.Typography>
+                        </M.Box>
+                      </M.Fade>
+                    )}
+                  </Delay>
                 )}
-              </Delay>
-            )}
-            <M.Button
-              onClick={handleClose({ submitting })}
-              color="primary"
-              disabled={submitting}
-            >
-              Cancel
-            </M.Button>
-            <M.Button
-              onClick={handleSubmit}
-              variant="contained"
-              color="primary"
-              disabled={submitting || (submitFailed && invalid)}
-            >
-              Push
-            </M.Button>
-          </M.DialogActions>
+
+                {!submitting && !!error && (
+                  <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
+                    <M.Icon color="error">error_outline</M.Icon>
+                    <M.Box pl={1} />
+                    <M.Typography variant="body2" color="error">
+                      {{
+                        manifest: 'Error creating manifest',
+                      }[error] || error}
+                    </M.Typography>
+                  </M.Box>
+                )}
+
+                <M.Button onClick={handleClose({ submitting })} disabled={submitting}>
+                  Cancel
+                </M.Button>
+                <M.Button onClick={reset} disabled={pristine || submitting}>
+                  Reset
+                </M.Button>
+                <M.Button
+                  onClick={handleSubmit}
+                  variant="contained"
+                  color="primary"
+                  disabled={submitting || (submitFailed && invalid)}
+                >
+                  Push
+                </M.Button>
+              </M.DialogActions>
+            </>
+          )}
         </M.Dialog>
       )}
     </RF.ReduxForm>
