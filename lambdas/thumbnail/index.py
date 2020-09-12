@@ -269,8 +269,11 @@ def lambda_handler(request):
         if input_ == "pdf":
             set_pdf_env()
             try:
-                # respect width but not necessarily height (to preserve aspect ratio)
-                kwargs = {"size": (size[0], None)}
+                kwargs = {
+                    # respect width but not necessarily height to preserve aspect ratio
+                    "size": (size[0], None),
+                    "fmt": "JPEG",
+                }
                 if not count_pages:
                     kwargs["first_page"] = page
                     kwargs["last_page"] = page
