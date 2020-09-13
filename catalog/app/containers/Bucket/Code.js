@@ -52,6 +52,7 @@ export default function Code({ defaultSelected = 0, children, ...props }) {
   const handleChange = React.useCallback(
     (e, newIdx) => {
       e.stopPropagation()
+      if (newIdx == null) return
       select(newIdx)
     },
     [select],
