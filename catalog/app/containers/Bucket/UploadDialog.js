@@ -4,6 +4,7 @@ import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
@@ -33,7 +34,7 @@ function Field({ input, meta, errors, label, ...rest }) {
 
 const useFilesInputStyles = M.makeStyles((t) => ({
   root: {
-    marginTop: t.spacing(1),
+    marginTop: t.spacing(2),
   },
   header: {
     alignItems: 'center',
@@ -241,6 +242,235 @@ function FilesInput({ input, meta, uploads = {}, errors = {} }) {
   )
 }
 
+const tryParse = (v) => {
+  try {
+    return JSON.parse(v)
+  } catch (e) {
+    return v
+  }
+}
+
+const isParsable = (v) => {
+  try {
+    JSON.parse(v)
+    return true
+  } catch (e) {
+    return false
+  }
+}
+
+const tryUnparse = (v) =>
+  typeof v === 'string' && !isParsable(v) ? v : JSON.stringify(v)
+
+const fieldsToText = R.pipe(
+  R.map(({ key, value }) => [key, tryParse(value)]),
+  R.fromPairs,
+  (x) => JSON.stringify(x, null, 2),
+)
+
+const textToFields = R.pipe(
+  (t) => JSON.parse(t),
+  Object.entries,
+  R.map(([key, value]) => ({ key, value: tryUnparse(value) })),
+)
+
+function getMetaValue(value) {
+  if (!value) return undefined
+
+  const pairs =
+    value.mode === 'json'
+      ? pipeThru(value.text || '{}')((t) => JSON.parse(t), R.toPairs)
+      : (value.fields || []).map((f) => [f.key, tryParse(f.value)])
+
+  return pipeThru(pairs)(
+    R.filter(([k]) => !!k),
+    R.fromPairs,
+    R.when(R.isEmpty, () => undefined),
+  )
+}
+
+function validateMeta(value) {
+  if (!value) return
+  if (value.mode === 'json') {
+    // eslint-disable-next-line consistent-return
+    return validators.jsonObject(value.text)
+  }
+}
+
+const useMetaInputStyles = M.makeStyles((t) => ({
+  root: {
+    marginTop: t.spacing(3),
+  },
+  header: {
+    alignItems: 'center',
+    display: 'flex',
+    height: 24,
+  },
+  btn: {
+    fontSize: 11,
+    height: 24,
+    paddingBottom: 0,
+    paddingLeft: 7,
+    paddingRight: 7,
+    paddingTop: 1,
+  },
+  json: {
+    marginTop: t.spacing(1),
+  },
+  placeholder: {
+    ...t.typography.body1,
+    color: t.palette.text.secondary,
+    marginTop: t.spacing(1),
+  },
+  add: {
+    marginTop: t.spacing(2),
+  },
+  row: {
+    alignItems: 'center',
+    display: 'flex',
+    marginTop: t.spacing(1),
+  },
+  sep: {
+    ...t.typography.body1,
+    marginLeft: t.spacing(1),
+    marginRight: t.spacing(1),
+  },
+  key: {
+    flexBasis: 100,
+    flexGrow: 1,
+  },
+  value: {
+    flexBasis: 100,
+    flexGrow: 2,
+  },
+}))
+
+// TODO: warn on duplicate keys
+function MetaInput({ input, meta }) {
+  const classes = useMetaInputStyles()
+  const value = input.value || { fields: [], text: '', mode: 'kv' }
+  const error = meta.submitFailed && meta.error
+
+  const changeMode = (mode) => {
+    input.onChange({ ...value, mode })
+  }
+
+  // TODO: memoize
+  const changeFields = (newFields) => {
+    const fields = typeof newFields === 'function' ? newFields(value.fields) : newFields
+    const text = fieldsToText(fields)
+    input.onChange({ ...value, fields, text })
+  }
+
+  const changeText = (text) => {
+    let fields
+    try {
+      fields = textToFields(text)
+    } catch (e) {
+      fields = value.fields
+    }
+    input.onChange({ ...value, fields, text })
+  }
+
+  const handleModeChange = (e, m) => {
+    if (!m) return
+    changeMode(m)
+  }
+
+  const handleKeyChange = (i) => (e) => {
+    changeFields(R.assocPath([i, 'key'], e.target.value))
+  }
+
+  const handleValueChange = (i) => (e) => {
+    changeFields(R.assocPath([i, 'value'], e.target.value))
+  }
+
+  const addField = () => {
+    changeFields(R.append({ key: '', value: '' }))
+  }
+
+  const rmField = (i) => () => {
+    changeFields(R.remove(i, 1))
+  }
+
+  const handleTextChange = (e) => {
+    changeText(e.target.value)
+  }
+
+  return (
+    <div className={classes.root}>
+      <div className={classes.header}>
+        <M.Typography color={error ? 'error' : undefined}>Metadata</M.Typography>
+        <M.Box flexGrow={1} />
+        <Lab.ToggleButtonGroup value={value.mode} exclusive onChange={handleModeChange}>
+          <Lab.ToggleButton value="kv" className={classes.btn}>
+            Key and Value
+          </Lab.ToggleButton>
+          <Lab.ToggleButton value="json" className={classes.btn}>
+            JSON
+          </Lab.ToggleButton>
+        </Lab.ToggleButtonGroup>
+      </div>
+      {value.mode === 'kv' ? (
+        <>
+          {!value.fields.length && (
+            <div className={classes.placeholder}>Add metadata if necessary</div>
+          )}
+          {value.fields.map((f, i) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <div key={i} className={classes.row}>
+              <M.TextField
+                className={classes.key}
+                onChange={handleKeyChange(i)}
+                value={f.key}
+                placeholder="Key"
+              />
+              <div className={classes.sep}>:</div>
+              <M.TextField
+                className={classes.value}
+                onChange={handleValueChange(i)}
+                value={f.value}
+                placeholder="Value"
+              />
+              <M.IconButton size="small" onClick={rmField(i)} edge="end">
+                <M.Icon>close</M.Icon>
+              </M.IconButton>
+            </div>
+          ))}
+          <M.Button
+            variant="outlined"
+            size="small"
+            onClick={addField}
+            startIcon={<M.Icon>add</M.Icon>}
+            className={classes.add}
+          >
+            Add field
+          </M.Button>
+        </>
+      ) : (
+        <M.TextField
+          variant="outlined"
+          size="small"
+          className={classes.json}
+          value={value.text}
+          onChange={handleTextChange}
+          placeholder="Enter JSON metadata if necessary"
+          error={!!error}
+          helperText={
+            !!error &&
+            {
+              jsonObject: 'Metadata must be a valid JSON object',
+            }[error]
+          }
+          fullWidth
+          multiline
+          rowsMax={10}
+        />
+      )}
+    </div>
+  )
+}
+
 const getFileProgress = (path, uploads) => {
   const { loaded, total } = R.path([path, 'progress'], uploads) || {}
   return total ? (loaded || 0) / total : undefined
@@ -298,6 +528,7 @@ export default function UploadDialog({ bucket, open, onClose }) {
   const onSubmit = React.useCallback(
     async (values) => {
       const { name, msg, files, meta } = values.toJS()
+
       // TODO: rate-limited queue
       const uploadStates = files.map(({ path, file }) => {
         const upload = s3.upload(
@@ -352,7 +583,7 @@ export default function UploadDialog({ bucket, open, onClose }) {
             registry: `s3://${bucket}`,
             message: msg,
             contents,
-            meta: meta ? JSON.parse(meta) : undefined,
+            meta: getMetaValue(meta),
           },
         })
         console.log('pkg create api resp', res)
@@ -449,20 +680,7 @@ export default function UploadDialog({ bucket, open, onClose }) {
                     uploads={uploads}
                   />
 
-                  <RF.Field
-                    component={Field}
-                    name="meta"
-                    label="Metadata"
-                    placeholder="Enter metadata (JSON) if necessary"
-                    validate={[validators.jsonObject]}
-                    errors={{
-                      jsonObject: 'Metadata must be a valid JSON object',
-                    }}
-                    fullWidth
-                    multiline
-                    rowsMax={5}
-                    margin="normal"
-                  />
+                  <RF.Field component={MetaInput} name="meta" validate={validateMeta} />
 
                   <input type="submit" style={{ display: 'none' }} />
                 </form>
