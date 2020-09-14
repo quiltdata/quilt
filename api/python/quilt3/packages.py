@@ -511,14 +511,18 @@ class Package:
         except TypeError:
             name, registry, hash_prefix = cls._parse_resolve_hash_args(*args, **kwargs)
             validate_package_name(name)
+            return get_package_registry(registry).resolve_top_hash(name, hash_prefix)
         else:
+            registry = get_package_registry(registry)
+            if registry.resolve_top_hash_requires_pkg_name:
+                raise TypeError(f'Package name is required for resolving top hash at {registry.root}.')
             warnings.warn(
                 "Calling resolve_hash() without the 'name' parameter is deprecated.",
                 category=RemovedInQuilt4Warning,
                 stacklevel=2,
             )
+            return registry.resolve_top_hash(name, hash_prefix)
 
-        return get_package_registry(registry).resolve_top_hash(name, hash_prefix)
     # This is needed for nice signature in docs.
     resolve_hash.__func__.__signature__ = inspect.signature(_parse_resolve_hash_args.__func__)
 

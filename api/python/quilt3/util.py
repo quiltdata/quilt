@@ -66,6 +66,8 @@ apiGatewayEndpoint:
 # Binary API Gateway endpoint (e.g., for preview)
 binaryApiGatewayEndpoint:
 
+default_registry_version: 1
+
 """.format(BASE_PATH.as_uri() + '/packages')
 
 

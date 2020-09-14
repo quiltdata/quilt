@@ -1,8 +1,8 @@
 from quilt3.util import PhysicalKey, get_from_config, fix_url
 
 from .base import PackageRegistry
-from .local import LocalPackageRegistryV1
-from .s3 import S3PackageRegistryV1
+from . import local
+from . import s3
 
 
 def get_package_registry(path=None) -> PackageRegistry:
@@ -16,4 +16,6 @@ def get_package_registry(path=None) -> PackageRegistry:
         path = PhysicalKey.from_url(
             get_from_config('default_local_registry') if path is None else fix_url(path)
         )
-    return (LocalPackageRegistryV1 if path.is_local() else S3PackageRegistryV1)(path)
+    return (local if path.is_local() else s3).get_package_registry(
+        version=int(get_from_config('default_registry_version')),
+    )(path)

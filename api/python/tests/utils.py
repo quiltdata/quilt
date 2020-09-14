@@ -44,18 +44,11 @@ class QuiltTestCase(TestCase):
         boto_client = boto3.client('s3', config=Config(signature_version=UNSIGNED))
         self.s3_client = boto_client
 
-        class DummyS3Provider:
-            def __init__(self, *args, **kwargs):
-                pass
-
-            @property
-            def standard_client(self):
-                return boto_client
-
-            def find_correct_client(self, *args, **kwargs):
-                return boto_client
-
-        self.s3_client_patcher = mock.patch('quilt3.data_transfer.S3ClientProvider', return_value=DummyS3Provider())
+        self.s3_client_patcher = mock.patch.multiple(
+            'quilt3.data_transfer.S3ClientProvider',
+            standard_client=boto_client,
+            find_correct_client=lambda *args, **kwargs: boto_client,
+        )
         self.s3_client_patcher.start()
 
         self.s3_stubber = Stubber(self.s3_client)
