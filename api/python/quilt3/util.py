@@ -559,60 +559,54 @@ def parse_package(package):
     )
 
 
+def parse_packages(packages: list) -> list:
+    """Validates a list of package names and parse each package to a namedtuple of 'name, path and top_hash'."""
+    parsed = list()
+    if packages:
+        for pkg in packages:
+            try:
+                parsed.append(parse_package(pkg))
+            except QuiltException:
+                print(f'skipping invalid package name {pkg!r}')
+                continue
+    return parsed
+
+
 class QuiltInstallPackageParser:
     __slots__ = ('parsed_yaml', 'package', 'from_yaml_file')
 
-    def __init__(self, arg):
+    def __init__(self, name):
         self.from_yaml_file = False
         self.parsed_yaml = None
 
         try:
-            # Try parsing for a single package
-            # ie `quilt install user/pkg`
-            validate_package_name(arg)
-            self.package = parse_package(arg)
+            # Try parsing for a single package ie `quilt install user/pkg`
+            self.package = parse_package(name)
         except QuiltException:
-            dependency_file = arg
-            if not dependency_file.endswith(('.yml', '.yaml')):
-                raise QuiltException(f'{dependency_file!r} is not a valid dependency file.')
-            if dependency_file.startswith('@'):
-                dependency_file = dependency_file[1:]
-            path = pathlib.Path(dependency_file)
+            if extract_file_extension(name) not in ('yml', 'yaml'):
+                raise QuiltException(f'{name!r} is not a valid dependency file.')
+            if name.startswith('@'):
+                name = name[1:]
+            path = pathlib.Path(name)
             if not path.exists():
-                raise QuiltException(f'{dependency_file!r} does not exist in path.')
+                raise QuiltException(f'{name!r} does not exist in path.')
             self.parsed_yaml = read_yaml(path)
             self.from_yaml_file = True
 
-    @staticmethod
-    def parse_packages(packages: list) -> list:
-        parsed = list()
-        if packages:
-            for pkg in packages:
-                try:
-                    parsed.append(parse_package(pkg))
-                except QuiltException:
-                    print(f'skipping invalid package name {pkg!r}')
-                    continue
-        return parsed
-
-    def _parse_registries(self, registries: dict) -> list:
-        parsed = list()
-        if registries:
-            for registry, value in registries.items():
-                try:
-                    validate_url(registry)
-                except QuiltException as e:
-                    print(f'{registry!r} is not a valid url scheme, skipping...')
-                    continue
-                packages = self.parse_packages(value.get('packages'))
-                parsed.append((registry, packages))
-        return parsed
-
     def get_registries(self):
+        parsed = list()
         if self.parsed_yaml:
             registries = self.parsed_yaml.get('registries')
-            return self._parse_registries(registries)
-        return list()
+            if registries:
+                for registry, value in registries.items():
+                    try:
+                        validate_url(registry)
+                    except QuiltException:
+                        print(f'{registry!r} is not a valid url scheme, skipping...')
+                        continue
+                    packages = parse_packages(value.get('packages'))
+                    parsed.append((registry, packages))
+        return parsed
 
     def get_yaml_version(self):
         if self.parsed_yaml:
