@@ -9,7 +9,6 @@ setup(
     ],
     extras_require={
         'tests': [
-            'codecov',
             'pytest',
             'pytest-cov',
         ],
