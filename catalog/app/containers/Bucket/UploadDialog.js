@@ -1,7 +1,9 @@
 import cx from 'classnames'
+import { FORM_ERROR } from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
+import * as RF from 'react-final-form'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -10,7 +12,6 @@ import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as RF from 'utils/ReduxForm'
 import StyledLink from 'utils/StyledLink'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
@@ -165,7 +166,8 @@ function FilesInput({ input, meta, uploads = {}, errors = {} }) {
   return (
     <div className={classes.root}>
       <div className={classes.header}>
-        <M.Typography color={error ? 'error' : undefined}>
+        {/* eslint-disable-next-line no-nested-ternary */}
+        <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
           Files{!!value.length && ` (${value.length})`}
         </M.Typography>
         <M.Box flexGrow={1} />
@@ -354,19 +356,22 @@ function MetaInput({ input, meta }) {
   const classes = useMetaInputStyles()
   const value = input.value || { fields: [EMPTY_FIELD], text: '{}', mode: 'kv' }
   const error = meta.submitFailed && meta.error
+  const disabled = meta.submitting || meta.submitSucceeded
 
   const changeMode = (mode) => {
+    if (disabled) return
     input.onChange({ ...value, mode })
   }
 
-  // TODO: memoize
   const changeFields = (newFields) => {
+    if (disabled) return
     const fields = typeof newFields === 'function' ? newFields(value.fields) : newFields
     const text = fieldsToText(fields)
     input.onChange({ ...value, fields, text })
   }
 
   const changeText = (text) => {
+    if (disabled) return
     let fields
     try {
       fields = textToFields(text)
@@ -404,13 +409,16 @@ function MetaInput({ input, meta }) {
   return (
     <div className={classes.root}>
       <div className={classes.header}>
-        <M.Typography color={error ? 'error' : undefined}>Metadata</M.Typography>
+        {/* eslint-disable-next-line no-nested-ternary */}
+        <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
+          Metadata
+        </M.Typography>
         <M.Box flexGrow={1} />
         <Lab.ToggleButtonGroup value={value.mode} exclusive onChange={handleModeChange}>
-          <Lab.ToggleButton value="kv" className={classes.btn}>
+          <Lab.ToggleButton value="kv" className={classes.btn} disabled={disabled}>
             Key : Value
           </Lab.ToggleButton>
-          <Lab.ToggleButton value="json" className={classes.btn}>
+          <Lab.ToggleButton value="json" className={classes.btn} disabled={disabled}>
             JSON
           </Lab.ToggleButton>
         </Lab.ToggleButtonGroup>
@@ -425,6 +433,7 @@ function MetaInput({ input, meta }) {
                 onChange={handleKeyChange(i)}
                 value={f.key}
                 placeholder="Key"
+                disabled={disabled}
               />
               <div className={classes.sep}>:</div>
               <M.TextField
@@ -432,8 +441,14 @@ function MetaInput({ input, meta }) {
                 onChange={handleValueChange(i)}
                 value={f.value}
                 placeholder="Value"
+                disabled={disabled}
               />
-              <M.IconButton size="small" onClick={rmField(i)} edge="end">
+              <M.IconButton
+                size="small"
+                onClick={rmField(i)}
+                edge="end"
+                disabled={disabled}
+              >
                 <M.Icon>close</M.Icon>
               </M.IconButton>
             </div>
@@ -444,6 +459,7 @@ function MetaInput({ input, meta }) {
             onClick={addField}
             startIcon={<M.Icon>add</M.Icon>}
             className={classes.add}
+            disabled={disabled}
           >
             Add field
           </M.Button>
@@ -467,6 +483,7 @@ function MetaInput({ input, meta }) {
           multiline
           rowsMax={10}
           InputProps={{ classes: { input: classes.jsonInput } }}
+          disabled={disabled}
         />
       )}
     </div>
@@ -490,27 +507,18 @@ const getTotalProgress = R.pipe(
   ({ total, loaded }) => loaded / total,
 )
 
-const nonEmptyImmutable = (v) => v && validators.nonEmpty(v.toJS ? v.toJS() : v)
-
 export default function UploadDialog({ bucket, open, onClose }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
   const { urls } = NamedRoutes.use()
   const [uploads, setUploads] = React.useState({})
   const [success, setSuccess] = React.useState(null)
-  const formRef = React.useRef(null)
 
-  const reset = React.useCallback(() => {
-    if (formRef.current) formRef.current.reset()
+  const reset = (form) => () => {
+    form.restart()
     setSuccess(null)
-  }, [formRef, setSuccess])
-
-  const onSubmitSuccess = React.useCallback(
-    ({ name, revision }) => {
-      setSuccess({ name, revision })
-    },
-    [setSuccess],
-  )
+    setUploads({})
+  }
 
   const handleClose = ({ submitting = false } = {}) => () => {
     if (submitting) return
@@ -518,103 +526,99 @@ export default function UploadDialog({ bucket, open, onClose }) {
     onClose()
   }
 
-  const updateProgress = React.useCallback(
-    (path, loaded) => {
-      setUploads(R.assocPath([path, 'progress', 'loaded'], loaded))
-    },
-    [setUploads],
-  )
+  const updateProgress = (path, loaded) => {
+    setUploads(R.assocPath([path, 'progress', 'loaded'], loaded))
+  }
 
   const totalProgress = getTotalProgress(uploads)
 
-  const onSubmit = React.useCallback(
-    async (values) => {
-      const { name, msg, files, meta } = values.toJS()
-
-      // TODO: rate-limited queue
-      const uploadStates = files.map(({ path, file }) => {
-        const upload = s3.upload(
-          {
-            Bucket: bucket,
-            Key: `${name}/${path}`,
-            Body: file,
-            // ACL:
-          },
-          /*
-          {
-            partSize:
-            queueSize:
-          },
-          */
-        )
-        upload.on('httpUploadProgress', ({ loaded }) => {
-          updateProgress(path, loaded)
-        })
-        const promise = upload.promise()
-        return { path, upload, promise, progress: { total: file.size, loaded: 0 } }
+  // eslint-disable-next-line consistent-return
+  const onSubmit = async ({ name, msg, files, meta }) => {
+    // TODO: rate-limited queue
+    const uploadStates = files.map(({ path, file }) => {
+      const upload = s3.upload(
+        {
+          Bucket: bucket,
+          Key: `${name}/${path}`,
+          Body: file,
+          // ACL:
+        },
+        /*
+        {
+          partSize:
+          queueSize:
+        },
+        */
+      )
+      upload.on('httpUploadProgress', ({ loaded }) => {
+        updateProgress(path, loaded)
       })
+      const promise = upload.promise()
+      return { path, upload, promise, progress: { total: file.size, loaded: 0 } }
+    })
 
-      pipeThru(uploadStates)(
-        R.map(({ path, ...rest }) => ({ [path]: rest })),
-        R.mergeAll,
-        setUploads,
-      )
+    pipeThru(uploadStates)(
+      R.map(({ path, ...rest }) => ({ [path]: rest })),
+      R.mergeAll,
+      setUploads,
+    )
 
-      const uploaded = await Promise.all(uploadStates.map((x) => x.promise))
+    const uploaded = await Promise.all(uploadStates.map((x) => x.promise))
 
-      const contents = R.zipWith(
-        (f, u) => ({
-          logical_key: f.path,
-          physical_key: s3paths.handleToS3Url({
-            bucket,
-            key: u.key,
-            version: u.VersionId,
-          }),
-          size: f.file.size,
+    const contents = R.zipWith(
+      (f, u) => ({
+        logical_key: f.path,
+        physical_key: s3paths.handleToS3Url({
+          bucket,
+          key: u.key,
+          version: u.VersionId,
         }),
-        files,
-        uploaded,
-      )
+        size: f.file.size,
+      }),
+      files,
+      uploaded,
+    )
 
-      try {
-        const res = await req({
-          endpoint: '/packages',
-          method: 'POST',
-          body: {
-            name,
-            registry: `s3://${bucket}`,
-            message: msg,
-            contents,
-            meta: getMetaValue(meta),
-          },
-        })
-        console.log('pkg create api resp', res)
-        // TODO: get revision from response
-        return { name, revision: 'latest' }
-      } catch (e) {
-        console.log('error creating manifest', e)
-        // TODO: handle specific cases?
-        throw new RF.SubmissionError({ _error: 'manifest' })
-      }
-    },
-    [bucket, s3, updateProgress, setUploads, req],
-  )
+    try {
+      const res = await req({
+        endpoint: '/packages',
+        method: 'POST',
+        body: {
+          name,
+          registry: `s3://${bucket}`,
+          message: msg,
+          contents,
+          meta: getMetaValue(meta),
+        },
+      })
+      console.log('pkg create api resp', res)
+      // TODO: get revision from response
+      setSuccess({ name, revision: 'latest' })
+    } catch (e) {
+      console.log('error creating manifest', e)
+      // TODO: handle specific cases?
+      return { [FORM_ERROR]: 'Error creating manifest' }
+    }
+  }
 
   return (
-    <RF.ReduxForm
-      form="Bucket.PackageUpload"
-      onSubmit={onSubmit}
-      onSubmitSuccess={onSubmitSuccess}
-      initialValues={{ files: [] }}
-      ref={formRef}
-    >
-      {({ handleSubmit, submitting, submitFailed, error, invalid, pristine }) => (
+    <RF.Form onSubmit={onSubmit}>
+      {({
+        handleSubmit,
+        submitting,
+        submitFailed,
+        error,
+        submitError,
+        hasValidationErrors,
+        pristine,
+        form,
+      }) => (
         <M.Dialog
           open={open}
           onClose={handleClose({ submitting })}
           fullWidth
           scroll="body"
-          onExited={reset}
+          onExited={reset(form)}
         >
           <M.DialogTitle>New package</M.DialogTitle>
           {success ? (
@@ -632,7 +636,7 @@ export default function UploadDialog({ bucket, open, onClose }) {
               </M.DialogContent>
               <M.DialogActions>
                 <M.Button onClick={handleClose()}>Close</M.Button>
-                <M.Button onClick={reset}>Create another one</M.Button>
+                <M.Button onClick={reset(form)}>Create another one</M.Button>
                 <M.Button
                   component={Link}
                   to={urls.bucketPackageTree(bucket, success.name, success.revision)}
@@ -652,7 +656,7 @@ export default function UploadDialog({ bucket, open, onClose }) {
                     name="name"
                     label="Name"
                     placeholder="Enter a package name"
-                    validate={[validators.required]}
+                    validate={validators.required}
                     errors={{
                       required: 'Enter a package name',
                     }}
@@ -664,7 +668,7 @@ export default function UploadDialog({ bucket, open, onClose }) {
                     name="msg"
                     label="Commit message"
                     placeholder="Enter a commit message"
-                    validate={[validators.required]}
+                    validate={validators.required}
                     errors={{
                       required: 'Enter a commit message',
                     }}
@@ -675,14 +679,20 @@ export default function UploadDialog({ bucket, open, onClose }) {
                   <RF.Field
                     component={FilesInput}
                     name="files"
-                    validate={[nonEmptyImmutable]}
+                    validate={validators.nonEmpty}
                     errors={{
                       nonEmpty: 'Add files to create a package',
                     }}
                     uploads={uploads}
+                    isEqual={R.equals}
                   />
 
-                  <RF.Field component={MetaInput} name="meta" validate={validateMeta} />
+                  <RF.Field
+                    component={MetaInput}
+                    name="meta"
+                    validate={validateMeta}
+                    isEqual={R.equals}
+                  />
 
                   <input type="submit" style={{ display: 'none' }} />
                 </form>
@@ -710,14 +720,12 @@ export default function UploadDialog({ bucket, open, onClose }) {
                   </Delay>
                 )}
 
-                {!submitting && !!error && (
+                {!submitting && (!!error || !!submitError) && (
                   <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
                     <M.Icon color="error">error_outline</M.Icon>
                     <M.Box pl={1} />
                     <M.Typography variant="body2" color="error">
-                      {{
-                        manifest: 'Error creating manifest',
-                      }[error] || error}
+                      {error || submitError}
                     </M.Typography>
                   </M.Box>
                 )}
@@ -725,14 +733,14 @@ export default function UploadDialog({ bucket, open, onClose }) {
                 <M.Button onClick={handleClose({ submitting })} disabled={submitting}>
                   Cancel
                 </M.Button>
-                <M.Button onClick={reset} disabled={pristine || submitting}>
+                <M.Button onClick={reset(form)} disabled={pristine || submitting}>
                   Reset
                 </M.Button>
                 <M.Button
                   onClick={handleSubmit}
                   variant="contained"
                   color="primary"
-                  disabled={submitting || (submitFailed && invalid)}
+                  disabled={submitting || (submitFailed && hasValidationErrors)}
                 >
                   Push
                 </M.Button>
@@ -741,6 +749,6 @@ export default function UploadDialog({ bucket, open, onClose }) {
           )}
         </M.Dialog>
       )}
-    </RF.ReduxForm>
+    </RF.Form>
   )
 }
