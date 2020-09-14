@@ -563,7 +563,13 @@ export default function UploadDialog({ bucket, open, onClose }) {
       setUploads,
     )
 
-    const uploaded = await Promise.all(uploadStates.map((x) => x.promise))
+    let uploaded
+    try {
+      uploaded = await Promise.all(uploadStates.map((x) => x.promise))
+    } catch (e) {
+      console.log('error uploading files', e)
+      return { [FORM_ERROR]: 'Error uploading files' }
+    }
 
     const contents = R.zipWith(
       (f, u) => ({
