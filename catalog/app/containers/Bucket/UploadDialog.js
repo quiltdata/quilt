@@ -263,7 +263,8 @@ const tryUnparse = (v) =>
   typeof v === 'string' && !isParsable(v) ? v : JSON.stringify(v)
 
 const fieldsToText = R.pipe(
-  R.map(({ key, value }) => [key, tryParse(value)]),
+  R.filter((f) => !!f.key.trim()),
+  R.map((f) => [f.key, tryParse(f.value)]),
   R.fromPairs,
   (x) => JSON.stringify(x, null, 2),
 )
@@ -283,7 +284,7 @@ function getMetaValue(value) {
       : (value.fields || []).map((f) => [f.key, tryParse(f.value)])
 
   return pipeThru(pairs)(
-    R.filter(([k]) => !!k),
+    R.filter(([k]) => !!k.trim()),
     R.fromPairs,
     R.when(R.isEmpty, () => undefined),
   )
@@ -312,15 +313,16 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     paddingBottom: 0,
     paddingLeft: 7,
     paddingRight: 7,
-    paddingTop: 1,
+    paddingTop: 0,
   },
   json: {
     marginTop: t.spacing(1),
   },
-  placeholder: {
-    ...t.typography.body1,
-    color: t.palette.text.secondary,
-    marginTop: t.spacing(1),
+  jsonInput: {
+    fontFamily: t.typography.monospace.fontFamily,
+    '&::placeholder': {
+      fontFamily: t.typography.fontFamily,
+    },
   },
   add: {
     marginTop: t.spacing(2),
@@ -345,10 +347,12 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   },
 }))
 
+const EMPTY_FIELD = { key: '', value: '' }
+
 // TODO: warn on duplicate keys
 function MetaInput({ input, meta }) {
   const classes = useMetaInputStyles()
-  const value = input.value || { fields: [], text: '', mode: 'kv' }
+  const value = input.value || { fields: [EMPTY_FIELD], text: '{}', mode: 'kv' }
   const error = meta.submitFailed && meta.error
 
   const changeMode = (mode) => {
@@ -386,11 +390,11 @@ function MetaInput({ input, meta }) {
   }
 
   const addField = () => {
-    changeFields(R.append({ key: '', value: '' }))
+    changeFields(R.append(EMPTY_FIELD))
   }
 
   const rmField = (i) => () => {
-    changeFields(R.remove(i, 1))
+    changeFields(R.pipe(R.remove(i, 1), R.when(R.isEmpty, R.append(EMPTY_FIELD))))
   }
 
   const handleTextChange = (e) => {
@@ -404,7 +408,7 @@ function MetaInput({ input, meta }) {
         <M.Box flexGrow={1} />
         <Lab.ToggleButtonGroup value={value.mode} exclusive onChange={handleModeChange}>
           <Lab.ToggleButton value="kv" className={classes.btn}>
-            Key and Value
+            Key : Value
           </Lab.ToggleButton>
           <Lab.ToggleButton value="json" className={classes.btn}>
             JSON
@@ -413,9 +417,6 @@ function MetaInput({ input, meta }) {
       </div>
       {value.mode === 'kv' ? (
         <>
-          {!value.fields.length && (
-            <div className={classes.placeholder}>Add metadata if necessary</div>
-          )}
           {value.fields.map((f, i) => (
             // eslint-disable-next-line react/no-array-index-key
             <div key={i} className={classes.row}>
@@ -465,6 +466,7 @@ function MetaInput({ input, meta }) {
           fullWidth
           multiline
           rowsMax={10}
+          InputProps={{ classes: { input: classes.jsonInput } }}
         />
       )}
     </div>

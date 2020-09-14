@@ -464,12 +464,18 @@ export default function PackageList({
                     }
                   />
                 </M.Box>
-                <M.Box display={{ xs: 'none', sm: 'block' }} pl={1}>
-                  <M.IconButton onClick={openUpload} size="small" style={{ padding: 2 }}>
-                    <M.Icon fontSize="large">add</M.Icon>
-                  </M.IconButton>
-                </M.Box>
                 <M.Box flexGrow={1} display={{ xs: 'none', sm: 'block' }} />
+                <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
+                  <M.Button
+                    variant="contained"
+                    size="large"
+                    style={{ paddingTop: 7, paddingBottom: 7 }}
+                    onClick={openUpload}
+                    startIcon={<M.Icon>add</M.Icon>}
+                  >
+                    Add package
+                  </M.Button>
+                </M.Box>
                 <M.Box component={M.Paper} className={classes.paper}>
                   <SortDropdown
                     value={computedSort.key}
