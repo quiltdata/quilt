@@ -140,7 +140,7 @@ export default async function search({
             idxs.push(b)
           }
           if (mode === 'packages' || mode === 'all') {
-            idxs.push(`${b}${PACKAGES_SUFFIX}`)
+            idxs.push(`${b}${PACKAGES_SUFFIX}*`)
           }
           return idxs
         }),
