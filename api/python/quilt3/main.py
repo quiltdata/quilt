@@ -430,7 +430,7 @@ def create_parser():
     )
     optional_args.add_argument(
         "--meta",
-        help="Sets package level metadata",
+        help="Sets package-level metadata",
         type=str,
     )
     push_p.set_defaults(func=cmd_push)

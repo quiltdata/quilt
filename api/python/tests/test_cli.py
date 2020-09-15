@@ -47,16 +47,24 @@ class QuiltCLITestCase(CommandLineTestCase):
 
 
 @pytest.mark.parametrize(
-    'arg, meta, expected_set_dir_count, expected_push_count, expected_meta',
+    'meta_arg, meta_data, expected_set_dir_count, expected_push_count, expected_meta, expected_stderr',
     [
-        (None, None, 1, 1, None),
-        ('--meta', '{invalid: meta}', 0, 0, {}),
-        ('--meta', "{'single': 'quotation'}", 0, 0, {}),
-        ('--meta', '{"test": "meta", }', 0, 0, {}),
-        ('--meta', '{"test": "meta"}', 1, 1, {"test": "meta"}),
+        (None, None, 1, 1, None, ''),
+        ('--meta', '{invalid: meta}', 0, 0, {}, 'is not a valid json string'),
+        ('--meta', "{'single': 'quotation'}", 0, 0, {}, 'is not a valid json string'),
+        ('--meta', '{"test": "meta", }', 0, 0, {}, 'is not a valid json string'),
+        ('--meta', '{"test": "meta"}', 1, 1, {"test": "meta"}, ''),
     ]
 )
-def test_push_with_meta_data(arg, meta, expected_set_dir_count, expected_push_count, expected_meta):
+def test_push_with_meta_data(
+    meta_arg,
+    meta_data,
+    expected_set_dir_count,
+    expected_push_count,
+    expected_meta,
+    expected_stderr,
+    capsys
+):
     name = 'test/name'
     pkg = quilt3.Package()
 
@@ -69,11 +77,15 @@ def test_push_with_meta_data(arg, meta, expected_set_dir_count, expected_push_co
              mock.patch.object(pkg, 'set_dir', wraps=pkg.set_dir) as mocked_set_dir, \
              mock.patch.object(pkg, 'push') as mocked_push:
 
-            if arg:
-                main.main(('push', '--dir', tmp_dir, name, arg, meta))
+            # '--registry' defaults to configured remote registry hence optional.
+            if meta_arg:
+                main.main(('push', '--dir', tmp_dir, name, meta_arg, meta_data))
             else:
                 main.main(('push', '--dir', tmp_dir, name))
             mocked_package_class.assert_called_once_with(quilt3.Package)
             assert mocked_set_dir.call_count == expected_set_dir_count
             assert mocked_push.call_count == expected_push_count
             assert pkg.meta == expected_meta
+            # check for expected stderr exception message
+            captured = capsys.readouterr()
+            assert expected_stderr in captured.err
