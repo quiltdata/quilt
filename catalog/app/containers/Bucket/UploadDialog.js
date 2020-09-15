@@ -22,9 +22,15 @@ const getNormalizedPath = (f) => (f.path.startsWith('/') ? f.path.substring(1) :
 
 function Field({ input, meta, errors, label, ...rest }) {
   const error = meta.submitFailed && meta.error
+  const validating = meta.submitFailed && meta.validating
   const props = {
     error: !!error,
-    label: error ? errors[error] || error : label,
+    label: (
+      <>
+        {error ? errors[error] || error : label}
+        {validating && <M.CircularProgress size={13} style={{ marginLeft: 8 }} />}
+      </>
+    ),
     disabled: meta.submitting || meta.submitSucceeded,
     InputLabelProps: { shrink: true },
     ...input,
@@ -507,17 +513,68 @@ const getTotalProgress = R.pipe(
   ({ total, loaded }) => loaded / total,
 )
 
+const cacheDebounce = (fn, wait, getKey = R.identity) => {
+  const cache = {}
+  let timer
+  let resolveList = []
+
+  return (...args) => {
+    const key = getKey(...args)
+    if (key in cache) return cache[key]
+
+    return new Promise((resolveNew) => {
+      clearTimeout(timer)
+
+      timer = setTimeout(() => {
+        timer = null
+
+        const result = Promise.resolve(fn(...args))
+        cache[key] = result
+
+        resolveList.forEach((resolve) => resolve(result))
+
+        resolveList = []
+      }, wait)
+
+      resolveList.push(resolveNew)
+    })
+  }
+}
+
+const useCounter = () => {
+  const [value, setValue] = React.useState(0)
+  const inc = React.useCallback(() => setValue(R.inc), [setValue])
+  return React.useMemo(() => ({ value, inc }), [value, inc])
+}
+
 export default function UploadDialog({ bucket, open, onClose }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
   const { urls } = NamedRoutes.use()
   const [uploads, setUploads] = React.useState({})
   const [success, setSuccess] = React.useState(null)
+  const validateCacheKey = useCounter()
+
+  const validateName = React.useCallback(
+    cacheDebounce(async (name) => {
+      if (name) {
+        const res = await req({
+          endpoint: '/package_name_valid',
+          method: 'POST',
+          body: { name },
+        })
+        if (!res.valid) return 'invalid'
+      }
+      return undefined
+    }, 200),
+    [req, validateCacheKey.value],
+  )
 
   const reset = (form) => () => {
     form.restart()
     setSuccess(null)
     setUploads({})
+    validateCacheKey.inc()
   }
 
   const handleClose = ({ submitting = false } = {}) => () => {
@@ -597,9 +654,7 @@ export default function UploadDialog({ bucket, open, onClose }) {
           meta: getMetaValue(meta),
         },
       })
-      console.log('pkg create api resp', res)
-      // TODO: get revision from response
-      setSuccess({ name, revision: 'latest' })
+      setSuccess({ name, revision: res.timestamp })
     } catch (e) {
       console.log('error creating manifest', e)
       // TODO: handle specific cases?
@@ -662,9 +717,10 @@ export default function UploadDialog({ bucket, open, onClose }) {
                     name="name"
                     label="Name"
                     placeholder="Enter a package name"
-                    validate={validators.required}
+                    validate={validators.composeAsync(validators.required, validateName)}
                     errors={{
                       required: 'Enter a package name',
+                      invalid: 'Invalid package name',
                     }}
                     fullWidth
                   />

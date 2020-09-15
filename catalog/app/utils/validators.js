@@ -136,3 +136,9 @@ export const jsonObject = (v) => {
     return 'jsonObject'
   }
 }
+
+export const composeAsync = (...validators) => (value) =>
+  validators.reduce(
+    (error, next) => Promise.resolve(error).then((e) => e || next(value)),
+    undefined,
+  )
