@@ -671,7 +671,6 @@ export default function UploadDialog({ bucket, open, onClose }) {
         error,
         submitError,
         hasValidationErrors,
-        pristine,
         form,
       }) => (
         <M.Dialog
@@ -681,7 +680,7 @@ export default function UploadDialog({ bucket, open, onClose }) {
           scroll="body"
           onExited={reset(form)}
         >
-          <M.DialogTitle>New package</M.DialogTitle>
+          <M.DialogTitle>{success ? 'Push complete' : 'Push package'}</M.DialogTitle>
           {success ? (
             <>
               <M.DialogContent style={{ paddingTop: 0 }}>
@@ -697,14 +696,14 @@ export default function UploadDialog({ bucket, open, onClose }) {
               </M.DialogContent>
               <M.DialogActions>
                 <M.Button onClick={handleClose()}>Close</M.Button>
-                <M.Button onClick={reset(form)}>Create another one</M.Button>
+                <M.Button onClick={reset(form)}>New push</M.Button>
                 <M.Button
                   component={Link}
                   to={urls.bucketPackageTree(bucket, success.name, success.revision)}
                   variant="contained"
                   color="primary"
                 >
-                  Go to package
+                  Browse
                 </M.Button>
               </M.DialogActions>
             </>
@@ -794,9 +793,6 @@ export default function UploadDialog({ bucket, open, onClose }) {
 
                 <M.Button onClick={handleClose({ submitting })} disabled={submitting}>
                   Cancel
-                </M.Button>
-                <M.Button onClick={reset(form)} disabled={pristine || submitting}>
-                  Reset
                 </M.Button>
                 <M.Button
                   onClick={handleSubmit}

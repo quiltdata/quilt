@@ -292,6 +292,10 @@ const useStyles = M.makeStyles((t) => ({
       paddingTop: 14,
     },
   },
+  clear: {
+    position: 'absolute',
+    right: -4,
+  },
 }))
 
 export default function PackageList({
@@ -452,14 +456,12 @@ export default function PackageList({
                     }
                     endAdornment={
                       <M.Fade in={!!filtering.input.value}>
-                        <M.Box
-                          position="absolute"
-                          right={-4}
-                          component={M.IconButton}
+                        <M.IconButton
+                          className={classes.clear}
                           onClick={() => filtering.set('')}
                         >
                           <M.Icon>clear</M.Icon>
-                        </M.Box>
+                        </M.IconButton>
                       </M.Fade>
                     }
                   />
@@ -469,11 +471,12 @@ export default function PackageList({
                   <M.Button
                     variant="contained"
                     size="large"
+                    color="primary"
                     style={{ paddingTop: 7, paddingBottom: 7 }}
                     onClick={openUpload}
                     startIcon={<M.Icon>add</M.Icon>}
                   >
-                    Add package
+                    Push package
                   </M.Button>
                 </M.Box>
                 <M.Box component={M.Paper} className={classes.paper}>
