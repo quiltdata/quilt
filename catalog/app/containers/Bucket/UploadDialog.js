@@ -102,7 +102,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     flexGrow: 1,
     marginRight: t.spacing(1),
     overflow: 'hidden',
-    paddingLeft: t.spacing(1),
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
@@ -231,13 +230,13 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
             <div className={classes.filesContainer}>
               {value.map(({ file, path }) => (
                 <div key={path} className={classes.fileEntry}>
+                  <M.IconButton onClick={rmFile({ path })} size="small">
+                    <M.Icon fontSize="inherit">clear</M.Icon>
+                  </M.IconButton>
                   <div className={classes.filePath} title={path}>
                     {path}
                   </div>
                   <div className={classes.fileSize}>{readableBytes(file.size)}</div>
-                  <M.IconButton onClick={rmFile({ path })} size="small">
-                    <M.Icon fontSize="inherit">clear</M.Icon>
-                  </M.IconButton>
                 </div>
               ))}
             </div>
