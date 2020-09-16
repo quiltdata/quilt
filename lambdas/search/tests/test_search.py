@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 
 import responses
 
-from index import lambda_handler, MAX_QUERY_DURATION, post_process
+from index import lambda_handler, post_process
 
 ES_STATS_RESPONSES = {
     'all_gz': {
@@ -240,7 +240,6 @@ class TestSearch(TestCase):
         url = f'https://www.example.com:443/{query["index"]}/_search?' + urlencode(dict(
             _source='great,expectations',
             size=42,
-            timeout=MAX_QUERY_DURATION,
         ))
 
         def _callback(request):
@@ -279,9 +278,7 @@ class TestSearch(TestCase):
 
     def test_search(self):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
-            timeout=MAX_QUERY_DURATION,
             size=1000,
-            terminate_after=10000,
             _source=','.join(['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']),
         ))
 
@@ -317,7 +314,6 @@ class TestSearch(TestCase):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
             _source='false',  # must match JSON; False will fail match_querystring
             size=0,
-            timeout=MAX_QUERY_DURATION,
         ))
 
         def _callback(request):
