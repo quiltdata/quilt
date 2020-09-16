@@ -3,6 +3,7 @@ Parses the command-line arguments and runs a command.
 """
 
 import argparse
+import json
 import subprocess
 import time
 import sys
@@ -213,9 +214,14 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
         return 1
 
 
-def cmd_push(name, dir, registry, dest, message):
+def cmd_push(name, dir, registry, dest, message, meta):
     pkg = Package()
-    pkg.set_dir('.', dir)
+    if meta:
+        try:
+            meta = json.loads(meta)
+        except ValueError:
+            raise QuiltException(f'{meta!r} is not a valid json string.')
+    pkg.set_dir('.', dir, meta=meta)
     pkg.push(name, registry=registry, dest=dest, message=message)
 
 
@@ -420,6 +426,14 @@ def create_parser():
     optional_args.add_argument(
         "--message",
         help="The commit message for the new package",
+        type=str,
+    )
+    optional_args.add_argument(
+        "--meta",
+        help="""
+            Sets package-level metadata.
+            Format: A json string with keys in double quotes '{"key": "value"}'
+            """,
         type=str,
     )
     push_p.set_defaults(func=cmd_push)
