@@ -112,7 +112,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
   lock: {
     alignItems: 'center',
-    background: 'rgba(255,255,255,0.8)',
+    background: 'rgba(255,255,255,0.9)',
     border: `1px solid ${t.palette.action.disabled}`,
     borderRadius: t.shape.borderRadius,
     bottom: 0,
