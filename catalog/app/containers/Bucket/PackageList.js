@@ -24,6 +24,7 @@ import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
 import Pagination from './Pagination'
+import UploadDialog from './UploadDialog'
 import { displayError } from './errors'
 import * as requests from './requests'
 
@@ -291,6 +292,10 @@ const useStyles = M.makeStyles((t) => ({
       paddingTop: 14,
     },
   },
+  clear: {
+    position: 'absolute',
+    right: -4,
+  },
 }))
 
 export default function PackageList({
@@ -318,6 +323,16 @@ export default function PackageList({
   const computedFilter = filter || ''
   const filtering = useDebouncedInput(computedFilter, 200)
   const today = React.useMemo(() => new Date(), [])
+
+  const [uploadOpen, setUploadOpen] = React.useState(false)
+
+  const openUpload = React.useCallback(() => {
+    setUploadOpen(true)
+  }, [setUploadOpen])
+
+  const closeUpload = React.useCallback(() => {
+    setUploadOpen(false)
+  }, [setUploadOpen])
 
   const totalCountData = Data.use(requests.countPackages, { req, bucket })
   const filteredCountData = Data.use(requests.countPackages, {
@@ -370,135 +385,156 @@ export default function PackageList({
     }
   })
 
-  return totalCountData.case({
-    _: () => (
-      <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-        <M.Box mt={{ xs: 0, sm: 3 }} display="flex" justifyContent="space-between">
-          <M.Box
-            component={M.Paper}
-            className={classes.paper}
-            flexGrow={{ xs: 1, sm: 0 }}
-            px={2}
-            py={{ xs: 1.75, sm: 1.25 }}
-          >
-            <Skeleton
-              height={20}
-              width={{ xs: '100%', sm: 160 }}
-              borderRadius="borderRadius"
-            />
-          </M.Box>
-          <M.Box
-            component={M.Paper}
-            className={classes.paper}
-            px={2}
-            py={{ xs: 1.75, sm: 1.25 }}
-          >
-            <Skeleton
-              height={20}
-              width={{ xs: 24, sm: 120 }}
-              borderRadius="borderRadius"
-            />
-          </M.Box>
-        </M.Box>
-        {R.range(0, 10).map((i) => (
-          <PackageSkel key={i} />
-        ))}
-      </M.Box>
-    ),
-    Err: displayError(),
-    Ok: (totalCount) => {
-      if (!totalCount) {
-        return (
-          <Message headline="No packages">
-            Learn how to{' '}
-            <StyledLink href={EXAMPLE_PACKAGE_URL}>create a package</StyledLink>
-          </Message>
-        )
-      }
-
-      return (
-        <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-          <M.Box position="relative" top={-80} ref={scrollRef} />
-          <M.Box display="flex" mt={{ xs: 0, sm: 3 }}>
-            <M.Box
-              component={M.Paper}
-              className={classes.paper}
-              flexGrow={{ xs: 1, sm: 0 }}
-              position="relative"
-            >
-              <M.InputBase
-                {...filtering.input}
-                placeholder="Filter packages"
-                classes={{ input: classes.input }}
-                fullWidth
-                startAdornment={<M.Icon className={classes.searchIcon}>search</M.Icon>}
-                endAdornment={
-                  <M.Fade in={!!filtering.input.value}>
-                    <M.Box
-                      position="absolute"
-                      right={-4}
-                      component={M.IconButton}
-                      onClick={() => filtering.set('')}
-                    >
-                      <M.Icon>clear</M.Icon>
-                    </M.Box>
-                  </M.Fade>
-                }
-              />
+  return (
+    <>
+      <UploadDialog bucket={bucket} open={uploadOpen} onClose={closeUpload} />
+      {totalCountData.case({
+        _: () => (
+          <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
+            <M.Box mt={{ xs: 0, sm: 3 }} display="flex" justifyContent="space-between">
+              <M.Box
+                component={M.Paper}
+                className={classes.paper}
+                flexGrow={{ xs: 1, sm: 0 }}
+                px={2}
+                py={{ xs: 1.75, sm: 1.25 }}
+              >
+                <Skeleton
+                  height={20}
+                  width={{ xs: '100%', sm: 160 }}
+                  borderRadius="borderRadius"
+                />
+              </M.Box>
+              <M.Box
+                component={M.Paper}
+                className={classes.paper}
+                px={2}
+                py={{ xs: 1.75, sm: 1.25 }}
+              >
+                <Skeleton
+                  height={20}
+                  width={{ xs: 24, sm: 120 }}
+                  borderRadius="borderRadius"
+                />
+              </M.Box>
             </M.Box>
-            <M.Box flexGrow={1} display={{ xs: 'none', sm: 'block' }} />
-            <M.Box component={M.Paper} className={classes.paper}>
-              <SortDropdown
-                value={computedSort.key}
-                options={SORT_OPTIONS}
-                makeSortUrl={makeSortUrl}
-              />
-            </M.Box>
+            {R.range(0, 10).map((i) => (
+              <PackageSkel key={i} />
+            ))}
           </M.Box>
+        ),
+        Err: displayError(),
+        Ok: (totalCount) => {
+          if (!totalCount) {
+            return (
+              // TODO: dropzone here
+              // TODO: CTA to upload a package
+              <Message headline="No packages">
+                Learn how to{' '}
+                <StyledLink href={EXAMPLE_PACKAGE_URL}>create a package</StyledLink>
+              </Message>
+            )
+          }
 
-          {filteredCountData.case({
-            _: () => R.range(0, 10).map((i) => <PackageSkel key={i} />),
-            Err: displayError(),
-            Ok: (filteredCount) => {
-              if (!filteredCount) {
-                return (
-                  <M.Box
-                    borderTop={{ xs: 1, sm: 0 }}
-                    borderColor="divider"
-                    pt={3}
-                    px={{ xs: 2, sm: 0 }}
+          return (
+            <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
+              <M.Box position="relative" top={-80} ref={scrollRef} />
+              <M.Box display="flex" mt={{ xs: 0, sm: 3 }}>
+                <M.Box
+                  component={M.Paper}
+                  className={classes.paper}
+                  flexGrow={{ xs: 1, sm: 0 }}
+                  position="relative"
+                >
+                  <M.InputBase
+                    {...filtering.input}
+                    placeholder="Filter packages"
+                    classes={{ input: classes.input }}
+                    fullWidth
+                    startAdornment={
+                      <M.Icon className={classes.searchIcon}>search</M.Icon>
+                    }
+                    endAdornment={
+                      <M.Fade in={!!filtering.input.value}>
+                        <M.IconButton
+                          className={classes.clear}
+                          onClick={() => filtering.set('')}
+                        >
+                          <M.Icon>clear</M.Icon>
+                        </M.IconButton>
+                      </M.Fade>
+                    }
+                  />
+                </M.Box>
+                <M.Box flexGrow={1} display={{ xs: 'none', sm: 'block' }} />
+                <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
+                  <M.Button
+                    variant="contained"
+                    size="large"
+                    color="primary"
+                    style={{ paddingTop: 7, paddingBottom: 7 }}
+                    onClick={openUpload}
+                    startIcon={<M.Icon>add</M.Icon>}
                   >
-                    <M.Typography variant="h5">No matching packages found</M.Typography>
-                  </M.Box>
-                )
-              }
+                    Push package
+                  </M.Button>
+                </M.Box>
+                <M.Box component={M.Paper} className={classes.paper}>
+                  <SortDropdown
+                    value={computedSort.key}
+                    options={SORT_OPTIONS}
+                    makeSortUrl={makeSortUrl}
+                  />
+                </M.Box>
+              </M.Box>
 
-              const pages = Math.ceil(filteredCount / PER_PAGE)
+              {filteredCountData.case({
+                _: () => R.range(0, 10).map((i) => <PackageSkel key={i} />),
+                Err: displayError(),
+                Ok: (filteredCount) => {
+                  if (!filteredCount) {
+                    return (
+                      <M.Box
+                        borderTop={{ xs: 1, sm: 0 }}
+                        borderColor="divider"
+                        pt={3}
+                        px={{ xs: 2, sm: 0 }}
+                      >
+                        <M.Typography variant="h5">
+                          No matching packages found
+                        </M.Typography>
+                      </M.Box>
+                    )
+                  }
 
-              return (
-                <>
-                  {packagesData.case({
-                    _: () => {
-                      const items =
-                        computedPage < pages ? PER_PAGE : filteredCount % PER_PAGE
-                      return R.range(0, items).map((i) => <PackageSkel key={i} />)
-                    },
-                    Err: displayError(),
-                    Ok: R.map((pkg) => (
-                      <Package key={pkg.name} {...pkg} bucket={bucket} />
-                    )),
-                  })}
-                  {pages > 1 && (
-                    <Pagination {...{ pages, page: computedPage, makePageUrl }} />
-                  )}
-                </>
-              )
-            },
-          })}
-        </M.Box>
-      )
-    },
-  })
+                  const pages = Math.ceil(filteredCount / PER_PAGE)
+
+                  return (
+                    <>
+                      {packagesData.case({
+                        _: () => {
+                          const items =
+                            computedPage < pages ? PER_PAGE : filteredCount % PER_PAGE
+                          return R.range(0, items).map((i) => <PackageSkel key={i} />)
+                        },
+                        Err: displayError(),
+                        Ok: R.map((pkg) => (
+                          <Package key={pkg.name} {...pkg} bucket={bucket} />
+                        )),
+                      })}
+                      {pages > 1 && (
+                        <Pagination {...{ pages, page: computedPage, makePageUrl }} />
+                      )}
+                    </>
+                  )
+                },
+              })}
+            </M.Box>
+          )
+        },
+      })}
+    </>
+  )
 }
 
 /* TODO: optimize LinkedData fetching

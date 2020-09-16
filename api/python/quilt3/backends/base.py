@@ -120,11 +120,14 @@ class PackageRegistryV1(PackageRegistry):
         return self.root.join(f'packages/{top_hash}')
 
     def push_manifest(self, pkg_name: str, top_hash: str, manifest_data: bytes):
+        """returns: timestamp to support catalog drag-and-drop => browse"""
         put_bytes(manifest_data, self.manifest_pk(pkg_name, top_hash))
         hash_bytes = top_hash.encode()
         # TODO: use a float to string formatter instead of double casting
-        put_bytes(hash_bytes, self.pointer_pk(pkg_name, str(int(time.time()))))
+        timestamp_str = str(int(time.time()))
+        put_bytes(hash_bytes, self.pointer_pk(pkg_name, timestamp_str))
         put_bytes(hash_bytes, self.pointer_latest_pk(pkg_name))
+        return timestamp_str
 
     @staticmethod
     def _top_hash_from_path(path: str) -> str:
