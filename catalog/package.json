@@ -91,6 +91,7 @@
     "match-sorter": "^4.2.0",
     "minimist": "^1.2.5",
     "mixpanel-browser": "^2.38.0",
+    "p-limit": "^3.0.2",
     "prop-types": "^15.7.2",
     "ramda": "^0.26.1",
     "react": "^16.13.1",

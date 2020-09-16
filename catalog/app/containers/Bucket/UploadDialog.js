@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import { FORM_ERROR } from 'final-form'
+import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
@@ -583,34 +584,45 @@ export default function UploadDialog({ bucket, open, onClose }) {
     onClose()
   }
 
+  const updateUpload = (path, fn) => {
+    setUploads(R.evolve({ [path]: fn }))
+  }
+
   const updateProgress = (path, loaded) => {
-    setUploads(R.assocPath([path, 'progress', 'loaded'], loaded))
+    updateUpload(path, R.assocPath(['progress', 'loaded'], loaded))
   }
 
   const totalProgress = getTotalProgress(uploads)
 
   // eslint-disable-next-line consistent-return
   const onSubmit = async ({ name, msg, files, meta }) => {
-    // TODO: rate-limited queue
+    const limit = pLimit(2)
+    let rejected = false
     const uploadStates = files.map(({ path, file }) => {
       const upload = s3.upload(
         {
           Bucket: bucket,
           Key: `${name}/${path}`,
           Body: file,
-          // ACL:
         },
-        /*
         {
-          partSize:
-          queueSize:
+          queueSize: 2,
         },
-        */
       )
       upload.on('httpUploadProgress', ({ loaded }) => {
         updateProgress(path, loaded)
       })
-      const promise = upload.promise()
+      const promise = limit(async () => {
+        if (rejected) return
+        try {
+          // eslint-disable-next-line consistent-return
+          return await upload.promise()
+        } catch (e) {
+          // TODO: reset upload state on error?
+          rejected = true
+          throw e
+        }
+      })
       return { path, upload, promise, progress: { total: file.size, loaded: 0 } }
     })
 
@@ -624,7 +636,7 @@ export default function UploadDialog({ bucket, open, onClose }) {
     try {
       uploaded = await Promise.all(uploadStates.map((x) => x.promise))
     } catch (e) {
-      console.log('error uploading files', e)
+      // TODO: reset upload state on error?
       return { [FORM_ERROR]: 'Error uploading files' }
     }
 
