@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 
 import responses
 
-from index import lambda_handler, MAX_QUERY_DURATION, post_process
+from index import lambda_handler, post_process
 
 ES_STATS_RESPONSES = {
     'all_gz': {
