@@ -188,13 +188,19 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
 
   const totalProgress = getTotalProgress(uploads)
+  const totalSize = value.reduce((sum, f) => sum + f.file.size, 0)
 
   return (
     <div className={classes.root}>
       <div className={classes.header}>
         {/* eslint-disable-next-line no-nested-ternary */}
         <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
-          Files{!!value.length && ` (${value.length})`}
+          Files
+          {!!value.length && (
+            <>
+              : {value.length} ({readableBytes(totalSize)})
+            </>
+          )}
         </M.Typography>
         <M.Box flexGrow={1} />
         {!!value.length && (
@@ -516,7 +522,10 @@ const getTotalProgress = R.pipe(
     }),
     { total: 0, loaded: 0 },
   ),
-  (p) => ({ ...p, percent: p.total ? Math.ceil((p.loaded / p.total) * 100) : undefined }),
+  (p) => ({
+    ...p,
+    percent: p.total ? Math.floor((p.loaded / p.total) * 100) : undefined,
+  }),
 )
 
 const cacheDebounce = (fn, wait, getKey = R.identity) => {
@@ -796,7 +805,7 @@ export default function UploadDialog({ bucket, open, onClose }) {
                           />
                           <M.Box pl={1} />
                           <M.Typography variant="body2" color="textSecondary">
-                            {totalProgress < 100
+                            {totalProgress.percent < 100
                               ? 'Uploading files'
                               : 'Creating a manifest'}
                           </M.Typography>
