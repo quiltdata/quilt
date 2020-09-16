@@ -806,7 +806,7 @@ export default function UploadDialog({ bucket, open, onClose }) {
                           <M.Typography variant="body2" color="textSecondary">
                             {totalProgress.percent < 100
                               ? 'Uploading files'
-                              : 'Creating a manifest'}
+                              : 'Writing manifest'}
                           </M.Typography>
                         </M.Box>
                       </M.Fade>
