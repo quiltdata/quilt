@@ -14,7 +14,7 @@ from t4_lambda_shared.decorator import api
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 DEFAULT_SIZE = 1_000
-MAX_QUERY_DURATION = '27s'  # Just shy of 29s API Gateway limit
+MAX_QUERY_DURATION = 27  # Just shy of 29s API Gateway limit
 NUM_PREVIEW_IMAGES = 100
 NUM_PREVIEW_FILES = 20
 COMPRESSION_EXTS = ['.gz']
@@ -176,7 +176,8 @@ def lambda_handler(request):
         http_auth=auth,
         use_ssl=True,
         verify_certs=True,
-        connection_class=RequestsHttpConnection
+        connection_class=RequestsHttpConnection,
+        timeout=MAX_QUERY_DURATION,
     )
 
     to_search = f"{user_indexes},{index_overrides}" if index_overrides else user_indexes
@@ -188,7 +189,6 @@ def lambda_handler(request):
         size=size,
         # try turning this off to consider all documents
         terminate_after=terminate_after,
-        timeout=MAX_QUERY_DURATION
     )
 
     return make_json_response(200, post_process(result, action))
