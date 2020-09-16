@@ -135,6 +135,7 @@ class PackageRegistryV1(PackageRegistry):
                 delete_url(self.pointer_pk(pkg_name, path))
 
     def push_manifest(self, pkg_name: str, top_hash: str, manifest_data: bytes):
+        """returns: timestamp to support catalog drag-and-drop => browse"""
         put_bytes(manifest_data, self.manifest_pk(pkg_name, top_hash))
         hash_bytes = top_hash.encode()
         # TODO: use a float to string formatter instead of double casting
