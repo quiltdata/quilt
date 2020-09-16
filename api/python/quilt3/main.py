@@ -432,7 +432,7 @@ def create_parser():
         "--meta",
         help="""
             Sets package-level metadata.
-            Format: A valid json string with double-quote key names ie. '{"foo": "bar"}'
+            Format: A json string with keys in double quotes '{"key": "value"}'
             """,
         type=str,
     )
