@@ -148,7 +148,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-function FilesInput({ input, meta, uploads = {}, errors = {} }) {
+function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
   const classes = useFilesInputStyles()
 
   const value = input.value || []
@@ -176,11 +176,13 @@ function FilesInput({ input, meta, uploads = {}, errors = {} }) {
     e.stopPropagation()
     if (disabled) return
     pipeThru(value)(R.reject(R.propEq('path', path)), input.onChange)
+    setUploads(R.dissoc(path))
   }
 
   const clearFiles = React.useCallback(() => {
     if (disabled) return
     input.onChange([])
+    setUploads({})
   }, [meta.submitting, input.onChange])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
@@ -587,14 +589,6 @@ export default function UploadDialog({ bucket, open, onClose }) {
     onClose()
   }
 
-  const updateUpload = (path, fn) => {
-    setUploads(R.evolve({ [path]: fn }))
-  }
-
-  const updateProgress = (path, loaded) => {
-    updateUpload(path, R.assocPath(['progress', 'loaded'], loaded))
-  }
-
   const totalProgress = getTotalProgress(uploads)
 
   // eslint-disable-next-line consistent-return
@@ -602,6 +596,10 @@ export default function UploadDialog({ bucket, open, onClose }) {
     const limit = pLimit(2)
     let rejected = false
     const uploadStates = files.map(({ path, file }) => {
+      // reuse state if file hasnt changed
+      const entry = uploads[path]
+      if (entry && entry.file === file) return { ...entry, path }
+
       const upload = s3.upload(
         {
           Bucket: bucket,
@@ -613,20 +611,24 @@ export default function UploadDialog({ bucket, open, onClose }) {
         },
       )
       upload.on('httpUploadProgress', ({ loaded }) => {
-        updateProgress(path, loaded)
+        if (rejected) return
+        setUploads(R.assocPath([path, 'progress', 'loaded'], loaded))
       })
       const promise = limit(async () => {
-        if (rejected) return
+        if (rejected) {
+          setUploads(R.dissoc(path))
+          return
+        }
         try {
           // eslint-disable-next-line consistent-return
           return await upload.promise()
         } catch (e) {
-          // TODO: reset upload state on error?
           rejected = true
+          setUploads(R.dissoc(path))
           throw e
         }
       })
-      return { path, upload, promise, progress: { total: file.size, loaded: 0 } }
+      return { path, file, upload, promise, progress: { total: file.size, loaded: 0 } }
     })
 
     pipeThru(uploadStates)(
@@ -639,7 +641,6 @@ export default function UploadDialog({ bucket, open, onClose }) {
     try {
       uploaded = await Promise.all(uploadStates.map((x) => x.promise))
     } catch (e) {
-      // TODO: reset upload state on error?
       return { [FORM_ERROR]: 'Error uploading files' }
     }
 
@@ -760,6 +761,7 @@ export default function UploadDialog({ bucket, open, onClose }) {
                       nonEmpty: 'Add files to create a package',
                     }}
                     uploads={uploads}
+                    setUploads={setUploads}
                     isEqual={R.equals}
                   />
 
