@@ -633,7 +633,7 @@ export default function UploadDialog({ bucket, open, onClose }) {
         logical_key: f.path,
         physical_key: s3paths.handleToS3Url({
           bucket,
-          key: u.key,
+          key: u.Key,
           version: u.VersionId,
         }),
         size: f.file.size,
