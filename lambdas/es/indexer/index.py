@@ -485,21 +485,27 @@ def handler(event, context):
                         etag=etag
                     )
                 except botocore.exceptions.ClientError as exception:
-                    logger_.debug("Get object head on ClientError")
+                    logger_.warning("head_object error: %s", exception)
                     # "null" version sometimes results in 403s for buckets
                     # that have changed versioning, retry without it
                     if (exception.response.get('Error', {}).get('Code') == "403"
                             and version_id == "null"):
-                        head = retry_s3(
-                            "head",
-                            bucket,
-                            key,
-                            s3_client=s3_client,
-                            version_id=None,
-                            etag=etag
-                        )
-                    else:
-                        raise exception
+                        try:
+                            head = retry_s3(
+                                "head",
+                                bucket,
+                                key,
+                                s3_client=s3_client,
+                                version_id=None,
+                                etag=etag
+                            )
+                        except botocore.exceptions.ClientError as exception:
+                            # this will bypass the DLQ but that's the right thing to do
+                            # as some listed objets may NEVER succeed head requests
+                            # (e.g. foreign owner) and there's no reason to torpedo
+                            # the whole batch (which might include good files)
+                            logger_.error("Fatal head_object error (skipping object): %s", exception)
+                        continue
 
                 size = head["ContentLength"]
                 last_modified = head["LastModified"]
