@@ -49,11 +49,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     display: 'flex',
     height: 24,
   },
-  uploading: {
-    ...t.typography.body2,
-    color: t.palette.text.secondary,
-    marginRight: t.spacing(0.5),
-  },
   dropzoneContainer: {
     position: 'relative',
   },
@@ -65,7 +60,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
     marginTop: t.spacing(1),
-    minHeight: 100,
+    minHeight: 140,
     outline: 'none',
     overflow: 'hidden',
   },
@@ -74,15 +69,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
   active: {
     background: t.palette.action.selected,
-  },
-  lock: {
-    background: 'rgba(255,255,255,0.4)',
-    bottom: 0,
-    cursor: 'not-allowed',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
   },
   dropMsg: {
     ...t.typography.body2,
@@ -125,9 +111,40 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     color: t.palette.text.secondary,
     marginRight: t.spacing(0.5),
   },
-  fileProgress: {
-    flexShrink: 0,
-    padding: 3,
+  lock: {
+    alignItems: 'center',
+    background: 'rgba(255,255,255,0.8)',
+    border: `1px solid ${t.palette.action.disabled}`,
+    borderRadius: t.shape.borderRadius,
+    bottom: 0,
+    cursor: 'not-allowed',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  progressContainer: {
+    display: 'flex',
+    position: 'relative',
+  },
+  progressPercent: {
+    ...t.typography.h5,
+    alignItems: 'center',
+    bottom: 0,
+    display: 'flex',
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  progressSize: {
+    ...t.typography.body2,
+    color: t.palette.text.secondary,
+    marginTop: t.spacing(1),
   },
 }))
 
@@ -138,8 +155,6 @@ function FilesInput({ input, meta, uploads = {}, errors = {} }) {
   const disabled = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
   const label = error ? errors[error] || error : 'Drop files here or click to browse'
-
-  const uploadInProgress = !!uploads && !R.isEmpty(uploads)
 
   const onDrop = React.useCallback(
     disabled
@@ -170,6 +185,8 @@ function FilesInput({ input, meta, uploads = {}, errors = {} }) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
 
+  const totalProgress = getTotalProgress(uploads)
+
   return (
     <div className={classes.root}>
       <div className={classes.header}>
@@ -178,26 +195,15 @@ function FilesInput({ input, meta, uploads = {}, errors = {} }) {
           Files{!!value.length && ` (${value.length})`}
         </M.Typography>
         <M.Box flexGrow={1} />
-        {uploadInProgress ? (
-          <>
-            <div className={classes.uploading}>Uploading files</div>
-            <M.CircularProgress
-              className={classes.fileProgress}
-              size={24}
-              value={getTotalProgress(uploads) * 100}
-              variant="determinate"
-            />
-          </>
-        ) : (
-          !!value.length && (
-            <M.Button
-              size="small"
-              onClick={clearFiles}
-              endIcon={<M.Icon fontSize="small">clear</M.Icon>}
-            >
-              clear files
-            </M.Button>
-          )
+        {!!value.length && (
+          <M.Button
+            onClick={clearFiles}
+            disabled={disabled}
+            size="small"
+            endIcon={<M.Icon fontSize="small">clear</M.Icon>}
+          >
+            clear files
+          </M.Button>
         )}
       </div>
 
@@ -215,29 +221,17 @@ function FilesInput({ input, meta, uploads = {}, errors = {} }) {
 
           {!!value.length && (
             <div className={classes.filesContainer}>
-              {value.map(({ file, path }) => {
-                const uploadProgress = getFileProgress(path, uploads)
-                return (
-                  <div key={path} className={classes.fileEntry}>
-                    <div className={classes.filePath} title={path}>
-                      {path}
-                    </div>
-                    <div className={classes.fileSize}>{readableBytes(file.size)}</div>
-                    {uploadInProgress ? (
-                      <M.CircularProgress
-                        className={classes.fileProgress}
-                        size={24}
-                        value={uploadProgress ? uploadProgress * 100 : undefined}
-                        variant={uploadProgress ? 'determinate' : 'indeterminate'}
-                      />
-                    ) : (
-                      <M.IconButton onClick={rmFile({ path })} size="small">
-                        <M.Icon fontSize="inherit">clear</M.Icon>
-                      </M.IconButton>
-                    )}
+              {value.map(({ file, path }) => (
+                <div key={path} className={classes.fileEntry}>
+                  <div className={classes.filePath} title={path}>
+                    {path}
                   </div>
-                )
-              })}
+                  <div className={classes.fileSize}>{readableBytes(file.size)}</div>
+                  <M.IconButton onClick={rmFile({ path })} size="small">
+                    <M.Icon fontSize="inherit">clear</M.Icon>
+                  </M.IconButton>
+                </div>
+              ))}
             </div>
           )}
 
@@ -245,7 +239,21 @@ function FilesInput({ input, meta, uploads = {}, errors = {} }) {
             {label}
           </div>
         </div>
-        {disabled && <div className={classes.lock} />}
+        {disabled && (
+          <div className={classes.lock}>
+            <div className={classes.progressContainer}>
+              <M.CircularProgress
+                size={80}
+                value={totalProgress.percent}
+                variant="determinate"
+              />
+              <div className={classes.progressPercent}>{totalProgress.percent}%</div>
+            </div>
+            <div className={classes.progressSize}>
+              {readableBytes(totalProgress.loaded)} / {readableBytes(totalProgress.total)}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -497,11 +505,6 @@ function MetaInput({ input, meta }) {
   )
 }
 
-const getFileProgress = (path, uploads) => {
-  const { loaded, total } = R.path([path, 'progress'], uploads) || {}
-  return total ? (loaded || 0) / total : undefined
-}
-
 const getTotalProgress = R.pipe(
   R.values,
   R.reduce(
@@ -511,7 +514,7 @@ const getTotalProgress = R.pipe(
     }),
     { total: 0, loaded: 0 },
   ),
-  ({ total, loaded }) => loaded / total,
+  (p) => ({ ...p, percent: p.total ? Math.ceil((p.loaded / p.total) * 100) : undefined }),
 )
 
 const cacheDebounce = (fn, wait, getKey = R.identity) => {
@@ -778,12 +781,20 @@ export default function UploadDialog({ bucket, open, onClose }) {
                         <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
                           <M.CircularProgress
                             size={24}
-                            variant={totalProgress < 1 ? 'determinate' : 'indeterminate'}
-                            value={totalProgress < 1 ? totalProgress * 90 : undefined}
+                            variant={
+                              totalProgress.percent < 100
+                                ? 'determinate'
+                                : 'indeterminate'
+                            }
+                            value={
+                              totalProgress.percent < 100
+                                ? totalProgress.percent * 0.9
+                                : undefined
+                            }
                           />
                           <M.Box pl={1} />
                           <M.Typography variant="body2" color="textSecondary">
-                            {totalProgress < 1
+                            {totalProgress < 100
                               ? 'Uploading files'
                               : 'Creating a manifest'}
                           </M.Typography>
