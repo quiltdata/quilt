@@ -917,8 +917,20 @@ export async function packageSelect({
     throw new errors.BucketError(msg, { status: r.status })
   }
 
-  const { contents: data } = await r.json()
-  return data
+  const normalizeEntry = R.ifElse(
+    R.is(String),
+    (x) => ({ name: x }),
+    (x) => ({ name: x.physical_key, size: x.size }),
+  )
+
+  const json = await r.json()
+  return R.evolve(
+    {
+      objects: R.map(normalizeEntry),
+      prefixes: R.map(normalizeEntry),
+    },
+    json.contents,
+  )
 }
 
 export async function packageFileDetail({ path, ...args }) {

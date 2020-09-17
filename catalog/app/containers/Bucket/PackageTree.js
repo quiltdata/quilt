@@ -360,7 +360,7 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
   )
 
   return data.case({
-    Ok: ({ objects, prefixes }) => {
+    Ok: ({ objects, prefixes, meta }) => {
       const up =
         path === ''
           ? []
@@ -372,14 +372,15 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
             ]
       const dirs = prefixes.map((p) =>
         ListingItem.Dir({
-          name: s3paths.ensureNoSlash(p),
-          to: urls.bucketPackageTree(bucket, name, revision, path + p),
+          name: s3paths.ensureNoSlash(p.name),
+          to: urls.bucketPackageTree(bucket, name, revision, path + p.name),
         }),
       )
-      const files = objects.map((basename) =>
+      const files = objects.map((o) =>
         ListingItem.File({
-          name: basename,
-          to: urls.bucketPackageTree(bucket, name, revision, path + basename),
+          name: o.name,
+          to: urls.bucketPackageTree(bucket, name, revision, path + o.name),
+          size: o.size,
         }),
       )
       const items = [...up, ...dirs, ...files]
@@ -388,6 +389,7 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
         <>
           <TopBar crumbs={crumbs} />
           <PkgCode {...{ data: hashData, bucket, name, revision, path }} />
+          <FileView.Meta data={AsyncResult.Ok(meta)} />
           <M.Box mt={2}>
             <Listing items={items} />
             <Summary
