@@ -927,6 +927,7 @@ export async function packageFileDetail({ path, ...args }) {
     ...s3paths.parseS3Url(r.physical_keys[0]),
     size: r.size,
     logicalKey: r.logical_key,
+    meta: r.meta,
   }
 }
 

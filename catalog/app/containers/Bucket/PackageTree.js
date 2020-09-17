@@ -481,7 +481,7 @@ function FileDisplay({ bucket, name, revision, path, crumbs }) {
   }
 
   return data.case({
-    Ok: (handle) => (
+    Ok: ({ meta, ...handle }) => (
       <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
         {AsyncResult.case({
           _: renderProgress,
@@ -501,6 +501,7 @@ function FileDisplay({ bucket, name, revision, path, crumbs }) {
                   )}
                 </TopBar>
                 <PkgCode {...{ data: hashData, bucket, name, revision, path }} />
+                <FileView.Meta data={AsyncResult.Ok(meta)} />
                 <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                   {withPreview({ archived, deleted, handle }, renderPreview)}
                 </Section>
