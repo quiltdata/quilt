@@ -484,11 +484,11 @@ def handler(event, context):
                         version_id=version_id,
                         etag=etag
                     )
-                except botocore.exceptions.ClientError as exception:
-                    logger_.warning("head_object error: %s", exception)
+                except botocore.exceptions.ClientError as first:
+                    logger_.warning("head_object error: %s", first)
                     # "null" version sometimes results in 403s for buckets
                     # that have changed versioning, retry without it
-                    if (exception.response.get('Error', {}).get('Code') == "403"
+                    if (first.response.get('Error', {}).get('Code') == "403"
                             and version_id == "null"):
                         try:
                             head = retry_s3(
@@ -499,13 +499,16 @@ def handler(event, context):
                                 version_id=None,
                                 etag=etag
                             )
-                        except botocore.exceptions.ClientError as exception:
+                        except botocore.exceptions.ClientError as second:
                             # this will bypass the DLQ but that's the right thing to do
-                            # as some listed objets may NEVER succeed head requests
+                            # as some listed objects may NEVER succeed head requests
                             # (e.g. foreign owner) and there's no reason to torpedo
                             # the whole batch (which might include good files)
-                            logger_.error("Fatal head_object error (skipping object): %s", exception)
-                        continue
+                            logger_.warning("Retried head_object error: %s", second)
+
+                    logger_.error("Fatal head_object, skipping event: %s", event_)
+                    continue
+
 
                 size = head["ContentLength"]
                 last_modified = head["LastModified"]

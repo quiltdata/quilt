@@ -542,6 +542,59 @@ class TestIndex(TestCase):
                 "got {self.expected_es_calls} calls instead"
             )
 
+    @patch.object(index.DocumentQueue, 'send_all')
+    @patch.object(index.DocumentQueue, 'append')
+    @patch.object(index, 'maybe_get_contents')
+    @patch.object(index, 'index_if_manifest')
+    def test_40X(self, index_if_mock, contents_mock, append_mock, send_mock):
+        """
+        test fatal head 40Xs that will cause us to skip objects
+        """
+        bucket = "somebucket"
+        key = "events/copy-one/0.ext"
+        versionId = "Yj1vyLWcE9FTFIIrsgk.yAX7NbJrAW7g"
+        error_codes = ["402", "404"]
+        for error_code in error_codes:
+            self.s3_stubber.add_client_error(
+                method="head_object",
+                service_error_code=error_code,
+                service_message="An error occurred when calling the HeadObject operation",
+                http_status_code=402,
+                expected_params={
+                    "Bucket": bucket,
+                    "Key": key,
+                    "VersionId": versionId,
+                },
+            )
+
+            event = make_event(
+                "ObjectCreated:Put",
+                bucket=bucket,
+                key=key,
+                size=73499,
+                eTag="7b4b71116bb21d3ea7138dfe7aabf036",
+                region="us-west-1",
+                versionId=versionId,
+            )
+
+            records = {
+                "Records": [{
+                    "body": json.dumps({
+                        "Message": json.dumps({
+                            "Records": [event]
+                        })
+                    })
+                }]
+            }
+
+            index.handler(records, None)
+
+            assert index_if_mock.call_count == 0
+            assert contents_mock.call_count == 0
+            assert append_mock.call_count == 0
+
+        assert send_mock.call_count == len(error_codes)
+
     def test_create_event_failure(self):
         """
         Check that the indexer doesn't blow up on create event failures.
@@ -633,7 +686,7 @@ class TestIndex(TestCase):
 
     def test_delete_marker_event_no_versioning(self):
         """
-        this can happen if a bucket was verisoned, and now isn't, followed by
+        this can happen if a bucket was versioned, and now isn't, followed by
         `aws s3 rm`
         """
         # don't mock head or get; this event should never call them
