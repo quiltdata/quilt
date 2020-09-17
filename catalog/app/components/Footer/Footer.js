@@ -1,6 +1,5 @@
 import cx from 'classnames'
 import * as React from 'react'
-import { FormattedMessage } from 'react-intl'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
@@ -11,8 +10,6 @@ import * as URLS from 'constants/urls'
 import * as Config from 'utils/Config'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
-
-import messages from './messages'
 
 import bg from './bg.png'
 import iconFacebook from './icon-facebook.svg'
@@ -95,6 +92,7 @@ export default function Footer() {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const intercom = Intercom.use()
+  const year = React.useMemo(() => new Date().getFullYear(), [])
   return (
     <M.MuiThemeProvider theme={style.navTheme}>
       <footer
@@ -153,8 +151,7 @@ export default function Footer() {
             justifyContent={{ xs: 'center', sm: 'flex-start' }}
           >
             <M.Typography color="textSecondary">
-              &copy;&nbsp;
-              <FormattedMessage {...messages.copy} />
+              &copy;&nbsp;{year} Quilt Data, Inc.
             </M.Typography>
           </M.Box>
 
