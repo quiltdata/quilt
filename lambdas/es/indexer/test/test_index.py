@@ -552,48 +552,64 @@ class TestIndex(TestCase):
         """
         bucket = "somebucket"
         key = "events/copy-one/0.ext"
-        versionId = "Yj1vyLWcE9FTFIIrsgk.yAX7NbJrAW7g"
-        error_codes = ["402", "404"]
-        for error_code in error_codes:
-            self.s3_stubber.add_client_error(
-                method="head_object",
-                service_error_code=error_code,
-                service_message="An error occurred when calling the HeadObject operation",
-                http_status_code=402,
-                expected_params={
-                    "Bucket": bucket,
-                    "Key": key,
-                    "VersionId": versionId,
-                },
-            )
+        etag = "7b4b71116bb21d3ea7138dfe7aabf036"
+        version_ids = ["Yj1vyLWcE9FTFIIrsgk.yAX7NbJrAW7g", "null"]
 
-            event = make_event(
-                "ObjectCreated:Put",
-                bucket=bucket,
-                key=key,
-                size=73499,
-                eTag="7b4b71116bb21d3ea7138dfe7aabf036",
-                region="us-west-1",
-                versionId=versionId,
-            )
+        error_codes = ["402", "403", "404"]
 
-            records = {
-                "Records": [{
-                    "body": json.dumps({
-                        "Message": json.dumps({
-                            "Records": [event]
+        for version_id in version_ids:
+            for error_code in error_codes:
+                self.s3_stubber.add_client_error(
+                    method="head_object",
+                    service_error_code=error_code,
+                    service_message=f"An error occurred ({error_code}) when calling the HeadObject operation",
+                    http_status_code=int(error_code),
+                    expected_params={
+                        "Bucket": bucket,
+                        "Key": key,
+                        "VersionId": version_id,
+                    },
+                )
+                # in the 403 case we try again without VersionId
+                if error_code == "403" and version_id == "null":
+                    self.s3_stubber.add_client_error(
+                        method="head_object",
+                        service_error_code=error_code,
+                        service_message=f"An error occurred ({error_code}) when calling the HeadObject operation",
+                        http_status_code=int(error_code),
+                        expected_params={
+                            "Bucket": bucket,
+                            "Key": key,
+                            "IfMatch": etag,
+                        },
+                    )
+                event = make_event(
+                    "ObjectCreated:Put",
+                    bucket=bucket,
+                    key=key,
+                    size=73499,
+                    eTag=etag,
+                    region="us-west-1",
+                    versionId=version_id,
+                )
+
+                records = {
+                    "Records": [{
+                        "body": json.dumps({
+                            "Message": json.dumps({
+                                "Records": [event]
+                            })
                         })
-                    })
-                }]
-            }
+                    }]
+                }
 
-            index.handler(records, None)
+                index.handler(records, None)
 
-            assert index_if_mock.call_count == 0
-            assert contents_mock.call_count == 0
-            assert append_mock.call_count == 0
+                assert index_if_mock.call_count == 0
+                assert contents_mock.call_count == 0
+                assert append_mock.call_count == 0
 
-        assert send_mock.call_count == len(error_codes)
+        assert send_mock.call_count == len(error_codes)*len(version_ids)
 
     def test_create_event_failure(self):
         """
