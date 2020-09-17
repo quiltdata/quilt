@@ -509,7 +509,6 @@ def handler(event, context):
                     logger_.error("Fatal head_object, skipping event: %s", event_)
                     continue
 
-
                 size = head["ContentLength"]
                 last_modified = head["LastModified"]
 
