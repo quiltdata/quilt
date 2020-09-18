@@ -2,6 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import JsonDisplay from 'components/JsonDisplay'
 // import Message from 'components/Message'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -12,29 +13,14 @@ import Section from './Section'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
 
-const useMetaStyles = M.makeStyles((t) => ({
-  box: {
-    background: M.colors.lightBlue[50],
-    border: [[1, 'solid', M.colors.lightBlue[400]]],
-    borderRadius: t.shape.borderRadius,
-    fontFamily: t.typography.monospace.fontFamily,
-    fontSize: t.typography.body2.fontSize,
-    overflow: 'auto',
-    padding: t.spacing(1),
-    whiteSpace: 'pre',
-    width: '100%',
-  },
-}))
-
-export function Meta({ data }) {
-  const classes = useMetaStyles()
+export function Meta({ data, ...props }) {
   return pipeThru(data)(
     AsyncResult.case({
       Ok: (meta) =>
         !!meta &&
         !R.isEmpty(meta) && (
-          <Section icon="list" heading="Metadata">
-            <div className={classes.box}>{JSON.stringify(meta, null, 2)}</div>
+          <Section icon="list" heading="Metadata" defaultExpanded {...props}>
+            <JsonDisplay value={meta} />
           </Section>
         ),
       _: () => null,
