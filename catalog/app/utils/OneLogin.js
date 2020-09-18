@@ -40,12 +40,15 @@ export function useOneLogin({ clientId, baseUrl }) {
         const handleMessage = ({ source, origin, data }) => {
           if (source !== popup || origin !== window.location.origin) return
           try {
+            const { type, fragment } = data
+            if (type !== 'callback') return
+
             const {
               id_token: idToken,
               error,
               error_description: details,
               state: respState,
-            } = parse(data.substr(1))
+            } = parse(fragment.substr(1))
             if (respState !== state) {
               throw new OneLoginError(
                 'state_mismatch',

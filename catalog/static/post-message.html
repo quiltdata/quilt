@@ -2,7 +2,7 @@
 <html lang="en">
   <body>
     <script>
-      window.opener.postMessage(window.location.hash, window.location.origin);
+      window.opener.postMessage({type: "callback", fragment: window.location.hash}, window.location.origin);
     </script>
   </body>
 </html>
