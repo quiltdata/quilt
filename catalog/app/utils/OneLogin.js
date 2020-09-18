@@ -21,7 +21,7 @@ export function useOneLogin({ clientId, baseUrl }) {
         const state = Math.random().toString(36).substr(2)
         const query = NamedRoutes.mkSearch({
           client_id: clientId,
-          redirect_uri: `${window.location.origin}/post-message.html`,
+          redirect_uri: `${window.location.origin}/oauth-callback`,
           response_mode: 'fragment',
           response_type: 'id_token',
           scope: 'openid email',
