@@ -7,6 +7,7 @@ import * as R from 'ramda'
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import { mkSearch } from 'utils/NamedRoutes'
 import * as Resource from 'utils/Resource'
+import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 
@@ -609,12 +610,33 @@ const fetchPackagesAccessCounts = async ({
   }
 }
 
+// eslint-disable-next-line no-underscore-dangle
+const isReserved = R.includes(R.__, '.+|{}[]()"\\#@&<>~')
+
+const escapeReserved = (c) => `\\${c}`
+
+const isLetter = (c) => c.toLowerCase() !== c.toUpperCase()
+
+const bothCases = (c) => `(${c.toLowerCase()}|${c.toUpperCase()})`
+
 const mkFilterQuery = (filter) =>
   filter
     ? {
-        wildcard: {
+        regexp: {
           handle: {
-            value: filter.includes('*') ? filter : `*${filter}*`,
+            value: pipeThru(filter)(
+              R.unless(R.test(/[*?]/), (f) => `*${f}*`),
+              R.map(
+                R.cond([
+                  [isLetter, bothCases],
+                  [isReserved, escapeReserved],
+                  [R.equals('*'), () => '.*'],
+                  [R.equals('?'), () => '.{0,1}'],
+                  [R.T, R.identity],
+                ]),
+              ),
+              R.join(''),
+            ),
           },
         },
       }
