@@ -1,8 +1,6 @@
 {
   "registryUrl": "<registry url here>",
   "alwaysRequiresAuth": false,
-  "signInRedirect": "/b/quilt-example",
-  "signOutRedirect": "/",
   "apiGatewayEndpoint": "https://ozj6r9bglc.execute-api.us-east-1.amazonaws.com/prod",
   "s3Proxy": "https://open-proxy.quiltdata.com",
   "passwordAuth": "ENABLED",
