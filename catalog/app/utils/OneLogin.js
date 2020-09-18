@@ -5,8 +5,6 @@ import { parse } from 'querystring'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { BaseError } from 'utils/error'
 
-// import oauthHelper from './oauth-helper.html'
-
 export class OneLoginError extends BaseError {
   constructor(code, details) {
     super('OneLogin login failure', { code, details })
