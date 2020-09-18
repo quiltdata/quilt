@@ -18,6 +18,7 @@ import * as validators from 'utils/validators'
 import * as Layout from './Layout'
 import SSOGoogle from './SSOGoogle'
 import SSOOkta from './SSOOkta'
+import SSOOneLogin from './SSOOneLogin'
 import * as actions from './actions'
 import * as errors from './errors'
 import msg from './messages'
@@ -128,6 +129,16 @@ export default ({ location: { search } }) => {
               <>
                 <M.Box mt={2} />
                 <SSOOkta
+                  mutex={mutex}
+                  next={next}
+                  style={{ justifyContent: 'flex-start' }}
+                />
+              </>
+            )}
+            {ssoEnabled('onelogin') && (
+              <>
+                <M.Box mt={2} />
+                <SSOOneLogin
                   mutex={mutex}
                   next={next}
                   style={{ justifyContent: 'flex-start' }}
