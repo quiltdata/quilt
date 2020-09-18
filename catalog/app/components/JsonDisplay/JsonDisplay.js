@@ -29,7 +29,7 @@ function PrimitiveValue({ children, ...props }) {
 
 function PrimitiveEntry({ name, value, topLevel = true, ...props }) {
   return (
-    <Box display="flex" alignItems="center" {...props}>
+    <Box display="flex" {...props}>
       {!topLevel && <IconBlank />}
       <Key>{name}</Key>
       <PrimitiveValue>{value}</PrimitiveValue>
@@ -47,7 +47,7 @@ function CompoundEntry({ name, value, topLevel = true, ...props }) {
 
   return (
     <Box {...props}>
-      <Box display="flex" alignItems="center" onClick={toggle}>
+      <Box display="flex" onClick={toggle}>
         {/* TODO: use icon rotation like MUI ? */}
         {empty ? ( // eslint-disable-line no-nested-ternary
           !topLevel && <IconBlank />
