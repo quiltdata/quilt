@@ -101,10 +101,12 @@ def buffer_s3response(s3response):
     response = io.StringIO()
     end_event_received = False
     stats = None
+    found_records = False
     for event in s3response['Payload']:
         if 'Records' in event:
             records = event['Records']['Payload'].decode()
             response.write(records)
+            found_records = True
         elif 'Progress' in event:
             print(event['Progress']['Details'])
         elif 'Stats' in event:
@@ -116,7 +118,7 @@ def buffer_s3response(s3response):
     if not end_event_received:
         raise IncompleteResultException("Error: Received an incomplete response from S3 Select.")
     response.seek(0)
-    return response
+    return response if found_records else None
 
 
 def query_manifest_content(

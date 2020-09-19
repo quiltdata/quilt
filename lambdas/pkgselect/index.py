@@ -192,10 +192,23 @@ def lambda_handler(request):
         df = pd.read_json(result, lines=True)
         response_data = file_list_to_folder(df)
 
+        # Fetch package-level or directory-level metadata
+        if prefix:
+            sql_stmt = f"SELECT s.meta FROM s3object s WHERE s.logical_key = '{sql_escape(prefix)}'"
+        else:
+            sql_stmt = "SELECT s.* FROM s3object s WHERE s.logical_key is NULL"
+        result = query_manifest_content(
+            s3_client,
+            bucket=bucket,
+            key=key,
+            sql_stmt=sql_stmt
+        )
+        
     ret_val = make_json_response(
         200,
         {
-            'contents': response_data
+            'contents': response_data,
+            'meta': json.load(result) if result else {}
         }
     )
 
