@@ -15,7 +15,6 @@ from t4_lambda_shared.utils import (
     query_manifest_content,
     separated_env_to_iter,
     get_default_origins,
-    logger,
     make_json_response,
     IncompleteResultException
 )
@@ -212,7 +211,6 @@ class TestUtils(TestCase):
         )
     ]
 )
-@logger()
 def test_logger(level: int, message: str, call: str, expected: str, name: str):
     """test logging decorator"""
     with LogCapture(level=level) as buffer:

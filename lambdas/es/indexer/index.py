@@ -39,7 +39,6 @@ counterintuitive things:
 """
 import datetime
 import json
-from logging import getLogger
 from typing import Optional
 import pathlib
 import re
@@ -62,8 +61,7 @@ from t4_lambda_shared.preview import (
 )
 from t4_lambda_shared.utils import (
     get_available_memory,
-    logger,
-    LOGGER_NAME,
+    get_quilt_logger,
     MANIFEST_PREFIX_V1,
     POINTER_PREFIX_V1,
     query_manifest_content,
@@ -144,7 +142,6 @@ def select_manifest_meta(s3_client, bucket: str, key: str):
     return None
 
 
-@logger()
 def index_if_manifest(
         s3_client,
         doc_queue: DocumentQueue,
@@ -163,7 +160,7 @@ def index_if_manifest(
             - True if manifest (and passes to doc_queue for indexing)
             - False if not a manifest (no attempt at indexing)
     """
-    logger_ = getLogger(LOGGER_NAME)
+    logger_ = get_quilt_logger()
     pointer_prefix, pointer_file = split(key)
     handle = pointer_prefix[len(POINTER_PREFIX_V1):]
     if (
@@ -408,12 +405,11 @@ def make_s3_client():
     return boto3.client("s3", config=configuration)
 
 
-@logger()
 def handler(event, context):
     """enumerate S3 keys in event, extract relevant data, queue events, send to
     elastic via bulk() API
     """
-    logger_ = getLogger(LOGGER_NAME)
+    logger_ = get_quilt_logger()
     # message is a proper SQS message, which either contains a single event
     # (from the bucket notification system) or batch-many events as determined
     # by enterprise/**/bulk_loader.py
