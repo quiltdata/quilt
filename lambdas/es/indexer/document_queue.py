@@ -73,6 +73,7 @@ class DocumentQueue:
             metadata: str = '',
             pointer_file: str = '',
             package_hash: str = '',
+            package_stats: str ='',
             tags: List[str] = (),
             text: str = '',
             version_id=None,
@@ -123,6 +124,7 @@ class DocumentQueue:
                 "hash": package_hash,
                 "metadata": metadata,
                 "pointer_file": pointer_file,
+                "stats": package_stats,
                 "tags": ",".join(tags)
             })
         elif doc_type == DocTypes.OBJECT:
