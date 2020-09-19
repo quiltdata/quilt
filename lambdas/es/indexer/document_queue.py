@@ -73,7 +73,7 @@ class DocumentQueue:
             metadata: str = '',
             pointer_file: str = '',
             package_hash: str = '',
-            package_stats: str ='',
+            package_stats: str = '',
             tags: List[str] = (),
             text: str = '',
             version_id=None,
