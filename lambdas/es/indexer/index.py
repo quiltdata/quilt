@@ -249,14 +249,15 @@ def select_package_stats(s3_client, bucket, manifest_key) -> str:
 
         total_bytes = json.loads(size_response)['total_bytes']
         total_files = json.loads(files_response)['total_files']
+        assert isinstance(total_bytes, int)
+        assert isinstance(total_files, int)
 
-        return json.dumps({
+        return {
             'total_bytes': total_bytes,
             'total_files': total_files,
-        })
-
-    except botocore.exceptions.ClientError as cle:
-        logger_.error("Unable to compute package status via S3 select: %s", cle)
+        }
+    except (botocore.exceptions.ClientError, AssertionError) as err:
+        logger_.error("Unable to compute package status via S3 select: %s", err)
 
     return None
 

@@ -3,7 +3,7 @@ sending to elastic search in memory-limited batches"""
 from datetime import datetime
 from enum import Enum
 from math import floor
-from typing import List
+from typing import Dict, List
 import os
 
 from aws_requests_auth.aws_auth import AWSRequestsAuth
@@ -73,7 +73,7 @@ class DocumentQueue:
             metadata: str = '',
             pointer_file: str = '',
             package_hash: str = '',
-            package_stats: str ='',
+            package_stats: Dict[str, int] = {'total_files': 0, 'total_bytes': 0},
             tags: List[str] = (),
             text: str = '',
             version_id=None,
@@ -124,7 +124,7 @@ class DocumentQueue:
                 "hash": package_hash,
                 "metadata": metadata,
                 "pointer_file": pointer_file,
-                "stats": package_stats,
+                "package_stats": package_stats,
                 "tags": ",".join(tags)
             })
         elif doc_type == DocTypes.OBJECT:

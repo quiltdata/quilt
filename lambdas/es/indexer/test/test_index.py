@@ -919,7 +919,7 @@ class TestIndex(TestCase):
                         },
                         {
                             "Records": {
-                                "Payload": b'{"total_bytes":292600212794}\n',
+                                "Payload": b'{"total_bytes":292600212794000}\n',
                             },
                         },
                         {
@@ -935,7 +935,7 @@ class TestIndex(TestCase):
                         },
                         {
                             "Records": {
-                                "Payload": b'{"total_files":179066}\n',
+                                "Payload": b'{"total_files":179066000}\n',
                             },
                         },
                         {
@@ -984,7 +984,10 @@ class TestIndex(TestCase):
             key=f".quilt/packages/{sha_hash}",
             last_modified=ANY,
             package_hash=sha_hash,
-            package_stats=ANY,
+            package_stats={
+                'total_files': 179_066_000,
+                'total_bytes': 292_600_212_794_000,
+            },
             pointer_file=ANY,
             comment=MANIFEST_DATA["message"],
             metadata=json.dumps(MANIFEST_DATA["user_meta"])
