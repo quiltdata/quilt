@@ -73,7 +73,7 @@ class DocumentQueue:
             metadata: str = '',
             pointer_file: str = '',
             package_hash: str = '',
-            package_stats: Dict[str, int] = {'total_files': 0, 'total_bytes': 0},
+            package_stats: Dict[str, int] = {'total_files': 0, 'total_bytes': 0}.copy(),
             tags: List[str] = (),
             text: str = '',
             version_id=None,
