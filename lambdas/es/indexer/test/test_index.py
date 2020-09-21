@@ -919,23 +919,7 @@ class TestIndex(TestCase):
                         },
                         {
                             "Records": {
-                                "Payload": b'{"total_bytes":292600212794000}\n',
-                            },
-                        },
-                        {
-                            "End": {}
-                        },
-                    ]
-                },
-                {
-                    "ResponseMetadata": ANY,
-                    "Payload": [
-                        {
-                            "Stats": {}
-                        },
-                        {
-                            "Records": {
-                                "Payload": b'{"total_files":179066000}\n',
+                                "Payload": b'{"total_bytes":292600212794000,"total_files":179066000}\n',
                             },
                         },
                         {
@@ -971,8 +955,8 @@ class TestIndex(TestCase):
                 },
                 OutputSerialization={'JSON': {'RecordDelimiter': '\n'}}
             )
-            # one call for first row, one call for total_bytes, one for total_files
-            assert mock_select.call_count == 3
+            # one call for metadata, one for stats
+            assert mock_select.call_count == 2
 
         append_mock.assert_any_call(
             "ObjectCreated:Put",
