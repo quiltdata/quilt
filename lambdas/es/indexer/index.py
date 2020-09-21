@@ -228,6 +228,7 @@ def index_if_manifest(
         )
         return False
 
+
 @logger()
 def select_package_stats(s3_client, bucket, manifest_key) -> str:
     """use s3 select to generate file stats for package"""
@@ -241,8 +242,6 @@ def select_package_stats(s3_client, bucket, manifest_key) -> str:
         ).read()
 
         stats = json.loads(raw_stats)
-        print(">>>>>    ", stats)
-
         assert isinstance(stats['total_bytes'], int)
         assert isinstance(stats['total_files'], int)
 
