@@ -38,6 +38,7 @@ SAMPLE_EXTS = [
     '.xlsx',
     '.ipynb',
     '.md',
+    '.pdf',
     '.json',
 ]
 README_KEYS = ['README.md', 'README.txt', 'README.ipynb']

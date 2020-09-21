@@ -224,6 +224,7 @@ const SAMPLE_EXTS = [
   '.xlsx',
   '.ipynb',
   '.md',
+  '.pdf',
   '.json',
 ]
 const SAMPLE_SIZE = 20
