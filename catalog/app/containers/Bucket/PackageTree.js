@@ -340,20 +340,6 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
 
   const hashData = useData(requests.loadRevisionHash, { s3, bucket, name, id: revision })
 
-  const resolveLogicalKey = React.useCallback(
-    (logicalKey) =>
-      requests.packageFileDetail({
-        s3,
-        credentials,
-        endpoint,
-        bucket,
-        name,
-        revision,
-        path: logicalKey,
-      }),
-    [s3, credentials, endpoint, bucket, name, revision, path],
-  )
-
   const mkUrl = React.useCallback(
     (handle) => urls.bucketPackageTree(bucket, name, revision, handle.logicalKey),
     [urls.bucketPackageTree, bucket, name, revision, path],
@@ -372,8 +358,8 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
             ]
       const dirs = prefixes.map((p) =>
         ListingItem.Dir({
-          name: s3paths.ensureNoSlash(p.name),
-          to: urls.bucketPackageTree(bucket, name, revision, path + p.name),
+          name: s3paths.ensureNoSlash(p),
+          to: urls.bucketPackageTree(bucket, name, revision, path + p),
         }),
       )
       const files = objects.map((o) =>
@@ -384,7 +370,10 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
         }),
       )
       const items = [...up, ...dirs, ...files]
-      const lazyHandles = objects.map((basename) => ({ logicalKey: path + basename }))
+      const summaryHandles = objects.map((o) => ({
+        ...s3paths.parseS3Url(o.physicalKey),
+        logicalKey: path + o.name,
+      }))
       return (
         <>
           <TopBar crumbs={crumbs} />
@@ -392,11 +381,7 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
           <FileView.Meta data={AsyncResult.Ok(meta)} />
           <M.Box mt={2}>
             <Listing items={items} />
-            <Summary
-              files={lazyHandles}
-              resolveLogicalKey={resolveLogicalKey}
-              mkUrl={mkUrl}
-            />
+            <Summary files={summaryHandles} mkUrl={mkUrl} />
           </M.Box>
         </>
       )

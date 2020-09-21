@@ -917,20 +917,17 @@ export async function packageSelect({
     throw new errors.BucketError(msg, { status: r.status })
   }
 
-  const normalizeEntry = R.ifElse(
-    R.is(String),
-    (x) => ({ name: x }),
-    (x) => ({ name: x.physical_key, size: x.size }),
-  )
-
   const json = await r.json()
-  return R.evolve(
-    {
-      objects: R.map(normalizeEntry),
-      prefixes: R.map(normalizeEntry),
-    },
-    json.contents,
-  )
+
+  return {
+    objects: json.contents.objects.map((o) => ({
+      name: o.logical_key,
+      physicalKey: o.physical_key,
+      size: o.size,
+    })),
+    prefixes: R.pluck('logical_key', json.contents.prefixes),
+    meta: json.meta,
+  }
 }
 
 export async function packageFileDetail({ path, ...args }) {
