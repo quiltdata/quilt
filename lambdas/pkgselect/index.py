@@ -203,12 +203,13 @@ def lambda_handler(request):
             key=key,
             sql_stmt=sql_stmt
         )
+        meta = json.load(result) if result else {}
+        response_data.update(dict(meta=meta))
         
     ret_val = make_json_response(
         200,
         {
-            'contents': response_data,
-            'meta': json.load(result) if result else {}
+            'contents': response_data
         }
     )
 
