@@ -163,6 +163,9 @@ export default async function search({
     if (match) {
       throw new BaseError('SearchSyntaxError', { details: unescape(match[1]) })
     }
+    if (/^API Gateway Error: ConnectionTimeout.*Read timed out/.test(e.message)) {
+      throw new BaseError('SearchTimeout')
+    }
     console.log('Search error:', e.message)
     console.error(e)
     throw e

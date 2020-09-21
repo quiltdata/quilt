@@ -23,8 +23,10 @@ import usePrevious from 'utils/usePrevious'
 import * as requests from 'containers/Bucket/requests'
 
 const PER_PAGE = 10
-const ES_V = '6.7'
-const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
+const ES_V = '6.8'
+const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}`
+const ES_REF_SYNTAX = `${ES_REF}/query-dsl-query-string-query.html#query-string-syntax`
+const ES_REF_WILDCARDS = `${ES_REF}/query-dsl-query-string-query.html#_wildcards`
 
 const CrumbLink = M.styled(StyledLink)({ wordBreak: 'break-word' })
 
@@ -562,7 +564,10 @@ export const handleErr = (retry) =>
             Oops, couldn&apos;t parse that search.
             <br />
             Try quoting your query or read about{' '}
-            <StyledLink href={ES_REF}>supported query syntax</StyledLink>.
+            <StyledLink href={ES_REF_SYNTAX} target="_blank">
+              supported query syntax
+            </StyledLink>
+            .
             {!!e.details && (
               <>
                 <br />
@@ -577,6 +582,31 @@ export const handleErr = (retry) =>
                 >
                   {e.details}
                 </M.Box>
+              </>
+            )}
+          </Message>
+        </Alt>
+      ),
+    ],
+    [
+      R.propEq('message', 'SearchTimeout'),
+      () => (
+        <Alt>
+          <Message headline="Query timed out">
+            That made ElasticSearch sweat.
+            <br />
+            Try{' '}
+            <StyledLink href={ES_REF_WILDCARDS} target="_blank">
+              avoiding wildcards
+            </StyledLink>{' '}
+            or ask Quilt about scaling your cluster.
+            {!!retry && (
+              <>
+                <br />
+                <br />
+                <M.Button onClick={retry} color="primary" variant="contained">
+                  Retry
+                </M.Button>
               </>
             )}
           </Message>
@@ -606,7 +636,7 @@ export const handleErr = (retry) =>
       R.T,
       () => (
         <Alt>
-          <Message headline="Server Error">
+          <Message headline="Server error">
             Something went wrong.
             {!!retry && (
               <>
