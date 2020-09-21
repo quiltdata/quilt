@@ -63,7 +63,8 @@ def file_list_to_folder(df: pd.DataFrame) -> dict:
         )
         folder.reset_index(inplace=True)
         folder.rename(columns={0: 'logical_key'}, inplace=True)
-        prefixes = folder[folder.logical_key.str.contains('/')].to_dict(orient='records')
+        # Do not return physical_key for prefixes
+        prefixes = folder[folder.logical_key.str.contains('/')].drop(['physical_key'], axis=1).to_dict(orient='records')
         objects = folder[~folder.logical_key.str.contains('/')].to_dict(orient='records')
     except AttributeError as err:
         # Pandas will raise an attribute error if the DataFrame has
