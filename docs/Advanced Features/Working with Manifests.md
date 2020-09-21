@@ -50,11 +50,9 @@ In almost all cases you should be using registries, `build`, and `push` to handl
 ```python
 import quilt3
 p = quilt3.Package()
-
 # write to file
 with open("example.jsonl", "w") as f:
     p.dump(f)
-
 # read from file
 p.load(open("example.jsonl", "r"))
 ```
