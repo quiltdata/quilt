@@ -919,15 +919,17 @@ export async function packageSelect({
 
   const json = await r.json()
 
-  return {
-    objects: json.contents.objects.map((o) => ({
-      name: o.logical_key,
-      physicalKey: o.physical_key,
-      size: o.size,
-    })),
-    prefixes: R.pluck('logical_key', json.contents.prefixes),
-    meta: json.meta,
-  }
+  return R.evolve(
+    {
+      objects: R.map((o) => ({
+        name: o.logical_key,
+        physicalKey: o.physical_key,
+        size: o.size,
+      })),
+      prefixes: R.pluck('logical_key'),
+    },
+    json.contents,
+  )
 }
 
 export async function packageFileDetail({ path, ...args }) {
