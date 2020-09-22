@@ -939,8 +939,19 @@ export async function packageSelect({
     throw new errors.BucketError(msg, { status: r.status })
   }
 
-  const { contents: data } = await r.json()
-  return data
+  const json = await r.json()
+
+  return R.evolve(
+    {
+      objects: R.map((o) => ({
+        name: o.logical_key,
+        physicalKey: o.physical_key,
+        size: o.size,
+      })),
+      prefixes: R.pluck('logical_key'),
+    },
+    json.contents,
+  )
 }
 
 export async function packageFileDetail({ path, ...args }) {
@@ -949,6 +960,7 @@ export async function packageFileDetail({ path, ...args }) {
     ...s3paths.parseS3Url(r.physical_keys[0]),
     size: r.size,
     logicalKey: r.logical_key,
+    meta: r.meta,
   }
 }
 

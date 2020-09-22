@@ -438,6 +438,7 @@ export default function File({
             <>
               <Code>{code}</Code>
               {!!analyticsBucket && <Analytics {...{ analyticsBucket, bucket, path }} />}
+              <Meta bucket={bucket} path={path} version={version} />
               <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
                 {versionExistsData.case({
                   _: () => <CenteredProgress />,
@@ -447,7 +448,6 @@ export default function File({
                   Ok: withPreview(renderPreview),
                 })}
               </Section>
-              <Meta bucket={bucket} path={path} version={version} />
             </>
           ),
           _: () => <Message headline="No Such Object" />,
