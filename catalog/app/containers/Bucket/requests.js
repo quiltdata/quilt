@@ -182,8 +182,8 @@ const processStats = R.applySpec({
     R.sort(R.descend(R.prop('bytes'))),
   ),
   totalObjects: R.path(['hits', 'total']),
-  totalVersions: R.path(['hits', 'total']),
   totalBytes: R.path(['aggregations', 'totalBytes', 'value']),
+  totalPackages: R.path(['aggregations', 'totalPackageHandles', 'value']),
 })
 
 export const bucketStats = async ({ es, s3, bucket, overviewUrl }) => {
