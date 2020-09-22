@@ -20,7 +20,7 @@ export function Meta({ data, ...props }) {
         !!meta &&
         !R.isEmpty(meta) && (
           <Section icon="list" heading="Metadata" defaultExpanded {...props}>
-            <JsonDisplay value={meta} />
+            <JsonDisplay value={meta} defaultExpanded={1} />
           </Section>
         ),
       _: () => null,
