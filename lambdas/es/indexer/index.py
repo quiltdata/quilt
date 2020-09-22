@@ -247,7 +247,7 @@ def select_package_stats(s3_client, bucket, manifest_key) -> str:
 
         return stats
 
-    except (botocore.exceptions.ClientError, AssertionError) as err:
+    except (botocore.exceptions.ClientError, AssertionError, KeyError) as err:
         logger_.error("Unable to compute package status via S3 select: %s", err)
 
     return None
