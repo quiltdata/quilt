@@ -31,17 +31,6 @@ from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, Physica
     user_is_configured_to_custom_stack, catalog_package_url, DISABLE_TQDM
 
 
-def hash_file(readable_file):
-    """ Returns SHA256 hash of readable file-like object """
-    buf = readable_file.read(4096)
-    hasher = hashlib.sha256()
-    while buf:
-        hasher.update(buf)
-        buf = readable_file.read(4096)
-
-    return hasher.hexdigest()
-
-
 def _delete_local_physical_key(pk):
     assert pk.is_local(), "This function only works on files that live on a local disk"
     pathlib.Path(pk.path).unlink()
