@@ -29,6 +29,38 @@ class TestPackageSelect(TestCase):
         Mocks to tests calls to S3 Select
         """
 
+        def make_s3response(bytes):
+            return {
+                'Payload': [
+                    {
+                        'Records': {
+                            'Payload': bytes
+                        }
+                    },
+                    {
+                        'Progress': {
+                            'Details': {
+                                'BytesScanned': 123,
+                                'BytesProcessed': 123,
+                                'BytesReturned': 123
+                            }
+                        }
+                    },
+                    {
+                        'Stats': {
+                            'Details': {
+                                'BytesScanned': 123,
+                                'BytesProcessed': 123,
+                                'BytesReturned': 123
+                            }
+                        }
+                    },
+                    {
+                        'End': {}
+                    }
+                ]
+            }
+
         logical_keys = [
             "foo.csv",
             "bar/file1.txt",
@@ -56,68 +88,8 @@ class TestPackageSelect(TestCase):
             meta={}
         )
         detailbytes = json.dumps(manifest_row).encode()
-        self.s3response_detail = {
-            'Payload': [
-                {
-                    'Records': {
-                        'Payload': detailbytes
-                    }
-                },
-                {
-                    'Progress': {
-                        'Details': {
-                            'BytesScanned': 123,
-                            'BytesProcessed': 123,
-                            'BytesReturned': 123
-                        }
-                    }
-                },
-                {
-                    'Stats': {
-                        'Details': {
-                            'BytesScanned': 123,
-                            'BytesProcessed': 123,
-                            'BytesReturned': 123
-                        }
-                    }
-                },
-                {
-                    'End': {}
-                }
-            ]
-        }
-
-        self.s3response = {
-            'Payload': [
-                {
-                    'Records': {
-                        'Payload': streambytes
-                    }
-                },
-                {
-                    'Progress': {
-                        'Details': {
-                            'BytesScanned': 123,
-                            'BytesProcessed': 123,
-                            'BytesReturned': 123
-                        }
-                    }
-                },
-                {
-                    'Stats': {
-                        'Details': {
-                            'BytesScanned': 123,
-                            'BytesProcessed': 123,
-                            'BytesReturned': 123
-                        }
-                    }
-                },
-                {
-                    'End': {}
-                }
-            ]
-        }
-
+        self.s3response = make_s3response(streambytes)
+        self.s3response_detail = make_s3response(detailbytes)
         self.s3response_incomplete = {
             'Payload': [
                 {
@@ -136,6 +108,16 @@ class TestPackageSelect(TestCase):
                 }
             ]
         }
+
+        meta = {
+            "version": "v0",
+            "user_meta": {
+                "somefield": "somevalue"
+            },
+            "message": "Commit message"
+        }
+        metabytes = json.dumps(meta).encode()
+        self.s3response_meta = make_s3response(metabytes)
 
         requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
         requests_mock.start()
@@ -254,7 +236,10 @@ class TestPackageSelect(TestCase):
         client_patch = patch.object(
             mock_s3,
             'select_object_content',
-            return_value=self.s3response
+            side_effect=[
+                self.s3response,
+                self.s3response_meta
+            ]
         )
         client_patch.start()
         with patch('boto3.Session.client', return_value=mock_s3):
@@ -380,7 +365,10 @@ class TestPackageSelect(TestCase):
         client_patch = patch.object(
             mock_s3,
             'select_object_content',
-            return_value=self.s3response
+            side_effect=[
+                self.s3response,
+                self.s3response_meta
+            ]
         )
         client_patch.start()
         response = {

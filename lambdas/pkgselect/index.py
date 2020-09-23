@@ -206,7 +206,7 @@ def lambda_handler(request):
         )
         meta = json.load(result) if result else {}
         response_data.update(dict(meta=meta))
-        
+
     ret_val = make_json_response(
         200,
         {
