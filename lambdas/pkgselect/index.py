@@ -61,8 +61,8 @@ def file_list_to_folder(df: pd.DataFrame) -> dict:
             size=('size', 'sum'),
             physical_key=('physical_key', 'first')
         )
-        folder.reset_index(inplace=True)
-        folder.rename(columns={0: 'logical_key'}, inplace=True)
+        folder.reset_index(inplace=True)  # move the logical_key from the index to column[0]
+        folder.rename(columns={0: 'logical_key'}, inplace=True) # name the new column
         # Do not return physical_key for prefixes
         prefixes = folder[folder.logical_key.str.contains('/')].drop(
             ['physical_key'],
