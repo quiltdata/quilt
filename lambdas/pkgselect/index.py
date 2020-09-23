@@ -182,8 +182,10 @@ def lambda_handler(request):
         # Call s3 select to fetch only logical keys matching the
         # desired prefix (folder path)
         prefix_length = len(prefix) if prefix is not None else 0
-        sql_stmt = f"SELECT SUBSTRING(s.logical_key, {prefix_length + 1}) AS logical_key"
-        sql_stmt += ", s.\"size\", s.physical_keys[0] as physical_key FROM s3object s"
+        sql_stmt = (
+            f"SELECT SUBSTRING(s.logical_key, {prefix_length + 1}) AS logical_key"
+            ", s.\"size\", s.physical_keys[0] as physical_key FROM s3object s"
+        )
         if prefix:
             sql_stmt += f" WHERE SUBSTRING(s.logical_key, 1, {prefix_length}) = '{sql_escape(prefix)}'"
         result = query_manifest_content(
