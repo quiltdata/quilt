@@ -7,6 +7,7 @@ chardet==3.0.4
 decorator==4.4.0
 defusedxml==0.6.0
 entrypoints==0.3
+fcsparser==0.2.1
 idna==2.8
 ipython-genutils==0.2.0
 Jinja2==2.10.1
@@ -16,8 +17,8 @@ MarkupSafe==1.1.1
 mistune==0.8.4
 nbconvert==5.5.0
 nbformat==4.4.0
-numpy==1.16.4
-pandas==0.25.1
+numpy==1.17.1
+pandas==1.1.1
 pandocfilters==1.4.2
 psutil==5.7.0
 pyarrow==0.17.1

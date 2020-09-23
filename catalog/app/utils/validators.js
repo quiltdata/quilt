@@ -94,6 +94,13 @@ export const matchesField = (field) => (v, vs) => {
 export const required = (v) => (v ? undefined : 'required')
 
 /**
+ * Validate that the value is a non-empty object or array.  Error string: 'nonEmpty'.
+ *
+ * @type {Validator}
+ */
+export const nonEmpty = (v) => (v && !R.isEmpty(v) ? undefined : 'nonEmpty')
+
+/**
  * Validate that the string represents a valid integer. Error string: 'integer'.
  *
  * @type {Validator}
@@ -129,3 +136,9 @@ export const jsonObject = (v) => {
     return 'jsonObject'
   }
 }
+
+export const composeAsync = (...validators) => (value) =>
+  validators.reduce(
+    (error, next) => Promise.resolve(error).then((e) => e || next(value)),
+    undefined,
+  )

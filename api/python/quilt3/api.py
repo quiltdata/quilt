@@ -34,7 +34,11 @@ def delete_package(name, registry=None, top_hash=None):
         top_hash (str): Optional. A package hash to delete, instead of the whole package.
     """
     validate_package_name(name)
-    get_package_registry(registry).delete_package(name, top_hash)
+    registry = get_package_registry(registry)
+    if top_hash is None:
+        registry.delete_package(name)
+    else:
+        registry.delete_package_version(name, registry.resolve_top_hash(name, top_hash))
 
 
 @ApiTelemetry("api.list_packages")

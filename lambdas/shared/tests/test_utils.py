@@ -2,11 +2,14 @@
 Misc helper functions
 """
 import json
+import logging
 import os
 from unittest import TestCase
 from unittest.mock import patch
 
 import boto3
+import pytest
+from testfixtures import LogCapture
 
 from t4_lambda_shared.utils import (
     query_manifest_content,
@@ -30,7 +33,6 @@ class TestUtils(TestCase):
         jsonl = ""
         for key in logical_keys:
             jsonl += "{\"logical_key\": \"%s\"}\n" % key
-        print(jsonl)
         streambytes = jsonl.encode()
 
         self.s3response = {
@@ -192,3 +194,35 @@ class TestUtils(TestCase):
                     sql_stmt=expected_sql
                 )
                 patched.assert_called_once_with(**expected_args)
+
+
+@pytest.mark.parametrize(
+    "level, call, message, expected, name",
+    [
+        (logging.WARNING, "debug", "IGNORE", "", "fake"),
+        (logging.DEBUG, "debug", "HEARME", "HEARME", "fake"),
+        (logging.DEBUG, "info", "HEARME", "HEARME", "fake"),
+        pytest.param(
+            logging.INFO, "info", "HEARME", "HEARME", "quilt-lambda",
+            marks=pytest.mark.xfail(
+                raises=AssertionError,
+                reason="unclear but logger from @logger doesn't get patched?"
+            )
+        )
+    ]
+)
+def test_logger(level: int, message: str, call: str, expected: str, name: str):
+    """test logging decorator"""
+    with LogCapture(level=level) as buffer:
+        logger_mock = logging.getLogger(name)
+        if call == "debug":
+            logger_mock.debug(message)
+        elif call == "info":
+            logger_mock.info(message)
+        else:
+            raise ValueError("Unexpected call type")
+
+        if expected:
+            buffer.check(('fake', call.upper(), expected))
+        else:
+            buffer.check()

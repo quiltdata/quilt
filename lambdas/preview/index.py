@@ -15,6 +15,7 @@ from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.preview import (
     CATALOG_LIMIT_BYTES,
     CATALOG_LIMIT_LINES,
+    extract_fcs,
     extract_parquet,
     get_bytes,
     get_preview_lines,
@@ -30,7 +31,7 @@ MIN_VCF_COLS = 8  # per 4.2 spec on header and data lines
 
 S3_DOMAIN_SUFFIX = '.amazonaws.com'
 
-FILE_EXTENSIONS = ["csv", "excel", "ipynb", "parquet", "vcf"]
+FILE_EXTENSIONS = ["csv", "excel", "fcs", "ipynb", "parquet", "vcf"]
 # BED https://genome.ucsc.edu/FAQ/FAQformat.html#format1
 TEXT_TYPES = ["bed", "txt"]
 FILE_EXTENSIONS.extend(TEXT_TYPES)
@@ -128,6 +129,8 @@ def lambda_handler(request):
             )
         elif input_type == 'excel':
             html, info = extract_excel(get_bytes(content_iter, compression))
+        elif input_type == 'fcs':
+            html, info = extract_fcs(get_bytes(content_iter, compression))
         elif input_type == 'ipynb':
             html, info = extract_ipynb(get_bytes(content_iter, compression), exclude_output)
         elif input_type == 'parquet':
@@ -150,12 +153,13 @@ def lambda_handler(request):
             'info': info,
             'html': html,
         }
-
     else:
         ret_val = {
-            'error': resp.reason
+            'error': resp.reason,
+            'text': resp.text,
         }
-    return make_json_response(200, ret_val)
+
+    return make_json_response(resp.status_code, ret_val)
 
 
 def extract_csv(head, separator):

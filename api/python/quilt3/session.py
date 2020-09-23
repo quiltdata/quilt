@@ -122,9 +122,9 @@ def _create_session(auth):
     Creates a session object to be used for `push`, `install`, etc.
     """
     session = requests.Session()
-    session.hooks.update(dict(
+    session.hooks.update(
         response=_handle_response
-    ))
+    )
     session.headers.update({
         "Content-Type": "application/json",
         "Accept": "application/json",
@@ -269,6 +269,7 @@ class QuiltProvider(CredentialProvider):
     CANONICAL_NAME = 'QuiltRegistry'
 
     def __init__(self, credentials):
+        super().__init__()
         self._credentials = credentials
 
     def load(self):

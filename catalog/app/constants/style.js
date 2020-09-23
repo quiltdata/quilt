@@ -126,6 +126,16 @@ export const websiteTheme = createMuiTheme({
   overrides: websiteOverrides,
 })
 
+export const createCustomAppTheme = ({ palette, typography, ...rest }, ...args) =>
+  createMuiTheme(
+    {
+      palette: { ...appPalette, ...palette },
+      typography: { ...appTypography, ...typography },
+      ...rest,
+    },
+    ...args,
+  )
+
 // expose themes for development purposes
 if (process.env.NODE_ENV === 'development') {
   window.THEMES = { appTheme, navTheme, websiteTheme }

@@ -1,13 +1,14 @@
 import { extname } from 'path'
 
 import * as R from 'ramda'
-import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
-import Data from 'utils/Data'
-import * as NamedRoutes from 'utils/NamedRoutes'
+import * as Data from 'utils/Data'
+import { mkSearch } from 'utils/NamedRoutes'
+import pipeThru from 'utils/pipeThru'
+import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewError } from '../types'
 
@@ -17,6 +18,8 @@ export const SIZE_THRESHOLDS = [
 ]
 
 export const COMPRESSION_TYPES = { gz: '.gz', bz2: '.bz2' }
+
+export const GLACIER_ERROR_RE = /<Code>InvalidObjectState<\/Code><Message>The operation is not valid for the object's storage class<\/Message>/
 
 // eslint-disable-next-line consistent-return
 export const getCompression = (key) => {
@@ -35,28 +38,40 @@ export const extIs = (ext) => (key) => extname(key).toLowerCase() === ext
 
 export const extIn = (exts) => (key) => exts.includes(extname(key).toLowerCase())
 
-export const withSigner = (callback) => <AWS.Signer.Inject>{callback}</AWS.Signer.Inject>
-
-export const withS3 = (callback) => <AWS.S3.Inject>{callback}</AWS.S3.Inject>
-
-export const withRoutes = (callback) => (
-  <NamedRoutes.Inject>{callback}</NamedRoutes.Inject>
-)
-
-export const withData = (props, callback) => <Data {...props}>{callback}</Data>
-
+// TODO: make it more general-purpose "head"?
 const gate = async ({ s3, handle }) => {
   let length
+  const req = s3.headObject({
+    Bucket: handle.bucket,
+    Key: handle.key,
+    VersionId: handle.version,
+  })
   try {
-    const head = await s3
-      .headObject({
-        Bucket: handle.bucket,
-        Key: handle.key,
-        VersionId: handle.version,
-      })
-      .promise()
+    const head = await req.promise()
     length = head.ContentLength
+    if (head.DeleteMarker) throw PreviewError.Deleted({ handle })
+    if (head.StorageClass === 'GLACIER' || head.StorageClass === 'DEEP_ARCHIVE') {
+      throw PreviewError.Archived({ handle })
+    }
   } catch (e) {
+    if (PreviewError.is(e)) throw e
+    // TODO: should it be 'status'?
+    if (e.code === 405 && handle.version != null) {
+      // assume delete marker when 405 and version is defined,
+      // since GET and HEAD methods are not allowed on delete markers
+      // (https://github.com/boto/botocore/issues/674)
+      throw PreviewError.Deleted({ handle })
+    }
+    if (e.code === 'BadRequest' && handle.version != null) {
+      // assume invalid version when 400 and version is defined
+      throw PreviewError.InvalidVersion({ handle })
+    }
+    if (
+      e.code === 'NotFound' &&
+      req.response.httpResponse.headers['x-amz-delete-marker'] === 'true'
+    ) {
+      throw PreviewError.Deleted({ handle })
+    }
     if (['NoSuchKey', 'NotFound'].includes(e.name)) {
       throw PreviewError.DoesNotExist({ handle })
     }
@@ -64,27 +79,18 @@ const gate = async ({ s3, handle }) => {
     console.error('Error loading preview')
     // eslint-disable-next-line no-console
     console.error(e)
-    throw PreviewError.Unexpected({ handle, originalError: e })
+    throw e
   }
   if (length > SIZE_THRESHOLDS[1]) {
     throw PreviewError.TooLarge({ handle })
   }
-  return { handle, gated: length > SIZE_THRESHOLDS[0] }
+  return length > SIZE_THRESHOLDS[0]
 }
 
-export const gatedS3Request = (fetcher) => (handle, callback, extraParams) =>
-  withS3((s3) =>
-    withData(
-      { fetch: gate, params: { s3, handle } },
-      AsyncResult.case({
-        Ok: ({ gated }) =>
-          fetcher({ s3, handle, gated, ...extraParams }, (r, ...args) =>
-            callback(AsyncResult.Ok(r), ...args),
-          ),
-        _: callback,
-      }),
-    ),
-  )
+export function useGate(handle) {
+  const s3 = AWS.S3.use()
+  return Data.use(gate, { s3, handle })
+}
 
 const parseRange = (range) => {
   if (!range) return undefined
@@ -93,7 +99,7 @@ const parseRange = (range) => {
   return Number(m[1])
 }
 
-const getFirstBytes = (bytes) => async ({ s3, handle }) => {
+const getFirstBytes = async ({ s3, bytes, handle }) => {
   try {
     const res = await s3
       .getObject({
@@ -107,102 +113,105 @@ const getFirstBytes = (bytes) => async ({ s3, handle }) => {
     const contentLength = parseRange(res.ContentRange) || 0
     return { firstBytes, contentLength }
   } catch (e) {
-    if (['NoSuchKey', 'NotFound'].includes(e.name)) {
+    if (['NoSuchKey', 'NotFound'].includes(e.code)) {
       throw PreviewError.DoesNotExist({ handle })
+    }
+    if (e.code === 'InvalidObjectState') {
+      throw PreviewError.Archived({ handle })
+    }
+    if (e.code === 'InvalidArgument' && e.message === 'Invalid version id specified') {
+      throw PreviewError.InvalidVersion({ handle })
     }
     // eslint-disable-next-line no-console
     console.error('Error loading preview')
     // eslint-disable-next-line no-console
     console.error(e)
-    throw PreviewError.Unexpected({ handle, originalError: e })
+    throw e
   }
 }
 
-export const withFirstBytes = (bytes, fetcher) => {
-  const fetch = getFirstBytes(bytes)
-
-  return (handle, callback) =>
-    withS3((s3) =>
-      withData(
-        { fetch, params: { s3, handle } },
-        AsyncResult.case({
-          Ok: ({ firstBytes, contentLength }) =>
-            fetcher({ s3, handle, firstBytes, contentLength }, (r, ...args) =>
-              callback(AsyncResult.Ok(r), ...args),
-            ),
-          _: callback,
-        }),
-      ),
-    )
+export function useFirstBytes({ bytes, handle }) {
+  const s3 = AWS.S3.use()
+  return Data.use(getFirstBytes, { s3, bytes, handle })
 }
 
-export const objectGetter = (process) => {
-  const fetch = ({ s3, handle, ...extra }) =>
-    s3
-      .getObject({
-        Bucket: handle.bucket,
-        Key: handle.key,
-        VersionId: handle.version,
-      })
-      .promise()
-      .then((r) => process(r, { s3, handle, ...extra }))
+const getObject = ({ s3, handle }) =>
+  s3
+    .getObject({
+      Bucket: handle.bucket,
+      Key: handle.key,
+      VersionId: handle.version,
+    })
+    .promise()
+    .catch((e) => {
+      if (['NoSuchKey', 'NotFound'].includes(e.code)) {
+        throw PreviewError.DoesNotExist({ handle })
+      }
+      if (e.code === 'InvalidObjectState') {
+        throw PreviewError.Archived({ handle })
+      }
+      if (e.code === 'InvalidArgument' && e.message === 'Invalid version id specified') {
+        throw PreviewError.InvalidVersion({ handle })
+      }
+      throw e
+    })
 
-  return ({ s3, handle, gated, ...extra }, callback) =>
-    withData({ fetch, params: { s3, handle, ...extra }, noAutoFetch: gated }, callback)
+export function useObjectGetter(handle, opts) {
+  const s3 = AWS.S3.use()
+  return Data.use(getObject, { s3, handle }, opts)
 }
 
-const previewUrl = (endpoint, query) =>
-  `${endpoint}/preview${NamedRoutes.mkSearch(query)}`
-
-class PreviewFetchError extends Error {}
-
-const fetchPreview = async ({ endpoint, type, handle, signer, query }) => {
-  const signed = signer.getSignedS3URL(handle)
-  const compression = getCompression(handle.key)
+const fetchPreview = async ({ endpoint, handle, sign, type, compression, query }) => {
+  const url = sign(handle)
   const r = await fetch(
-    previewUrl(endpoint, { url: signed, input: type, compression, ...query }),
+    `${endpoint}/preview${mkSearch({ url, input: type, compression, ...query })}`,
   )
   const json = await r.json()
-  if (json.error) throw new PreviewFetchError(json.error)
+  if (json.error) {
+    if (json.error === 'Not Found') {
+      throw PreviewError.DoesNotExist({ handle })
+    }
+    if (json.error === 'Forbidden') {
+      if (json.text && json.text.match(GLACIER_ERROR_RE)) {
+        throw PreviewError.Archived({ handle })
+      }
+      throw PreviewError.Forbidden({ handle })
+    }
+    console.log('Error from preview endpoint', json)
+    throw new Error(json.error)
+  }
   return json
 }
 
-const withGatewayEndpoint = (callback) => (
-  <Config.Inject>
-    {AsyncResult.case({
-      Err: R.pipe(AsyncResult.Err, callback),
-      _: callback,
-      Ok: R.pipe(R.prop('apiGatewayEndpoint'), AsyncResult.Ok, callback),
-    })}
-  </Config.Inject>
-)
+export function usePreview({ type, handle, query }) {
+  const { apiGatewayEndpoint: endpoint } = Config.use()
+  const sign = AWS.Signer.useS3Signer()
+  const compression = getCompression(handle.key)
+  return Data.use(fetchPreview, { endpoint, handle, sign, type, compression, query })
+}
 
-export const previewFetcher = (type, process) => {
-  const fetch = (x) => fetchPreview(x).then((res) => process(res, x))
-  return (handle, callback, extra) =>
-    withSigner((signer) =>
-      withGatewayEndpoint(
-        AsyncResult.case({
-          Err: (e, ...args) => {
-            const pe = PreviewError.Unexpected({ handle, originalError: e })
-            return callback(AsyncResult.Err(pe), ...args)
-          },
-          Ok: (endpoint) =>
-            withData(
-              { fetch, params: { endpoint, type, handle, signer, ...extra } },
-              AsyncResult.case({
-                _: callback,
-                Err: (e, ...args) => {
-                  let pe = PreviewError.Unexpected({ handle, originalError: e })
-                  if (e instanceof PreviewFetchError && e.message === 'Not Found') {
-                    pe = PreviewError.DoesNotExist({ handle })
-                  }
-                  return callback(AsyncResult.Err(pe), ...args)
-                },
-              }),
-            ),
-          _: callback,
+export function useProcessing(asyncResult, process, deps = []) {
+  return useMemoEq([asyncResult, process, deps], () =>
+    AsyncResult.case(
+      {
+        Ok: R.tryCatch(R.pipe(process, AsyncResult.Ok), AsyncResult.Err),
+        _: R.identity,
+      },
+      asyncResult,
+    ),
+  )
+}
+
+export function useErrorHandling(result, { handle, retry } = {}) {
+  return useMemoEq([result, handle, retry], () =>
+    pipeThru(result)(
+      AsyncResult.mapCase({
+        Err: R.unless(PreviewError.is, (e) => {
+          console.log('error while loading preview')
+          console.error(e)
+          return PreviewError.Unexpected({ handle, retry, originalError: e })
         }),
-      ),
-    )
+      }),
+    ),
+  )
 }

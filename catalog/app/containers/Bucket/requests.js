@@ -1,58 +1,20 @@
 import { join as pathJoin } from 'path'
 
-import S3 from 'aws-sdk/clients/s3'
 import * as dateFns from 'date-fns'
 import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
+import { mkSearch } from 'utils/NamedRoutes'
 import * as Resource from 'utils/Resource'
-import { resolveKey, parseS3Url } from 'utils/s3paths'
+import pipeThru from 'utils/pipeThru'
+import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 
 import * as errors from './errors'
 
-const catchErrors = (pairs = []) =>
-  R.cond([
-    [
-      R.propEq('message', 'Network Failure'),
-      () => {
-        throw new errors.CORSError()
-      },
-    ],
-    [
-      R.propEq('message', 'Access Denied'),
-      () => {
-        throw new errors.AccessDenied()
-      },
-    ],
-    [
-      R.propEq('code', 'Forbidden'),
-      () => {
-        throw new errors.AccessDenied()
-      },
-    ],
-    [
-      R.propEq('code', 'NoSuchBucket'),
-      () => {
-        throw new errors.NoSuchBucket()
-      },
-    ],
-    ...pairs,
-    [
-      R.T,
-      (e) => {
-        throw e
-      },
-    ],
-  ])
-
 const withErrorHandling = (fn, pairs) => (...args) =>
-  fn(...args).catch(catchErrors(pairs))
-
-const mapAllP = R.curry((fn, list) => Promise.all(list.map(fn)))
-
-const mergeAllP = (...ps) => Promise.all(ps).then(R.mergeAll)
+  fn(...args).catch(errors.catchErrors(pairs))
 
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
@@ -86,6 +48,7 @@ export const bucketListing = ({ s3, bucket, path = '', prev }) =>
             modified: i.LastModified,
             size: i.Size,
             etag: i.ETag,
+            archived: i.StorageClass === 'GLACIER' || i.StorageClass === 'DEEP_ARCHIVE',
           })),
           (xs) => (prev && prev.files ? prev.files.concat(xs) : xs),
         ),
@@ -95,7 +58,7 @@ export const bucketListing = ({ s3, bucket, path = '', prev }) =>
         path: () => path,
       }),
     )
-    .catch(catchErrors())
+    .catch(errors.catchErrors())
 
 const MAX_BANDS = 10
 
@@ -204,30 +167,8 @@ export const bucketAccessCounts = async ({
 
 const parseDate = (d) => d && new Date(d)
 
-export function bucketExists({ s3, bucket, cache }) {
-  if (S3.prototype.bucketRegionCache[bucket]) return Promise.resolve()
-  if (cache && cache[bucket]) return Promise.resolve()
-  return s3
-    .headBucket({ Bucket: bucket })
-    .promise()
-    .then(() => {
-      // eslint-disable-next-line no-param-reassign
-      if (cache) cache[bucket] = true
-    })
-    .catch(
-      catchErrors([
-        [
-          R.propEq('code', 'NotFound'),
-          () => {
-            throw new errors.NoSuchBucket()
-          },
-        ],
-      ]),
-    )
-}
-
-const getOverviewBucket = (url) => parseS3Url(url).bucket
-const getOverviewPrefix = (url) => parseS3Url(url).key
+const getOverviewBucket = (url) => s3paths.parseS3Url(url).bucket
+const getOverviewPrefix = (url) => s3paths.parseS3Url(url).key
 const getOverviewKey = (url, path) => pathJoin(getOverviewPrefix(url), path)
 
 const processStats = R.applySpec({
@@ -300,6 +241,7 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
       key,
       version: h.VersionId,
       deleted: !!h.DeleteMarker,
+      archived: h.StorageClass === 'GLACIER' || h.StorageClass === 'DEEP_ARCHIVE',
     })
   } catch (e) {
     if (e.code === 405 && version != null) {
@@ -328,10 +270,10 @@ export async function getObjectExistence({ s3, bucket, key, version }) {
   }
 }
 
-const ensureObjectIsPresent = (...args) =>
+export const ensureObjectIsPresent = (...args) =>
   getObjectExistence(...args).then(
     ObjectExistence.case({
-      Exists: ({ deleted, ...h }) => (deleted ? null : h),
+      Exists: ({ deleted, archived, ...h }) => (deleted || archived ? null : h),
       _: () => null,
     }),
   )
@@ -509,13 +451,11 @@ export const bucketImgs = async ({ es, s3, bucket, overviewUrl, inStack }) => {
         R.pipe(
           R.path(['Contents']),
           R.filter(
-            R.propSatisfies(
-              R.allPass([
-                R.complement(R.startsWith('/')),
-                R.anyPass(IMG_EXTS.map(R.unary(R.endsWith))),
-              ]),
-              'Key',
-            ),
+            (i) =>
+              i.StorageClass !== 'GLACIER' &&
+              i.StorageClass !== 'DEEP_ARCHIVE' &&
+              !i.Key.startsWith('/') &&
+              IMG_EXTS.some((e) => i.Key.toLowerCase().endsWith(e)),
           ),
           sampleSize(MAX_IMGS),
           R.map(({ Key: key }) => ({ key, bucket })),
@@ -542,6 +482,7 @@ export const objectVersions = ({ s3, bucket, path }) =>
           size: v.Size,
           id: v.VersionId,
           deleteMarker: v.Size == null,
+          archived: v.StorageClass === 'GLACIER' || v.StorageClass === 'DEEP_ARCHIVE',
         })),
         R.sort(R.descend(R.prop('lastModified'))),
       ),
@@ -559,8 +500,12 @@ export const objectMeta = ({ s3, bucket, path, version }) =>
 
 const isValidManifest = R.both(Array.isArray, R.all(R.is(String)))
 
-export const summarize = async ({ s3, handle }) => {
-  if (!handle) return null
+export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) => {
+  if (!inputHandle) return null
+  const handle =
+    resolveLogicalKey && inputHandle.logicalKey && !inputHandle.key
+      ? await resolveLogicalKey(inputHandle.logicalKey)
+      : inputHandle
 
   try {
     const file = await s3
@@ -578,14 +523,20 @@ export const summarize = async ({ s3, handle }) => {
       throw new Error('Invalid manifest: must be a JSON array of file links')
     }
 
-    const resolvePath = (path) => ({
-      bucket: handle.bucket,
-      key: resolveKey(handle.key, path),
-    })
+    const resolvePath = (path) =>
+      resolveLogicalKey && handle.logicalKey
+        ? resolveLogicalKey(s3paths.resolveKey(handle.logicalKey, path)).catch((e) => {
+            console.warn('Error resolving logical key for summary', { handle, path })
+            console.error(e)
+            return null
+          })
+        : {
+            bucket: handle.bucket,
+            key: s3paths.resolveKey(handle.key, path),
+          }
 
-    // TODO: figure out versions of package-local referenced objects
-    return manifest
-      .map(
+    const handles = await Promise.all(
+      manifest.map(
         R.pipe(
           Resource.parse,
           Resource.Pointer.case({
@@ -595,8 +546,9 @@ export const summarize = async ({ s3, handle }) => {
             Path: resolvePath,
           }),
         ),
-      )
-      .filter((h) => h)
+      ),
+    )
+    return handles.filter((h) => h)
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Error loading summary:')
@@ -608,7 +560,6 @@ export const summarize = async ({ s3, handle }) => {
 
 const PACKAGES_PREFIX = '.quilt/named_packages/'
 const MANIFESTS_PREFIX = '.quilt/packages/'
-const MAX_REVISIONS = 100
 
 const fetchPackagesAccessCounts = async ({
   s3,
@@ -659,53 +610,69 @@ const fetchPackagesAccessCounts = async ({
   }
 }
 
-const listPackageOwnerPrefixes = ({ s3, bucket }) =>
-  s3
-    .listObjectsV2({ Bucket: bucket, Prefix: PACKAGES_PREFIX, Delimiter: '/' })
-    .promise()
-    .then((r) => r.CommonPrefixes.map((p) => p.Prefix))
+// eslint-disable-next-line no-underscore-dangle
+const isReserved = R.includes(R.__, '.+|{}[]()"\\#@&<>~')
 
-const listPackagePrefixes = ({ s3, bucket, ownerPrefix }) =>
-  drainObjectList({
-    s3,
-    Bucket: bucket,
-    Prefix: ownerPrefix,
-    Delimiter: '/',
-  }).then((r) => r.CommonPrefixes.map((p) => p.Prefix))
+const escapeReserved = (c) => `\\${c}`
 
-const fetchPackageLatest = ({ s3, bucket, prefix }) =>
-  s3
-    .listObjectsV2({ Bucket: bucket, Prefix: `${prefix}latest` })
-    .promise()
-    .then(({ Contents: [latest] }) => {
-      const name = prefix.slice(PACKAGES_PREFIX.length, -1)
-      if (!latest) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `Unable to get latest revision: missing 'latest' file under the '${PACKAGES_PREFIX}${name}/' prefix`,
-        )
+const isLetter = (c) => c.toLowerCase() !== c.toUpperCase()
+
+const bothCases = (c) => `(${c.toLowerCase()}|${c.toUpperCase()})`
+
+const mkFilterQuery = (filter) =>
+  filter
+    ? {
+        regexp: {
+          handle: {
+            value: pipeThru(filter)(
+              R.unless(R.test(/[*?]/), (f) => `*${f}*`),
+              R.map(
+                R.cond([
+                  [isLetter, bothCases],
+                  [isReserved, escapeReserved],
+                  [R.equals('*'), () => '.*'],
+                  [R.equals('?'), () => '.{0,1}'],
+                  [R.T, R.identity],
+                ]),
+              ),
+              R.join(''),
+            ),
+          },
+        },
       }
-      return {
-        name,
-        modified: latest ? latest.LastModified : null,
-      }
-    })
+    : { match_all: {} }
 
-const fetchPackageRevisions = ({ s3, bucket, prefix }) =>
-  s3
-    .listObjectsV2({
-      Bucket: bucket,
-      Prefix: prefix,
-      MaxKeys: MAX_REVISIONS + 1, // 1 for `latest`
-    })
-    .promise()
-    .then(({ Contents, IsTruncated }) => ({
-      revisions: Contents.length - 1,
-      revisionsTruncated: IsTruncated,
-    }))
+export const countPackages = withErrorHandling(async ({ req, bucket, filter }) => {
+  const body = {
+    query: mkFilterQuery(filter),
+    aggs: {
+      total: {
+        cardinality: { field: 'handle' },
+      },
+    },
+  }
+  const result = await req('/search', {
+    index: `${bucket}_packages`,
+    action: 'packages',
+    body: JSON.stringify(body),
+    size: 0,
+  })
+  return result.aggregations.total.value
+})
 
 export const listPackages = withErrorHandling(
-  async ({ s3, analyticsBucket, bucket, today, analyticsWindow = 30 }) => {
+  async ({
+    req,
+    s3,
+    analyticsBucket,
+    bucket,
+    filter,
+    sort = 'name', // name | modified
+    perPage = 30,
+    page = 1,
+    today,
+    analyticsWindow = 30,
+  }) => {
     const countsP =
       analyticsBucket &&
       fetchPackagesAccessCounts({
@@ -715,20 +682,49 @@ export const listPackages = withErrorHandling(
         today,
         window: analyticsWindow,
       })
-    const packages = await listPackageOwnerPrefixes({ s3, bucket })
-      .then(
-        mapAllP((ownerPrefix) =>
-          listPackagePrefixes({ s3, bucket, ownerPrefix }).then(
-            mapAllP((prefix) =>
-              mergeAllP(
-                fetchPackageLatest({ s3, bucket, prefix }),
-                fetchPackageRevisions({ s3, bucket, prefix }),
-              ),
-            ),
-          ),
-        ),
-      )
-      .then(R.unnest)
+
+    const body = {
+      query: mkFilterQuery(filter),
+      aggs: {
+        packages: {
+          composite: {
+            // the limit is configured in ES cluster settings (search.max_buckets)
+            size: 10000,
+            sources: [
+              {
+                handle: {
+                  terms: { field: 'handle' },
+                },
+              },
+            ],
+          },
+          aggs: {
+            modified: {
+              max: { field: 'last_modified' },
+            },
+            sort: {
+              bucket_sort: {
+                sort: sort === 'modified' ? [{ modified: { order: 'desc' } }] : undefined,
+                size: perPage,
+                from: perPage * (page - 1),
+              },
+            },
+          },
+        },
+      },
+    }
+    const result = await req('/search', {
+      index: `${bucket}_packages`,
+      action: 'packages',
+      body: JSON.stringify(body),
+      size: 0,
+    })
+    const packages = result.aggregations.packages.buckets.map((b) => ({
+      name: b.key.handle,
+      modified: new Date(b.modified.value),
+      revisions: b.doc_count,
+    }))
+
     if (!countsP) return packages
     const counts = await countsP
     return packages.map((p) => ({ ...p, views: counts[p.name] }))
@@ -843,7 +839,7 @@ export const getPackageRevisions = withErrorHandling(
   },
 )
 
-const loadRevisionHash = ({ s3, bucket, name, id }) =>
+export const loadRevisionHash = ({ s3, bucket, name, id }) =>
   s3
     .getObject({ Bucket: bucket, Key: getRevisionKeyFromId(name, id) })
     .promise()
@@ -851,6 +847,9 @@ const loadRevisionHash = ({ s3, bucket, name, id }) =>
       modified: res.LastModified,
       hash: res.Body.toString('utf-8'),
     }))
+
+// TODO: Preview endpoint only allows up to 512 lines right now. Increase it to 1000.
+const MAX_PACKAGE_ENTRIES = 500
 
 export const getRevisionData = async ({
   s3,
@@ -910,45 +909,60 @@ const s3Select = ({
       ),
     )
 
-// TODO: Preview endpoint only allows up to 512 lines right now. Increase it to 1000.
-const MAX_PACKAGE_ENTRIES = 500
+export async function packageSelect({
+  s3,
+  credentials,
+  endpoint,
+  bucket,
+  name,
+  revision,
+  ...args
+}) {
+  const { hash } = await loadRevisionHash({ s3, bucket, name, id: revision })
+  const manifest = `${MANIFESTS_PREFIX}${hash}`
 
-export const fetchPackageTree = withErrorHandling(
-  async ({ s3, sign, endpoint, bucket, name, revision }) => {
-    const { hash } = await loadRevisionHash({ s3, bucket, name, id: revision })
-    const manifestKey = `${MANIFESTS_PREFIX}${hash}`
+  await credentials.getPromise()
 
-    // We skip the first line - it contains the manifest version, etc.
-    // We also request one more line than we need to decide if the results are truncated.
-    const maxLines = MAX_PACKAGE_ENTRIES + 2
+  const r = await fetch(
+    `${endpoint}/pkgselect${mkSearch({
+      bucket,
+      manifest,
+      access_key: credentials.accessKeyId,
+      secret_key: credentials.secretAccessKey,
+      session_token: credentials.sessionToken,
+      ...args,
+    })}`,
+  )
 
-    const url = sign({ bucket, key: manifestKey })
-    const encodedUrl = encodeURIComponent(url)
-    const r = await fetch(
-      `${endpoint}/preview?url=${encodedUrl}&input=txt&line_count=${maxLines}`,
-    )
-    const json = await r.json()
-    const lines = json.info.data.head
-    const truncated = lines.length >= maxLines
-    const keys = lines.slice(1, maxLines - 1).map((line) => {
-      const {
-        logical_key: logicalKey,
-        physical_keys: [physicalKey],
-        size,
-      } = JSON.parse(line)
-      return { logicalKey, physicalKey, size }
-    })
-    return { id: revision, hash, keys, truncated }
-  },
-  [
-    [
-      (e) => e.code === 'NoSuchKey',
-      () => {
-        throw new errors.NoSuchPackage()
-      },
-    ],
-  ],
-)
+  if (r.status >= 400) {
+    const msg = await r.text()
+    throw new errors.BucketError(msg, { status: r.status })
+  }
+
+  const json = await r.json()
+
+  return R.evolve(
+    {
+      objects: R.map((o) => ({
+        name: o.logical_key,
+        physicalKey: o.physical_key,
+        size: o.size,
+      })),
+      prefixes: R.pluck('logical_key'),
+    },
+    json.contents,
+  )
+}
+
+export async function packageFileDetail({ path, ...args }) {
+  const r = await packageSelect({ logical_key: path, ...args })
+  return {
+    ...s3paths.parseS3Url(r.physical_keys[0]),
+    size: r.size,
+    logicalKey: r.logical_key,
+    meta: r.meta,
+  }
+}
 
 const sqlEscape = (arg) => arg.replace(/'/g, "''")
 

@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en">
+  <body>
+    <script>
+      window.opener.postMessage({type: "callback", fragment: window.location.hash}, window.location.origin);
+    </script>
+  </body>
+</html>

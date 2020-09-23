@@ -10,24 +10,26 @@ import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import Message from 'components/Message'
+import * as Preview from 'components/Preview'
 import Sparkline from 'components/Sparkline'
 import * as Notifications from 'containers/Notifications'
 import * as AWS from 'utils/AWS'
+import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
-import StyledLink, { linkStyle } from 'utils/StyledLink'
+import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 import parseSearch from 'utils/parseSearch'
 import { getBreadCrumbs, up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from './Code'
-import FilePreview from './FilePreview'
+import * as FileView from './FileView'
 import Section from './Section'
+import renderPreview from './renderPreview'
 import * as requests from './requests'
-import { withSignedUrl } from './utils'
 
 const getCrumbs = ({ bucket, path, urls }) =>
   R.chain(
@@ -134,14 +136,18 @@ function VersionInfo({ bucket, path, version }) {
                   {!cfg.noDownload && (
                     <M.ListItemSecondaryAction>
                       {!v.deleteMarker &&
-                        withSignedUrl({ bucket, key: path, version: v.id }, (url) => (
-                          <M.IconButton
-                            href={url}
-                            title="Download this version of the object"
-                          >
-                            <M.Icon>arrow_downward</M.Icon>
-                          </M.IconButton>
-                        ))}
+                        !v.archived &&
+                        AWS.Signer.withDownloadUrl(
+                          { bucket, key: path, version: v.id },
+                          (url) => (
+                            <M.IconButton
+                              href={url}
+                              title="Download this version of the object"
+                            >
+                              <M.Icon>arrow_downward</M.Icon>
+                            </M.IconButton>
+                          ),
+                        )}
                       <M.Hidden xsDown>
                         <M.IconButton
                           title="Copy object version's canonical HTTPS URI to the clipboard"
@@ -198,31 +204,10 @@ function VersionInfo({ bucket, path, version }) {
   )
 }
 
-const AnnotationsBox = M.styled('div')(({ theme: t }) => ({
-  background: M.colors.lightBlue[50],
-  border: [[1, 'solid', M.colors.lightBlue[400]]],
-  borderRadius: t.shape.borderRadius,
-  fontFamily: t.typography.monospace.fontFamily,
-  fontSize: t.typography.body2.fontSize,
-  overflow: 'auto',
-  padding: t.spacing(1),
-  whiteSpace: 'pre',
-  width: '100%',
-}))
-
-function Annotations({ bucket, path, version }) {
+function Meta({ bucket, path, version }) {
   const s3 = AWS.S3.use()
   const data = useData(requests.objectMeta, { s3, bucket, path, version })
-  return data.case({
-    Ok: (meta) =>
-      !!meta &&
-      !R.isEmpty(meta) && (
-        <Section icon="list" heading="Annotations">
-          <AnnotationsBox>{JSON.stringify(meta, null, 2)}</AnnotationsBox>
-        </Section>
-      ),
-    _: () => null,
-  })
+  return <FileView.Meta data={data.result} />
 }
 
 function Analytics({ analyticsBucket, bucket, path }) {
@@ -344,8 +329,6 @@ export default function File({
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const { analyticsBucket, noDownload } = Config.use()
-  const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const s3 = AWS.S3.use()
 
   const path = decode(encodedPath)
@@ -394,12 +377,29 @@ export default function File({
       _: () => false,
       Ok: requests.ObjectExistence.case({
         _: () => false,
-        Exists: ({ deleted }) => !deleted,
+        Exists: ({ deleted, archived }) => !deleted && !archived,
       }),
     })
 
+  const handle = { bucket, key: path, version }
+
+  const withPreview = (callback) =>
+    requests.ObjectExistence.case({
+      Exists: (h) => {
+        if (h.deleted) {
+          return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
+        }
+        if (h.archived) {
+          return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
+        }
+        return Preview.load(handle, callback)
+      },
+      DoesNotExist: () =>
+        callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
+    })
+
   return (
-    <M.Box pt={2} pb={4}>
+    <FileView.Root>
       <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
         {renderCrumbs(getCrumbs({ bucket, path, urls }))}
       </div>
@@ -418,31 +418,7 @@ export default function File({
           )}
         </div>
         <div className={classes.spacer} />
-        {downloadable &&
-          withSignedUrl({ bucket, key: path, version }, (url) =>
-            xs ? (
-              <M.IconButton
-                className={classes.button}
-                href={url}
-                edge="end"
-                size="small"
-                download
-              >
-                <M.Icon>arrow_downward</M.Icon>
-              </M.IconButton>
-            ) : (
-              <M.Button
-                href={url}
-                className={classes.button}
-                variant="outlined"
-                size="small"
-                startIcon={<M.Icon>arrow_downward</M.Icon>}
-                download
-              >
-                Download file
-              </M.Button>
-            ),
-          )}
+        {downloadable && <FileView.DownloadButton handle={handle} />}
       </div>
       {objExistsData.case({
         _: () => <CenteredProgress />,
@@ -454,6 +430,7 @@ export default function File({
               </Message>
             )
           }
+          // TODO: handle this more gracefully
           throw e
         },
         Ok: requests.ObjectExistence.case({
@@ -461,51 +438,21 @@ export default function File({
             <>
               <Code>{code}</Code>
               {!!analyticsBucket && <Analytics {...{ analyticsBucket, bucket, path }} />}
+              <Meta bucket={bucket} path={path} version={version} />
               <Section icon="remove_red_eye" heading="Preview" defaultExpanded>
                 {versionExistsData.case({
                   _: () => <CenteredProgress />,
                   Err: (e) => {
                     throw e
                   },
-                  Ok: requests.ObjectExistence.case({
-                    Exists: (h) =>
-                      !h.deleted ? (
-                        <FilePreview handle={{ bucket, key: path, version }} />
-                      ) : (
-                        <M.Box textAlign="center" width="100%">
-                          <M.Typography variant="h6" gutterBottom>
-                            DELETE MARKER
-                          </M.Typography>
-                          <M.Typography variant="body1">
-                            Selected version of the object is a{' '}
-                            <StyledLink
-                              href="https://docs.aws.amazon.com/AmazonS3/latest/dev/DeleteMarker.html"
-                              target="_blank"
-                            >
-                              delete marker
-                            </StyledLink>
-                          </M.Typography>
-                        </M.Box>
-                      ),
-                    DoesNotExist: () => (
-                      <M.Box textAlign="center" width="100%">
-                        <M.Typography variant="h6" gutterBottom>
-                          INVALID VERSION
-                        </M.Typography>
-                        <M.Typography variant="body1">
-                          Invalid version id specified
-                        </M.Typography>
-                      </M.Box>
-                    ),
-                  }),
+                  Ok: withPreview(renderPreview),
                 })}
               </Section>
-              <Annotations bucket={bucket} path={path} version={version} />
             </>
           ),
           _: () => <Message headline="No Such Object" />,
         }),
       })}
-    </M.Box>
+    </FileView.Root>
   )
 }

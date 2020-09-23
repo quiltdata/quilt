@@ -3,12 +3,15 @@ import * as React from 'react'
 import Link from 'utils/StyledLink'
 import tagged from 'utils/tagged'
 
+const EMPTY = <i>{'<EMPTY>'}</i>
+
 export const Crumb = tagged([
   'Segment', // { label, to }
   'Sep', // value
 ])
 
-export const Segment = ({ label, to }) => (to ? <Link to={to}>{label}</Link> : label)
+export const Segment = ({ label, to }) =>
+  to ? <Link to={to}>{label || EMPTY}</Link> : label || EMPTY
 
 export const render = (items) =>
   items.map(
@@ -25,6 +28,7 @@ export function copyWithoutSpaces(e) {
     document
       .getSelection()
       .toString()
+      .replace('<EMPTY>', '')
       .replace(/\s*\/\s*/g, '/'),
   )
   e.preventDefault()

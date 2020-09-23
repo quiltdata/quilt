@@ -15,8 +15,11 @@ export const Provider = function StoreProvider({ initialState = {}, history, chi
 
   // Create the store with asynchronously loaded reducers
   const [store] = React.useState(() => {
-    // routerMiddleware: Syncs the location/URL path to the state
-    const middlewares = [routerMiddleware(history)]
+    const middlewares = []
+    if (history) {
+      // routerMiddleware: Syncs the location/URL path to the state
+      middlewares.push(routerMiddleware(history))
+    }
     // log redux state in development
     if (process.env.NODE_ENV === 'development') {
       const stateTransformer = (state) =>

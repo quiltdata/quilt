@@ -27,7 +27,7 @@ import requests
 from aicsimageio import AICSImage, readers
 from PIL import Image
 
-from t4_lambda_shared.decorator import api, validate
+from t4_lambda_shared.decorator import api, QUILT_INFO_HEADER, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 # Eventually we'll want to precompute/cache thumbnails, so we won't be able to support
@@ -239,7 +239,7 @@ def set_pdf_env():
     # libs
     os.environ["LD_LIBRARY_PATH"] += os.pathsep + os.path.join(lambda_root, prefix, 'usr', 'lib64')
     # fonts
-    os.environ["FONTCONFIG_PATH"] = os.path.join(lambda_root, prefix, 'fonts')
+    os.environ["FONTCONFIG_FILE"] = os.path.join(lambda_root, prefix, 'fonts', 'fonts.conf')
 
 
 @api(cors_origins=get_default_origins())
@@ -269,8 +269,11 @@ def lambda_handler(request):
         if input_ == "pdf":
             set_pdf_env()
             try:
-                # respect width but not necessarily height (to preserve aspect ratio)
-                kwargs = {"size": (size[0], None)}
+                kwargs = {
+                    # respect width but not necessarily height to preserve aspect ratio
+                    "size": (size[0], None),
+                    "fmt": "JPEG",
+                }
                 if not count_pages:
                     kwargs["first_page"] = page
                     kwargs["last_page"] = page
@@ -336,12 +339,13 @@ def lambda_handler(request):
         # Not JSON response ('raw')
         headers = {
             'Content-Type': Image.MIME[thumbnail_format],
-            'X-Quilt-Info': json.dumps(info)
+            QUILT_INFO_HEADER: json.dumps(info)
         }
         return 200, data, headers
 
     # Errored, return error code
     ret_val = {
-        'error': resp.reason
+        'error': resp.reason,
+        'text': resp.text,
     }
     return make_json_response(resp.status_code, ret_val)

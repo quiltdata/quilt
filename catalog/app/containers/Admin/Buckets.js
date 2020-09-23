@@ -100,8 +100,8 @@ function BucketFields({ add = false }) {
           margin="normal"
         />
       </M.Box>
-      <M.ExpansionPanel elevation={0} className={classes.panel}>
-        <M.ExpansionPanelSummary
+      <M.Accordion elevation={0} className={classes.panel}>
+        <M.AccordionSummary
           expandIcon={<M.Icon>expand_more</M.Icon>}
           classes={{
             root: classes.panelSummary,
@@ -109,7 +109,7 @@ function BucketFields({ add = false }) {
           }}
         >
           <M.Typography variant="h6">Metadata</M.Typography>
-        </M.ExpansionPanelSummary>
+        </M.AccordionSummary>
         <M.Box className={classes.group} pt={1} pb={2}>
           <RF.Field
             component={Form.Field}
@@ -162,9 +162,9 @@ function BucketFields({ add = false }) {
             margin="normal"
           />
         </M.Box>
-      </M.ExpansionPanel>
-      <M.ExpansionPanel elevation={0} className={classes.panel}>
-        <M.ExpansionPanelSummary
+      </M.Accordion>
+      <M.Accordion elevation={0} className={classes.panel}>
+        <M.AccordionSummary
           expandIcon={<M.Icon>expand_more</M.Icon>}
           classes={{
             root: classes.panelSummary,
@@ -172,7 +172,7 @@ function BucketFields({ add = false }) {
           }}
         >
           <M.Typography variant="h6">Indexing and notifications</M.Typography>
-        </M.ExpansionPanelSummary>
+        </M.AccordionSummary>
         <M.Box className={classes.group} pt={1}>
           <RF.Field
             component={Form.Field}
@@ -219,7 +219,7 @@ function BucketFields({ add = false }) {
             </M.Box>
           )}
         </M.Box>
-      </M.ExpansionPanel>
+      </M.Accordion>
     </M.Box>
   )
 }

@@ -1,6 +1,7 @@
 
 # stdlib
 import os
+import sys
 from unittest import mock
 
 # third party imports
@@ -83,3 +84,14 @@ def set_temporary_working_dir(request, tmpdir):
 def isolate_packages_cache(tmp_path):
     with mock.patch('quilt3.packages.CACHE_PATH', tmp_path):
         yield
+
+
+@pytest.fixture
+def clear_data_modules_cache():
+    to_remove = [
+        name
+        for name in sys.modules
+        if name.split('.')[:2] == ['quilt3', 'data']
+    ]
+    for name in to_remove:
+        del sys.modules[name]

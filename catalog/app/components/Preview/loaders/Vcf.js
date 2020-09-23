@@ -1,15 +1,14 @@
 import * as R from 'ramda'
 
-import AsyncResult from 'utils/AsyncResult'
-
 import { PreviewData } from '../types'
 import * as utils from './utils'
 
 export const detect = R.pipe(utils.stripCompression, utils.extIs('.vcf'))
 
-export const load = utils.previewFetcher(
-  'vcf',
-  R.pipe(
+export const Loader = function VcfLoader({ handle, children }) {
+  const { result, fetch } = utils.usePreview({ type: 'vcf', handle })
+  const processed = utils.useProcessing(
+    result,
     ({
       info: {
         data: { meta, header, data },
@@ -17,8 +16,7 @@ export const load = utils.previewFetcher(
         note,
         warnings,
       },
-    }) => ({ meta, header, data, variants, note, warnings }),
-    PreviewData.Vcf,
-    AsyncResult.Ok,
-  ),
-)
+    }) => PreviewData.Vcf({ meta, header, data, variants, note, warnings }),
+  )
+  return children(utils.useErrorHandling(processed, { handle, retry: fetch }))
+}

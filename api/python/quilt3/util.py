@@ -25,6 +25,7 @@ OPEN_DATA_URL = "https://open.quiltdata.com"
 
 PACKAGE_NAME_FORMAT = r"([\w-]+/[\w-]+)(?:/(.+))?$"
 DISABLE_TQDM = os.getenv('QUILT_MINIMIZE_STDOUT', '').lower() == 'true'
+PACKAGE_UPDATE_POLICY = {'incoming', 'existing'}
 
 # CONFIG_TEMPLATE
 # Must contain every permitted config key, as well as their default values (which can be 'null'/None).
@@ -65,6 +66,8 @@ apiGatewayEndpoint:
 # Binary API Gateway endpoint (e.g., for preview)
 binaryApiGatewayEndpoint:
 
+default_registry_version: 1
+
 """.format(BASE_PATH.as_uri() + '/packages')
 
 
@@ -74,7 +77,7 @@ class QuiltException(Exception):
         # To be consistent across Python 2.7 and 3.x:
         # 1) This `super` call must exist, or 2.7 will have no text for str(error)
         # 2) This `super` call must have only one argument (the message) or str(error) will be a repr of args
-        super(QuiltException, self).__init__(message)
+        super().__init__(message)
         self.message = message
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -303,7 +306,7 @@ def validate_url(url):
 class QuiltConfig(OrderedDict):
     def __init__(self, filepath, *args, **kwargs):
         self.filepath = pathlib.Path(filepath)
-        super(QuiltConfig, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __setitem__(self, key, value):
         # Per chat in #engineering 4-5-19, strip navigator_url of trailing slash.
@@ -517,10 +520,11 @@ def catalog_s3_url(catalog_url, s3_url):
     return url
 
 
-def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="latest"):
+def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="latest", tree=True):
     """
     Generate a URL to the Quilt catalog page of a package. By default will go to the latest version of the package,
     but the user can pass in the appropriate timestamp to go to a different version.
+    Disabling tree by passing `tree=False` will generate a package URL without tree path.
 
     Note: There is currently no good way to generate the URL given a specific tophash
     """
@@ -528,4 +532,7 @@ def catalog_package_url(catalog_url, bucket, package_name, package_timestamp="la
     assert package_name is not None, "The package_name parameter must not be None"
     validate_package_name(package_name)
 
-    return f"{catalog_url}/b/{bucket}/packages/{package_name}/tree/{package_timestamp}"
+    package_url = f"{catalog_url}/b/{bucket}/packages/{package_name}"
+    if tree:
+        package_url = package_url + f"/tree/{package_timestamp}"
+    return package_url

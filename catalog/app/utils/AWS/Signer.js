@@ -1,22 +1,24 @@
 import SignerV4 from 'aws-sdk/lib/signers/v4'
-import PT from 'prop-types'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { setPropTypes } from 'recompose'
 
 import * as Auth from 'containers/Auth'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import * as Resource from 'utils/Resource'
-import { composeComponent, composeHOC } from 'utils/reactTools'
+import { composeHOC } from 'utils/reactTools'
 import { resolveKey, handleToHttpsUri } from 'utils/s3paths'
 
 import * as Credentials from './Credentials'
 import * as S3 from './S3'
 
 const DEFAULT_URL_EXPIRATION = 5 * 60 // in seconds
+const POLL_INTERVAL = 10 // in seconds
+const LAG = POLL_INTERVAL * 3
 
-export const useRequestSigner = () => {
+const Ctx = React.createContext({ urlExpiration: DEFAULT_URL_EXPIRATION })
+
+export function useRequestSigner() {
   const authenticated = redux.useSelector(Auth.selectors.authenticated)
   const { mode } = Config.useConfig()
   const credentials = Credentials.use().suspend()
@@ -31,7 +33,9 @@ export const useRequestSigner = () => {
   )
 }
 
-export const useS3Signer = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {}) => {
+export function useS3Signer({ urlExpiration: exp } = {}) {
+  const ctx = React.useContext(Ctx)
+  const urlExpiration = exp || ctx.urlExpiration
   Credentials.use().suspend()
   const authenticated = redux.useSelector(Auth.selectors.authenticated)
   const { mode } = Config.useConfig()
@@ -47,10 +51,50 @@ export const useS3Signer = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {}) => 
             Expires: urlExpiration,
             ...opts,
           })
-        : handleToHttpsUri({ bucket, key, version }),
+        : handleToHttpsUri({ bucket, key, version }), // TODO: handle ResponseContentDisposition for unsigned case
     [mode, isInStack, authenticated, s3, urlExpiration],
   )
 }
+
+function usePolling(callback, { interval = POLL_INTERVAL } = {}) {
+  const callbackRef = React.useRef()
+  callbackRef.current = callback
+  React.useEffect(() => {
+    const int = setInterval(() => {
+      if (callbackRef.current) callbackRef.current(Date.now())
+    }, interval * 1000)
+    return () => {
+      clearInterval(int)
+    }
+  }, [])
+}
+
+export function useDownloadUrl(handle) {
+  const { urlExpiration } = React.useContext(Ctx)
+  const sign = useS3Signer()
+  const doSign = () => ({
+    url: sign(handle, {
+      ResponseContentDisposition: 'attachment',
+      ResponseContentType: 'binary/octet-stream',
+    }),
+    ts: Date.now(),
+  })
+  const [state, setState] = React.useState(doSign)
+  usePolling((now) => {
+    if ((now - state.ts) / 1000 > urlExpiration - LAG) {
+      setState(doSign())
+    }
+  })
+  return state.url
+}
+
+export function WithDownloadUrl({ handle, children }) {
+  return children(useDownloadUrl(handle))
+}
+
+export const withDownloadUrl = (handle, callback) => (
+  <WithDownloadUrl handle={handle}>{callback}</WithDownloadUrl>
+)
 
 /*
 Resource.Pointer handling / signing:
@@ -75,8 +119,8 @@ Spec              | as is      | parsed, signed,   | considered an s3 url     |
                   |            | containing file   |                          |
 ------------------+------------+-------------------+--------------------------+
 */
-export const useResourceSigner = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {}) => {
-  const sign = useS3Signer({ urlExpiration })
+export function useResourceSigner() {
+  const sign = useS3Signer()
   return React.useCallback(
     ({ ctx, ptr }) =>
       Resource.Pointer.case(
@@ -112,24 +156,17 @@ export const useResourceSigner = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {
   )
 }
 
-const Ctx = React.createContext()
+export function AWSSignerProvider({ children, urlExpiration = DEFAULT_URL_EXPIRATION }) {
+  return <Ctx.Provider value={{ urlExpiration }}>{children}</Ctx.Provider>
+}
 
-export const Provider = composeComponent(
-  'AWS.Signer.Provider',
-  setPropTypes({
-    urlExpiration: PT.number,
-  }),
-  ({ children, urlExpiration }) => (
-    <Ctx.Provider value={{ urlExpiration }}>{children}</Ctx.Provider>
-  ),
-)
+export const Provider = AWSSignerProvider
 
-export const useSigner = () => {
-  const { urlExpiration } = React.useContext(Ctx)
+export function useSigner() {
   return {
     signRequest: useRequestSigner(),
-    getSignedS3URL: useS3Signer({ urlExpiration }),
-    signResource: useResourceSigner({ urlExpiration }),
+    getSignedS3URL: useS3Signer(),
+    signResource: useResourceSigner(),
   }
 }
 

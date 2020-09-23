@@ -1,6 +1,7 @@
 """
 Helper functions.
 """
+import logging
 from base64 import b64decode
 import gzip
 from typing import Iterable
@@ -9,8 +10,9 @@ import json
 import os
 
 
-POINTER_PREFIX_V1 = ".quilt/named_packages/"
+LOGGER_NAME = "quilt-lambda"
 MANIFEST_PREFIX_V1 = ".quilt/packages/"
+POINTER_PREFIX_V1 = ".quilt/named_packages/"
 
 
 def separated_env_to_iter(
@@ -43,6 +45,16 @@ def get_default_origins():
         'http://localhost:3000',
         os.environ.get('WEB_ORIGIN')
     ]
+
+
+def get_quilt_logger():
+    """inject a logger via kwargs, with level set by the environment"""
+    logger_ = logging.getLogger(LOGGER_NAME)
+    # See https://docs.python.org/3/library/logging.html#logging-levels
+    level = os.environ.get("QUILT_LOG_LEVEL", "WARNING")
+    logger_.setLevel(level)
+
+    return logger_
 
 
 def get_available_memory():
@@ -98,6 +110,7 @@ def buffer_s3response(s3response):
     Read a streaming response (botocore.eventstream.EventStream) from s3 select
     into a StringIO buffer
     """
+    logger_ = logging.getLogger(LOGGER_NAME)
     response = io.StringIO()
     end_event_received = False
     stats = None
@@ -108,9 +121,9 @@ def buffer_s3response(s3response):
             response.write(records)
             found_records = True
         elif 'Progress' in event:
-            print(event['Progress']['Details'])
+            logger_.info("select progress: %s", event['Progress'].get('Details'))
         elif 'Stats' in event:
-            print(stats)
+            logger_.info("select stats: %s", event['Stats'])
         elif 'End' in event:
             # End event indicates that the request finished successfully
             end_event_received = True
@@ -133,8 +146,8 @@ def query_manifest_content(
     package manifest that match the desired folder path
     prefix
     """
-
-    print(f"utils.py: manifest_select: {sql_stmt}")
+    logger_ = get_quilt_logger()
+    logger_.debug("utils.py: manifest_select: %s", sql_stmt)
     response = s3_client.select_object_content(
         Bucket=bucket,
         Key=key,

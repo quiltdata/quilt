@@ -61,6 +61,24 @@ export default defineMessages({
     defaultMessage:
       'No Quilt user linked to this Okta account. Notify your Quilt administrator.',
   },
+  ssoOneLoginUse: {
+    id: `${scope}.SSO.OneLogin.use`,
+    defaultMessage: 'Use OneLogin Account',
+  },
+  ssoOneLoginError: {
+    id: `${scope}.SSO.OneLogin.error`,
+    defaultMessage: 'Unable to sign in with OneLogin. {details}',
+  },
+  ssoOneLoginErrorUnexpected: {
+    id: `${scope}.SSO.OneLogin.errorUnexpected`,
+    defaultMessage:
+      'Unable to sign in with OneLogin. Try again later or contact support.',
+  },
+  ssoOneLoginNotFound: {
+    id: `${scope}.SSO.OneLogin.notFound`,
+    defaultMessage:
+      'No Quilt user linked to this OneLogin account. Notify your Quilt administrator.',
+  },
   ssoSignUpHeading: {
     id: `${scope}.SSO.SignUp.heading`,
     defaultMessage: 'Complete sign-up',

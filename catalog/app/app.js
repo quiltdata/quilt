@@ -20,7 +20,6 @@ import * as Intercom from 'components/Intercom'
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
-import { BucketCacheProvider } from 'containers/Bucket'
 import LanguageProvider from 'containers/LanguageProvider'
 import * as Auth from 'containers/Auth'
 import * as Notifications from 'containers/Notifications'
@@ -28,10 +27,11 @@ import * as routes from 'constants/routes'
 import * as style from 'constants/style'
 import * as AWS from 'utils/AWS'
 import * as APIConnector from 'utils/APIConnector'
+import { BucketCacheProvider } from 'utils/BucketCache'
 import * as Config from 'utils/Config'
 import { createBoundary } from 'utils/ErrorBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import FormProvider from 'utils/ReduxFormProvider'
+import * as RF from 'utils/ReduxForm'
 import * as Cache from 'utils/ResourceCache'
 import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
@@ -123,7 +123,7 @@ const render = (messages) => {
       [React.Suspense, { fallback: <Placeholder /> }],
       [Sentry.Loader, { userSelector: sentryUserSelector }],
       ErrorBoundary,
-      FormProvider,
+      RF.Provider,
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { checkOn: LOCATION_CHANGE, storage }],
@@ -148,7 +148,6 @@ const render = (messages) => {
       AWS.Credentials.Provider,
       AWS.Config.Provider,
       AWS.S3.Provider,
-      AWS.Signer.Provider,
       Notifications.WithNotifications,
       ErrorBoundary,
       BucketCacheProvider,

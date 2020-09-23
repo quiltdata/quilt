@@ -3,7 +3,7 @@ sending to elastic search in memory-limited batches"""
 from datetime import datetime
 from enum import Enum
 from math import floor
-from typing import List
+from typing import Dict, List
 import os
 
 from aws_requests_auth.aws_auth import AWSRequestsAuth
@@ -71,7 +71,9 @@ class DocumentQueue:
             ext: str = '',
             handle: str = '',
             metadata: str = '',
+            pointer_file: str = '',
             package_hash: str = '',
+            package_stats: Dict[str, int] = {'total_files': 0, 'total_bytes': 0}.copy(),
             tags: List[str] = (),
             text: str = '',
             version_id=None,
@@ -85,9 +87,8 @@ class DocumentQueue:
             size: int = 0
     ):
         """format event as a document and then queue the document"""
-        if not bucket:
-            raise ValueError("argument bucket= required for all documents")
-
+        if not bucket or not key:
+            raise ValueError(f"bucket={bucket} or key={key} required but missing")
         if event_type.startswith(EVENT_PREFIX["Created"]):
             _op_type = "index"
         elif event_type.startswith(EVENT_PREFIX["Removed"]):
@@ -100,8 +101,14 @@ class DocumentQueue:
         # Set common properties on the document
         # BE CAREFUL changing these values, as type changes or missing fields
         # can cause exceptions from ES
+        index_name = bucket
+        if doc_type == DocTypes.PACKAGE:
+            index_name += "_packages"
+        if not index_name:
+            raise ValueError(f"Can't infer index name; bucket={bucket}, doc_type={doc_type}")
         body = {
-            "_index": bucket + '_packages' if doc_type == DocTypes.PACKAGE else '',
+            "_index": index_name,
+            "_type": "_doc",
             "comment": comment,
             "etag": etag,
             "key": key,
@@ -109,20 +116,21 @@ class DocumentQueue:
             "size": size,
         }
         if doc_type == DocTypes.PACKAGE:
-            if not handle or not package_hash:
+            if not handle or not package_hash or not pointer_file:
                 raise ValueError("missing required argument for package document")
             body.update({
                 "_id": f"{handle}:{package_hash}",
                 "handle": handle,
                 "hash": package_hash,
                 "metadata": metadata,
+                "pointer_file": pointer_file,
+                "package_stats": package_stats,
                 "tags": ",".join(tags)
             })
         elif doc_type == DocTypes.OBJECT:
             body.update({
                 # Elastic native keys
                 "_id": f"{key}:{version_id}",
-                "_type": "_doc",
                 # TODO: remove this field from ES in /enterprise (now deprecated and unused)
                 # here we explicitly drop the comment
                 "comment": "",
@@ -145,7 +153,7 @@ class DocumentQueue:
 
     def _append_document(self, doc):
         """append well-formed documents (used for retry or by append())"""
-        if doc["content"]:
+        if doc.get("content"):
             # document text dominates memory footprint; OK to neglect the
             # small fixed size for the JSON metadata
             self.size += min(doc["size"], ELASTIC_LIMIT_BYTES)

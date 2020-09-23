@@ -29,6 +29,7 @@ class TestAPI(QuiltTestCase):
         content['default_local_registry'] = util.BASE_PATH.as_uri() + '/packages'
         content['default_remote_registry'] = None
         content['default_install_location'] = None
+        content['default_registry_version'] = 1
         content['registryUrl'] = None
 
         assert config == content

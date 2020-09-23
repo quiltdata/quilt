@@ -18,6 +18,7 @@ import * as validators from 'utils/validators'
 import * as Layout from './Layout'
 import SSOGoogle from './SSOGoogle'
 import SSOOkta from './SSOOkta'
+import SSOOneLogin from './SSOOneLogin'
 import * as actions from './actions'
 import * as errors from './errors'
 import msg from './messages'
@@ -112,19 +113,39 @@ export default ({ location: { search } }) => {
   return (
     <Container>
       {ssoEnabled() && (
-        <M.Box display="flex" flexDirection="column" mt={2}>
-          {ssoEnabled('google') && (
-            <>
-              <M.Box mt={2} />
-              <SSOGoogle mutex={mutex} next={next} />
-            </>
-          )}
-          {ssoEnabled('okta') && (
-            <>
-              <M.Box mt={2} />
-              <SSOOkta mutex={mutex} next={next} />
-            </>
-          )}
+        <M.Box display="flex" flexDirection="column" mt={2} alignItems="center">
+          <M.Box display="flex" flexDirection="column">
+            {ssoEnabled('google') && (
+              <>
+                <M.Box mt={2} />
+                <SSOGoogle
+                  mutex={mutex}
+                  next={next}
+                  style={{ justifyContent: 'flex-start' }}
+                />
+              </>
+            )}
+            {ssoEnabled('okta') && (
+              <>
+                <M.Box mt={2} />
+                <SSOOkta
+                  mutex={mutex}
+                  next={next}
+                  style={{ justifyContent: 'flex-start' }}
+                />
+              </>
+            )}
+            {ssoEnabled('onelogin') && (
+              <>
+                <M.Box mt={2} />
+                <SSOOneLogin
+                  mutex={mutex}
+                  next={next}
+                  style={{ justifyContent: 'flex-start' }}
+                />
+              </>
+            )}
+          </M.Box>
         </M.Box>
       )}
       {!!cfg.passwordAuth && ssoEnabled() && <Layout.Or />}

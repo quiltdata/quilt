@@ -9,10 +9,17 @@ module.exports = require('./webpack.base.babel')({
   mode: 'production',
 
   // In production, we skip all hot-reloading stuff
-  entry: [
-    require.resolve('react-app-polyfill/ie11'),
-    path.join(process.cwd(), 'app/app.js'),
-  ],
+  entry: {
+    app: [
+      require.resolve('react-app-polyfill/ie11'),
+      path.join(process.cwd(), 'app/app.js'),
+    ],
+    embed: [
+      require.resolve('react-app-polyfill/ie11'),
+      path.join(process.cwd(), 'app/embed/index.js'),
+    ],
+    'embed-debug-harness': [path.join(process.cwd(), 'app/embed/debug-harness.js')],
+  },
 
   // Utilize long-term caching by adding content hashes (not compilation hashes) to compiled assets
   output: {
@@ -66,6 +73,8 @@ module.exports = require('./webpack.base.babel')({
   plugins: [
     // Minify and optimize the index.html
     new HtmlWebpackPlugin({
+      inject: true,
+      chunks: ['app'],
       template: 'app/index.html',
       minify: {
         removeComments: true,
@@ -79,7 +88,44 @@ module.exports = require('./webpack.base.babel')({
         minifyCSS: true,
         minifyURLs: true,
       },
+    }),
+
+    new HtmlWebpackPlugin({
       inject: true,
+      chunks: ['embed'],
+      template: 'app/embed/index.html',
+      filename: 'embed.html',
+      minify: {
+        removeComments: true,
+        collapseWhitespace: true,
+        removeRedundantAttributes: true,
+        useShortDoctype: true,
+        removeEmptyAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        keepClosingSlash: true,
+        minifyJS: true,
+        minifyCSS: true,
+        minifyURLs: true,
+      },
+    }),
+
+    new HtmlWebpackPlugin({
+      inject: true,
+      chunks: ['embed-debug-harness'],
+      template: 'app/embed/debug-harness.html',
+      filename: 'embed-debug-harness.html',
+      minify: {
+        removeComments: true,
+        collapseWhitespace: true,
+        removeRedundantAttributes: true,
+        useShortDoctype: true,
+        removeEmptyAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        keepClosingSlash: true,
+        minifyJS: true,
+        minifyCSS: true,
+        minifyURLs: true,
+      },
     }),
 
     new HashedModuleIdsPlugin({

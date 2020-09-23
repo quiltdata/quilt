@@ -17,6 +17,17 @@ commands:
             else
               echo ". venv/Scripts/activate" >> $BASH_ENV # for Windows
             fi
+  codecov:
+    parameters:
+      flags:
+        type: string
+        default: ""
+    steps:
+      - run:
+          name: Upload coverage report
+          command: |
+            curl --connect-timeout 5 --retry 10 -o codecov-upload.sh https://codecov.io/bash
+            bash codecov-upload.sh -n "$CIRCLE_JOB" -F "<< parameters.flags >>" -Z
 
 workflows:
   version: 2
@@ -82,7 +93,8 @@ test-base: &test-base
         name: Run Pytest
         command: |
           pytest --cov=api/python api/python
-          bash <(curl -s https://codecov.io/bash) -n $CIRCLE_JOB -F api-python
+    - codecov:
+          flags: "api-python"
 
 jobs:
   linter:
@@ -141,11 +153,10 @@ jobs:
         type: string
     steps:
       - checkout
+      - setup-venv
       - run:
-          name: Setup
+          name: Install dependencies
           command: |
-            virtualenv venv
-            . venv/bin/activate
             pip install -e lambdas/shared/<< parameters.sub-path >>
             pip install -r lambdas/<< parameters.path >>/requirements.txt -r lambdas/<< parameters.path >>/test-requirements.txt
             if [ << parameters.path >> != "shared" ]
@@ -155,9 +166,9 @@ jobs:
       - run:
           name: Pytest
           command: |
-            . venv/bin/activate
             pytest --cov=lambdas lambdas/<< parameters.path >>
-            bash <(curl -s https://codecov.io/bash) -n $CIRCLE_JOB -F lambda
+      - codecov:
+          flags: "lambda"
 
   build:
     docker:
@@ -168,11 +179,10 @@ jobs:
       - checkout
       - restore_cache:
           key: v1-dependency-cache-{{ checksum "api/python/setup.py" }}-{{ checksum "Makefile" }}
+      - setup-venv
       - run:
           name: install python dependencies
           command: |
-            python3 -m venv venv
-            . venv/bin/activate
             pip install -e api/python[tests]
       - save_cache:
           key: v1-dependency-cache-{{ checksum "api/python/setup.py" }}-{{ checksum "Makefile" }}
@@ -181,9 +191,9 @@ jobs:
       - run:
           name: run tests
           command: |
-            . venv/bin/activate
             pytest --cov=api/python api/python
-            bash <(curl -s https://codecov.io/bash) -n $CIRCLE_JOB -F api-python
+      - codecov:
+          flags: "api-python"
       - store_artifacts:
           path: htmlcov/
 
@@ -196,11 +206,10 @@ jobs:
       - checkout
       - restore_cache:
           key: v1-dependency-cache-{{ checksum "api/python/setup.py" }}-{{ checksum "Makefile" }}
+      - setup-venv
       - run:
           name: install python dependencies
           command: |
-            python3 -m venv venv
-            . venv/bin/activate
             pip install -e api/python[tests]
       - save_cache:
           key: v1-dependency-cache-{{ checksum "api/python/setup.py" }}-{{ checksum "Makefile" }}
@@ -209,8 +218,6 @@ jobs:
       - run:
           name: verify git tag vs. version
           command: |
-            python3 -m venv venv
-            . venv/bin/activate
             python api/python/setup.py verify
       - run:
           name: init .pypirc
@@ -227,7 +234,6 @@ jobs:
       - run:
           name: upload to pypi
           command: |
-            . venv/bin/activate
             cd api/python
             pip install twine==3.1.1
             twine upload dist/*

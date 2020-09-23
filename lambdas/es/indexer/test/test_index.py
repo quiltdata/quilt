@@ -219,6 +219,130 @@ def _make_event(
     return e
 
 
+@pytest.mark.parametrize(
+    "event_type, doc_type, kwargs",
+    [
+        (
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "pointer_file": "1598026253",
+                "package_hash": "abc",
+            }
+        ),
+        (
+            "FAKE:EVENT",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "package_hash": "abc",
+                "pointer_file": "1598026253",
+            }
+        ),
+        (
+            "ObjectRemoved:Delete",
+            DocTypes.OBJECT,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": ".txt",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "version_id": "abc",
+            }
+        ),
+        (
+            "ObjectCreated:Copy",
+            DocTypes.OBJECT,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": ".jsonl",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "size": 0,
+                "text": "iajsoeqroieurqwiuro•",
+                "version_id": "abc",
+            }
+        ),
+        pytest.param(
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "package_hash": "abc",
+                "pointer_file": "1598026253",
+            },
+            marks=pytest.mark.xfail(
+                raises=ValueError,
+                reason="missing bucket"
+            )
+        ),
+        pytest.param(
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "nice-bucket",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": "not_an_object",
+                "package_hash": "abc",
+                "pointer_file": "1598026253",
+            },
+            marks=pytest.mark.xfail(
+                raises=AttributeError,
+                reason="last_modified should be an object"
+            )
+        ),
+        pytest.param(
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "nice-bucket",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "package_hash": "",
+                "pointer_file": "1598026253",
+            },
+            marks=pytest.mark.xfail(
+                raises=ValueError,
+                reason="package_hash required"
+            )
+        ),
+    ]
+)
+@patch.object(index.DocumentQueue, '_append_document')
+def test_append(_append_mock, event_type, doc_type, kwargs):
+    """test document_queue.append; outside of class so we can parameterize"""
+    dq = index.DocumentQueue(None)
+    dq.append(event_type, doc_type, **kwargs)
+    if event_type == "FAKE:EVENT":
+        assert not _append_mock.call_count
+    else:
+        assert _append_mock.call_count == 1
+
+
 class MockContext():
     def get_remaining_time_in_millis(self):
         return 30000
@@ -418,6 +542,75 @@ class TestIndex(TestCase):
                 "got {self.expected_es_calls} calls instead"
             )
 
+    @patch.object(index.DocumentQueue, 'send_all')
+    @patch.object(index.DocumentQueue, 'append')
+    @patch.object(index, 'maybe_get_contents')
+    @patch.object(index, 'index_if_manifest')
+    def test_40X(self, index_if_mock, contents_mock, append_mock, send_mock):
+        """
+        test fatal head 40Xs that will cause us to skip objects
+        """
+        bucket = "somebucket"
+        key = "events/copy-one/0.ext"
+        etag = "7b4b71116bb21d3ea7138dfe7aabf036"
+        version_ids = ["Yj1vyLWcE9FTFIIrsgk.yAX7NbJrAW7g", "null"]
+
+        error_codes = ["402", "403", "404"]
+
+        for version_id in version_ids:
+            for error_code in error_codes:
+                self.s3_stubber.add_client_error(
+                    method="head_object",
+                    service_error_code=error_code,
+                    service_message=f"An error occurred ({error_code}) when calling the HeadObject operation",
+                    http_status_code=int(error_code),
+                    expected_params={
+                        "Bucket": bucket,
+                        "Key": key,
+                        "VersionId": version_id,
+                    },
+                )
+                # in the 403 case we try again without VersionId
+                if error_code == "403" and version_id == "null":
+                    self.s3_stubber.add_client_error(
+                        method="head_object",
+                        service_error_code=error_code,
+                        service_message=f"An error occurred ({error_code}) when calling the HeadObject operation",
+                        http_status_code=int(error_code),
+                        expected_params={
+                            "Bucket": bucket,
+                            "Key": key,
+                            "IfMatch": etag,
+                        },
+                    )
+                event = make_event(
+                    "ObjectCreated:Put",
+                    bucket=bucket,
+                    key=key,
+                    size=73499,
+                    eTag=etag,
+                    region="us-west-1",
+                    versionId=version_id,
+                )
+
+                records = {
+                    "Records": [{
+                        "body": json.dumps({
+                            "Message": json.dumps({
+                                "Records": [event]
+                            })
+                        })
+                    }]
+                }
+
+                index.handler(records, None)
+
+                assert index_if_mock.call_count == 0
+                assert contents_mock.call_count == 0
+                assert append_mock.call_count == 0
+
+        assert send_mock.call_count == len(error_codes)*len(version_ids)
+
     def test_create_event_failure(self):
         """
         Check that the indexer doesn't blow up on create event failures.
@@ -509,7 +702,7 @@ class TestIndex(TestCase):
 
     def test_delete_marker_event_no_versioning(self):
         """
-        this can happen if a bucket was verisoned, and now isn't, followed by
+        this can happen if a bucket was versioned, and now isn't, followed by
         `aws s3 rm`
         """
         # don't mock head or get; this event should never call them
@@ -589,19 +782,30 @@ class TestIndex(TestCase):
 
     def test_index_if_manifest_skip(self):
         """test cases where index_if_manifest ignores input for different reasons"""
-        for failure in {"key", "young", "old"}:
-            # too far in the future
-            if failure == "young":
-                timestamp = 1451631500
-            elif failure == "old":
-                timestamp = 1767250801
-            else:
-                timestamp = floor(time())
-            pointer_key = (
-                ".quilt/badfile/stuff.txt" if failure == 'key'
-                else f".quilt/named_packages/foo/bar/{timestamp}"
+        # none of these should index due to out-of-range timestamp or non-integer name
+        for file_name in [1451631500, 1767250801, 'latest']:
+            key = f".quilt/named_packages/foo/bar/{file_name}"
+            assert not index.index_if_manifest(
+                self.s3_client,
+                index.DocumentQueue(None),
+                "ObjectCreated:Put",
+                bucket="quilt-example",
+                etag="123",
+                ext="",
+                key=key,
+                last_modified="faketimestamp",
+                version_id="random.version.id",
+                size=64
             )
-            indexed = index.index_if_manifest(
+        # none of these should index due to bad file path
+        good_timestamp = floor(time())
+        for key in [
+                f".quilt/named_packages//{good_timestamp}.txt",
+                f".quilt/named_packages/{good_timestamp}",
+                f".quilt/named_packages/not-deep-enough/{good_timestamp}",
+                f"somewhere/else/foo/bar/{floor(time())}",
+        ]:
+            assert not index.index_if_manifest(
                 self.s3_client,
                 index.DocumentQueue(None),
                 "ObjectCreated:Put",
@@ -609,12 +813,11 @@ class TestIndex(TestCase):
                 etag="123",
                 ext="",
                 # emulate a recent unix stamp from quilt3
-                key=pointer_key,
+                key=key,
                 last_modified="faketimestamp",
                 version_id="random.version.id",
                 size=64
             )
-            assert not indexed
 
     @patch.object(index.DocumentQueue, 'append')
     @patch.object(index, 'maybe_get_contents')
@@ -655,7 +858,7 @@ class TestIndex(TestCase):
     @patch.object(index.DocumentQueue, 'append')
     def test_index_if_manifest_positive(self, append_mock):
         """test manifest file and its indexing"""
-        timestamp = 1595616294
+        timestamp = floor(time())
         pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
         # first, handler() will head the object
         self.s3_stubber.add_response(
@@ -691,22 +894,40 @@ class TestIndex(TestCase):
         manifest_key = f"{MANIFEST_PREFIX_V1}{sha_hash}"
         # patch select_object_content since boto can't
         with patch.object(self.s3_client, 'select_object_content') as mock_select:
-            mock_select.return_value = {
-                "ResponseMetadata": ANY,
-                "Payload": [
-                    {
-                        "Stats": {}
-                    },
-                    {
-                        "Records": {
-                            "Payload": json.dumps(MANIFEST_DATA).encode(),
+            mock_select.side_effect = [
+                {
+                    "ResponseMetadata": ANY,
+                    "Payload": [
+                        {
+                            "Stats": {}
                         },
-                    },
-                    {
-                        "End": {}
-                    },
-                ]
-            }
+                        {
+                            "Records": {
+                                "Payload": json.dumps(MANIFEST_DATA).encode(),
+                            },
+                        },
+                        {
+                            "End": {}
+                        },
+                    ]
+                },
+                {
+                    "ResponseMetadata": ANY,
+                    "Payload": [
+                        {
+                            "Stats": {}
+                        },
+                        {
+                            "Records": {
+                                "Payload": b'{"total_bytes":292600212794000,"total_files":179066000}\n',
+                            },
+                        },
+                        {
+                            "End": {}
+                        },
+                    ]
+                },
+            ]
 
             self._test_index_events(
                 ["ObjectCreated:Put"],
@@ -722,10 +943,10 @@ class TestIndex(TestCase):
                 }
             )
 
-            mock_select.assert_called_once_with(
+            mock_select.assert_called_with(
                 Bucket="test-bucket",
                 Key=manifest_key,
-                Expression=index.SELECT_PACKAGE_META,
+                Expression=ANY,
                 ExpressionType="SQL",
                 # copied from t4_lambda_shared > utils.py > query_manifest_content
                 InputSerialization={
@@ -734,6 +955,8 @@ class TestIndex(TestCase):
                 },
                 OutputSerialization={'JSON': {'RecordDelimiter': '\n'}}
             )
+            # one call for metadata, one for stats
+            assert mock_select.call_count == 2
 
         append_mock.assert_any_call(
             "ObjectCreated:Put",
@@ -745,6 +968,11 @@ class TestIndex(TestCase):
             key=f".quilt/packages/{sha_hash}",
             last_modified=ANY,
             package_hash=sha_hash,
+            package_stats={
+                'total_files': 179_066_000,
+                'total_bytes': 292_600_212_794_000,
+            },
+            pointer_file=ANY,
             comment=MANIFEST_DATA["message"],
             metadata=json.dumps(MANIFEST_DATA["user_meta"])
         )
@@ -1088,7 +1316,7 @@ class TestIndex(TestCase):
     def test_synthetic_multipart_event(self):
         """check synthetic ObjectCreated:Put event vs organic obtained on 27-May-2020
         (bucket versioning on)"""
-        synthetic = make_event(
+        make_event(
             "ObjectCreated:CompleteMultipartUpload",
             bucket="anybucket",
             key="events/multipart-one/part-00006-495c48e6-96d6-4650-aa65-3c36a3516ddd.c000.snappy.parquet",

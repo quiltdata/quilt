@@ -3,6 +3,7 @@ Parses the command-line arguments and runs a command.
 """
 
 import argparse
+import json
 import subprocess
 import time
 import sys
@@ -213,9 +214,14 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
         return 1
 
 
-def cmd_push(name, dir, registry, dest, message):
+def cmd_push(name, dir, registry, dest, message, meta):
     pkg = Package()
-    pkg.set_dir('.', dir)
+    if meta:
+        try:
+            meta = json.loads(meta)
+        except ValueError:
+            raise QuiltException(f'{meta!r} is not a valid json string.')
+    pkg.set_dir('.', dir, meta=meta)
     pkg.push(name, registry=registry, dest=dest, message=message)
 
 
@@ -386,31 +392,48 @@ def create_parser():
 
     # push
     shorthelp = "Pushes the new package to the remote registry"
-    push_p = subparsers.add_parser("push", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    push_p = subparsers.add_parser("push", description=shorthelp, help=shorthelp, allow_abbrev=False, add_help=False)
+    required_args = push_p.add_argument_group('required arguments')
+    optional_args = push_p.add_argument_group('optional arguments')
     push_p.add_argument(
         "name",
         help="Name of package, in the USER/PKG format",
         type=str,
     )
-    push_p.add_argument(
+    required_args.add_argument(
         "--dir",
         help="Directory to add to the new package",
         type=str,
         required=True,
     )
-    push_p.add_argument(
+    optional_args.add_argument(
+        '-h',
+        '--help',
+        action='help',
+        default=argparse.SUPPRESS,
+        help='show this help message and exit'
+    )
+    optional_args.add_argument(
         "--registry",
         help="Registry where to create the new package. Defaults to the default remote registry.",
         type=str,
     )
-    push_p.add_argument(
+    optional_args.add_argument(
         "--dest",
         help="Where to copy the objects in the package",
         type=str,
     )
-    push_p.add_argument(
+    optional_args.add_argument(
         "--message",
         help="The commit message for the new package",
+        type=str,
+    )
+    optional_args.add_argument(
+        "--meta",
+        help="""
+            Sets package-level metadata.
+            Format: A json string with keys in double quotes '{"key": "value"}'
+            """,
         type=str,
     )
     push_p.set_defaults(func=cmd_push)

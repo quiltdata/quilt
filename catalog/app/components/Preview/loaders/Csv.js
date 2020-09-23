@@ -1,23 +1,24 @@
 import * as R from 'ramda'
 
-import AsyncResult from 'utils/AsyncResult'
-
 import { PreviewData } from '../types'
 import * as utils from './utils'
 
 export const detect = R.pipe(utils.stripCompression, utils.extIn(['.csv', '.tsv']))
 
-const fetcher = utils.previewFetcher('csv', (json) =>
-  AsyncResult.Ok(
+const isTsv = R.pipe(utils.stripCompression, utils.extIs('.tsv'))
+
+export const Loader = function CsvLoader({ handle, children }) {
+  const data = utils.usePreview({
+    type: 'csv',
+    handle,
+    query: isTsv(handle.key) ? { sep: '\t' } : undefined,
+  })
+  const processed = utils.useProcessing(data.result, (json) =>
     PreviewData.DataFrame({
       preview: json.html,
       note: json.info.note,
       warnings: json.info.warnings,
     }),
-  ),
-)
-
-const isTsv = R.pipe(utils.stripCompression, utils.extIs('.tsv'))
-
-export const load = (handle, callback) =>
-  fetcher(handle, callback, isTsv(handle.key) ? { query: { sep: '\t' } } : undefined)
+  )
+  return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
+}

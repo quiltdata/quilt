@@ -1,0 +1,27 @@
+{
+  "theme": {
+    "palette": {
+      "primary": {
+        "main": "#016272"
+      },
+      "text": {
+        "primary": "#202d31"
+      }
+    },
+    "typography": {
+      "fontFamily": "'Open Sans', sans-serif"
+    },
+    "overrides": {
+      "MuiContainer": {
+        "root": {
+          "paddingLeft": "8px !important",
+          "paddingRight": "8px !important"
+        }
+      }
+    }
+  },
+  "css": ["https://fonts.googleapis.com/css2?family=Open+Sans"],
+  "hideCode": true,
+  "hideAnalytics": true,
+  "hideRootLink": true
+}

@@ -9,6 +9,7 @@ import { useIntl } from 'containers/LanguageProvider'
 import * as Notifications from 'containers/Notifications'
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as Okta from 'utils/Okta'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
 
@@ -21,10 +22,11 @@ import oktaLogo from './okta-logo.svg'
 const MUTEX_POPUP = 'sso:okta:popup'
 const MUTEX_REQUEST = 'sso:okta:request'
 
-export default function SSOOkta({ mutex, next }) {
+export default function SSOOkta({ mutex, next, ...props }) {
   const cfg = Config.useConfig()
   invariant(!!cfg.oktaClientId, 'Auth.SSO.Okta: config missing "oktaClientId"')
-  invariant(!!cfg.oktaCompanyName, 'Auth.SSO.Okta: config missing "oktaCompanyName"')
+  invariant(!!cfg.oktaBaseUrl, 'Auth.SSO.Okta: config missing "oktaBaseUrl"')
+  const authenticate = Okta.use({ clientId: cfg.oktaClientId, baseUrl: cfg.oktaBaseUrl })
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
@@ -32,64 +34,12 @@ export default function SSOOkta({ mutex, next }) {
   const { push: notify } = Notifications.use()
   const { urls } = NamedRoutes.use()
 
-  const handleClick = React.useCallback(() => {
+  const handleClick = React.useCallback(async () => {
     if (mutex.current) return
     mutex.claim(MUTEX_POPUP)
 
-    const oktaDomain = `https://${cfg.oktaCompanyName}.okta.com`
-    const nonce = Math.random().toString(36).substr(2)
-    const state = Math.random().toString(36).substr(2)
-    const query = NamedRoutes.mkSearch({
-      client_id: cfg.oktaClientId,
-      redirect_uri: window.location.origin,
-      response_mode: 'okta_post_message',
-      response_type: 'id_token',
-      scope: 'openid email',
-      nonce,
-      state,
-    })
-    const url = `${oktaDomain}/oauth2/v1/authorize${query}`
-    const popup = window.open(url, 'quilt_okta_popup', 'width=300,height=400')
-    const timer = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(timer)
-        handleFailure({ error: 'popup_closed_by_user' })
-      }
-    }, 500)
-    popup.focus()
-    const handleMessage = ({ source, origin, data }) => {
-      if (source !== popup || origin !== oktaDomain) return
-      const {
-        id_token: idToken,
-        error,
-        error_description: errorDetails,
-        state: respState,
-      } = data
-      if (respState !== state) return
-      if (error) {
-        handleFailure(error, errorDetails)
-      } else {
-        const { nonce: respNonce } = JSON.parse(atob(idToken.split('.')[1]))
-        if (respNonce !== nonce) return
-        handleSuccess(idToken)
-      }
-      window.removeEventListener('message', handleMessage)
-      clearInterval(timer)
-      popup.close()
-    }
-    window.addEventListener('message', handleMessage)
-  }, [
-    mutex.current,
-    mutex.claim,
-    cfg.oktaCompanyName,
-    cfg.oktaClientId,
-    window.location.origin,
-    handleSuccess,
-    handleFailure,
-  ])
-
-  const handleSuccess = React.useCallback(
-    async (token) => {
+    try {
+      const token = await authenticate()
       const provider = 'okta'
       const result = defer()
       mutex.claim(MUTEX_REQUEST)
@@ -110,24 +60,27 @@ export default function SSOOkta({ mutex, next }) {
         }
         mutex.release(MUTEX_REQUEST)
       }
-    },
-    [dispatch, mutex.claim, mutex.release, sentry, notify],
-  )
-
-  const handleFailure = React.useCallback(
-    ({ error: code, details }) => {
-      if (code !== 'popup_closed_by_user') {
-        notify(intl.formatMessage(msg.ssoOktaError, { details }))
-        const e = new errors.SSOError({ provider: 'okta', code, details })
+    } catch (e) {
+      if (e instanceof Okta.OktaError) {
+        if (e.code !== 'popup_closed_by_user') {
+          notify(intl.formatMessage(msg.ssoOktaError, { details: e.details }))
+          sentry('captureException', e)
+        }
+      } else {
+        notify(intl.formatMessage(msg.ssoOktaErrorUnexpected))
         sentry('captureException', e)
       }
       mutex.release(MUTEX_POPUP)
-    },
-    [mutex.release, notify, sentry],
-  )
+    }
+  }, [authenticate, dispatch, mutex.claim, mutex.release, sentry, notify])
 
   return (
-    <M.Button variant="outlined" onClick={handleClick} disabled={!!mutex.current}>
+    <M.Button
+      variant="outlined"
+      onClick={handleClick}
+      disabled={!!mutex.current}
+      {...props}
+    >
       {mutex.current === MUTEX_REQUEST ? (
         <M.CircularProgress size={18} />
       ) : (

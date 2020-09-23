@@ -1,7 +1,5 @@
 import * as R from 'ramda'
 
-import AsyncResult from 'utils/AsyncResult'
-
 import { PreviewData } from '../types'
 import * as utils from './utils'
 
@@ -14,10 +12,10 @@ export const detect = R.pipe(
   ]),
 )
 
-export const load = utils.previewFetcher(
-  'parquet',
-  R.pipe(
-    ({ html, info }) => ({
+export const Loader = function ParquetLoader({ handle, children }) {
+  const data = utils.usePreview({ type: 'parquet', handle })
+  const processed = utils.useProcessing(data.result, ({ html, info }) =>
+    PreviewData.Parquet({
       preview: html,
       createdBy: info.created_by,
       formatVersion: info.format_version,
@@ -29,7 +27,6 @@ export const load = utils.previewFetcher(
       note: info.note,
       warnings: info.warnings,
     }),
-    PreviewData.Parquet,
-    AsyncResult.Ok,
-  ),
-)
+  )
+  return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
+}

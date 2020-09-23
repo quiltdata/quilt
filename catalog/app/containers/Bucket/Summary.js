@@ -20,21 +20,17 @@ import * as requests from './requests'
 const README_RE = /^readme\.md$/i
 const SUMMARIZE_RE = /^quilt_summarize\.json$/i
 
-const withSignedUrl = (handle, callback) => (
-  <AWS.Signer.Inject>
-    {(signer) => callback(signer.getSignedS3URL(handle))}
-  </AWS.Signer.Inject>
-)
-
 const findFile = (re) => R.find((f) => re.test(getBasename(f.logicalKey || f.key)))
 
 const extractSummary = R.applySpec({
   readme: findFile(README_RE),
   summarize: findFile(SUMMARIZE_RE),
-  images: R.filter((f) =>
-    SUPPORTED_EXTENSIONS.some((ext) =>
-      (f.logicalKey || f.key).toLowerCase().endsWith(ext),
-    ),
+  images: R.filter(
+    (f) =>
+      !f.archived &&
+      SUPPORTED_EXTENSIONS.some((ext) =>
+        (f.logicalKey || f.key).toLowerCase().endsWith(ext),
+      ),
   ),
 })
 
@@ -46,92 +42,39 @@ const Header = ({ children }) => (
   <M.CardHeader title={<M.Typography variant="h5">{children}</M.Typography>} />
 )
 
-function SummaryItemFile({ handle, name }) {
-  const { urls } = NamedRoutes.use()
+function HandleResolver({ resolve, handle, children }) {
+  if (resolve && handle.logicalKey && !handle.key) {
+    return (
+      <Data fetch={resolve} params={handle.logicalKey}>
+        {children}
+      </Data>
+    )
+  }
+  return children(AsyncResult.Ok(handle))
+}
+
+const renderContents = (contents) => <M.Box mx="auto">{contents}</M.Box>
+
+function SummaryItemFile({ handle, name, mkUrl, resolveLogicalKey }) {
+  const withData = (callback) => (
+    <HandleResolver resolve={resolveLogicalKey} handle={handle}>
+      {AsyncResult.case({
+        Err: (e, { fetch }) =>
+          Preview.PreviewError.Unexpected({ handle, retry: fetch, originalError: e }),
+        Ok: (resolved) => Preview.load(resolved, callback),
+        _: callback,
+      })}
+    </HandleResolver>
+  )
+
   return (
     <Container>
-      {/* TODO: move link generation to the upper level to support package links */}
       <Header>
-        <StyledLink to={urls.bucketFile(handle.bucket, handle.key)}>
+        <StyledLink to={mkUrl(handle)}>
           {name || basename(handle.logicalKey || handle.key)}
         </StyledLink>
       </Header>
-      <M.CardContent>
-        {Preview.load(
-          handle,
-          AsyncResult.case({
-            Ok: AsyncResult.case({
-              Init: (_, { fetch }) => (
-                <>
-                  <M.Typography variant="body1" gutterBottom>
-                    Large files are not previewed automatically
-                  </M.Typography>
-                  <M.Button variant="outlined" onClick={fetch}>
-                    Load preview
-                  </M.Button>
-                </>
-              ),
-              Pending: () => <M.CircularProgress />,
-              Err: (_, { fetch }) => (
-                <>
-                  <M.Typography variant="body1" gutterBottom>
-                    Error loading preview
-                  </M.Typography>
-                  <M.Button variant="outlined" onClick={fetch}>
-                    Retry
-                  </M.Button>
-                </>
-              ),
-              Ok: (data) => <M.Box mx="auto">{Preview.render(data)}</M.Box>,
-            }),
-            Err: Preview.PreviewError.case({
-              TooLarge: () => (
-                <>
-                  <M.Typography variant="body1" gutterBottom>
-                    Object is too large to preview in browser
-                  </M.Typography>
-                  {withSignedUrl(handle, (url) => (
-                    <M.Button variant="outlined" href={url}>
-                      View in Browser
-                    </M.Button>
-                  ))}
-                </>
-              ),
-              Unsupported: () => (
-                <>
-                  <M.Typography variant="body1" gutterBottom>
-                    Preview not available
-                  </M.Typography>
-                  {withSignedUrl(handle, (url) => (
-                    <M.Button variant="outlined" href={url}>
-                      View in Browser
-                    </M.Button>
-                  ))}
-                </>
-              ),
-              DoesNotExist: () => (
-                <M.Typography variant="body1">Object does not exist</M.Typography>
-              ),
-              MalformedJson: ({ originalError: { message } }) => (
-                <M.Typography variant="body1" gutterBottom>
-                  Malformed JSON: {message}
-                </M.Typography>
-              ),
-              Unexpected: (_, { fetch }) => (
-                <>
-                  <M.Typography variant="body1" gutterBottom>
-                    Error loading preview
-                  </M.Typography>
-                  <M.Button variant="outlined" onClick={fetch}>
-                    Retry
-                  </M.Button>
-                </>
-              ),
-            }),
-            _: () => <M.CircularProgress />,
-          }),
-        )}
-      </M.CardContent>
+      <M.CardContent>{withData(Preview.display({ renderContents }))}</M.CardContent>
     </Container>
   )
 }
@@ -161,9 +104,8 @@ const useThumbnailsStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Thumbnails({ images }) {
+function Thumbnails({ images, mkUrl, resolveLogicalKey }) {
   const classes = useThumbnailsStyles()
-  const { urls } = NamedRoutes.use()
 
   const scrollRef = React.useRef(null)
   const scroll = React.useCallback((prev) => {
@@ -180,18 +122,20 @@ function Thumbnails({ images }) {
       <div ref={scrollRef} />
       <M.CardContent className={classes.container}>
         {pagination.paginated.map((i) => (
-          <Link
-            key={i.key}
-            // TODO: move link generation to the upper level to support package links
-            to={urls.bucketFile(i.bucket, i.key, i.version)}
-            className={classes.link}
-          >
-            <Thumbnail
-              handle={i}
-              className={classes.img}
-              alt={basename(i.logicalKey || i.key)}
-              title={basename(i.logicalKey || i.key)}
-            />
+          <Link key={i.logicalKey || i.key} to={mkUrl(i)} className={classes.link}>
+            <HandleResolver resolve={resolveLogicalKey} handle={i}>
+              {AsyncResult.case({
+                _: () => null,
+                Ok: (resolved) => (
+                  <Thumbnail
+                    handle={resolved}
+                    className={classes.img}
+                    alt={basename(i.logicalKey || i.key)}
+                    title={basename(i.logicalKey || i.key)}
+                  />
+                ),
+              })}
+            </HandleResolver>
           </Link>
         ))}
         {R.times(
@@ -220,9 +164,23 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 // files: Array of s3 handles
-export default function BucketSummary({ files, whenEmpty = () => null }) {
+export default function BucketSummary({
+  files,
+  whenEmpty = () => null,
+  mkUrl: mkUrlProp,
+  resolveLogicalKey,
+}) {
   const classes = useStyles()
+  const { urls } = NamedRoutes.use()
+  const mkUrl = React.useCallback(
+    (handle) =>
+      mkUrlProp
+        ? mkUrlProp(handle)
+        : urls.bucketFile(handle.bucket, handle.key, handle.version),
+    [mkUrlProp, urls.bucketFile],
+  )
   const { readme, images, summarize } = extractSummary(files)
+
   return (
     <>
       {!readme && !summarize && !images.length && whenEmpty()}
@@ -230,22 +188,35 @@ export default function BucketSummary({ files, whenEmpty = () => null }) {
         <SummaryItemFile
           title={basename(readme.logicalKey || readme.key)}
           handle={readme}
+          mkUrl={mkUrl}
+          resolveLogicalKey={resolveLogicalKey}
         />
       )}
-      {!!images.length && <Thumbnails images={images} />}
+      {!!images.length && <Thumbnails {...{ images, mkUrl, resolveLogicalKey }} />}
       {summarize && (
         <AWS.S3.Inject>
           {(s3) => (
-            <Data fetch={requests.summarize} params={{ s3, handle: summarize }}>
+            <Data
+              fetch={requests.summarize}
+              params={{ s3, handle: summarize, resolveLogicalKey }}
+            >
               {AsyncResult.case({
-                Err: () => null,
+                Err: (e) => {
+                  console.warn('Error loading summary')
+                  console.error(e)
+                  return null
+                },
                 _: () => <M.CircularProgress className={classes.progress} />,
                 Ok: R.map((i) => (
                   <SummaryItemFile
                     key={i.key}
                     // TODO: make a reusable function to compute relative s3 paths or smth
-                    title={withoutPrefix(getPrefix(summarize.key), i.key)}
+                    title={withoutPrefix(
+                      getPrefix(summarize.logicalKey || summarize.key),
+                      i.logicalKey || i.key,
+                    )}
                     handle={i}
+                    mkUrl={mkUrl}
                   />
                 )),
               })}

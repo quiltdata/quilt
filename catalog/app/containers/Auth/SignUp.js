@@ -3,6 +3,7 @@ import { FormattedMessage as FM } from 'react-intl'
 import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
 import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
+import * as M from '@material-ui/core'
 
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -16,6 +17,8 @@ import validate, * as validators from 'utils/validators'
 
 import * as Layout from './Layout'
 import SSOGoogle from './SSOGoogle'
+import SSOOkta from './SSOOkta'
+import SSOOneLogin from './SSOOneLogin'
 import { signUp } from './actions'
 import * as errors from './errors'
 import msg from './messages'
@@ -202,7 +205,42 @@ export default ({ location: { search } }) => {
 
   return (
     <Container>
-      {ssoEnabled('google') && <SSOGoogle mutex={mutex} next={next} />}
+      {ssoEnabled() && (
+        <M.Box display="flex" flexDirection="column" mt={2} alignItems="center">
+          <M.Box display="flex" flexDirection="column">
+            {ssoEnabled('google') && (
+              <>
+                <M.Box mt={2} />
+                <SSOGoogle
+                  mutex={mutex}
+                  next={next}
+                  style={{ justifyContent: 'flex-start' }}
+                />
+              </>
+            )}
+            {ssoEnabled('okta') && (
+              <>
+                <M.Box mt={2} />
+                <SSOOkta
+                  mutex={mutex}
+                  next={next}
+                  style={{ justifyContent: 'flex-start' }}
+                />
+              </>
+            )}
+            {ssoEnabled('onelogin') && (
+              <>
+                <M.Box mt={2} />
+                <SSOOneLogin
+                  mutex={mutex}
+                  next={next}
+                  style={{ justifyContent: 'flex-start' }}
+                />
+              </>
+            )}
+          </M.Box>
+        </M.Box>
+      )}
       {cfg.passwordAuth === true && ssoEnabled() && <Layout.Or />}
       {cfg.passwordAuth === true && (
         <PasswordSignUp mutex={mutex} onSuccess={() => setDone(true)} next={next} />

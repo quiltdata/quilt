@@ -2,7 +2,9 @@
 
 # Python imports
 import io
+import os
 import pathlib
+import threading
 import time
 from contextlib import redirect_stderr
 
@@ -212,7 +214,6 @@ class DataTransferTest(QuiltTestCase):
             assert urls[0] == PhysicalKey.from_url('s3://example1/foo.csv')
             assert urls[1] == PhysicalKey.from_url('s3://example2/foo.txt?versionId=v123')
 
-    @pytest.mark.skip(reason="Broken due to S3ClientProvider")
     def test_upload_large_file(self):
         path = DATA_DIR / 'large_file.npy'
 
@@ -296,7 +297,6 @@ class DataTransferTest(QuiltTestCase):
         ])
         assert urls[0] == PhysicalKey.from_url('s3://example/large_file.npy?versionId=v2')
 
-    @pytest.mark.skip(reason="Broken due to S3ClientProvider")
     def test_multipart_upload(self):
         name = 'very_large_file.bin'
         path = pathlib.Path(name)
@@ -511,3 +511,76 @@ class DataTransferTest(QuiltTestCase):
         with mock.patch('botocore.client.BaseClient._make_api_call', side_effect=side_effect):
             with pytest.raises(ClientError):
                 data_transfer.copy_file_list([(src, dst, size)])
+
+
+class S3DownloadTest(QuiltTestCase):
+    data = b'0123456789abcdef'
+    size = len(data)
+
+    bucket = 'test-bucket'
+    key = 'test-key'
+    src = PhysicalKey(bucket, key, None)
+
+    filename = 'some-file-name'
+    dst = PhysicalKey(None, filename, None)
+
+    def _test_download(self, *, threshold, chunksize, parts=None, devnull=False):
+        num_parts = 1 if parts is None else len(parts)
+        barrier = threading.Barrier(num_parts, timeout=2)
+
+        def side_effect(*args, **kwargs):
+            barrier.wait()  # This ensures that we have concurrent calls to get_object().
+            return {
+                'VersionId': 'v1',
+                'Body': io.BytesIO(self.data if parts is None else parts[kwargs['Range']]),
+            }
+
+        dst = PhysicalKey(None, os.devnull, None) if devnull else self.dst
+        with mock.patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', num_parts), \
+             mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_threshold', threshold), \
+             mock.patch('quilt3.data_transfer.s3_transfer_config.multipart_chunksize', chunksize), \
+             mock.patch.object(self.s3_client, 'get_object', side_effect=side_effect) as get_object_mock:
+            data_transfer.copy_file_list([(self.src, dst, self.size)])
+
+            expected_params = {
+                'Bucket': self.bucket,
+                'Key': self.key,
+            }
+
+            if parts is None:
+                get_object_mock.assert_called_once_with(**expected_params)
+            else:
+                get_object_mock.assert_has_calls([
+                    mock.call(**expected_params, Range=r)
+                    for r in parts
+                ], any_order=True)
+                assert len(get_object_mock.call_args_list) == num_parts
+
+        if not devnull:
+            with open(self.filename, 'rb') as f:
+                assert f.read() == self.data
+
+    def test_threshold_gt_size(self):
+        self._test_download(threshold=self.size + 1, chunksize=5)
+
+    def test_threshold_eq_size(self):
+        parts = {
+            'bytes=0-4':  self.data[:5],
+            'bytes=5-9': self.data[5:10],
+            'bytes=10-14': self.data[10:15],
+            'bytes=15-15': self.data[15:],
+        }
+        self._test_download(threshold=self.size, chunksize=5, parts=parts)
+
+    def test_threshold_eq_size_special_file(self):
+        if os.name == 'nt':
+            with pytest.raises(ValueError, match=f'Cannot download to {os.devnull!r}: reserved file name'):
+                self._test_download(threshold=self.size, chunksize=5, devnull=True)
+        else:
+            self._test_download(threshold=self.size, chunksize=5, devnull=True)
+
+    def test_threshold_eq_chunk_eq_size(self):
+        self._test_download(threshold=self.size, chunksize=self.size)
+
+    def test_threshold_eq_chunk_gt_size(self):
+        self._test_download(threshold=self.size, chunksize=self.size + 1)

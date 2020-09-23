@@ -13,7 +13,8 @@ from elasticsearch import Elasticsearch, RequestsHttpConnection
 from t4_lambda_shared.decorator import api
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
-MAX_QUERY_DURATION = '15s'
+DEFAULT_SIZE = 1_000
+MAX_QUERY_DURATION = 27  # Just shy of 29s API Gateway limit
 NUM_PREVIEW_IMAGES = 100
 NUM_PREVIEW_FILES = 20
 COMPRESSION_EXTS = ['.gz']
@@ -50,22 +51,59 @@ def lambda_handler(request):
     """
 
     action = request.args.get('action')
-    indexes = request.args.get('index')
-    terminate_after = os.getenv('MAX_DOCUMENTS_PER_SHARD')
+    user_body = request.args.get('body', {})
+    user_fields = request.args.get('fields', [])
+    user_indexes = request.args.get('index', "")
+    user_size = request.args.get('size', DEFAULT_SIZE)
+    user_source = request.args.get('_source', [])
+    terminate_after = None  # see if we can skip os.getenv('MAX_DOCUMENTS_PER_SHARD')
 
-    if action == 'search':
+    if not user_indexes or not isinstance(user_indexes, str):
+        raise ValueError("Request must include index=<comma-separated string of indices>")
+
+    if action == 'packages':
         query = request.args.get('query', '')
-        body = {
+        body = user_body or {
             "query": {
-                "simple_query_string": {
+                "query_string": {
+                    "analyze_wildcard": True,
+                    "lenient": True,
                     "query": query,
-                    "fields": ['content', 'comment', 'key_text', 'meta_text']
+                    # see enterprise/**/bucket.py for mappings
+                    "fields": user_fields or [
+                        # package
+                        'comment', 'handle', 'handle_text^2', 'metadata', 'tags'
+                    ]
                 }
             }
         }
-        # TODO: should be user settable; we should proably forbid `content` (can be huge)
-        _source = ['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']
-        size = 1000
+        if not all(i.endswith('_packages') for i in user_indexes.split(',')):
+            raise ValueError("'packages' action searching indexes that don't end in '_packages'")
+        _source = user_source
+        size = user_size
+    elif action == 'search':
+        query = request.args.get('query', '')
+        body = {
+            "query": {
+                "query_string": {
+                    "analyze_wildcard": True,
+                    "lenient": True,
+                    "query": query,
+                    # see enterprise/**/bucket.py for mappings
+                    "fields": user_fields or [
+                        # object
+                        'content', 'comment^2', 'ext^2', 'key_text^2', 'meta_text',
+                        # package, and boost the fields
+                        'handle^2', 'handle_text^2', 'metadata^2', 'tags^2'
+                    ]
+                }
+            }
+        }
+        _source = user_source or [
+            'key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta',
+            'comment', 'handle', 'hash', 'tags', 'metadata', 'pointer_file'
+        ]
+        size = DEFAULT_SIZE
     elif action == 'stats':
         body = {
             "query": {"match_all": {}},
@@ -75,6 +113,7 @@ def lambda_handler(request):
                     "terms": {"field": 'ext'},
                     "aggs": {"size": {"sum": {"field": 'size'}}},
                 },
+                "totalPackageHandles": {"value_count": {"field": "handle"}},
             }
         }
         size = 0  # We still get all aggregates, just don't need the results
@@ -137,17 +176,19 @@ def lambda_handler(request):
         http_auth=auth,
         use_ssl=True,
         verify_certs=True,
-        connection_class=RequestsHttpConnection
+        connection_class=RequestsHttpConnection,
+        timeout=MAX_QUERY_DURATION,
     )
 
-    to_search = f"{indexes},{index_overrides}" if index_overrides else indexes
+    to_search = f"{user_indexes},{index_overrides}" if index_overrides else user_indexes
+
     result = es_client.search(
-        to_search,
-        body,
+        index=to_search,
+        body=body,
         _source=_source,
         size=size,
+        # try turning this off to consider all documents
         terminate_after=terminate_after,
-        timeout=MAX_QUERY_DURATION
     )
 
     return make_json_response(200, post_process(result, action))
