@@ -226,10 +226,9 @@ def index_if_manifest(
         return False
 
 
-@logger()
 def select_package_stats(s3_client, bucket, manifest_key) -> str:
     """use s3 select to generate file stats for package"""
-    logger_ = getLogger(LOGGER_NAME)
+    logger_ = get_quilt_logger()
     try:
         raw_stats = query_manifest_content(
             s3_client,
