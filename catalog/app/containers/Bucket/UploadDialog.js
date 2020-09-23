@@ -561,6 +561,20 @@ const useCounter = () => {
   return React.useMemo(() => ({ value, inc }), [value, inc])
 }
 
+async function hashFile(file) {
+  if (!window.crypto || !window.crypto.subtle || !window.crypto.subtle.digest) return
+  try {
+    const buf = await file.arrayBuffer()
+    const hashBuf = await window.crypto.subtle.digest('SHA-256', buf)
+    // eslint-disable-next-line consistent-return
+    return Array.from(new Uint8Array(hashBuf))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+  } catch (e) {
+    // return undefined on error
+  }
+}
+
 export default function UploadDialog({ bucket, open, onClose }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
@@ -627,9 +641,11 @@ export default function UploadDialog({ bucket, open, onClose }) {
           setUploads(R.dissoc(path))
           return
         }
+        const resultP = upload.promise()
+        const hashP = hashFile(file)
         try {
           // eslint-disable-next-line consistent-return
-          return await upload.promise()
+          return { result: await resultP, hash: await hashP }
         } catch (e) {
           rejected = true
           setUploads(R.dissoc(path))
@@ -657,10 +673,11 @@ export default function UploadDialog({ bucket, open, onClose }) {
         logical_key: f.path,
         physical_key: s3paths.handleToS3Url({
           bucket,
-          key: u.Key,
-          version: u.VersionId,
+          key: u.result.Key,
+          version: u.result.VersionId,
         }),
         size: f.file.size,
+        hash: u.hash,
       }),
       files,
       uploaded,
