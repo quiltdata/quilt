@@ -2,6 +2,7 @@
 Test functions for preview endpoint
 """
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -240,6 +241,25 @@ class TestIndex():
             '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span>'
             '<span class="p">'
         ) in body_html, 'Last cell output missing'
+
+    @patch(__name__ + '.index.LAMBDA_MAX_OUT', 89_322)
+    @responses.activate
+    def test_ipynb_chop(self):
+        """test that we eliminate output cells when we're in danger of breaking
+        Lambda's invocation limit"""
+        notebook = BASE_DIR / 'nb_1200727.ipynb'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=notebook.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'ipynb'})
+        resp = index.lambda_handler(event, None)
+        body = json.loads(read_body(resp))
+        assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
+        body_html = body['html']
+        # isclose bc string sizes differ, e.g. on Linux
+        assert math.isclose(len(body_html), 18084, abs_tol=200), "Hmm, didn't chop nb_1200727.ipynb"
 
     @responses.activate
     def test_ipynb_exclude(self):
