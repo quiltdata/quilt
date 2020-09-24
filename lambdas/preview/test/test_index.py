@@ -241,7 +241,7 @@ class TestIndex():
             '<span class="p">'
         ) in body_html, 'Last cell output missing'
 
-    @patch(__name__ + '.index.LAMBDA_MAX_OUT', 86_000)
+    @patch(__name__ + '.index.LAMBDA_MAX_OUT', 89_322)
     @responses.activate
     def test_ipynb_chop(self):
         """test that we eliminate output cells when we're in danger of breaking
