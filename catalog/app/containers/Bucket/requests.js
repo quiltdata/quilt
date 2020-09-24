@@ -204,7 +204,7 @@ export const bucketStats = async ({ es, s3, bucket, overviewUrl }) => {
   }
 
   try {
-    return await es({ action: 'stats', index: bucket }).then(processStats)
+    return await es({ action: 'stats', index: `${bucket}*` }).then(processStats)
   } catch (e) {
     console.log('Unable to fetch live stats:')
     console.error(e)
