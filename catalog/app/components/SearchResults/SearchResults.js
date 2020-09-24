@@ -1,6 +1,7 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
@@ -26,7 +27,6 @@ const PER_PAGE = 10
 const ES_V = '6.8'
 const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}`
 const ES_REF_SYNTAX = `${ES_REF}/query-dsl-query-string-query.html#query-string-syntax`
-const ES_REF_WILDCARDS = `${ES_REF}/query-dsl-query-string-query.html#_wildcards`
 
 const CrumbLink = M.styled(StyledLink)({ wordBreak: 'break-word' })
 
@@ -554,7 +554,7 @@ export function Progress({ children }) {
   )
 }
 
-export const handleErr = (retry) =>
+export const handleErr = (retryUrl) =>
   R.cond([
     [
       R.propEq('message', 'SearchSyntaxError'),
@@ -589,61 +589,25 @@ export const handleErr = (retry) =>
       ),
     ],
     [
-      R.propEq('message', 'SearchTimeout'),
-      () => (
-        <Alt>
-          <Message headline="Query timed out">
-            That made ElasticSearch sweat.
-            <br />
-            Try{' '}
-            <StyledLink href={ES_REF_WILDCARDS} target="_blank">
-              avoiding wildcards
-            </StyledLink>{' '}
-            or ask Quilt about scaling your cluster.
-            {!!retry && (
-              <>
-                <br />
-                <br />
-                <M.Button onClick={retry} color="primary" variant="contained">
-                  Retry
-                </M.Button>
-              </>
-            )}
-          </Message>
-        </Alt>
-      ),
-    ],
-    [
-      R.propEq('message', 'TooManyRequests'),
-      () => (
-        <Alt>
-          <Message headline="Too many requests">
-            Processing a lot of requests. Please try your search again in a few minutes.
-            {!!retry && (
-              <>
-                <br />
-                <br />
-                <M.Button onClick={retry} color="primary" variant="contained">
-                  Retry
-                </M.Button>
-              </>
-            )}
-          </Message>
-        </Alt>
-      ),
-    ],
-    [
       R.T,
       () => (
         <Alt>
-          <Message headline="Server error">
-            Something went wrong.
-            {!!retry && (
+          <Message headline="Search error">
+            ElasticSearch had trouble with that query. The cluster may be busy indexing
+            new documents. Try again later
+            {!!retryUrl && <> or click RETRY to try a simplified version of your query</>}
+            .
+            {!!retryUrl && (
               <>
                 <br />
                 <br />
-                <M.Button onClick={retry} color="primary" variant="contained">
-                  Retry
+                <M.Button
+                  component={Link}
+                  to={retryUrl}
+                  color="primary"
+                  variant="contained"
+                >
+                  Retry simplified query
                 </M.Button>
               </>
             )}

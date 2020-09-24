@@ -61,7 +61,7 @@ export function useAPIGatewayRequest() {
                 return
               }
               if (response.statusCode !== 200) {
-                reject(new Error(`API Gateway Error: ${body}`))
+                reject(new Error(`API Gateway Error (${response.statusCode}): ${body}`))
                 return
               }
               try {

@@ -147,7 +147,10 @@ function BucketSearch({ bucket, onFocus, onBlur, disabled, ...props }) {
   const { paths, urls } = NamedRoutes.use()
   const { location: l, match } = useRoute(paths.bucketSearch)
   const query = (match && parse(l.search).q) || ''
-  const makeUrl = React.useCallback((q) => urls.bucketSearch(bucket, q), [urls, bucket])
+  const makeUrl = React.useCallback((q) => urls.bucketSearch(bucket, { q }), [
+    urls,
+    bucket,
+  ])
   return cfg && !disabled ? (
     <State {...{ query, makeUrl, onFocus, onBlur }}>
       {(state) => <SearchBox {...{ bucket, ...state, ...props }} />}

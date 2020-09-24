@@ -130,6 +130,7 @@ export default async function search({
   query,
   buckets = [],
   mode = 'all', // all | objects | packages
+  retry,
 }) {
   // eslint-disable-next-line no-nested-ternary
   const index = buckets.length
@@ -152,21 +153,18 @@ export default async function search({
     ? `*${PACKAGES_SUFFIX}`
     : '*'
   try {
-    const result = await req('/search', { index, action: 'search', query })
+    const result = await req('/search', { index, action: 'search', query, retry })
     const hits = mergeAllHits(result.hits.hits)
     const total = Math.min(result.hits.total, result.hits.hits.length)
     return { total, hits }
   } catch (e) {
     const match = e.message.match(
-      /^API Gateway Error: RequestError\(400, 'search_phase_execution_exception', '(.+)'\)$/,
+      /^API Gateway Error.*RequestError\(400, 'search_phase_execution_exception', '(.+)'\)$/,
     )
     if (match) {
       throw new BaseError('SearchSyntaxError', { details: unescape(match[1]) })
     }
-    if (/^API Gateway Error: ConnectionTimeout.*Read timed out/.test(e.message)) {
-      throw new BaseError('SearchTimeout')
-    }
-    console.log('Search error:', e.message)
+    console.log('Search error:')
     console.error(e)
     throw e
   }
