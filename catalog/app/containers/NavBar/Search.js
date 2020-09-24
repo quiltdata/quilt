@@ -12,6 +12,7 @@ import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parse from 'utils/parseSearch'
 import { useRoute } from 'utils/router'
+import StyledLink from 'utils/StyledLink'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -111,8 +112,8 @@ function SearchBox({
 }
 
 function SearchHelp({ opened, onClose }) {
-  const elasticDocsUrl =
-    'https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-query-string-query.html'
+  const ES_V = '6.7'
+  const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
       <M.Dialog open={opened} onClose={onClose}>
@@ -136,9 +137,7 @@ function SearchHelp({ opened, onClose }) {
           </M.Typography>
 
           <M.Typography variant="body1">
-            <M.Link href={elasticDocsUrl} target="_blank">
-              Learn more with the ES docs
-            </M.Link>
+            <StyledLink href={ES_REF}>Learn more with the ES docs</StyledLink>
           </M.Typography>
         </M.DialogContent>
         <M.DialogActions>
