@@ -19,6 +19,8 @@ import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
 
+const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
+
 const getNormalizedPath = (f) => (f.path.startsWith('/') ? f.path.substring(1) : f.path)
 
 function Field({ input, meta, errors, label, ...rest }) {
@@ -49,6 +51,19 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     display: 'flex',
     height: 24,
   },
+  headerFiles: {
+    ...t.typography.body1,
+    display: 'flex',
+  },
+  headerFilesDisabled: {
+    color: t.palette.text.secondary,
+  },
+  headerFilesError: {
+    color: t.palette.error.main,
+  },
+  headerFilesWarn: {
+    color: t.palette.warning.dark,
+  },
   dropzoneContainer: {
     position: 'relative',
   },
@@ -67,6 +82,9 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   dropzoneErr: {
     borderColor: t.palette.error.main,
   },
+  dropzoneWarn: {
+    borderColor: t.palette.warning.dark,
+  },
   active: {
     background: t.palette.action.selected,
   },
@@ -83,18 +101,29 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   dropMsgErr: {
     color: t.palette.error.main,
   },
+  dropMsgWarn: {
+    color: t.palette.warning.dark,
+  },
   filesContainer: {
     borderBottom: `1px solid ${t.palette.action.disabled}`,
     maxHeight: 200,
     overflowX: 'hidden',
     overflowY: 'auto',
   },
+  filesContainerErr: {
+    borderColor: t.palette.error.main,
+  },
+  filesContainerWarn: {
+    borderColor: t.palette.warning.dark,
+  },
   fileEntry: {
     alignItems: 'center',
     background: t.palette.background.paper,
     display: 'flex',
     '&:not(:last-child)': {
-      borderBottom: `1px solid ${t.palette.action.disabled}`,
+      borderBottomStyle: 'solid',
+      borderBottomWidth: '1px',
+      borderColor: 'inherit',
     },
   },
   filePath: {
@@ -153,7 +182,19 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
   const value = input.value || []
   const disabled = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
-  const label = error ? errors[error] || error : 'Drop files here or click to browse'
+
+  const totalSize = React.useMemo(() => value.reduce((sum, f) => sum + f.file.size, 0), [
+    value,
+  ])
+
+  const warn = totalSize > MAX_SIZE
+
+  // eslint-disable-next-line no-nested-ternary
+  const label = error
+    ? errors[error] || error
+    : warn
+    ? 'Total file size exceeds recommended maximum of 1GB'
+    : 'Drop files here or click to browse'
 
   const onDrop = React.useCallback(
     disabled
@@ -186,21 +227,30 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
 
-  const totalProgress = getTotalProgress(uploads)
-  const totalSize = value.reduce((sum, f) => sum + f.file.size, 0)
-
+  const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
   return (
     <div className={classes.root}>
       <div className={classes.header}>
-        {/* eslint-disable-next-line no-nested-ternary */}
-        <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
+        <div
+          className={cx(
+            classes.headerFiles,
+            disabled // eslint-disable-line no-nested-ternary
+              ? classes.headerFilesDisabled
+              : error // eslint-disable-line no-nested-ternary
+              ? classes.headerFilesError
+              : warn
+              ? classes.headerFilesWarn
+              : undefined,
+          )}
+        >
           Files
           {!!value.length && (
             <>
               : {value.length} ({readableBytes(totalSize)})
+              {warn && <M.Icon style={{ marginLeft: 4 }}>error_outline</M.Icon>}
             </>
           )}
-        </M.Typography>
+        </div>
         <M.Box flexGrow={1} />
         {!!value.length && (
           <M.Button
@@ -221,13 +271,20 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
               classes.dropzone,
               isDragActive && !disabled && classes.active,
               !!error && classes.dropzoneErr,
+              !error && warn && classes.dropzoneWarn,
             ),
           })}
         >
           <input {...getInputProps()} />
 
           {!!value.length && (
-            <div className={classes.filesContainer}>
+            <div
+              className={cx(
+                classes.filesContainer,
+                !!error && classes.filesContainerErr,
+                !error && warn && classes.filesContainerWarn,
+              )}
+            >
               {value.map(({ file, path }) => (
                 <div key={path} className={classes.fileEntry}>
                   <M.IconButton onClick={rmFile({ path })} size="small">
@@ -242,7 +299,13 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
             </div>
           )}
 
-          <div className={cx(classes.dropMsg, !!error && classes.dropMsgErr)}>
+          <div
+            className={cx(
+              classes.dropMsg,
+              !!error && classes.dropMsgErr,
+              !error && warn && classes.dropMsgWarn,
+            )}
+          >
             {label}
           </div>
         </div>
@@ -561,6 +624,20 @@ const useCounter = () => {
   return React.useMemo(() => ({ value, inc }), [value, inc])
 }
 
+async function hashFile(file) {
+  if (!window.crypto || !window.crypto.subtle || !window.crypto.subtle.digest) return
+  try {
+    const buf = await file.arrayBuffer()
+    const hashBuf = await window.crypto.subtle.digest('SHA-256', buf)
+    // eslint-disable-next-line consistent-return
+    return Array.from(new Uint8Array(hashBuf))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+  } catch (e) {
+    // return undefined on error
+  }
+}
+
 export default function UploadDialog({ bucket, open, onClose }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
@@ -627,9 +704,11 @@ export default function UploadDialog({ bucket, open, onClose }) {
           setUploads(R.dissoc(path))
           return
         }
+        const resultP = upload.promise()
+        const hashP = hashFile(file)
         try {
           // eslint-disable-next-line consistent-return
-          return await upload.promise()
+          return { result: await resultP, hash: await hashP }
         } catch (e) {
           rejected = true
           setUploads(R.dissoc(path))
@@ -657,10 +736,11 @@ export default function UploadDialog({ bucket, open, onClose }) {
         logical_key: f.path,
         physical_key: s3paths.handleToS3Url({
           bucket,
-          key: u.Key,
-          version: u.VersionId,
+          key: u.result.Key,
+          version: u.result.VersionId,
         }),
         size: f.file.size,
+        hash: u.hash,
       }),
       files,
       uploaded,
