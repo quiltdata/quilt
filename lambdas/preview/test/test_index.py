@@ -2,6 +2,7 @@
 Test functions for preview endpoint
 """
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -257,7 +258,8 @@ class TestIndex():
         body = json.loads(read_body(resp))
         assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
         body_html = body['html']
-        assert len(body_html) == 18084, "Hmm, didn't chop nb_1200727.ipynb"
+        # isclose bc string sizes differ, e.g. on Linux
+        assert math.isclose(len(body_html), 18084, abs_tol=200), "Hmm, didn't chop nb_1200727.ipynb"
 
     @responses.activate
     def test_ipynb_exclude(self):
