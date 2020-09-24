@@ -4,6 +4,7 @@ disk and RAM pressure.
 
 Lambda functions can have up to 3GB of RAM and only 512MB of disk.
 """
+import os
 import io
 from contextlib import redirect_stderr
 from urllib.parse import urlparse
@@ -27,6 +28,8 @@ from t4_lambda_shared.utils import get_default_origins, make_json_response
 # Number of bytes for read routines like decompress() and
 # response.content.iter_content()
 CHUNK = 1024*8
+# We can pump a max of 6MB out of Lambda
+LAMBDA_MAX_OUT = 6_000_000
 MIN_VCF_COLS = 8  # per 4.2 spec on header and data lines
 
 S3_DOMAIN_SUFFIX = '.amazonaws.com'
@@ -212,7 +215,7 @@ def extract_excel(file_):
     return html, {}
 
 
-def extract_ipynb(file_, exclude_output):
+def extract_ipynb(file_, exclude_output: bool):
     """
     parse and extract ipynb files
 
@@ -226,6 +229,13 @@ def extract_ipynb(file_, exclude_output):
     # local import reduces amortized latency, saves memory
     from nbconvert import HTMLExporter
     import nbformat
+    # get the file size
+    file_.seek(0, os.SEEK_END)
+    size = file_.tell()
+    if size > LAMBDA_MAX_OUT:
+        exclude_output = True
+    # rewind
+    file_.seek(0, os.SEEK_SET)
 
     html_exporter = HTMLExporter()
     html_exporter.template_file = 'basic'

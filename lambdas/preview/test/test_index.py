@@ -241,6 +241,24 @@ class TestIndex():
             '<span class="p">'
         ) in body_html, 'Last cell output missing'
 
+    @patch(__name__ + '.index.LAMBDA_MAX_OUT', 86_000)
+    @responses.activate
+    def test_ipynb_chop(self):
+        """test that we eliminate output cells when we're in danger of breaking
+        Lambda's invocation limit"""
+        notebook = BASE_DIR / 'nb_1200727.ipynb'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=notebook.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'ipynb'})
+        resp = index.lambda_handler(event, None)
+        body = json.loads(read_body(resp))
+        assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
+        body_html = body['html']
+        assert len(body_html) == 18084, "Hmm, didn't chop nb_1200727.ipynb"
+
     @responses.activate
     def test_ipynb_exclude(self):
         """test sending ipynb bytes"""
