@@ -5,6 +5,7 @@ import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 
+import * as style from 'constants/style'
 import * as Config from 'utils/Config'
 import * as BucketConfig from 'utils/BucketConfig'
 import Delay from 'utils/Delay'
@@ -113,36 +114,38 @@ function SearchHelp({ opened, onClose }) {
   const elasticDocsUrl =
     'https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-query-string-query.html'
   return (
-    <M.Dialog open={opened} onClose={onClose}>
-      <M.DialogTitle>Search Syntax</M.DialogTitle>
-      <M.DialogContent>
-        <M.Typography variant="body1" gutterBottom>
-          Quilt uses ElasticSearch version 6.7 and supports “query_string” queries with
-          the following syntax:
-        </M.Typography>
+    <M.MuiThemeProvider theme={style.appTheme}>
+      <M.Dialog open={opened} onClose={onClose}>
+        <M.DialogTitle>Search Syntax</M.DialogTitle>
+        <M.DialogContent>
+          <M.Typography variant="body1" gutterBottom>
+            Quilt uses ElasticSearch version 6.7 and supports “query_string” queries with
+            the following syntax:
+          </M.Typography>
 
-        <M.Typography variant="body1" gutterBottom>
-          Logical Operators: <code>AND</code>, <code>OR</code>.
-        </M.Typography>
+          <M.Typography variant="body1" gutterBottom>
+            Logical Operators: <code>AND</code>, <code>OR</code>.
+          </M.Typography>
 
-        <M.Typography variant="body1" gutterBottom>
-          Wildcards: <code>*</code>, <code>?</code>.
-        </M.Typography>
+          <M.Typography variant="body1" gutterBottom>
+            Wildcards: <code>*</code>, <code>?</code>.
+          </M.Typography>
 
-        <M.Typography variant="body1" gutterBottom>
-          Quoting fields
-        </M.Typography>
+          <M.Typography variant="body1" gutterBottom>
+            Quoting fields
+          </M.Typography>
 
-        <M.Typography variant="body1">
-          <M.Link href={elasticDocsUrl} target="_blank">
-            Learn more with the ES docs
-          </M.Link>
-        </M.Typography>
-      </M.DialogContent>
-      <M.DialogActions>
-        <M.Button onClick={onClose}>Close</M.Button>
-      </M.DialogActions>
-    </M.Dialog>
+          <M.Typography variant="body1">
+            <M.Link href={elasticDocsUrl} target="_blank">
+              Learn more with the ES docs
+            </M.Link>
+          </M.Typography>
+        </M.DialogContent>
+        <M.DialogActions>
+          <M.Button onClick={onClose}>Close</M.Button>
+        </M.DialogActions>
+      </M.Dialog>
+    </M.MuiThemeProvider>
   )
 }
 
