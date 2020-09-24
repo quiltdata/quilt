@@ -60,7 +60,17 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function SearchBox({ bucket, disabled, iconized, hidden, focused, ...props }) {
+function SearchBox({
+  bucket,
+  disabled,
+  iconized,
+  hidden,
+  focused,
+  helpOpened,
+  onHelpClose,
+  onHelpOpen,
+  ...props
+}) {
   const {
     adornment,
     disabled: disabledCls,
@@ -74,6 +84,15 @@ function SearchBox({ bucket, disabled, iconized, hidden, focused, ...props }) {
         <M.InputAdornment className={adornment}>
           <M.Icon>search</M.Icon>
         </M.InputAdornment>
+      }
+      endAdornment={
+        focused && onHelpOpen ? (
+          <M.InputAdornment position="end">
+            <M.IconButton onClick={onHelpOpen}>
+              <M.Icon>help_outline</M.Icon>
+            </M.IconButton>
+          </M.InputAdornment>
+        ) : null
       }
       classes={classes}
       className={cx({
@@ -90,11 +109,49 @@ function SearchBox({ bucket, disabled, iconized, hidden, focused, ...props }) {
   )
 }
 
+function SearchHelp({ opened, onClose }) {
+  const elasticDocsUrl =
+    'https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-query-string-query.html'
+  return (
+    <M.Dialog open={opened} onClose={onClose}>
+      <M.DialogTitle>Search Syntax</M.DialogTitle>
+      <M.DialogContent>
+        <M.Typography variant="body1" gutterBottom>
+          Quilt uses ElasticSearch version 6.7 and supports “query_string” queries with
+          the following syntax:
+        </M.Typography>
+
+        <M.Typography variant="body1" gutterBottom>
+          Logical Operators: <code>AND</code>, <code>OR</code>.
+        </M.Typography>
+
+        <M.Typography variant="body1" gutterBottom>
+          Wildcards: <code>*</code>, <code>?</code>.
+        </M.Typography>
+
+        <M.Typography variant="body1" gutterBottom>
+          Quoting fields
+        </M.Typography>
+
+        <M.Typography variant="body1">
+          <M.Link href={elasticDocsUrl} target="_blank">
+            Learn more with the ES docs
+          </M.Link>
+        </M.Typography>
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={onClose}>Close</M.Button>
+      </M.DialogActions>
+    </M.Dialog>
+  )
+}
+
 function State({ query, makeUrl, children, onFocus, onBlur }) {
   const dispatch = redux.useDispatch()
 
   const [value, change] = React.useState(null)
   const [focused, setFocused] = React.useState(false)
+  const [helpOpened, setHelpOpened] = React.useState(false)
 
   const onChange = React.useCallback((evt) => {
     change(evt.target.value)
@@ -128,9 +185,13 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
 
   const handleBlur = React.useCallback(() => {
     change(null)
-    setFocused(false)
+    setTimeout(() => setFocused(false), 100) // Fire rest of events and only then blur
     if (onBlur) onBlur()
   }, [])
+
+  const handleHelpOpen = React.useCallback(() => setHelpOpened(true), [])
+
+  const handleHelpClose = React.useCallback(() => setHelpOpened(false), [])
 
   return children({
     value: value === null ? query : value,
@@ -138,7 +199,10 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
     onKeyDown,
     onFocus: handleFocus,
     onBlur: handleBlur,
+    onHelpOpen: handleHelpOpen,
+    onHelpClose: handleHelpClose,
     focused,
+    helpOpened,
   })
 }
 
@@ -168,7 +232,12 @@ function GlobalSearch({ onFocus, onBlur, disabled, ...props }) {
     <SearchBox disabled value="Search not available" {...props} />
   ) : (
     <State {...{ query, makeUrl, onFocus, onBlur }}>
-      {(state) => <SearchBox {...state} {...props} />}
+      {(state) => (
+        <>
+          <SearchBox {...state} {...props} />
+          <SearchHelp opened={state.helpOpened} onClose={state.onHelpClose} />
+        </>
+      )}
     </State>
   )
 }
