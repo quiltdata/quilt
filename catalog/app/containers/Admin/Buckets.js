@@ -45,7 +45,7 @@ const useBucketFieldsStyles = M.makeStyles((t) => ({
   },
 }))
 
-function BucketFields({ add = false }) {
+function BucketFields({ add = false, reindex }) {
   const classes = useBucketFieldsStyles()
   return (
     <M.Box>
@@ -174,6 +174,11 @@ function BucketFields({ add = false }) {
           <M.Typography variant="h6">Indexing and notifications</M.Typography>
         </M.AccordionSummary>
         <M.Box className={classes.group} pt={1}>
+          {!!reindex && (
+            <M.Button variant="outlined" fullWidth onClick={reindex}>
+              Re-index &amp; repair&hellip;
+            </M.Button>
+          )}
           <RF.Field
             component={Form.Field}
             name="fileExtensionsToIndex"
@@ -373,10 +378,128 @@ function Add({ close }) {
   )
 }
 
+function Reindex({ bucket, open, close }) {
+  const req = APIConnector.use()
+
+  const [repair, setRepair] = React.useState(false)
+  const [submitting, setSubmitting] = React.useState(false)
+  const [submitSucceeded, setSubmitSucceeded] = React.useState(false)
+  const [error, setError] = React.useState(false)
+
+  const reset = React.useCallback(() => {
+    setSubmitting(false)
+    setSubmitSucceeded(false)
+    setRepair(false)
+    setError(false)
+  }, [])
+
+  const handleRepairChange = React.useCallback((e, v) => {
+    setRepair(v)
+  }, [])
+
+  const reindex = React.useCallback(async () => {
+    if (submitting) return
+    setError(false)
+    setSubmitting(true)
+    try {
+      await req({
+        endpoint: `/admin/reindex/${bucket}`,
+        method: 'POST',
+        body: { repair: repair || undefined },
+      })
+      setSubmitSucceeded(true)
+    } catch (e) {
+      if (APIConnector.HTTPError.is(e, 404, 'Bucket not found')) {
+        setError('Bucket not found')
+      } else if (APIConnector.HTTPError.is(e, 409, /in progress/)) {
+        setError('Indexing already in progress')
+      } else {
+        console.log('Error re-indexing bucket:')
+        console.error(e)
+        setError('Unexpected error')
+      }
+    }
+    setSubmitting(false)
+  }, [submitting, req, bucket, repair])
+
+  const handleClose = React.useCallback(() => {
+    if (submitting) return
+    close()
+  }, [submitting, close])
+
+  return (
+    <M.Dialog open={open} onClose={handleClose} onExited={reset} fullWidth>
+      <M.DialogTitle>Re-index &amp; repair a bucket</M.DialogTitle>
+      {submitSucceeded ? (
+        <M.DialogContent>
+          <M.DialogContentText color="textPrimary">
+            We have {repair && <>repaired S3 notifications and </>}
+            started re-indexing the bucket.
+          </M.DialogContentText>
+        </M.DialogContent>
+      ) : (
+        <M.DialogContent>
+          <M.DialogContentText color="textPrimary">
+            You are about to start re-indexing the <b>&quot;{bucket}&quot;</b> bucket
+          </M.DialogContentText>
+          <Form.Checkbox
+            meta={{ submitting, submitSucceeded }}
+            input={{ checked: repair, onChange: handleRepairChange }}
+            label="Repair S3 notifications"
+          />
+        </M.DialogContent>
+      )}
+      <M.DialogActions>
+        {submitting && (
+          <Delay>
+            {() => (
+              <M.Box flexGrow={1} display="flex" pl={2}>
+                <M.CircularProgress size={24} />
+              </M.Box>
+            )}
+          </Delay>
+        )}
+        {!submitting && !!error && (
+          <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
+            <M.Icon color="error">error_outline</M.Icon>
+            <M.Box pl={1} />
+            <M.Typography variant="body2" color="error">
+              {error}
+            </M.Typography>
+          </M.Box>
+        )}
+
+        {submitSucceeded ? (
+          <>
+            <M.Button onClick={close} color="primary">
+              Close
+            </M.Button>
+          </>
+        ) : (
+          <>
+            <M.Button onClick={close} disabled={submitting} color="primary">
+              Cancel
+            </M.Button>
+            <M.Button onClick={reindex} disabled={submitting} color="primary">
+              Re-index
+              {repair && <> &amp; repair</>}
+            </M.Button>
+          </>
+        )}
+      </M.DialogActions>
+    </M.Dialog>
+  )
+}
+
 function Edit({ bucket, close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
   const session = useAuthSession()
+
+  const [reindexOpen, setReindexOpen] = React.useState(false)
+  const openReindex = React.useCallback(() => setReindexOpen(true), [])
+  const closeReindex = React.useCallback(() => setReindexOpen(false), [])
+
   const onSubmit = React.useCallback(
     async (values) => {
       try {
@@ -432,10 +555,11 @@ function Edit({ bucket, close }) {
     >
       {({ handleSubmit, submitting, submitFailed, error, invalid, pristine, reset }) => (
         <>
+          <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
           <M.DialogTitle>Edit the &quot;{bucket.name}&quot; bucket</M.DialogTitle>
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
-              <BucketFields />
+              <BucketFields reindex={openReindex} />
               {submitFailed && (
                 <Form.FormError
                   error={error}
