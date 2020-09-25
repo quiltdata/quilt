@@ -59,6 +59,7 @@ that scale to 10M keys; consider abbreviated "fast manifests" for lazy browsing
 * [ ] Evaluate min.io and ceph.io as shims
 * [ ] Evaluate feasibility of on-prem local storage as a repo
 
+
 ### IV - Cloud agnostic
 * [ ] Evaluate K8s and Terraform to replace CloudFormation
 * [ ] Shim lambdas (consider serverless.com)
