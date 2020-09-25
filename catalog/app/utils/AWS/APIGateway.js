@@ -2,6 +2,7 @@ import AWS from 'aws-sdk/lib/core'
 import * as React from 'react'
 import * as R from 'ramda'
 
+import { HTTPError } from 'utils/APIConnector'
 import { useConfig } from 'utils/Config'
 import { mkSearch } from 'utils/NamedRoutes'
 
@@ -56,12 +57,13 @@ export function useAPIGatewayRequest() {
             response.on('end', () => {
               if (timedOut) return
               clearTimeout(timeoutId)
-              if (response.statusCode === 429) {
-                reject(new Error('TooManyRequests'))
-                return
-              }
               if (response.statusCode !== 200) {
-                reject(new Error(`API Gateway Error (${response.statusCode}): ${body}`))
+                reject(
+                  new HTTPError(response, body, {
+                    status: response.statusCode,
+                    message: `API Gateway error (${response.statusCode}): ${body}`,
+                  }),
+                )
                 return
               }
               try {

@@ -91,15 +91,15 @@ export class HTTPError extends BaseError {
     return true
   }
 
-  constructor(resp, text) {
+  constructor(resp, text, { message, status } = {}) {
     let json
     try {
       json = JSON.parse(text)
     } catch (e) {} // eslint-disable-line no-empty
 
-    super((json && (json.message || json.error)) || resp.statusText, {
+    super(message || (json && (json.message || json.error)) || resp.statusText, {
       response: resp,
-      status: resp.status,
+      status: status || resp.status,
       text,
       json,
     })

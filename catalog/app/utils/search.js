@@ -1,6 +1,9 @@
 import * as R from 'ramda'
 
+import { HTTPError } from 'utils/APIConnector'
 import { BaseError } from 'utils/error'
+
+export class SearchError extends BaseError {}
 
 const parseDate = (d) => d && new Date(d)
 
@@ -158,14 +161,28 @@ export default async function search({
     const total = Math.min(result.hits.total, result.hits.hits.length)
     return { total, hits }
   } catch (e) {
-    const match = e.message.match(
-      /^API Gateway Error.*RequestError\(400, 'search_phase_execution_exception', '(.+)'\)$/,
-    )
-    if (match) {
-      throw new BaseError('SearchSyntaxError', { details: unescape(match[1]) })
+    if (e instanceof HTTPError) {
+      const match = e.text.match(/^RequestError\((\d+), '(\w+)', '(.+)'\)$/)
+      if (match) {
+        const code = match[2]
+        const details = unescape(match[3])
+
+        if (code === 'search_phase_execution_exception') {
+          throw new SearchError('SearchSyntaxError', { details })
+        }
+
+        throw new SearchError('RequestError', {
+          code,
+          details,
+          status: parseInt(match[1], 10) || undefined,
+        })
+      }
+      if (/^API Gateway error.*ConnectionTimeout/.test(e.message)) {
+        throw new SearchError('Timeout')
+      }
     }
     console.log('Search error:')
     console.error(e)
-    throw e
+    throw new SearchError('Unexpected', { originalError: e })
   }
 }
