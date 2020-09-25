@@ -447,6 +447,13 @@ function Reindex({ bucket, open, close }) {
             input={{ checked: repair, onChange: handleRepairChange }}
             label="Repair S3 notifications"
           />
+          {repair && (
+            <M.Box color="warning.dark" ml={4}>
+              <M.Typography color="inherit" variant="caption">
+                Bucket notifications will be overwritten
+              </M.Typography>
+            </M.Box>
+          )}
         </M.DialogContent>
       )}
       <M.DialogActions>
