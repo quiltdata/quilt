@@ -186,7 +186,7 @@ const processStats = R.applySpec({
   totalBytes: R.path(['aggregations', 'totalBytes', 'value']),
 })
 
-export const bucketStats = async ({ es, s3, bucket, overviewUrl }) => {
+export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   if (overviewUrl) {
     try {
       return await s3
@@ -204,7 +204,7 @@ export const bucketStats = async ({ es, s3, bucket, overviewUrl }) => {
   }
 
   try {
-    return await es({ action: 'stats', index: bucket }).then(processStats)
+    return await req('/search', { index: bucket, action: 'stats' }).then(processStats)
   } catch (e) {
     console.log('Unable to fetch live stats:')
     console.error(e)
@@ -278,7 +278,7 @@ export const ensureObjectIsPresent = (...args) =>
     }),
   )
 
-export const bucketSummary = async ({ s3, es, bucket, overviewUrl, inStack }) => {
+export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) => {
   const handle = await ensureObjectIsPresent({ s3, bucket, key: SUMMARIZE_KEY })
   if (handle) {
     try {
@@ -324,7 +324,7 @@ export const bucketSummary = async ({ s3, es, bucket, overviewUrl, inStack }) =>
   }
   if (inStack) {
     try {
-      return await es({ action: 'sample', index: bucket }).then(
+      return await req('/search', { action: 'sample', index: bucket }).then(
         R.pipe(
           R.path(['hits', 'hits']),
           R.map((h) => {
@@ -392,7 +392,7 @@ export const bucketReadmes = ({ s3, bucket, overviewUrl }) =>
     ).then(R.filter(Boolean)),
   })
 
-export const bucketImgs = async ({ es, s3, bucket, overviewUrl, inStack }) => {
+export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
   if (overviewUrl) {
     try {
       return await s3
@@ -420,7 +420,7 @@ export const bucketImgs = async ({ es, s3, bucket, overviewUrl, inStack }) => {
   }
   if (inStack) {
     try {
-      return await es({ action: 'images', index: bucket }).then(
+      return await req('/search', { action: 'images', index: bucket }).then(
         R.pipe(
           R.path(['hits', 'hits']),
           R.map((h) => {
