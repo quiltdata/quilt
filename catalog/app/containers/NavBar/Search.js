@@ -19,6 +19,7 @@ const useStyles = M.makeStyles((t) => ({
     background: fade(t.palette.common.white, 0),
     borderRadius: t.shape.borderRadius,
     overflow: 'hidden',
+    padding: `0 ${t.spacing(1)}px 0 ${t.spacing(1.5)}px`,
     position: 'absolute',
     right: 0,
     transition: ['background-color 200ms', 'opacity 200ms', 'width 200ms'],
@@ -36,29 +37,42 @@ const useStyles = M.makeStyles((t) => ({
   disabled: {
     opacity: 0.8,
   },
-  hidden: {
-    opacity: 0,
-  },
-  focused: {
+  expanded: {
     background: `${fade(t.palette.common.white, 0.2)} !important`,
     width: '100%',
   },
+  hidden: {
+    opacity: 0,
+  },
   input: {
-    paddingLeft: t.spacing(4),
+    paddingLeft: t.spacing(1),
     paddingTop: 8,
     paddingBottom: 9,
     textOverflow: 'ellipsis',
     transition: ['opacity 200ms'],
-    '$iconized:not($focused) &': {
+    '$iconized:not($expanded) &': {
       opacity: 0,
     },
   },
-  adornment: {
+}))
+
+const useSuggestStyles = M.makeStyles((t) => ({
+  root: {
+    maxHeight: '400px',
+    overflowY: 'auto',
+    padding: t.spacing(4),
+  },
+  row: {
     cursor: 'pointer',
-    justifyContent: 'center',
-    pointerEvents: 'none',
-    position: 'absolute',
-    width: t.spacing(4),
+  },
+  definition: {
+    width: '300px',
+  },
+  group: {
+    marginTop: t.spacing(2),
+  },
+  wrapper: {
+    right: t.spacing(3),
   },
 }))
 
@@ -67,43 +81,56 @@ function SearchBox({
   disabled,
   iconized,
   hidden,
-  focused,
-  helpOpened,
-  onHelpClose,
+  expanded,
   onHelpOpen,
+  onCollapse,
+  onQuery,
+  inputEl,
   ...props
 }) {
   const {
-    adornment,
     disabled: disabledCls,
-    iconized: iconizedCls,
+    expanded: expandedCls,
     hidden: hiddenCls,
+    iconized: iconizedCls,
     ...classes
   } = useStyles()
   return (
     <M.InputBase
       startAdornment={
-        <M.InputAdornment className={adornment}>
-          <M.Icon>search</M.Icon>
-        </M.InputAdornment>
+        <>
+          {expanded ? (
+            <M.InputAdornment>
+              <M.Button size="small" onClick={onHelpOpen}>
+                Advanced
+                <M.Icon>keyboard_arrow_down</M.Icon>
+              </M.Button>
+            </M.InputAdornment>
+          ) : (
+            <M.InputAdornment>
+              <M.Icon>search</M.Icon>
+            </M.InputAdornment>
+          )}
+        </>
       }
       endAdornment={
-        focused && onHelpOpen ? (
+        expanded ? (
           <M.InputAdornment position="end">
-            <M.IconButton onClick={onHelpOpen}>
-              <M.Icon>help_outline</M.Icon>
+            <M.IconButton size="small" onClick={onCollapse}>
+              <M.Icon>close</M.Icon>
             </M.IconButton>
           </M.InputAdornment>
         ) : null
       }
       classes={classes}
       className={cx({
+        [expandedCls]: expanded,
         [disabledCls]: disabled,
         [iconizedCls]: iconized,
         [hiddenCls]: hidden,
       })}
       placeholder={
-        focused ? `Search ${bucket ? `s3://${bucket}` : 'all buckets'}` : 'Search'
+        expanded ? `Search ${bucket ? `s3://${bucket}` : 'all buckets'}` : 'Search'
       }
       disabled={disabled}
       {...props}
@@ -111,39 +138,142 @@ function SearchBox({
   )
 }
 
-function SearchHelp({ opened, onClose }) {
+function SearchSuggest({ inputEl, opened, onQuery }) {
+  const { definition, group, root, row, wrapper } = useSuggestStyles()
+
   const ES_V = '6.7'
   const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
+
+  const wildcards = {
+    title: 'Wildcards',
+    rows: [
+      {
+        key: '*',
+        title: 'Any character zero or more times',
+      },
+      {
+        key: '?',
+        title: 'A single character once',
+      },
+    ],
+  }
+
+  const operators = {
+    title: 'Logical operators',
+    rows: [
+      {
+        key: 'AND',
+        title: 'Logical conjunction',
+      },
+      {
+        key: 'OR',
+        title: 'Logical disjunction',
+      },
+    ],
+  }
+
+  const keywords = {
+    title: 'Keywords',
+    rows: [
+      {
+        key: 'comment:',
+        title: 'User-provided comments',
+      },
+      {
+        key: 'content:',
+        title: 'Document body',
+      },
+      {
+        key: 'etag:',
+        title: '',
+      },
+      {
+        key: 'event:',
+        title: '',
+      },
+      {
+        key: '_exists_:',
+        title: '',
+      },
+      {
+        key: 'ext:',
+        title: 'File extension',
+      },
+      {
+        key: 'last_modified:',
+        title: 'Date YYYY-MM-DD',
+      },
+      {
+        key: 'meta_text:',
+        title: '',
+      },
+      {
+        key: 'size:',
+        title: '',
+      },
+      {
+        key: 'target:',
+        title: '',
+      },
+      {
+        key: 'updated:',
+        title: '',
+      },
+      {
+        key: 'version_id:',
+        title: '',
+      },
+    ],
+  }
+
+  const syntaxHelpRows = [wildcards, operators, keywords]
+
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
-      <M.Dialog open={opened} onClose={onClose}>
-        <M.DialogTitle>Search Syntax</M.DialogTitle>
-        <M.DialogContent>
-          <M.Typography variant="body1" gutterBottom>
-            Quilt uses ElasticSearch version 6.7 and supports “query_string” queries with
-            the following syntax:
-          </M.Typography>
+      <M.Popper
+        anchorEl={inputEl}
+        disablePortal
+        open={opened}
+        placement="bottom-start"
+        className={cx(wrapper)}
+      >
+        <M.Paper className={cx(root)}>
+          <M.Grid container direction="row" justify="space-between" alignItems="center">
+            <M.Grid item>
+              <M.Typography variant="subtitle1">Search queries</M.Typography>
+            </M.Grid>
+            <M.Grid item>
+              <M.Typography variant="caption">
+                Quilt uses Query String Queries{' '}
+                <StyledLink href={ES_REF}>ES 6.7</StyledLink>
+              </M.Typography>
+            </M.Grid>
+          </M.Grid>
 
-          <M.Typography variant="body1" gutterBottom>
-            Logical Operators: <code>AND</code>, <code>OR</code>.
-          </M.Typography>
-
-          <M.Typography variant="body1" gutterBottom>
-            Wildcards: <code>*</code>, <code>?</code>.
-          </M.Typography>
-
-          <M.Typography variant="body1" gutterBottom>
-            Quoting fields
-          </M.Typography>
-
-          <M.Typography variant="body1">
-            <StyledLink href={ES_REF}>Learn more with the ES docs</StyledLink>
-          </M.Typography>
-        </M.DialogContent>
-        <M.DialogActions>
-          <M.Button onClick={onClose}>Close</M.Button>
-        </M.DialogActions>
-      </M.Dialog>
+          {syntaxHelpRows.map((syntaxHelp) => (
+            <M.TableContainer className={cx(group)} key={syntaxHelp.title}>
+              <M.Typography variant="subtitle2">{syntaxHelp.title}</M.Typography>
+              <M.Table size="small">
+                <M.TableBody>
+                  {syntaxHelp.rows.map(({ key, title }) => (
+                    <M.TableRow
+                      className={cx(row)}
+                      key={key}
+                      onClick={() => onQuery(key)}
+                      hover
+                    >
+                      <M.TableCell className={cx(definition)} component="th">
+                        {key}
+                      </M.TableCell>
+                      <M.TableCell>{title}</M.TableCell>
+                    </M.TableRow>
+                  ))}
+                </M.TableBody>
+              </M.Table>
+            </M.TableContainer>
+          ))}
+        </M.Paper>
+      </M.Popper>
     </M.MuiThemeProvider>
   )
 }
@@ -152,12 +282,36 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
   const dispatch = redux.useDispatch()
 
   const [value, change] = React.useState(null)
-  const [focused, setFocused] = React.useState(false)
-  const [helpOpened, setHelpOpened] = React.useState(false)
+  const [expanded, setExpanded] = React.useState(false)
+  const [inputEl, setInputEl] = React.useState(null)
 
   const onChange = React.useCallback((evt) => {
     change(evt.target.value)
   }, [])
+
+  const handleFocus = React.useCallback(() => {
+    setInputEl(null)
+
+    if (expanded) {
+      return
+    }
+
+    change(query)
+    setExpanded(true)
+    if (onFocus) onFocus()
+  }, [query, value])
+
+  const handleCollapse = React.useCallback(() => {
+    change(null)
+    setExpanded(false)
+    setInputEl(null)
+    if (onBlur) onBlur()
+  })
+
+  const handleHelpOpen = React.useCallback(
+    ({ currentTarget }) => setInputEl(currentTarget),
+    [],
+  )
 
   const onKeyDown = React.useCallback(
     (evt) => {
@@ -172,39 +326,35 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
           evt.target.blur()
           break
         case 'Escape':
+          handleCollapse()
           evt.target.blur()
           break
+        // TODO
+        // case 'ArrowDown':
+        //   handleHelpOpen(evt)
+        //   break
       }
     },
     [dispatch, makeUrl, value, query],
   )
 
-  const handleFocus = React.useCallback(() => {
-    change(query)
-    setFocused(true)
-    if (onFocus) onFocus()
-  }, [query])
-
-  const handleBlur = React.useCallback(() => {
-    change(null)
-    setTimeout(() => setFocused(false), 100) // Fire rest of events and only then blur
-    if (onBlur) onBlur()
-  }, [])
-
-  const handleHelpOpen = React.useCallback(() => setHelpOpened(true), [])
-
-  const handleHelpClose = React.useCallback(() => setHelpOpened(false), [])
+  const handleQuery = React.useCallback(
+    (strPart) => {
+      change(`${value} ${strPart}`)
+    },
+    [value],
+  )
 
   return children({
     value: value === null ? query : value,
     onChange,
     onKeyDown,
     onFocus: handleFocus,
-    onBlur: handleBlur,
     onHelpOpen: handleHelpOpen,
-    onHelpClose: handleHelpClose,
-    focused,
-    helpOpened,
+    onCollapse: handleCollapse,
+    onQuery: handleQuery,
+    expanded,
+    inputEl,
   })
 }
 
@@ -237,7 +387,11 @@ function GlobalSearch({ onFocus, onBlur, disabled, ...props }) {
       {(state) => (
         <>
           <SearchBox {...state} {...props} />
-          <SearchHelp opened={state.helpOpened} onClose={state.onHelpClose} />
+          <SearchSuggest
+            inputEl={state.inputEl}
+            opened={Boolean(state.inputEl)}
+            onQuery={state.onQuery}
+          />
         </>
       )}
     </State>
