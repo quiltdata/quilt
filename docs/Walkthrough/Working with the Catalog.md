@@ -22,7 +22,7 @@ You can also browse the underlying S3 files using the files tab.
 
 ### Search
 
-Catalogs also enable you to search the contents of your bucket. We support both unstructured  (e.g. "`San Francisco`") and structured (e.g. "`metadata_key: metadata_value`") search. Hits are previewed right in the search results.
+Catalogs also enable you to search the contents of your bucket. We support both unstructured  (e.g. "`San Francisco`") and structured with Query String Queries [ES 6.7](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/query-dsl-query-string-query.html#query-string-syntax) (e.g. "`metadata_key: metadata_value`") search. Hits are previewed right in the search results.
 
 ![](../imgs/catalog_search.png)
 
