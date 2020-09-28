@@ -38,12 +38,12 @@ const useStyles = M.makeStyles((t) => ({
   disabled: {
     opacity: 0.8,
   },
+  hidden: {
+    opacity: 0,
+  },
   expanded: {
     background: `${fade(t.palette.common.white, 0.2)} !important`,
     width: '100%',
-  },
-  hidden: {
-    opacity: 0,
   },
   input: {
     paddingLeft: t.spacing(1),
@@ -153,7 +153,7 @@ function SearchBox({
 }
 
 function SearchHelp({ onClose, onQuery }) {
-  const { definition, group, root, row, wrapper } = useHelpStyles()
+  const classes = useHelpStyles()
 
   const ES_V = '6.7'
   const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
@@ -164,8 +164,8 @@ function SearchHelp({ onClose, onQuery }) {
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
       <M.ClickAwayListener onClickAway={onClose}>
-        <M.Box className={cx(wrapper)}>
-          <M.Paper className={cx(root)}>
+        <M.Box className={classes.wrapper}>
+          <M.Paper className={classes.root}>
             <M.Grid container direction="row" justify="space-between" alignItems="center">
               <M.Grid item>
                 <M.Typography variant="subtitle1">{helpTitle}</M.Typography>
@@ -179,18 +179,18 @@ function SearchHelp({ onClose, onQuery }) {
             </M.Grid>
 
             {syntaxHelpRows.map((syntaxHelp) => (
-              <M.TableContainer className={cx(group)} key={syntaxHelp.title}>
+              <M.TableContainer className={classes.group} key={syntaxHelp.title}>
                 <M.Typography variant="subtitle2">{syntaxHelp.title}</M.Typography>
                 <M.Table size="small">
                   <M.TableBody>
                     {syntaxHelp.rows.map(({ key, title }) => (
                       <M.TableRow
-                        className={cx(row)}
+                        className={classes.row}
                         key={key}
                         onClick={() => onQuery(key)}
                         hover
                       >
-                        <M.TableCell className={cx(definition)} component="th">
+                        <M.TableCell className={classes.definition} component="th">
                           {key}
                         </M.TableCell>
                         <M.TableCell>{title}</M.TableCell>
@@ -228,7 +228,7 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
     change(query)
     setExpanded(true)
     if (onFocus) onFocus()
-  }, [query, value])
+  }, [query])
 
   const handleCollapse = React.useCallback(() => {
     change(null)
@@ -240,6 +240,13 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
   const handleHelpOpen = React.useCallback(() => setHelpOpened(true), [])
 
   const handleHelpClose = React.useCallback(() => setHelpOpened(false), [])
+
+  const handleQuery = React.useCallback(
+    (strPart) => {
+      change(`${value} ${strPart}`)
+    },
+    [value],
+  )
 
   const onKeyDown = React.useCallback(
     (evt) => {
@@ -263,13 +270,6 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
       }
     },
     [dispatch, makeUrl, value, query],
-  )
-
-  const handleQuery = React.useCallback(
-    (strPart) => {
-      change(`${value} ${strPart}`)
-    },
-    [value],
   )
 
   return children({
