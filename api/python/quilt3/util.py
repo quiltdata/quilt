@@ -561,7 +561,7 @@ def parse_package(package):
 
 def parse_packages(packages: list) -> list:
     """Validates a list of package names and parse each package to a namedtuple of 'name, path and top_hash'."""
-    parsed = list()
+    parsed = []
     if packages:
         for pkg in packages:
             try:
@@ -573,10 +573,9 @@ def parse_packages(packages: list) -> list:
 
 
 class QuiltInstallPackageParser:
-    __slots__ = ('parsed_yaml', 'package', 'from_yaml_file')
+    __slots__ = ('parsed_yaml', 'package')
 
     def __init__(self, name):
-        self.from_yaml_file = False
         self.parsed_yaml = None
 
         try:
@@ -591,10 +590,9 @@ class QuiltInstallPackageParser:
             if not path.exists():
                 raise QuiltException(f'{name!r} does not exist in path.')
             self.parsed_yaml = read_yaml(path)
-            self.from_yaml_file = True
 
     def get_registries(self):
-        parsed = list()
+        parsed = []
         if self.parsed_yaml:
             registries = self.parsed_yaml.get('registries')
             if registries:

@@ -93,7 +93,7 @@ def test_parse_package(package, expected_package_name, expected_sub_path, expect
         ('@quilt.yml', 'yml', 1.0, {'s3://some-bucket': 2, 's3://another-bucket': 3}),
         ('quilt.yml', 'yml', 1.0, {'s3://some-bucket': 2, 's3://another-bucket': 3}),
         ('quilt.yaml', 'yaml', 1.0, {'s3://some-bucket': 2, 's3://another-bucket': 3}),
-        ('akarve/cord19', None, None, dict())
+        ('akarve/cord19', None, None, {})
     ]
 )
 def test_quilt_install_package_parser(name, extension, expected_quilt_version, expected_registries):

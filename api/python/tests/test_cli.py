@@ -72,7 +72,7 @@ class QuiltCLITestCase(CommandLineTestCase):
         )
     ]
 )
-def test_cli_install(name, registry, expected_calls, expected_no_of_calls):
+def test_cli_install(name, registry, expected_calls, expected_no_of_calls, set_temporary_working_dir):
     config_file = Path(__file__).parent / 'data/quilt.yml'
     shutil.copy(config_file, 'quilt.yml')
 
@@ -83,8 +83,6 @@ def test_cli_install(name, registry, expected_calls, expected_no_of_calls):
             main.main(('install', 'quilt.yml'))
         mocked_package_install.assert_has_calls(expected_calls)
         assert mocked_package_install.call_count == expected_no_of_calls
-
-    os.remove("quilt.yml")
 
 
 @pytest.mark.parametrize(

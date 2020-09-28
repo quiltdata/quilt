@@ -228,7 +228,7 @@ def cmd_push(name, dir, registry, dest, message, meta):
 
 def cmd_install(name, registry, top_hash, path, **kwargs):
     parser = QuiltInstallPackageParser(name)
-    if parser.from_yaml_file:
+    if parser.parsed_yaml:
         # raise exception if quilt.yml gets a registry
         if registry:
             raise QuiltException('--registry is not allowed while installing packages from yaml file.')
