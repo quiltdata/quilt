@@ -58,6 +58,14 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 const useSuggestStyles = M.makeStyles((t) => ({
+  '@keyframes appear': {
+    '0%': {
+      transform: 'translateY(-10px)',
+    },
+    '100%': {
+      transform: 'translateY(0)',
+    },
+  },
   root: {
     maxHeight: '400px',
     overflowY: 'auto',
@@ -73,7 +81,11 @@ const useSuggestStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(2),
   },
   wrapper: {
-    right: t.spacing(3),
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: t.spacing(3),
+    animation: '$appear 150ms ease',
   },
 }))
 
@@ -84,9 +96,10 @@ function SearchBox({
   hidden,
   expanded,
   onHelpOpen,
+  onHelpClose,
   onCollapse,
   onQuery,
-  inputEl,
+  helpOpened,
   ...props
 }) {
   const {
@@ -139,7 +152,7 @@ function SearchBox({
   )
 }
 
-function SearchSuggest({ inputEl, opened, onQuery }) {
+function SearchSuggest({ onClose, onQuery }) {
   const { definition, group, root, row, wrapper } = useSuggestStyles()
 
   const ES_V = '6.7'
@@ -156,50 +169,46 @@ function SearchSuggest({ inputEl, opened, onQuery }) {
 
   return (
     <M.MuiThemeProvider theme={style.appTheme}>
-      <M.Popper
-        anchorEl={inputEl}
-        disablePortal
-        open={opened}
-        placement="bottom-start"
-        className={cx(wrapper)}
-      >
-        <M.Paper className={cx(root)}>
-          <M.Grid container direction="row" justify="space-between" alignItems="center">
-            <M.Grid item>
-              <M.Typography variant="subtitle1">{suggestTitle}</M.Typography>
+      <M.ClickAwayListener onClickAway={onClose}>
+        <M.Box className={cx(wrapper)}>
+          <M.Paper className={cx(root)}>
+            <M.Grid container direction="row" justify="space-between" alignItems="center">
+              <M.Grid item>
+                <M.Typography variant="subtitle1">{suggestTitle}</M.Typography>
+              </M.Grid>
+              <M.Grid item>
+                <M.Typography variant="caption">
+                  {caption}
+                  <StyledLink href={ES_REF}>ES 6.7</StyledLink>
+                </M.Typography>
+              </M.Grid>
             </M.Grid>
-            <M.Grid item>
-              <M.Typography variant="caption">
-                {caption}
-                <StyledLink href={ES_REF}>ES 6.7</StyledLink>
-              </M.Typography>
-            </M.Grid>
-          </M.Grid>
 
-          {syntaxHelpRows.map((syntaxHelp) => (
-            <M.TableContainer className={cx(group)} key={syntaxHelp.title}>
-              <M.Typography variant="subtitle2">{syntaxHelp.title}</M.Typography>
-              <M.Table size="small">
-                <M.TableBody>
-                  {syntaxHelp.rows.map(({ key, title }) => (
-                    <M.TableRow
-                      className={cx(row)}
-                      key={key}
-                      onClick={() => onQuery(key)}
-                      hover
-                    >
-                      <M.TableCell className={cx(definition)} component="th">
-                        {key}
-                      </M.TableCell>
-                      <M.TableCell>{title}</M.TableCell>
-                    </M.TableRow>
-                  ))}
-                </M.TableBody>
-              </M.Table>
-            </M.TableContainer>
-          ))}
-        </M.Paper>
-      </M.Popper>
+            {syntaxHelpRows.map((syntaxHelp) => (
+              <M.TableContainer className={cx(group)} key={syntaxHelp.title}>
+                <M.Typography variant="subtitle2">{syntaxHelp.title}</M.Typography>
+                <M.Table size="small">
+                  <M.TableBody>
+                    {syntaxHelp.rows.map(({ key, title }) => (
+                      <M.TableRow
+                        className={cx(row)}
+                        key={key}
+                        onClick={() => onQuery(key)}
+                        hover
+                      >
+                        <M.TableCell className={cx(definition)} component="th">
+                          {key}
+                        </M.TableCell>
+                        <M.TableCell>{title}</M.TableCell>
+                      </M.TableRow>
+                    ))}
+                  </M.TableBody>
+                </M.Table>
+              </M.TableContainer>
+            ))}
+          </M.Paper>
+        </M.Box>
+      </M.ClickAwayListener>
     </M.MuiThemeProvider>
   )
 }
@@ -209,14 +218,14 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
 
   const [value, change] = React.useState(null)
   const [expanded, setExpanded] = React.useState(false)
-  const [inputEl, setInputEl] = React.useState(null)
+  const [helpOpened, setHelpOpened] = React.useState(false)
 
   const onChange = React.useCallback((evt) => {
     change(evt.target.value)
   }, [])
 
   const handleFocus = React.useCallback(() => {
-    setInputEl(null)
+    setHelpOpened(false)
 
     if (expanded) {
       return
@@ -230,14 +239,13 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
   const handleCollapse = React.useCallback(() => {
     change(null)
     setExpanded(false)
-    setInputEl(null)
+    setHelpOpened(false)
     if (onBlur) onBlur()
   })
 
-  const handleHelpOpen = React.useCallback(
-    ({ currentTarget }) => setInputEl(currentTarget),
-    [],
-  )
+  const handleHelpOpen = React.useCallback(() => setHelpOpened(true), [])
+
+  const handleHelpClose = React.useCallback(() => setHelpOpened(false), [])
 
   const onKeyDown = React.useCallback(
     (evt) => {
@@ -255,10 +263,9 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
           handleCollapse()
           evt.target.blur()
           break
-        // TODO
-        // case 'ArrowDown':
-        //   handleHelpOpen(evt)
-        //   break
+        case 'ArrowDown':
+          handleHelpOpen()
+          break
       }
     },
     [dispatch, makeUrl, value, query],
@@ -277,10 +284,11 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
     onKeyDown,
     onFocus: handleFocus,
     onHelpOpen: handleHelpOpen,
+    onHelpClose: handleHelpClose,
     onCollapse: handleCollapse,
     onQuery: handleQuery,
     expanded,
-    inputEl,
+    helpOpened,
   })
 }
 
@@ -313,11 +321,9 @@ function GlobalSearch({ onFocus, onBlur, disabled, ...props }) {
       {(state) => (
         <>
           <SearchBox {...state} {...props} />
-          <SearchSuggest
-            inputEl={state.inputEl}
-            opened={Boolean(state.inputEl)}
-            onQuery={state.onQuery}
-          />
+          {state.helpOpened ? (
+            <SearchSuggest onQuery={state.onQuery} onClose={state.onHelpClose} />
+          ) : null}
         </>
       )}
     </State>
