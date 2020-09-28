@@ -1,8 +1,13 @@
 The examples in this section use the `aleksey/hurdat` [demo package](https://open.quiltdata.com/b/quilt-example/tree/aleksey/hurdat/):
 
+
 ```python
-# import quilt3
-# p = quilt3.Package.browse('aleksey/hurdat', 's3://quilt-example')
+import quilt3
+p = quilt3.Package.browse('aleksey/hurdat', 's3://quilt-example')
+print(p)
+```
+
+```shell
 (remote Package)
  └─.gitignore
  └─.quiltignore
@@ -18,14 +23,21 @@ The examples in this section use the `aleksey/hurdat` [demo package](https://ope
 
 Use `dict` key selection to slice into a package tree:
 
-```python
-p["requirements.txt"]
-# returns PackageEntry("requirements.txt")
 
+```python
+# returns PackageEntry("requirements.txt")
+p["requirements.txt"]
+```
+
+
+```python
+# returns (remote Package)
 p["notebooks"]
-# returns:
-# (remote Package)
-# └─QuickStart.ipynb
+```
+
+```shell
+(remote Package)
+ └─QuickStart.ipynb
 ```
 
 Slicing into a `Package` directory returns another `Package` rooted at that subdirectory. Slicing into a package entry returns an individual `PackageEntry`.
@@ -33,6 +45,7 @@ Slicing into a `Package` directory returns another `Package` rooted at that subd
 ## Downloading package data to disk
 
 To download a subset of files from a package directory to a `dest`, use `fetch`:
+
 
 ```python
 # download a subfolder
@@ -47,6 +60,7 @@ p.fetch()
 
 `fetch` will default to downloading the files to the current directory, but you can also specify an alternative path:
 
+
 ```python
 p["notebooks"]["QuickStart.ipynb"].fetch("./references/")
 ```
@@ -55,12 +69,14 @@ p["notebooks"]["QuickStart.ipynb"].fetch("./references/")
 
 Alternatively, you can download data directly into memory:
 
-```bash
+
+```python
 p["quilt_summarize.json"]()
 # returns a dict
 ```
 
 To apply a custom deserializer to your data, pass the function as a parameter to the function. For example, to load a hypothetical `yaml` file using `yaml.safe_load`:
+
 
 ```python
 p["symbols.yaml"](yaml.safe_load)
@@ -73,17 +89,16 @@ The deserializer should accept a byte stream as input.
 
 You can get the path to a package entry or directory using `get`:
 
-```python
-p["notebooks"]["QuickStart.ipynb"].get()
-# returns /path/to/pkg/root/notebooks/QuickStart.ipynb
 
-p.get()
-# returns /path/to/pkg/root/
+```python
+# returns /path/to/pkg/root/notebooks/QuickStart.ipynb
+p["notebooks"]["QuickStart.ipynb"].get()
 ```
 
 ## Getting metadata
 
 Metadata is available using the `meta` property.
+
 
 ```python
 # get entry metadata

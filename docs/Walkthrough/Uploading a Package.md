@@ -4,6 +4,7 @@ Once your package is ready it's time to save and distribute it.
 
 To save a package to your local disk use `build`.
 
+
 ```python
 import quilt3
 p = quilt3.Package()
@@ -17,11 +18,11 @@ Building a package requires providing it with a name. Packages names must follow
 
 To share a package with others via a remote registry you will first need to authenticate against, if you haven't done so already:
 
-```python
-import quilt3
 
+```python
 # only need to run this once
-quilt3.config('https://your-catalog-homepage/')
+# ie quilt3.config('https://your-catalog-homepage/')
+quilt3.config('https://open.quiltdata.com/')
 
 # follow the instructions to finish login
 quilt3.login()
@@ -31,12 +32,14 @@ quilt3.login()
 
 To share a package with others via a remote registry, use `push`:
 
+
 ```python
-import quilt3
 p = quilt3.Package()
+
+# push("username/packagename", "s3://your-bucket", "message")
 p.push(
-    "username/packagename",
-    "s3://your-bucket",
+    "foo/bar",
+    "s3://quilt-example",
     message="Updated version my package"
 )
 ```
@@ -45,20 +48,21 @@ p.push(
 
 You can omit the registry argument if you configure a `default_remote_registry` (this setting persists between sessions):
 
+
 ```python
-import quilt3
-quilt3.config(default_remote_registry='s3://your-bucket')
+quilt3.config(default_remote_registry='s3://quilt-example')
 p = quilt3.Package()
-p.push("username/packagename")  
+p.push("foo/bar") 
 ```
 
 You can control where files land using `dest`:
+
 
 ```python
 p = quilt3.Package()
 p.push(
     "username/packagename",
-    dest="s3://your-bucket/foo/bar"
+    dest="s3://quilt-example/foo/bar"
 )
 ```
 
@@ -68,9 +72,10 @@ p.push(
 
 `push` will send both a package manifest and its data to a remote registry. This will involve copying your data to S3. To save just the package manifest to S3 without any data copying, use `build`:
 
+
 ```python
 p = quilt3.Package()
-p.build("username/packagename", "s3://your-bucket")
+p.build("foo/bar", "s3://quilt-example")
 ```
 
 This will create a new version of your package with all of its physical keys preserved.
@@ -79,14 +84,13 @@ This will create a new version of your package with all of its physical keys pre
 
 To delete a package from a registry:
 
-```python
-import quilt3
 
+```python
 # delete a package in the local registry
-quilt3.delete_package("username/packagename")
+quilt3.delete_package("foo/bar")
 
 # delete a package in a remote registry
-quilt3.delete_package("username/packagename", "s3://your-bucket")
+quilt3.delete_package("foo/bar", "s3://quilt-example")
 ```
 
 Note that this will not delete any package data, only the package manifest.

@@ -12,25 +12,22 @@ import os
 f = open("foo.txt", "w")
 f.write("test content...")
 f.close()
-```
 
-
-```python
 p = quilt3.Package().set("foo.txt", "foo.txt")
 list(p.manifest)
 ```
 
-
-
-
-    [{'version': 'v0'},
-     {'logical_key': 'foo.txt',
-      'physical_keys': ['file:///Users/gregezema/Documents/programs/quilt/docs/Advanced%20Features/foo.txt'],
-      'size': 15,
-      'hash': None,
-      'meta': {}}]
-
-
+```shell
+[
+    {'version': 'v0'},
+    {'logical_key': 'foo.txt',
+     'physical_keys': ['file:///../foo.txt'],
+     'size': 15,
+     'hash': None,
+     'meta': {}
+    }
+]
+```
 
 Manifests saved to disk are in the [jsonl](http://jsonlines.org/)/[ndjson](http://ndjson.org/) format, e.g. JSON strings separated by newlines (`\n`). They are represented as a `list` of `dict` fragments in-memory.
 
@@ -66,26 +63,11 @@ In almost all cases you should be using registries, `build`, and `push` to handl
 ```python
 p = quilt3.Package().set("foo.txt", "foo.txt")
 p.set_meta({"key": "value"})
-```
 
-
-
-
-    (local Package)
-     └─foo.txt
-
-
-
-
-```python
 # Saving manifest to jsonl file
-with open("manifest.jsonl", "w") as f:
+with open("example.jsonl", "w") as f:
     p.dump(f)
-```
 
-
-```python
-# Verifying the content of the manifest file
-manifest = open("manifest.jsonl", "r")
-print(manifest.read())
+# Loading maifest 
+p.load(open("example.jsonl", "r"))
 ```

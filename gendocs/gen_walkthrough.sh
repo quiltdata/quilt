@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 
-rm -f ../docs/Advanced\ Features/Working\ with\ Manifests.md
+gen_cmd_docs () {
+    file=$1
 
-jupyter nbconvert --to markdown ../docs/Advanced\ Features/Working\ with\ Manifests.ipynb
+    rm -f "${file}".md
+    jupyter nbconvert --clear-output "${file}".ipynb
+    jupyter nbconvert --to markdown "${file}".ipynb
+}
+
+gen_cmd_docs '../docs/Advanced Features/Working with Manifests'
+gen_cmd_docs '../docs/Walkthrough/Editing a Package'
+gen_cmd_docs '../docs/Walkthrough/Getting Data from a Package'
+gen_cmd_docs '../docs/Walkthrough/Installing a Package'
+gen_cmd_docs '../docs/Walkthrough/Uploading a Package'
+gen_cmd_docs '../docs/Walkthrough/Working with a Bucket'

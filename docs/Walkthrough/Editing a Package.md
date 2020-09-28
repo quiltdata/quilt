@@ -4,6 +4,7 @@ Data in Quilt is organized in terms of **data packages**. A data package is a lo
 
 To edit a new empty package, use the package constructor:
 
+
 ```python
 import quilt3
 p = quilt3.Package()
@@ -11,9 +12,15 @@ p = quilt3.Package()
 
 To edit a preexisting package, use `browse`:
 
+
 ```python
-import quilt3
-p = quilt3.Package.browse('quilt/demo')
+# let's first install a package
+quilt3.Package.install(
+    "examples/hurdat",
+    "s3://quilt-example",
+)
+# now you can browse the existing package
+p = quilt3.Package.browse('examples/hurdat')
 ```
 
 For more information on accessing existing packages see the section "[Installing a Package](./Installing%20a%20Package.md)".
@@ -22,17 +29,32 @@ For more information on accessing existing packages see the section "[Installing
 
 Use the `set` and `set_dir` commands to add individual files and whole directories, respectively, to a `Package`:
 
+
+
 ```python
 # add entries individually using `set`
+# ie p.set("foo.csv", "/local/path/foo.csv"),
+# p.set("bar.csv", "s3://bucket/path/bar.csv")
+
+# create test data
+f = open("foo.csv", "w")
+f.close()
+
 p = (p
-     .set("foo.csv", "/local/path/foo.csv")
-     .set("bar.csv", "s3://bucket/path/bar.csv")
+     .set("foo.csv", "foo.csv")
+     .set("banner.png", "s3://quilt-example/imgs/banner.png")
     )
 
 # or grab everything in a directory at once using `set_dir`
+# ie p.set_dir("stuff/", "/path/to/stuff/"),
+# p.set_dir("things/", "s3://path/to/things/")
+
+# create test directory
+import os
+os.mkdir("bar")
 p = (p
-     .set_dir("stuff/", "/path/to/stuff/")
-     .set_dir("things/", "s3://path/to/things/")
+     .set_dir("stuff/", "./bar/")
+     .set_dir("things/", "s3://quilt-example/imgs/")
     )
 ```
 
@@ -43,7 +65,7 @@ The first parameter to these functions is the *logical key*, which will determin
 
 (remote Package)
  └─foo.csv
- └─bar.csv
+ └─banner.png
  └─stuff
    └─...
  └─things
@@ -54,23 +76,28 @@ The second parameter is the *physical key*, which states the file's actual locat
 
 If the physical key and the logical key are the same, you may omit the second argument:
 
-```bash
-# assuming foo.csv is in the current directory
-$ python
->>> print(p.set("foo.csv"))
 
+```python
+# assuming foo.csv is in the current directory
+p = quilt3.Package()
+print(p.set("foo.csv"))
+```
+
+```bash
 (local Package)
  └─foo.csv
 ```
 
 Another useful trick. Use `"/"` to set the contents of the package to that of the current directory:
 
-```bash
+
+```python
 # assuming foo.csv and bar/baz.csv
 # are in the current directory
-$ python
->>> print(p.set_dir("/", "./"))
+print(p.set_dir("/", "./"))
+```
 
+```bash
 (local Package)
  └─foo.csv
  └─bar
@@ -81,8 +108,9 @@ $ python
 
 Use `delete` to remove entries from a package:
 
+
 ```python
-p.delete("bam.png")
+p.delete("foo.csv")
 ```
 
 Note that this will only remove this piece of data from the package. It will not delete the actual data itself.
@@ -90,6 +118,7 @@ Note that this will only remove this piece of data from the package. It will not
 ## Adding metadata to a package
 
 Packages support metadata anywhere in the package. To set metadata on package entries or directories, use the `meta` argument:
+
 
 ```python
 p = (quilt3.Package()
@@ -99,6 +128,7 @@ p = (quilt3.Package()
 ```
 
 You can also set metadata on the package as a whole using `set_meta`.
+
 
 ```python
 # set metadata on a package
