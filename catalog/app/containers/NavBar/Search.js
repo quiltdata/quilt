@@ -3,6 +3,7 @@ import { push } from 'connected-react-router/esm/immutable'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 
 import * as style from 'constants/style'
@@ -20,7 +21,7 @@ const useStyles = M.makeStyles((t) => ({
     background: fade(t.palette.common.white, 0),
     borderRadius: t.shape.borderRadius,
     overflow: 'hidden',
-    padding: `0 ${t.spacing(1)}px 0 ${t.spacing(1.5)}px`,
+    padding: `0 ${t.spacing(1)}px 0 0`,
     position: 'absolute',
     right: 0,
     transition: ['background-color 200ms', 'opacity 200ms', 'width 200ms'],
@@ -54,6 +55,11 @@ const useStyles = M.makeStyles((t) => ({
     '$iconized:not($expanded) &': {
       opacity: 0,
     },
+  },
+  inputOptions: {
+    borderWidth: '0 1px 0 0',
+    borderRadius: 0,
+    padding: '5px 2px 5px 10px',
   },
 }))
 
@@ -98,6 +104,7 @@ function SearchBox({
   onHelpOpen,
   onHelpClose,
   onCollapse,
+  onToggleOptions,
   onQuery,
   helpOpened,
   ...props
@@ -107,34 +114,35 @@ function SearchBox({
     expanded: expandedCls,
     hidden: hiddenCls,
     iconized: iconizedCls,
+    inputOptions: inputOptionsCls,
     ...classes
   } = useStyles()
   return (
     <M.InputBase
       startAdornment={
-        <>
-          {expanded ? (
-            <M.InputAdornment>
-              <M.Button size="small" onClick={onHelpOpen}>
-                Advanced
-                <M.Icon>keyboard_arrow_down</M.Icon>
-              </M.Button>
-            </M.InputAdornment>
-          ) : (
-            <M.InputAdornment>
-              <M.Icon>search</M.Icon>
-            </M.InputAdornment>
-          )}
-        </>
+        <M.InputAdornment variant="outlined">
+          <Lab.ToggleButton
+            className={inputOptionsCls}
+            size="small"
+            value="help"
+            selected={helpOpened}
+            onChange={onToggleOptions}
+          >
+            <M.Icon size="small">tune</M.Icon>
+            <M.Icon size="small">
+              {helpOpened ? 'arrow_drop_up' : 'arrow_drop_down'}
+            </M.Icon>
+          </Lab.ToggleButton>
+        </M.InputAdornment>
       }
       endAdornment={
-        expanded ? (
+        expanded && (
           <M.InputAdornment position="end">
             <M.IconButton size="small" onClick={onCollapse}>
               <M.Icon>close</M.Icon>
             </M.IconButton>
           </M.InputAdornment>
-        ) : null
+        )
       }
       classes={classes}
       className={cx({
@@ -218,9 +226,7 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
     change(evt.target.value)
   }, [])
 
-  const handleFocus = React.useCallback(() => {
-    setHelpOpened(false)
-
+  const handleExpand = React.useCallback(() => {
     if (expanded) {
       return
     }
@@ -228,7 +234,7 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
     change(query)
     setExpanded(true)
     if (onFocus) onFocus()
-  }, [query])
+  }, [expanded, query])
 
   const handleCollapse = React.useCallback(() => {
     change(null)
@@ -247,6 +253,17 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
     },
     [value],
   )
+
+  const handleToggleOptions = React.useCallback(() => {
+    if (helpOpened) {
+      handleHelpClose()
+      return
+    }
+    if (!expanded) {
+      handleExpand()
+    }
+    handleHelpOpen()
+  }, [expanded, helpOpened])
 
   const onKeyDown = React.useCallback(
     (evt) => {
@@ -276,7 +293,8 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
     value: value === null ? query : value,
     onChange,
     onKeyDown,
-    onFocus: handleFocus,
+    onFocus: handleExpand,
+    onToggleOptions: handleToggleOptions,
     onHelpOpen: handleHelpOpen,
     onHelpClose: handleHelpClose,
     onCollapse: handleCollapse,
