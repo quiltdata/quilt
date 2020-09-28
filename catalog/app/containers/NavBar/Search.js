@@ -57,7 +57,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const useSuggestStyles = M.makeStyles((t) => ({
+const useHelpStyles = M.makeStyles((t) => ({
   '@keyframes appear': {
     '0%': {
       transform: 'translateY(-10px)',
@@ -152,19 +152,13 @@ function SearchBox({
   )
 }
 
-function SearchSuggest({ onClose, onQuery }) {
-  const { definition, group, root, row, wrapper } = useSuggestStyles()
+function SearchHelp({ onClose, onQuery }) {
+  const { definition, group, root, row, wrapper } = useHelpStyles()
 
   const ES_V = '6.7'
   const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
 
-  const {
-    caption,
-    keywords,
-    operators,
-    title: suggestTitle,
-    wildcards,
-  } = searchQuerySyntax
+  const { caption, keywords, operators, title: helpTitle, wildcards } = searchQuerySyntax
   const syntaxHelpRows = [wildcards, operators, keywords]
 
   return (
@@ -174,7 +168,7 @@ function SearchSuggest({ onClose, onQuery }) {
           <M.Paper className={cx(root)}>
             <M.Grid container direction="row" justify="space-between" alignItems="center">
               <M.Grid item>
-                <M.Typography variant="subtitle1">{suggestTitle}</M.Typography>
+                <M.Typography variant="subtitle1">{helpTitle}</M.Typography>
               </M.Grid>
               <M.Grid item>
                 <M.Typography variant="caption">
@@ -322,7 +316,7 @@ function GlobalSearch({ onFocus, onBlur, disabled, ...props }) {
         <>
           <SearchBox {...state} {...props} />
           {state.helpOpened ? (
-            <SearchSuggest onQuery={state.onQuery} onClose={state.onHelpClose} />
+            <SearchHelp onQuery={state.onQuery} onClose={state.onHelpClose} />
           ) : null}
         </>
       )}
