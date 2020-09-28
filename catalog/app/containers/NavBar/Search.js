@@ -13,6 +13,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import parse from 'utils/parseSearch'
 import { useRoute } from 'utils/router'
 import StyledLink from 'utils/StyledLink'
+import searchQuerySyntax from 'translations/search-query-syntax.json'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -144,88 +145,13 @@ function SearchSuggest({ inputEl, opened, onQuery }) {
   const ES_V = '6.7'
   const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
 
-  const wildcards = {
-    title: 'Wildcards',
-    rows: [
-      {
-        key: '*',
-        title: 'Any character zero or more times',
-      },
-      {
-        key: '?',
-        title: 'A single character once',
-      },
-    ],
-  }
-
-  const operators = {
-    title: 'Logical operators',
-    rows: [
-      {
-        key: 'AND',
-        title: 'Logical conjunction',
-      },
-      {
-        key: 'OR',
-        title: 'Logical disjunction',
-      },
-    ],
-  }
-
-  const keywords = {
-    title: 'Keywords',
-    rows: [
-      {
-        key: 'comment:',
-        title: 'User-provided comments',
-      },
-      {
-        key: 'content:',
-        title: 'Document body',
-      },
-      {
-        key: 'etag:',
-        title: '',
-      },
-      {
-        key: 'event:',
-        title: '',
-      },
-      {
-        key: '_exists_:',
-        title: '',
-      },
-      {
-        key: 'ext:',
-        title: 'File extension',
-      },
-      {
-        key: 'last_modified:',
-        title: 'Date YYYY-MM-DD',
-      },
-      {
-        key: 'meta_text:',
-        title: '',
-      },
-      {
-        key: 'size:',
-        title: '',
-      },
-      {
-        key: 'target:',
-        title: '',
-      },
-      {
-        key: 'updated:',
-        title: '',
-      },
-      {
-        key: 'version_id:',
-        title: '',
-      },
-    ],
-  }
-
+  const {
+    caption,
+    keywords,
+    operators,
+    title: suggestTitle,
+    wildcards,
+  } = searchQuerySyntax
   const syntaxHelpRows = [wildcards, operators, keywords]
 
   return (
@@ -240,11 +166,11 @@ function SearchSuggest({ inputEl, opened, onQuery }) {
         <M.Paper className={cx(root)}>
           <M.Grid container direction="row" justify="space-between" alignItems="center">
             <M.Grid item>
-              <M.Typography variant="subtitle1">Search queries</M.Typography>
+              <M.Typography variant="subtitle1">{suggestTitle}</M.Typography>
             </M.Grid>
             <M.Grid item>
               <M.Typography variant="caption">
-                Quilt uses Query String Queries{' '}
+                {caption}
                 <StyledLink href={ES_REF}>ES 6.7</StyledLink>
               </M.Typography>
             </M.Grid>

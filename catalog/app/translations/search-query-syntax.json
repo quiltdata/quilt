@@ -1,0 +1,87 @@
+{
+  "caption": "Quilt uses Query String Queries ",
+
+  "keywords": {
+    "title": "Keywords",
+    "rows": [
+      {
+        "key": "comment:",
+        "title": "User-provided comments"
+      },
+      {
+        "key": "content:",
+        "title": "Document body"
+      },
+      {
+        "key": "etag:",
+        "title": ""
+      },
+      {
+        "key": "event:",
+        "title": ""
+      },
+      {
+        "key": "_exists_:",
+        "title": ""
+      },
+      {
+        "key": "ext:",
+        "title": "File extension"
+      },
+      {
+        "key": "last_modified:",
+        "title": "Date YYYY-MM-DD"
+      },
+      {
+        "key": "meta_text:",
+        "title": ""
+      },
+      {
+        "key": "size:",
+        "title": ""
+      },
+      {
+        "key": "target:",
+        "title": ""
+      },
+      {
+        "key": "updated:",
+        "title": ""
+      },
+      {
+        "key": "version_id:",
+        "title": ""
+      }
+    ]
+  },
+
+  "operators": {
+    "title": "Logical operators",
+    "rows": [
+      {
+        "key": "AND",
+        "title": "Logical conjunction"
+      },
+      {
+        "key": "OR",
+        "title": "Logical disjunction"
+      }
+    ]
+  },
+
+  "wildcards": {
+    "title": "Wildcards",
+    "rows": [
+      {
+        "key": "*",
+        "title": "Any character zero or more times"
+      },
+      {
+        "key": "?",
+        "title": "A single character once"
+      }
+    ]
+  },
+
+  "title": "Search queries"
+}
