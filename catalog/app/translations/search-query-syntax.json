@@ -22,7 +22,7 @@
       },
       {
         "key": "_exists_:",
-        "title": ""
+        "title": "Has any non-null value for keyword"
       },
       {
         "key": "ext:",
