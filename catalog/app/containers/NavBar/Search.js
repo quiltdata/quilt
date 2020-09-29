@@ -88,6 +88,12 @@ const useHelpStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(2),
     paddingBottom: t.spacing(2),
   },
+  code: {
+    font: t.typography.monospace,
+    padding: '0 3px',
+    background: t.palette.info.light, // t.info.main
+    color: t.palette.info.contrastText,
+  },
   group: {
     marginTop: t.spacing(2),
   },
@@ -159,7 +165,7 @@ function SearchBox({
               selected={helpOpened}
               onChange={onToggleOptions}
             >
-              <M.Icon size="small">tune</M.Icon>
+              <M.Icon size="small">search</M.Icon>
               <M.Icon size="small">
                 {helpOpened ? 'arrow_drop_up' : 'arrow_drop_down'}
               </M.Icon>
@@ -200,8 +206,6 @@ function SearchHelp({ onClose, onQuery }) {
 
   const { caption, keywords, operators, wildcards } = searchQuerySyntax
   const syntaxHelpRows = [wildcards, operators, keywords]
-  const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
 
   return (
     <M.ClickAwayListener onClickAway={onClose}>
@@ -236,8 +240,8 @@ function SearchHelp({ onClose, onQuery }) {
                     onLabelClick={() => onQuery(key)}
                     label={
                       <M.Grid container>
-                        <M.Grid item xs={xs ? 4 : 3}>
-                          {key}
+                        <M.Grid item xs={4}>
+                          <code className={classes.code}>{key}</code>
                         </M.Grid>
                         <M.Grid item xs>
                           {title}
