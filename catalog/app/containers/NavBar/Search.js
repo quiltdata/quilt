@@ -64,6 +64,12 @@ const useStyles = M.makeStyles((t) => ({
     borderRadius: 0,
     padding: '5px 2px 5px 10px',
   },
+  wrapper: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: '100%',
+  },
 }))
 
 const useHelpStyles = M.makeStyles((t) => ({
@@ -101,7 +107,7 @@ const useHelpStyles = M.makeStyles((t) => ({
     left: 0,
     position: 'absolute',
     right: 0,
-    top: t.spacing(3),
+    top: t.spacing(5),
     animation: '$appear 150ms ease',
     [t.breakpoints.down('xs')]: {
       left: '-50px',
@@ -147,58 +153,59 @@ function SearchBox({
     iconized: iconizedCls,
     inputIcon: inputIconCls,
     inputOptions: inputOptionsCls,
+    wrapper: wrapperCls,
     ...classes
   } = useStyles()
   return (
-    <M.InputBase
-      startAdornment={
-        <M.InputAdornment>
-          {iconized && !expanded ? (
-            <M.Icon className={inputIconCls} onClick={onToggleOptions}>
-              search
-            </M.Icon>
-          ) : (
-            <Lab.ToggleButton
-              className={inputOptionsCls}
-              size="small"
-              value="help"
-              selected={helpOpened}
-              onChange={onToggleOptions}
-            >
-              <M.Icon size="small">search</M.Icon>
-              <M.Icon size="small">
-                {helpOpened ? 'arrow_drop_up' : 'arrow_drop_down'}
-              </M.Icon>
-            </Lab.ToggleButton>
-          )}
-        </M.InputAdornment>
-      }
-      endAdornment={
-        expanded && (
-          <M.InputAdornment position="end">
-            <M.IconButton size="small" onClick={onCollapse}>
-              <M.Icon>close</M.Icon>
-            </M.IconButton>
-          </M.InputAdornment>
-        )
-      }
-      classes={classes}
-      className={cx({
-        [expandedCls]: expanded,
-        [disabledCls]: disabled,
-        [iconizedCls]: iconized,
-        [hiddenCls]: hidden,
-      })}
-      placeholder={
-        expanded ? `Search ${bucket ? `s3://${bucket}` : 'all buckets'}` : 'Search'
-      }
-      disabled={disabled}
-      {...props}
-    />
+    <M.ClickAwayListener onClickAway={onHelpClose}>
+      <div className={wrapperCls}>
+        {helpOpened ? (
+          <M.MuiThemeProvider theme={style.appTheme}>
+            <SearchHelp onQuery={onQuery} />
+          </M.MuiThemeProvider>
+        ) : null}
+        <M.InputBase
+          startAdornment={
+            <M.InputAdornment>
+              {iconized && !expanded ? (
+                <M.Icon className={inputIconCls} onClick={onToggleOptions}>
+                  search
+                </M.Icon>
+              ) : (
+                <Lab.ToggleButton
+                  className={inputOptionsCls}
+                  size="small"
+                  value="help"
+                  selected={helpOpened}
+                  onChange={onToggleOptions}
+                >
+                  <M.Icon size="small">search</M.Icon>
+                  <M.Icon size="small">
+                    {helpOpened ? 'arrow_drop_up' : 'arrow_drop_down'}
+                  </M.Icon>
+                </Lab.ToggleButton>
+              )}
+            </M.InputAdornment>
+          }
+          classes={classes}
+          className={cx({
+            [expandedCls]: expanded,
+            [disabledCls]: disabled,
+            [iconizedCls]: iconized,
+            [hiddenCls]: hidden,
+          })}
+          placeholder={
+            expanded ? `Search ${bucket ? `s3://${bucket}` : 'all buckets'}` : 'Search'
+          }
+          disabled={disabled}
+          {...props}
+        />
+      </div>
+    </M.ClickAwayListener>
   )
 }
 
-function SearchHelp({ onClose, onQuery }) {
+function SearchHelp({ onQuery }) {
   const classes = useHelpStyles()
 
   const ES_V = '6.7'
@@ -208,61 +215,57 @@ function SearchHelp({ onClose, onQuery }) {
   const syntaxHelpRows = [wildcards, operators, keywords]
 
   return (
-    <M.ClickAwayListener onClickAway={onClose}>
-      <M.Box className={classes.wrapper}>
-        <M.Paper className={classes.root}>
-          <Lab.TreeView
-            defaultCollapseIcon={<M.Icon>arrow_drop_down</M.Icon>}
-            defaultExpandIcon={<M.Icon>arrow_right</M.Icon>}
-            defaultExpanded={syntaxHelpRows.map((syntaxHelp) => syntaxHelp.title)}
-            disableSelection
-          >
-            {syntaxHelpRows.map((syntaxHelp) => (
-              <Lab.TreeItem
-                className={classes.group}
-                label={
-                  <M.Typography variant="subtitle2">{syntaxHelp.title}</M.Typography>
-                }
-                nodeId={syntaxHelp.title}
-                key={syntaxHelp.title}
-                classes={{
-                  label: classes.headerLabel,
-                }}
-              >
-                {syntaxHelp.rows.map(({ key, title }) => (
-                  <Lab.TreeItem
-                    key={key}
-                    nodeId={key}
-                    classes={{
-                      iconContainer: classes.itemIcon,
-                      root: classes.itemRoot,
-                    }}
-                    onLabelClick={() => onQuery(key)}
-                    label={
-                      <M.Grid container>
-                        <M.Grid item xs={4}>
-                          <code className={classes.code}>{key}</code>
-                        </M.Grid>
-                        <M.Grid item xs>
-                          {title}
-                        </M.Grid>
+    <M.Box className={classes.wrapper}>
+      <M.Paper className={classes.root}>
+        <Lab.TreeView
+          defaultCollapseIcon={<M.Icon>arrow_drop_down</M.Icon>}
+          defaultExpandIcon={<M.Icon>arrow_right</M.Icon>}
+          defaultExpanded={syntaxHelpRows.map((syntaxHelp) => syntaxHelp.title)}
+          disableSelection
+        >
+          {syntaxHelpRows.map((syntaxHelp) => (
+            <Lab.TreeItem
+              className={classes.group}
+              label={<M.Typography variant="subtitle2">{syntaxHelp.title}</M.Typography>}
+              nodeId={syntaxHelp.title}
+              key={syntaxHelp.title}
+              classes={{
+                label: classes.headerLabel,
+              }}
+            >
+              {syntaxHelp.rows.map(({ key, title }) => (
+                <Lab.TreeItem
+                  key={key}
+                  nodeId={key}
+                  classes={{
+                    iconContainer: classes.itemIcon,
+                    root: classes.itemRoot,
+                  }}
+                  onLabelClick={() => onQuery(key)}
+                  label={
+                    <M.Grid container>
+                      <M.Grid item xs={4}>
+                        <code className={classes.code}>{key}</code>
                       </M.Grid>
-                    }
-                  />
-                ))}
-              </Lab.TreeItem>
-            ))}
-          </Lab.TreeView>
+                      <M.Grid item xs>
+                        {title}
+                      </M.Grid>
+                    </M.Grid>
+                  }
+                />
+              ))}
+            </Lab.TreeItem>
+          ))}
+        </Lab.TreeView>
 
-          <M.Box className={classes.caption}>
-            <M.Typography variant="caption">
-              {caption}
-              <StyledLink href={ES_REF}>ES 6.7</StyledLink>
-            </M.Typography>
-          </M.Box>
-        </M.Paper>
-      </M.Box>
-    </M.ClickAwayListener>
+        <M.Box className={classes.caption}>
+          <M.Typography variant="caption">
+            {caption}
+            <StyledLink href={ES_REF}>ES 6.7</StyledLink>
+          </M.Typography>
+        </M.Box>
+      </M.Paper>
+    </M.Box>
   )
 }
 
@@ -328,8 +331,10 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
           if (query !== value) {
             dispatch(push(makeUrl(value)))
           }
+          handleCollapse()
           evt.target.blur()
           break
+        case 'Tab':
         case 'Escape':
           handleCollapse()
           evt.target.blur()
@@ -349,7 +354,7 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
     onFocus: handleExpand,
     onToggleOptions: handleToggleOptions,
     onHelpOpen: handleHelpOpen,
-    onHelpClose: handleHelpClose,
+    onHelpClose: handleCollapse,
     onCollapse: handleCollapse,
     onQuery: handleQuery,
     expanded,
@@ -383,16 +388,7 @@ function GlobalSearch({ onFocus, onBlur, disabled, ...props }) {
     <SearchBox disabled value="Search not available" {...props} />
   ) : (
     <State {...{ query, makeUrl, onFocus, onBlur }}>
-      {(state) => (
-        <>
-          <SearchBox {...state} {...props} />
-          {state.helpOpened ? (
-            <M.MuiThemeProvider theme={style.appTheme}>
-              <SearchHelp onQuery={state.onQuery} onClose={state.onHelpClose} />
-            </M.MuiThemeProvider>
-          ) : null}
-        </>
-      )}
+      {(state) => <SearchBox {...state} {...props} />}
     </State>
   )
 }
