@@ -208,6 +208,9 @@ function SearchBox({
 function SearchHelp({ onQuery }) {
   const classes = useHelpStyles()
 
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+
   const ES_V = '6.7'
   const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
 
@@ -244,7 +247,7 @@ function SearchHelp({ onQuery }) {
                   onLabelClick={() => onQuery(key)}
                   label={
                     <M.Grid container>
-                      <M.Grid item xs={4}>
+                      <M.Grid item xs={xs ? 5 : 4}>
                         <code className={classes.code}>{key}</code>
                       </M.Grid>
                       <M.Grid item xs>
