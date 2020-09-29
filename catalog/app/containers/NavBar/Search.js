@@ -75,16 +75,20 @@ const useHelpStyles = M.makeStyles((t) => ({
   root: {
     maxHeight: '400px',
     overflowY: 'auto',
-    padding: t.spacing(4),
+    padding: `${t.spacing()}px ${t.spacing(4)}px ${t.spacing(4)}px`,
   },
-  row: {
-    cursor: 'pointer',
+  caption: {
+    marginTop: t.spacing(2),
+    paddingBottom: t.spacing(2),
   },
   definition: {
     width: '300px',
   },
   group: {
     marginTop: t.spacing(2),
+  },
+  row: {
+    cursor: 'pointer',
   },
   wrapper: {
     left: 0,
@@ -166,7 +170,7 @@ function SearchHelp({ onClose, onQuery }) {
   const ES_V = '6.7'
   const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
 
-  const { caption, keywords, operators, title: helpTitle, wildcards } = searchQuerySyntax
+  const { caption, keywords, operators, wildcards } = searchQuerySyntax
   const syntaxHelpRows = [wildcards, operators, keywords]
 
   return (
@@ -174,18 +178,6 @@ function SearchHelp({ onClose, onQuery }) {
       <M.ClickAwayListener onClickAway={onClose}>
         <M.Box className={classes.wrapper}>
           <M.Paper className={classes.root}>
-            <M.Grid container direction="row" justify="space-between" alignItems="center">
-              <M.Grid item>
-                <M.Typography variant="subtitle1">{helpTitle}</M.Typography>
-              </M.Grid>
-              <M.Grid item>
-                <M.Typography variant="caption">
-                  {caption}
-                  <StyledLink href={ES_REF}>ES 6.7</StyledLink>
-                </M.Typography>
-              </M.Grid>
-            </M.Grid>
-
             {syntaxHelpRows.map((syntaxHelp) => (
               <M.TableContainer className={classes.group} key={syntaxHelp.title}>
                 <M.Typography variant="subtitle2">{syntaxHelp.title}</M.Typography>
@@ -208,6 +200,13 @@ function SearchHelp({ onClose, onQuery }) {
                 </M.Table>
               </M.TableContainer>
             ))}
+
+            <M.Box className={classes.caption}>
+              <M.Typography variant="caption">
+                {caption}
+                <StyledLink href={ES_REF}>ES 6.7</StyledLink>
+              </M.Typography>
+            </M.Box>
           </M.Paper>
         </M.Box>
       </M.ClickAwayListener>
