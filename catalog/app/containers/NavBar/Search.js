@@ -257,7 +257,7 @@ function SearchHelp({ onQuery }) {
                       </M.Grid>
                       {example && (
                         <M.Grid item xs>
-                          <M.Typography variant="body2">
+                          <M.Typography variant="body2" align="right">
                             <code className={classes.code}>{example}</code>
                           </M.Typography>
                         </M.Grid>
@@ -273,7 +273,7 @@ function SearchHelp({ onQuery }) {
         <M.Box className={classes.caption}>
           <M.Typography variant="caption">
             {caption}
-            <StyledLink href={ES_REF}>ES 6.7</StyledLink>
+            <StyledLink href={ES_REF}>ElasticSearch 6.7 query string syntax</StyledLink>
           </M.Typography>
         </M.Box>
       </M.Paper>

@@ -1,5 +1,5 @@
 {
-  "caption": "Quilt uses Query String Queries ",
+  "caption": "There's much more. See the the full ",
 
   "keywords": {
     "title": "Fields",
@@ -11,14 +11,6 @@
       {
         "key": "content:",
         "title": "Object content"
-      },
-      {
-        "key": "etag:",
-        "title": ""
-      },
-      {
-        "key": "event:",
-        "title": ""
       },
       {
         "example": "ext: *.fastq.gz",
@@ -41,27 +33,11 @@
         "title": "S3 key"
       },
       {
-        "key": "last_modified:",
-        "title": "Date YYYY-MM-DD"
-      },
-      {
         "key": "metadata:",
         "title": "Package metadata"
       },
       {
-        "key": "meta_text:",
-        "title": ""
-      },
-      {
         "key": "size:",
-        "title": ""
-      },
-      {
-        "key": "target:",
-        "title": ""
-      },
-      {
-        "key": "updated:",
         "title": ""
       },
       {
