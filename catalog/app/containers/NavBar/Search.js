@@ -91,8 +91,7 @@ const useHelpStyles = M.makeStyles((t) => ({
     },
   },
   caption: {
-    marginTop: t.spacing(2),
-    paddingBottom: t.spacing(2),
+    margin: `${t.spacing(2)}px 0`,
   },
   code: {
     font: t.typography.monospace,
@@ -129,6 +128,9 @@ const useHelpStyles = M.makeStyles((t) => ({
   },
   itemIcon: {
     width: 0,
+  },
+  sup: {
+    margin: '0 2px',
   },
 }))
 
@@ -214,8 +216,8 @@ function SearchHelp({ onQuery }) {
   const ES_V = '6.7'
   const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
 
-  const { caption, keywords, operators, wildcards } = searchQuerySyntax
-  const syntaxHelpRows = [wildcards, operators, keywords]
+  const { caption, keywords, operators, regex, wildcards } = searchQuerySyntax
+  const syntaxHelpRows = [keywords, operators, wildcards, regex]
 
   return (
     <M.Box className={classes.wrapper}>
@@ -236,7 +238,7 @@ function SearchHelp({ onQuery }) {
                 label: classes.headerLabel,
               }}
             >
-              {syntaxHelp.rows.map(({ example, key, title }) => (
+              {syntaxHelp.rows.map(({ example, key, objected, packaged, title }) => (
                 <Lab.TreeItem
                   key={key}
                   nodeId={key}
@@ -250,6 +252,8 @@ function SearchHelp({ onQuery }) {
                       <M.Grid item xs={xs ? 5 : 4}>
                         <M.Typography variant="body2">
                           <code className={classes.code}>{key}</code>
+                          {objected && <sup className={classes.sup}>+</sup>}
+                          {packaged && <sup className={classes.sup}>*</sup>}
                         </M.Typography>
                       </M.Grid>
                       <M.Grid item xs>
@@ -274,6 +278,14 @@ function SearchHelp({ onQuery }) {
           <M.Typography variant="caption">
             {caption}
             <StyledLink href={ES_REF}>ElasticSearch 6.7 query string syntax</StyledLink>
+          </M.Typography>
+        </M.Box>
+
+        <M.Box className={classes.caption}>
+          <M.Typography variant="caption">
+            <sup className={classes.sup}>*</sup> — package
+            <br />
+            <sup className={classes.sup}>+</sup> — object
           </M.Typography>
         </M.Box>
       </M.Paper>

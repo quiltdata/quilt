@@ -5,42 +5,51 @@
     "title": "Fields",
     "rows": [
       {
+        "packaged": true,
         "key": "comment:",
-        "title": "Package commit comment"
+        "title": "Packaged commit comment"
       },
       {
+        "objected": true,
         "key": "content:",
-        "title": "Object content"
+        "title": "Objected content"
       },
       {
+        "objected": true,
         "example": "ext: *.fastq.gz",
         "key": "ext:",
         "title": "File extension"
       },
       {
+        "packaged": true,
         "example": "handle: \"user/*\"",
         "key": "handle:",
-        "title": "Package name"
+        "title": "Packaged name"
       },
       {
         "example": "hash:\"edf1\"*",
         "key": "hash:",
-        "title": "Package hash"
+        "title": "Packaged hash"
       },
       {
+        "objected": true,
         "example": "key: \"bar/\"",
         "key": "key:",
         "title": "S3 key"
       },
       {
+        "packaged": true,
         "key": "metadata:",
-        "title": "Package metadata"
+        "title": "Packaged metadata"
       },
       {
+        "objected": true,
+        "packaged": true,
         "key": "size:",
         "title": ""
       },
       {
+        "objected": true,
         "key": "version_id:",
         "title": ""
       }
@@ -63,6 +72,7 @@
         "title": "Negation"
       },
       {
+        "example": "_exists_:content",
         "key": "_exists_:",
         "title": "Has any non-null value for keyword"
       },
@@ -85,5 +95,10 @@
         "title": "Exactly one character"
       }
     ]
+  },
+
+  "regex": {
+    "title": "Regular expressions",
+    "rows": []
   }
 }
