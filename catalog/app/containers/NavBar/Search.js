@@ -56,6 +56,9 @@ const useStyles = M.makeStyles((t) => ({
       opacity: 0,
     },
   },
+  inputIcon: {
+    cursor: 'pointer',
+  },
   inputOptions: {
     borderWidth: '0 1px 0 0',
     borderRadius: 0,
@@ -63,9 +66,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const useHStyles = M.makeStyles((t) => {
-  console.log(t)
-})
 const useHelpStyles = M.makeStyles((t) => ({
   '@keyframes appear': {
     '0%': {
@@ -79,6 +79,10 @@ const useHelpStyles = M.makeStyles((t) => ({
     maxHeight: '400px',
     overflowY: 'auto',
     padding: `${t.spacing()}px ${t.spacing(4)}px ${t.spacing(4)}px`,
+    [t.breakpoints.down('xs')]: {
+      paddingLeft: t.spacing(),
+      paddingRight: t.spacing(),
+    },
   },
   caption: {
     marginTop: t.spacing(2),
@@ -93,6 +97,10 @@ const useHelpStyles = M.makeStyles((t) => ({
     right: 0,
     top: t.spacing(3),
     animation: '$appear 150ms ease',
+    [t.breakpoints.down('xs')]: {
+      left: '-50px',
+      right: '-50px',
+    },
   },
   headerLabel: {
     '&:hover': {
@@ -131,25 +139,32 @@ function SearchBox({
     expanded: expandedCls,
     hidden: hiddenCls,
     iconized: iconizedCls,
+    inputIcon: inputIconCls,
     inputOptions: inputOptionsCls,
     ...classes
   } = useStyles()
   return (
     <M.InputBase
       startAdornment={
-        <M.InputAdornment variant="outlined">
-          <Lab.ToggleButton
-            className={inputOptionsCls}
-            size="small"
-            value="help"
-            selected={helpOpened}
-            onChange={onToggleOptions}
-          >
-            <M.Icon size="small">tune</M.Icon>
-            <M.Icon size="small">
-              {helpOpened ? 'arrow_drop_up' : 'arrow_drop_down'}
+        <M.InputAdornment>
+          {iconized && !expanded ? (
+            <M.Icon className={inputIconCls} onClick={onToggleOptions}>
+              search
             </M.Icon>
-          </Lab.ToggleButton>
+          ) : (
+            <Lab.ToggleButton
+              className={inputOptionsCls}
+              size="small"
+              value="help"
+              selected={helpOpened}
+              onChange={onToggleOptions}
+            >
+              <M.Icon size="small">tune</M.Icon>
+              <M.Icon size="small">
+                {helpOpened ? 'arrow_drop_up' : 'arrow_drop_down'}
+              </M.Icon>
+            </Lab.ToggleButton>
+          )}
         </M.InputAdornment>
       }
       endAdornment={
@@ -179,13 +194,14 @@ function SearchBox({
 
 function SearchHelp({ onClose, onQuery }) {
   const classes = useHelpStyles()
-  useHStyles()
 
   const ES_V = '6.7'
   const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
 
   const { caption, keywords, operators, wildcards } = searchQuerySyntax
   const syntaxHelpRows = [wildcards, operators, keywords]
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
 
   return (
     <M.ClickAwayListener onClickAway={onClose}>
@@ -220,7 +236,7 @@ function SearchHelp({ onClose, onQuery }) {
                     onLabelClick={() => onQuery(key)}
                     label={
                       <M.Grid container>
-                        <M.Grid item xs={3}>
+                        <M.Grid item xs={xs ? 4 : 3}>
                           {key}
                         </M.Grid>
                         <M.Grid item xs>
@@ -276,7 +292,9 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
 
   const handleHelpOpen = React.useCallback(() => setHelpOpened(true), [])
 
-  const handleHelpClose = React.useCallback(() => setHelpOpened(false), [])
+  const handleHelpClose = React.useCallback(() => {
+    setTimeout(() => setHelpOpened(false), 300) // FIXME: it's for mobile
+  }, [])
 
   const handleQuery = React.useCallback(
     (strPart) => {
