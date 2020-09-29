@@ -2,15 +2,15 @@
   "caption": "Quilt uses Query String Queries ",
 
   "keywords": {
-    "title": "Keywords",
+    "title": "Fields",
     "rows": [
       {
         "key": "comment:",
-        "title": "User-provided comments"
+        "title": "Package commit comment"
       },
       {
         "key": "content:",
-        "title": "Document body"
+        "title": "Object content"
       },
       {
         "key": "etag:",
@@ -21,16 +21,32 @@
         "title": ""
       },
       {
-        "key": "_exists_:",
-        "title": "Has any non-null value for keyword"
-      },
-      {
+        "example": "ext: *.fastq.gz",
         "key": "ext:",
         "title": "File extension"
       },
       {
+        "example": "handle: \"user/*\"",
+        "key": "handle:",
+        "title": "Package name"
+      },
+      {
+        "example": "hash:\"edf1\"*",
+        "key": "hash:",
+        "title": "Package hash"
+      },
+      {
+        "example": "key: \"bar/\"",
+        "key": "key:",
+        "title": "S3 key"
+      },
+      {
         "key": "last_modified:",
         "title": "Date YYYY-MM-DD"
+      },
+      {
+        "key": "metadata:",
+        "title": "Package metadata"
       },
       {
         "key": "meta_text:",
@@ -56,15 +72,27 @@
   },
 
   "operators": {
-    "title": "Logical operators",
+    "title": "Logical operators and grouping",
     "rows": [
       {
         "key": "AND",
-        "title": "Logical conjunction"
+        "title": "Conjunction"
       },
       {
         "key": "OR",
-        "title": "Logical disjunction"
+        "title": "Disjunction"
+      },
+      {
+        "key": "NOT",
+        "title": "Negation"
+      },
+      {
+        "key": "_exists_:",
+        "title": "Has any non-null value for keyword"
+      },
+      {
+        "key": "()",
+        "title": "Group items"
       }
     ]
   },
@@ -74,11 +102,11 @@
     "rows": [
       {
         "key": "*",
-        "title": "Any character zero or more times"
+        "title": "Zero or more characters, avoid leading * (slow)"
       },
       {
         "key": "?",
-        "title": "A single character once"
+        "title": "Exactly one character"
       }
     ]
   }

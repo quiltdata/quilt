@@ -110,8 +110,8 @@ const useHelpStyles = M.makeStyles((t) => ({
     top: t.spacing(5),
     animation: '$appear 150ms ease',
     [t.breakpoints.down('xs')]: {
-      left: '-50px',
-      right: '-50px',
+      left: '-43px',
+      right: '-36px',
     },
   },
   headerLabel: {
@@ -236,7 +236,7 @@ function SearchHelp({ onQuery }) {
                 label: classes.headerLabel,
               }}
             >
-              {syntaxHelp.rows.map(({ key, title }) => (
+              {syntaxHelp.rows.map(({ example, key, title }) => (
                 <Lab.TreeItem
                   key={key}
                   nodeId={key}
@@ -248,11 +248,20 @@ function SearchHelp({ onQuery }) {
                   label={
                     <M.Grid container>
                       <M.Grid item xs={xs ? 5 : 4}>
-                        <code className={classes.code}>{key}</code>
+                        <M.Typography variant="body2">
+                          <code className={classes.code}>{key}</code>
+                        </M.Typography>
                       </M.Grid>
                       <M.Grid item xs>
-                        {title}
+                        <M.Typography variant="body2">{title}</M.Typography>
                       </M.Grid>
+                      {example && (
+                        <M.Grid item xs>
+                          <M.Typography variant="body2">
+                            <code className={classes.code}>{example}</code>
+                          </M.Typography>
+                        </M.Grid>
+                      )}
                     </M.Grid>
                   }
                 />
