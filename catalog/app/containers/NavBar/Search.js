@@ -63,6 +63,9 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+const useHStyles = M.makeStyles((t) => {
+  console.log(t)
+})
 const useHelpStyles = M.makeStyles((t) => ({
   '@keyframes appear': {
     '0%': {
@@ -81,14 +84,8 @@ const useHelpStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(2),
     paddingBottom: t.spacing(2),
   },
-  definition: {
-    width: '300px',
-  },
   group: {
     marginTop: t.spacing(2),
-  },
-  row: {
-    cursor: 'pointer',
   },
   wrapper: {
     left: 0,
@@ -96,6 +93,22 @@ const useHelpStyles = M.makeStyles((t) => ({
     right: 0,
     top: t.spacing(3),
     animation: '$appear 150ms ease',
+  },
+  headerLabel: {
+    '&:hover': {
+      background: 'transparent',
+    },
+  },
+  itemRoot: {
+    marginTop: t.spacing(),
+    paddingBottom: t.spacing(),
+    borderBottom: `1px solid ${t.palette.divider}`,
+    '&:last-child': {
+      border: 0,
+    },
+  },
+  itemIcon: {
+    width: 0,
   },
 }))
 
@@ -166,6 +179,7 @@ function SearchBox({
 
 function SearchHelp({ onClose, onQuery }) {
   const classes = useHelpStyles()
+  useHStyles()
 
   const ES_V = '6.7'
   const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
@@ -174,43 +188,61 @@ function SearchHelp({ onClose, onQuery }) {
   const syntaxHelpRows = [wildcards, operators, keywords]
 
   return (
-    <M.MuiThemeProvider theme={style.appTheme}>
-      <M.ClickAwayListener onClickAway={onClose}>
-        <M.Box className={classes.wrapper}>
-          <M.Paper className={classes.root}>
+    <M.ClickAwayListener onClickAway={onClose}>
+      <M.Box className={classes.wrapper}>
+        <M.Paper className={classes.root}>
+          <Lab.TreeView
+            defaultCollapseIcon={<M.Icon>arrow_drop_down</M.Icon>}
+            defaultExpandIcon={<M.Icon>arrow_right</M.Icon>}
+            defaultExpanded={syntaxHelpRows.map((syntaxHelp) => syntaxHelp.title)}
+            disableSelection
+          >
             {syntaxHelpRows.map((syntaxHelp) => (
-              <M.TableContainer className={classes.group} key={syntaxHelp.title}>
-                <M.Typography variant="subtitle2">{syntaxHelp.title}</M.Typography>
-                <M.Table size="small">
-                  <M.TableBody>
-                    {syntaxHelp.rows.map(({ key, title }) => (
-                      <M.TableRow
-                        className={classes.row}
-                        key={key}
-                        onClick={() => onQuery(key)}
-                        hover
-                      >
-                        <M.TableCell className={classes.definition} component="th">
+              <Lab.TreeItem
+                className={classes.group}
+                label={
+                  <M.Typography variant="subtitle2">{syntaxHelp.title}</M.Typography>
+                }
+                nodeId={syntaxHelp.title}
+                key={syntaxHelp.title}
+                classes={{
+                  label: classes.headerLabel,
+                }}
+              >
+                {syntaxHelp.rows.map(({ key, title }) => (
+                  <Lab.TreeItem
+                    key={key}
+                    nodeId={key}
+                    classes={{
+                      iconContainer: classes.itemIcon,
+                      root: classes.itemRoot,
+                    }}
+                    onLabelClick={() => onQuery(key)}
+                    label={
+                      <M.Grid container>
+                        <M.Grid item xs={3}>
                           {key}
-                        </M.TableCell>
-                        <M.TableCell>{title}</M.TableCell>
-                      </M.TableRow>
-                    ))}
-                  </M.TableBody>
-                </M.Table>
-              </M.TableContainer>
+                        </M.Grid>
+                        <M.Grid item xs>
+                          {title}
+                        </M.Grid>
+                      </M.Grid>
+                    }
+                  />
+                ))}
+              </Lab.TreeItem>
             ))}
+          </Lab.TreeView>
 
-            <M.Box className={classes.caption}>
-              <M.Typography variant="caption">
-                {caption}
-                <StyledLink href={ES_REF}>ES 6.7</StyledLink>
-              </M.Typography>
-            </M.Box>
-          </M.Paper>
-        </M.Box>
-      </M.ClickAwayListener>
-    </M.MuiThemeProvider>
+          <M.Box className={classes.caption}>
+            <M.Typography variant="caption">
+              {caption}
+              <StyledLink href={ES_REF}>ES 6.7</StyledLink>
+            </M.Typography>
+          </M.Box>
+        </M.Paper>
+      </M.Box>
+    </M.ClickAwayListener>
   )
 }
 
@@ -333,7 +365,9 @@ function GlobalSearch({ onFocus, onBlur, disabled, ...props }) {
         <>
           <SearchBox {...state} {...props} />
           {state.helpOpened ? (
-            <SearchHelp onQuery={state.onQuery} onClose={state.onHelpClose} />
+            <M.MuiThemeProvider theme={style.appTheme}>
+              <SearchHelp onQuery={state.onQuery} onClose={state.onHelpClose} />
+            </M.MuiThemeProvider>
           ) : null}
         </>
       )}
