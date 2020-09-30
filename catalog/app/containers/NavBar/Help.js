@@ -1,9 +1,9 @@
 import * as Lab from '@material-ui/lab'
 import * as M from '@material-ui/core'
 import * as React from 'react'
+import { FormattedMessage as FM, injectIntl } from 'react-intl'
 
 import StyledLink from 'utils/StyledLink'
-import searchQuerySyntax from 'translations/search-query-syntax.json'
 
 const useStyles = M.makeStyles((t) => ({
   '@keyframes appear': {
@@ -149,7 +149,7 @@ const syntaxHelpRows = [
   },
 ]
 
-function Help({ onQuery }) {
+function Help({ intl, onQuery }) {
   const classes = useStyles()
 
   const t = M.useTheme()
@@ -157,9 +157,6 @@ function Help({ onQuery }) {
 
   const ES_V = '6.7'
   const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
-
-  // const { caption, keywords, operators, regex, wildcards } = searchQuerySyntax
-  // const syntaxHelpRows = [keywords, operators, wildcards, regex]
 
   return (
     <M.Box className={classes.wrapper}>
@@ -175,7 +172,7 @@ function Help({ onQuery }) {
               className={classes.group}
               label={
                 <M.Typography variant="subtitle2">
-                  {searchQuerySyntax[`${namespace}.title`]}
+                  <FM id={`${namespace}.title`} />
                 </M.Typography>
               }
               nodeId={namespace}
@@ -185,9 +182,11 @@ function Help({ onQuery }) {
               }}
             >
               {rows.map(({ id, isObject, isPackage }) => {
-                const exampleStr = searchQuerySyntax[`${namespace}.${id}.example`]
-                const syntaxStr = searchQuerySyntax[`${namespace}.${id}.syntax`]
-                const titleStr = searchQuerySyntax[`${namespace}.${id}.title`]
+                const exampleId = `${namespace}.${id}.example`
+                const hasExample = intl.messages[exampleId]
+                const syntaxId = `${namespace}.${id}.syntax`
+                const titleId = `${namespace}.${id}.title`
+                const hasTitle = intl.messages[titleId]
                 return (
                   <Lab.TreeItem
                     key={id}
@@ -201,20 +200,26 @@ function Help({ onQuery }) {
                       <M.Grid container>
                         <M.Grid item xs={xs ? 5 : 4}>
                           <M.Typography variant="body2">
-                            <code className={classes.code}>{syntaxStr}</code>
+                            <code className={classes.code}>
+                              <FM id={syntaxId} />
+                            </code>
                             {isObject && <sup className={classes.sup}>+</sup>}
                             {isPackage && <sup className={classes.sup}>*</sup>}
                           </M.Typography>
                         </M.Grid>
-                        {titleStr && (
+                        {hasTitle && (
                           <M.Grid item xs>
-                            <M.Typography variant="body2">{titleStr}</M.Typography>
+                            <M.Typography variant="body2">
+                              <FM id={titleId} />
+                            </M.Typography>
                           </M.Grid>
                         )}
-                        {exampleStr && (
+                        {hasExample && (
                           <M.Grid item xs>
                             <M.Typography variant="body2" align="right">
-                              <code className={classes.code}>{exampleStr}</code>
+                              <code className={classes.code}>
+                                <FM id={exampleId} />
+                              </code>
                             </M.Typography>
                           </M.Grid>
                         )}
@@ -229,7 +234,7 @@ function Help({ onQuery }) {
 
         <M.Box className={classes.caption}>
           <M.Typography variant="caption">
-            {searchQuerySyntax['searchQuerySyntax.caption']}
+            <FM id="searchQuerySyntax.caption" />
             <StyledLink href={ES_REF}>ElasticSearch 6.7 query string syntax</StyledLink>
           </M.Typography>
         </M.Box>
@@ -237,10 +242,10 @@ function Help({ onQuery }) {
         <M.Box className={classes.caption}>
           <M.Typography variant="caption">
             <sup className={classes.sup}>*</sup>
-            {searchQuerySyntax['searchQuerySyntax.isPackage']}
+            <FM id="searchQuerySyntax.isPackage" />
             <br />
             <sup className={classes.sup}>+</sup>
-            {searchQuerySyntax['searchQuerySyntax.isObject']}
+            <FM id="searchQuerySyntax.isObject" />
           </M.Typography>
         </M.Box>
       </M.Paper>
@@ -248,4 +253,4 @@ function Help({ onQuery }) {
   )
 }
 
-export default Help
+export default injectIntl(Help)
