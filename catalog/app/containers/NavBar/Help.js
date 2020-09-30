@@ -8,15 +8,18 @@ import StyledLink from 'utils/StyledLink'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    padding: `${t.spacing()}px ${t.spacing(4)}px ${t.spacing(4)}px`,
+    display: 'flex',
+    flexDirection: 'column',
+    padding: `0 ${t.spacing(4)}px`,
 
     [t.breakpoints.down('xs')]: {
-      paddingLeft: t.spacing(),
-      paddingRight: t.spacing(),
+      padding: `0 ${t.spacing()}px`,
     },
   },
-  caption: {
-    margin: `${t.spacing(2)}px 0`,
+  captionsWrapper: {
+    boxShadow: '0 -1px 2px rgba(0, 0, 0, 0.2)',
+    margin: `0 -${t.spacing(4)}px`,
+    padding: `${t.spacing()}px ${t.spacing(4)}px`,
   },
   code: {
     background: t.palette.info.light,
@@ -44,6 +47,11 @@ const useStyles = M.makeStyles((t) => ({
   },
   itemIcon: {
     width: 0,
+  },
+  list: {
+    flexGrow: 1,
+    overflowY: 'auto',
+    marginBottom: t.spacing(),
   },
   sup: {
     margin: '0 2px',
@@ -235,10 +243,11 @@ function Legend() {
 
   return (
     <M.Box className={classes.caption}>
-      <M.Typography variant="caption" component="p">
+      <M.Typography variant="caption">
         <FM id="searchQuerySyntax.isPackage" values={{ key: <PackageKey /> }} />
       </M.Typography>
-      <M.Typography variant="caption" component="p">
+      ,{' '}
+      <M.Typography variant="caption">
         <FM id="searchQuerySyntax.isObject" values={{ key: <ObjectKey /> }} />
       </M.Typography>
     </M.Box>
@@ -276,6 +285,7 @@ function Help({ className, intl, onQuery }) {
         defaultExpandIcon={<M.Icon>arrow_right</M.Icon>}
         defaultExpanded={syntaxHelpRows.map(({ namespace }) => namespace)}
         disableSelection
+        className={classes.list}
       >
         {syntaxHelpRows.map(({ namespace, rows }) => (
           <Lab.TreeItem
@@ -309,9 +319,11 @@ function Help({ className, intl, onQuery }) {
         ))}
       </Lab.TreeView>
 
-      <DocsExternalLink />
+      <M.Box className={classes.captionsWrapper}>
+        <DocsExternalLink />
 
-      <Legend />
+        <Legend />
+      </M.Box>
     </M.Paper>
   )
 }
