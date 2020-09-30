@@ -28,7 +28,7 @@ const useStyles = M.makeStyles((t) => ({
     margin: `${t.spacing(2)}px 0`,
   },
   code: {
-    background: t.palette.info.light, // t.info.main
+    background: t.palette.info.light,
     color: t.palette.info.contrastText,
     font: t.typography.monospace,
     padding: '0 3px',
@@ -172,12 +172,12 @@ function Code({ children }) {
 function ItemSyntax({ item, namespace }) {
   const { id, isObject, isPackage } = item
 
-  const syntaxId = `${namespace}.${id}.syntax`
+  const syntaxI18nId = `${namespace}.${id}.syntax`
 
   return (
     <M.Typography variant="body2">
       <Code>
-        <FM id={syntaxId} />
+        <FM id={syntaxI18nId} />
       </Code>
       {isObject && <ObjectKey />}
       {isPackage && <PackageKey />}
@@ -188,17 +188,17 @@ function ItemSyntax({ item, namespace }) {
 function ItemTitle({ item, namespace }) {
   const { id } = item
 
-  const syntaxId = `${namespace}.${id}.syntax`
-  const titleId = `${namespace}.${id}.title`
+  const syntaxI18nId = `${namespace}.${id}.syntax`
+  const titleI18nId = `${namespace}.${id}.title`
 
   return (
     <M.Typography variant="body2">
       <FM
-        id={titleId}
+        id={titleI18nId}
         values={{
           syntax: (
             <Code>
-              <FM id={syntaxId} />
+              <FM id={syntaxI18nId} />
             </Code>
           ),
         }}
@@ -210,12 +210,12 @@ function ItemTitle({ item, namespace }) {
 function ItemExample({ item, namespace }) {
   const { id } = item
 
-  const exampleId = `${namespace}.${id}.example`
+  const exampleI18nId = `${namespace}.${id}.example`
 
   return (
     <M.Typography variant="body2">
       <Code>
-        <FM id={exampleId} />
+        <FM id={exampleI18nId} />
       </Code>
     </M.Typography>
   )
@@ -225,10 +225,10 @@ function Item({ intl, item, namespace }) {
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
 
-  const exampleId = `${namespace}.${item.id}.example`
-  const hasExample = intl.messages[exampleId]
-  const titleId = `${namespace}.${item.id}.title`
-  const hasTitle = intl.messages[titleId]
+  const exampleI18nId = `${namespace}.${item.id}.example`
+  const hasExample = intl.messages[exampleI18nId]
+  const titleI18nId = `${namespace}.${item.id}.title`
+  const hasTitle = intl.messages[titleI18nId]
 
   return (
     <M.Grid container>
