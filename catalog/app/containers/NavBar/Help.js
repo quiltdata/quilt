@@ -18,6 +18,7 @@ const useStyles = M.makeStyles((t) => ({
     maxHeight: '400px',
     overflowY: 'auto',
     padding: `${t.spacing()}px ${t.spacing(4)}px ${t.spacing(4)}px`,
+
     [t.breakpoints.down('xs')]: {
       paddingLeft: t.spacing(),
       paddingRight: t.spacing(),
@@ -27,24 +28,13 @@ const useStyles = M.makeStyles((t) => ({
     margin: `${t.spacing(2)}px 0`,
   },
   code: {
-    font: t.typography.monospace,
-    padding: '0 3px',
     background: t.palette.info.light, // t.info.main
     color: t.palette.info.contrastText,
+    font: t.typography.monospace,
+    padding: '0 3px',
   },
   group: {
     marginTop: t.spacing(2),
-  },
-  wrapper: {
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: t.spacing(5),
-    animation: '$appear 150ms ease',
-    [t.breakpoints.down('xs')]: {
-      left: '-43px',
-      right: '-36px',
-    },
   },
   headerLabel: {
     '&:hover': {
@@ -52,9 +42,10 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   itemRoot: {
+    borderBottom: `1px solid ${t.palette.divider}`,
     marginTop: t.spacing(),
     paddingBottom: t.spacing(),
-    borderBottom: `1px solid ${t.palette.divider}`,
+
     '&:last-child': {
       border: 0,
     },
@@ -64,6 +55,18 @@ const useStyles = M.makeStyles((t) => ({
   },
   sup: {
     margin: '0 2px',
+  },
+  wrapper: {
+    animation: '$appear 150ms ease',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: t.spacing(5),
+
+    [t.breakpoints.down('xs')]: {
+      left: '-43px',
+      right: '-36px',
+    },
   },
 }))
 
@@ -273,7 +276,7 @@ function DocsExternalLink() {
   )
 }
 
-function Help({ onQuery }) {
+function Help({ intl, onQuery }) {
   const classes = useStyles()
 
   return (
@@ -307,7 +310,9 @@ function Help({ onQuery }) {
                     iconContainer: classes.itemIcon,
                     root: classes.itemRoot,
                   }}
-                  onLabelClick={() => onQuery(`${namespace}.${item.id}.syntax`)}
+                  onLabelClick={() =>
+                    onQuery(intl.formatMessage({ id: `${namespace}.${item.id}.syntax` }))
+                  }
                   label={<ItemWrapper item={item} namespace={namespace} />}
                 />
               ))}
@@ -323,4 +328,4 @@ function Help({ onQuery }) {
   )
 }
 
-export default Help
+export default injectIntl(Help)
