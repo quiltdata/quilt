@@ -1,104 +1,44 @@
 {
-  "caption": "There's much more. See the the full ",
-
-  "keywords": {
-    "title": "Fields",
-    "rows": [
-      {
-        "packaged": true,
-        "key": "comment:",
-        "title": "Packaged commit comment"
-      },
-      {
-        "objected": true,
-        "key": "content:",
-        "title": "Objected content"
-      },
-      {
-        "objected": true,
-        "example": "ext: *.fastq.gz",
-        "key": "ext:",
-        "title": "File extension"
-      },
-      {
-        "packaged": true,
-        "example": "handle: \"user/*\"",
-        "key": "handle:",
-        "title": "Packaged name"
-      },
-      {
-        "example": "hash:\"edf1\"*",
-        "key": "hash:",
-        "title": "Packaged hash"
-      },
-      {
-        "objected": true,
-        "example": "key: \"bar/\"",
-        "key": "key:",
-        "title": "S3 key"
-      },
-      {
-        "packaged": true,
-        "key": "metadata:",
-        "title": "Packaged metadata"
-      },
-      {
-        "objected": true,
-        "packaged": true,
-        "key": "size:",
-        "title": ""
-      },
-      {
-        "objected": true,
-        "key": "version_id:",
-        "title": ""
-      }
-    ]
-  },
-
-  "operators": {
-    "title": "Logical operators and grouping",
-    "rows": [
-      {
-        "key": "AND",
-        "title": "Conjunction"
-      },
-      {
-        "key": "OR",
-        "title": "Disjunction"
-      },
-      {
-        "key": "NOT",
-        "title": "Negation"
-      },
-      {
-        "example": "_exists_:content",
-        "key": "_exists_:",
-        "title": "Has any non-null value for keyword"
-      },
-      {
-        "key": "()",
-        "title": "Group items"
-      }
-    ]
-  },
-
-  "wildcards": {
-    "title": "Wildcards",
-    "rows": [
-      {
-        "key": "*",
-        "title": "Zero or more characters, avoid leading * (slow)"
-      },
-      {
-        "key": "?",
-        "title": "Exactly one character"
-      }
-    ]
-  },
-
-  "regex": {
-    "title": "Regular expressions",
-    "rows": []
-  }
+  "searchQuerySyntax.caption": "There's much more. See the the full ",
+  "searchQuerySyntax.fields.comment.syntax": "comment:",
+  "searchQuerySyntax.fields.comment.title": "Packaged commit comment",
+  "searchQuerySyntax.fields.content.syntax": "content:",
+  "searchQuerySyntax.fields.content.title": "Objected content",
+  "searchQuerySyntax.fields.ext.example": "ext: *.fastq.gz",
+  "searchQuerySyntax.fields.ext.syntax": "ext:",
+  "searchQuerySyntax.fields.ext.title": "File extension",
+  "searchQuerySyntax.fields.handle.example": "handle: \"user/*\"",
+  "searchQuerySyntax.fields.handle.syntax": "handle:",
+  "searchQuerySyntax.fields.handle.title": "Packaged name",
+  "searchQuerySyntax.fields.hash.example": "hash:\"edf1\"*",
+  "searchQuerySyntax.fields.hash.syntax": "hash:",
+  "searchQuerySyntax.fields.hash.title": "Packaged hash",
+  "searchQuerySyntax.fields.key.example": "key: \"bar/\"",
+  "searchQuerySyntax.fields.key.syntax": "key:",
+  "searchQuerySyntax.fields.key.title": "S3 key",
+  "searchQuerySyntax.fields.metadata.syntax": "metadata:",
+  "searchQuerySyntax.fields.metadata.title": "Packaged metadata",
+  "searchQuerySyntax.fields.size.syntax": "size:",
+  "searchQuerySyntax.fields.title": "Fields",
+  "searchQuerySyntax.fields.versionId.syntax": "version_id:",
+  "searchQuerySyntax.isObject": " — object",
+  "searchQuerySyntax.isPackage": " — package",
+  "searchQuerySyntax.operators.and.syntax": "AND",
+  "searchQuerySyntax.operators.and.title": "Conjunction",
+  "searchQuerySyntax.operators.exists.example": "_exists_:content",
+  "searchQuerySyntax.operators.exists.syntax": "_exists_:",
+  "searchQuerySyntax.operators.exists.title": "Has any non-null value for keyword",
+  "searchQuerySyntax.operators.group.syntax": "()",
+  "searchQuerySyntax.operators.group.title": "Group items",
+  "searchQuerySyntax.operators.not.syntax": "NOT",
+  "searchQuerySyntax.operators.not.title": "Negation",
+  "searchQuerySyntax.operators.or.syntax": "OR",
+  "searchQuerySyntax.operators.or.title": "Disjunction",
+  "searchQuerySyntax.operators.title": "Logical operators and grouping",
+  "searchQuerySyntax.regex.title": "Regular expressions",
+  "searchQuerySyntax.wildcards.asterisk.syntax": "*",
+  "searchQuerySyntax.wildcards.asterisk.title": "Zero or more characters, avoid leading * (slow)",
+  "searchQuerySyntax.wildcards.question.syntax": "?",
+  "searchQuerySyntax.wildcards.question.title": "Exactly one character",
+  "searchQuerySyntax.wildcards.title": "Wildcards"
 }

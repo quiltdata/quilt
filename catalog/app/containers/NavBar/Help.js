@@ -67,6 +67,88 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+const syntaxHelpRows = [
+  {
+    namespace: 'searchQuerySyntax.fields',
+    rows: [
+      {
+        id: 'comment',
+        isPackage: true,
+      },
+      {
+        id: 'content',
+        isObject: true,
+      },
+      {
+        id: 'ext',
+        isObject: true,
+      },
+      {
+        id: 'handle',
+        isPackage: true,
+      },
+      {
+        id: 'hash',
+      },
+      {
+        id: 'key',
+        isObject: true,
+      },
+      {
+        id: 'metadata',
+        isPackage: true,
+      },
+      {
+        id: 'size',
+        isPackage: true,
+        isObject: true,
+      },
+      {
+        id: 'versionId',
+        isObject: true,
+      },
+    ],
+  },
+
+  {
+    namespace: 'searchQuerySyntax.operators',
+    rows: [
+      {
+        id: 'and',
+      },
+      {
+        id: 'or',
+      },
+      {
+        id: 'not',
+      },
+      {
+        id: 'exists',
+      },
+      {
+        id: 'group',
+      },
+    ],
+  },
+
+  {
+    namespace: 'searchQuerySyntax.wildcards',
+    rows: [
+      {
+        id: 'asterisk',
+      },
+      {
+        id: 'question',
+      },
+    ],
+  },
+
+  {
+    namespace: 'searchQuerySyntax.regex',
+    rows: [],
+  },
+]
+
 function Help({ onQuery }) {
   const classes = useStyles()
 
@@ -76,8 +158,8 @@ function Help({ onQuery }) {
   const ES_V = '6.7'
   const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
 
-  const { caption, keywords, operators, regex, wildcards } = searchQuerySyntax
-  const syntaxHelpRows = [keywords, operators, wildcards, regex]
+  // const { caption, keywords, operators, regex, wildcards } = searchQuerySyntax
+  // const syntaxHelpRows = [keywords, operators, wildcards, regex]
 
   return (
     <M.Box className={classes.wrapper}>
@@ -85,67 +167,80 @@ function Help({ onQuery }) {
         <Lab.TreeView
           defaultCollapseIcon={<M.Icon>arrow_drop_down</M.Icon>}
           defaultExpandIcon={<M.Icon>arrow_right</M.Icon>}
-          defaultExpanded={syntaxHelpRows.map((syntaxHelp) => syntaxHelp.title)}
+          defaultExpanded={syntaxHelpRows.map(({ namespace }) => namespace)}
           disableSelection
         >
-          {syntaxHelpRows.map((syntaxHelp) => (
+          {syntaxHelpRows.map(({ namespace, rows }) => (
             <Lab.TreeItem
               className={classes.group}
-              label={<M.Typography variant="subtitle2">{syntaxHelp.title}</M.Typography>}
-              nodeId={syntaxHelp.title}
-              key={syntaxHelp.title}
+              label={
+                <M.Typography variant="subtitle2">
+                  {searchQuerySyntax[`${namespace}.title`]}
+                </M.Typography>
+              }
+              nodeId={namespace}
+              key={namespace}
               classes={{
                 label: classes.headerLabel,
               }}
             >
-              {syntaxHelp.rows.map(({ example, key, objected, packaged, title }) => (
-                <Lab.TreeItem
-                  key={key}
-                  nodeId={key}
-                  classes={{
-                    iconContainer: classes.itemIcon,
-                    root: classes.itemRoot,
-                  }}
-                  onLabelClick={() => onQuery(key)}
-                  label={
-                    <M.Grid container>
-                      <M.Grid item xs={xs ? 5 : 4}>
-                        <M.Typography variant="body2">
-                          <code className={classes.code}>{key}</code>
-                          {objected && <sup className={classes.sup}>+</sup>}
-                          {packaged && <sup className={classes.sup}>*</sup>}
-                        </M.Typography>
-                      </M.Grid>
-                      <M.Grid item xs>
-                        <M.Typography variant="body2">{title}</M.Typography>
-                      </M.Grid>
-                      {example && (
-                        <M.Grid item xs>
-                          <M.Typography variant="body2" align="right">
-                            <code className={classes.code}>{example}</code>
+              {rows.map(({ id, isObject, isPackage }) => {
+                const exampleStr = searchQuerySyntax[`${namespace}.${id}.example`]
+                const syntaxStr = searchQuerySyntax[`${namespace}.${id}.syntax`]
+                const titleStr = searchQuerySyntax[`${namespace}.${id}.title`]
+                return (
+                  <Lab.TreeItem
+                    key={id}
+                    nodeId={id}
+                    classes={{
+                      iconContainer: classes.itemIcon,
+                      root: classes.itemRoot,
+                    }}
+                    onLabelClick={() => onQuery()}
+                    label={
+                      <M.Grid container>
+                        <M.Grid item xs={xs ? 5 : 4}>
+                          <M.Typography variant="body2">
+                            <code className={classes.code}>{syntaxStr}</code>
+                            {isObject && <sup className={classes.sup}>+</sup>}
+                            {isPackage && <sup className={classes.sup}>*</sup>}
                           </M.Typography>
                         </M.Grid>
-                      )}
-                    </M.Grid>
-                  }
-                />
-              ))}
+                        {titleStr && (
+                          <M.Grid item xs>
+                            <M.Typography variant="body2">{titleStr}</M.Typography>
+                          </M.Grid>
+                        )}
+                        {exampleStr && (
+                          <M.Grid item xs>
+                            <M.Typography variant="body2" align="right">
+                              <code className={classes.code}>{exampleStr}</code>
+                            </M.Typography>
+                          </M.Grid>
+                        )}
+                      </M.Grid>
+                    }
+                  />
+                )
+              })}
             </Lab.TreeItem>
           ))}
         </Lab.TreeView>
 
         <M.Box className={classes.caption}>
           <M.Typography variant="caption">
-            {caption}
+            {searchQuerySyntax['searchQuerySyntax.caption']}
             <StyledLink href={ES_REF}>ElasticSearch 6.7 query string syntax</StyledLink>
           </M.Typography>
         </M.Box>
 
         <M.Box className={classes.caption}>
           <M.Typography variant="caption">
-            <sup className={classes.sup}>*</sup> — package
+            <sup className={classes.sup}>*</sup>
+            {searchQuerySyntax['searchQuerySyntax.isPackage']}
             <br />
-            <sup className={classes.sup}>+</sup> — object
+            <sup className={classes.sup}>+</sup>
+            {searchQuerySyntax['searchQuerySyntax.isObject']}
           </M.Typography>
         </M.Box>
       </M.Paper>
