@@ -1,5 +1,6 @@
 {
-  "searchQuerySyntax.caption": "There's much more. See the the full ",
+  "searchQuerySyntax.caption": "There's much more. See the the full {link}",
+  "searchQuerySyntax.captionLink": "ElasticSearch 6.7 query string syntax",
   "searchQuerySyntax.fields.comment.syntax": "comment:",
   "searchQuerySyntax.fields.comment.title": "Packaged commit comment",
   "searchQuerySyntax.fields.content.syntax": "content:",
@@ -21,8 +22,8 @@
   "searchQuerySyntax.fields.size.syntax": "size:",
   "searchQuerySyntax.fields.title": "Fields",
   "searchQuerySyntax.fields.versionId.syntax": "version_id:",
-  "searchQuerySyntax.isObject": " — object",
-  "searchQuerySyntax.isPackage": " — package",
+  "searchQuerySyntax.isObject": "{key} — object",
+  "searchQuerySyntax.isPackage": "{key} — package",
   "searchQuerySyntax.operators.and.syntax": "AND",
   "searchQuerySyntax.operators.and.title": "Conjunction",
   "searchQuerySyntax.operators.exists.example": "_exists_:content",

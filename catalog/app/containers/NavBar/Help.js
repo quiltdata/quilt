@@ -149,14 +149,132 @@ const syntaxHelpRows = [
   },
 ]
 
-function Help({ intl, onQuery }) {
+function PackageKey() {
+  const classes = useStyles()
+  return <sup className={classes.sup}>*</sup>
+}
+
+function ObjectKey() {
+  const classes = useStyles()
+  return <sup className={classes.sup}>+</sup>
+}
+
+function Code({ children }) {
   const classes = useStyles()
 
+  return <code className={classes.code}>{children}</code>
+}
+
+function ItemSyntax({ item, namespace }) {
+  const { id, isObject, isPackage } = item
+
+  const syntaxId = `${namespace}.${id}.syntax`
+
+  return (
+    <M.Typography variant="body2">
+      <Code>
+        <FM id={syntaxId} />
+      </Code>
+      {isObject && <ObjectKey />}
+      {isPackage && <PackageKey />}
+    </M.Typography>
+  )
+}
+
+function ItemTitle({ item, namespace }) {
+  const { id } = item
+
+  const titleId = `${namespace}.${id}.title`
+
+  return (
+    <M.Typography variant="body2">
+      <FM id={titleId} />
+    </M.Typography>
+  )
+}
+
+function ItemExample({ item, namespace }) {
+  const { id } = item
+
+  const exampleId = `${namespace}.${id}.example`
+
+  return (
+    <M.Typography variant="body2">
+      <Code>
+        <FM id={exampleId} />
+      </Code>
+    </M.Typography>
+  )
+}
+
+function Item({ intl, item, namespace }) {
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
 
+  const exampleId = `${namespace}.${item.id}.example`
+  const hasExample = intl.messages[exampleId]
+  const titleId = `${namespace}.${item.id}.title`
+  const hasTitle = intl.messages[titleId]
+
+  return (
+    <M.Grid container>
+      <M.Grid item xs={xs ? 5 : 4}>
+        <ItemSyntax item={item} namespace={namespace} />
+      </M.Grid>
+      {hasTitle && (
+        <M.Grid item xs>
+          <ItemTitle item={item} namespace={namespace} />
+        </M.Grid>
+      )}
+      {hasExample && (
+        <M.Grid item xs align="right">
+          <ItemExample item={item} namespace={namespace} />
+        </M.Grid>
+      )}
+    </M.Grid>
+  )
+}
+
+const ItemWrapper = injectIntl(Item)
+
+function Legend() {
+  const classes = useStyles()
+
+  return (
+    <M.Box className={classes.caption}>
+      <M.Typography variant="caption" component="p">
+        <FM id="searchQuerySyntax.isPackage" values={{ key: <PackageKey /> }} />
+      </M.Typography>
+      <M.Typography variant="caption" component="p">
+        <FM id="searchQuerySyntax.isObject" values={{ key: <ObjectKey /> }} />
+      </M.Typography>
+    </M.Box>
+  )
+}
+
+function DocsExternalLink() {
+  const classes = useStyles()
+
   const ES_V = '6.7'
   const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
+
+  const link = (
+    <StyledLink href={ES_REF}>
+      <FM id="searchQuerySyntax.captionLink" />
+    </StyledLink>
+  )
+
+  return (
+    <M.Box className={classes.caption}>
+      <M.Typography variant="caption">
+        <FM id="searchQuerySyntax.caption" values={{ link }} />
+      </M.Typography>
+    </M.Box>
+  )
+}
+
+function Help({ onQuery }) {
+  const classes = useStyles()
 
   return (
     <M.Box className={classes.wrapper}>
@@ -181,76 +299,28 @@ function Help({ intl, onQuery }) {
                 label: classes.headerLabel,
               }}
             >
-              {rows.map(({ id, isObject, isPackage }) => {
-                const exampleId = `${namespace}.${id}.example`
-                const hasExample = intl.messages[exampleId]
-                const syntaxId = `${namespace}.${id}.syntax`
-                const titleId = `${namespace}.${id}.title`
-                const hasTitle = intl.messages[titleId]
-                return (
-                  <Lab.TreeItem
-                    key={id}
-                    nodeId={id}
-                    classes={{
-                      iconContainer: classes.itemIcon,
-                      root: classes.itemRoot,
-                    }}
-                    onLabelClick={() => onQuery()}
-                    label={
-                      <M.Grid container>
-                        <M.Grid item xs={xs ? 5 : 4}>
-                          <M.Typography variant="body2">
-                            <code className={classes.code}>
-                              <FM id={syntaxId} />
-                            </code>
-                            {isObject && <sup className={classes.sup}>+</sup>}
-                            {isPackage && <sup className={classes.sup}>*</sup>}
-                          </M.Typography>
-                        </M.Grid>
-                        {hasTitle && (
-                          <M.Grid item xs>
-                            <M.Typography variant="body2">
-                              <FM id={titleId} />
-                            </M.Typography>
-                          </M.Grid>
-                        )}
-                        {hasExample && (
-                          <M.Grid item xs>
-                            <M.Typography variant="body2" align="right">
-                              <code className={classes.code}>
-                                <FM id={exampleId} />
-                              </code>
-                            </M.Typography>
-                          </M.Grid>
-                        )}
-                      </M.Grid>
-                    }
-                  />
-                )
-              })}
+              {rows.map((item) => (
+                <Lab.TreeItem
+                  key={item.id}
+                  nodeId={item.id}
+                  classes={{
+                    iconContainer: classes.itemIcon,
+                    root: classes.itemRoot,
+                  }}
+                  onLabelClick={() => onQuery(`${namespace}.${item.id}.syntax`)}
+                  label={<ItemWrapper item={item} namespace={namespace} />}
+                />
+              ))}
             </Lab.TreeItem>
           ))}
         </Lab.TreeView>
 
-        <M.Box className={classes.caption}>
-          <M.Typography variant="caption">
-            <FM id="searchQuerySyntax.caption" />
-            <StyledLink href={ES_REF}>ElasticSearch 6.7 query string syntax</StyledLink>
-          </M.Typography>
-        </M.Box>
+        <DocsExternalLink />
 
-        <M.Box className={classes.caption}>
-          <M.Typography variant="caption">
-            <sup className={classes.sup}>*</sup>
-            <FM id="searchQuerySyntax.isPackage" />
-            <br />
-            <sup className={classes.sup}>+</sup>
-            <FM id="searchQuerySyntax.isObject" />
-          </M.Typography>
-        </M.Box>
+        <Legend />
       </M.Paper>
     </M.Box>
   )
 }
 
-export default injectIntl(Help)
+export default Help
