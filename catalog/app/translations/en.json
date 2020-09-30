@@ -38,7 +38,7 @@
   "searchQuerySyntax.operators.title": "Logical operators and grouping",
   "searchQuerySyntax.regex.title": "Regular expressions",
   "searchQuerySyntax.wildcards.asterisk.syntax": "*",
-  "searchQuerySyntax.wildcards.asterisk.title": "Zero or more characters, avoid leading * (slow)",
+  "searchQuerySyntax.wildcards.asterisk.title": "Zero or more characters, avoid leading {syntax} (slow)",
   "searchQuerySyntax.wildcards.question.syntax": "?",
   "searchQuerySyntax.wildcards.question.title": "Exactly one character",
   "searchQuerySyntax.wildcards.title": "Wildcards"

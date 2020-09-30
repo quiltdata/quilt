@@ -187,11 +187,21 @@ function ItemSyntax({ item, namespace }) {
 function ItemTitle({ item, namespace }) {
   const { id } = item
 
+  const syntaxId = `${namespace}.${id}.syntax`
   const titleId = `${namespace}.${id}.title`
 
   return (
     <M.Typography variant="body2">
-      <FM id={titleId} />
+      <FM
+        id={titleId}
+        values={{
+          syntax: (
+            <Code>
+              <FM id={syntaxId} />
+            </Code>
+          ),
+        }}
+      />
     </M.Typography>
   )
 }
