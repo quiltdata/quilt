@@ -175,9 +175,7 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
 
   const handleHelpOpen = React.useCallback(() => setHelpOpened(true), [])
 
-  const handleHelpClose = React.useCallback(() => {
-    setTimeout(() => setHelpOpened(false), 300) // FIXME: it's for mobile
-  }, [])
+  const handleHelpClose = React.useCallback(() => setHelpOpened(false), [])
 
   const handleQuery = React.useCallback(
     (strPart) => {

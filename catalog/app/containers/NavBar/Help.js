@@ -32,6 +32,7 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.info.contrastText,
     font: t.typography.monospace,
     padding: '0 3px',
+    whiteSpace: 'nowrap',
   },
   group: {
     marginTop: t.spacing(2),
@@ -231,7 +232,7 @@ function Item({ intl, item, namespace }) {
 
   return (
     <M.Grid container>
-      <M.Grid item xs={xs ? 5 : 4}>
+      <M.Grid item xs={xs ? 4 : 3}>
         <ItemSyntax item={item} namespace={namespace} />
       </M.Grid>
       {hasTitle && (
