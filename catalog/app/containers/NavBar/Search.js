@@ -17,6 +17,14 @@ import { useRoute } from 'utils/router'
 import SearchHelp from './Help'
 
 const useStyles = M.makeStyles((t) => ({
+  '@keyframes slide': {
+    '0%': {
+      transform: 'translateY(-10px)',
+    },
+    '100%': {
+      transform: 'translateY(0)',
+    },
+  },
   root: {
     background: fade(t.palette.common.white, 0),
     borderRadius: t.shape.borderRadius,
@@ -38,6 +46,20 @@ const useStyles = M.makeStyles((t) => ({
   },
   disabled: {
     opacity: 0.8,
+  },
+  help: {
+    animation: '$slide 150ms ease',
+    left: 0,
+    maxHeight: '400px',
+    overflowY: 'auto',
+    position: 'absolute',
+    right: 0,
+    top: t.spacing(5),
+
+    [t.breakpoints.down('xs')]: {
+      left: '-43px',
+      right: '-36px',
+    },
   },
   hidden: {
     opacity: 0,
@@ -89,6 +111,7 @@ function SearchBox({
   const {
     disabled: disabledCls,
     expanded: expandedCls,
+    help: helpCls,
     hidden: hiddenCls,
     iconized: iconizedCls,
     inputIcon: inputIconCls,
@@ -99,11 +122,12 @@ function SearchBox({
   return (
     <M.ClickAwayListener onClickAway={onHelpClose}>
       <div className={wrapperCls}>
-        {helpOpened ? (
+        {helpOpened && (
           <M.MuiThemeProvider theme={style.appTheme}>
-            <SearchHelp onQuery={onQuery} />
+            <SearchHelp className={helpCls} onQuery={onQuery} />
           </M.MuiThemeProvider>
-        ) : null}
+        )}
+
         <M.InputBase
           startAdornment={
             <M.InputAdornment>

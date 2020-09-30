@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as Lab from '@material-ui/lab'
 import * as M from '@material-ui/core'
 import * as React from 'react'
@@ -6,17 +7,7 @@ import { FormattedMessage as FM, injectIntl } from 'react-intl'
 import StyledLink from 'utils/StyledLink'
 
 const useStyles = M.makeStyles((t) => ({
-  '@keyframes appear': {
-    '0%': {
-      transform: 'translateY(-10px)',
-    },
-    '100%': {
-      transform: 'translateY(0)',
-    },
-  },
   root: {
-    maxHeight: '400px',
-    overflowY: 'auto',
     padding: `${t.spacing()}px ${t.spacing(4)}px ${t.spacing(4)}px`,
 
     [t.breakpoints.down('xs')]: {
@@ -56,18 +47,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   sup: {
     margin: '0 2px',
-  },
-  wrapper: {
-    animation: '$appear 150ms ease',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: t.spacing(5),
-
-    [t.breakpoints.down('xs')]: {
-      left: '-43px',
-      right: '-36px',
-    },
   },
 }))
 
@@ -287,55 +266,53 @@ function DocsExternalLink() {
   )
 }
 
-function Help({ intl, onQuery }) {
+function Help({ className, intl, onQuery }) {
   const classes = useStyles()
 
   return (
-    <M.Box className={classes.wrapper}>
-      <M.Paper className={classes.root}>
-        <Lab.TreeView
-          defaultCollapseIcon={<M.Icon>arrow_drop_down</M.Icon>}
-          defaultExpandIcon={<M.Icon>arrow_right</M.Icon>}
-          defaultExpanded={syntaxHelpRows.map(({ namespace }) => namespace)}
-          disableSelection
-        >
-          {syntaxHelpRows.map(({ namespace, rows }) => (
-            <Lab.TreeItem
-              className={classes.group}
-              label={
-                <M.Typography variant="subtitle2">
-                  <FM id={`${namespace}.title`} />
-                </M.Typography>
-              }
-              nodeId={namespace}
-              key={namespace}
-              classes={{
-                label: classes.headerLabel,
-              }}
-            >
-              {rows.map((item) => (
-                <Lab.TreeItem
-                  key={item.id}
-                  nodeId={item.id}
-                  classes={{
-                    iconContainer: classes.itemIcon,
-                    root: classes.itemRoot,
-                  }}
-                  onLabelClick={() =>
-                    onQuery(intl.formatMessage({ id: `${namespace}.${item.id}.syntax` }))
-                  }
-                  label={<ItemWrapper item={item} namespace={namespace} />}
-                />
-              ))}
-            </Lab.TreeItem>
-          ))}
-        </Lab.TreeView>
+    <M.Paper className={cx(classes.root, className)}>
+      <Lab.TreeView
+        defaultCollapseIcon={<M.Icon>arrow_drop_down</M.Icon>}
+        defaultExpandIcon={<M.Icon>arrow_right</M.Icon>}
+        defaultExpanded={syntaxHelpRows.map(({ namespace }) => namespace)}
+        disableSelection
+      >
+        {syntaxHelpRows.map(({ namespace, rows }) => (
+          <Lab.TreeItem
+            className={classes.group}
+            label={
+              <M.Typography variant="subtitle2">
+                <FM id={`${namespace}.title`} />
+              </M.Typography>
+            }
+            nodeId={namespace}
+            key={namespace}
+            classes={{
+              label: classes.headerLabel,
+            }}
+          >
+            {rows.map((item) => (
+              <Lab.TreeItem
+                key={item.id}
+                nodeId={item.id}
+                classes={{
+                  iconContainer: classes.itemIcon,
+                  root: classes.itemRoot,
+                }}
+                onLabelClick={() =>
+                  onQuery(intl.formatMessage({ id: `${namespace}.${item.id}.syntax` }))
+                }
+                label={<ItemWrapper item={item} namespace={namespace} />}
+              />
+            ))}
+          </Lab.TreeItem>
+        ))}
+      </Lab.TreeView>
 
-        <DocsExternalLink />
+      <DocsExternalLink />
 
-        <Legend />
-      </M.Paper>
-    </M.Box>
+      <Legend />
+    </M.Paper>
   )
 }
 
