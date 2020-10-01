@@ -203,7 +203,8 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
 
   const handleQuery = React.useCallback(
     (strPart) => {
-      change(`${value} ${strPart}`)
+      const normalized = strPart.replace(/\s/g, '')
+      change(`${value} ${normalized}`)
     },
     [value],
   )
