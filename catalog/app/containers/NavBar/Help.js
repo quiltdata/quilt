@@ -36,22 +36,20 @@ const useStyles = M.makeStyles((t) => ({
       background: 'transparent',
     },
   },
-  itemRoot: {
+  item: {
     borderBottom: `1px solid ${t.palette.divider}`,
-    marginTop: t.spacing(),
-    paddingBottom: t.spacing(),
 
     '&:last-child': {
       border: 0,
     },
   },
-  itemIcon: {
-    width: 0,
-  },
   list: {
     flexGrow: 1,
     overflowY: 'auto',
     marginBottom: t.spacing(),
+  },
+  subList: {
+    marginLeft: '-12px',
   },
   sup: {
     margin: '0 2px',
@@ -132,11 +130,6 @@ const syntaxHelpRows = [
         id: 'question',
       },
     ],
-  },
-
-  {
-    namespace: 'searchQuerySyntax.regex',
-    rows: [],
   },
 ]
 
@@ -228,7 +221,7 @@ function Item({ intl, item, namespace }) {
         </M.Grid>
       )}
       {hasExample && (
-        <M.Grid item xs align="right">
+        <M.Grid item xs sm={3}>
           <ItemExample item={item} namespace={namespace} />
         </M.Grid>
       )}
@@ -301,20 +294,20 @@ function Help({ className, intl, onQuery }) {
               label: classes.headerLabel,
             }}
           >
-            {rows.map((item) => (
-              <Lab.TreeItem
-                key={item.id}
-                nodeId={item.id}
-                classes={{
-                  iconContainer: classes.itemIcon,
-                  root: classes.itemRoot,
-                }}
-                onLabelClick={() =>
-                  onQuery(intl.formatMessage({ id: `${namespace}.${item.id}.syntax` }))
-                }
-                label={<ItemWrapper item={item} namespace={namespace} />}
-              />
-            ))}
+            <M.List className={classes.subList}>
+              {rows.map((item) => (
+                <M.ListItem
+                  key={item.id}
+                  className={classes.item}
+                  button
+                  onClick={() =>
+                    onQuery(intl.formatMessage({ id: `${namespace}.${item.id}.syntax` }))
+                  }
+                >
+                  <ItemWrapper item={item} namespace={namespace} />
+                </M.ListItem>
+              ))}
+            </M.List>
           </Lab.TreeItem>
         ))}
       </Lab.TreeView>

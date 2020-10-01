@@ -1,6 +1,6 @@
 {
-  "searchQuerySyntax.caption": "There's much more. See the the full {link}",
-  "searchQuerySyntax.captionLink": "ElasticSearch 6.7 query string syntax",
+  "searchQuerySyntax.caption": "Quilt uses ElasticSearch 6.7 query string queries. {link}.",
+  "searchQuerySyntax.captionLink": "Learn more",
   "searchQuerySyntax.fields.comment.syntax": "comment:",
   "searchQuerySyntax.fields.comment.title": "Packaged commit comment",
   "searchQuerySyntax.fields.content.syntax": "content:",
@@ -36,7 +36,6 @@
   "searchQuerySyntax.operators.or.syntax": "OR",
   "searchQuerySyntax.operators.or.title": "Disjunction",
   "searchQuerySyntax.operators.title": "Logical operators and grouping",
-  "searchQuerySyntax.regex.title": "Regular expressions",
   "searchQuerySyntax.wildcards.asterisk.syntax": "*",
   "searchQuerySyntax.wildcards.asterisk.title": "Zero or more characters, avoid leading {syntax} (slow)",
   "searchQuerySyntax.wildcards.question.syntax": "?",
