@@ -135,16 +135,6 @@ const syntaxHelpRows = [
   },
 ]
 
-function PackageKey() {
-  const classes = useStyles()
-  return <sup className={classes.sup}>*</sup>
-}
-
-function ObjectKey() {
-  const classes = useStyles()
-  return <sup className={classes.sup}>+</sup>
-}
-
 function Code({ children }) {
   const classes = useStyles()
 
@@ -152,7 +142,7 @@ function Code({ children }) {
 }
 
 function ItemSyntax({ item, namespace }) {
-  const { id, isObject, isPackage } = item
+  const { id } = item
 
   const syntaxI18nId = `${namespace}.${id}.syntax`
 
@@ -161,14 +151,12 @@ function ItemSyntax({ item, namespace }) {
       <Code>
         <FM id={syntaxI18nId} />
       </Code>
-      {isObject && <ObjectKey />}
-      {isPackage && <PackageKey />}
     </M.Typography>
   )
 }
 
 function ItemTitle({ item, namespace }) {
-  const { id } = item
+  const { id, isObject, isPackage } = item
 
   const syntaxI18nId = `${namespace}.${id}.syntax`
   const titleI18nId = `${namespace}.${id}.title`
@@ -185,6 +173,9 @@ function ItemTitle({ item, namespace }) {
           ),
         }}
       />
+      {isObject && isPackage && <FM id="searchQuerySyntax.objectAndPackage" />}
+      {isObject && !isPackage && <FM id="searchQuerySyntax.object" />}
+      {isPackage && !isObject && <FM id="searchQuerySyntax.package" />}
     </M.Typography>
   )
 }
@@ -262,22 +253,6 @@ function ItemsHeader({ hasExamples }) {
   )
 }
 
-function Legend() {
-  const classes = useStyles()
-
-  return (
-    <M.Box className={classes.caption}>
-      <M.Typography variant="caption">
-        <FM id="searchQuerySyntax.isPackage" values={{ key: <PackageKey /> }} />
-      </M.Typography>
-      ,{' '}
-      <M.Typography variant="caption">
-        <FM id="searchQuerySyntax.isObject" values={{ key: <ObjectKey /> }} />
-      </M.Typography>
-    </M.Box>
-  )
-}
-
 function DocsExternalLink() {
   const classes = useStyles()
 
@@ -351,8 +326,6 @@ function Help({ className, intl, onQuery }) {
 
       <M.Box className={classes.captionsWrapper}>
         <DocsExternalLink />
-
-        <Legend />
       </M.Box>
     </M.Paper>
   )
