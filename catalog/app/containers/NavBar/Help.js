@@ -58,7 +58,7 @@ const useItemsHeaderStyles = M.makeStyles((t) => ({
 const useDocsExternalLinkStyles = M.makeStyles((t) => ({
   root: {
     marginTop: t.spacing(2),
-    marginBottom: t.spacing(3),
+    marginBottom: t.spacing(4),
   },
 }))
 
@@ -191,27 +191,35 @@ function Code({ children }) {
 }
 
 function Item({ item }) {
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.up('sm'))
+
   const { example, syntax, title } = item
   return (
     <M.Grid container>
-      <M.Grid item xs={4} sm={3}>
+      <M.Grid item xs={5} sm={3}>
         <M.Typography variant="body2">
           <Code>{syntax}</Code>
         </M.Typography>
       </M.Grid>
-      <M.Grid item xs zeroMinWidth>
+      <M.Grid item xs>
         <M.Typography variant="body2">{title}</M.Typography>
       </M.Grid>
-      <M.Grid item xs={3}>
-        <M.Typography variant="body2">
-          <Code>{example}</Code>
-        </M.Typography>
-      </M.Grid>
+      {sm && (
+        <M.Grid item xs={3}>
+          <M.Typography variant="body2">
+            <Code>{example}</Code>
+          </M.Typography>
+        </M.Grid>
+      )}
     </M.Grid>
   )
 }
 
 function ItemsHeader() {
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.up('sm'))
+
   const classes = useItemsHeaderStyles()
 
   return (
@@ -222,9 +230,11 @@ function ItemsHeader() {
       <M.Grid item xs>
         <M.Typography variant="subtitle2">Description</M.Typography>
       </M.Grid>
-      <M.Grid item xs sm={3}>
-        <M.Typography variant="subtitle2">Example</M.Typography>
-      </M.Grid>
+      {sm && (
+        <M.Grid item xs sm={3}>
+          <M.Typography variant="subtitle2">Example</M.Typography>
+        </M.Grid>
+      )}
     </M.Grid>
   )
 }
