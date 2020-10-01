@@ -43,7 +43,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   itemsHeader: {
     borderBottom: `1px solid ${t.palette.divider}`,
-    padding: `${t.spacing()}px ${t.spacing(2)}px`,
+    padding: `0 ${t.spacing(2)}px ${t.spacing()}px`,
   },
   list: {
     flexGrow: 1,
@@ -233,7 +233,7 @@ function Item({ intl, item, namespace }) {
 
 const ItemWrapper = injectIntl(Item)
 
-function ItemsHeader() {
+function ItemsHeader({ hasExamples }) {
   const classes = useStyles()
 
   const t = M.useTheme()
@@ -251,11 +251,13 @@ function ItemsHeader() {
           <FM id="searchQuerySyntax.description" />
         </M.Typography>
       </M.Grid>
-      <M.Grid item xs sm={3}>
-        <M.Typography variant="subtitle2">
-          <FM id="searchQuerySyntax.example" />
-        </M.Typography>
-      </M.Grid>
+      {hasExamples && (
+        <M.Grid item xs sm={3}>
+          <M.Typography variant="subtitle2">
+            <FM id="searchQuerySyntax.example" />
+          </M.Typography>
+        </M.Grid>
+      )}
     </M.Grid>
   )
 }
@@ -324,7 +326,11 @@ function Help({ className, intl, onQuery }) {
             }}
           >
             <M.List className={classes.subList}>
-              <ItemsHeader />
+              <ItemsHeader
+                hasExamples={rows.some(
+                  (item) => intl.messages[`${namespace}.${item.id}.example`],
+                )}
+              />
 
               {rows.map((item) => (
                 <M.ListItem
