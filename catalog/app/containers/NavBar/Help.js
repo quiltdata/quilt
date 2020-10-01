@@ -145,7 +145,7 @@ const syntaxHelpRows = [
         title: 'Negation',
       },
       {
-        example: '_exists_:content',
+        example: '_exists_: content',
         id: 'exists',
         syntax: '_exists_:',
         title: 'Has any non-null value for keyword',
