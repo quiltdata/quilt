@@ -44,7 +44,7 @@ const useCodeStyles = M.makeStyles((t) => ({
     color: t.palette.info.contrastText,
     font: t.typography.monospace,
     padding: '0 3px',
-    whiteSpace: 'nowrap',
+    whiteSpace: 'pre-wrap',
   },
 }))
 
@@ -119,6 +119,18 @@ const syntaxHelpRows = [
         id: 'versionId',
         syntax: 'version_id:',
         title: 'S3 version id (objects)',
+      },
+      {
+        example: 'package_stats\n\t.total_files: >100',
+        id: 'totalFiles',
+        syntax: 'package_stats\n\t.total_files:',
+        title: ' Total files in package',
+      },
+      {
+        example: 'package_stats\n\t.total_bytes: <100',
+        id: 'totalBytes',
+        syntax: 'package_stats\n\t.total_bytes:',
+        title: ' Total bytes in package',
       },
     ],
   },
@@ -197,7 +209,7 @@ function Item({ item }) {
   const { example, syntax, title } = item
   return (
     <M.Grid container>
-      <M.Grid item xs={5} sm={3}>
+      <M.Grid item xs={5} sm={4}>
         <M.Typography variant="body2">
           <Code>{syntax}</Code>
         </M.Typography>
@@ -206,7 +218,7 @@ function Item({ item }) {
         <M.Typography variant="body2">{title}</M.Typography>
       </M.Grid>
       {sm && (
-        <M.Grid item xs={3}>
+        <M.Grid item xs={5}>
           <M.Typography variant="body2">
             <Code>{example}</Code>
           </M.Typography>
@@ -224,14 +236,14 @@ function ItemsHeader() {
 
   return (
     <M.Grid container className={classes.root}>
-      <M.Grid item xs={4} sm={3}>
+      <M.Grid item xs={5} sm={4}>
         <M.Typography variant="subtitle2">Command</M.Typography>
       </M.Grid>
       <M.Grid item xs>
         <M.Typography variant="subtitle2">Description</M.Typography>
       </M.Grid>
       {sm && (
-        <M.Grid item xs sm={3}>
+        <M.Grid item xs sm={5}>
           <M.Typography variant="subtitle2">Example</M.Typography>
         </M.Grid>
       )}
