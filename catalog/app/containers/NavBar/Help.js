@@ -22,7 +22,7 @@ const useStyles = M.makeStyles((t) => ({
     padding: `${t.spacing()}px ${t.spacing(4)}px`,
   },
   code: {
-    background: t.palette.info.light,
+    background: t.palette.grey['300'],
     color: t.palette.info.contrastText,
     font: t.typography.monospace,
     padding: '0 3px',
