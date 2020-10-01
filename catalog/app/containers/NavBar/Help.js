@@ -191,9 +191,6 @@ function ItemExample({ item, namespace }) {
 }
 
 function Item({ intl, item, namespace }) {
-  const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
-
   const exampleI18nId = `${namespace}.${item.id}.example`
   const hasExample = intl.messages[exampleI18nId]
   const titleI18nId = `${namespace}.${item.id}.title`
@@ -201,7 +198,7 @@ function Item({ intl, item, namespace }) {
 
   return (
     <M.Grid container>
-      <M.Grid item xs={xs ? 4 : 3}>
+      <M.Grid item xs={4} sm={3}>
         <ItemSyntax item={item} namespace={namespace} />
       </M.Grid>
       {hasTitle && (
@@ -223,12 +220,9 @@ const ItemWrapper = injectIntl(Item)
 function ItemsHeader({ hasExamples }) {
   const classes = useStyles()
 
-  const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
-
   return (
     <M.Grid container className={classes.itemsHeader}>
-      <M.Grid item xs={xs ? 4 : 3}>
+      <M.Grid item xs={4} sm={3}>
         <M.Typography variant="subtitle2">
           <FM id="searchQuerySyntax.command" />
         </M.Typography>
