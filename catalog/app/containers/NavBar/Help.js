@@ -6,6 +6,9 @@ import { FormattedMessage as FM, injectIntl } from 'react-intl'
 
 import StyledLink from 'utils/StyledLink'
 
+const ES_V = '6.7'
+const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     padding: `0 ${t.spacing(4)}px`,
@@ -246,11 +249,8 @@ function ItemsHeader({ hasExamples }) {
 function DocsExternalLink() {
   const classes = useStyles()
 
-  const ES_V = '6.7'
-  const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
-
   const link = (
-    <StyledLink href={ES_REF}>
+    <StyledLink href={ES_REF} target="_blank">
       <FM id="searchQuerySyntax.captionLink" />
     </StyledLink>
   )
