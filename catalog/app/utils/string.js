@@ -1,11 +1,7 @@
 /* String utils */
+import * as R from 'ramda'
 import React from 'react'
 import { FormattedNumber } from 'react-intl'
-
-export function makeMatcher(exp, flags = 'i') {
-  const re = new RegExp(exp, flags)
-  return (s) => re.test(s)
-}
 
 export function printObject(obj) {
   return JSON.stringify(obj, null, '  ')
@@ -20,26 +16,38 @@ const splitNumber = (n) => {
   return [coeff, suffixes[index]]
 }
 
-export function readableBytes(bytes, extra) {
-  if (!Number.isInteger(bytes)) return '?'
-  // https://en.wikipedia.org/wiki/Kilobyte
-  const [coeff, suffix] = splitNumber(bytes)
+export function formatQuantity(
+  q,
+  {
+    fallback,
+    renderValue = R.identity,
+    renderSuffix = R.identity,
+    Component = React.Fragment,
+  } = {},
+) {
+  if (!Number.isInteger(q)) {
+    return typeof fallback === 'function' ? fallback(q) : fallback
+  }
+  const [coeff, suffix] = splitNumber(q)
   return (
-    <span>
-      <FormattedNumber value={coeff} />
-      {extra}
-      &nbsp;{suffix}B
-    </span>
+    <Component>
+      {renderValue(<FormattedNumber value={coeff} />)}
+      {renderSuffix(suffix)}
+    </Component>
   )
 }
 
-export function readableQuantity(q) {
-  if (!Number.isInteger(q)) return '?'
-  const [coeff, suffix] = splitNumber(q)
-  return (
-    <span>
-      <FormattedNumber value={coeff} />
-      {suffix}
-    </span>
-  )
-}
+export const mkFormatQuantity = (opts) => (q) => formatQuantity(q, opts)
+
+export const readableQuantity = mkFormatQuantity({ fallback: '?', Component: 'span' })
+
+export const readableBytes = (bytes, extra) =>
+  formatQuantity(bytes, {
+    fallback: '?',
+    renderSuffix: (suffix) => (
+      <>
+        {extra}&nbsp;{suffix}B
+      </>
+    ),
+    Component: 'span',
+  })
