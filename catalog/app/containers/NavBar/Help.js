@@ -43,6 +43,10 @@ const useStyles = M.makeStyles((t) => ({
       border: 0,
     },
   },
+  itemsHeader: {
+    borderBottom: `1px solid ${t.palette.divider}`,
+    padding: `${t.spacing()}px ${t.spacing(2)}px`,
+  },
   list: {
     flexGrow: 1,
     overflowY: 'auto',
@@ -231,6 +235,33 @@ function Item({ intl, item, namespace }) {
 
 const ItemWrapper = injectIntl(Item)
 
+function ItemsHeader() {
+  const classes = useStyles()
+
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+
+  return (
+    <M.Grid container className={classes.itemsHeader}>
+      <M.Grid item xs={xs ? 4 : 3}>
+        <M.Typography variant="subtitle2">
+          <FM id="searchQuerySyntax.command" />
+        </M.Typography>
+      </M.Grid>
+      <M.Grid item xs>
+        <M.Typography variant="subtitle2">
+          <FM id="searchQuerySyntax.description" />
+        </M.Typography>
+      </M.Grid>
+      <M.Grid item xs sm={3}>
+        <M.Typography variant="subtitle2">
+          <FM id="searchQuerySyntax.example" />
+        </M.Typography>
+      </M.Grid>
+    </M.Grid>
+  )
+}
+
 function Legend() {
   const classes = useStyles()
 
@@ -295,6 +326,8 @@ function Help({ className, intl, onQuery }) {
             }}
           >
             <M.List className={classes.subList}>
+              <ItemsHeader />
+
               {rows.map((item) => (
                 <M.ListItem
                   key={item.id}

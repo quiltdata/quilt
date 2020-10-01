@@ -1,6 +1,9 @@
 {
   "searchQuerySyntax.caption": "Quilt uses ElasticSearch 6.7 query string queries. {link}.",
   "searchQuerySyntax.captionLink": "Learn more",
+  "searchQuerySyntax.command": "Command",
+  "searchQuerySyntax.description": "Description",
+  "searchQuerySyntax.example": "Example",
   "searchQuerySyntax.fields.comment.syntax": "comment:",
   "searchQuerySyntax.fields.comment.title": "Packaged commit comment",
   "searchQuerySyntax.fields.content.syntax": "content:",
