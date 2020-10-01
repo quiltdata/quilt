@@ -32,9 +32,7 @@ const useStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(2),
   },
   headerLabel: {
-    '&:hover': {
-      background: 'transparent',
-    },
+    background: 'transparent !important',
   },
   item: {
     borderBottom: `1px solid ${t.palette.divider}`,
