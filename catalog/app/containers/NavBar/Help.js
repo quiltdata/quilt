@@ -256,11 +256,9 @@ function DocsExternalLink() {
   )
 
   return (
-    <M.Box className={classes.caption}>
-      <M.Typography variant="caption">
-        <FM id="searchQuerySyntax.caption" values={{ link }} />
-      </M.Typography>
-    </M.Box>
+    <M.Typography variant="caption" component="p" className={classes.caption}>
+      <FM id="searchQuerySyntax.caption" values={{ link }} />
+    </M.Typography>
   )
 }
 
