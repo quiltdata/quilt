@@ -8,18 +8,16 @@ import StyledLink from 'utils/StyledLink'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    display: 'flex',
-    flexDirection: 'column',
     padding: `0 ${t.spacing(4)}px`,
+    overflowY: 'auto',
 
     [t.breakpoints.down('xs')]: {
       padding: `0 ${t.spacing()}px`,
     },
   },
-  captionsWrapper: {
-    boxShadow: '0 -1px 2px rgba(0, 0, 0, 0.2)',
-    margin: `0 -${t.spacing(4)}px`,
-    padding: `${t.spacing()}px ${t.spacing(4)}px`,
+  caption: {
+    marginTop: t.spacing(),
+    marginBottom: t.spacing(),
   },
   code: {
     background: t.palette.grey['300'],
@@ -46,8 +44,6 @@ const useStyles = M.makeStyles((t) => ({
     padding: `0 ${t.spacing(2)}px ${t.spacing()}px`,
   },
   list: {
-    flexGrow: 1,
-    overflowY: 'auto',
     marginBottom: t.spacing(),
   },
   subList: {
@@ -324,9 +320,7 @@ function Help({ className, intl, onQuery }) {
         ))}
       </Lab.TreeView>
 
-      <M.Box className={classes.captionsWrapper}>
-        <DocsExternalLink />
-      </M.Box>
+      <DocsExternalLink />
     </M.Paper>
   )
 }
