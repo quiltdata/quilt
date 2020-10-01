@@ -12,12 +12,12 @@ const useStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
 
     [t.breakpoints.down('xs')]: {
-      padding: `0 ${t.spacing()}px`,
+      padding: `0 ${t.spacing(1)}px`,
     },
   },
   caption: {
-    marginTop: t.spacing(),
-    marginBottom: t.spacing(),
+    marginTop: t.spacing(1),
+    marginBottom: t.spacing(1),
   },
   code: {
     background: t.palette.grey['300'],
@@ -41,10 +41,10 @@ const useStyles = M.makeStyles((t) => ({
   },
   itemsHeader: {
     borderBottom: `1px solid ${t.palette.divider}`,
-    padding: `0 ${t.spacing(2)}px ${t.spacing()}px`,
+    padding: `0 ${t.spacing(2)}px ${t.spacing(1)}px`,
   },
   list: {
-    marginBottom: t.spacing(),
+    marginBottom: t.spacing(1),
   },
   subList: {
     marginLeft: '-12px',
