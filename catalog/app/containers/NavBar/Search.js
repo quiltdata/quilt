@@ -188,7 +188,7 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
     change(query)
     setExpanded(true)
     if (onFocus) onFocus()
-  }, [expanded, query])
+  }, [expanded, query, onFocus])
 
   const handleCollapse = React.useCallback(() => {
     change(null)
