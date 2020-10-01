@@ -2,7 +2,6 @@ import cx from 'classnames'
 import * as Lab from '@material-ui/lab'
 import * as M from '@material-ui/core'
 import * as React from 'react'
-import { FormattedMessage as FM, injectIntl } from 'react-intl'
 
 import StyledLink from 'utils/StyledLink'
 
@@ -65,92 +64,121 @@ const useDocsExternalLinkStyles = M.makeStyles((t) => ({
 
 const syntaxHelpRows = [
   {
-    namespace: 'searchQuerySyntax.fields',
+    namespace: 'Fields',
     rows: [
       {
+        example: 'comment: TODO',
         id: 'comment',
-        isPackage: true,
         syntax: 'comment:',
+        title: 'Package commit comment (packages)',
       },
       {
+        example: 'content: Hello',
         id: 'content',
-        isObject: true,
         syntax: 'content:',
+        title: 'Object content (objects)',
       },
       {
+        example: 'ext: *.fastq.gz',
         id: 'ext',
-        isObject: true,
         syntax: 'ext:',
+        title: 'File extension (objects)',
       },
       {
+        example: 'handle: "user/*"',
         id: 'handle',
-        isPackage: true,
         syntax: 'handle:',
+        title: 'Package name (packages)',
       },
       {
+        example: 'hash: 3192ac1*',
         id: 'hash',
         syntax: 'hash:',
+        title: 'Package hash',
       },
       {
+        example: 'key: "bar/"',
         id: 'key',
-        isObject: true,
         syntax: 'key:',
+        title: 'S3 key (objects)',
       },
       {
+        example: 'metadata: dapi',
         id: 'metadata',
-        isPackage: true,
         syntax: 'metadata:',
+        title: 'Package metadata (packages)',
       },
       {
+        example: 'size: 4096',
         id: 'size',
-        isPackage: true,
-        isObject: true,
         syntax: 'size:',
+        title: 'Size in bytes (objects and packages)',
       },
       {
+        example: 'version_id: t.LVVCx*',
         id: 'versionId',
-        isObject: true,
         syntax: 'version_id:',
+        title: 'S3 version id (objects)',
       },
     ],
   },
 
   {
-    namespace: 'searchQuerySyntax.operators',
+    namespace: 'Logical operators and grouping',
     rows: [
       {
+        example: '(a) AND (b)',
         id: 'and',
         syntax: 'AND',
+        title: 'Conjunction',
       },
       {
+        example: '(a) OR (b)',
         id: 'or',
         syntax: 'OR',
+        title: 'Disjunction',
       },
       {
+        example: '(a) NOT (b)',
         id: 'not',
         syntax: 'NOT',
+        title: 'Negation',
       },
       {
+        example: '_exists_:content',
         id: 'exists',
         syntax: '_exists_:',
+        title: 'Has any non-null value for keyword',
       },
       {
+        example: '(x)',
         id: 'group',
         syntax: '()',
+        title: 'Group items',
       },
     ],
   },
 
   {
-    namespace: 'searchQuerySyntax.wildcards',
+    namespace: 'Wildcards and regular expressions',
     rows: [
       {
+        example: 'config.y*ml',
         id: 'asterisk',
         syntax: '*',
+        title: 'Zero or more characters, avoid leading * (slow)',
       },
       {
+        example: 'React.?sx',
         id: 'question',
         syntax: '?',
+        title: 'Exactly one character',
+      },
+      {
+        example: '/lmnb[12]/',
+        id: 'regex',
+        syntax: '//',
+        title: 'Regular expression (slows search)',
       },
     ],
   },
@@ -162,99 +190,41 @@ function Code({ children }) {
   return <code className={classes.root}>{children}</code>
 }
 
-function ItemSyntax({ item }) {
-  const { syntax } = item
-
-  return (
-    <M.Typography variant="body2">
-      <Code>{syntax}</Code>
-    </M.Typography>
-  )
-}
-
-function ItemTitle({ item, namespace }) {
-  const { id, isObject, isPackage, syntax } = item
-
-  const titleI18nId = `${namespace}.${id}.title`
-
-  return (
-    <M.Typography variant="body2">
-      <FM
-        id={titleI18nId}
-        values={{
-          syntax: <Code>{syntax}</Code>,
-        }}
-      />
-      {isObject && isPackage && <FM id="searchQuerySyntax.objectAndPackage" />}
-      {isObject && !isPackage && <FM id="searchQuerySyntax.object" />}
-      {isPackage && !isObject && <FM id="searchQuerySyntax.package" />}
-    </M.Typography>
-  )
-}
-
-function ItemExample({ item, namespace }) {
-  const { id } = item
-
-  const exampleI18nId = `${namespace}.${id}.example`
-
-  return (
-    <M.Typography variant="body2">
-      <Code>
-        <FM id={exampleI18nId} />
-      </Code>
-    </M.Typography>
-  )
-}
-
-function Item({ intl, item, namespace }) {
-  const exampleI18nId = `${namespace}.${item.id}.example`
-  const hasExample = intl.messages[exampleI18nId]
-  const titleI18nId = `${namespace}.${item.id}.title`
-  const hasTitle = intl.messages[titleI18nId]
-
+function Item({ item }) {
+  const { example, syntax, title } = item
   return (
     <M.Grid container>
       <M.Grid item xs={4} sm={3}>
-        <ItemSyntax item={item} namespace={namespace} />
+        <M.Typography variant="body2">
+          <Code>{syntax}</Code>
+        </M.Typography>
       </M.Grid>
-      {hasTitle && (
-        <M.Grid item xs>
-          <ItemTitle item={item} namespace={namespace} />
-        </M.Grid>
-      )}
-      {hasExample && (
-        <M.Grid item xs sm={3}>
-          <ItemExample item={item} namespace={namespace} />
-        </M.Grid>
-      )}
+      <M.Grid item xs zeroMinWidth>
+        <M.Typography variant="body2">{title}</M.Typography>
+      </M.Grid>
+      <M.Grid item xs={3}>
+        <M.Typography variant="body2">
+          <Code>{example}</Code>
+        </M.Typography>
+      </M.Grid>
     </M.Grid>
   )
 }
 
-const ItemWrapper = injectIntl(Item)
-
-function ItemsHeader({ hasExamples }) {
+function ItemsHeader() {
   const classes = useItemsHeaderStyles()
 
   return (
     <M.Grid container className={classes.root}>
       <M.Grid item xs={4} sm={3}>
-        <M.Typography variant="subtitle2">
-          <FM id="searchQuerySyntax.command" />
-        </M.Typography>
+        <M.Typography variant="subtitle2">Command</M.Typography>
       </M.Grid>
       <M.Grid item xs>
-        <M.Typography variant="subtitle2">
-          <FM id="searchQuerySyntax.description" />
-        </M.Typography>
+        <M.Typography variant="subtitle2">Description</M.Typography>
       </M.Grid>
-      {hasExamples && (
-        <M.Grid item xs sm={3}>
-          <M.Typography variant="subtitle2">
-            <FM id="searchQuerySyntax.example" />
-          </M.Typography>
-        </M.Grid>
-      )}
+      <M.Grid item xs sm={3}>
+        <M.Typography variant="subtitle2">Example</M.Typography>
+      </M.Grid>
     </M.Grid>
   )
 }
@@ -262,20 +232,18 @@ function ItemsHeader({ hasExamples }) {
 function DocsExternalLink() {
   const classes = useDocsExternalLinkStyles()
 
-  const link = (
-    <StyledLink href={ES_REF} target="_blank">
-      <FM id="searchQuerySyntax.captionLink" />
-    </StyledLink>
-  )
-
   return (
     <M.Typography variant="body2" component="p" className={classes.root}>
-      <FM id="searchQuerySyntax.caption" values={{ link }} />
+      Quilt uses ElasticSearch 6.7 query string queries.{' '}
+      <StyledLink href={ES_REF} target="_blank">
+        Learn more
+      </StyledLink>
+      .
     </M.Typography>
   )
 }
 
-function Help({ className, intl, onQuery }) {
+function Help({ className, onQuery }) {
   const classes = useStyles()
 
   return (
@@ -290,11 +258,7 @@ function Help({ className, intl, onQuery }) {
         {syntaxHelpRows.map(({ namespace, rows }) => (
           <Lab.TreeItem
             className={classes.group}
-            label={
-              <M.Typography variant="subtitle2">
-                <FM id={`${namespace}.title`} />
-              </M.Typography>
-            }
+            label={<M.Typography variant="subtitle2">{namespace}</M.Typography>}
             nodeId={namespace}
             key={namespace}
             classes={{
@@ -302,11 +266,7 @@ function Help({ className, intl, onQuery }) {
             }}
           >
             <M.List className={classes.subList}>
-              <ItemsHeader
-                hasExamples={rows.some(
-                  (item) => intl.messages[`${namespace}.${item.id}.example`],
-                )}
-              />
+              <ItemsHeader />
 
               {rows.map((item) => (
                 <M.ListItem
@@ -315,7 +275,7 @@ function Help({ className, intl, onQuery }) {
                   button
                   onClick={() => onQuery(item.syntax)}
                 >
-                  <ItemWrapper item={item} namespace={namespace} />
+                  <Item item={item} />
                 </M.ListItem>
               ))}
             </M.List>
@@ -328,4 +288,4 @@ function Help({ className, intl, onQuery }) {
   )
 }
 
-export default injectIntl(Help)
+export default Help
