@@ -70,25 +70,25 @@ const syntaxHelpRows = [
         example: 'comment: TODO',
         id: 'comment',
         syntax: 'comment:',
-        title: 'Package commit comment (packages)',
+        title: 'Package comment',
       },
       {
         example: 'content: Hello',
         id: 'content',
         syntax: 'content:',
-        title: 'Object content (objects)',
+        title: 'Object content',
       },
       {
         example: 'ext: *.fastq.gz',
         id: 'ext',
         syntax: 'ext:',
-        title: 'File extension (objects)',
+        title: 'Object extension',
       },
       {
         example: 'handle: "user/*"',
         id: 'handle',
         syntax: 'handle:',
-        title: 'Package name (packages)',
+        title: 'Package name',
       },
       {
         example: 'hash: 3192ac1*',
@@ -100,37 +100,37 @@ const syntaxHelpRows = [
         example: 'key: "bar/"',
         id: 'key',
         syntax: 'key:',
-        title: 'S3 key (objects)',
+        title: 'Object key',
       },
       {
         example: 'metadata: dapi',
         id: 'metadata',
         syntax: 'metadata:',
-        title: 'Package metadata (packages)',
+        title: 'Package metadata',
       },
       {
         example: 'size: 4096',
         id: 'size',
         syntax: 'size:',
-        title: 'Size in bytes (objects and packages)',
+        title: 'Object size in bytes',
       },
       {
         example: 'version_id: t.LVVCx*',
         id: 'versionId',
         syntax: 'version_id:',
-        title: 'S3 version id (objects)',
+        title: 'Object version id',
       },
       {
-        example: 'package_stats\n\t.total_files: >100',
+        example: 'package_stats\n  .total_files: >100',
         id: 'totalFiles',
-        syntax: 'package_stats\n\t.total_files:',
-        title: ' Total files in package',
+        syntax: 'package_stats\n  .total_files:',
+        title: 'Package total files',
       },
       {
-        example: 'package_stats\n\t.total_bytes: <100',
+        example: 'package_stats\n  .total_bytes: <100',
         id: 'totalBytes',
-        syntax: 'package_stats\n\t.total_bytes:',
-        title: ' Total bytes in package',
+        syntax: 'package_stats\n  .total_bytes:',
+        title: 'Package total bytes',
       },
     ],
   },
@@ -209,7 +209,7 @@ function Item({ item }) {
   const { example, syntax, title } = item
   return (
     <M.Grid container>
-      <M.Grid item xs={5} sm={4}>
+      <M.Grid item xs={6} sm={3}>
         <M.Typography variant="body2">
           <Code>{syntax}</Code>
         </M.Typography>
@@ -218,7 +218,7 @@ function Item({ item }) {
         <M.Typography variant="body2">{title}</M.Typography>
       </M.Grid>
       {sm && (
-        <M.Grid item xs={5}>
+        <M.Grid item xs={4}>
           <M.Typography variant="body2">
             <Code>{example}</Code>
           </M.Typography>
@@ -236,14 +236,14 @@ function ItemsHeader() {
 
   return (
     <M.Grid container className={classes.root}>
-      <M.Grid item xs={5} sm={4}>
+      <M.Grid item xs={6} sm={3}>
         <M.Typography variant="subtitle2">Command</M.Typography>
       </M.Grid>
       <M.Grid item xs>
         <M.Typography variant="subtitle2">Description</M.Typography>
       </M.Grid>
       {sm && (
-        <M.Grid item xs sm={5}>
+        <M.Grid item xs sm={4}>
           <M.Typography variant="subtitle2">Example</M.Typography>
         </M.Grid>
       )}
