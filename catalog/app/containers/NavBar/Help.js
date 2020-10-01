@@ -109,7 +109,7 @@ const syntaxHelpRows = [
         title: 'Package metadata',
       },
       {
-        example: 'size: 4096',
+        example: 'size: >=4096',
         id: 'size',
         syntax: 'size:',
         title: 'Object size in bytes',
@@ -139,19 +139,19 @@ const syntaxHelpRows = [
     namespace: 'Logical operators and grouping',
     rows: [
       {
-        example: '(a) AND (b)',
+        example: 'a AND b',
         id: 'and',
         syntax: 'AND',
         title: 'Conjunction',
       },
       {
-        example: '(a) OR (b)',
+        example: 'a OR b',
         id: 'or',
         syntax: 'OR',
         title: 'Disjunction',
       },
       {
-        example: '(a) NOT (b)',
+        example: 'NOT a',
         id: 'not',
         syntax: 'NOT',
         title: 'Negation',
@@ -163,7 +163,7 @@ const syntaxHelpRows = [
         title: 'Matches any non-null value for the given field',
       },
       {
-        example: '(x)',
+        example: '(a OR b)',
         id: 'group',
         syntax: '()',
         title: 'Group terms',
