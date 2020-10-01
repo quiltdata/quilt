@@ -18,17 +18,6 @@ const useStyles = M.makeStyles((t) => ({
       padding: `0 ${t.spacing(1)}px`,
     },
   },
-  caption: {
-    marginTop: t.spacing(1),
-    marginBottom: t.spacing(1),
-  },
-  code: {
-    background: t.palette.grey['300'],
-    color: t.palette.info.contrastText,
-    font: t.typography.monospace,
-    padding: '0 3px',
-    whiteSpace: 'nowrap',
-  },
   group: {
     marginTop: t.spacing(2),
   },
@@ -42,18 +31,35 @@ const useStyles = M.makeStyles((t) => ({
       border: 0,
     },
   },
-  itemsHeader: {
-    borderBottom: `1px solid ${t.palette.divider}`,
-    padding: `0 ${t.spacing(2)}px ${t.spacing(1)}px`,
-  },
   list: {
     marginBottom: t.spacing(1),
   },
   subList: {
     marginLeft: '-12px',
   },
-  sup: {
-    margin: '0 2px',
+}))
+
+const useCodeStyles = M.makeStyles((t) => ({
+  root: {
+    background: t.palette.grey['300'],
+    color: t.palette.info.contrastText,
+    font: t.typography.monospace,
+    padding: '0 3px',
+    whiteSpace: 'nowrap',
+  },
+}))
+
+const useItemsHeaderStyles = M.makeStyles((t) => ({
+  root: {
+    borderBottom: `1px solid ${t.palette.divider}`,
+    padding: `0 ${t.spacing(2)}px ${t.spacing(1)}px`,
+  },
+}))
+
+const useDocsExternalLinkStyles = M.makeStyles((t) => ({
+  root: {
+    marginTop: t.spacing(2),
+    marginBottom: t.spacing(3),
   },
 }))
 
@@ -135,9 +141,9 @@ const syntaxHelpRows = [
 ]
 
 function Code({ children }) {
-  const classes = useStyles()
+  const classes = useCodeStyles()
 
-  return <code className={classes.code}>{children}</code>
+  return <code className={classes.root}>{children}</code>
 }
 
 function ItemSyntax({ item, namespace }) {
@@ -221,10 +227,10 @@ function Item({ intl, item, namespace }) {
 const ItemWrapper = injectIntl(Item)
 
 function ItemsHeader({ hasExamples }) {
-  const classes = useStyles()
+  const classes = useItemsHeaderStyles()
 
   return (
-    <M.Grid container className={classes.itemsHeader}>
+    <M.Grid container className={classes.root}>
       <M.Grid item xs={4} sm={3}>
         <M.Typography variant="subtitle2">
           <FM id="searchQuerySyntax.command" />
@@ -247,7 +253,7 @@ function ItemsHeader({ hasExamples }) {
 }
 
 function DocsExternalLink() {
-  const classes = useStyles()
+  const classes = useDocsExternalLinkStyles()
 
   const link = (
     <StyledLink href={ES_REF} target="_blank">
@@ -256,7 +262,7 @@ function DocsExternalLink() {
   )
 
   return (
-    <M.Typography variant="caption" component="p" className={classes.caption}>
+    <M.Typography variant="body2" component="p" className={classes.root}>
       <FM id="searchQuerySyntax.caption" values={{ link }} />
     </M.Typography>
   )
