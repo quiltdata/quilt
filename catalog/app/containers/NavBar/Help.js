@@ -70,38 +70,47 @@ const syntaxHelpRows = [
       {
         id: 'comment',
         isPackage: true,
+        syntax: 'comment:',
       },
       {
         id: 'content',
         isObject: true,
+        syntax: 'content:',
       },
       {
         id: 'ext',
         isObject: true,
+        syntax: 'ext:',
       },
       {
         id: 'handle',
         isPackage: true,
+        syntax: 'handle:',
       },
       {
         id: 'hash',
+        syntax: 'hash:',
       },
       {
         id: 'key',
         isObject: true,
+        syntax: 'key:',
       },
       {
         id: 'metadata',
         isPackage: true,
+        syntax: 'metadata:',
       },
       {
         id: 'size',
         isPackage: true,
         isObject: true,
+        syntax: 'size:',
       },
       {
         id: 'versionId',
         isObject: true,
+        syntax: 'version_id:',
       },
     ],
   },
@@ -111,18 +120,23 @@ const syntaxHelpRows = [
     rows: [
       {
         id: 'and',
+        syntax: 'AND',
       },
       {
         id: 'or',
+        syntax: 'OR',
       },
       {
         id: 'not',
+        syntax: 'NOT',
       },
       {
         id: 'exists',
+        syntax: '_exists_:',
       },
       {
         id: 'group',
+        syntax: '()',
       },
     ],
   },
@@ -132,9 +146,11 @@ const syntaxHelpRows = [
     rows: [
       {
         id: 'asterisk',
+        syntax: '*',
       },
       {
         id: 'question',
+        syntax: '?',
       },
     ],
   },
@@ -146,24 +162,19 @@ function Code({ children }) {
   return <code className={classes.root}>{children}</code>
 }
 
-function ItemSyntax({ item, namespace }) {
-  const { id } = item
-
-  const syntaxI18nId = `${namespace}.${id}.syntax`
+function ItemSyntax({ item }) {
+  const { syntax } = item
 
   return (
     <M.Typography variant="body2">
-      <Code>
-        <FM id={syntaxI18nId} />
-      </Code>
+      <Code>{syntax}</Code>
     </M.Typography>
   )
 }
 
 function ItemTitle({ item, namespace }) {
-  const { id, isObject, isPackage } = item
+  const { id, isObject, isPackage, syntax } = item
 
-  const syntaxI18nId = `${namespace}.${id}.syntax`
   const titleI18nId = `${namespace}.${id}.title`
 
   return (
@@ -171,11 +182,7 @@ function ItemTitle({ item, namespace }) {
       <FM
         id={titleI18nId}
         values={{
-          syntax: (
-            <Code>
-              <FM id={syntaxI18nId} />
-            </Code>
-          ),
+          syntax: <Code>{syntax}</Code>,
         }}
       />
       {isObject && isPackage && <FM id="searchQuerySyntax.objectAndPackage" />}
@@ -306,9 +313,7 @@ function Help({ className, intl, onQuery }) {
                   key={item.id}
                   className={classes.item}
                   button
-                  onClick={() =>
-                    onQuery(intl.formatMessage({ id: `${namespace}.${item.id}.syntax` }))
-                  }
+                  onClick={() => onQuery(item.syntax)}
                 >
                   <ItemWrapper item={item} namespace={namespace} />
                 </M.ListItem>
