@@ -234,6 +234,7 @@ def _make_event(
                 "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
                 "pointer_file": "1598026253",
                 "package_hash": "abc",
+                "package_stats": None,
             }
         ),
         (
@@ -275,6 +276,25 @@ def _make_event(
                 "text": "iajsoeqroieurqwiuro•",
                 "version_id": "abc",
             }
+        ),
+        pytest.param(
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "pointer_file": "1598026253",
+                "package_hash": "abc",
+                "package_stats": {"bad": "data"},
+            },
+            marks=pytest.mark.xfail(
+                raises=ValueError,
+                reason="Malformed package_stats",
+            )
         ),
         pytest.param(
             "ObjectCreated:Put",
