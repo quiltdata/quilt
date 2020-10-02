@@ -182,8 +182,8 @@ const processStats = R.applySpec({
     R.sort(R.descend(R.prop('bytes'))),
   ),
   totalObjects: R.path(['hits', 'total']),
-  totalVersions: R.path(['hits', 'total']),
   totalBytes: R.path(['aggregations', 'totalBytes', 'value']),
+  totalPackages: R.path(['aggregations', 'totalPackageHandles', 'value']),
 })
 
 export const bucketStats = async ({ es, s3, bucket, overviewUrl }) => {
@@ -204,7 +204,7 @@ export const bucketStats = async ({ es, s3, bucket, overviewUrl }) => {
   }
 
   try {
-    return await es({ action: 'stats', index: bucket }).then(processStats)
+    return await es({ action: 'stats', index: `${bucket}*` }).then(processStats)
   } catch (e) {
     console.log('Unable to fetch live stats:')
     console.error(e)
