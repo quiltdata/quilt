@@ -1,7 +1,7 @@
 import cx from 'classnames'
-import * as Lab from '@material-ui/lab'
-import * as M from '@material-ui/core'
 import * as React from 'react'
+import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import StyledLink from 'utils/StyledLink'
 
@@ -34,31 +34,7 @@ const useStyles = M.makeStyles((t) => ({
     marginBottom: t.spacing(1),
   },
   subList: {
-    marginLeft: '-12px',
-  },
-}))
-
-const useCodeStyles = M.makeStyles((t) => ({
-  root: {
-    background: t.palette.grey['300'],
-    color: t.palette.info.contrastText,
-    font: t.typography.monospace,
-    padding: '0 3px',
-    whiteSpace: 'pre-wrap',
-  },
-}))
-
-const useItemsHeaderStyles = M.makeStyles((t) => ({
-  root: {
-    borderBottom: `1px solid ${t.palette.divider}`,
-    padding: `0 ${t.spacing(2)}px ${t.spacing(1)}px`,
-  },
-}))
-
-const useDocsExternalLinkStyles = M.makeStyles((t) => ({
-  root: {
-    marginTop: t.spacing(2),
-    marginBottom: t.spacing(4),
+    marginLeft: t.spacing(-1.5),
   },
 }))
 
@@ -196,6 +172,17 @@ const syntaxHelpRows = [
   },
 ]
 
+const useCodeStyles = M.makeStyles((t) => ({
+  root: {
+    background: t.palette.grey[300],
+    borderRadius: '2px',
+    color: t.palette.info.contrastText,
+    font: t.typography.monospace,
+    padding: '0 3px',
+    whiteSpace: 'pre-wrap',
+  },
+}))
+
 function Code({ children }) {
   const classes = useCodeStyles()
 
@@ -228,6 +215,13 @@ function Item({ item }) {
   )
 }
 
+const useItemsHeaderStyles = M.makeStyles((t) => ({
+  root: {
+    borderBottom: `1px solid ${t.palette.divider}`,
+    padding: `0 ${t.spacing(2)}px ${t.spacing(1)}px`,
+  },
+}))
+
 function ItemsHeader() {
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.up('sm'))
@@ -250,6 +244,13 @@ function ItemsHeader() {
     </M.Grid>
   )
 }
+
+const useDocsExternalLinkStyles = M.makeStyles((t) => ({
+  root: {
+    marginTop: t.spacing(2),
+    marginBottom: t.spacing(4),
+  },
+}))
 
 function DocsExternalLink() {
   const classes = useDocsExternalLinkStyles()
