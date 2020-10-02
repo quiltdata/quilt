@@ -44,67 +44,56 @@ const syntaxHelpRows = [
     rows: [
       {
         example: 'comment: TODO',
-        id: 'comment',
         syntax: 'comment:',
         title: 'Package comment',
       },
       {
         example: 'content: Hello',
-        id: 'content',
         syntax: 'content:',
         title: 'Object content',
       },
       {
         example: 'ext: *.fastq.gz',
-        id: 'ext',
         syntax: 'ext:',
         title: 'Object extension',
       },
       {
         example: 'handle: "user/*"',
-        id: 'handle',
         syntax: 'handle:',
         title: 'Package name',
       },
       {
         example: 'hash: 3192ac1*',
-        id: 'hash',
         syntax: 'hash:',
         title: 'Package hash',
       },
       {
         example: 'key: "bar/"',
-        id: 'key',
         syntax: 'key:',
         title: 'Object key',
       },
       {
         example: 'metadata: dapi',
-        id: 'metadata',
         syntax: 'metadata:',
         title: 'Package metadata',
       },
       {
         example: 'size: >=4096',
-        id: 'size',
         syntax: 'size:',
         title: 'Object size in bytes',
       },
       {
         example: 'version_id: t.LVVCx*',
-        id: 'versionId',
         syntax: 'version_id:',
         title: 'Object version id',
       },
       {
         example: 'package_stats\n  .total_files: >100',
-        id: 'totalFiles',
         syntax: 'package_stats\n  .total_files:',
         title: 'Package total files',
       },
       {
         example: 'package_stats\n  .total_bytes: <100',
-        id: 'totalBytes',
         syntax: 'package_stats\n  .total_bytes:',
         title: 'Package total bytes',
       },
@@ -116,31 +105,26 @@ const syntaxHelpRows = [
     rows: [
       {
         example: 'a AND b',
-        id: 'and',
         syntax: 'AND',
         title: 'Conjunction',
       },
       {
         example: 'a OR b',
-        id: 'or',
         syntax: 'OR',
         title: 'Disjunction',
       },
       {
         example: 'NOT a',
-        id: 'not',
         syntax: 'NOT',
         title: 'Negation',
       },
       {
         example: '_exists_: content',
-        id: 'exists',
         syntax: '_exists_:',
         title: 'Matches any non-null value for the given field',
       },
       {
         example: '(a OR b)',
-        id: 'group',
         syntax: '()',
         title: 'Group terms',
       },
@@ -152,19 +136,16 @@ const syntaxHelpRows = [
     rows: [
       {
         example: 'config.y*ml',
-        id: 'asterisk',
         syntax: '*',
         title: 'Zero or more characters, avoid leading * (slow)',
       },
       {
         example: 'React.?sx',
-        id: 'question',
         syntax: '?',
         title: 'Exactly one character',
       },
       {
         example: '/lmnb[12]/',
-        id: 'regex',
         syntax: '//',
         title: 'Regular expression (slows search)',
       },
@@ -177,7 +158,7 @@ const useCodeStyles = M.makeStyles((t) => ({
     background: t.palette.grey[300],
     borderRadius: '2px',
     color: t.palette.info.contrastText,
-    font: t.typography.monospace,
+    fontFamily: t.typography.monospace.fontFamily,
     padding: '0 3px',
     whiteSpace: 'pre-wrap',
   },
@@ -257,7 +238,7 @@ function DocsExternalLink() {
 
   return (
     <M.Typography variant="body2" component="p" className={classes.root}>
-      Quilt uses ElasticSearch 6.7 query string queries.{' '}
+      {`Quilt uses ElasticSearch ${ES_V} query string queries. `}
       <StyledLink href={ES_REF} target="_blank">
         Learn more
       </StyledLink>
@@ -266,7 +247,7 @@ function DocsExternalLink() {
   )
 }
 
-function Help({ className, onQuery }) {
+export default function Help({ className, onQuery }) {
   const classes = useStyles()
 
   return (
@@ -293,7 +274,7 @@ function Help({ className, onQuery }) {
 
               {rows.map((item) => (
                 <M.ListItem
-                  key={item.id}
+                  key={item.syntax}
                   className={classes.item}
                   button
                   onClick={() => onQuery(item.syntax)}
@@ -310,5 +291,3 @@ function Help({ className, onQuery }) {
     </M.Paper>
   )
 }
-
-export default Help

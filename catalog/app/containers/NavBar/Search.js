@@ -29,7 +29,7 @@ const useStyles = M.makeStyles((t) => ({
     background: fade(t.palette.common.white, 0),
     borderRadius: t.shape.borderRadius,
     overflow: 'hidden',
-    padding: `0 ${t.spacing()}px 0 0`,
+    padding: `0 ${t.spacing(1)}px 0 0`,
     position: 'absolute',
     right: 0,
     transition: ['background-color 200ms', 'opacity 200ms', 'width 200ms'],
@@ -69,7 +69,7 @@ const useStyles = M.makeStyles((t) => ({
     width: '100%',
   },
   input: {
-    paddingLeft: t.spacing(),
+    paddingLeft: t.spacing(1),
     paddingTop: 8,
     paddingBottom: 9,
     textOverflow: 'ellipsis',
@@ -195,7 +195,7 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
     setExpanded(false)
     setHelpOpened(false)
     if (onBlur) onBlur()
-  })
+  }, [onBlur])
 
   const handleHelpOpen = React.useCallback(() => setHelpOpened(true), [])
 
@@ -218,7 +218,7 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
       handleExpand()
     }
     handleHelpOpen()
-  }, [expanded, helpOpened])
+  }, [expanded, helpOpened, handleExpand, handleHelpClose, handleHelpOpen])
 
   const onKeyDown = React.useCallback(
     (evt) => {
@@ -243,7 +243,7 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
           break
       }
     },
-    [dispatch, makeUrl, value, query],
+    [dispatch, makeUrl, value, query, handleCollapse, handleHelpOpen],
   )
 
   return children({
