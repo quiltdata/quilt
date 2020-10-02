@@ -46,7 +46,14 @@ function BucketDisplay({ bucket, select, locked = false, ...props }) {
 }
 
 const Container = (props) => (
-  <M.Box display="flex" alignItems="center" position="relative" flexGrow={1} {...props} />
+  <M.Box
+    height="36px"
+    display="flex"
+    alignItems="center"
+    position="relative"
+    flexGrow={1}
+    {...props}
+  />
 )
 
 function GlobalControls({ iconized, disableSearch }) {
