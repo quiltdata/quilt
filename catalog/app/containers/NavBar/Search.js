@@ -17,14 +17,6 @@ import { useRoute } from 'utils/router'
 import SearchHelp from './Help'
 
 const useStyles = M.makeStyles((t) => ({
-  '@keyframes slide': {
-    '0%': {
-      transform: 'translateY(-10px)',
-    },
-    '100%': {
-      transform: 'translateY(0)',
-    },
-  },
   root: {
     background: fade(t.palette.common.white, 0),
     borderRadius: t.shape.borderRadius,
@@ -48,7 +40,6 @@ const useStyles = M.makeStyles((t) => ({
     opacity: 0.8,
   },
   help: {
-    animation: '$slide 150ms ease',
     left: 0,
     maxHeight: '400px',
     overflowY: 'auto',
