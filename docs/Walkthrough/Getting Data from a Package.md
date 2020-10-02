@@ -7,17 +7,22 @@ p = quilt3.Package.browse('aleksey/hurdat', 's3://quilt-example')
 print(p)
 ```
 
-```shell
-(remote Package)
- └─.gitignore
- └─.quiltignore
- └─notebooks/
-   └─QuickStart.ipynb
- └─quilt_summarize.json
- └─requirements.txt
- └─scripts/
-   └─build.py
-```
+    Loading manifest: 100%|██████████| 7/7 [00:00<00:00, 8431.97entries/s]
+
+    (remote Package)
+     └─.gitignore
+     └─.quiltignore
+     └─notebooks/
+       └─QuickStart.ipynb
+     └─quilt_summarize.json
+     └─requirements.txt
+     └─scripts/
+       └─build.py
+    
+
+
+    
+
 
 ## Slicing through a package
 
@@ -30,15 +35,25 @@ p["requirements.txt"]
 ```
 
 
+
+
+    PackageEntry('s3://quilt-example/aleksey/hurdat/requirements.txt?versionId=bQtxuZlaylNVHi0GmxkSMofT5qXJvP95')
+
+
+
+
 ```python
 # returns (remote Package)
 p["notebooks"]
 ```
 
-```shell
-(remote Package)
- └─QuickStart.ipynb
-```
+
+
+
+    (remote Package)
+     └─QuickStart.ipynb
+
+
 
 Slicing into a `Package` directory returns another `Package` rooted at that subdirectory. Slicing into a package entry returns an individual `PackageEntry`.
 
@@ -58,12 +73,42 @@ p["notebooks"]["QuickStart.ipynb"].fetch()
 p.fetch()
 ```
 
+    Copying objects: 100%|██████████| 36.7k/36.7k [00:02<00:00, 17.6kB/s]
+    100%|██████████| 36.7k/36.7k [00:01<00:00, 20.5kB/s]
+    Copying objects: 100%|██████████| 39.9k/39.9k [00:02<00:00, 15.1kB/s]
+
+
+
+
+
+    (local Package)
+     └─.gitignore
+     └─.quiltignore
+     └─notebooks/
+       └─QuickStart.ipynb
+     └─quilt_summarize.json
+     └─requirements.txt
+     └─scripts/
+       └─build.py
+
+
+
 `fetch` will default to downloading the files to the current directory, but you can also specify an alternative path:
 
 
 ```python
 p["notebooks"]["QuickStart.ipynb"].fetch("./references/")
 ```
+
+    100%|██████████| 36.7k/36.7k [00:02<00:00, 17.9kB/s]
+
+
+
+
+
+    PackageEntry('file:///Users/gregezema/Documents/programs/quilt/docs/Walkthrough/references/')
+
+
 
 ## Downloading package data into memory
 
@@ -72,16 +117,30 @@ Alternatively, you can download data directly into memory:
 
 ```python
 p["quilt_summarize.json"]()
-# returns a dict
 ```
+
+
+
+
+    ['notebooks/QuickStart.ipynb']
+
+
 
 To apply a custom deserializer to your data, pass the function as a parameter to the function. For example, to load a hypothetical `yaml` file using `yaml.safe_load`:
 
 
 ```python
-p["symbols.yaml"](yaml.safe_load)
+import yaml
 # returns a dict
+p["quilt_summarize.json"](yaml.safe_load)
 ```
+
+
+
+
+    ['notebooks/QuickStart.ipynb']
+
+
 
 The deserializer should accept a byte stream as input.
 
@@ -94,6 +153,13 @@ You can get the path to a package entry or directory using `get`:
 # returns /path/to/pkg/root/notebooks/QuickStart.ipynb
 p["notebooks"]["QuickStart.ipynb"].get()
 ```
+
+
+
+
+    's3://quilt-example/aleksey/hurdat/notebooks/QuickStart.ipynb?versionId=PH.9gsCH6LM9RQIqsy1U4X6H6s.VoQ_B'
+
+
 
 ## Getting metadata
 

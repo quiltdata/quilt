@@ -9,25 +9,24 @@ import quilt3
 import os
 
 # create test file
-f = open("foo.txt", "w")
-f.write("test content...")
-f.close()
+with open("data.csv", "w") as f:
+    f.write("id, value\na, 42")
 
-p = quilt3.Package().set("foo.txt", "foo.txt")
+p = quilt3.Package().set("data.csv", "data.csv")
 list(p.manifest)
 ```
 
-```shell
-[
-    {'version': 'v0'},
-    {'logical_key': 'foo.txt',
-     'physical_keys': ['file:///../foo.txt'],
-     'size': 15,
-     'hash': None,
-     'meta': {}
-    }
-]
-```
+
+
+
+    [{'version': 'v0'},
+     {'logical_key': 'data.csv',
+      'physical_keys': ['file:///.../data.csv'],
+      'size': 15,
+      'hash': None,
+      'meta': {}}]
+
+
 
 Manifests saved to disk are in the [jsonl](http://jsonlines.org/)/[ndjson](http://ndjson.org/) format, e.g. JSON strings separated by newlines (`\n`). They are represented as a `list` of `dict` fragments in-memory.
 
@@ -61,7 +60,7 @@ In almost all cases you should be using registries, `build`, and `push` to handl
 
 
 ```python
-p = quilt3.Package().set("foo.txt", "foo.txt")
+p = quilt3.Package().set("data.csv", "data.csv")
 p.set_meta({"key": "value"})
 
 # Saving manifest to jsonl file
@@ -71,3 +70,14 @@ with open("example.jsonl", "w") as f:
 # Loading maifest 
 p.load(open("example.jsonl", "r"))
 ```
+
+    Loading manifest: 100%|██████████| 2/2 [00:00<00:00, 2141.59entries/s]
+
+
+
+
+
+    (local Package)
+     └─data.csv
+
+

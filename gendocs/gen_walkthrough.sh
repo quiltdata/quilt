@@ -4,7 +4,6 @@ gen_cmd_docs () {
     file=$1
 
     rm -f "${file}".md
-    jupyter nbconvert --clear-output "${file}".ipynb
     jupyter nbconvert --to markdown "${file}".ipynb
 }
 

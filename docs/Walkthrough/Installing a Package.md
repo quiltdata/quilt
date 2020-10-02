@@ -5,25 +5,37 @@ As explained in ["Uploading a Package"](Uploading%20a%20Package.md), packages ar
 
 ```python
 import quilt3
-quilt3.list_packages()  # list local packages
+
+# list local packages
+list(quilt3.list_packages())
 ```
 
-```bash
-PACKAGE                            TOPHASH        CREATED        SIZE
-namespace/packagename:latest       cac145b9c3dc   just now       2.4 GB
-othernamespace/packagename:latest  95a134c80z48   14 days ago    2.4 GB
-```
+
+
+
+    ['aneesh/cli-push',
+     'examples/hurdat',
+     'aleksey/hurdat']
+
+
 
 
 ```python
-quilt3.list_packages("s3://quilt-example")
+# list remote packages
+list(quilt3.list_packages("s3://quilt-example"))
 ```
 
-```bash
-PACKAGE                            TOPHASH        CREATED        SIZE
-user1/seattle-weather:latest       cac145b9c3dc   1 hour ago     2.4 GB
-user2/new-york-ballgames:latest    95a134c80z48   6 days ago     2.4 GB
-```
+
+
+
+    ['aleksey/hurdat',
+     'examples/hurdat',
+     'quilt/altair',
+     'quilt/hurdat',
+     'quilt/open_fruit',
+     'quilt/open_images']
+
+
 
 ## Installing a package
 
@@ -39,6 +51,14 @@ quilt3.Package.install(
 )
 ```
 
+    Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 7049.25entries/s]
+
+    Successfully installed package 'examples/hurdat', tophash=f8d1478 from s3://quilt-example
+
+
+    
+
+
 Note that unless this registry is public, you will need to be logged into a user who has read access to this registry in order to install from it:
 
 
@@ -51,6 +71,12 @@ quilt3.config('https://open.quiltdata.com/')
 quilt3.login()
 ```
 
+    Launching a web browser...
+    If that didn't work, please visit the following URL: https://open-registry.quiltdata.com/login
+    
+    Enter the code from the webpage: eyJpZCI6ICJiNTYzNDNkZC0xOWQyLTRkMjAtYWY4Yi00N2EyMDEzYjQ5NDEiLCAiY29kZSI6ICJkOWQ4OGE4NS02ODMxLTQwZDgtYjcxOC0yZjc0OTc4YWFlY2IifQ==
+
+
 Data files that you download are written to a folder in your local registry by default. You can specify an alternative destination using `dest`:
 
 
@@ -62,6 +88,15 @@ quilt3.Package.install(
 )
 ```
 
+    Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 9027.77entries/s]
+    Copying objects: 100%|██████████| 3.62M/3.62M [00:00<00:00, 303MB/s]
+
+    Successfully installed package 'examples/hurdat', tophash=f8d1478 from s3://quilt-example
+
+
+    
+
+
 Finally, you can install a specific version of a package by specifying the corresponding top hash:
 
 
@@ -72,6 +107,15 @@ quilt3.Package.install(
     top_hash="058e62c"
 )
 ```
+
+    Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 11491.24entries/s]
+    Copying objects: 100%|██████████| 35.4k/35.4k [00:02<00:00, 14.3kB/s]
+
+    Successfully installed package 'examples/hurdat', tophash=058e62c from s3://quilt-example
+
+
+    
+
 
 ## Browsing a package manifest
 
@@ -87,6 +131,10 @@ quilt3.config(default_remote_registry="s3://quilt-example")
 p = quilt3.Package.browse("examples/hurdat")
 ```
 
+    Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 7541.00entries/s]
+    Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 10710.68entries/s]
+
+
 `browse` is advantageous when you don't want to download everything in a package at once. For example if you just want to look at a package's metadata.
 
 ## Importing a package
@@ -97,5 +145,8 @@ You can import a local package from within Python:
 ```python
 from quilt3.data.examples import hurdat
 ```
+
+    Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 9637.65entries/s]
+
 
 This allows you to manage your data and code dependencies all in one place in your Python scripts or Jupyter notebooks.
