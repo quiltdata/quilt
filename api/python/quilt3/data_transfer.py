@@ -1,3 +1,4 @@
+import itertools
 import math
 import os
 import stat
@@ -211,6 +212,11 @@ def check_head_object_works_for_client(s3_client, params):
 
 
 s3_transfer_config = TransferConfig()
+
+
+def read_file_chunks(file, chunksize=s3_transfer_config.io_chunksize):
+    return itertools.takewhile(bool, map(file.read, itertools.repeat(chunksize)))
+
 
 # When uploading files at least this size, compare the ETags first and skip the upload if they're equal;
 # copy the remote file onto itself if the metadata changes.
@@ -609,10 +615,7 @@ def _calculate_etag(file_path):
             chunksize = adjuster.adjust_chunksize(s3_transfer_config.multipart_chunksize, size)
 
             hashes = []
-            while True:
-                contents = fd.read(chunksize)
-                if not contents:
-                    break
+            for contents in read_file_chunks(fd, chunksize):
                 hashes.append(hashlib.md5(contents).digest())
             etag = '%s-%d' % (hashlib.md5(b''.join(hashes)).hexdigest(), len(hashes))
     return '"%s"' % etag
@@ -874,10 +877,7 @@ def _calculate_sha256_internal(src_list, sizes, results):
             hash_obj = hashlib.sha256()
             if src.is_local():
                 with open(src.path, 'rb') as fd:
-                    while True:
-                        chunk = fd.read(64 * 1024)
-                        if not chunk:
-                            break
+                    for chunk in read_file_chunks(fd):
                         hash_obj.update(chunk)
                         with lock:
                             progress.update(len(chunk))
@@ -901,7 +901,7 @@ def _calculate_sha256_internal(src_list, sizes, results):
 
                     resp = s3_client.get_object(**params)
                     body = resp['Body']
-                    for chunk in body:
+                    for chunk in read_file_chunks(body):
                         hash_obj.update(chunk)
                         with lock:
                             progress.update(len(chunk))

@@ -22,7 +22,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import Link from 'utils/StyledLink'
 import { getBreadCrumbs } from 'utils/s3paths'
-import { readableBytes, readableQuantity } from 'utils/string'
+import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 
 import * as requests from './requests'
 
@@ -704,12 +704,13 @@ function StatDisplay({ value, label, format, fallback }) {
       _: R.identity,
     }),
     AsyncResult.case({
-      Ok: (v) => (
-        <span className={classes.root}>
-          <span className={classes.value}>{v}</span>
-          {!!label && <span className={classes.label}>{label}</span>}
-        </span>
-      ),
+      Ok: (v) =>
+        v != null && (
+          <span className={classes.root}>
+            <span className={classes.value}>{v}</span>
+            {!!label && <span className={classes.label}>{label}</span>}
+          </span>
+        ),
       _: () => (
         <div className={cx(classes.root, classes.skeletonContainer)}>
           <Skeleton className={classes.skeleton} bgcolor="grey.400" />
@@ -792,6 +793,12 @@ function Head({ req, s3, overviewUrl, bucket, description }) {
                 value={AsyncResult.prop('totalBytes', res)}
                 format={readableBytes}
                 fallback={() => '? B'}
+              />
+              <StatDisplay
+                value={AsyncResult.prop('totalPackages', res)}
+                format={formatQuantity}
+                label="Packages"
+                fallback={() => null}
               />
             </M.Box>
           </M.Box>

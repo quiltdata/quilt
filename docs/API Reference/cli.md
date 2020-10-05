@@ -145,7 +145,7 @@ optional arguments:
 ## `push`
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
-                   [--message MESSAGE]
+                   [--message MESSAGE] [--meta META]
                    name
 
 Pushes the new package to the remote registry
@@ -162,6 +162,8 @@ optional arguments:
                        the default remote registry.
   --dest DEST          Where to copy the objects in the package
   --message MESSAGE    The commit message for the new package
+  --meta META          Sets package-level metadata. Format: A json string with
+                       keys in double quotes '{"key": "value"}'
 ```
 ## `config-default-remote-registry`
 ```

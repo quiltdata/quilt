@@ -29,6 +29,38 @@ class TestPackageSelect(TestCase):
         Mocks to tests calls to S3 Select
         """
 
+        def make_s3response(bytes):
+            return {
+                'Payload': [
+                    {
+                        'Records': {
+                            'Payload': bytes
+                        }
+                    },
+                    {
+                        'Progress': {
+                            'Details': {
+                                'BytesScanned': 123,
+                                'BytesProcessed': 123,
+                                'BytesReturned': 123
+                            }
+                        }
+                    },
+                    {
+                        'Stats': {
+                            'Details': {
+                                'BytesScanned': 123,
+                                'BytesProcessed': 123,
+                                'BytesReturned': 123
+                            }
+                        }
+                    },
+                    {
+                        'End': {}
+                    }
+                ]
+            }
+
         logical_keys = [
             "foo.csv",
             "bar/file1.txt",
@@ -36,9 +68,15 @@ class TestPackageSelect(TestCase):
             "bar/baz/file3.txt",
             "bar/baz/file4.txt"
         ]
-        jsonl = ""
+        entries = []
         for key in logical_keys:
-            jsonl += "{\"logical_key\": \"%s\"}\n" % key
+            entry = dict(
+                logical_key=key,
+                physical_key=f"{key}?versionid=1234",
+                size=100
+            )
+            entries.append(json.dumps(entry))
+        jsonl = "\n".join(entries)
         print(jsonl)
         streambytes = jsonl.encode()
 
@@ -50,68 +88,8 @@ class TestPackageSelect(TestCase):
             meta={}
         )
         detailbytes = json.dumps(manifest_row).encode()
-        self.s3response_detail = {
-            'Payload': [
-                {
-                    'Records': {
-                        'Payload': detailbytes
-                    }
-                },
-                {
-                    'Progress': {
-                        'Details': {
-                            'BytesScanned': 123,
-                            'BytesProcessed': 123,
-                            'BytesReturned': 123
-                        }
-                    }
-                },
-                {
-                    'Stats': {
-                        'Details': {
-                            'BytesScanned': 123,
-                            'BytesProcessed': 123,
-                            'BytesReturned': 123
-                        }
-                    }
-                },
-                {
-                    'End': {}
-                }
-            ]
-        }
-
-        self.s3response = {
-            'Payload': [
-                {
-                    'Records': {
-                        'Payload': streambytes
-                    }
-                },
-                {
-                    'Progress': {
-                        'Details': {
-                            'BytesScanned': 123,
-                            'BytesProcessed': 123,
-                            'BytesReturned': 123
-                        }
-                    }
-                },
-                {
-                    'Stats': {
-                        'Details': {
-                            'BytesScanned': 123,
-                            'BytesProcessed': 123,
-                            'BytesReturned': 123
-                        }
-                    }
-                },
-                {
-                    'End': {}
-                }
-            ]
-        }
-
+        self.s3response = make_s3response(streambytes)
+        self.s3response_detail = make_s3response(detailbytes)
         self.s3response_incomplete = {
             'Payload': [
                 {
@@ -130,6 +108,16 @@ class TestPackageSelect(TestCase):
                 }
             ]
         }
+
+        meta = {
+            "version": "v0",
+            "user_meta": {
+                "somefield": "somevalue"
+            },
+            "message": "Commit message"
+        }
+        metabytes = json.dumps(meta).encode()
+        self.s3response_meta = make_s3response(metabytes)
 
         requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
         requests_mock.start()
@@ -165,8 +153,8 @@ class TestPackageSelect(TestCase):
         folder = file_list_to_folder(df)
         assert len(folder['prefixes']) == 1
         assert len(folder['objects']) == 1
-        assert 'foo.csv' in folder['objects']
-        assert 'bar/' in folder['prefixes']
+        assert folder['objects'][0]['logical_key'] == 'foo.csv'
+        assert folder['prefixes'][0]['logical_key'] == 'bar/'
 
     def test_browse_subfolder(self):
         """
@@ -176,16 +164,22 @@ class TestPackageSelect(TestCase):
         prefix = "bar/"
         df = pd.read_json(buffer_s3response(self.s3response), lines=True)
         assert isinstance(df, pd.DataFrame)
-
         filtered_df = df[df['logical_key'].str.startswith(prefix)]
         stripped = filtered_df['logical_key'].str.slice(start=len(prefix))
-        folder = file_list_to_folder(stripped.to_frame('logical_key'))
-        print(folder)
+        stripped_df = stripped.to_frame('logical_key')
+        s3_df = pd.concat(
+            [stripped_df['logical_key'], filtered_df['size'], filtered_df['physical_key']],
+            axis=1,
+            keys=['logical_key', 'size', 'physical_key']
+        )
+
+        folder = file_list_to_folder(s3_df)
         assert len(folder['prefixes']) == 1
         assert len(folder['objects']) == 2
-        assert "file1.txt" in folder['objects']
-        assert "file2.txt" in folder['objects']
-        assert "baz/" in folder['prefixes']
+        object_keys = [obj['logical_key'] for obj in folder['objects']]
+        assert "file1.txt" in object_keys
+        assert "file2.txt" in object_keys
+        assert folder['prefixes'][0]['logical_key'] == "baz/"
 
     def test_browse_subsubfolder(self):
         """
@@ -197,13 +191,20 @@ class TestPackageSelect(TestCase):
         assert isinstance(df, pd.DataFrame)
         filtered_df = df[df['logical_key'].str.startswith(prefix)]
         stripped = filtered_df['logical_key'].str.slice(start=len(prefix))
-        folder = file_list_to_folder(stripped.to_frame('logical_key'))
+        stripped_df = stripped.to_frame('logical_key')
+        s3_df = pd.concat(
+            [stripped_df['logical_key'], filtered_df['size'], filtered_df['physical_key']],
+            axis=1,
+            keys=['logical_key', 'size', 'physical_key']
+        )
+        folder = file_list_to_folder(s3_df)
         assert "objects" in folder
         assert "prefixes" in folder
         assert not folder['prefixes']
         assert len(folder['objects']) == 2
-        assert "file3.txt" in folder['objects']
-        assert "file4.txt" in folder['objects']
+        object_keys = [obj['logical_key'] for obj in folder['objects']]
+        assert "file3.txt" in object_keys
+        assert "file4.txt" in object_keys
 
     def test_folder_view(self):
         """
@@ -235,7 +236,10 @@ class TestPackageSelect(TestCase):
         client_patch = patch.object(
             mock_s3,
             'select_object_content',
-            return_value=self.s3response
+            side_effect=[
+                self.s3response,
+                self.s3response_meta
+            ]
         )
         client_patch.start()
         with patch('boto3.Session.client', return_value=mock_s3):
@@ -245,8 +249,8 @@ class TestPackageSelect(TestCase):
             folder = json.loads(read_body(response))['contents']
             assert len(folder['prefixes']) == 1
             assert len(folder['objects']) == 1
-            assert 'foo.csv' in folder['objects']
-            assert 'bar/' in folder['prefixes']
+            assert folder['objects'][0]['logical_key'] == 'foo.csv'
+            assert folder['prefixes'][0]['logical_key'] == 'bar/'
         client_patch.stop()
 
     def test_detail_view(self):
@@ -361,7 +365,10 @@ class TestPackageSelect(TestCase):
         client_patch = patch.object(
             mock_s3,
             'select_object_content',
-            return_value=self.s3response
+            side_effect=[
+                self.s3response,
+                self.s3response_meta
+            ]
         )
         client_patch.start()
         response = {
@@ -381,10 +388,11 @@ class TestPackageSelect(TestCase):
             print(response)
             assert response['statusCode'] == 200
             folder = json.loads(read_body(response))['contents']
+            print(folder)
             assert len(folder['prefixes']) == 1
             assert len(folder['objects']) == 1
-            assert 'foo.csv' in folder['objects']
-            assert 'bar/' in folder['prefixes']
+            assert folder['objects'][0]['logical_key'] == 'foo.csv'
+            assert folder['prefixes'][0]['logical_key'] == 'bar/'
         s3_stubber.deactivate()
         client_patch.stop()
         env_patcher.stop()

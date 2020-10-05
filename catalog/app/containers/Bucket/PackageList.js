@@ -321,7 +321,7 @@ export default function PackageList({
   const computedPage = page || 1
   const computedSort = getSort(sort)
   const computedFilter = filter || ''
-  const filtering = useDebouncedInput(computedFilter, 200)
+  const filtering = useDebouncedInput(computedFilter, 500)
   const today = React.useMemo(() => new Date(), [])
 
   const [uploadOpen, setUploadOpen] = React.useState(false)

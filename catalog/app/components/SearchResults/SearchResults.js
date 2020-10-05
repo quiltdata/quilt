@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
 import Pagination from 'components/Pagination2'
@@ -352,23 +353,63 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
   return <SmallerSection>{withData(Preview.display({ renderContents }))}</SmallerSection>
 }
 
+const useMetaStyles = M.makeStyles((t) => ({
+  box: {
+    background: M.colors.lightBlue[50],
+    border: `1px solid ${M.colors.lightBlue[400]}`,
+    borderRadius: t.shape.borderRadius,
+    marginBottom: 0,
+    marginTop: t.spacing(1),
+    maxHeight: t.spacing(30),
+    minHeight: t.spacing(15),
+    opacity: 0.7,
+    overflow: 'hidden',
+    padding: t.spacing(1),
+    position: 'relative',
+  },
+  expanded: {
+    maxHeight: 'none',
+  },
+  fade: {
+    alignItems: 'flex-end',
+    background: `linear-gradient(to top,
+      ${fade(M.colors.lightBlue[50], 1)},
+      ${fade(M.colors.lightBlue[50], 0.9)},
+      ${fade(M.colors.lightBlue[50], 0.1)},
+      ${fade(M.colors.lightBlue[50], 0.1)}
+    )`,
+    bottom: 0,
+    display: 'flex',
+    height: '100%',
+    justifyContent: 'center',
+    left: 0,
+    padding: t.spacing(1),
+    position: 'absolute',
+    width: '100%',
+    zIndex: 1,
+  },
+}))
+
 function Meta({ meta }) {
+  const classes = useMetaStyles()
+  const [expanded, setExpanded] = React.useState(false)
+  const expand = React.useCallback(() => {
+    setExpanded(true)
+  }, [setExpanded])
   if (!meta || R.isEmpty(meta)) return null
   return (
     <SmallerSection>
       <SectionHeading>Metadata</SectionHeading>
-      <M.Box
-        component="pre"
-        bgcolor={M.colors.lightBlue[50]}
-        borderColor={M.colors.lightBlue[400]}
-        borderRadius="borderRadius"
-        p={1}
-        mb={0}
-        mt={1}
-        style={{ opacity: 0.7 }}
-      >
+      <pre className={cx(classes.box, { [classes.expanded]: expanded })}>
         {JSON.stringify(meta, null, 2)}
-      </M.Box>
+        {!expanded && (
+          <div className={classes.fade}>
+            <M.Button variant="outlined" onClick={expand}>
+              Expand
+            </M.Button>
+          </div>
+        )}
+      </pre>
     </SmallerSection>
   )
 }

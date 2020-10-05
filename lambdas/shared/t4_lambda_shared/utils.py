@@ -8,7 +8,6 @@ from typing import Iterable
 import io
 import json
 import os
-from functools import wraps
 
 
 LOGGER_NAME = "quilt-lambda"
@@ -48,19 +47,14 @@ def get_default_origins():
     ]
 
 
-def logger():
+def get_quilt_logger():
     """inject a logger via kwargs, with level set by the environment"""
     logger_ = logging.getLogger(LOGGER_NAME)
     # See https://docs.python.org/3/library/logging.html#logging-levels
     level = os.environ.get("QUILT_LOG_LEVEL", "WARNING")
     logger_.setLevel(level)
 
-    def innerdec(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            return f(*args, **kwargs)
-        return wrapper
-    return innerdec
+    return logger_
 
 
 def get_available_memory():
@@ -111,7 +105,6 @@ def sql_escape(s):
     return escaped.replace("'", "''")
 
 
-@logger()
 def buffer_s3response(s3response):
     """
     Read a streaming response (botocore.eventstream.EventStream) from s3 select
@@ -120,10 +113,13 @@ def buffer_s3response(s3response):
     logger_ = logging.getLogger(LOGGER_NAME)
     response = io.StringIO()
     end_event_received = False
+    stats = None
+    found_records = False
     for event in s3response['Payload']:
         if 'Records' in event:
             records = event['Records']['Payload'].decode()
             response.write(records)
+            found_records = True
         elif 'Progress' in event:
             logger_.info("select progress: %s", event['Progress'].get('Details'))
         elif 'Stats' in event:
@@ -135,10 +131,9 @@ def buffer_s3response(s3response):
     if not end_event_received:
         raise IncompleteResultException("Error: Received an incomplete response from S3 Select.")
     response.seek(0)
-    return response
+    return response if found_records else None
 
 
-@logger()
 def query_manifest_content(
         s3_client: str,
         *,
@@ -151,7 +146,7 @@ def query_manifest_content(
     package manifest that match the desired folder path
     prefix
     """
-    logger_ = logging.getLogger(LOGGER_NAME)
+    logger_ = get_quilt_logger()
     logger_.debug("utils.py: manifest_select: %s", sql_stmt)
     response = s3_client.select_object_content(
         Bucket=bucket,

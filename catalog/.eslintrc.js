@@ -1,6 +1,3 @@
-const fs = require('fs')
-const path = require('path')
-
 const prettierOptions = require('./.prettierrc')
 
 module.exports = {
@@ -72,6 +69,7 @@ module.exports = {
     'react-hooks/rules-of-hooks': 'error',
     'redux-saga/no-yield-in-race': 2,
     'redux-saga/yield-effects': 2,
+    'react-hooks/exhaustive-deps': 2,
     'require-yield': 0,
   },
   settings: {

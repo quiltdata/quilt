@@ -340,27 +340,13 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
 
   const hashData = useData(requests.loadRevisionHash, { s3, bucket, name, id: revision })
 
-  const resolveLogicalKey = React.useCallback(
-    (logicalKey) =>
-      requests.packageFileDetail({
-        s3,
-        credentials,
-        endpoint,
-        bucket,
-        name,
-        revision,
-        path: logicalKey,
-      }),
-    [s3, credentials, endpoint, bucket, name, revision, path],
-  )
-
   const mkUrl = React.useCallback(
     (handle) => urls.bucketPackageTree(bucket, name, revision, handle.logicalKey),
     [urls.bucketPackageTree, bucket, name, revision, path],
   )
 
   return data.case({
-    Ok: ({ objects, prefixes }) => {
+    Ok: ({ objects, prefixes, meta }) => {
       const up =
         path === ''
           ? []
@@ -376,25 +362,26 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
           to: urls.bucketPackageTree(bucket, name, revision, path + p),
         }),
       )
-      const files = objects.map((basename) =>
+      const files = objects.map((o) =>
         ListingItem.File({
-          name: basename,
-          to: urls.bucketPackageTree(bucket, name, revision, path + basename),
+          name: o.name,
+          to: urls.bucketPackageTree(bucket, name, revision, path + o.name),
+          size: o.size,
         }),
       )
       const items = [...up, ...dirs, ...files]
-      const lazyHandles = objects.map((basename) => ({ logicalKey: path + basename }))
+      const summaryHandles = objects.map((o) => ({
+        ...s3paths.parseS3Url(o.physicalKey),
+        logicalKey: path + o.name,
+      }))
       return (
         <>
           <TopBar crumbs={crumbs} />
           <PkgCode {...{ data: hashData, bucket, name, revision, path }} />
+          <FileView.Meta data={AsyncResult.Ok(meta)} />
           <M.Box mt={2}>
             <Listing items={items} />
-            <Summary
-              files={lazyHandles}
-              resolveLogicalKey={resolveLogicalKey}
-              mkUrl={mkUrl}
-            />
+            <Summary files={summaryHandles} mkUrl={mkUrl} />
           </M.Box>
         </>
       )
@@ -481,7 +468,7 @@ function FileDisplay({ bucket, name, revision, path, crumbs }) {
   }
 
   return data.case({
-    Ok: (handle) => (
+    Ok: ({ meta, ...handle }) => (
       <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
         {AsyncResult.case({
           _: renderProgress,
@@ -501,6 +488,7 @@ function FileDisplay({ bucket, name, revision, path, crumbs }) {
                   )}
                 </TopBar>
                 <PkgCode {...{ data: hashData, bucket, name, revision, path }} />
+                <FileView.Meta data={AsyncResult.Ok(meta)} />
                 <Section icon="remove_red_eye" heading="Preview" expandable={false}>
                   {withPreview({ archived, deleted, handle }, renderPreview)}
                 </Section>

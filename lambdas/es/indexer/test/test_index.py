@@ -894,22 +894,40 @@ class TestIndex(TestCase):
         manifest_key = f"{MANIFEST_PREFIX_V1}{sha_hash}"
         # patch select_object_content since boto can't
         with patch.object(self.s3_client, 'select_object_content') as mock_select:
-            mock_select.return_value = {
-                "ResponseMetadata": ANY,
-                "Payload": [
-                    {
-                        "Stats": {}
-                    },
-                    {
-                        "Records": {
-                            "Payload": json.dumps(MANIFEST_DATA).encode(),
+            mock_select.side_effect = [
+                {
+                    "ResponseMetadata": ANY,
+                    "Payload": [
+                        {
+                            "Stats": {}
                         },
-                    },
-                    {
-                        "End": {}
-                    },
-                ]
-            }
+                        {
+                            "Records": {
+                                "Payload": json.dumps(MANIFEST_DATA).encode(),
+                            },
+                        },
+                        {
+                            "End": {}
+                        },
+                    ]
+                },
+                {
+                    "ResponseMetadata": ANY,
+                    "Payload": [
+                        {
+                            "Stats": {}
+                        },
+                        {
+                            "Records": {
+                                "Payload": b'{"total_bytes":292600212794000,"total_files":179066000}\n',
+                            },
+                        },
+                        {
+                            "End": {}
+                        },
+                    ]
+                },
+            ]
 
             self._test_index_events(
                 ["ObjectCreated:Put"],
@@ -925,10 +943,10 @@ class TestIndex(TestCase):
                 }
             )
 
-            mock_select.assert_called_once_with(
+            mock_select.assert_called_with(
                 Bucket="test-bucket",
                 Key=manifest_key,
-                Expression=index.SELECT_PACKAGE_META,
+                Expression=ANY,
                 ExpressionType="SQL",
                 # copied from t4_lambda_shared > utils.py > query_manifest_content
                 InputSerialization={
@@ -937,6 +955,8 @@ class TestIndex(TestCase):
                 },
                 OutputSerialization={'JSON': {'RecordDelimiter': '\n'}}
             )
+            # one call for metadata, one for stats
+            assert mock_select.call_count == 2
 
         append_mock.assert_any_call(
             "ObjectCreated:Put",
@@ -948,6 +968,10 @@ class TestIndex(TestCase):
             key=f".quilt/packages/{sha_hash}",
             last_modified=ANY,
             package_hash=sha_hash,
+            package_stats={
+                'total_files': 179_066_000,
+                'total_bytes': 292_600_212_794_000,
+            },
             pointer_file=ANY,
             comment=MANIFEST_DATA["message"],
             metadata=json.dumps(MANIFEST_DATA["user_meta"])
