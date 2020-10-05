@@ -784,15 +784,15 @@ function Head({ es, s3, overviewUrl, bucket, description }) {
             )}
             <M.Box mt={{ xs: 2, sm: 3 }} display="flex" alignItems="baseline">
               <StatDisplay
+                value={AsyncResult.prop('totalBytes', res)}
+                format={readableBytes}
+                fallback={() => '? B'}
+              />
+              <StatDisplay
                 value={AsyncResult.prop('totalObjects', res)}
                 format={readableQuantity}
                 label="Objects"
                 fallback={() => '?'}
-              />
-              <StatDisplay
-                value={AsyncResult.prop('totalBytes', res)}
-                format={readableBytes}
-                fallback={() => '? B'}
               />
               <StatDisplay
                 value={AsyncResult.prop('totalPackages', res)}
@@ -1052,9 +1052,12 @@ function Thumbnails({ images }) {
   const { urls } = NamedRoutes.use()
 
   const scrollRef = React.useRef(null)
-  const scroll = React.useCallback((prev) => {
-    if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
-  })
+  const scroll = React.useCallback(
+    (prev) => {
+      if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
+    },
+    [scrollRef],
+  )
 
   const pagination = Pagination.use(images, { perPage: 25, onChange: scroll })
 
