@@ -652,9 +652,12 @@ const useStatDisplayStyles = M.makeStyles((t) => ({
     alignItems: 'baseline',
     display: 'flex',
     '& + &': {
-      marginLeft: t.spacing(1),
+      marginLeft: t.spacing(1.5),
       [t.breakpoints.up('sm')]: {
-        marginLeft: t.spacing(3),
+        marginLeft: t.spacing(4),
+      },
+      [t.breakpoints.up('md')]: {
+        marginLeft: t.spacing(6),
       },
     },
   },
