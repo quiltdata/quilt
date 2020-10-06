@@ -215,16 +215,26 @@ export const bucketStats = async ({ es, s3, bucket, overviewUrl }) => {
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
 const SAMPLE_EXTS = [
-  '.parquet',
-  '.csv',
-  '.tsv',
-  '.txt',
-  '.vcf',
-  '.xls',
-  '.xlsx',
-  '.ipynb',
-  '.md',
-  '.json',
+  '*.parquet',
+  '*.parquet.gz',
+  '*.csv',
+  '*.csv.gz',
+  '*.tsv',
+  '*.tsv.gz',
+  '*.txt',
+  '*.txt.gz',
+  '*.vcf',
+  '*.vcf.gz',
+  '*.xls',
+  '*.xls.gz',
+  '*.xlsx',
+  '*.xlsx.gz',
+  '*.ipynb',
+  '*.md',
+  '*.pdf',
+  '*.pdf.gz',
+  '*.json',
+  '*.json.gz',
 ]
 const SAMPLE_SIZE = 20
 const SUMMARIZE_KEY = 'quilt_summarize.json'
