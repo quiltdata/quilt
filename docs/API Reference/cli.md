@@ -47,21 +47,21 @@ usage: quilt3 install [-h] [--registry REGISTRY] [--top-hash TOP_HASH]
                       [--path PATH]
                       name
 
-Install a package
+Install a package or a collection of packages
 
 positional arguments:
-  name                  Name of package, in the USER/PKG[/PATH] format
-                        ([/PATH] is deprecated, use --path parameter instead)
+  name                  Name can be of two representations:
+                        - Name of package, in the USER/PKG[/PATH] format ([/PATH] is deprecated, use --path parameter instead)
+                        - Path to quilt.yaml package dependency file.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --registry REGISTRY   Registry where package is located, usually s3://MY-
-                        BUCKET. Defaults to the default remote registry.
+  --registry REGISTRY   Registry where package is located, usually s3://MY-BUCKET.
+                        Defaults to the default remote registry.
   --top-hash TOP_HASH   Hash of package to install. Defaults to latest.
   --dest DEST           Local path to download files to.
   --dest-registry DEST_REGISTRY
-                        Registry to install package to. Defaults to local
-                        registry.
+                        Registry to install package to. Defaults to local registry.
   --path PATH           If specified, downloads only PATH or its children.
 ```
 ## `verify`

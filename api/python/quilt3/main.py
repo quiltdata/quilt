@@ -329,18 +329,25 @@ def create_parser():
     disable_telemetry_p.set_defaults(func=cmd_disable_telemetry)
 
     # install
-    shorthelp = "Install a package"
-    install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    shorthelp = "Install a package or a collection of packages"
+    install_p = subparsers.add_parser(
+        "install",
+        description=shorthelp,
+        help=shorthelp,
+        allow_abbrev=False,
+        formatter_class=argparse.RawTextHelpFormatter
+    )
     install_p.add_argument(
         "name",
-        help=(
-            "Name of package, in the USER/PKG[/PATH] format ([/PATH] is deprecated, use --path parameter instead)"
-        ),
-        type=str,
+        help="Name can be of two representations:\n"
+             "- Name of package, in the USER/PKG[/PATH] format ([/PATH] is deprecated, use --path parameter instead)\n"
+             "- Path to quilt.yaml package dependency file.",
+        type=str
     )
     install_p.add_argument(
         "--registry",
-        help="Registry where package is located, usually s3://MY-BUCKET. Defaults to the default remote registry.",
+        help="Registry where package is located, usually s3://MY-BUCKET.\n"
+             "Defaults to the default remote registry.",
         type=str,
         required=False,
     )
