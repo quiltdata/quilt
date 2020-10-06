@@ -3,8 +3,8 @@ import { push } from 'connected-react-router/esm/immutable'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 import { fade } from '@material-ui/core/styles/colorManipulator'
+import * as Lab from '@material-ui/lab'
 
 import * as style from 'constants/style'
 import * as Config from 'utils/Config'
@@ -73,9 +73,10 @@ const useStyles = M.makeStyles((t) => ({
     cursor: 'pointer',
   },
   inputOptions: {
-    borderWidth: '0 1px 0 0',
     borderRadius: 0,
-    padding: '5px 2px 5px 10px',
+    borderWidth: '0 1px 0 0',
+    paddingLeft: t.spacing(1.25),
+    paddingRight: t.spacing(0.25),
   },
   wrapper: {
     position: 'absolute',
