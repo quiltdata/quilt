@@ -73,7 +73,7 @@ class DocumentQueue:
             metadata: str = '',
             pointer_file: str = '',
             package_hash: str = '',
-            package_stats: Dict[str, int] = {'total_files': 0, 'total_bytes': 0}.copy(),
+            package_stats: Dict[str, int] = None,
             tags: List[str] = (),
             text: str = '',
             version_id=None,
@@ -118,15 +118,25 @@ class DocumentQueue:
         if doc_type == DocTypes.PACKAGE:
             if not handle or not package_hash or not pointer_file:
                 raise ValueError("missing required argument for package document")
+            if (
+                package_stats
+                and not isinstance(package_stats, dict)
+                or isinstance(package_stats, dict)
+                and any(k not in package_stats for k in ['total_files', 'total_bytes'])
+            ):
+                raise ValueError("Malformed package_stats")
             body.update({
                 "_id": f"{handle}:{package_hash}",
                 "handle": handle,
                 "hash": package_hash,
                 "metadata": metadata,
                 "pointer_file": pointer_file,
-                "package_stats": package_stats,
                 "tags": ",".join(tags)
             })
+            if package_stats:
+                body.update({
+                    "package_stats": package_stats,
+                })
         elif doc_type == DocTypes.OBJECT:
             body.update({
                 # Elastic native keys
