@@ -95,7 +95,7 @@ class FormatRegistry:
     extensions, or handled object types.  This list may expand in the future,
     so see the actual class methods.
     """
-    registered_handlers = list()
+    registered_handlers = []
 
     # latest adds are last, and come first in lookups by type via `for_obj`.
     def __init__(self):
@@ -354,12 +354,12 @@ class FormatRegistry:
 class BaseFormatHandler(ABC):
     """Base class for binary format handlers
     """
-    opts = tuple()
+    opts = ()
     name = None
-    handled_extensions = tuple()
-    handled_types = tuple()
+    handled_extensions = ()
+    handled_types = ()
 
-    def __init__(self, name=None, handled_extensions=tuple(), handled_types=tuple()):
+    def __init__(self, name=None, handled_extensions=(), handled_types=()):
         """Common initialization for BaseFormat subclasses
 
         Subclasses implement the `serialize()` and `deserialize()` methods,
