@@ -4,16 +4,16 @@ Test functions for preview endpoint
 import json
 import math
 import os
-from pathlib import Path
 import re
+from pathlib import Path
 from unittest.mock import ANY, patch
 
 import pyarrow.parquet as pq
 import responses
 
 from t4_lambda_shared.utils import read_body
-from .. import index
 
+from .. import index
 
 MOCK_ORIGIN = 'http://localhost:3000'
 

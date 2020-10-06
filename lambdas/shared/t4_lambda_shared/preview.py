@@ -1,18 +1,17 @@
 """
 Shared helper functions for generating previews for the preview lambda and the ES indexer.
 """
-from io import BytesIO
 import math
 import os
 import re
 import tempfile
 import zlib
+from io import BytesIO
 
 import fcsparser
 import pandas
 
 from .utils import get_available_memory
-
 
 AVG_PARQUET_CELL_BYTES = 100  # a heuristic to avoid flooding memory
 # CATALOG_LIMIT_BYTES is bytes scanned, so acts as an upper bound on bytes returned

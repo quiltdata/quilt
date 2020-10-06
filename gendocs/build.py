@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
-import sys
 import subprocess
-import pkg_resources
+import sys
 
+import pkg_resources
 
 try:
     from pip._internal import main as pipmain
 except ImportError:
     from pip import main as pipmain
-import yaml
 
+import yaml
 
 # To push out and use a new version of pydocmd to people generating docs,
 # increment this here and in the quilt pydocmd repo (setup.py and __init__.py)

@@ -8,7 +8,6 @@ from unittest.mock import patch
 from urllib.parse import urlencode
 
 import responses
-
 from index import lambda_handler, post_process
 
 ES_STATS_RESPONSES = {

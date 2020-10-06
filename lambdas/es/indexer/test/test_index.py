@@ -2,36 +2,36 @@
 Tests for the ES indexer. This function consumes events from SQS.
 """
 import datetime
+import json
+import os
 from copy import deepcopy
 from gzip import compress
 from io import BytesIO
-import json
-import os
 from math import floor
 from pathlib import Path
-from time import time
 from string import ascii_lowercase
+from time import time
 from unittest import TestCase
 from unittest.mock import ANY, patch
 from urllib.parse import unquote_plus
 
 import boto3
+import pytest
+import responses
 from botocore import UNSIGNED
 from botocore.client import Config
 from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
-import pytest
-import responses
+from document_queue import DocTypes, RetryError
 
 from t4_lambda_shared.utils import (
-    POINTER_PREFIX_V1,
     MANIFEST_PREFIX_V1,
-    separated_env_to_iter
+    POINTER_PREFIX_V1,
+    separated_env_to_iter,
 )
-from document_queue import DocTypes, RetryError
-from .. import index
 
+from .. import index
 
 BASE_DIR = Path(__file__).parent / 'data'
 

@@ -1,22 +1,18 @@
 """ Testing for data_transfer.py """
 
-# Python imports
 import io
 import os
 import pathlib
 import threading
 import time
 from contextlib import redirect_stderr
-
 from unittest import mock
 
-# Third-party imports
-from botocore.stub import ANY
-from botocore.exceptions import ClientError, ReadTimeoutError
 import pandas as pd
 import pytest
+from botocore.exceptions import ClientError, ReadTimeoutError
+from botocore.stub import ANY
 
-# Project imports
 from quilt3 import data_transfer
 from quilt3.util import PhysicalKey
 

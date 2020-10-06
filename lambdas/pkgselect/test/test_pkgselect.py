@@ -8,16 +8,13 @@ from unittest import TestCase
 from unittest.mock import patch
 
 import boto3
-from botocore.stub import Stubber
 import pandas as pd
 import responses
+from botocore.stub import Stubber
 
 from t4_lambda_shared.utils import buffer_s3response, read_body
 
-from ..index import (
-    file_list_to_folder,
-    lambda_handler
-)
+from ..index import file_list_to_folder, lambda_handler
 
 
 class TestPackageSelect(TestCase):

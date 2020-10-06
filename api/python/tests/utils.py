@@ -2,13 +2,13 @@
 Unittest setup
 """
 import pathlib
-from unittest import mock, TestCase
+from unittest import TestCase, mock
 
 import boto3
+import responses
 from botocore import UNSIGNED
 from botocore.client import Config
 from botocore.stub import Stubber
-import responses
 
 import quilt3
 from quilt3.util import CONFIG_PATH

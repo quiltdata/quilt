@@ -1,34 +1,36 @@
 """ Integration tests for Quilt Packages. """
 import io
+import os
+import pathlib
+import shutil
 import tempfile
 from collections import Counter
 from contextlib import redirect_stderr
 from datetime import datetime
 from io import BytesIO
-import os
-import pathlib
 from pathlib import Path
-import pandas as pd
-import shutil
+from unittest import mock
+from unittest.mock import ANY, Mock, call, patch
 
 import jsonlines
-from unittest import mock
-from unittest.mock import patch, call, ANY, Mock
+import pandas as pd
 import pytest
 
 import quilt3
 from quilt3 import Package
+from quilt3.backends.local import (
+    LocalPackageRegistryV1,
+    LocalPackageRegistryV2,
+)
+from quilt3.backends.s3 import S3PackageRegistryV1, S3PackageRegistryV2
 from quilt3.util import (
     PhysicalKey,
     QuiltException,
+    RemovedInQuilt4Warning,
     validate_package_name,
-    RemovedInQuilt4Warning
 )
-from quilt3.backends.local import LocalPackageRegistryV1, LocalPackageRegistryV2
-from quilt3.backends.s3 import S3PackageRegistryV1, S3PackageRegistryV2
 
 from ..utils import QuiltTestCase
-
 
 DATA_DIR = Path(__file__).parent / 'data'
 LOCAL_MANIFEST = DATA_DIR / 'local_manifest.jsonl'

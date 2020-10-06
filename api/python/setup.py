@@ -1,9 +1,8 @@
 import os
 import sys
-
 from pathlib import Path
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 from setuptools.command.install import install
 
 VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text().strip()

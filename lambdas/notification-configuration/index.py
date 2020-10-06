@@ -5,7 +5,7 @@ Remove notification on delete.
 """
 import boto3
 
-from t4_lambda_shared.cfnresponse import send, SUCCESS, FAILED
+from t4_lambda_shared.cfnresponse import FAILED, SUCCESS, send
 
 
 def set_mappings(params, *, delete=False):

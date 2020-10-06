@@ -3,11 +3,11 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+
 import quilt3
 from quilt3 import main
 
 from .utils import QuiltTestCase
-
 
 create_parser = main.create_parser
 

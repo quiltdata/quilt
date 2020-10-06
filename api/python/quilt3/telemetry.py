@@ -1,15 +1,16 @@
 import atexit
-from concurrent.futures import ThreadPoolExecutor, wait
 import functools
 import os
 import platform
-from requests_futures.sessions import FuturesSession
 import sys
-from threading import Lock
 import uuid
+from concurrent.futures import ThreadPoolExecutor, wait
+from threading import Lock
 
-from .util import get_from_config, set_config_value
+from requests_futures.sessions import FuturesSession
+
 from . import __version__ as quilt3_version
+from .util import get_from_config, set_config_value
 
 TELEMETRY_URL = "https://telemetry.quiltdata.cloud/Prod/metrics"
 TELEMETRY_USER_AGENT = "QuiltCli"

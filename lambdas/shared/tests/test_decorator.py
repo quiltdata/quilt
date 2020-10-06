@@ -1,11 +1,11 @@
 """
 Decorator tests
 """
-from base64 import b64decode, b64encode
 import gzip
+from base64 import b64decode, b64encode
 from unittest import TestCase
 
-from t4_lambda_shared.decorator import api, Request, validate
+from t4_lambda_shared.decorator import Request, api, validate
 
 
 # pylint: disable=invalid-sequence-index

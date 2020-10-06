@@ -2,13 +2,12 @@
 Decorators for using lambdas in API Gateway
 """
 
-from base64 import b64decode, b64encode
-from functools import wraps
 import gzip
 import traceback
+from base64 import b64decode, b64encode
+from functools import wraps
 
 from jsonschema import Draft4Validator, ValidationError
-
 
 GZIP_MIN_LENGTH = 1024
 GZIP_TYPES = {'text/plain', 'application/json'}

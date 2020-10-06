@@ -1,33 +1,48 @@
-import itertools
-import math
-import os
-import stat
-from collections import defaultdict, deque
-from codecs import iterdecode
-from concurrent.futures import ThreadPoolExecutor
-from enum import Enum
 import concurrent
 import functools
 import hashlib
+import itertools
+import math
+import os
 import pathlib
 import shutil
+import stat
+import warnings
+from codecs import iterdecode
+from collections import defaultdict, deque
+from concurrent.futures import ThreadPoolExecutor
+from enum import Enum
 from threading import Lock
 from typing import List
-import warnings
 
+import boto3
+import jsonlines
+from boto3.s3.transfer import TransferConfig
 from botocore import UNSIGNED
 from botocore.client import Config
-from botocore.exceptions import ClientError, ConnectionError, HTTPClientError, ReadTimeoutError
-import boto3
-from boto3.s3.transfer import TransferConfig
-from s3transfer.utils import ChunksizeAdjuster, OSUtils, signal_transferring, signal_not_transferring
-
-import jsonlines
-from tenacity import retry, retry_if_not_result, stop_after_attempt, wait_exponential, retry_if_result
+from botocore.exceptions import (
+    ClientError,
+    ConnectionError,
+    HTTPClientError,
+    ReadTimeoutError,
+)
+from s3transfer.utils import (
+    ChunksizeAdjuster,
+    OSUtils,
+    signal_not_transferring,
+    signal_transferring,
+)
+from tenacity import (
+    retry,
+    retry_if_not_result,
+    retry_if_result,
+    stop_after_attempt,
+    wait_exponential,
+)
 from tqdm import tqdm
 
 from .session import create_botocore_session
-from .util import PhysicalKey, QuiltException, DISABLE_TQDM
+from .util import DISABLE_TQDM, PhysicalKey, QuiltException
 
 MAX_COPY_FILE_LIST_RETRIES = 3
 MAX_FIX_HASH_RETRIES = 3
@@ -1091,7 +1106,8 @@ def select(src, query, meta=None, raw=False, **kwargs):
             reader = jsonlines.Reader(line.strip() for line in iter_lines(response, delimiter)
                                       if line.strip())
             # noinspection PyPackageRequirements
-            from pandas import DataFrame   # Lazy import for slow module
+            from pandas import DataFrame  # Lazy import for slow module
+
             # !! if this response type is modified, update related docstrings on Bucket.select().
             return DataFrame.from_records(x for x in reader)
         # If there's some need, we could implement some other OutputSerialization format here.

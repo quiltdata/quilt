@@ -1,5 +1,5 @@
-from base64 import b64decode
 import os
+from base64 import b64decode
 from unittest import TestCase
 from unittest.mock import patch
 

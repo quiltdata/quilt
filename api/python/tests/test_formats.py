@@ -1,15 +1,11 @@
-# Python imports
 import pathlib
 
-# Third Party imports
 import numpy as np
 import pandas as pd
 import pytest
 
-# Project imports
 from quilt3.formats import FormatRegistry
 from quilt3.util import QuiltException
-
 
 # Constants
 

@@ -3,8 +3,8 @@ Sends the request to ElasticSearch.
 
 TODO: Implement a higher-level search API.
 """
-from copy import deepcopy
 import os
+from copy import deepcopy
 from itertools import filterfalse, tee
 
 from aws_requests_auth.boto_utils import BotoAWSRequestsAuth

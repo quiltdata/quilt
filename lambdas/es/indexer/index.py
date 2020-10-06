@@ -39,16 +39,28 @@ counterintuitive things:
 """
 import datetime
 import json
-from typing import Optional
 import pathlib
 import re
 from os.path import split
+from typing import Optional
 from urllib.parse import unquote, unquote_plus
 
 import boto3
 import botocore
 import nbformat
-from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+from document_queue import (
+    CONTENT_INDEX_EXTS,
+    EVENT_PREFIX,
+    MAX_RETRY,
+    DocTypes,
+    DocumentQueue,
+)
+from tenacity import (
+    retry,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from t4_lambda_shared.preview import (
     ELASTIC_LIMIT_BYTES,
@@ -57,25 +69,16 @@ from t4_lambda_shared.preview import (
     extract_parquet,
     get_bytes,
     get_preview_lines,
-    trim_to_bytes
+    trim_to_bytes,
 )
 from t4_lambda_shared.utils import (
-    get_available_memory,
-    get_quilt_logger,
     MANIFEST_PREFIX_V1,
     POINTER_PREFIX_V1,
+    get_available_memory,
+    get_quilt_logger,
     query_manifest_content,
     separated_env_to_iter,
 )
-
-from document_queue import (
-    DocTypes,
-    DocumentQueue,
-    CONTENT_INDEX_EXTS,
-    EVENT_PREFIX,
-    MAX_RETRY
-)
-
 
 # 10 MB, see https://amzn.to/2xJpngN
 NB_VERSION = 4  # default notebook version for nbformat

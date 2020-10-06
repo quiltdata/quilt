@@ -7,11 +7,10 @@ the current AWS credentials.
 import os
 from urllib.parse import urlencode
 
+import requests
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
 from botocore.session import Session
-
-import requests
 
 from t4_lambda_shared.decorator import api
 from t4_lambda_shared.utils import get_default_origins

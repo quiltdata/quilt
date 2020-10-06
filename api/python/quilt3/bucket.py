@@ -6,7 +6,13 @@ Contains the Bucket class, which provides several useful functions
 """
 import pathlib
 
-from .data_transfer import copy_file, delete_object, list_object_versions, list_objects, select
+from .data_transfer import (
+    copy_file,
+    delete_object,
+    list_object_versions,
+    list_objects,
+    select,
+)
 from .search_util import search_api
 from .util import PhysicalKey, QuiltException, fix_url
 
