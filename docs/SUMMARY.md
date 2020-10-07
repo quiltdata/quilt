@@ -34,3 +34,4 @@
 * [Frequently Asked Questions](FAQ.md)
 * [CloudFormation Reference](Technical Reference.md)
 * [Contributing](CONTRIBUTING.md)
+* [Changelog](CHANGELOG.md)
