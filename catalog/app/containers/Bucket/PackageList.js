@@ -439,11 +439,11 @@ export default function PackageList({
                 </M.Button>
                 <M.Box pt={2} />
                 <M.Typography>
-                  Learn how to{' '}
+                  Or{' '}
                   <StyledLink href={EXAMPLE_PACKAGE_URL} target="_blank">
-                    create a package
+                    push a package
                   </StyledLink>{' '}
-                  with Quilt Python API
+                  with the Quilt Python API.
                 </M.Typography>
               </M.Box>
             )
