@@ -24,64 +24,61 @@ import * as data from './data'
 // default icon as returned by the registry
 const DEFAULT_ICON = 'https://d1zvn9rasera71.cloudfront.net/q-128-square.png'
 
+const DO_NOT_SUBSCRIBE_STR = 'DO_NOT_SUBSCRIBE'
+const DO_NOT_SUBSCRIBE_SYM = Symbol(DO_NOT_SUBSCRIBE_STR)
+
+const SNS_ARN_RE = /^arn:aws(-|\w)*:sns:(-|\w)*:\d*:\S+$/
+
 function validateSNS(v) {
   if (!v) return undefined
-  if (v.type !== 'custom') return undefined
-  return v.arn ? undefined : 'arnRequired'
+  if (v === DO_NOT_SUBSCRIBE_SYM) return undefined
+  return SNS_ARN_RE.test(v) ? undefined : 'invalidArn'
 }
 
 const snsErrors = {
-  arnRequired: 'Enter ARN or select another option',
+  invalidArn: 'Enter a valid SNS topic ARN or leave blank',
 }
 
-function SNSField({ input: { onChange, value: inputValue }, meta }) {
-  const value = inputValue || { type: 'auto', arn: '' }
+function SNSField({ input: { onChange, value = '' }, meta }) {
   const error = meta.submitFailed && meta.error
 
-  const handleTypeChange = React.useCallback(
-    (e) => {
-      onChange({ ...value, type: e.target.value })
+  const handleSkipChange = React.useCallback(
+    (e, checked) => {
+      onChange(checked ? DO_NOT_SUBSCRIBE_SYM : '')
     },
-    [onChange, value],
+    [onChange],
   )
 
   const handleArnChange = React.useCallback(
     (e) => {
-      onChange({ ...value, arn: e.target.value })
+      onChange(e.target.value)
     },
-    [onChange, value],
+    [onChange],
   )
 
   return (
-    <>
+    <M.Box mt={2}>
+      <Form.Checkbox
+        meta={meta}
+        checked={value === DO_NOT_SUBSCRIBE_SYM}
+        onChange={handleSkipChange}
+        label="Skip S3 notifications (not recommended)"
+      />
       <M.TextField
-        select
-        label="SNS notification ARN"
-        fullWidth
-        margin="normal"
-        disabled={meta.submitting || meta.submitSucceeded}
-        onChange={handleTypeChange}
-        value={value.type}
-      >
-        <M.MenuItem value="auto">Automatic</M.MenuItem>
-        <M.MenuItem value="skip">
-          Skip notifications for this bucket (not recommended)
-        </M.MenuItem>
-        <M.MenuItem value="custom">Provide custom ARN</M.MenuItem>
-      </M.TextField>
-      <M.TextField
-        style={{ display: value.type !== 'custom' ? 'none' : undefined }}
         error={!!error}
         helperText={error ? snsErrors[error] || error : undefined}
-        label="Custom notification ARN"
-        placeholder="Enter ARN"
+        label="SNS Topic ARN"
+        placeholder="Enter ARN (leave blank to auto-fill)"
         fullWidth
         margin="normal"
-        disabled={meta.submitting || meta.submitSucceeded}
+        disabled={
+          value === DO_NOT_SUBSCRIBE_SYM || meta.submitting || meta.submitSucceeded
+        }
         onChange={handleArnChange}
-        value={value.arn}
+        value={value === DO_NOT_SUBSCRIBE_SYM ? DO_NOT_SUBSCRIBE_STR : value}
+        InputLabelProps={{ shrink: true }}
       />
-    </>
+    </M.Box>
   )
 }
 
@@ -259,21 +256,11 @@ function BucketFields({ add = false, reindex }) {
             fullWidth
             margin="normal"
           />
-          {add ? (
-            <RF.Field
-              component={SNSField}
-              name="snsNotificationArn"
-              validate={validateSNS}
-            />
-          ) : (
-            <RF.Field
-              component={Form.Field}
-              name="snsNotificationArn"
-              label="SNS notification ARN"
-              fullWidth
-              margin="normal"
-            />
-          )}
+          <RF.Field
+            component={SNSField}
+            name="snsNotificationArn"
+            validate={validateSNS}
+          />
           <M.Box mt={2}>
             <RF.Field
               component={Form.Checkbox}
@@ -331,16 +318,10 @@ const formToJSON = (values) => {
       ),
     ),
     scanner_parallel_shards_depth: get('scannerParallelShardsDepth', Number),
-    sns_notification_arn: get('snsNotificationArn', (sns) => {
-      if (typeof sns === 'string') return sns.trim()
-      switch (sns.type) {
-        case 'custom':
-          return sns.arn.trim()
-        case 'skip':
-          return 'DO_NOT_SUBSCRIBE'
-        default:
-          return undefined
-      }
+    sns_notification_arn: get('snsNotificationArn', (v) => {
+      if (v === DO_NOT_SUBSCRIBE_SYM) return DO_NOT_SUBSCRIBE_STR
+      if (typeof v === 'string') return v.trim()
+      return undefined
     }),
     skip_meta_data_indexing: get('skipMetaDataIndexing'),
     delay_scan: get('delayScan'),
@@ -629,7 +610,10 @@ function Edit({ bucket, close }) {
     linkedData: bucket.linkedData ? JSON.stringify(bucket.linkedData) : undefined,
     fileExtensionsToIndex: (bucket.fileExtensionsToIndex || []).join(', '),
     scannerParallelShardsDepth: bucket.scannerParallelShardsDepth,
-    snsNotificationArn: bucket.snsNotificationArn,
+    snsNotificationArn:
+      bucket.snsNotificationArn === DO_NOT_SUBSCRIBE_STR
+        ? DO_NOT_SUBSCRIBE_SYM
+        : bucket.snsNotificationArn,
     skipMetaDataIndexing: bucket.skipMetaDataIndexing,
   }
 
