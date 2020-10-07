@@ -114,11 +114,11 @@ function SearchBox({
   return (
     <M.ClickAwayListener onClickAway={onHelpClose}>
       <div className={wrapperCls}>
-        {helpOpened && (
-          <M.MuiThemeProvider theme={style.appTheme}>
+        <M.MuiThemeProvider theme={style.appTheme}>
+          <M.Fade in={helpOpened}>
             <SearchHelp className={helpCls} onQuery={onQuery} />
-          </M.MuiThemeProvider>
-        )}
+          </M.Fade>
+        </M.MuiThemeProvider>
 
         <M.InputBase
           startAdornment={
