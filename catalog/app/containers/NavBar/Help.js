@@ -8,6 +8,9 @@ import StyledLink from 'utils/StyledLink'
 const ES_V = '6.7'
 const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
 
+// TODO: Remove root padding and background,
+//       move "root container" to upper level.
+//       There would be different containers for OpenLanding and NavBar
 const useStyles = M.makeStyles((t) => ({
   root: {
     padding: `0 ${t.spacing(4)}px`,
