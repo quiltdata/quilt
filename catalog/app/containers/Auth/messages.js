@@ -29,7 +29,7 @@ export default defineMessages({
   // SSO
   ssoGoogleUse: {
     id: `${scope}.SSO.Google.use`,
-    defaultMessage: 'Use Google Account',
+    defaultMessage: 'Sign in with Google',
   },
   ssoGoogleError: {
     id: `${scope}.SSO.Google.error`,
@@ -46,7 +46,7 @@ export default defineMessages({
   },
   ssoOktaUse: {
     id: `${scope}.SSO.Okta.use`,
-    defaultMessage: 'Use Okta Account',
+    defaultMessage: 'Sign in with Okta',
   },
   ssoOktaError: {
     id: `${scope}.SSO.Okta.error`,
@@ -63,7 +63,7 @@ export default defineMessages({
   },
   ssoOneLoginUse: {
     id: `${scope}.SSO.OneLogin.use`,
-    defaultMessage: 'Use OneLogin Account',
+    defaultMessage: 'Sign in with OneLogin',
   },
   ssoOneLoginError: {
     id: `${scope}.SSO.OneLogin.error`,
