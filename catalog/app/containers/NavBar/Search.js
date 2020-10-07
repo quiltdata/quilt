@@ -117,8 +117,15 @@ function SearchBox({
     wrapper: wrapperCls,
     ...classes
   } = useStyles()
+
+  const onClickAway = React.useCallback(() => {
+    if (expanded || helpOpened) {
+      onHelpClose()
+    }
+  }, [helpOpened, expanded, onHelpClose])
+
   return (
-    <M.ClickAwayListener onClickAway={onHelpClose}>
+    <M.ClickAwayListener onClickAway={onClickAway}>
       <div className={wrapperCls}>
         <M.MuiThemeProvider theme={style.appTheme}>
           <M.Fade in={helpOpened}>
