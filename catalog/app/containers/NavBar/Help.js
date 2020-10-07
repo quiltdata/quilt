@@ -247,11 +247,11 @@ function DocsExternalLink() {
   )
 }
 
-export default function Help({ className, onQuery }) {
+export default function Help({ className, onQuery, ...props }) {
   const classes = useStyles()
 
   return (
-    <M.Paper className={cx(classes.root, className)}>
+    <M.Paper className={cx(classes.root, className)} {...props}>
       <Lab.TreeView
         defaultCollapseIcon={<M.Icon>arrow_drop_down</M.Icon>}
         defaultExpandIcon={<M.Icon>arrow_right</M.Icon>}
