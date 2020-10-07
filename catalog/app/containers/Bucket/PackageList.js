@@ -6,7 +6,6 @@ import { useHistory, Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
-import Message from 'components/Message'
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
 import * as AWS from 'utils/AWS'
@@ -427,12 +426,26 @@ export default function PackageList({
         Ok: (totalCount) => {
           if (!totalCount) {
             return (
-              // TODO: dropzone here
-              // TODO: CTA to upload a package
-              <Message headline="No packages">
-                Learn how to{' '}
-                <StyledLink href={EXAMPLE_PACKAGE_URL}>create a package</StyledLink>
-              </Message>
+              <M.Box pt={5} textAlign="center">
+                <M.Typography variant="h4">No packages</M.Typography>
+                <M.Box pt={3} />
+                <M.Button
+                  variant="contained"
+                  color="primary"
+                  onClick={openUpload}
+                  startIcon={<M.Icon>add</M.Icon>}
+                >
+                  Push package
+                </M.Button>
+                <M.Box pt={2} />
+                <M.Typography>
+                  Learn how to{' '}
+                  <StyledLink href={EXAMPLE_PACKAGE_URL} target="_blank">
+                    create a package
+                  </StyledLink>{' '}
+                  with Quilt Python API
+                </M.Typography>
+              </M.Box>
             )
           }
 
