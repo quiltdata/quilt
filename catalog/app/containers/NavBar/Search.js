@@ -16,6 +16,8 @@ import { useRoute } from 'utils/router'
 
 import SearchHelp from './Help'
 
+const expandAnimationDuration = 200
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     background: fade(t.palette.common.white, 0),
@@ -24,7 +26,11 @@ const useStyles = M.makeStyles((t) => ({
     padding: `0 ${t.spacing(1)}px 0 0`,
     position: 'absolute',
     right: 0,
-    transition: ['background-color 200ms', 'opacity 200ms', 'width 200ms'],
+    transition: [
+      `background-color ${expandAnimationDuration}ms`,
+      `opacity ${expandAnimationDuration}ms`,
+      `width ${expandAnimationDuration}ms`,
+    ],
     width: t.spacing(24),
     '&:not($iconized)': {
       background: fade(t.palette.common.white, 0.1),
@@ -206,10 +212,13 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
       handleHelpClose()
       return
     }
-    if (!expanded) {
+    if (expanded) {
+      handleHelpOpen()
+    } else {
       handleExpand()
+      const animationDelay = expandAnimationDuration + 100
+      setTimeout(handleHelpOpen, animationDelay)
     }
-    handleHelpOpen()
   }, [expanded, helpOpened, handleExpand, handleHelpClose, handleHelpOpen])
 
   const onKeyDown = React.useCallback(
