@@ -1,14 +1,13 @@
 """
 Helper functions.
 """
-import logging
-from base64 import b64decode
 import gzip
-from typing import Iterable
 import io
 import json
+import logging
 import os
-
+from base64 import b64decode
+from typing import Iterable
 
 LOGGER_NAME = "quilt-lambda"
 MANIFEST_PREFIX_V1 = ".quilt/packages/"

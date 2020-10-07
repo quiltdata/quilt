@@ -66,19 +66,16 @@ Format metadata has the following form:
 """
 
 
-# Python imports
-from abc import ABC, abstractmethod
-from collections import defaultdict
 import copy
 import csv
 import io
 import json
 import sys
 import warnings
+from abc import ABC, abstractmethod
+from collections import defaultdict
 
-# Project imports
 from .util import QuiltException
-
 
 # Constants
 NOT_SET = type('NOT_SET', (object,), {
@@ -862,7 +859,7 @@ class CSVPandasFormatHandler(BaseFormatHandler):
         return result_kwargs
 
     def deserialize(self, bytes_obj, meta=None, ext=None, **format_opts):
-        import pandas as pd     # large import / lazy
+        import pandas as pd  # large import / lazy
 
         opts = self.get_opts(meta, format_opts)
         default_opts = copy.deepcopy(self.defaults)

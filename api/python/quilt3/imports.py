@@ -1,11 +1,11 @@
 """Implementation of the Python Quilt data package loader."""
 
-from importlib.machinery import ModuleSpec
 import sys
+from importlib.machinery import ModuleSpec
 
-from quilt3 import Package
+import quilt3
+
 from .backends import get_package_registry
-
 
 MODULE_PATH = []
 
@@ -43,7 +43,7 @@ class DataPackageImporter:
             for pkg in registry.list_packages():
                 pkg_user, pkg_name = pkg.split('/')
                 if pkg_user == namespace:
-                    module.__dict__[pkg_name] = Package._browse(pkg, registry=registry)
+                    module.__dict__[pkg_name] = quilt3.Package._browse(pkg, registry=registry)
 
             module.__path__ = MODULE_PATH
             return module

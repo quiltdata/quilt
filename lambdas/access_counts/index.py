@@ -3,10 +3,10 @@ Lambda function that runs Athena queries over CloudTrail logs and .quilt/named_p
 and creates summaries of object and package access events.
 """
 
-from datetime import datetime, timedelta, timezone
 import os
 import textwrap
 import time
+from datetime import datetime, timedelta, timezone
 
 import boto3
 

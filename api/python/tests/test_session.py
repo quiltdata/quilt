@@ -8,6 +8,7 @@ from unittest.mock import patch
 import responses
 
 import quilt3
+
 from .utils import QuiltTestCase
 
 

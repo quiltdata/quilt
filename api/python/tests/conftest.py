@@ -1,10 +1,7 @@
-
-# stdlib
 import os
 import sys
 from unittest import mock
 
-# third party imports
 import pytest
 
 

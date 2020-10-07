@@ -1,4 +1,4 @@
-from quilt3.data_transfer import list_url, get_bytes, S3ClientProvider, S3Api
+from quilt3.data_transfer import S3Api, S3ClientProvider, get_bytes, list_url
 from quilt3.util import PhysicalKey
 
 from .base import PackageRegistryV1, PackageRegistryV2

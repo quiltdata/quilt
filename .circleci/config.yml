@@ -34,6 +34,7 @@ workflows:
   test:
     jobs:
       - linter
+      - isort
       - test-36
       - test-37
       - test-38
@@ -115,6 +116,21 @@ jobs:
           name: Run pycodestyle
           command: |
             pycodestyle $(find -name '*.py' -not -path './venv/*')
+
+  isort:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - setup-venv
+      - run:
+          name: Install dependencies
+          command: |
+            pip install isort
+      - run:
+          name: Run isort
+          command: |
+            isort --check --diff .
 
   test-36:
     docker:

@@ -1,8 +1,7 @@
-from quilt3.util import PhysicalKey, get_from_config, fix_url
+from quilt3.util import PhysicalKey, fix_url, get_from_config
 
+from . import local, s3
 from .base import PackageRegistry
-from . import local
-from . import s3
 
 
 def get_package_registry(path=None) -> PackageRegistry:

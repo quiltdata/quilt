@@ -1,12 +1,9 @@
 """ Testing for util.py """
 
-# Python imports
 import pathlib
 
-# Third Party imports
 import pytest
 
-# Project imports
 from quilt3 import util
 
 # Constants

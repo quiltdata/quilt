@@ -1,18 +1,24 @@
-import re
-from collections import OrderedDict
 import datetime
 import json
 import os
 import pathlib
-from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse, urlunparse
-from urllib.request import pathname2url, url2pathname
+import re
 import warnings
+from collections import OrderedDict
+from urllib.parse import (
+    parse_qs,
+    quote,
+    unquote,
+    urlencode,
+    urlparse,
+    urlunparse,
+)
+from urllib.request import pathname2url, url2pathname
 
+import requests
 # Third-Party
 import yaml
 from appdirs import user_cache_dir, user_data_dir
-import requests
-
 
 APP_NAME = "Quilt"
 APP_AUTHOR = "QuiltData"
