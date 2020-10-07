@@ -78,7 +78,19 @@ export default function SSOOneLogin({ mutex, next, ...props }) {
       }
       mutex.release(MUTEX_POPUP)
     }
-  }, [authenticate, dispatch, mutex.claim, mutex.release, sentry, notify])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    authenticate,
+    cfg.ssoAuth,
+    dispatch,
+    intl.formatMessage,
+    mutex.claim,
+    mutex.release,
+    next,
+    notify,
+    sentry,
+    urls,
+  ])
 
   return (
     <M.Button
@@ -93,7 +105,9 @@ export default function SSOOneLogin({ mutex, next, ...props }) {
         <M.Box component="img" src={oneLoginLogo} alt="" height={18} />
       )}
       <M.Box mr={1} />
-      <FM {...msg.ssoOneLoginUse} />
+      <span style={{ whiteSpace: 'nowrap' }}>
+        <FM {...msg.ssoOneLoginUse} />
+      </span>
     </M.Button>
   )
 }
