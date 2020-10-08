@@ -16,7 +16,7 @@ const appPalette = {
   },
   warning: {
     main: colors.yellow[200],
-    dark: colors.yellow[800],
+    dark: colors.yellow[900],
   },
 }
 
