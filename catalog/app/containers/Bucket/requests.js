@@ -204,7 +204,9 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   }
 
   try {
-    return await req('/search', { index: `${bucket}*`, action: 'stats' }).then(processStats)
+    return await req('/search', { index: `${bucket}*`, action: 'stats' }).then(
+      processStats,
+    )
   } catch (e) {
     console.log('Unable to fetch live stats:')
     console.error(e)
@@ -946,6 +948,7 @@ export async function packageSelect({
 
   if (r.status >= 400) {
     const msg = await r.text()
+    console.error(`pkgselect error (${r.status}): ${msg}`)
     throw new errors.BucketError(msg, { status: r.status })
   }
 
