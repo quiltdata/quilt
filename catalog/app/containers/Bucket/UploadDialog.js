@@ -177,10 +177,16 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
+function FilesInput({
+  input: { value: inputValue, onChange: onInputChange },
+  meta,
+  uploads,
+  setUploads,
+  errors = {},
+}) {
   const classes = useFilesInputStyles()
 
-  const value = input.value || []
+  const value = inputValue || []
   const disabled = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
 
@@ -209,19 +215,18 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
             return put({ path, file }, entries)
           }, value),
           R.sortBy(R.prop('path')),
-          input.onChange,
+          onInputChange,
         ),
-    [disabled, value, input.onChange],
+    [disabled, value, onInputChange],
   )
 
   const rmFile = ({ path }) => (e) => {
     e.stopPropagation()
     if (disabled) return
-    pipeThru(value)(R.reject(R.propEq('path', path)), input.onChange)
+    pipeThru(value)(R.reject(R.propEq('path', path)), onInputChange)
     setUploads(R.dissoc(path))
   }
 
-  const onInputChange = input.onChange
   const clearFiles = React.useCallback(() => {
     if (disabled) return
     onInputChange([])
