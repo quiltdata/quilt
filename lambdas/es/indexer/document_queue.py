@@ -117,11 +117,9 @@ class DocumentQueue:
         if doc_type == DocTypes.PACKAGE:
             if not handle or not package_hash or not pointer_file:
                 raise ValueError("missing required argument for package document")
-            if (
-                package_stats
-                and not isinstance(package_stats, dict)
-                or isinstance(package_stats, dict)
-                and any(k not in package_stats for k in ['total_files', 'total_bytes'])
+            if not (
+                package_stats is None
+                or isinstance(package_stats, dict) and {'total_files', 'total_bytes'}.issubset(package_stats)
             ):
                 raise ValueError("Malformed package_stats")
             body.update({
