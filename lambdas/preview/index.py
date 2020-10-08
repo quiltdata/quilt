@@ -238,6 +238,10 @@ def extract_ipynb(file_, exclude_output: bool):
     # rewind
     file_.seek(0, os.SEEK_SET)
 
+    info = {}
+    if exclude_output:
+        info['warnings'] = "Omitted cell outputs to reduce notebook size"
+
     html_exporter = HTMLExporter()
     html_exporter.template_file = 'basic'
     html_exporter.exclude_output = exclude_output
@@ -245,7 +249,7 @@ def extract_ipynb(file_, exclude_output: bool):
     notebook = nbformat.read(file_, 4)
     html, _ = html_exporter.from_notebook_node(notebook)
 
-    return html, {}
+    return html, info
 
 
 def extract_vcf(head):
