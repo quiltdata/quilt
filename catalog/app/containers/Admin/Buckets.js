@@ -235,7 +235,7 @@ function BucketFields({ add = false, reindex }) {
         <M.Box className={classes.group} pt={1}>
           {!!reindex && (
             <M.Button variant="outlined" fullWidth onClick={reindex}>
-              Re-index &amp; repair&hellip;
+              Re-index and repair
             </M.Button>
           )}
           <RF.Field
@@ -493,7 +493,7 @@ function Reindex({ bucket, open, close }) {
 
   return (
     <M.Dialog open={open} onClose={handleClose} onExited={reset} fullWidth>
-      <M.DialogTitle>Re-index &amp; repair a bucket</M.DialogTitle>
+      <M.DialogTitle>Re-index and repair a bucket</M.DialogTitle>
       {submitSucceeded ? (
         <M.DialogContent>
           <M.DialogContentText color="textPrimary">
@@ -553,7 +553,7 @@ function Reindex({ bucket, open, close }) {
             </M.Button>
             <M.Button onClick={reindex} disabled={submitting} color="primary">
               Re-index
-              {repair && <> &amp; repair</>}
+              {repair && <> and repair</>}
             </M.Button>
           </>
         )}
