@@ -37,6 +37,7 @@ function validateSNS(v) {
 
 const snsErrors = {
   invalidArn: 'Enter a valid SNS topic ARN or leave blank',
+  topicNotFound: 'No such topic, enter a valid SNS topic ARN or leave blank',
 }
 
 function SNSField({ input: { onChange, value = '' }, meta }) {
@@ -378,6 +379,9 @@ function Add({ close }) {
         if (APIConnector.HTTPError.is(e, 404, /NoSuchBucket/)) {
           throw new RF.SubmissionError({ name: 'noSuchBucket' })
         }
+        if (APIConnector.HTTPError.is(e, 401, /404 - NotFound: Topic does not exist/)) {
+          throw new RF.SubmissionError({ snsNotificationArn: 'topicNotFound' })
+        }
         // eslint-disable-next-line no-console
         console.error('Error adding bucket')
         // eslint-disable-next-line no-console
@@ -385,7 +389,7 @@ function Add({ close }) {
         throw new RF.SubmissionError({ _error: 'unexpected' })
       }
     },
-    [req, cache, push, close, session],
+    [req, cache, push, close, session, t],
   )
 
   return (
@@ -589,6 +593,9 @@ function Edit({ bucket, close }) {
         )
         close()
       } catch (e) {
+        if (APIConnector.HTTPError.is(e, 401, /404 - NotFound: Topic does not exist/)) {
+          throw new RF.SubmissionError({ snsNotificationArn: 'topicNotFound' })
+        }
         // eslint-disable-next-line no-console
         console.error('Error updating bucket')
         // eslint-disable-next-line no-console
@@ -596,7 +603,7 @@ function Edit({ bucket, close }) {
         throw new RF.SubmissionError({ _error: 'unexpected' })
       }
     },
-    [req, cache, close, session],
+    [req, cache, close, session, bucket.name],
   )
 
   const initialValues = {
@@ -713,7 +720,7 @@ function Delete({ bucket, close }) {
       // eslint-disable-next-line no-console
       console.dir(e)
     }
-  }, [bucket, close, req, cache, push, session])
+  }, [bucket, close, req, cache, push, session, t])
 
   return (
     <>
@@ -832,27 +839,27 @@ function CRUD({ buckets }) {
   const pagination = Pagination.use(ordering.ordered, {
     getItemId: R.prop('name'),
   })
-  const dialogs = Dialogs.use()
+  const { open: openDialog, render: renderDialogs } = Dialogs.use()
 
   const toolbarActions = [
     {
       title: 'Add bucket',
       icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
-        dialogs.open(({ close }) => <Add {...{ close }} />)
-      }, [dialogs.open]),
+        openDialog(({ close }) => <Add {...{ close }} />)
+      }, [openDialog]),
     },
   ]
 
   const edit = (bucket) => () =>
-    dialogs.open(({ close }) => <Edit {...{ bucket, close }} />)
+    openDialog(({ close }) => <Edit {...{ bucket, close }} />)
 
   const inlineActions = (bucket) => [
     {
       title: 'Delete',
       icon: <M.Icon>delete</M.Icon>,
       fn: () => {
-        dialogs.open(({ close }) => <Delete {...{ bucket, close }} />)
+        openDialog(({ close }) => <Delete {...{ bucket, close }} />)
       },
     },
     {
@@ -864,7 +871,7 @@ function CRUD({ buckets }) {
 
   return (
     <M.Paper>
-      {dialogs.render({ maxWidth: 'xs', fullWidth: true })}
+      {renderDialogs({ maxWidth: 'xs', fullWidth: true })}
       <Table.Toolbar heading="Buckets" actions={toolbarActions} />
       <Table.Wrapper>
         <M.Table size="small">
