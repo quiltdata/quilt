@@ -1,6 +1,5 @@
 """ Testing for util.py """
 
-import os
 import pathlib
 import shutil
 
@@ -107,9 +106,6 @@ def test_quilt_install_package_parser(name, extension, expected_quilt_version, e
 
     for key, value in expected_registries.items():
         assert len(registries[key]) == value
-
-    # remove created file
-    os.remove(f"quilt.{extension}")
 
 
 def test_quilt_install_package_parse_failure():

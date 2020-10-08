@@ -71,7 +71,7 @@ class QuiltCLITestCase(CommandLineTestCase):
         )
     ]
 )
-def test_cli_install(name, registry, expected_calls, expected_no_of_calls, set_temporary_working_dir):
+def test_cli_install(name, registry, expected_calls, expected_no_of_calls):
     config_file = Path(__file__).parent / 'data/quilt.yml'
     shutil.copy(config_file, 'quilt.yml')
 
