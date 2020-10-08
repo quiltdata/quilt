@@ -16,7 +16,13 @@ from . import __version__ as quilt3_version
 from . import api, session
 from .backends import get_package_registry
 from .session import open_url
-from .util import QuiltException, QuiltInstallPackageParser, catalog_package_url, catalog_s3_url, get_from_config
+from .util import (
+    QuiltException,
+    QuiltInstallPackageParser,
+    catalog_package_url,
+    catalog_s3_url,
+    get_from_config,
+)
 
 
 def cmd_config(catalog_url, **kwargs):
