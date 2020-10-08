@@ -51,7 +51,10 @@ function SearchBox({ bucket }) {
   const { location: l, match } = useRoute(paths.bucketSearch)
   const query = (match && parse(l.search).q) || ''
 
-  const makeUrl = React.useCallback((q) => urls.bucketSearch(bucket, q), [urls, bucket])
+  const makeUrl = React.useCallback((q) => urls.bucketSearch(bucket, { q }), [
+    urls,
+    bucket,
+  ])
 
   const [value, change] = React.useState(null)
   const [focused, setFocused] = React.useState(false)

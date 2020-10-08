@@ -16,5 +16,5 @@ export const bucketDir = {
 }
 export const bucketSearch = {
   path: '/b/:bucket/search',
-  url: (bucket, q, p) => `/b/${bucket}/search${mkSearch({ q, p })}`,
+  url: (bucket, { q, p, retry }) => `/b/${bucket}/search${mkSearch({ q, p, retry })}`,
 }

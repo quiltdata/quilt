@@ -1,16 +1,16 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
-import Message from 'components/Message'
 import Pagination from 'components/Pagination2'
 import * as Preview from 'components/Preview'
 import { Section, Heading } from 'components/ResponsiveSection'
-import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import AsyncResult from 'utils/AsyncResult'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
@@ -24,8 +24,10 @@ import usePrevious from 'utils/usePrevious'
 import * as requests from 'containers/Bucket/requests'
 
 const PER_PAGE = 10
-const ES_V = '6.7'
-const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
+const ES_V = '6.8'
+const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}`
+const ES_REF_SYNTAX = `${ES_REF}/query-dsl-query-string-query.html#query-string-syntax`
+const ES_REF_WILDCARDS = `${ES_REF}/query-dsl-query-string-query.html#_wildcards`
 
 const CrumbLink = M.styled(StyledLink)({ wordBreak: 'break-word' })
 
@@ -593,76 +595,57 @@ export function Progress({ children }) {
   )
 }
 
-export const handleErr = (retry) =>
-  R.cond([
-    [
-      R.propEq('message', 'SearchSyntaxError'),
-      (e) => (
-        <Alt>
-          <Message headline="Search syntax error">
-            Oops, couldn&apos;t parse that search.
-            <br />
-            Try quoting your query or read about{' '}
-            <StyledLink href={ES_REF}>supported query syntax</StyledLink>.
-            {!!e.details && (
-              <>
-                <br />
-                <br />
-                Error details:
-                <br />
-                <M.Box
-                  component="span"
-                  textAlign="left"
-                  display="inline-block"
-                  style={{ whiteSpace: 'pre' }}
-                >
-                  {e.details}
-                </M.Box>
-              </>
-            )}
-          </Message>
-        </Alt>
-      ),
-    ],
-    [
-      R.propEq('message', 'TooManyRequests'),
-      () => (
-        <Alt>
-          <Message headline="Too many requests">
-            Processing a lot of requests. Please try your search again in a few minutes.
-            {!!retry && (
-              <>
-                <br />
-                <br />
-                <M.Button onClick={retry} color="primary" variant="contained">
-                  Retry
-                </M.Button>
-              </>
-            )}
-          </Message>
-        </Alt>
-      ),
-    ],
-    [
-      R.T,
-      () => (
-        <Alt>
-          <Message headline="Server Error">
-            Something went wrong.
-            {!!retry && (
-              <>
-                <br />
-                <br />
-                <M.Button onClick={retry} color="primary" variant="contained">
-                  Retry
-                </M.Button>
-              </>
-            )}
-          </Message>
-        </Alt>
-      ),
-    ],
-  ])
+export const handleErr = (retryUrl) => (e) => (
+  <Alt>
+    <M.Typography variant="h5" gutterBottom>
+      {e.message === 'SearchSyntaxError' ? ( // eslint-disable-line no-nested-ternary
+        <>Search syntax error</>
+      ) : e.message === 'Timeout' ? (
+        <>Query timed out</>
+      ) : (
+        <>Search error</>
+      )}
+    </M.Typography>
+    {e.message === 'SearchSyntaxError' ? ( // eslint-disable-line no-nested-ternary
+      <M.Typography gutterBottom>
+        Oops, couldn&apos;t parse that search. Try quoting your query or read about{' '}
+        <StyledLink href={ES_REF_SYNTAX} target="_blank">
+          supported query syntax
+        </StyledLink>
+        .
+      </M.Typography>
+    ) : e.message === 'Timeout' ? (
+      <M.Typography gutterBottom>
+        That made ElasticSearch sweat. Try{' '}
+        <StyledLink href={ES_REF_WILDCARDS} target="_blank">
+          avoiding wildcards
+        </StyledLink>{' '}
+        or ask Quilt about scaling your cluster.
+      </M.Typography>
+    ) : (
+      <M.Typography gutterBottom>
+        ElasticSearch had trouble with that query. The cluster may be busy indexing new
+        documents. Try again later
+        {!!retryUrl && <> or click RETRY to try a simplified version of your query</>}.
+      </M.Typography>
+    )}
+    {!!e.status && <M.Typography>Status: {e.status}</M.Typography>}
+    {!!e.code && <M.Typography>Code: {e.code}</M.Typography>}
+    {!!e.details && (
+      <>
+        <M.Typography>Error details:</M.Typography>
+        <M.Typography style={{ whiteSpace: 'pre' }}>{e.details}</M.Typography>
+      </>
+    )}
+    {!!retryUrl && e.message !== 'SearchSyntaxError' && (
+      <M.Box pt={2}>
+        <M.Button component={Link} to={retryUrl} color="primary" variant="contained">
+          Retry simplified query
+        </M.Button>
+      </M.Box>
+    )}
+  </Alt>
+)
 
 export function NothingFound({ children }) {
   return (
