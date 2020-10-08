@@ -20,6 +20,7 @@ import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
 
 const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
+const ES_LAG = 3 * 1000
 
 const getNormalizedPath = (f) => (f.path.startsWith('/') ? f.path.substring(1) : f.path)
 
@@ -196,6 +197,7 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
     ? 'Total file size exceeds recommended maximum of 1GB'
     : 'Drop files here or click to browse'
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const onDrop = React.useCallback(
     disabled
       ? () => {}
@@ -219,11 +221,12 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
     setUploads(R.dissoc(path))
   }
 
+  const onInputChange = input.onChange
   const clearFiles = React.useCallback(() => {
     if (disabled) return
-    input.onChange([])
+    onInputChange([])
     setUploads({})
-  }, [meta.submitting, input.onChange])
+  }, [disabled, setUploads, onInputChange])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
 
@@ -638,7 +641,7 @@ async function hashFile(file) {
   }
 }
 
-export default function UploadDialog({ bucket, open, onClose }) {
+export default function UploadDialog({ bucket, open, onClose, refresh }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
   const { urls } = NamedRoutes.use()
@@ -646,6 +649,7 @@ export default function UploadDialog({ bucket, open, onClose }) {
   const [success, setSuccess] = React.useState(null)
   const validateCacheKey = useCounter()
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const validateName = React.useCallback(
     cacheDebounce(async (name) => {
       if (name) {
@@ -758,6 +762,11 @@ export default function UploadDialog({ bucket, open, onClose }) {
           meta: getMetaValue(meta),
         },
       })
+      if (refresh) {
+        // wait for ES index to receive the new package data
+        await new Promise((resolve) => setTimeout(resolve, ES_LAG))
+        refresh()
+      }
       setSuccess({ name, revision: res.timestamp })
     } catch (e) {
       console.log('error creating manifest', e)
