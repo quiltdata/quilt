@@ -215,6 +215,10 @@ safe place
 Quilt
 1. Proceed to [Enabling SSO](#Enabling-SSO-in-CloudFormation)
 
+![](./imgs/onelogin-connector.png)
+![](./imgs/onelogin-sso.png)
+![](./imgs/onelogin-users.png)
+
 #### Enabling SSO in CloudFormation
 
 Now you can connect Quilt to your SSO provider.
@@ -225,10 +229,6 @@ Use current template > Next > Specify stack details), set the following paramete
 * *AuthType*: Enabled
 * *AuthClientId*: *Client ID*
 * *AuthBaseUrl*: *Issuer URL V2*
-
-![](./imgs/onelogin-connector.png)
-![](./imgs/onelogin-sso.png)
-![](./imgs/onelogin-users.png)
 
 ### Preparing an AWS Role for use with Quilt
 
