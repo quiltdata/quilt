@@ -192,11 +192,12 @@ In the template menu (CloudFormation or Service Catalog), select Google under *U
 1. Save the app (be sure to save it for the Organization)
 1. Go to Applications > Applications > *Your new app* > SSO
     1. Click SSO. Copy the *Client ID* and *Issuer URL V2* to a safe place.
-    1. Click Users. Add the users who should have access to Quilt.
+1. Add *Your new app* to the users who need to access
+Quilt
 
-In the Quilt template (AWS Console > CloudFormation > *Quilt stack* >
-Update > Use current template > Next > Specify stack details), you can set
-the following parameters:
+Now you can connect Quilt to OneLogin. In the Quilt template
+(AWS Console > CloudFormation > *Quilt stack* > Update >
+Use current template > Next > Specify stack details), set the following parameters:
 
 * OneLoginAuth: Enabled
 * OneLoginClientId: *Client ID*
