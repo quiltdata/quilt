@@ -52,7 +52,7 @@ setup(
     ],
     author='quiltdata',
     author_email='contact@quiltdata.io',
-    license='LICENSE',
+    license='Apache-2.0',
     url='https://github.com/quiltdata/quilt',
     keywords='',
     install_requires=[
