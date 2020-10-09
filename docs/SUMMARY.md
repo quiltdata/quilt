@@ -32,5 +32,5 @@
 ### More
 
 * [Frequently Asked Questions](FAQ.md)
-* [CloudFormation Reference](Technical Reference.md)
+* [Enterprise install](Technical Reference.md)
 * [Contributing](CONTRIBUTING.md)

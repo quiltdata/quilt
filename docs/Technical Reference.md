@@ -166,7 +166,9 @@ in Outputs and log in with your administrator password to invite users.
 The default Quilt settings are adequate for most use cases. The following section
 covers advanced customization options.
 
-### Use Google to sign into Quilt
+### Single sign-on
+
+#### Google
 
 You can enable users on your Google domain to sign in to Quilt.
 Refer to [Google's instructions on OAuth2 user agents](https://developers.google.com/identity/protocols/OAuth2UserAgent)
@@ -177,6 +179,33 @@ and create authorization credentials to identify your Quilt stack to Google's OA
 In the template menu (CloudFormation or Service Catalog), select Google under *User authentication to Quilt*. Enter the domain or domains of your Google apps account under *SingleSignOnDomains*. Enter the *Client ID* of the OAuth 2.0 credentials you created into the field labeled *GoogleClientId*
 
 ![](./imgs/google_auth.png)
+
+#### OneLogin
+
+1. Go to Administration : Applications > Custom Connectors
+1. Click `New Connector`
+    1. Set `Sign on method` to `OpenID Connect`
+    1. Set `Login URL` to `https://<QuiltWebHost>/oauth-callback`
+    1. Save
+1. Go back to Applications > Custom Connectors
+1. Click `Add App to Connector`
+1. Save the app (be sure to save it for the Organization)
+1. Go to Applications > Applications > *Your new app* > SSO
+    1. Click SSO. Copy the *Client ID* and *Issuer URL V2* to a safe place.
+1. Add *Your new app* to the users who need to access
+Quilt
+
+Now you can connect Quilt to OneLogin. In the Quilt template
+(AWS Console > CloudFormation > *Quilt stack* > Update >
+Use current template > Next > Specify stack details), set the following parameters:
+
+* OneLoginAuth: Enabled
+* OneLoginClientId: *Client ID*
+* OneLoginBaseUrl: *Issuer URL V2*
+
+![](./imgs/onelogin-connector.png)
+![](./imgs/onelogin-sso.png)
+![](./imgs/onelogin-users.png)
 
 ### Preparing an AWS Role for use with Quilt
 

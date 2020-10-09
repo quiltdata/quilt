@@ -323,6 +323,9 @@ export default function PackageList({
   const filtering = useDebouncedInput(computedFilter, 500)
   const today = React.useMemo(() => new Date(), [])
 
+  const [counter, setCounter] = React.useState(0)
+  const refresh = React.useCallback(() => setCounter(R.inc), [setCounter])
+
   const [uploadOpen, setUploadOpen] = React.useState(false)
 
   const openUpload = React.useCallback(() => {
@@ -333,11 +336,12 @@ export default function PackageList({
     setUploadOpen(false)
   }, [setUploadOpen])
 
-  const totalCountData = Data.use(requests.countPackages, { req, bucket })
+  const totalCountData = Data.use(requests.countPackages, { req, bucket, counter })
   const filteredCountData = Data.use(requests.countPackages, {
     req,
     bucket,
     filter: computedFilter,
+    counter,
   })
   const packagesData = Data.use(requests.listPackages, {
     s3,
@@ -349,6 +353,7 @@ export default function PackageList({
     perPage: PER_PAGE,
     page,
     today,
+    counter,
   })
 
   const makeSortUrl = React.useCallback(
@@ -386,7 +391,7 @@ export default function PackageList({
 
   return (
     <>
-      <UploadDialog bucket={bucket} open={uploadOpen} onClose={closeUpload} />
+      <UploadDialog {...{ bucket, refresh, open: uploadOpen, onClose: closeUpload }} />
       {totalCountData.case({
         _: () => (
           <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
