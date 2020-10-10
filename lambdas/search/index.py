@@ -66,10 +66,13 @@ def lambda_handler(request):
     user_indexes = request.args.get('index', "")
     user_size = request.args.get('size', DEFAULT_SIZE)
     user_source = request.args.get('_source', [])
+    user_from = request.args.get('from')
     terminate_after = None  # see if we can skip os.getenv('MAX_DOCUMENTS_PER_SHARD')
 
     if not user_indexes or not isinstance(user_indexes, str):
         raise ValueError("Request must include index=<comma-separated string of indices>")
+
+    es_from = None
 
     if action == 'packages':
         query = request.args.get('query', '')
@@ -91,6 +94,7 @@ def lambda_handler(request):
             raise ValueError("'packages' action searching indexes that don't end in '_packages'")
         _source = user_source
         size = user_size
+        es_from = user_from
     elif action == 'search':
         query = request.args.get('query', '')
         body = {
@@ -197,6 +201,7 @@ def lambda_handler(request):
         body=body,
         _source=_source,
         size=size,
+        from=es_from,
         # try turning this off to consider all documents
         terminate_after=terminate_after,
     )
