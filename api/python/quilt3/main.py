@@ -206,7 +206,7 @@ def cmd_disable_telemetry():
 
 
 def cmd_list_packages(registry):
-    for package_name in get_package_registry(registry).list_packages:
+    for package_name in get_package_registry(registry).list_packages():
         print(package_name)
 
 
