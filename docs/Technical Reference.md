@@ -166,7 +166,7 @@ in Outputs and log in with your administrator password to invite users.
 The default Quilt settings are adequate for most use cases. The following section
 covers advanced customization options.
 
-### Single sign-on
+### Single sign-on (SSO)
 
 #### Google
 
@@ -180,10 +180,29 @@ In the template menu (CloudFormation or Service Catalog), select Google under *U
 
 ![](./imgs/google_auth.png)
 
+#### Okta
+
+1. Go to Okta > Admin > Applications
+1. Click `Add Application`
+1. Select type `Web` 
+1. Name the app `Quilt` or something similar
+1. Configure the app as shown below
+1. Add `<QuiltWebHost>` to `Login redirect URIs` and
+`Initiate login URI`
+1. Copy the `Client ID` to a safe place
+1. Go to API > Authorization servers
+1. You should see a default URI that looks something like this
+`https://<MY_COMPANY>.okta.com/oauth2/default`; copy it to a
+safe place
+1. Proceed to [Enabling SSO](#Enabling-SSO-in-CloudFormation)
+
+![](./imgs/okta-sso-general.png)
+
 #### OneLogin
 
 1. Go to Administration : Applications > Custom Connectors
 1. Click `New Connector`
+    1. Name the connector *Quilt Connector* or something similar
     1. Set `Sign on method` to `OpenID Connect`
     1. Set `Login URL` to `https://<QuiltWebHost>/oauth-callback`
     1. Save
@@ -194,18 +213,22 @@ In the template menu (CloudFormation or Service Catalog), select Google under *U
     1. Click SSO. Copy the *Client ID* and *Issuer URL V2* to a safe place.
 1. Add *Your new app* to the users who need to access
 Quilt
-
-Now you can connect Quilt to OneLogin. In the Quilt template
-(AWS Console > CloudFormation > *Quilt stack* > Update >
-Use current template > Next > Specify stack details), set the following parameters:
-
-* OneLoginAuth: Enabled
-* OneLoginClientId: *Client ID*
-* OneLoginBaseUrl: *Issuer URL V2*
+1. Proceed to [Enabling SSO](#Enabling-SSO-in-CloudFormation)
 
 ![](./imgs/onelogin-connector.png)
 ![](./imgs/onelogin-sso.png)
 ![](./imgs/onelogin-users.png)
+
+#### Enabling SSO in CloudFormation
+
+Now you can connect Quilt to your SSO provider.
+In the Quilt template
+(AWS Console > CloudFormation > *Quilt stack* > Update >
+Use current template > Next > Specify stack details), set the following parameters:
+
+* *AuthType*: Enabled
+* *AuthClientId*: *Client ID*
+* *AuthBaseUrl*: *Issuer URL V2*
 
 ### Preparing an AWS Role for use with Quilt
 
