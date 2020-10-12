@@ -19,11 +19,10 @@ function getColumn(obj, columnPath) {
   }))
 }
 
-export default function useJson(
-  obj, // , optSchema
-) {
+export default function useJson(obj, optSchema) {
   const [data, setData] = React.useState(obj)
   const [fieldPath, setFieldPath] = React.useState([])
+  const [menu, setMenu] = React.useState([])
 
   // if (optSchema) {
   //   const ajv = new Ajv()
@@ -48,10 +47,28 @@ export default function useJson(
     [data, setData],
   )
 
+  const openKeyMenu = React.useCallback(
+    (contextFieldPath) => {
+      const schemaPath = contextFieldPath.reduce(
+        (memo, key) => memo.concat(['properties'], key),
+        [],
+      )
+      setMenu(Object.keys(R.path(R.init(schemaPath), optSchema)))
+    },
+    [optSchema, setMenu],
+  )
+
+  const openValueMenu = React.useCallback(() => {
+    setMenu([])
+  }, [setMenu])
+
   return {
+    changeValue,
     columns,
     fieldPath,
+    menu,
+    openKeyMenu,
+    openValueMenu,
     setFieldPath,
-    changeValue,
   }
 }

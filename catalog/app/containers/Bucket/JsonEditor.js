@@ -17,7 +17,8 @@ const i18nMsgs = {
 const useStyles = M.makeStyles((t) => ({
   root: {
     background: '#fff',
-    width: t.spacing(60),
+    borderTop: `1px solid ${t.palette.divider}`,
+    width: '100%',
     flex: 'none',
 
     '& + $root': {
@@ -56,6 +57,27 @@ const useInputStyles = M.makeStyles((t) => ({
   },
 }))
 
+const useBreadcrumbsStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    borderBottom: `1px solid ${t.palette.divider}`,
+    display: 'flex',
+    height: '49px',
+    padding: t.spacing(1),
+  },
+
+  item: {
+    display: 'flex',
+  },
+  divider: {
+    marginLeft: t.spacing(0.5),
+    marginRight: t.spacing(0.5),
+  },
+  back: {
+    marginRight: t.spacing(2),
+  },
+}))
+
 const initialSchema = {
   type: 'object',
   properties: {
@@ -72,7 +94,23 @@ const initialSchema = {
         type: { type: 'string' },
         name: { type: 'string' },
         ppu: { type: 'number' },
+        batters: {
+          type: 'object',
+          properties: {
+            batter: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  type: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
       },
+      required: ['id', 'type', 'name', 'ppu', 'batters'],
     },
   },
   required: ['version', 'message', 'user_meta'],
@@ -120,7 +158,6 @@ function KeyCell({
   menu,
   onClick,
   onExpand,
-  onMenuClose,
   onMenuOpen,
   onMenuSelect,
   row,
@@ -131,24 +168,31 @@ function KeyCell({
 
   const inputRef = React.useRef(null)
   const [value, setValue] = React.useState(initialValue)
+  const [menuOpened, setMenuOpened] = React.useState(false)
 
   const fieldPath = columnPath.concat(row.values[ColumnIds.Key])
 
   const onChange = React.useCallback(
     (event) => {
       setValue(event.target.value)
-      updateMyData(fieldPath, event.target.value)
+      updateMyData(fieldPath, event.target.value) // FIXME: add columnId too
     },
     [fieldPath, setValue, updateMyData],
   )
 
-  const hasMenu = React.useMemo(() => {
-    if (!menu) return false
-    return (
-      row.id.toString() === menu.address.rowIndex.toString() &&
-      column.id.toString() === menu.address.columnId.toString()
-    )
-  }, [row, column, menu])
+  const openMenu = React.useCallback(() => {
+    setMenuOpened(true)
+    onMenuOpen(fieldPath, column.id)
+  }, [column, fieldPath, onMenuOpen, setMenuOpened])
+
+  const closeMenu = React.useCallback(() => setMenuOpened(false), [setMenuOpened])
+  // const hasMenu = React.useMemo(() => {
+  //   if (!menu) return false
+  //   return (
+  //     row.id.toString() === menu.address.rowIndex.toString() &&
+  //     column.id.toString() === menu.address.columnId.toString()
+  //   )
+  // }, [row, column, menu])
 
   const ExpandButton = (
     <M.InputAdornment className={classes.expand} onClick={() => onExpand(fieldPath)}>
@@ -157,10 +201,7 @@ function KeyCell({
   )
 
   const MenuButton = (
-    <M.InputAdornment
-      className={classes.menu}
-      onClick={() => onMenuOpen(row.index, column.id, value)}
-    >
+    <M.InputAdornment className={classes.menu} onClick={openMenu}>
       <M.Icon>arrow_drop_down</M.Icon>
     </M.InputAdornment>
   )
@@ -186,12 +227,12 @@ function KeyCell({
         }
       />
 
-      {hasMenu && (
+      {menuOpened && (
         <CellMenu
           inputRef={inputRef}
           menu={menu}
           onClick={onMenuSelect}
-          onClose={onMenuClose}
+          onClose={closeMenu}
         />
       )}
     </>
@@ -201,12 +242,42 @@ function KeyCell({
 function CellMenu({ inputRef, menu, onClose, onClick }) {
   return (
     <M.Menu open anchorEl={inputRef.current} onClose={onClose}>
-      {menu.items.map((row) => (
-        <M.MenuItem key={row[ColumnIds.Key]} onClick={() => onClick(row, menu)}>
-          {row[ColumnIds.Key]}
+      {menu.map((key) => (
+        <M.MenuItem key={key} onClick={() => onClick(key)}>
+          {key}
         </M.MenuItem>
       ))}
     </M.Menu>
+  )
+}
+
+function Breadcrumbs({ items, onBack }) {
+  const classes = useBreadcrumbsStyles()
+  const ref = React.useRef()
+  React.useEffect(() => {
+    ref.current.scrollIntoView()
+  })
+
+  return (
+    <div className={classes.root} ref={ref}>
+      <M.Icon className={classes.back} onClick={onBack}>
+        arrow_back
+      </M.Icon>
+
+      {items.map((item, index) => {
+        const key = `${item}_${index}`
+        return (
+          <div key={key} className={classes.item}>
+            <M.Typography variant="subtitle2">{item}</M.Typography>
+            {index !== items.length - 1 && (
+              <M.Icon className={classes.divider} fontSize="small">
+                chevron_right
+              </M.Icon>
+            )}
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -215,10 +286,10 @@ function Table({
   columns,
   data,
   menu,
+  onCollapse,
   onExpand,
   onClick,
   onMenuOpen,
-  onMenuClose,
   onMenuSelect,
   updateMyData,
 }) {
@@ -238,32 +309,87 @@ function Table({
 
   return (
     <div className={cx(classes.root)}>
-      <M.TableContainer>
-        <M.Table className={classes.table} aria-label="simple table" {...getTableProps()}>
-          <M.TableBody {...getTableBodyProps()}>
-            {rows.map((row) => {
-              prepareRow(row)
-              return (
-                <M.TableRow {...row.getRowProps()}>
-                  {row.cells.map((cell) => (
-                    <M.TableCell {...cell.getCellProps()} className={classes.tableCell}>
-                      {cell.render('Cell', {
-                        columnPath,
-                        menu,
-                        onClick, // TODO: onCellSelect
-                        onExpand,
-                        onMenuOpen,
-                        onMenuSelect,
-                        onMenuClose,
-                      })}
-                    </M.TableCell>
-                  ))}
-                </M.TableRow>
-              )
-            })}
-          </M.TableBody>
-        </M.Table>
-      </M.TableContainer>
+      {Boolean(columnPath.length) && (
+        <Breadcrumbs items={columnPath} onBack={onCollapse} />
+      )}
+
+      <M.Fade in>
+        <M.TableContainer>
+          <M.Table
+            className={classes.table}
+            aria-label="simple table"
+            {...getTableProps()}
+          >
+            <M.TableBody {...getTableBodyProps()}>
+              {rows.map((row) => {
+                prepareRow(row)
+                return (
+                  <M.TableRow {...row.getRowProps()}>
+                    {row.cells.map((cell) => (
+                      <M.TableCell {...cell.getCellProps()} className={classes.tableCell}>
+                        {cell.render('Cell', {
+                          columnPath,
+                          menu,
+                          onClick, // TODO: onCellSelect
+                          onExpand,
+                          onMenuOpen,
+                          onMenuSelect,
+                        })}
+                      </M.TableCell>
+                    ))}
+                  </M.TableRow>
+                )
+              })}
+              <M.TableRow>
+                <M.TableCell className={classes.tableCell}>
+                  <KeyCell
+                    columnPath={columnPath}
+                    menu={menu}
+                    onClick={onClick}
+                    onExpand={onExpand}
+                    onMenuOpen={onMenuOpen}
+                    onMenuSelect={onMenuSelect}
+                    updateMyData={updateMyData}
+                    column={{
+                      id: ColumnIds.Key,
+                    }}
+                    row={{
+                      index: rows.length + 1,
+                      values: {
+                        [ColumnIds.Key]: '',
+                        [ColumnIds.Value]: '',
+                      },
+                    }}
+                    value=""
+                  />
+                </M.TableCell>
+                <M.TableCell className={classes.tableCell}>
+                  <KeyCell
+                    columnPath={columnPath}
+                    menu={menu}
+                    onClick={onClick}
+                    onExpand={onExpand}
+                    onMenuOpen={onMenuOpen}
+                    onMenuSelect={onMenuSelect}
+                    updateMyData={updateMyData}
+                    column={{
+                      id: ColumnIds.Value,
+                    }}
+                    value=""
+                    row={{
+                      index: rows.length + 1,
+                      values: {
+                        [ColumnIds.Key]: '',
+                        [ColumnIds.Value]: '',
+                      },
+                    }}
+                  />
+                </M.TableCell>
+              </M.TableRow>
+            </M.TableBody>
+          </M.Table>
+        </M.TableContainer>
+      </M.Fade>
     </div>
   )
 }
@@ -283,39 +409,29 @@ export default function JsonEditor() {
     [],
   )
 
-  const { changeValue, columns: data, fieldPath, setFieldPath } = useJson(
-    initialData,
-    initialSchema,
-  )
+  const {
+    changeValue,
+    columns: data,
+    fieldPath,
+    menu,
+    openKeyMenu,
+    setFieldPath,
+  } = useJson(initialData, initialSchema)
 
-  const [menu, setMenu] = React.useState({ address: {}, items: [] })
-
-  const closeMenu = React.useCallback(() => setMenu({ address: {}, items: [] }), [
-    setMenu,
-  ])
-
+  // FIXME: should be different for key and value
   const updateMyData = React.useCallback(changeValue, [changeValue])
 
   const onMenuOpen = React.useCallback(
-    (nestingLevel, rowIndex, columnId) => {
+    (contextFieldPath, columnId) => {
       if (columnId === ColumnIds.Key) {
-        setMenu({
-          address: {
-            nestingLevel,
-            rowIndex,
-            columnId,
-          },
-          items: data[nestingLevel],
-        })
+        openKeyMenu(contextFieldPath)
       }
 
       // if (columnId === ColumnIds.Column) {
       // }
     },
-    [data],
+    [openKeyMenu],
   )
-
-  const onMenuClose = React.useCallback(() => closeMenu, [closeMenu])
 
   const onMenuSelect = () => {}
   // const onMenuSelect = React.useCallback(
@@ -339,6 +455,10 @@ export default function JsonEditor() {
 
   const onExpand = React.useCallback(setFieldPath, [setFieldPath])
 
+  const onCollapse = React.useCallback(() => {
+    setFieldPath(R.init(fieldPath))
+  }, [fieldPath, setFieldPath])
+
   return (
     <div className={classes.root}>
       {data.map((columnData, index) => {
@@ -349,11 +469,11 @@ export default function JsonEditor() {
             columns={columns}
             data={columnData}
             key={tableKey}
-            menu={menu.address.nestingLevel === index ? menu : null}
+            menu={menu}
             onClick={onClick}
             onExpand={onExpand}
-            onMenuClose={onMenuClose}
-            onMenuOpen={(...args) => onMenuOpen(index, ...args)}
+            onCollapse={onCollapse}
+            onMenuOpen={onMenuOpen}
             onMenuSelect={onMenuSelect}
             updateMyData={updateMyData}
           />
