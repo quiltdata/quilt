@@ -22,6 +22,7 @@ function getColumn(obj, columnPath) {
 export default function useJson(
   obj, // , optSchema
 ) {
+  const [data, setData] = React.useState(obj)
   const [fieldPath, setFieldPath] = React.useState([])
 
   // if (optSchema) {
@@ -30,19 +31,27 @@ export default function useJson(
   // }
 
   const columns = React.useMemo(() => {
-    const rootColumn = getColumn(obj, [])
+    const rootColumn = getColumn(data, [])
 
     const expandedColumns = fieldPath.map((_, index) => {
       const pathPart = R.slice(0, index + 1, fieldPath)
-      return getColumn(obj, pathPart)
+      return getColumn(data, pathPart)
     })
 
     return [rootColumn, ...expandedColumns]
-  }, [fieldPath, obj])
+  }, [fieldPath, data])
+
+  const changeValue = React.useCallback(
+    (editingFieldPath, value) => {
+      setData(R.assocPath(editingFieldPath, value, data))
+    },
+    [data, setData],
+  )
 
   return {
     columns,
     fieldPath,
     setFieldPath,
+    changeValue,
   }
 }

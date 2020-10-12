@@ -132,12 +132,14 @@ function KeyCell({
   const inputRef = React.useRef(null)
   const [value, setValue] = React.useState(initialValue)
 
+  const fieldPath = columnPath.concat(row.values[ColumnIds.Key])
+
   const onChange = React.useCallback(
     (event) => {
       setValue(event.target.value)
-      updateMyData(row.index, column.id, event.target.value)
+      updateMyData(fieldPath, event.target.value)
     },
-    [column, row.index, updateMyData],
+    [fieldPath, setValue, updateMyData],
   )
 
   const hasMenu = React.useMemo(() => {
@@ -147,8 +149,6 @@ function KeyCell({
       column.id.toString() === menu.address.columnId.toString()
     )
   }, [row, column, menu])
-
-  const fieldPath = columnPath.concat(row.values[ColumnIds.Key])
 
   const ExpandButton = (
     <M.InputAdornment className={classes.expand} onClick={() => onExpand(fieldPath)}>
@@ -283,7 +283,10 @@ export default function JsonEditor() {
     [],
   )
 
-  const { columns: data, fieldPath, setFieldPath } = useJson(initialData, initialSchema)
+  const { changeValue, columns: data, fieldPath, setFieldPath } = useJson(
+    initialData,
+    initialSchema,
+  )
 
   const [menu, setMenu] = React.useState({ address: {}, items: [] })
 
@@ -291,24 +294,7 @@ export default function JsonEditor() {
     setMenu,
   ])
 
-  const updateMyData = () => {}
-  // const updateMyData = React.useCallback(
-  //   (nestingLevel, rowIndex, columnId, value) => {
-  //     const begining = data.slice(0, rowIndex)
-  //     const end = data.slice(rowIndex + 1)
-  //     // setData([
-  //     //   [
-  //     //     begining,
-  //     //     {
-  //     //       [columnId]: value,
-  //     //       ...data[rowIndex],
-  //     //     },
-  //     //     end,
-  //     //   ],
-  //     // ])
-  //   },
-  //   [data],
-  // )
+  const updateMyData = React.useCallback(changeValue, [changeValue])
 
   const onMenuOpen = React.useCallback(
     (nestingLevel, rowIndex, columnId) => {
@@ -351,12 +337,7 @@ export default function JsonEditor() {
 
   const onClick = () => {}
 
-  const onExpand = React.useCallback(
-    (newFieldPath) => {
-      setFieldPath(newFieldPath)
-    },
-    [setFieldPath],
-  )
+  const onExpand = React.useCallback(setFieldPath, [setFieldPath])
 
   return (
     <div className={classes.root}>
@@ -374,7 +355,7 @@ export default function JsonEditor() {
             onMenuClose={onMenuClose}
             onMenuOpen={(...args) => onMenuOpen(index, ...args)}
             onMenuSelect={onMenuSelect}
-            updateMyData={(...args) => updateMyData.bind(index, ...args)}
+            updateMyData={updateMyData}
           />
         )
       })}
