@@ -34,3 +34,4 @@
 * [Frequently Asked Questions](FAQ.md)
 * [Enterprise install](Technical Reference.md)
 * [Contributing](CONTRIBUTING.md)
+* [Changelog](CHANGELOG.md)
