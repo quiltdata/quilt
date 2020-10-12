@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-// import Ajv from 'ajv'
+import Ajv from 'ajv'
 
 export const ColumnIds = {
   Key: 'key',
@@ -23,11 +23,20 @@ export default function useJson(obj, optSchema) {
   const [data, setData] = React.useState(obj)
   const [fieldPath, setFieldPath] = React.useState([])
   const [menu, setMenu] = React.useState([])
+  const [errors, setErrors] = React.useState([])
 
-  // if (optSchema) {
-  //   const ajv = new Ajv()
-  //   const validate = ajv.compile(optSchema)
-  // }
+  let validate = () => ({
+    errors: [],
+  })
+  if (optSchema) {
+    const ajv = new Ajv()
+    validate = ajv.compile(optSchema)
+  }
+
+  const validateOnSchema = React.useCallback((x) => {
+    validate(x)
+    setErrors(validate.errors || [])
+  }, [])
 
   const columns = React.useMemo(() => {
     const rootColumn = getColumn(data, [])
@@ -42,9 +51,11 @@ export default function useJson(obj, optSchema) {
 
   const changeValue = React.useCallback(
     (editingFieldPath, value) => {
-      setData(R.assocPath(editingFieldPath, value, data))
+      const newData = R.assocPath(editingFieldPath, value, data)
+      setData(newData)
+      validateOnSchema(newData)
     },
-    [data, setData],
+    [data, setData, validateOnSchema],
   )
 
   const openKeyMenu = React.useCallback(
@@ -65,6 +76,7 @@ export default function useJson(obj, optSchema) {
   return {
     changeValue,
     columns,
+    errors,
     fieldPath,
     menu,
     openKeyMenu,

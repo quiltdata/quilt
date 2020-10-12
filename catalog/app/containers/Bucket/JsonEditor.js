@@ -6,6 +6,7 @@ import isObject from 'lodash/isObject'
 import isArray from 'lodash/isArray'
 
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import useJson, { ColumnIds } from 'utils/json'
 
@@ -31,8 +32,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const useWrapperStyles = M.makeStyles(() => ({
+const useWrapperStyles = M.makeStyles((t) => ({
   root: {
+    marginTop: t.spacing(1),
+  },
+  inner: {
     display: 'flex',
     overflowX: 'auto',
   },
@@ -75,6 +79,12 @@ const useBreadcrumbsStyles = M.makeStyles((t) => ({
   },
   back: {
     marginRight: t.spacing(2),
+  },
+}))
+
+const useErrorsStyles = M.makeStyles((t) => ({
+  root: {
+    marginTop: t.spacing(1),
   },
 }))
 
@@ -251,6 +261,20 @@ function CellMenu({ inputRef, menu, onClose, onClick }) {
   )
 }
 
+function Errors({ errors }) {
+  const classes = useErrorsStyles()
+
+  return (
+    <div className={classes.root}>
+      {errors.map((error) => (
+        <Lab.Alert severity="error" key={error.dataPath}>
+          <code>`{error.dataPath}`</code>: {error.message}
+        </Lab.Alert>
+      ))}
+    </div>
+  )
+}
+
 function Breadcrumbs({ items, onBack }) {
   const classes = useBreadcrumbsStyles()
   const ref = React.useRef()
@@ -412,6 +436,7 @@ export default function JsonEditor() {
   const {
     changeValue,
     columns: data,
+    errors,
     fieldPath,
     menu,
     openKeyMenu,
@@ -461,24 +486,28 @@ export default function JsonEditor() {
 
   return (
     <div className={classes.root}>
-      {data.map((columnData, index) => {
-        const tableKey = `nestingLevel${index}`
-        return (
-          <Table
-            columnPath={R.slice(0, index, fieldPath)}
-            columns={columns}
-            data={columnData}
-            key={tableKey}
-            menu={menu}
-            onClick={onClick}
-            onExpand={onExpand}
-            onCollapse={onCollapse}
-            onMenuOpen={onMenuOpen}
-            onMenuSelect={onMenuSelect}
-            updateMyData={updateMyData}
-          />
-        )
-      })}
+      <div className={classes.inner}>
+        {data.map((columnData, index) => {
+          const tableKey = `nestingLevel${index}`
+          return (
+            <Table
+              columnPath={R.slice(0, index, fieldPath)}
+              columns={columns}
+              data={columnData}
+              key={tableKey}
+              menu={menu}
+              onClick={onClick}
+              onExpand={onExpand}
+              onCollapse={onCollapse}
+              onMenuOpen={onMenuOpen}
+              onMenuSelect={onMenuSelect}
+              updateMyData={updateMyData}
+            />
+          )
+        })}
+      </div>
+
+      <Errors errors={errors} />
     </div>
   )
 }
