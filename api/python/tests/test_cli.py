@@ -94,13 +94,11 @@ def test_push_with_meta_data(
 
 def test_list_packages(capsys):
     registry = 's3://my_test_bucket/'
-    pkg_names = ('foo/bar', 'foo/bar1', 'foo1/bar')
+    pkg_names = ['foo/bar', 'foo/bar1', 'foo1/bar']
     with patch('quilt3.backends.s3.S3PackageRegistryV1.list_packages') as list_packages_mock:
         list_packages_mock.return_value = pkg_names
         main.main(('list-packages', registry))
 
-        list_packages_mock.assert_called_once()
+        list_packages_mock.assert_called_once_with()
         captured = capsys.readouterr()
-        assert 'foo/bar' in captured.out
-        assert 'foo/bar1' in captured.out
-        assert 'foo1/bar' in captured.out
+        assert captured.out.split() == pkg_names
