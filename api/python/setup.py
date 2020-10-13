@@ -68,7 +68,7 @@ setup(
         'PyYAML>=5.1',
         'requests>=2.12.4',
         'tenacity>=5.1.1',
-        'tqdm>=4.26.0',
+        'tqdm>=4.32',
         'requests_futures==1.0.0',
     ],
     extras_require={
