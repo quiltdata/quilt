@@ -1,14 +1,15 @@
-import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
-import { useTable } from 'react-table'
-import isObject from 'lodash/isObject'
+import cx from 'classnames'
 import isArray from 'lodash/isArray'
+import isObject from 'lodash/isObject'
+import objectHash from 'object-hash'
+import { useTable } from 'react-table'
 
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import useJson, { ColumnIds } from 'utils/json'
+import useJson, { ColumnIds, parseJSON } from 'utils/json'
 
 const i18nMsgs = {
   key: 'Key',
@@ -112,6 +113,7 @@ const usePreviewClasses = M.makeStyles((t) => ({
 
   value: {
     flexGrow: 1,
+    fontSize: '1rem',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -276,8 +278,8 @@ function KeyCell({
   )
 
   const onBlur = React.useCallback(() => {
-    setValue(JSON.parse(value))
-    updateMyData(fieldPath, column.id, JSON.parse(value))
+    setValue(parseJSON(value))
+    updateMyData(fieldPath, column.id, parseJSON(value))
     setEditing(false)
   }, [column.id, fieldPath, setValue, value, updateMyData])
 
@@ -287,7 +289,9 @@ function KeyCell({
   }, [column, fieldPath, onMenuOpen, setMenuOpened])
 
   const onFocus = React.useCallback(() => {
-    setValue(JSON.stringify(value))
+    if (isObject(value)) {
+      setValue(JSON.stringify(value))
+    }
   }, [setValue, value])
 
   const closeMenu = React.useCallback(() => setMenuOpened(false), [setMenuOpened])
@@ -350,7 +354,7 @@ function KeyCell({
         <CellMenu
           inputRef={menuAnchorRef}
           menu={menu}
-          onClick={onMenuSelect}
+          onClick={(menuKey) => onMenuSelect(fieldPath, menuKey)}
           onClose={closeMenu}
         />
       )}
@@ -599,23 +603,12 @@ export default function JsonEditor() {
     [openKeyMenu],
   )
 
-  const onMenuSelect = () => {}
-  // const onMenuSelect = React.useCallback(
-  //   (row, { address }) => {
-  //     // setData(
-  //     //   R.assocPath(
-  //     //     [address.nestingLevel, address.rowIndex],
-  //     //     {
-  //     //       [ColumnIds.Key]: row[ColumnIds.Key],
-  //     //       [ColumnIds.Value]: row[ColumnIds.Value],
-  //     //     },
-  //     //     data,
-  //     //   ),
-  //     // )
-  //     closeMenu()
-  //   },
-  //   [data, closeMenu],
-  // )
+  const onMenuSelect = React.useCallback(
+    (contextFieldPath, value) => {
+      changeValue(contextFieldPath, ColumnIds.Key, value)
+    },
+    [changeValue],
+  )
 
   const onClick = () => {}
 
@@ -628,24 +621,21 @@ export default function JsonEditor() {
   return (
     <div className={classes.root}>
       <div className={classes.inner}>
-        {data.map((columnData, index) => {
-          const tableKey = columnData.map(({ key }) => key).join()
-          return (
-            <Table
-              columnPath={R.slice(0, index, fieldPath)}
-              columns={columns}
-              data={columnData}
-              key={tableKey}
-              menu={menu}
-              onClick={onClick}
-              onExpand={onExpand}
-              onCollapse={onCollapse}
-              onMenuOpen={onMenuOpen}
-              onMenuSelect={onMenuSelect}
-              updateMyData={updateMyData}
-            />
-          )
-        })}
+        {data.map((columnData, index) => (
+          <Table
+            columnPath={R.slice(0, index, fieldPath)}
+            columns={columns}
+            data={columnData}
+            key={objectHash(columnData)}
+            menu={menu}
+            onClick={onClick}
+            onExpand={onExpand}
+            onCollapse={onCollapse}
+            onMenuOpen={onMenuOpen}
+            onMenuSelect={onMenuSelect}
+            updateMyData={updateMyData}
+          />
+        ))}
       </div>
 
       <Errors errors={errors} />

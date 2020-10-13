@@ -7,6 +7,14 @@ export const ColumnIds = {
   Value: 'value',
 }
 
+export function parseJSON(str) {
+  try {
+    return JSON.parse(str)
+  } catch (e) {
+    return str
+  }
+}
+
 function getColumn(obj, columnPath) {
   const nestedObj = R.path(columnPath, obj)
 
