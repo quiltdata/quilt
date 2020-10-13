@@ -10,6 +10,8 @@ export const ColumnIds = {
 function getColumn(obj, columnPath) {
   const nestedObj = R.path(columnPath, obj)
 
+  // FIXME: add sort order
+
   // { key1: value1, key2: value2 }
   // becomes
   // [{ key: 'key1', value: 'value1'}, { key: 'key2', value: 'value2'}]
@@ -50,8 +52,33 @@ export default function useJson(obj, optSchema) {
   }, [fieldPath, data])
 
   const changeValue = React.useCallback(
-    (editingFieldPath, value) => {
-      const newData = R.assocPath(editingFieldPath, value, data)
+    (editingFieldPath, columnId, str) => {
+      let newData = data
+
+      if (columnId === ColumnIds.Key) {
+        // FIXME: add sort order
+
+        const key = R.last(editingFieldPath)
+        const newKey = str
+
+        if (newKey === key) return
+
+        const newKeyPath = R.init(editingFieldPath).concat([newKey])
+
+        if (key === '') {
+          const value = ''
+          newData = R.assocPath(newKeyPath, value, data)
+        } else {
+          // const value = R.path(editingFieldPath, data)
+          // const auxData = R.assocPath(newKeyPath, value, data)
+          // newData = R.dissocPath(editingFieldPath, auxData)
+        }
+      }
+
+      if (columnId === ColumnIds.Value) {
+        newData = R.assocPath(editingFieldPath, str, data)
+      }
+
       setData(newData)
       validateOnSchema(newData)
     },

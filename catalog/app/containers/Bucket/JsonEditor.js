@@ -50,10 +50,12 @@ const useInputStyles = M.makeStyles((t) => ({
 
   expand: {
     cursor: 'pointer',
+    margin: `0 ${t.spacing(1)} 0 0`,
   },
 
   menu: {
     cursor: 'pointer',
+    color: t.palette.divider,
   },
 
   rootKey: {
@@ -180,14 +182,21 @@ function KeyCell({
   const [value, setValue] = React.useState(initialValue)
   const [menuOpened, setMenuOpened] = React.useState(false)
 
-  const fieldPath = columnPath.concat(row.values[ColumnIds.Key])
+  const key = row.values[ColumnIds.Key]
+  const fieldPath = React.useMemo(() => columnPath.concat(key), [columnPath, key])
 
   const onChange = React.useCallback(
     (event) => {
       setValue(event.target.value)
-      updateMyData(fieldPath, event.target.value) // FIXME: add columnId too
     },
-    [fieldPath, setValue, updateMyData],
+    [setValue],
+  )
+
+  const onBlur = React.useCallback(
+    (event) => {
+      updateMyData(fieldPath, column.id, event.target.value)
+    },
+    [column.id, fieldPath, updateMyData],
   )
 
   const openMenu = React.useCallback(() => {
@@ -196,23 +205,16 @@ function KeyCell({
   }, [column, fieldPath, onMenuOpen, setMenuOpened])
 
   const closeMenu = React.useCallback(() => setMenuOpened(false), [setMenuOpened])
-  // const hasMenu = React.useMemo(() => {
-  //   if (!menu) return false
-  //   return (
-  //     row.id.toString() === menu.address.rowIndex.toString() &&
-  //     column.id.toString() === menu.address.columnId.toString()
-  //   )
-  // }, [row, column, menu])
 
   const ExpandButton = (
     <M.InputAdornment className={classes.expand} onClick={() => onExpand(fieldPath)}>
-      <M.Icon>arrow_right</M.Icon>
+      <M.Icon fontSize="small">arrow_right</M.Icon>
     </M.InputAdornment>
   )
 
   const MenuButton = (
     <M.InputAdornment className={classes.menu} onClick={openMenu}>
-      <M.Icon>arrow_drop_down</M.Icon>
+      <M.Icon fontSize="small">arrow_drop_down</M.Icon>
     </M.InputAdornment>
   )
 
@@ -227,7 +229,9 @@ function KeyCell({
           [classes.rootValue]: column.id === ColumnIds.Value,
         })}
         value={formatValuePreview(value)}
+        disabled={column.id === ColumnIds.Key && initialValue !== ''}
         onChange={onChange}
+        onBlur={onBlur}
         onClick={() => onClick(row.index, column.id, value)}
         placeholder={
           {
@@ -443,7 +447,6 @@ export default function JsonEditor() {
     setFieldPath,
   } = useJson(initialData, initialSchema)
 
-  // FIXME: should be different for key and value
   const updateMyData = React.useCallback(changeValue, [changeValue])
 
   const onMenuOpen = React.useCallback(
@@ -488,7 +491,7 @@ export default function JsonEditor() {
     <div className={classes.root}>
       <div className={classes.inner}>
         {data.map((columnData, index) => {
-          const tableKey = `nestingLevel${index}`
+          const tableKey = columnData.map(({ key }) => key).join()
           return (
             <Table
               columnPath={R.slice(0, index, fieldPath)}
