@@ -29,6 +29,11 @@ const useStyles = M.makeStyles((t) => ({
 
   tableCell: {
     padding: 0,
+    width: '225px',
+  },
+
+  selected: {
+    backgroundColor: t.palette.action.focus,
   },
 }))
 
@@ -50,7 +55,7 @@ const useInputStyles = M.makeStyles((t) => ({
 
   expand: {
     cursor: 'pointer',
-    margin: `0 ${t.spacing(1)} 0 0`,
+    margin: `0 ${t.spacing(1)}px 0 0`,
   },
 
   menu: {
@@ -61,6 +66,8 @@ const useInputStyles = M.makeStyles((t) => ({
   rootKey: {
     borderRight: `1px solid ${t.palette.divider}`,
   },
+
+  wrapper: {},
 }))
 
 const useBreadcrumbsStyles = M.makeStyles((t) => ({
@@ -75,11 +82,14 @@ const useBreadcrumbsStyles = M.makeStyles((t) => ({
   item: {
     display: 'flex',
   },
+
   divider: {
     marginLeft: t.spacing(0.5),
     marginRight: t.spacing(0.5),
   },
+
   back: {
+    cursor: 'pointer',
     marginRight: t.spacing(2),
   },
 }))
@@ -90,9 +100,48 @@ const useErrorsStyles = M.makeStyles((t) => ({
   },
 }))
 
+const usePreviewClasses = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    borderRight: `1px solid ${t.palette.divider}`,
+    display: 'flex',
+    height: '48px',
+    padding: '8px',
+    width: '100%',
+  },
+
+  value: {
+    flexGrow: 1,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    width: '219px',
+  },
+}))
+
+const useExpandClasses = M.makeStyles((t) => ({
+  root: {
+    cursor: 'pointer',
+    margin: `0 ${t.spacing(1)}px 0 0`,
+  },
+}))
+
+const useMenuClasses = M.makeStyles((t) => ({
+  root: {
+    cursor: 'pointer',
+    color: t.palette.divider,
+  },
+}))
+
 const initialSchema = {
   type: 'object',
   properties: {
+    num: {
+      type: 'number',
+    },
+    more: {
+      type: 'string',
+    },
     version: {
       type: 'string',
     },
@@ -153,15 +202,47 @@ const initialData = {
 }
 
 function formatValuePreview(x) {
+  if (isArray(x)) {
+    return `[ ${x.map(formatValuePreview)} ]`
+  }
+
   if (isObject(x)) {
     return `{ ${Object.keys(x).join(', ')} }`
   }
 
-  if (isArray(x)) {
-    return `[ ${x.toString()} ]`
-  }
-
   return x
+}
+
+function ExpandButton({ onClick }) {
+  const classes = useExpandClasses()
+
+  return (
+    <M.InputAdornment className={classes.root} onClick={onClick}>
+      <M.Icon fontSize="small">arrow_right</M.Icon>
+    </M.InputAdornment>
+  )
+}
+
+function MenuButton({ onClick }) {
+  const classes = useMenuClasses()
+  return (
+    <M.InputAdornment className={classes.root} onClick={onClick}>
+      <M.Icon fontSize="small">arrow_drop_down</M.Icon>
+    </M.InputAdornment>
+  )
+}
+
+function ValuePreview({ expandable, value, onExpand, onMenu }) {
+  const classes = usePreviewClasses()
+  return (
+    <div className={classes.root}>
+      {expandable && <ExpandButton onClick={onExpand} />}
+      <div className={classes.value}>
+        <span className={classes.valueInner}>{value}</span>
+      </div>
+      <MenuButton onClick={onMenu} />
+    </div>
+  )
 }
 
 function KeyCell({
@@ -178,9 +259,11 @@ function KeyCell({
 }) {
   const classes = useInputStyles()
 
+  const menuAnchorRef = React.useRef(null)
   const inputRef = React.useRef(null)
   const [value, setValue] = React.useState(initialValue)
   const [menuOpened, setMenuOpened] = React.useState(false)
+  const [editing, setEditing] = React.useState(false)
 
   const key = row.values[ColumnIds.Key]
   const fieldPath = React.useMemo(() => columnPath.concat(key), [columnPath, key])
@@ -192,64 +275,122 @@ function KeyCell({
     [setValue],
   )
 
-  const onBlur = React.useCallback(
-    (event) => {
-      updateMyData(fieldPath, column.id, event.target.value)
-    },
-    [column.id, fieldPath, updateMyData],
-  )
+  const onBlur = React.useCallback(() => {
+    setValue(JSON.parse(value))
+    updateMyData(fieldPath, column.id, JSON.parse(value))
+    setEditing(false)
+  }, [column.id, fieldPath, setValue, value, updateMyData])
 
   const openMenu = React.useCallback(() => {
     setMenuOpened(true)
     onMenuOpen(fieldPath, column.id)
   }, [column, fieldPath, onMenuOpen, setMenuOpened])
 
+  const onFocus = React.useCallback(() => {
+    setValue(JSON.stringify(value))
+  }, [setValue, value])
+
   const closeMenu = React.useCallback(() => setMenuOpened(false), [setMenuOpened])
 
-  const ExpandButton = (
-    <M.InputAdornment className={classes.expand} onClick={() => onExpand(fieldPath)}>
-      <M.Icon fontSize="small">arrow_right</M.Icon>
-    </M.InputAdornment>
-  )
+  const onDoubleClick = React.useCallback(() => {
+    setEditing(true)
+  }, [setEditing])
 
-  const MenuButton = (
-    <M.InputAdornment className={classes.menu} onClick={openMenu}>
-      <M.Icon fontSize="small">arrow_drop_down</M.Icon>
-    </M.InputAdornment>
-  )
+  React.useEffect(() => {
+    if (editing) {
+      inputRef.current.focus()
+    }
+  }, [editing, inputRef])
+
+  // disabled={column.id === ColumnIds.Key && initialValue !== ''}
 
   return (
-    <>
-      <M.InputBase
-        ref={inputRef}
-        startAdornment={isObject(value) && ExpandButton}
-        endAdornment={MenuButton}
-        className={cx(classes.root, {
-          [classes.rootKey]: column.id === ColumnIds.Key,
-          [classes.rootValue]: column.id === ColumnIds.Value,
-        })}
-        value={formatValuePreview(value)}
-        disabled={column.id === ColumnIds.Key && initialValue !== ''}
-        onChange={onChange}
-        onBlur={onBlur}
-        onClick={() => onClick(row.index, column.id, value)}
-        placeholder={
-          {
-            [ColumnIds.Key]: i18nMsgs.key,
-            [ColumnIds.Value]: i18nMsgs.value,
-          }[column.id]
-        }
-      />
+    <div
+      onDoubleClick={onDoubleClick}
+      className={cx({
+        [classes.wrapper]: !editing,
+      })}
+    >
+      <div ref={menuAnchorRef}>
+        {editing ? (
+          <M.InputBase
+            disabled={!editing}
+            inputRef={inputRef}
+            startAdornment={
+              isObject(value) && <ExpandButton onClick={() => onExpand(fieldPath)} />
+            }
+            endAdornment={<MenuButton onClick={openMenu} />}
+            className={cx(classes.root, {
+              [classes.rootKey]: column.id === ColumnIds.Key,
+              [classes.rootValue]: column.id === ColumnIds.Value,
+            })}
+            value={formatValuePreview(value)}
+            onChange={onChange}
+            onBlur={onBlur}
+            onFocus={onFocus}
+            onClick={() => onClick(row.index, column.id, value)}
+            placeholder={
+              {
+                [ColumnIds.Key]: i18nMsgs.key,
+                [ColumnIds.Value]: i18nMsgs.value,
+              }[column.id]
+            }
+          />
+        ) : (
+          <ValuePreview
+            expandable={isObject(value)}
+            onExpand={() => onExpand(fieldPath)}
+            onMenu={openMenu}
+            value={formatValuePreview(value)}
+          />
+        )}
+      </div>
 
       {menuOpened && (
         <CellMenu
-          inputRef={inputRef}
+          inputRef={menuAnchorRef}
           menu={menu}
           onClick={onMenuSelect}
           onClose={closeMenu}
         />
       )}
-    </>
+    </div>
+  )
+}
+
+function Row({
+  row,
+  columnPath,
+  menu,
+  onClick, // TODO: onCellSelect
+  onExpand,
+  onMenuOpen,
+  onMenuSelect,
+}) {
+  const classes = useStyles()
+
+  const [selected, setSelected] = React.useState(false)
+
+  return (
+    <M.ClickAwayListener onClickAway={() => setSelected(false)}>
+      <M.TableRow
+        className={cx({ [classes.selected]: selected })}
+        onClick={() => setSelected(true)}
+      >
+        {row.cells.map((cell) => (
+          <M.TableCell {...cell.getCellProps()} className={classes.tableCell}>
+            {cell.render('Cell', {
+              columnPath,
+              menu,
+              onClick, // TODO: onCellSelect
+              onExpand,
+              onMenuOpen,
+              onMenuSelect,
+            })}
+          </M.TableCell>
+        ))}
+      </M.TableRow>
+    </M.ClickAwayListener>
   )
 }
 
@@ -351,21 +492,18 @@ function Table({
             <M.TableBody {...getTableBodyProps()}>
               {rows.map((row) => {
                 prepareRow(row)
+
                 return (
-                  <M.TableRow {...row.getRowProps()}>
-                    {row.cells.map((cell) => (
-                      <M.TableCell {...cell.getCellProps()} className={classes.tableCell}>
-                        {cell.render('Cell', {
-                          columnPath,
-                          menu,
-                          onClick, // TODO: onCellSelect
-                          onExpand,
-                          onMenuOpen,
-                          onMenuSelect,
-                        })}
-                      </M.TableCell>
-                    ))}
-                  </M.TableRow>
+                  <Row
+                    {...row.getRowProps()}
+                    row={row}
+                    columnPath={columnPath}
+                    menu={menu}
+                    onClick={onClick}
+                    onExpand={onExpand}
+                    onMenuOpen={onMenuOpen}
+                    onMenuSelect={onMenuSelect}
+                  />
                 )
               })}
               <M.TableRow>
