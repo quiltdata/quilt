@@ -26,6 +26,8 @@ export default function Row({
 
   const [selected, setSelected] = React.useState(false)
 
+  // TODO: add RowWrapper
+  //       use it for AddRow
   return (
     <M.ClickAwayListener onClickAway={() => setSelected(false)}>
       <M.TableRow

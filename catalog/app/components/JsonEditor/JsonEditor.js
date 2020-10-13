@@ -10,8 +10,7 @@ import * as Lab from '@material-ui/lab'
 import useJson, { ColumnIds } from 'utils/json'
 
 import Breadcrumbs from './Breadcrumbs'
-import Input from './Input'
-import Preview from './Preview'
+import Cell from './Cell'
 import Row from './Row'
 
 const useColumnStyles = M.makeStyles((t) => ({
@@ -121,86 +120,6 @@ const initialData = {
   },
 }
 
-function KeyCell({
-  column,
-  columnPath,
-  menu,
-  onExpand,
-  onMenuOpen,
-  onMenuSelect,
-  row,
-  updateMyData,
-  value,
-}) {
-  const menuAnchorRef = React.useRef(null)
-
-  const [editing, setEditing] = React.useState(false)
-  const [menuOpened, setMenuOpened] = React.useState(false)
-
-  const key = row.values[ColumnIds.Key]
-  const fieldPath = React.useMemo(() => columnPath.concat(key), [columnPath, key])
-
-  const closeMenu = React.useCallback(() => setMenuOpened(false), [setMenuOpened])
-
-  const onMenu = React.useCallback(() => {
-    setMenuOpened(true)
-    onMenuOpen(fieldPath, column.id)
-  }, [column, fieldPath, onMenuOpen, setMenuOpened])
-
-  const onChange = React.useCallback(
-    (newValue) => {
-      updateMyData(fieldPath, column.id, newValue)
-      setEditing(false)
-    },
-    [column.id, fieldPath, updateMyData],
-  )
-
-  const onDoubleClick = React.useCallback(() => setEditing(true), [setEditing])
-
-  return (
-    <div onDoubleClick={onDoubleClick}>
-      <div ref={menuAnchorRef}>
-        {editing ? (
-          <Input
-            {...{
-              columnId: column.id,
-              columnPath,
-              onChange,
-              onExpand: () => onExpand(fieldPath),
-              onMenu,
-              row,
-              value,
-            }}
-          />
-        ) : (
-          <Preview onExpand={() => onExpand(fieldPath)} onMenu={onMenu} value={value} />
-        )}
-      </div>
-
-      {menuOpened && (
-        <CellMenu
-          anchorRef={menuAnchorRef}
-          menu={menu}
-          onClick={(menuKey) => onMenuSelect(fieldPath, menuKey)}
-          onClose={closeMenu}
-        />
-      )}
-    </div>
-  )
-}
-
-function CellMenu({ anchorRef, menu, onClose, onClick }) {
-  return (
-    <M.MenuList anchorEl={anchorRef.current} onClose={onClose}>
-      {menu.map((key) => (
-        <M.MenuItem key={key} onClick={() => onClick(key)}>
-          {key}
-        </M.MenuItem>
-      ))}
-    </M.MenuList>
-  )
-}
-
 function Errors({ errors }) {
   const classes = useErrorsStyles()
 
@@ -233,7 +152,7 @@ function Table({
     data,
 
     defaultColumn: {
-      Cell: KeyCell,
+      Cell,
     },
 
     updateMyData,
@@ -271,9 +190,10 @@ function Table({
                   />
                 )
               })}
+              {/* TODO: AddRow component */}
               <M.TableRow>
                 <M.TableCell className={classes.tableCell}>
-                  <KeyCell
+                  <Cell
                     columnPath={columnPath}
                     menu={menu}
                     onExpand={onExpand}
@@ -294,25 +214,7 @@ function Table({
                   />
                 </M.TableCell>
                 <M.TableCell className={classes.tableCell}>
-                  <KeyCell
-                    columnPath={columnPath}
-                    menu={menu}
-                    onExpand={onExpand}
-                    onMenuOpen={onMenuOpen}
-                    onMenuSelect={onMenuSelect}
-                    updateMyData={updateMyData}
-                    column={{
-                      id: ColumnIds.Value,
-                    }}
-                    value=""
-                    row={{
-                      index: rows.length + 1,
-                      values: {
-                        [ColumnIds.Key]: '',
-                        [ColumnIds.Value]: '',
-                      },
-                    }}
-                  />
+                  Add new key/value pair
                 </M.TableCell>
               </M.TableRow>
             </M.TableBody>
