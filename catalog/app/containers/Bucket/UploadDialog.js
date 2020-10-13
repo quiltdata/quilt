@@ -19,7 +19,7 @@ import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
 
-import JsonEditor from './JsonEditor'
+import JsonEditor from 'components/JsonEditor'
 
 const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
 const ES_LAG = 3 * 1000
