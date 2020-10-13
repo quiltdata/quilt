@@ -20,6 +20,6 @@ export default React.forwardRef(function StyledLink(
   ref,
 ) {
   const classes = useStyles()
-  const Component = component || props.to ? Link : 'a'
+  const Component = component || (props.to ? Link : 'a')
   return <Component className={cx(className, classes.root)} {...props} ref={ref} />
 })

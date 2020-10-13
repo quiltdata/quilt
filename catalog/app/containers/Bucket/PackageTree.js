@@ -7,6 +7,7 @@ import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import * as Intercom from 'components/Intercom'
 import * as Preview from 'components/Preview'
 import Skeleton from 'components/Skeleton'
 import AsyncResult from 'utils/AsyncResult'
@@ -327,6 +328,12 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
   const { apiGatewayEndpoint: endpoint } = Config.use()
   const credentials = AWS.Credentials.use()
   const { urls } = NamedRoutes.use()
+  const intercom = Intercom.use()
+
+  const showIntercom = React.useMemo(
+    () => (intercom.dummy ? null : () => intercom('show')),
+    [intercom],
+  )
 
   const data = useData(requests.packageSelect, {
     s3,
@@ -342,7 +349,7 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
 
   const mkUrl = React.useCallback(
     (handle) => urls.bucketPackageTree(bucket, name, revision, handle.logicalKey),
-    [urls.bucketPackageTree, bucket, name, revision, path],
+    [urls, bucket, name, revision],
   )
 
   return data.case({
@@ -387,16 +394,35 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
       )
     },
     Err: (e) => {
-      console.error(e)
+      let heading = 'Error loading directory'
+      let body = "Seems like there's no such directory in this package"
+      if (e.status === 500 && /Could not reserve memory block/.test(e.message)) {
+        heading = 'Oops, this is a large package'
+        body = (
+          <>
+            The Lambda process ran out of memory
+            {!!showIntercom && (
+              <>
+                , but don&apos;t worry,{' '}
+                {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+                <Link component="span" role="button" onClick={showIntercom}>
+                  we can fix it
+                </Link>
+              </>
+            )}
+            .
+          </>
+        )
+      }
       return (
         <>
           <TopBar crumbs={crumbs} />
           <M.Box mt={4}>
             <M.Typography variant="h4" align="center" gutterBottom>
-              Error loading directory
+              {heading}
             </M.Typography>
             <M.Typography variant="body1" align="center">
-              Seems like there&apos;s no such directory in this package
+              {body}
             </M.Typography>
           </M.Box>
         </>
