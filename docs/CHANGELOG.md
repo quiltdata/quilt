@@ -15,6 +15,7 @@
 ## CLI
 * [Added] Add `meta` argument to the push command
   ([#1793](https://github.com/quiltdata/quilt/issues/1793))
+* Fixed issue with `list-packages` command
 
 ## Catalog
 
