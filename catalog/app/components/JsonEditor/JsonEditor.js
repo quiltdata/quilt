@@ -7,11 +7,10 @@ import { useTable } from 'react-table'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import useJson, { ColumnIds } from 'utils/json'
-
 import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
 import Row from './Row'
+import useJson, { ColumnIds } from './State'
 
 const useColumnStyles = M.makeStyles((t) => ({
   root: {

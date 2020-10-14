@@ -2,10 +2,9 @@ import * as React from 'react'
 
 import * as M from '@material-ui/core'
 
-import { ColumnIds } from 'utils/json'
-
 import Input from './Input'
 import Preview from './Preview'
+import { ColumnIds } from './State'
 
 function CellMenu({ anchorRef, menu, onClose, onClick }) {
   return (

@@ -4,11 +4,10 @@ import isObject from 'lodash/isObject'
 
 import * as M from '@material-ui/core'
 
-import { ColumnIds, parseJSON } from 'utils/json'
-
 import ButtonExpand from './ButtonExpand'
 import ButtonMenu from './ButtonMenu'
 import Note from './Note'
+import { ColumnIds, parseJSON } from './State'
 
 const i18nMsgs = {
   key: 'Key',

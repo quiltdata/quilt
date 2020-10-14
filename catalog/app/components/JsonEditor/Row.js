@@ -3,7 +3,7 @@ import cx from 'classnames'
 
 import * as M from '@material-ui/core'
 
-import { ColumnIds } from 'utils/json'
+import { ColumnIds } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {},
