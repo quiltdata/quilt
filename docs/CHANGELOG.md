@@ -12,6 +12,8 @@
 * [Performance] Improve performance of hashing of S3 files
   ([#1816](https://github.com/quiltdata/quilt/issues/1816),
    [#1788](https://github.com/quiltdata/quilt/issues/1788)
+* [Fixed] Bump a minimum required version of tqdm.
+  Fixes a tqdm crash (`UnseekableStreamError`) during upload retry.
 
 ## CLI
 * [Added] Add `meta` argument to the push command

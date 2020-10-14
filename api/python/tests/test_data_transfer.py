@@ -5,9 +5,13 @@ import io
 import os
 import pathlib
 import time
+import unittest
 from contextlib import redirect_stderr
 from unittest import mock
 
+import boto3
+import botocore
+import botocore.client
 import pandas as pd
 import pytest
 from botocore.exceptions import ClientError, ReadTimeoutError
@@ -507,6 +511,58 @@ class DataTransferTest(QuiltTestCase):
         with mock.patch('botocore.client.BaseClient._make_api_call', side_effect=side_effect):
             with pytest.raises(ClientError):
                 data_transfer.copy_file_list([(src, dst, size)])
+
+
+class Success(Exception):
+    pass
+
+
+class S3UploadProgressTest(unittest.TestCase):
+    def setUp(self):
+        self.s3_client = boto3.client('s3', config=botocore.client.Config(signature_version=botocore.UNSIGNED))
+        self.s3_client_patcher = mock.patch.multiple(
+            'quilt3.data_transfer.S3ClientProvider',
+            _build_client=lambda *args, **kwargs: self.s3_client,
+            client_type_known=lambda *args, **kwargs: True,
+        )
+        self.s3_client_patcher.start()
+        self.addCleanup(self.s3_client_patcher.stop)
+
+    def test_body_is_seekable(self):
+        """
+        No errors if request body.read() or body.seek() are called right before sending request.
+        """
+        def handler(request, **kwargs):
+            request.body.read(2)
+            request.body.seek(0)
+
+            raise Success
+
+        path = DATA_DIR / 'small_file.csv'
+        self.s3_client.meta.events.register_first('before-send.*', handler)
+        with pytest.raises(Success):
+            data_transfer.copy_file(PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/foo.csv'))
+
+    @mock.patch('tqdm.tqdm.update')
+    def test_progress_updateds(self, mocked_update):
+        """
+        Progress callback is called when calling body.read() or body.seek().
+        """
+
+        def handler(request, **kwargs):
+            request.body.read(2)
+            mocked_update.assert_called_once_with(2)
+
+            mocked_update.reset_mock()
+            request.body.seek(0)
+            mocked_update.assert_called_once_with(-2)
+
+            raise Success
+
+        path = DATA_DIR / 'small_file.csv'
+        self.s3_client.meta.events.register_first('before-send.*', handler)
+        with pytest.raises(Success):
+            data_transfer.copy_file(PhysicalKey.from_path(path), PhysicalKey.from_url('s3://example/foo.csv'))
 
 
 class S3DownloadTest(QuiltTestCase):
