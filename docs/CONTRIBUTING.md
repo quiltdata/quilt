@@ -174,4 +174,4 @@ All other pages in the documentation are served from corresponding Markdown page
 
 ## License
 
-Quilt is open source under the [Apache License, Version 2.0](https://github.com/quiltdata/quilt/tree/7a4a6db12839e2b932847db5224b858da52db200/LICENSE/README.md).
+Quilt is open source under the [Apache License, Version 2.0](https://github.com/quiltdata/quilt/blob/master/LICENSE).
