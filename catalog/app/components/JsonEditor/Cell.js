@@ -9,13 +9,13 @@ import Preview from './Preview'
 
 function CellMenu({ anchorRef, menu, onClose, onClick }) {
   return (
-    <M.MenuList anchorEl={anchorRef.current} onClose={onClose}>
+    <M.Menu anchorEl={anchorRef.current} onClose={onClose} open>
       {menu.map((key) => (
         <M.MenuItem key={key} onClick={() => onClick(key)}>
           {key}
         </M.MenuItem>
       ))}
-    </M.MenuList>
+    </M.Menu>
   )
 }
 
@@ -55,30 +55,21 @@ export default function KeyCell({
 
   const onDoubleClick = React.useCallback(() => setEditing(true), [setEditing])
 
+  const ValueComponent = editing ? Input : Preview
+
   return (
     <div onDoubleClick={onDoubleClick}>
       <div ref={menuAnchorRef}>
-        {editing ? (
-          <Input
-            {...{
-              columnId: column.id,
-              columnPath,
-              onChange,
-              onExpand: () => onExpand(fieldPath),
-              onMenu,
-              row,
-              value,
-            }}
-          />
-        ) : (
-          <Preview
-            {...{
-              onExpand: () => onExpand(fieldPath),
-              onMenu,
-              value,
-            }}
-          />
-        )}
+        <ValueComponent
+          {...{
+            columnId: column.id,
+            onChange,
+            onExpand: () => onExpand(fieldPath),
+            onMenu,
+            row,
+            value,
+          }}
+        />
       </div>
 
       {menuOpened && (

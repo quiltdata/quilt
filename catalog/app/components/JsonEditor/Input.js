@@ -25,10 +25,9 @@ const useStyles = M.makeStyles((t) => ({
     margin: `0 ${t.spacing(1)}px 0 0`,
   },
 
-  menu: {
-    cursor: 'pointer',
-    color: t.palette.divider,
-  },
+  // menu: {
+  //   marginLeft: 'auto',
+  // },
 
   rootKey: {
     borderRight: `1px solid ${t.palette.divider}`,
@@ -71,7 +70,7 @@ export default function Input({
       startAdornment={
         isObject(value) && <ButtonExpand onClick={() => onExpand(fieldPath)} />
       }
-      endAdornment={<ButtonMenu onClick={onMenu} />}
+      endAdornment={<ButtonMenu className={classes.menu} onClick={onMenu} />}
       className={cx(classes.root, {
         [classes.rootKey]: columnId === ColumnIds.Key,
         [classes.rootValue]: columnId === ColumnIds.Value,

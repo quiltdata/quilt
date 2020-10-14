@@ -3,14 +3,23 @@ import cx from 'classnames'
 
 import * as M from '@material-ui/core'
 
-const useStyles = M.makeStyles(() => ({
+import { ColumnIds } from 'utils/json'
+
+const useStyles = M.makeStyles((t) => ({
   root: {},
 
   rootSelected: {},
 
   cell: {
     padding: 0,
-    width: '225px',
+  },
+
+  key: {
+    width: t.spacing(20),
+  },
+
+  value: {
+    width: t.spacing(36),
   },
 }))
 
@@ -35,7 +44,13 @@ export default function Row({
         onClick={() => setSelected(true)}
       >
         {cells.map((cell) => (
-          <M.TableCell {...cell.getCellProps()} className={classes.cell}>
+          <M.TableCell
+            {...cell.getCellProps()}
+            className={cx(classes.cell, {
+              [classes.key]: cell.column.id === ColumnIds.Key,
+              [classes.value]: cell.column.id === ColumnIds.Value,
+            })}
+          >
             {cell.render('Cell', {
               columnPath,
               menu,
