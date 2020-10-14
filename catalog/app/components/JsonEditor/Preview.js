@@ -45,7 +45,14 @@ function formatValuePreview(x) {
   return x
 }
 
-export default function Preview({ columnId, data, value, onExpand, onMenu }) {
+export default function Preview({
+  columnId,
+  data,
+  menuAnchorRef,
+  value,
+  onExpand,
+  onMenu,
+}) {
   const classes = useStyles()
 
   return (
@@ -57,6 +64,7 @@ export default function Preview({ columnId, data, value, onExpand, onMenu }) {
       </div>
 
       <ButtonMenu
+        ref={menuAnchorRef}
         className={classes.menu}
         note={<Note {...{ columnId, required: data.required, value }} />}
         onClick={onMenu}

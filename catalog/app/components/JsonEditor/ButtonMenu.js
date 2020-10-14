@@ -7,6 +7,7 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     color: t.palette.divider,
     cursor: 'pointer',
+    height: 'auto',
   },
 
   note: {
@@ -16,13 +17,17 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function ButtonMenu({ className, note, onClick }) {
+function ButtonMenu({ className, note, onClick }, ref) {
   const classes = useStyles()
 
   return (
     <M.InputAdornment className={cx(classes.root, className)} onClick={onClick}>
-      <code className={classes.note}>{note}</code>
+      <code className={classes.note} ref={ref}>
+        {note}
+      </code>
       <M.Icon fontSize="small">arrow_drop_down</M.Icon>
     </M.InputAdornment>
   )
 }
+
+export default React.forwardRef(ButtonMenu)
