@@ -17,7 +17,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function AddRow({ columnPath, menu, onAdd, onExpand, onMenuOpen }) {
+export default function AddRow({ columnPath, onAdd, onExpand }) {
   const classes = useStyles()
 
   const [value, setValue] = React.useState('')
@@ -46,9 +46,7 @@ export default function AddRow({ columnPath, menu, onAdd, onExpand, onMenuOpen }
         <Cell
           {...{
             columnPath,
-            menu,
             onExpand,
-            onMenuOpen,
             onMenuSelect,
             updateMyData: onChange,
             column: {

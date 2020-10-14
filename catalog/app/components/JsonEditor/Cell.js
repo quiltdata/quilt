@@ -21,9 +21,7 @@ function CellMenu({ anchorRef, menu, onClose, onClick }) {
 export default function KeyCell({
   column,
   columnPath,
-  menu,
   onExpand,
-  onMenuOpen,
   onMenuSelect,
   row,
   updateMyData,
@@ -41,8 +39,7 @@ export default function KeyCell({
 
   const onMenuOpenInternal = React.useCallback(() => {
     setMenuOpened(true)
-    onMenuOpen(fieldPath, column.id)
-  }, [column, fieldPath, onMenuOpen, setMenuOpened])
+  }, [setMenuOpened])
 
   const onMenuSelectInternal = React.useCallback(
     (menuKey) => {
@@ -64,6 +61,9 @@ export default function KeyCell({
 
   const ValueComponent = editing ? Input : Preview
 
+  const hasKeyMenu = menuOpened && column.id === ColumnIds.Key
+  const hasValueMenu = menuOpened && column.id === ColumnIds.Value
+
   return (
     <div onDoubleClick={onDoubleClick}>
       <div ref={menuAnchorRef}>
@@ -79,10 +79,19 @@ export default function KeyCell({
         />
       </div>
 
-      {menuOpened && (
+      {hasKeyMenu && (
         <CellMenu
           anchorRef={menuAnchorRef}
-          menu={menu}
+          menu={row.original ? row.original.keysList : []}
+          onClick={onMenuSelectInternal}
+          onClose={closeMenu}
+        />
+      )}
+
+      {hasValueMenu && (
+        <CellMenu
+          anchorRef={menuAnchorRef}
+          menu={['string']}
           onClick={onMenuSelectInternal}
           onClose={closeMenu}
         />

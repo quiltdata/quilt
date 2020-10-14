@@ -21,14 +21,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Row({
-  cells,
-  columnPath,
-  menu,
-  onExpand,
-  onMenuOpen,
-  onMenuSelect,
-}) {
+export default function Row({ cells, columnPath, onExpand, onMenuSelect }) {
   const classes = useStyles()
 
   // TODO: add RowWrapper
@@ -45,9 +38,7 @@ export default function Row({
         >
           {cell.render('Cell', {
             columnPath,
-            menu,
             onExpand,
-            onMenuOpen,
             onMenuSelect,
           })}
         </M.TableCell>
