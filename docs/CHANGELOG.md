@@ -7,14 +7,14 @@
 ## Catalog
 !-->
 
-# 3.2.1rc1 - 2020-10-14
+# 3.2.1 - 2020-10-14
 ## Python API
-* [Performance] Improve performance of hashing of S3 files ([#1816](https://github.com/quiltdata/quilt/issues/1816), [#1788](https://github.com/quiltdata/quilt/issues/1788))
-* [Fixed] Bump a minimum required version of tqdm. Fixes a tqdm crash (`UnseekableStreamError`) during upload retry. ([#1853](https://github.com/quiltdata/quilt/issues/1853))
+* [Performance] 2X to 5X faster multi-threaded hashing of S3 objects ([#1816](https://github.com/quiltdata/quilt/issues/1816), [#1788](https://github.com/quiltdata/quilt/issues/1788))
+* [Fixed] Bump minimum required version of tqdm. Fixes a crash (`UnseekableStreamError`) during upload retry. ([#1853](https://github.com/quiltdata/quilt/issues/1853))
 
 ## CLI
-* [Added] Add `meta` argument to the push command ([#1793](https://github.com/quiltdata/quilt/issues/1793))
-* [Fixed] Fix a crash of `list-packages` command ([#1852](https://github.com/quiltdata/quilt/issues/1852))
+* [Added] Add `--meta` argument to `push` ([#1793](https://github.com/quiltdata/quilt/issues/1793))
+* [Fixed] Fix crash in `list-packages` ([#1852](https://github.com/quiltdata/quilt/issues/1852))
 
 # 3.2.0 - 2020-09-08 - Package Registry Refactor
 ## Python:
