@@ -156,13 +156,12 @@ function RevisionLayout({ link, msg, meta, hash, stats, counts }) {
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   const sparklineW = xs ? 176 : sm ? 300 : 400
   const sparklineH = xs ? 32 : 48
-  console.log('layout', { xs, sm, sparklineW, sparklineH })
   return (
     <M.Paper className={classes.root}>
       <M.Box pt={2} pl={2} pr={25}>
         {link}
       </M.Box>
-      <M.Box py={1} pl={2} pr={xs ? 2 : Math.ceil(sparklineW / 8 + 1)}>
+      <M.Box py={1} pl={2} pr={xs ? 2 : Math.ceil(sparklineW / t.spacing(1) + 1)}>
         {msg}
       </M.Box>
       {!!meta && (
@@ -176,7 +175,7 @@ function RevisionLayout({ link, msg, meta, hash, stats, counts }) {
       </M.Hidden>
       <M.Box
         pl={2}
-        pr={xs ? Math.ceil(sparklineW / 8) : 30}
+        pr={xs ? Math.ceil(sparklineW / t.spacing(1)) : 30}
         height={{ xs: 64, sm: 48 }}
         display="flex"
         alignItems="center"
@@ -271,12 +270,8 @@ const useRevisionStyles = M.makeStyles((t) => ({
     whiteSpace: 'nowrap',
   },
   msg: {
-    WebkitBoxOrient: 'vertical',
-    WebkitLineClamp: 2,
-    display: '-webkit-box',
-    overflow: 'hidden',
+    ...t.mixins.lineClamp(2),
     overflowWrap: 'break-word',
-    textOverflow: 'ellipsis',
     [t.breakpoints.up('sm')]: {
       minHeight: 40,
     },
