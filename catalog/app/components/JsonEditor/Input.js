@@ -8,6 +8,7 @@ import { ColumnIds, parseJSON } from 'utils/json'
 
 import ButtonExpand from './ButtonExpand'
 import ButtonMenu from './ButtonMenu'
+import Note from './Note'
 
 const i18nMsgs = {
   key: 'Key',
@@ -20,15 +21,6 @@ const useStyles = M.makeStyles((t) => ({
     width: '100%',
   },
 
-  expand: {
-    cursor: 'pointer',
-    margin: `0 ${t.spacing(1)}px 0 0`,
-  },
-
-  // menu: {
-  //   marginLeft: 'auto',
-  // },
-
   rootKey: {
     borderRight: `1px solid ${t.palette.divider}`,
   },
@@ -36,6 +28,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Input({
   columnId,
+  data,
   fieldPath,
   onChange,
   onExpand,
@@ -70,7 +63,13 @@ export default function Input({
       startAdornment={
         isObject(value) && <ButtonExpand onClick={() => onExpand(fieldPath)} />
       }
-      endAdornment={<ButtonMenu className={classes.menu} onClick={onMenu} />}
+      endAdornment={
+        <ButtonMenu
+          className={classes.menu}
+          note={<Note {...{ columnId, required: data.required, value }} />}
+          onClick={onMenu}
+        />
+      }
       className={cx(classes.root, {
         [classes.rootKey]: columnId === ColumnIds.Key,
         [classes.rootValue]: columnId === ColumnIds.Value,

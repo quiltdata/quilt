@@ -15,10 +15,16 @@ export function parseJSON(str) {
   }
 }
 
-function getColumn(obj, columnPath) {
+function getSchemaPath(objPath) {
+  return objPath.reduce((memo, key) => memo.concat(['properties'], key), [])
+}
+
+function getColumn(obj, columnPath, optSchema = {}) {
   const nestedObj = R.path(columnPath, obj)
 
   // FIXME: add sort order
+  const schemaPath = getSchemaPath(columnPath)
+  const requiredKeys = R.pathOr([], schemaPath.concat('required'), optSchema)
 
   // { key1: value1, key2: value2 }
   // becomes
@@ -26,38 +32,38 @@ function getColumn(obj, columnPath) {
   return Object.keys(nestedObj).map((key) => ({
     [ColumnIds.Key]: key,
     [ColumnIds.Value]: nestedObj[key],
+
+    required: requiredKeys.includes(key),
   }))
 }
 
-export default function useJson(obj, optSchema) {
+export default function useJson(obj, optSchema = {}) {
   const [data, setData] = React.useState(obj)
   const [fieldPath, setFieldPath] = React.useState([])
   const [menu, setMenu] = React.useState([])
   const [errors, setErrors] = React.useState([])
 
-  let validate = () => ({
-    errors: [],
-  })
-  if (optSchema) {
-    const ajv = new Ajv()
-    validate = ajv.compile(optSchema)
-  }
+  const ajv = new Ajv()
+  const validate = ajv.compile(optSchema)
 
-  const validateOnSchema = React.useCallback((x) => {
-    validate(x)
-    setErrors(validate.errors || [])
-  }, [])
+  const validateOnSchema = React.useCallback(
+    (x) => {
+      validate(x)
+      setErrors(validate.errors || [])
+    },
+    [setErrors, validate],
+  )
 
   const columns = React.useMemo(() => {
-    const rootColumn = getColumn(data, [])
+    const rootColumn = getColumn(data, [], optSchema)
 
     const expandedColumns = fieldPath.map((_, index) => {
       const pathPart = R.slice(0, index + 1, fieldPath)
-      return getColumn(data, pathPart)
+      return getColumn(data, pathPart, optSchema)
     })
 
     return [rootColumn, ...expandedColumns]
-  }, [fieldPath, data])
+  }, [fieldPath, data, optSchema])
 
   const changeValue = React.useCallback(
     (editingFieldPath, columnId, str) => {

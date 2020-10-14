@@ -1,16 +1,12 @@
-import * as R from 'ramda'
 import * as React from 'react'
 import isArray from 'lodash/isArray'
 import isObject from 'lodash/isObject'
-import isString from 'lodash/isString'
-import isNumber from 'lodash/isNumber'
 
 import * as M from '@material-ui/core'
 
-import { ColumnIds } from 'utils/json'
-
 import ButtonExpand from './ButtonExpand'
 import ButtonMenu from './ButtonMenu'
+import Note from './Note'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -49,35 +45,7 @@ function formatValuePreview(x) {
   return x
 }
 
-function NoteKey() {
-  const required = true
-  return required ? '*' : ''
-}
-
-function NoteValue({ value }) {
-  return R.cond([
-    [isArray, () => 'arr'],
-    [isObject, () => 'obj'],
-    [isString, () => 'str'],
-    [isNumber, () => 'num'],
-    [isNumber, () => 'num'],
-    [R.T, () => 'nothing'],
-  ])(value)
-}
-
-function Note({ columnId, value }) {
-  if (columnId === ColumnIds.Key) {
-    return <NoteKey value={value} />
-  }
-
-  if (columnId === ColumnIds.Value) {
-    return <NoteValue value={value} />
-  }
-
-  throw new Error('Wrong columnId')
-}
-
-export default function Preview({ columnId, value, onExpand, onMenu }) {
+export default function Preview({ columnId, data, value, onExpand, onMenu }) {
   const classes = useStyles()
 
   return (
@@ -90,7 +58,7 @@ export default function Preview({ columnId, value, onExpand, onMenu }) {
 
       <ButtonMenu
         className={classes.menu}
-        note={<Note {...{ columnId, value }} />}
+        note={<Note {...{ columnId, required: data.required, value }} />}
         onClick={onMenu}
       />
     </div>

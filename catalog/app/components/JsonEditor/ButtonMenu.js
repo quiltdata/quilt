@@ -10,9 +10,9 @@ const useStyles = M.makeStyles((t) => ({
   },
 
   note: {
-    color: '#222',
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.caption.fontSize,
+    marginRight: t.spacing(0.5),
   },
 }))
 

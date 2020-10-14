@@ -66,7 +66,7 @@ export default function KeyCell({
             onChange,
             onExpand: () => onExpand(fieldPath),
             onMenu,
-            row,
+            data: row.original || {},
             value,
           }}
         />
