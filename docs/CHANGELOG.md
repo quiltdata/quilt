@@ -7,7 +7,7 @@
 ## Catalog
 !-->
 
-# unreleased - YYYY-MM-DD
+# 3.2.1rc1 - 2020-10-14
 ## Python API
 * [Performance] Improve performance of hashing of S3 files
   ([#1816](https://github.com/quiltdata/quilt/issues/1816),
@@ -20,8 +20,6 @@
   ([#1793](https://github.com/quiltdata/quilt/issues/1793))
 * [Fixed] Fix a crash of `list-packages` command
   ([#1852](https://github.com/quiltdata/quilt/issues/1852))
-
-## Catalog
 
 # 3.2.0 - 2020-09-08 - Package Registry Refactor
 ## Python:
