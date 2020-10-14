@@ -233,13 +233,15 @@ class TestSearch(TestCase):
             'index': 'bucket_packages',
             'body': {'custom': 'body'},
             'size': 42,
+            'from': 10,
             '_source': ['great', 'expectations']
         }
 
-        url = f'https://www.example.com:443/{query["index"]}/_search?' + urlencode(dict(
-            _source='great,expectations',
-            size=42,
-        ))
+        url = f'https://www.example.com:443/{query["index"]}/_search?' + urlencode({
+            '_source': 'great,expectations',
+            'size': 42,
+            'from': 10,
+        })
 
         def _callback(request):
             payload = json.loads(request.body)
