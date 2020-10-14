@@ -66,19 +66,17 @@ export default function KeyCell({
 
   return (
     <div onDoubleClick={onDoubleClick}>
-      <div>
-        <ValueComponent
-          {...{
-            menuAnchorRef,
-            columnId: column.id,
-            onChange,
-            onExpand: () => onExpand(fieldPath),
-            onMenu: onMenuOpenInternal,
-            data: row.original || {},
-            value,
-          }}
-        />
-      </div>
+      <ValueComponent
+        {...{
+          menuAnchorRef,
+          columnId: column.id,
+          onChange,
+          onExpand: () => onExpand(fieldPath),
+          onMenu: onMenuOpenInternal,
+          data: row.original || {},
+          value,
+        }}
+      />
 
       {hasKeyMenu && (
         <CellMenu

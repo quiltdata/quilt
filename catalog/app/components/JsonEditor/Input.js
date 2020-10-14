@@ -32,52 +32,41 @@ export default function Input({
   onChange,
   onExpand,
   onMenu,
-  value: initialValue,
+  value: originalValue,
 }) {
   const classes = useStyles()
 
-  const [value, setValue] = React.useState(initialValue)
+  const [value, setValue] = React.useState(originalValue)
+  const [valueStr, setValueStr] = React.useState(JSON.stringify(originalValue))
 
   const onChangeInternal = React.useCallback(
     (event) => {
-      setValue(event.target.value)
+      setValue(parseJSON(event.target.value))
+      setValueStr(event.target.value)
     },
-    [setValue],
+    [setValue, setValueStr],
   )
 
   const onBlur = React.useCallback(() => {
-    const newValue = parseJSON(value)
-    setValue(newValue)
-    onChange(newValue)
-  }, [onChange, setValue, value])
-
-  const onFocus = React.useCallback(() => {
-    if (isObject(value)) {
-      setValue(JSON.stringify(value))
-    }
-  }, [setValue, value])
+    onChange(value)
+  }, [onChange, value])
 
   return (
     <M.InputBase
       autoFocus
       startAdornment={
-        isObject(value) && <ButtonExpand onClick={() => onExpand(fieldPath)} />
+        isObject(originalValue) && <ButtonExpand onClick={() => onExpand(fieldPath)} />
       }
       endAdornment={
-        <ButtonMenu
-          className={classes.menu}
-          note={<Note {...{ columnId, required: data.required, value }} />}
-          onClick={onMenu}
-        />
+        <ButtonMenu note={<Note {...{ columnId, data, value }} />} onClick={onMenu} />
       }
       className={cx(classes.root, {
         [classes.rootKey]: columnId === ColumnIds.Key,
         [classes.rootValue]: columnId === ColumnIds.Value,
       })}
-      value={value}
+      value={valueStr}
       onChange={onChangeInternal}
       onBlur={onBlur}
-      onFocus={onFocus}
       placeholder={
         {
           [ColumnIds.Key]: i18nMsgs.key,

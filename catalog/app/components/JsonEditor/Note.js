@@ -1,9 +1,10 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import cx from 'classnames'
 import isArray from 'lodash/isArray'
+import isNumber from 'lodash/isNumber'
 import isObject from 'lodash/isObject'
 import isString from 'lodash/isString'
-import isNumber from 'lodash/isNumber'
 
 import * as M from '@material-ui/core'
 
@@ -14,10 +15,36 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.text.secondary,
   },
 
+  mismatch: {
+    color: t.palette.error.main,
+  },
+
   required: {
     color: t.palette.error.main,
   },
 }))
+
+function getTypeAnnotation(value) {
+  return R.cond([
+    [isArray, () => 'arr'],
+    [isObject, () => 'obj'],
+    [isString, () => 'str'],
+    [isNumber, () => 'num'],
+    [R.T, () => 'nothing'],
+  ])(value)
+}
+
+function doesTypeMatch(value, originalType) {
+  // `typeof value === originalType`
+  // forbidden by eslint rules
+  return R.cond([
+    [isArray, () => originalType === 'array'],
+    [isObject, () => originalType === 'object'],
+    [isString, () => originalType === 'string'],
+    [isNumber, () => originalType === 'number'],
+    [R.T, () => false],
+  ])(value)
+}
 
 function NoteKey({ required }) {
   const classes = useStyles()
@@ -25,30 +52,27 @@ function NoteKey({ required }) {
   return <span className={classes.required}>{required && '*'}</span>
 }
 
-function NoteValue({ value }) {
+function NoteValue({ originalType, value }) {
   const classes = useStyles()
 
   return (
-    <span className={classes.default}>
-      {R.cond([
-        [isArray, () => 'arr'],
-        [isObject, () => 'obj'],
-        [isString, () => 'str'],
-        [isNumber, () => 'num'],
-        [isNumber, () => 'num'],
-        [R.T, () => 'nothing'],
-      ])(value)}
+    <span
+      className={cx(classes.default, {
+        [classes.mismatch]: !doesTypeMatch(value, originalType),
+      })}
+    >
+      {getTypeAnnotation(value)}
     </span>
   )
 }
 
-export default function Note({ columnId, required, value }) {
+export default function Note({ columnId, data, value }) {
   if (columnId === ColumnIds.Key) {
-    return <NoteKey required={required} value={value} />
+    return <NoteKey required={data.required} value={value} />
   }
 
   if (columnId === ColumnIds.Value) {
-    return <NoteValue value={value} />
+    return <NoteValue value={value} originalType={data.valueType} />
   }
 
   throw new Error('Wrong columnId')

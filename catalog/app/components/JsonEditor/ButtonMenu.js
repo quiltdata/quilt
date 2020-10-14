@@ -8,6 +8,10 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.divider,
     cursor: 'pointer',
     height: 'auto',
+
+    '&:hover': {
+      color: t.palette.text.primary,
+    },
   },
 
   note: {

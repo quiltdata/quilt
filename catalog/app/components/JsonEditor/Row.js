@@ -17,7 +17,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 
   value: {
-    width: t.spacing(36),
+    width: t.spacing(49),
   },
 }))
 

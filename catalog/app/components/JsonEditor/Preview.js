@@ -66,7 +66,7 @@ export default function Preview({
       <ButtonMenu
         ref={menuAnchorRef}
         className={classes.menu}
-        note={<Note {...{ columnId, required: data.required, value }} />}
+        note={<Note {...{ columnId, data, value }} />}
         onClick={onMenu}
       />
     </div>
