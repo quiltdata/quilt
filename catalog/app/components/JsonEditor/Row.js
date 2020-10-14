@@ -8,8 +8,6 @@ import { ColumnIds } from './State'
 const useStyles = M.makeStyles((t) => ({
   root: {},
 
-  rootSelected: {},
-
   cell: {
     padding: 0,
   },
@@ -33,34 +31,27 @@ export default function Row({
 }) {
   const classes = useStyles()
 
-  const [selected, setSelected] = React.useState(false)
-
   // TODO: add RowWrapper
   //       use it for AddRow
   return (
-    <M.ClickAwayListener onClickAway={() => setSelected(false)}>
-      <M.TableRow
-        className={cx({ [classes.rootSelected]: selected })}
-        onClick={() => setSelected(true)}
-      >
-        {cells.map((cell) => (
-          <M.TableCell
-            {...cell.getCellProps()}
-            className={cx(classes.cell, {
-              [classes.key]: cell.column.id === ColumnIds.Key,
-              [classes.value]: cell.column.id === ColumnIds.Value,
-            })}
-          >
-            {cell.render('Cell', {
-              columnPath,
-              menu,
-              onExpand,
-              onMenuOpen,
-              onMenuSelect,
-            })}
-          </M.TableCell>
-        ))}
-      </M.TableRow>
-    </M.ClickAwayListener>
+    <M.TableRow>
+      {cells.map((cell) => (
+        <M.TableCell
+          {...cell.getCellProps()}
+          className={cx(classes.cell, {
+            [classes.key]: cell.column.id === ColumnIds.Key,
+            [classes.value]: cell.column.id === ColumnIds.Value,
+          })}
+        >
+          {cell.render('Cell', {
+            columnPath,
+            menu,
+            onExpand,
+            onMenuOpen,
+            onMenuSelect,
+          })}
+        </M.TableCell>
+      ))}
+    </M.TableRow>
   )
 }

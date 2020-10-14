@@ -7,6 +7,7 @@ import { useTable } from 'react-table'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
 import Row from './Row'
@@ -189,33 +190,16 @@ function Table({
                   />
                 )
               })}
-              {/* TODO: AddRow component */}
-              <M.TableRow>
-                <M.TableCell className={classes.tableCell}>
-                  <Cell
-                    columnPath={columnPath}
-                    menu={menu}
-                    onExpand={onExpand}
-                    onMenuOpen={onMenuOpen}
-                    onMenuSelect={onMenuSelect}
-                    updateMyData={updateMyData}
-                    column={{
-                      id: ColumnIds.Key,
-                    }}
-                    row={{
-                      index: rows.length + 1,
-                      values: {
-                        [ColumnIds.Key]: '',
-                        [ColumnIds.Value]: '',
-                      },
-                    }}
-                    value=""
-                  />
-                </M.TableCell>
-                <M.TableCell className={classes.tableCell}>
-                  Add new key/value pair
-                </M.TableCell>
-              </M.TableRow>
+
+              <AddRow
+                {...{
+                  columnPath,
+                  menu,
+                  onExpand,
+                  onMenuOpen,
+                  onMenuSelect,
+                }}
+              />
             </M.TableBody>
           </M.Table>
         </M.TableContainer>
