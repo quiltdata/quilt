@@ -32,7 +32,7 @@ const LANGS = {
   ocaml: /\.mli?$/,
   perl: /\.pl$/,
   php: /\.php[3-7]?$/,
-  plaintext: /((^license)|(^readme)|(^\.\w*(ignore|rc|config))|(\.txt)|(\.(c|t)sv)|(\.(big)?bed)|(\.cef)|(\.fa)|(\.fsa)|(\.fasta)|(\.(san)?fastq)|(\.fq)|(\.sam)|(\.gff(2|3)?)|(\.gtf)|(\.index)|(\.readme)|(changelog))$/,
+  plaintext: /((^license)|(^readme)|(^\.\w*(ignore|rc|config))|(\.txt)|(\.(c|t)sv)|(\.(big)?bed)|(\.cef)|(\.fa)|(\.fsa)|(\.fasta)|(\.(san)?fastq)|(\.fq)|(\.sam)|(\.gff(2|3)?)|(\.gtf)|(\.index)|(\.readme)|(changelog)|(\.pdbqt))$/,
   python: /\.(py|gyp)$/,
   r: /\.r$/,
   ruby: /\.rb$/,
