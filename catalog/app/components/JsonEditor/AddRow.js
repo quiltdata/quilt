@@ -17,7 +17,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function AddRow({ columnPath, menu, onExpand, onMenuOpen, onMenuSelect }) {
+export default function AddRow({ columnPath, menu, onAdd, onExpand, onMenuOpen }) {
   const classes = useStyles()
 
   const [value, setValue] = React.useState('')
@@ -29,9 +29,16 @@ export default function AddRow({ columnPath, menu, onExpand, onMenuOpen, onMenuS
     [setValue],
   )
 
+  const onMenuSelect = React.useCallback(
+    (_, newValue) => {
+      setValue(newValue)
+    },
+    [setValue],
+  )
+
   const onSubmit = React.useCallback(() => {
-    console.log('SUBMIT', value)
-  }, [value])
+    onAdd(columnPath, value)
+  }, [columnPath, onAdd, value])
 
   return (
     <M.TableRow>
@@ -55,8 +62,9 @@ export default function AddRow({ columnPath, menu, onExpand, onMenuOpen, onMenuS
         />
       </M.TableCell>
       <M.TableCell className={classes.buttonCell}>
-        <M.Button variant="contained" size="small" onClick={onSubmit}>
-          Add new key/value pair
+        <M.Button disabled={!value} variant="contained" size="small" onClick={onSubmit}>
+          <M.Icon>add</M.Icon>
+          Add field
         </M.Button>
       </M.TableCell>
     </M.TableRow>

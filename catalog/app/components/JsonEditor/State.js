@@ -114,7 +114,17 @@ export default function useJson(obj, optSchema = {}) {
     setMenu([])
   }, [setMenu])
 
+  const addRow = React.useCallback(
+    (addFieldPath, newKey) => {
+      const newKeyPath = R.init(addFieldPath).concat([newKey])
+      const value = ''
+      setData(R.assocPath(newKeyPath, value, data))
+    },
+    [setData, data],
+  )
+
   return {
+    addRow,
     changeValue,
     columns,
     errors,

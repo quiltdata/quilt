@@ -46,8 +46,9 @@ export default function Input({
   )
 
   const onBlur = React.useCallback(() => {
-    setValue(parseJSON(value))
-    onChange(value)
+    const newValue = parseJSON(value)
+    setValue(newValue)
+    onChange(newValue)
   }, [onChange, setValue, value])
 
   const onFocus = React.useCallback(() => {

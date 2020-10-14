@@ -39,10 +39,18 @@ export default function KeyCell({
 
   const closeMenu = React.useCallback(() => setMenuOpened(false), [setMenuOpened])
 
-  const onMenu = React.useCallback(() => {
+  const onMenuOpenInternal = React.useCallback(() => {
     setMenuOpened(true)
     onMenuOpen(fieldPath, column.id)
   }, [column, fieldPath, onMenuOpen, setMenuOpened])
+
+  const onMenuSelectInternal = React.useCallback(
+    (menuKey) => {
+      setMenuOpened(false)
+      onMenuSelect(fieldPath, menuKey)
+    },
+    [fieldPath, onMenuSelect, setMenuOpened],
+  )
 
   const onChange = React.useCallback(
     (newValue) => {
@@ -64,7 +72,7 @@ export default function KeyCell({
             columnId: column.id,
             onChange,
             onExpand: () => onExpand(fieldPath),
-            onMenu,
+            onMenu: onMenuOpenInternal,
             data: row.original || {},
             value,
           }}
@@ -75,7 +83,7 @@ export default function KeyCell({
         <CellMenu
           anchorRef={menuAnchorRef}
           menu={menu}
-          onClick={(menuKey) => onMenuSelect(fieldPath, menuKey)}
+          onClick={onMenuSelectInternal}
           onClose={closeMenu}
         />
       )}

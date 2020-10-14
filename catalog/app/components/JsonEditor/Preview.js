@@ -25,7 +25,7 @@ const useStyles = M.makeStyles((t) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    maxWidth: t.spacing(26),
+    maxWidth: t.spacing(35),
   },
 
   menu: {
