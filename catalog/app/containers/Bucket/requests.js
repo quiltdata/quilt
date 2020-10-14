@@ -803,7 +803,9 @@ export const countPackageRevisions = ({ req, bucket, name }) =>
     action: 'packages',
     body: JSON.stringify({ query: { term: { handle: name } } }),
     size: 0,
-  }).then(R.path(['hits', 'total']))
+  })
+    .then(R.path(['hits', 'total']))
+    .catch(errors.catchErrors())
 
 function tryParse(s) {
   try {
