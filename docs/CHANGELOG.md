@@ -7,6 +7,13 @@
 ## Catalog
 !-->
 
+# unreleased - YYYY-MM-DD
+## Python API
+
+## CLI
+
+## Catalog
+
 # 3.2.1rc1 - 2020-10-14
 ## Python API
 * [Performance] Improve performance of hashing of S3 files
