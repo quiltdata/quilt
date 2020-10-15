@@ -61,12 +61,6 @@ const initialSchema = {
     more: {
       type: 'string',
     },
-    version: {
-      type: 'string',
-    },
-    message: {
-      type: 'string',
-    },
     user_meta: {
       type: 'object',
       properties: {
@@ -91,6 +85,12 @@ const initialSchema = {
         },
       },
       required: ['id', 'type', 'name', 'ppu', 'batters'],
+    },
+    message: {
+      type: 'string',
+    },
+    version: {
+      type: 'string',
     },
   },
   required: ['version', 'message', 'user_meta'],
