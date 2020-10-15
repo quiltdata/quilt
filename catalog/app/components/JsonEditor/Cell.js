@@ -1,19 +1,27 @@
 import * as React from 'react'
 
+import isString from 'lodash/isString'
+
 import * as M from '@material-ui/core'
 
 import Input from './Input'
 import Preview from './Preview'
-import { ColumnIds } from './State'
+import { Actions, ColumnIds } from './State'
 
 function CellMenu({ anchorRef, menu, onClose, onClick }) {
   return (
     <M.Menu anchorEl={anchorRef.current} onClose={onClose} open>
-      {menu.map((key) => (
-        <M.MenuItem key={key} onClick={() => onClick(key)}>
-          {key}
-        </M.MenuItem>
-      ))}
+      {menu.map((item) =>
+        isString(item) ? (
+          <M.MenuItem key={item} onClick={() => onClick(item)}>
+            {item}
+          </M.MenuItem>
+        ) : (
+          <M.MenuItem key={item.title} onClick={() => onClick(item)}>
+            {item.title}
+          </M.MenuItem>
+        ),
+      )}
     </M.Menu>
   )
 }
@@ -23,6 +31,7 @@ export default function KeyCell({
   columnPath,
   onExpand,
   onMenuSelect,
+  onMenuAction,
   row,
   updateMyData,
   value,
@@ -42,11 +51,17 @@ export default function KeyCell({
   }, [setMenuOpened])
 
   const onMenuSelectInternal = React.useCallback(
-    (menuKey) => {
+    (menuItem) => {
       setMenuOpened(false)
-      onMenuSelect(fieldPath, menuKey)
+
+      if (isString(menuItem)) {
+        // TODO: should be "select" action
+        onMenuSelect(fieldPath, menuItem)
+      } else {
+        onMenuAction(fieldPath, menuItem)
+      }
     },
-    [fieldPath, onMenuSelect, setMenuOpened],
+    [fieldPath, onMenuAction, onMenuSelect, setMenuOpened],
   )
 
   const onChange = React.useCallback(
@@ -63,6 +78,11 @@ export default function KeyCell({
 
   const hasKeyMenu = menuOpened && column.id === ColumnIds.Key
   const hasValueMenu = menuOpened && column.id === ColumnIds.Value
+
+  const keyMenu = (row.original && key === '' ? row.original.keysList : []).concat({
+    action: Actions.RemoveField,
+    title: 'Remove',
+  })
 
   return (
     <div onDoubleClick={onDoubleClick}>
@@ -81,7 +101,7 @@ export default function KeyCell({
       {hasKeyMenu && (
         <CellMenu
           anchorRef={menuAnchorRef}
-          menu={row.original ? row.original.keysList : []}
+          menu={keyMenu}
           onClick={onMenuSelectInternal}
           onClose={closeMenu}
         />

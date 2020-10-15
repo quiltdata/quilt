@@ -141,6 +141,7 @@ function Table({
   onAddRow,
   onCollapse,
   onExpand,
+  onMenuAction,
   onMenuSelect,
   updateMyData,
 }) {
@@ -182,6 +183,7 @@ function Table({
                       cells: row.cells,
                       columnPath,
                       onExpand,
+                      onMenuAction,
                       onMenuSelect,
                     }}
                   />
@@ -218,9 +220,21 @@ export default function JsonEditor() {
     [],
   )
 
-  const { addRow, changeValue, columns: data, errors, fieldPath, setFieldPath } = useJson(
-    initialData,
-    initialSchema,
+  const {
+    addRow,
+    changeValue,
+    columns: data,
+    errors,
+    fieldPath,
+    makeAction,
+    setFieldPath,
+  } = useJson(initialData, initialSchema)
+
+  const onMenuAction = React.useCallback(
+    (contextFieldPath, action) => {
+      makeAction(contextFieldPath, ColumnIds.Key, action)
+    },
+    [makeAction],
   )
 
   const onMenuSelect = React.useCallback(
@@ -247,6 +261,7 @@ export default function JsonEditor() {
               onAddRow: addRow,
               onCollapse,
               onExpand: setFieldPath,
+              onMenuAction,
               onMenuSelect,
               updateMyData: changeValue,
             }}

@@ -8,6 +8,10 @@ export const ColumnIds = {
   Value: 'value',
 }
 
+export const Actions = {
+  RemoveField: 'remove_field',
+}
+
 export function parseJSON(str) {
   try {
     return JSON.parse(str)
@@ -112,18 +116,34 @@ export default function useJson(obj, optSchema = {}) {
     return [rootColumn, ...expandedColumns]
   }, [fieldPath, data, optSchema, sortOrder])
 
+  const makeAction = React.useCallback(
+    (contextFieldPath, columnId, actionItem) => {
+      switch (actionItem.action) {
+        case Actions.RemoveField:
+          removeField(contextFieldPath, actionItem)
+          break
+        // no default
+      }
+    },
+    [removeField],
+  )
+
+  const removeField = React.useCallback(
+    (removingFieldPath) => {
+      const newData = R.dissocPath(removingFieldPath, data)
+      setData(newData)
+      validateOnSchema(newData)
+    },
+    [data, setData, validateOnSchema],
+  )
+
   const changeValue = React.useCallback(
     (editingFieldPath, columnId, str) => {
-      let newData = data
-
-      if (columnId === ColumnIds.Key) {
-        // FIXME: add sort order
+      if (columnId !== ColumnIds.Value) {
+        return
       }
 
-      if (columnId === ColumnIds.Value) {
-        newData = R.assocPath(editingFieldPath, str, data)
-      }
-
+      const newData = R.assocPath(editingFieldPath, str, data)
       setData(newData)
       validateOnSchema(newData)
     },
@@ -148,6 +168,7 @@ export default function useJson(obj, optSchema = {}) {
     columns,
     errors,
     fieldPath,
+    makeAction,
     setFieldPath,
   }
 }
