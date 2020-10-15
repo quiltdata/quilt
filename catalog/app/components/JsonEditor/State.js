@@ -16,6 +16,8 @@ export function parseJSON(str) {
   }
 }
 
+const initialSortCounter = 10000000
+
 function getSchemaPath(objPath) {
   return objPath.reduce((memo, key) => memo.concat(['properties'], key), [])
 }
@@ -39,10 +41,10 @@ function mapKeys(objectOrArray, callback, schemaKeys) {
     }),
     {},
   )
-  const sortIndex = (key) => schemaSort[key] || objSort[key]
+  const getSortIndex = (key) => schemaSort[key] || objSort[key]
   return Object.keys(objectOrArray)
-    .sort((a, b) => sortIndex(a) - sortIndex(b))
-    .map((key) => callback(objectOrArray[key], key))
+    .sort((a, b) => getSortIndex(a) - getSortIndex(b))
+    .map((key) => callback(objectOrArray[key], key, schemaSort[key]))
 }
 
 function getColumn(obj, columnPath, sortOrder, optSchema = {}) {
@@ -55,20 +57,20 @@ function getColumn(obj, columnPath, sortOrder, optSchema = {}) {
     R.pathOr({}, schemaPath.concat('properties'), optSchema),
   )
 
-  // FIXME: add sort order
-
   // { key1: value1, key2: value2 }
   // becomes
   // [{ key: 'key1', value: 'value1'}, { key: 'key2', value: 'value2'}]
   return mapKeys(
     nestedObj,
-    (value, key) => ({
+    (value, key, schemaSortIndex) => ({
       [ColumnIds.Key]: key,
       [ColumnIds.Value]: value,
 
       // These will be available at row.original
       keysList: schemedKeysList,
       required: requiredKeys.includes(key),
+      sortIndex:
+        schemaSortIndex || sortOrder[columnPath.concat(key)] || initialSortCounter,
       valueType: R.pathOr(
         undefined,
         schemaPath.concat(['properties', key, 'type']),
@@ -76,7 +78,7 @@ function getColumn(obj, columnPath, sortOrder, optSchema = {}) {
       ),
     }),
     schemedKeysList,
-  )
+  ).sort((a, b) => a.sortIndex - b.sortIndex)
 }
 
 export default function useJson(obj, optSchema = {}) {
@@ -86,7 +88,7 @@ export default function useJson(obj, optSchema = {}) {
   const [sortOrder, setSortOder] = React.useState({}) // NOTE: { [pathToKey]: number }
 
   // NOTE: Should be greater than number of keys on schema and object
-  const sortCounter = React.useRef(10000000)
+  const sortCounter = React.useRef(initialSortCounter)
 
   const ajv = new Ajv()
   const validate = ajv.compile(optSchema)
