@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import Ajv from 'ajv'
+import isArray from 'lodash/isArray'
 
 export const ColumnIds = {
   Key: 'key',
@@ -19,24 +20,34 @@ function getSchemaPath(objPath) {
   return objPath.reduce((memo, key) => memo.concat(['properties'], key), [])
 }
 
+function mapKeys(objectOrArray, callback) {
+  if (isArray(objectOrArray)) {
+    return objectOrArray.map(callback)
+  }
+
+  return Object.keys(objectOrArray).map((key) => callback(objectOrArray[key], key))
+}
+
 function getColumn(obj, columnPath, optSchema = {}) {
   const nestedObj = R.path(columnPath, obj)
 
   const schemaPath = getSchemaPath(columnPath)
   const requiredKeys = R.pathOr([], schemaPath.concat('required'), optSchema)
 
-  const keysList = Object.keys(R.pathOr({}, schemaPath.concat('properties'), optSchema))
+  const schemedKeysList = Object.keys(
+    R.pathOr({}, schemaPath.concat('properties'), optSchema),
+  )
 
   // FIXME: add sort order
 
   // { key1: value1, key2: value2 }
   // becomes
   // [{ key: 'key1', value: 'value1'}, { key: 'key2', value: 'value2'}]
-  return Object.keys(nestedObj).map((key) => ({
+  return mapKeys(nestedObj, (value, key) => ({
     [ColumnIds.Key]: key,
-    [ColumnIds.Value]: nestedObj[key],
+    [ColumnIds.Value]: value,
 
-    keysList,
+    keysList: schemedKeysList,
     required: requiredKeys.includes(key),
     valueType: R.pathOr(
       undefined,

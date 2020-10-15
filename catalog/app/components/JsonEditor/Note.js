@@ -36,8 +36,8 @@ function getTypeAnnotation(value) {
 }
 
 function doesTypeMatch(value, originalType) {
-  // `typeof value === originalType`
-  // forbidden by eslint rules
+  // NOTE: `typeof value === originalType`
+  //       forbidden by eslint rules
   return R.cond([
     [isArray, () => originalType === 'array'],
     [isObject, () => originalType === 'object'],
