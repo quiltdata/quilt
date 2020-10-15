@@ -15,6 +15,7 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     height: t.spacing(6),
     padding: t.spacing(1),
+    position: 'relative',
     width: '100%',
   },
 

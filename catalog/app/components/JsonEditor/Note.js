@@ -22,6 +22,9 @@ const useStyles = M.makeStyles((t) => ({
 
   required: {
     color: t.palette.error.main,
+    left: 0,
+    position: 'absolute',
+    top: t.spacing(1),
   },
 }))
 

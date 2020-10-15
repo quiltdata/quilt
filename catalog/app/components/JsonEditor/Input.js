@@ -17,6 +17,7 @@ const i18nMsgs = {
 const useStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(1),
+    position: 'relative',
     width: '100%',
   },
 
