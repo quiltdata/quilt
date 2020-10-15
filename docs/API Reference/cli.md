@@ -52,7 +52,21 @@ Install a package or a collection of packages
 positional arguments:
   name                  Name can be of two representations:
                         - Name of package, in the USER/PKG[/PATH] format ([/PATH] is deprecated, use --path parameter instead)
-                        - Path to quilt.yaml package dependency file.
+                        - Path to quilt.yaml or quilt.yml package dependency file.
+                          Syntax:
+                              version: <STR>
+                              registries: <STR: url scheme>
+                              packages:<LIST(STR: usr/pkg[:TAG|HASH])>
+                          Example:
+                              version: 1.0
+                              registries:
+                                  s3://some-bucket:
+                                      packages:
+                                          - ash/gpt3:def132
+                                          - akarve/lmnb1:c698234
+                                  s3://another-bucket:
+                                      packages:
+                                          - ash/gpt3:def132
 
 optional arguments:
   -h, --help            show this help message and exit

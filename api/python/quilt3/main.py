@@ -347,7 +347,21 @@ def create_parser():
         "name",
         help="Name can be of two representations:\n"
              "- Name of package, in the USER/PKG[/PATH] format ([/PATH] is deprecated, use --path parameter instead)\n"
-             "- Path to quilt.yaml package dependency file.",
+             "- Path to quilt.yaml or quilt.yml package dependency file.\n"
+             "  Syntax:\n"
+             "      version: <STR>\n"
+             "      registries: <STR: url scheme>\n"
+             "      packages:<LIST(STR: usr/pkg[:TAG|HASH])>\n"
+             "  Example:\n"
+             "      version: 1.0\n"
+             "      registries:\n"
+             "          s3://some-bucket:\n"
+             "              packages:\n"
+             "                  - ash/gpt3:def132\n"
+             "                  - akarve/lmnb1:c698234\n"
+             "          s3://another-bucket:\n"
+             "              packages:\n"
+             "                  - ash/gpt3:def132",
         type=str
     )
     install_p.add_argument(

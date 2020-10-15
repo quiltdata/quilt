@@ -406,8 +406,10 @@ __Returns__
 a PackageEntry
 
 ## __slots__
-list() -> new empty list
-list(iterable) -> new list initialized from iterable's items
+Built-in mutable sequence.
+
+If no argument is given, the constructor creates a new empty list.
+The argument must be an iterable if specified.
 
 ## physical_keys
 
