@@ -39,7 +39,7 @@ function getColumn(obj, columnPath, optSchema = {}) {
     keysList,
     required: requiredKeys.includes(key),
     valueType: R.pathOr(
-      'string',
+      undefined,
       schemaPath.concat(['properties', key, 'type']),
       optSchema,
     ),

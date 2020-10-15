@@ -5,6 +5,7 @@ import isArray from 'lodash/isArray'
 import isNumber from 'lodash/isNumber'
 import isObject from 'lodash/isObject'
 import isString from 'lodash/isString'
+import isUndefined from 'lodash/isUndefined'
 
 import * as M from '@material-ui/core'
 
@@ -42,7 +43,7 @@ function doesTypeMatch(value, originalType) {
     [isObject, () => originalType === 'object'],
     [isString, () => originalType === 'string'],
     [isNumber, () => originalType === 'number'],
-    [R.T, () => false],
+    [R.T, isUndefined],
   ])(value)
 }
 
@@ -55,14 +56,21 @@ function NoteKey({ required }) {
 function NoteValue({ originalType, value }) {
   const classes = useStyles()
 
+  const mismatch = !doesTypeMatch(value, originalType)
+  const typeHelp = originalType
+    ? `Value should be of  ${originalType} type`
+    : 'Key/value is not restricted by schema'
+
   return (
-    <span
-      className={cx(classes.default, {
-        [classes.mismatch]: !doesTypeMatch(value, originalType),
-      })}
-    >
-      {getTypeAnnotation(value)}
-    </span>
+    <M.Tooltip title={typeHelp}>
+      <span
+        className={cx(classes.default, {
+          [classes.mismatch]: mismatch,
+        })}
+      >
+        {getTypeAnnotation(value)}
+      </span>
+    </M.Tooltip>
   )
 }
 
