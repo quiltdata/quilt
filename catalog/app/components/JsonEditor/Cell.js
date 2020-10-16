@@ -1,7 +1,5 @@
 import * as React from 'react'
 
-import isString from 'lodash/isString'
-
 import * as M from '@material-ui/core'
 
 import Input from './Input'
@@ -11,17 +9,11 @@ import { Actions, ColumnIds } from './State'
 function CellMenu({ anchorRef, menu, onClose, onClick }) {
   return (
     <M.Menu anchorEl={anchorRef.current} onClose={onClose} open>
-      {menu.map((item) =>
-        isString(item) ? (
-          <M.MenuItem key={item} onClick={() => onClick(item)}>
-            {item}
-          </M.MenuItem>
-        ) : (
-          <M.MenuItem key={item.title} onClick={() => onClick(item)}>
-            {item.title}
-          </M.MenuItem>
-        ),
-      )}
+      {menu.map((item) => (
+        <M.MenuItem key={item.title} onClick={() => onClick(item)}>
+          {item.title}
+        </M.MenuItem>
+      ))}
     </M.Menu>
   )
 }
@@ -30,7 +22,6 @@ export default function KeyCell({
   column,
   columnPath,
   onExpand,
-  onMenuSelect,
   onMenuAction,
   row,
   updateMyData,
@@ -50,18 +41,13 @@ export default function KeyCell({
     setMenuOpened(true)
   }, [setMenuOpened])
 
-  const onMenuSelectInternal = React.useCallback(
+  const onMenuSelect = React.useCallback(
     (menuItem) => {
       setMenuOpened(false)
 
-      if (isString(menuItem)) {
-        // TODO: should be "select" action
-        onMenuSelect(fieldPath, menuItem)
-      } else {
-        onMenuAction(fieldPath, menuItem)
-      }
+      onMenuAction(fieldPath, menuItem)
     },
-    [fieldPath, onMenuAction, onMenuSelect, setMenuOpened],
+    [fieldPath, onMenuAction, setMenuOpened],
   )
 
   const onChange = React.useCallback(
@@ -79,10 +65,15 @@ export default function KeyCell({
   const hasKeyMenu = menuOpened && column.id === ColumnIds.Key
   const hasValueMenu = menuOpened && column.id === ColumnIds.Value
 
-  const keyMenu = (row.original && key === '' ? row.original.keysList : []).concat({
-    action: Actions.RemoveField,
-    title: 'Remove',
-  })
+  const keyMenu = (row.original ? row.original.keysList : [])
+    .map((title) => ({
+      action: Actions.Select,
+      title,
+    }))
+    .concat({
+      action: Actions.RemoveField,
+      title: 'Remove',
+    })
 
   return (
     <div onDoubleClick={onDoubleClick}>
@@ -102,7 +93,7 @@ export default function KeyCell({
         <CellMenu
           anchorRef={menuAnchorRef}
           menu={keyMenu}
-          onClick={onMenuSelectInternal}
+          onClick={onMenuSelect}
           onClose={closeMenu}
         />
       )}
@@ -110,8 +101,8 @@ export default function KeyCell({
       {hasValueMenu && (
         <CellMenu
           anchorRef={menuAnchorRef}
-          menu={['string']}
-          onClick={onMenuSelectInternal}
+          menu={[{ title: 'string' }]}
+          onClick={onMenuSelect}
           onClose={closeMenu}
         />
       )}

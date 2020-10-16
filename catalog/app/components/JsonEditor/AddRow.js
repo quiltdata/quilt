@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Cell from './Cell'
-import { ColumnIds } from './State'
+import { Actions, ColumnIds } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   inputCell: {
@@ -29,9 +29,11 @@ export default function AddRow({ columnPath, onAdd, onExpand }) {
     [setValue],
   )
 
-  const onMenuSelect = React.useCallback(
-    (_, newValue) => {
-      setValue(newValue)
+  const onMenuAction = React.useCallback(
+    (_, action) => {
+      if (!Actions.Select) return
+
+      setValue(action.title)
     },
     [setValue],
   )
@@ -47,7 +49,7 @@ export default function AddRow({ columnPath, onAdd, onExpand }) {
           {...{
             columnPath,
             onExpand,
-            onMenuSelect,
+            onMenuAction,
             updateMyData: onChange,
             column: {
               id: ColumnIds.Key,

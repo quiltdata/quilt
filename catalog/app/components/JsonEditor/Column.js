@@ -39,7 +39,6 @@ export default function Table({
   onCollapse,
   onExpand,
   onMenuAction,
-  onMenuSelect,
   updateMyData,
 }) {
   const columns = React.useMemo(
@@ -93,7 +92,6 @@ export default function Table({
                       columnPath,
                       onExpand,
                       onMenuAction,
-                      onMenuSelect,
                     }}
                   />
                 )

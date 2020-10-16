@@ -21,7 +21,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Row({ cells, columnPath, onExpand, onMenuAction, onMenuSelect }) {
+export default function Row({ cells, columnPath, onExpand, onMenuAction }) {
   const classes = useStyles()
 
   return (
@@ -38,7 +38,6 @@ export default function Row({ cells, columnPath, onExpand, onMenuAction, onMenuS
             columnPath,
             onExpand,
             onMenuAction,
-            onMenuSelect,
           })}
         </M.TableCell>
       ))}

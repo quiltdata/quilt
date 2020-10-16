@@ -10,6 +10,7 @@ export const ColumnIds = {
 
 export const Actions = {
   RemoveField: 'remove_field',
+  Select: 'select',
 }
 
 export function parseJSON(str) {
@@ -122,10 +123,13 @@ export default function useJson(obj, optSchema = {}) {
         case Actions.RemoveField:
           removeField(contextFieldPath, actionItem)
           break
+        case Actions.Select:
+          changeValue(contextFieldPath, ColumnIds.Key, actionItem.title)
+          break
         // no default
       }
     },
-    [removeField],
+    [changeValue, removeField],
   )
 
   const removeField = React.useCallback(

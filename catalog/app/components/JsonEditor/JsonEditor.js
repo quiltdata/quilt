@@ -111,13 +111,6 @@ export default function JsonEditor() {
     [makeAction],
   )
 
-  const onMenuSelect = React.useCallback(
-    (contextFieldPath, value) => {
-      changeValue(contextFieldPath, ColumnIds.Key, value)
-    },
-    [changeValue],
-  )
-
   const onCollapse = React.useCallback(() => {
     setFieldPath(R.init(fieldPath))
   }, [fieldPath, setFieldPath])
@@ -135,7 +128,6 @@ export default function JsonEditor() {
               onCollapse,
               onExpand: setFieldPath,
               onMenuAction,
-              onMenuSelect,
               updateMyData: changeValue,
             }}
           />
