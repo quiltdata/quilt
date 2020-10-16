@@ -91,7 +91,7 @@ function getColumn(obj, columnPath, sortOrder, optSchema = {}) {
 function convertType(value, typeOf) {
   switch (typeOf) {
     case 'string':
-      return JSON.stringify(value)
+      return JSON.stringify(value, null, 2)
     case 'number':
       return toNumber(value)
     default:

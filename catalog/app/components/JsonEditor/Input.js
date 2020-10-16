@@ -38,7 +38,7 @@ export default function Input({
   const classes = useStyles()
 
   const [value, setValue] = React.useState(originalValue)
-  const [valueStr, setValueStr] = React.useState(JSON.stringify(originalValue))
+  const [valueStr, setValueStr] = React.useState(JSON.stringify(originalValue, null, 2))
 
   const onChangeInternal = React.useCallback(
     (event) => {
