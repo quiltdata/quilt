@@ -86,7 +86,7 @@ const defaultHandlers = [
   [
     R.is(NoESIndex),
     () => (
-      <Message headline="ElasticSearch index does not exist">
+      <Message headline="Oops, no search cluster">
         The bucket owner needs to{' '}
         <StyledLink target="_blank" href={docs}>
           tie this bucket to Quilt
