@@ -18,7 +18,6 @@ Building a package requires providing it with a name. Packages names must follow
 
 To share a package with others via a remote registry you will first need to authenticate against, if you haven't done so already:
 
-
 ```python
 # only need to run this once
 # ie quilt3.config('https://your-catalog-homepage/')
@@ -27,12 +26,6 @@ quilt3.config('https://open.quiltdata.com/')
 # follow the instructions to finish login
 quilt3.login()
 ```
-
-    Launching a web browser...
-    If that didn't work, please visit the following URL: https://open-registry.quiltdata.com/login
-    
-    Enter the code from the webpage: eyJpZCI6ICJiNTYzNDNkZC0xOWQyLTRkMjAtYWY4Yi00N2EyMDEzYjQ5NDEiLCAiY29kZSI6ICJmNjU1NDI0MC1iMWM1LTQ5ZmQtYjRkMi1hZTAzMTU4Y2JkYmMifQ==
-
 
 ## Pushing a package to a remote registry
 

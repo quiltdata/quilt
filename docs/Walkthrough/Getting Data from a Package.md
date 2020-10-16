@@ -4,10 +4,14 @@ The examples in this section use the `aleksey/hurdat` [demo package](https://ope
 ```python
 import quilt3
 p = quilt3.Package.browse('aleksey/hurdat', 's3://quilt-example')
-print(p)
+p
 ```
 
-    Loading manifest: 100%|██████████| 7/7 [00:00<00:00, 8431.97entries/s]
+    Loading manifest: 100%|██████████| 7/7 [00:00<00:00, 8393.40entries/s]
+
+
+
+
 
     (remote Package)
      └─.gitignore
@@ -18,10 +22,7 @@ print(p)
      └─requirements.txt
      └─scripts/
        └─build.py
-    
 
-
-    
 
 
 ## Slicing through a package
@@ -73,9 +74,9 @@ p["notebooks"]["QuickStart.ipynb"].fetch()
 p.fetch()
 ```
 
-    Copying objects: 100%|██████████| 36.7k/36.7k [00:02<00:00, 17.6kB/s]
-    100%|██████████| 36.7k/36.7k [00:01<00:00, 20.5kB/s]
-    Copying objects: 100%|██████████| 39.9k/39.9k [00:02<00:00, 15.1kB/s]
+    Copying objects: 100%|██████████| 36.7k/36.7k [00:01<00:00, 22.7kB/s]
+    100%|██████████| 36.7k/36.7k [00:01<00:00, 24.1kB/s]
+    Copying objects: 100%|██████████| 39.9k/39.9k [00:02<00:00, 16.5kB/s]
 
 
 
@@ -100,7 +101,7 @@ p.fetch()
 p["notebooks"]["QuickStart.ipynb"].fetch("./references/")
 ```
 
-    100%|██████████| 36.7k/36.7k [00:02<00:00, 17.9kB/s]
+    100%|██████████| 36.7k/36.7k [00:01<00:00, 22.5kB/s]
 
 
 
@@ -116,7 +117,7 @@ Alternatively, you can download data directly into memory:
 
 
 ```python
-p["quilt_summarize.json"]()
+p["quilt_summarize.json"].deserialize()
 ```
 
 
@@ -132,7 +133,7 @@ To apply a custom deserializer to your data, pass the function as a parameter to
 ```python
 import yaml
 # returns a dict
-p["quilt_summarize.json"](yaml.safe_load)
+p["quilt_summarize.json"].deserialize(yaml.safe_load)
 ```
 
 

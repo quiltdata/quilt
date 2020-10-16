@@ -61,7 +61,6 @@ quilt3.Package.install(
 
 Note that unless this registry is public, you will need to be logged into a user who has read access to this registry in order to install from it:
 
-
 ```python
 # only need to run this once
 # ie quilt3.config('https://your-catalog-homepage/')
@@ -71,13 +70,7 @@ quilt3.config('https://open.quiltdata.com/')
 quilt3.login()
 ```
 
-    Launching a web browser...
-    If that didn't work, please visit the following URL: https://open-registry.quiltdata.com/login
-    
-    Enter the code from the webpage: eyJpZCI6ICJiNTYzNDNkZC0xOWQyLTRkMjAtYWY4Yi00N2EyMDEzYjQ5NDEiLCAiY29kZSI6ICJkOWQ4OGE4NS02ODMxLTQwZDgtYjcxOC0yZjc0OTc4YWFlY2IifQ==
-
-
-Data files that you download are written to a folder in your local registry by default. You can specify an alternative destination using `dest`:
+Data files that you download are written to a folder in your local registry by default. You can specify an alternative destination using dest:
 
 
 ```python

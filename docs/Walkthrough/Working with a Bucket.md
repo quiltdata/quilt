@@ -12,7 +12,6 @@ b = quilt3.Bucket("s3://quilt-example")
 
 This requires that the bucket is configured to work with Quilt 3. Unless this bucket is public, you will also first need to log into the catalog that controls this bucket:
 
-
 ```python
 # only need to run this once
 # ie quilt3.config('https://your-catalog-homepage/')
@@ -21,12 +20,6 @@ quilt3.config('https://open.quiltdata.com/')
 # follow the instructions to finish login
 quilt3.login()
 ```
-
-    Launching a web browser...
-    If that didn't work, please visit the following URL: https://open-registry.quiltdata.com/login
-    
-    Enter the code from the webpage: eyJpZCI6ICJiNTYzNDNkZC0xOWQyLTRkMjAtYWY4Yi00N2EyMDEzYjQ5NDEiLCAiY29kZSI6ICIxMjg4YzY4Yy0zNTUzLTRiYjgtYWRmMy00YzA1OTdmNzg0MjQifQ==
-
 
 ## Introspecting a bucket
 
