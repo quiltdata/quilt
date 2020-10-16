@@ -91,7 +91,7 @@ const initialData = {
   },
 }
 
-export default function JsonEditor() {
+export default function JsonEditor({ onChange }) {
   const classes = useStyles()
 
   const {
@@ -115,6 +115,16 @@ export default function JsonEditor() {
     setFieldPath(R.init(fieldPath))
   }, [fieldPath, setFieldPath])
 
+  const updateMyData = React.useCallback(
+    (...args) => {
+      const newData = changeValue(...args)
+      if (newData) {
+        onChange(newData)
+      }
+    },
+    [changeValue, onChange],
+  )
+
   return (
     <div className={classes.root}>
       <div className={classes.inner}>
@@ -128,7 +138,7 @@ export default function JsonEditor() {
               onCollapse,
               onExpand: setFieldPath,
               onMenuAction,
-              updateMyData: changeValue,
+              updateMyData,
             }}
           />
         ))}

@@ -170,12 +170,13 @@ export default function useJson(obj, optSchema = {}) {
   const changeValue = React.useCallback(
     (editingFieldPath, columnId, str) => {
       if (columnId !== ColumnIds.Value) {
-        return
+        return null
       }
 
       const newData = R.assocPath(editingFieldPath, str, data)
       setData(newData)
       validateOnSchema(newData)
+      return newData
     },
     [data, setData, validateOnSchema],
   )
