@@ -9,16 +9,88 @@ import { Actions, ColumnIds } from './State'
 function CellMenu({ anchorRef, menu, onClose, onClick }) {
   return (
     <M.Menu anchorEl={anchorRef.current} onClose={onClose} open>
-      {menu.map((item) => (
-        <M.MenuItem key={item.title} onClick={() => onClick(item)}>
-          {item.title}
-        </M.MenuItem>
-      ))}
+      {menu.map((subList) =>
+        subList.key === 'divider' ? (
+          <M.Divider key={subList.key} />
+        ) : (
+          <M.List
+            subheader={
+              subList.header && <M.ListSubheader>{subList.header}</M.ListSubheader>
+            }
+            key={subList.key}
+          >
+            {subList.options.map((item) => (
+              <M.MenuItem
+                key={`${item.action}_${item.title}`}
+                onClick={() => onClick(item)}
+              >
+                <M.ListItemText primary={item.title} />
+              </M.MenuItem>
+            ))}
+          </M.List>
+        ),
+      )}
     </M.Menu>
   )
 }
 
-export default function KeyCell({
+function MenuForKey({ anchorRef, keysList, onMenuSelect, onClose }) {
+  const keysOptions = keysList.map((title) => ({
+    action: Actions.Select,
+    title,
+  }))
+  const actionsOptions = [
+    {
+      action: Actions.RemoveField,
+      title: 'Remove',
+    },
+  ]
+  const keysSubmenu = {
+    header: 'Keys',
+    key: 'keys',
+    options: keysOptions,
+  }
+  const actionsSubmenu = {
+    key: 'actions',
+    options: actionsOptions,
+  }
+  const menu = keysOptions.length ? [keysSubmenu] : [actionsSubmenu]
+  return (
+    <CellMenu
+      {...{
+        anchorRef,
+        menu,
+        onClick: onMenuSelect,
+        onClose,
+      }}
+    />
+  )
+}
+
+function MenuForValue({ anchorRef, onMenuSelect, onClose }) {
+  const typeConverters = ['number', 'string'].map((title) => ({
+    action: Actions.ChangeType,
+    title,
+  }))
+  const menu = [
+    {
+      key: 'types',
+      options: typeConverters,
+    },
+  ]
+  return (
+    <CellMenu
+      {...{
+        anchorRef,
+        menu,
+        onClick: onMenuSelect,
+        onClose,
+      }}
+    />
+  )
+}
+
+export default function Cell({
   column,
   columnPath,
   onExpand,
@@ -37,14 +109,13 @@ export default function KeyCell({
 
   const closeMenu = React.useCallback(() => setMenuOpened(false), [setMenuOpened])
 
-  const onMenuOpenInternal = React.useCallback(() => {
+  const onMenuOpen = React.useCallback(() => {
     setMenuOpened(true)
   }, [setMenuOpened])
 
   const onMenuSelect = React.useCallback(
     (menuItem) => {
       setMenuOpened(false)
-
       onMenuAction(fieldPath, menuItem)
     },
     [fieldPath, onMenuAction, setMenuOpened],
@@ -65,22 +136,6 @@ export default function KeyCell({
   const hasKeyMenu = menuOpened && column.id === ColumnIds.Key
   const hasValueMenu = menuOpened && column.id === ColumnIds.Value
 
-  const keyMenu = (row.original && key === '' ? row.original.keysList : [])
-    .map((title) => ({
-      action: Actions.Select,
-      title,
-    }))
-    .concat({
-      action: Actions.RemoveField,
-      title: 'Remove',
-    })
-
-  const typeConverters = ['number', 'string'].map((title) => ({
-    action: Actions.ChangeType,
-    title,
-  }))
-  const valueMenu = typeConverters
-
   return (
     <div onDoubleClick={onDoubleClick}>
       <ValueComponent
@@ -89,26 +144,25 @@ export default function KeyCell({
           columnId: column.id,
           onChange,
           onExpand: () => onExpand(fieldPath),
-          onMenu: onMenuOpenInternal,
+          onMenu: onMenuOpen,
           data: row.original || {},
           value,
         }}
       />
 
       {hasKeyMenu && (
-        <CellMenu
+        <MenuForKey
           anchorRef={menuAnchorRef}
-          menu={keyMenu}
-          onClick={onMenuSelect}
+          keysList={row.original && key === '' ? row.original.keysList : []}
+          onMenuSelect={onMenuSelect}
           onClose={closeMenu}
         />
       )}
 
       {hasValueMenu && (
-        <CellMenu
+        <MenuForValue
           anchorRef={menuAnchorRef}
-          menu={valueMenu}
-          onClick={onMenuSelect}
+          onMenuSelect={onMenuSelect}
           onClose={closeMenu}
         />
       )}

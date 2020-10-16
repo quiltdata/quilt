@@ -31,16 +31,18 @@ export default function AddRow({ columnPath, keysList, onAdd, onExpand }) {
 
   const onMenuAction = React.useCallback(
     (_, action) => {
-      if (!Actions.Select) return
+      if (action.action !== Actions.Select) return
 
       setValue(action.title)
     },
     [setValue],
   )
 
-  const onSubmit = React.useCallback(() => {
-    onAdd(columnPath, value)
-  }, [columnPath, onAdd, value])
+  const onSubmit = React.useCallback(() => onAdd(columnPath, value), [
+    columnPath,
+    onAdd,
+    value,
+  ])
 
   return (
     <M.TableRow>

@@ -3,7 +3,6 @@ import * as React from 'react'
 import Ajv from 'ajv'
 import isArray from 'lodash/isArray'
 import toNumber from 'lodash/toNumber'
-import toString from 'lodash/toString'
 
 export const ColumnIds = {
   Key: 'key',
@@ -65,9 +64,9 @@ function getColumn(obj, columnPath, sortOrder, optSchema = {}) {
     R.pathOr({}, schemaPath.concat('properties'), optSchema),
   )
 
-  // { key1: value1, key2: value2 }
-  // becomes
-  // [{ key: 'key1', value: 'value1'}, { key: 'key2', value: 'value2'}]
+  // NOTE: { key1: value1, key2: value2 }
+  //       converts to
+  //       [{ key: 'key1', value: 'value1'}, { key: 'key2', value: 'value2'}]
   return mapKeys(
     nestedObj,
     (value, key, schemaSortIndex) => ({
@@ -78,7 +77,7 @@ function getColumn(obj, columnPath, sortOrder, optSchema = {}) {
       keysList: schemedKeysList,
       required: requiredKeys.includes(key),
       sortIndex:
-        schemaSortIndex || sortOrder[columnPath.concat(key)] || initialSortCounter,
+        sortOrder[columnPath.concat(key)] || schemaSortIndex || initialSortCounter,
       valueType: R.pathOr(
         undefined,
         schemaPath.concat(['properties', key, 'type']),
@@ -92,7 +91,7 @@ function getColumn(obj, columnPath, sortOrder, optSchema = {}) {
 function convertType(value, typeOf) {
   switch (typeOf) {
     case 'string':
-      return toString(value)
+      return JSON.stringify(value)
     case 'number':
       return toNumber(value)
     default:
@@ -183,7 +182,7 @@ export default function useJson(obj, optSchema = {}) {
 
   const addRow = React.useCallback(
     (addFieldPath, newKey) => {
-      const newKeyPath = R.init(addFieldPath).concat([newKey])
+      const newKeyPath = addFieldPath.concat([newKey])
       const value = ''
       setData(R.assocPath(newKeyPath, value, data))
 
