@@ -52,6 +52,18 @@ export default function Input({
     onChange(value)
   }, [onChange, value])
 
+  const onKeyDown = React.useCallback(
+    (event) => {
+      switch (event.key) {
+        case 'Enter':
+          onBlur()
+          break
+        // no default
+      }
+    },
+    [onBlur],
+  )
+
   return (
     <M.InputBase
       autoFocus
@@ -68,6 +80,7 @@ export default function Input({
       value={valueStr}
       onChange={onChangeInternal}
       onBlur={onBlur}
+      onKeyDown={onKeyDown}
       placeholder={
         {
           [ColumnIds.Key]: i18nMsgs.key,

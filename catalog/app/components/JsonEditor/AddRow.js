@@ -7,6 +7,8 @@ import { Actions, ColumnIds } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   inputCell: {
+    borderRight: `1px solid ${t.palette.divider}`,
+    borderLeft: `1px solid ${t.palette.divider}`,
     padding: 0,
     width: t.spacing(20),
   },
@@ -20,29 +22,21 @@ const useStyles = M.makeStyles((t) => ({
 export default function AddRow({ columnPath, keysList, onAdd, onExpand }) {
   const classes = useStyles()
 
-  const [value, setValue] = React.useState('')
-
   const onChange = React.useCallback(
-    (_, __, newValue) => {
-      setValue(newValue)
+    (_, __, value) => {
+      onAdd(columnPath, value)
     },
-    [setValue],
+    [columnPath, onAdd],
   )
 
   const onMenuAction = React.useCallback(
     (_, action) => {
       if (action.action !== Actions.Select) return
 
-      setValue(action.title)
+      onAdd(columnPath, action.title)
     },
-    [setValue],
+    [columnPath, onAdd],
   )
-
-  const onSubmit = React.useCallback(() => onAdd(columnPath, value), [
-    columnPath,
-    onAdd,
-    value,
-  ])
 
   return (
     <M.TableRow>
@@ -64,16 +58,11 @@ export default function AddRow({ columnPath, keysList, onAdd, onExpand }) {
                 [ColumnIds.Key]: '',
               },
             },
-            value,
+            value: '',
           }}
         />
       </M.TableCell>
-      <M.TableCell className={classes.buttonCell}>
-        <M.Button disabled={!value} variant="contained" size="small" onClick={onSubmit}>
-          <M.Icon>add</M.Icon>
-          Add field
-        </M.Button>
-      </M.TableCell>
+      <M.TableCell className={classes.buttonCell} />
     </M.TableRow>
   )
 }

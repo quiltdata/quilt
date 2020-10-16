@@ -13,7 +13,6 @@ import { ColumnIds } from './State'
 const useStyles = M.makeStyles((t) => ({
   root: {
     background: '#fff',
-    borderTop: `1px solid ${t.palette.divider}`,
     width: '100%',
     flex: 'none',
 
@@ -24,11 +23,6 @@ const useStyles = M.makeStyles((t) => ({
 
   selected: {
     backgroundColor: t.palette.action.focus,
-  },
-
-  tableCell: {
-    padding: 0,
-    width: '225px',
   },
 }))
 
@@ -75,11 +69,7 @@ export default function Table({
 
       <M.Fade in>
         <M.TableContainer>
-          <M.Table
-            className={classes.table}
-            aria-label="simple table"
-            {...getTableProps()}
-          >
+          <M.Table aria-label="simple table" {...getTableProps()}>
             <M.TableBody {...getTableBodyProps()}>
               {rows.map((row) => {
                 prepareRow(row)

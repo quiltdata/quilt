@@ -10,10 +10,12 @@ const useStyles = M.makeStyles((t) => ({
 
   cell: {
     padding: 0,
+    border: `1px solid ${t.palette.divider}`,
   },
 
   key: {
     width: t.spacing(20),
+    borderRight: `1px solid ${t.palette.divider}`,
   },
 
   value: {

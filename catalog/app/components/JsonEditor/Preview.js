@@ -11,7 +11,6 @@ import Note from './Note'
 const useStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
-    borderRight: `1px solid ${t.palette.divider}`,
     display: 'flex',
     height: t.spacing(6),
     padding: t.spacing(1),
@@ -43,7 +42,7 @@ function formatValuePreview(x) {
     return `{ ${Object.keys(x).join(', ')} }`
   }
 
-  return x
+  return x.toString()
 }
 
 export default function Preview({
