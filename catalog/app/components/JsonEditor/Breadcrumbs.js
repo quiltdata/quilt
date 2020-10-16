@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 const useStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
-    borderBottom: `1px solid ${t.palette.divider}`,
+    borderLeft: `1px solid ${t.palette.divider}`,
     display: 'flex',
     height: '49px',
     padding: t.spacing(1),

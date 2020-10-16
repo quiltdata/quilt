@@ -17,7 +17,7 @@ const useStyles = M.makeStyles((t) => ({
     flex: 'none',
 
     '& + $root': {
-      borderLeft: `1px solid ${t.palette.divider}`,
+      marginLeft: -1,
     },
   },
 

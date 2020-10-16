@@ -7,14 +7,13 @@ import { Actions, ColumnIds } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   inputCell: {
-    borderRight: `1px solid ${t.palette.divider}`,
-    borderLeft: `1px solid ${t.palette.divider}`,
+    border: `1px solid ${t.palette.divider}`,
     padding: 0,
     width: t.spacing(20),
   },
 
-  buttonCell: {
-    padding: t.spacing(0, 1),
+  emptyCell: {
+    border: `1px solid ${t.palette.divider}`,
     width: t.spacing(36),
   },
 }))
@@ -62,7 +61,8 @@ export default function AddRow({ columnPath, keysList, onAdd, onExpand }) {
           }}
         />
       </M.TableCell>
-      <M.TableCell className={classes.buttonCell} />
+
+      <M.TableCell className={classes.emptyCell} />
     </M.TableRow>
   )
 }
