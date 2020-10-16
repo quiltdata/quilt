@@ -65,7 +65,7 @@ export default function KeyCell({
   const hasKeyMenu = menuOpened && column.id === ColumnIds.Key
   const hasValueMenu = menuOpened && column.id === ColumnIds.Value
 
-  const keyMenu = (row.original ? row.original.keysList : [])
+  const keyMenu = (row.original && key === '' ? row.original.keysList : [])
     .map((title) => ({
       action: Actions.Select,
       title,
