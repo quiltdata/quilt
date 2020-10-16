@@ -2,6 +2,8 @@ import * as R from 'ramda'
 import * as React from 'react'
 import Ajv from 'ajv'
 import isArray from 'lodash/isArray'
+import toNumber from 'lodash/toNumber'
+import toString from 'lodash/toString'
 
 export const ColumnIds = {
   Key: 'key',
@@ -9,6 +11,7 @@ export const ColumnIds = {
 }
 
 export const Actions = {
+  ChangeType: 'change_type',
   RemoveField: 'remove_field',
   Select: 'select',
 }
@@ -86,6 +89,17 @@ function getColumn(obj, columnPath, sortOrder, optSchema = {}) {
   ).sort((a, b) => a.sortIndex - b.sortIndex)
 }
 
+function convertType(value, typeOf) {
+  switch (typeOf) {
+    case 'string':
+      return toString(value)
+    case 'number':
+      return toNumber(value)
+    default:
+      return value
+  }
+}
+
 export default function useJson(obj, optSchema = {}) {
   const [data, setData] = React.useState(obj)
   const [fieldPath, setFieldPath] = React.useState([])
@@ -117,6 +131,16 @@ export default function useJson(obj, optSchema = {}) {
     return [rootColumn, ...expandedColumns]
   }, [fieldPath, data, optSchema, sortOrder])
 
+  const changeType = React.useCallback(
+    (contextFieldPath, columnId, typeOf) => {
+      const value = R.path(contextFieldPath, data)
+      const newData = R.assocPath(contextFieldPath, convertType(value, typeOf), data)
+      setData(newData)
+      validateOnSchema(newData)
+    },
+    [data, setData, validateOnSchema],
+  )
+
   const makeAction = React.useCallback(
     (contextFieldPath, columnId, actionItem) => {
       switch (actionItem.action) {
@@ -126,10 +150,13 @@ export default function useJson(obj, optSchema = {}) {
         case Actions.Select:
           changeValue(contextFieldPath, ColumnIds.Key, actionItem.title)
           break
+        case Actions.ChangeType:
+          changeType(contextFieldPath, ColumnIds.Value, actionItem.title)
+          break
         // no default
       }
     },
-    [changeValue, removeField],
+    [changeType, changeValue, removeField],
   )
 
   const removeField = React.useCallback(

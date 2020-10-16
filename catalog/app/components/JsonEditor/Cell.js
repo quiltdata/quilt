@@ -75,6 +75,12 @@ export default function KeyCell({
       title: 'Remove',
     })
 
+  const typeConverters = ['number', 'string'].map((title) => ({
+    action: Actions.ChangeType,
+    title,
+  }))
+  const valueMenu = typeConverters
+
   return (
     <div onDoubleClick={onDoubleClick}>
       <ValueComponent
@@ -101,7 +107,7 @@ export default function KeyCell({
       {hasValueMenu && (
         <CellMenu
           anchorRef={menuAnchorRef}
-          menu={[{ title: 'string' }]}
+          menu={valueMenu}
           onClick={onMenuSelect}
           onClose={closeMenu}
         />
