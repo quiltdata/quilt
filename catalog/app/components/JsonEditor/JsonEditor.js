@@ -31,6 +31,7 @@ const initialSchema = {
     },
     more: {
       type: 'string',
+      enum: ['one', 'two', 'three'],
     },
     user_meta: {
       type: 'object',

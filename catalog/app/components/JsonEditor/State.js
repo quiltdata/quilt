@@ -54,6 +54,20 @@ function mapKeys(objectOrArray, callback, schemaKeys) {
     .map((key) => callback(objectOrArray[key], key, schemaSort[key]))
 }
 
+function getValueType(key, schemaPath, optSchema) {
+  const schemaType = R.path(schemaPath.concat(['properties', key, 'type']), optSchema)
+
+  if (!schemaType) return undefined
+
+  const restrictedValues = R.path(
+    schemaPath.concat(['properties', key, 'enum']),
+    optSchema,
+  )
+  if (schemaType === 'string' && restrictedValues) return restrictedValues
+
+  return schemaType
+}
+
 function getColumn(obj, columnPath, sortOrder, optSchema = {}) {
   const nestedObj = R.path(columnPath, obj)
 
@@ -78,11 +92,7 @@ function getColumn(obj, columnPath, sortOrder, optSchema = {}) {
       required: requiredKeys.includes(key),
       sortIndex:
         sortOrder[columnPath.concat(key)] || schemaSortIndex || initialSortCounter,
-      valueType: R.pathOr(
-        undefined,
-        schemaPath.concat(['properties', key, 'type']),
-        optSchema,
-      ),
+      valueType: getValueType(key, schemaPath, optSchema),
     }),
     schemedKeysList,
   ).sort((a, b) => a.sortIndex - b.sortIndex)

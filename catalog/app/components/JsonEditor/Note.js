@@ -28,11 +28,19 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function getTypeAnnotation(value) {
+function getTypeAnnotation(value, originalType) {
   return R.cond([
     [isArray, () => 'arr'],
     [isObject, () => 'obj'],
-    [isString, () => 'str'],
+    [
+      isString,
+      () => {
+        if (isArray(originalType) && originalType.includes(value)) {
+          return 'enum'
+        }
+        return 'str'
+      },
+    ], // TODO: check for enum
     [isNumber, () => 'num'],
     [R.T, () => 'nothing'],
   ])(value)
@@ -44,7 +52,14 @@ function doesTypeMatch(value, originalType) {
   return R.cond([
     [isArray, () => originalType === 'array'],
     [isObject, () => originalType === 'object'],
-    [isString, () => originalType === 'string'],
+    [
+      isString,
+      () => {
+        if (originalType === 'string') return true
+
+        return isArray(originalType) && originalType.includes(value)
+      },
+    ],
     [isNumber, () => originalType === 'number'],
     [R.T, isUndefined],
   ])(value)
@@ -61,7 +76,7 @@ function NoteValue({ originalType, value }) {
 
   const mismatch = !doesTypeMatch(value, originalType)
   const typeHelp = originalType
-    ? `Value should be of  ${originalType} type`
+    ? `Value should be of ${originalType} type`
     : 'Key/value is not restricted by schema'
 
   return (
@@ -71,7 +86,7 @@ function NoteValue({ originalType, value }) {
           [classes.mismatch]: mismatch,
         })}
       >
-        {getTypeAnnotation(value)}
+        {getTypeAnnotation(value, originalType)}
       </span>
     </M.Tooltip>
   )
