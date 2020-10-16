@@ -233,13 +233,15 @@ class TestSearch(TestCase):
             'index': 'bucket_packages',
             'body': {'custom': 'body'},
             'size': 42,
+            'from': 10,
             '_source': ['great', 'expectations']
         }
 
-        url = f'https://www.example.com:443/{query["index"]}/_search?' + urlencode(dict(
-            _source='great,expectations',
-            size=42,
-        ))
+        url = f'https://www.example.com:443/{query["index"]}/_search?' + urlencode({
+            '_source': 'great,expectations',
+            'size': 42,
+            'from': 10,
+        })
 
         def _callback(request):
             payload = json.loads(request.body)
@@ -276,10 +278,11 @@ class TestSearch(TestCase):
         assert resp['statusCode'] == 500
 
     def test_search(self):
-        url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
-            size=1000,
-            _source=','.join(['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']),
-        ))
+        url = 'https://www.example.com:443/bucket/_search?' + urlencode({
+            'size': 1000,
+            'from': 0,
+            '_source': ','.join(['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']),
+        })
 
         def _callback(request):
             payload = json.loads(request.body)
@@ -310,10 +313,11 @@ class TestSearch(TestCase):
         assert json.loads(resp['body']) == {'results': 'blah'}
 
     def test_stats(self):
-        url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
-            _source='false',  # must match JSON; False will fail match_querystring
-            size=0,
-        ))
+        url = 'https://www.example.com:443/bucket/_search?' + urlencode({
+            '_source': 'false',  # must match JSON; False will fail match_querystring
+            'size': 0,
+            'from': 0,
+        })
 
         def _callback(request):
             payload = json.loads(request.body)

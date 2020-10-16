@@ -66,10 +66,15 @@ def lambda_handler(request):
     user_indexes = request.args.get('index', "")
     user_size = request.args.get('size', DEFAULT_SIZE)
     user_source = request.args.get('_source', [])
+    # 0-indexed starting position (for pagination)
+    user_from = request.args.get('from', 0)
     terminate_after = None  # see if we can skip os.getenv('MAX_DOCUMENTS_PER_SHARD')
 
     if not user_indexes or not isinstance(user_indexes, str):
         raise ValueError("Request must include index=<comma-separated string of indices>")
+
+    if not isinstance(user_from, int) or user_from < 0:
+        raise ValueError("'from' must be a positive integer")
 
     if action == 'packages':
         query = request.args.get('query', '')
@@ -197,6 +202,7 @@ def lambda_handler(request):
         body=body,
         _source=_source,
         size=size,
+        from_=user_from,
         # try turning this off to consider all documents
         terminate_after=terminate_after,
     )
