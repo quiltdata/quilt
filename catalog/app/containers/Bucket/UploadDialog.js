@@ -20,9 +20,12 @@ import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
 
 import JsonEditor from 'components/JsonEditor'
+import SelectSchema from './SelectSchema'
 
 const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
 const ES_LAG = 3 * 1000
+
+const JSON_EDITOR_ENABLED = false
 
 const getNormalizedPath = (f) => (f.path.startsWith('/') ? f.path.substring(1) : f.path)
 
@@ -402,6 +405,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   header: {
     alignItems: 'center',
     display: 'flex',
+    marginBottom: t.spacing(2),
     height: 24,
   },
   btn: {
@@ -429,6 +433,9 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     display: 'flex',
     marginTop: t.spacing(1),
   },
+  select: {
+    marginLeft: t.spacing(1),
+  },
   sep: {
     ...t.typography.body1,
     marginLeft: t.spacing(1),
@@ -453,6 +460,8 @@ function MetaInput({ input, meta }) {
   const error = meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
 
+  const [schema, setSchema] = React.useState(null)
+
   const changeMode = (mode) => {
     if (disabled) return
     input.onChange({ ...value, mode })
@@ -465,16 +474,19 @@ function MetaInput({ input, meta }) {
     input.onChange({ ...value, fields, text })
   }
 
-  const changeText = (text) => {
-    if (disabled) return
-    let fields
-    try {
-      fields = textToFields(text)
-    } catch (e) {
-      fields = value.fields
-    }
-    input.onChange({ ...value, fields, text })
-  }
+  const changeText = React.useCallback(
+    (text) => {
+      if (disabled) return
+      let fields
+      try {
+        fields = textToFields(text)
+      } catch (e) {
+        fields = value.fields
+      }
+      input.onChange({ ...value, fields, text })
+    },
+    [disabled, input, value],
+  )
 
   const handleModeChange = (e, m) => {
     if (!m) return
@@ -501,6 +513,14 @@ function MetaInput({ input, meta }) {
     changeText(e.target.value)
   }
 
+  const onJsonEditor = React.useCallback(
+    (json) => {
+      const text = JSON.stringify(json)
+      changeText(text)
+    },
+    [changeText],
+  )
+
   return (
     <div className={classes.root}>
       <div className={classes.header}>
@@ -508,6 +528,11 @@ function MetaInput({ input, meta }) {
         <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
           Metadata
         </M.Typography>
+
+        {JSON_EDITOR_ENABLED && (
+          <SelectSchema className={classes.select} onChange={(s) => setSchema(s)} />
+        )}
+
         <M.Box flexGrow={1} />
         <Lab.ToggleButtonGroup value={value.mode} exclusive onChange={handleModeChange}>
           <Lab.ToggleButton value="kv" className={classes.btn} disabled={disabled}>
@@ -519,48 +544,52 @@ function MetaInput({ input, meta }) {
         </Lab.ToggleButtonGroup>
       </div>
 
-      <JsonEditor />
-
       {value.mode === 'kv' ? (
         <>
-          {value.fields.map((f, i) => (
-            // eslint-disable-next-line react/no-array-index-key
-            <div key={i} className={classes.row}>
-              <M.TextField
-                className={classes.key}
-                onChange={handleKeyChange(i)}
-                value={f.key}
-                placeholder="Key"
-                disabled={disabled}
-              />
-              <div className={classes.sep}>:</div>
-              <M.TextField
-                className={classes.value}
-                onChange={handleValueChange(i)}
-                value={f.value}
-                placeholder="Value"
-                disabled={disabled}
-              />
-              <M.IconButton
+          {JSON_EDITOR_ENABLED ? (
+            <JsonEditor onChange={onJsonEditor} schema={schema && schema.schema} />
+          ) : (
+            <>
+              {value.fields.map((f, i) => (
+                // eslint-disable-next-line react/no-array-index-key
+                <div key={i} className={classes.row}>
+                  <M.TextField
+                    className={classes.key}
+                    onChange={handleKeyChange(i)}
+                    value={f.key}
+                    placeholder="Key"
+                    disabled={disabled}
+                  />
+                  <div className={classes.sep}>:</div>
+                  <M.TextField
+                    className={classes.value}
+                    onChange={handleValueChange(i)}
+                    value={f.value}
+                    placeholder="Value"
+                    disabled={disabled}
+                  />
+                  <M.IconButton
+                    size="small"
+                    onClick={rmField(i)}
+                    edge="end"
+                    disabled={disabled}
+                  >
+                    <M.Icon>close</M.Icon>
+                  </M.IconButton>
+                </div>
+              ))}
+              <M.Button
+                variant="outlined"
                 size="small"
-                onClick={rmField(i)}
-                edge="end"
+                onClick={addField}
+                startIcon={<M.Icon>add</M.Icon>}
+                className={classes.add}
                 disabled={disabled}
               >
-                <M.Icon>close</M.Icon>
-              </M.IconButton>
-            </div>
-          ))}
-          <M.Button
-            variant="outlined"
-            size="small"
-            onClick={addField}
-            startIcon={<M.Icon>add</M.Icon>}
-            className={classes.add}
-            disabled={disabled}
-          >
-            Add field
-          </M.Button>
+                Add field
+              </M.Button>
+            </>
+          )}
         </>
       ) : (
         <M.TextField
@@ -779,6 +808,7 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
       }
       setSuccess({ name, revision: res.timestamp })
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
       // TODO: handle specific cases?
       return { [FORM_ERROR]: 'Error creating manifest' }
