@@ -7,7 +7,7 @@ import * as M from '@material-ui/core'
 
 import Column from './Column'
 import Errors from './Errors'
-import useJson, { ColumnIds } from './State'
+import State, { ColumnIds } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {},
@@ -46,18 +46,18 @@ const initialData = {
   },
 }
 
-export default function JsonEditor({ className, onChange, schema }) {
+function JsonEditor({
+  addRow,
+  changeValue,
+  className,
+  columns,
+  errors,
+  fieldPath,
+  makeAction,
+  onChange,
+  setFieldPath,
+}) {
   const classes = useStyles()
-
-  const {
-    addRow,
-    changeValue,
-    columns,
-    errors,
-    fieldPath,
-    makeAction,
-    setFieldPath,
-  } = useJson(initialData, schema)
 
   const onMenuAction = React.useCallback(
     (contextFieldPath, action) => {
@@ -103,3 +103,9 @@ export default function JsonEditor({ className, onChange, schema }) {
     </div>
   )
 }
+
+export default ({ className, onChange, schema }) => (
+  <State obj={initialData} optSchema={schema}>
+    {(props) => <JsonEditor {...props} onChange={onChange} className={className} />}
+  </State>
+)

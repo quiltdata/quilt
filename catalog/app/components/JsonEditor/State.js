@@ -106,7 +106,7 @@ function convertType(value, typeOf) {
   }
 }
 
-export default function useJson(obj, optSchema) {
+export default function JsonEditorState({ children, obj, optSchema }) {
   const schema = optSchema || {}
 
   const [data, setData] = React.useState(obj)
@@ -202,7 +202,7 @@ export default function useJson(obj, optSchema) {
     [setData, sortCounter, sortOrder, setSortOder, data],
   )
 
-  return {
+  return children({
     addRow,
     changeValue,
     columns,
@@ -210,5 +210,5 @@ export default function useJson(obj, optSchema) {
     fieldPath,
     makeAction,
     setFieldPath,
-  }
+  })
 }
