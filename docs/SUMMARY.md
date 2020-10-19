@@ -1,38 +1,37 @@
-# Table of contents
+# Summary
 
 * [Introduction](README.md)
-* [Installation](installation.md)
-* [Quick start](quickstart.md)
-* [Mental model](mentalmodel.md)
+* [Installation](Installation.md)
+* [Quick start](Quickstart.md)
+* [Mental model](MentalModel.md)
 
-## Walkthrough
+### Walkthrough
 
-* [Editing a Package](walkthrough/editing-a-package.md)
-* [Uploading a Package](walkthrough/uploading-a-package.md)
-* [Installing a Package](walkthrough/installing-a-package.md)
-* [Getting Data from a Package](walkthrough/getting-data-from-a-package.md)
-* [Working with the Catalog](walkthrough/working-with-the-catalog.md)
-* [Working with a Bucket](walkthrough/working-with-a-bucket.md)
+* [Editing a Package](Walkthrough/Editing a Package.md)
+* [Uploading a Package](Walkthrough/Uploading a Package.md)
+* [Installing a Package](Walkthrough/Installing a Package.md)
+* [Getting Data from a Package](Walkthrough/Getting Data from a Package.md)
+* [Working with the Catalog](Walkthrough/Working with the Catalog.md)
+* [Working with a Bucket](Walkthrough/Working with a Bucket.md)
 
-## Advanced Usage
+### Advanced Usage
 
-* [Filtering a Package](advanced-usage/filtering-a-package.md)
-* [.quiltignore](advanced-usage/.quiltignore.md)
-* [Materialization](advanced-usage/materialization.md)
-* [Working with Manifests](advanced-usage/working-with-manifests.md)
-* [S3 Select](advanced-usage/s3-select.md)
+* [Filtering a Package](Advanced Features/Filtering a Package.md)
+* [.quiltignore](Advanced Features/.quiltignore.md)
+* [Materialization](Advanced Features/Materialization.md)
+* [Working with Manifests](Advanced Features/Working with Manifests.md)
+* [S3 Select](Advanced Features/S3 Select.md)
 
-## API Reference
+### API Reference
 
-* [quilt3](api-reference/api.md)
-* [quilt3.Package](api-reference/package.md)
-* [quilt3.Bucket](api-reference/bucket.md)
-* [CLI, environment](api-reference/cli.md)
+* [quilt3](API Reference/api.md)
+* [quilt3.Package](API Reference/Package.md)
+* [quilt3.Bucket](API Reference/Bucket.md)
+* [CLI, environment](API Reference/cli.md)
 
-## More
+### More
 
-* [Frequently Asked Questions](more/faq.md)
-* [Enterprise install](more/technical-reference.md)
-* [Contributing](more/contributing.md)
-* [Changelog](more/changelog.md)
-
+* [Frequently Asked Questions](FAQ.md)
+* [Enterprise install](Technical Reference.md)
+* [Contributing](CONTRIBUTING.md)
+* [Changelog](CHANGELOG.md)

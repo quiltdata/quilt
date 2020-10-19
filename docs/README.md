@@ -1,71 +1,62 @@
-# Introduction
+[![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-blue.svg?style=flat-square)](https://docs.quiltdata.com/)
+[![chat on_slack](https://img.shields.io/badge/chat-on_slack-blue.svg?style=flat-square)](https://slack.quiltdata.com/)
+[![codecov](https://codecov.io/gh/quiltdata/quilt/branch/master/graph/badge.svg)](https://codecov.io/gh/quiltdata/quilt)
+[![pypi](https://img.shields.io/pypi/v/quilt3.svg?style=flat-square)](https://pypi.org/project/quilt3/)
 
-[![docs on\_gitbook](https://img.shields.io/badge/docs-on_gitbook-blue.svg?style=flat-square)](https://docs.quiltdata.com/) [![chat on\_slack](https://img.shields.io/badge/chat-on_slack-blue.svg?style=flat-square)](https://slack.quiltdata.com/) [![codecov](https://codecov.io/gh/quiltdata/quilt/branch/master/graph/badge.svg)](https://codecov.io/gh/quiltdata/quilt) [![pypi](https://img.shields.io/pypi/v/quilt3.svg?style=flat-square)](https://pypi.org/project/quilt3/)
+# Quilt is a versioned data portal for AWS
 
-## Quilt is a versioned data portal for AWS
-
-### Quilt in action
-
+## Quilt in action
 * [open.quiltdata.com](https://open.quiltdata.com/) is a petabyte-scale open
-
-  data portal that runs on Quilt
-
+data portal that runs on Quilt
 * [quiltdata.com](https://quiltdata.com) includes case studies, use cases, videos,
-
-  and instructions on how to run a private Quilt instance
-
+and instructions on how to run a private Quilt instance
 * [Versioning data and models for rapid experimentation in machine learning](https://medium.com/pytorch/how-to-iterate-faster-in-machine-learning-by-versioning-data-and-models-featuring-detectron2-4fd2f9338df5)
+shows how to use Quilt for real world projects
 
-  shows how to use Quilt for real world projects
+## Who is Quilt for?
+Quilt is for data-driven teams and offers features for coders (data scientists,
+data engineers, developers) and business users alike.
 
-### Who is Quilt for?
+## What does Quilt do?
+Quilt manages data like code so that teams in machine learning, biotech,
+and analytics can experiment faster, build smarter models, and recover from errors.
 
-Quilt is for data-driven teams and offers features for coders \(data scientists, data engineers, developers\) and business users alike.
+## How does Quilt work?
+Quilt consists of a Python client, web catalog, lambda
+functions&mdash;all of which are open source&mdash;plus
+a suite of backend services and Docker containers
+orchestrated by CloudFormation.
 
-### What does Quilt do?
+The latter are available for private use under a paid license
+on [quiltdata.com](https://quiltdata.com).
 
-Quilt manages data like code so that teams in machine learning, biotech, and analytics can experiment faster, build smarter models, and recover from errors.
 
-### How does Quilt work?
-
-Quilt consists of a Python client, web catalog, lambda functions—all of which are open source—plus a suite of backend services and Docker containers orchestrated by CloudFormation.
-
-The latter are available for private use under a paid license on [quiltdata.com](https://quiltdata.com).
-
-### Use cases
-
-* **Share** data at scale. Quilt wraps AWS S3 to add simple URLs, web preview for large files, and sharing via email address \(no need to create an IAM role\).
-* **Understand** data better through inline documentation \(Jupyter notebooks, markdown\) and visualizations \(Vega, Vega Lite\)
+## Use cases
+* **Share** data at scale. Quilt wraps AWS S3 to add simple URLs, web preview for large files, and sharing via email address (no need to create an IAM role).
+* **Understand** data better through inline documentation (Jupyter notebooks, markdown) and visualizations (Vega, Vega Lite)
 * **Discover** related data by indexing objects in ElasticSearch
-* **Model** data by providing a home for large data and models that don't fit in git, and by providing immutable versions for objects and data sets \(a.k.a. "Quilt Packages"\)
+* **Model** data by providing a home for large data and models that don't fit in git, and by providing immutable versions for objects and data sets (a.k.a. "Quilt Packages")
 * **Decide** by broadening data access within the organization and supporting the documentation of decision processes through audit-able versioning and inline documentation
 
-### Roadmap
-
-#### I - Performance and core services
-
-* [x] Address performance issues with push \(e.g. re-hash\)
+## Roadmap
+### I - Performance and core services
+* [x] Address performance issues with push (e.g. re-hash)
 * [x] Provide Presto-DB-powered services for filtering package repos with SQL
-* [ ] Investigate and implement more efficient manifest formats \(e.g. Parquet\),
-
-  that scale to 10M keys; consider abbreviated "fast manifests" for lazy browsing
-
+* [ ] Investigate and implement more efficient manifest formats (e.g. Parquet),
+that scale to 10M keys; consider abbreviated "fast manifests" for lazy browsing
 * [ ] Refactor `s3://bucket/.quilt` for improved listing and delete performance
 
-#### II - CI/CD for data
-
+### II - CI/CD for data
 * [ ] Ability to fork/merge packages
 * [ ] Data quality monitoring
 
-#### III - Storage agnostic \(support Azure, GCP buckets\)
-
+### III - Storage agnostic (support Azure, GCP buckets)
 * [ ] Evaluate min.io and ceph.io as shims
 * [ ] Evaluate feasibility of on-prem local storage as a repo
 
-#### IV - Cloud agnostic
-
+### IV - Cloud agnostic
 * [ ] Evaluate K8s and Terraform to replace CloudFormation
-* [ ] Shim lambdas \(consider serverless.com\)
-* [ ] Shim ElasticSearch \(consider SOLR\)
+* [ ] Shim lambdas (consider serverless.com)
+* [ ] Shim ElasticSearch (consider SOLR)
 * [ ] Shim IAM via RBAC
 
