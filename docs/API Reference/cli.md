@@ -44,7 +44,7 @@ https://quiltdata.com for more information.
 ```
 usage: quilt3 install [-h] [--registry REGISTRY] [--top-hash TOP_HASH]
                       [--dest DEST] [--dest-registry DEST_REGISTRY]
-                      [--path PATH]
+                      [--path PATH] [--detailed_help]
                       name
 
 Install a package or a collection of packages
@@ -53,20 +53,6 @@ positional arguments:
   name                  Name can be of two representations:
                         - Name of package, in the USER/PKG[/PATH] format ([/PATH] is deprecated, use --path parameter instead)
                         - Path to quilt.yaml or quilt.yml package dependency file.
-                          Syntax:
-                              version: <STR>
-                              registries: <STR: url scheme>
-                              packages:<LIST(STR: usr/pkg[:TAG|HASH])>
-                          Example:
-                              version: 1.0
-                              registries:
-                                  s3://some-bucket:
-                                      packages:
-                                          - ash/gpt3:def132
-                                          - akarve/lmnb1:c698234
-                                  s3://another-bucket:
-                                      packages:
-                                          - ash/gpt3:def132
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -77,7 +63,37 @@ optional arguments:
   --dest-registry DEST_REGISTRY
                         Registry to install package to. Defaults to local registry.
   --path PATH           If specified, downloads only PATH or its children.
+  --detailed_help       Display detailed information about this command and then exit
 ```
+
+Run `quilt install user/pkg` to install a single package from the specified registry.<br/>
+One or more packages can also be installed from same or different registries using a yaml dependency file.<br/>
+To install through a dependency file, run `quilt install [@]file.y[a]ml`.
+
+#### Constrains
+- A valid YAML file (`quilt.yaml` or `quilt.yml`)
+- All the keys under registries must start with a scheme
+- If `quilt3 install @quilt.yml` gets a `--registry` an exception is raised.
+
+#### Syntax
+version: `<STR>`<br/>
+registries: `<STR: url scheme>`<br/>
+packages: `<LIST(STR: usr/pkg[/path][:TAG|HASH])>`
+
+#### Example
+```bash
+version: 1.0
+registries:
+ s3://some-bucket:
+   packages:
+     - asah/gpt3:def132
+     - akarve/lmnb1:c698234
+     - akarve/lmnb3/sub/path:c698234
+ s3://another-bucket:
+   packages:
+     - asah/gpt3:def132
+```
+
 ## `verify`
 ```
 usage: quilt3 verify [-h] --registry REGISTRY --top-hash TOP_HASH --dir DIR

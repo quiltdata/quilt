@@ -30,6 +30,7 @@ echo "" >> cli.md
 gen_cmd_docs 'catalog'
 quilt3 catalog --detailed_help >> cli.md
 gen_cmd_docs 'install'
+quilt3 install 'name' --detailed_help >> cli.md
 gen_cmd_docs 'verify'
 gen_cmd_docs 'login'
 gen_cmd_docs 'logout'
