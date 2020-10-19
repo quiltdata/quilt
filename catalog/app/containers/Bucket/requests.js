@@ -743,17 +743,17 @@ export const listPackages = withErrorHandling(
   },
 )
 
-const getRevisionIdFromKey = (key) => key.substring(key.lastIndexOf('/') + 1)
 const getRevisionKeyFromId = (name, id) => `${PACKAGES_PREFIX}${name}/${id}`
 
-const fetchRevisionsAccessCounts = async ({
+export async function fetchRevisionsAccessCounts({
   s3,
   analyticsBucket,
   bucket,
   name,
   today,
   window,
-}) => {
+}) {
+  if (!analyticsBucket) return {}
   try {
     const records = await s3Select({
       s3,
@@ -797,58 +797,60 @@ const fetchRevisionsAccessCounts = async ({
   }
 }
 
-const MAX_DRAIN_REQUESTS = 10
+export const countPackageRevisions = ({ req, bucket, name }) =>
+  req('/search', {
+    index: `${bucket}_packages`,
+    action: 'packages',
+    body: JSON.stringify({ query: { term: { handle: name } } }),
+    size: 0,
+  })
+    .then(R.path(['hits', 'total']))
+    .catch(errors.catchErrors())
 
-const drainObjectList = async ({ s3, Bucket, ...params }) => {
-  let reqNo = 0
-  let Contents = []
-  let CommonPrefixes = []
-  let ContinuationToken
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    // eslint-disable-next-line no-await-in-loop
-    const r = await s3.listObjectsV2({ Bucket, ContinuationToken, ...params }).promise()
-    Contents = Contents.concat(r.Contents)
-    CommonPrefixes = CommonPrefixes.concat(r.CommonPrefixes)
-    reqNo += 1
-    if (!r.IsTruncated || reqNo >= MAX_DRAIN_REQUESTS)
-      return { ...r, Contents, CommonPrefixes }
-    ContinuationToken = r.NextContinuationToken
+function tryParse(s) {
+  try {
+    return JSON.parse(s)
+  } catch (e) {
+    return undefined
   }
 }
 
 export const getPackageRevisions = withErrorHandling(
-  async ({ s3, analyticsBucket, bucket, name, today, analyticsWindow = 30 }) => {
-    const countsP = analyticsBucket
-      ? fetchRevisionsAccessCounts({
-          s3,
-          analyticsBucket,
-          bucket,
-          name,
-          today,
-          window: analyticsWindow,
-        })
-      : Promise.resolve({})
-    let latestFound = false
-    const { revisions, isTruncated } = await drainObjectList({
-      s3,
-      Bucket: bucket,
-      Prefix: `${PACKAGES_PREFIX}${name}/`,
-    }).then((r) => ({
-      revisions: r.Contents.reduce((acc, { Key: key }) => {
-        const id = getRevisionIdFromKey(key)
-        if (id === 'latest') {
-          latestFound = true
-          return acc
-        }
-        return [id, ...acc]
-      }, []),
-      isTruncated: r.IsTruncated,
-    }))
-    if (latestFound) revisions.unshift('latest')
-    if (!revisions.length) throw new errors.NoSuchPackage()
-    return { revisions, isTruncated, counts: await countsP }
-  },
+  ({ req, bucket, name, page = 1, perPage = 10 }) =>
+    req('/search', {
+      index: `${bucket}_packages`,
+      action: 'packages',
+      body: JSON.stringify({
+        query: { term: { handle: name } },
+        sort: [{ last_modified: 'desc' }],
+      }),
+      size: perPage,
+      from: perPage * (page - 1),
+      _source: [
+        'comment',
+        'hash',
+        'last_modified',
+        'metadata',
+        'package_stats',
+        'pointer_file', // TODO: rm after switching to hash-based routing
+      ].join(','),
+    }).then(
+      R.pipe(
+        R.path(['hits', 'hits']),
+        R.map(({ _source: s }) => ({
+          hash: s.hash,
+          modified: new Date(s.last_modified),
+          stats: {
+            files: s.package_stats.total_files,
+            bytes: s.package_stats.total_bytes,
+          },
+          message: s.comment,
+          metadata: tryParse(s.metadata),
+          id: s.pointer_file, // TODO: rm after switching to hash-based routing
+          // header, // not in ES
+        })),
+      ),
+    ),
 )
 
 export const loadRevisionHash = ({ s3, bucket, name, id }) =>

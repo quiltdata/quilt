@@ -23,6 +23,8 @@ export class NoSuchBucket extends BucketError {}
 
 export class NoSuchPackage extends BucketError {}
 
+export class NoESIndex extends BucketError {}
+
 const WhenAuth = connect(
   createStructuredSelector({
     authenticated: Auth.selectors.authenticated,
@@ -58,6 +60,7 @@ const defaultHandlers = [
         Seems like this bucket is not configured for Quilt.
         <br />
         <StyledLink
+          target="_blank"
           href={`${docs}/references/technical-reference#deploy-a-private-quilt-instance-on-aws`}
         >
           Learn how to configure the bucket for Quilt
@@ -81,6 +84,18 @@ const defaultHandlers = [
     ),
   ],
   [
+    R.is(NoESIndex),
+    () => (
+      <Message headline="Oops, no search cluster">
+        The bucket owner needs to{' '}
+        <StyledLink target="_blank" href={docs}>
+          tie this bucket to Quilt
+        </StyledLink>{' '}
+        to enable Packages, Search, and detailed Overviews.
+      </Message>
+    ),
+  ],
+  [
     R.is(AccessDenied),
     whenAuth({
       true: () => (
@@ -88,6 +103,7 @@ const defaultHandlers = [
           Seems like you don&apos;t have access to this bucket.
           <br />
           <StyledLink
+            target="_blank"
             href={`${docs}/walkthrough/working-with-the-catalog#access-control`}
           >
             Learn about access control in Quilt
@@ -143,6 +159,15 @@ export const catchErrors = (pairs = []) =>
       R.propEq('code', 'NoSuchBucket'),
       () => {
         throw new NoSuchBucket()
+      },
+    ],
+    [
+      R.propEq(
+        'message',
+        "API Gateway error (500): NotFoundError(404, 'index_not_found_exception', 'no such index')",
+      ),
+      () => {
+        throw new NoESIndex()
       },
     ],
     ...pairs,

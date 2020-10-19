@@ -9,7 +9,6 @@ import * as M from '@material-ui/core'
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import * as Intercom from 'components/Intercom'
 import * as Preview from 'components/Preview'
-import Skeleton from 'components/Skeleton'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
@@ -28,7 +27,10 @@ import Summary from './Summary'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
 
-const MAX_REVISIONS = 5
+function useRevisionsData({ bucket, name }) {
+  const req = AWS.APIGateway.use()
+  return useData(requests.getPackageRevisions, { req, bucket, name, perPage: 5 })
+}
 
 const useRevisionInfoStyles = M.makeStyles((t) => ({
   revision: {
@@ -54,20 +56,15 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
 }))
 
 function RevisionInfo({ revision, bucket, name, path }) {
-  const s3 = AWS.S3.use()
-  const sign = AWS.Signer.useS3Signer()
-  const { apiGatewayEndpoint: endpoint } = Config.useConfig()
   const { urls } = NamedRoutes.use()
-  const today = React.useMemo(() => new Date(), [])
+  const classes = useRevisionInfoStyles()
 
   const [anchor, setAnchor] = React.useState()
   const [opened, setOpened] = React.useState(false)
   const open = React.useCallback(() => setOpened(true), [])
   const close = React.useCallback(() => setOpened(false), [])
 
-  const classes = useRevisionInfoStyles()
-
-  const data = useData(requests.getPackageRevisions, { s3, bucket, name, today })
+  const data = useRevisionsData({ bucket, name })
 
   return (
     <>
@@ -90,115 +87,35 @@ function RevisionInfo({ revision, bucket, name, path }) {
       >
         <M.List className={classes.list}>
           {data.case({
-            Ok: ({ revisions, isTruncated }) => {
-              const revList = revisions.slice(0, MAX_REVISIONS).map((r) => (
-                <Data
-                  key={r}
-                  fetch={requests.getRevisionData}
-                  params={{ s3, sign, endpoint, bucket, name, id: r, maxKeys: 0 }}
-                >
-                  {(res) => {
-                    const modified =
-                      r === 'latest'
-                        ? AsyncResult.prop('modified', res)
-                        : AsyncResult.Ok(new Date(parseInt(r, 10) * 1000))
-                    const hash = AsyncResult.prop('hash', res)
-                    const msg = AsyncResult.prop('message', res)
-                    return (
-                      <M.ListItem
-                        key={r}
-                        button
-                        onClick={close}
-                        selected={r === revision}
-                        component={RRLink}
-                        to={urls.bucketPackageTree(bucket, name, r, path)}
-                      >
-                        <M.ListItemText
-                          primary={
-                            <>
-                              {r === 'latest' ? (
-                                'LATEST'
-                              ) : (
-                                <span className={classes.mono}>{r}</span>
-                              )}
-                              {AsyncResult.case(
-                                {
-                                  _: () => null,
-                                  Ok: (d) => (
-                                    <>
-                                      {' | '}
-                                      {dateFns.format(d, 'MMMM do yyyy - h:mma')}
-                                    </>
-                                  ),
-                                },
-                                modified,
-                              )}
-                            </>
-                          }
-                          secondary={
-                            <span className={classes.secondaryText}>
-                              {AsyncResult.case(
-                                {
-                                  Ok: (v) => (
-                                    <span className={classes.line}>
-                                      {v || <i>No message</i>}
-                                    </span>
-                                  ),
-                                  _: () => (
-                                    <Skeleton
-                                      component="span"
-                                      display="inline-block"
-                                      borderRadius="borderRadius"
-                                      height={16}
-                                      width="90%"
-                                    />
-                                  ),
-                                },
-                                msg,
-                              )}
-                              <br />
-                              {AsyncResult.case(
-                                {
-                                  Ok: (v) => (
-                                    <span className={cx(classes.line, classes.mono)}>
-                                      {v}
-                                    </span>
-                                  ),
-                                  _: () => (
-                                    <Skeleton
-                                      component="span"
-                                      display="inline-block"
-                                      borderRadius="borderRadius"
-                                      height={16}
-                                      width="95%"
-                                    />
-                                  ),
-                                },
-                                hash,
-                              )}
-                            </span>
-                          }
-                        />
-                      </M.ListItem>
-                    )
-                  }}
-                </Data>
-              ))
-              if (isTruncated) {
-                revList.unshift(
-                  <M.ListItem key="__truncated">
-                    <M.ListItemText
-                      primary="Revision list is truncated"
-                      secondary="Latest revisions are not shown"
-                    />
-                    <M.ListItemSecondaryAction>
-                      <M.Icon>warning</M.Icon>
-                    </M.ListItemSecondaryAction>
-                  </M.ListItem>,
-                )
-              }
-              return revList
-            },
+            Ok: R.map((r) => (
+              <M.ListItem
+                key={r.hash}
+                button
+                onClick={close}
+                selected={r.id === revision}
+                component={RRLink}
+                to={urls.bucketPackageTree(bucket, name, r.id, path)}
+              >
+                <M.ListItemText
+                  primary={
+                    <>
+                      <span className={classes.mono}>{r.id}</span>
+                      {' | '}
+                      {dateFns.format(r.modified, 'MMMM do yyyy - h:mma')}
+                    </>
+                  }
+                  secondary={
+                    <span className={classes.secondaryText}>
+                      <span className={classes.line}>
+                        {r.message || <i>No message</i>}
+                      </span>
+                      <br />
+                      <span className={cx(classes.line, classes.mono)}>{r.hash}</span>
+                    </span>
+                  }
+                />
+              </M.ListItem>
+            )),
             Err: () => (
               <M.ListItem>
                 <M.ListItemIcon>
