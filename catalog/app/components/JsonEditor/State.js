@@ -54,28 +54,25 @@ function mapKeys(objectOrArray, callback, schemaKeys) {
     .map((key) => callback(objectOrArray[key], key, schemaSort[key]))
 }
 
-function getValueType(key, schemaPath, optSchema) {
-  const schemaType = R.path(schemaPath.concat(['properties', key, 'type']), optSchema)
+function getValueType(key, schemaPath, schema) {
+  const schemaType = R.path(schemaPath.concat(['properties', key, 'type']), schema)
 
   if (!schemaType) return undefined
 
-  const restrictedValues = R.path(
-    schemaPath.concat(['properties', key, 'enum']),
-    optSchema,
-  )
+  const restrictedValues = R.path(schemaPath.concat(['properties', key, 'enum']), schema)
   if (schemaType === 'string' && restrictedValues) return restrictedValues
 
   return schemaType
 }
 
-function getColumn(obj, columnPath, sortOrder, optSchema = {}) {
+function getColumn(obj, columnPath, sortOrder, schema) {
   const nestedObj = R.path(columnPath, obj)
 
   const schemaPath = getSchemaPath(columnPath)
-  const requiredKeys = R.pathOr([], schemaPath.concat('required'), optSchema)
+  const requiredKeys = R.pathOr([], schemaPath.concat('required'), schema)
 
   const schemedKeysList = Object.keys(
-    R.pathOr({}, schemaPath.concat('properties'), optSchema),
+    R.pathOr({}, schemaPath.concat('properties'), schema),
   )
 
   // NOTE: { key1: value1, key2: value2 }
@@ -92,7 +89,7 @@ function getColumn(obj, columnPath, sortOrder, optSchema = {}) {
       required: requiredKeys.includes(key),
       sortIndex:
         sortOrder[columnPath.concat(key)] || schemaSortIndex || initialSortCounter,
-      valueType: getValueType(key, schemaPath, optSchema),
+      valueType: getValueType(key, schemaPath, schema),
     }),
     schemedKeysList,
   ).sort((a, b) => a.sortIndex - b.sortIndex)
@@ -109,7 +106,9 @@ function convertType(value, typeOf) {
   }
 }
 
-export default function useJson(obj, optSchema = {}) {
+export default function useJson(obj, optSchema) {
+  const schema = optSchema || {}
+
   const [data, setData] = React.useState(obj)
   const [fieldPath, setFieldPath] = React.useState([])
   const [errors, setErrors] = React.useState([])
@@ -119,7 +118,7 @@ export default function useJson(obj, optSchema = {}) {
   const sortCounter = React.useRef(initialSortCounter)
 
   const ajv = new Ajv()
-  const validate = ajv.compile(optSchema)
+  const validate = ajv.compile(schema)
 
   const validateOnSchema = React.useCallback(
     (x) => {
@@ -130,15 +129,15 @@ export default function useJson(obj, optSchema = {}) {
   )
 
   const columns = React.useMemo(() => {
-    const rootColumn = getColumn(data, [], sortOrder, optSchema)
+    const rootColumn = getColumn(data, [], sortOrder, schema)
 
     const expandedColumns = fieldPath.map((_, index) => {
       const pathPart = R.slice(0, index + 1, fieldPath)
-      return getColumn(data, pathPart, sortOrder, optSchema)
+      return getColumn(data, pathPart, sortOrder, schema)
     })
 
     return [rootColumn, ...expandedColumns]
-  }, [fieldPath, data, optSchema, sortOrder])
+  }, [fieldPath, data, schema, sortOrder])
 
   const changeType = React.useCallback(
     (contextFieldPath, columnId, typeOf) => {
