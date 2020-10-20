@@ -19,13 +19,6 @@ const useStyles = M.makeStyles((t) => ({
   mismatch: {
     color: t.palette.error.main,
   },
-
-  required: {
-    color: t.palette.error.main,
-    left: 0,
-    position: 'absolute',
-    top: t.spacing(1),
-  },
 }))
 
 function getTypeAnnotation(value, originalType) {
@@ -65,12 +58,6 @@ function doesTypeMatch(value, originalType) {
   ])(value)
 }
 
-function NoteKey({ required }) {
-  const classes = useStyles()
-
-  return <span className={classes.required}>{required && '*'}</span>
-}
-
 function NoteValue({ originalType, value }) {
   const classes = useStyles()
 
@@ -93,13 +80,9 @@ function NoteValue({ originalType, value }) {
 }
 
 export default function Note({ columnId, data, value }) {
-  if (columnId === ColumnIds.Key) {
-    return <NoteKey required={data.required} value={value} />
-  }
-
   if (columnId === ColumnIds.Value) {
     return <NoteValue value={value} originalType={data.valueType} />
   }
 
-  throw new Error('Wrong columnId')
+  return null
 }

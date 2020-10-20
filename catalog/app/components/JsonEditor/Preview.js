@@ -1,4 +1,5 @@
 import * as React from 'react'
+import cx from 'classnames'
 import isArray from 'lodash/isArray'
 import isObject from 'lodash/isObject'
 
@@ -7,6 +8,7 @@ import * as M from '@material-ui/core'
 import ButtonExpand from './ButtonExpand'
 import ButtonMenu from './ButtonMenu'
 import Note from './Note'
+import { ColumnIds } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -26,6 +28,10 @@ const useStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     maxWidth: t.spacing(35),
+  },
+
+  required: {
+    fontWeight: t.typography.fontWeightMedium,
   },
 
   menu: {
@@ -55,12 +61,16 @@ export default function Preview({
 }) {
   const classes = useStyles()
 
+  const requiredKey = data.required && columnId === ColumnIds.Key
+
   return (
     <div className={classes.root}>
       {isObject(value) && <ButtonExpand onClick={onExpand} />}
 
       <div className={classes.value}>
-        <span className={classes.valueInner}>{formatValuePreview(value)}</span>
+        <span className={cx(classes.valueInner, { [classes.required]: requiredKey })}>
+          {formatValuePreview(value)}
+        </span>
       </div>
 
       <ButtonMenu
