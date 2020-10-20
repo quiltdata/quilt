@@ -26,7 +26,7 @@ import SelectSchema from './SelectSchema'
 const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
 const ES_LAG = 3 * 1000
 
-const JSON_EDITOR_ENABLED = true
+const JSON_EDITOR_ENABLED = false
 
 const getNormalizedPath = (f) => (f.path.startsWith('/') ? f.path.substring(1) : f.path)
 
@@ -540,7 +540,11 @@ function MetaInput({ input, meta }) {
       {value.mode === 'kv' ? (
         <>
           {JSON_EDITOR_ENABLED ? (
-            <JsonEditor onChange={onJsonEditor} schema={schema && schema.schema} />
+            <JsonEditor
+              value={parseJSON(value.text)}
+              onChange={onJsonEditor}
+              schema={schema && schema.schema}
+            />
           ) : (
             <>
               {value.fields.map((f, i) => (

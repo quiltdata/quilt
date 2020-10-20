@@ -22,30 +22,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const initialData = {
-  version: 'v0',
-  message: 'Initial commit, really with',
-  user_meta: {
-    id: '001',
-    type: 'donut',
-    name: 'Cake',
-    ppu: 0.55,
-    batters: {
-      batter: [
-        {
-          id: '1001',
-          type: 'Regular',
-        },
-        {
-          id: '1002',
-          type: 'Chocolate',
-        },
-      ],
-    },
-    topping: [],
-  },
-}
-
 function JsonEditor({
   addRow,
   changeValue,
@@ -104,8 +80,8 @@ function JsonEditor({
   )
 }
 
-export default ({ className, onChange, schema }) => (
-  <State obj={initialData} optSchema={schema}>
+export default ({ className, onChange, schema, value }) => (
+  <State obj={value} optSchema={schema}>
     {(props) => <JsonEditor {...props} onChange={onChange} className={className} />}
   </State>
 )
