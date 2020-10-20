@@ -53,7 +53,11 @@ function mapKeys(objectOrArray, callback, schemaKeys) {
     {},
   )
   const getSortIndex = (key) => schemaSort[key] || objSort[key]
-  return Object.keys(objectOrArray)
+  const keys = schemaKeys.reduce(
+    (memo, key) => (memo.includes(key) ? memo : memo.concat(key)),
+    Object.keys(objectOrArray),
+  )
+  return keys
     .sort((a, b) => getSortIndex(a) - getSortIndex(b))
     .map((key) => callback(objectOrArray[key], key, schemaSort[key]))
 }

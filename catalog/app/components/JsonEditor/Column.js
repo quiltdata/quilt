@@ -90,7 +90,7 @@ export default function Table({
               <AddRow
                 {...{
                   columnPath,
-                  keysList: rows[0].original.keysList,
+                  keysList: rows.length ? rows[0].original.keysList : [],
                   onExpand,
                   onAdd: onAddRow,
                 }}

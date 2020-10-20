@@ -33,15 +33,13 @@ function getTypeAnnotation(value, originalType) {
         }
         return 'str'
       },
-    ], // TODO: check for enum
+    ],
     [isNumber, () => 'num'],
-    [R.T, () => 'nothing'],
+    [R.T, () => 'none'],
   ])(value)
 }
 
 function doesTypeMatch(value, originalType) {
-  // NOTE: `typeof value === originalType`
-  //       forbidden by eslint rules
   return R.cond([
     [isArray, () => originalType === 'array'],
     [isObject, () => originalType === 'object'],

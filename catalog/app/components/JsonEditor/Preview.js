@@ -48,7 +48,7 @@ function formatValuePreview(x) {
     return `{ ${Object.keys(x).join(', ')} }`
   }
 
-  return x.toString()
+  return x ? x.toString() : ''
 }
 
 export default function Preview({
