@@ -37,6 +37,7 @@ export default function Input({
 }) {
   const classes = useStyles()
 
+  const inputRef = React.useRef()
   const [value, setValue] = React.useState(originalValue)
   const [valueStr, setValueStr] = React.useState(JSON.stringify(originalValue, null, 2))
 
@@ -51,6 +52,18 @@ export default function Input({
   const onBlur = React.useCallback(() => {
     onChange(value)
   }, [onChange, value])
+
+  const onFocus = React.useCallback(() => {
+    // HACK: inputRef.current is empty before timeout
+    setTimeout(() => {
+      if (!inputRef.current) return
+
+      const start = valueStr[0] === '"' ? 1 : 0
+      const end =
+        valueStr[valueStr.length - 1] === '"' ? valueStr.length - 1 : valueStr.length
+      inputRef.current.setSelectionRange(start, end)
+    }, 100)
+  }, [inputRef, valueStr])
 
   const onKeyDown = React.useCallback(
     (event) => {
@@ -67,6 +80,7 @@ export default function Input({
   return (
     <M.InputBase
       autoFocus
+      inputRef={inputRef}
       startAdornment={
         isObject(originalValue) && <ButtonExpand onClick={() => onExpand(fieldPath)} />
       }
@@ -80,6 +94,7 @@ export default function Input({
       value={valueStr}
       onChange={onChangeInternal}
       onBlur={onBlur}
+      onFocus={onFocus}
       onKeyDown={onKeyDown}
       placeholder={
         {
