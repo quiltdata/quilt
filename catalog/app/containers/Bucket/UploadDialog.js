@@ -20,12 +20,13 @@ import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
 
 import JsonEditor from 'components/JsonEditor'
+import { parseJSON, stringifyJSON } from 'components/JsonEditor/State'
 import SelectSchema from './SelectSchema'
 
 const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
 const ES_LAG = 3 * 1000
 
-const JSON_EDITOR_ENABLED = false
+const JSON_EDITOR_ENABLED = true
 
 const getNormalizedPath = (f) => (f.path.startsWith('/') ? f.path.substring(1) : f.path)
 
@@ -342,14 +343,6 @@ function FilesInput({
   )
 }
 
-const tryParse = (v) => {
-  try {
-    return JSON.parse(v)
-  } catch (e) {
-    return v
-  }
-}
-
 const isParsable = (v) => {
   try {
     JSON.parse(v)
@@ -364,9 +357,9 @@ const tryUnparse = (v) =>
 
 const fieldsToText = R.pipe(
   R.filter((f) => !!f.key.trim()),
-  R.map((f) => [f.key, tryParse(f.value)]),
+  R.map((f) => [f.key, parseJSON(f.value)]),
   R.fromPairs,
-  (x) => JSON.stringify(x, null, 2),
+  (x) => stringifyJSON(x),
 )
 
 const textToFields = R.pipe(
@@ -381,7 +374,7 @@ function getMetaValue(value) {
   const pairs =
     value.mode === 'json'
       ? pipeThru(value.text || '{}')((t) => JSON.parse(t), R.toPairs)
-      : (value.fields || []).map((f) => [f.key, tryParse(f.value)])
+      : (value.fields || []).map((f) => [f.key, parseJSON(f.value)])
 
   return pipeThru(pairs)(
     R.filter(([k]) => !!k.trim()),
@@ -515,7 +508,7 @@ function MetaInput({ input, meta }) {
 
   const onJsonEditor = React.useCallback(
     (json) => {
-      const text = JSON.stringify(json)
+      const text = stringifyJSON(json)
       changeText(text)
     },
     [changeText],

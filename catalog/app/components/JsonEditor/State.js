@@ -15,6 +15,10 @@ export const Actions = {
   Select: 'select',
 }
 
+export function stringifyJSON(obj) {
+  return JSON.stringify(obj, null, 2)
+}
+
 export function parseJSON(str) {
   try {
     return JSON.parse(str)
@@ -98,7 +102,7 @@ function getColumn(obj, columnPath, sortOrder, schema) {
 function convertType(value, typeOf) {
   switch (typeOf) {
     case 'string':
-      return JSON.stringify(value, null, 2)
+      return stringifyJSON(value)
     case 'number':
       return toNumber(value)
     default:
