@@ -2,6 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import Ajv from 'ajv'
 import isArray from 'lodash/isArray'
+import isString from 'lodash/isString'
 import toNumber from 'lodash/toNumber'
 
 export const ColumnIds = {
@@ -73,8 +74,37 @@ function getValueType(key, schemaPath, schema) {
   return schemaType
 }
 
+function getEmptyValue(valueType) {
+  if (isString(valueType)) {
+    switch (valueType) {
+      case 'string':
+        return ''
+      case 'number':
+        return 0
+      case 'object':
+        return {}
+      case 'array':
+        return []
+      // no default
+    }
+  }
+
+  // TODO: use enum type
+  if (isArray(valueType)) {
+    return ''
+  }
+
+  return ''
+}
+
+function getValue(value, valueType) {
+  if (typeof value !== 'undefined') return value
+
+  return getEmptyValue(valueType)
+}
+
 function getColumn(obj, columnPath, sortOrder, schema) {
-  const nestedObj = R.path(columnPath, obj)
+  const nestedObj = R.pathOr({}, columnPath, obj)
 
   const schemaPath = getSchemaPath(columnPath)
   const requiredKeys = R.pathOr([], schemaPath.concat('required'), schema)
@@ -88,17 +118,20 @@ function getColumn(obj, columnPath, sortOrder, schema) {
   //       [{ key: 'key1', value: 'value1'}, { key: 'key2', value: 'value2'}]
   return mapKeys(
     nestedObj,
-    (value, key, schemaSortIndex) => ({
-      [ColumnIds.Key]: key,
-      [ColumnIds.Value]: value,
+    (value, key, schemaSortIndex) => {
+      const valueType = getValueType(key, schemaPath, schema)
+      return {
+        [ColumnIds.Key]: key,
+        [ColumnIds.Value]: getValue(value, valueType),
 
-      // These will be available at row.original
-      keysList: schemedKeysList,
-      required: requiredKeys.includes(key),
-      sortIndex:
-        sortOrder[columnPath.concat(key)] || schemaSortIndex || initialSortCounter,
-      valueType: getValueType(key, schemaPath, schema),
-    }),
+        // These will be available at row.original
+        keysList: schemedKeysList,
+        required: requiredKeys.includes(key),
+        sortIndex:
+          sortOrder[columnPath.concat(key)] || schemaSortIndex || initialSortCounter,
+        valueType,
+      }
+    },
     schemedKeysList,
   ).sort((a, b) => a.sortIndex - b.sortIndex)
 }
@@ -114,6 +147,13 @@ function convertType(value, typeOf) {
   }
 }
 
+export function validateOnSchema(obj, schema) {
+  const ajv = new Ajv()
+  const validate = ajv.compile(schema)
+  validate(obj)
+  return validate.errors || []
+}
+
 export default function JsonEditorState({ children, obj, optSchema }) {
   const schema = optSchema || {}
 
@@ -124,17 +164,6 @@ export default function JsonEditorState({ children, obj, optSchema }) {
 
   // NOTE: Should be greater than number of keys on schema and object
   const sortCounter = React.useRef(initialSortCounter)
-
-  const ajv = new Ajv()
-  const validate = ajv.compile(schema)
-
-  const validateOnSchema = React.useCallback(
-    (x) => {
-      validate(x)
-      setErrors(validate.errors || [])
-    },
-    [setErrors, validate],
-  )
 
   const columns = React.useMemo(() => {
     const rootColumn = getColumn(data, [], sortOrder, schema)
@@ -152,9 +181,9 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       const value = R.path(contextFieldPath, data)
       const newData = R.assocPath(contextFieldPath, convertType(value, typeOf), data)
       setData(newData)
-      validateOnSchema(newData)
+      setErrors(validateOnSchema(newData, schema))
     },
-    [data, setData, validateOnSchema],
+    [data, schema],
   )
 
   const makeAction = React.useCallback(
@@ -179,9 +208,9 @@ export default function JsonEditorState({ children, obj, optSchema }) {
     (removingFieldPath) => {
       const newData = R.dissocPath(removingFieldPath, data)
       setData(newData)
-      validateOnSchema(newData)
+      setErrors(validateOnSchema(newData, schema))
     },
-    [data, setData, validateOnSchema],
+    [data, schema],
   )
 
   const changeValue = React.useCallback(
@@ -192,10 +221,10 @@ export default function JsonEditorState({ children, obj, optSchema }) {
 
       const newData = R.assocPath(editingFieldPath, str, data)
       setData(newData)
-      validateOnSchema(newData)
+      setErrors(validateOnSchema(newData, schema))
       return newData
     },
-    [data, setData, validateOnSchema],
+    [data, schema],
   )
 
   const addRow = React.useCallback(

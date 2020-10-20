@@ -26,7 +26,7 @@ import SelectSchema from './SelectSchema'
 const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
 const ES_LAG = 3 * 1000
 
-const JSON_EDITOR_ENABLED = false
+const JSON_EDITOR_ENABLED = true
 
 const getNormalizedPath = (f) => (f.path.startsWith('/') ? f.path.substring(1) : f.path)
 
