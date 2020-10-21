@@ -2,21 +2,31 @@ Every data package is backed by a **manifest**. A manifest is a self-contained r
 
 Every time you save a data package to a registry you also save its manifest. You can inspect the manifest yourself using the `manifest` property:
 
-```bash
-$ python
->>> import quilt3
->>> p = quilt3.Package().set("foo.txt", "foo.txt")
->>> list(p.manifest)
-<<< [
-        {'version': 'v0'},
-        {'logical_key': 'Roadmap.md',
-         'physical_keys': ['file:///.../foo.txt'],
-         'size': 1000,
-         'hash': None,
-         'meta': {}
-        }
-    ]
+
+
+```python
+import quilt3
+import os
+
+# create test file
+with open("data.csv", "w") as f:
+    f.write("id, value\na, 42")
+
+p = quilt3.Package().set("data.csv", "data.csv")
+list(p.manifest)
 ```
+
+
+
+
+    [{'version': 'v0'},
+     {'logical_key': 'data.csv',
+      'physical_keys': ['file:///.../data.csv'],
+      'size': 15,
+      'hash': None,
+      'meta': {}}]
+
+
 
 Manifests saved to disk are in the [jsonl](http://jsonlines.org/)/[ndjson](http://ndjson.org/) format, e.g. JSON strings separated by newlines (`\n`). They are represented as a `list` of `dict` fragments in-memory.
 
@@ -47,9 +57,27 @@ The manifest fields are as follows:
 
 In almost all cases you should be using registries, `build`, and `push` to handle sending manifests to and fro. However, there may be advanced use cases where you want to save or load a manifest directly. For that, you can use the low-level manifest API:
 
+
+
 ```python
-import quilt3
-p = quilt3.Package()
-p.dump("example.jsonl")  # write to file
-p.load(open("example.jsonl", "r"))  # read from file
+p = quilt3.Package().set("data.csv", "data.csv")
+p.set_meta({"key": "value"})
+
+# Saving manifest to jsonl file
+with open("example.jsonl", "w") as f:
+    p.dump(f)
+
+# Loading maifest 
+p.load(open("example.jsonl", "r"))
 ```
+
+    Loading manifest: 100%|██████████| 2/2 [00:00<00:00, 2141.59entries/s]
+
+
+
+
+
+    (local Package)
+     └─data.csv
+
+

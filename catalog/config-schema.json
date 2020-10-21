@@ -86,14 +86,6 @@
       "type": "string",
       "description": "Token used for logging to Sentry."
     },
-    "signInRedirect": {
-      "type": "string",
-      "description": "Where users will be redirected upon successful login."
-    },
-    "signOutRedirect": {
-      "type": "string",
-      "description": "Where users will be redirected upon successful logout."
-    },
     "ssoAuth": {
       "$ref": "#/definitions/AuthMethodConfig",
       "description": "Whether Single Sign-On authentication is enabled for sign in and sign up."
@@ -112,8 +104,6 @@
     "passwordAuth",
     "registryUrl",
     "s3Proxy",
-    "signInRedirect",
-    "signOutRedirect",
     "ssoAuth",
     "ssoProviders"
   ],
