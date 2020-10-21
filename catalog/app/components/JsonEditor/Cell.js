@@ -1,5 +1,6 @@
 import * as React from 'react'
 
+import isArray from 'lodash/isArray'
 import * as M from '@material-ui/core'
 
 import Input from './Input'
@@ -67,17 +68,33 @@ function MenuForKey({ anchorRef, keysList, onMenuSelect, onClose }) {
   )
 }
 
-function MenuForValue({ anchorRef, onMenuSelect, onClose }) {
+function MenuForValue({ anchorRef, valueType, onMenuSelect, onClose }) {
+  const isEnum = isArray(valueType)
+  const enumOptions = isEnum
+    ? valueType.map((title) => ({
+        action: Actions.SelectEnum,
+        title,
+      }))
+    : []
   const typeConverters = ['number', 'string'].map((title) => ({
     action: Actions.ChangeType,
     title,
   }))
-  const menu = [
-    {
-      key: 'types',
-      options: typeConverters,
-    },
-  ]
+  const enumSubmenu = {
+    header: 'Enum',
+    key: 'enum',
+    options: enumOptions,
+  }
+  const typeConvertersSubmenu = {
+    key: 'types',
+    options: typeConverters,
+  }
+  const divider = {
+    key: 'divider',
+  }
+  const menu = isEnum
+    ? [enumSubmenu, divider, typeConvertersSubmenu]
+    : [typeConvertersSubmenu]
   return (
     <CellMenu
       {...{
@@ -162,6 +179,7 @@ export default function Cell({
       {hasValueMenu && (
         <MenuForValue
           anchorRef={menuAnchorRef}
+          valueType={row.original ? row.original.valueType : undefined}
           onMenuSelect={onMenuSelect}
           onClose={closeMenu}
         />

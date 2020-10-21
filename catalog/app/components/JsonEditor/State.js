@@ -15,6 +15,7 @@ export const Actions = {
   ChangeType: 'change_type',
   RemoveField: 'remove_field',
   Select: 'select',
+  SelectEnum: 'select_enum',
 }
 
 export function stringifyJSON(obj) {
@@ -198,6 +199,9 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       switch (actionItem.action) {
         case Actions.RemoveField:
           removeField(contextFieldPath, actionItem)
+          break
+        case Actions.SelectEnum:
+          changeValue(contextFieldPath, ColumnIds.Value, actionItem.title)
           break
         case Actions.Select:
           changeValue(contextFieldPath, ColumnIds.Key, actionItem.title)

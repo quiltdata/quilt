@@ -8,11 +8,13 @@ const i18nMsgs = {
 
 const useStyles = M.makeStyles((t) => ({
   buttonCell: {
-    border: 0,
+    border: `1px solid ${t.palette.divider}`,
+    borderWidth: `1px 0 0`,
     width: t.spacing(20),
   },
   emptyCell: {
-    border: 0,
+    border: `1px solid ${t.palette.divider}`,
+    borderWidth: `1px 0 0`,
   },
 }))
 
