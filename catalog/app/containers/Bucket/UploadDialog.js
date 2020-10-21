@@ -383,21 +383,21 @@ function getMetaValue(value) {
   )
 }
 
-function validateMeta(schema, value) {
+function validateMeta(schema, schemaBypass, value) {
   // TODO: move schema validation to utils/validators
   const noError = undefined
 
-  if (!value) return noError
-
-  if (schema) {
-    const errors = validateOnSchema(parseJSON(value.text), schema.schema)
+  if (schema && !schemaBypass) {
+    const obj = value ? parseJSON(value.text) : {}
+    const errors = validateOnSchema(obj, schema.schema)
     if (!errors.length) {
       return noError
     }
 
-    // TODO: return real error
-    return 'jsonObject'
+    return errors
   }
+
+  if (!value) return noError
 
   if (value.mode === 'json') {
     return validators.jsonObject(value.text)
@@ -554,6 +554,7 @@ function MetaInput({ input, meta, schema, onSchema }) {
         <>
           {JSON_EDITOR_ENABLED ? (
             <JsonEditor
+              error={error}
               value={parseJSON(value.text)}
               onChange={onJsonEditor}
               schema={schema && schema.schema}
@@ -690,6 +691,22 @@ async function hashFile(file) {
   }
 }
 
+function SchemaBypassField({ checked, onChange, ...props }) {
+  return (
+    <M.FormControlLabel
+      control={
+        <M.Switch
+          {...props}
+          checked={checked}
+          onChange={(event) => onChange(event.target.checked)}
+          color="primary"
+        />
+      }
+      label="Bypass schema validation"
+    />
+  )
+}
+
 export default function UploadDialog({ bucket, open, onClose, refresh }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
@@ -697,6 +714,8 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
   const [uploads, setUploads] = React.useState({})
   const [success, setSuccess] = React.useState(null)
   const validateCacheKey = useCounter()
+
+  const [schemaBypass, setSchemaBypass] = React.useState(false)
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const validateName = React.useCallback(
@@ -919,11 +938,15 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                     schema={schema}
                     onSchema={setSchema}
                     name="meta"
-                    errors={{
-                      jsonObject: 'JSON JSON JSON',
-                    }}
-                    validate={(...props) => validateMeta(schema, ...props)}
+                    validate={(...props) => validateMeta(schema, schemaBypass, ...props)}
                     isEqual={R.equals}
+                  />
+
+                  <RF.Field
+                    component={SchemaBypassField}
+                    checked={schemaBypass}
+                    onChange={setSchemaBypass}
+                    name="bypass"
                   />
 
                   <input type="submit" style={{ display: 'none' }} />

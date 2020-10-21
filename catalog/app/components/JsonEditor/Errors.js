@@ -7,7 +7,12 @@ export default function Errors({ className, errors }) {
     <div className={className}>
       {errors.map((error) => (
         <Lab.Alert severity="error" key={error.dataPath}>
-          <code>`{error.dataPath}`</code>: {error.message}
+          {error.dataPath && (
+            <>
+              <code>`{error.dataPath}`</code>:{' '}
+            </>
+          )}
+          {error.message}
         </Lab.Alert>
       ))}
     </div>

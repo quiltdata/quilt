@@ -27,6 +27,7 @@ function JsonEditor({
   changeValue,
   className,
   columns,
+  error,
   errors,
   fieldPath,
   makeAction,
@@ -75,13 +76,15 @@ function JsonEditor({
         ))}
       </div>
 
-      <Errors className={classes.errors} errors={errors} />
+      <Errors className={classes.errors} errors={error || errors} />
     </div>
   )
 }
 
-export default ({ className, onChange, schema, value }) => (
+export default ({ className, error, onChange, schema, value }) => (
   <State obj={value} optSchema={schema}>
-    {(props) => <JsonEditor {...props} onChange={onChange} className={className} />}
+    {(props) => (
+      <JsonEditor {...props} error={error} onChange={onChange} className={className} />
+    )}
   </State>
 )
