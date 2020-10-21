@@ -3,10 +3,7 @@
 
 # TODO
 
-<!--
-Use this section for work-in-progress pull requests. If you're using this section,
-please tag your PR "WIP". 
--->
+<!-- Use this section for draft pull requests. -->
 
 - [ ] Unit Tests
 - [ ] Documentation
