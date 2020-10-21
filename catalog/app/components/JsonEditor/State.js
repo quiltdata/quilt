@@ -3,6 +3,7 @@ import * as React from 'react'
 import Ajv from 'ajv'
 import isArray from 'lodash/isArray'
 import isString from 'lodash/isString'
+import isUndefined from 'lodash/isUndefined'
 import toNumber from 'lodash/toNumber'
 
 export const ColumnIds = {
@@ -89,16 +90,15 @@ function getEmptyValue(valueType) {
     }
   }
 
-  // TODO: use enum type
   if (isArray(valueType)) {
-    return ''
+    return valueType[0]
   }
 
   return ''
 }
 
 function getValue(value, valueType) {
-  if (typeof value !== 'undefined') return value
+  if (!isUndefined(value)) return value
 
   return getEmptyValue(valueType)
 }
@@ -116,7 +116,7 @@ function getColumn(obj, columnPath, sortOrder, schema) {
   // NOTE: { key1: value1, key2: value2 }
   //       converts to
   //       [{ key: 'key1', value: 'value1'}, { key: 'key2', value: 'value2'}]
-  return mapKeys(
+  const items = mapKeys(
     nestedObj,
     (value, key, schemaSortIndex) => {
       const valueType = getValueType(key, schemaPath, schema)
@@ -125,6 +125,7 @@ function getColumn(obj, columnPath, sortOrder, schema) {
         [ColumnIds.Value]: getValue(value, valueType),
 
         // These will be available at row.original
+        empty: isUndefined(value),
         keysList: schemedKeysList,
         required: requiredKeys.includes(key),
         sortIndex:
@@ -134,6 +135,12 @@ function getColumn(obj, columnPath, sortOrder, schema) {
     },
     schemedKeysList,
   ).sort((a, b) => a.sortIndex - b.sortIndex)
+
+  return {
+    items,
+    parent: nestedObj,
+    schema: R.pathOr({}, schemaPath, schema),
+  }
 }
 
 function convertType(value, typeOf) {

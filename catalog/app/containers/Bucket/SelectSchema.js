@@ -99,7 +99,7 @@ export default function SelectSchema({ className, onChange, value: initialValue 
     }
     setOptions([option1, option2])
 
-    selectOption(option1)
+    selectOption(option2)
 
     setLoading(false)
   }, [selectOption])

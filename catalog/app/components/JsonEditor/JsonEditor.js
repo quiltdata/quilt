@@ -64,7 +64,7 @@ function JsonEditor({
             {...{
               columnPath: R.slice(0, index, fieldPath),
               data: columnData,
-              key: objectHash(columnData),
+              key: objectHash(columnData.items),
               onAddRow: addRow,
               onCollapse,
               onExpand: setFieldPath,

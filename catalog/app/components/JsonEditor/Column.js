@@ -1,9 +1,11 @@
 import * as React from 'react'
+import * as R from 'ramda'
 import cx from 'classnames'
 import { useTable } from 'react-table'
 
 import * as M from '@material-ui/core'
 
+import AddArrayItem from './AddArrayItem'
 import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
@@ -51,7 +53,7 @@ export default function Table({
 
   const tableInstance = useTable({
     columns,
-    data,
+    data: data.items,
 
     defaultColumn: {
       Cell,
@@ -60,6 +62,8 @@ export default function Table({
     updateMyData,
   })
   const { getTableProps, getTableBodyProps, rows, prepareRow } = tableInstance
+
+  const columnType = R.pathOr('object', ['schema', 'type'], data)
 
   return (
     <div className={cx(classes.root)}>
@@ -87,14 +91,24 @@ export default function Table({
                 )
               })}
 
-              <AddRow
-                {...{
-                  columnPath,
-                  keysList: rows.length ? rows[0].original.keysList : [],
-                  onExpand,
-                  onAdd: onAddRow,
-                }}
-              />
+              {columnType === 'array' ? (
+                <AddArrayItem
+                  {...{
+                    columnPath,
+                    index: rows.length,
+                    onAdd: onAddRow,
+                  }}
+                />
+              ) : (
+                <AddRow
+                  {...{
+                    columnPath,
+                    keysList: rows.length ? rows[0].original.keysList : [],
+                    onExpand,
+                    onAdd: onAddRow,
+                  }}
+                />
+              )}
             </M.TableBody>
           </M.Table>
         </M.TableContainer>

@@ -466,7 +466,6 @@ function MetaInput({ input, meta, schema, onSchema }) {
   const classes = useMetaInputStyles()
   const value = input.value || { fields: [EMPTY_FIELD], text: '{}', mode: 'kv' }
   const error = meta.submitFailed && meta.error
-  console.log(error, meta.submitFailed, meta.error)
   const disabled = meta.submitting || meta.submitSucceeded
 
   const changeMode = (mode) => {

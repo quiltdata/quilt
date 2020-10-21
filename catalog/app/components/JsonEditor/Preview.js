@@ -2,6 +2,7 @@ import * as React from 'react'
 import cx from 'classnames'
 import isArray from 'lodash/isArray'
 import isObject from 'lodash/isObject'
+import isUndefined from 'lodash/isUndefined'
 
 import * as M from '@material-ui/core'
 
@@ -34,6 +35,10 @@ const useStyles = M.makeStyles((t) => ({
     fontWeight: t.typography.fontWeightMedium,
   },
 
+  placeholder: {
+    color: t.palette.text.disabled,
+  },
+
   menu: {
     marginLeft: 'auto',
   },
@@ -48,7 +53,7 @@ function formatValuePreview(x) {
     return `{ ${Object.keys(x).join(', ')} }`
   }
 
-  return x ? x.toString() : ''
+  return isUndefined(x) ? '' : x.toString()
 }
 
 export default function Preview({
@@ -62,13 +67,19 @@ export default function Preview({
   const classes = useStyles()
 
   const requiredKey = data.required && columnId === ColumnIds.Key
+  const placeholderValue = data.empty && columnId === ColumnIds.Value
 
   return (
     <div className={classes.root}>
       {isObject(value) && <ButtonExpand onClick={onExpand} />}
 
       <div className={classes.value}>
-        <span className={cx(classes.valueInner, { [classes.required]: requiredKey })}>
+        <span
+          className={cx(classes.valueInner, {
+            [classes.required]: requiredKey,
+            [classes.placeholder]: placeholderValue,
+          })}
+        >
           {formatValuePreview(value)}
         </span>
       </div>
