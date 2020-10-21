@@ -20,7 +20,7 @@ import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
 
 import JsonEditor from 'components/JsonEditor'
-import { parseJSON, stringifyJSON } from 'components/JsonEditor/State'
+import { parseJSON, stringifyJSON, validateOnSchema } from 'components/JsonEditor/State'
 import SelectSchema from './SelectSchema'
 
 const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
@@ -383,12 +383,27 @@ function getMetaValue(value) {
   )
 }
 
-function validateMeta(value) {
-  if (!value) return
+function validateMeta(schema, value) {
+  // TODO: move schema validation to utils/validators
+  const noError = undefined
+
+  if (!value) return noError
+
+  if (schema) {
+    const errors = validateOnSchema(parseJSON(value.text), schema.schema)
+    if (!errors.length) {
+      return noError
+    }
+
+    // TODO: return real error
+    return 'jsonObject'
+  }
+
   if (value.mode === 'json') {
-    // eslint-disable-next-line consistent-return
     return validators.jsonObject(value.text)
   }
+
+  return noError
 }
 
 const useMetaInputStyles = M.makeStyles((t) => ({
@@ -447,13 +462,12 @@ const useMetaInputStyles = M.makeStyles((t) => ({
 const EMPTY_FIELD = { key: '', value: '' }
 
 // TODO: warn on duplicate keys
-function MetaInput({ input, meta }) {
+function MetaInput({ input, meta, schema, onSchema }) {
   const classes = useMetaInputStyles()
   const value = input.value || { fields: [EMPTY_FIELD], text: '{}', mode: 'kv' }
   const error = meta.submitFailed && meta.error
+  console.log(error, meta.submitFailed, meta.error)
   const disabled = meta.submitting || meta.submitSucceeded
-
-  const [schema, setSchema] = React.useState(null)
 
   const changeMode = (mode) => {
     if (disabled) return
@@ -523,7 +537,7 @@ function MetaInput({ input, meta }) {
         </M.Typography>
 
         {JSON_EDITOR_ENABLED && (
-          <SelectSchema className={classes.select} onChange={(s) => setSchema(s)} />
+          <SelectSchema className={classes.select} onChange={onSchema} />
         )}
 
         <M.Box flexGrow={1} />
@@ -812,6 +826,8 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
     }
   }
 
+  const [schema, setSchema] = React.useState(null)
+
   return (
     <RF.Form onSubmit={onSubmit}>
       {({
@@ -901,8 +917,13 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
 
                   <RF.Field
                     component={MetaInput}
+                    schema={schema}
+                    onSchema={setSchema}
                     name="meta"
-                    validate={validateMeta}
+                    errors={{
+                      jsonObject: 'JSON JSON JSON',
+                    }}
+                    validate={(...props) => validateMeta(schema, ...props)}
                     isEqual={R.equals}
                   />
 
