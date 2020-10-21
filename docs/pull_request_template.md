@@ -3,8 +3,9 @@
 
 # TODO
 
-<!-- Use this section for draft pull requests. -->
+<!-- Use this section for draft pull requests -->
 
-- [ ] Unit Tests
+- [ ] Unit tests
 - [ ] Documentation
-- [ ] Add a [changelog](CHANGELOG.md) entry
+    - [ ] [Run `build.py`](../gendocs/build.py) for new docstrings
+- [ ] [Changelog](CHANGELOG.md) entry
