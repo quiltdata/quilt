@@ -3,6 +3,12 @@ version: 2.1
 orbs:
   win: circleci/windows@2.4.0
 
+# This is used to run the PyPI release job and the jobs it depends on,
+# when Git tag for release is created (by default jobs don't run on tags).
+release-tags: &release-tags
+  tags:
+    only: /[0-9]+(\.[0-9]+)*([abrc]+[0-9]+)?$/
+
 executors:
   python-36:
     docker:
@@ -55,16 +61,14 @@ workflows:
                 - python-37
                 - python-38
           filters:
-            tags:
-              only: /.*/
+            <<: *release-tags
       - test-client:
           name: test-client-windows
           executor:
             name: win/default
             shell: bash --login -eo pipefail
           filters:
-            tags:
-              only: /.*/
+            <<: *release-tags
       - test-lambda:
           name: test-lambda-<< matrix.path >>
           matrix:
@@ -80,13 +84,12 @@ workflows:
       - test-lambda:
           name: test-lambda-indexer
           path: es/indexer
-      - deploy:
+      - pypi-release:
           requires:
             - test-client
             - test-client-windows
           filters:
-            tags:
-              only: /[0-9]+(\.[0-9]+)*([abrc]+[0-9]+)?$/
+            <<: *release-tags
             branches:
               ignore: /.*/
 
@@ -173,7 +176,7 @@ jobs:
       - codecov:
           flags: "lambda"
 
-  deploy:
+  pypi-release:
     executor: python
     environment:
       QUILT_DISABLE_USAGE_METRICS: true
