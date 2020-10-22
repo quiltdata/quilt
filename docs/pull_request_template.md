@@ -3,7 +3,7 @@
 
 # TODO
 
-<!-- Use this section for draft pull requests -->
+<!-- Use <del></del> for items that are not required for this PR -->
 
 - [ ] Unit tests
 - [ ] Documentation
