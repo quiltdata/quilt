@@ -1,6 +1,6 @@
-from unittest.mock import patch
-from io import BytesIO
 import pathlib
+from io import BytesIO
+from unittest.mock import patch
 
 import pandas as pd
 import pytest

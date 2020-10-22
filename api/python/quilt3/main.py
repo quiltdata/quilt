@@ -5,17 +5,23 @@ Parses the command-line arguments and runs a command.
 import argparse
 import json
 import subprocess
-import time
 import sys
+import time
 
 import dns.resolver
 import requests
 
-from . import api, session, Package
+from . import Package
 from . import __version__ as quilt3_version
+from . import api, session
 from .backends import get_package_registry
 from .session import open_url
-from .util import get_from_config, catalog_s3_url, catalog_package_url, QuiltException
+from .util import (
+    QuiltException,
+    catalog_package_url,
+    catalog_s3_url,
+    get_from_config,
+)
 
 
 def cmd_config(catalog_url, **kwargs):
@@ -200,7 +206,7 @@ def cmd_disable_telemetry():
 
 
 def cmd_list_packages(registry):
-    for package_name in get_package_registry(registry).list_packages:
+    for package_name in get_package_registry(registry).list_packages():
         print(package_name)
 
 

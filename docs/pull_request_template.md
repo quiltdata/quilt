@@ -12,4 +12,5 @@ please tag your PR "WIP".
 
 - [ ] Unit Tests
 - [ ] Documentation
+- [ ] Add a [changelog](CHANGELOG.md) entry
 - [ ] Fix conflict with #2

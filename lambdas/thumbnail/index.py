@@ -16,18 +16,18 @@ from typing import List, Tuple
 
 import imageio
 import numpy as np
+import requests
+from aicsimageio import AICSImage, readers
 from pdf2image import convert_from_bytes
 from pdf2image.exceptions import (
     PDFInfoNotInstalledError,
     PDFPageCountError,
     PDFSyntaxError,
-    PopplerNotInstalledError
+    PopplerNotInstalledError,
 )
-import requests
-from aicsimageio import AICSImage, readers
 from PIL import Image
 
-from t4_lambda_shared.decorator import api, QUILT_INFO_HEADER, validate
+from t4_lambda_shared.decorator import QUILT_INFO_HEADER, api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 # Eventually we'll want to precompute/cache thumbnails, so we won't be able to support

@@ -5,11 +5,11 @@ Microservice that provides temporary user credentials to the catalog
 from datetime import timedelta
 
 import boto3
+import requests
 from botocore.exceptions import ClientError
 from flask import Flask
 from flask_cors import CORS
 from flask_json import as_json
-import requests
 
 app = Flask(__name__)  # pylint: disable=invalid-name
 app.config['JSON_USE_ENCODE_METHODS'] = True

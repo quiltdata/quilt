@@ -1,19 +1,18 @@
 """ core logic for fetching documents from S3 and queueing them locally before
 sending to elastic search in memory-limited batches"""
+import os
 from datetime import datetime
 from enum import Enum
 from math import floor
 from typing import Dict, List
-import os
 
-from aws_requests_auth.aws_auth import AWSRequestsAuth
 import boto3
+from aws_requests_auth.aws_auth import AWSRequestsAuth
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 
-from t4_lambda_shared.utils import separated_env_to_iter
 from t4_lambda_shared.preview import ELASTIC_LIMIT_BYTES
-
+from t4_lambda_shared.utils import separated_env_to_iter
 
 CONTENT_INDEX_EXTS = separated_env_to_iter("CONTENT_INDEX_EXTS") or {
     ".csv",
@@ -118,11 +117,9 @@ class DocumentQueue:
         if doc_type == DocTypes.PACKAGE:
             if not handle or not package_hash or not pointer_file:
                 raise ValueError("missing required argument for package document")
-            if (
-                package_stats
-                and not isinstance(package_stats, dict)
-                or isinstance(package_stats, dict)
-                and any(k not in package_stats for k in ['total_files', 'total_bytes'])
+            if not (
+                package_stats is None
+                or isinstance(package_stats, dict) and {'total_files', 'total_bytes'}.issubset(package_stats)
             ):
                 raise ValueError("Malformed package_stats")
             body.update({

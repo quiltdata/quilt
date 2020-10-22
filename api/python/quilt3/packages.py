@@ -1,34 +1,51 @@
-import inspect
-from collections import deque
 import gc
 import hashlib
+import inspect
 import io
 import json
-import pathlib
 import os
+import pathlib
 import shutil
 import time
-from multiprocessing import Pool
 import uuid
 import warnings
+from collections import deque
+from multiprocessing import Pool
 
 import jsonlines
 from tqdm import tqdm
 
 from .backends import get_package_registry
 from .data_transfer import (
-    calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_version,
-    list_object_versions, list_url, put_bytes
+    calculate_sha256,
+    copy_file,
+    copy_file_list,
+    get_bytes,
+    get_size_and_version,
+    list_object_versions,
+    list_url,
+    put_bytes,
 )
 from .exceptions import PackageException
 from .formats import FormatRegistry
 from .telemetry import ApiTelemetry
+from .util import CACHE_PATH, DISABLE_TQDM, PACKAGE_UPDATE_POLICY
+from .util import TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
 from .util import (
-    QuiltException, fix_url, get_from_config, get_install_location,
-    validate_package_name, quiltignore_filter, validate_key, extract_file_extension,
-    parse_sub_package_name, RemovedInQuilt4Warning, PACKAGE_UPDATE_POLICY)
-from .util import CACHE_PATH, TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR, PhysicalKey, \
-    user_is_configured_to_custom_stack, catalog_package_url, DISABLE_TQDM
+    PhysicalKey,
+    QuiltException,
+    RemovedInQuilt4Warning,
+    catalog_package_url,
+    extract_file_extension,
+    fix_url,
+    get_from_config,
+    get_install_location,
+    parse_sub_package_name,
+    quiltignore_filter,
+    user_is_configured_to_custom_stack,
+    validate_key,
+    validate_package_name,
+)
 
 
 def _delete_local_physical_key(pk):

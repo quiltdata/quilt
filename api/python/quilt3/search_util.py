@@ -6,9 +6,8 @@ Contains search-related glue code
 import re
 from urllib.parse import quote, urlencode, urlparse
 
-from aws_requests_auth.aws_auth import AWSRequestsAuth
-
 import requests
+from aws_requests_auth.aws_auth import AWSRequestsAuth
 
 from .session import create_botocore_session
 from .util import QuiltException, get_from_config

@@ -1,6 +1,6 @@
+import os
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-import os
 from unittest import TestCase
 from unittest.mock import patch
 

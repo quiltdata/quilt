@@ -20,9 +20,9 @@ function Browse({ bucket }) {
   )
 }
 
-function Results({ bucket, query, page, mode, scrollRef, makePageUrl }) {
+function Results({ bucket, query, page, mode, scrollRef, makePageUrl, retry, retryUrl }) {
   const req = AWS.APIGateway.use()
-  const data = Data.use(search, { req, buckets: [bucket], mode, query })
+  const data = Data.use(search, { req, buckets: [bucket], mode, query, retry })
   return data.case({
     _: () => (
       // TODO: display scope instead of bucket when implemented
@@ -30,7 +30,7 @@ function Results({ bucket, query, page, mode, scrollRef, makePageUrl }) {
         Searching s3://{bucket} for &quot;{query}&quot;
       </SearchResults.Progress>
     ),
-    Err: SearchResults.handleErr(data.fetch),
+    Err: SearchResults.handleErr(retryUrl),
     Ok: ({ total, hits }) =>
       total ? (
         <SearchResults.Hits {...{ hits, page, scrollRef, makePageUrl }} showBucket />
@@ -244,7 +244,7 @@ const useSearchStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Search({ bucket, query, page, mode }) {
+function Search({ bucket, query, page, mode, retry }) {
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const classes = useSearchStyles()
@@ -253,22 +253,30 @@ function Search({ bucket, query, page, mode }) {
 
   const handleQueryChange = React.useCallback(
     (newQuery) => {
-      history.push(urls.bucketSearch(bucket, newQuery, undefined, mode))
+      history.push(urls.bucketSearch(bucket, { q: newQuery, mode }))
     },
     [history, urls, bucket, mode],
   )
 
   const handleModeChange = React.useCallback(
     (newMode) => {
-      history.push(urls.bucketSearch(bucket, query, undefined, newMode))
+      history.push(urls.bucketSearch(bucket, { q: query, mode: newMode }))
     },
     [history, urls, bucket, query],
   )
 
   const makePageUrl = React.useCallback(
-    (newP) => urls.bucketSearch(bucket, query, newP !== 1 ? newP : undefined, mode),
-    [urls, bucket, query, mode],
+    (newP) =>
+      urls.bucketSearch(bucket, {
+        q: query,
+        p: newP !== 1 ? newP : undefined,
+        mode,
+        retry,
+      }),
+    [urls, bucket, query, mode, retry],
   )
+
+  const retryUrl = urls.bucketSearch(bucket, { q: query, mode, retry: (retry || 0) + 1 })
 
   return (
     <>
@@ -287,7 +295,9 @@ function Search({ bucket, query, page, mode }) {
         </M.Box>
       </M.Box>
       {query ? (
-        <Results {...{ bucket, query, page, mode, scrollRef, makePageUrl }} />
+        <Results
+          {...{ bucket, query, page, mode, scrollRef, makePageUrl, retry, retryUrl }}
+        />
       ) : (
         // TODO: revise copy
         <SearchResults.Alt>
@@ -305,12 +315,13 @@ export default function BucketSearch({
   location: l,
 }) {
   const cfg = BucketConfig.useCurrentBucketConfig()
-  const { q: query = '', p, mode } = parseSearch(l.search)
+  const { q: query = '', p, mode, ...params } = parseSearch(l.search)
   const page = p && parseInt(p, 10)
+  const retry = (params.retry && parseInt(params.retry, 10)) || undefined
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
       {cfg ? (
-        <Search {...{ bucket, query, page, mode }} />
+        <Search {...{ bucket, query, page, mode, retry }} />
       ) : (
         <M.Typography variant="body1">Search unavailable</M.Typography>
       )}

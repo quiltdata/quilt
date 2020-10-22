@@ -34,6 +34,7 @@ workflows:
   test:
     jobs:
       - linter
+      - isort
       - test-36
       - test-37
       - test-38
@@ -66,7 +67,8 @@ workflows:
 
   build_and_deploy:
     jobs:
-      - build:
+      - test-36:
+          name: build
           filters:
             tags:
               only: /.*/
@@ -115,6 +117,21 @@ jobs:
           name: Run pycodestyle
           command: |
             pycodestyle $(find -name '*.py' -not -path './venv/*')
+
+  isort:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - setup-venv
+      - run:
+          name: Install dependencies
+          command: |
+            pip install isort
+      - run:
+          name: Run isort
+          command: |
+            isort --check --diff .
 
   test-36:
     docker:
@@ -169,33 +186,6 @@ jobs:
             pytest --cov=lambdas lambdas/<< parameters.path >>
       - codecov:
           flags: "lambda"
-
-  build:
-    docker:
-      - image: circleci/python:3.6
-    environment:
-      QUILT_DISABLE_USAGE_METRICS: true
-    steps:
-      - checkout
-      - restore_cache:
-          key: v1-dependency-cache-{{ checksum "api/python/setup.py" }}-{{ checksum "Makefile" }}
-      - setup-venv
-      - run:
-          name: install python dependencies
-          command: |
-            pip install -e api/python[tests]
-      - save_cache:
-          key: v1-dependency-cache-{{ checksum "api/python/setup.py" }}-{{ checksum "Makefile" }}
-          paths:
-            - "venv"
-      - run:
-          name: run tests
-          command: |
-            pytest --cov=api/python api/python
-      - codecov:
-          flags: "api-python"
-      - store_artifacts:
-          path: htmlcov/
 
   deploy:
     docker:

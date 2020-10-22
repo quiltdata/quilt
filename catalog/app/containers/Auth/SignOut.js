@@ -7,7 +7,6 @@ import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 import Working from 'components/Working'
-import * as Config from 'utils/Config'
 import * as Sentry from 'utils/Sentry'
 import defer from 'utils/defer'
 
@@ -32,7 +31,6 @@ export function useSignOut() {
 }
 
 export default function SignOut() {
-  const cfg = Config.useConfig()
   const doSignOut = useSignOut()
   const { waiting, authenticated } = redux.useSelector(selector)
   React.useEffect(() => {
@@ -40,7 +38,7 @@ export default function SignOut() {
   }, [waiting, authenticated])
   return (
     <>
-      {!authenticated && <Redirect to={cfg.signOutRedirect} />}
+      {!authenticated && <Redirect to="/" />}
       <Layout>
         <M.Box mt={5} textAlign="center">
           <Working>

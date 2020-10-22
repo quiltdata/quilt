@@ -1,9 +1,8 @@
 import os
 import sys
-
 from pathlib import Path
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 from setuptools.command.install import install
 
 VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text().strip()
@@ -53,7 +52,7 @@ setup(
     ],
     author='quiltdata',
     author_email='contact@quiltdata.io',
-    license='LICENSE',
+    license='Apache-2.0',
     url='https://github.com/quiltdata/quilt',
     keywords='',
     install_requires=[
@@ -69,7 +68,7 @@ setup(
         'PyYAML>=5.1',
         'requests>=2.12.4',
         'tenacity>=5.1.1',
-        'tqdm>=4.26.0',
+        'tqdm>=4.32',
         'requests_futures==1.0.0',
     ],
     extras_require={

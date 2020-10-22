@@ -77,7 +77,8 @@ export const profile = {
 // global search
 export const search = {
   path: '/search',
-  url: ({ q, buckets, p, mode }) => `/search${mkSearch({ q, buckets, p, mode })}`,
+  url: ({ q, buckets, p, mode, retry }) =>
+    `/search${mkSearch({ q, buckets, p, mode, retry })}`,
 }
 
 // bucket
@@ -88,7 +89,8 @@ export const bucketRoot = {
 export const bucketOverview = bucketRoot
 export const bucketSearch = {
   path: '/b/:bucket/search',
-  url: (bucket, q, p, mode) => `/b/${bucket}/search${mkSearch({ q, p, mode })}`,
+  url: (bucket, { q, p, mode, retry } = {}) =>
+    `/b/${bucket}/search${mkSearch({ q, p, mode, retry })}`,
 }
 export const bucketFile = {
   path: '/b/:bucket/tree/:path(.*[^/])',

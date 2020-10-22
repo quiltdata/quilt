@@ -24,6 +24,65 @@ import * as data from './data'
 // default icon as returned by the registry
 const DEFAULT_ICON = 'https://d1zvn9rasera71.cloudfront.net/q-128-square.png'
 
+const DO_NOT_SUBSCRIBE_STR = 'DO_NOT_SUBSCRIBE'
+const DO_NOT_SUBSCRIBE_SYM = Symbol(DO_NOT_SUBSCRIBE_STR)
+
+const SNS_ARN_RE = /^arn:aws(-|\w)*:sns:(-|\w)*:\d*:\S+$/
+
+function validateSNS(v) {
+  if (!v) return undefined
+  if (v === DO_NOT_SUBSCRIBE_SYM) return undefined
+  return SNS_ARN_RE.test(v) ? undefined : 'invalidArn'
+}
+
+const snsErrors = {
+  invalidArn: 'Enter a valid SNS topic ARN or leave blank',
+  topicNotFound: 'No such topic, enter a valid SNS topic ARN or leave blank',
+}
+
+function SNSField({ input: { onChange, value = '' }, meta }) {
+  const error = meta.submitFailed && meta.error
+
+  const handleSkipChange = React.useCallback(
+    (e, checked) => {
+      onChange(checked ? DO_NOT_SUBSCRIBE_SYM : '')
+    },
+    [onChange],
+  )
+
+  const handleArnChange = React.useCallback(
+    (e) => {
+      onChange(e.target.value)
+    },
+    [onChange],
+  )
+
+  return (
+    <M.Box mt={2}>
+      <Form.Checkbox
+        meta={meta}
+        checked={value === DO_NOT_SUBSCRIBE_SYM}
+        onChange={handleSkipChange}
+        label="Skip S3 notifications (not recommended)"
+      />
+      <M.TextField
+        error={!!error}
+        helperText={error ? snsErrors[error] || error : undefined}
+        label="SNS Topic ARN"
+        placeholder="Enter ARN (leave blank to auto-fill)"
+        fullWidth
+        margin="normal"
+        disabled={
+          value === DO_NOT_SUBSCRIBE_SYM || meta.submitting || meta.submitSucceeded
+        }
+        onChange={handleArnChange}
+        value={value === DO_NOT_SUBSCRIBE_SYM ? DO_NOT_SUBSCRIBE_STR : value}
+        InputLabelProps={{ shrink: true }}
+      />
+    </M.Box>
+  )
+}
+
 const useBucketFieldsStyles = M.makeStyles((t) => ({
   group: {
     '& > *:first-child': {
@@ -45,7 +104,7 @@ const useBucketFieldsStyles = M.makeStyles((t) => ({
   },
 }))
 
-function BucketFields({ add = false }) {
+function BucketFields({ add = false, reindex }) {
   const classes = useBucketFieldsStyles()
   return (
     <M.Box>
@@ -174,6 +233,11 @@ function BucketFields({ add = false }) {
           <M.Typography variant="h6">Indexing and notifications</M.Typography>
         </M.AccordionSummary>
         <M.Box className={classes.group} pt={1}>
+          {!!reindex && (
+            <M.Button variant="outlined" fullWidth onClick={reindex}>
+              Re-index and repair
+            </M.Button>
+          )}
           <RF.Field
             component={Form.Field}
             name="fileExtensionsToIndex"
@@ -194,11 +258,9 @@ function BucketFields({ add = false }) {
             margin="normal"
           />
           <RF.Field
-            component={Form.Field}
+            component={SNSField}
             name="snsNotificationArn"
-            label="SNS notification ARN"
-            fullWidth
-            margin="normal"
+            validate={validateSNS}
           />
           <M.Box mt={2}>
             <RF.Field
@@ -257,7 +319,11 @@ const formToJSON = (values) => {
       ),
     ),
     scanner_parallel_shards_depth: get('scannerParallelShardsDepth', Number),
-    sns_notification_arn: get('snsNotificationArn', R.trim),
+    sns_notification_arn: get('snsNotificationArn', (v) => {
+      if (v === DO_NOT_SUBSCRIBE_SYM) return DO_NOT_SUBSCRIBE_STR
+      if (typeof v === 'string') return v.trim()
+      return undefined
+    }),
     skip_meta_data_indexing: get('skipMetaDataIndexing'),
     delay_scan: get('delayScan'),
   }
@@ -313,6 +379,9 @@ function Add({ close }) {
         if (APIConnector.HTTPError.is(e, 404, /NoSuchBucket/)) {
           throw new RF.SubmissionError({ name: 'noSuchBucket' })
         }
+        if (APIConnector.HTTPError.is(e, 401, /404 - NotFound: Topic does not exist/)) {
+          throw new RF.SubmissionError({ snsNotificationArn: 'topicNotFound' })
+        }
         // eslint-disable-next-line no-console
         console.error('Error adding bucket')
         // eslint-disable-next-line no-console
@@ -320,7 +389,7 @@ function Add({ close }) {
         throw new RF.SubmissionError({ _error: 'unexpected' })
       }
     },
-    [req, cache, push, close, session],
+    [req, cache, push, close, session, t],
   )
 
   return (
@@ -373,10 +442,135 @@ function Add({ close }) {
   )
 }
 
+function Reindex({ bucket, open, close }) {
+  const req = APIConnector.use()
+
+  const [repair, setRepair] = React.useState(false)
+  const [submitting, setSubmitting] = React.useState(false)
+  const [submitSucceeded, setSubmitSucceeded] = React.useState(false)
+  const [error, setError] = React.useState(false)
+
+  const reset = React.useCallback(() => {
+    setSubmitting(false)
+    setSubmitSucceeded(false)
+    setRepair(false)
+    setError(false)
+  }, [])
+
+  const handleRepairChange = React.useCallback((e, v) => {
+    setRepair(v)
+  }, [])
+
+  const reindex = React.useCallback(async () => {
+    if (submitting) return
+    setError(false)
+    setSubmitting(true)
+    try {
+      await req({
+        endpoint: `/admin/reindex/${bucket}`,
+        method: 'POST',
+        body: { repair: repair || undefined },
+      })
+      setSubmitSucceeded(true)
+    } catch (e) {
+      if (APIConnector.HTTPError.is(e, 404, 'Bucket not found')) {
+        setError('Bucket not found')
+      } else if (APIConnector.HTTPError.is(e, 409, /in progress/)) {
+        setError('Indexing already in progress')
+      } else {
+        console.log('Error re-indexing bucket:')
+        console.error(e)
+        setError('Unexpected error')
+      }
+    }
+    setSubmitting(false)
+  }, [submitting, req, bucket, repair])
+
+  const handleClose = React.useCallback(() => {
+    if (submitting) return
+    close()
+  }, [submitting, close])
+
+  return (
+    <M.Dialog open={open} onClose={handleClose} onExited={reset} fullWidth>
+      <M.DialogTitle>Re-index and repair a bucket</M.DialogTitle>
+      {submitSucceeded ? (
+        <M.DialogContent>
+          <M.DialogContentText color="textPrimary">
+            We have {repair && <>repaired S3 notifications and </>}
+            started re-indexing the bucket.
+          </M.DialogContentText>
+        </M.DialogContent>
+      ) : (
+        <M.DialogContent>
+          <M.DialogContentText color="textPrimary">
+            You are about to start re-indexing the <b>&quot;{bucket}&quot;</b> bucket
+          </M.DialogContentText>
+          <Form.Checkbox
+            meta={{ submitting, submitSucceeded }}
+            input={{ checked: repair, onChange: handleRepairChange }}
+            label="Repair S3 notifications"
+          />
+          {repair && (
+            <M.Box color="warning.dark" ml={4}>
+              <M.Typography color="inherit" variant="caption">
+                Bucket notifications will be overwritten
+              </M.Typography>
+            </M.Box>
+          )}
+        </M.DialogContent>
+      )}
+      <M.DialogActions>
+        {submitting && (
+          <Delay>
+            {() => (
+              <M.Box flexGrow={1} display="flex" pl={2}>
+                <M.CircularProgress size={24} />
+              </M.Box>
+            )}
+          </Delay>
+        )}
+        {!submitting && !!error && (
+          <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
+            <M.Icon color="error">error_outline</M.Icon>
+            <M.Box pl={1} />
+            <M.Typography variant="body2" color="error">
+              {error}
+            </M.Typography>
+          </M.Box>
+        )}
+
+        {submitSucceeded ? (
+          <>
+            <M.Button onClick={close} color="primary">
+              Close
+            </M.Button>
+          </>
+        ) : (
+          <>
+            <M.Button onClick={close} disabled={submitting} color="primary">
+              Cancel
+            </M.Button>
+            <M.Button onClick={reindex} disabled={submitting} color="primary">
+              Re-index
+              {repair && <> and repair</>}
+            </M.Button>
+          </>
+        )}
+      </M.DialogActions>
+    </M.Dialog>
+  )
+}
+
 function Edit({ bucket, close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
   const session = useAuthSession()
+
+  const [reindexOpen, setReindexOpen] = React.useState(false)
+  const openReindex = React.useCallback(() => setReindexOpen(true), [])
+  const closeReindex = React.useCallback(() => setReindexOpen(false), [])
+
   const onSubmit = React.useCallback(
     async (values) => {
       try {
@@ -399,6 +593,9 @@ function Edit({ bucket, close }) {
         )
         close()
       } catch (e) {
+        if (APIConnector.HTTPError.is(e, 401, /404 - NotFound: Topic does not exist/)) {
+          throw new RF.SubmissionError({ snsNotificationArn: 'topicNotFound' })
+        }
         // eslint-disable-next-line no-console
         console.error('Error updating bucket')
         // eslint-disable-next-line no-console
@@ -406,7 +603,7 @@ function Edit({ bucket, close }) {
         throw new RF.SubmissionError({ _error: 'unexpected' })
       }
     },
-    [req, cache, close, session],
+    [req, cache, close, session, bucket.name],
   )
 
   const initialValues = {
@@ -420,7 +617,10 @@ function Edit({ bucket, close }) {
     linkedData: bucket.linkedData ? JSON.stringify(bucket.linkedData) : undefined,
     fileExtensionsToIndex: (bucket.fileExtensionsToIndex || []).join(', '),
     scannerParallelShardsDepth: bucket.scannerParallelShardsDepth,
-    snsNotificationArn: bucket.snsNotificationArn,
+    snsNotificationArn:
+      bucket.snsNotificationArn === DO_NOT_SUBSCRIBE_STR
+        ? DO_NOT_SUBSCRIBE_SYM
+        : bucket.snsNotificationArn,
     skipMetaDataIndexing: bucket.skipMetaDataIndexing,
   }
 
@@ -432,10 +632,11 @@ function Edit({ bucket, close }) {
     >
       {({ handleSubmit, submitting, submitFailed, error, invalid, pristine, reset }) => (
         <>
+          <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
           <M.DialogTitle>Edit the &quot;{bucket.name}&quot; bucket</M.DialogTitle>
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
-              <BucketFields />
+              <BucketFields reindex={openReindex} />
               {submitFailed && (
                 <Form.FormError
                   error={error}
@@ -519,7 +720,7 @@ function Delete({ bucket, close }) {
       // eslint-disable-next-line no-console
       console.dir(e)
     }
-  }, [bucket, close, req, cache, push, session])
+  }, [bucket, close, req, cache, push, session, t])
 
   return (
     <>
@@ -638,27 +839,27 @@ function CRUD({ buckets }) {
   const pagination = Pagination.use(ordering.ordered, {
     getItemId: R.prop('name'),
   })
-  const dialogs = Dialogs.use()
+  const { open: openDialog, render: renderDialogs } = Dialogs.use()
 
   const toolbarActions = [
     {
       title: 'Add bucket',
       icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
-        dialogs.open(({ close }) => <Add {...{ close }} />)
-      }, [dialogs.open]),
+        openDialog(({ close }) => <Add {...{ close }} />)
+      }, [openDialog]),
     },
   ]
 
   const edit = (bucket) => () =>
-    dialogs.open(({ close }) => <Edit {...{ bucket, close }} />)
+    openDialog(({ close }) => <Edit {...{ bucket, close }} />)
 
   const inlineActions = (bucket) => [
     {
       title: 'Delete',
       icon: <M.Icon>delete</M.Icon>,
       fn: () => {
-        dialogs.open(({ close }) => <Delete {...{ bucket, close }} />)
+        openDialog(({ close }) => <Delete {...{ bucket, close }} />)
       },
     },
     {
@@ -670,7 +871,7 @@ function CRUD({ buckets }) {
 
   return (
     <M.Paper>
-      {dialogs.render({ maxWidth: 'xs', fullWidth: true })}
+      {renderDialogs({ maxWidth: 'xs', fullWidth: true })}
       <Table.Toolbar heading="Buckets" actions={toolbarActions} />
       <Table.Wrapper>
         <M.Table size="small">

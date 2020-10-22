@@ -82,7 +82,7 @@ export default ({ location: { search } }) => {
   )
 
   if (authenticated) {
-    return <Redirect to={next || cfg.signInRedirect} />
+    return <Redirect to={next || '/'} />
   }
 
   return (

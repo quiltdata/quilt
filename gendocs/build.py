@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
-import sys
 import subprocess
-import pkg_resources
+import sys
 
+import pkg_resources
 
 try:
     from pip._internal import main as pipmain
 except ImportError:
     from pip import main as pipmain
-import yaml
 
+import yaml
 
 # To push out and use a new version of pydocmd to people generating docs,
 # increment this here and in the quilt pydocmd repo (setup.py and __init__.py)
@@ -26,9 +26,15 @@ def generate_cli_api_reference_docs():
     subprocess.check_call(["./gen_cli_api_reference.sh"])
 
 
+def gen_walkthrough_doc():
+    # This script relies on relative paths so it should only run if the cwd is gendocs/
+    subprocess.check_call(["./gen_walkthrough.sh"])
+
+
 if __name__ == "__main__":
-    # CLI docs use custom script to generate documentation markdown, so do that first
+    # CLI and Walkthrough docs uses custom script to generate documentation markdown, so do that first
     generate_cli_api_reference_docs()
+    gen_walkthrough_doc()
 
     try:
         pydocmd_dist = pkg_resources.get_distribution('pydoc-markdown')  # install name, not module name

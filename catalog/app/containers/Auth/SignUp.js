@@ -191,7 +191,7 @@ export default ({ location: { search } }) => {
   const { next } = parseSearch(search)
 
   if (authenticated) {
-    return <Redirect to={next || cfg.signInRedirect} />
+    return <Redirect to={next || '/'} />
   }
 
   if (done)

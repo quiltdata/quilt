@@ -1,19 +1,19 @@
 import base64
-from io import BytesIO
 import json
 import os
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
 
-from PIL import Image
 import numpy as np
 import pytest
 import responses
 from aicsimageio import AICSImage
+from PIL import Image
 
 from t4_lambda_shared.utils import read_body
-from .. import index
 
+from .. import index
 
 HEADER_403 = {
     'x-amz-request-id': 'guid123',

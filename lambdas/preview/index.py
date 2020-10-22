@@ -4,8 +4,8 @@ disk and RAM pressure.
 
 Lambda functions can have up to 3GB of RAM and only 512MB of disk.
 """
-import os
 import io
+import os
 from contextlib import redirect_stderr
 from urllib.parse import urlparse
 
@@ -16,12 +16,12 @@ from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.preview import (
     CATALOG_LIMIT_BYTES,
     CATALOG_LIMIT_LINES,
+    TRUNCATED,
     extract_fcs,
     extract_parquet,
     get_bytes,
     get_preview_lines,
     remove_pandas_footer,
-    TRUNCATED
 )
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
@@ -227,8 +227,9 @@ def extract_ipynb(file_, exclude_output: bool):
         info - unmodified (is also passed in)
     """
     # local import reduces amortized latency, saves memory
-    from nbconvert import HTMLExporter
     import nbformat
+    from nbconvert import HTMLExporter
+
     # get the file size
     file_.seek(0, os.SEEK_END)
     size = file_.tell()
@@ -237,6 +238,10 @@ def extract_ipynb(file_, exclude_output: bool):
     # rewind
     file_.seek(0, os.SEEK_SET)
 
+    info = {}
+    if exclude_output:
+        info['warnings'] = "Omitted cell outputs to reduce notebook size"
+
     html_exporter = HTMLExporter()
     html_exporter.template_file = 'basic'
     html_exporter.exclude_output = exclude_output
@@ -244,7 +249,7 @@ def extract_ipynb(file_, exclude_output: bool):
     notebook = nbformat.read(file_, 4)
     html, _ = html_exporter.from_notebook_node(notebook)
 
-    return html, {}
+    return html, info
 
 
 def extract_vcf(head):

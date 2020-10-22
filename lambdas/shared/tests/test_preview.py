@@ -15,7 +15,6 @@ from t4_lambda_shared.preview import (
     get_preview_lines,
 )
 
-
 BASE_DIR = pathlib.Path(__file__).parent / 'data'
 
 

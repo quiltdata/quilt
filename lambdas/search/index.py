@@ -3,8 +3,8 @@ Sends the request to ElasticSearch.
 
 TODO: Implement a higher-level search API.
 """
-from copy import deepcopy
 import os
+from copy import deepcopy
 from itertools import filterfalse, tee
 
 from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
@@ -18,38 +18,8 @@ MAX_QUERY_DURATION = 27  # Just shy of 29s API Gateway limit
 NUM_PREVIEW_IMAGES = 100
 NUM_PREVIEW_FILES = 20
 COMPRESSION_EXTS = ['.gz']
-IMG_EXTS = [
-    '*.jpg',
-    '*.jpeg',
-    '*.png',
-    '*.gif',
-    '*.webp',
-    '*.bmp',
-    '*.tiff',
-    '*.tif',
-]
-SAMPLE_EXTS = [
-    '*.parquet',
-    '*.parquet.gz',
-    '*.csv',
-    '*.csv.gz',
-    '*.tsv',
-    '*.tsv.gz',
-    '*.txt',
-    '*.txt.gz',
-    '*.vcf',
-    '*.vcf.gz',
-    '*.xls',
-    '*.xls.gz',
-    '*.xlsx',
-    '*.xlsx.gz',
-    '*.ipynb',
-    '*.md',
-    '*.pdf',
-    '*.pdf.gz',
-    '*.json',
-    '*.json.gz',
-]
+IMG_EXTS = r'.*\.(bmp|gif|jpg|jpeg|png|tif|tiff|webp)'
+SAMPLE_EXTS = r'.*\.(csv|ipynb|json|md|parquet|pdf|rmd|tsv|txt|vcf|xls|xlsx)(.gz)?'
 README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
 SUMMARIZE_KEY = 'quilt_summarize.json'
 
@@ -66,10 +36,15 @@ def lambda_handler(request):
     user_indexes = request.args.get('index', "")
     user_size = request.args.get('size', DEFAULT_SIZE)
     user_source = request.args.get('_source', [])
+    # 0-indexed starting position (for pagination)
+    user_from = int(request.args.get('from', 0))
     terminate_after = None  # see if we can skip os.getenv('MAX_DOCUMENTS_PER_SHARD')
 
     if not user_indexes or not isinstance(user_indexes, str):
         raise ValueError("Request must include index=<comma-separated string of indices>")
+
+    if user_from < 0:
+        raise ValueError("'from' must be a non-negative integer")
 
     if action == 'packages':
         query = request.args.get('query', '')
@@ -132,7 +107,7 @@ def lambda_handler(request):
         terminate_after = None
     elif action == 'images':
         body = {
-            'query': {'terms': {'ext': IMG_EXTS}},
+            'query': {'regexp': {'ext': IMG_EXTS}},
             'collapse': {
                 'field': 'key',
                 'inner_hits': {
@@ -149,7 +124,7 @@ def lambda_handler(request):
         body = {
             'query': {
                 'bool': {
-                    'must': [{'terms': {'ext': SAMPLE_EXTS}}],
+                    'must': [{'regexp': {'ext': SAMPLE_EXTS}}],
                     'must_not': [
                         {'terms': {'key': README_KEYS + [SUMMARIZE_KEY]}},
                         {'wildcard': {'key': '*/' + SUMMARIZE_KEY}},
@@ -197,6 +172,7 @@ def lambda_handler(request):
         body=body,
         _source=_source,
         size=size,
+        from_=user_from,
         # try turning this off to consider all documents
         terminate_after=terminate_after,
     )

@@ -166,7 +166,9 @@ in Outputs and log in with your administrator password to invite users.
 The default Quilt settings are adequate for most use cases. The following section
 covers advanced customization options.
 
-### Use Google to sign into Quilt
+### Single sign-on (SSO)
+
+#### Google
 
 You can enable users on your Google domain to sign in to Quilt.
 Refer to [Google's instructions on OAuth2 user agents](https://developers.google.com/identity/protocols/OAuth2UserAgent)
@@ -177,6 +179,56 @@ and create authorization credentials to identify your Quilt stack to Google's OA
 In the template menu (CloudFormation or Service Catalog), select Google under *User authentication to Quilt*. Enter the domain or domains of your Google apps account under *SingleSignOnDomains*. Enter the *Client ID* of the OAuth 2.0 credentials you created into the field labeled *GoogleClientId*
 
 ![](./imgs/google_auth.png)
+
+#### Okta
+
+1. Go to Okta > Admin > Applications
+1. Click `Add Application`
+1. Select type `Web` 
+1. Name the app `Quilt` or something similar
+1. Configure the app as shown below
+1. Add `<QuiltWebHost>` to `Login redirect URIs` and
+`Initiate login URI`
+1. Copy the `Client ID` to a safe place
+1. Go to API > Authorization servers
+1. You should see a default URI that looks something like this
+`https://<MY_COMPANY>.okta.com/oauth2/default`; copy it to a
+safe place
+1. Proceed to [Enabling SSO](#Enabling-SSO-in-CloudFormation)
+
+![](./imgs/okta-sso-general.png)
+
+#### OneLogin
+
+1. Go to Administration : Applications > Custom Connectors
+1. Click `New Connector`
+    1. Name the connector *Quilt Connector* or something similar
+    1. Set `Sign on method` to `OpenID Connect`
+    1. Set `Login URL` to `https://<QuiltWebHost>/oauth-callback`
+    1. Save
+1. Go back to Applications > Custom Connectors
+1. Click `Add App to Connector`
+1. Save the app (be sure to save it for the Organization)
+1. Go to Applications > Applications > *Your new app* > SSO
+    1. Click SSO. Copy the *Client ID* and *Issuer URL V2* to a safe place.
+1. Add *Your new app* to the users who need to access
+Quilt
+1. Proceed to [Enabling SSO](#Enabling-SSO-in-CloudFormation)
+
+![](./imgs/onelogin-connector.png)
+![](./imgs/onelogin-sso.png)
+![](./imgs/onelogin-users.png)
+
+#### Enabling SSO in CloudFormation
+
+Now you can connect Quilt to your SSO provider.
+In the Quilt template
+(AWS Console > CloudFormation > *Quilt stack* > Update >
+Use current template > Next > Specify stack details), set the following parameters:
+
+* *AuthType*: Enabled
+* *AuthClientId*: *Client ID*
+* *AuthBaseUrl*: *Issuer URL V2*
 
 ### Preparing an AWS Role for use with Quilt
 

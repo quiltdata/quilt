@@ -7,16 +7,16 @@ import os
 
 import boto3
 import botocore
+import pandas as pd
 from botocore import UNSIGNED
 from botocore.client import Config
-import pandas as pd
 
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.utils import (
-    query_manifest_content,
     get_default_origins,
     make_json_response,
-    sql_escape
+    query_manifest_content,
+    sql_escape,
 )
 
 SCHEMA = {

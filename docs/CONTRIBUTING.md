@@ -142,7 +142,9 @@ npm run test
 
 ## Creating a release
 
-1. Once you are ready to cut a new release of your project, you update the version in `setup.py` and create a new git tag with `git tag $VERSION`, e.g. `git tag 3.1.8`.
+1. Once you are ready to cut a new release, you update the version in
+[`VERSION`](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/VERSION)
+file and create a new git tag with `git tag $VERSION`, e.g. `git tag 3.1.8`.
 2. Once you push the tag to GitHub with `git push --tags` a new CircleCI build is triggered.
 3. Merge the new PR into master so the `setup.py` reflects the latest package.
 
@@ -174,4 +176,4 @@ All other pages in the documentation are served from corresponding Markdown page
 
 ## License
 
-Quilt is open source under the [Apache License, Version 2.0](https://github.com/quiltdata/quilt/tree/7a4a6db12839e2b932847db5224b858da52db200/LICENSE/README.md).
+Quilt is open source under the [Apache License, Version 2.0](https://github.com/quiltdata/quilt/blob/master/LICENSE).

@@ -13,16 +13,25 @@ import parseSearch from 'utils/parseSearch'
 import search from 'utils/search'
 import useEditableValue from 'utils/useEditableValue'
 
-function Results({ buckets, mode, query, page, scrollRef, makePageUrl }) {
+function Results({
+  buckets,
+  mode,
+  query,
+  page,
+  scrollRef,
+  makePageUrl,
+  retry,
+  retryUrl,
+}) {
   const req = AWS.APIGateway.use()
-  const data = Data.use(search, { req, buckets, mode, query })
+  const data = Data.use(search, { req, buckets, mode, query, retry })
   return data.case({
     _: () => (
       <SearchResults.Progress>
         Searching {displaySelectedBuckets(buckets)} for &quot;{query}&quot;
       </SearchResults.Progress>
     ),
-    Err: SearchResults.handleErr(data.fetch),
+    Err: SearchResults.handleErr(retryUrl),
     Ok: ({ total, hits }) =>
       total ? (
         <SearchResults.Hits {...{ hits, page, scrollRef, makePageUrl }} showBucket />
@@ -310,9 +319,9 @@ const useSearchStyles = M.makeStyles((t) => ({
 export default function Search({ location: l }) {
   const classes = useSearchStyles()
 
-  const params = parseSearch(l.search)
-  const { q, p, mode } = params
+  const { q, p, mode, ...params } = parseSearch(l.search)
   const buckets = params.buckets ? params.buckets.split(',').sort() : []
+  const retry = (params.retry && parseInt(params.retry, 10)) || undefined
   const page = p && parseInt(p, 10)
 
   const scrollRef = React.useRef(null)
@@ -345,6 +354,13 @@ export default function Search({ location: l }) {
     [history, urls, buckets, q],
   )
 
+  const retryUrl = urls.search({
+    q,
+    mode,
+    buckets: buckets.join(',') || undefined,
+    retry: (retry || 0) + 1,
+  })
+
   const makePageUrl = React.useCallback(
     (newP) =>
       urls.search({
@@ -352,8 +368,9 @@ export default function Search({ location: l }) {
         buckets: buckets.join(',') || undefined,
         p: newP !== 1 ? newP : undefined,
         mode,
+        retry,
       }),
-    [urls, q, buckets, mode],
+    [urls, q, buckets, mode, retry],
   )
 
   return (
@@ -390,7 +407,18 @@ export default function Search({ location: l }) {
               </M.Box>
             </M.Box>
             {q ? (
-              <Results {...{ query: q, buckets, page, mode, scrollRef, makePageUrl }} />
+              <Results
+                {...{
+                  query: q,
+                  buckets,
+                  page,
+                  mode,
+                  scrollRef,
+                  makePageUrl,
+                  retry,
+                  retryUrl,
+                }}
+              />
             ) : (
               // TODO: revise copy
               <SearchResults.Alt>

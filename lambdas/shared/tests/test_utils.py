@@ -12,11 +12,11 @@ import pytest
 from testfixtures import LogCapture
 
 from t4_lambda_shared.utils import (
-    query_manifest_content,
-    separated_env_to_iter,
+    IncompleteResultException,
     get_default_origins,
     make_json_response,
-    IncompleteResultException
+    query_manifest_content,
+    separated_env_to_iter,
 )
 
 

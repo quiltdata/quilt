@@ -753,12 +753,12 @@ const useHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Head({ es, s3, overviewUrl, bucket, description }) {
+function Head({ req, s3, overviewUrl, bucket, description }) {
   const classes = useHeadStyles()
   const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
   const colorPool = useConst(() => mkKeyedPool(COLOR_MAP))
   return (
-    <Data fetch={requests.bucketStats} params={{ es, s3, bucket, overviewUrl }}>
+    <Data fetch={requests.bucketStats} params={{ req, s3, bucket, overviewUrl }}>
       {(res) => (
         <M.Paper className={classes.root}>
           <M.Box className={classes.top}>
@@ -1126,9 +1126,9 @@ function Readmes({ s3, overviewUrl, bucket }) {
   )
 }
 
-function Imgs({ es, s3, overviewUrl, inStack, bucket }) {
+function Imgs({ req, s3, overviewUrl, inStack, bucket }) {
   return (
-    <Data fetch={requests.bucketImgs} params={{ es, s3, overviewUrl, inStack, bucket }}>
+    <Data fetch={requests.bucketImgs} params={{ req, s3, overviewUrl, inStack, bucket }}>
       {AsyncResult.case({
         Ok: (images) => (images.length ? <Thumbnails images={images} /> : null),
         _: () => (
@@ -1151,8 +1151,8 @@ function Imgs({ es, s3, overviewUrl, inStack, bucket }) {
 
 const SUMMARY_ENTRIES = 7
 
-function Summary({ es, s3, bucket, inStack, overviewUrl }) {
-  const data = useData(requests.bucketSummary, { es, s3, bucket, inStack, overviewUrl })
+function Summary({ req, s3, bucket, inStack, overviewUrl }) {
+  const data = useData(requests.bucketSummary, { req, s3, bucket, inStack, overviewUrl })
   const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
   const showMore = React.useCallback(() => {
     setShown(R.add(SUMMARY_ENTRIES))
@@ -1188,7 +1188,7 @@ export default function Overview({
   },
 }) {
   const s3 = AWS.S3.use()
-  const es = AWS.ES.use()
+  const req = AWS.APIGateway.use()
   const { noOverviewImages } = Config.use()
   const cfg = BucketConfig.useCurrentBucketConfig()
   const inStack = !!cfg
@@ -1202,7 +1202,7 @@ export default function Overview({
         </React.Suspense>
       )}
       {cfg ? (
-        <Head {...{ es, s3, bucket, overviewUrl, description }} />
+        <Head {...{ req, s3, bucket, overviewUrl, description }} />
       ) : (
         <M.Box
           pt={2}
@@ -1214,8 +1214,8 @@ export default function Overview({
         </M.Box>
       )}
       <Readmes {...{ s3, bucket, overviewUrl }} />
-      {!noOverviewImages && <Imgs {...{ es, s3, bucket, inStack, overviewUrl }} />}
-      <Summary {...{ es, s3, bucket, inStack, overviewUrl }} />
+      {!noOverviewImages && <Imgs {...{ req, s3, bucket, inStack, overviewUrl }} />}
+      <Summary {...{ req, s3, bucket, inStack, overviewUrl }} />
     </M.Box>
   )
 }

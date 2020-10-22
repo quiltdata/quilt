@@ -225,13 +225,13 @@ export default function Search() {
                 placeholder="Search"
               />
 
-              {helpOpened && (
-                <M.MuiThemeProvider theme={style.appTheme}>
+              <M.MuiThemeProvider theme={style.appTheme}>
+                <M.Fade in={helpOpened}>
                   <M.Paper className={classes.helpWrapper}>
                     <SearchHelp className={classes.help} onQuery={onQuery} />
                   </M.Paper>
-                </M.MuiThemeProvider>
-              )}
+                </M.Fade>
+              </M.MuiThemeProvider>
             </div>
           </M.ClickAwayListener>
 
