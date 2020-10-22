@@ -33,7 +33,6 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   help: {
-    // FIXME: remove elevation box-shadow for underlying M.Paper
     maxHeight: '490px',
     overflowY: 'auto',
 
@@ -42,13 +41,10 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   helpWrapper: {
-    background: t.palette.common.white,
     borderRadius: t.typography.pxToRem(30),
     marginTop: t.spacing(8),
     maxWidth: 750,
-    overflow: 'hidden',
-    paddingLeft: t.spacing(2),
-    paddingRight: t.spacing(2),
+    padding: t.spacing(0, 4),
     position: 'absolute',
     width: '100%',
     zIndex: 1,
@@ -227,9 +223,9 @@ export default function Search() {
 
               {helpOpened && (
                 <M.MuiThemeProvider theme={style.appTheme}>
-                  <div className={classes.helpWrapper}>
+                  <M.Paper className={classes.helpWrapper}>
                     <SearchHelp className={classes.help} onQuery={onQuery} />
-                  </div>
+                  </M.Paper>
                 </M.MuiThemeProvider>
               )}
             </div>

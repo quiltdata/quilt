@@ -43,6 +43,10 @@ const useStyles = M.makeStyles((t) => ({
     maxHeight: t.spacing(50),
     overflowY: 'auto',
     padding: t.spacing(0, 4),
+
+    [t.breakpoints.down('xs')]: {
+      padding: t.spacing(0, 1),
+    },
   },
   helpWrapper: {
     left: 0,
@@ -53,8 +57,6 @@ const useStyles = M.makeStyles((t) => ({
     [t.breakpoints.down('xs')]: {
       left: '-43px',
       right: '-36px',
-
-      padding: t.spacing(0, 1),
     },
   },
   hidden: {
