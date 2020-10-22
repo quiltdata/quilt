@@ -58,7 +58,7 @@ const invalidSchema = {
       type: 'string',
     },
   },
-  required: ['a', 'b', 'c', 'd'],
+  required: ['a', 'b'],
 }
 
 const useStyles = M.makeStyles((t) => ({

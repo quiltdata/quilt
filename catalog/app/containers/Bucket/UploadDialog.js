@@ -372,7 +372,7 @@ function getMetaValue(value) {
   if (!value) return undefined
 
   const pairs =
-    value.mode === 'json'
+    value.mode === 'json' || JSON_EDITOR_ENABLED
       ? pipeThru(value.text || '{}')((t) => JSON.parse(t), R.toPairs)
       : (value.fields || []).map((f) => [f.key, parseJSON(f.value)])
 
