@@ -238,6 +238,12 @@ function DocsExternalLink() {
   )
 }
 
+function normalizeSyntaxItem(s) {
+  const multilineToLine = s.replace(/\s/g, '')
+  const trailingSpace = ' '
+  return multilineToLine + trailingSpace
+}
+
 export default function Help({ className, onQuery }) {
   const classes = useStyles()
 
@@ -268,7 +274,7 @@ export default function Help({ className, onQuery }) {
                   key={item.syntax}
                   className={classes.item}
                   button
-                  onClick={() => onQuery(item.syntax)}
+                  onClick={() => onQuery(normalizeSyntaxItem(item.syntax))}
                 >
                   <Item item={item} />
                 </M.ListItem>
