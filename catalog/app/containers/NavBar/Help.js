@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -12,14 +11,6 @@ const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/
 //       move "root container" to upper level.
 //       There would be different containers for OpenLanding and NavBar
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    padding: `0 ${t.spacing(4)}px`,
-    overflowY: 'auto',
-
-    [t.breakpoints.down('xs')]: {
-      padding: `0 ${t.spacing(1)}px`,
-    },
-  },
   group: {
     marginTop: t.spacing(2),
   },
@@ -254,7 +245,7 @@ export default function Help({ className, onQuery }) {
   const classes = useStyles()
 
   return (
-    <M.Paper className={cx(classes.root, className)}>
+    <div className={className}>
       <Lab.TreeView
         defaultCollapseIcon={<M.Icon>arrow_drop_down</M.Icon>}
         defaultExpandIcon={<M.Icon>arrow_right</M.Icon>}
@@ -291,6 +282,6 @@ export default function Help({ className, onQuery }) {
       </Lab.TreeView>
 
       <DocsExternalLink />
-    </M.Paper>
+    </div>
   )
 }
