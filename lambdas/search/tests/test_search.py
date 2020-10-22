@@ -234,13 +234,11 @@ class TestSearch(TestCase):
             'body': {'custom': 'body'},
             'size': 42,
             'from': 10,
-            '_source': ['great', 'expectations']
+            '_source': ','.join(['great', 'expectations'])
         }
 
         url = f'https://www.example.com:443/{query["index"]}/_search?' + urlencode({
-            '_source': 'great,expectations',
-            'size': 42,
-            'from': 10,
+            k: v for k, v in query.items() if k in ['size', 'from', '_source']
         })
 
         def _callback(request):
@@ -277,11 +275,37 @@ class TestSearch(TestCase):
         resp = lambda_handler(event, None)
         assert resp['statusCode'] == 500
 
+    def test_packages_bad_from(self):
+        """test packages action with known bad from param"""
+        for from_value in [-1, 'one']:
+            query = {
+                'action': 'packages',
+                'index': 'bucket_packages',
+                'body': {'custom': 'body'},
+                'size': 42,
+                # this should barf
+                'from': from_value,
+                '_source': ['great', 'expectations']
+            }
+            # try a known bad query
+            event = self._make_event(query)
+            resp = lambda_handler(event, None)
+            assert resp['statusCode'] == 500
+            assert 'int' in resp['body']
+
     def test_search(self):
+        """test standard search function"""
         url = 'https://www.example.com:443/bucket/_search?' + urlencode({
             'size': 1000,
             'from': 0,
-            '_source': ','.join(['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']),
+            '_source': ','.join([
+                'key',
+                'version_id',
+                'updated',
+                'last_modified',
+                'size',
+                'user_meta'
+            ]),
         })
 
         def _callback(request):
@@ -298,7 +322,6 @@ class TestSearch(TestCase):
             url,
             callback=_callback,
             content_type='application/json',
-            match_querystring=False
         )
 
         query = {
@@ -313,6 +336,7 @@ class TestSearch(TestCase):
         assert json.loads(resp['body']) == {'results': 'blah'}
 
     def test_stats(self):
+        """test overview statistics"""
         url = 'https://www.example.com:443/bucket/_search?' + urlencode({
             '_source': 'false',  # must match JSON; False will fail match_querystring
             'size': 0,
