@@ -39,7 +39,7 @@ def lambda_handler(request):
     # 0-indexed starting position (for pagination)
     user_from = int(request.args.get('from', 0))
     user_retry = int(request.args.get('retry', 0))
-    terminate_after = os.environ.get('MAX_DOCUMENTS_PER_SHARD') if user_retry else None
+    terminate_after = int(os.environ.get('MAX_DOCUMENTS_PER_SHARD', 10_000)) if user_retry else None
 
     if not user_indexes or not isinstance(user_indexes, str):
         raise ValueError("Request must include index=<comma-separated string of indices>")
@@ -91,7 +91,7 @@ def lambda_handler(request):
         else:
             body = {
                 "query": {
-                    "simple_query_string" : {
+                    "simple_query_string": {
                         "query": query,
                         "analyze_wildcard": user_retry < 3,
                         "fields": my_fields,
