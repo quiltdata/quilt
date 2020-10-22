@@ -238,7 +238,7 @@ class TestSearch(TestCase):
         }
 
         url = f'https://www.example.com:443/{query["index"]}/_search?' + urlencode({
-            k:v for k,v in query.items() if k in ['size', 'from', '_source']
+            k: v for k, v in query.items() if k in ['size', 'from', '_source']
         })
 
         def _callback(request):
@@ -277,7 +277,7 @@ class TestSearch(TestCase):
 
     def test_packages_bad_from(self):
         """test packages action with known bad from param"""
-        for from_value in [-1, '1', 'one']:
+        for from_value in [-1, 'one']:
             query = {
                 'action': 'packages',
                 'index': 'bucket_packages',
@@ -291,7 +291,7 @@ class TestSearch(TestCase):
             event = self._make_event(query)
             resp = lambda_handler(event, None)
             assert resp['statusCode'] == 500
-            assert resp['body'] == "'from' must be a non-negative integer"
+            assert 'int' in resp['body']
 
     def test_search(self):
         """test standard search function"""
