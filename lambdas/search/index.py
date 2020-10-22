@@ -18,38 +18,8 @@ MAX_QUERY_DURATION = 27  # Just shy of 29s API Gateway limit
 NUM_PREVIEW_IMAGES = 100
 NUM_PREVIEW_FILES = 20
 COMPRESSION_EXTS = ['.gz']
-IMG_EXTS = [
-    '*.jpg',
-    '*.jpeg',
-    '*.png',
-    '*.gif',
-    '*.webp',
-    '*.bmp',
-    '*.tiff',
-    '*.tif',
-]
-SAMPLE_EXTS = [
-    '*.parquet',
-    '*.parquet.gz',
-    '*.csv',
-    '*.csv.gz',
-    '*.tsv',
-    '*.tsv.gz',
-    '*.txt',
-    '*.txt.gz',
-    '*.vcf',
-    '*.vcf.gz',
-    '*.xls',
-    '*.xls.gz',
-    '*.xlsx',
-    '*.xlsx.gz',
-    '*.ipynb',
-    '*.md',
-    '*.pdf',
-    '*.pdf.gz',
-    '*.json',
-    '*.json.gz',
-]
+IMG_EXTS = r'.*\.(bmp|gif|jpg|jpeg|png|tif|tiff|webp)'
+SAMPLE_EXTS = r'.*\.(csv|ipynb|json|md|parquet|pdf|rmd|tsv|txt|vcf|xls|xlsx)(.gz)?'
 README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
 SUMMARIZE_KEY = 'quilt_summarize.json'
 
@@ -137,7 +107,7 @@ def lambda_handler(request):
         terminate_after = None
     elif action == 'images':
         body = {
-            'query': {'terms': {'ext': IMG_EXTS}},
+            'query': {'regexp': {'ext': IMG_EXTS}},
             'collapse': {
                 'field': 'key',
                 'inner_hits': {
@@ -154,7 +124,7 @@ def lambda_handler(request):
         body = {
             'query': {
                 'bool': {
-                    'must': [{'terms': {'ext': SAMPLE_EXTS}}],
+                    'must': [{'regexp': {'ext': SAMPLE_EXTS}}],
                     'must_not': [
                         {'terms': {'key': README_KEYS + [SUMMARIZE_KEY]}},
                         {'wildcard': {'key': '*/' + SUMMARIZE_KEY}},
