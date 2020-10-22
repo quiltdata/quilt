@@ -165,16 +165,9 @@ export default function Search() {
     [value],
   )
 
-  const onToggleOptions = React.useCallback(
-    (forceState) => {
-      if (typeof forceState === 'boolean') {
-        setHelpOpened(forceState)
-      } else {
-        setHelpOpened(!helpOpened)
-      }
-    },
-    [helpOpened],
-  )
+  const onToggleOptions = React.useCallback(() => setHelpOpened(!helpOpened), [
+    helpOpened,
+  ])
 
   const onKeyDown = React.useCallback(
     (evt) => {
@@ -196,7 +189,7 @@ export default function Search() {
       <Dots />
       <M.Container maxWidth="lg" className={classes.container}>
         <div className={classes.inner}>
-          <M.ClickAwayListener onClickAway={() => onToggleOptions(false)}>
+          <M.ClickAwayListener onClickAway={() => setHelpOpened(false)}>
             <div className={classes.inputWrapper}>
               <M.InputBase
                 {...{ value, onChange, onKeyDown }}
