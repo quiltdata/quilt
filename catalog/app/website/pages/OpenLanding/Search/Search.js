@@ -48,6 +48,10 @@ const useStyles = M.makeStyles((t) => ({
     position: 'absolute',
     width: '100%',
     zIndex: 1,
+
+    [t.breakpoints.down('xs')]: {
+      padding: t.spacing(0, 2),
+    },
   },
   inner: {
     alignItems: 'center',
