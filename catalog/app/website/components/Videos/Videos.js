@@ -105,7 +105,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Videos() {
   const classes = useStyles()
   const [index, setIndex] = React.useState(0)
-  const onChangeIndex = React.useCallback(R.unary(setIndex), [])
+  const onChangeIndex = R.unary(setIndex)
   const nearestZero = Math.floor(index / videos.length) * videos.length
   const goToNearestIndex = (i) => setIndex(nearestZero + i)
 
@@ -122,7 +122,7 @@ export default function Videos() {
         />
       </div>
     ),
-    [],
+    [classes.iframe, classes.slide],
   )
 
   return (
@@ -138,8 +138,8 @@ export default function Videos() {
       </M.Typography>
       <M.Box mt={3} mb={5} maxWidth={720}>
         <M.Typography variant="body1" color="textSecondary" align="center">
-          Bring your team together around a data portal that is accessible to
-          everyone&mdash;from business users, to analysts, to developers.
+          Bring your team together around a data portal that is accessible to everyone
+          &mdash; from business users, to analysts, to developers.
         </M.Typography>
       </M.Box>
       <div className={classes.adornment}>

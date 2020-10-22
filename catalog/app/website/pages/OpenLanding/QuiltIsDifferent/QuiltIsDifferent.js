@@ -85,7 +85,7 @@ export default function QuiltIsDifferent() {
                   <strong>Unlimited scale</strong>, backed by AWS S3
                 </Bullet>
                 <Bullet color="primary" dense>
-                  <strong>Privacy and control</strong>&mdash;data in Quilt can remain in
+                  <strong>Privacy and control</strong> &mdash; data in Quilt can remain in
                   buckets that you control
                 </Bullet>
                 <Bullet color="primary" dense>
@@ -93,8 +93,8 @@ export default function QuiltIsDifferent() {
                   metadata
                 </Bullet>
                 <Bullet color="primary" dense>
-                  <strong>Performance</strong>&mdash;if you are computing in AWS, Quilt is
-                  the fastest, cheapest way access data
+                  <strong>Performance</strong> &mdash; if you are computing in AWS, Quilt
+                  is the fastest, cheapest way access data
                 </Bullet>
               </M.Box>
             </div>

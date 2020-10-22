@@ -36,8 +36,8 @@ const SECTIONS = [
         .
       </>,
       <>
-        Spin up Quilt so that your core infrastructure is done and your users&mdash;from
-        data scientists to executives&mdash;can self serve from high-performance data
+        Spin up Quilt so that your core infrastructure is done and your users &mdash; from
+        data scientists to executives &mdash; can self serve from high-performance data
         formats like Parquet, using nothing more than a simple web URL to your private
         Quilt catalog. Now you are free to focus on advanced infrastructure (instead of
         one-off requests for data dumps, ETL jobs, or temporary S3 buckets).
@@ -233,7 +233,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function UseQuilt() {
   const classes = useStyles()
   const [index, setIndex] = React.useState(0)
-  const onChangeIndex = React.useCallback(R.unary(setIndex), [])
+  const onChangeIndex = R.unary(setIndex)
 
   return (
     <M.Container maxWidth="lg" style={{ position: 'relative', zIndex: 1 }}>

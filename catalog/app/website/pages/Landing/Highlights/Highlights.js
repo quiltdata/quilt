@@ -105,9 +105,9 @@ const HIGHLIGHTS = [
     contents: (
       <>
         <p>
-          Executives and team leads&mdash;anyone with a web browser&mdash;can use Quilt to
-          view, search, and visualize the same data, visualizations, and notebooks that
-          data scientists and data engineers use for modeling.
+          Executives and team leads &mdash; anyone with a web browser &mdash; can use
+          Quilt to view, search, and visualize the same data, visualizations, and
+          notebooks that data scientists and data engineers use for modeling.
         </p>
         <p>
           Data analysts can stop making decks and stop emailing files. Instead, invite
@@ -233,7 +233,7 @@ export default function Highlights() {
         <M.Box mt={5} textAlign={{ xs: 'center', md: 'unset' }} maxWidth={800}>
           <M.Typography variant="body1" color="textSecondary" gutterBottom>
             Bring your team together around a visual data repository that is accessible to
-            everyone on the team&mdash;
+            everyone on the team &mdash;
             <em>from business users, to analysts, to developers</em>.
           </M.Typography>
           <M.Typography variant="body1" color="textSecondary">
