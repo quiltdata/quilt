@@ -3,6 +3,24 @@ version: 2.1
 orbs:
   win: circleci/windows@2.4.0
 
+# This is used to run the PyPI release job and the jobs it depends on,
+# when Git tag for release is created (by default jobs don't run on tags).
+release-tags: &release-tags
+  tags:
+    only: /[0-9]+(\.[0-9]+)*([abrc]+[0-9]+)?$/
+
+executors:
+  python-36:
+    docker:
+      - image: circleci/python:3.6
+  python-37:
+    docker:
+      - image: circleci/python:3.7
+  python-38:
+    docker:
+      - image: circleci/python:3.8
+  python: python-36
+
 commands:
   setup-venv:
     description: "Make subsequent steps to run in venv"
@@ -31,77 +49,53 @@ commands:
 
 workflows:
   version: 2
-  test:
+  ci:
     jobs:
       - linter
       - isort
-      - test-36
-      - test-37
-      - test-38
-      - test-windows
+      - test-client:
+          matrix:
+            parameters:
+              executor:
+                - python-36
+                - python-37
+                - python-38
+          filters:
+            <<: *release-tags
+      - test-client:
+          name: test-client-windows
+          executor:
+            name: win/default
+            shell: bash --login -eo pipefail
+          filters:
+            <<: *release-tags
       - test-lambda:
-          name: test-lambda-access_counts
-          path: "access_counts"
+          name: test-lambda-<< matrix.path >>
+          matrix:
+            parameters:
+              path:
+                - access_counts
+                - preview
+                - s3select
+                - search
+                - thumbnail
+                - pkgselect
+                - shared
       - test-lambda:
           name: test-lambda-indexer
-          path: "es/indexer"
-      - test-lambda:
-          name: test-lambda-preview
-          path: "preview"
-      - test-lambda:
-          name: test-lambda-s3select
-          path: "s3select"
-      - test-lambda:
-          name: test-lambda-search
-          path: "search"
-      - test-lambda:
-          name: test-lambda-shared
-          path: "shared"
-          sub-path: "[tests]"
-      - test-lambda:
-          name: test-lambda-thumbnail
-          path: "thumbnail"
-      - test-lambda:
-          name: test-lambda-package
-          path: "pkgselect"
-
-  build_and_deploy:
-    jobs:
-      - test-36:
-          name: build
-          filters:
-            tags:
-              only: /.*/
-      - deploy:
+          path: es/indexer
+      - pypi-release:
           requires:
-            - build
+            - test-client
+            - test-client-windows
           filters:
-            tags:
-              only: /[0-9]+(\.[0-9]+)*([abrc]+[0-9]+)?$/
+            <<: *release-tags
             branches:
               ignore: /.*/
 
-test-base: &test-base
-  environment:
-    QUILT_DISABLE_USAGE_METRICS: true
-  steps:
-    - checkout
-    - setup-venv
-    - run:
-        name: Install dependencies
-        command: |
-          pip install -e api/python[tests]
-    - run:
-        name: Run Pytest
-        command: |
-          pytest --cov=api/python api/python
-    - codecov:
-          flags: "api-python"
-
 jobs:
   linter:
-    docker:
-      - image: circleci/python:3.6
+    executor: python
     steps:
       - checkout
       - setup-venv
@@ -119,8 +113,7 @@ jobs:
             pycodestyle $(find -name '*.py' -not -path './venv/*')
 
   isort:
-    docker:
-      - image: circleci/python:3.6
+    executor: python
     steps:
       - checkout
       - setup-venv
@@ -133,30 +126,29 @@ jobs:
           command: |
             isort --check --diff .
 
-  test-36:
-    docker:
-      - image: circleci/python:3.6
-    <<: *test-base
-
-  test-37:
-    docker:
-      - image: circleci/python:3.7
-    <<: *test-base
-
-  test-38:
-    docker:
-      - image: circleci/python:3.8
-    <<: *test-base
-
-  test-windows:
-    executor:
-      name: win/default
-      shell: bash --login -eo pipefail
-    <<: *test-base
+  test-client:
+    parameters:
+      executor:
+        type: executor
+    executor: << parameters.executor >>
+    environment:
+      QUILT_DISABLE_USAGE_METRICS: true
+    steps:
+      - checkout
+      - setup-venv
+      - run:
+          name: Install dependencies
+          command: |
+            pip install -e api/python[tests]
+      - run:
+          name: Run Pytest
+          command: |
+            pytest --cov=api/python api/python
+      - codecov:
+          flags: "api-python"
 
   test-lambda:
-    docker:
-      - image: circleci/python:3.6
+    executor: python
     description: "Test lambdas"
     environment:
       QUILT_DISABLE_USAGE_METRICS: true
@@ -164,22 +156,19 @@ jobs:
       path:
         description: "Relative path to lambda root including setup.py, e.g. 'es/indexer' for lambdas/es/indexer"
         type: string
-      sub-path:
-        description: "sub-path relative to lambda path"
-        default: ""
-        type: string
     steps:
       - checkout
       - setup-venv
       - run:
           name: Install dependencies
           command: |
-            pip install -e lambdas/shared/<< parameters.sub-path >>
-            pip install -r lambdas/<< parameters.path >>/requirements.txt -r lambdas/<< parameters.path >>/test-requirements.txt
-            if [ << parameters.path >> != "shared" ]
+            if [ << parameters.path >> == "shared" ]
+              pip install -e lambdas/shared[tests]
             then
+              pip install -e lambdas/shared
               pip install -e lambdas/<< parameters.path >>
             fi
+            pip install -r lambdas/<< parameters.path >>/requirements.txt -r lambdas/<< parameters.path >>/test-requirements.txt
       - run:
           name: Pytest
           command: |
@@ -187,24 +176,17 @@ jobs:
       - codecov:
           flags: "lambda"
 
-  deploy:
-    docker:
-      - image: circleci/python:3.6
+  pypi-release:
+    executor: python
     environment:
       QUILT_DISABLE_USAGE_METRICS: true
     steps:
       - checkout
-      - restore_cache:
-          key: v1-dependency-cache-{{ checksum "api/python/setup.py" }}-{{ checksum "Makefile" }}
       - setup-venv
       - run:
           name: install python dependencies
           command: |
             pip install -e api/python[tests]
-      - save_cache:
-          key: v1-dependency-cache-{{ checksum "api/python/setup.py" }}-{{ checksum "Makefile" }}
-          paths:
-            - "venv"
       - run:
           name: verify git tag vs. version
           command: |
