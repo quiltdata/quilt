@@ -38,7 +38,8 @@ def lambda_handler(request):
     user_source = request.args.get('_source', [])
     # 0-indexed starting position (for pagination)
     user_from = int(request.args.get('from', 0))
-    terminate_after = None  # see if we can skip os.getenv('MAX_DOCUMENTS_PER_SHARD')
+    user_retry = int(request.args.get('retry', 0))
+    terminate_after = os.environ.get('MAX_DOCUMENTS_PER_SHARD') if user_retry else None
 
     if not user_indexes or not isinstance(user_indexes, str):
         raise ValueError("Request must include index=<comma-separated string of indices>")
@@ -68,22 +69,37 @@ def lambda_handler(request):
         size = user_size
     elif action == 'search':
         query = request.args.get('query', '')
-        body = {
-            "query": {
-                "query_string": {
-                    "analyze_wildcard": True,
-                    "lenient": True,
-                    "query": query,
-                    # see enterprise/**/bucket.py for mappings
-                    "fields": user_fields or [
-                        # object
-                        'content', 'comment^2', 'ext^2', 'key_text^2', 'meta_text',
-                        # package, and boost the fields
-                        'handle^2', 'handle_text^2', 'metadata^2', 'tags^2'
-                    ]
+        my_fields = user_fields or [
+            # object
+            'content', 'comment^2', 'ext^2', 'key_text^2', 'meta_text',
+            # package, and boost the fields
+            'handle^2', 'handle_text^2', 'metadata^2', 'tags^2'
+        ]
+
+        if user_retry <= 1:
+            body = {
+                "query": {
+                    "query_string": {
+                        "analyze_wildcard": True,
+                        "lenient": user_retry > 0,
+                        "query": query,
+                        # see enterprise/**/bucket.py for mappings
+                        "fields": my_fields
+                    }
                 }
             }
-        }
+        else:
+            body = {
+                "query": {
+                    "simple_query_string" : {
+                        "query": query,
+                        "analyze_wildcard": user_retry < 3,
+                        "fields": my_fields,
+                        "lenient": True,
+                    }
+                }
+            }
+
         _source = user_source or [
             'key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta',
             'comment', 'handle', 'hash', 'tags', 'metadata', 'pointer_file'
@@ -166,7 +182,7 @@ def lambda_handler(request):
     )
 
     to_search = f"{user_indexes},{index_overrides}" if index_overrides else user_indexes
-
+    print("BODY>>>>>", user_retry, body)
     result = es_client.search(
         index=to_search,
         body=body,
