@@ -383,11 +383,11 @@ function getMetaValue(value) {
   )
 }
 
-function validateMeta(schema, schemaBypass, value) {
+function validateMeta(schema, value) {
   // TODO: move schema validation to utils/validators
   const noError = undefined
 
-  if (schema && !schemaBypass) {
+  if (schema) {
     const obj = value ? parseJSON(value.text) : {}
     const errors = validateOnSchema(obj, schema.schema)
     if (!errors.length) {
@@ -691,22 +691,6 @@ async function hashFile(file) {
   }
 }
 
-function SchemaBypassField({ checked, onChange, ...props }) {
-  return (
-    <M.FormControlLabel
-      control={
-        <M.Switch
-          {...props}
-          checked={checked}
-          onChange={(event) => onChange(event.target.checked)}
-          color="primary"
-        />
-      }
-      label="Bypass schema validation"
-    />
-  )
-}
-
 export default function UploadDialog({ bucket, open, onClose, refresh }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
@@ -714,8 +698,6 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
   const [uploads, setUploads] = React.useState({})
   const [success, setSuccess] = React.useState(null)
   const validateCacheKey = useCounter()
-
-  const [schemaBypass, setSchemaBypass] = React.useState(false)
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const validateName = React.useCallback(
@@ -938,15 +920,8 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                     schema={schema}
                     onSchema={setSchema}
                     name="meta"
-                    validate={(...props) => validateMeta(schema, schemaBypass, ...props)}
+                    validate={(...props) => validateMeta(schema, ...props)}
                     isEqual={R.equals}
-                  />
-
-                  <RF.Field
-                    component={SchemaBypassField}
-                    checked={schemaBypass}
-                    onChange={setSchemaBypass}
-                    name="bypass"
                   />
 
                   <input type="submit" style={{ display: 'none' }} />
