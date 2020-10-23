@@ -13,11 +13,15 @@ import tagged from 'utils/tagged'
 
 import * as errors from './errors'
 
+import schemaOptions from './schema-mocks'
+
 const withErrorHandling = (fn, pairs) => (...args) =>
   fn(...args).catch(errors.catchErrors(pairs))
 
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
+
+// eslint-disable no-console
 
 export const bucketListing = ({ s3, bucket, path = '', prev }) =>
   s3
@@ -213,6 +217,22 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   }
 
   throw new Error('Stats unavailable')
+}
+
+// TODO: use { s3, bucket }
+export const schemasList = async () => {
+  try {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(schemaOptions)
+      }, 1000)
+    })
+  } catch (e) {
+    console.log('Unable to fetch')
+    console.error(e)
+  }
+
+  throw new Error('Schemas list unavailable')
 }
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
