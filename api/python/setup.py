@@ -89,6 +89,9 @@ setup(
             'detox',
             'tox-pytest-summary',
             'git-pylint-commit-hook',
+            'ipython',
+            'jupyter',
+            'watchdog'
         ],
     },
     include_package_data=True,

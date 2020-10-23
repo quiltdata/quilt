@@ -53,6 +53,7 @@ workflows:
     jobs:
       - linter
       - isort
+      - test-notebooks
       - test-client:
           matrix:
             parameters:
@@ -125,6 +126,21 @@ jobs:
           name: Run isort
           command: |
             isort --check --diff .
+
+  test-notebooks:
+    executor: python
+    steps:
+      - checkout
+      - setup-venv
+      - run:
+          name: Install dependencies
+          command: |
+            pip install -e api/python[tests]
+      - run:
+          name: Run notebooks
+          command: |
+            pytest api/python/tests/test_notebooks.py
+
 
   test-client:
     parameters:
