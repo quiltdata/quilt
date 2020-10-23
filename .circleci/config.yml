@@ -139,7 +139,7 @@ jobs:
       - run:
           name: Run notebooks
           command: |
-            pytest api/python/tests/test_notebooks.py
+            pytest api/python/tests/test_notebooks.py -s
 
 
   test-client:

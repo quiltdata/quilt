@@ -1,8 +1,9 @@
 import shutil
 import subprocess
 from pathlib import Path
-from watchdog.observers import Observer
+
 from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 
 class NotebookFilesHandler(FileSystemEventHandler):
