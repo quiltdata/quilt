@@ -58,7 +58,7 @@ function formatValuePreview(x) {
 
 export default function Preview({
   columnId,
-  data,
+  data, // NOTE: row.original
   menuAnchorRef,
   value,
   onExpand,
@@ -88,6 +88,7 @@ export default function Preview({
         ref={menuAnchorRef}
         className={classes.menu}
         note={<Note {...{ columnId, data, value }} />}
+        valueType={data.valueType}
         onClick={onMenu}
       />
     </div>

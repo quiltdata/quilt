@@ -76,25 +76,12 @@ function MenuForValue({ anchorRef, valueType, onMenuSelect, onClose }) {
         title,
       }))
     : []
-  const typeConverters = ['number', 'string'].map((title) => ({
-    action: Actions.ChangeType,
-    title,
-  }))
   const enumSubmenu = {
     header: 'Enum',
     key: 'enum',
     options: enumOptions,
   }
-  const typeConvertersSubmenu = {
-    key: 'types',
-    options: typeConverters,
-  }
-  const divider = {
-    key: 'divider',
-  }
-  const menu = isEnum
-    ? [enumSubmenu, divider, typeConvertersSubmenu]
-    : [typeConvertersSubmenu]
+  const menu = [enumSubmenu]
   return (
     <CellMenu
       {...{
