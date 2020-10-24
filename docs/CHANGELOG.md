@@ -4,15 +4,11 @@
 
 ## CLI
 
-## Catalog
+## Catalog, Lambdas
+
+## Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
-## Python API
-
-## CLI
-
-## Catalog
 
 # 3.2.1 - 2020-10-14
 ## Python API
@@ -23,10 +19,27 @@
 * [Added] Add `--meta` argument to `push` ([#1793](https://github.com/quiltdata/quilt/issues/1793))
 * [Fixed] Fix crash in `list-packages` ([#1852](https://github.com/quiltdata/quilt/issues/1852))
 
+## Catalog, Lambdas
+* [Added] Ability to preview larger Jupyter notebooks; warning when cells are
+elided ([#1823](https://github.com/quiltdata/quilt/issues/1823),
+[#1822](https://github.com/quiltdata/quilt/issues/1822))
+* [Added] PDF and other file formats, including .gz ones, to catalog Overview tab
+* [Fixed] Bugs involving bad or missing package stats during S3 Select calls
+([#1829](https://github.com/quiltdata/quilt/issues/1829))
+* [Added] Object size to package browsing experience in catalog
+([#1744](https://github.com/quiltdata/quilt/issues/1744))
+* [Added] Total number of packages to catalog Overview tab
+([#1808](https://github.com/quiltdata/quilt/issues/1808))
+* [Fixed] Overly aggressive 40X retry logic in es/indexer
+([#1804](https://github.com/quiltdata/quilt/issues/1804))
+* [Fixed] Semantic bugs in ElasticSearch timeouts (queries now time out properly)
+([#1801](https://github.com/quiltdata/quilt/issues/1801))
+* [Fixed] Missing Helvetica issues for PDFs ([#1792](https://github.com/quiltdata/quilt/issues/1792))
+
 # 3.2.0 - 2020-09-08 - Package Registry Refactor
 ## Python:
 * Refactors local and s3 storage-layer code around a new PackageRegistry base class (to support improved file layouts in future releases)
-* Multithreaded download for large files, large performance gains when installing packages with large files, especially on large instances
+* Multi-threaded download for large files, large performance gains when installing packages with large files, especially on large instances
 * Package name added to Package.resolve_hash
 * Bugfix: remove package revision by shorthash
 * Performance improvements for build and push
