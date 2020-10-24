@@ -39,7 +39,7 @@ def lambda_handler(request):
     # 0-indexed starting position (for pagination)
     user_from = int(request.args.get('from', 0))
     user_retry = int(request.args.get('retry', 0))
-    terminate_after = int(os.environ.get('MAX_DOCUMENTS_PER_SHARD', 10_000)) if user_retry else None
+    terminate_after = int(os.environ.get('MAX_DOCUMENTS_PER_SHARD', 10_000))
 
     if not user_indexes or not isinstance(user_indexes, str):
         raise ValueError("Request must include index=<comma-separated string of indices>")
@@ -67,6 +67,7 @@ def lambda_handler(request):
             raise ValueError("'packages' action searching indexes that don't end in '_packages'")
         _source = user_source
         size = user_size
+        terminate_after = None
     elif action == 'search':
         query = request.args.get('query', '')
         my_fields = user_fields or [
@@ -75,7 +76,6 @@ def lambda_handler(request):
             # package, and boost the fields
             'handle^2', 'handle_text^2', 'metadata^2', 'tags^2'
         ]
-
         if user_retry <= 1:
             body = {
                 "query": {
@@ -99,12 +99,13 @@ def lambda_handler(request):
                     }
                 }
             }
-
         _source = user_source or [
             'key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta',
             'comment', 'handle', 'hash', 'tags', 'metadata', 'pointer_file'
         ]
         size = DEFAULT_SIZE
+        if not user_retry:
+            terminate_after = None
     elif action == 'stats':
         body = {
             "query": {"match_all": {}},
@@ -182,7 +183,6 @@ def lambda_handler(request):
     )
 
     to_search = f"{user_indexes},{index_overrides}" if index_overrides else user_indexes
-    print("BODY>>>>>", user_retry, body)
     result = es_client.search(
         index=to_search,
         body=body,
