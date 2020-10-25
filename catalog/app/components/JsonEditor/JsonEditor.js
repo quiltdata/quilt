@@ -9,6 +9,7 @@ import Column from './Column'
 import Errors from './Errors'
 import State, { ColumnIds } from './State'
 
+// TODO: remove this useless comment
 const useStyles = M.makeStyles((t) => ({
   root: {},
 
