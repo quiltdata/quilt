@@ -300,7 +300,17 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
       }))
       return (
         <>
-          <TopBar crumbs={crumbs} />
+          <TopBar crumbs={crumbs}>
+            {hashData.case({
+              Ok: (hash) => (
+                <FileView.ZipDownloadForm
+                  label="Download package as .zip"
+                  suffix={`package/${bucket}/${name}/${hash}`}
+                />
+              ),
+              _: () => null,
+            })}
+          </TopBar>
           <PkgCode {...{ data: hashData, bucket, name, revision, path }} />
           <FileView.Meta data={AsyncResult.Ok(meta)} />
           <M.Box mt={2}>
