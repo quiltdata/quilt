@@ -98,6 +98,7 @@ export default function Cell({
   column,
   columnPath,
   onExpand,
+  editing: editingInitial,
   onMenuAction,
   row,
   updateMyData,
@@ -105,7 +106,7 @@ export default function Cell({
 }) {
   const menuAnchorRef = React.useRef(null)
 
-  const [editing, setEditing] = React.useState(false)
+  const [editing, setEditing] = React.useState(editingInitial)
   const [menuOpened, setMenuOpened] = React.useState(false)
 
   const key = row.values[ColumnIds.Key]

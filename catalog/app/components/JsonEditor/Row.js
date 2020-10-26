@@ -8,6 +8,10 @@ import { ColumnIds } from './State'
 const useStyles = M.makeStyles((t) => ({
   root: {},
 
+  fresh: {
+    backgroundColor: t.palette.warning.main,
+  },
+
   cell: {
     border: `1px solid ${t.palette.divider}`,
     padding: 0,
@@ -23,11 +27,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Row({ cells, columnPath, onExpand, onMenuAction }) {
+export default function Row({ cells, columnPath, fresh, onExpand, onMenuAction }) {
   const classes = useStyles()
 
   return (
-    <M.TableRow>
+    <M.TableRow className={cx({ [classes.fresh]: fresh })}>
       {cells.map((cell) => (
         <M.TableCell
           {...cell.getCellProps()}
@@ -37,6 +41,7 @@ export default function Row({ cells, columnPath, onExpand, onMenuAction }) {
           })}
         >
           {cell.render('Cell', {
+            editing: fresh && cell.column.id === ColumnIds.Value,
             columnPath,
             onExpand,
             onMenuAction,

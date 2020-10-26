@@ -1,5 +1,4 @@
 import * as React from 'react'
-import * as R from 'ramda'
 import cx from 'classnames'
 import isArray from 'lodash/isArray'
 import { useTable } from 'react-table'
@@ -63,6 +62,15 @@ export default function Table({
 
   const classes = useStyles()
 
+  const [hasNewRow, setHasNewRow] = React.useState(false)
+  const onChange = React.useCallback(
+    (...params) => {
+      setHasNewRow(false)
+      updateMyData(...params)
+    },
+    [updateMyData],
+  )
+
   const tableInstance = useTable({
     columns,
     data: data.items,
@@ -71,11 +79,19 @@ export default function Table({
       Cell,
     },
 
-    updateMyData,
+    updateMyData: onChange,
   })
   const { getTableProps, getTableBodyProps, rows, prepareRow } = tableInstance
 
   const columnType = getColumntType(data)
+
+  const onAddRowInternal = React.useCallback(
+    (...params) => {
+      setHasNewRow(true)
+      onAddRow(...params)
+    },
+    [onAddRow],
+  )
 
   return (
     <div className={cx(classes.root)}>
@@ -87,7 +103,9 @@ export default function Table({
         <M.TableContainer>
           <M.Table aria-label="simple table" {...getTableProps()}>
             <M.TableBody {...getTableBodyProps()}>
-              {rows.map((row) => {
+              {rows.map((row, index) => {
+                const isLastRow = index === rows.length - 1
+
                 prepareRow(row)
 
                 return (
@@ -95,6 +113,7 @@ export default function Table({
                     {...row.getRowProps()}
                     {...{
                       cells: row.cells,
+                      fresh: isLastRow && hasNewRow,
                       columnPath,
                       onExpand,
                       onMenuAction,
@@ -108,7 +127,7 @@ export default function Table({
                   {...{
                     columnPath,
                     index: rows.length,
-                    onAdd: onAddRow,
+                    onAdd: onAddRowInternal,
                   }}
                 />
               ) : (
@@ -117,7 +136,7 @@ export default function Table({
                     columnPath,
                     keysList: rows.length ? rows[0].original.keysList : [],
                     onExpand,
-                    onAdd: onAddRow,
+                    onAdd: onAddRowInternal,
                   }}
                 />
               )}
