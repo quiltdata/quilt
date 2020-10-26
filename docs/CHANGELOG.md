@@ -14,6 +14,8 @@
 
 ## Catalog
 
+* [Added] Add enhanced JSON editor and schema validtaion for package metadata
+
 # 3.2.1 - 2020-10-14
 ## Python API
 * [Performance] 2X to 5X faster multi-threaded hashing of S3 objects ([#1816](https://github.com/quiltdata/quilt/issues/1816), [#1788](https://github.com/quiltdata/quilt/issues/1788))
