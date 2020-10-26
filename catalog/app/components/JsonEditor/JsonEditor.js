@@ -1,7 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import cx from 'classnames'
-import objectHash from 'object-hash'
 
 import * as M from '@material-ui/core'
 
@@ -60,20 +59,23 @@ function JsonEditor({
   return (
     <div className={cx(classes.root, className)}>
       <div className={classes.inner}>
-        {columns.map((columnData, index) => (
-          <Column
-            {...{
-              columnPath: R.slice(0, index, fieldPath),
-              data: columnData,
-              key: objectHash(columnData.items),
-              onAddRow: addRow,
-              onCollapse,
-              onExpand: setFieldPath,
-              onMenuAction,
-              updateMyData,
-            }}
-          />
-        ))}
+        {columns.map((columnData, index) => {
+          const columnPath = R.slice(0, index, fieldPath)
+          return (
+            <Column
+              {...{
+                columnPath,
+                data: columnData,
+                key: columnPath,
+                onAddRow: addRow,
+                onCollapse,
+                onExpand: setFieldPath,
+                onMenuAction,
+                updateMyData,
+              }}
+            />
+          )
+        })}
       </div>
 
       <Errors className={classes.errors} errors={error || errors} />
