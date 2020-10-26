@@ -15,6 +15,7 @@ import parseSearch from 'utils/parseSearch'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
 
 import Code from './Code'
+import * as FileView from './FileView'
 import { ListingItem, ListingWithPrefixFiltering } from './Listing'
 import Summary from './Summary'
 import { displayError } from './errors'
@@ -135,6 +136,10 @@ export default function Dir({
           {renderCrumbs(getCrumbs({ bucket, path, urls }))}
         </div>
         <M.Box flexGrow={1} />
+        <FileView.ZipDownloadForm
+          suffix={`dir/${bucket}/${path}`}
+          label="Download dir as .zip"
+        />
       </M.Box>
 
       <Code gutterBottom>{code}</Code>
