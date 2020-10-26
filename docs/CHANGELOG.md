@@ -37,7 +37,7 @@
 # 3.2.0 - 2020-09-08 - Package Registry Refactor
 ## Python:
 * Refactors local and s3 storage-layer code around a new PackageRegistry base class (to support improved file layouts in future releases)
-* Multi-threaded download for large files, large performance gains when installing packages with large files, especially on large instances
+* Multi-threaded download for large files, 2X to 5X performance gains when installing packages with large files, especially on larger EC2 instances
 * Package name added to Package.resolve_hash
 * Bugfix: remove package revision by shorthash
 * Performance improvements for build and push
