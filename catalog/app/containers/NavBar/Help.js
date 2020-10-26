@@ -239,9 +239,7 @@ function DocsExternalLink() {
 }
 
 function normalizeSyntaxItem(s) {
-  const multilineToLine = s.replace(/\s/g, '')
-  const trailingSpace = ' '
-  return multilineToLine + trailingSpace
+  return `${s.replace(/\s/g, '')} `
 }
 
 export default function Help({ className, onQuery }) {
