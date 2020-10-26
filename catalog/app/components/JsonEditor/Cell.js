@@ -133,6 +133,7 @@ export default function Cell({
     [column.id, fieldPath, updateMyData],
   )
 
+  // TODO: make it focusable with tabIndex={0} and edit on Enter
   const onDoubleClick = React.useCallback(() => setEditing(true), [setEditing])
 
   const ValueComponent = editing ? Input : Preview

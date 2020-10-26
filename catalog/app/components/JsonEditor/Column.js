@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as R from 'ramda'
 import cx from 'classnames'
+import isArray from 'lodash/isArray'
 import { useTable } from 'react-table'
 
 import * as M from '@material-ui/core'
@@ -27,6 +28,17 @@ const useStyles = M.makeStyles((t) => ({
     backgroundColor: t.palette.action.focus,
   },
 }))
+
+function getColumntType({ parent }) {
+  // NOTE: also you can get schema type here
+  //       `R.path(['schema', 'type'], schema)`
+
+  if (isArray(parent)) {
+    return 'array'
+  }
+
+  return typeof parent
+}
 
 export default function Table({
   columnPath,
@@ -63,7 +75,7 @@ export default function Table({
   })
   const { getTableProps, getTableBodyProps, rows, prepareRow } = tableInstance
 
-  const columnType = R.pathOr('object', ['schema', 'type'], data)
+  const columnType = getColumntType(data)
 
   return (
     <div className={cx(classes.root)}>
