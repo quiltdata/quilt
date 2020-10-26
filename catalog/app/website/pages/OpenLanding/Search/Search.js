@@ -35,16 +35,16 @@ const useStyles = M.makeStyles((t) => ({
   help: {
     maxHeight: '490px',
     overflowY: 'auto',
+    padding: t.spacing(0, 2),
 
     [t.breakpoints.down('xs')]: {
       maxHeight: '400px',
     },
   },
   helpWrapper: {
-    borderRadius: t.typography.pxToRem(30),
+    borderRadius: t.spacing(0.5),
     marginTop: t.spacing(8),
-    maxWidth: 750,
-    padding: t.spacing(0, 4),
+    maxWidth: 690,
     position: 'absolute',
     width: '100%',
     zIndex: 1,
