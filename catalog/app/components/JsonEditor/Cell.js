@@ -134,8 +134,14 @@ export default function Cell({
     [column.id, fieldPath, updateMyData],
   )
 
-  // TODO: make it focusable with tabIndex={0} and edit on Enter
   const onDoubleClick = React.useCallback(() => setEditing(true), [setEditing])
+  const onKeyPress = React.useCallback(
+    (event) => {
+      if (event.key !== 'Enter') return
+      setEditing(true)
+    },
+    [setEditing],
+  )
 
   const ValueComponent = editing ? Input : Preview
 
@@ -143,7 +149,12 @@ export default function Cell({
   const hasValueMenu = menuOpened && column.id === ColumnIds.Value
 
   return (
-    <div onDoubleClick={onDoubleClick}>
+    <div
+      onDoubleClick={onDoubleClick}
+      onKeyPress={onKeyPress}
+      tabIndex={0}
+      role="textbox"
+    >
       <ValueComponent
         {...{
           menuAnchorRef,
