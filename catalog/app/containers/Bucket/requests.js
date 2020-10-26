@@ -10,10 +10,15 @@ import * as Resource from 'utils/Resource'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
+import yaml from 'utils/yaml'
 
 import * as errors from './errors'
 
-import schemaOptions from './schema-mocks'
+// import schemaOptions from './schema-mocks'
+
+function parseMetadataSchema(metadataYaml) {
+  return yaml(metadataYaml)
+}
 
 const withErrorHandling = (fn, pairs) => (...args) =>
   fn(...args).catch(errors.catchErrors(pairs))
@@ -219,14 +224,16 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   throw new Error('Stats unavailable')
 }
 
-// TODO: use { s3, bucket }
-export const schemasList = async () => {
+export const schemasList = async ({ s3, bucket }) => {
   try {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(schemaOptions)
-      }, 1000)
-    })
+    return await s3
+      .getObject({
+        Bucket: bucket,
+        Key: '.quilt/schemas/metadata.yml',
+      })
+      .promise()
+      .then((r) => JSON.parse(r.Body.toString('utf-8')))
+      .then(parseMetadataSchema)
   } catch (e) {
     console.log('Unable to fetch')
     console.error(e)
