@@ -19,6 +19,10 @@ const useStyles = M.makeStyles((t) => ({
   mismatch: {
     color: t.palette.error.main,
   },
+
+  notInSchema: {
+    color: t.palette.warning.dark,
+  },
 }))
 
 function getTypeAnnotation(value, originalType) {
@@ -60,15 +64,17 @@ function NoteValue({ originalType, value }) {
   const classes = useStyles()
 
   const mismatch = !doesTypeMatch(value, originalType)
-  const typeHelp = originalType
-    ? `Value should be of ${originalType} type`
-    : 'Key/value is not restricted by schema'
+  const typeNotInSchema = !originalType
+  const typeHelp = typeNotInSchema
+    ? 'Key/value is not restricted by schema'
+    : `Value should be of ${originalType} type`
 
   return (
     <M.Tooltip title={typeHelp}>
       <span
         className={cx(classes.default, {
           [classes.mismatch]: mismatch,
+          [classes.notInSchema]: typeNotInSchema,
         })}
       >
         {getTypeAnnotation(value, originalType)}
