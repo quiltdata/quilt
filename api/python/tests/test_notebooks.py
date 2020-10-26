@@ -1,4 +1,3 @@
-import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -30,9 +29,21 @@ class NotebookFilesHandler(FileSystemEventHandler):
 
 def execute_notebook(notebook):
     """Execute a given notebook in a sub shell."""
-    notebook = re.escape(str(notebook))
-    cmd = f"jupyter nbconvert --to notebook --execute {notebook}"
-    subprocess.call(cmd, shell=True)
+    set_config_cmd = [
+        'quilt3',
+        'config',
+        '--set',
+        'navigator_url=https://example.com',
+        'apiGatewayEndpoint=https://xyz.execute-api.us-east-1.amazonaws.com/prod',
+        'binaryApiGatewayEndpoint=https://xyz.execute-api.us-east-1.amazonaws.com/prod',
+        'default_remote_registry=s3://example/',
+        'defaultBucket=test-bucket',
+        'registryUrl=https://registry.example.com',
+        's3Proxy=open-s3-proxy.quiltdata.com'
+    ]
+    subprocess.run(set_config_cmd, check=True)
+    cmd = ['jupyter', 'nbconvert', '--to', 'notebook', '--execute', str(notebook)]
+    subprocess.run(cmd, check=True)
 
 
 class NotebookDocumentationTestCase(QuiltTestCase):
