@@ -39,6 +39,7 @@ const useStyles = M.makeStyles((t) => ({
 
     [t.breakpoints.down('xs')]: {
       maxHeight: '400px',
+      padding: t.spacing(0, 2),
     },
   },
   helpWrapper: {
@@ -48,10 +49,6 @@ const useStyles = M.makeStyles((t) => ({
     position: 'absolute',
     width: '100%',
     zIndex: 1,
-
-    [t.breakpoints.down('xs')]: {
-      padding: t.spacing(0, 2),
-    },
   },
   inner: {
     alignItems: 'center',
