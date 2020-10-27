@@ -21,7 +21,7 @@ import * as validators from 'utils/validators'
 
 import JsonEditor from 'components/JsonEditor'
 import { parseJSON, stringifyJSON, validateOnSchema } from 'components/JsonEditor/State'
-import SelectSchema from './SelectSchema'
+import SelectWorkflow from './SelectWorkflow'
 
 const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
 const ES_LAG = 3 * 1000
@@ -874,7 +874,7 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                     <RF.Field
                       name="workflow"
                       bucket={bucket}
-                      component={SelectSchema}
+                      component={SelectWorkflow}
                       onChange={setWorkflow}
                     />
                   )}
