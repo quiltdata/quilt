@@ -10,9 +10,7 @@ import Skeleton from 'components/Skeleton'
 import * as requests from './requests'
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    minWidth: t.spacing(24),
-  },
+  root: {},
 
   spinner: {
     flex: 'none',
@@ -21,35 +19,40 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 const i18nMsgs = {
-  label: 'Select schema',
+  label: 'Select workflow',
 }
 
-function SelectControl({ className, items, onChange }) {
+function SelectControl({ className, items, onChange, disabled }) {
   const classes = useStyles()
 
   const [value, setValue] = React.useState(items.find((item) => item.isDefault))
 
-  React.useEffect(() => onChange(value), [onChange, value])
+  React.useEffect(() => {
+    if (!value || !onChange) return
+    onChange(value)
+  }, [onChange, value])
 
   return (
-    <M.FormControl
-      className={cx(classes.root, className)}
-      size="small"
-      variant="outlined"
-    >
-      <M.InputLabel id="schema-select">{i18nMsgs.label}</M.InputLabel>
-      <M.Select labelId="schema-select" value={value.slug} label={i18nMsgs.label}>
-        {items.map((option) => (
-          <M.MenuItem
-            key={option.slug}
-            value={option.slug}
-            onClick={() => setValue(option)}
-          >
-            {option.title}
-          </M.MenuItem>
-        ))}
-      </M.Select>
-    </M.FormControl>
+    <div className={cx(classes.root, className)}>
+      <M.FormControl disabled={disabled} fullWidth size="small">
+        <M.InputLabel id="schema-select">{i18nMsgs.label}</M.InputLabel>
+        <M.Select
+          labelId="schema-select"
+          value={value && value.slug}
+          label={i18nMsgs.label}
+        >
+          {items.map((option) => (
+            <M.MenuItem
+              key={option.slug}
+              value={option.slug}
+              onClick={() => setValue(option)}
+            >
+              {option.title}
+            </M.MenuItem>
+          ))}
+        </M.Select>
+      </M.FormControl>
+    </div>
   )
 }
 
@@ -63,7 +66,7 @@ export default function SelectSchema({ className, bucket, onChange }) {
     Ok: (schemasList) => (
       <SelectControl className={className} items={schemasList} onChange={onChange} />
     ),
-    Err: () => null,
+    Err: () => <SelectControl className={className} items={[]} disabled />,
     _: () => <Skeleton height={t.spacing(4)} width={t.spacing(24)} />,
   })
 }

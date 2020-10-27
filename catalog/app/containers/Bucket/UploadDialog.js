@@ -441,9 +441,6 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     display: 'flex',
     marginTop: t.spacing(1),
   },
-  select: {
-    marginLeft: t.spacing(1),
-  },
   sep: {
     ...t.typography.body1,
     marginLeft: t.spacing(1),
@@ -462,7 +459,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
 const EMPTY_FIELD = { key: '', value: '' }
 
 // TODO: warn on duplicate keys
-function MetaInput({ bucket, input, meta, schema, onSchema }) {
+function MetaInput({ input, meta, schema }) {
   const classes = useMetaInputStyles()
   const value = input.value || { fields: [EMPTY_FIELD], text: '{}', mode: 'kv' }
   const error = meta.submitFailed && meta.error
@@ -534,10 +531,6 @@ function MetaInput({ bucket, input, meta, schema, onSchema }) {
         <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
           Metadata
         </M.Typography>
-
-        {JSON_EDITOR_ENABLED && (
-          <SelectSchema bucket={bucket} className={classes.select} onChange={onSchema} />
-        )}
 
         <M.Box flexGrow={1} />
         <Lab.ToggleButtonGroup value={value.mode} exclusive onChange={handleModeChange}>
@@ -826,7 +819,7 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
     }
   }
 
-  const [schema, setSchema] = React.useState(null)
+  const [workflow, setWorkflow] = React.useState(null)
 
   return (
     <RF.Form onSubmit={onSubmit}>
@@ -877,6 +870,15 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
             <>
               <M.DialogContent style={{ paddingTop: 0 }}>
                 <form onSubmit={handleSubmit}>
+                  {JSON_EDITOR_ENABLED && (
+                    <RF.Field
+                      name="workflow"
+                      bucket={bucket}
+                      component={SelectSchema}
+                      onChange={setWorkflow}
+                    />
+                  )}
+
                   <RF.Field
                     component={Field}
                     name="name"
@@ -887,6 +889,7 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                       required: 'Enter a package name',
                       invalid: 'Invalid package name',
                     }}
+                    margin="normal"
                     fullWidth
                   />
 
@@ -918,10 +921,8 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                   <RF.Field
                     component={MetaInput}
                     bucket={bucket}
-                    schema={schema}
-                    onSchema={setSchema}
                     name="meta"
-                    validate={(...props) => validateMeta(schema, ...props)}
+                    validate={(...props) => validateMeta(workflow, ...props)}
                     isEqual={R.equals}
                   />
 

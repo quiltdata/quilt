@@ -26,8 +26,6 @@ const withErrorHandling = (fn, pairs) => (...args) =>
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
 
-// eslint-disable no-console
-
 export const bucketListing = ({ s3, bucket, path = '', prev }) =>
   s3
     .listObjectsV2({
@@ -70,6 +68,8 @@ export const bucketListing = ({ s3, bucket, path = '', prev }) =>
     .catch(errors.catchErrors())
 
 const MAX_BANDS = 10
+
+/* eslint-disable no-console */
 
 export const bucketAccessCounts = async ({
   s3,
@@ -162,9 +162,7 @@ export const bucketAccessCounts = async ({
       ),
     )
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.log('Unable to fetch bucket access counts:')
-    // eslint-disable-next-line no-console
     console.error(e)
     return {
       byExt: [],
@@ -226,6 +224,7 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
 
 export const schemasList = async ({ s3, bucket }) => {
   try {
+    // return Promise.resolve(schemaOptions)
     return await s3
       .getObject({
         Bucket: bucket,
@@ -589,9 +588,7 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
     )
     return handles.filter((h) => h)
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.log('Error loading summary:')
-    // eslint-disable-next-line no-console
     console.error(e)
     return []
   }
@@ -641,9 +638,7 @@ const fetchPackagesAccessCounts = async ({
       return { ...acc, [r.name]: { counts, total } }
     }, {})
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.log('fetchPackagesAccessCounts : error caught')
-    // eslint-disable-next-line no-console
     console.error(e)
     return {}
   }
@@ -816,9 +811,7 @@ export async function fetchRevisionsAccessCounts({
       return { ...acc, [r.hash]: { counts, total } }
     }, {})
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.log('fetchRevisionsAccessCounts : error caught')
-    // eslint-disable-next-line no-console
     console.error(e)
     return {}
   }
@@ -1046,9 +1039,7 @@ const queryAccessCounts = async ({
 
     return { counts, total }
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.log('queryAccessCounts: error caught')
-    // eslint-disable-next-line no-console
     console.error(e)
     throw e
   }
