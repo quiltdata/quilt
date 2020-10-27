@@ -1,4 +1,4 @@
-export const initialSchema = {
+const allInOneSchema = {
   type: 'object',
   properties: {
     num: {
@@ -43,7 +43,7 @@ export const initialSchema = {
   required: ['version', 'message', 'user_meta'],
 }
 
-export const invalidSchema = {
+const invalidSchema = {
   type: 'object',
   properties: {
     a: {
@@ -54,6 +54,11 @@ export const invalidSchema = {
     },
   },
   required: ['a', 'b'],
+}
+
+export const mockedSchemas = {
+  's3://example/scheme.json': allInOneSchema,
+  's3://example/scheme2.json': invalidSchema,
 }
 
 export const mockedWorkflows = `

@@ -16,6 +16,11 @@ const useStyles = M.makeStyles((t) => ({
     flex: 'none',
     marginRight: t.spacing(3),
   },
+
+  crop: {
+    textOverflow: 'ellipsis',
+    overflow: 'hidden',
+  },
 }))
 
 const i18nMsgs = {
@@ -34,7 +39,7 @@ function SelectControl({ className, items, onChange, disabled }) {
 
   return (
     <div className={cx(classes.root, className)}>
-      <M.FormControl disabled={disabled} fullWidth size="small">
+      <M.FormControl disabled={disabled} fullWidth size="small" variant="outlined">
         <M.InputLabel id="schema-select">{i18nMsgs.label}</M.InputLabel>
         <M.Select
           labelId="schema-select"
@@ -46,8 +51,16 @@ function SelectControl({ className, items, onChange, disabled }) {
               key={option.slug}
               value={option.slug}
               onClick={() => setValue(option)}
+              dense
             >
-              <M.ListItemText primary={option.name} secondary={option.description} />
+              <M.ListItemText
+                classes={{
+                  primary: classes.crop,
+                  secondary: classes.crop,
+                }}
+                primary={option.name}
+                secondary={option.description}
+              />
             </M.MenuItem>
           ))}
         </M.Select>

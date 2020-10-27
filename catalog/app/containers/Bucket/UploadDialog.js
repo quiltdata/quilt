@@ -462,7 +462,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
 const EMPTY_FIELD = { key: '', value: '' }
 
 // TODO: warn on duplicate keys
-function MetaInput({ bucket, input, meta }) {
+function MetaInput({ bucket, input, meta, workflow }) {
   const s3 = AWS.S3.use()
   const classes = useMetaInputStyles()
   const value = input.value || { fields: [EMPTY_FIELD], text: '{}', mode: 'kv' }
@@ -550,7 +550,14 @@ function MetaInput({ bucket, input, meta }) {
       {value.mode === 'kv' ? (
         <>
           {JSON_EDITOR_ENABLED ? (
-            <Data fetch={requests.metadataSchema} params={{ s3, bucket }}>
+            <Data
+              fetch={requests.metadataSchema}
+              params={{
+                s3,
+                bucket,
+                schemaUrl: R.pathOr('', ['schema', 'url'], workflow),
+              }}
+            >
               {AsyncResult.case({
                 Ok: (schema) => (
                   <JsonEditor
@@ -558,6 +565,13 @@ function MetaInput({ bucket, input, meta }) {
                     value={parseJSON(value.text)}
                     onChange={onJsonEditor}
                     schema={schema}
+                  />
+                ),
+                Err: () => (
+                  <JsonEditor
+                    error={error}
+                    value={parseJSON(value.text)}
+                    onChange={onJsonEditor}
                   />
                 ),
                 _: () => null,
@@ -695,6 +709,16 @@ async function hashFile(file) {
   }
 }
 
+const useStyles = M.makeStyles((t) => ({
+  workflow: {
+    marginLeft: t.spacing(2),
+    marginRight: 'auto',
+    maxWidth: '50%',
+    minWidth: t.spacing(24),
+    transform: `translateY(${t.spacing(-1)}px)`,
+  },
+}))
+
 export default function UploadDialog({ bucket, open, onClose, refresh }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
@@ -702,6 +726,8 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
   const [uploads, setUploads] = React.useState({})
   const [success, setSuccess] = React.useState(null)
   const validateCacheKey = useCounter()
+
+  const classes = useStyles()
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const validateName = React.useCallback(
@@ -881,15 +907,6 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
             <>
               <M.DialogContent style={{ paddingTop: 0 }}>
                 <form onSubmit={handleSubmit}>
-                  {JSON_EDITOR_ENABLED && (
-                    <RF.Field
-                      name="workflow"
-                      bucket={bucket}
-                      component={SelectWorkflow}
-                      onChange={setWorkflow}
-                    />
-                  )}
-
                   <RF.Field
                     component={Field}
                     name="name"
@@ -931,6 +948,7 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
 
                   <RF.Field
                     component={MetaInput}
+                    workflow={workflow}
                     bucket={bucket}
                     name="meta"
                     validate={(...props) => validateMeta(workflow, ...props)}
@@ -979,6 +997,16 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                       {error || submitError}
                     </M.Typography>
                   </M.Box>
+                )}
+
+                {JSON_EDITOR_ENABLED && (
+                  <RF.Field
+                    name="workflow"
+                    bucket={bucket}
+                    className={classes.workflow}
+                    component={SelectWorkflow}
+                    onChange={setWorkflow}
+                  />
                 )}
 
                 <M.Button onClick={handleClose({ submitting })} disabled={submitting}>

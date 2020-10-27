@@ -14,7 +14,7 @@ import yaml from 'utils/yaml'
 
 import * as errors from './errors'
 
-// import { initialSchema, invalidSchema, mockedWorkflows } from './schema-mocks'
+// import { mockedSchemas, mockedWorkflows } from './schema-mocks'
 
 function parseSchema(schemaSlug, schemas) {
   return {
@@ -243,14 +243,15 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   throw new Error('Stats unavailable')
 }
 
-export const metadataSchema = async ({ s3, bucket, path }) => {
+export const metadataSchema = async ({ s3, bucket, schemaUrl }) => {
+  if (!schemaUrl) return null
+
   try {
-    // return Promise.resolve(initialSchema)
-    // return Promise.resolve(invalidSchema)
+    // return Promise.resolve(mockedSchemas[schemaUrl])
     return await s3
       .getObject({
         Bucket: bucket,
-        Key: path,
+        Key: schemaUrl,
       })
       .promise()
       .then((r) => JSON.parse(r.Body.toString('utf-8')))
