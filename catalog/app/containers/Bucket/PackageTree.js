@@ -483,8 +483,7 @@ export default function PackageTree({
   const isDir = s3paths.isDir(path)
 
   const crumbs = React.useMemo(() => {
-    const segments = s3paths.getBreadCrumbs(path)
-    segments.unshift({ label: 'ROOT', path: '' })
+    const segments = [{ label: 'ROOT', path: '' }, ...s3paths.getBreadCrumbs(path)]
     return R.intersperse(
       Crumb.Sep(<>&nbsp;/ </>),
       segments.map(({ label, path: segPath }) =>
