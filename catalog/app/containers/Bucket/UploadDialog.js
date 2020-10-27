@@ -9,6 +9,8 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import Data from 'utils/Data'
+import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import Delay from 'utils/Delay'
@@ -22,6 +24,7 @@ import * as validators from 'utils/validators'
 import JsonEditor from 'components/JsonEditor'
 import { parseJSON, stringifyJSON, validateOnSchema } from 'components/JsonEditor/State'
 import SelectWorkflow from './SelectWorkflow'
+import * as requests from './requests'
 
 const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
 const ES_LAG = 3 * 1000
@@ -459,7 +462,8 @@ const useMetaInputStyles = M.makeStyles((t) => ({
 const EMPTY_FIELD = { key: '', value: '' }
 
 // TODO: warn on duplicate keys
-function MetaInput({ input, meta, schema }) {
+function MetaInput({ bucket, input, meta }) {
+  const s3 = AWS.S3.use()
   const classes = useMetaInputStyles()
   const value = input.value || { fields: [EMPTY_FIELD], text: '{}', mode: 'kv' }
   const error = meta.submitFailed && meta.error
@@ -546,12 +550,19 @@ function MetaInput({ input, meta, schema }) {
       {value.mode === 'kv' ? (
         <>
           {JSON_EDITOR_ENABLED ? (
-            <JsonEditor
-              error={error}
-              value={parseJSON(value.text)}
-              onChange={onJsonEditor}
-              schema={schema && schema.schema}
-            />
+            <Data fetch={requests.metadataSchema} params={{ s3, bucket }}>
+              {AsyncResult.case({
+                Ok: (schema) => (
+                  <JsonEditor
+                    error={error}
+                    value={parseJSON(value.text)}
+                    onChange={onJsonEditor}
+                    schema={schema}
+                  />
+                ),
+                _: () => null,
+              })}
+            </Data>
           ) : (
             <>
               {value.fields.map((f, i) => (

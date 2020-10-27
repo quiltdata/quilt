@@ -14,7 +14,7 @@ import yaml from 'utils/yaml'
 
 import * as errors from './errors'
 
-// import schemaOptions from './schema-mocks'
+// import { initialSchema, invalidSchema, mockedWorkflows } from './schema-mocks'
 
 function parseSchema(schemaSlug, schemas) {
   return {
@@ -32,8 +32,8 @@ function parseWorkflow(workflowSlug, workflow, data) {
   }
 }
 
-function parseMetadataSchema(metadataYaml) {
-  const data = yaml(metadataYaml)
+function parseWorkflows(workflowsYaml) {
+  const data = yaml(workflowsYaml)
   if (!data) return []
 
   const { workflows } = data
@@ -243,9 +243,28 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   throw new Error('Stats unavailable')
 }
 
-export const schemasList = async ({ s3, bucket }) => {
+export const metadataSchema = async ({ s3, bucket, path }) => {
   try {
-    // return Promise.resolve(parseMetadataSchema(schemaOptions))
+    // return Promise.resolve(initialSchema)
+    // return Promise.resolve(invalidSchema)
+    return await s3
+      .getObject({
+        Bucket: bucket,
+        Key: path,
+      })
+      .promise()
+      .then((r) => JSON.parse(r.Body.toString('utf-8')))
+  } catch (e) {
+    console.log('Unable to fetch')
+    console.error(e)
+  }
+
+  throw new Error('Schema is unavailable')
+}
+
+export const workflowsList = async ({ s3, bucket }) => {
+  try {
+    // return Promise.resolve(parseWorkflows(mockedWorkflows))
     return await s3
       .getObject({
         Bucket: bucket,
@@ -253,13 +272,13 @@ export const schemasList = async ({ s3, bucket }) => {
       })
       .promise()
       .then((r) => JSON.parse(r.Body.toString('utf-8')))
-      .then(parseMetadataSchema)
+      .then(parseWorkflows)
   } catch (e) {
     console.log('Unable to fetch')
     console.error(e)
   }
 
-  throw new Error('Schemas list unavailable')
+  throw new Error('Schemas list is unavailable')
 }
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']

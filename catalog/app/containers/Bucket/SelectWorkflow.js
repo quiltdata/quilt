@@ -61,7 +61,7 @@ export default function SelectSchema({ className, bucket, onChange }) {
 
   const t = M.useTheme()
 
-  const data = useData(requests.schemasList, { s3, bucket })
+  const data = useData(requests.workflowsList, { s3, bucket })
   return data.case({
     Ok: (workflowsList) => (
       <SelectControl className={className} items={workflowsList} onChange={onChange} />
