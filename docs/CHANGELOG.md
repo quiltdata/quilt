@@ -34,10 +34,21 @@ overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
 * [Added] Object size to package browsing experience in catalog ([#1744](https://github.com/quiltdata/quilt/issues/1744))
 * [Added] Total number of packages to catalog Overview tab ([#1808](https://github.com/quiltdata/quilt/issues/1808))
 * [Added] PDF and other file formats, including .gz ones, to catalog Overview tab
+* [Added] Drag-n-drop package creation ([#1786](https://github.com/quiltdata/quilt/pull/1786))
+* [Added] Glacier support ([#1794](https://github.com/quiltdata/quilt/pull/1794), [#1796](https://github.com/quiltdata/quilt/pull/1796))
+* [Added] Show package metadata ([#1806](https://github.com/quiltdata/quilt/pull/1806))
+* [Added] Search facets help ([#1828](https://github.com/quiltdata/quilt/pull/1828/))
+* [Added] Admin/buckets: re-index and repair ([#1824](https://github.com/quiltdata/quilt/pull/1824))
+* [Changed] Case-insensitive package filtering ([#1807](https://github.com/quiltdata/quilt/pull/1807))
+* [Changed] Show PDFs in bucket overviews ([#1811](https://github.com/quiltdata/quilt/pull/1811))
+* [Changed] Admin/buckets: adjust SNS ARN input, make it possible to not subscribe to a topic ([#1824](https://github.com/quiltdata/quilt/pull/1824))
+* [Changed] Show "push package" button when there's no packages in a bucket ([#1843](https://github.com/quiltdata/quilt/pull/1843))
 * [Fixed] Bugs involving bad or missing package stats during S3 Select calls ([#1829](https://github.com/quiltdata/quilt/issues/1829))
 * [Fixed] Overly aggressive 40X retry logic in es/indexer ([#1804](https://github.com/quiltdata/quilt/issues/1804))
 * [Fixed] Semantic bugs in ElasticSearch timeouts (queries now time out properly) ([#1803](https://github.com/quiltdata/quilt/issues/1803))
 * [Fixed] Missing Helvetica issues for PDFs ([#1792](https://github.com/quiltdata/quilt/issues/1792))
+* [Fixed] Bulletproof file downloads via HTTP header override ([#1787](https://github.com/quiltdata/quilt/pull/1787))
+* [Fixed] Previews not rendering in global search ([#1787](https://github.com/quiltdata/quilt/pull/1787))
 
 # 3.2.0 - 2020-09-08 - Package Registry Refactor
 ## Python:
