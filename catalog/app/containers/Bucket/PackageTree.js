@@ -213,6 +213,7 @@ const useTopBarStyles = M.makeStyles((t) => ({
     alignItems: 'flex-end',
     display: 'flex',
     marginBottom: t.spacing(2),
+    marginTop: t.spacing(0.5),
   },
   crumbs: {
     ...t.typography.body1,
@@ -302,7 +303,7 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
         <>
           <TopBar crumbs={crumbs}>
             {hashData.case({
-              Ok: (hash) => (
+              Ok: ({ hash }) => (
                 <FileView.ZipDownloadForm
                   label="Download package as .zip"
                   suffix={`package/${bucket}/${name}/${hash}`}
@@ -483,7 +484,7 @@ export default function PackageTree({
 
   const crumbs = React.useMemo(() => {
     const segments = s3paths.getBreadCrumbs(path)
-    if (path !== '') segments.unshift({ label: 'ROOT', path: '' })
+    segments.unshift({ label: 'ROOT', path: '' })
     return R.intersperse(
       Crumb.Sep(<>&nbsp;/ </>),
       segments.map(({ label, path: segPath }) =>
