@@ -12,7 +12,8 @@
 
 ## CLI
 
-## Catalog
+## Catalog, Lambdas
+* [Fixed] Incomplete package stats for empty packages in es/indexer Lambda ([#1869](https://github.com/quiltdata/quilt/pull/1869))
 
 # 3.2.1 - 2020-10-14
 ## Python API
