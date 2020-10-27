@@ -12,7 +12,10 @@
 
 ## CLI
 
-## Catalog
+## Catalog, Lambdas
+* [Added] Retry logic for failed queries, minimize load on ES for sample, images
+overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
+* [Fixed] Incomplete package stats for empty packages in es/indexer Lambda ([#1869](https://github.com/quiltdata/quilt/pull/1869))
 
 * [Added] Add enhanced JSON editor and schema validtaion for package metadata
 
