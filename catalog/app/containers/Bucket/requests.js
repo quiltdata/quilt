@@ -16,8 +16,29 @@ import * as errors from './errors'
 
 // import schemaOptions from './schema-mocks'
 
+function parseSchema(schemaSlug, schemas) {
+  return {
+    url: R.path([schemaSlug, 'url'], schemas),
+  }
+}
+
+function parseWorkflow(workflowSlug, workflow, data) {
+  return {
+    description: workflow.description,
+    isDefault: workflowSlug === data.default_workflow,
+    name: workflow.name,
+    schema: parseSchema(workflow.metadata_schema, data.schemas),
+    slug: workflowSlug,
+  }
+}
+
 function parseMetadataSchema(metadataYaml) {
-  return yaml(metadataYaml)
+  const data = yaml(metadataYaml)
+  if (!data) return []
+
+  const { workflows } = data
+  const workflowKeys = Object.keys(workflows)
+  return workflowKeys.map((slug) => parseWorkflow(slug, workflows[slug], data))
 }
 
 const withErrorHandling = (fn, pairs) => (...args) =>
@@ -224,7 +245,7 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
 
 export const schemasList = async ({ s3, bucket }) => {
   try {
-    // return Promise.resolve(schemaOptions)
+    // return Promise.resolve(parseMetadataSchema(schemaOptions))
     return await s3
       .getObject({
         Bucket: bucket,

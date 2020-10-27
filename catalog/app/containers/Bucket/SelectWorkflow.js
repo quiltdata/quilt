@@ -38,7 +38,7 @@ function SelectControl({ className, items, onChange, disabled }) {
         <M.InputLabel id="schema-select">{i18nMsgs.label}</M.InputLabel>
         <M.Select
           labelId="schema-select"
-          value={value && value.slug}
+          value={value ? value.slug : ''}
           label={i18nMsgs.label}
         >
           {items.map((option) => (
@@ -47,7 +47,7 @@ function SelectControl({ className, items, onChange, disabled }) {
               value={option.slug}
               onClick={() => setValue(option)}
             >
-              {option.title}
+              <M.ListItemText primary={option.name} secondary={option.description} />
             </M.MenuItem>
           ))}
         </M.Select>
@@ -63,8 +63,8 @@ export default function SelectSchema({ className, bucket, onChange }) {
 
   const data = useData(requests.schemasList, { s3, bucket })
   return data.case({
-    Ok: (schemasList) => (
-      <SelectControl className={className} items={schemasList} onChange={onChange} />
+    Ok: (workflowsList) => (
+      <SelectControl className={className} items={workflowsList} onChange={onChange} />
     ),
     Err: () => <SelectControl className={className} items={[]} disabled />,
     _: () => <Skeleton height={t.spacing(4)} width={t.spacing(24)} />,
