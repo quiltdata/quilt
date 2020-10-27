@@ -14,7 +14,7 @@
 
 ## Catalog, Lambdas
 * [Added] Retry logic for failed queries, minimize load on ES for sample, images
-* [Added] Search help dropdown for the index landing page ([1838](https://github.com/quiltdata/quilt/pull/1838))
+* [Added] Search help dropdown for the index landing page ([#1838](https://github.com/quiltdata/quilt/pull/1838))
 overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
 * [Fixed] Incomplete package stats for empty packages in es/indexer Lambda ([#1869](https://github.com/quiltdata/quilt/pull/1869))
 
