@@ -73,9 +73,9 @@ export function DownloadButton({ handle }) {
 }
 
 export function ZipDownloadForm({ suffix, label }) {
-  const { s3Proxy } = Config.use()
+  const { s3Proxy, noDownload } = Config.use()
   const { token } = redux.useSelector(Auth.selectors.tokens) || {}
-  if (!token) return null
+  if (!token || noDownload) return null
   const action = `${s3Proxy}/zip/${suffix}`
   return (
     <form action={action} target="_blank" method="POST" style={{ flexShrink: 0 }}>
