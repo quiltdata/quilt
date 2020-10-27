@@ -15,6 +15,7 @@
 ## Catalog, Lambdas
 * [Added] Retry logic for failed queries, minimize load on ES for sample, images
 overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
+* [Fixed] Incomplete package stats for empty packages in es/indexer Lambda ([#1869](https://github.com/quiltdata/quilt/pull/1869))
 
 # 3.2.1 - 2020-10-14
 ## Python API
