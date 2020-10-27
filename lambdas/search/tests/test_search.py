@@ -311,9 +311,12 @@ class TestSearch(TestCase):
         def _callback(request):
             payload = json.loads(request.body)
             assert payload['query']
-            assert payload['query']['query_string']
-            assert payload['query']['query_string']['fields']
-            assert payload['query']['query_string']['query']
+            if retry < 2:
+                assert payload['query']['query_string']
+                assert payload['query']['query_string']['fields']
+                assert payload['query']['query_string']['query']
+            else:
+                assert payload['query']['simple_query_string']
 
             return 200, {}, json.dumps({'results': 'blah'})
 
@@ -324,16 +327,19 @@ class TestSearch(TestCase):
             content_type='application/json',
         )
 
-        query = {
-            'action': 'search',
-            'index': 'bucket',
-            'query': '123',
-        }
+        for retry in [0, 1, 2, 3]:
 
-        event = self._make_event(query)
-        resp = lambda_handler(event, None)
-        assert resp['statusCode'] == 200
-        assert json.loads(resp['body']) == {'results': 'blah'}
+            query = {
+                'action': 'search',
+                'index': 'bucket',
+                'query': '123',
+                'retry': retry,
+            }
+
+            event = self._make_event(query)
+            resp = lambda_handler(event, None)
+            assert resp['statusCode'] == 200
+            assert json.loads(resp['body']) == {'results': 'blah'}
 
     def test_stats(self):
         """test overview statistics"""
