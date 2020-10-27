@@ -4,6 +4,8 @@ import isArray from 'lodash/isArray'
 
 import * as M from '@material-ui/core'
 
+import { ColumnIds } from './State'
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     color: t.palette.divider,
@@ -26,11 +28,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function ButtonMenu({ className, note, valueType, onClick }, ref) {
+function ButtonMenu({ className, columnId, note, valueType, onClick }, ref) {
   const classes = useStyles()
 
   const isEnum = isArray(valueType)
-  const hasMenu = isEnum
+  const hasMenu = isEnum || columnId === ColumnIds.Key
 
   const onClickInternal = React.useCallback(
     (event) => {

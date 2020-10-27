@@ -88,6 +88,7 @@ export default function Preview({
         ref={menuAnchorRef}
         className={classes.menu}
         note={<Note {...{ columnId, data, value }} />}
+        columnId={columnId}
         valueType={data.valueType}
         onClick={onMenu}
       />
