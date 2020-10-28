@@ -38,7 +38,10 @@ function parseWorkflows(workflowsYaml) {
 
   const { workflows } = data
   const workflowKeys = Object.keys(workflows)
-  return workflowKeys.map((slug) => parseWorkflow(slug, workflows[slug], data))
+  return {
+    isRequired: data.is_workflow_required,
+    workflows: workflowKeys.map((slug) => parseWorkflow(slug, workflows[slug], data)),
+  }
 }
 
 const withErrorHandling = (fn, pairs) => (...args) =>

@@ -69,10 +69,13 @@ workflows:
   workflow-id1:  # To be used in API calls
     name: User-provided name for UI/API surfaces (required)
     description: User-provided description for UI/API surfaces (optional)
-    metadata_schema: schema-internal-id2
+    metadata_schema: schema-internal-id1
   workflow-id2:
     name: User-provided name for UI/API surfaces
     is_message_required: true
+  workflow-id3:
+    name: Schema №1
+    metadata_schema: schema-internal-id2
 schemas:
  schema-internal-id1:
    url: s3://example/scheme.json

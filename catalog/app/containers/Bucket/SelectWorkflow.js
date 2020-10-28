@@ -27,7 +27,7 @@ const i18nMsgs = {
   label: 'Select workflow',
 }
 
-function SelectControl({ className, items, onChange, disabled }) {
+function SelectControl({ className, disabled, items, required, onChange }) {
   const classes = useStyles()
 
   const [value, setValue] = React.useState(items.find((item) => item.isDefault))
@@ -46,6 +46,18 @@ function SelectControl({ className, items, onChange, disabled }) {
           value={value ? value.slug : ''}
           label={i18nMsgs.label}
         >
+          {!required && (
+            <M.MenuItem key="empty" value="empty" onClick={() => setValue(null)} dense>
+              <M.ListItemText
+                classes={{
+                  primary: classes.crop,
+                  secondary: classes.crop,
+                }}
+                primary="No workflow"
+              />
+            </M.MenuItem>
+          )}
+
           {items.map((option) => (
             <M.MenuItem
               key={option.slug}
@@ -76,8 +88,13 @@ export default function SelectSchema({ className, bucket, onChange }) {
 
   const data = useData(requests.workflowsList, { s3, bucket })
   return data.case({
-    Ok: (workflowsList) => (
-      <SelectControl className={className} items={workflowsList} onChange={onChange} />
+    Ok: (workflowsStruct) => (
+      <SelectControl
+        className={className}
+        items={workflowsStruct.workflows}
+        required={workflowsStruct.isRequired}
+        onChange={onChange}
+      />
     ),
     Err: () => <SelectControl className={className} items={[]} disabled />,
     _: () => <Skeleton height={t.spacing(4)} width={t.spacing(24)} />,
