@@ -841,8 +841,8 @@ export const getPackageRevisions = withErrorHandling(
           hash: s.hash,
           modified: new Date(s.last_modified),
           stats: {
-            files: s.package_stats.total_files,
-            bytes: s.package_stats.total_bytes,
+            files: R.pathOr(0, ['package_stats', 'total_files'], s),
+            bytes: R.pathOr(0, ['package_stats', 'total_bytes'], s),
           },
           message: s.comment,
           metadata: tryParse(s.metadata),

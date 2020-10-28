@@ -194,7 +194,7 @@ class PackageRegistryV1(PackageRegistry):
 class PackageRegistryV2(PackageRegistry):
     """
     All metadata files live under `.quilt/v2`:
-    * the manifests use `.quilt/v2/manifests/<usr>@<pkg>/<top_hash>/manifest.json` format for path
+    * the manifests use `.quilt/v2/manifests/<usr>@<pkg>/<top_hash>/manifest.jsonl` format for path
     * the tag files (or pointers) live under `.quilt/v2/tags/<usr>@<pkg>/<tag_name>`, each of these files
       contains the top hash of one of package manifests.
     """
