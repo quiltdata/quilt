@@ -28,9 +28,10 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function getColumntType({ parent }) {
-  // NOTE: also you can get schema type here
-  //       `R.path(['schema', 'type'], schema)`
+function getColumntType({ parent, schema }) {
+  if (!parent) {
+    return schema.type
+  }
 
   if (isArray(parent)) {
     return 'array'

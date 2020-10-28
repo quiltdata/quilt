@@ -105,7 +105,7 @@ function getValue(value, valueType) {
 }
 
 function getColumn(obj, columnPath, sortOrder, schema) {
-  const nestedObj = R.pathOr({}, columnPath, obj)
+  const nestedObj = R.path(columnPath, obj)
 
   const schemaPath = getSchemaPath(columnPath)
   const requiredKeys = R.pathOr([], schemaPath.concat('required'), schema)
@@ -118,7 +118,7 @@ function getColumn(obj, columnPath, sortOrder, schema) {
   //       converts to
   //       [{ key: 'key1', value: 'value1'}, { key: 'key2', value: 'value2'}]
   const items = mapKeys(
-    nestedObj,
+    nestedObj || {},
     (value, key, schemaSortIndex) => {
       const valueType = getValueType(key, schemaPath, schema)
       return {
