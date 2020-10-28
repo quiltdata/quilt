@@ -2,7 +2,14 @@ const allInOneSchema = {
   type: 'object',
   properties: {
     num: {
-      type: 'number',
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'string',
+        },
+      ],
     },
     more: {
       type: 'string',
@@ -43,8 +50,16 @@ const allInOneSchema = {
   required: ['version', 'message', 'user_meta'],
 }
 
-const invalidSchema = {
+const simpleSchema = {
   type: 'object',
+  definitions: {
+    cDef: {
+      type: 'array',
+      items: {
+        type: 'number',
+      },
+    },
+  },
   properties: {
     a: {
       type: 'number',
@@ -52,13 +67,16 @@ const invalidSchema = {
     b: {
       type: 'string',
     },
+    c: {
+      $ref: '#/definitions/cDef',
+    },
   },
   required: ['a', 'b'],
 }
 
 export const mockedSchemas = {
   's3://example/scheme.json': allInOneSchema,
-  's3://example/scheme2.json': invalidSchema,
+  's3://example/scheme2.json': simpleSchema,
 }
 
 export const mockedWorkflows = `

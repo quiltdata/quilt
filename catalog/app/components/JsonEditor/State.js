@@ -68,6 +68,10 @@ function mapKeys(objectOrArray, callback, schemaKeys) {
 function getValueType(key, schemaPath, schema) {
   const schemaType = R.path(schemaPath.concat(['properties', key, 'type']), schema)
 
+  // TODO: use compound types:
+  //       anyOf, oneOf, not, allOf,
+  //       if, then, else
+  // TODO: use $ref as well
   if (!schemaType) return undefined
 
   const restrictedValues = R.path(schemaPath.concat(['properties', key, 'enum']), schema)

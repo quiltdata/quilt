@@ -66,7 +66,7 @@ function NoteValue({ originalType, value }) {
   const mismatch = !doesTypeMatch(value, originalType)
   const typeNotInSchema = !originalType
   const typeHelp = typeNotInSchema
-    ? 'Key/value is not restricted by schema'
+    ? 'Key/value is not restricted by schema or value has compound type'
     : `Value should be of ${originalType} type`
 
   return (
