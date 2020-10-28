@@ -44,7 +44,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function formatValuePreview(x) {
+function formatValuePreview(x, isPlaceholder) {
+  if (isPlaceholder) {
+    return ''
+  }
+
   if (isArray(x)) {
     return `[ ${x.map(formatValuePreview)} ]`
   }
@@ -80,7 +84,7 @@ export default function Preview({
             [classes.placeholder]: placeholderValue,
           })}
         >
-          {formatValuePreview(value)}
+          {formatValuePreview(value, placeholderValue)}
         </span>
       </div>
 

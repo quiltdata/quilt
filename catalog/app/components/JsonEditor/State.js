@@ -77,6 +77,7 @@ function getValueType(key, schemaPath, schema) {
 }
 
 function getEmptyValue(valueType) {
+  // TODO: return Symbol('empty_value') and get type from schema
   if (isString(valueType)) {
     switch (valueType) {
       case 'string':
