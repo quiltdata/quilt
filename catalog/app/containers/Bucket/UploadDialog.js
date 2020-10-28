@@ -31,6 +31,12 @@ const ES_LAG = 3 * 1000
 
 const JSON_EDITOR_ENABLED = true
 
+const Errors = {
+  FILES_UPLOAD: { [FORM_ERROR]: 'Error uploading files' },
+  PACKAGE_CREATION: { [FORM_ERROR]: 'Error creating manifest' },
+  PACKAGE_VALIDATION: { [FORM_ERROR]: 'Error validating package' },
+}
+
 const getNormalizedPath = (f) => (f.path.startsWith('/') ? f.path.substring(1) : f.path)
 
 function Field({ input, meta, errors, label, ...rest }) {
@@ -388,6 +394,8 @@ function getMetaValue(value) {
 
 function validateMeta(schema, value) {
   // TODO: move schema validation to utils/validators
+  //       but don't forget that validation depends on library.
+  //       Maybe we should split validators to files at first
   const noError = undefined
 
   if (schema) {
@@ -760,8 +768,43 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
 
   const totalProgress = getTotalProgress(uploads)
 
+  const onSubmit = async (formData) => {
+    try {
+      const formError = await validatePackage(formData)
+      if (formError) return formError
+      return uploadPackage(formData)
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(e)
+      return Errors.PACKAGE_VALIDATION
+    }
+  }
+
+  const validatePackage = async ({ name, msg, files, meta, workflow }) => {
+    try {
+      const validatioinRequest = await req({
+        endpoint: '/packages',
+        method: 'POST',
+        body: {
+          workflow,
+          name,
+          registry: `s3:${bucket}`,
+          message: msg,
+          files,
+          meta: getMetaValue(meta),
+        },
+      })
+      // TODO: check API response body
+      return validatioinRequest ? undefined : Errors.PACKAGE_VALIDATION
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(e)
+      return Errors.PACKAGE_VALIDATION
+    }
+  }
+
   // eslint-disable-next-line consistent-return
-  const onSubmit = async ({ name, msg, files, meta }) => {
+  const uploadPackage = async ({ name, msg, files, meta }) => {
     const limit = pLimit(2)
     let rejected = false
     const uploadStates = files.map(({ path, file }) => {
@@ -812,7 +855,7 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
     try {
       uploaded = await Promise.all(uploadStates.map((x) => x.promise))
     } catch (e) {
-      return { [FORM_ERROR]: 'Error uploading files' }
+      return Errors.FILES_UPLOAD
     }
 
     const contents = R.zipWith(
@@ -852,11 +895,9 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
       // TODO: handle specific cases?
-      return { [FORM_ERROR]: 'Error creating manifest' }
+      return Errors.PACKAGE_CREATION
     }
   }
-
-  const [workflow, setWorkflow] = React.useState(null)
 
   return (
     <RF.Form onSubmit={onSubmit}>
@@ -868,6 +909,7 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
         submitError,
         hasValidationErrors,
         form,
+        values,
       }) => (
         <M.Dialog
           open={open}
@@ -948,10 +990,10 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
 
                   <RF.Field
                     component={MetaInput}
-                    workflow={workflow}
                     bucket={bucket}
                     name="meta"
-                    validate={(...props) => validateMeta(workflow, ...props)}
+                    workflow={values.workflow}
+                    validate={(...props) => validateMeta(values.workflow, ...props)}
                     isEqual={R.equals}
                   />
 
@@ -989,6 +1031,15 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                   </Delay>
                 )}
 
+                {JSON_EDITOR_ENABLED && (
+                  <RF.Field
+                    name="workflow"
+                    bucket={bucket}
+                    className={classes.workflow}
+                    component={SelectWorkflow}
+                  />
+                )}
+
                 {!submitting && (!!error || !!submitError) && (
                   <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
                     <M.Icon color="error">error_outline</M.Icon>
@@ -997,16 +1048,6 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                       {error || submitError}
                     </M.Typography>
                   </M.Box>
-                )}
-
-                {JSON_EDITOR_ENABLED && (
-                  <RF.Field
-                    name="workflow"
-                    bucket={bucket}
-                    className={classes.workflow}
-                    component={SelectWorkflow}
-                    onChange={setWorkflow}
-                  />
                 )}
 
                 <M.Button onClick={handleClose({ submitting })} disabled={submitting}>

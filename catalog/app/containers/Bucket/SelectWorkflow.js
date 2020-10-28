@@ -27,10 +27,19 @@ const i18nMsgs = {
   label: 'Select workflow',
 }
 
-function SelectControl({ className, disabled, items, required, onChange }) {
+function SelectControl({
+  className,
+  disabled,
+  items,
+  required,
+  onChange,
+  value: initialValue,
+}) {
   const classes = useStyles()
 
-  const [value, setValue] = React.useState(items.find((item) => item.isDefault))
+  const [value, setValue] = React.useState(
+    initialValue || items.find((item) => item.isDefault),
+  )
 
   React.useEffect(() => {
     if (!value || !onChange) return
@@ -81,7 +90,9 @@ function SelectControl({ className, disabled, items, required, onChange }) {
   )
 }
 
-export default function SelectSchema({ className, bucket, onChange }) {
+export default function SelectWorkflow({ className, bucket, input }) {
+  // TODO: use `value` and `onChange` instead of `input: { onChange, value }`
+  //       `input` is a "leaked abstraction" from final-form
   const s3 = AWS.S3.use()
 
   const t = M.useTheme()
@@ -93,7 +104,8 @@ export default function SelectSchema({ className, bucket, onChange }) {
         className={className}
         items={workflowsStruct.workflows}
         required={workflowsStruct.isRequired}
-        onChange={onChange}
+        onChange={input.onChange}
+        value={input.value}
       />
     ),
     Err: () => <SelectControl className={className} items={[]} disabled />,
