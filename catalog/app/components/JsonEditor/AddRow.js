@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Cell from './Cell'
-import { Actions, ColumnIds } from './State'
+import { Actions, ColumnIds, EmptyValue } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   inputCell: {
@@ -55,7 +55,7 @@ export default function AddRow({ columnPath, onAdd, onExpand }) {
                 [ColumnIds.Key]: '',
               },
             },
-            value: '',
+            value: EmptyValue,
           }}
         />
       </M.TableCell>

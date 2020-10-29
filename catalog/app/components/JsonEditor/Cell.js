@@ -6,9 +6,11 @@ import { isSchemaEnum } from 'utils/json-schema'
 
 import Input from './Input'
 import Preview from './Preview'
-import { Actions, ColumnIds } from './State'
+import { Actions, ColumnIds, EmptyValue } from './State'
 
 function CellMenu({ anchorRef, menu, onClose, onClick }) {
+  if (!menu.length) return null
+
   return (
     <M.Menu anchorEl={anchorRef.current} onClose={onClose} open>
       {menu.map((subList) =>
@@ -36,7 +38,7 @@ function CellMenu({ anchorRef, menu, onClose, onClick }) {
   )
 }
 
-function MenuForKey({ anchorRef, onMenuSelect, onClose }) {
+function MenuForKey({ anchorRef, required, value, onMenuSelect, onClose }) {
   const actionsOptions = [
     {
       action: Actions.RemoveField,
@@ -47,9 +49,7 @@ function MenuForKey({ anchorRef, onMenuSelect, onClose }) {
     key: 'actions',
     options: actionsOptions,
   }
-  // TODO: don't remove required
-  //       don't remove AddRow
-  const menu = [actionsSubmenu]
+  const menu = required || value === EmptyValue ? [] : [actionsSubmenu]
   return (
     <CellMenu
       {...{
@@ -163,8 +163,10 @@ export default function Cell({
       {hasKeyMenu && (
         <MenuForKey
           anchorRef={menuAnchorRef}
-          onMenuSelect={onMenuSelect}
           onClose={closeMenu}
+          onMenuSelect={onMenuSelect}
+          required={row.original ? row.original.required : false}
+          value={value}
         />
       )}
 

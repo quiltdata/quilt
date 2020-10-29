@@ -37,29 +37,23 @@ const useStyles = M.makeStyles((t) => ({
     fontWeight: t.typography.fontWeightMedium,
   },
 
-  placeholder: {
-    color: t.palette.text.disabled,
-  },
-
   menu: {
     marginLeft: 'auto',
   },
 }))
 
-function formatValuePreview(x, isPlaceholder) {
-  if (isPlaceholder) {
-    return ''
+function formatValuePreview(v) {
+  if (v === EmptyValue || isUndefined(v)) return ''
+
+  if (isArray(v)) {
+    return `[ ${v.map((item) => formatValuePreview(item))} ]`
   }
 
-  if (isArray(x)) {
-    return `[ ${x.map((v) => formatValuePreview(v))} ]`
+  if (isObject(v)) {
+    return `{ ${Object.keys(v).join(', ')} }`
   }
 
-  if (isObject(x)) {
-    return `{ ${Object.keys(x).join(', ')} }`
-  }
-
-  return isUndefined(x) ? '' : x.toString()
+  return v.toString()
 }
 
 function isExpandable(value, schema) {
@@ -79,7 +73,6 @@ export default function Preview({
   const classes = useStyles()
 
   const requiredKey = data.required && columnId === ColumnIds.Key
-  const placeholderValue = data.empty && columnId === ColumnIds.Value
 
   return (
     <div className={classes.root}>
@@ -89,10 +82,9 @@ export default function Preview({
         <span
           className={cx(classes.valueInner, {
             [classes.required]: requiredKey,
-            [classes.placeholder]: placeholderValue,
           })}
         >
-          {formatValuePreview(value, placeholderValue)}
+          {formatValuePreview(value)}
         </span>
       </div>
 
