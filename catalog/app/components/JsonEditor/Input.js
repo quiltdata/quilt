@@ -50,6 +50,22 @@ function getNormalizedValue(value, schema) {
   return ''
 }
 
+// TODO: show message
+function onTypeChangeHook() {}
+// function onTypeChangeHook(value, optSchema) {
+//   const schemaType = R.prop('type', optSchema)
+//   if (!schemaType) return
+
+//   const valueType = typeof value
+//   const isTypeMismatch = schemaType !== valueType
+//   if (!isTypeMismatch) return
+
+//   // eslint-disable-next-line no-alert
+//   window.alert(
+//     `You are about to change JSON Schema restricted type "${schemaType}" to "${valueType}"`,
+//   )
+// }
+
 export default function Input({
   columnId,
   data,
@@ -75,8 +91,9 @@ export default function Input({
   )
 
   const onBlur = React.useCallback(() => {
+    onTypeChangeHook(value, data.valueSchema)
     onChange(value)
-  }, [onChange, value])
+  }, [data.valueSchema, onChange, value])
 
   const onFocus = React.useCallback(() => {
     // HACK: inputRef.current is empty before timeout
