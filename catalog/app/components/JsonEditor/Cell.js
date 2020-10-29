@@ -127,13 +127,18 @@ export default function Cell({
     [column.id, fieldPath, updateMyData],
   )
 
-  const onDoubleClick = React.useCallback(() => setEditing(true), [setEditing])
+  const onDoubleClick = React.useCallback(() => {
+    if (column.id === ColumnIds.Key && value !== EmptyValue) return
+    setEditing(true)
+  }, [column.id, value, setEditing])
+
   const onKeyPress = React.useCallback(
     (event) => {
       if (event.key !== 'Enter') return
+      if (column.id === ColumnIds.Key && value !== EmptyValue) return
       setEditing(true)
     },
-    [setEditing],
+    [column.id, value, setEditing],
   )
 
   const ValueComponent = editing ? Input : Preview
