@@ -1,4 +1,5 @@
 import * as React from 'react'
+import * as R from 'ramda'
 import cx from 'classnames'
 import isArray from 'lodash/isArray'
 import isObject from 'lodash/isObject'
@@ -9,7 +10,7 @@ import * as M from '@material-ui/core'
 import ButtonExpand from './ButtonExpand'
 import ButtonMenu from './ButtonMenu'
 import Note from './Note'
-import { ColumnIds } from './State'
+import { ColumnIds, EmptyValue } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -60,6 +61,13 @@ function formatValuePreview(x, isPlaceholder) {
   return isUndefined(x) ? '' : x.toString()
 }
 
+function isExpandable(value, schema) {
+  if (value !== EmptyValue) return isObject(value)
+
+  const schemaType = R.prop('type', schema)
+  return schemaType === 'object' || schemaType === 'array'
+}
+
 export default function Preview({
   columnId,
   data, // NOTE: row.original
@@ -75,7 +83,7 @@ export default function Preview({
 
   return (
     <div className={classes.root}>
-      {isObject(value) && <ButtonExpand onClick={onExpand} />}
+      {isExpandable(value, data.valueSchema) && <ButtonExpand onClick={onExpand} />}
 
       <div className={classes.value}>
         <span

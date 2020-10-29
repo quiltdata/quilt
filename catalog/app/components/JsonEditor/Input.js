@@ -7,7 +7,7 @@ import * as M from '@material-ui/core'
 import ButtonExpand from './ButtonExpand'
 import ButtonMenu from './ButtonMenu'
 import Note from './Note'
-import { ColumnIds, parseJSON } from './State'
+import { ColumnIds, EmptyValue, parseJSON } from './State'
 
 const i18nMsgs = {
   key: 'Key',
@@ -26,6 +26,30 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+function getNormalizedValue(value, schema) {
+  if (value !== EmptyValue) return value
+
+  if (!schema) return ''
+
+  if (schema.enum && schema.enum.length) return schema.enum[0]
+
+  if (schema.type) {
+    switch (schema.type) {
+      case 'string':
+        return ''
+      case 'number':
+        return 0
+      case 'object':
+        return {}
+      case 'array':
+        return []
+      // no default
+    }
+  }
+
+  return ''
+}
+
 export default function Input({
   columnId,
   data,
@@ -38,8 +62,9 @@ export default function Input({
   const classes = useStyles()
 
   const inputRef = React.useRef()
-  const [value, setValue] = React.useState(originalValue)
-  const [valueStr, setValueStr] = React.useState(JSON.stringify(originalValue, null, 2))
+  const normalizedValue = getNormalizedValue(originalValue, data.valueSchema)
+  const [value, setValue] = React.useState(normalizedValue)
+  const [valueStr, setValueStr] = React.useState(JSON.stringify(normalizedValue, null, 2))
 
   const onChangeInternal = React.useCallback(
     (event) => {

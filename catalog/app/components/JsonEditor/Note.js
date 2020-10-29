@@ -9,7 +9,7 @@ import isUndefined from 'lodash/isUndefined'
 
 import * as M from '@material-ui/core'
 
-import { ColumnIds } from './State'
+import { ColumnIds, EmptyValue } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   default: {
@@ -25,14 +25,14 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function getTypeAnnotation(value, originalType) {
+function getTypeAnnotationFromValue(value, schema) {
   return R.cond([
     [isArray, () => 'arr'],
     [isObject, () => 'obj'],
     [
       isString,
       () => {
-        if (isArray(originalType) && originalType.includes(value)) {
+        if (R.propOr([], 'enum', schema).includes(value)) {
           return 'enum'
         }
         return 'str'
@@ -41,6 +41,31 @@ function getTypeAnnotation(value, originalType) {
     [isNumber, () => 'num'],
     [R.T, () => 'none'],
   ])(value)
+}
+
+function getTypeAnnotationFromSchema(schema) {
+  if (!schema) return 'none'
+
+  if (schema.enum) return 'enum' // NOTE: enum has `type` too
+
+  if (schema.const) return 'const' // NOTE: cosnt has `type` too
+
+  if (schema.type) return R.take(3, schema.type)
+
+  const isCompoundType = ['anyOf', 'oneOf', 'not', 'allOf'].some((key) => schema[key])
+  if (isCompoundType) return 'comp'
+
+  if (schema.$ref) return '$ref'
+
+  return 'none'
+}
+
+function getTypeAnnotation(value, schema) {
+  if (value === EmptyValue) {
+    return getTypeAnnotationFromSchema(schema)
+  }
+
+  return getTypeAnnotationFromValue(value, schema)
 }
 
 function doesTypeMatch(value, originalType) {
@@ -60,7 +85,7 @@ function doesTypeMatch(value, originalType) {
   ])(value)
 }
 
-function NoteValue({ originalType, value }) {
+function NoteValue({ originalType, schema, value }) {
   const classes = useStyles()
 
   const mismatch = !doesTypeMatch(value, originalType)
@@ -77,7 +102,7 @@ function NoteValue({ originalType, value }) {
           [classes.notInSchema]: typeNotInSchema,
         })}
       >
-        {getTypeAnnotation(value, originalType)}
+        {getTypeAnnotation(value, schema)}
       </span>
     </M.Tooltip>
   )
@@ -85,7 +110,9 @@ function NoteValue({ originalType, value }) {
 
 export default function Note({ columnId, data, value }) {
   if (columnId === ColumnIds.Value) {
-    return <NoteValue value={value} originalType={data.valueType} />
+    return (
+      <NoteValue value={value} originalType={data.valueType} schema={data.valueSchema} />
+    )
   }
 
   return null

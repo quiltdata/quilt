@@ -2,7 +2,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import Ajv from 'ajv'
 import isArray from 'lodash/isArray'
-import isString from 'lodash/isString'
 import isUndefined from 'lodash/isUndefined'
 import toNumber from 'lodash/toNumber'
 
@@ -17,6 +16,8 @@ export const Actions = {
   Select: 'select',
   SelectEnum: 'select_enum',
 }
+
+export const EmptyValue = Symbol('empty')
 
 export function stringifyJSON(obj) {
   return JSON.stringify(obj, null, 2)
@@ -68,10 +69,6 @@ function mapKeys(objectOrArray, callback, schemaKeys) {
 function getValueType(key, schemaPath, schema) {
   const schemaType = R.path(schemaPath.concat(['properties', key, 'type']), schema)
 
-  // TODO: use compound types:
-  //       anyOf, oneOf, not, allOf,
-  //       if, then, else
-  // TODO: use $ref as well
   if (!schemaType) return undefined
 
   const restrictedValues = R.path(schemaPath.concat(['properties', key, 'enum']), schema)
@@ -80,33 +77,8 @@ function getValueType(key, schemaPath, schema) {
   return schemaType
 }
 
-function getEmptyValue(valueType) {
-  // TODO: return Symbol('empty_value') and get type from schema
-  if (isString(valueType)) {
-    switch (valueType) {
-      case 'string':
-        return ''
-      case 'number':
-        return 0
-      case 'object':
-        return {}
-      case 'array':
-        return []
-      // no default
-    }
-  }
-
-  if (isArray(valueType)) {
-    return valueType[0]
-  }
-
-  return ''
-}
-
-function getValue(value, valueType) {
-  if (!isUndefined(value)) return value
-
-  return getEmptyValue(valueType)
+function getValue(value) {
+  return isUndefined(value) ? EmptyValue : value
 }
 
 function getColumn(obj, columnPath, sortOrder, schema) {
@@ -125,10 +97,12 @@ function getColumn(obj, columnPath, sortOrder, schema) {
   const items = mapKeys(
     nestedObj || {},
     (value, key, schemaSortIndex) => {
+      // TODO: remove valueType
       const valueType = getValueType(key, schemaPath, schema)
+      const valueSchema = R.path(schemaPath.concat(['properties', key]), schema)
       return {
         [ColumnIds.Key]: key,
-        [ColumnIds.Value]: getValue(value, valueType),
+        [ColumnIds.Value]: getValue(value),
 
         // These will be available at row.original
         empty: isUndefined(value),
@@ -136,7 +110,8 @@ function getColumn(obj, columnPath, sortOrder, schema) {
         required: requiredKeys.includes(key),
         sortIndex:
           sortOrder[columnPath.concat(key)] || schemaSortIndex || initialSortCounter,
-        valueType,
+        valueSchema, // TODO: create JsonSchemaType, or probably utils/json-schema-type
+        valueType, // TODO: remove valueType
       }
     },
     schemedKeysList,
