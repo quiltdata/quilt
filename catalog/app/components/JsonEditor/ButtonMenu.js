@@ -1,8 +1,9 @@
 import * as React from 'react'
 import cx from 'classnames'
-import isArray from 'lodash/isArray'
 
 import * as M from '@material-ui/core'
+
+import { isSchemaEnum } from 'utils/json-schema'
 
 import { ColumnIds } from './State'
 
@@ -28,11 +29,10 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function ButtonMenu({ className, columnId, note, valueType, onClick }, ref) {
+function ButtonMenu({ className, columnId, note, valueSchema, onClick }, ref) {
   const classes = useStyles()
 
-  const isEnum = isArray(valueType)
-  const hasMenu = isEnum || columnId === ColumnIds.Key
+  const hasMenu = isSchemaEnum(valueSchema) || columnId === ColumnIds.Key
 
   const onClickInternal = React.useCallback(
     (event) => {

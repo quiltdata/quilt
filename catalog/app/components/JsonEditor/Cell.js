@@ -1,7 +1,8 @@
 import * as React from 'react'
 
-import isArray from 'lodash/isArray'
 import * as M from '@material-ui/core'
+
+import { isSchemaEnum } from 'utils/json-schema'
 
 import Input from './Input'
 import Preview from './Preview'
@@ -68,10 +69,9 @@ function MenuForKey({ anchorRef, keysList, onMenuSelect, onClose }) {
   )
 }
 
-function MenuForValue({ anchorRef, valueType, onMenuSelect, onClose }) {
-  const isEnum = isArray(valueType)
-  const enumOptions = isEnum
-    ? valueType.map((title) => ({
+function MenuForValue({ anchorRef, valueSchema, onMenuSelect, onClose }) {
+  const enumOptions = isSchemaEnum(valueSchema)
+    ? valueSchema.enum.map((title) => ({
         action: Actions.SelectEnum,
         title,
       }))
@@ -179,7 +179,7 @@ export default function Cell({
       {hasValueMenu && (
         <MenuForValue
           anchorRef={menuAnchorRef}
-          valueType={row.original ? row.original.valueType : undefined}
+          valueSchema={row.original ? row.original.valueSchema : undefined}
           onMenuSelect={onMenuSelect}
           onClose={closeMenu}
         />

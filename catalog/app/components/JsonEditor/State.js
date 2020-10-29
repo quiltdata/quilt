@@ -33,6 +33,8 @@ export function parseJSON(str) {
 
 const initialSortCounter = 10000000
 
+// TODO: rename and move to utils/json-schema
+//       name hint: schema path, associated with original object
 function getSchemaPath(objPath) {
   return objPath.reduce((memo, key) => memo.concat(['properties'], key), [])
 }
@@ -66,17 +68,6 @@ function mapKeys(objectOrArray, callback, schemaKeys) {
     .map((key) => callback(objectOrArray[key], key, schemaSort[key]))
 }
 
-function getValueType(key, schemaPath, schema) {
-  const schemaType = R.path(schemaPath.concat(['properties', key, 'type']), schema)
-
-  if (!schemaType) return undefined
-
-  const restrictedValues = R.path(schemaPath.concat(['properties', key, 'enum']), schema)
-  if (schemaType === 'string' && restrictedValues) return restrictedValues
-
-  return schemaType
-}
-
 function getValue(value) {
   return isUndefined(value) ? EmptyValue : value
 }
@@ -96,24 +87,18 @@ function getColumn(obj, columnPath, sortOrder, schema) {
   //       [{ key: 'key1', value: 'value1'}, { key: 'key2', value: 'value2'}]
   const items = mapKeys(
     nestedObj || {},
-    (value, key, schemaSortIndex) => {
-      // TODO: remove valueType
-      const valueType = getValueType(key, schemaPath, schema)
-      const valueSchema = R.path(schemaPath.concat(['properties', key]), schema)
-      return {
-        [ColumnIds.Key]: key,
-        [ColumnIds.Value]: getValue(value),
+    (value, key, schemaSortIndex) => ({
+      [ColumnIds.Key]: key,
+      [ColumnIds.Value]: getValue(value),
 
-        // These will be available at row.original
-        empty: isUndefined(value),
-        keysList: schemedKeysList,
-        required: requiredKeys.includes(key),
-        sortIndex:
-          sortOrder[columnPath.concat(key)] || schemaSortIndex || initialSortCounter,
-        valueSchema, // TODO: create JsonSchemaType, or probably utils/json-schema-type
-        valueType, // TODO: remove valueType
-      }
-    },
+      // These will be available at row.original
+      empty: isUndefined(value),
+      keysList: schemedKeysList,
+      required: requiredKeys.includes(key),
+      sortIndex:
+        sortOrder[columnPath.concat(key)] || schemaSortIndex || initialSortCounter,
+      valueSchema: R.path(schemaPath.concat(['properties', key]), schema),
+    }),
     schemedKeysList,
   ).sort((a, b) => a.sortIndex - b.sortIndex)
 
@@ -135,6 +120,7 @@ function convertType(value, typeOf) {
   }
 }
 
+// TODO: move to utils/json-schema
 export function validateOnSchema(obj, schema) {
   const ajv = new Ajv()
   const validate = ajv.compile(schema)

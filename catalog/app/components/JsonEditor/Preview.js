@@ -1,11 +1,12 @@
 import * as React from 'react'
-import * as R from 'ramda'
 import cx from 'classnames'
 import isArray from 'lodash/isArray'
 import isObject from 'lodash/isObject'
 import isUndefined from 'lodash/isUndefined'
 
 import * as M from '@material-ui/core'
+
+import { isNestedType } from 'utils/json-schema'
 
 import ButtonExpand from './ButtonExpand'
 import ButtonMenu from './ButtonMenu'
@@ -64,8 +65,7 @@ function formatValuePreview(x, isPlaceholder) {
 function isExpandable(value, schema) {
   if (value !== EmptyValue) return isObject(value)
 
-  const schemaType = R.prop('type', schema)
-  return schemaType === 'object' || schemaType === 'array'
+  return isNestedType(schema)
 }
 
 export default function Preview({
@@ -101,7 +101,7 @@ export default function Preview({
         className={classes.menu}
         note={<Note {...{ columnId, data, value }} />}
         columnId={columnId}
-        valueType={data.valueType}
+        valueSchema={data.valueSchema}
         onClick={onMenu}
       />
     </div>

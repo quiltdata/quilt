@@ -5,9 +5,10 @@ import isArray from 'lodash/isArray'
 import isNumber from 'lodash/isNumber'
 import isObject from 'lodash/isObject'
 import isString from 'lodash/isString'
-import isUndefined from 'lodash/isUndefined'
 
 import * as M from '@material-ui/core'
+
+import { doesTypeMatchToSchema, schemaTypetoHumanString } from 'utils/json-schema'
 
 import { ColumnIds, EmptyValue } from './State'
 
@@ -43,56 +44,23 @@ function getTypeAnnotationFromValue(value, schema) {
   ])(value)
 }
 
-function getTypeAnnotationFromSchema(schema) {
-  if (!schema) return 'none'
-
-  if (schema.enum) return 'enum' // NOTE: enum has `type` too
-
-  if (schema.const) return 'const' // NOTE: cosnt has `type` too
-
-  if (schema.type) return R.take(3, schema.type)
-
-  const isCompoundType = ['anyOf', 'oneOf', 'not', 'allOf'].some((key) => schema[key])
-  if (isCompoundType) return 'comp'
-
-  if (schema.$ref) return '$ref'
-
-  return 'none'
-}
-
 function getTypeAnnotation(value, schema) {
   if (value === EmptyValue) {
-    return getTypeAnnotationFromSchema(schema)
+    return schemaTypetoHumanString(schema)
   }
 
   return getTypeAnnotationFromValue(value, schema)
 }
 
-function doesTypeMatch(value, originalType) {
-  return R.cond([
-    [isArray, () => originalType === 'array'],
-    [isObject, () => originalType === 'object'],
-    [
-      isString,
-      () => {
-        if (originalType === 'string') return true
-
-        return isArray(originalType) && originalType.includes(value)
-      },
-    ],
-    [isNumber, () => originalType === 'number'],
-    [R.T, isUndefined],
-  ])(value)
-}
-
-function NoteValue({ originalType, schema, value }) {
+function NoteValue({ schema, value }) {
   const classes = useStyles()
 
-  const mismatch = !doesTypeMatch(value, originalType)
-  const typeNotInSchema = !originalType
+  const schemaType = schemaTypetoHumanString(schema)
+  const mismatch = !doesTypeMatchToSchema(value, schema)
+  const typeNotInSchema = schemaType === 'none'
   const typeHelp = typeNotInSchema
-    ? 'Key/value is not restricted by schema or value has compound type'
-    : `Value should be of ${originalType} type`
+    ? 'Key/value is not restricted by schema'
+    : `Value should be of ${schemaType} type`
 
   return (
     <M.Tooltip title={typeHelp}>
@@ -110,9 +78,7 @@ function NoteValue({ originalType, schema, value }) {
 
 export default function Note({ columnId, data, value }) {
   if (columnId === ColumnIds.Value) {
-    return (
-      <NoteValue value={value} originalType={data.valueType} schema={data.valueSchema} />
-    )
+    return <NoteValue value={value} schema={data.valueSchema} />
   }
 
   return null
