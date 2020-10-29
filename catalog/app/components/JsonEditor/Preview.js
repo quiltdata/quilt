@@ -52,7 +52,7 @@ function formatValuePreview(x, isPlaceholder) {
   }
 
   if (isArray(x)) {
-    return `[ ${x.map(formatValuePreview)} ]`
+    return `[ ${x.map((v) => formatValuePreview(v))} ]`
   }
 
   if (isObject(x)) {
