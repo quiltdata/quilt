@@ -94,7 +94,7 @@ function getColumn(obj, columnPath, sortOrder, schema) {
       // These will be available at row.original
       required: requiredKeys.includes(key),
       sortIndex:
-        sortOrder[columnPath.concat(key)] || schemaSortIndex || initialSortCounter,
+        sortOrder[columnPath.concat(key).join()] || schemaSortIndex || initialSortCounter,
       valueSchema: R.path(schemaPath.concat(['properties', key]), schema),
     }),
     schemedKeysList,
@@ -188,7 +188,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       setErrors(validateOnSchema(newData, schema))
 
       // HACK: sort out key if it in schema and still want rendering
-      setSortOder(R.assocPath(removingFieldPath, -1, sortOrder))
+      setSortOder(R.assoc(removingFieldPath.join(), -1, sortOrder))
     },
     [data, schema, sortOrder],
   )
@@ -214,7 +214,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       setData(R.assocPath(newKeyPath, value, data))
 
       sortCounter.current += 1
-      setSortOder(R.assocPath(newKeyPath, sortCounter.current, sortOrder))
+      setSortOder(R.assoc(newKeyPath.join(), sortCounter.current, sortOrder))
     },
     [setData, sortCounter, sortOrder, setSortOder, data],
   )
