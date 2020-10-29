@@ -717,15 +717,37 @@ async function hashFile(file) {
   }
 }
 
-const useStyles = M.makeStyles((t) => ({
-  workflow: {
-    marginLeft: t.spacing(2),
-    marginRight: 'auto',
-    maxWidth: '50%',
-    minWidth: t.spacing(24),
-    transform: `translateY(${t.spacing(-1)}px)`,
+const useWorkflowInputStyles = M.makeStyles((t) => ({
+  root: {
+    marginTop: t.spacing(2),
+  },
+
+  select: {
+    marginTop: t.spacing(1),
   },
 }))
+
+function WorkflowInput({ bucket, input, meta }) {
+  const classes = useWorkflowInputStyles()
+
+  const error = meta.submitFailed && meta.error
+  const disabled = meta.submitting || meta.submitSucceeded
+
+  // eslint-disable-next-line no-nested-ternary
+  const color = disabled ? 'textSecondary' : error ? 'error' : undefined
+
+  return (
+    <div className={classes.root}>
+      <M.Typography color={color}>Quality Checks</M.Typography>
+      <SelectWorkflow
+        className={classes.select}
+        bucket={bucket}
+        onChange={input.onChange}
+        value={input.value}
+      />
+    </div>
+  )
+}
 
 export default function UploadDialog({ bucket, open, onClose, refresh }) {
   const s3 = AWS.S3.use()
@@ -734,8 +756,6 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
   const [uploads, setUploads] = React.useState({})
   const [success, setSuccess] = React.useState(null)
   const validateCacheKey = useCounter()
-
-  const classes = useStyles()
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const validateName = React.useCallback(
@@ -997,6 +1017,10 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                     isEqual={R.equals}
                   />
 
+                  {JSON_EDITOR_ENABLED && (
+                    <RF.Field bucket={bucket} component={WorkflowInput} name="workflow" />
+                  )}
+
                   <input type="submit" style={{ display: 'none' }} />
                 </form>
               </M.DialogContent>
@@ -1029,15 +1053,6 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                       </M.Fade>
                     )}
                   </Delay>
-                )}
-
-                {JSON_EDITOR_ENABLED && (
-                  <RF.Field
-                    name="workflow"
-                    bucket={bucket}
-                    className={classes.workflow}
-                    component={SelectWorkflow}
-                  />
                 )}
 
                 {!submitting && (!!error || !!submitError) && (

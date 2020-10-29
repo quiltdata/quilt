@@ -48,7 +48,7 @@ function SelectControl({
 
   return (
     <div className={cx(classes.root, className)}>
-      <M.FormControl disabled={disabled} fullWidth size="small" variant="outlined">
+      <M.FormControl disabled={disabled} fullWidth size="small">
         <M.InputLabel id="schema-select">{i18nMsgs.label}</M.InputLabel>
         <M.Select
           labelId="schema-select"
@@ -90,9 +90,7 @@ function SelectControl({
   )
 }
 
-export default function SelectWorkflow({ className, bucket, input }) {
-  // TODO: use `value` and `onChange` instead of `input: { onChange, value }`
-  //       `input` is a "leaked abstraction" from final-form
+export default function SelectWorkflow({ className, bucket, value, onChange }) {
   const s3 = AWS.S3.use()
 
   const t = M.useTheme()
@@ -104,8 +102,8 @@ export default function SelectWorkflow({ className, bucket, input }) {
         className={className}
         items={workflowsStruct.workflows}
         required={workflowsStruct.isRequired}
-        onChange={input.onChange}
-        value={input.value}
+        onChange={onChange}
+        value={value}
       />
     ),
     Err: () => <SelectControl className={className} items={[]} disabled />,
