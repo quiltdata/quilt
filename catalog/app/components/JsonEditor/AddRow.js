@@ -18,7 +18,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function AddRow({ columnPath, keysList, onAdd, onExpand }) {
+export default function AddRow({ columnPath, onAdd, onExpand }) {
   const classes = useStyles()
 
   const onChange = React.useCallback(
@@ -50,9 +50,7 @@ export default function AddRow({ columnPath, keysList, onAdd, onExpand }) {
               id: ColumnIds.Key,
             },
             row: {
-              original: {
-                keysList,
-              },
+              original: {},
               values: {
                 [ColumnIds.Key]: '',
               },

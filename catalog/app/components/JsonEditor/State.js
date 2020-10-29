@@ -93,7 +93,6 @@ function getColumn(obj, columnPath, sortOrder, schema) {
 
       // These will be available at row.original
       empty: isUndefined(value),
-      keysList: schemedKeysList,
       required: requiredKeys.includes(key),
       sortIndex:
         sortOrder[columnPath.concat(key)] || schemaSortIndex || initialSortCounter,

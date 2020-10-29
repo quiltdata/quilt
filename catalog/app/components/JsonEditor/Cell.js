@@ -36,27 +36,20 @@ function CellMenu({ anchorRef, menu, onClose, onClick }) {
   )
 }
 
-function MenuForKey({ anchorRef, keysList, onMenuSelect, onClose }) {
-  const keysOptions = keysList.map((title) => ({
-    action: Actions.Select,
-    title,
-  }))
+function MenuForKey({ anchorRef, onMenuSelect, onClose }) {
   const actionsOptions = [
     {
       action: Actions.RemoveField,
       title: 'Remove',
     },
   ]
-  const keysSubmenu = {
-    header: 'Keys',
-    key: 'keys',
-    options: keysOptions,
-  }
   const actionsSubmenu = {
     key: 'actions',
     options: actionsOptions,
   }
-  const menu = keysOptions.length ? [keysSubmenu] : [actionsSubmenu]
+  // TODO: don't remove required
+  //       don't remove AddRow
+  const menu = [actionsSubmenu]
   return (
     <CellMenu
       {...{
@@ -170,7 +163,6 @@ export default function Cell({
       {hasKeyMenu && (
         <MenuForKey
           anchorRef={menuAnchorRef}
-          keysList={row.original && key === '' ? row.original.keysList : []}
           onMenuSelect={onMenuSelect}
           onClose={closeMenu}
         />
