@@ -99,7 +99,7 @@ function getColumn(obj, columnPath, sortOrder, schema) {
     }),
     schemedKeysList,
   )
-    .filter((v) => v.sortIndex > 0)
+    .filter((v) => v.sortIndex !== -1)
     .sort((a, b) => a.sortIndex - b.sortIndex)
 
   return {
