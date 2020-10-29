@@ -98,7 +98,9 @@ function getColumn(obj, columnPath, sortOrder, schema) {
       valueSchema: R.path(schemaPath.concat(['properties', key]), schema),
     }),
     schemedKeysList,
-  ).sort((a, b) => a.sortIndex - b.sortIndex)
+  )
+    .filter((v) => v.sortIndex > 0)
+    .sort((a, b) => a.sortIndex - b.sortIndex)
 
   return {
     items,
@@ -184,8 +186,11 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       const newData = R.dissocPath(removingFieldPath, data)
       setData(newData)
       setErrors(validateOnSchema(newData, schema))
+
+      // HACK: sort out key if it in schema and still want rendering
+      setSortOder(R.assocPath(removingFieldPath, -1, sortOrder))
     },
-    [data, schema],
+    [data, schema, sortOrder],
   )
 
   const changeValue = React.useCallback(
