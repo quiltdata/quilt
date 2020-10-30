@@ -4,7 +4,7 @@
 
 ## CLI
 
-## Catalog
+## Catalog, Lambdas
 !-->
 
 # unreleased - YYYY-MM-DD
