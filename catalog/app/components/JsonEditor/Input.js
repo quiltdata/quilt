@@ -91,17 +91,13 @@ export default function Input({
     onChange(value)
   }, [onChange, value])
 
-  const onFocus = React.useCallback(() => {
-    // HACK: inputRef.current is empty before timeout
-    // TODO: use useEffect and leverage autofocus
-    setTimeout(() => {
-      if (!inputRef.current) return
+  React.useLayoutEffect(() => {
+    if (!isString(value) && !isNumber(value)) return
 
-      if (!isString(value) && !isNumber(value)) return
-
-      inputRef.current.setSelectionRange(0, valueStr.length)
-    }, 100)
-  }, [inputRef, value, valueStr])
+    inputRef.current.setSelectionRange(0, valueStr.length)
+    // NOTE: this effect called once intentionally
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputRef])
 
   const onKeyDown = React.useCallback(
     (event) => {
@@ -132,7 +128,6 @@ export default function Input({
       value={valueStr}
       onChange={onChangeInternal}
       onBlur={onBlur}
-      onFocus={onFocus}
       onKeyDown={onKeyDown}
       placeholder={
         {
