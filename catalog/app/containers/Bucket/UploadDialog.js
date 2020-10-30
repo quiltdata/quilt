@@ -393,15 +393,15 @@ function getMetaValue(value) {
   )
 }
 
-function validateMeta(schema, value) {
+function validateMeta(value) {
   // TODO: move schema validation to utils/validators
   //       but don't forget that validation depends on library.
   //       Maybe we should split validators to files at first
   const noError = undefined
 
-  if (schema) {
+  if (value && value.schema) {
     const obj = value ? parseJSON(value.text) : {}
-    const errors = validateOnSchema(obj, schema.schema)
+    const errors = validateOnSchema(obj, value.schema)
     if (!errors.length) {
       return noError
     }
@@ -474,7 +474,12 @@ const EMPTY_FIELD = { key: '', value: '' }
 function MetaInput({ bucket, input, meta, workflow }) {
   const s3 = AWS.S3.use()
   const classes = useMetaInputStyles()
-  const value = input.value || { fields: [EMPTY_FIELD], text: '{}', mode: 'kv' }
+  const value = input.value || {
+    fields: [EMPTY_FIELD],
+    mode: 'kv',
+    schema: null,
+    text: '{}',
+  }
   const error = meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
 
@@ -568,14 +573,24 @@ function MetaInput({ bucket, input, meta, workflow }) {
               }}
             >
               {AsyncResult.case({
-                Ok: (schema) => (
-                  <JsonEditor
-                    error={error}
-                    value={parseJSON(value.text)}
-                    onChange={onJsonEditor}
-                    schema={schema}
-                  />
-                ),
+                Ok: (schema) => {
+                  // FIXME: find out how to fetch data conditionaly
+                  //        in QuiltData/AsyncResult way
+                  setTimeout(() => {
+                    if (!value.schema) {
+                      input.onChange({ ...value, schema })
+                    }
+                  })
+
+                  return (
+                    <JsonEditor
+                      error={error}
+                      value={parseJSON(value.text)}
+                      onChange={onJsonEditor}
+                      schema={schema}
+                    />
+                  )
+                },
                 Err: () => (
                   <JsonEditor
                     error={error}
@@ -1015,7 +1030,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                     bucket={bucket}
                     name="meta"
                     workflow={values.workflow}
-                    validate={(...props) => validateMeta(values.workflow, ...props)}
+                    validate={validateMeta}
                     isEqual={R.equals}
                   />
 
