@@ -128,8 +128,10 @@ export function validateOnSchema(obj, schema) {
   return validate.errors || []
 }
 
+const EmptySchema = {}
+
 export default function JsonEditorState({ children, obj, optSchema }) {
-  const schema = optSchema || {}
+  const schema = optSchema || EmptySchema
 
   const [data, setData] = React.useState(obj)
   const [fieldPath, setFieldPath] = React.useState([])
