@@ -1,6 +1,9 @@
 import * as React from 'react'
+import * as R from 'ramda'
 import cx from 'classnames'
+import isNumber from 'lodash/isNumber'
 import isObject from 'lodash/isObject'
+import isString from 'lodash/isString'
 
 import * as M from '@material-ui/core'
 
@@ -51,6 +54,15 @@ function getNormalizedValue(value, schema) {
   return ''
 }
 
+function getNormalizedValueStr(value) {
+  const valueStr = JSON.stringify(value, null, 2)
+  if (R.head(valueStr) === '"' && R.last(valueStr) === '"') {
+    return valueStr.substring(1, valueStr.length - 1)
+  }
+
+  return valueStr
+}
+
 export default function Input({
   columnId,
   data,
@@ -65,7 +77,7 @@ export default function Input({
   const inputRef = React.useRef()
   const normalizedValue = getNormalizedValue(originalValue, data.valueSchema)
   const [value, setValue] = React.useState(normalizedValue)
-  const [valueStr, setValueStr] = React.useState(JSON.stringify(normalizedValue, null, 2))
+  const [valueStr, setValueStr] = React.useState(getNormalizedValueStr(normalizedValue))
 
   const onChangeInternal = React.useCallback(
     (event) => {
@@ -81,15 +93,15 @@ export default function Input({
 
   const onFocus = React.useCallback(() => {
     // HACK: inputRef.current is empty before timeout
+    // TODO: use useEffect and leverage autofocus
     setTimeout(() => {
       if (!inputRef.current) return
 
-      const start = valueStr[0] === '"' ? 1 : 0
-      const end =
-        valueStr[valueStr.length - 1] === '"' ? valueStr.length - 1 : valueStr.length
-      inputRef.current.setSelectionRange(start, end)
+      if (!isString(value) && !isNumber(value)) return
+
+      inputRef.current.setSelectionRange(0, valueStr.length)
     }, 100)
-  }, [inputRef, valueStr])
+  }, [inputRef, value, valueStr])
 
   const onKeyDown = React.useCallback(
     (event) => {
