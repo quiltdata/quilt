@@ -9,7 +9,8 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import Data from 'utils/Data'
+import Skeleton from 'components/Skeleton'
+import Data, { useData } from 'utils/Data'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
@@ -727,7 +728,7 @@ const useWorkflowInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-function WorkflowInput({ bucket, input, meta }) {
+function WorkflowInput({ input, meta, workflowsConfig }) {
   const classes = useWorkflowInputStyles()
 
   const error = meta.submitFailed && meta.error
@@ -741,7 +742,8 @@ function WorkflowInput({ bucket, input, meta }) {
       <M.Typography color={color}>Quality Checks</M.Typography>
       <SelectWorkflow
         className={classes.select}
-        bucket={bucket}
+        items={workflowsConfig ? workflowsConfig.workflows : []}
+        required={workflowsConfig ? workflowsConfig.isRequired : false}
         onChange={input.onChange}
         value={input.value}
       />
@@ -749,7 +751,7 @@ function WorkflowInput({ bucket, input, meta }) {
   )
 }
 
-export default function UploadDialog({ bucket, open, onClose, refresh }) {
+function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
   const { urls } = NamedRoutes.use()
@@ -1018,7 +1020,16 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                   />
 
                   {JSON_EDITOR_ENABLED && (
-                    <RF.Field bucket={bucket} component={WorkflowInput} name="workflow" />
+                    <RF.Field
+                      component={WorkflowInput}
+                      workflowsConfig={workflowsConfig}
+                      initialValue={
+                        workflowsConfig
+                          ? workflowsConfig.workflows.find((item) => item.isDefault)
+                          : null
+                      }
+                      name="workflow"
+                    />
                   )}
 
                   <input type="submit" style={{ display: 'none' }} />
@@ -1083,4 +1094,36 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
       )}
     </RF.Form>
   )
+}
+
+export default function UploadDialogWrapper({ bucket, open, onClose, refresh }) {
+  const s3 = AWS.S3.use()
+  const t = M.useTheme()
+  const data = useData(requests.workflowsList, { s3, bucket })
+
+  return data.case({
+    Ok: (workflowsConfig) => (
+      <UploadDialog
+        {...{
+          bucket,
+          open,
+          onClose,
+          refresh,
+          workflowsConfig,
+        }}
+      />
+    ),
+    Err: () => (
+      <UploadDialog
+        {...{
+          bucket,
+          open,
+          onClose,
+          refresh,
+          workflowsConfig: null,
+        }}
+      />
+    ),
+    _: () => <Skeleton height={t.spacing(4)} width={t.spacing(24)} />,
+  })
 }

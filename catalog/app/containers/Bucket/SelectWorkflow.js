@@ -3,12 +3,6 @@ import cx from 'classnames'
 
 import * as M from '@material-ui/core'
 
-import * as AWS from 'utils/AWS'
-import { useData } from 'utils/Data'
-import Skeleton from 'components/Skeleton'
-
-import * as requests from './requests'
-
 const useStyles = M.makeStyles((t) => ({
   root: {},
 
@@ -27,24 +21,15 @@ const i18nMsgs = {
   label: 'Select workflow',
 }
 
-function SelectControl({
+export default function SelectWorkflow({
   className,
   disabled,
   items,
   required,
   onChange,
-  value: initialValue,
+  value,
 }) {
   const classes = useStyles()
-
-  const [value, setValue] = React.useState(
-    initialValue || items.find((item) => item.isDefault),
-  )
-
-  React.useEffect(() => {
-    if (!value || !onChange) return
-    onChange(value)
-  }, [onChange, value])
 
   return (
     <div className={cx(classes.root, className)}>
@@ -56,7 +41,7 @@ function SelectControl({
           label={i18nMsgs.label}
         >
           {!required && (
-            <M.MenuItem key="empty" value="empty" onClick={() => setValue(null)} dense>
+            <M.MenuItem key="empty" value="empty" onClick={() => onChange(null)} dense>
               <M.ListItemText
                 classes={{
                   primary: classes.crop,
@@ -71,7 +56,7 @@ function SelectControl({
             <M.MenuItem
               key={option.slug}
               value={option.slug}
-              onClick={() => setValue(option)}
+              onClick={() => onChange(option)}
               dense
             >
               <M.ListItemText
@@ -88,25 +73,4 @@ function SelectControl({
       </M.FormControl>
     </div>
   )
-}
-
-export default function SelectWorkflow({ className, bucket, value, onChange }) {
-  const s3 = AWS.S3.use()
-
-  const t = M.useTheme()
-
-  const data = useData(requests.workflowsList, { s3, bucket })
-  return data.case({
-    Ok: (workflowsStruct) => (
-      <SelectControl
-        className={className}
-        items={workflowsStruct.workflows}
-        required={workflowsStruct.isRequired}
-        onChange={onChange}
-        value={value}
-      />
-    ),
-    Err: () => <SelectControl className={className} items={[]} disabled />,
-    _: () => <Skeleton height={t.spacing(4)} width={t.spacing(24)} />,
-  })
 }
