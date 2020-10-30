@@ -483,6 +483,8 @@ function MetaInput({ bucket, input, meta, workflow }) {
   const error = meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
 
+  const [schema, setSchema] = React.useState(null)
+
   const changeMode = (mode) => {
     if (disabled) return
     input.onChange({ ...value, mode })
@@ -573,12 +575,13 @@ function MetaInput({ bucket, input, meta, workflow }) {
               }}
             >
               {AsyncResult.case({
-                Ok: (schema) => {
+                Ok: (newSchema) => {
                   // FIXME: find out how to fetch data conditionaly
                   //        in QuiltData/AsyncResult way
                   setTimeout(() => {
-                    if (!value.schema) {
-                      input.onChange({ ...value, schema })
+                    if (newSchema !== schema) {
+                      setSchema(newSchema)
+                      input.onChange({ ...value, schema: newSchema })
                     }
                   })
 
@@ -587,7 +590,7 @@ function MetaInput({ bucket, input, meta, workflow }) {
                       error={error}
                       value={parseJSON(value.text)}
                       onChange={onJsonEditor}
-                      schema={schema}
+                      schema={newSchema}
                     />
                   )
                 },
