@@ -254,7 +254,7 @@ export const metadataSchema = async ({ s3, bucket, schemaUrl }) => {
     return await s3
       .getObject({
         Bucket: bucket,
-        Key: schemaUrl,
+        Key: s3paths.parseS3Url(schemaUrl).key,
       })
       .promise()
       .then((r) => JSON.parse(r.Body.toString('utf-8')))
@@ -272,11 +272,10 @@ export const workflowsList = async ({ s3, bucket }) => {
     return await s3
       .getObject({
         Bucket: bucket,
-        Key: '.quilt/schemas/metadata.yml',
+        Key: '.quilt/workflows/config.yml',
       })
       .promise()
-      .then((r) => JSON.parse(r.Body.toString('utf-8')))
-      .then(parseWorkflows)
+      .then((r) => parseWorkflows(r.Body.toString('utf-8')))
   } catch (e) {
     console.log('Unable to fetch')
     console.error(e)
