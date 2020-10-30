@@ -10,7 +10,7 @@ import * as M from '@material-ui/core'
 import ButtonExpand from './ButtonExpand'
 import ButtonMenu from './ButtonMenu'
 import Note from './Note'
-import { ColumnIds, EmptyValue, parseJSON } from './State'
+import { ColumnIds, EmptyValue, parseJSON, stringifyJSON } from './State'
 
 const i18nMsgs = {
   key: 'Key',
@@ -55,7 +55,7 @@ function getNormalizedValue(value, schema) {
 }
 
 function getNormalizedValueStr(value) {
-  const valueStr = JSON.stringify(value, null, 2)
+  const valueStr = stringifyJSON(value)
   if (R.head(valueStr) === '"' && R.last(valueStr) === '"') {
     return valueStr.substring(1, valueStr.length - 1)
   }
