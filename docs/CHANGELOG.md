@@ -7,7 +7,6 @@
 ## Catalog, Lambdas
 !-->
 
-
 # unreleased - YYYY-MM-DD
 ## Python API
 
