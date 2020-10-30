@@ -21,6 +21,7 @@
 * [Materialization](Advanced Features/Materialization.md)
 * [Working with Manifests](Advanced Features/Working with Manifests.md)
 * [S3 Select](Advanced Features/S3 Select.md)
+* [Workflows](Advanced Features/workflows.md)
 
 ### API Reference
 

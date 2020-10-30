@@ -436,7 +436,8 @@ class PackageTest(QuiltTestCase):
                 PhysicalKey.from_path('foo.txt')
             )
 
-    def test_load_into_quilt(self):
+    @patch('quilt3.workflows.validate', return_value=None)
+    def test_load_into_quilt(self, mocked_workflow_validate):
         """ Verify loading local manifest and data into S3. """
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
 
@@ -691,7 +692,8 @@ class PackageTest(QuiltTestCase):
         pkg = Package().set('bar.txt')
         assert PhysicalKey.from_path(test_file) == pkg['bar.txt'].physical_key
 
-    def test_set_package_entry_as_object(self):
+    @patch('quilt3.workflows.validate', return_value=None)
+    def test_set_package_entry_as_object(self, mocked_workflow_validate):
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
         pkg = Package()
         nasty_string = 'a,"\tb'
@@ -1068,7 +1070,8 @@ class PackageTest(QuiltTestCase):
         with pytest.raises(QuiltException):
             p.push('Quilt/Test', 's3://test-bucket', dest='s3://other-test-bucket')
 
-    def test_commit_message_on_push(self):
+    @patch('quilt3.workflows.validate', return_value=None)
+    def test_commit_message_on_push(self, mocked_workflow_validate):
         """ Verify commit messages populate correctly on push."""
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
         with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
@@ -1077,8 +1080,18 @@ class PackageTest(QuiltTestCase):
                 pkg = Package.load(fd)
 
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket', message='test_message')
+            registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
+            message = 'test_message'
             build_mock.assert_called_once_with(
-                'Quilt/test_pkg_name', registry='s3://test-bucket', message='test_message'
+                'Quilt/test_pkg_name',
+                registry=registry,
+                message=message,
+            )
+            mocked_workflow_validate.assert_called_once_with(
+                registry=registry,
+                workflow=...,
+                meta={},
+                message=message,
             )
 
     def test_overwrite_dir_fails(self):

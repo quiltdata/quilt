@@ -15,6 +15,7 @@ from multiprocessing import Pool
 import jsonlines
 from tqdm import tqdm
 
+from . import workflows
 from .backends import get_package_registry
 from .data_transfer import (
     calculate_sha256,
@@ -45,6 +46,20 @@ from .util import (
     user_is_configured_to_custom_stack,
     validate_key,
     validate_package_name,
+)
+
+
+def _fix_docstring(**kwargs):
+    def f(wrapped):
+        wrapped.__doc__ %= kwargs
+        return wrapped
+    return f
+
+
+_WORKFLOW_PARAM_DOCSTRING = (
+    'workflow: workflow ID or `None` to skip workflow validation.\n'
+    '   If not specified, the default workflow will be used.\n'
+    '   For details see: https://docs.quiltdata.com/advanced-usage/workflows\n'
 )
 
 
@@ -937,8 +952,23 @@ class Package:
         )
         return pkg_manifest_file.path
 
+    @property
+    def _workflow(self):
+        return self._meta.get('workflow')
+
+    @_workflow.setter
+    def _workflow(self, value):
+        if value:
+            self._meta['workflow'] = value
+        else:
+            self._meta.pop('workflow', None)
+
+    def _validate_with_workflow(self, *, registry, workflow, message):
+        self._workflow = workflows.validate(registry=registry, workflow=workflow, meta=self.meta, message=message)
+
     @ApiTelemetry("package.build")
-    def build(self, name, registry=None, message=None):
+    @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
+    def build(self, name, registry=None, message=None, *, workflow=...):
         """
         Serializes this package to a registry.
 
@@ -947,10 +977,13 @@ class Package:
             registry: registry to build to
                 defaults to local registry
             message: the commit message of the package
+            %(workflow)s
 
         Returns:
             The top hash as a string.
         """
+        registry = get_package_registry(registry)
+        self._validate_with_workflow(registry=registry, workflow=workflow, message=message)
         return self._build(name=name, registry=registry, message=message)
 
     def _build(self, name, registry, message):
@@ -1184,7 +1217,8 @@ class Package:
         return top_hash.hexdigest()
 
     @ApiTelemetry("package.push")
-    def push(self, name, registry=None, dest=None, message=None, selector_fn=None):
+    @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
+    def push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow=...):
         """
         Copies objects to path, then creates a new package that points to those objects.
         Copies each object in this package to path according to logical key structure,
@@ -1217,6 +1251,7 @@ class Package:
                 PackageEntry should be skipped during push. If for example you have a package where the files
                 are spread over multiple buckets and you add a single local file, you can use selector_fn to
                 only push the local file to s3 (instead of pushing all data to the destination bucket).
+            %(workflow)s
 
         Returns:
             A new package that points to the copied objects.
@@ -1261,6 +1296,9 @@ class Package:
                     f"Invalid package destination path {dest!r}. 'dest', if set, must be a path "
                     f"in the {registry!r} package registry specified by 'registry'."
                 )
+
+        registry = get_package_registry(registry)
+        self._validate_with_workflow(registry=registry, workflow=workflow, message=message)
 
         self._fix_sha256()
 
@@ -1315,7 +1353,7 @@ class Package:
 
         top_hash = pkg._build(name, registry=registry, message=message)
 
-        shorthash = get_package_registry(registry).shorten_top_hash(name, top_hash)
+        shorthash = registry.shorten_top_hash(name, top_hash)
         print(f"Package {name}@{shorthash} pushed to s3://{dest_parsed.bucket}")
 
         if user_is_configured_to_custom_stack():

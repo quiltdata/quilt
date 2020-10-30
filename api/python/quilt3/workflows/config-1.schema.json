@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://quiltdata.com/workflows/config/1",
+  "type": "object",
+  "required": [
+    "version",
+    "workflows"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": "1"
+    },
+    "is_workflow_required": {
+      "type": "boolean",
+      "description": "Whether package can be pushed with unspecified workflow.",
+      "default": false
+    },
+    "default_workflow": {
+      "type": "string",
+      "description": "The workflow that will be used if no workflow provided by user."
+    },
+    "workflows": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[A-Za-z_-][A-Za-z0-9_-]*$",
+        "maxLength": 64
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The workflow name for UI.",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "description": "The workflow description for UI.",
+            "minLength": 1
+          },
+          "metadata_schema": {
+            "type": "string",
+            "description": "JSON Schema $id."
+          },
+          "is_message_required": {
+            "type": "boolean",
+            "description": "Whether commit message is required.",
+            "default": false
+          }
+        }
+      }
+    },
+    "schemas": {
+      "type": "object",
+      "description": "JSON Schemas to be used for metadata validation.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL from where the schema will be obtained.",
+            "format": "uri"
+          }
+        }
+      }
+    }
+  }
+}
