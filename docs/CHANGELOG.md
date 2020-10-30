@@ -24,8 +24,8 @@ overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
 * [Fixed] Bump minimum required version of tqdm. Fixes a crash (`UnseekableStreamError`) during upload retry. ([#1853](https://github.com/quiltdata/quilt/issues/1853))
 
 ## CLI
-* [Added] Add `--meta` argument to `push` ([#1793](https://github.com/quiltdata/quilt/issues/1793))
-* [Fixed] Fix crash in `list-packages` ([#1852](https://github.com/quiltdata/quilt/issues/1852))
+* [Added] `--meta` argument to `push` ([#1793](https://github.com/quiltdata/quilt/issues/1793))
+* [Fixed] Crash in `list-packages` ([#1852](https://github.com/quiltdata/quilt/issues/1852))
 
 ## Catalog, Lambdas
 * [Added] Ability to preview larger Jupyter notebooks; warning when cells are elided ([#1823](https://github.com/quiltdata/quilt/issues/1823), [#1822](https://github.com/quiltdata/quilt/issues/1822))
