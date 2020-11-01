@@ -72,7 +72,7 @@ def lambda_handler(request):
         query = request.args.get('query', '')
         my_fields = user_fields or [
             # object
-            'content', 'comment', 'ext', 'key', 'key_text^2', 'meta_text',
+            'content', 'comment', 'ext', 'key', 'key_text', 'meta_text',
             # package, and boost the fields
             'handle^2', 'handle_text^2', 'metadata^2', 'tags^2'
         ]
