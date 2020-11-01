@@ -19,13 +19,12 @@ const withErrorHandling = (fn, pairs) => (...args) =>
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
 
-export const bucketListing = ({ s3, bucket, path = '', prev }) =>
+export const bucketListing = ({ s3, bucket, path = '', prefix }) =>
   s3
     .listObjectsV2({
       Bucket: bucket,
       Delimiter: '/',
-      Prefix: path,
-      ContinuationToken: prev ? prev.continuationToken : undefined,
+      Prefix: path + (prefix || ''),
     })
     .promise()
     .then(
@@ -34,7 +33,6 @@ export const bucketListing = ({ s3, bucket, path = '', prev }) =>
           R.prop('CommonPrefixes'),
           R.pluck('Prefix'),
           R.filter((d) => d !== '/' && d !== '../'),
-          (xs) => (prev && prev.dirs ? prev.dirs.concat(xs) : xs),
           R.uniq,
         ),
         files: R.pipe(
@@ -50,12 +48,11 @@ export const bucketListing = ({ s3, bucket, path = '', prev }) =>
             etag: i.ETag,
             archived: i.StorageClass === 'GLACIER' || i.StorageClass === 'DEEP_ARCHIVE',
           })),
-          (xs) => (prev && prev.files ? prev.files.concat(xs) : xs),
         ),
         truncated: R.prop('IsTruncated'),
-        continuationToken: R.prop('NextContinuationToken'),
         bucket: () => bucket,
         path: () => path,
+        prefix: () => prefix,
       }),
     )
     .catch(errors.catchErrors())

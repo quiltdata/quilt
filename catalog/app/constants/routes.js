@@ -99,7 +99,8 @@ export const bucketFile = {
 }
 export const bucketDir = {
   path: '/b/:bucket/tree/:path(.+/)?',
-  url: (bucket, path = '') => `/b/${bucket}/tree/${encode(path)}`,
+  url: (bucket, path = '', prefix) =>
+    `/b/${bucket}/tree/${encode(path)}${mkSearch({ prefix: prefix || undefined })}`,
 }
 export const bucketPackageList = {
   path: '/b/:bucket/packages/',
