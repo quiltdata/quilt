@@ -810,8 +810,9 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
 
   const onSubmit = async (formData) => {
     try {
-      const formError = await validatePackage(formData)
-      if (formError) return formError
+      // FIXME: enable when API will be ready
+      // const formError = await validatePackage(formData)
+      // if (formError) return formError
       return uploadPackage(formData)
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -820,28 +821,29 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
     }
   }
 
-  const validatePackage = async ({ name, msg, files, meta, workflow }) => {
-    try {
-      const validatioinRequest = await req({
-        endpoint: '/packages',
-        method: 'POST',
-        body: {
-          workflow,
-          name,
-          registry: `s3:${bucket}`,
-          message: msg,
-          files,
-          meta: getMetaValue(meta),
-        },
-      })
-      // TODO: check API response body
-      return validatioinRequest ? undefined : Errors.PACKAGE_VALIDATION
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error(e)
-      return Errors.PACKAGE_VALIDATION
-    }
-  }
+  // FIXME: enable when API will be ready
+  // const validatePackage = async ({ name, msg, files, meta, workflow }) => {
+  //   try {
+  //     const validatioinRequest = await req({
+  //       endpoint: '/packages',
+  //       method: 'POST',
+  //       body: {
+  //         workflow,
+  //         name,
+  //         registry: `s3:${bucket}`,
+  //         message: msg,
+  //         files,
+  //         meta: getMetaValue(meta),
+  //       },
+  //     })
+  //     // TODO: check API response body
+  //     return validatioinRequest ? undefined : Errors.PACKAGE_VALIDATION
+  //   } catch (e) {
+  //     // eslint-disable-next-line no-console
+  //     console.error(e)
+  //     return Errors.PACKAGE_VALIDATION
+  //   }
+  // }
 
   // eslint-disable-next-line consistent-return
   const uploadPackage = async ({ name, msg, files, meta }) => {
