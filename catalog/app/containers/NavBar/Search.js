@@ -46,16 +46,9 @@ const useStyles = M.makeStyles((t) => ({
     opacity: 0.8,
   },
   help: {
-    maxHeight: t.spacing(50),
-    overflowY: 'auto',
-    padding: t.spacing(0, 4),
-
-    [t.breakpoints.down('xs')]: {
-      padding: t.spacing(0, 1),
-    },
-  },
-  helpWrapper: {
     left: 0,
+    maxHeight: '400px',
+    overflowY: 'auto',
     position: 'absolute',
     right: 0,
     top: t.spacing(5),
@@ -116,7 +109,6 @@ function SearchBox({
   const {
     disabled: disabledCls,
     expanded: expandedCls,
-    helpWrapper: helpWrapperCls,
     help: helpCls,
     hidden: hiddenCls,
     iconized: iconizedCls,
@@ -137,9 +129,7 @@ function SearchBox({
       <div className={wrapperCls}>
         <M.MuiThemeProvider theme={style.appTheme}>
           <M.Fade in={helpOpened}>
-            <M.Paper className={helpWrapperCls}>
-              <SearchHelp className={helpCls} onQuery={onQuery} />
-            </M.Paper>
+            <SearchHelp className={helpCls} onQuery={onQuery} />
           </M.Fade>
         </M.MuiThemeProvider>
 
@@ -218,7 +208,8 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
 
   const handleQuery = React.useCallback(
     (strPart) => {
-      change(`${value} ${strPart}`)
+      const normalized = strPart.replace(/\s/g, '')
+      change(`${value} ${normalized}`)
     },
     [value],
   )
