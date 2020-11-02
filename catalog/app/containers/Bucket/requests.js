@@ -34,7 +34,12 @@ function parseWorkflow(workflowSlug, workflow, data) {
 
 function parseWorkflows(workflowsYaml) {
   const data = yaml(workflowsYaml)
-  if (!data) return []
+  if (!data) {
+    return {
+      isRequired: false,
+      workflows: [],
+    }
+  }
 
   const { workflows } = data
   const workflowKeys = Object.keys(workflows)
@@ -264,12 +269,26 @@ export const metadataSchema = async ({ s3, bucket, schemaUrl }) => {
 }
 
 export const workflowsList = async ({ s3, bucket }) => {
+  const configPath = '.quilt/workflows/config.yml'
+
+  const handle = await ensureObjectIsPresent({
+    s3,
+    bucket,
+    key: configPath,
+  })
+  if (!handle) {
+    return {
+      isRequired: false,
+      workflows: [],
+    }
+  }
+
   try {
     // return Promise.resolve(parseWorkflows(mockedWorkflows))
     return await s3
       .getObject({
         Bucket: bucket,
-        Key: '.quilt/workflows/config.yml',
+        Key: configPath,
       })
       .promise()
       .then((r) => parseWorkflows(r.Body.toString('utf-8')))
@@ -278,7 +297,7 @@ export const workflowsList = async ({ s3, bucket }) => {
     console.error(e)
   }
 
-  throw new Error('Schemas list is unavailable')
+  throw new Error('Workflows list is unavailable')
 }
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
