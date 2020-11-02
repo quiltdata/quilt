@@ -104,8 +104,9 @@ function CompoundEntry({
         name ? name.length + 2 : 0,
         4, // braces + spaces
       ])
-    if (availableSpace <= 0 || Array.isArray(value))
+    if (availableSpace <= 0 || Array.isArray(value)) {
       return <More keys={entries.length} classes={classes} />
+    }
     return entries.reduce(
       (acc, [k]) => {
         if (acc.done) return acc
