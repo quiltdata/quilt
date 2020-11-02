@@ -32,12 +32,13 @@ const formatListing = ({ urls, scope }, r) => {
       to: urls.bucketDir(r.bucket, name),
     }),
   )
-  const files = r.files.map(({ key, size, modified }) =>
+  const files = r.files.map(({ key, size, modified, archived }) =>
     ListingItem.File({
       name: basename(key),
       to: urls.bucketFile(r.bucket, key),
       size,
       modified,
+      archived,
     }),
   )
   const items = [...dirs, ...files]
