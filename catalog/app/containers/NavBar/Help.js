@@ -68,7 +68,7 @@ const syntaxHelpRows = [
         title: 'Package hash',
       },
       {
-        example: 'key:"bar/"',
+        example: 'key:research*',
         syntax: 'key:',
         title: 'Object key',
       },
