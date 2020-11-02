@@ -11,9 +11,9 @@ import Remarkable from 'remarkable'
 import { replaceEntities, escapeHtml, unescapeMd } from 'remarkable/lib/common/utils'
 import { withStyles } from '@material-ui/styles'
 
+import { linkStyle } from 'utils/StyledLink'
 import * as RT from 'utils/reactTools'
 import logger from 'utils/logger'
-import { linkStyle } from 'utils/StyledLink'
 
 /* Most of what's in the commonmark spec for HTML blocks;
  * minus troublesome/abusey/not-in-HTML5 tags: basefont, body, center, dialog,

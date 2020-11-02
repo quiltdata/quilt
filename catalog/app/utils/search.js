@@ -1,8 +1,8 @@
 import * as R from 'ramda'
 
-import logger from 'utils/logger'
-import { BaseError } from 'utils/error'
 import { HTTPError } from 'utils/APIConnector'
+import { BaseError } from 'utils/error'
+import logger from 'utils/logger'
 
 export class SearchError extends BaseError {}
 
