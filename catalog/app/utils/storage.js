@@ -3,6 +3,8 @@
 import invariant from 'invariant'
 import mapValues from 'lodash/mapValues'
 
+import logger from 'utils/logger'
+
 export default (keys) => {
   const assertKey = (key, scope) =>
     invariant(key in keys, `storage.${scope}: unexpected key: ${key}`)
@@ -27,7 +29,8 @@ export default (keys) => {
     try {
       return mapValues(keys, (_v, k) => get(k))
     } catch (err) {
-      console.error('storage.load:', err) // eslint-disable-line no-console
+      logger.log('storage.load')
+      logger.error(err)
       // let reducers determine state
       return undefined
     }

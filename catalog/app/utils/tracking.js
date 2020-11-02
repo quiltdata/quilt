@@ -4,6 +4,7 @@ import * as redux from 'react-redux'
 
 import { useExperiments } from 'components/Experiments'
 import * as Config from 'utils/Config'
+import logger from 'utils/logger'
 import usePrevious from 'utils/usePrevious'
 
 const NAV_TIMEOUT = 500
@@ -17,8 +18,7 @@ const loadMixpanel = (token) =>
   })
 
 const consoleTracker = Promise.resolve({
-  // eslint-disable-next-line no-console
-  track: (evt, opts) => console.log(`track: ${evt}`, opts),
+  track: (evt, opts) => logger.log(`track: ${evt}`, opts),
 })
 
 const mkLocation = (l) => `${l.pathname}${l.search}${l.hash}`

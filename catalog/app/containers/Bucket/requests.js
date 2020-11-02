@@ -10,6 +10,7 @@ import * as Resource from 'utils/Resource'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
+import logger from 'utils/logger'
 
 import * as errors from './errors'
 
@@ -150,10 +151,8 @@ export const bucketAccessCounts = async ({
       ),
     )
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch bucket access counts:')
-    // eslint-disable-next-line no-console
-    console.error(e)
+    logger.log('Unable to fetch bucket access counts:')
+    logger.error(e)
     return {
       byExt: [],
       byExtCollapsed: [],
@@ -195,8 +194,8 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
         .then((r) => JSON.parse(r.Body.toString('utf-8')))
         .then(processStats)
     } catch (e) {
-      console.log(`Unable to fetch pre-rendered stats from '${overviewUrl}':`)
-      console.error(e)
+      logger.log(`Unable to fetch pre-rendered stats from '${overviewUrl}':`)
+      logger.error(e)
     }
   }
 
@@ -205,8 +204,8 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
       processStats,
     )
   } catch (e) {
-    console.log('Unable to fetch live stats:')
-    console.error(e)
+    logger.log('Unable to fetch live stats:')
+    logger.error(e)
   }
 
   throw new Error('Stats unavailable')
@@ -294,8 +293,8 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
       return await summarize({ s3, handle })
     } catch (e) {
       const display = `${handle.bucket}/${handle.key}`
-      console.log(`Unable to fetch configured summary from '${display}':`)
-      console.error(e)
+      logger.log(`Unable to fetch configured summary from '${display}':`)
+      logger.error(e)
     }
   }
   if (overviewUrl) {
@@ -327,8 +326,8 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
           ),
         )
     } catch (e) {
-      console.log(`Unable to fetch pre-rendered summary from '${overviewUrl}':`)
-      console.error(e)
+      logger.log(`Unable to fetch pre-rendered summary from '${overviewUrl}':`)
+      logger.error(e)
     }
   }
   if (inStack) {
@@ -352,8 +351,8 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
         ),
       )
     } catch (e) {
-      console.log('Unable to fetch live summary:')
-      console.error(e)
+      logger.log('Unable to fetch live summary:')
+      logger.error(e)
     }
   }
   try {
@@ -381,8 +380,8 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
         ),
       )
   } catch (e) {
-    console.log('Unable to fetch summary from S3 listing:')
-    console.error(e)
+    logger.log('Unable to fetch summary from S3 listing:')
+    logger.error(e)
   }
   return []
 }
@@ -423,8 +422,8 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
           ),
         )
     } catch (e) {
-      console.log(`Unable to fetch images sample from '${overviewUrl}':`)
-      console.error(e)
+      logger.log(`Unable to fetch images sample from '${overviewUrl}':`)
+      logger.error(e)
     }
   }
   if (inStack) {
@@ -448,8 +447,8 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
         ),
       )
     } catch (e) {
-      console.log('Unable to fetch live images sample:')
-      console.error(e)
+      logger.log('Unable to fetch live images sample:')
+      logger.error(e)
     }
   }
   try {
@@ -471,8 +470,8 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
         ),
       )
   } catch (e) {
-    console.log('Unable to fetch images sample from S3 listing:')
-    console.error(e)
+    logger.log('Unable to fetch images sample from S3 listing:')
+    logger.error(e)
   }
   return []
 }
@@ -535,8 +534,8 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
     const resolvePath = (path) =>
       resolveLogicalKey && handle.logicalKey
         ? resolveLogicalKey(s3paths.resolveKey(handle.logicalKey, path)).catch((e) => {
-            console.warn('Error resolving logical key for summary', { handle, path })
-            console.error(e)
+            logger.warn('Error resolving logical key for summary', { handle, path })
+            logger.error(e)
             return null
           })
         : {
@@ -559,10 +558,8 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
     )
     return handles.filter((h) => h)
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('Error loading summary:')
-    // eslint-disable-next-line no-console
-    console.error(e)
+    logger.log('Error loading summary:')
+    logger.error(e)
     return []
   }
 }
@@ -611,10 +608,8 @@ const fetchPackagesAccessCounts = async ({
       return { ...acc, [r.name]: { counts, total } }
     }, {})
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('fetchPackagesAccessCounts : error caught')
-    // eslint-disable-next-line no-console
-    console.error(e)
+    logger.log('fetchPackagesAccessCounts : error caught')
+    logger.error(e)
     return {}
   }
 }
@@ -786,10 +781,8 @@ export async function fetchRevisionsAccessCounts({
       return { ...acc, [r.hash]: { counts, total } }
     }, {})
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('fetchRevisionsAccessCounts : error caught')
-    // eslint-disable-next-line no-console
-    console.error(e)
+    logger.log('fetchRevisionsAccessCounts : error caught')
+    logger.error(e)
     return {}
   }
 }
@@ -947,7 +940,7 @@ export async function packageSelect({
 
   if (r.status >= 400) {
     const msg = await r.text()
-    console.error(`pkgselect error (${r.status}): ${msg}`)
+    logger.error(`pkgselect error (${r.status}): ${msg}`)
     throw new errors.BucketError(msg, { status: r.status })
   }
 
@@ -1016,10 +1009,8 @@ const queryAccessCounts = async ({
 
     return { counts, total }
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('queryAccessCounts: error caught')
-    // eslint-disable-next-line no-console
-    console.error(e)
+    logger.log('queryAccessCounts: error caught')
+    logger.error(e)
     throw e
   }
 }

@@ -11,8 +11,9 @@ import Remarkable from 'remarkable'
 import { replaceEntities, escapeHtml, unescapeMd } from 'remarkable/lib/common/utils'
 import { withStyles } from '@material-ui/styles'
 
-import { linkStyle } from 'utils/StyledLink'
 import * as RT from 'utils/reactTools'
+import logger from 'utils/logger'
+import { linkStyle } from 'utils/StyledLink'
 
 /* Most of what's in the commonmark spec for HTML blocks;
  * minus troublesome/abusey/not-in-HTML5 tags: basefont, body, center, dialog,
@@ -96,14 +97,14 @@ const highlight = (str, lang) => {
       return hljs.highlight(lang, str).value
     } catch (err) {
       // istanbul ignore next
-      console.error(err) // eslint-disable-line no-console
+      logger.error(err)
     }
   } else {
     try {
       return hljs.highlightAuto(str).value
     } catch (err) {
       // istanbul ignore next
-      console.error(err) // eslint-disable-line no-console
+      logger.error(err)
     }
   }
   // istanbul ignore next

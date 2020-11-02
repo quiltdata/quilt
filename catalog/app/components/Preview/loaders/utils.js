@@ -7,6 +7,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import { mkSearch } from 'utils/NamedRoutes'
+import logger from 'utils/logger'
 import pipeThru from 'utils/pipeThru'
 import useMemoEq from 'utils/useMemoEq'
 
@@ -75,10 +76,8 @@ const gate = async ({ s3, handle }) => {
     if (['NoSuchKey', 'NotFound'].includes(e.name)) {
       throw PreviewError.DoesNotExist({ handle })
     }
-    // eslint-disable-next-line no-console
-    console.error('Error loading preview')
-    // eslint-disable-next-line no-console
-    console.error(e)
+    logger.log('Error loading preview')
+    logger.error(e)
     throw e
   }
   if (length > SIZE_THRESHOLDS[1]) {
@@ -122,10 +121,8 @@ const getFirstBytes = async ({ s3, bytes, handle }) => {
     if (e.code === 'InvalidArgument' && e.message === 'Invalid version id specified') {
       throw PreviewError.InvalidVersion({ handle })
     }
-    // eslint-disable-next-line no-console
-    console.error('Error loading preview')
-    // eslint-disable-next-line no-console
-    console.error(e)
+    logger.log('Error loading preview')
+    logger.error(e)
     throw e
   }
 }
@@ -177,7 +174,7 @@ const fetchPreview = async ({ endpoint, handle, sign, type, compression, query }
       }
       throw PreviewError.Forbidden({ handle })
     }
-    console.log('Error from preview endpoint', json)
+    logger.log('Error from preview endpoint', json)
     throw new Error(json.error)
   }
   return json
@@ -207,8 +204,8 @@ export function useErrorHandling(result, { handle, retry } = {}) {
     pipeThru(result)(
       AsyncResult.mapCase({
         Err: R.unless(PreviewError.is, (e) => {
-          console.log('error while loading preview')
-          console.error(e)
+          logger.log('error while loading preview')
+          logger.error(e)
           return PreviewError.Unexpected({ handle, retry, originalError: e })
         }),
       }),

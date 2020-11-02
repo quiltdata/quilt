@@ -1,7 +1,8 @@
 import * as R from 'ramda'
 
-import { HTTPError } from 'utils/APIConnector'
+import logger from 'utils/logger'
 import { BaseError } from 'utils/error'
+import { HTTPError } from 'utils/APIConnector'
 
 export class SearchError extends BaseError {}
 
@@ -181,8 +182,9 @@ export default async function search({
         throw new SearchError('Timeout')
       }
     }
-    console.log('Search error:')
-    console.error(e)
+
+    logger.log('Search error:')
+    logger.error(e)
     throw new SearchError('Unexpected', { originalError: e })
   }
 }
