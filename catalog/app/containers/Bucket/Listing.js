@@ -116,12 +116,17 @@ const useHeaderStyles = M.makeStyles((t) => ({
     paddingTop: 2,
   },
   btnMargin: {
-    marginLeft: t.spacing(0.5),
+    marginLeft: t.spacing(0.75),
   },
   clearIcon: {
     fontSize: '16px !important',
     lineHeight: '15px',
     marginLeft: -4,
+  },
+  clearIconText: {
+    fontSize: '16px !important',
+    lineHeight: '15px',
+    marginLeft: -6,
   },
   searchIcon: {
     fontSize: 20,
@@ -208,10 +213,10 @@ function HeaderWithPrefixFiltering({ items, truncated, prefix, setPrefix }) {
               <M.Button
                 className={cx(classes.btn, classes.btnMargin)}
                 size="small"
-                variant="contained"
+                variant="text"
                 color="primary"
                 onClick={clear}
-                endIcon={<M.Icon className={classes.clearIcon}>clear</M.Icon>}
+                endIcon={<M.Icon className={classes.clearIconText}>clear</M.Icon>}
               >
                 Clear
               </M.Button>
