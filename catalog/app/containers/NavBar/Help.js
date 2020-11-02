@@ -43,57 +43,57 @@ const syntaxHelpRows = [
     namespace: 'Fields',
     rows: [
       {
-        example: 'comment: TODO',
+        example: 'comment:TODO',
         syntax: 'comment:',
         title: 'Package comment',
       },
       {
-        example: 'content: Hello',
+        example: 'content:Hello',
         syntax: 'content:',
         title: 'Object content',
       },
       {
-        example: 'ext: *.fastq.gz',
+        example: 'ext:*.fastq.gz',
         syntax: 'ext:',
         title: 'Object extension',
       },
       {
-        example: 'handle: "user/*"',
+        example: 'handle:"user/*"',
         syntax: 'handle:',
         title: 'Package name',
       },
       {
-        example: 'hash: 3192ac1*',
+        example: 'hash:3192ac1*',
         syntax: 'hash:',
         title: 'Package hash',
       },
       {
-        example: 'key: "bar/"',
+        example: 'key:research*',
         syntax: 'key:',
         title: 'Object key',
       },
       {
-        example: 'metadata: dapi',
+        example: 'metadata:dapi',
         syntax: 'metadata:',
         title: 'Package metadata',
       },
       {
-        example: 'size: >=4096',
+        example: 'size:>=4096',
         syntax: 'size:',
         title: 'Object size in bytes',
       },
       {
-        example: 'version_id: t.LVVCx*',
+        example: 'version_id:t.LVVCx*',
         syntax: 'version_id:',
         title: 'Object version id',
       },
       {
-        example: 'package_stats\n  .total_files: >100',
+        example: 'package_stats\n  .total_files:>100',
         syntax: 'package_stats\n  .total_files:',
         title: 'Package total files',
       },
       {
-        example: 'package_stats\n  .total_bytes: <100',
+        example: 'package_stats\n  .total_bytes:<100',
         syntax: 'package_stats\n  .total_bytes:',
         title: 'Package total bytes',
       },
