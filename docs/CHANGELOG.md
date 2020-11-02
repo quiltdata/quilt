@@ -17,6 +17,7 @@
 * [Added] Search help dropdown for the index landing page ([#1838](https://github.com/quiltdata/quilt/pull/1838))
 overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
 * [Fixed] Incomplete package stats for empty packages in es/indexer Lambda ([#1869](https://github.com/quiltdata/quilt/pull/1869))
+* [Fixed] Slow parquet preview rendering (and probably other occurances of JsonDisplay) ([#1878](https://github.com/quiltdata/quilt/pull/1878))
 
 # 3.2.1 - 2020-10-14
 ## Python API
