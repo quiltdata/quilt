@@ -21,7 +21,7 @@ import * as s3paths from 'utils/s3paths'
 
 import Code from './Code'
 import * as FileView from './FileView'
-import Listing, { ListingItem } from './Listing'
+import { ListingItem, ListingWithLocalFiltering } from './Listing'
 import Section from './Section'
 import Summary from './Summary'
 import renderPreview from './renderPreview'
@@ -304,7 +304,7 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
           <PkgCode {...{ data: hashData, bucket, name, revision, path }} />
           <FileView.Meta data={AsyncResult.Ok(meta)} />
           <M.Box mt={2}>
-            <Listing items={items} />
+            <ListingWithLocalFiltering items={items} />
             <Summary files={summaryHandles} mkUrl={mkUrl} />
           </M.Box>
         </>
