@@ -187,8 +187,12 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       setData(newData)
       setErrors(validateOnSchema(newData, schema))
 
-      // HACK: sort out key if it in schema and still want rendering
-      setSortOder(R.assoc(removingFieldPath.join(), -1, sortOrder))
+      const parentObjectOrArray = R.path(R.init(removingFieldPath), newData)
+      // NOTE: edited array has a different value on `removingFieldPath`
+      if (!isArray(parentObjectOrArray)) {
+        // HACK: sort out key if it in schema and still want rendering
+        setSortOder(R.assoc(removingFieldPath.join(), -1, sortOrder))
+      }
       return newData
     },
     [data, schema, sortOrder],
