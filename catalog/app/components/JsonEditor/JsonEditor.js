@@ -37,9 +37,12 @@ function JsonEditor({
 
   const onMenuAction = React.useCallback(
     (contextFieldPath, action) => {
-      makeAction(contextFieldPath, ColumnIds.Key, action)
+      const newData = makeAction(contextFieldPath, ColumnIds.Key, action)
+      if (newData) {
+        onChange(newData)
+      }
     },
-    [makeAction],
+    [makeAction, onChange],
   )
 
   const onCollapse = React.useCallback(() => {

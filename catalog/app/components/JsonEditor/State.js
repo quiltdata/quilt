@@ -158,6 +158,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       const newData = R.assocPath(contextFieldPath, convertType(value, typeOf), data)
       setData(newData)
       setErrors(validateOnSchema(newData, schema))
+      return newData
     },
     [data, schema],
   )
@@ -166,18 +167,15 @@ export default function JsonEditorState({ children, obj, optSchema }) {
     (contextFieldPath, columnId, actionItem) => {
       switch (actionItem.action) {
         case Actions.RemoveField:
-          removeField(contextFieldPath, actionItem)
-          break
+          return removeField(contextFieldPath, actionItem)
         case Actions.SelectEnum:
-          changeValue(contextFieldPath, ColumnIds.Value, actionItem.title)
-          break
+          return changeValue(contextFieldPath, ColumnIds.Value, actionItem.title)
         case Actions.Select:
-          changeValue(contextFieldPath, ColumnIds.Key, actionItem.title)
-          break
+          return changeValue(contextFieldPath, ColumnIds.Key, actionItem.title)
         case Actions.ChangeType:
-          changeType(contextFieldPath, ColumnIds.Value, actionItem.title)
-          break
-        // no default
+          return changeType(contextFieldPath, ColumnIds.Value, actionItem.title)
+        default:
+          return null
       }
     },
     [changeType, changeValue, removeField],
@@ -191,6 +189,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
 
       // HACK: sort out key if it in schema and still want rendering
       setSortOder(R.assoc(removingFieldPath.join(), -1, sortOrder))
+      return newData
     },
     [data, schema, sortOrder],
   )
