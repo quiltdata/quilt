@@ -85,7 +85,7 @@ const computeStats = R.reduce(
   },
 )
 
-const useStatsStyles = M.makeStyles((t) => ({
+const useHeaderStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
     borderBottom: `1px solid ${t.palette.divider}`,
@@ -119,6 +119,10 @@ const useStatsStyles = M.makeStyles((t) => ({
     lineHeight: '15px',
     marginLeft: -4,
   },
+  clearIconBtn: {
+    position: 'absolute',
+    right: -28,
+  },
   searchIcon: {
     fontSize: 20,
     marginLeft: -2,
@@ -138,8 +142,79 @@ const useStatsStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Stats({ items, unfiltered, filtering, truncated, useRE, setUseRE }) {
-  const classes = useStatsStyles()
+function HeaderWithPrefixFiltering({
+  items,
+  truncated,
+  prefixValue,
+  changePrefixValue,
+  commitPrefixChange,
+}) {
+  const classes = useHeaderStyles()
+  const stats = React.useMemo(() => computeStats(items), [items])
+  const inputRef = React.useRef()
+  const handleKeyDown = React.useCallback(
+    (e) => {
+      if (e.key === 'Escape') {
+        changePrefixValue('')
+        commitPrefixChange()
+        if (inputRef.current && inputRef.current.blur) inputRef.current.blur()
+      }
+    },
+    [changePrefixValue, commitPrefixChange, inputRef],
+  )
+
+  return (
+    <div className={classes.root}>
+      <M.InputBase
+        value={prefixValue}
+        onChange={(e) => changePrefixValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Filter current directory by prefix"
+        classes={{ input: classes.input }}
+        inputComponent={WrappedAutosizeInput}
+        inputRef={inputRef}
+        startAdornment={<M.Icon className={classes.searchIcon}>search</M.Icon>}
+        endAdornment={
+          <M.Fade in={!!prefixValue}>
+            <M.IconButton
+              className={classes.clearIconBtn}
+              size="small"
+              onClick={() => {
+                changePrefixValue('')
+                commitPrefixChange()
+              }}
+            >
+              <M.Icon>clear</M.Icon>
+            </M.IconButton>
+          </M.Fade>
+        }
+      />
+      <span className={classes.spacer} />
+      <span>{stats.dirs} folders</span>
+      <span className={classes.divider}> | </span>
+      <span>{stats.files} files</span>
+      <span className={classes.divider}> | </span>
+      <span>{readableBytes(stats.size)}</span>
+      {truncated && <span className={classes.truncated}>(truncated)</span>}
+      {!!stats.modified && (
+        <>
+          <span className={classes.divider}> | </span>
+          <span>Last modified {stats.modified.toLocaleString()}</span>
+        </>
+      )}
+    </div>
+  )
+}
+
+function HeaderWithLocalFiltering({
+  items,
+  unfiltered,
+  filtering,
+  truncated,
+  useRE,
+  setUseRE,
+}) {
+  const classes = useHeaderStyles()
   const stats = React.useMemo(() => computeStats(unfiltered), [unfiltered])
   const filteredStats = React.useMemo(() => computeStats(items), [items])
   const inputRef = React.useRef()
@@ -150,6 +225,7 @@ function Stats({ items, unfiltered, filtering, truncated, useRE, setUseRE }) {
         if (inputRef.current && inputRef.current.blur) inputRef.current.blur()
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [filtering.set, inputRef],
   )
   const handleToggleRE = React.useCallback(
@@ -264,16 +340,129 @@ const useListingStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Listing({ items, truncated = false, locked = false, loadMore }) {
+export function ListingWithPrefixFiltering({
+  items,
+  truncated = false,
+  locked = false,
+  prefix = '',
+  prefixValue,
+  changePrefixValue,
+  commitPrefixChange,
+}) {
   const classes = useListingStyles()
 
   const scrollRef = React.useRef(null)
-  const scroll = React.useCallback((prev) => {
-    if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
-  })
+  const scroll = React.useCallback(
+    (prev) => {
+      if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
+    },
+    [scrollRef],
+  )
+
+  const totalItems = React.useMemo(() => {
+    const stats = computeStats(items)
+    return stats.dirs + stats.files
+  }, [items])
+
+  const pagination = Pagination.use(items, { perPage: 25, onChange: scroll })
+
+  return (
+    <M.Card>
+      <M.CardContent className={classes.root}>
+        {locked && (
+          <div className={classes.lock}>
+            <M.CircularProgress />
+          </div>
+        )}
+        {!items.length && !prefix ? (
+          <M.Typography className={classes.empty} variant="h5">
+            No files
+          </M.Typography>
+        ) : (
+          <>
+            <HeaderWithPrefixFiltering
+              {...{
+                items,
+                prefixValue,
+                changePrefixValue,
+                commitPrefixChange,
+                truncated,
+              }}
+            />
+            <div ref={scrollRef} />
+            {!items.length && (
+              <div className={classes.noMatch}>
+                No entries starting with{' '}
+                <b>
+                  <code>{`"${prefix}"`}</code>
+                </b>
+              </div>
+            )}
+            {pagination.paginated.map(
+              ListingItem.case({
+                Dir: ({ name, to }) => (
+                  <Item icon="folder_open" key={name} name={name || EMPTY} to={to} />
+                ),
+                File: ({ name, to, size, modified, archived }) => (
+                  <Item
+                    icon="insert_drive_file"
+                    key={name}
+                    name={name}
+                    to={to}
+                    archived={archived}
+                  >
+                    <div className={classes.size}>{readableBytes(size)}</div>
+                    {!!modified && (
+                      <div className={classes.modified}>{modified.toLocaleString()}</div>
+                    )}
+                  </Item>
+                ),
+              }),
+            )}
+            {(truncated || pagination.pages > 1) && (
+              <M.Box>
+                <M.Divider />
+                <M.Box display="flex" alignItems="center" minHeight={36} px={1}>
+                  {truncated && (
+                    <M.Typography variant="body2" component="span" color="textSecondary">
+                      <M.Icon
+                        style={{
+                          fontSize: 16,
+                          verticalAlign: 'text-bottom',
+                          marginRight: 4,
+                        }}
+                      >
+                        warning
+                      </M.Icon>
+                      Results truncated to {totalItems} items
+                    </M.Typography>
+                  )}
+                  <M.Box flexGrow={1} />
+                  {pagination.pages > 1 && <Pagination.Controls {...pagination} />}
+                </M.Box>
+              </M.Box>
+            )}
+          </>
+        )}
+      </M.CardContent>
+    </M.Card>
+  )
+}
+
+export function ListingWithLocalFiltering({ items, truncated = false, locked = false }) {
+  const classes = useListingStyles()
+
+  const scrollRef = React.useRef(null)
+  const scroll = React.useCallback(
+    (prev) => {
+      if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
+    },
+    [scrollRef],
+  )
 
   const [useRE, setUseRE] = React.useState(true)
   const filtering = useDebouncedInput('', 200)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const filtered = React.useMemo(
     R.tryCatch(
       R.pipe(
@@ -326,7 +515,7 @@ export default function Listing({ items, truncated = false, locked = false, load
           </M.Typography>
         ) : (
           <>
-            <Stats
+            <HeaderWithLocalFiltering
               items={filtered.result}
               unfiltered={items}
               filtering={filtering}
@@ -346,9 +535,6 @@ export default function Listing({ items, truncated = false, locked = false, load
                       {useRE ? `/${filtering.value}/i` : `"${filtering.value}"`}
                     </code>
                   </b>
-                  {truncated && !!loadMore && (
-                    <> &rarr; try loading more items (button below)</>
-                  )}
                 </div>
               ))}
             {pagination.paginated.map(
@@ -388,19 +574,6 @@ export default function Listing({ items, truncated = false, locked = false, load
                         warning
                       </M.Icon>
                       Results truncated to {totalItems} items
-                      {!!loadMore && (
-                        <>
-                          <> &rarr; </>
-                          <M.Link
-                            onClick={loadMore}
-                            component="button"
-                            underline="always"
-                            style={{ verticalAlign: 'baseline' }}
-                          >
-                            load more
-                          </M.Link>
-                        </>
-                      )}
                     </M.Typography>
                   )}
                   <M.Box flexGrow={1} />

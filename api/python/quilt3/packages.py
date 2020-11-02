@@ -945,7 +945,7 @@ class Package:
         Args:
             name: optional name for package
             registry: registry to build to
-                    defaults to local registry
+                defaults to local registry
             message: the commit message of the package
 
         Returns:

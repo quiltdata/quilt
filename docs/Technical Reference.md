@@ -194,7 +194,7 @@ In the template menu (CloudFormation or Service Catalog), select Google under *U
 1. You should see a default URI that looks something like this
 `https://<MY_COMPANY>.okta.com/oauth2/default`; copy it to a
 safe place
-1. Proceed to [Enabling SSO](#Enabling-SSO-in-CloudFormation)
+1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
 
 ![](./imgs/okta-sso-general.png)
 
@@ -213,7 +213,7 @@ safe place
     1. Click SSO. Copy the *Client ID* and *Issuer URL V2* to a safe place.
 1. Add *Your new app* to the users who need to access
 Quilt
-1. Proceed to [Enabling SSO](#Enabling-SSO-in-CloudFormation)
+1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
 
 ![](./imgs/onelogin-connector.png)
 ![](./imgs/onelogin-sso.png)

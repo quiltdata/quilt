@@ -203,7 +203,7 @@ __Arguments__
 
 * __name__:  optional name for package
 * __registry__:  registry to build to
-        defaults to local registry
+    defaults to local registry
 * __message__:  the commit message of the package
 
 __Returns__
