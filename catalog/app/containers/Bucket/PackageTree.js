@@ -18,6 +18,7 @@ import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link, { linkStyle } from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
+import logger from 'utils/logger'
 
 import Code from './Code'
 import * as FileView from './FileView'
@@ -419,7 +420,7 @@ function FileDisplay({ bucket, name, revision, path, crumbs }) {
             if (e.code === 'Forbidden') {
               return renderError('Access Denied', "You don't have access to this object")
             }
-            console.error(e)
+            logger.error(e)
             return renderError('Error loading file', 'Something went wrong')
           },
           Ok: requests.ObjectExistence.case({
@@ -443,7 +444,7 @@ function FileDisplay({ bucket, name, revision, path, crumbs }) {
       </Data>
     ),
     Err: (e) => {
-      console.error(e)
+      logger.error(e)
       return renderError(
         'Error loading file',
         "Seems like there's no such file in this package",

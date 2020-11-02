@@ -10,6 +10,7 @@ import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import { mkSearch } from 'utils/NamedRoutes'
 import usePrevious from 'utils/usePrevious'
+import logger from 'utils/logger'
 
 function useBlob(blob) {
   const url = React.useMemo(() => window.URL.createObjectURL(blob), [blob])
@@ -40,8 +41,8 @@ async function loadBlob({ endpoint, sign, handle, page, firstPageBlob }) {
     }
     return await r.blob()
   } catch (e) {
-    console.warn('error loading pdf preview')
-    console.error(e)
+    logger.warn('error loading pdf preview')
+    logger.error(e)
     throw e
   }
 }

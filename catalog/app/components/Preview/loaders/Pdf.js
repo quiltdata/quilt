@@ -3,6 +3,7 @@ import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 import { mkSearch } from 'utils/NamedRoutes'
+import logger from 'utils/logger'
 
 import { PreviewData, PreviewError } from '../types'
 import * as utils from './utils'
@@ -34,8 +35,8 @@ async function loadPdf({ endpoint, sign, handle }) {
       }
       throw PreviewError.Forbidden({ handle })
     }
-    console.warn('error loading pdf preview', { ...e })
-    console.error(e)
+    logger.warn('error loading pdf preview', { ...e })
+    logger.error(e)
     throw e
   }
 }
