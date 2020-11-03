@@ -19,6 +19,7 @@ const useStyles = M.makeStyles((t) => ({
 
 const i18nMsgs = {
   label: 'Metadata quality workflow',
+  help: 'Learn about quality workflows',
 }
 
 export default function SelectWorkflow({ className, disabled, items, onChange, value }) {
@@ -53,6 +54,14 @@ export default function SelectWorkflow({ className, disabled, items, onChange, v
             </M.MenuItem>
           ))}
         </M.Select>
+        <M.FormHelperText>
+          <M.Link
+            href="https://docs.quiltdata.com/advanced-usage/workflows"
+            target="_blank"
+          >
+            {i18nMsgs.help}
+          </M.Link>
+        </M.FormHelperText>
       </M.FormControl>
     </div>
   )

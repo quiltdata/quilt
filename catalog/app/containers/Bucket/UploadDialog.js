@@ -739,7 +739,7 @@ async function hashFile(file) {
 
 const useWorkflowInputStyles = M.makeStyles((t) => ({
   root: {
-    margin: t.spacing(2, 0, 4),
+    margin: t.spacing(2, 0, 3),
   },
 
   select: {
