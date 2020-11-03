@@ -5,6 +5,7 @@ import isArray from 'lodash/isArray'
 import isNumber from 'lodash/isNumber'
 import isObject from 'lodash/isObject'
 import isString from 'lodash/isString'
+import isBoolean from 'lodash/isBoolean'
 
 import * as M from '@material-ui/core'
 
@@ -40,6 +41,7 @@ function getTypeAnnotationFromValue(value, schema) {
       },
     ],
     [isNumber, () => 'num'],
+    [isBoolean, () => 'bool'],
     [R.T, () => 'none'],
   ])(value)
 }

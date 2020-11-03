@@ -21,6 +21,10 @@ function isSchemaNumber(optSchema) {
   return R.prop('type', optSchema) === 'number'
 }
 
+function isSchemaBoolean(optSchema) {
+  return R.prop('type', optSchema) === 'boolean'
+}
+
 export function isSchemaEnum(optSchema) {
   return Boolean(R.prop('enum', optSchema))
 }
@@ -46,6 +50,7 @@ export function schemaTypetoHumanString(optSchema) {
   return R.cond([
     [isSchemaEnum, () => 'enum'],
     [isSchemaConst, () => 'const'],
+    [isSchemaBoolean, () => 'bool'],
     // NOTE: enum and const can be string too,
     //       that's why they are first
     [R.prop('type'), () => R.take(3, optSchema.type)],
