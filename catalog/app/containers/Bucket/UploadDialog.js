@@ -473,6 +473,7 @@ const EMPTY_FIELD = { key: '', value: '' }
 // TODO: warn on duplicate keys
 function MetaInput({ bucket, input, meta, workflow }) {
   const s3 = AWS.S3.use()
+  const t = M.useTheme()
   const classes = useMetaInputStyles()
   const value = input.value || {
     fields: [EMPTY_FIELD],
@@ -601,7 +602,7 @@ function MetaInput({ bucket, input, meta, workflow }) {
                     onChange={onJsonEditor}
                   />
                 ),
-                _: () => null,
+                _: () => <Skeleton height={t.spacing(8)} width="100%" />,
               })}
             </Data>
           ) : (
@@ -1113,7 +1114,6 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
 
 export default function UploadDialogWrapper({ bucket, open, onClose, refresh }) {
   const s3 = AWS.S3.use()
-  const t = M.useTheme()
   const data = useData(requests.workflowsList, { s3, bucket })
 
   return data.case({
@@ -1139,6 +1139,6 @@ export default function UploadDialogWrapper({ bucket, open, onClose, refresh }) 
         }}
       />
     ),
-    _: () => <Skeleton height={t.spacing(4)} width={t.spacing(24)} />,
+    _: () => null,
   })
 }
