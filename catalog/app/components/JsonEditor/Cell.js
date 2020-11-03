@@ -99,6 +99,10 @@ export default function Cell({
 }) {
   const menuAnchorRef = React.useRef(null)
 
+  const isEditable = React.useMemo(
+    () => column.id === ColumnIds.Value || value === EmptyValue,
+    [column.id, value],
+  )
   const [editing, setEditing] = React.useState(editingInitial)
   const [menuOpened, setMenuOpened] = React.useState(false)
 
@@ -135,10 +139,10 @@ export default function Cell({
   const onKeyPress = React.useCallback(
     (event) => {
       if (event.key !== 'Enter') return
-      if (column.id === ColumnIds.Key && value !== EmptyValue) return
+      if (!isEditable) return
       setEditing(true)
     },
-    [column.id, value, setEditing],
+    [isEditable, setEditing],
   )
 
   const ValueComponent = editing ? Input : Preview
@@ -152,6 +156,7 @@ export default function Cell({
       onKeyPress={onKeyPress}
       tabIndex={0}
       role="textbox"
+      title={isEditable ? 'Double click to edit' : ''}
     >
       <ValueComponent
         {...{
