@@ -97,6 +97,7 @@ export default function Input({
     (event) => {
       switch (event.key) {
         case 'Enter':
+          event.preventDefault()
           onBlur()
           break
         // no default
