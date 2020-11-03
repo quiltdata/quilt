@@ -761,7 +761,6 @@ function WorkflowInput({ input, meta, workflowsConfig }) {
       <SelectWorkflow
         className={classes.select}
         items={workflowsConfig ? workflowsConfig.workflows : []}
-        required={workflowsConfig ? workflowsConfig.isRequired : false}
         onChange={input.onChange}
         value={input.value}
       />

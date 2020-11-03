@@ -32,20 +32,34 @@ function parseWorkflow(workflowSlug, workflow, data) {
   }
 }
 
+function getNoWorkflow(data) {
+  return {
+    isDefault: !data.default_workflow,
+    name: 'None',
+    slug: 'none',
+  }
+}
+
 function parseWorkflows(workflowsYaml) {
   const data = yaml(workflowsYaml)
   if (!data) {
     return {
       isRequired: false,
-      workflows: [],
+      workflows: [getNoWorkflow({})],
     }
   }
 
   const { workflows } = data
-  const workflowKeys = Object.keys(workflows)
+
+  const workflowsList = Object.keys(workflows).map((slug) =>
+    parseWorkflow(slug, workflows[slug], data),
+  )
+  // TODO: use const Symbol for None workflow name
+  const noWorkflow = data.is_workflow_required ? null : getNoWorkflow(data)
+
   return {
     isRequired: data.is_workflow_required,
-    workflows: workflowKeys.map((slug) => parseWorkflow(slug, workflows[slug], data)),
+    workflows: noWorkflow ? [noWorkflow, ...workflowsList] : workflowsList,
   }
 }
 
@@ -279,7 +293,7 @@ export const workflowsList = async ({ s3, bucket }) => {
   if (!handle) {
     return {
       isRequired: false,
-      workflows: [],
+      workflows: [getNoWorkflow({})],
     }
   }
 

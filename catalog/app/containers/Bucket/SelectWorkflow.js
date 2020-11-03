@@ -21,14 +21,7 @@ const i18nMsgs = {
   label: 'Select workflow',
 }
 
-export default function SelectWorkflow({
-  className,
-  disabled,
-  items,
-  required,
-  onChange,
-  value,
-}) {
+export default function SelectWorkflow({ className, disabled, items, onChange, value }) {
   const classes = useStyles()
 
   return (
@@ -40,18 +33,6 @@ export default function SelectWorkflow({
           value={value ? value.slug : ''}
           label={i18nMsgs.label}
         >
-          {!required && (
-            <M.MenuItem key="empty" value="empty" onClick={() => onChange(null)} dense>
-              <M.ListItemText
-                classes={{
-                  primary: classes.crop,
-                  secondary: classes.crop,
-                }}
-                primary="No workflow"
-              />
-            </M.MenuItem>
-          )}
-
           {items.map((option) => (
             <M.MenuItem
               key={option.slug}
