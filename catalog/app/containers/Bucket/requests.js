@@ -14,8 +14,6 @@ import yaml from 'utils/yaml'
 
 import * as errors from './errors'
 
-// import { mockedSchemas, mockedWorkflows } from './schema-mocks'
-
 function parseSchema(schemaSlug, schemas) {
   return {
     url: R.path([schemaSlug, 'url'], schemas),
@@ -266,7 +264,6 @@ export const metadataSchema = async ({ s3, bucket, schemaUrl }) => {
   if (!schemaUrl) return null
 
   try {
-    // return Promise.resolve(mockedSchemas[schemaUrl])
     return await s3
       .getObject({
         Bucket: bucket,
@@ -298,7 +295,6 @@ export const workflowsList = async ({ s3, bucket }) => {
   }
 
   try {
-    // return Promise.resolve(parseWorkflows(mockedWorkflows))
     return await s3
       .getObject({
         Bucket: bucket,
