@@ -87,6 +87,14 @@ function MenuForValue({ anchorRef, valueSchema, onMenuSelect, onClose }) {
   )
 }
 
+const useClasses = M.makeStyles((t) => ({
+  root: {
+    '&:focus': {
+      outline: `1px solid ${t.palette.primary.light}`,
+    },
+  },
+}))
+
 export default function Cell({
   column,
   columnPath,
@@ -95,9 +103,12 @@ export default function Cell({
   onMenuAction,
   row,
   updateMyData,
-  value,
+  value: initialValue,
 }) {
+  const classes = useClasses()
+
   const menuAnchorRef = React.useRef(null)
+  const [value, setValue] = React.useState(initialValue)
 
   const isEditable = React.useMemo(
     () => column.id === ColumnIds.Value || value === EmptyValue,
@@ -125,6 +136,7 @@ export default function Cell({
 
   const onChange = React.useCallback(
     (newValue) => {
+      setValue(newValue)
       updateMyData(fieldPath, column.id, newValue)
       setEditing(false)
     },
@@ -138,11 +150,19 @@ export default function Cell({
 
   const onKeyPress = React.useCallback(
     (event) => {
-      if (event.key !== 'Enter') return
+      if (!editing) {
+        event.preventDefault()
+      }
+
       if (!isEditable) return
+      if (event.key.length !== 1 && event.key !== 'Enter') return
+
+      if (event.key.length === 1) {
+        setValue(event.key)
+      }
       setEditing(true)
     },
-    [isEditable, setEditing],
+    [editing, isEditable, setEditing],
   )
 
   const ValueComponent = editing ? Input : Preview
@@ -152,11 +172,12 @@ export default function Cell({
 
   return (
     <div
+      className={classes.root}
+      role="textbox"
+      tabIndex={0}
+      title={isEditable ? 'Click to edit' : ''}
       onDoubleClick={onDoubleClick}
       onKeyPress={onKeyPress}
-      tabIndex={0}
-      role="textbox"
-      title={isEditable ? 'Double click to edit' : ''}
     >
       <ValueComponent
         {...{

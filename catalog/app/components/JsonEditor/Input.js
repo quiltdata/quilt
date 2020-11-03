@@ -1,9 +1,6 @@
 import * as React from 'react'
 import * as R from 'ramda'
-import cx from 'classnames'
-import isNumber from 'lodash/isNumber'
 import isObject from 'lodash/isObject'
-import isString from 'lodash/isString'
 
 import * as M from '@material-ui/core'
 
@@ -19,9 +16,11 @@ const i18nMsgs = {
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    outline: `2px solid ${t.palette.primary.light}`,
     padding: t.spacing(1),
     position: 'relative',
     width: '100%',
+    zIndex: 1,
   },
 }))
 
@@ -87,14 +86,6 @@ export default function Input({
     onChange(value)
   }, [onChange, value])
 
-  React.useLayoutEffect(() => {
-    if (!isString(value) && !isNumber(value)) return
-
-    inputRef.current.setSelectionRange(0, valueStr.length)
-    // NOTE: this effect called once intentionally
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputRef])
-
   const onKeyDown = React.useCallback(
     (event) => {
       switch (event.key) {
@@ -117,10 +108,7 @@ export default function Input({
       endAdornment={
         <ButtonMenu note={<Note {...{ columnId, data, value }} />} onClick={onMenu} />
       }
-      className={cx(classes.root, {
-        [classes.rootKey]: columnId === ColumnIds.Key,
-        [classes.rootValue]: columnId === ColumnIds.Value,
-      })}
+      className={classes.root}
       value={valueStr}
       onChange={onChangeInternal}
       onBlur={onBlur}

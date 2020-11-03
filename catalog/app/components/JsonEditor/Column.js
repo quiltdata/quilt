@@ -1,5 +1,4 @@
 import * as React from 'react'
-import cx from 'classnames'
 import isArray from 'lodash/isArray'
 import { useTable } from 'react-table'
 
@@ -10,7 +9,7 @@ import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
 import Row from './Row'
-import { ColumnIds } from './State'
+import { ColumnIds, EmptyValue } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -21,6 +20,10 @@ const useStyles = M.makeStyles((t) => ({
     '& + $root': {
       marginLeft: -1,
     },
+  },
+
+  tableContainer: {
+    padding: '1px 0', // NOTE: fit 2px border for input
   },
 
   selected: {
@@ -95,13 +98,13 @@ export default function Table({
   )
 
   return (
-    <div className={cx(classes.root)}>
+    <div className={classes.root}>
       {Boolean(columnPath.length) && (
         <Breadcrumbs items={columnPath} onBack={onCollapse} />
       )}
 
       <M.Fade in>
-        <M.TableContainer>
+        <M.TableContainer className={classes.tableContainer}>
           <M.Table aria-label="simple table" {...getTableProps()}>
             <M.TableBody {...getTableBodyProps()}>
               {rows.map((row, index) => {
@@ -109,18 +112,23 @@ export default function Table({
 
                 prepareRow(row)
 
-                return (
-                  <Row
-                    {...row.getRowProps()}
-                    {...{
-                      cells: row.cells,
-                      fresh: isLastRow && hasNewRow,
-                      columnPath,
-                      onExpand,
-                      onMenuAction,
-                    }}
-                  />
-                )
+                const props = {
+                  cells: row.cells,
+                  fresh: isLastRow && hasNewRow,
+                  columnPath,
+                  onExpand,
+                  onMenuAction,
+                }
+
+                if (
+                  row.values &&
+                  row.values[ColumnIds.Key] !== EmptyValue &&
+                  row.values[ColumnIds.Value] !== EmptyValue
+                ) {
+                  props.key = row.values[ColumnIds.Key] + row.values[ColumnIds.Value]
+                }
+
+                return <Row {...row.getRowProps()} {...props} />
               })}
 
               {columnType === 'array' ? (
@@ -129,6 +137,7 @@ export default function Table({
                     columnPath,
                     index: rows.length,
                     onAdd: onAddRowInternal,
+                    key: `add_array_item_${rows.length}`,
                   }}
                 />
               ) : (
@@ -137,6 +146,7 @@ export default function Table({
                     columnPath,
                     onExpand,
                     onAdd: onAddRowInternal,
+                    key: `add_row_${rows.length}`,
                   }}
                 />
               )}
