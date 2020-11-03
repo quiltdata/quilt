@@ -40,6 +40,8 @@ function getNormalizedValue(value, schema) {
         return 0
       case 'object':
         return {}
+      case 'null':
+        return null
       case 'array':
         return []
       // no default

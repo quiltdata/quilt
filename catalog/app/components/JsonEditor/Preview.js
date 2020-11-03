@@ -53,6 +53,10 @@ function formatValuePreview(v) {
     return `{ ${Object.keys(v).join(', ')} }`
   }
 
+  if (v === null) {
+    return 'null'
+  }
+
   return v.toString()
 }
 

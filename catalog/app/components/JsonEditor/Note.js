@@ -2,10 +2,11 @@ import * as R from 'ramda'
 import * as React from 'react'
 import cx from 'classnames'
 import isArray from 'lodash/isArray'
+import isBoolean from 'lodash/isBoolean'
+import isNull from 'lodash/isNull'
 import isNumber from 'lodash/isNumber'
 import isObject from 'lodash/isObject'
 import isString from 'lodash/isString'
-import isBoolean from 'lodash/isBoolean'
 
 import * as M from '@material-ui/core'
 
@@ -42,6 +43,7 @@ function getTypeAnnotationFromValue(value, schema) {
     ],
     [isNumber, () => 'num'],
     [isBoolean, () => 'bool'],
+    [isNull, () => 'null'],
     [R.T, () => 'none'],
   ])(value)
 }
