@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import shutil
+import textwrap
 import time
 import uuid
 import warnings
@@ -51,15 +52,15 @@ from .util import (
 
 def _fix_docstring(**kwargs):
     def f(wrapped):
-        wrapped.__doc__ %= kwargs
+        wrapped.__doc__ = textwrap.dedent(wrapped.__doc__) % kwargs
         return wrapped
     return f
 
 
 _WORKFLOW_PARAM_DOCSTRING = (
     'workflow: workflow ID or `None` to skip workflow validation.\n'
-    '   If not specified, the default workflow will be used.\n'
-    '   For details see: https://docs.quiltdata.com/advanced-usage/workflows\n'
+    '        If not specified, the default workflow will be used.\n'
+    '        For details see: https://docs.quiltdata.com/advanced-usage/workflows\n'
 )
 
 
