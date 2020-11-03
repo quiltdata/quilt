@@ -111,7 +111,7 @@ export default function Cell({
   const [value, setValue] = React.useState(initialValue)
 
   const isEditable = React.useMemo(
-    () => column.id === ColumnIds.Value || value === EmptyValue,
+    () => column.id === ColumnIds.Value || value === EmptyValue || !value,
     [column.id, value],
   )
   const [editing, setEditing] = React.useState(editingInitial)

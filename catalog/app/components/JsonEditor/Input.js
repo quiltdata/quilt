@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as R from 'ramda'
 import isObject from 'lodash/isObject'
+import isString from 'lodash/isString'
 
 import * as M from '@material-ui/core'
 
@@ -85,8 +86,12 @@ export default function Input({
   )
 
   const onBlur = React.useCallback(() => {
-    onChange(value)
-  }, [onChange, value])
+    if (columnId !== ColumnIds.Key || isString(value)) {
+      onChange(value)
+    } else {
+      onChange(JSON.stringify(value))
+    }
+  }, [onChange, columnId, value])
 
   const onKeyDown = React.useCallback(
     (event) => {
