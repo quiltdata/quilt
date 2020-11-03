@@ -738,7 +738,7 @@ async function hashFile(file) {
 
 const useWorkflowInputStyles = M.makeStyles((t) => ({
   root: {
-    marginTop: t.spacing(2),
+    margin: t.spacing(2, 0),
   },
 
   select: {
@@ -749,20 +749,16 @@ const useWorkflowInputStyles = M.makeStyles((t) => ({
 function WorkflowInput({ input, meta, workflowsConfig }) {
   const classes = useWorkflowInputStyles()
 
-  const error = meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
-
-  // eslint-disable-next-line no-nested-ternary
-  const color = disabled ? 'textSecondary' : error ? 'error' : undefined
 
   return (
     <div className={classes.root}>
-      <M.Typography color={color}>Quality Checks</M.Typography>
       <SelectWorkflow
         className={classes.select}
         items={workflowsConfig ? workflowsConfig.workflows : []}
         onChange={input.onChange}
         value={input.value}
+        disabled={disabled}
       />
     </div>
   )

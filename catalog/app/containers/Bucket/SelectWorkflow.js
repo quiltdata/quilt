@@ -18,7 +18,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 const i18nMsgs = {
-  label: 'Select workflow',
+  label: 'Metadata quality workflow',
 }
 
 export default function SelectWorkflow({ className, disabled, items, onChange, value }) {
