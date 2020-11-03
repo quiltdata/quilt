@@ -125,7 +125,9 @@ export default function Table({
                   row.values[ColumnIds.Key] !== EmptyValue &&
                   row.values[ColumnIds.Value] !== EmptyValue
                 ) {
-                  props.key = row.values[ColumnIds.Key] + row.values[ColumnIds.Value]
+                  const key = row.values[ColumnIds.Key]
+                  const value = row.values[ColumnIds.Value]
+                  props.key = `${columnPath}_key_${key}+value_${value}`
                 }
 
                 return <Row {...row.getRowProps()} {...props} />
