@@ -24,9 +24,11 @@ const i18nMsgs = {
 export default function SelectWorkflow({ className, disabled, items, onChange, value }) {
   const classes = useStyles()
 
+  const noChoice = items.length === 1
+
   return (
     <div className={cx(classes.root, className)}>
-      <M.FormControl disabled={disabled} fullWidth size="small">
+      <M.FormControl disabled={disabled || noChoice} fullWidth size="small">
         <M.InputLabel id="schema-select">{i18nMsgs.label}</M.InputLabel>
         <M.Select
           labelId="schema-select"
