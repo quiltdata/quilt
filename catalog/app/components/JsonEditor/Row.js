@@ -13,12 +13,12 @@ const useStyles = M.makeStyles((t) => ({
   },
 
   cell: {
-    border: `1px solid ${t.palette.divider}`,
+    border: `1px solid ${t.palette.grey[400]}`,
     padding: 0,
   },
 
   key: {
-    borderRight: `1px solid ${t.palette.divider}`,
+    borderRight: `1px solid ${t.palette.grey[400]}`,
     width: t.spacing(20),
   },
 

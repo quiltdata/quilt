@@ -23,10 +23,6 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     width: '100%',
   },
-
-  rootKey: {
-    borderRight: `1px solid ${t.palette.divider}`,
-  },
 }))
 
 function getNormalizedValue(value, schema) {

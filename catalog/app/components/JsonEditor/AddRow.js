@@ -7,13 +7,13 @@ import { Actions, ColumnIds, EmptyValue } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   inputCell: {
-    border: `1px solid ${t.palette.divider}`,
+    border: `1px solid ${t.palette.grey[400]}`,
     padding: 0,
     width: t.spacing(20),
   },
 
   emptyCell: {
-    border: `1px solid ${t.palette.divider}`,
+    border: `1px solid ${t.palette.grey[400]}`,
     width: t.spacing(36),
   },
 }))
