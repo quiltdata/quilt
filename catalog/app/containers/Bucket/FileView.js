@@ -80,7 +80,7 @@ export function ZipDownloadForm({ suffix, label }) {
   return (
     <form action={action} target="_blank" method="POST" style={{ flexShrink: 0 }}>
       <input type="hidden" name="token" value={token} />
-      <DownloadButtonLayout label={label} icon="arrow_downward" type="submit" />
+      <DownloadButtonLayout label={label} icon="archive" type="submit" />
     </form>
   )
 }

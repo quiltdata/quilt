@@ -243,7 +243,7 @@ function TopBar({ crumbs, children }) {
 
 function DirDisplay({ bucket, name, revision, path, crumbs }) {
   const s3 = AWS.S3.use()
-  const { apiGatewayEndpoint: endpoint } = Config.use()
+  const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
   const credentials = AWS.Credentials.use()
   const { urls } = NamedRoutes.use()
   const intercom = Intercom.use()
@@ -302,15 +302,16 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
       return (
         <>
           <TopBar crumbs={crumbs}>
-            {hashData.case({
-              Ok: ({ hash }) => (
-                <FileView.ZipDownloadForm
-                  label="Download package as .zip"
-                  suffix={`package/${bucket}/${name}/${hash}`}
-                />
-              ),
-              _: () => null,
-            })}
+            {!noDownload &&
+              hashData.case({
+                Ok: ({ hash }) => (
+                  <FileView.ZipDownloadForm
+                    label="Download package"
+                    suffix={`package/${bucket}/${name}/${hash}`}
+                  />
+                ),
+                _: () => null,
+              })}
           </TopBar>
           <PkgCode {...{ data: hashData, bucket, name, revision, path }} />
           <FileView.Meta data={AsyncResult.Ok(meta)} />
