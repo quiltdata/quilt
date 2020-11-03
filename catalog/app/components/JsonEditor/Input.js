@@ -96,8 +96,11 @@ export default function Input({
   const onKeyDown = React.useCallback(
     (event) => {
       switch (event.key) {
+        case 'Escape':
+          event.stopPropagation() // Don't catch by MUI.Dialog
+          break
         case 'Enter':
-          event.preventDefault()
+          event.preventDefault() // Don't catch by form's onSubmit
           onBlur()
           break
         // no default
