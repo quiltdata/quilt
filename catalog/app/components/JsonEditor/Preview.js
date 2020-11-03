@@ -26,11 +26,13 @@ const useStyles = M.makeStyles((t) => ({
   value: {
     flexGrow: 1,
     fontSize: '1rem',
+    height: t.spacing(6),
+    lineHeight: `${t.spacing(6) - 2}px`,
     marginRight: t.spacing(1),
+    maxWidth: t.spacing(35),
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    maxWidth: t.spacing(35),
   },
 
   required: {
@@ -70,6 +72,7 @@ export default function Preview({
   columnId,
   data, // NOTE: row.original
   menuAnchorRef,
+  title,
   value,
   onExpand,
   onMenu,
@@ -82,7 +85,7 @@ export default function Preview({
     <div className={classes.root}>
       {isExpandable(value, data.valueSchema) && <ButtonExpand onClick={onExpand} />}
 
-      <div className={classes.value}>
+      <div className={classes.value} title={title}>
         <span
           className={cx(classes.valueInner, {
             [classes.required]: requiredKey,

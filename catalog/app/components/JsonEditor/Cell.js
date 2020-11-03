@@ -175,18 +175,18 @@ export default function Cell({
       className={classes.root}
       role="textbox"
       tabIndex={0}
-      title={isEditable ? 'Click to edit' : ''}
       onDoubleClick={onDoubleClick}
       onKeyPress={onKeyPress}
     >
       <ValueComponent
         {...{
-          menuAnchorRef,
           columnId: column.id,
+          data: row.original || {},
+          menuAnchorRef,
           onChange,
           onExpand: () => onExpand(fieldPath),
           onMenu: onMenuOpen,
-          data: row.original || {},
+          title: isEditable ? 'Click to edit' : '',
           value,
         }}
       />
