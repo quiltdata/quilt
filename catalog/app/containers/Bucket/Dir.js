@@ -9,12 +9,14 @@ import * as M from '@material-ui/core'
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
 
 import Code from './Code'
+import * as FileView from './FileView'
 import { ListingItem, ListingWithPrefixFiltering } from './Listing'
 import Summary from './Summary'
 import { displayError } from './errors'
@@ -80,6 +82,7 @@ export default function Dir({
 }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
+  const { noDownload } = Config.use()
   const history = useHistory()
   const s3 = AWS.S3.use()
   const { prefix } = parseSearch(l.search)
@@ -135,6 +138,12 @@ export default function Dir({
           {renderCrumbs(getCrumbs({ bucket, path, urls }))}
         </div>
         <M.Box flexGrow={1} />
+        {!noDownload && (
+          <FileView.ZipDownloadForm
+            suffix={`dir/${bucket}/${path}`}
+            label="Download directory"
+          />
+        )}
       </M.Box>
 
       <Code gutterBottom>{code}</Code>

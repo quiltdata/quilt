@@ -213,6 +213,7 @@ const useTopBarStyles = M.makeStyles((t) => ({
     alignItems: 'flex-end',
     display: 'flex',
     marginBottom: t.spacing(2),
+    marginTop: t.spacing(0.5),
   },
   crumbs: {
     ...t.typography.body1,
@@ -242,7 +243,7 @@ function TopBar({ crumbs, children }) {
 
 function DirDisplay({ bucket, name, revision, path, crumbs }) {
   const s3 = AWS.S3.use()
-  const { apiGatewayEndpoint: endpoint } = Config.use()
+  const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
   const credentials = AWS.Credentials.use()
   const { urls } = NamedRoutes.use()
   const intercom = Intercom.use()
@@ -300,7 +301,18 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
       }))
       return (
         <>
-          <TopBar crumbs={crumbs} />
+          <TopBar crumbs={crumbs}>
+            {!noDownload &&
+              hashData.case({
+                Ok: ({ hash }) => (
+                  <FileView.ZipDownloadForm
+                    label="Download package"
+                    suffix={`package/${bucket}/${name}/${hash}`}
+                  />
+                ),
+                _: () => null,
+              })}
+          </TopBar>
           <PkgCode {...{ data: hashData, bucket, name, revision, path }} />
           <FileView.Meta data={AsyncResult.Ok(meta)} />
           <M.Box mt={2}>
@@ -472,8 +484,7 @@ export default function PackageTree({
   const isDir = s3paths.isDir(path)
 
   const crumbs = React.useMemo(() => {
-    const segments = s3paths.getBreadCrumbs(path)
-    if (path !== '') segments.unshift({ label: 'ROOT', path: '' })
+    const segments = [{ label: 'ROOT', path: '' }, ...s3paths.getBreadCrumbs(path)]
     return R.intersperse(
       Crumb.Sep(<>&nbsp;/ </>),
       segments.map(({ label, path: segPath }) =>
