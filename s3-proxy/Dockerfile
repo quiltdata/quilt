@@ -71,6 +71,8 @@ RUN set -x \
     && apt-get remove -y curl git gcc make libssl-dev libpcre3-dev zlib1g-dev \
     && apt-get autoremove -y
 
+RUN cat /etc/ssl/certs/*.pem > /etc/nginx/certs.pem
+
 RUN mkdir /var/cache/nginx/
 COPY nginx.conf /root/nginx.conf.tmpl
 COPY run-nginx.sh /root/run-nginx.sh
