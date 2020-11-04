@@ -898,6 +898,11 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
+      if (e.message) {
+        return {
+          [FORM_ERROR]: e.message,
+        }
+      }
       // TODO: handle specific cases?
       return Errors.PACKAGE_CREATION
     }
