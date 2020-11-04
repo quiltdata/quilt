@@ -1,5 +1,4 @@
 import * as React from 'react'
-
 import * as M from '@material-ui/core'
 
 import Cell from './Cell'

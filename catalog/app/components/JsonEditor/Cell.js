@@ -1,5 +1,4 @@
 import * as React from 'react'
-
 import * as M from '@material-ui/core'
 
 import { isSchemaEnum } from 'utils/json-schema'

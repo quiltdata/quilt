@@ -1,7 +1,6 @@
 import * as React from 'react'
-
-import * as Lab from '@material-ui/lab'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 const useStyles = M.makeStyles((t) => ({
   code: {

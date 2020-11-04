@@ -1,9 +1,9 @@
-import * as R from 'ramda'
-import * as React from 'react'
 import Ajv from 'ajv'
 import isArray from 'lodash/isArray'
 import isUndefined from 'lodash/isUndefined'
 import toNumber from 'lodash/toNumber'
+import * as R from 'ramda'
+import * as React from 'react'
 
 export const ColumnIds = {
   Key: 'key',

@@ -1,6 +1,5 @@
 import * as R from 'ramda'
 import * as React from 'react'
-
 import * as M from '@material-ui/core'
 
 import Column from './Column'

@@ -1,8 +1,7 @@
-import * as React from 'react'
-import * as R from 'ramda'
 import isObject from 'lodash/isObject'
 import isString from 'lodash/isString'
-
+import * as R from 'ramda'
+import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import ButtonExpand from './ButtonExpand'

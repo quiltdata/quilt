@@ -1,5 +1,3 @@
-import * as R from 'ramda'
-import * as React from 'react'
 import cx from 'classnames'
 import isArray from 'lodash/isArray'
 import isBoolean from 'lodash/isBoolean'
@@ -7,7 +5,8 @@ import isNull from 'lodash/isNull'
 import isNumber from 'lodash/isNumber'
 import isObject from 'lodash/isObject'
 import isString from 'lodash/isString'
-
+import * as R from 'ramda'
+import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { doesTypeMatchToSchema, schemaTypetoHumanString } from 'utils/json-schema'

@@ -1,7 +1,6 @@
-import * as React from 'react'
 import isArray from 'lodash/isArray'
+import * as React from 'react'
 import { useTable } from 'react-table'
-
 import * as M from '@material-ui/core'
 
 import AddArrayItem from './AddArrayItem'

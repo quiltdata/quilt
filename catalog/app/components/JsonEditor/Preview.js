@@ -1,9 +1,8 @@
-import * as React from 'react'
 import cx from 'classnames'
 import isArray from 'lodash/isArray'
 import isObject from 'lodash/isObject'
 import isUndefined from 'lodash/isUndefined'
-
+import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { isNestedType } from 'utils/json-schema'
