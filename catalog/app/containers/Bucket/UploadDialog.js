@@ -959,6 +959,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                     label="Name"
                     placeholder="Enter a package name"
                     validate={validators.composeAsync(validators.required, validateName)}
+                    validateFields={['name']}
                     errors={{
                       required: 'Enter a package name',
                       invalid: 'Invalid package name',
@@ -973,6 +974,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                     label="Commit message"
                     placeholder="Enter a commit message"
                     validate={validators.required}
+                    validateFields={['msg']}
                     errors={{
                       required: 'Enter a commit message',
                     }}
@@ -984,6 +986,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                     component={FilesInput}
                     name="files"
                     validate={validators.nonEmpty}
+                    validateFields={['files']}
                     errors={{
                       nonEmpty: 'Add files to create a package',
                     }}
@@ -1008,6 +1011,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                           name="meta"
                           schema={newSchema}
                           validate={validateMeta}
+                          validateFields={['meta']}
                           isEqual={R.equals}
                         />
                       ),
@@ -1017,6 +1021,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                           bucket={bucket}
                           name="meta"
                           validate={validateMeta}
+                          validateFields={['meta']}
                           isEqual={R.equals}
                         />
                       ),
@@ -1034,6 +1039,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                           : null
                       }
                       name="workflow"
+                      validateFields={['meta', 'workflow']}
                     />
                   )}
 
