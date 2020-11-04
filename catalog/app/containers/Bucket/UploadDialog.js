@@ -394,15 +394,15 @@ function getMetaValue(value) {
   )
 }
 
-function validateMeta(value) {
+function validateMeta(schema, value) {
   // TODO: move schema validation to utils/validators
   //       but don't forget that validation depends on library.
   //       Maybe we should split validators to files at first
   const noError = undefined
 
-  if (value && value.schema) {
+  if (schema) {
     const obj = value ? parseJSON(value.text) : {}
-    const errors = validateOnSchema(obj, value.schema)
+    const errors = validateOnSchema(obj, schema)
     if (!errors.length) {
       return noError
     }
@@ -477,7 +477,6 @@ function MetaInput({ input, meta, schema }) {
   const value = input.value || {
     fields: [EMPTY_FIELD],
     mode: 'kv',
-    schema: null,
     text: '{}',
   }
   const error = meta.submitFailed && meta.error
@@ -1010,7 +1009,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                           bucket={bucket}
                           name="meta"
                           schema={newSchema}
-                          validate={validateMeta}
+                          validate={(...params) => validateMeta(newSchema, ...params)}
                           validateFields={['meta']}
                           isEqual={R.equals}
                         />
@@ -1020,7 +1019,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                           component={MetaInput}
                           bucket={bucket}
                           name="meta"
-                          validate={validateMeta}
+                          validate={(...params) => validateMeta(null, ...params)}
                           validateFields={['meta']}
                           isEqual={R.equals}
                         />
