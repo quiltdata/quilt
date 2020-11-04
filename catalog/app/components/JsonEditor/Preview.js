@@ -76,6 +76,7 @@ function isExpandable(value, schema) {
 export default function Preview({
   columnId,
   data, // NOTE: row.original
+  hasMenu,
   menuAnchorRef,
   placeholder,
   title,
@@ -106,8 +107,7 @@ export default function Preview({
         ref={menuAnchorRef}
         className={classes.menu}
         note={<Note {...{ columnId, data, value }} />}
-        columnId={columnId}
-        valueSchema={data.valueSchema}
+        hasMenu={hasMenu}
         onClick={onMenu}
       />
     </div>

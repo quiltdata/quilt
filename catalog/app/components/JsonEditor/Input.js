@@ -61,6 +61,7 @@ export default function Input({
   columnId,
   data,
   fieldPath,
+  hasMenu,
   placeholder,
   onChange,
   onExpand,
@@ -114,7 +115,11 @@ export default function Input({
         isObject(originalValue) && <ButtonExpand onClick={() => onExpand(fieldPath)} />
       }
       endAdornment={
-        <ButtonMenu note={<Note {...{ columnId, data, value }} />} onClick={onMenu} />
+        <ButtonMenu
+          hasMenu={hasMenu}
+          note={<Note {...{ columnId, data, value }} />}
+          onClick={onMenu}
+        />
       }
       className={classes.root}
       value={valueStr}

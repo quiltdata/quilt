@@ -3,10 +3,6 @@ import cx from 'classnames'
 
 import * as M from '@material-ui/core'
 
-import { isSchemaEnum } from 'utils/json-schema'
-
-import { ColumnIds } from './State'
-
 const useStyles = M.makeStyles((t) => ({
   root: {
     color: t.palette.divider,
@@ -29,10 +25,8 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function ButtonMenu({ className, columnId, note, valueSchema, onClick }, ref) {
+function ButtonMenu({ className, hasMenu, note, onClick }, ref) {
   const classes = useStyles()
-
-  const hasMenu = isSchemaEnum(valueSchema) || columnId === ColumnIds.Key
 
   const onClickInternal = React.useCallback(
     (event) => {

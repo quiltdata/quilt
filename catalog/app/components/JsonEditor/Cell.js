@@ -43,7 +43,7 @@ function CellMenu({ anchorRef, menu, onClose, onClick }) {
   )
 }
 
-function MenuForKey({ anchorRef, required, value, onMenuSelect, onClose }) {
+function getMenuForKey({ required, value }) {
   const actionsOptions = [
     {
       action: Actions.RemoveField,
@@ -54,20 +54,13 @@ function MenuForKey({ anchorRef, required, value, onMenuSelect, onClose }) {
     key: 'actions',
     options: actionsOptions,
   }
-  const menu = required || value === EmptyValue ? [] : [actionsSubmenu]
-  return (
-    <CellMenu
-      {...{
-        anchorRef,
-        menu,
-        onClick: onMenuSelect,
-        onClose,
-      }}
-    />
-  )
+  if (required || value === EmptyValue) {
+    return []
+  }
+  return [actionsSubmenu]
 }
 
-function MenuForValue({ anchorRef, valueSchema, onMenuSelect, onClose }) {
+function getMenuForValue({ valueSchema }) {
   const enumOptions = isSchemaEnum(valueSchema)
     ? valueSchema.enum.map((title) => ({
         action: Actions.SelectEnum,
@@ -79,17 +72,7 @@ function MenuForValue({ anchorRef, valueSchema, onMenuSelect, onClose }) {
     key: 'enum',
     options: enumOptions,
   }
-  const menu = [enumSubmenu]
-  return (
-    <CellMenu
-      {...{
-        anchorRef,
-        menu,
-        onClick: onMenuSelect,
-        onClose,
-      }}
-    />
-  )
+  return enumOptions.length ? [enumSubmenu] : []
 }
 
 const useClasses = M.makeStyles((t) => ({
@@ -172,8 +155,33 @@ export default function Cell({
 
   const ValueComponent = editing ? Input : Preview
 
-  const hasKeyMenu = menuOpened && column.id === ColumnIds.Key
-  const hasValueMenu = menuOpened && column.id === ColumnIds.Value
+  const isKeyCell = column.id === ColumnIds.Key
+  const isValueCell = column.id === ColumnIds.Value
+  const keyMenuOpened = menuOpened && isKeyCell
+  const valueMenuOpened = menuOpened && isValueCell
+
+  const menuForKey = React.useMemo(
+    () =>
+      getMenuForKey({
+        required: row.original ? row.original.required : false,
+        value: key,
+      }),
+    [row, key],
+  )
+
+  const menuForValue = React.useMemo(
+    () =>
+      getMenuForValue({
+        valueSchema: row.original ? row.original.valueSchema : undefined,
+      }),
+    [row],
+  )
+
+  const hasMenu = React.useMemo(
+    () =>
+      Boolean((menuForKey.length && isKeyCell) || (menuForValue.length && isValueCell)),
+    [isKeyCell, isValueCell, menuForKey, menuForValue],
+  )
 
   return (
     <div
@@ -187,6 +195,7 @@ export default function Cell({
         {...{
           columnId: column.id,
           data: row.original || {},
+          hasMenu,
           menuAnchorRef,
           placeholder: {
             [ColumnIds.Key]: i18nMsgs.key,
@@ -200,24 +209,23 @@ export default function Cell({
         }}
       />
 
-      {hasKeyMenu && (
-        <MenuForKey
+      {keyMenuOpened && menuForKey.length ? (
+        <CellMenu
           anchorRef={menuAnchorRef}
+          menu={menuForKey}
+          onClick={onMenuSelect}
           onClose={closeMenu}
-          onMenuSelect={onMenuSelect}
-          required={row.original ? row.original.required : false}
-          value={value}
         />
-      )}
+      ) : null}
 
-      {hasValueMenu && (
-        <MenuForValue
+      {valueMenuOpened && menuForValue.length ? (
+        <CellMenu
           anchorRef={menuAnchorRef}
-          valueSchema={row.original ? row.original.valueSchema : undefined}
-          onMenuSelect={onMenuSelect}
+          menu={menuForValue}
+          onClick={onMenuSelect}
           onClose={closeMenu}
         />
-      )}
+      ) : null}
     </div>
   )
 }

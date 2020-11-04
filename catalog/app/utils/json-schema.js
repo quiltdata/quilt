@@ -14,7 +14,7 @@ function isSchemaObject(optSchema) {
 }
 
 function isSchemaString(optSchema) {
-  return R.prop('type', optSchema) === 'string'
+  return R.prop('type', optSchema) === 'string' && !isSchemaEnum(optSchema)
 }
 
 function isSchemaNumber(optSchema) {
