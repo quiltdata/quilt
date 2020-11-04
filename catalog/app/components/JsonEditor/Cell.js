@@ -12,27 +12,23 @@ function CellMenu({ anchorEl, menu, onClose, onClick }) {
 
   return (
     <M.Menu anchorEl={anchorEl} onClose={onClose} open>
-      {menu.map((subList) =>
-        subList.key === 'divider' ? (
-          <M.Divider key={subList.key} />
-        ) : (
-          <M.List
-            subheader={
-              subList.header && <M.ListSubheader>{subList.header}</M.ListSubheader>
-            }
-            key={subList.key}
-          >
-            {subList.options.map((item) => (
-              <M.MenuItem
-                key={`${item.action}_${item.title}`}
-                onClick={() => onClick(item)}
-              >
-                <M.ListItemText primary={item.title} />
-              </M.MenuItem>
-            ))}
-          </M.List>
-        ),
-      )}
+      {menu.map((subList) => (
+        <M.List
+          subheader={
+            subList.header && <M.ListSubheader>{subList.header}</M.ListSubheader>
+          }
+          key={subList.key}
+        >
+          {subList.options.map((item) => (
+            <M.MenuItem
+              key={`${item.action}_${item.title}`}
+              onClick={() => onClick(item)}
+            >
+              <M.ListItemText primary={item.title} />
+            </M.MenuItem>
+          ))}
+        </M.List>
+      ))}
     </M.Menu>
   )
 }
