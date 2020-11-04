@@ -807,7 +807,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
   // }
 
   // eslint-disable-next-line consistent-return
-  const uploadPackage = async ({ name, msg, files, meta }) => {
+  const uploadPackage = async ({ name, msg, files, meta, workflow }) => {
     const limit = pLimit(2)
     let rejected = false
     const uploadStates = files.map(({ path, file }) => {
@@ -886,6 +886,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
           message: msg,
           contents,
           meta: getMetaValue(meta),
+          workflow: workflow.slug !== 'none' ? workflow.slug : null,
         },
       })
       if (refresh) {
