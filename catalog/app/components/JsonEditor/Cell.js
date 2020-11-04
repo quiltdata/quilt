@@ -7,11 +7,11 @@ import Input from './Input'
 import Preview from './Preview'
 import { Actions, ColumnIds, EmptyValue } from './State'
 
-function CellMenu({ anchorRef, menu, onClose, onClick }) {
+function CellMenu({ anchorEl, menu, onClose, onClick }) {
   if (!menu.length) return null
 
   return (
-    <M.Menu anchorEl={anchorRef.current} onClose={onClose} open>
+    <M.Menu anchorEl={anchorEl} onClose={onClose} open>
       {menu.map((subList) =>
         subList.key === 'divider' ? (
           <M.Divider key={subList.key} />
@@ -91,6 +91,11 @@ export default function Cell({
 
   const menuAnchorRef = React.useRef(null)
   const [value, setValue] = React.useState(initialValue)
+
+  const [menuAnchorEl, setMenuAnchorEl] = React.useState(null)
+  React.useLayoutEffect(() => {
+    setMenuAnchorEl(menuAnchorRef.current)
+  }, [menuAnchorRef])
 
   const isEditable = React.useMemo(
     () => column.id === ColumnIds.Value || value === EmptyValue || !value,
@@ -205,7 +210,7 @@ export default function Cell({
 
       {keyMenuOpened && menuForKey.length ? (
         <CellMenu
-          anchorRef={menuAnchorRef}
+          anchorEl={menuAnchorEl}
           menu={menuForKey}
           onClick={onMenuSelect}
           onClose={closeMenu}
@@ -214,7 +219,7 @@ export default function Cell({
 
       {valueMenuOpened && menuForValue.length ? (
         <CellMenu
-          anchorRef={menuAnchorRef}
+          anchorEl={menuAnchorEl}
           menu={menuForValue}
           onClick={onMenuSelect}
           onClose={closeMenu}
