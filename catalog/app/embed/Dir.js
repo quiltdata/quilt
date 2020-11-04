@@ -4,19 +4,19 @@ import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useHistory } from 'react-router-dom'
-import { useDebouncedCallback } from 'use-debounce'
 import * as M from '@material-ui/core'
 
 import { copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
-import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import AsyncResult from 'utils/AsyncResult'
+import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
-import usePrevious from 'utils/usePrevious'
 
 import Code from 'containers/Bucket/Code'
+import * as FileView from 'containers/Bucket/FileView'
 import { ListingItem, ListingWithPrefixFiltering } from 'containers/Bucket/Listing'
 import Summary from 'containers/Bucket/Summary'
 import { displayError } from 'containers/Bucket/errors'
@@ -32,12 +32,13 @@ const formatListing = ({ urls, scope }, r) => {
       to: urls.bucketDir(r.bucket, name),
     }),
   )
-  const files = r.files.map(({ key, size, modified }) =>
+  const files = r.files.map(({ key, size, modified, archived }) =>
     ListingItem.File({
       name: basename(key),
       to: urls.bucketFile(r.bucket, key),
       size,
       modified,
+      archived,
     }),
   )
   const items = [...dirs, ...files]
@@ -68,6 +69,7 @@ export default function Dir({
   location: l,
 }) {
   const cfg = EmbedConfig.use()
+  const { noDownload } = Config.use()
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
@@ -111,31 +113,12 @@ export default function Dir({
     prefix,
   })
 
-  const [prefixValue, setPrefixValue] = React.useState(prefix || '')
-
   const setPrefix = React.useCallback(
     (newPrefix) => {
       history.push(urls.bucketDir(bucket, path, newPrefix))
     },
     [history, urls, bucket, path],
   )
-
-  const [setPrefixDebounced, , commitPrefixChange] = useDebouncedCallback(setPrefix, 300)
-
-  const changePrefixValue = React.useCallback(
-    (newPrefix) => {
-      setPrefixValue(newPrefix)
-      setPrefixDebounced(newPrefix)
-    },
-    [setPrefixValue, setPrefixDebounced],
-  )
-
-  // sync prefix from querystring to input value
-  usePrevious({ prefix }, (prev) => {
-    if (prev && prev.prefix !== prefix) {
-      setPrefixValue(prefix || '')
-    }
-  })
 
   return (
     <M.Box pt={2} pb={4}>
@@ -144,6 +127,12 @@ export default function Dir({
           {renderCrumbs(getCrumbs({ bucket, path, urls, scope: cfg.scope }))}
         </div>
         <M.Box flexGrow={1} />
+        {!noDownload && (
+          <FileView.ZipDownloadForm
+            suffix={`dir/${bucket}/${path}`}
+            label="Download directory"
+          />
+        )}
       </M.Box>
 
       {!cfg.hideCode && <Code gutterBottom>{code}</Code>}
@@ -177,9 +166,9 @@ export default function Dir({
                 locked={locked}
                 truncated={res.truncated}
                 prefix={res.prefix}
-                prefixValue={prefixValue}
-                changePrefixValue={changePrefixValue}
-                commitPrefixChange={commitPrefixChange}
+                setPrefix={setPrefix}
+                bucket={res.bucket}
+                path={res.path}
               />
               <Summary files={res.files} />
             </>

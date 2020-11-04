@@ -29,6 +29,7 @@ export function copyWithoutSpaces(e) {
       .getSelection()
       .toString()
       .replace('<EMPTY>', '')
+      .replace('ROOT', '')
       .replace(/\s*\/\s*/g, '/'),
   )
   e.preventDefault()

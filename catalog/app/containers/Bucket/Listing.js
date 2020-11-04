@@ -108,20 +108,25 @@ const useHeaderStyles = M.makeStyles((t) => ({
   checkboxLabel: {
     ...t.typography.body2,
   },
-  clear: {
+  btn: {
     fontSize: 11,
     lineHeight: '22px',
+    minWidth: 'auto',
     paddingBottom: 0,
     paddingTop: 2,
+  },
+  btnMargin: {
+    marginLeft: t.spacing(0.75),
   },
   clearIcon: {
     fontSize: '16px !important',
     lineHeight: '15px',
     marginLeft: -4,
   },
-  clearIconBtn: {
-    position: 'absolute',
-    right: -28,
+  clearIconText: {
+    fontSize: '16px !important',
+    lineHeight: '15px',
+    marginLeft: -6,
   },
   searchIcon: {
     fontSize: 20,
@@ -142,32 +147,51 @@ const useHeaderStyles = M.makeStyles((t) => ({
   },
 }))
 
-function HeaderWithPrefixFiltering({
-  items,
-  truncated,
-  prefixValue,
-  changePrefixValue,
-  commitPrefixChange,
-}) {
+function HeaderWithPrefixFiltering({ items, truncated, prefix, setPrefix }) {
   const classes = useHeaderStyles()
   const stats = React.useMemo(() => computeStats(items), [items])
   const inputRef = React.useRef()
+  const [prefixValue, setPrefixValue] = React.useState(prefix)
+
+  const blur = React.useCallback(() => {
+    if (inputRef.current && inputRef.current.blur) inputRef.current.blur()
+  }, [inputRef])
+
+  const apply = React.useCallback(() => {
+    if (prefix === prefixValue) return
+    setPrefix(prefixValue)
+  }, [prefix, prefixValue, setPrefix])
+
+  const clear = React.useCallback(() => {
+    if (prefixValue) setPrefixValue('')
+    if (prefix) setPrefix('')
+  }, [prefix, prefixValue, setPrefix, setPrefixValue])
+
   const handleKeyDown = React.useCallback(
     (e) => {
       if (e.key === 'Escape') {
-        changePrefixValue('')
-        commitPrefixChange()
-        if (inputRef.current && inputRef.current.blur) inputRef.current.blur()
+        clear()
+        blur()
+      } else if (e.key === 'Enter') {
+        apply()
+        blur()
       }
     },
-    [changePrefixValue, commitPrefixChange, inputRef],
+    [blur, apply, clear],
+  )
+
+  const handleChange = React.useCallback(
+    (e) => {
+      setPrefixValue(e.target.value)
+    },
+    [setPrefixValue],
   )
 
   return (
     <div className={classes.root}>
       <M.InputBase
         value={prefixValue}
-        onChange={(e) => changePrefixValue(e.target.value)}
+        onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder="Filter current directory by prefix"
         classes={{ input: classes.input }}
@@ -175,18 +199,29 @@ function HeaderWithPrefixFiltering({
         inputRef={inputRef}
         startAdornment={<M.Icon className={classes.searchIcon}>search</M.Icon>}
         endAdornment={
-          <M.Fade in={!!prefixValue}>
-            <M.IconButton
-              className={classes.clearIconBtn}
+          <>
+            <M.Button
+              className={cx(classes.btn, classes.btnMargin)}
               size="small"
-              onClick={() => {
-                changePrefixValue('')
-                commitPrefixChange()
-              }}
+              variant="contained"
+              color="primary"
+              onClick={apply}
             >
-              <M.Icon>clear</M.Icon>
-            </M.IconButton>
-          </M.Fade>
+              Filter
+            </M.Button>
+            {(!!prefixValue || !!prefix) && (
+              <M.Button
+                className={cx(classes.btn, classes.btnMargin)}
+                size="small"
+                variant="text"
+                color="primary"
+                onClick={clear}
+                endIcon={<M.Icon className={classes.clearIconText}>clear</M.Icon>}
+              >
+                Clear
+              </M.Button>
+            )}
+          </>
         }
       />
       <span className={classes.spacer} />
@@ -263,7 +298,7 @@ function HeaderWithLocalFiltering({
             />
             {!!filtering.input.value && (
               <M.Button
-                className={classes.clear}
+                className={classes.btn}
                 size="small"
                 variant="contained"
                 color="primary"
@@ -345,9 +380,9 @@ export function ListingWithPrefixFiltering({
   truncated = false,
   locked = false,
   prefix = '',
-  prefixValue,
-  changePrefixValue,
-  commitPrefixChange,
+  setPrefix,
+  bucket,
+  path,
 }) {
   const classes = useListingStyles()
 
@@ -381,13 +416,8 @@ export function ListingWithPrefixFiltering({
         ) : (
           <>
             <HeaderWithPrefixFiltering
-              {...{
-                items,
-                prefixValue,
-                changePrefixValue,
-                commitPrefixChange,
-                truncated,
-              }}
+              key={`${bucket}/${path}`}
+              {...{ items, truncated, prefix, setPrefix }}
             />
             <div ref={scrollRef} />
             {!items.length && (

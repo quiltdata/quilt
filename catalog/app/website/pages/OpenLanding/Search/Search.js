@@ -2,14 +2,12 @@ import { push } from 'connected-react-router/esm/immutable'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
+import { fade } from '@material-ui/core/styles'
 
-import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import img2x from 'utils/img2x'
 
-import SearchHelp from 'containers/NavBar/Help'
 import Dots from 'website/components/Backgrounds/Dots'
 
 import bg from './search-bg.png'
@@ -32,24 +30,6 @@ const useStyles = M.makeStyles((t) => ({
       top: 0,
     },
   },
-  help: {
-    maxHeight: '490px',
-    overflowY: 'auto',
-    padding: t.spacing(0, 2),
-
-    [t.breakpoints.down('xs')]: {
-      maxHeight: '400px',
-      padding: t.spacing(0, 2),
-    },
-  },
-  helpWrapper: {
-    borderRadius: t.spacing(0.5),
-    marginTop: t.spacing(8),
-    maxWidth: 690,
-    position: 'absolute',
-    width: '100%',
-    zIndex: 1,
-  },
   inner: {
     alignItems: 'center',
     display: 'flex',
@@ -68,40 +48,34 @@ const useStyles = M.makeStyles((t) => ({
     fontSize: t.typography.pxToRem(20),
     lineHeight: t.typography.pxToRem(60),
     maxWidth: 750,
-    overflow: 'hidden',
-    paddingLeft: 0,
     width: '100%',
   },
   inputInput: {
     height: 'auto',
     paddingBottom: 0,
-    paddingLeft: t.spacing(15),
+    paddingLeft: t.spacing(9),
     paddingRight: t.spacing(4),
     paddingTop: 0,
   },
-  inputOptions: {
-    borderColor: t.palette.grey[300],
-    borderRadius: 0,
-    borderWidth: '0 1px 0 0',
+  adornment: {
     color: t.palette.grey[600],
-    paddingBottom: t.spacing(1.5),
-    paddingLeft: t.spacing(3),
-    paddingRight: t.spacing(1.5),
-    paddingTop: t.spacing(1.5),
-  },
-  inputOptionsSelected: {
-    boxShadow: 'inset -1px 0 4px rgba(0, 0, 0, 0.2)',
-  },
-  inputWrapper: {
-    display: 'flex',
     justifyContent: 'center',
+    left: t.spacing(3),
+    pointerEvents: 'none',
+    position: 'absolute',
+  },
+  hintContainer: {
+    maxWidth: 750,
+    position: 'relative',
     width: '100%',
   },
-  adornment: {
-    justifyContent: 'center',
+  hint: {
+    ...t.typography.body2,
+    color: fade(t.palette.common.white, 0.6),
+    lineHeight: 1,
     position: 'absolute',
-    height: 'auto',
-    maxHeight: '100%',
+    right: 30,
+    top: 12,
   },
   stats: {
     display: 'flex',
@@ -149,22 +123,10 @@ export default function Search() {
   const bucketCount = BucketConfig.useRelevantBucketConfigs().length
 
   const [value, change] = React.useState('')
-  const [helpOpened, setHelpOpened] = React.useState(false)
 
   const onChange = React.useCallback((evt) => {
     change(evt.target.value)
   }, [])
-
-  const onQuery = React.useCallback(
-    (strPart) => {
-      change(`${value} ${strPart}`)
-    },
-    [value],
-  )
-
-  const onToggleOptions = React.useCallback(() => setHelpOpened(!helpOpened), [
-    helpOpened,
-  ])
 
   const onKeyDown = React.useCallback(
     (evt) => {
@@ -186,45 +148,24 @@ export default function Search() {
       <Dots />
       <M.Container maxWidth="lg" className={classes.container}>
         <div className={classes.inner}>
-          <M.ClickAwayListener onClickAway={() => setHelpOpened(false)}>
-            <div className={classes.inputWrapper}>
-              <M.InputBase
-                {...{ value, onChange, onKeyDown }}
-                startAdornment={
-                  <M.InputAdornment className={classes.adornment}>
-                    <M.MuiThemeProvider theme={style.appTheme}>
-                      <Lab.ToggleButton
-                        className={classes.inputOptions}
-                        size="large"
-                        value="help"
-                        selected={helpOpened}
-                        onChange={onToggleOptions}
-                        classes={{
-                          selected: classes.inputOptionsSelected,
-                        }}
-                      >
-                        <M.Icon fontSize="large">search</M.Icon>
-                        <M.Icon fontSize="large">
-                          {helpOpened ? 'arrow_drop_up' : 'arrow_drop_down'}
-                        </M.Icon>
-                      </Lab.ToggleButton>
-                    </M.MuiThemeProvider>
-                  </M.InputAdornment>
-                }
-                classes={{ root: classes.inputRoot, input: classes.inputInput }}
-                placeholder="Search"
-              />
-
-              <M.MuiThemeProvider theme={style.appTheme}>
-                <M.Fade in={helpOpened}>
-                  <M.Paper className={classes.helpWrapper}>
-                    <SearchHelp className={classes.help} onQuery={onQuery} />
-                  </M.Paper>
-                </M.Fade>
-              </M.MuiThemeProvider>
-            </div>
-          </M.ClickAwayListener>
-
+          <M.InputBase
+            {...{ value, onChange, onKeyDown }}
+            startAdornment={
+              <M.InputAdornment className={classes.adornment}>
+                <M.Icon fontSize="large">search</M.Icon>
+              </M.InputAdornment>
+            }
+            classes={{ root: classes.inputRoot, input: classes.inputInput }}
+            placeholder="Search"
+          />
+          <div className={classes.hintContainer}>
+            <a
+              className={classes.hint}
+              href="https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html#_simple_query_string_syntax"
+            >
+              Search syntax
+            </a>
+          </div>
           <div className={classes.stats}>
             <div className={classes.stat}>
               <div className={classes.statValue}>10.2 Billion</div>

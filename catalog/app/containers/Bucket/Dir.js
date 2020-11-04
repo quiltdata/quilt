@@ -4,19 +4,19 @@ import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useHistory } from 'react-router-dom'
-import { useDebouncedCallback } from 'use-debounce'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
-import usePrevious from 'utils/usePrevious'
 
 import Code from './Code'
+import * as FileView from './FileView'
 import { ListingItem, ListingWithPrefixFiltering } from './Listing'
 import Summary from './Summary'
 import { displayError } from './errors'
@@ -82,6 +82,7 @@ export default function Dir({
 }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
+  const { noDownload } = Config.use()
   const history = useHistory()
   const s3 = AWS.S3.use()
   const { prefix } = parseSearch(l.search)
@@ -123,31 +124,12 @@ export default function Dir({
     prefix,
   })
 
-  const [prefixValue, setPrefixValue] = React.useState(prefix || '')
-
   const setPrefix = React.useCallback(
     (newPrefix) => {
       history.push(urls.bucketDir(bucket, path, newPrefix))
     },
     [history, urls, bucket, path],
   )
-
-  const [setPrefixDebounced, , commitPrefixChange] = useDebouncedCallback(setPrefix, 300)
-
-  const changePrefixValue = React.useCallback(
-    (newPrefix) => {
-      setPrefixValue(newPrefix)
-      setPrefixDebounced(newPrefix)
-    },
-    [setPrefixValue, setPrefixDebounced],
-  )
-
-  // sync prefix from querystring to input value
-  usePrevious({ prefix }, (prev) => {
-    if (prev && prev.prefix !== prefix) {
-      setPrefixValue(prefix || '')
-    }
-  })
 
   return (
     <M.Box pt={2} pb={4}>
@@ -156,6 +138,12 @@ export default function Dir({
           {renderCrumbs(getCrumbs({ bucket, path, urls }))}
         </div>
         <M.Box flexGrow={1} />
+        {!noDownload && (
+          <FileView.ZipDownloadForm
+            suffix={`dir/${bucket}/${path}`}
+            label="Download directory"
+          />
+        )}
       </M.Box>
 
       <Code gutterBottom>{code}</Code>
@@ -190,9 +178,9 @@ export default function Dir({
                 locked={locked}
                 truncated={res.truncated}
                 prefix={res.prefix}
-                prefixValue={prefixValue}
-                changePrefixValue={changePrefixValue}
-                commitPrefixChange={commitPrefixChange}
+                setPrefix={setPrefix}
+                bucket={res.bucket}
+                path={res.path}
               />
               <Summary files={res.files} />
             </>

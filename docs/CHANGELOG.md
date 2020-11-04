@@ -14,9 +14,10 @@
 
 ## Catalog, Lambdas
 * [Added] Retry logic for failed queries, minimize load on ES for sample, images
-* [Added] Search help dropdown for the index landing page ([#1838](https://github.com/quiltdata/quilt/pull/1838))
 overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
 * [Added] Add enhanced JSON editor and schema validtaion for package metadata ([#1867](https://github.com/quiltdata/quilt/pull/1867))
+* [Added] Buttons to download packages and directories as .zip archives ([#1868](https://github.com/quiltdata/quilt/pull/1868/))
+* [Changed] Render vega specs smaller than 20 MiB right away, render larger ones after pressing a button ([#1873](https://github.com/quiltdata/quilt/pull/1873))
 * [Fixed] Incomplete package stats for empty packages in es/indexer Lambda ([#1869](https://github.com/quiltdata/quilt/pull/1869))
 * [Fixed] Slow parquet preview rendering (and probably other occurances of JsonDisplay) ([#1878](https://github.com/quiltdata/quilt/pull/1878))
 

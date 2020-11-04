@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -8,6 +9,14 @@ const ES_V = '6.7'
 const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
 
 const useStyles = M.makeStyles((t) => ({
+  root: {
+    padding: `0 ${t.spacing(4)}px`,
+    overflowY: 'auto',
+
+    [t.breakpoints.down('xs')]: {
+      padding: `0 ${t.spacing(1)}px`,
+    },
+  },
   group: {
     marginTop: t.spacing(2),
   },
@@ -59,7 +68,7 @@ const syntaxHelpRows = [
         title: 'Package hash',
       },
       {
-        example: 'key:"bar/"',
+        example: 'key:research*',
         syntax: 'key:',
         title: 'Object key',
       },
@@ -110,7 +119,7 @@ const syntaxHelpRows = [
         title: 'Negation',
       },
       {
-        example: '_exists_:content',
+        example: '_exists_: content',
         syntax: '_exists_:',
         title: 'Matches any non-null value for the given field',
       },
@@ -238,15 +247,11 @@ function DocsExternalLink() {
   )
 }
 
-function normalizeSyntaxItem(s) {
-  return s.replace(/\s/g, '')
-}
-
-export default function Help({ className, onQuery }) {
+export default function Help({ className, onQuery, ...props }) {
   const classes = useStyles()
 
   return (
-    <div className={className}>
+    <M.Paper className={cx(classes.root, className)} {...props}>
       <Lab.TreeView
         defaultCollapseIcon={<M.Icon>arrow_drop_down</M.Icon>}
         defaultExpandIcon={<M.Icon>arrow_right</M.Icon>}
@@ -272,7 +277,7 @@ export default function Help({ className, onQuery }) {
                   key={item.syntax}
                   className={classes.item}
                   button
-                  onClick={() => onQuery(normalizeSyntaxItem(item.syntax))}
+                  onClick={() => onQuery(item.syntax)}
                 >
                   <Item item={item} />
                 </M.ListItem>
@@ -283,6 +288,6 @@ export default function Help({ className, onQuery }) {
       </Lab.TreeView>
 
       <DocsExternalLink />
-    </div>
+    </M.Paper>
   )
 }
