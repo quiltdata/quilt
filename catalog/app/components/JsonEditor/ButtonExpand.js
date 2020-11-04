@@ -6,7 +6,7 @@ import * as M from '@material-ui/core'
 const useStyles = M.makeStyles((t) => ({
   root: {
     cursor: 'pointer',
-    margin: `0 ${t.spacing(1)}px 0 0`,
+    margin: t.spacing(0, 1, 0, 0),
   },
 }))
 
