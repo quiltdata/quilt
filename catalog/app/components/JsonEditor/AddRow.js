@@ -21,7 +21,7 @@ export default function AddRow({ columnPath, onAdd, onExpand }) {
   const classes = useStyles()
 
   const onChange = React.useCallback(
-    (_, __, value) => {
+    (_1, _2, value) => {
       if (!value) return
       onAdd(columnPath, value)
     },
