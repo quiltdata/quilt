@@ -4,7 +4,7 @@ import * as M from '@material-ui/core'
 
 import Column from './Column'
 import Errors from './Errors'
-import State, { ColumnIds } from './State'
+import State from './State'
 
 const useStyles = M.makeStyles((t) => ({
   inner: {
@@ -32,7 +32,7 @@ function JsonEditor({
 
   const onMenuAction = React.useCallback(
     (contextFieldPath, action) => {
-      const newData = makeAction(contextFieldPath, ColumnIds.Key, action)
+      const newData = makeAction(contextFieldPath, action)
       if (newData) {
         onChange(newData)
       }

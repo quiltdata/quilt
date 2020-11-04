@@ -164,7 +164,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   )
 
   const makeAction = React.useCallback(
-    (contextFieldPath, columnId, actionItem) => {
+    (contextFieldPath, actionItem) => {
       switch (actionItem.action) {
         case Actions.RemoveField:
           return removeField(contextFieldPath, actionItem)
