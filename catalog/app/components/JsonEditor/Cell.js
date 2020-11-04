@@ -65,7 +65,7 @@ function getMenuForValue({ valueSchema }) {
   return enumOptions.length ? [enumSubmenu] : []
 }
 
-const useClasses = M.makeStyles((t) => ({
+const useStyles = M.makeStyles((t) => ({
   root: {
     '&:focus': {
       outline: `1px solid ${t.palette.primary.light}`,
@@ -83,7 +83,7 @@ export default function Cell({
   updateMyData,
   value: initialValue,
 }) {
-  const classes = useClasses()
+  const classes = useStyles()
 
   const menuAnchorRef = React.useRef(null)
   const [value, setValue] = React.useState(initialValue)
