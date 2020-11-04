@@ -54,14 +54,14 @@ export function schemaTypetoHumanString(optSchema) {
   return R.cond([
     [isSchemaEnum, () => 'enum'],
     [isSchemaConst, () => 'const'],
-    [isSchemaBoolean, () => 'bool'],
+    [isSchemaBoolean, () => 'Boolean'],
     [isSchemaNull, () => 'null'],
     // NOTE: enum and const can be string too,
     //       that's why they are first
-    [R.prop('type'), () => R.take(3, optSchema.type)],
-    [isSchemaCompound, () => 'comp'],
+    [R.prop('type'), () => R.head(optSchema.type).toUpperCase() + R.tail(optSchema.type)],
+    [isSchemaCompound, () => 'compound'],
     [isSchemaReference, () => '$ref'],
-    [R.T, () => 'none'],
+    [R.T, () => 'undefined'],
   ])(optSchema)
 }
 
