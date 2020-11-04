@@ -6,7 +6,7 @@ import jsonschema
 import pkg_resources
 import yaml
 
-from quilt3.data_transfer import get_bytes, get_bytes_and_effective_pk
+from quilt3.data_transfer import get_bytes_and_effective_pk
 
 from .. import util
 from ..backends import PackageRegistry
@@ -55,12 +55,12 @@ def validate(*, registry: PackageRegistry, workflow, meta, message):
         # TODO: raise if objects contain duplicate properties
         conf_data = yaml.safe_load(conf_data.decode())
     except yaml.YAMLError as e:
-        raise util.QuiltException("Couldn't parse workflow config as YAML.") from e
+        raise util.QuiltException("Couldn't parse workflows config as YAML.") from e
     conf_validator = _get_conf_validator()
     try:
         conf_validator(conf_data)
     except jsonschema.ValidationError as e:
-        raise util.QuiltException('Workflows config is invalid.') from e
+        raise util.QuiltException(f'Workflows config failed validation: {e.message}.') from e
 
     if workflow is ...:
         workflow = conf_data.get('default_workflow')

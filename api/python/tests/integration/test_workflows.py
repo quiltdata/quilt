@@ -82,14 +82,15 @@ class WorkflowTest(QuiltTestCase):
     def test_conf_invalid_yaml(self):
         for workflow in (None, 'some-string', ...):
             with self.subTest(workflow=workflow):
-                with pytest.raises(QuiltException, match=r"Couldn't parse workflow config as YAML."):
+                with pytest.raises(QuiltException, match=r"Couldn't parse workflows config as YAML."):
                     self._validate(workflow=workflow)
 
     @mock_conf_data('')
     def test_conf_invalid(self):
+        err_msg = r"Workflows config failed validation: None is not of type 'object'."
         for workflow in (None, 'some-string', ...):
             with self.subTest(workflow=workflow):
-                with pytest.raises(QuiltException, match=r'Workflows config is invalid.'):
+                with pytest.raises(QuiltException, match=err_msg):
                     self._validate(workflow=workflow)
 
     @mock_conf_v1('''
