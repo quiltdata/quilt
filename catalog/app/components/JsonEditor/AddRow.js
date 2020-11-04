@@ -23,7 +23,7 @@ const emptyCellProps = {
   row: {
     original: {},
     values: {
-      [ColumnIds.Key]: '',
+      [ColumnIds.Key]: EmptyValue,
     },
   },
   value: EmptyValue,
