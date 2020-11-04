@@ -15,19 +15,20 @@ import { ColumnIds, EmptyValue } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    ...t.typography.body2,
     alignItems: 'center',
     display: 'flex',
-    height: t.spacing(6),
-    padding: t.spacing(1),
+    height: t.spacing(4),
+    lineHeight: `${t.spacing(4)}px`,
+    padding: t.spacing(0, 1),
     position: 'relative',
     width: '100%',
   },
 
   value: {
     flexGrow: 1,
-    fontSize: '1rem',
-    height: t.spacing(6),
-    lineHeight: `${t.spacing(6) - 2}px`,
+    height: t.spacing(4),
+    lineHeight: `${t.spacing(4) - 2}px`,
     marginRight: t.spacing(1),
     maxWidth: t.spacing(35),
     overflow: 'hidden',

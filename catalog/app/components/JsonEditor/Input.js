@@ -12,8 +12,9 @@ import { ColumnIds, EmptyValue, parseJSON, stringifyJSON } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    ...t.typography.body2,
     outline: `2px solid ${t.palette.primary.light}`,
-    padding: t.spacing(1),
+    padding: t.spacing(0, 1),
     position: 'relative',
     width: '100%',
     zIndex: 1,
