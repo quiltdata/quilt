@@ -30,6 +30,7 @@ import * as requests from './requests'
 const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
 const ES_LAG = 3 * 1000
 
+// FIXME: remove this flag and remove old key/value editor
 const JSON_EDITOR_ENABLED = true
 
 const Errors = {
@@ -471,9 +472,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
 const EMPTY_FIELD = { key: '', value: '' }
 
 // TODO: warn on duplicate keys
-function MetaInput({ bucket, input, meta, workflow }) {
-  const s3 = AWS.S3.use()
-  const t = M.useTheme()
+function MetaInput({ input, meta, schema }) {
   const classes = useMetaInputStyles()
   const value = input.value || {
     fields: [EMPTY_FIELD],
@@ -483,8 +482,6 @@ function MetaInput({ bucket, input, meta, workflow }) {
   }
   const error = meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
-
-  const [schema, setSchema] = React.useState(null)
 
   const changeMode = (mode) => {
     if (disabled) return
@@ -567,44 +564,12 @@ function MetaInput({ bucket, input, meta, workflow }) {
       {value.mode === 'kv' ? (
         <>
           {JSON_EDITOR_ENABLED ? (
-            <Data
-              fetch={requests.metadataSchema}
-              params={{
-                s3,
-                bucket,
-                schemaUrl: R.pathOr('', ['schema', 'url'], workflow),
-              }}
-            >
-              {AsyncResult.case({
-                Ok: (newSchema) => {
-                  // FIXME: find out how to fetch data conditionaly
-                  //        in QuiltData/AsyncResult way
-                  setTimeout(() => {
-                    if (newSchema !== schema) {
-                      setSchema(newSchema)
-                      input.onChange({ ...value, schema: newSchema })
-                    }
-                  })
-
-                  return (
-                    <JsonEditor
-                      error={error}
-                      value={parseJSON(value.text)}
-                      onChange={onJsonEditor}
-                      schema={newSchema}
-                    />
-                  )
-                },
-                Err: () => (
-                  <JsonEditor
-                    error={error}
-                    value={parseJSON(value.text)}
-                    onChange={onJsonEditor}
-                  />
-                ),
-                _: () => <Skeleton height={t.spacing(8)} width="100%" />,
-              })}
-            </Data>
+            <JsonEditor
+              error={error}
+              value={parseJSON(value.text)}
+              onChange={onJsonEditor}
+              schema={schema}
+            />
           ) : (
             <>
               {value.fields.map((f, i) => (
@@ -767,6 +732,7 @@ function WorkflowInput({ input, meta, workflowsConfig }) {
 
 function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
   const s3 = AWS.S3.use()
+  const t = M.useTheme()
   const req = APIConnector.use()
   const { urls } = NamedRoutes.use()
   const [uploads, setUploads] = React.useState({})
@@ -1026,14 +992,37 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                     isEqual={R.equals}
                   />
 
-                  <RF.Field
-                    component={MetaInput}
-                    bucket={bucket}
-                    name="meta"
-                    workflow={values.workflow}
-                    validate={validateMeta}
-                    isEqual={R.equals}
-                  />
+                  <Data
+                    fetch={requests.metadataSchema}
+                    params={{
+                      s3,
+                      bucket,
+                      schemaUrl: R.pathOr('', ['schema', 'url'], values.workflow),
+                    }}
+                  >
+                    {AsyncResult.case({
+                      Ok: (newSchema) => (
+                        <RF.Field
+                          component={MetaInput}
+                          bucket={bucket}
+                          name="meta"
+                          schema={newSchema}
+                          validate={validateMeta}
+                          isEqual={R.equals}
+                        />
+                      ),
+                      Err: () => (
+                        <RF.Field
+                          component={MetaInput}
+                          bucket={bucket}
+                          name="meta"
+                          validate={validateMeta}
+                          isEqual={R.equals}
+                        />
+                      ),
+                      _: () => <Skeleton height={t.spacing(8)} width="100%" mt={3} />,
+                    })}
+                  </Data>
 
                   {JSON_EDITOR_ENABLED && (
                     <RF.Field
