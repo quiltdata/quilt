@@ -30,7 +30,7 @@ export default function Breadcrumbs({ items, onBack }) {
   const ref = React.useRef()
   React.useEffect(() => {
     ref.current.scrollIntoView()
-  })
+  }, [ref])
 
   return (
     <div className={classes.root} ref={ref}>
