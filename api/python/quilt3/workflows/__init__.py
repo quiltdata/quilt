@@ -1,5 +1,6 @@
 import functools
 import json
+import urllib.parse
 
 import botocore.exceptions
 import jsonschema
@@ -18,9 +19,9 @@ def _get_conf_validator():
     return jsonschema.Draft7Validator(schema).validate
 
 
-_SUPPORTED_SCHEMA_VERSIONS = (
-    'http://json-schema.org/draft-07/schema#',
-)
+SUPPORTED_META_SCHEMAS = {
+    'http://json-schema.org/draft-07/schema#': jsonschema.Draft7Validator,
+}
 
 
 def _schema_load_object_hook(o):
@@ -93,10 +94,17 @@ def validate(*, registry: PackageRegistry, workflow, meta, message):
 
         schema_data, schema_pk_to_store = get_bytes_and_effective_pk(schema_pk)
         schema = _load_schema_json(schema_data.decode())
-        if isinstance(schema, dict) and schema.get('$schema') not in (None, *_SUPPORTED_SCHEMA_VERSIONS):
-            raise util.QuiltException(f"Unsupported schema version: {schema.get('$schema')}.")
+
+        validator_cls = jsonschema.Draft7Validator
+        if isinstance(schema, dict) and '$schema' in schema:
+            meta_schema = schema['$schema']
+            if not isinstance(meta_schema, str):
+                raise util.QuiltException('$schema must be a string.')
+            validator_cls = SUPPORTED_META_SCHEMAS.get(meta_schema)
+            if validator_cls is None:
+                raise util.QuiltException(f"Unsupported meta-schema: {meta_schema}.")
         try:
-            jsonschema.validate(meta, schema, cls=jsonschema.Draft7Validator)
+            jsonschema.validate(meta, schema, cls=validator_cls)
         except jsonschema.ValidationError as e:
             raise util.QuiltException(f"Metadata failed validation: {e.message}.")
         result['schemas'] = {metadata_schema_id: str(schema_pk_to_store)}

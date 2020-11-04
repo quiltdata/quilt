@@ -290,3 +290,34 @@ class WorkflowTest(QuiltTestCase):
                 '''))
                 with pytest.raises(QuiltException, match=fr"Couldn't parse URL '{url}'."):
                     self._validate(workflow='w1')
+
+    def test_unsupported_meta_schema(self):
+        for meta_schema in (
+            'http://json-schema.org/draft-07/schema',
+            'http://json-schema.org/draft-06/schema#',
+        ):
+            with self.subTest(meta_schema=meta_schema):
+                set_local_conf_data(get_v1_conf_data('''
+                    workflows:
+                      w1:
+                        name: Name
+                        metadata_schema: schema-id
+                    schemas:
+                      schema-id:
+                        url: %s
+                ''' % create_local_tmp_schema(f'{{"$schema": "{meta_schema}"}}')))
+                with pytest.raises(QuiltException, match=fr"Unsupported meta-schema: {meta_schema}."):
+                    self._validate(workflow='w1')
+
+    def test_invalid_meta_schema(self):
+        set_local_conf_data(get_v1_conf_data('''
+            workflows:
+              w1:
+                name: Name
+                metadata_schema: schema-id
+            schemas:
+              schema-id:
+                url: %s
+        ''' % create_local_tmp_schema('{"$schema": 42}')))
+        with pytest.raises(QuiltException, match=r'\$schema must be a string.'):
+            self._validate(workflow='w1')
