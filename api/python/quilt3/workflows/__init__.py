@@ -83,7 +83,11 @@ def validate(*, registry: PackageRegistry, workflow, meta, message):
         schemas = conf_data.get('schemas', {})
         if metadata_schema_id not in schemas:
             raise util.QuiltException(f'There is no {metadata_schema_id!r} in schemas.')
-        schema_pk = util.PhysicalKey.from_url(schemas[metadata_schema_id]['url'])
+        schema_url = schemas[metadata_schema_id]['url']
+        try:
+            schema_pk = util.PhysicalKey.from_url(schema_url)
+        except util.URLParseError as e:
+            raise util.QuiltException(f"Couldn't parse URL {schema_url!r}. {e}.")
         if schema_pk.is_local() and not registry.is_local:
             raise util.QuiltException(f"Local schema {str(schema_pk)!r} can't be used on the remote registry.")
 

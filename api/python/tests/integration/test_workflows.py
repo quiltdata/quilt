@@ -115,6 +115,39 @@ class WorkflowTest(QuiltTestCase):
         with pytest.raises(QuiltException, match=r'Workflow is required, but none specified.'):
             self._validate(workflow=None)
 
+    def test_workflow_not_required_not_specified(self):
+        mock_conf_v1('''
+            is_workflow_required: false
+            workflows:
+              w1:
+                name: Name
+        ''')
+        for workflow in (None, ...):
+            with self.subTest(workflow=workflow):
+                assert self._validate(workflow=workflow) == {
+                    'id': None,
+                    'config': str(get_package_registry().workflow_conf_pk),
+                }
+
+    def test_workflow_not_required_default_set(self):
+        mock_conf_v1('''
+            is_workflow_required: false
+            default_workflow: w1
+            workflows:
+              w1:
+                name: Name
+        ''')
+
+        assert self._validate() == {
+            'id': 'w1',
+            'config': str(get_package_registry().workflow_conf_pk),
+        }
+
+        assert self._validate(workflow=None) == {
+            'id': None,
+            'config': str(get_package_registry().workflow_conf_pk),
+        }
+
     def test_missing_workflow(self):
         mock_conf_v1('''
             workflows:
@@ -247,4 +280,19 @@ class WorkflowTest(QuiltTestCase):
         for message in (None, ''):
             with self.subTest(message=message):
                 with pytest.raises(QuiltException, match=error_msg):
+                    self._validate(workflow='w1')
+
+    def test_invalid_url(self):
+        for url in (',', 'http://example.com', 's3://'):
+            with self.subTest(url=url):
+                mock_conf_v1(f'''
+                    workflows:
+                      w1:
+                        name: Name
+                        metadata_schema: schema-id
+                    schemas:
+                      schema-id:
+                        url: "{url}"
+                ''')
+                with pytest.raises(QuiltException, match=fr"Couldn't parse URL '{url}'."):
                     self._validate(workflow='w1')

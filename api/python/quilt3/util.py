@@ -93,6 +93,10 @@ class RemovedInQuilt4Warning(FutureWarning):
     pass
 
 
+class URLParseError(ValueError):
+    pass
+
+
 class PhysicalKey:
     __slots__ = ['bucket', 'path', 'version_id']
 
@@ -122,7 +126,7 @@ class PhysicalKey:
 
         if parsed.scheme == 's3':
             if not parsed.netloc:
-                raise ValueError("Missing bucket")
+                raise URLParseError("Missing bucket")
             bucket = parsed.netloc
             assert not parsed.path or parsed.path.startswith('/')
             path = unquote(parsed.path)[1:]
@@ -131,24 +135,24 @@ class PhysicalKey:
             query = parse_qs(parsed.query)
             version_id = query.pop('versionId', [None])[0]
             if query:
-                raise ValueError(f"Unexpected S3 query string: {parsed.query!r}")
+                raise URLParseError(f"Unexpected S3 query string: {parsed.query!r}")
             return cls(bucket, path, version_id)
         elif parsed.scheme == 'file':
             if parsed.netloc not in ('', 'localhost'):
-                raise ValueError("Unexpected hostname")
+                raise URLParseError("Unexpected hostname")
             if not parsed.path:
-                raise ValueError("Missing path")
+                raise URLParseError("Missing path")
             if not parsed.path.startswith('/'):
-                raise ValueError("Relative paths are not allowed")
+                raise URLParseError("Relative paths are not allowed")
             if parsed.query:
-                raise ValueError("Unexpected query")
+                raise URLParseError("Unexpected query")
             path = url2pathname(parsed.path)
             if parsed.path.endswith('/') and not path.endswith(os.path.sep):
                 # On Windows, url2pathname loses the trailing `/`.
                 path += os.path.sep
             return cls.from_path(path)
         else:
-            raise ValueError(f"Unexpected scheme: {parsed.scheme!r}")
+            raise URLParseError(f"Unexpected scheme: {parsed.scheme!r}")
 
     @classmethod
     def from_path(cls, path):
