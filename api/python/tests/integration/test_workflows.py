@@ -207,7 +207,7 @@ class WorkflowTest(QuiltTestCase):
             'config': str(get_package_registry().workflow_conf_pk),
             'schemas': {
                 'schema-id': str(get_package_registry().root.join('schemas/schema')),
-            }
+            },
         }
 
     def test_schema_validation_valid_meta_s3(self):
@@ -237,7 +237,7 @@ class WorkflowTest(QuiltTestCase):
             'config': 's3://some-bucket/.quilt/workflows/config.yml?versionId=some-version',
             'schemas': {
                 'schema-id': 's3://schema-bucket/schema-key?versionId=schema-version',
-            }
+            },
         }
 
     def test_remote_registry_local_schema(self):
@@ -308,6 +308,28 @@ class WorkflowTest(QuiltTestCase):
                 ''' % create_local_tmp_schema(f'{{"$schema": "{meta_schema}"}}')))
                 with pytest.raises(QuiltException, match=fr"Unsupported meta-schema: {meta_schema}."):
                     self._validate(workflow='w1')
+
+    def test_supported_meta_schema(self):
+        for meta_schema in (
+            'http://json-schema.org/draft-07/schema#',
+        ):
+            with self.subTest(meta_schema=meta_schema):
+                set_local_conf_data(get_v1_conf_data('''
+                    workflows:
+                      w1:
+                        name: Name
+                        metadata_schema: schema-id
+                    schemas:
+                      schema-id:
+                        url: %s
+                ''' % create_local_tmp_schema(f'{{"$schema": "{meta_schema}"}}')))
+                assert self._validate(workflow='w1') == {
+                    'id': 'w1',
+                    'config': str(get_package_registry().workflow_conf_pk),
+                    'schemas': {
+                        'schema-id': str(get_package_registry().root.join('schemas/schema')),
+                    },
+                }
 
     def test_invalid_meta_schema(self):
         set_local_conf_data(get_v1_conf_data('''
