@@ -122,7 +122,7 @@ function convertType(value, typeOf) {
 
 // TODO: move to utils/json-schema
 export function validateOnSchema(obj, schema) {
-  const ajv = new Ajv()
+  const ajv = new Ajv({ schemaId: 'auto' })
   const validate = ajv.compile(schema)
   validate(obj)
   return validate.errors || []
