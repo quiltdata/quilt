@@ -10,11 +10,6 @@ import ButtonMenu from './ButtonMenu'
 import Note from './Note'
 import { ColumnIds, EmptyValue, parseJSON, stringifyJSON } from './State'
 
-const i18nMsgs = {
-  key: 'Key',
-  value: 'Value',
-}
-
 const useStyles = M.makeStyles((t) => ({
   root: {
     outline: `2px solid ${t.palette.primary.light}`,
@@ -65,6 +60,7 @@ export default function Input({
   columnId,
   data,
   fieldPath,
+  placeholder,
   onChange,
   onExpand,
   onMenu,
@@ -124,12 +120,7 @@ export default function Input({
       onChange={onChangeInternal}
       onBlur={onBlur}
       onKeyDown={onKeyDown}
-      placeholder={
-        {
-          [ColumnIds.Key]: i18nMsgs.key,
-          [ColumnIds.Value]: i18nMsgs.value,
-        }[columnId]
-      }
+      placeholder={placeholder}
     />
   )
 }

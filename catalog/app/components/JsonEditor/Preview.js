@@ -35,6 +35,10 @@ const useStyles = M.makeStyles((t) => ({
     whiteSpace: 'nowrap',
   },
 
+  placeholder: {
+    color: t.palette.text.disabled,
+  },
+
   required: {
     fontWeight: t.typography.fontWeightMedium,
   },
@@ -72,6 +76,7 @@ export default function Preview({
   columnId,
   data, // NOTE: row.original
   menuAnchorRef,
+  placeholder,
   title,
   value,
   onExpand,
@@ -89,9 +94,10 @@ export default function Preview({
         <span
           className={cx(classes.valueInner, {
             [classes.required]: requiredKey,
+            [classes.placeholder]: value === EmptyValue,
           })}
         >
-          {formatValuePreview(value)}
+          {formatValuePreview(value) || placeholder}
         </span>
       </div>
 
