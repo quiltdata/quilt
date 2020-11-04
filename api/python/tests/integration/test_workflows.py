@@ -9,8 +9,8 @@ from quilt3.data_transfer import put_bytes
 from quilt3.util import PhysicalKey, QuiltException
 
 
-def get_v1_conf_data(conf_data, **files):
-    conf_data = textwrap.dedent(conf_data).format(**set_local_schemas_data(**files))
+def get_v1_conf_data(conf_data):
+    conf_data = textwrap.dedent(conf_data)
     return f'version: "1"\n{conf_data}'
 
 
@@ -18,16 +18,10 @@ def set_local_conf_data(conf_data):
     put_bytes(conf_data.encode(), get_package_registry().workflow_conf_pk)
 
 
-def set_local_schemas_data(**schemas):
-    root = get_package_registry().root.join('schemas')
-    pks = list(map(root.join, schemas))
-    for pk, data in zip(pks, schemas.values()):
-        put_bytes(data.encode(), pk)
-    return dict(zip(schemas, pks))
-
-
-def mock_conf_v1(conf_data, **files):
-    set_local_conf_data(get_v1_conf_data(conf_data, **files))
+def create_local_tmp_schema(data):
+    pk = get_package_registry().root.join('schemas/schema')
+    put_bytes(data.encode(), pk)
+    return pk
 
 
 class WorkflowTest(QuiltTestCase):
@@ -89,23 +83,23 @@ class WorkflowTest(QuiltTestCase):
                     self._validate(workflow=workflow)
 
     def test_workflow_is_required_not_specified(self):
-        mock_conf_v1('''
+        set_local_conf_data(get_v1_conf_data('''
             workflows:
               w1:
                 name: Name
-        ''')
+        '''))
         for workflow in (None, ...):
             with self.subTest(workflow=workflow):
                 with pytest.raises(QuiltException, match=r'Workflow is required, but none specified.'):
                     self._validate(workflow=workflow)
 
     def test_workflow_is_required_default_set(self):
-        mock_conf_v1('''
+        set_local_conf_data(get_v1_conf_data('''
             default_workflow: w1
             workflows:
               w1:
                 name: Name
-        ''')
+        '''))
 
         assert self._validate() == {
             'id': 'w1',
@@ -116,12 +110,12 @@ class WorkflowTest(QuiltTestCase):
             self._validate(workflow=None)
 
     def test_workflow_not_required_not_specified(self):
-        mock_conf_v1('''
+        set_local_conf_data(get_v1_conf_data('''
             is_workflow_required: false
             workflows:
               w1:
                 name: Name
-        ''')
+        '''))
         for workflow in (None, ...):
             with self.subTest(workflow=workflow):
                 assert self._validate(workflow=workflow) == {
@@ -130,13 +124,13 @@ class WorkflowTest(QuiltTestCase):
                 }
 
     def test_workflow_not_required_default_set(self):
-        mock_conf_v1('''
+        set_local_conf_data(get_v1_conf_data('''
             is_workflow_required: false
             default_workflow: w1
             workflows:
               w1:
                 name: Name
-        ''')
+        '''))
 
         assert self._validate() == {
             'id': 'w1',
@@ -149,70 +143,70 @@ class WorkflowTest(QuiltTestCase):
         }
 
     def test_missing_workflow(self):
-        mock_conf_v1('''
+        set_local_conf_data(get_v1_conf_data('''
             workflows:
               w1:
                 name: Name
-        ''')
+        '''))
 
         with pytest.raises(QuiltException, match=r"There is no 'w2' workflow in config."):
             self._validate(workflow='w2')
 
     def test_missing_schema(self):
-        mock_conf_v1('''
+        set_local_conf_data(get_v1_conf_data('''
             workflows:
               w1:
                 name: Name
                 metadata_schema: schema-id
-        ''')
+        '''))
 
         with pytest.raises(QuiltException, match=r"There is no 'schema-id' in schemas."):
             self._validate(workflow='w1')
 
     def test_schema_with_ref(self):
-        mock_conf_v1('''
+        set_local_conf_data(get_v1_conf_data('''
             workflows:
               w1:
                 name: Name
                 metadata_schema: schema-id
             schemas:
               schema-id:
-                url: {schema1}
-        ''', schema1='{"$ref": "other-schema"}')
+                url: %s
+        ''' % create_local_tmp_schema('{"$ref": "other-schema"}')))
 
         with pytest.raises(QuiltException, match=r"Currently we don't support \$ref in schema."):
             self._validate(workflow='w1')
 
     def test_schema_validation_invalid_meta(self):
-        mock_conf_v1('''
+        set_local_conf_data(get_v1_conf_data('''
             workflows:
               w1:
                 name: Name
                 metadata_schema: schema-id
             schemas:
               schema-id:
-                url: {schema1}
-        ''', schema1='{"type": "string"}')
+                url: %s
+        ''' % create_local_tmp_schema('{"type": "string"}')))
 
         with pytest.raises(QuiltException, match=r"Metadata failed validation: {} is not of type 'string'."):
             self._validate(workflow='w1', meta={})
 
     def test_schema_validation_valid_meta(self):
-        mock_conf_v1('''
+        set_local_conf_data(get_v1_conf_data('''
             workflows:
               w1:
                 name: Name
                 metadata_schema: schema-id
             schemas:
               schema-id:
-                url: {schema1}
-        ''', schema1='{"type": "string"}')
+                url: %s
+        ''' % create_local_tmp_schema('{"type": "string"}')))
 
         assert self._validate(workflow='w1', meta="some-data") == {
             'id': 'w1',
             'config': str(get_package_registry().workflow_conf_pk),
             'schemas': {
-                'schema-id': str(get_package_registry().root.join('schemas/schema1')),
+                'schema-id': str(get_package_registry().root.join('schemas/schema')),
             }
         }
 
@@ -264,12 +258,12 @@ class WorkflowTest(QuiltTestCase):
             self._validate(registry=registry, workflow='w1')
 
     def test_is_message_required(self):
-        mock_conf_v1('''
+        set_local_conf_data(get_v1_conf_data('''
             workflows:
               w1:
                 name: Name
                 is_message_required: true
-        ''')
+        '''))
 
         assert self._validate(workflow='w1', message='some message') == {
             'id': 'w1',
@@ -285,7 +279,7 @@ class WorkflowTest(QuiltTestCase):
     def test_invalid_url(self):
         for url in (',', 'http://example.com', 's3://'):
             with self.subTest(url=url):
-                mock_conf_v1(f'''
+                set_local_conf_data(get_v1_conf_data(f'''
                     workflows:
                       w1:
                         name: Name
@@ -293,6 +287,6 @@ class WorkflowTest(QuiltTestCase):
                     schemas:
                       schema-id:
                         url: "{url}"
-                ''')
+                '''))
                 with pytest.raises(QuiltException, match=fr"Couldn't parse URL '{url}'."):
                     self._validate(workflow='w1')
