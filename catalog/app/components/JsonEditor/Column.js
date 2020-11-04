@@ -39,14 +39,14 @@ function getColumntType({ parent, schema }) {
   return typeof parent
 }
 
-export default function Table({
+export default function Column({
   columnPath,
   data,
   onAddRow,
   onCollapse,
   onExpand,
   onMenuAction,
-  updateMyData,
+  onChange,
 }) {
   const columns = React.useMemo(
     () => [
@@ -63,23 +63,21 @@ export default function Table({
   const classes = useStyles()
 
   const [hasNewRow, setHasNewRow] = React.useState(false)
-  const onChange = React.useCallback(
+  const onChangeInternal = React.useCallback(
     (...params) => {
       setHasNewRow(false)
-      updateMyData(...params)
+      onChange(...params)
     },
-    [updateMyData],
+    [onChange],
   )
 
   const tableInstance = useTable({
     columns,
     data: data.items,
-
     defaultColumn: {
       Cell,
     },
-
-    updateMyData: onChange,
+    updateMyData: onChangeInternal,
   })
   const { getTableProps, getTableBodyProps, rows, prepareRow } = tableInstance
 

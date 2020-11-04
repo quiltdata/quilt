@@ -44,7 +44,7 @@ function JsonEditor({
     setFieldPath(R.init(fieldPath))
   }, [fieldPath, setFieldPath])
 
-  const updateMyData = React.useCallback(
+  const onChangeInternal = React.useCallback(
     (...args) => {
       const newData = changeValue(...args)
       if (newData) {
@@ -69,7 +69,7 @@ function JsonEditor({
                 onCollapse,
                 onExpand: setFieldPath,
                 onMenuAction,
-                updateMyData,
+                onChange: onChangeInternal,
               }}
             />
           )
