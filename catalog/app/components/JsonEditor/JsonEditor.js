@@ -81,10 +81,18 @@ function JsonEditor({
   )
 }
 
-export default ({ className, error, onChange, schema, value }) => (
-  <State obj={value} optSchema={schema}>
-    {(props) => (
-      <JsonEditor {...props} error={error} onChange={onChange} className={className} />
-    )}
-  </State>
-)
+export default function JsonEditorStateWrapper({
+  className,
+  error,
+  onChange,
+  schema,
+  value,
+}) {
+  return (
+    <State obj={value} optSchema={schema}>
+      {(props) => (
+        <JsonEditor {...props} error={error} onChange={onChange} className={className} />
+      )}
+    </State>
+  )
+}

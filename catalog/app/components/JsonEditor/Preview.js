@@ -48,7 +48,7 @@ function formatValuePreview(v) {
   if (v === EmptyValue || isUndefined(v)) return ''
 
   if (isArray(v)) {
-    return `[ ${v.map((item) => formatValuePreview(item))} ]`
+    return `[ ${v.map(formatValuePreview).join(', ')} ]`
   }
 
   if (isObject(v)) {

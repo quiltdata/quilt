@@ -99,7 +99,7 @@ export default function Column({
 
       <M.Fade in>
         <M.TableContainer className={classes.tableContainer}>
-          <M.Table aria-label="simple table" {...getTableProps()}>
+          <M.Table {...getTableProps()}>
             <M.TableBody {...getTableBodyProps()}>
               {rows.map((row, index) => {
                 const isLastRow = index === rows.length - 1

@@ -69,7 +69,6 @@ export default function Input({
 }) {
   const classes = useStyles()
 
-  const inputRef = React.useRef()
   const normalizedValue = getNormalizedValue(originalValue, data.valueSchema)
   const [value, setValue] = React.useState(normalizedValue)
   const [valueStr, setValueStr] = React.useState(getNormalizedValueStr(normalizedValue))
@@ -90,6 +89,11 @@ export default function Input({
     }
   }, [onChange, columnId, value])
 
+  const onButtonExpandClick = React.useCallback(() => onExpand(fieldPath), [
+    fieldPath,
+    onExpand,
+  ])
+
   const onKeyDown = React.useCallback(
     (event) => {
       switch (event.key) {
@@ -109,9 +113,8 @@ export default function Input({
   return (
     <M.InputBase
       autoFocus
-      inputRef={inputRef}
       startAdornment={
-        isObject(originalValue) && <ButtonExpand onClick={() => onExpand(fieldPath)} />
+        isObject(originalValue) && <ButtonExpand onClick={onButtonExpandClick} />
       }
       endAdornment={
         <ButtonMenu
