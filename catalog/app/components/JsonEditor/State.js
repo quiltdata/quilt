@@ -13,7 +13,6 @@ export const ColumnIds = {
 export const Actions = {
   ChangeType: 'change_type',
   RemoveField: 'remove_field',
-  Select: 'select',
   SelectEnum: 'select_enum',
 }
 
@@ -170,8 +169,6 @@ export default function JsonEditorState({ children, obj, optSchema }) {
           return removeField(contextFieldPath, actionItem)
         case Actions.SelectEnum:
           return changeValue(contextFieldPath, ColumnIds.Value, actionItem.title)
-        case Actions.Select:
-          return changeValue(contextFieldPath, ColumnIds.Key, actionItem.title)
         case Actions.ChangeType:
           return changeType(contextFieldPath, ColumnIds.Value, actionItem.title)
         default:

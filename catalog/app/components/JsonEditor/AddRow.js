@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Cell from './Cell'
-import { Actions, ColumnIds, EmptyValue } from './State'
+import { ColumnIds, EmptyValue } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   inputCell: {
@@ -40,14 +40,10 @@ export default function AddRow({ columnPath, onAdd, onExpand }) {
     [columnPath, onAdd],
   )
 
-  const onMenuAction = React.useCallback(
-    (_, action) => {
-      if (action.action !== Actions.Select) return
-
-      onAdd(columnPath, action.title)
-    },
-    [columnPath, onAdd],
-  )
+  const onMenuAction = React.useCallback(() => {
+    // eslint-disable-next-line no-console
+    console.error('It should not happen')
+  }, [])
 
   return (
     <M.TableRow>

@@ -1,11 +1,8 @@
 import * as React from 'react'
-import cx from 'classnames'
 
 import * as M from '@material-ui/core'
 
 const useStyles = M.makeStyles((t) => ({
-  root: {},
-
   spinner: {
     flex: 'none',
     marginRight: t.spacing(3),
@@ -23,7 +20,7 @@ export default function SelectWorkflow({ className, disabled, items, onChange, v
   const noChoice = items.length === 1
 
   return (
-    <div className={cx(classes.root, className)}>
+    <div className={className}>
       <M.FormControl disabled={disabled || noChoice} fullWidth size="small">
         <M.InputLabel id="schema-select">Metadata quality workflow</M.InputLabel>
         <M.Select
