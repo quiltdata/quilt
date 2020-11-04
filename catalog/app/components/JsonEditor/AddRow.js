@@ -17,6 +17,19 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+const emptyCellProps = {
+  column: {
+    id: ColumnIds.Key,
+  },
+  row: {
+    original: {},
+    values: {
+      [ColumnIds.Key]: '',
+    },
+  },
+  value: EmptyValue,
+}
+
 export default function AddRow({ columnPath, onAdd, onExpand }) {
   const classes = useStyles()
 
@@ -42,20 +55,11 @@ export default function AddRow({ columnPath, onAdd, onExpand }) {
       <M.TableCell className={classes.inputCell}>
         <Cell
           {...{
+            ...emptyCellProps,
             columnPath,
             onExpand,
             onMenuAction,
             updateMyData: onChange,
-            column: {
-              id: ColumnIds.Key,
-            },
-            row: {
-              original: {},
-              values: {
-                [ColumnIds.Key]: '',
-              },
-            },
-            value: EmptyValue,
           }}
         />
       </M.TableCell>
