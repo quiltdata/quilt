@@ -97,7 +97,7 @@ export default function Input({
           event.stopPropagation() // avoid closing the dialog
           break
         case 'Enter':
-          event.preventDefault() // Don't catch by form's onSubmit
+          event.preventDefault() // avoid submitting the form
           onBlur()
           break
         // no default
