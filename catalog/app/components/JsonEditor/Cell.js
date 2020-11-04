@@ -73,6 +73,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+const emptyCellData = {}
+
+const cellPlaceholders = {
+  [ColumnIds.Key]: 'Key',
+  [ColumnIds.Value]: 'Value',
+}
+
 export default function Cell({
   column,
   columnPath,
@@ -189,15 +196,12 @@ export default function Cell({
       <ValueComponent
         {...{
           columnId: column.id,
-          data: row.original || {},
+          data: row.original || emptyCellData,
           hasMenu,
           menuAnchorRef,
-          placeholder: {
-            [ColumnIds.Key]: 'Key',
-            [ColumnIds.Value]: 'Value',
-          }[column.id],
+          placeholder: cellPlaceholders[column.id],
           onChange,
-          onExpand: () => onExpand(fieldPath),
+          onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
           onMenu: onMenuOpen,
           title: isEditable ? 'Click to edit' : '',
           value,

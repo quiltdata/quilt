@@ -12,9 +12,9 @@ import { ColumnIds, EmptyValue } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    background: '#fff',
-    width: '100%',
+    background: t.palette.common.white,
     flex: 'none',
+    width: '100%',
     '& + $root': {
       marginLeft: -1,
     },
