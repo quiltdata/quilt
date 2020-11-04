@@ -33,17 +33,17 @@ function CellMenu({ anchorEl, menu, onClose, onClick }) {
   )
 }
 
-function getMenuForKey({ required, value }) {
-  const actionsOptions = [
+const actionsSubmenu = {
+  key: 'actions',
+  options: [
     {
       action: Actions.RemoveField,
       title: 'Remove',
     },
-  ]
-  const actionsSubmenu = {
-    key: 'actions',
-    options: actionsOptions,
-  }
+  ],
+}
+
+function getMenuForKey({ required, value }) {
   if (required || value === EmptyValue) {
     return []
   }
