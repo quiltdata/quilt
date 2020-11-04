@@ -2,10 +2,6 @@ import * as React from 'react'
 
 import * as M from '@material-ui/core'
 
-const i18nMsgs = {
-  button: 'Add list item',
-}
-
 const useStyles = M.makeStyles((t) => ({
   buttonCell: {
     border: `1px solid ${t.palette.grey[400]}`,
@@ -29,7 +25,7 @@ export default function AddArrayItem({ columnPath, index, onAdd }) {
     <M.TableRow>
       <M.TableCell className={classes.buttonCell}>
         <M.Button variant="outlined" size="small" onClick={onClick}>
-          {i18nMsgs.button}
+          Add list item
         </M.Button>
       </M.TableCell>
       <M.TableCell className={classes.emptyCell} />

@@ -8,11 +8,6 @@ import Input from './Input'
 import Preview from './Preview'
 import { Actions, ColumnIds, EmptyValue } from './State'
 
-const i18nMsgs = {
-  key: 'Key',
-  value: 'Value',
-}
-
 function CellMenu({ anchorRef, menu, onClose, onClick }) {
   if (!menu.length) return null
 
@@ -198,8 +193,8 @@ export default function Cell({
           hasMenu,
           menuAnchorRef,
           placeholder: {
-            [ColumnIds.Key]: i18nMsgs.key,
-            [ColumnIds.Value]: i18nMsgs.value,
+            [ColumnIds.Key]: 'Key',
+            [ColumnIds.Value]: 'Value',
           }[column.id],
           onChange,
           onExpand: () => onExpand(fieldPath),
