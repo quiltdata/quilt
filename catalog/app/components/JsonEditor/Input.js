@@ -95,7 +95,7 @@ export default function Input({
     (event) => {
       switch (event.key) {
         case 'Escape':
-          event.stopPropagation() // Don't catch by MUI.Dialog
+          event.stopPropagation() // avoid closing the dialog
           break
         case 'Enter':
           event.preventDefault() // Don't catch by form's onSubmit
