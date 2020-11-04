@@ -16,16 +16,13 @@ const useStyles = M.makeStyles((t) => ({
     background: '#fff',
     width: '100%',
     flex: 'none',
-
     '& + $root': {
       marginLeft: -1,
     },
   },
-
   tableContainer: {
     padding: '1px 0', // NOTE: fit 2px border for input
   },
-
   selected: {
     backgroundColor: t.palette.action.focus,
   },

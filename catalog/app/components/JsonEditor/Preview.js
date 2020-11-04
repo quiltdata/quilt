@@ -24,7 +24,6 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     width: '100%',
   },
-
   value: {
     flexGrow: 1,
     height: t.spacing(4),
@@ -35,15 +34,12 @@ const useStyles = M.makeStyles((t) => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-
   placeholder: {
     color: t.palette.text.disabled,
   },
-
   required: {
     fontWeight: t.typography.fontWeightMedium,
   },
-
   menu: {
     marginLeft: 'auto',
   },

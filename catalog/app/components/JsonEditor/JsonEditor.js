@@ -1,6 +1,5 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import cx from 'classnames'
 
 import * as M from '@material-ui/core'
 
@@ -9,13 +8,10 @@ import Errors from './Errors'
 import State, { ColumnIds } from './State'
 
 const useStyles = M.makeStyles((t) => ({
-  root: {},
-
   inner: {
     display: 'flex',
     overflowX: 'auto',
   },
-
   errors: {
     marginTop: t.spacing(1),
   },
@@ -60,7 +56,7 @@ function JsonEditor({
   )
 
   return (
-    <div className={cx(classes.root, className)}>
+    <div className={className}>
       <div className={classes.inner}>
         {columns.map((columnData, index) => {
           const columnPath = R.slice(0, index, fieldPath)

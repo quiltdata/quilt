@@ -9,15 +9,12 @@ const useStyles = M.makeStyles((t) => ({
     cursor: 'default',
     height: 'auto',
   },
-
   clickable: {
     cursor: 'pointer',
-
     '&:hover': {
       color: t.palette.text.primary,
     },
   },
-
   note: {
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.caption.fontSize,

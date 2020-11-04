@@ -18,11 +18,9 @@ const useStyles = M.makeStyles((t) => ({
   default: {
     color: t.palette.text.secondary,
   },
-
   mismatch: {
     color: t.palette.error.main,
   },
-
   notInSchema: {
     color: t.palette.warning.dark,
   },

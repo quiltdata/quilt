@@ -11,16 +11,13 @@ const useStyles = M.makeStyles((t) => ({
     height: '49px',
     padding: t.spacing(1),
   },
-
   item: {
     display: 'flex',
   },
-
   divider: {
     marginLeft: t.spacing(0.5),
     marginRight: t.spacing(0.5),
   },
-
   back: {
     cursor: 'pointer',
     marginRight: t.spacing(2),

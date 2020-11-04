@@ -6,22 +6,17 @@ import * as M from '@material-ui/core'
 import { ColumnIds } from './State'
 
 const useStyles = M.makeStyles((t) => ({
-  root: {},
-
   fresh: {
     backgroundColor: t.palette.warning.main,
   },
-
   cell: {
     border: `1px solid ${t.palette.grey[400]}`,
     padding: 0,
   },
-
   key: {
     borderRight: `1px solid ${t.palette.grey[400]}`,
     width: t.spacing(20),
   },
-
   value: {
     width: t.spacing(49),
   },
