@@ -1,4 +1,3 @@
-import contextlib
 import textwrap
 
 import pytest
@@ -10,29 +9,25 @@ from quilt3.data_transfer import put_bytes
 from quilt3.util import PhysicalKey, QuiltException
 
 
-@contextlib.contextmanager
 def get_v1_conf_data(conf_data, **files):
-    conf_data = textwrap.dedent(conf_data)
+    conf_data = textwrap.dedent(conf_data).format(**set_local_schemas_data(**files))
+    return f'version: "1"\n{conf_data}'
+
+
+def set_local_conf_data(conf_data):
+    put_bytes(conf_data.encode(), get_package_registry().workflow_conf_pk)
+
+
+def set_local_schemas_data(**schemas):
     root = get_package_registry().root.join('schemas')
-    pks = list(map(root.join, files))
-    for pk, data in zip(pks, files.values()):
+    pks = list(map(root.join, schemas))
+    for pk, data in zip(pks, schemas.values()):
         put_bytes(data.encode(), pk)
-    conf_data = conf_data.format(**dict(zip(files, pks)))
-    yield f'version: "1"\n{conf_data}'
+    return dict(zip(schemas, pks))
 
 
-@contextlib.contextmanager
-def mock_conf_data(conf_data):
-    workflow_conf_pk = get_package_registry().workflow_conf_pk
-    put_bytes(conf_data.encode(), workflow_conf_pk)
-    yield
-
-
-@contextlib.contextmanager
 def mock_conf_v1(conf_data, **files):
-    with get_v1_conf_data(conf_data, **files) as data:
-        with mock_conf_data(data):
-            yield
+    set_local_conf_data(get_v1_conf_data(conf_data, **files))
 
 
 class WorkflowTest(QuiltTestCase):
@@ -78,39 +73,40 @@ class WorkflowTest(QuiltTestCase):
                 assert repr(workflow) in str(excinfo.value)
                 assert "no workflows config exist" in str(excinfo.value)
 
-    @mock_conf_data(',')
     def test_conf_invalid_yaml(self):
+        set_local_conf_data(',')
         for workflow in (None, 'some-string', ...):
             with self.subTest(workflow=workflow):
                 with pytest.raises(QuiltException, match=r"Couldn't parse workflows config as YAML."):
                     self._validate(workflow=workflow)
 
-    @mock_conf_data('')
     def test_conf_invalid(self):
+        set_local_conf_data('')
         err_msg = r"Workflows config failed validation: None is not of type 'object'."
         for workflow in (None, 'some-string', ...):
             with self.subTest(workflow=workflow):
                 with pytest.raises(QuiltException, match=err_msg):
                     self._validate(workflow=workflow)
 
-    @mock_conf_v1('''
-        workflows:
-          w1:
-            name: Name
-    ''')
     def test_workflow_is_required_not_specified(self):
+        mock_conf_v1('''
+            workflows:
+              w1:
+                name: Name
+        ''')
         for workflow in (None, ...):
             with self.subTest(workflow=workflow):
                 with pytest.raises(QuiltException, match=r'Workflow is required, but none specified.'):
                     self._validate(workflow=workflow)
 
-    @mock_conf_v1('''
-        default_workflow: w1
-        workflows:
-          w1:
-            name: Name
-    ''')
     def test_workflow_is_required_default_set(self):
+        mock_conf_v1('''
+            default_workflow: w1
+            workflows:
+              w1:
+                name: Name
+        ''')
+
         assert self._validate() == {
             'id': 'w1',
             'config': str(get_package_registry().workflow_conf_pk),
@@ -119,61 +115,66 @@ class WorkflowTest(QuiltTestCase):
         with pytest.raises(QuiltException, match=r'Workflow is required, but none specified.'):
             self._validate(workflow=None)
 
-    @mock_conf_v1('''
-        workflows:
-          w1:
-            name: Name
-    ''')
     def test_missing_workflow(self):
+        mock_conf_v1('''
+            workflows:
+              w1:
+                name: Name
+        ''')
+
         with pytest.raises(QuiltException, match=r"There is no 'w2' workflow in config."):
             self._validate(workflow='w2')
 
-    @mock_conf_v1('''
-        workflows:
-          w1:
-            name: Name
-            metadata_schema: schema-id
-    ''')
     def test_missing_schema(self):
+        mock_conf_v1('''
+            workflows:
+              w1:
+                name: Name
+                metadata_schema: schema-id
+        ''')
+
         with pytest.raises(QuiltException, match=r"There is no 'schema-id' in schemas."):
             self._validate(workflow='w1')
 
-    @mock_conf_v1('''
-        workflows:
-          w1:
-            name: Name
-            metadata_schema: schema-id
-        schemas:
-          schema-id:
-            url: {schema1}
-    ''', schema1='{"$ref": "other-schema"}')
     def test_schema_with_ref(self):
+        mock_conf_v1('''
+            workflows:
+              w1:
+                name: Name
+                metadata_schema: schema-id
+            schemas:
+              schema-id:
+                url: {schema1}
+        ''', schema1='{"$ref": "other-schema"}')
+
         with pytest.raises(QuiltException, match=r"Currently we don't support \$ref in schema."):
             self._validate(workflow='w1')
 
-    @mock_conf_v1('''
-        workflows:
-          w1:
-            name: Name
-            metadata_schema: schema-id
-        schemas:
-          schema-id:
-            url: {schema1}
-    ''', schema1='{"type": "string"}')
     def test_schema_validation_invalid_meta(self):
+        mock_conf_v1('''
+            workflows:
+              w1:
+                name: Name
+                metadata_schema: schema-id
+            schemas:
+              schema-id:
+                url: {schema1}
+        ''', schema1='{"type": "string"}')
+
         with pytest.raises(QuiltException, match=r"Metadata failed validation: {} is not of type 'string'."):
             self._validate(workflow='w1', meta={})
 
-    @mock_conf_v1('''
-        workflows:
-          w1:
-            name: Name
-            metadata_schema: schema-id
-        schemas:
-          schema-id:
-            url: {schema1}
-    ''', schema1='{"type": "string"}')
     def test_schema_validation_valid_meta(self):
+        mock_conf_v1('''
+            workflows:
+              w1:
+                name: Name
+                metadata_schema: schema-id
+            schemas:
+              schema-id:
+                url: {schema1}
+        ''', schema1='{"type": "string"}')
+
         assert self._validate(workflow='w1', meta="some-data") == {
             'id': 'w1',
             'config': str(get_package_registry().workflow_conf_pk),
@@ -183,7 +184,7 @@ class WorkflowTest(QuiltTestCase):
         }
 
     def test_schema_validation_valid_meta_s3(self):
-        with get_v1_conf_data('''
+        data = get_v1_conf_data('''
             workflows:
               w1:
                 name: Name
@@ -191,29 +192,29 @@ class WorkflowTest(QuiltTestCase):
             schemas:
               schema-id:
                 url: s3://schema-bucket/schema-key
-        ''') as data:
-            self.s3_mock_config(data, get_package_registry('s3://some-bucket'))
-            self.s3_stubber.add_response(
-                method='get_object',
-                service_response={
-                    'VersionId': 'schema-version',
-                    'Body': self.s3_streaming_body(b'{"type": "string"}'),
-                },
-                expected_params={
-                    'Bucket': 'schema-bucket',
-                    'Key': 'schema-key',
-                }
-            )
-            assert self._validate(registry='s3://some-bucket', workflow='w1', meta="some-data") == {
-                'id': 'w1',
-                'config': 's3://some-bucket/.quilt/workflows/config.yml?versionId=some-version',
-                'schemas': {
-                    'schema-id': 's3://schema-bucket/schema-key?versionId=schema-version',
-                }
+        ''')
+        self.s3_mock_config(data, get_package_registry('s3://some-bucket'))
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'schema-version',
+                'Body': self.s3_streaming_body(b'{"type": "string"}'),
+            },
+            expected_params={
+                'Bucket': 'schema-bucket',
+                'Key': 'schema-key',
             }
+        )
+        assert self._validate(registry='s3://some-bucket', workflow='w1', meta="some-data") == {
+            'id': 'w1',
+            'config': 's3://some-bucket/.quilt/workflows/config.yml?versionId=some-version',
+            'schemas': {
+                'schema-id': 's3://schema-bucket/schema-key?versionId=schema-version',
+            }
+        }
 
     def test_remote_registry_local_schema(self):
-        with get_v1_conf_data('''
+        data = get_v1_conf_data('''
             workflows:
               w1:
                 name: Name
@@ -221,20 +222,22 @@ class WorkflowTest(QuiltTestCase):
             schemas:
               schema-id:
                 url: file:///local/path
-        ''') as data:
-            self.s3_mock_config(data, get_package_registry('s3://some-bucket'))
-            schema_pk = PhysicalKey.from_path('/local/path')
-            error_msg = rf"Local schema '{schema_pk}' can't be used on the remote registry."
-            with pytest.raises(QuiltException, match=error_msg):
-                self._validate(registry='s3://some-bucket', workflow='w1')
+        ''')
+        registry = 's3://some-bucket'
+        self.s3_mock_config(data, get_package_registry(registry))
+        schema_pk = PhysicalKey.from_path('/local/path')
+        error_msg = rf"Local schema '{schema_pk}' can't be used on the remote registry."
+        with pytest.raises(QuiltException, match=error_msg):
+            self._validate(registry=registry, workflow='w1')
 
-    @mock_conf_v1('''
-        workflows:
-          w1:
-            name: Name
-            is_message_required: true
-    ''')
     def test_is_message_required(self):
+        mock_conf_v1('''
+            workflows:
+              w1:
+                name: Name
+                is_message_required: true
+        ''')
+
         assert self._validate(workflow='w1', message='some message') == {
             'id': 'w1',
             'config': str(get_package_registry().workflow_conf_pk),
