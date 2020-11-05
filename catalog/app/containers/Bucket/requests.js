@@ -285,13 +285,13 @@ export const metadataSchema = async ({ s3, bucket, schemaUrl }) => {
   throw new Error('Schema is unavailable')
 }
 
-export const workflowsList = async ({ s3, bucket }) => {
-  const configPath = '.quilt/workflows/config.yml'
+const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
 
+export const workflowsList = async ({ s3, bucket }) => {
   const handle = await ensureObjectIsPresent({
     s3,
     bucket,
-    key: configPath,
+    key: WORKFLOWS_CONFIG_PATH,
   })
   if (!handle) {
     return {
@@ -304,7 +304,7 @@ export const workflowsList = async ({ s3, bucket }) => {
     return await s3
       .getObject({
         Bucket: bucket,
-        Key: configPath,
+        Key: WORKFLOWS_CONFIG_PATH,
       })
       .promise()
       .then((r) => parseWorkflows(r.Body.toString('utf-8')))
