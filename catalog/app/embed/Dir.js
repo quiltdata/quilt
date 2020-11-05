@@ -131,6 +131,7 @@ export default function Dir({
           <FileView.ZipDownloadForm
             suffix={`dir/${bucket}/${path}`}
             label="Download directory"
+            newTab
           />
         )}
       </M.Box>

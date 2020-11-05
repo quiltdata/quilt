@@ -17,11 +17,11 @@ RUN set -x \
 RUN set -x \
     && apt-get update \
     && apt-get install -y gettext \
-    && apt-get install -y curl git gcc make libssl-dev libpcre3-dev zlib1g-dev \
-    && curl -LO http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz \
-    && tar zxf nginx-${NGINX_VERSION}.tar.gz \
+    && apt-get install -y curl gcc make libssl-dev libpcre3-dev zlib1g-dev \
+    && curl -L http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar zx \
     && cd nginx-${NGINX_VERSION} \
-    && git clone https://github.com/evanmiller/mod_zip.git \
+    && mkdir mod_zip \
+    && curl -L https://github.com/evanmiller/mod_zip/archive/1.2.0.tar.gz | tar zx --strip-components 1 --directory mod_zip \
     && ./configure \
         --prefix=/etc/nginx \
         --sbin-path=/usr/sbin/nginx \
@@ -66,10 +66,12 @@ RUN set -x \
         --with-ld-opt='-Wl,-z,relro -Wl,-z,now -Wl,--as-needed -pie' \
         --add-module=mod_zip \
     && make install \
-    && rm -f nginx-${NGINX_VERSION}.tar.gz \
-    && rm -rf nginx-${NGINX_VERSION} \
-    && apt-get remove -y curl git gcc make libssl-dev libpcre3-dev zlib1g-dev \
-    && apt-get autoremove -y
+    && cd .. \
+    && rm -r nginx-${NGINX_VERSION} \
+    && apt-get purge -y --autoremove curl gcc make libssl-dev libpcre3-dev zlib1g-dev \
+    && apt-get clean
+
+RUN cat /etc/ssl/certs/*.pem > /etc/nginx/certs.pem
 
 RUN mkdir /var/cache/nginx/
 COPY nginx.conf /root/nginx.conf.tmpl

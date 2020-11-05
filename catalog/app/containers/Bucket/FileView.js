@@ -72,13 +72,18 @@ export function DownloadButton({ handle }) {
   ))
 }
 
-export function ZipDownloadForm({ suffix, label }) {
+export function ZipDownloadForm({ suffix, label, newTab = false }) {
   const { s3Proxy, noDownload } = Config.use()
   const { token } = redux.useSelector(Auth.selectors.tokens) || {}
   if (!token || noDownload) return null
   const action = `${s3Proxy}/zip/${suffix}`
   return (
-    <form action={action} target="_blank" method="POST" style={{ flexShrink: 0 }}>
+    <form
+      action={action}
+      target={newTab ? '_blank' : undefined}
+      method="POST"
+      style={{ flexShrink: 0 }}
+    >
       <input type="hidden" name="token" value={token} />
       <DownloadButtonLayout label={label} icon="archive" type="submit" />
     </form>
