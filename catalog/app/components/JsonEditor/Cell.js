@@ -5,7 +5,7 @@ import { isSchemaEnum } from 'utils/json-schema'
 
 import Input from './Input'
 import Preview from './Preview'
-import { Actions, ColumnIds, EmptyValue } from './State'
+import { Actions, COLUMN_IDS, EmptyValue } from './State'
 
 function CellMenu({ anchorEl, menu, onClose, onClick }) {
   if (!menu.length) return null
@@ -76,8 +76,8 @@ const useStyles = M.makeStyles((t) => ({
 const emptyCellData = {}
 
 const cellPlaceholders = {
-  [ColumnIds.Key]: 'Key',
-  [ColumnIds.Value]: 'Value',
+  [COLUMN_IDS.Key]: 'Key',
+  [COLUMN_IDS.Value]: 'Value',
 }
 
 export default function Cell({
@@ -101,13 +101,13 @@ export default function Cell({
   }, [menuAnchorRef])
 
   const isEditable = React.useMemo(
-    () => column.id === ColumnIds.Value || value === EmptyValue || !value,
+    () => column.id === COLUMN_IDS.Value || value === EmptyValue || !value,
     [column.id, value],
   )
   const [editing, setEditing] = React.useState(editingInitial)
   const [menuOpened, setMenuOpened] = React.useState(false)
 
-  const key = row.values[ColumnIds.Key]
+  const key = row.values[COLUMN_IDS.Key]
   const fieldPath = React.useMemo(() => columnPath.concat(key), [columnPath, key])
 
   const closeMenu = React.useCallback(() => setMenuOpened(false), [setMenuOpened])
@@ -134,7 +134,7 @@ export default function Cell({
   )
 
   const onDoubleClick = React.useCallback(() => {
-    if (column.id === ColumnIds.Key && value !== EmptyValue) return
+    if (column.id === COLUMN_IDS.Key && value !== EmptyValue) return
     setEditing(true)
   }, [column.id, value, setEditing])
 
@@ -157,8 +157,8 @@ export default function Cell({
 
   const ValueComponent = editing ? Input : Preview
 
-  const isKeyCell = column.id === ColumnIds.Key
-  const isValueCell = column.id === ColumnIds.Value
+  const isKeyCell = column.id === COLUMN_IDS.Key
+  const isValueCell = column.id === COLUMN_IDS.Value
   const keyMenuOpened = menuOpened && isKeyCell
   const valueMenuOpened = menuOpened && isValueCell
 

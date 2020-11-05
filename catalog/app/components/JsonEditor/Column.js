@@ -8,7 +8,7 @@ import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
 import Row from './Row'
-import { ColumnIds, EmptyValue } from './State'
+import { COLUMN_IDS, EmptyValue } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -51,10 +51,10 @@ export default function Column({
   const columns = React.useMemo(
     () => [
       {
-        accessor: ColumnIds.Key,
+        accessor: COLUMN_IDS.Key,
       },
       {
-        accessor: ColumnIds.Value,
+        accessor: COLUMN_IDS.Value,
       },
     ],
     [],
@@ -116,11 +116,11 @@ export default function Column({
 
                 if (
                   row.values &&
-                  row.values[ColumnIds.Key] !== EmptyValue &&
-                  row.values[ColumnIds.Value] !== EmptyValue
+                  row.values[COLUMN_IDS.Key] !== EmptyValue &&
+                  row.values[COLUMN_IDS.Value] !== EmptyValue
                 ) {
-                  const key = row.values[ColumnIds.Key]
-                  const value = row.values[ColumnIds.Value]
+                  const key = row.values[COLUMN_IDS.Key]
+                  const value = row.values[COLUMN_IDS.Value]
                   props.key = `${columnPath}_key_${key}+value_${value}`
                 }
 

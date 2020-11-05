@@ -2,7 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { ColumnIds } from './State'
+import { COLUMN_IDS } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   fresh: {
@@ -30,12 +30,12 @@ export default function Row({ cells, columnPath, fresh, onExpand, onMenuAction }
         <M.TableCell
           {...cell.getCellProps()}
           className={cx(classes.cell, {
-            [classes.key]: cell.column.id === ColumnIds.Key,
-            [classes.value]: cell.column.id === ColumnIds.Value,
+            [classes.key]: cell.column.id === COLUMN_IDS.Key,
+            [classes.value]: cell.column.id === COLUMN_IDS.Value,
           })}
         >
           {cell.render('Cell', {
-            editing: fresh && cell.column.id === ColumnIds.Value,
+            editing: fresh && cell.column.id === COLUMN_IDS.Value,
             columnPath,
             onExpand,
             onMenuAction,

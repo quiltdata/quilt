@@ -7,7 +7,7 @@ import * as M from '@material-ui/core'
 import ButtonExpand from './ButtonExpand'
 import ButtonMenu from './ButtonMenu'
 import Note from './Note'
-import { ColumnIds, EmptyValue, parseJSON, stringifyJSON } from './State'
+import { COLUMN_IDS, EmptyValue, parseJSON, stringifyJSON } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -82,7 +82,7 @@ export default function Input({
   )
 
   const onBlur = React.useCallback(() => {
-    if (columnId !== ColumnIds.Key || isString(value)) {
+    if (columnId !== COLUMN_IDS.Key || isString(value)) {
       onChange(value)
     } else {
       onChange(JSON.stringify(value))

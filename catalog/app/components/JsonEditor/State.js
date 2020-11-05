@@ -5,7 +5,7 @@ import toNumber from 'lodash/toNumber'
 import * as R from 'ramda'
 import * as React from 'react'
 
-export const ColumnIds = {
+export const COLUMN_IDS = {
   Key: 'key',
   Value: 'value',
 }
@@ -87,8 +87,8 @@ function getColumn(obj, columnPath, sortOrder, schema) {
   const items = mapKeys(
     nestedObj || {},
     (value, key, schemaSortIndex) => ({
-      [ColumnIds.Key]: key,
-      [ColumnIds.Value]: getValue(value),
+      [COLUMN_IDS.Key]: key,
+      [COLUMN_IDS.Value]: getValue(value),
 
       // These will be available at row.original
       required: requiredKeys.includes(key),
@@ -168,9 +168,9 @@ export default function JsonEditorState({ children, obj, optSchema }) {
         case Actions.RemoveField:
           return removeField(contextFieldPath, actionItem)
         case Actions.SelectEnum:
-          return changeValue(contextFieldPath, ColumnIds.Value, actionItem.title)
+          return changeValue(contextFieldPath, COLUMN_IDS.Value, actionItem.title)
         case Actions.ChangeType:
-          return changeType(contextFieldPath, ColumnIds.Value, actionItem.title)
+          return changeType(contextFieldPath, COLUMN_IDS.Value, actionItem.title)
         default:
           return null
       }
@@ -197,7 +197,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
 
   const changeValue = React.useCallback(
     (editingFieldPath, columnId, str) => {
-      if (columnId !== ColumnIds.Value) {
+      if (columnId !== COLUMN_IDS.Value) {
         return null
       }
 

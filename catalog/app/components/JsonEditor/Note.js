@@ -11,7 +11,7 @@ import * as M from '@material-ui/core'
 
 import { doesTypeMatchToSchema, schemaTypetoHumanString } from 'utils/json-schema'
 
-import { ColumnIds, EmptyValue } from './State'
+import { COLUMN_IDS, EmptyValue } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   default: {
@@ -78,7 +78,7 @@ function NoteValue({ schema, value }) {
 }
 
 export default function Note({ columnId, data, value }) {
-  if (columnId === ColumnIds.Value) {
+  if (columnId === COLUMN_IDS.Value) {
     return <NoteValue value={value} schema={data.valueSchema} />
   }
 

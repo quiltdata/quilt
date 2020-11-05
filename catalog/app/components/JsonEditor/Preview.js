@@ -10,7 +10,7 @@ import { isNestedType } from 'utils/json-schema'
 import ButtonExpand from './ButtonExpand'
 import ButtonMenu from './ButtonMenu'
 import Note from './Note'
-import { ColumnIds, EmptyValue } from './State'
+import { COLUMN_IDS, EmptyValue } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -81,7 +81,7 @@ export default function Preview({
 }) {
   const classes = useStyles()
 
-  const requiredKey = data.required && columnId === ColumnIds.Key
+  const requiredKey = data.required && columnId === COLUMN_IDS.Key
 
   return (
     <div className={classes.root}>
