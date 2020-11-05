@@ -154,10 +154,17 @@ export default function Cell({
   const onKeyPress = React.useCallback(
     (event) => {
       if (!editing) {
+        // Chromium able to send key event to Input created after this key event.
+        // Avoid to send this key event to Input constistently with Firefox
         event.preventDefault()
       }
 
+      // Do nothing, if it's a key cell
       if (!isEditable) return
+
+      // When user start typing he enters first symbol.
+      // Preview is replaced by Input, this first symbol sets to Input and resets previous text
+      // If user hit Enter Preview is replaced by Input, and Input contains previous text
       if (event.key.length !== 1 && event.key !== 'Enter') return
 
       if (event.key.length === 1) {
