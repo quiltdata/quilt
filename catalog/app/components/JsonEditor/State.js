@@ -62,9 +62,9 @@ function mapKeys(objectOrArray, callback, schemaKeys) {
     (memo, key) => (memo.includes(key) ? memo : memo.concat(key)),
     Object.keys(objectOrArray),
   )
-  return keys
-    .sort((a, b) => getSortIndex(a) - getSortIndex(b))
-    .map((key) => callback(objectOrArray[key], key, schemaSort[key]))
+  const sortFunc = R.sort((a, b) => getSortIndex(a) - getSortIndex(b))
+  const mapFunc = R.map((key) => callback(objectOrArray[key], key, schemaSort[key]))
+  return R.compose(sortFunc, mapFunc)(keys)
 }
 
 function getValue(value) {
@@ -81,6 +81,8 @@ function getColumn(obj, columnPath, sortOrder, schema) {
     R.pathOr({}, schemaPath.concat('properties'), schema),
   )
 
+  const sortFunc = R.sort((a, b) => a.sortIndex - b.sortIndex)
+  const filterFunc = R.filter((v) => v.sortIndex !== -1)
   // NOTE: { key1: value1, key2: value2 }
   //       converts to
   //       [{ key: 'key1', value: 'value1'}, { key: 'key2', value: 'value2'}]
@@ -98,11 +100,9 @@ function getColumn(obj, columnPath, sortOrder, schema) {
     }),
     schemedKeysList,
   )
-    .filter((v) => v.sortIndex !== -1)
-    .sort((a, b) => a.sortIndex - b.sortIndex)
 
   return {
-    items,
+    items: R.compose(sortFunc, filterFunc)(items),
     parent: nestedObj,
     schema: R.pathOr({}, schemaPath, schema),
   }
