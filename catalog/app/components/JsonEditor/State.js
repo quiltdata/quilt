@@ -119,8 +119,12 @@ function convertType(value, typeOf) {
   }
 }
 
+const EmptySchema = {}
+
 // TODO: move to utils/json-schema
-export function validateOnSchema(schema) {
+export function validateOnSchema(optSchema) {
+  const schema = optSchema || EmptySchema
+
   const ajv = new Ajv({ schemaId: 'auto' })
   const validate = ajv.compile(schema)
 
@@ -129,8 +133,6 @@ export function validateOnSchema(schema) {
     return validate.errors || []
   }
 }
-
-const EmptySchema = {}
 
 export default function JsonEditorState({ children, obj, optSchema }) {
   const schema = optSchema || EmptySchema

@@ -287,7 +287,7 @@ export const metadataSchema = async ({ s3, bucket, schemaUrl }) => {
     console.error(e)
   }
 
-  throw new Error('Schema is unavailable')
+  return null
 }
 
 const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
@@ -317,7 +317,7 @@ export const workflowsList = async ({ s3, bucket }) => {
     console.error(e)
   }
 
-  throw new Error('Workflows list is unavailable')
+  return emptyWorkflowsConfig
 }
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
