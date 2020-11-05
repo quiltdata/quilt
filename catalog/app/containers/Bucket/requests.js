@@ -38,16 +38,21 @@ function getNoWorkflow(data) {
   }
 }
 
+const emptyWorkflowsConfig = {
+  isRequired: false,
+  workflows: [getNoWorkflow({})],
+}
+
 function parseWorkflows(workflowsYaml) {
   const data = yaml(workflowsYaml)
   if (!data) {
-    return {
-      isRequired: false,
-      workflows: [getNoWorkflow({})],
-    }
+    return emptyWorkflowsConfig
   }
 
   const { workflows } = data
+  if (workflows) {
+    return emptyWorkflowsConfig
+  }
 
   const workflowsList = Object.keys(workflows).map((slug) =>
     parseWorkflow(slug, workflows[slug], data),
@@ -294,10 +299,7 @@ export const workflowsList = async ({ s3, bucket }) => {
     key: WORKFLOWS_CONFIG_PATH,
   })
   if (!handle) {
-    return {
-      isRequired: false,
-      workflows: [getNoWorkflow({})],
-    }
+    return emptyWorkflowsConfig
   }
 
   try {
