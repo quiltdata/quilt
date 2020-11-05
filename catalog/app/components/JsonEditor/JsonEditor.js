@@ -40,10 +40,6 @@ function JsonEditor({
     [makeAction, onChange],
   )
 
-  const onCollapse = React.useCallback(() => {
-    setFieldPath(R.init(fieldPath))
-  }, [fieldPath, setFieldPath])
-
   const onChangeInternal = React.useCallback(
     (...args) => {
       const newData = changeValue(...args)
@@ -66,7 +62,7 @@ function JsonEditor({
                 data: columnData,
                 key: columnPath,
                 onAddRow: addRow,
-                onCollapse,
+                onBreadcrumb: setFieldPath,
                 onExpand: setFieldPath,
                 onMenuAction,
                 onChange: onChangeInternal,

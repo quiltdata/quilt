@@ -43,7 +43,7 @@ export default function Column({
   columnPath,
   data,
   onAddRow,
-  onCollapse,
+  onBreadcrumb,
   onExpand,
   onMenuAction,
   onChange,
@@ -94,7 +94,7 @@ export default function Column({
   return (
     <div className={classes.root}>
       {Boolean(columnPath.length) && (
-        <Breadcrumbs items={columnPath} onBack={onCollapse} />
+        <Breadcrumbs items={columnPath} onSelect={onBreadcrumb} />
       )}
 
       <M.Fade in>
