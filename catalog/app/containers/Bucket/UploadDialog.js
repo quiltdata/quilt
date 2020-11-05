@@ -453,6 +453,8 @@ function MetaInput({ input, meta, schema }) {
   const error = meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
 
+  const parsedValue = React.useMemo(() => parseJSON(value.text), [value])
+
   const changeMode = (mode) => {
     if (disabled) return
     input.onChange({ ...value, mode })
@@ -501,7 +503,7 @@ function MetaInput({ input, meta, schema }) {
       {value.mode === 'kv' ? (
         <JsonEditor
           error={error}
-          value={parseJSON(value.text)}
+          value={parsedValue}
           onChange={onJsonEditor}
           schema={schema}
         />

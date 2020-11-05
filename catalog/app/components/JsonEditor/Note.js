@@ -29,7 +29,7 @@ function getTypeAnnotationFromValue(value, schema) {
   return R.cond([
     [isArray, () => 'Array'],
     [isObject, () => 'Object'],
-    [isString, () => (R.propOr([], 'enum', schema).includes(value) ? 'enum' : 'string')],
+    [isString, () => (R.propOr([], 'enum', schema).includes(value) ? 'enum' : 'String')],
     [isNumber, () => 'Number'],
     [isBoolean, () => 'Boolean'],
     [isNull, () => 'null'],
