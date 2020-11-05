@@ -20,16 +20,16 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function getNormalizedValue(value, schema) {
+function getNormalizedValue(value, optSchema) {
   // TODO: use json-schema#getEmptyValueFromSchema
   if (value !== EMPTY_VALUE) return value
 
-  if (!schema) return ''
+  if (!optSchema) return ''
 
-  if (schema.enum && schema.enum.length) return schema.enum[0]
+  if (optSchema.enum && optSchema.enum.length) return optSchema.enum[0]
 
-  if (schema.type) {
-    switch (schema.type) {
+  if (optSchema.type) {
+    switch (optSchema.type) {
       case 'string':
         return ''
       case 'number':
@@ -47,8 +47,10 @@ function getNormalizedValue(value, schema) {
   return ''
 }
 
-function getNormalizedValueStr(value) {
-  const valueStr = stringifyJSON(value)
+function getNormalizedValueStr(value, optSchema) {
+  const normalizedValue = getNormalizedValue(value, optSchema)
+
+  const valueStr = stringifyJSON(normalizedValue)
   if (R.head(valueStr) === '"' && R.last(valueStr) === '"') {
     return valueStr.substring(1, valueStr.length - 1)
   }
@@ -69,9 +71,12 @@ export default function Input({
 }) {
   const classes = useStyles()
 
-  const normalizedValue = getNormalizedValue(originalValue, data.valueSchema)
-  const [value, setValue] = React.useState(normalizedValue)
-  const [valueStr, setValueStr] = React.useState(getNormalizedValueStr(normalizedValue))
+  const [value, setValue] = React.useState(() =>
+    getNormalizedValue(originalValue, data.valueSchema),
+  )
+  const [valueStr, setValueStr] = React.useState(() =>
+    getNormalizedValueStr(originalValue, data.valueSchema),
+  )
 
   const onChangeInternal = React.useCallback(
     (event) => {
