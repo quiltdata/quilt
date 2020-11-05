@@ -1,6 +1,7 @@
 import * as React from 'react'
-
 import * as M from '@material-ui/core'
+
+import { docs } from 'constants/urls'
 
 const useStyles = M.makeStyles((t) => ({
   spinner: {
@@ -47,10 +48,7 @@ export default function SelectWorkflow({ className, disabled, items, onChange, v
           ))}
         </M.Select>
         <M.FormHelperText>
-          <M.Link
-            href="https://docs.quiltdata.com/advanced-usage/workflows"
-            target="_blank"
-          >
+          <M.Link href={`${docs}/advanced-usage/workflows`} target="_blank">
             Learn about quality workflows
           </M.Link>
         </M.FormHelperText>
