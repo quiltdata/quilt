@@ -82,6 +82,7 @@ export default function Preview({
   const classes = useStyles()
 
   const requiredKey = data.required && columnId === COLUMN_IDS.KEY
+  const isEmpty = React.useMemo(() => value === EMPTY_VALUE, [value])
 
   return (
     <div className={classes.root}>
@@ -91,10 +92,10 @@ export default function Preview({
         <span
           className={cx(classes.valueInner, {
             [classes.required]: requiredKey,
-            [classes.placeholder]: value === EMPTY_VALUE,
+            [classes.placeholder]: isEmpty,
           })}
         >
-          {formatValuePreview(value) || placeholder}
+          {isEmpty ? placeholder : formatValuePreview(value)}
         </span>
       </div>
 
