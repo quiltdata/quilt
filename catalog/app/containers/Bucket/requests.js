@@ -107,8 +107,6 @@ export const bucketListing = ({ s3, bucket, path = '', prefix }) =>
 
 const MAX_BANDS = 10
 
-/* eslint-disable no-console */
-
 export const bucketAccessCounts = async ({
   s3,
   analyticsBucket,
@@ -200,7 +198,9 @@ export const bucketAccessCounts = async ({
       ),
     )
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.log('Unable to fetch bucket access counts:')
+    // eslint-disable-next-line no-console
     console.error(e)
     return {
       byExt: [],
@@ -243,7 +243,9 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
         .then((r) => JSON.parse(r.Body.toString('utf-8')))
         .then(processStats)
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.log(`Unable to fetch pre-rendered stats from '${overviewUrl}':`)
+      // eslint-disable-next-line no-console
       console.error(e)
     }
   }
@@ -253,7 +255,9 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
       processStats,
     )
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.log('Unable to fetch live stats:')
+    // eslint-disable-next-line no-console
     console.error(e)
   }
 
@@ -272,7 +276,9 @@ export const metadataSchema = async ({ s3, bucket, schemaUrl }) => {
       .promise()
       .then((r) => JSON.parse(r.Body.toString('utf-8')))
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.log('Unable to fetch')
+    // eslint-disable-next-line no-console
     console.error(e)
   }
 
@@ -303,7 +309,9 @@ export const workflowsList = async ({ s3, bucket }) => {
       .promise()
       .then((r) => parseWorkflows(r.Body.toString('utf-8')))
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.log('Unable to fetch')
+    // eslint-disable-next-line no-console
     console.error(e)
   }
 
@@ -392,7 +400,9 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
       return await summarize({ s3, handle })
     } catch (e) {
       const display = `${handle.bucket}/${handle.key}`
+      // eslint-disable-next-line no-console
       console.log(`Unable to fetch configured summary from '${display}':`)
+      // eslint-disable-next-line no-console
       console.error(e)
     }
   }
@@ -425,7 +435,9 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
           ),
         )
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.log(`Unable to fetch pre-rendered summary from '${overviewUrl}':`)
+      // eslint-disable-next-line no-console
       console.error(e)
     }
   }
@@ -450,7 +462,9 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
         ),
       )
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.log('Unable to fetch live summary:')
+      // eslint-disable-next-line no-console
       console.error(e)
     }
   }
@@ -479,7 +493,9 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
         ),
       )
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.log('Unable to fetch summary from S3 listing:')
+    // eslint-disable-next-line no-console
     console.error(e)
   }
   return []
@@ -521,7 +537,9 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
           ),
         )
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.log(`Unable to fetch images sample from '${overviewUrl}':`)
+      // eslint-disable-next-line no-console
       console.error(e)
     }
   }
@@ -546,7 +564,9 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
         ),
       )
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.log('Unable to fetch live images sample:')
+      // eslint-disable-next-line no-console
       console.error(e)
     }
   }
@@ -569,7 +589,9 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
         ),
       )
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.log('Unable to fetch images sample from S3 listing:')
+    // eslint-disable-next-line no-console
     console.error(e)
   }
   return []
@@ -633,7 +655,9 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
     const resolvePath = (path) =>
       resolveLogicalKey && handle.logicalKey
         ? resolveLogicalKey(s3paths.resolveKey(handle.logicalKey, path)).catch((e) => {
+            // eslint-disable-next-line no-console
             console.warn('Error resolving logical key for summary', { handle, path })
+            // eslint-disable-next-line no-console
             console.error(e)
             return null
           })
@@ -657,7 +681,9 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
     )
     return handles.filter((h) => h)
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.log('Error loading summary:')
+    // eslint-disable-next-line no-console
     console.error(e)
     return []
   }
@@ -707,7 +733,9 @@ const fetchPackagesAccessCounts = async ({
       return { ...acc, [r.name]: { counts, total } }
     }, {})
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.log('fetchPackagesAccessCounts : error caught')
+    // eslint-disable-next-line no-console
     console.error(e)
     return {}
   }
@@ -880,7 +908,9 @@ export async function fetchRevisionsAccessCounts({
       return { ...acc, [r.hash]: { counts, total } }
     }, {})
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.log('fetchRevisionsAccessCounts : error caught')
+    // eslint-disable-next-line no-console
     console.error(e)
     return {}
   }
@@ -1039,6 +1069,7 @@ export async function packageSelect({
 
   if (r.status >= 400) {
     const msg = await r.text()
+    // eslint-disable-next-line no-console
     console.error(`pkgselect error (${r.status}): ${msg}`)
     throw new errors.BucketError(msg, { status: r.status })
   }
@@ -1108,7 +1139,9 @@ const queryAccessCounts = async ({
 
     return { counts, total }
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.log('queryAccessCounts: error caught')
+    // eslint-disable-next-line no-console
     console.error(e)
     throw e
   }
