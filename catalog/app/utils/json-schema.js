@@ -46,9 +46,7 @@ function isSchemaReference(optSchema) {
   return Boolean(R.prop('$ref', optSchema))
 }
 
-export function isNestedType(optSchema) {
-  return isSchemaArray(optSchema) || isSchemaObject(optSchema)
-}
+export const isNestedType = R.either(isSchemaArray, isSchemaObject)
 
 export function schemaTypeToHumanString(optSchema) {
   return R.cond([
