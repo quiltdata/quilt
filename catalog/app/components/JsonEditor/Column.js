@@ -14,16 +14,11 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.common.white,
     flex: 'none',
+    padding: '1px 0', // NOTE: fit 2px border for input
     width: '100%',
     '& + $root': {
       marginLeft: -1,
     },
-  },
-  tableContainer: {
-    padding: '1px 0', // NOTE: fit 2px border for input
-  },
-  selected: {
-    backgroundColor: t.palette.action.focus,
   },
 }))
 
@@ -98,7 +93,7 @@ export default function Column({
       )}
 
       <M.Fade in>
-        <M.TableContainer className={classes.tableContainer}>
+        <M.TableContainer>
           <M.Table {...getTableProps()}>
             <M.TableBody {...getTableBodyProps()}>
               {rows.map((row, index) => {
