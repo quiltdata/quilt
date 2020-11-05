@@ -983,17 +983,11 @@ export default function UploadDialogWrapper({ bucket, open, onClose, refresh }) 
         }}
       />
     ),
-    Err: () => (
-      <UploadDialog
-        {...{
-          bucket,
-          open,
-          onClose,
-          refresh,
-          workflowsConfig: null,
-        }}
-      />
-    ),
+    Err: (error) => {
+      // eslint-disable-next-line no-console
+      console.error(error)
+      return null
+    },
     _: () => null,
   })
 }

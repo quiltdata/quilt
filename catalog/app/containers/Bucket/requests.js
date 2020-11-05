@@ -31,6 +31,7 @@ function parseWorkflow(workflowSlug, workflow, data) {
 }
 
 function getNoWorkflow(data) {
+  // TODO: use const Symbol for None workflow name
   return {
     isDefault: !data.default_workflow,
     name: 'None',
@@ -57,7 +58,6 @@ function parseWorkflows(workflowsYaml) {
   const workflowsList = Object.keys(workflows).map((slug) =>
     parseWorkflow(slug, workflows[slug], data),
   )
-  // TODO: use const Symbol for None workflow name
   const noWorkflow = data.is_workflow_required ? null : getNoWorkflow(data)
 
   return {
