@@ -363,29 +363,32 @@ function getMetaValue(value) {
   )
 }
 
-function validateMeta(schema, value) {
+function validateMeta(schema) {
   // TODO: move schema validation to utils/validators
   //       but don't forget that validation depends on library.
   //       Maybe we should split validators to files at first
-  const noError = undefined
+  const schemaValidator = validateOnSchema(schema)
+  return (value) => {
+    const noError = undefined
 
-  if (schema) {
-    const obj = value ? parseJSON(value.text) : {}
-    const errors = validateOnSchema(obj, schema)
-    if (!errors.length) {
-      return noError
+    if (schema) {
+      const obj = value ? parseJSON(value.text) : {}
+      const errors = schemaValidator(obj)
+      if (!errors.length) {
+        return noError
+      }
+
+      return errors
     }
 
-    return errors
+    if (!value) return noError
+
+    if (value.mode === 'json') {
+      return validators.jsonObject(value.text)
+    }
+
+    return noError
   }
-
-  if (!value) return noError
-
-  if (value.mode === 'json') {
-    return validators.jsonObject(value.text)
-  }
-
-  return noError
 }
 
 const useMetaInputStyles = M.makeStyles((t) => ({
@@ -867,7 +870,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                           bucket={bucket}
                           name="meta"
                           schema={newSchema}
-                          validate={(...params) => validateMeta(newSchema, ...params)}
+                          validate={validateMeta(newSchema)}
                           validateFields={['meta']}
                           isEqual={R.equals}
                         />
@@ -877,7 +880,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                           component={MetaInput}
                           bucket={bucket}
                           name="meta"
-                          validate={(...params) => validateMeta(null, ...params)}
+                          validate={validateMeta(null)}
                           validateFields={['meta']}
                           isEqual={R.equals}
                         />

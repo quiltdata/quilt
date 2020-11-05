@@ -120,11 +120,14 @@ function convertType(value, typeOf) {
 }
 
 // TODO: move to utils/json-schema
-export function validateOnSchema(obj, schema) {
+export function validateOnSchema(schema) {
   const ajv = new Ajv({ schemaId: 'auto' })
   const validate = ajv.compile(schema)
-  validate(obj)
-  return validate.errors || []
+
+  return (obj) => {
+    validate(obj)
+    return validate.errors || []
+  }
 }
 
 const EmptySchema = {}
@@ -136,6 +139,8 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   const [fieldPath, setFieldPath] = React.useState([])
   const [errors, setErrors] = React.useState([])
   const [sortOrder, setSortOder] = React.useState({}) // NOTE: { [pathToKey]: number }
+
+  const schemaValidator = React.useMemo(() => validateOnSchema(schema), [schema])
 
   // NOTE: Should be greater than number of keys on schema and object
   const sortCounter = React.useRef(initialSortCounter)
@@ -156,10 +161,10 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       const value = R.path(contextFieldPath, data)
       const newData = R.assocPath(contextFieldPath, convertType(value, typeOf), data)
       setData(newData)
-      setErrors(validateOnSchema(newData, schema))
+      setErrors(schemaValidator(newData))
       return newData
     },
-    [data, schema],
+    [data, schemaValidator],
   )
 
   const makeAction = React.useCallback(
@@ -182,7 +187,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
     (removingFieldPath) => {
       const newData = R.dissocPath(removingFieldPath, data)
       setData(newData)
-      setErrors(validateOnSchema(newData, schema))
+      setErrors(schemaValidator(newData))
 
       const parentObjectOrArray = R.path(R.init(removingFieldPath), newData)
       // NOTE: edited array has a different value on `removingFieldPath`
@@ -192,7 +197,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       }
       return newData
     },
-    [data, schema, sortOrder],
+    [data, schemaValidator, sortOrder],
   )
 
   const changeValue = React.useCallback(
@@ -203,10 +208,10 @@ export default function JsonEditorState({ children, obj, optSchema }) {
 
       const newData = R.assocPath(editingFieldPath, str, data)
       setData(newData)
-      setErrors(validateOnSchema(newData, schema))
+      setErrors(schemaValidator(newData))
       return newData
     },
-    [data, schema],
+    [data, schemaValidator],
   )
 
   const addRow = React.useCallback(
