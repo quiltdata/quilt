@@ -88,63 +88,59 @@ export default function Column({
 
   return (
     <div className={classes.root}>
-      {!!columnPath.length && (
-        <Breadcrumbs items={columnPath} onSelect={onBreadcrumb} />
-      )}
+      {!!columnPath.length && <Breadcrumbs items={columnPath} onSelect={onBreadcrumb} />}
 
-      <M.Fade in>
-        <M.TableContainer>
-          <M.Table {...getTableProps()}>
-            <M.TableBody {...getTableBodyProps()}>
-              {rows.map((row, index) => {
-                const isLastRow = index === rows.length - 1
+      <M.TableContainer>
+        <M.Table {...getTableProps()}>
+          <M.TableBody {...getTableBodyProps()}>
+            {rows.map((row, index) => {
+              const isLastRow = index === rows.length - 1
 
-                prepareRow(row)
+              prepareRow(row)
 
-                const props = {
-                  cells: row.cells,
-                  fresh: isLastRow && hasNewRow,
+              const props = {
+                cells: row.cells,
+                fresh: isLastRow && hasNewRow,
+                columnPath,
+                onExpand,
+                onMenuAction,
+              }
+
+              if (
+                row.values &&
+                row.values[COLUMN_IDS.KEY] !== EMPTY_VALUE &&
+                row.values[COLUMN_IDS.VALUE] !== EMPTY_VALUE
+              ) {
+                const key = row.values[COLUMN_IDS.KEY]
+                const value = row.values[COLUMN_IDS.VALUE]
+                props.key = `${columnPath}_key_${key}+value_${value}`
+              }
+
+              return <Row {...row.getRowProps()} {...props} />
+            })}
+
+            {columnType === 'array' ? (
+              <AddArrayItem
+                {...{
+                  columnPath,
+                  index: rows.length,
+                  onAdd: onAddRowInternal,
+                  key: `add_array_item_${rows.length}`,
+                }}
+              />
+            ) : (
+              <AddRow
+                {...{
                   columnPath,
                   onExpand,
-                  onMenuAction,
-                }
-
-                if (
-                  row.values &&
-                  row.values[COLUMN_IDS.KEY] !== EMPTY_VALUE &&
-                  row.values[COLUMN_IDS.VALUE] !== EMPTY_VALUE
-                ) {
-                  const key = row.values[COLUMN_IDS.KEY]
-                  const value = row.values[COLUMN_IDS.VALUE]
-                  props.key = `${columnPath}_key_${key}+value_${value}`
-                }
-
-                return <Row {...row.getRowProps()} {...props} />
-              })}
-
-              {columnType === 'array' ? (
-                <AddArrayItem
-                  {...{
-                    columnPath,
-                    index: rows.length,
-                    onAdd: onAddRowInternal,
-                    key: `add_array_item_${rows.length}`,
-                  }}
-                />
-              ) : (
-                <AddRow
-                  {...{
-                    columnPath,
-                    onExpand,
-                    onAdd: onAddRowInternal,
-                    key: `add_row_${rows.length}`,
-                  }}
-                />
-              )}
-            </M.TableBody>
-          </M.Table>
-        </M.TableContainer>
-      </M.Fade>
+                  onAdd: onAddRowInternal,
+                  key: `add_row_${rows.length}`,
+                }}
+              />
+            )}
+          </M.TableBody>
+        </M.Table>
+      </M.TableContainer>
     </div>
   )
 }
