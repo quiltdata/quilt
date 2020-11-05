@@ -51,10 +51,10 @@ export default function Column({
   const columns = React.useMemo(
     () => [
       {
-        accessor: COLUMN_IDS.Key,
+        accessor: COLUMN_IDS.KEY,
       },
       {
-        accessor: COLUMN_IDS.Value,
+        accessor: COLUMN_IDS.VALUE,
       },
     ],
     [],
@@ -116,11 +116,11 @@ export default function Column({
 
                 if (
                   row.values &&
-                  row.values[COLUMN_IDS.Key] !== EMPTY_VALUE &&
-                  row.values[COLUMN_IDS.Value] !== EMPTY_VALUE
+                  row.values[COLUMN_IDS.KEY] !== EMPTY_VALUE &&
+                  row.values[COLUMN_IDS.VALUE] !== EMPTY_VALUE
                 ) {
-                  const key = row.values[COLUMN_IDS.Key]
-                  const value = row.values[COLUMN_IDS.Value]
+                  const key = row.values[COLUMN_IDS.KEY]
+                  const value = row.values[COLUMN_IDS.VALUE]
                   props.key = `${columnPath}_key_${key}+value_${value}`
                 }
 

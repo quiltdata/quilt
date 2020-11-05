@@ -30,12 +30,12 @@ export default function Row({ cells, columnPath, fresh, onExpand, onMenuAction }
         <M.TableCell
           {...cell.getCellProps()}
           className={cx(classes.cell, {
-            [classes.key]: cell.column.id === COLUMN_IDS.Key,
-            [classes.value]: cell.column.id === COLUMN_IDS.Value,
+            [classes.key]: cell.column.id === COLUMN_IDS.KEY,
+            [classes.value]: cell.column.id === COLUMN_IDS.VALUE,
           })}
         >
           {cell.render('Cell', {
-            editing: fresh && cell.column.id === COLUMN_IDS.Value,
+            editing: fresh && cell.column.id === COLUMN_IDS.VALUE,
             columnPath,
             onExpand,
             onMenuAction,

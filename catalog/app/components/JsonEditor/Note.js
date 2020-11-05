@@ -78,7 +78,7 @@ function NoteValue({ schema, value }) {
 }
 
 export default function Note({ columnId, data, value }) {
-  if (columnId === COLUMN_IDS.Value) {
+  if (columnId === COLUMN_IDS.VALUE) {
     return <NoteValue value={value} schema={data.valueSchema} />
   }
 

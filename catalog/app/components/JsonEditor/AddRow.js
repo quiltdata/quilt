@@ -18,12 +18,12 @@ const useStyles = M.makeStyles((t) => ({
 
 const emptyCellProps = {
   column: {
-    id: COLUMN_IDS.Key,
+    id: COLUMN_IDS.KEY,
   },
   row: {
     original: {},
     values: {
-      [COLUMN_IDS.Key]: EMPTY_VALUE,
+      [COLUMN_IDS.KEY]: EMPTY_VALUE,
     },
   },
   value: EMPTY_VALUE,

@@ -81,7 +81,7 @@ export default function Preview({
 }) {
   const classes = useStyles()
 
-  const requiredKey = data.required && columnId === COLUMN_IDS.Key
+  const requiredKey = data.required && columnId === COLUMN_IDS.KEY
 
   return (
     <div className={classes.root}>

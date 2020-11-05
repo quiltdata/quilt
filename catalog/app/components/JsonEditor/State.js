@@ -6,8 +6,8 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 export const COLUMN_IDS = {
-  Key: 'key',
-  Value: 'value',
+  KEY: 'key',
+  VALUE: 'value',
 }
 
 export const ACTIONS = {
@@ -87,8 +87,8 @@ function getColumn(obj, columnPath, sortOrder, schema) {
   const items = mapKeys(
     nestedObj || {},
     (value, key, schemaSortIndex) => ({
-      [COLUMN_IDS.Key]: key,
-      [COLUMN_IDS.Value]: getValue(value),
+      [COLUMN_IDS.KEY]: key,
+      [COLUMN_IDS.VALUE]: getValue(value),
 
       // These will be available at row.original
       required: requiredKeys.includes(key),
@@ -168,9 +168,9 @@ export default function JsonEditorState({ children, obj, optSchema }) {
         case ACTIONS.REMOVE_FIELD:
           return removeField(contextFieldPath, actionItem)
         case ACTIONS.SELECT_ENUM:
-          return changeValue(contextFieldPath, COLUMN_IDS.Value, actionItem.title)
+          return changeValue(contextFieldPath, COLUMN_IDS.VALUE, actionItem.title)
         case ACTIONS.CHANGE_TYPE:
-          return changeType(contextFieldPath, COLUMN_IDS.Value, actionItem.title)
+          return changeType(contextFieldPath, COLUMN_IDS.VALUE, actionItem.title)
         default:
           return null
       }
@@ -197,7 +197,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
 
   const changeValue = React.useCallback(
     (editingFieldPath, columnId, str) => {
-      if (columnId !== COLUMN_IDS.Value) {
+      if (columnId !== COLUMN_IDS.VALUE) {
         return null
       }
 

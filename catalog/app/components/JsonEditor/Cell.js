@@ -76,8 +76,8 @@ const useStyles = M.makeStyles((t) => ({
 const emptyCellData = {}
 
 const cellPlaceholders = {
-  [COLUMN_IDS.Key]: 'Key',
-  [COLUMN_IDS.Value]: 'Value',
+  [COLUMN_IDS.KEY]: 'Key',
+  [COLUMN_IDS.VALUE]: 'Value',
 }
 
 export default function Cell({
@@ -101,13 +101,13 @@ export default function Cell({
   }, [menuAnchorRef])
 
   const isEditable = React.useMemo(
-    () => column.id === COLUMN_IDS.Value || value === EMPTY_VALUE || !value,
+    () => column.id === COLUMN_IDS.VALUE || value === EMPTY_VALUE || !value,
     [column.id, value],
   )
   const [editing, setEditing] = React.useState(editingInitial)
   const [menuOpened, setMenuOpened] = React.useState(false)
 
-  const key = row.values[COLUMN_IDS.Key]
+  const key = row.values[COLUMN_IDS.KEY]
   const fieldPath = React.useMemo(() => columnPath.concat(key), [columnPath, key])
 
   const closeMenu = React.useCallback(() => setMenuOpened(false), [setMenuOpened])
@@ -134,7 +134,7 @@ export default function Cell({
   )
 
   const onDoubleClick = React.useCallback(() => {
-    if (column.id === COLUMN_IDS.Key && value !== EMPTY_VALUE) return
+    if (column.id === COLUMN_IDS.KEY && value !== EMPTY_VALUE) return
     setEditing(true)
   }, [column.id, value, setEditing])
 
@@ -157,8 +157,8 @@ export default function Cell({
 
   const ValueComponent = editing ? Input : Preview
 
-  const isKeyCell = column.id === COLUMN_IDS.Key
-  const isValueCell = column.id === COLUMN_IDS.Value
+  const isKeyCell = column.id === COLUMN_IDS.KEY
+  const isValueCell = column.id === COLUMN_IDS.VALUE
   const keyMenuOpened = menuOpened && isKeyCell
   const valueMenuOpened = menuOpened && isValueCell
 
