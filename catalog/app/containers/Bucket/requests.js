@@ -51,7 +51,7 @@ function parseWorkflows(workflowsYaml) {
   }
 
   const { workflows } = data
-  if (workflows) {
+  if (!workflows) {
     return emptyWorkflowsConfig
   }
 
