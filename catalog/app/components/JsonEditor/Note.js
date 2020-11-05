@@ -29,15 +29,7 @@ function getTypeAnnotationFromValue(value, schema) {
   return R.cond([
     [isArray, () => 'Array'],
     [isObject, () => 'Object'],
-    [
-      isString,
-      () => {
-        if (R.propOr([], 'enum', schema).includes(value)) {
-          return 'enum'
-        }
-        return 'String'
-      },
-    ],
+    [isString, () => (R.propOr([], 'enum', schema).includes(value) ? 'enum' : 'string')],
     [isNumber, () => 'Number'],
     [isBoolean, () => 'Boolean'],
     [isNull, () => 'null'],
@@ -45,13 +37,10 @@ function getTypeAnnotationFromValue(value, schema) {
   ])(value)
 }
 
-function getTypeAnnotation(value, schema) {
-  if (value === EMPTY_VALUE) {
-    return schemaTypeToHumanString(schema)
-  }
-
-  return getTypeAnnotationFromValue(value, schema)
-}
+const getTypeAnnotation = (value, schema) =>
+  value === EMPTY_VALUE
+    ? schemaTypeToHumanString(schema)
+    : getTypeAnnotationFromValue(value, schema)
 
 function NoteValue({ schema, value }) {
   const classes = useStyles()

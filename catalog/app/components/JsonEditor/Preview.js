@@ -62,11 +62,8 @@ function formatValuePreview(v) {
   return v.toString()
 }
 
-function isExpandable(value, schema) {
-  if (value !== EMPTY_VALUE) return isObject(value)
-
-  return isNestedType(schema)
-}
+const isExpandable = (value, schema) =>
+  value === EMPTY_VALUE ? isNestedType(schema) : isObject(value)
 
 export default function Preview({
   columnId,
