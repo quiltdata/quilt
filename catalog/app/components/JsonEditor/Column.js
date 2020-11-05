@@ -88,7 +88,7 @@ export default function Column({
 
   return (
     <div className={classes.root}>
-      {Boolean(columnPath.length) && (
+      {!!columnPath.length && (
         <Breadcrumbs items={columnPath} onSelect={onBreadcrumb} />
       )}
 
