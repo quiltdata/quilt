@@ -9,6 +9,8 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import JsonEditor from 'components/JsonEditor'
+import { parseJSON, stringifyJSON, validateOnSchema } from 'components/JsonEditor/State'
 import Skeleton from 'components/Skeleton'
 import Data, { useData } from 'utils/Data'
 import AsyncResult from 'utils/AsyncResult'
@@ -22,16 +24,11 @@ import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
 
-import JsonEditor from 'components/JsonEditor'
-import { parseJSON, stringifyJSON, validateOnSchema } from 'components/JsonEditor/State'
 import SelectWorkflow from './SelectWorkflow'
 import * as requests from './requests'
 
 const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
 const ES_LAG = 3 * 1000
-
-// FIXME: remove this flag and remove old key/value editor
-const JSON_EDITOR_ENABLED = true
 
 const Errors = {
   FILES_UPLOAD: { [FORM_ERROR]: 'Error uploading files' },
@@ -354,38 +351,10 @@ function FilesInput({
   )
 }
 
-const isParsable = (v) => {
-  try {
-    JSON.parse(v)
-    return true
-  } catch (e) {
-    return false
-  }
-}
-
-const tryUnparse = (v) =>
-  typeof v === 'string' && !isParsable(v) ? v : JSON.stringify(v)
-
-const fieldsToText = R.pipe(
-  R.filter((f) => !!f.key.trim()),
-  R.map((f) => [f.key, parseJSON(f.value)]),
-  R.fromPairs,
-  (x) => stringifyJSON(x),
-)
-
-const textToFields = R.pipe(
-  (t) => JSON.parse(t),
-  Object.entries,
-  R.map(([key, value]) => ({ key, value: tryUnparse(value) })),
-)
-
 function getMetaValue(value) {
   if (!value) return undefined
 
-  const pairs =
-    value.mode === 'json' || JSON_EDITOR_ENABLED
-      ? pipeThru(value.text || '{}')((t) => JSON.parse(t), R.toPairs)
-      : (value.fields || []).map((f) => [f.key, parseJSON(f.value)])
+  const pairs = pipeThru(value.text || '{}')((t) => JSON.parse(t), R.toPairs)
 
   return pipeThru(pairs)(
     R.filter(([k]) => !!k.trim()),
@@ -469,10 +438,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-const EMPTY_FIELD = { key: '', value: '' }
-
 const EMPTY_META_VALUE = {
-  fields: [EMPTY_FIELD],
   mode: 'kv',
   text: '{}',
 }
@@ -489,23 +455,10 @@ function MetaInput({ input, meta, schema }) {
     input.onChange({ ...value, mode })
   }
 
-  const changeFields = (newFields) => {
-    if (disabled) return
-    const fields = typeof newFields === 'function' ? newFields(value.fields) : newFields
-    const text = fieldsToText(fields)
-    input.onChange({ ...value, fields, text })
-  }
-
   const changeText = React.useCallback(
     (text) => {
       if (disabled) return
-      let fields
-      try {
-        fields = textToFields(text)
-      } catch (e) {
-        fields = value.fields
-      }
-      input.onChange({ ...value, fields, text })
+      input.onChange({ ...value, text })
     },
     [disabled, input, value],
   )
@@ -513,22 +466,6 @@ function MetaInput({ input, meta, schema }) {
   const handleModeChange = (e, m) => {
     if (!m) return
     changeMode(m)
-  }
-
-  const handleKeyChange = (i) => (e) => {
-    changeFields(R.assocPath([i, 'key'], e.target.value))
-  }
-
-  const handleValueChange = (i) => (e) => {
-    changeFields(R.assocPath([i, 'value'], e.target.value))
-  }
-
-  const addField = () => {
-    changeFields(R.append(EMPTY_FIELD))
-  }
-
-  const rmField = (i) => () => {
-    changeFields(R.pipe(R.remove(i, 1), R.when(R.isEmpty, R.append(EMPTY_FIELD))))
   }
 
   const handleTextChange = (e) => {
@@ -559,57 +496,12 @@ function MetaInput({ input, meta, schema }) {
       </div>
 
       {value.mode === 'kv' ? (
-        <>
-          {JSON_EDITOR_ENABLED ? (
-            <JsonEditor
-              error={error}
-              value={parseJSON(value.text)}
-              onChange={onJsonEditor}
-              schema={schema}
-            />
-          ) : (
-            <>
-              {value.fields.map((f, i) => (
-                // eslint-disable-next-line react/no-array-index-key
-                <div key={i} className={classes.row}>
-                  <M.TextField
-                    className={classes.key}
-                    onChange={handleKeyChange(i)}
-                    value={f.key}
-                    placeholder="Key"
-                    disabled={disabled}
-                  />
-                  <div className={classes.sep}>:</div>
-                  <M.TextField
-                    className={classes.value}
-                    onChange={handleValueChange(i)}
-                    value={f.value}
-                    placeholder="Value"
-                    disabled={disabled}
-                  />
-                  <M.IconButton
-                    size="small"
-                    onClick={rmField(i)}
-                    edge="end"
-                    disabled={disabled}
-                  >
-                    <M.Icon>close</M.Icon>
-                  </M.IconButton>
-                </div>
-              ))}
-              <M.Button
-                variant="outlined"
-                size="small"
-                onClick={addField}
-                startIcon={<M.Icon>add</M.Icon>}
-                className={classes.add}
-                disabled={disabled}
-              >
-                Add field
-              </M.Button>
-            </>
-          )}
-        </>
+        <JsonEditor
+          error={error}
+          value={parseJSON(value.text)}
+          onChange={onJsonEditor}
+          schema={schema}
+        />
       ) : (
         <M.TextField
           variant="outlined"
@@ -994,19 +886,17 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                     })}
                   </Data>
 
-                  {JSON_EDITOR_ENABLED && (
-                    <RF.Field
-                      component={WorkflowInput}
-                      workflowsConfig={workflowsConfig}
-                      initialValue={
-                        workflowsConfig
-                          ? workflowsConfig.workflows.find((item) => item.isDefault)
-                          : null
-                      }
-                      name="workflow"
-                      validateFields={['meta', 'workflow']}
-                    />
-                  )}
+                  <RF.Field
+                    component={WorkflowInput}
+                    workflowsConfig={workflowsConfig}
+                    initialValue={
+                      workflowsConfig
+                        ? workflowsConfig.workflows.find((item) => item.isDefault)
+                        : null
+                    }
+                    name="workflow"
+                    validateFields={['meta', 'workflow']}
+                  />
 
                   <input type="submit" style={{ display: 'none' }} />
                 </form>
