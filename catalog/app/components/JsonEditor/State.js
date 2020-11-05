@@ -10,10 +10,10 @@ export const COLUMN_IDS = {
   Value: 'value',
 }
 
-export const Actions = {
-  ChangeType: 'change_type',
-  RemoveField: 'remove_field',
-  SelectEnum: 'select_enum',
+export const ACTIONS = {
+  CHANGE_TYPE: 'change_type',
+  REMOVE_FIELD: 'remove_field',
+  SELECT_ENUM: 'select_enum',
 }
 
 export const EMPTY_VALUE = Symbol('empty')
@@ -165,11 +165,11 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   const makeAction = React.useCallback(
     (contextFieldPath, actionItem) => {
       switch (actionItem.action) {
-        case Actions.RemoveField:
+        case ACTIONS.REMOVE_FIELD:
           return removeField(contextFieldPath, actionItem)
-        case Actions.SelectEnum:
+        case ACTIONS.SELECT_ENUM:
           return changeValue(contextFieldPath, COLUMN_IDS.Value, actionItem.title)
-        case Actions.ChangeType:
+        case ACTIONS.CHANGE_TYPE:
           return changeType(contextFieldPath, COLUMN_IDS.Value, actionItem.title)
         default:
           return null

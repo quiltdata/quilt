@@ -5,7 +5,7 @@ import { isSchemaEnum } from 'utils/json-schema'
 
 import Input from './Input'
 import Preview from './Preview'
-import { Actions, COLUMN_IDS, EMPTY_VALUE } from './State'
+import { ACTIONS, COLUMN_IDS, EMPTY_VALUE } from './State'
 
 function CellMenu({ anchorEl, menu, onClose, onClick }) {
   if (!menu.length) return null
@@ -37,7 +37,7 @@ const actionsSubmenu = {
   key: 'actions',
   options: [
     {
-      action: Actions.RemoveField,
+      action: ACTIONS.REMOVE_FIELD,
       title: 'Remove',
     },
   ],
@@ -53,7 +53,7 @@ function getMenuForKey({ required, value }) {
 function getMenuForValue({ valueSchema }) {
   const enumOptions = isSchemaEnum(valueSchema)
     ? valueSchema.enum.map((title) => ({
-        action: Actions.SelectEnum,
+        action: ACTIONS.SELECT_ENUM,
         title,
       }))
     : []
