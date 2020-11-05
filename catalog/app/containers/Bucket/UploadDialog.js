@@ -471,14 +471,16 @@ const useMetaInputStyles = M.makeStyles((t) => ({
 
 const EMPTY_FIELD = { key: '', value: '' }
 
+const EMPTY_META_VALUE = {
+  fields: [EMPTY_FIELD],
+  mode: 'kv',
+  text: '{}',
+}
+
 // TODO: warn on duplicate keys
 function MetaInput({ input, meta, schema }) {
   const classes = useMetaInputStyles()
-  const value = input.value || {
-    fields: [EMPTY_FIELD],
-    mode: 'kv',
-    text: '{}',
-  }
+  const value = input.value || EMPTY_META_VALUE
   const error = meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
 
@@ -533,13 +535,9 @@ function MetaInput({ input, meta, schema }) {
     changeText(e.target.value)
   }
 
-  const onJsonEditor = React.useCallback(
-    (json) => {
-      const text = stringifyJSON(json)
-      changeText(text)
-    },
-    [changeText],
-  )
+  const onJsonEditor = React.useCallback((json) => changeText(stringifyJSON(json)), [
+    changeText,
+  ])
 
   return (
     <div className={classes.root}>
