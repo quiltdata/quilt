@@ -10,7 +10,7 @@ import { isNestedType } from 'utils/json-schema'
 import ButtonExpand from './ButtonExpand'
 import ButtonMenu from './ButtonMenu'
 import Note from './Note'
-import { COLUMN_IDS, EmptyValue } from './State'
+import { COLUMN_IDS, EMPTY_VALUE } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -45,7 +45,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 function formatValuePreview(v) {
-  if (v === EmptyValue || isUndefined(v)) return ''
+  if (v === EMPTY_VALUE || isUndefined(v)) return ''
 
   if (isArray(v)) {
     return `[ ${v.map(formatValuePreview).join(', ')} ]`
@@ -63,7 +63,7 @@ function formatValuePreview(v) {
 }
 
 function isExpandable(value, schema) {
-  if (value !== EmptyValue) return isObject(value)
+  if (value !== EMPTY_VALUE) return isObject(value)
 
   return isNestedType(schema)
 }
@@ -91,7 +91,7 @@ export default function Preview({
         <span
           className={cx(classes.valueInner, {
             [classes.required]: requiredKey,
-            [classes.placeholder]: value === EmptyValue,
+            [classes.placeholder]: value === EMPTY_VALUE,
           })}
         >
           {formatValuePreview(value) || placeholder}

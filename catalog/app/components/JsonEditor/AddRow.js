@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Cell from './Cell'
-import { COLUMN_IDS, EmptyValue } from './State'
+import { COLUMN_IDS, EMPTY_VALUE } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   inputCell: {
@@ -23,10 +23,10 @@ const emptyCellProps = {
   row: {
     original: {},
     values: {
-      [COLUMN_IDS.Key]: EmptyValue,
+      [COLUMN_IDS.Key]: EMPTY_VALUE,
     },
   },
-  value: EmptyValue,
+  value: EMPTY_VALUE,
 }
 
 export default function AddRow({ columnPath, onAdd, onExpand }) {

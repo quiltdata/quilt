@@ -16,7 +16,7 @@ export const Actions = {
   SelectEnum: 'select_enum',
 }
 
-export const EmptyValue = Symbol('empty')
+export const EMPTY_VALUE = Symbol('empty')
 
 export function stringifyJSON(obj) {
   return JSON.stringify(obj, null, 2)
@@ -68,7 +68,7 @@ function mapKeys(objectOrArray, callback, schemaKeys) {
 }
 
 function getValue(value) {
-  return isUndefined(value) ? EmptyValue : value
+  return isUndefined(value) ? EMPTY_VALUE : value
 }
 
 function getColumn(obj, columnPath, sortOrder, schema) {

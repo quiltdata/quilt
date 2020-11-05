@@ -7,7 +7,7 @@ import * as M from '@material-ui/core'
 import ButtonExpand from './ButtonExpand'
 import ButtonMenu from './ButtonMenu'
 import Note from './Note'
-import { COLUMN_IDS, EmptyValue, parseJSON, stringifyJSON } from './State'
+import { COLUMN_IDS, EMPTY_VALUE, parseJSON, stringifyJSON } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -22,7 +22,7 @@ const useStyles = M.makeStyles((t) => ({
 
 function getNormalizedValue(value, schema) {
   // TODO: use json-schema#getEmptyValueFromSchema
-  if (value !== EmptyValue) return value
+  if (value !== EMPTY_VALUE) return value
 
   if (!schema) return ''
 

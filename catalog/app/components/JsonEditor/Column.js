@@ -8,7 +8,7 @@ import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
 import Row from './Row'
-import { COLUMN_IDS, EmptyValue } from './State'
+import { COLUMN_IDS, EMPTY_VALUE } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -116,8 +116,8 @@ export default function Column({
 
                 if (
                   row.values &&
-                  row.values[COLUMN_IDS.Key] !== EmptyValue &&
-                  row.values[COLUMN_IDS.Value] !== EmptyValue
+                  row.values[COLUMN_IDS.Key] !== EMPTY_VALUE &&
+                  row.values[COLUMN_IDS.Value] !== EMPTY_VALUE
                 ) {
                   const key = row.values[COLUMN_IDS.Key]
                   const value = row.values[COLUMN_IDS.Value]

@@ -5,7 +5,7 @@ import { isSchemaEnum } from 'utils/json-schema'
 
 import Input from './Input'
 import Preview from './Preview'
-import { Actions, COLUMN_IDS, EmptyValue } from './State'
+import { Actions, COLUMN_IDS, EMPTY_VALUE } from './State'
 
 function CellMenu({ anchorEl, menu, onClose, onClick }) {
   if (!menu.length) return null
@@ -44,7 +44,7 @@ const actionsSubmenu = {
 }
 
 function getMenuForKey({ required, value }) {
-  if (required || value === EmptyValue) {
+  if (required || value === EMPTY_VALUE) {
     return []
   }
   return [actionsSubmenu]
@@ -101,7 +101,7 @@ export default function Cell({
   }, [menuAnchorRef])
 
   const isEditable = React.useMemo(
-    () => column.id === COLUMN_IDS.Value || value === EmptyValue || !value,
+    () => column.id === COLUMN_IDS.Value || value === EMPTY_VALUE || !value,
     [column.id, value],
   )
   const [editing, setEditing] = React.useState(editingInitial)
@@ -134,7 +134,7 @@ export default function Cell({
   )
 
   const onDoubleClick = React.useCallback(() => {
-    if (column.id === COLUMN_IDS.Key && value !== EmptyValue) return
+    if (column.id === COLUMN_IDS.Key && value !== EMPTY_VALUE) return
     setEditing(true)
   }, [column.id, value, setEditing])
 

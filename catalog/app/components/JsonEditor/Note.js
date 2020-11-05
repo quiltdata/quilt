@@ -11,7 +11,7 @@ import * as M from '@material-ui/core'
 
 import { doesTypeMatchToSchema, schemaTypetoHumanString } from 'utils/json-schema'
 
-import { COLUMN_IDS, EmptyValue } from './State'
+import { COLUMN_IDS, EMPTY_VALUE } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   default: {
@@ -46,7 +46,7 @@ function getTypeAnnotationFromValue(value, schema) {
 }
 
 function getTypeAnnotation(value, schema) {
-  if (value === EmptyValue) {
+  if (value === EMPTY_VALUE) {
     return schemaTypetoHumanString(schema)
   }
 
