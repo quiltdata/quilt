@@ -7,6 +7,16 @@ import Input from './Input'
 import Preview from './Preview'
 import { ACTIONS, COLUMN_IDS, EMPTY_VALUE } from './State'
 
+function CellMenuItem({ item, onClick }) {
+  const onClickInternal = React.useCallback(() => onClick(item), [item, onClick])
+
+  return (
+    <M.MenuItem onClick={onClickInternal}>
+      <M.ListItemText primary={item.title} />
+    </M.MenuItem>
+  )
+}
+
 function CellMenu({ anchorEl, menu, onClose, onClick }) {
   if (!menu.length) return null
 
@@ -20,18 +30,19 @@ function CellMenu({ anchorEl, menu, onClose, onClick }) {
           key={subList.key}
         >
           {subList.options.map((item) => (
-            <M.MenuItem
+            <CellMenuItem
               key={`${item.action}_${item.title}`}
-              onClick={() => onClick(item)}
-            >
-              <M.ListItemText primary={item.title} />
-            </M.MenuItem>
+              item={item}
+              onClick={onClick}
+            />
           ))}
         </M.List>
       ))}
     </M.Menu>
   )
 }
+
+const emptyMenu = []
 
 const actionsSubmenu = {
   key: 'actions',
@@ -45,24 +56,26 @@ const actionsSubmenu = {
 
 function getMenuForKey({ required, value }) {
   if (required || value === EMPTY_VALUE) {
-    return []
+    return emptyMenu
   }
   return [actionsSubmenu]
 }
 
 function getMenuForValue({ valueSchema }) {
-  const enumOptions = isSchemaEnum(valueSchema)
-    ? valueSchema.enum.map((title) => ({
-        action: ACTIONS.SELECT_ENUM,
-        title,
-      }))
-    : []
+  if (!isSchemaEnum(valueSchema)) {
+    return emptyMenu
+  }
+
+  const enumOptions = valueSchema.enum.map((title) => ({
+    action: ACTIONS.SELECT_ENUM,
+    title,
+  }))
   const enumSubmenu = {
     header: 'Enum',
     key: 'enum',
     options: enumOptions,
   }
-  return enumOptions.length ? [enumSubmenu] : []
+  return [enumSubmenu]
 }
 
 const useStyles = M.makeStyles((t) => ({
