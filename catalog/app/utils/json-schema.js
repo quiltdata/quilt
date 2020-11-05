@@ -50,7 +50,7 @@ export function isNestedType(optSchema) {
   return isSchemaArray(optSchema) || isSchemaObject(optSchema)
 }
 
-export function schemaTypetoHumanString(optSchema) {
+export function schemaTypeToHumanString(optSchema) {
   return R.cond([
     [isSchemaEnum, () => 'enum'],
     [isSchemaConst, () => 'const'],
@@ -65,7 +65,7 @@ export function schemaTypetoHumanString(optSchema) {
   ])(optSchema)
 }
 
-export function doesTypeMatchToSchema(value, optSchema) {
+export function doesTypeMatchSchema(value, optSchema) {
   return R.cond([
     [isArray, () => isSchemaArray(optSchema)],
     [isObject, () => isSchemaObject(optSchema)],

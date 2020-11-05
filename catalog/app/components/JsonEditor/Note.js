@@ -9,7 +9,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { doesTypeMatchToSchema, schemaTypetoHumanString } from 'utils/json-schema'
+import { doesTypeMatchSchema, schemaTypeToHumanString } from 'utils/json-schema'
 
 import { COLUMN_IDS, EMPTY_VALUE } from './State'
 
@@ -47,7 +47,7 @@ function getTypeAnnotationFromValue(value, schema) {
 
 function getTypeAnnotation(value, schema) {
   if (value === EMPTY_VALUE) {
-    return schemaTypetoHumanString(schema)
+    return schemaTypeToHumanString(schema)
   }
 
   return getTypeAnnotationFromValue(value, schema)
@@ -56,8 +56,8 @@ function getTypeAnnotation(value, schema) {
 function NoteValue({ schema, value }) {
   const classes = useStyles()
 
-  const schemaType = schemaTypetoHumanString(schema)
-  const mismatch = !doesTypeMatchToSchema(value, schema)
+  const schemaType = schemaTypeToHumanString(schema)
+  const mismatch = !doesTypeMatchSchema(value, schema)
   const typeNotInSchema = schemaType === 'none'
   const typeHelp = typeNotInSchema
     ? 'Key/value is not restricted by schema'
