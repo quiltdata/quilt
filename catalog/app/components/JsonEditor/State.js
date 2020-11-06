@@ -34,7 +34,9 @@ const initialSortCounter = 10000000
 
 // TODO: rename and move to utils/json-schema
 //       name hint: schema path, associated with original object
-const getSchemaPath = R.chain(R.prepend('properties'))
+function getSchemaPath(objPath) {
+  return objPath.reduce((memo, key) => memo.concat(['properties'], key), [])
+}
 
 function mapKeys(objectOrArray, callback, schemaKeys) {
   if (isArray(objectOrArray)) {
