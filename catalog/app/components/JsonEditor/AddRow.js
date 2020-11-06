@@ -40,10 +40,7 @@ export default function AddRow({ columnPath, onAdd, onExpand }) {
     [columnPath, onAdd],
   )
 
-  const onMenuAction = React.useCallback(() => {
-    // eslint-disable-next-line no-console
-    console.error('It should not happen')
-  }, [])
+  const onMenuAction = React.useCallback(() => {}, [])
 
   return (
     <M.TableRow>

@@ -200,8 +200,7 @@ export default function Cell({
   )
 
   const hasMenu = React.useMemo(
-    () =>
-      Boolean((menuForKey.length && isKeyCell) || (menuForValue.length && isValueCell)),
+    () => !!((menuForKey.length && isKeyCell) || (menuForValue.length && isValueCell)),
     [isKeyCell, isValueCell, menuForKey, menuForValue],
   )
 
@@ -228,23 +227,23 @@ export default function Cell({
         }}
       />
 
-      {keyMenuOpened && menuForKey.length ? (
+      {keyMenuOpened && !!menuForKey.length && (
         <CellMenu
           anchorEl={menuAnchorEl}
           menu={menuForKey}
           onClick={onMenuSelect}
           onClose={closeMenu}
         />
-      ) : null}
+      )}
 
-      {valueMenuOpened && menuForValue.length ? (
+      {valueMenuOpened && !!menuForValue.length && (
         <CellMenu
           anchorEl={menuAnchorEl}
           menu={menuForValue}
           onClick={onMenuSelect}
           onClose={closeMenu}
         />
-      ) : null}
+      )}
     </div>
   )
 }

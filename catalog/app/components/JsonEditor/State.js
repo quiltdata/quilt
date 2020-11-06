@@ -119,11 +119,11 @@ function convertType(value, typeOf) {
   }
 }
 
-const EmptySchema = {}
+const emptySchema = {}
 
 // TODO: move to utils/json-schema
 export function validateOnSchema(optSchema) {
-  const schema = optSchema || EmptySchema
+  const schema = optSchema || emptySchema
 
   const ajv = new Ajv({ schemaId: 'auto' })
   const validate = ajv.compile(schema)
@@ -135,7 +135,7 @@ export function validateOnSchema(optSchema) {
 }
 
 export default function JsonEditorState({ children, obj, optSchema }) {
-  const schema = optSchema || EmptySchema
+  const schema = optSchema || emptySchema
 
   const [data, setData] = React.useState(obj)
   const [fieldPath, setFieldPath] = React.useState([])
@@ -173,7 +173,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
     (contextFieldPath, actionItem) => {
       switch (actionItem.action) {
         case ACTIONS.REMOVE_FIELD:
-          return removeField(contextFieldPath, actionItem)
+          return removeField(contextFieldPath)
         case ACTIONS.SELECT_ENUM:
           return changeValue(contextFieldPath, COLUMN_IDS.VALUE, actionItem.title)
         case ACTIONS.CHANGE_TYPE:

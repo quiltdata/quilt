@@ -30,11 +30,11 @@ function isSchemaNull(optSchema) {
 }
 
 export function isSchemaEnum(optSchema) {
-  return Boolean(R.prop('enum', optSchema))
+  return !!R.prop('enum', optSchema)
 }
 
 function isSchemaConst(optSchema) {
-  return Boolean(R.prop('const', optSchema))
+  return !!R.prop('const', optSchema)
 }
 
 function isSchemaCompound(optSchema) {
@@ -43,7 +43,7 @@ function isSchemaCompound(optSchema) {
 }
 
 function isSchemaReference(optSchema) {
-  return Boolean(R.prop('$ref', optSchema))
+  return !!R.prop('$ref', optSchema)
 }
 
 export const isNestedType = R.either(isSchemaArray, isSchemaObject)
