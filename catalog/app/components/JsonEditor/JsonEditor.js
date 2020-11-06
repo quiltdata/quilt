@@ -10,6 +10,11 @@ const useStyles = M.makeStyles((t) => ({
   inner: {
     display: 'flex',
     overflowX: 'auto',
+    '-ms-overflow-style': 'none',
+    'scrollbar-width': 'none',
+    '&::-webkit-scrollbar': {
+      display: 'none',
+    },
   },
   errors: {
     marginTop: t.spacing(1),

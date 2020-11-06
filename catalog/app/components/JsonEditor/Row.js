@@ -5,15 +5,11 @@ import * as M from '@material-ui/core'
 import { COLUMN_IDS } from './State'
 
 const useStyles = M.makeStyles((t) => ({
-  fresh: {
-    backgroundColor: t.palette.warning.main,
-  },
   cell: {
     border: `1px solid ${t.palette.grey[400]}`,
     padding: 0,
   },
   key: {
-    borderRight: `1px solid ${t.palette.grey[400]}`,
     width: t.spacing(20),
   },
   value: {
@@ -25,7 +21,7 @@ export default function Row({ cells, columnPath, fresh, onExpand, onMenuAction }
   const classes = useStyles()
 
   return (
-    <M.TableRow className={cx({ [classes.fresh]: fresh })}>
+    <M.TableRow>
       {cells.map((cell) => (
         <M.TableCell
           {...cell.getCellProps()}
