@@ -104,15 +104,11 @@ export default function Column({
                 onMenuAction,
               }
 
-              if (
-                row.values &&
-                row.values[COLUMN_IDS.KEY] !== EMPTY_VALUE &&
-                row.values[COLUMN_IDS.VALUE] !== EMPTY_VALUE
-              ) {
-                const key = row.values[COLUMN_IDS.KEY]
-                const value = row.values[COLUMN_IDS.VALUE]
-                props.key = `${columnPath}_key_${key}+value_${value}`
-              }
+              const key = row.values[COLUMN_IDS.KEY]
+              const value = row.values[COLUMN_IDS.VALUE]
+              const keyId = key === EMPTY_VALUE ? 'key_empty' : `key_${key}`
+              const valueId = value === EMPTY_VALUE ? 'value_empty' : `value_${value}`
+              props.key = `${columnPath}_${keyId}+${valueId}`
 
               return <Row {...row.getRowProps()} {...props} />
             })}
