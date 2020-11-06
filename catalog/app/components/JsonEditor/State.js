@@ -5,6 +5,8 @@ import toNumber from 'lodash/toNumber'
 import * as R from 'ramda'
 import * as React from 'react'
 
+import pipeThru from 'utils/pipeThru'
+
 export const COLUMN_IDS = {
   KEY: 'key',
   VALUE: 'value',
@@ -62,9 +64,10 @@ function mapKeys(objectOrArray, callback, schemaKeys) {
     (memo, key) => (memo.includes(key) ? memo : memo.concat(key)),
     Object.keys(objectOrArray),
   )
-  const sortFunc = R.sort((a, b) => getSortIndex(a) - getSortIndex(b))
-  const mapFunc = R.map((key) => callback(objectOrArray[key], key, schemaSort[key]))
-  return R.compose(sortFunc, mapFunc)(keys)
+  return pipeThru(keys)(
+    R.map((key) => callback(objectOrArray[key], key, schemaSort[key])),
+    R.sortBy(getSortIndex),
+  )
 }
 
 function getValue(value) {
@@ -81,7 +84,7 @@ function getColumn(obj, columnPath, sortOrder, schema) {
     R.pathOr({}, schemaPath.concat('properties'), schema),
   )
 
-  const sortFunc = R.sort((a, b) => a.sortIndex - b.sortIndex)
+  const sortFunc = R.sortBy(R.prop('sortIndex'))
   const filterFunc = R.filter((v) => v.sortIndex !== -1)
   // NOTE: { key1: value1, key2: value2 }
   //       converts to
