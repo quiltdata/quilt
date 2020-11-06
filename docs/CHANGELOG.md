@@ -22,7 +22,7 @@ overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
 * [Changed] Render vega specs smaller than 20 MiB right away, render larger ones after pressing a button ([#1873](https://github.com/quiltdata/quilt/pull/1873))
 * [Changed] Prefix filtering for directory view similar to AWS Console ([#1876](https://github.com/quiltdata/quilt/pull/1876), [#1880](https://github.com/quiltdata/quilt/pull/1880))
 * [Fixed] Incomplete package stats for empty packages in es/indexer Lambda ([#1869](https://github.com/quiltdata/quilt/pull/1869))
-* [Fixed] Slow parquet preview rendering (and probably other occurances of JsonDisplay) ([#1878](https://github.com/quiltdata/quilt/pull/1878))
+* [Fixed] Slow parquet preview rendering (and probably other occurences of JsonDisplay) ([#1878](https://github.com/quiltdata/quilt/pull/1878))
 
 # 3.2.1 - 2020-10-14
 ## Python API
