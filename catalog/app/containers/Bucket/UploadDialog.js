@@ -12,7 +12,7 @@ import * as Lab from '@material-ui/lab'
 import JsonEditor from 'components/JsonEditor'
 import { parseJSON, stringifyJSON, validateOnSchema } from 'components/JsonEditor/State'
 import Skeleton from 'components/Skeleton'
-import Data, { useData } from 'utils/Data'
+import { useData } from 'utils/Data'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
@@ -623,6 +623,22 @@ function WorkflowInput({ input, meta, workflowsConfig }) {
   )
 }
 
+function SchemaFetcher({ children, bucket, schemaUrl }) {
+  const s3 = AWS.S3.use()
+  const data = useData(requests.metadataSchema, { s3, bucket, schemaUrl })
+  const res = React.useMemo(
+    () =>
+      AsyncResult.mapCase(
+        {
+          Ok: (schema) => ({ schema, validate: validateMeta(schema) }),
+        },
+        data.result,
+      ),
+    [data.result],
+  )
+  return children(res)
+}
+
 function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
   const s3 = AWS.S3.use()
   const t = M.useTheme()
@@ -857,39 +873,30 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                     isEqual={R.equals}
                   />
 
-                  <Data
-                    fetch={requests.metadataSchema}
-                    params={{
-                      s3,
-                      bucket,
-                      schemaUrl: R.pathOr('', ['schema', 'url'], values.workflow),
-                    }}
+                  <SchemaFetcher
+                    bucket={bucket}
+                    schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
                   >
                     {AsyncResult.case({
-                      Ok: (newSchema) => (
+                      Ok: ({ schema, validate }) => (
                         <RF.Field
                           component={MetaInput}
                           bucket={bucket}
                           name="meta"
-                          schema={newSchema}
-                          validate={validateMeta(newSchema)}
+                          schema={schema}
+                          validate={validate}
                           validateFields={['meta']}
                           isEqual={R.equals}
                         />
                       ),
-                      Err: () => (
-                        <RF.Field
-                          component={MetaInput}
-                          bucket={bucket}
-                          name="meta"
-                          validate={validateMeta(null)}
-                          validateFields={['meta']}
-                          isEqual={R.equals}
-                        />
-                      ),
+                      Err: (responseError) => {
+                        // eslint-disable-next-line no-console
+                        console.error(responseError)
+                        return null
+                      },
                       _: () => <Skeleton height={t.spacing(8)} width="100%" mt={3} />,
                     })}
-                  </Data>
+                  </SchemaFetcher>
 
                   <RF.Field
                     component={WorkflowInput}
