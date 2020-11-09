@@ -137,6 +137,78 @@ export function validateOnSchema(optSchema) {
   }
 }
 
+function serializeAddress(addressPath) {
+  return addressPath.join(', ')
+}
+
+function getAddressPath(key, parentPath) {
+  if (!key) return parentPath
+  return (parentPath || []).concat(key)
+}
+
+function getSchemaType(item) {
+  return item.type
+}
+
+function getSchemaItem({ item, sortIndex, key, keys, parentPath, required }) {
+  return {
+    address: getAddressPath(key, parentPath),
+    required,
+    children: keys,
+    schema: item,
+    sortIndex,
+    type: getSchemaType(item),
+  }
+}
+
+// NOTE: memo is mutated
+// eslint-disable-next-line no-unused-vars
+function iterateSchema(schema, sortIndex, parentPath, memo) {
+  if (!schema.properties) return memo
+
+  let sortCounter = sortIndex
+  const requiredKeys = schema.required
+  Object.keys(schema.properties || {}).forEach((key) => {
+    const rawItem = schema.properties[key]
+    const required = requiredKeys ? requiredKeys.includes(key) : false
+    sortCounter += 1
+    const item = getSchemaItem({
+      item: rawItem,
+      key,
+      keys: Object.keys(rawItem.properties || {}),
+      parentPath,
+      required,
+      sortIndex: sortCounter,
+    })
+    // eslint-disable-next-line no-param-reassign
+    memo[serializeAddress(item.address)] = item
+
+    // eslint-disable-next-line no-unused-vars
+    iterateSchema(rawItem, sortCounter + 1, item.address, memo)
+  })
+
+  return memo
+}
+
+function getJsonDictItem(jsonDict, parentPath, key) {
+  const itemAddress = serializeAddress(getAddressPath(key, parentPath))
+  return jsonDict[itemAddress]
+}
+
+// eslint-disable-next-line no-unused-vars
+function iterateJsonDict(jsonDict, fieldPath, rootKeys) {
+  if (!fieldPath.length)
+    return rootKeys.map((key) => getJsonDictItem(jsonDict, fieldPath, key))
+
+  return ['', ...fieldPath].map((_, index) => {
+    const pathPart = R.slice(0, index, fieldPath)
+    const keys = pathPart.length
+      ? jsonDict[serializeAddress(pathPart)].children
+      : rootKeys
+    return keys.map((key) => getJsonDictItem(jsonDict, pathPart, key))
+  })
+}
+
 export default function JsonEditorState({ children, obj, optSchema }) {
   const schema = optSchema || emptySchema
 
