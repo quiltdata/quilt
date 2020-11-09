@@ -1,4 +1,3 @@
-import isArray from 'lodash/isArray'
 import * as React from 'react'
 import { useTable } from 'react-table'
 import * as M from '@material-ui/core'
@@ -8,7 +7,7 @@ import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
 import Row from './Row'
-import { COLUMN_IDS, EMPTY_VALUE } from './State'
+import { COLUMN_IDS, EMPTY_VALUE, getJsonDictValue } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -20,14 +19,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function getColumntType({ parent, schema }) {
-  if (!parent) {
-    return schema.type
-  }
+function getColumntType(columnPath, jsonDict, parent) {
+  const columnSchema = getJsonDictValue(columnPath, jsonDict)
+  if (!parent) return columnSchema.type
 
-  if (isArray(parent)) {
-    return 'array'
-  }
+  if (Array.isArray(parent)) return 'array'
+
+  if (!columnSchema) return 'object'
 
   return typeof parent
 }
@@ -35,6 +33,7 @@ function getColumntType({ parent, schema }) {
 export default function Column({
   columnPath,
   data,
+  jsonDict,
   onAddRow,
   onBreadcrumb,
   onExpand,
@@ -74,7 +73,7 @@ export default function Column({
   })
   const { getTableProps, getTableBodyProps, rows, prepareRow } = tableInstance
 
-  const columnType = getColumntType(data)
+  const columnType = getColumntType(columnPath, jsonDict, data.parent)
 
   const onAddRowInternal = React.useCallback(
     (...params) => {

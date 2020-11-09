@@ -25,7 +25,8 @@ function JsonEditor({
   addRow,
   changeValue,
   className,
-  columns,
+  newColumns,
+  jsonDict,
   error,
   errors,
   fieldPath,
@@ -58,13 +59,14 @@ function JsonEditor({
   return (
     <div className={className}>
       <div className={classes.inner}>
-        {columns.map((columnData, index) => {
+        {newColumns.map((columnData, index) => {
           const columnPath = R.slice(0, index, fieldPath)
           return (
             <Column
               {...{
                 columnPath,
                 data: columnData,
+                jsonDict,
                 key: columnPath,
                 onAddRow: addRow,
                 onBreadcrumb: setFieldPath,
