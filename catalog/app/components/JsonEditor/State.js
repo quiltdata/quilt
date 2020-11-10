@@ -100,6 +100,8 @@ function assocSchemaSortIndex(objPath, sortIndex, jsonDict) {
 function moveSchemaValue(oldObjPath, key, jsonDict) {
   const oldItem = getJsonDictValue(oldObjPath, jsonDict)
   const newObjPath = R.append(key, R.init(oldObjPath))
+  // TODO: Copy existing item and warn user
+  // const alreadyExistingItem = getJsonDictValue(newObjPath, jsonDict)
   const movingItem = R.assoc('address', newObjPath, oldItem)
   return R.assoc(
     serializeAddress(newObjPath),
