@@ -18,9 +18,7 @@ export const ACTIONS = {
 
 export const EMPTY_VALUE = Symbol('empty')
 
-export function stringifyJSON(obj) {
-  return JSON.stringify(obj, null, 2)
-}
+export const stringifyJSON = (obj) => JSON.stringify(obj, null, 2)
 
 export function parseJSON(str) {
   try {
@@ -56,40 +54,27 @@ export function validateOnSchema(optSchema) {
   }
 }
 
-function serializeAddress(addressPath) {
-  return addressPath.join(', ')
-}
+const serializeAddress = (addressPath) => addressPath.join(', ')
 
-function getAddressPath(key, parentPath) {
-  if (key === '') return parentPath
-  return (parentPath || []).concat(key)
-}
+const getAddressPath = (key, parentPath) =>
+  key === '' ? parentPath : (parentPath || []).concat(key)
 
-function getSchemaType(item) {
-  return item.type
-}
+const getSchemaType = R.prop('type')
 
-function getSchemaItem({ item, sortIndex, key, parentPath, required }) {
-  return {
-    address: getAddressPath(key, parentPath),
-    required,
-    valueSchema: item,
-    sortIndex,
-    type: getSchemaType(item),
-  }
-}
+const getSchemaItem = ({ item, sortIndex, key, parentPath, required }) => ({
+  address: getAddressPath(key, parentPath),
+  required,
+  valueSchema: item,
+  sortIndex,
+  type: getSchemaType(item),
+})
 
-function assocObjValue(objPath, value, obj) {
-  return R.assocPath(objPath, value, obj)
-}
+const assocObjValue = R.assocPath
 
-export function getJsonDictValue(objPath, jsonDict) {
-  return R.prop(serializeAddress(objPath), jsonDict)
-}
+export const getJsonDictValue = (objPath, jsonDict) =>
+  R.prop(serializeAddress(objPath), jsonDict)
 
-export function getObjValue(objPath, obj) {
-  return R.path(objPath, obj)
-}
+export const getObjValue = R.path
 
 function assocSchemaSortIndex(objPath, sortIndex, jsonDict) {
   const item = getJsonDictValue(objPath, jsonDict)
@@ -120,13 +105,10 @@ function moveObjValue(oldObjPath, key, obj) {
   )
 }
 
-function dissocSchemaValue(objPath, jsonDict) {
-  return R.dissoc(serializeAddress(objPath), jsonDict)
-}
+const dissocSchemaValue = (objPath, jsonDict) =>
+  R.dissoc(serializeAddress(objPath), jsonDict)
 
-function dissocObjValue(objPath, obj) {
-  return R.dissocPath(objPath, obj)
-}
+const dissocObjValue = R.dissocPath
 
 // NOTE: memo is mutated, sortCounter is React.ref and mutated too
 function iterateSchema(schema, sortCounter, parentPath, memo) {
