@@ -246,7 +246,6 @@ export default function JsonEditorState({ children, obj, optSchema }) {
     iterateSchema(schema, sortCounter, [], {}),
   )
 
-  // TODO: use Set
   const [rootKeys, setRootKeys] = React.useState(() =>
     mergeSchemaAndObjRootKeys(schema, obj),
   )
