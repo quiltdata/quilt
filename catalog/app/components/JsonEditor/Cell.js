@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -84,6 +85,9 @@ const useStyles = M.makeStyles((t) => ({
       outline: `1px solid ${t.palette.primary.light}`,
     },
   },
+  disabled: {
+    cursor: 'not-allowed',
+  },
 }))
 
 const emptyCellData = {}
@@ -112,6 +116,11 @@ export default function Cell({
   React.useLayoutEffect(() => {
     setMenuAnchorEl(menuAnchorRef.current)
   }, [menuAnchorRef])
+
+  const isEditable = React.useMemo(
+    () => !(column.id === COLUMN_IDS.KEY && row.original && row.original.valueSchema),
+    [column.id, row.original],
+  )
 
   const [editing, setEditing] = React.useState(editingInitial)
   const [menuOpened, setMenuOpened] = React.useState(false)
@@ -142,7 +151,10 @@ export default function Cell({
     [column.id, fieldPath, updateMyData],
   )
 
-  const onDoubleClick = React.useCallback(() => setEditing(true), [setEditing])
+  const onDoubleClick = React.useCallback(() => {
+    if (!isEditable) return
+    setEditing(true)
+  }, [isEditable, setEditing])
 
   const onKeyPress = React.useCallback(
     (event) => {
@@ -151,6 +163,9 @@ export default function Cell({
         // Avoid to send this key event to Input constistently with Firefox
         event.preventDefault()
       }
+
+      // Do nothing, if it's a key cell provided by schema
+      if (!isEditable) return
 
       // When user start typing he enters first symbol.
       // Preview is replaced by Input, this first symbol sets to Input and resets previous text
@@ -175,7 +190,7 @@ export default function Cell({
       }
       setEditing(true)
     },
-    [editing, setEditing],
+    [editing, isEditable, setEditing],
   )
 
   const ValueComponent = editing ? Input : Preview
@@ -209,7 +224,7 @@ export default function Cell({
 
   return (
     <div
-      className={classes.root}
+      className={cx(classes.root, { [classes.disabled]: !isEditable })}
       role="textbox"
       tabIndex={0}
       onDoubleClick={onDoubleClick}
@@ -225,7 +240,7 @@ export default function Cell({
           onChange,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
           onMenu: onMenuOpen,
-          title: 'Click to edit',
+          title: isEditable ? 'Click to edit' : '',
           value,
         }}
       />
