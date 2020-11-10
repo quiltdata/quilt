@@ -244,8 +244,8 @@ function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys) {
   })
 }
 
-function mergeSchmaAndObjRootKeys(schema, obj) {
-  const schemaKeys = Object.keys(schema.properties)
+function mergeSchemaAndObjRootKeys(schema, obj) {
+  const schemaKeys = schema && schema.properties ? Object.keys(schema.properties) : []
   const objKeys = Object.keys(obj)
   return R.uniq([...schemaKeys, ...objKeys])
 }
@@ -261,12 +261,12 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   const sortCounter = React.useRef(0)
 
   const [jsonDict, setJsonDict] = React.useState(() =>
-    iterateSchema(optSchema, sortCounter, [], {}),
+    iterateSchema(schema, sortCounter, [], {}),
   )
 
   // TODO: use Set
   const [rootKeys, setRootKeys] = React.useState(() =>
-    mergeSchmaAndObjRootKeys(optSchema, obj),
+    mergeSchemaAndObjRootKeys(schema, obj),
   )
 
   const newColumns = React.useMemo(
