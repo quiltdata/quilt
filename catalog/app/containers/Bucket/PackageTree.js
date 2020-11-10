@@ -178,7 +178,8 @@ function ExposeLinkedData({ bucketCfg, bucket, name, revision }) {
 function PkgCode({ data, bucket, name, revision, path }) {
   const code = data.case({
     Ok: ({ hash }) => {
-      const nameWithPath = path ? `${name}/${path}` : name
+      const pathPy = path ? `, path="${path}"` : ''
+      const pathCli = path ? ` --path="${path}"` : ''
       const hashDisplay = revision === 'latest' ? '' : hash.substring(0, 10)
       const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
       const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
@@ -189,16 +190,16 @@ function PkgCode({ data, bucket, name, revision, path }) {
           contents: dedent`
             import quilt3
             # browse
-            quilt3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
+            p = quilt3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
             # download
-            quilt3.Package.install("${nameWithPath}"${hashPy}, registry="s3://${bucket}", dest=".")
+            p = quilt3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")
           `,
         },
         {
           label: 'CLI',
           hl: 'bash',
           contents: dedent`
-            quilt3 install ${nameWithPath}${hashCli} --registry s3://${bucket} --dest .
+            quilt3 install ${name}${pathCli}${hashCli} --registry s3://${bucket} --dest .
           `,
         },
       ]
