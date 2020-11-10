@@ -30,6 +30,25 @@ function getColumntType(columnPath, jsonDict, parent) {
   return typeof parent
 }
 
+const useEmptyColumnStyles = M.makeStyles((t) => ({
+  root: {
+    border: `1px solid ${t.palette.grey[400]}`,
+    padding: t.spacing(1),
+  },
+}))
+
+function EmptyColumn({ columnType }) {
+  const classes = useEmptyColumnStyles()
+
+  if (columnType !== 'array') return null
+
+  return (
+    <M.TableRow className={classes.root}>
+      <M.TableCell colspan={2}>Array is empty, you can add more items</M.TableCell>
+    </M.TableRow>
+  )
+}
+
 export default function Column({
   columnPath,
   data,
@@ -111,6 +130,8 @@ export default function Column({
 
               return <Row {...row.getRowProps()} {...props} />
             })}
+
+            {!rows.length && <EmptyColumn columnType={columnType} />}
 
             {columnType === 'array' ? (
               <AddArrayItem
