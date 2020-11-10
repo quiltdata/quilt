@@ -159,6 +159,9 @@ export default function Cell({
 
       if (event.key.length === 1) {
         switch (event.key) {
+          case '"':
+            setValue('"')
+            break
           case '[':
             setValue([])
             break

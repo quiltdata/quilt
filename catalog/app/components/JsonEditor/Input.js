@@ -48,10 +48,12 @@ function getNormalizedValue(value, optSchema) {
 function getNormalizedValueStr(value, optSchema) {
   const normalizedValue = getNormalizedValue(value, optSchema)
 
+  if (normalizedValue === '"') return '"'
   return stringifyJSON(normalizedValue)
 }
 
 function hasBrackets(valueStr) {
+  if (valueStr.length < 2) return false
   return [
     ['"', '"'],
     ['[', ']'],
