@@ -1,10 +1,8 @@
-import isObject from 'lodash/isObject'
 import isString from 'lodash/isString'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import ButtonExpand from './ButtonExpand'
 import ButtonMenu from './ButtonMenu'
 import Note from './Note'
 import { COLUMN_IDS, EMPTY_VALUE, parseJSON, stringifyJSON } from './State'
@@ -66,11 +64,9 @@ function hasBrackets(valueStr) {
 export default function Input({
   columnId,
   data,
-  fieldPath,
   hasMenu,
   placeholder,
   onChange,
-  onExpand,
   onMenu,
   value: originalValue,
 }) {
@@ -112,11 +108,6 @@ export default function Input({
     }
   }, [onChange, columnId, value])
 
-  const onButtonExpandClick = React.useCallback(() => onExpand(fieldPath), [
-    fieldPath,
-    onExpand,
-  ])
-
   const onKeyDown = React.useCallback(
     (event) => {
       switch (event.key) {
@@ -137,9 +128,6 @@ export default function Input({
     <M.InputBase
       autoFocus
       inputRef={inputRef}
-      startAdornment={
-        isObject(originalValue) && <ButtonExpand onClick={onButtonExpandClick} />
-      }
       endAdornment={
         <ButtonMenu
           hasMenu={hasMenu}
