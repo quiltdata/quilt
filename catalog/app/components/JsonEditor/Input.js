@@ -50,12 +50,17 @@ function getNormalizedValue(value, optSchema) {
 function getNormalizedValueStr(value, optSchema) {
   const normalizedValue = getNormalizedValue(value, optSchema)
 
-  const valueStr = stringifyJSON(normalizedValue)
-  if (R.head(valueStr) === '"' && R.last(valueStr) === '"') {
-    return valueStr.substring(1, valueStr.length - 1)
-  }
+  return stringifyJSON(normalizedValue)
+}
 
-  return valueStr
+function hasBrackets(valueStr) {
+  return [
+    ['"', '"'],
+    ['[', ']'],
+    ['{', '}'],
+  ].some(([leftBracket, rightBracket]) =>
+    R.both(R.startsWith(leftBracket), R.endsWith(rightBracket))(valueStr),
+  )
 }
 
 export default function Input({
@@ -77,6 +82,19 @@ export default function Input({
   const [valueStr, setValueStr] = React.useState(() =>
     getNormalizedValueStr(originalValue, data.valueSchema),
   )
+  const [firstTime, setFirstTime] = React.useState(true)
+
+  const inputRef = React.useRef()
+  React.useLayoutEffect(() => {
+    if (!firstTime || !inputRef.current || !valueStr) return
+    if (hasBrackets(valueStr)) {
+      // Set cursor before closing bracket/quote/brace
+      inputRef.current.setSelectionRange(valueStr.length - 1, valueStr.length - 1)
+    }
+    // NOTE: call it once
+    setFirstTime(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstTime])
 
   const onChangeInternal = React.useCallback(
     (event) => {
@@ -118,6 +136,7 @@ export default function Input({
   return (
     <M.InputBase
       autoFocus
+      inputRef={inputRef}
       startAdornment={
         isObject(originalValue) && <ButtonExpand onClick={onButtonExpandClick} />
       }

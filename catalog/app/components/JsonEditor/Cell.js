@@ -5,7 +5,7 @@ import { isSchemaEnum } from 'utils/json-schema'
 
 import Input from './Input'
 import Preview from './Preview'
-import { ACTIONS, COLUMN_IDS, EMPTY_VALUE } from './State'
+import { ACTIONS, COLUMN_IDS, EMPTY_VALUE, parseJSON } from './State'
 
 function CellMenuItem({ item, onClick }) {
   const onClickInternal = React.useCallback(() => onClick(item), [item, onClick])
@@ -158,7 +158,17 @@ export default function Cell({
       if (event.key.length !== 1 && event.key !== 'Enter') return
 
       if (event.key.length === 1) {
-        setValue(event.key)
+        switch (event.key) {
+          case '[':
+            setValue([])
+            break
+          case '{':
+            setValue({})
+            break
+          default:
+            setValue(parseJSON(event.key))
+            break
+        }
       }
       setEditing(true)
     },
