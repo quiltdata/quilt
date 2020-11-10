@@ -1,12 +1,9 @@
 import Ajv from 'ajv'
-import isArray from 'lodash/isArray'
 import toNumber from 'lodash/toNumber'
 import * as R from 'ramda'
 import * as React from 'react'
 
 import pipeThru from 'utils/pipeThru'
-
-// FIXME: don't forget about sort order
 
 export const COLUMN_IDS = {
   KEY: 'key',
@@ -48,7 +45,7 @@ function convertType(value, typeOf) {
 
 const emptySchema = {}
 
-// TODO: move to utils/json-schema
+// TODO: move to utils/validators
 export function validateOnSchema(optSchema) {
   const schema = optSchema || emptySchema
 
@@ -84,11 +81,6 @@ function getSchemaItem({ item, sortIndex, key, parentPath, required }) {
   }
 }
 
-function assocSchemaItem(objPath, item, jsonDict) {
-  const movingItem = R.assoc('address', objPath, item)
-  return R.assoc(serializeAddress(objPath), movingItem, jsonDict)
-}
-
 function assocObjValue(objPath, value, obj) {
   return R.assocPath(objPath, value, obj)
 }
@@ -101,12 +93,19 @@ export function getObjValue(objPath, obj) {
   return R.path(objPath, obj)
 }
 
+function moveSchemaSortIndex(objPath, sortIndex, jsonDict) {
+  const item = getJsonDictValue(objPath, jsonDict)
+  const sortedItem = R.assoc('sortIndex', sortIndex, item)
+  return R.assoc(serializeAddress(objPath), sortedItem, jsonDict)
+}
+
 function moveSchemaValue(oldObjPath, key, jsonDict) {
-  // TODO: move whole item
   const oldItem = getJsonDictValue(oldObjPath, jsonDict)
-  return assocSchemaItem(
-    R.append(key, R.init(oldObjPath)),
-    oldItem,
+  const newObjPath = R.append(key, R.init(oldObjPath))
+  const movingItem = R.assoc('address', newObjPath, oldItem)
+  return R.assoc(
+    serializeAddress(newObjPath),
+    movingItem,
     dissocSchemaValue(oldObjPath, jsonDict),
   )
 }
@@ -117,7 +116,7 @@ function moveObjValue(oldObjPath, key, obj) {
   return assocObjValue(
     R.append(key, R.init(oldObjPath)),
     oldValue,
-    dissocSchemaValue(oldObjPath, obj),
+    dissocObjValue(oldObjPath, obj),
   )
 }
 
@@ -126,7 +125,7 @@ function dissocSchemaValue(objPath, jsonDict) {
 }
 
 function dissocObjValue(objPath, obj) {
-  return R.dissoc(objPath, obj)
+  return R.dissocPath(objPath, obj)
 }
 
 // NOTE: memo is mutated
@@ -252,7 +251,6 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   const [data, setData] = React.useState(obj)
   const [fieldPath, setFieldPath] = React.useState([])
   const [errors, setErrors] = React.useState([])
-  const [sortOrder, setSortOder] = React.useState({}) // NOTE: { [pathToKey]: number }
 
   const [jsonDict, setJsonDict] = React.useState(() =>
     iterateSchema(optSchema, 1, [], {}),
@@ -271,6 +269,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   const schemaValidator = React.useMemo(() => validateOnSchema(schema), [schema])
 
   // NOTE: Should be greater than number of keys on schema and object
+  // TODO: start with 0 and pass it to initial iterateJsonDict
   const sortCounter = React.useRef(initialSortCounter)
 
   const changeType = React.useCallback(
@@ -309,16 +308,8 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       const newData = dissocObjValue(removingFieldPath, data)
       setData(newData)
       setErrors(schemaValidator(newData))
-
-      const parentObjectOrArray = R.path(R.init(removingFieldPath), newData)
-      // NOTE: edited array has a different value on `removingFieldPath`
-      if (!isArray(parentObjectOrArray)) {
-        // HACK: sort out key if it in schema and still want rendering
-        setSortOder(R.assoc(removingFieldPath.join(), -1, sortOrder))
-      }
-      return newData
     },
-    [data, schemaValidator, sortOrder, setRootKeys, rootKeys, jsonDict],
+    [data, schemaValidator, setRootKeys, rootKeys, jsonDict],
   )
 
   const changeValue = React.useCallback(
@@ -355,31 +346,20 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   const addRow = React.useCallback(
     (addFieldPath, newKey) => {
       const newKeyPath = addFieldPath.concat([newKey])
-      const value = '' // NOTE: it can't be { key: Symbol('empty') }
-
-      sortCounter.current += 1
-      setSortOder(R.assoc(newKeyPath.join(), sortCounter.current, sortOrder))
+      // NOTE: value can't be `{ key: Symbol('empty') }`
+      //       because it's imposible to have `{ [Symbol]: '' }` object
+      const value = ''
 
       if (newKeyPath.length === 1) {
         setRootKeys(R.uniq(rootKeys.concat(newKeyPath[0])))
       }
-      // TODO: add sort index
-      // setJsonDict(assocSchemaValue(newKeyPath, jsonDict))
+      sortCounter.current += 1
+      setJsonDict(moveSchemaSortIndex(newKeyPath, sortCounter.current, jsonDict))
       const newData = assocObjValue(newKeyPath, value, data)
       setData(newData)
       return newData
     },
-    [
-      setData,
-      sortCounter,
-      sortOrder,
-      setSortOder,
-      data,
-      setRootKeys,
-      rootKeys,
-      // setJsonDict,
-      // jsonDict,
-    ],
+    [data, jsonDict, rootKeys, setData, setJsonDict, setRootKeys, sortCounter],
   )
 
   return children({
