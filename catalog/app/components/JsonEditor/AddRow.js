@@ -12,6 +12,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   emptyCell: {
     border: `1px solid ${t.palette.grey[400]}`,
+    borderWidth: '1px 0 0 1px',
     width: t.spacing(36),
   },
 }))
