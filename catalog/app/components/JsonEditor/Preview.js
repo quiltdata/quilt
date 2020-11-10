@@ -44,22 +44,75 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function formatValuePreview(v) {
-  if (v === EMPTY_VALUE || isUndefined(v)) return ''
+const usePreviewValueStyles = M.makeStyles((t) => ({
+  lbrace: {
+    color: t.palette.secondary.dark,
+    marginRight: t.spacing(0.5),
+  },
+  rbrace: {
+    color: t.palette.secondary.dark,
+    marginLeft: t.spacing(0.5),
+  },
+  lbracket: {
+    color: t.palette.secondary.dark,
+    marginRight: t.spacing(0.5),
+  },
+  rbracket: {
+    color: t.palette.secondary.dark,
+    marginLeft: t.spacing(0.5),
+  },
+  quote: {
+    color: t.palette.text.secondary,
+  },
+}))
 
-  if (isArray(v)) {
-    return `[ ${v.map(formatValuePreview).join(', ')} ]`
+function PreviewArray({ value }) {
+  const classes = usePreviewValueStyles()
+
+  return (
+    <span>
+      <span className={classes.lbracket}>[</span>
+      {value.map((v, index) => (
+        <>
+          <PreviewValue value={v} />
+          {index < value.length && ', '}
+        </>
+      ))}
+      <span className={classes.rbracket}>]</span>
+    </span>
+  )
+}
+
+function PreviewValue({ value }) {
+  const classes = usePreviewValueStyles()
+
+  if (value === EMPTY_VALUE || isUndefined(value)) return ''
+
+  if (isArray(value)) return <PreviewArray value={value} />
+
+  if (isObject(value)) {
+    return (
+      <span>
+        <span className={classes.lbrace}>&#123;</span>
+        {Object.keys(value).join(', ')}
+        <span className={classes.rbrace}>&#125;</span>
+      </span>
+    )
   }
 
-  if (isObject(v)) {
-    return `{ ${Object.keys(v).join(', ')} }`
+  if (value === null) return 'null'
+
+  if (typeof value === 'string') {
+    return (
+      <span>
+        <span className={classes.quote}>&quot;</span>
+        {value}
+        <span className={classes.quote}>&quot;</span>
+      </span>
+    )
   }
 
-  if (v === null) {
-    return 'null'
-  }
-
-  return v.toString()
+  return value.toString()
 }
 
 const isExpandable = (value, schema) =>
@@ -67,7 +120,7 @@ const isExpandable = (value, schema) =>
 
 export default function Preview({
   columnId,
-  data, // NOTE: row.original
+  data, // NOTE: react-table's row.original
   hasMenu,
   menuAnchorRef,
   placeholder,
@@ -92,7 +145,7 @@ export default function Preview({
             [classes.placeholder]: isEmpty,
           })}
         >
-          {isEmpty ? placeholder : formatValuePreview(value)}
+          {isEmpty ? placeholder : <PreviewValue value={value} />}
         </span>
       </div>
 
