@@ -91,7 +91,7 @@ export function getObjValue(objPath, obj) {
   return R.path(objPath, obj)
 }
 
-function moveSchemaSortIndex(objPath, sortIndex, jsonDict) {
+function assocSchemaSortIndex(objPath, sortIndex, jsonDict) {
   const item = getJsonDictValue(objPath, jsonDict)
   const sortedItem = R.assoc('sortIndex', sortIndex, item)
   return R.assoc(serializeAddress(objPath), sortedItem, jsonDict)
@@ -347,15 +347,15 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   const addRow = React.useCallback(
     (addFieldPath, newKey) => {
       const newKeyPath = addFieldPath.concat([newKey])
-      // NOTE: value can't be `{ key: Symbol('empty') }`
-      //       because it's imposible to have `{ [Symbol]: '' }` object
+      // NOTE: value can't be `Symbol('empty')`
+      //       because it's imposible to have `{ [newKey]: Symbol('empty') }` object
       const value = ''
 
       if (newKeyPath.length === 1) {
         setRootKeys(R.uniq(rootKeys.concat(newKeyPath[0])))
       }
       sortCounter.current += 1
-      setJsonDict(moveSchemaSortIndex(newKeyPath, sortCounter.current, jsonDict))
+      setJsonDict(assocSchemaSortIndex(newKeyPath, sortCounter.current, jsonDict))
       const newData = assocObjValue(newKeyPath, value, data)
       setData(newData)
       return newData
