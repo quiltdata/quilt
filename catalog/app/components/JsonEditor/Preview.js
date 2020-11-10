@@ -61,9 +61,6 @@ const usePreviewValueStyles = M.makeStyles((t) => ({
     color: t.palette.secondary.dark,
     marginLeft: t.spacing(0.5),
   },
-  quote: {
-    color: t.palette.text.secondary,
-  },
 }))
 
 function PreviewArray({ value }) {
@@ -103,15 +100,7 @@ function PreviewValue({ value }) {
 
   if (value === null) return 'null'
 
-  if (typeof value === 'string') {
-    return (
-      <span>
-        <span className={classes.quote}>&quot;</span>
-        {value}
-        <span className={classes.quote}>&quot;</span>
-      </span>
-    )
-  }
+  if (typeof value === 'string') return <span>&quot;{value}&quot;</span>
 
   return value.toString()
 }

@@ -17,7 +17,7 @@ const useStyles = M.makeStyles((t) => ({
   note: {
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.caption.fontSize,
-    marginRight: t.spacing(0.5),
+    marginLeft: t.spacing(0.5),
   },
 }))
 
@@ -37,11 +37,11 @@ function ButtonMenu({ className, hasMenu, note, onClick }, ref) {
       className={cx(classes.root, { [classes.clickable]: hasMenu }, className)}
       onClick={onClickInternal}
     >
+      {hasMenu && <M.Icon fontSize="small">arrow_drop_down</M.Icon>}
+
       <code className={classes.note} ref={ref}>
         {note}
       </code>
-
-      {hasMenu && <M.Icon fontSize="small">arrow_drop_down</M.Icon>}
     </M.InputAdornment>
   )
 }
