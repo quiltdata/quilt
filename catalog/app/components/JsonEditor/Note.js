@@ -21,7 +21,7 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.error.main,
   },
   notInSchema: {
-    color: t.palette.warning.dark,
+    color: t.palette.text.secondary,
   },
 }))
 
