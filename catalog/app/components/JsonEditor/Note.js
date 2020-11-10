@@ -46,7 +46,7 @@ function NoteValue({ schema, value }) {
   const classes = useStyles()
 
   const schemaType = schemaTypeToHumanString(schema)
-  const mismatch = !doesTypeMatchSchema(value, schema)
+  const mismatch = value !== EMPTY_VALUE && !doesTypeMatchSchema(value, schema)
   const typeNotInSchema = schemaType === 'undefined'
   const typeHelp = typeNotInSchema
     ? 'Key/value is not restricted by schema'
