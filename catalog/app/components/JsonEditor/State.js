@@ -192,7 +192,9 @@ function objToDict(obj, parentPath, memo) {
 function getJsonDictItem(jsonDict, obj, parentPath, key) {
   const itemAddress = serializeAddress(getAddressPath(key, parentPath))
   const item = jsonDict[itemAddress]
-  const value = R.pathOr(EMPTY_VALUE, getAddressPath(key, parentPath), obj)
+  // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
+  const storedValue = R.path(getAddressPath(key, parentPath), obj)
+  const value = storedValue === undefined ? EMPTY_VALUE : storedValue
   return {
     [COLUMN_IDS.KEY]: key,
     [COLUMN_IDS.VALUE]: value,
@@ -249,6 +251,7 @@ function mergeSchmaAndObjRootKeys(schema, obj) {
 export default function JsonEditorState({ children, obj, optSchema }) {
   const schema = optSchema || emptySchema
 
+  // TODO: use function syntax and Ramda currying for setData((prevState) => RamdaCurryFunc(prevState))
   const [data, setData] = React.useState(obj)
   const [fieldPath, setFieldPath] = React.useState([])
   const [errors, setErrors] = React.useState([])
@@ -329,7 +332,6 @@ export default function JsonEditorState({ children, obj, optSchema }) {
         if (editingFieldPath.length === 1) {
           setRootKeys(R.uniq(rootKeys.concat(editingFieldPath[0])))
         }
-        // setJsonDict(assocSchemaValue(editingFieldPath, jsonDict))
 
         const newData = assocObjValue(editingFieldPath, str, data)
         setData(newData)
