@@ -20,6 +20,8 @@ const useStyles = M.makeStyles((t) => ({
 
 function getNormalizedValue(value, optSchema) {
   // TODO: use json-schema#getEmptyValueFromSchema
+  if (!optSchema && value === '') return EMPTY_VALUE // FIXME: think more on this
+
   if (value !== EMPTY_VALUE) return value
 
   if (!optSchema) return ''
@@ -48,7 +50,10 @@ function getNormalizedValue(value, optSchema) {
 function getNormalizedValueStr(value, optSchema) {
   const normalizedValue = getNormalizedValue(value, optSchema)
 
+  if (normalizedValue === EMPTY_VALUE) return ''
+
   if (normalizedValue === '"') return '"'
+
   return stringifyJSON(normalizedValue)
 }
 
