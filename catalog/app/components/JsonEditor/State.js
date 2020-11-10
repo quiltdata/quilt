@@ -30,8 +30,6 @@ export function parseJSON(str) {
   }
 }
 
-const initialSortCounter = 10000000
-
 function convertType(value, typeOf) {
   switch (typeOf) {
     case 'string':
@@ -128,27 +126,30 @@ function dissocObjValue(objPath, obj) {
   return R.dissocPath(objPath, obj)
 }
 
-// NOTE: memo is mutated
-function iterateSchema(schema, sortIndex, parentPath, memo) {
+// NOTE: memo is mutated, sortCounter is React.ref and mutated too
+function iterateSchema(schema, sortCounter, parentPath, memo) {
   if (!schema.properties) return memo
 
-  let sortCounter = sortIndex
   const requiredKeys = schema.required
   Object.keys(schema.properties || {}).forEach((key) => {
+    // eslint-disable-next-line no-param-reassign
+    sortCounter.current += 1
+
     const rawItem = schema.properties[key]
     const required = requiredKeys ? requiredKeys.includes(key) : false
-    sortCounter += 1
     const item = getSchemaItem({
       item: rawItem,
       key,
       parentPath,
       required,
-      sortIndex: sortCounter,
+      sortIndex: sortCounter.current,
     })
     // eslint-disable-next-line no-param-reassign
     memo[serializeAddress(item.address)] = item
 
-    iterateSchema(rawItem, sortCounter + 1, item.address, memo)
+    // eslint-disable-next-line no-param-reassign
+    sortCounter.current += 1
+    iterateSchema(rawItem, sortCounter, item.address, memo)
   })
 
   return memo
@@ -252,8 +253,10 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   const [fieldPath, setFieldPath] = React.useState([])
   const [errors, setErrors] = React.useState([])
 
+  const sortCounter = React.useRef(0)
+
   const [jsonDict, setJsonDict] = React.useState(() =>
-    iterateSchema(optSchema, 1, [], {}),
+    iterateSchema(optSchema, sortCounter, [], {}),
   )
 
   // TODO: use Set
@@ -267,10 +270,6 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   )
 
   const schemaValidator = React.useMemo(() => validateOnSchema(schema), [schema])
-
-  // NOTE: Should be greater than number of keys on schema and object
-  // TODO: start with 0 and pass it to initial iterateJsonDict
-  const sortCounter = React.useRef(initialSortCounter)
 
   const changeType = React.useCallback(
     (contextFieldPath, columnId, typeOf) => {
