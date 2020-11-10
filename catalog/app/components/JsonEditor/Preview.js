@@ -76,7 +76,7 @@ function PreviewArray({ value }) {
         // eslint-disable-next-line react/no-array-index-key
         <span key={`${v}+${index}`}>
           <PreviewValue value={v} />
-          {index < value.length && ', '}
+          {index < value.length - 1 && ', '}
         </span>
       ))}
       <span className={classes.rbracket}>]</span>
