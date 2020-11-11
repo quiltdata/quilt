@@ -44,7 +44,7 @@ function EmptyColumn({ columnType }) {
 
   return (
     <M.TableRow className={classes.root}>
-      <M.TableCell colSpan={2}>Array is empty, you can add more items</M.TableCell>
+      <M.TableCell colSpan={2}>This array is empty, click above to edit</M.TableCell>
     </M.TableRow>
   )
 }
@@ -133,7 +133,7 @@ export default function Column({
 
             {!rows.length && <EmptyColumn columnType={columnType} />}
 
-            {columnType === 'array' ? (
+            {columnType === 'array' && !!rows.length && (
               <AddArrayItem
                 {...{
                   columnPath,
@@ -142,7 +142,9 @@ export default function Column({
                   key: `add_array_item_${rows.length}`,
                 }}
               />
-            ) : (
+            )}
+
+            {columnType !== 'array' && (
               <AddRow
                 {...{
                   columnPath,
