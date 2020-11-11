@@ -280,20 +280,34 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   const schema = optSchema || emptySchema
 
   // TODO: use function syntax and Ramda currying for setData((prevState) => RamdaCurryFunc(prevState))
+
+  // NOTE: data stores actual JSON object
   const [data, setData] = React.useState(obj)
+
+  // NOTE: fieldPath is like URL for editor columns
+  //       `['a', 0, 'b']` means we are focused to `{ a: [ { b: %HERE% }, ... ], ... }`
   const [fieldPath, setFieldPath] = React.useState([])
+
+  // NOTE: list of JSON Schema validation errors
   const [errors, setErrors] = React.useState([])
 
+  // NOTE: incremented sortIndex counter,
+  //       it needs to place new fields lower old ones
   const sortCounter = React.useRef(0)
 
+  // NOTE: stores additional info about every object field besides value, like sortIndex, schema etc.
+  //       it's a main source of data after actual JSON object
   const [jsonDict, setJsonDict] = React.useState(() =>
     iterateSchema(schema, sortCounter, [], {}),
   )
 
+  // NOTE: list of root object keys + root schema keys
   const [rootKeys, setRootKeys] = React.useState(() =>
     mergeSchemaAndObjRootKeys(schema, obj),
   )
 
+  // NOTE: this data represents table columns showen to user
+  //       it's a main source of UI data
   const newColumns = React.useMemo(
     () => iterateJsonDict(jsonDict, data, fieldPath, rootKeys),
     [data, jsonDict, fieldPath, rootKeys],
