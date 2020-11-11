@@ -1,4 +1,3 @@
-import isString from 'lodash/isString'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -108,7 +107,7 @@ export default function Input({
   )
 
   const onBlur = React.useCallback(() => {
-    if (columnId !== COLUMN_IDS.KEY || isString(value)) {
+    if (columnId !== COLUMN_IDS.KEY || typeof value === 'string') {
       onChange(value)
     } else {
       onChange(JSON.stringify(value))

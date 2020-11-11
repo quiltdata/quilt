@@ -1,5 +1,4 @@
 import Ajv from 'ajv'
-import toNumber from 'lodash/toNumber'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -33,7 +32,7 @@ function convertType(value, typeOf) {
     case 'string':
       return stringifyJSON(value)
     case 'number':
-      return toNumber(value)
+      return Number(value)
     default:
       return value
   }
@@ -211,8 +210,6 @@ function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys) {
 
   return ['', ...fieldPath].map((_, index) => {
     const pathPart = R.slice(0, index, fieldPath)
-
-    // keys: Object.keys(rawItem.properties || {}),
 
     const keys = getObjKeys(obj, pathPart, rootKeys)
     return pipeThru(keys)(
