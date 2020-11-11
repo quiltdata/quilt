@@ -89,6 +89,7 @@ setup(
             'detox',
             'tox-pytest-summary',
             'git-pylint-commit-hook',
+            'urllib3==1.25.4'
         ],
     },
     include_package_data=True,
