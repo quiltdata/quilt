@@ -1,5 +1,7 @@
 import * as R from 'ramda'
 import isArray from 'lodash/isArray'
+import isBoolean from 'lodash/isBoolean'
+import isNull from 'lodash/isNull'
 import isNumber from 'lodash/isNumber'
 import isObject from 'lodash/isObject'
 import isString from 'lodash/isString'
@@ -77,6 +79,8 @@ export function doesTypeMatchSchema(value, optSchema) {
       },
     ],
     [isNumber, () => isSchemaNumber(optSchema)],
+    [isNull, () => isSchemaNull(optSchema)],
+    [isBoolean, () => isSchemaBoolean(optSchema)],
     [R.T, isUndefined],
   ])(value)
 }
