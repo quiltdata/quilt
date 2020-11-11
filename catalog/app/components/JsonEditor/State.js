@@ -290,6 +290,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       const newData = dissocObjValue(removingFieldPath, data)
       setData(newData)
       setErrors(schemaValidator(newData))
+      return newData
     },
     [data, schemaValidator, setRootKeys, rootKeys, jsonDict],
   )
