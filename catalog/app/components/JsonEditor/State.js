@@ -192,8 +192,8 @@ function getJsonDictItem(jsonDict, obj, parentPath, key) {
 
 function getObjKeys(obj, objPath, rootKeys) {
   if (!objPath.length) return rootKeys
-  const objValue = R.path(objPath, obj)
 
+  const objValue = R.path(objPath, obj)
   if (Array.isArray(objValue)) return objValue.map((_v, i) => i)
   if (typeof objValue === 'object' && objValue !== null) return Object.keys(objValue)
 

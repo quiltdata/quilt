@@ -52,7 +52,8 @@ function getNormalizedValueStr(value, optSchema) {
   const normalizedValue = getNormalizedValue(value, optSchema)
 
   // FIXME: think more on this
-  if (optSchema.type === 'null' || optSchema.type === 'boolean') return normalizedValue
+  if (optSchema && (optSchema.type === 'null' || optSchema.type === 'boolean'))
+    return normalizedValue
 
   if (normalizedValue === EMPTY_VALUE) return ''
 
