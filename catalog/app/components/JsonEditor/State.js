@@ -229,6 +229,53 @@ function mergeSchemaAndObjRootKeys(schema, obj) {
   return R.uniq([...schemaKeys, ...objKeys])
 }
 
+// NOTE: these "*Reducer" functions are outside State component because they will be usefull for unit tests
+function changeKeyReducer(editingFieldPath, newKey, { data, jsonDict, rootKeys }) {
+  return {
+    data: moveObjValue(editingFieldPath, newKey, data),
+    jsonDict: moveSchemaValue(editingFieldPath, newKey, jsonDict),
+    rootKeys:
+      editingFieldPath.length === 1
+        ? R.uniq(R.without([editingFieldPath[0]], rootKeys).concat(newKey))
+        : rootKeys,
+  }
+}
+
+function changeValueReducer(editingFieldPath, newValue, { data, jsonDict, rootKeys }) {
+  return {
+    data: assocObjValue(editingFieldPath, newValue, data),
+    jsonDict,
+    rootKeys:
+      editingFieldPath.length === 1
+        ? R.uniq(rootKeys.concat(editingFieldPath[0]))
+        : rootKeys,
+  }
+}
+
+function addRowReducer(
+  addFieldPath,
+  newKey,
+  newValue,
+  sortIndex,
+  { data, jsonDict, rootKeys },
+) {
+  const newKeyPath = addFieldPath.concat([newKey])
+  return {
+    data: assocObjValue(newKeyPath, newValue, data),
+    jsonDict: assocSchemaSortIndex(newKeyPath, sortIndex, jsonDict),
+    rootKeys: newKeyPath.length === 1 ? R.uniq(rootKeys.concat(newKeyPath[0])) : rootKeys,
+  }
+}
+
+function removeFieldReducer(removingFieldPath, { data, jsonDict, rootKeys }) {
+  return {
+    data: dissocObjValue(removingFieldPath, data),
+    jsonDict: dissocSchemaValue(removingFieldPath, jsonDict),
+    rootKeys:
+      removingFieldPath.length === 1 ? R.without(removingFieldPath, rootKeys) : rootKeys,
+  }
+}
+
 export default function JsonEditorState({ children, obj, optSchema }) {
   const schema = optSchema || emptySchema
 
@@ -283,14 +330,16 @@ export default function JsonEditorState({ children, obj, optSchema }) {
 
   const removeField = React.useCallback(
     (removingFieldPath) => {
-      if (removingFieldPath.length === 1) {
-        setRootKeys(R.without(removingFieldPath, rootKeys))
-      }
-      setJsonDict(dissocSchemaValue(removingFieldPath, jsonDict))
-      const newData = dissocObjValue(removingFieldPath, data)
-      setData(newData)
-      setErrors(schemaValidator(newData))
-      return newData
+      const newState = removeFieldReducer(removingFieldPath, {
+        data,
+        jsonDict,
+        rootKeys,
+      })
+      setRootKeys(newState.rootKeys)
+      setJsonDict(newState.jsonDict)
+      setData(newState.data)
+      setErrors(schemaValidator(newState.data))
+      return newState.data
     },
     [data, schemaValidator, setRootKeys, rootKeys, jsonDict],
   )
@@ -301,26 +350,29 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       // TODO: make this `safeStr` conversion inside component
       const safeStr = str === EMPTY_VALUE ? '' : str
       if (columnId === COLUMN_IDS.KEY) {
-        if (editingFieldPath.length === 1) {
-          setRootKeys(R.uniq(R.without([editingFieldPath[0]], rootKeys).concat(safeStr)))
-        }
-        setJsonDict(moveSchemaValue(editingFieldPath, safeStr, jsonDict))
-
-        const newData = moveObjValue(editingFieldPath, safeStr, data)
-        setData(newData)
-        setErrors(schemaValidator(newData))
-        return newData
+        const newState = changeKeyReducer(editingFieldPath, safeStr, {
+          data,
+          jsonDict,
+          rootKeys,
+        })
+        setRootKeys(newState.rootKeys)
+        setJsonDict(newState.jsonDict)
+        setData(newState.data)
+        setErrors(schemaValidator(newState.data))
+        return newState.data
       }
 
       if (columnId === COLUMN_IDS.VALUE) {
-        if (editingFieldPath.length === 1) {
-          setRootKeys(R.uniq(rootKeys.concat(editingFieldPath[0])))
-        }
-
-        const newData = assocObjValue(editingFieldPath, safeStr, data)
-        setData(newData)
-        setErrors(schemaValidator(newData))
-        return newData
+        const newState = changeValueReducer(editingFieldPath, safeStr, {
+          data,
+          jsonDict,
+          rootKeys,
+        })
+        setRootKeys(newState.rootKeys)
+        setJsonDict(newState.jsonDict)
+        setData(newState.data)
+        setErrors(schemaValidator(newState.data))
+        return newState.data
       }
 
       return data
@@ -330,19 +382,22 @@ export default function JsonEditorState({ children, obj, optSchema }) {
 
   const addRow = React.useCallback(
     (addFieldPath, newKey) => {
-      const newKeyPath = addFieldPath.concat([newKey])
       // NOTE: value can't be `Symbol('empty')`
       //       because it's imposible to have `{ [newKey]: Symbol('empty') }` object
       const value = ''
-
-      if (newKeyPath.length === 1) {
-        setRootKeys(R.uniq(rootKeys.concat(newKeyPath[0])))
-      }
       sortCounter.current += 1
-      setJsonDict(assocSchemaSortIndex(newKeyPath, sortCounter.current, jsonDict))
-      const newData = assocObjValue(newKeyPath, value, data)
-      setData(newData)
-      return newData
+
+      const newState = addRowReducer(addFieldPath, newKey, value, sortCounter.current, {
+        data,
+        jsonDict,
+        rootKeys,
+      })
+
+      setRootKeys(newState.rootKeys)
+      setJsonDict(newState.jsonDict)
+      setData(newState.data)
+
+      return newState.data
     },
     [data, jsonDict, rootKeys, setData, setJsonDict, setRootKeys, sortCounter],
   )
