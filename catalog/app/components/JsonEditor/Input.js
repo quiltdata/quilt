@@ -37,6 +37,8 @@ function getNormalizedValue(value, optSchema) {
         return {}
       case 'null':
         return null
+      case 'boolean':
+        return true
       case 'array':
         return []
       // no default
@@ -48,6 +50,9 @@ function getNormalizedValue(value, optSchema) {
 
 function getNormalizedValueStr(value, optSchema) {
   const normalizedValue = getNormalizedValue(value, optSchema)
+
+  // FIXME: think more on this
+  if (optSchema.type === 'null' || optSchema.type === 'boolean') return normalizedValue
 
   if (normalizedValue === EMPTY_VALUE) return ''
 
