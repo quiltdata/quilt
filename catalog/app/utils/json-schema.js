@@ -5,50 +5,45 @@ import isNull from 'lodash/isNull'
 import isNumber from 'lodash/isNumber'
 import isObject from 'lodash/isObject'
 import isString from 'lodash/isString'
-import isUndefined from 'lodash/isUndefined'
 
-function isSchemaArray(optSchema) {
-  return R.prop('type', optSchema) === 'array'
-}
+const isSchemaArray = (optSchema) => R.prop('type', optSchema) === 'array'
 
-function isSchemaObject(optSchema) {
-  return R.prop('type', optSchema) === 'object'
-}
+const isSchemaObject = (optSchema) => R.prop('type', optSchema) === 'object'
 
-function isSchemaString(optSchema) {
-  return R.prop('type', optSchema) === 'string' && !isSchemaEnum(optSchema)
-}
+const isSchemaString = (optSchema) => R.prop('type', optSchema) === 'string'
 
-function isSchemaNumber(optSchema) {
-  return R.prop('type', optSchema) === 'number'
-}
+const isSchemaNumber = (optSchema) => R.prop('type', optSchema) === 'number'
 
-function isSchemaBoolean(optSchema) {
-  return R.prop('type', optSchema) === 'boolean'
-}
+const isSchemaInteger = (optSchema) => R.prop('type', optSchema) === 'integer'
 
-function isSchemaNull(optSchema) {
-  return R.prop('type', optSchema) === 'null'
-}
+const isSchemaBoolean = (optSchema) => R.prop('type', optSchema) === 'boolean'
 
-export function isSchemaEnum(optSchema) {
-  return !!R.prop('enum', optSchema)
-}
+const isSchemaNull = (optSchema) => R.prop('type', optSchema) === 'null'
 
-function isSchemaConst(optSchema) {
-  return !!R.prop('const', optSchema)
-}
+export const isSchemaEnum = (optSchema) => !!R.prop('enum', optSchema)
+
+export const isSchemaOneOf = (optSchema) => !!R.prop('oneOf', optSchema)
+
+export const isSchemaAnyOf = (optSchema) => !!R.prop('anyOf', optSchema)
+
+export const isSchemaAllOf = (optSchema) => !!R.prop('allOf', optSchema)
+
+const isSchemaConst = (optSchema) => !!R.prop('const', optSchema)
 
 function isSchemaCompound(optSchema) {
   if (!optSchema) return false
   return ['anyOf', 'oneOf', 'not', 'allOf'].some((key) => optSchema[key])
 }
 
-function isSchemaReference(optSchema) {
-  return !!R.prop('$ref', optSchema)
-}
+const isSchemaReference = (optSchema) => !!R.prop('$ref', optSchema)
 
 export const isNestedType = R.either(isSchemaArray, isSchemaObject)
+
+const compoundTypeToHumanString = (optSchema, condition, divider) =>
+  R.prop(condition, optSchema)
+    .map(schemaTypeToHumanString)
+    .filter((v) => v !== 'undefined')
+    .join(divider)
 
 export function schemaTypeToHumanString(optSchema) {
   return R.cond([
@@ -58,29 +53,44 @@ export function schemaTypeToHumanString(optSchema) {
     [isSchemaNull, () => 'null'],
     // NOTE: enum and const can be string too,
     //       that's why they are first
-    [R.prop('type'), () => optSchema.type],
+    [
+      R.prop('type'),
+      () => (Array.isArray(optSchema.type) ? optSchema.type.join('|') : optSchema.type),
+    ],
+    [isSchemaAnyOf, () => compoundTypeToHumanString(optSchema, 'anyOf', '|')],
+    [isSchemaOneOf, () => compoundTypeToHumanString(optSchema, 'oneOf', '&')],
+    [isSchemaAllOf, () => compoundTypeToHumanString(optSchema, 'allOf', '+')],
     [isSchemaCompound, () => 'compound'],
     [isSchemaReference, () => '$ref'],
     [R.T, () => 'undefined'],
   ])(optSchema)
 }
 
+const doesTypeMatchCompoundSchema = (value, optSchema, condition) =>
+  R.prop(condition, optSchema)
+    .filter(R.has('type'))
+    .some((subSchema) => doesTypeMatchSchema(value, subSchema))
+
 export function doesTypeMatchSchema(value, optSchema) {
   return R.cond([
-    [isArray, () => isSchemaArray(optSchema)],
-    [isObject, () => isSchemaObject(optSchema)],
+    [isSchemaEnum, () => R.propOr([], 'enum', optSchema).includes(value)],
     [
-      isString,
-      () => {
-        if (isSchemaString(optSchema)) return true
-
-        // TODO: enum can be consisted from any types
-        return R.propOr([], 'enum', optSchema).includes(value)
-      },
+      (s) => isArray(R.prop('type', s)),
+      () =>
+        optSchema.type.some((subSchema) =>
+          doesTypeMatchSchema(value, { type: subSchema }),
+        ),
     ],
-    [isNumber, () => isSchemaNumber(optSchema)],
-    [isNull, () => isSchemaNull(optSchema)],
-    [isBoolean, () => isSchemaBoolean(optSchema)],
-    [R.T, isUndefined],
-  ])(value)
+    [isSchemaAnyOf, () => doesTypeMatchCompoundSchema(value, optSchema, 'anyOf')],
+    [isSchemaOneOf, () => doesTypeMatchCompoundSchema(value, optSchema, 'oneOf')],
+    [isSchemaAllOf, () => doesTypeMatchCompoundSchema(value, optSchema, 'allOf')],
+    [isSchemaArray, () => isArray(value)],
+    [isSchemaObject, () => isObject(value)],
+    [isSchemaString, () => isString(value)],
+    [isSchemaInteger, () => Number.isInteger(value)],
+    [isSchemaNumber, () => isNumber(value)],
+    [isSchemaNull, () => isNull(value)],
+    [isSchemaBoolean, () => isBoolean(value)],
+    [R.T, R.T], // It's not a user's fault that we can't handle the type
+  ])(optSchema)
 }
