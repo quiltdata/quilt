@@ -381,13 +381,12 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   )
 
   const addRow = React.useCallback(
-    (addFieldPath, newKey) => {
+    (addFieldPath, key, value) => {
       // NOTE: value can't be `Symbol('empty')`
       //       because it's imposible to have `{ [newKey]: Symbol('empty') }` object
-      const value = ''
       sortCounter.current += 1
 
-      const newState = addRowReducer(addFieldPath, newKey, value, sortCounter.current, {
+      const newState = addRowReducer(addFieldPath, key, value, sortCounter.current, {
         data,
         jsonDict,
         rootKeys,

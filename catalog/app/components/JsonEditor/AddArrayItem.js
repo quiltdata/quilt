@@ -18,7 +18,7 @@ export default function AddArrayItem({ columnPath, index, onAdd }) {
   const classes = useStyles()
 
   const onClick = React.useCallback(() => {
-    onAdd(columnPath, index)
+    onAdd(columnPath, index, '')
   }, [columnPath, index, onAdd])
 
   return (

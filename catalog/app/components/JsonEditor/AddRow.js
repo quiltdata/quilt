@@ -12,12 +12,12 @@ const useStyles = M.makeStyles((t) => ({
   },
   emptyCell: {
     border: `1px solid ${t.palette.grey[400]}`,
-    borderWidth: '1px 0 0 1px',
+    padding: 0,
     width: t.spacing(36),
   },
 }))
 
-const emptyCellProps = {
+const emptyKeyProps = {
   column: {
     id: COLUMN_IDS.KEY,
   },
@@ -25,6 +25,21 @@ const emptyCellProps = {
     original: {},
     values: {
       [COLUMN_IDS.KEY]: EMPTY_VALUE,
+      [COLUMN_IDS.VALUE]: EMPTY_VALUE,
+    },
+  },
+  value: EMPTY_VALUE,
+}
+
+const emptyValueProps = {
+  column: {
+    id: COLUMN_IDS.VALUE,
+  },
+  row: {
+    original: {},
+    values: {
+      [COLUMN_IDS.KEY]: EMPTY_VALUE,
+      [COLUMN_IDS.VALUE]: EMPTY_VALUE,
     },
   },
   value: EMPTY_VALUE,
@@ -33,12 +48,22 @@ const emptyCellProps = {
 export default function AddRow({ columnPath, onAdd, onExpand }) {
   const classes = useStyles()
 
-  const onChange = React.useCallback(
-    (_1, _2, value) => {
-      if (!value) return
-      onAdd(columnPath, value)
+  const [value, setValue] = React.useState('')
+
+  const onChangeKey = React.useCallback(
+    (_1, _2, key) => {
+      if (!key) return
+      onAdd(columnPath, key, value)
     },
-    [columnPath, onAdd],
+    [columnPath, value, onAdd],
+  )
+
+  const onChangeValue = React.useCallback(
+    (_1, _2, newValue) => {
+      if (newValue === undefined || newValue === EMPTY_VALUE) return
+      setValue(newValue)
+    },
+    [setValue],
   )
 
   const onMenuAction = React.useCallback(() => {}, [])
@@ -48,16 +73,26 @@ export default function AddRow({ columnPath, onAdd, onExpand }) {
       <M.TableCell className={classes.inputCell}>
         <Cell
           {...{
-            ...emptyCellProps,
+            ...emptyKeyProps,
             columnPath,
             onExpand,
             onMenuAction,
-            updateMyData: onChange,
+            updateMyData: onChangeKey,
           }}
         />
       </M.TableCell>
 
-      <M.TableCell className={classes.emptyCell} />
+      <M.TableCell className={classes.emptyCell}>
+        <Cell
+          {...{
+            ...emptyValueProps,
+            columnPath,
+            onExpand,
+            onMenuAction,
+            updateMyData: onChangeValue,
+          }}
+        />
+      </M.TableCell>
     </M.TableRow>
   )
 }
