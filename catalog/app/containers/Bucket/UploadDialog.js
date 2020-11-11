@@ -816,14 +816,13 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
               </M.DialogContent>
               <M.DialogActions>
                 <M.Button onClick={handleClose()}>Close</M.Button>
-                <M.Button onClick={reset(form)}>New push</M.Button>
                 <M.Button
                   component={Link}
                   to={urls.bucketPackageTree(bucket, success.name, success.revision)}
                   variant="contained"
                   color="primary"
                 >
-                  Browse
+                  Browse package
                 </M.Button>
               </M.DialogActions>
             </>
