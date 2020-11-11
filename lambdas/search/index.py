@@ -67,7 +67,6 @@ def lambda_handler(request):
             raise ValueError("'packages' action searching indexes that don't end in '_packages'")
         _source = user_source
         size = user_size
-        terminate_after = None
     elif action == 'search':
         query = request.args.get('query', '')
         my_fields = user_fields or [
@@ -104,8 +103,6 @@ def lambda_handler(request):
             'comment', 'handle', 'hash', 'tags', 'metadata', 'pointer_file'
         ]
         size = DEFAULT_SIZE
-        if not user_retry:
-            terminate_after = None
     elif action == 'stats':
         body = {
             "query": {"match_all": {}},

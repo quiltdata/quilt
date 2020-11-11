@@ -226,7 +226,10 @@ class TestSearch(TestCase):
         assert map_stats['size']['value'] == sum(raw_stats[i]['size']['value'] for i in (7, 9)), \
             'Unexpected size for .map'
 
+
+    @patch.dict(os.environ, {'MAX_DOCUMENTS_PER_SHARD': '538'})
     def test_packages(self):
+
         """test packages action"""
         query = {
             'action': 'packages',
@@ -234,11 +237,12 @@ class TestSearch(TestCase):
             'body': {'custom': 'body'},
             'size': 42,
             'from': 10,
-            '_source': ','.join(['great', 'expectations'])
+            '_source': ','.join(['great', 'expectations']),
+            'terminate_after': 538,
         }
 
         url = f'https://www.example.com:443/{query["index"]}/_search?' + urlencode({
-            k: v for k, v in query.items() if k in ['size', 'from', '_source']
+            k: v for k, v in query.items() if k in ['size', 'from', '_source', 'terminate_after']
         })
 
         def _callback(request):
