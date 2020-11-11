@@ -191,7 +191,7 @@ function PkgCode({ data, bucket, name, revision, path }) {
             import quilt3
             # browse
             p = quilt3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
-            # download
+            # download (be mindful of large packages)
             p = quilt3.Package.install("${name}"${pathPy}${hashPy}, registry="s3://${bucket}", dest=".")
           `,
         },
