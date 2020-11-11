@@ -5,7 +5,7 @@ const useStyles = M.makeStyles((t) => ({
   buttonCell: {
     border: `1px solid ${t.palette.grey[400]}`,
     borderWidth: `1px 0 0`,
-    padding: t.spacing(1),
+    padding: t.spacing(1, 0),
     width: t.spacing(20),
   },
   emptyCell: {
