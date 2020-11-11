@@ -67,6 +67,7 @@ def lambda_handler(request):
             raise ValueError("'packages' action searching indexes that don't end in '_packages'")
         _source = user_source
         size = user_size
+        terminate_after = None
     elif action == 'search':
         query = request.args.get('query', '')
         my_fields = user_fields or [
