@@ -226,7 +226,6 @@ class TestSearch(TestCase):
         assert map_stats['size']['value'] == sum(raw_stats[i]['size']['value'] for i in (7, 9)), \
             'Unexpected size for .map'
 
-
     @patch.dict(os.environ, {'MAX_DOCUMENTS_PER_SHARD': '538'})
     def test_packages(self):
 
