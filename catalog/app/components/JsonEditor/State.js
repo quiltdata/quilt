@@ -45,11 +45,16 @@ export function validateOnSchema(optSchema) {
   const schema = optSchema || emptySchema
 
   const ajv = new Ajv({ schemaId: 'auto' })
-  const validate = ajv.compile(schema)
 
-  return (obj) => {
-    validate(obj)
-    return validate.errors || []
+  try {
+    const validate = ajv.compile(schema)
+
+    return (obj) => {
+      validate(obj)
+      return validate.errors || []
+    }
+  } catch (e) {
+    return () => [e]
   }
 }
 
