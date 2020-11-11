@@ -24,9 +24,10 @@ const useStyles = M.makeStyles((t) => ({
 function CellMenuItem({ item, onClick }) {
   const onClickInternal = React.useCallback(() => onClick(item), [item, onClick])
 
+  // TODO: use PreviewValue function from Preview component
   return (
     <M.MenuItem onClick={onClickInternal}>
-      <M.ListItemText primary={item.title} />
+      <M.ListItemText primary={item.title.toString()} />
     </M.MenuItem>
   )
 }
