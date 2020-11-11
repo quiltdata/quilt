@@ -111,13 +111,15 @@ const isExpandable = (value, schema) =>
 export default function Preview({
   columnId,
   data, // NOTE: react-table's row.original
-  hasMenu,
-  menuAnchorRef,
+  menu,
+  menuOpened,
+  onExpand,
+  onMenu,
+  onMenuClose,
+  onMenuSelect,
   placeholder,
   title,
   value,
-  onExpand,
-  onMenu,
 }) {
   const classes = useStyles()
 
@@ -140,11 +142,13 @@ export default function Preview({
       </div>
 
       <ButtonMenu
-        ref={menuAnchorRef}
         className={classes.menu}
+        menu={menu}
+        menuOpened={menuOpened}
         note={<Note {...{ columnId, data, value }} />}
-        hasMenu={hasMenu}
         onClick={onMenu}
+        onMenuClose={onMenuClose}
+        onMenuSelect={onMenuSelect}
       />
     </div>
   )

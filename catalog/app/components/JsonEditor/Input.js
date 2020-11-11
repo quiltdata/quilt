@@ -70,10 +70,13 @@ function hasBrackets(valueStr) {
 export default function Input({
   columnId,
   data,
-  hasMenu,
-  placeholder,
+  menu,
+  menuOpened,
   onChange,
   onMenu,
+  onMenuClose,
+  onMenuSelect,
+  placeholder,
   value: originalValue,
 }) {
   const classes = useStyles()
@@ -136,9 +139,12 @@ export default function Input({
       inputRef={inputRef}
       endAdornment={
         <ButtonMenu
-          hasMenu={hasMenu}
+          menu={menu}
+          menuOpened={menuOpened}
           note={<Note {...{ columnId, data, value }} />}
           onClick={onMenu}
+          onMenuClose={onMenuClose}
+          onMenuSelect={onMenuSelect}
         />
       }
       className={classes.root}

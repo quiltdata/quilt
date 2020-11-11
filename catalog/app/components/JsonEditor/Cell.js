@@ -8,41 +8,6 @@ import Input from './Input'
 import Preview from './Preview'
 import { ACTIONS, COLUMN_IDS, EMPTY_VALUE, parseJSON } from './State'
 
-function CellMenuItem({ item, onClick }) {
-  const onClickInternal = React.useCallback(() => onClick(item), [item, onClick])
-
-  return (
-    <M.MenuItem onClick={onClickInternal}>
-      <M.ListItemText primary={item.title} />
-    </M.MenuItem>
-  )
-}
-
-function CellMenu({ anchorEl, menu, onClose, onClick }) {
-  if (!menu.length) return null
-
-  return (
-    <M.Menu anchorEl={anchorEl} onClose={onClose} open>
-      {menu.map((subList) => (
-        <M.List
-          subheader={
-            subList.header && <M.ListSubheader>{subList.header}</M.ListSubheader>
-          }
-          key={subList.key}
-        >
-          {subList.options.map((item) => (
-            <CellMenuItem
-              key={`${item.action}_${item.title}`}
-              item={item}
-              onClick={onClick}
-            />
-          ))}
-        </M.List>
-      ))}
-    </M.Menu>
-  )
-}
-
 const emptyMenu = []
 
 const actionsSubmenu = {
@@ -100,8 +65,8 @@ const cellPlaceholders = {
 export default function Cell({
   column,
   columnPath,
-  onExpand,
   editing: editingInitial,
+  onExpand,
   onMenuAction,
   row,
   updateMyData,
@@ -109,13 +74,7 @@ export default function Cell({
 }) {
   const classes = useStyles()
 
-  const menuAnchorRef = React.useRef(null)
   const [value, setValue] = React.useState(initialValue)
-
-  const [menuAnchorEl, setMenuAnchorEl] = React.useState(null)
-  React.useLayoutEffect(() => {
-    setMenuAnchorEl(menuAnchorRef.current)
-  }, [menuAnchorRef])
 
   const isEditable = React.useMemo(
     () => !(column.id === COLUMN_IDS.KEY && row.original && row.original.valueSchema),
@@ -130,9 +89,7 @@ export default function Cell({
 
   const closeMenu = React.useCallback(() => setMenuOpened(false), [setMenuOpened])
 
-  const onMenuOpen = React.useCallback(() => {
-    setMenuOpened(true)
-  }, [setMenuOpened])
+  const onMenuOpen = React.useCallback(() => setMenuOpened(true), [setMenuOpened])
 
   const onMenuSelect = React.useCallback(
     (menuItem) => {
@@ -217,11 +174,6 @@ export default function Cell({
     [row],
   )
 
-  const hasMenu = React.useMemo(
-    () => !!((menuForKey.length && isKeyCell) || (menuForValue.length && isValueCell)),
-    [isKeyCell, isValueCell, menuForKey, menuForValue],
-  )
-
   return (
     <div
       className={cx(classes.root, { [classes.disabled]: !isEditable })}
@@ -234,34 +186,18 @@ export default function Cell({
         {...{
           columnId: column.id,
           data: row.original || emptyCellData,
-          hasMenu,
-          menuAnchorRef,
-          placeholder: cellPlaceholders[column.id],
+          menu: isKeyCell ? menuForKey : menuForValue,
+          menuOpened: keyMenuOpened || valueMenuOpened,
           onChange,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
           onMenu: onMenuOpen,
+          onMenuClose: closeMenu,
+          onMenuSelect,
+          placeholder: cellPlaceholders[column.id],
           title: isEditable ? 'Click to edit' : '',
           value,
         }}
       />
-
-      {keyMenuOpened && !!menuForKey.length && (
-        <CellMenu
-          anchorEl={menuAnchorEl}
-          menu={menuForKey}
-          onClick={onMenuSelect}
-          onClose={closeMenu}
-        />
-      )}
-
-      {valueMenuOpened && !!menuForValue.length && (
-        <CellMenu
-          anchorEl={menuAnchorEl}
-          menu={menuForValue}
-          onClick={onMenuSelect}
-          onClose={closeMenu}
-        />
-      )}
     </div>
   )
 }
