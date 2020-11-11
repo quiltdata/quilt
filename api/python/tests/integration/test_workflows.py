@@ -343,3 +343,17 @@ class WorkflowTest(QuiltTestCase):
         ''' % create_local_tmp_schema('{"$schema": 42}')))
         with pytest.raises(QuiltException, match=r'\$schema must be a string.'):
             self._validate(workflow='w1')
+
+    def test_invalid_schema_json(self):
+        tmp_schema = create_local_tmp_schema('"')
+        set_local_conf_data(get_v1_conf_data('''
+            workflows:
+              w1:
+                name: Name
+                metadata_schema: schema-id
+            schemas:
+              schema-id:
+                url: %s
+        ''' % tmp_schema))
+        with pytest.raises(QuiltException, match=fr"Couldn't parse {tmp_schema} as JSON."):
+            self._validate(workflow='w1')

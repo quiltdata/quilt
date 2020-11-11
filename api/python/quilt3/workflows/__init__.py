@@ -93,7 +93,10 @@ def validate(*, registry: PackageRegistry, workflow, meta, message):
             raise util.QuiltException(f"Local schema {str(schema_pk)!r} can't be used on the remote registry.")
 
         schema_data, schema_pk_to_store = get_bytes_and_effective_pk(schema_pk)
-        schema = _load_schema_json(schema_data.decode())
+        try:
+            schema = _load_schema_json(schema_data.decode())
+        except json.JSONDecodeError as e:
+            raise util.QuiltException(f"Couldn't parse {schema_pk} as JSON. {e}.")
 
         validator_cls = jsonschema.Draft7Validator
         if isinstance(schema, dict) and '$schema' in schema:
