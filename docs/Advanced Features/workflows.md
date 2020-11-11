@@ -30,7 +30,7 @@ With the above configuration you must specify a workflow before you can push:
 >>> import quilt3
 >>> quilt3.Package().push('test/package', registry='s3://quilt-sergey-dev-metadata')
 
-QuiltException: Workflow is required, but none specified.
+QuiltException: Workflow required, but none specified.
 ```
 
 

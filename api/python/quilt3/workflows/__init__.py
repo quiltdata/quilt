@@ -72,7 +72,7 @@ def validate(*, registry: PackageRegistry, workflow, meta, message):
     }
     if workflow is None:
         if conf_data.get('is_workflow_required', True):
-            raise util.QuiltException('Workflow is required, but none specified.')
+            raise util.QuiltException('Workflow required, but none specified.')
         return result
 
     workflows_data = conf_data['workflows']

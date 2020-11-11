@@ -90,7 +90,7 @@ class WorkflowTest(QuiltTestCase):
         '''))
         for workflow in (None, ...):
             with self.subTest(workflow=workflow):
-                with pytest.raises(QuiltException, match=r'Workflow is required, but none specified.'):
+                with pytest.raises(QuiltException, match=r'Workflow required, but none specified.'):
                     self._validate(workflow=workflow)
 
     def test_workflow_is_required_default_set(self):
@@ -106,7 +106,7 @@ class WorkflowTest(QuiltTestCase):
             'config': str(get_package_registry().workflow_conf_pk),
         }
 
-        with pytest.raises(QuiltException, match=r'Workflow is required, but none specified.'):
+        with pytest.raises(QuiltException, match=r'Workflow required, but none specified.'):
             self._validate(workflow=None)
 
     def test_workflow_not_required_not_specified(self):
