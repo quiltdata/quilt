@@ -57,7 +57,7 @@
     },
     "schemas": {
       "type": "object",
-      "description": "JSON Schemas to be used for metadata validation.",
+      "description": "JSON Schemas for validating user-supplied metadata.",
       "minProperties": 1,
       "additionalProperties": {
         "type": "object",
