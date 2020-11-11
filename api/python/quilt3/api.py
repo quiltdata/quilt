@@ -1,5 +1,11 @@
+import collections
+import concurrent
+from functools import partial
+from io import BytesIO
+from itertools import islice
+
 from .data_transfer import copy_file, get_bytes, delete_url, list_url, new_latest_manifest_tophash, put_bytes, \
-    list_url_with_datetime
+    list_url_with_datetime, copy_file_list, S3ClientProvider
 from .packages import Package
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
@@ -259,3 +265,57 @@ def search(query, limit=10):
     _config()
     raw_results = search_api(query, '*', limit)
     return raw_results['hits']['hits']
+
+
+def migrate(registry, dest_registry, n=100):
+    registry_parsed = PhysicalKey.from_url(fix_url(registry))
+    named_packages = registry_parsed.join('.quilt/named_packages')
+    pkg_version_paths = [x[0] for x in islice(list_url(named_packages), n)]
+    s3_client_provider = S3ClientProvider()
+    latest_pointers = {}
+    top_hash_to_pkg = collections.defaultdict(set)
+    with concurrent.futures.ThreadPoolExecutor() as pool:
+        top_hashes = pool.map(
+            partial(get_bytes, s3_client_provider=s3_client_provider),
+            map(named_packages.join, pkg_version_paths),
+        )
+        for pkg_version_path, top_hash in zip(pkg_version_paths, top_hashes):
+            top_hash = top_hash.decode()
+            pkg_name, version = pkg_version_path.rsplit('/', 1)
+            if version == 'latest':
+                latest_pointers[pkg_name] = top_hash
+            top_hash_to_pkg[top_hash].add(pkg_name)
+
+        # TODO: make sure we don't want to regenerate manifests.
+        new_registry = PhysicalKey.from_url(
+            get_package_registry(None if dest_registry is None else fix_url(dest_registry)))
+        file_list = []
+        fixed_top_hashes = {}
+        for top_hash, pkgs in top_hash_to_pkg.items():
+            manifest_path = registry_parsed.join(f'.quilt/packages/{top_hash}')
+            manifest_bytes = get_bytes(manifest_path, s3_client_provider=s3_client_provider)
+            new_top_hash = Package._load(BytesIO(manifest_bytes)).top_hash
+            if new_top_hash != top_hash:
+                fixed_top_hashes[top_hash] = new_top_hash
+                print('fixed top hash')
+            for pkg_name in pkgs:
+                file_list.append(
+                    (
+                        manifest_path,
+                        DotQuiltLayout.manifest_pk(new_registry, pkg_name, new_top_hash),
+                        len(manifest_bytes),
+                    )
+                )
+        copy_file_list(file_list)
+
+        futures = [
+            pool.submit(
+                put_bytes,
+                fixed_top_hashes.get(top_hash, top_hash).encode(),
+                DotQuiltLayout.latest_pointer_pk(new_registry, pkg_name),
+                s3_client_provider=s3_client_provider,
+            )
+            for pkg_name, top_hash in latest_pointers.items()
+        ]
+        for f in concurrent.futures.as_completed(futures):
+            f.result()
