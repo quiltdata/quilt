@@ -44,7 +44,7 @@ function EmptyColumn({ columnType }) {
 
   return (
     <M.TableRow className={classes.root}>
-      <M.TableCell colspan={2}>Array is empty, you can add more items</M.TableCell>
+      <M.TableCell colSpan={2}>Array is empty, you can add more items</M.TableCell>
     </M.TableRow>
   )
 }

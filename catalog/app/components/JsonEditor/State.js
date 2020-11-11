@@ -299,13 +299,16 @@ export default function JsonEditorState({ children, obj, optSchema }) {
 
   const changeValue = React.useCallback(
     (editingFieldPath, columnId, str) => {
+      // TODO: str is not string, it's any value
+      // TODO: make this `safeStr` conversion inside component
+      const safeStr = str === EMPTY_VALUE ? '' : str
       if (columnId === COLUMN_IDS.KEY) {
         if (editingFieldPath.length === 1) {
-          setRootKeys(R.uniq(R.without([editingFieldPath[0]], rootKeys).concat(str)))
+          setRootKeys(R.uniq(R.without([editingFieldPath[0]], rootKeys).concat(safeStr)))
         }
-        setJsonDict(moveSchemaValue(editingFieldPath, str, jsonDict))
+        setJsonDict(moveSchemaValue(editingFieldPath, safeStr, jsonDict))
 
-        const newData = moveObjValue(editingFieldPath, str, data)
+        const newData = moveObjValue(editingFieldPath, safeStr, data)
         setData(newData)
         setErrors(schemaValidator(newData))
         return newData
@@ -316,7 +319,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
           setRootKeys(R.uniq(rootKeys.concat(editingFieldPath[0])))
         }
 
-        const newData = assocObjValue(editingFieldPath, str, data)
+        const newData = assocObjValue(editingFieldPath, safeStr, data)
         setData(newData)
         setErrors(schemaValidator(newData))
         return newData
