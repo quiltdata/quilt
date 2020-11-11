@@ -18,7 +18,7 @@
     },
     "default_workflow": {
       "type": "string",
-      "description": "The workflow that will be used if no workflow provided by user."
+      "description": "The workflow to use if the user doesn't specify a workflow."
     },
     "workflows": {
       "type": "object",
@@ -35,12 +35,12 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "The workflow name for UI.",
+            "description": "The workflow name displayed by Quilt in the Python API or web UI.",
             "minLength": 1
           },
           "description": {
             "type": "string",
-            "description": "The workflow description for UI.",
+            "description": "The workflow description displayed by Quilt in the Python API or web UI.",
             "minLength": 1
           },
           "metadata_schema": {
@@ -49,7 +49,7 @@
           },
           "is_message_required": {
             "type": "boolean",
-            "description": "Whether commit message is required.",
+            "description": "If true, the user must provide a commit message.",
             "default": false
           }
         }

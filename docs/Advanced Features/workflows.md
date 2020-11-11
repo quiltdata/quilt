@@ -1,6 +1,6 @@
 *New in Quilt 3.3*
 
-`quilt3` provides API to ensure quality of package metadata. To start use it you need to create
+`quilt3` provides an API to ensure the quality of package metadata. To get started, create a
 configuration file in your registry under `.quilt/workflows/config.yml`. For example:
 
 ```yaml
@@ -24,7 +24,7 @@ schemas:
    url: s3://quilt-sergey-dev-metadata/schemas/top-secret.schema.json
 ```
 
-With this configuration you can't push anything without specifying workflow:
+With the above configuration you must specify a workflow before you can push:
 
 ```python
 >>> import quilt3
@@ -140,4 +140,3 @@ if `workflow` parameter is not provided.
 You could also check
 [JSON Schema](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/workflows/config-1.schema.json)
 that is used for validation of workflow file.
-
