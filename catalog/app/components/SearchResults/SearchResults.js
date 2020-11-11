@@ -545,7 +545,7 @@ export function Hits({
   const paginated = React.useMemo(
     () =>
       pages === 1 ? hits : hits.slice((actualPage - 1) * perPage, actualPage * perPage),
-    [hits, actualPage, perPage],
+    [hits, actualPage, perPage, pages],
   )
 
   usePrevious(actualPage, (prev) => {
@@ -613,6 +613,9 @@ export const handleErr = (retryUrl) => (e) => (
           supported query syntax
         </StyledLink>
         .
+        {!!retryUrl && (
+          <> You can also click RETRY to try a simplified version of your query.</>
+        )}
       </M.Typography>
     ) : e.message === 'Timeout' ? (
       <M.Typography gutterBottom>
@@ -637,7 +640,7 @@ export const handleErr = (retryUrl) => (e) => (
         <M.Typography style={{ whiteSpace: 'pre' }}>{e.details}</M.Typography>
       </>
     )}
-    {!!retryUrl && e.message !== 'SearchSyntaxError' && (
+    {!!retryUrl && (
       <M.Box pt={2}>
         <M.Button component={Link} to={retryUrl} color="primary" variant="contained">
           Retry simplified query
