@@ -190,7 +190,6 @@ class PackageEntry:
         Returns self with the physical key set to path.
 
         Args:
-            logical_key(string): logical key to update
             path(string): new path to place at logical_key in the package
                 Currently only supports a path on local disk
             meta(dict): metadata dict to attach to entry. If meta is provided, set just

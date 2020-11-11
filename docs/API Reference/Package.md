@@ -438,7 +438,6 @@ Returns self with the physical key set to path.
 
 __Arguments__
 
-* __logical_key(string)__:  logical key to update
 * __path(string)__:  new path to place at logical_key in the package
     Currently only supports a path on local disk
 * __meta(dict)__:  metadata dict to attach to entry. If meta is provided, set just
