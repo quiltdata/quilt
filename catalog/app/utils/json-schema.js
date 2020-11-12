@@ -1,10 +1,4 @@
 import * as R from 'ramda'
-import isArray from 'lodash/isArray'
-import isBoolean from 'lodash/isBoolean'
-import isNull from 'lodash/isNull'
-import isNumber from 'lodash/isNumber'
-import isObject from 'lodash/isObject'
-import isString from 'lodash/isString'
 
 const isSchemaArray = (optSchema) => R.prop('type', optSchema) === 'array'
 
@@ -81,7 +75,7 @@ export function doesTypeMatchSchema(value, optSchema) {
   return R.cond([
     [isSchemaEnum, () => R.propOr([], 'enum', optSchema).includes(value)],
     [
-      (s) => isArray(R.prop('type', s)),
+      (s) => Array.isArray(R.prop('type', s)),
       () =>
         optSchema.type.some((subSchema) =>
           doesTypeMatchSchema(value, { type: subSchema }),
@@ -90,13 +84,13 @@ export function doesTypeMatchSchema(value, optSchema) {
     [isSchemaAnyOf, () => doesTypeMatchCompoundSchema(value, optSchema, 'anyOf')],
     [isSchemaOneOf, () => doesTypeMatchCompoundSchema(value, optSchema, 'oneOf')],
     [isSchemaAllOf, () => doesTypeMatchCompoundSchema(value, optSchema, 'allOf')],
-    [isSchemaArray, () => isArray(value)],
-    [isSchemaObject, () => isObject(value)],
-    [isSchemaString, () => isString(value)],
+    [isSchemaArray, () => Array.isArray(value)],
+    [isSchemaObject, () => R.is(Object, value)],
+    [isSchemaString, () => R.is(String, value)],
     [isSchemaInteger, () => Number.isInteger(value)],
-    [isSchemaNumber, () => isNumber(value)],
-    [isSchemaNull, () => isNull(value)],
-    [isSchemaBoolean, () => isBoolean(value)],
+    [isSchemaNumber, () => R.is(Number, value)],
+    [isSchemaNull, () => R.equals(null, value)],
+    [isSchemaBoolean, () => R.is(Boolean, value)],
     [R.T, R.T], // It's not a user's fault that we can't handle the type
   ])(optSchema)
 }
