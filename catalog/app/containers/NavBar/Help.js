@@ -73,6 +73,11 @@ const syntaxHelpRows = [
         title: 'Object key',
       },
       {
+        example: 'key_text:"research"',
+        syntax: 'key_text:',
+        title: 'Analyzed object key',
+      },
+      {
         example: 'metadata:dapi',
         syntax: 'metadata:',
         title: 'Package metadata',
