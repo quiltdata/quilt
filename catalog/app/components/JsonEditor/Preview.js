@@ -2,6 +2,7 @@ import cx from 'classnames'
 import isArray from 'lodash/isArray'
 import isObject from 'lodash/isObject'
 import isUndefined from 'lodash/isUndefined'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -100,7 +101,7 @@ function PreviewValue({ value }) {
 
   if (value === null) return 'null'
 
-  if (typeof value === 'string') return <span>&quot;{value}&quot;</span>
+  if (R.is(String, value)) return <span>&quot;{value}&quot;</span>
 
   return value.toString()
 }

@@ -113,7 +113,7 @@ export default function Input({
   )
 
   const onBlur = React.useCallback(() => {
-    if (columnId !== COLUMN_IDS.KEY || typeof value === 'string') {
+    if (columnId !== COLUMN_IDS.KEY || R.is(String, value)) {
       onChange(value)
     } else {
       onChange(JSON.stringify(value))
