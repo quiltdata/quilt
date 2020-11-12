@@ -1,6 +1,5 @@
 """ Integration tests for Quilt Packages. """
 import io
-import json
 import os
 import pathlib
 import shutil
