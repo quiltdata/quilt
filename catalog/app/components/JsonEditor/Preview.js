@@ -1,7 +1,4 @@
 import cx from 'classnames'
-import isArray from 'lodash/isArray'
-import isObject from 'lodash/isObject'
-import isUndefined from 'lodash/isUndefined'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -85,11 +82,11 @@ function PreviewArray({ value }) {
 function PreviewValue({ value }) {
   const classes = usePreviewValueStyles()
 
-  if (value === EMPTY_VALUE || isUndefined(value)) return ''
+  if (value === EMPTY_VALUE || value === undefined) return ''
 
-  if (isArray(value)) return <PreviewArray value={value} />
+  if (Array.isArray(value)) return <PreviewArray value={value} />
 
-  if (isObject(value)) {
+  if (R.is(Object, value)) {
     return (
       <span>
         <span className={classes.lbrace}>&#123;</span>
@@ -107,7 +104,7 @@ function PreviewValue({ value }) {
 }
 
 const isExpandable = (value, schema) =>
-  value === EMPTY_VALUE ? isNestedType(schema) : isObject(value)
+  value === EMPTY_VALUE ? isNestedType(schema) : R.is(Object, value)
 
 export default function Preview({
   columnId,
