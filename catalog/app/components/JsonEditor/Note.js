@@ -22,7 +22,6 @@ const useStyles = M.makeStyles((t) => ({
 function getTypeAnnotationFromValue(value, schema) {
   return R.cond([
     [Array.isArray, () => 'array'],
-    [R.is(Object), () => 'object'],
     [
       R.is(String),
       () => (R.propOr([], 'enum', schema).includes(value) ? 'enum' : 'string'),
@@ -30,6 +29,7 @@ function getTypeAnnotationFromValue(value, schema) {
     [R.is(Number), () => 'number'],
     [R.is(Boolean), () => 'boolean'],
     [R.equals(null), () => 'null'],
+    [R.is(Object), () => 'object'],
     [R.T, () => 'undefined'],
   ])(value)
 }
