@@ -10,8 +10,8 @@ const useStyles = M.makeStyles((t) => ({
   inner: {
     display: 'flex',
     overflowX: 'auto',
-    '-ms-overflow-style': 'none',
-    'scrollbar-width': 'none',
+    MsOverflowStyle: 'none',
+    scrollbarWidth: 'none',
     '&::-webkit-scrollbar': {
       display: 'none',
     },
