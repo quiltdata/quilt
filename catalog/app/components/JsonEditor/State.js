@@ -198,14 +198,36 @@ function getJsonDictItem(jsonDict, obj, parentPath, key) {
   }
 }
 
-function getObjKeys(obj, objPath, rootKeys) {
+const noKeys = []
+
+function getObjValueKeys(objValue) {
+  if (Array.isArray(objValue)) return objValue.map((_v, i) => i)
+  if (R.is(Object, objValue)) return Object.keys(objValue)
+  return noKeys
+}
+
+function getObjValueKeysByPath(obj, objPath, rootKeys) {
   if (!objPath.length) return rootKeys
 
   const objValue = R.path(objPath, obj)
-  if (Array.isArray(objValue)) return objValue.map((_v, i) => i)
-  if (typeof objValue === 'object' && objValue !== null) return Object.keys(objValue)
+  return getObjValueKeys(objValue)
+}
 
-  return []
+function getSchemaItemKeys(schemaItem) {
+  return schemaItem && schemaItem.properties ? Object.keys(schemaItem.properties) : noKeys
+}
+
+function getSchemaItemKeysByPath(jsonDict, objPath) {
+  const itemAddress = serializeAddress(objPath)
+  const item = jsonDict[itemAddress]
+  return item && item.valueSchema ? getSchemaItemKeys(item.valueSchema) : noKeys
+}
+
+function getSchemaAndObjKeys(obj, jsonDict, objPath, rootKeys) {
+  return R.uniq([
+    ...getSchemaItemKeysByPath(jsonDict, objPath),
+    ...getObjValueKeysByPath(obj, objPath, rootKeys),
+  ])
 }
 
 function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys) {
@@ -224,7 +246,7 @@ function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys) {
   return ['', ...fieldPath].map((_, index) => {
     const pathPart = R.slice(0, index, fieldPath)
 
-    const keys = getObjKeys(obj, pathPart, rootKeys)
+    const keys = getSchemaAndObjKeys(obj, jsonDict, pathPart, rootKeys)
     return pipeThru(keys)(
       R.map((key) => getJsonDictItem(jsonDict, obj, pathPart, key)),
       R.sortBy(R.prop('sortIndex')),
@@ -237,8 +259,8 @@ function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys) {
 }
 
 function mergeSchemaAndObjRootKeys(schema, obj) {
-  const schemaKeys = schema && schema.properties ? Object.keys(schema.properties) : []
-  const objKeys = Object.keys(obj)
+  const schemaKeys = getSchemaItemKeys(schema)
+  const objKeys = getObjValueKeys(obj)
   return R.uniq([...schemaKeys, ...objKeys])
 }
 
