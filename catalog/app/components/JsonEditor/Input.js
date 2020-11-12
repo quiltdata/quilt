@@ -96,6 +96,7 @@ export default function Input({
   const [firstTime, setFirstTime] = React.useState(true)
 
   const inputRef = React.useRef()
+  // TODO: use `useEffect` instead of `useLayoutEffect`
   React.useLayoutEffect(() => {
     if (!firstTime || !inputRef.current || !valueStr) return
     if (hasBrackets(valueStr)) {

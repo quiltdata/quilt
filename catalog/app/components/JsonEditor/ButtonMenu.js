@@ -70,7 +70,7 @@ export default function ButtonMenu({
 
   const ref = React.useRef(null)
 
-  const hasMenu = React.useMemo(() => !!menu.length, [menu])
+  const hasMenu = !!menu.length
 
   const onClickInternal = React.useCallback(
     (event) => {
