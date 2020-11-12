@@ -19,6 +19,7 @@
 overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
 * [Added] Add enhanced JSON editor and schema validtaion for package metadata ([#1867](https://github.com/quiltdata/quilt/pull/1867))
 * [Added] Buttons to download packages and directories as .zip archives ([#1868](https://github.com/quiltdata/quilt/pull/1868/))
+* [Added] Search help dropdown for the index landing page ([#1838](https://github.com/quiltdata/quilt/pull/1838))
 * [Changed] Get package revisions from ElasticSearch, not S3 ([#1851](https://github.com/quiltdata/quilt/pull/1851))
 * [Changed] Render vega specs smaller than 20 MiB right away, render larger ones after pressing a button ([#1873](https://github.com/quiltdata/quilt/pull/1873))
 * [Changed] Prefix filtering for directory view similar to AWS Console ([#1876](https://github.com/quiltdata/quilt/pull/1876), [#1880](https://github.com/quiltdata/quilt/pull/1880))
