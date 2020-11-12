@@ -177,15 +177,23 @@ function objToDict(obj, parentPath, memo) {
   return memo
 }
 
+function calcReactId(valuePath, value) {
+  const pathPrefix = serializeAddress(valuePath)
+  // TODO: store preview for value, and reuse it for Preview
+  return `${pathPrefix}+${JSON.stringify(value)}`
+}
+
 function getJsonDictItem(jsonDict, obj, parentPath, key) {
   const itemAddress = serializeAddress(getAddressPath(key, parentPath))
   const item = jsonDict[itemAddress]
   // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
-  const storedValue = R.path(getAddressPath(key, parentPath), obj)
+  const valuePath = getAddressPath(key, parentPath)
+  const storedValue = R.path(valuePath, obj)
   const value = storedValue === undefined ? EMPTY_VALUE : storedValue
   return {
     [COLUMN_IDS.KEY]: key,
     [COLUMN_IDS.VALUE]: value,
+    reactId: calcReactId(valuePath, storedValue),
     ...(item || {}),
   }
 }

@@ -7,7 +7,7 @@ import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
 import Row from './Row'
-import { COLUMN_IDS, EMPTY_VALUE, getJsonDictValue } from './State'
+import { COLUMN_IDS, getJsonDictValue } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -122,11 +122,9 @@ export default function Column({
                 onMenuAction,
               }
 
-              const key = row.values[COLUMN_IDS.KEY]
-              const value = row.values[COLUMN_IDS.VALUE]
-              const keyId = key === EMPTY_VALUE ? 'key_empty' : `key_${key}`
-              const valueId = value === EMPTY_VALUE ? 'value_empty' : `value_${value}`
-              props.key = `${columnPath}_${keyId}+${valueId}`
+              if (row.original && row.original.reactId) {
+                props.key = row.original.reactId
+              }
 
               return <Row {...row.getRowProps()} {...props} />
             })}
