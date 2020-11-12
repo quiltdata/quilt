@@ -297,7 +297,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   const [errors, setErrors] = React.useState([])
 
   // NOTE: incremented sortIndex counter,
-  //       it needs to place new fields lower old ones
+  //       it's required to place new fields below existing ones
   const sortCounter = React.useRef(0)
 
   // NOTE: stores additional info about every object field besides value, like sortIndex, schema etc.
@@ -311,8 +311,8 @@ export default function JsonEditorState({ children, obj, optSchema }) {
     mergeSchemaAndObjRootKeys(schema, obj),
   )
 
-  // NOTE: this data represents table columns showen to user
-  //       it's a main source of UI data
+  // NOTE: this data represents table columns shown to user
+  //       it's the main source of UI data
   const newColumns = React.useMemo(
     () => iterateJsonDict(jsonDict, data, fieldPath, rootKeys),
     [data, jsonDict, fieldPath, rootKeys],
