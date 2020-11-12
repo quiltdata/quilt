@@ -342,13 +342,10 @@ class TestSearch(TestCase):
             'size': 1000,
             'from': 0,
             '_source': ','.join([
-                'key',
-                'version_id',
-                'updated',
-                'last_modified',
-                'size',
-                'user_meta'
+                'key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta',
+                'comment', 'handle', 'hash', 'tags', 'metadata', 'pointer_file'
             ]),
+            'terminate_after': 10000,
         })
 
         def _callback(request):
@@ -368,6 +365,7 @@ class TestSearch(TestCase):
             url,
             callback=_callback,
             content_type='application/json',
+            match_querystring=True,
         )
 
         for retry in [0, 1, 2, 3]:
