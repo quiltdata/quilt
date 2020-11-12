@@ -39,11 +39,14 @@ const isSchemaReference = (optSchema) => !!R.prop('$ref', optSchema)
 
 export const isNestedType = R.either(isSchemaArray, isSchemaObject)
 
-const compoundTypeToHumanString = (optSchema, condition, divider) =>
-  R.prop(condition, optSchema)
+function compoundTypeToHumanString(optSchema, condition, divider) {
+  if (!Array.isArray(R.prop(condition, optSchema))) return ''
+
+  return optSchema[condition]
     .map(schemaTypeToHumanString)
-    .filter((v) => v !== 'undefined')
+    .filter((v) => v !== 'undefined') // NOTE: sic, see default case of `schemaTypeToHumanString`
     .join(divider)
+}
 
 export function schemaTypeToHumanString(optSchema) {
   return R.cond([
