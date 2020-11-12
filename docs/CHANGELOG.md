@@ -9,6 +9,7 @@
 
 # unreleased - YYYY-MM-DD
 ## Python API
+* [Changed] Improved formatting of package load progress bar ([#1897](https://github.com/quiltdata/quilt/pull/1897))
 
 ## CLI
 
