@@ -9,6 +9,11 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import JsonEditor from 'components/JsonEditor'
+import { parseJSON, stringifyJSON, validateOnSchema } from 'components/JsonEditor/State'
+import Skeleton from 'components/Skeleton'
+import { useData } from 'utils/Data'
+import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import Delay from 'utils/Delay'
@@ -19,8 +24,17 @@ import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
 
+import SelectWorkflow from './SelectWorkflow'
+import * as requests from './requests'
+
 const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
 const ES_LAG = 3 * 1000
+
+const Errors = {
+  FILES_UPLOAD: { [FORM_ERROR]: 'Error uploading files' },
+  PACKAGE_CREATION: { [FORM_ERROR]: 'Error creating manifest' },
+  PACKAGE_VALIDATION: { [FORM_ERROR]: 'Error validating package' },
+}
 
 const getNormalizedPath = (f) => (f.path.startsWith('/') ? f.path.substring(1) : f.path)
 
@@ -337,46 +351,10 @@ function FilesInput({
   )
 }
 
-const tryParse = (v) => {
-  try {
-    return JSON.parse(v)
-  } catch (e) {
-    return v
-  }
-}
-
-const isParsable = (v) => {
-  try {
-    JSON.parse(v)
-    return true
-  } catch (e) {
-    return false
-  }
-}
-
-const tryUnparse = (v) =>
-  typeof v === 'string' && !isParsable(v) ? v : JSON.stringify(v)
-
-const fieldsToText = R.pipe(
-  R.filter((f) => !!f.key.trim()),
-  R.map((f) => [f.key, tryParse(f.value)]),
-  R.fromPairs,
-  (x) => JSON.stringify(x, null, 2),
-)
-
-const textToFields = R.pipe(
-  (t) => JSON.parse(t),
-  Object.entries,
-  R.map(([key, value]) => ({ key, value: tryUnparse(value) })),
-)
-
 function getMetaValue(value) {
   if (!value) return undefined
 
-  const pairs =
-    value.mode === 'json'
-      ? pipeThru(value.text || '{}')((t) => JSON.parse(t), R.toPairs)
-      : (value.fields || []).map((f) => [f.key, tryParse(f.value)])
+  const pairs = pipeThru(value.text || '{}')((t) => JSON.parse(t), R.toPairs)
 
   return pipeThru(pairs)(
     R.filter(([k]) => !!k.trim()),
@@ -385,11 +363,31 @@ function getMetaValue(value) {
   )
 }
 
-function validateMeta(value) {
-  if (!value) return
-  if (value.mode === 'json') {
-    // eslint-disable-next-line consistent-return
-    return validators.jsonObject(value.text)
+function validateMeta(schema) {
+  // TODO: move schema validation to utils/validators
+  //       but don't forget that validation depends on library.
+  //       Maybe we should split validators to files at first
+  const schemaValidator = validateOnSchema(schema)
+  return (value) => {
+    const noError = undefined
+
+    if (schema) {
+      const obj = value ? parseJSON(value.text) : {}
+      const errors = schemaValidator(obj)
+      if (!errors.length) {
+        return noError
+      }
+
+      return errors
+    }
+
+    if (!value) return noError
+
+    if (value.mode === 'json') {
+      return validators.jsonObject(value.text)
+    }
+
+    return noError
   }
 }
 
@@ -400,6 +398,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   header: {
     alignItems: 'center',
     display: 'flex',
+    marginBottom: t.spacing(2),
     height: 24,
   },
   btn: {
@@ -442,62 +441,45 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-const EMPTY_FIELD = { key: '', value: '' }
+const EMPTY_META_VALUE = {
+  mode: 'kv',
+  text: '{}',
+}
 
 // TODO: warn on duplicate keys
-function MetaInput({ input, meta }) {
+function MetaInput({ input, meta, schema }) {
   const classes = useMetaInputStyles()
-  const value = input.value || { fields: [EMPTY_FIELD], text: '{}', mode: 'kv' }
+  const value = input.value || EMPTY_META_VALUE
   const error = meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
+
+  const parsedValue = React.useMemo(() => parseJSON(value.text), [value])
 
   const changeMode = (mode) => {
     if (disabled) return
     input.onChange({ ...value, mode })
   }
 
-  const changeFields = (newFields) => {
-    if (disabled) return
-    const fields = typeof newFields === 'function' ? newFields(value.fields) : newFields
-    const text = fieldsToText(fields)
-    input.onChange({ ...value, fields, text })
-  }
-
-  const changeText = (text) => {
-    if (disabled) return
-    let fields
-    try {
-      fields = textToFields(text)
-    } catch (e) {
-      fields = value.fields
-    }
-    input.onChange({ ...value, fields, text })
-  }
+  const changeText = React.useCallback(
+    (text) => {
+      if (disabled) return
+      input.onChange({ ...value, text })
+    },
+    [disabled, input, value],
+  )
 
   const handleModeChange = (e, m) => {
     if (!m) return
     changeMode(m)
   }
 
-  const handleKeyChange = (i) => (e) => {
-    changeFields(R.assocPath([i, 'key'], e.target.value))
-  }
-
-  const handleValueChange = (i) => (e) => {
-    changeFields(R.assocPath([i, 'value'], e.target.value))
-  }
-
-  const addField = () => {
-    changeFields(R.append(EMPTY_FIELD))
-  }
-
-  const rmField = (i) => () => {
-    changeFields(R.pipe(R.remove(i, 1), R.when(R.isEmpty, R.append(EMPTY_FIELD))))
-  }
-
   const handleTextChange = (e) => {
     changeText(e.target.value)
   }
+
+  const onJsonEditor = React.useCallback((json) => changeText(stringifyJSON(json)), [
+    changeText,
+  ])
 
   return (
     <div className={classes.root}>
@@ -506,6 +488,7 @@ function MetaInput({ input, meta }) {
         <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
           Metadata
         </M.Typography>
+
         <M.Box flexGrow={1} />
         <Lab.ToggleButtonGroup value={value.mode} exclusive onChange={handleModeChange}>
           <Lab.ToggleButton value="kv" className={classes.btn} disabled={disabled}>
@@ -516,47 +499,14 @@ function MetaInput({ input, meta }) {
           </Lab.ToggleButton>
         </Lab.ToggleButtonGroup>
       </div>
+
       {value.mode === 'kv' ? (
-        <>
-          {value.fields.map((f, i) => (
-            // eslint-disable-next-line react/no-array-index-key
-            <div key={i} className={classes.row}>
-              <M.TextField
-                className={classes.key}
-                onChange={handleKeyChange(i)}
-                value={f.key}
-                placeholder="Key"
-                disabled={disabled}
-              />
-              <div className={classes.sep}>:</div>
-              <M.TextField
-                className={classes.value}
-                onChange={handleValueChange(i)}
-                value={f.value}
-                placeholder="Value"
-                disabled={disabled}
-              />
-              <M.IconButton
-                size="small"
-                onClick={rmField(i)}
-                edge="end"
-                disabled={disabled}
-              >
-                <M.Icon>close</M.Icon>
-              </M.IconButton>
-            </div>
-          ))}
-          <M.Button
-            variant="outlined"
-            size="small"
-            onClick={addField}
-            startIcon={<M.Icon>add</M.Icon>}
-            className={classes.add}
-            disabled={disabled}
-          >
-            Add field
-          </M.Button>
-        </>
+        <JsonEditor
+          error={error}
+          value={parsedValue}
+          onChange={onJsonEditor}
+          schema={schema}
+        />
       ) : (
         <M.TextField
           variant="outlined"
@@ -646,8 +596,52 @@ async function hashFile(file) {
   }
 }
 
-export default function UploadDialog({ bucket, open, onClose, refresh }) {
+const useWorkflowInputStyles = M.makeStyles((t) => ({
+  root: {
+    margin: t.spacing(2, 0, 3),
+  },
+  select: {
+    marginTop: t.spacing(1),
+  },
+}))
+
+function WorkflowInput({ input, meta, workflowsConfig }) {
+  const classes = useWorkflowInputStyles()
+
+  const disabled = meta.submitting || meta.submitSucceeded
+
+  return (
+    <div className={classes.root}>
+      <SelectWorkflow
+        className={classes.select}
+        items={workflowsConfig ? workflowsConfig.workflows : []}
+        onChange={input.onChange}
+        value={input.value}
+        disabled={disabled}
+      />
+    </div>
+  )
+}
+
+function SchemaFetcher({ children, bucket, schemaUrl }) {
   const s3 = AWS.S3.use()
+  const data = useData(requests.metadataSchema, { s3, bucket, schemaUrl })
+  const res = React.useMemo(
+    () =>
+      AsyncResult.mapCase(
+        {
+          Ok: (schema) => ({ schema, validate: validateMeta(schema) }),
+        },
+        data.result,
+      ),
+    [data.result],
+  )
+  return children(res)
+}
+
+function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
+  const s3 = AWS.S3.use()
+  const t = M.useTheme()
   const req = APIConnector.use()
   const { urls } = NamedRoutes.use()
   const [uploads, setUploads] = React.useState({})
@@ -686,7 +680,7 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
   const totalProgress = getTotalProgress(uploads)
 
   // eslint-disable-next-line consistent-return
-  const onSubmit = async ({ name, msg, files, meta }) => {
+  const uploadPackage = async ({ name, msg, files, meta, workflow }) => {
     const limit = pLimit(2)
     let rejected = false
     const uploadStates = files.map(({ path, file }) => {
@@ -737,7 +731,7 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
     try {
       uploaded = await Promise.all(uploadStates.map((x) => x.promise))
     } catch (e) {
-      return { [FORM_ERROR]: 'Error uploading files' }
+      return Errors.FILES_UPLOAD
     }
 
     const contents = R.zipWith(
@@ -765,6 +759,7 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
           message: msg,
           contents,
           meta: getMetaValue(meta),
+          workflow: workflow.slug !== 'none' ? workflow.slug : null,
         },
       })
       if (refresh) {
@@ -774,14 +769,20 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
       }
       setSuccess({ name, revision: res.timestamp })
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
+      if (e.message) {
+        return {
+          [FORM_ERROR]: e.message,
+        }
+      }
       // TODO: handle specific cases?
-      return { [FORM_ERROR]: 'Error creating manifest' }
+      return Errors.PACKAGE_CREATION
     }
   }
 
   return (
-    <RF.Form onSubmit={onSubmit}>
+    <RF.Form onSubmit={uploadPackage}>
       {({
         handleSubmit,
         submitting,
@@ -790,6 +791,7 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
         submitError,
         hasValidationErrors,
         form,
+        values,
       }) => (
         <M.Dialog
           open={open}
@@ -834,10 +836,12 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                     label="Name"
                     placeholder="Enter a package name"
                     validate={validators.composeAsync(validators.required, validateName)}
+                    validateFields={['name']}
                     errors={{
                       required: 'Enter a package name',
                       invalid: 'Invalid package name',
                     }}
+                    margin="normal"
                     fullWidth
                   />
 
@@ -847,6 +851,7 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                     label="Commit message"
                     placeholder="Enter a commit message"
                     validate={validators.required}
+                    validateFields={['msg']}
                     errors={{
                       required: 'Enter a commit message',
                     }}
@@ -858,6 +863,7 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                     component={FilesInput}
                     name="files"
                     validate={validators.nonEmpty}
+                    validateFields={['files']}
                     errors={{
                       nonEmpty: 'Add files to create a package',
                     }}
@@ -866,11 +872,41 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
                     isEqual={R.equals}
                   />
 
+                  <SchemaFetcher
+                    bucket={bucket}
+                    schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
+                  >
+                    {AsyncResult.case({
+                      Ok: ({ schema, validate }) => (
+                        <RF.Field
+                          component={MetaInput}
+                          bucket={bucket}
+                          name="meta"
+                          schema={schema}
+                          validate={validate}
+                          validateFields={['meta']}
+                          isEqual={R.equals}
+                        />
+                      ),
+                      Err: (responseError) => {
+                        // eslint-disable-next-line no-console
+                        console.error(responseError)
+                        return null
+                      },
+                      _: () => <Skeleton height={t.spacing(8)} width="100%" mt={3} />,
+                    })}
+                  </SchemaFetcher>
+
                   <RF.Field
-                    component={MetaInput}
-                    name="meta"
-                    validate={validateMeta}
-                    isEqual={R.equals}
+                    component={WorkflowInput}
+                    workflowsConfig={workflowsConfig}
+                    initialValue={
+                      workflowsConfig
+                        ? workflowsConfig.workflows.find((item) => item.isDefault)
+                        : null
+                    }
+                    name="workflow"
+                    validateFields={['meta', 'workflow']}
                   />
 
                   <input type="submit" style={{ display: 'none' }} />
@@ -935,4 +971,29 @@ export default function UploadDialog({ bucket, open, onClose, refresh }) {
       )}
     </RF.Form>
   )
+}
+
+export default function UploadDialogWrapper({ bucket, open, onClose, refresh }) {
+  const s3 = AWS.S3.use()
+  const data = useData(requests.workflowsList, { s3, bucket })
+
+  return data.case({
+    Ok: (workflowsConfig) => (
+      <UploadDialog
+        {...{
+          bucket,
+          open,
+          onClose,
+          refresh,
+          workflowsConfig,
+        }}
+      />
+    ),
+    Err: (error) => {
+      // eslint-disable-next-line no-console
+      console.error(error)
+      return null
+    },
+    _: () => null,
+  })
 }

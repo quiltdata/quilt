@@ -17,6 +17,7 @@
 * [Added] Preview .pdbqt files as plain text ([#1855](https://github.com/quiltdata/quilt/pull/1855))
 * [Added] Retry logic for failed queries, minimize load on ES for sample, images
 overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
+* [Added] Add enhanced JSON editor and schema validtaion for package metadata ([#1867](https://github.com/quiltdata/quilt/pull/1867))
 * [Added] Buttons to download packages and directories as .zip archives ([#1868](https://github.com/quiltdata/quilt/pull/1868/))
 * [Changed] Get package revisions from ElasticSearch, not S3 ([#1851](https://github.com/quiltdata/quilt/pull/1851))
 * [Changed] Render vega specs smaller than 20 MiB right away, render larger ones after pressing a button ([#1873](https://github.com/quiltdata/quilt/pull/1873))
