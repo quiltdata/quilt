@@ -93,20 +93,16 @@ export default function Input({
   const [valueStr, setValueStr] = React.useState(() =>
     getNormalizedValueStr(originalValue, data.valueSchema),
   )
-  const [firstTime, setFirstTime] = React.useState(true)
 
   const inputRef = React.useRef()
-  // TODO: use `useEffect` instead of `useLayoutEffect`
-  React.useLayoutEffect(() => {
-    if (!firstTime || !inputRef.current || !valueStr) return
+  React.useEffect(() => {
+    if (!inputRef.current || !valueStr) return
     if (hasBrackets(valueStr)) {
       // Set cursor before closing bracket/quote/brace
       inputRef.current.setSelectionRange(valueStr.length - 1, valueStr.length - 1)
     }
-    // NOTE: call it once
-    setFirstTime(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firstTime])
+  }, [])
 
   const onChangeInternal = React.useCallback(
     (event) => {
