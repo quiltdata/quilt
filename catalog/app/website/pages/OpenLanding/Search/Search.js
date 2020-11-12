@@ -36,7 +36,6 @@ const useStyles = M.makeStyles((t) => ({
     maxHeight: '490px',
     overflowY: 'auto',
     padding: t.spacing(0, 2),
-
     [t.breakpoints.down('xs')]: {
       maxHeight: '400px',
       padding: t.spacing(0, 2),
@@ -74,20 +73,14 @@ const useStyles = M.makeStyles((t) => ({
   },
   inputInput: {
     height: 'auto',
-    paddingBottom: 0,
-    paddingLeft: t.spacing(15),
-    paddingRight: t.spacing(4),
-    paddingTop: 0,
+    padding: t.spacing(0, 4, 0, 15),
   },
   inputOptions: {
     borderColor: t.palette.grey[300],
     borderRadius: 0,
     borderWidth: '0 1px 0 0',
     color: t.palette.grey[600],
-    paddingBottom: t.spacing(1.5),
-    paddingLeft: t.spacing(3),
-    paddingRight: t.spacing(1.5),
-    paddingTop: t.spacing(1.5),
+    padding: t.spacing(1.5, 1.5, 1.5, 3),
   },
   inputOptionsSelected: {
     boxShadow: 'inset -1px 0 4px rgba(0, 0, 0, 0.2)',
@@ -155,12 +148,7 @@ export default function Search() {
     change(evt.target.value)
   }, [])
 
-  const onQuery = React.useCallback(
-    (strPart) => {
-      change(`${value} ${strPart}`)
-    },
-    [value],
-  )
+  const onQuery = React.useCallback((strPart) => change(`${value} ${strPart}`), [value])
 
   const onToggleOptions = React.useCallback(() => setHelpOpened(!helpOpened), [
     helpOpened,
