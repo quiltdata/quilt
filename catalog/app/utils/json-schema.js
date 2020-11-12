@@ -66,10 +66,13 @@ export function schemaTypeToHumanString(optSchema) {
   ])(optSchema)
 }
 
-const doesTypeMatchCompoundSchema = (value, optSchema, condition) =>
-  R.prop(condition, optSchema)
+function doesTypeMatchCompoundSchema(value, optSchema, condition) {
+  if (!Array.isArray(R.prop(condition, optSchema))) return false
+
+  return optSchema[condition]
     .filter(R.has('type'))
     .some((subSchema) => doesTypeMatchSchema(value, subSchema))
+}
 
 export function doesTypeMatchSchema(value, optSchema) {
   return R.cond([
