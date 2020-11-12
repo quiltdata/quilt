@@ -737,7 +737,15 @@ class Package:
             readable_file.seek(0)
 
             reader = jsonlines.Reader(
-                tqdm(readable_file, desc="Loading manifest", total=line_count, unit="entries", disable=DISABLE_TQDM),
+                tqdm(
+                    readable_file,
+                    desc="Loading manifest",
+                    total=line_count,
+                    unit="",
+                    unit_scale=True,
+                    disable=DISABLE_TQDM,
+                    bar_format='{l_bar}{bar}| {n}/{total} [{elapsed}<{remaining}, {rate_fmt}]',
+                ),
                 loads=json.loads,
             )
             meta = reader.read()

@@ -104,8 +104,6 @@ def lambda_handler(request):
             'comment', 'handle', 'hash', 'tags', 'metadata', 'pointer_file'
         ]
         size = DEFAULT_SIZE
-        if not user_retry:
-            terminate_after = None
     elif action == 'stats':
         body = {
             "query": {"match_all": {}},
