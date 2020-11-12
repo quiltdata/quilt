@@ -1,10 +1,4 @@
 import cx from 'classnames'
-import isArray from 'lodash/isArray'
-import isBoolean from 'lodash/isBoolean'
-import isNull from 'lodash/isNull'
-import isNumber from 'lodash/isNumber'
-import isObject from 'lodash/isObject'
-import isString from 'lodash/isString'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -27,12 +21,15 @@ const useStyles = M.makeStyles((t) => ({
 
 function getTypeAnnotationFromValue(value, schema) {
   return R.cond([
-    [isArray, () => 'array'],
-    [isObject, () => 'object'],
-    [isString, () => (R.propOr([], 'enum', schema).includes(value) ? 'enum' : 'string')],
-    [isNumber, () => 'number'],
-    [isBoolean, () => 'boolean'],
-    [isNull, () => 'null'],
+    [Array.isArray, () => 'array'],
+    [R.is(Object), () => 'object'],
+    [
+      R.is(String),
+      () => (R.propOr([], 'enum', schema).includes(value) ? 'enum' : 'string'),
+    ],
+    [R.is(Number), () => 'number'],
+    [R.is(Boolean), () => 'boolean'],
+    [R.equals(null), () => 'null'],
     [R.T, () => 'undefined'],
   ])(value)
 }
