@@ -1,5 +1,6 @@
 """ Integration tests for Quilt Packages. """
 import io
+import json
 import os
 import pathlib
 import shutil
@@ -18,7 +19,6 @@ import pytest
 
 import quilt3
 from quilt3 import Package
-from quilt3.backends import get_package_registry
 from quilt3.backends.local import (
     LocalPackageRegistryV1,
     LocalPackageRegistryV2,
@@ -759,6 +759,13 @@ class PackageTest(QuiltTestCase):
         th4 = pkg.top_hash
         assert th2 == th4
 
+    def test_top_hash_empty_build(self):
+        assert Package().build('pkg/test') == '2a5a67156ca9238c14d12042db51c5b52260fdd5511b61ea89b58929d6e1769b'
+
+    @patch('quilt3.workflows.validate', Mock(return_value='workflow data'))
+    def test_top_hash_empty_build_workflow(self):
+        assert Package().build('pkg/test') == 'd181e7fd54b64f7f61a3ec33753b93c748748d36fa1e8e6189d598697648a52f'
+
     def test_keys(self):
         pkg = Package()
         assert not pkg.keys()
@@ -1169,6 +1176,19 @@ class PackageTest(QuiltTestCase):
 
         pkg2 = Package.browse('foo/bar', top_hash=top_hash)
         assert list(pkg.manifest) == list(pkg2.manifest)
+
+    @patch('quilt3.Package._build', mock.MagicMock())
+    @patch('quilt3.packages.copy_file_list', mock.MagicMock())
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value='workflow data'))
+    def test_manifest_workflow(self):
+        self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
+        for method in (Package.build, Package.push):
+            with self.subTest(method=method):
+                pkg = Package()
+                method(pkg, 'foo/bar', registry='s3://test-bucket')
+                data, = pkg.manifest
+                assert 'workflow' in data
+                assert data['workflow'] == "workflow data"
 
     def test_map(self):
         pkg = Package()
