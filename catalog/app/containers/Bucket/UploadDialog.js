@@ -447,10 +447,10 @@ const EMPTY_META_VALUE = {
 }
 
 // TODO: warn on duplicate keys
-function MetaInput({ input, meta, schema }) {
+function MetaInput({ schemaError, input, meta, schema }) {
   const classes = useMetaInputStyles()
   const value = input.value || EMPTY_META_VALUE
-  const error = meta.submitFailed && meta.error
+  const error = schemaError ? [schemaError] : meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
 
   const parsedValue = React.useMemo(() => parseJSON(value.text), [value])
@@ -631,6 +631,11 @@ function SchemaFetcher({ children, schemaUrl }) {
       AsyncResult.mapCase(
         {
           Ok: (schema) => ({ schema, validate: validateMeta(schema) }),
+          Err: (responseError) => ({
+            responseError,
+            schema: null,
+            validate: validateMeta(null),
+          }),
         },
         data.result,
       ),
@@ -887,11 +892,18 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                           isEqual={R.equals}
                         />
                       ),
-                      Err: (responseError) => {
-                        // eslint-disable-next-line no-console
-                        console.error(responseError)
-                        return null
-                      },
+                      Err: ({ responseError, schema, validate }) => (
+                        <RF.Field
+                          component={MetaInput}
+                          bucket={bucket}
+                          name="meta"
+                          schema={schema}
+                          schemaError={responseError}
+                          validate={validate}
+                          validateFields={['meta']}
+                          isEqual={R.equals}
+                        />
+                      ),
                       _: () => <Skeleton height={t.spacing(8)} width="100%" mt={3} />,
                     })}
                   </SchemaFetcher>
