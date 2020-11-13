@@ -30,6 +30,19 @@ class WorkflowTest(QuiltTestCase):
         meta = meta or {}
         return workflows.validate(registry=registry, workflow=workflow, meta=meta, message=message)
 
+    def s3_mock_config(self, data, pkg_registry):
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'VersionId': 'some-version',
+                'Body': self.s3_streaming_body(data.encode()),
+            },
+            expected_params={
+                'Bucket': pkg_registry.root.bucket,
+                'Key': pkg_registry.workflow_conf_pk.path,
+            }
+        )
+
     def test_no_conf_workflow_not_specified(self):
         assert self._validate() is None
 
@@ -45,19 +58,6 @@ class WorkflowTest(QuiltTestCase):
             http_status_code=404,
         )
         assert self._validate(registry='s3://some-bucket') is None
-
-    def s3_mock_config(self, data, pkg_registry):
-        self.s3_stubber.add_response(
-            method='get_object',
-            service_response={
-                'VersionId': 'some-version',
-                'Body': self.s3_streaming_body(data.encode()),
-            },
-            expected_params={
-                'Bucket': pkg_registry.root.bucket,
-                'Key': pkg_registry.workflow_conf_pk.path,
-            }
-        )
 
     def test_no_conf_workflow_specified(self):
         for workflow in (None, 'some-string'):
@@ -162,6 +162,72 @@ class WorkflowTest(QuiltTestCase):
 
         with pytest.raises(QuiltException, match=r"There is no 'schema-id' in schemas."):
             self._validate(workflow='w1')
+
+    def test_schema_invalid_meta_schema(self):
+        set_local_conf_data(get_v1_conf_data('''
+            workflows:
+              w1:
+                name: Name
+                metadata_schema: schema-id
+            schemas:
+              schema-id:
+                url: %s
+        ''' % create_local_tmp_schema('{"$schema": 42}')))
+        with pytest.raises(QuiltException, match=r'\$schema must be a string.'):
+            self._validate(workflow='w1')
+
+    def test_schema_invalid_json(self):
+        tmp_schema = create_local_tmp_schema('"')
+        set_local_conf_data(get_v1_conf_data('''
+            workflows:
+              w1:
+                name: Name
+                metadata_schema: schema-id
+            schemas:
+              schema-id:
+                url: %s
+        ''' % tmp_schema))
+        with pytest.raises(QuiltException, match=fr"Couldn't parse {tmp_schema} as JSON."):
+            self._validate(workflow='w1')
+
+    def test_schema_load_error(self):
+        schema_pk = get_package_registry().root.join('nonexistent-schema')
+        set_local_conf_data(get_v1_conf_data('''
+            workflows:
+              w1:
+                name: Name
+                metadata_schema: schema-id
+            schemas:
+              schema-id:
+                url: %s
+        ''' % schema_pk))
+        with pytest.raises(QuiltException, match=fr"Couldn't load schema at {schema_pk}"):
+            self._validate(workflow='w1')
+
+    def test_schema_load_error_s3(self):
+        schema_pk = PhysicalKey.from_url('s3://schema-bucket/schema-key')
+        data = get_v1_conf_data('''
+            workflows:
+              w1:
+                name: Name
+                metadata_schema: schema-id
+            schemas:
+              schema-id:
+                url: %s
+        ''' % schema_pk)
+        registry = get_package_registry('s3://some-bucket')
+        self.s3_mock_config(data, registry)
+        self.s3_stubber.add_client_error(
+            'get_object',
+            service_error_code='NoSuchKey',
+            expected_params={
+                'Bucket': 'schema-bucket',
+                'Key': 'schema-key',
+            },
+            http_status_code=404,
+        )
+        with pytest.raises(QuiltException, match=fr"Couldn't load schema at {schema_pk}"):
+            self._validate(registry=registry, workflow='w1')
 
     def test_schema_with_ref(self):
         set_local_conf_data(get_v1_conf_data('''
@@ -330,30 +396,3 @@ class WorkflowTest(QuiltTestCase):
                         'schema-id': str(get_package_registry().root.join('schemas/schema')),
                     },
                 }
-
-    def test_invalid_meta_schema(self):
-        set_local_conf_data(get_v1_conf_data('''
-            workflows:
-              w1:
-                name: Name
-                metadata_schema: schema-id
-            schemas:
-              schema-id:
-                url: %s
-        ''' % create_local_tmp_schema('{"$schema": 42}')))
-        with pytest.raises(QuiltException, match=r'\$schema must be a string.'):
-            self._validate(workflow='w1')
-
-    def test_invalid_schema_json(self):
-        tmp_schema = create_local_tmp_schema('"')
-        set_local_conf_data(get_v1_conf_data('''
-            workflows:
-              w1:
-                name: Name
-                metadata_schema: schema-id
-            schemas:
-              schema-id:
-                url: %s
-        ''' % tmp_schema))
-        with pytest.raises(QuiltException, match=fr"Couldn't parse {tmp_schema} as JSON."):
-            self._validate(workflow='w1')

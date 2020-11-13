@@ -92,7 +92,11 @@ def validate(*, registry: PackageRegistry, workflow, meta, message):
         if schema_pk.is_local() and not registry.is_local:
             raise util.QuiltException(f"Local schema {str(schema_pk)!r} can't be used on the remote registry.")
 
-        schema_data, schema_pk_to_store = get_bytes_and_effective_pk(schema_pk)
+        handled_exception = (OSError if schema_pk.is_local() else botocore.exceptions.ClientError)
+        try:
+            schema_data, schema_pk_to_store = get_bytes_and_effective_pk(schema_pk)
+        except handled_exception as e:
+            raise util.QuiltException(f"Couldn't load schema at {schema_pk}. {e}.")
         try:
             schema = _load_schema_json(schema_data.decode())
         except json.JSONDecodeError as e:
