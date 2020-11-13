@@ -277,34 +277,44 @@ class WorkflowTest(QuiltTestCase):
         }
 
     def test_schema_validation_valid_meta_s3(self):
-        data = get_v1_conf_data('''
-            workflows:
-              w1:
-                name: Name
-                metadata_schema: schema-id
-            schemas:
-              schema-id:
-                url: s3://schema-bucket/schema-key
-        ''')
-        self.s3_mock_config(data, get_package_registry('s3://some-bucket'))
-        self.s3_stubber.add_response(
-            method='get_object',
-            service_response={
-                'VersionId': 'schema-version',
-                'Body': self.s3_streaming_body(b'{"type": "string"}'),
-            },
-            expected_params={
+        schema_urls = {
+            's3://schema-bucket/schema-key?versionId=schema-version': {
                 'Bucket': 'schema-bucket',
                 'Key': 'schema-key',
-            }
-        )
-        assert self._validate(registry='s3://some-bucket', workflow='w1', meta="some-data") == {
-            'id': 'w1',
-            'config': 's3://some-bucket/.quilt/workflows/config.yml?versionId=some-version',
-            'schemas': {
-                'schema-id': 's3://schema-bucket/schema-key?versionId=schema-version',
+                'VersionId': 'schema-version',
+            },
+            's3://schema-bucket/schema-key': {
+                'Bucket': 'schema-bucket',
+                'Key': 'schema-key',
             },
         }
+        for schema_url, expected_params in schema_urls.items():
+            data = get_v1_conf_data('''
+                workflows:
+                  w1:
+                    name: Name
+                    metadata_schema: schema-id
+                schemas:
+                  schema-id:
+                    url: %s
+            ''' % schema_url)
+            with self.subTest(schema_url=schema_url):
+                self.s3_mock_config(data, get_package_registry('s3://some-bucket'))
+                self.s3_stubber.add_response(
+                    method='get_object',
+                    service_response={
+                        'VersionId': 'schema-version',
+                        'Body': self.s3_streaming_body(b'{"type": "string"}'),
+                    },
+                    expected_params=expected_params,
+                )
+                assert self._validate(registry='s3://some-bucket', workflow='w1', meta="some-data") == {
+                    'id': 'w1',
+                    'config': 's3://some-bucket/.quilt/workflows/config.yml?versionId=some-version',
+                    'schemas': {
+                        'schema-id': 's3://schema-bucket/schema-key?versionId=schema-version',
+                    },
+                }
 
     def test_remote_registry_local_schema(self):
         data = get_v1_conf_data('''
