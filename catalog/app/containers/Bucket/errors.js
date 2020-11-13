@@ -25,6 +25,10 @@ export class NoSuchPackage extends BucketError {}
 
 export class NoESIndex extends BucketError {}
 
+export class FileNotFound extends BucketError {}
+
+export class VersionNotFound extends BucketError {}
+
 const WhenAuth = connect(
   createStructuredSelector({
     authenticated: Auth.selectors.authenticated,

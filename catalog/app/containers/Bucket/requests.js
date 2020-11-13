@@ -269,18 +269,14 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   throw new Error('Stats unavailable')
 }
 
-export class ErrorFileNotFound extends Error {}
-
-export class ErrorVersionNotFound extends Error {}
-
 export const latestFile = async ({ s3, bucket, path }) => {
-  const doesExists = await ensureObjectIsPresent({
+  const fileExists = await ensureObjectIsPresent({
     s3,
     bucket,
     key: path,
   })
-  if (!doesExists) {
-    throw new ErrorFileNotFound(`${path} for ${bucket} does not exists`)
+  if (!fileExists) {
+    throw new errors.FileNotFound(`${path} for ${bucket} does not exist`)
   }
 
   const versions = await objectVersions({
@@ -291,15 +287,15 @@ export const latestFile = async ({ s3, bucket, path }) => {
   const { id } = R.find(R.prop('isLatest'), versions)
   const version = id === 'null' ? undefined : id
 
-  const doesVersionExists = await ensureObjectIsPresent({
+  const versionExists = await ensureObjectIsPresent({
     s3,
     bucket,
     key: path,
     version,
   })
-  if (!doesVersionExists) {
-    throw new ErrorVersionNotFound(
-      `${path} for ${bucket} and version №${version} does not exists`,
+  if (!versionExists) {
+    throw new errors.VersionNotFound(
+      `${path} for ${bucket} and version ${version} does not exist`,
     )
   }
 
@@ -321,8 +317,8 @@ export const metadataSchema = async ({ s3, schemaUrl }) => {
     const response = await latestFile({ s3, bucket, path: key })
     return JSON.parse(response.Body.toString('utf-8'))
   } catch (e) {
-    if (e instanceof ErrorFileNotFound) throw e
-    if (e instanceof ErrorVersionNotFound) throw e
+    if (e instanceof errors.FileNotFound) throw e
+    if (e instanceof errors.VersionNotFound) throw e
 
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
@@ -340,8 +336,8 @@ export const workflowsList = async ({ s3, bucket }) => {
     const response = await latestFile({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
     return parseWorkflows(response.Body.toString('utf-8'))
   } catch (e) {
-    if (e instanceof ErrorFileNotFound) return emptyWorkflowsConfig
-    if (e instanceof ErrorVersionNotFound) return emptyWorkflowsConfig
+    if (e instanceof errors.FileNotFound) return emptyWorkflowsConfig
+    if (e instanceof errors.VersionNotFound) return emptyWorkflowsConfig
 
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
