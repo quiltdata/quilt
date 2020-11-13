@@ -309,7 +309,7 @@ const fetchFileLatest = async ({ s3, bucket, path }) => {
   const { id } = R.find(R.prop('isLatest'), versions)
   const version = id === 'null' ? undefined : id
 
-  return fetchFile({ s3, bucket, path, version })
+  return fetchFileVersioned({ s3, bucket, path, version })
 }
 
 const fetchFile = ({ version, ...rest }) =>
@@ -339,7 +339,7 @@ const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
 
 export const workflowsList = async ({ s3, bucket }) => {
   try {
-    const response = await fetchFileLatest({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
+    const response = await fetchFile({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
     return parseWorkflows(response.Body.toString('utf-8'))
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
