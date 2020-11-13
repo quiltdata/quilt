@@ -269,24 +269,7 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   throw new Error('Stats unavailable')
 }
 
-export const latestFile = async ({ s3, bucket, path }) => {
-  const fileExists = await ensureObjectIsPresent({
-    s3,
-    bucket,
-    key: path,
-  })
-  if (!fileExists) {
-    throw new errors.FileNotFound(`${path} for ${bucket} does not exist`)
-  }
-
-  const versions = await objectVersions({
-    s3,
-    bucket,
-    path,
-  })
-  const { id } = R.find(R.prop('isLatest'), versions)
-  const version = id === 'null' ? undefined : id
-
+const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
   const versionExists = await ensureObjectIsPresent({
     s3,
     bucket,
@@ -308,13 +291,37 @@ export const latestFile = async ({ s3, bucket, path }) => {
     .promise()
 }
 
+const fetchFileLatest = async ({ s3, bucket, path }) => {
+  const fileExists = await ensureObjectIsPresent({
+    s3,
+    bucket,
+    key: path,
+  })
+  if (!fileExists) {
+    throw new errors.FileNotFound(`${path} for ${bucket} does not exist`)
+  }
+
+  const versions = await objectVersions({
+    s3,
+    bucket,
+    path,
+  })
+  const { id } = R.find(R.prop('isLatest'), versions)
+  const version = id === 'null' ? undefined : id
+
+  return fetchFile({ s3, bucket, path, version })
+}
+
+const fetchFile = ({ version, ...rest }) =>
+  version ? fetchFileVersioned({ version, ...rest }) : fetchFileLatest(...rest)
+
 export const metadataSchema = async ({ s3, schemaUrl }) => {
   if (!schemaUrl) return null
 
-  const { bucket, key } = s3paths.parseS3Url(schemaUrl)
+  const { bucket, key, version } = s3paths.parseS3Url(schemaUrl)
 
   try {
-    const response = await latestFile({ s3, bucket, path: key })
+    const response = await fetchFile({ s3, bucket, path: key, version })
     return JSON.parse(response.Body.toString('utf-8'))
   } catch (e) {
     if (e instanceof errors.FileNotFound) throw e
@@ -333,7 +340,7 @@ const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
 
 export const workflowsList = async ({ s3, bucket }) => {
   try {
-    const response = await latestFile({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
+    const response = await fetchFileLatest({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
     return parseWorkflows(response.Body.toString('utf-8'))
   } catch (e) {
     if (e instanceof errors.FileNotFound) return emptyWorkflowsConfig
