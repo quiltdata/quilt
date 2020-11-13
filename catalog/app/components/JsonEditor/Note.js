@@ -39,22 +39,29 @@ const getTypeAnnotation = (value, schema) =>
     ? schemaTypeToHumanString(schema)
     : getTypeAnnotationFromValue(value, schema)
 
+function TypeHelp({ humanReadableSchema, schema }) {
+  if (humanReadableSchema === 'undefined') return 'Key/value is not restricted by schema'
+
+  return (
+    <div>
+      Value should be of {humanReadableSchema} type
+      {R.prop('description', schema) && <p>{schema.description}</p>}
+    </div>
+  )
+}
+
 function NoteValue({ schema, value }) {
   const classes = useStyles()
 
-  const schemaType = schemaTypeToHumanString(schema)
+  const humanReadableSchema = schemaTypeToHumanString(schema)
   const mismatch = value !== EMPTY_VALUE && !doesTypeMatchSchema(value, schema)
-  const typeNotInSchema = schemaType === 'undefined'
-  const typeHelp = typeNotInSchema
-    ? 'Key/value is not restricted by schema'
-    : `Value should be of ${schemaType} type`
 
   return (
-    <M.Tooltip title={typeHelp}>
+    <M.Tooltip title={<TypeHelp {...{ humanReadableSchema, schema }} />}>
       <span
         className={cx(classes.default, {
           [classes.mismatch]: mismatch,
-          [classes.notInSchema]: typeNotInSchema,
+          [classes.notInSchema]: humanReadableSchema === 'undefined',
         })}
       >
         {getTypeAnnotation(value, schema)}
