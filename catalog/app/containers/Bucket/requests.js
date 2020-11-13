@@ -313,7 +313,7 @@ const fetchFileLatest = async ({ s3, bucket, path }) => {
 }
 
 const fetchFile = ({ version, ...rest }) =>
-  version ? fetchFileVersioned({ version, ...rest }) : fetchFileLatest(...rest)
+  version ? fetchFileVersioned({ version, ...rest }) : fetchFileLatest({ ...rest })
 
 export const metadataSchema = async ({ s3, schemaUrl }) => {
   if (!schemaUrl) return null
