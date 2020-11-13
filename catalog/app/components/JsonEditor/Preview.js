@@ -35,7 +35,7 @@ const useStyles = M.makeStyles((t) => ({
     color: t.palette.text.disabled,
   },
   required: {
-    fontWeight: t.typography.fontWeightMedium,
+    fontWeight: t.typography.fontWeightBold,
   },
   menu: {
     marginLeft: 'auto',
