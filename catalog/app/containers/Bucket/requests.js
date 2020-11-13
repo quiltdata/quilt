@@ -269,18 +269,60 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   throw new Error('Stats unavailable')
 }
 
-export const metadataSchema = async ({ s3, bucket, schemaUrl }) => {
+export class ErrorFileNotFound extends Error {}
+
+export class ErrorVersionNotFound extends Error {}
+
+export const latestFile = async ({ s3, bucket, path }) => {
+  const doesExists = await ensureObjectIsPresent({
+    s3,
+    bucket,
+    key: path,
+  })
+  if (!doesExists) {
+    throw new ErrorFileNotFound(`${path} for ${bucket} does not exists`)
+  }
+
+  const versions = await objectVersions({
+    s3,
+    bucket,
+    path,
+  })
+  const { id } = R.find(R.prop('isLatest'), versions)
+  const version = id === 'null' ? undefined : id
+
+  const doesVersionExists = await ensureObjectIsPresent({
+    s3,
+    bucket,
+    key: path,
+    version,
+  })
+  if (!doesVersionExists) {
+    throw new ErrorVersionNotFound(
+      `${path} for ${bucket} and version №${version} does not exists`,
+    )
+  }
+
+  return s3
+    .getObject({
+      Bucket: bucket,
+      Key: path,
+      VersionId: version,
+    })
+    .promise()
+}
+
+export const metadataSchema = async ({ s3, schemaUrl }) => {
   if (!schemaUrl) return null
 
+  const { bucket, key } = s3paths.parseS3Url(schemaUrl)
+
   try {
-    return await s3
-      .getObject({
-        Bucket: bucket,
-        Key: s3paths.parseS3Url(schemaUrl).key,
-      })
-      .promise()
-      .then((r) => JSON.parse(r.Body.toString('utf-8')))
+    const response = await latestFile({ s3, bucket, path: key })
+    return JSON.parse(response.Body.toString('utf-8'))
   } catch (e) {
+    if (e instanceof ErrorFileNotFound) return null
+    if (e instanceof ErrorVersionNotFound) return null
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
     // eslint-disable-next-line no-console
@@ -293,24 +335,12 @@ export const metadataSchema = async ({ s3, bucket, schemaUrl }) => {
 const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
 
 export const workflowsList = async ({ s3, bucket }) => {
-  const handle = await ensureObjectIsPresent({
-    s3,
-    bucket,
-    key: WORKFLOWS_CONFIG_PATH,
-  })
-  if (!handle) {
-    return emptyWorkflowsConfig
-  }
-
   try {
-    return await s3
-      .getObject({
-        Bucket: bucket,
-        Key: WORKFLOWS_CONFIG_PATH,
-      })
-      .promise()
-      .then((r) => parseWorkflows(r.Body.toString('utf-8')))
+    const response = await latestFile({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
+    return parseWorkflows(response.Body.toString('utf-8'))
   } catch (e) {
+    if (e instanceof ErrorFileNotFound) return emptyWorkflowsConfig
+    if (e instanceof ErrorVersionNotFound) return emptyWorkflowsConfig
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
     // eslint-disable-next-line no-console

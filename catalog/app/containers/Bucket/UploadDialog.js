@@ -623,9 +623,9 @@ function WorkflowInput({ input, meta, workflowsConfig }) {
   )
 }
 
-function SchemaFetcher({ children, bucket, schemaUrl }) {
+function SchemaFetcher({ children, schemaUrl }) {
   const s3 = AWS.S3.use()
-  const data = useData(requests.metadataSchema, { s3, bucket, schemaUrl })
+  const data = useData(requests.metadataSchema, { s3, schemaUrl })
   const res = React.useMemo(
     () =>
       AsyncResult.mapCase(
@@ -873,7 +873,6 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                   />
 
                   <SchemaFetcher
-                    bucket={bucket}
                     schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
                   >
                     {AsyncResult.case({
