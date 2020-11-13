@@ -157,11 +157,6 @@ export default function Cell({
   const keyMenuOpened = menuOpened && isKeyCell
   const valueMenuOpened = menuOpened && isValueCell
 
-  const tabIndex = React.useMemo(() => {
-    if (isKeyCell && row.original && row.original.valueSchema) return null
-    return 0
-  }, [isKeyCell, row])
-
   const menuForKey = React.useMemo(
     () =>
       getMenuForKey({
@@ -183,7 +178,7 @@ export default function Cell({
     <div
       className={cx(classes.root, { [classes.disabled]: !isEditable })}
       role="textbox"
-      tabIndex={tabIndex}
+      tabIndex={isEditable ? null : 0}
       onDoubleClick={onDoubleClick}
       onKeyPress={onKeyPress}
     >
