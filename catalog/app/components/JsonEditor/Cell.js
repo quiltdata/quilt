@@ -76,11 +76,6 @@ export default function Cell({
 
   const [value, setValue] = React.useState(initialValue)
 
-  const isEditable = React.useMemo(
-    () => !(column.id === COLUMN_IDS.KEY && row.original && row.original.valueSchema),
-    [column.id, row.original],
-  )
-
   const [editing, setEditing] = React.useState(editingInitial)
   const [menuOpened, setMenuOpened] = React.useState(false)
 
@@ -106,6 +101,14 @@ export default function Cell({
       setEditing(false)
     },
     [column.id, fieldPath, updateMyData],
+  )
+
+  const isKeyCell = column.id === COLUMN_IDS.KEY
+  const isValueCell = column.id === COLUMN_IDS.VALUE
+
+  const isEditable = React.useMemo(
+    () => !(isKeyCell && row.original && row.original.valueSchema),
+    [isKeyCell, row.original],
   )
 
   const onDoubleClick = React.useCallback(() => {
@@ -152,8 +155,6 @@ export default function Cell({
 
   const ValueComponent = editing ? Input : Preview
 
-  const isKeyCell = column.id === COLUMN_IDS.KEY
-  const isValueCell = column.id === COLUMN_IDS.VALUE
   const keyMenuOpened = menuOpened && isKeyCell
   const valueMenuOpened = menuOpened && isValueCell
 
