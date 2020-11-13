@@ -628,18 +628,13 @@ function SchemaFetcher({ children, schemaUrl }) {
   const data = useData(requests.metadataSchema, { s3, schemaUrl })
   const res = React.useMemo(
     () =>
-      AsyncResult.mapCase(
-        {
-          Ok: (schema) => ({ schema, validate: validateMeta(schema) }),
-          Err: (responseError) => ({
-            responseError,
-            schema: null,
-            validate: validateMeta(null),
-          }),
-        },
-        data.result,
-      ),
-    [data.result],
+      data.case({
+        Ok: (schema) => AsyncResult.Ok({ schema, validate: validateMeta(schema) }),
+        Err: (responseError) =>
+          AsyncResult.Ok({ responseError, validate: validateMeta(null) }),
+        _: R.identity,
+      }),
+    [data],
   )
   return children(res)
 }
@@ -881,18 +876,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                     schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
                   >
                     {AsyncResult.case({
-                      Ok: ({ schema, validate }) => (
-                        <RF.Field
-                          component={MetaInput}
-                          bucket={bucket}
-                          name="meta"
-                          schema={schema}
-                          validate={validate}
-                          validateFields={['meta']}
-                          isEqual={R.equals}
-                        />
-                      ),
-                      Err: ({ responseError, schema, validate }) => (
+                      Ok: ({ responseError, schema, validate }) => (
                         <RF.Field
                           component={MetaInput}
                           bucket={bucket}
