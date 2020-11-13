@@ -324,8 +324,7 @@ export const metadataSchema = async ({ s3, schemaUrl }) => {
     const response = await fetchFile({ s3, bucket, path: key, version })
     return JSON.parse(response.Body.toString('utf-8'))
   } catch (e) {
-    if (e instanceof errors.FileNotFound) throw e
-    if (e instanceof errors.VersionNotFound) throw e
+    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) throw e
 
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
@@ -343,8 +342,8 @@ export const workflowsList = async ({ s3, bucket }) => {
     const response = await fetchFileLatest({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
     return parseWorkflows(response.Body.toString('utf-8'))
   } catch (e) {
-    if (e instanceof errors.FileNotFound) return emptyWorkflowsConfig
-    if (e instanceof errors.VersionNotFound) return emptyWorkflowsConfig
+    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
+      return emptyWorkflowsConfig
 
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
