@@ -640,6 +640,12 @@ function SchemaFetcher({ children, schemaUrl }) {
   return children(res)
 }
 
+const getWorkflowApiParam = R.cond([
+  [R.equals(requests.workflowNotAvaliable), R.always(undefined)],
+  [R.equals(requests.workflowNotSelected), R.always(null)],
+  [R.T, R.identity],
+])
+
 function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
   const s3 = AWS.S3.use()
   const t = M.useTheme()
@@ -760,7 +766,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
           message: msg,
           contents,
           meta: getMetaValue(meta),
-          workflow: workflow.slug !== 'none' ? workflow.slug : null,
+          workflow: getWorkflowApiParam(workflow.slug),
         },
       })
       if (refresh) {

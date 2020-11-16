@@ -30,35 +30,35 @@ function parseWorkflow(workflowSlug, workflow, data) {
   }
 }
 
-function getNoWorkflow(data) {
-  // TODO: use const Symbol for None workflow name
+export const workflowNotAvaliable = Symbol('not available')
+
+export const workflowNotSelected = Symbol('not selected')
+
+function getNoWorkflow(data, hasConfig) {
   return {
     isDefault: !data.default_workflow,
-    name: 'None',
-    slug: 'none',
+    slug: hasConfig ? workflowNotSelected : workflowNotAvaliable,
   }
 }
 
 const emptyWorkflowsConfig = {
   isRequired: false,
-  workflows: [getNoWorkflow({})],
+  workflows: [getNoWorkflow({}, false)],
 }
 
 function parseWorkflows(workflowsYaml) {
   const data = yaml(workflowsYaml)
-  if (!data) {
-    return emptyWorkflowsConfig
-  }
+  if (!data) return emptyWorkflowsConfig
 
   const { workflows } = data
-  if (!workflows) {
-    return emptyWorkflowsConfig
-  }
+  if (!workflows) return emptyWorkflowsConfig
 
   const workflowsList = Object.keys(workflows).map((slug) =>
     parseWorkflow(slug, workflows[slug], data),
   )
-  const noWorkflow = data.is_workflow_required ? null : getNoWorkflow(data)
+  if (!workflowsList.length) return emptyWorkflowsConfig
+
+  const noWorkflow = data.is_workflow_required ? null : getNoWorkflow(data, true)
 
   return {
     isRequired: data.is_workflow_required,
