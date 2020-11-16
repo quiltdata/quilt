@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -7,6 +8,18 @@ import Errors from './Errors'
 import State from './State'
 
 const useStyles = M.makeStyles((t) => ({
+  disabled: {
+    position: 'relative',
+    '&:after': {
+      background: t.palette.action.disabledBackground,
+      bottom: 0,
+      content: '""',
+      left: 0,
+      position: 'absolute',
+      right: 0,
+      top: 0,
+    },
+  },
   inner: {
     display: 'flex',
     overflowX: 'auto',
@@ -25,6 +38,7 @@ function JsonEditor({
   addRow,
   changeValue,
   className,
+  disabled,
   newColumns,
   jsonDict,
   error,
@@ -57,7 +71,7 @@ function JsonEditor({
   )
 
   return (
-    <div className={className}>
+    <div className={cx({ [classes.disabled]: disabled }, className)}>
       <div className={classes.inner}>
         {newColumns.map((columnData, index) => {
           const columnPath = R.slice(0, index, fieldPath)
@@ -86,6 +100,7 @@ function JsonEditor({
 
 export default function JsonEditorStateWrapper({
   className,
+  disabled,
   error,
   onChange,
   schema,
@@ -94,7 +109,15 @@ export default function JsonEditorStateWrapper({
   return (
     <State obj={value} optSchema={schema}>
       {(props) => (
-        <JsonEditor {...props} error={error} onChange={onChange} className={className} />
+        <JsonEditor
+          {...{
+            className,
+            disabled,
+            error,
+            onChange,
+          }}
+          {...props}
+        />
       )}
     </State>
   )
