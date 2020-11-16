@@ -179,7 +179,7 @@ export default function Cell({
     <div
       className={cx(classes.root, { [classes.disabled]: !isEditable })}
       role="textbox"
-      tabIndex={isEditable ? null : 0}
+      tabIndex={isEditable ? 0 : null}
       onDoubleClick={onDoubleClick}
       onKeyPress={onKeyPress}
     >
