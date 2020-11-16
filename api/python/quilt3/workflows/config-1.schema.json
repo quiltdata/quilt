@@ -14,7 +14,7 @@
     "is_workflow_required": {
       "type": "boolean",
       "description": "If true, users must succeed a workflow in order to push. If false, users may skip workflows altogether.",
-      "default": false
+      "default": true
     },
     "default_workflow": {
       "type": "string",
