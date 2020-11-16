@@ -503,6 +503,7 @@ function MetaInput({ schemaError, input, meta, schema }) {
       {value.mode === 'kv' ? (
         <JsonEditor
           error={error}
+          disabled={disabled}
           value={parsedValue}
           onChange={onJsonEditor}
           schema={schema}
