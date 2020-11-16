@@ -312,8 +312,7 @@ const fetchFileLatest = async ({ s3, bucket, path }) => {
   return fetchFileVersioned({ s3, bucket, path, version })
 }
 
-const fetchFile = ({ version, ...rest }) =>
-  version ? fetchFileVersioned({ version, ...rest }) : fetchFileLatest({ ...rest })
+const fetchFile = R.ifElse(R.prop('version'), fetchFileVersioned, fetchFileLatest)
 
 export const metadataSchema = async ({ s3, schemaUrl }) => {
   if (!schemaUrl) return null
