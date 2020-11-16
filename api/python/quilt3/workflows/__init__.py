@@ -1,6 +1,5 @@
 import functools
 import json
-import urllib.parse
 
 import botocore.exceptions
 import jsonschema
