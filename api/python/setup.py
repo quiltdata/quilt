@@ -70,6 +70,7 @@ setup(
         'tenacity>=5.1.1',
         'tqdm>=4.32',
         'requests_futures==1.0.0',
+        'jsonschema==3.*',
     ],
     extras_require={
         'pyarrow': [
@@ -85,6 +86,7 @@ setup(
             'pytest<5.1.0',                 # TODO: Fix pytest.ensuretemp in conftest.py
             'pytest-cov',
             'pytest-env',
+            'pytest-subtests',
             'responses',
             'tox',
             'detox',

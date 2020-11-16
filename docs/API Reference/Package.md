@@ -195,7 +195,7 @@ no such entry exists.
 Sets user metadata on this Package.
 
 
-## Package.build(self, name, registry=None, message=None)  {#Package.build}
+## Package.build(self, name, registry=None, message=None, \*, workflow=Ellipsis)  {#Package.build}
 
 Serializes this package to a registry.
 
@@ -205,6 +205,10 @@ __Arguments__
 * __registry__:  registry to build to
     defaults to local registry
 * __message__:  the commit message of the package
+* __workflow__:  workflow ID or `None` to skip workflow validation.
+    If not specified, the default workflow will be used.
+* __For details see__:  https://docs.quiltdata.com/advanced-usage/workflows
+
 
 __Returns__
 
@@ -269,7 +273,7 @@ __Raises__
 * `KeyError`:  when logical_key is not present to be deleted
 
 
-## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None)  {#Package.push}
+## Package.push(self, name, registry=None, dest=None, message=None, selector\_fn=None, \*, workflow=Ellipsis)  {#Package.push}
 
 Copies objects to path, then creates a new package that points to those objects.
 Copies each object in this package to path according to logical key structure,
@@ -303,6 +307,10 @@ __Arguments__
     PackageEntry should be skipped during push. If for example you have a package where the files
     are spread over multiple buckets and you add a single local file, you can use selector_fn to
     only push the local file to s3 (instead of pushing all data to the destination bucket).
+* __workflow__:  workflow ID or `None` to skip workflow validation.
+    If not specified, the default workflow will be used.
+* __For details see__:  https://docs.quiltdata.com/advanced-usage/workflows
+
 
 __Returns__
 

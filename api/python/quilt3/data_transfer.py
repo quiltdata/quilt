@@ -17,7 +17,7 @@ from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from threading import Lock
-from typing import List
+from typing import List, Tuple
 
 import boto3
 import jsonlines
@@ -831,18 +831,31 @@ def put_bytes(data: bytes, dest: PhysicalKey):
         )
 
 
+def _local_get_bytes(pk: PhysicalKey):
+    return pathlib.Path(pk.path).read_bytes()
+
+
+def _s3_query_object(pk: PhysicalKey, *, head=False):
+    params = dict(Bucket=pk.bucket, Key=pk.path)
+    if pk.version_id is not None:
+        params.update(VersionId=pk.version_id)
+    s3_client = S3ClientProvider().find_correct_client(
+        S3Api.HEAD_OBJECT if head else S3Api.GET_OBJECT, pk.bucket, params)
+    return (s3_client.head_object if head else s3_client.get_object)(**params)
+
+
 def get_bytes(src: PhysicalKey):
     if src.is_local():
-        src_file = pathlib.Path(src.path)
-        data = src_file.read_bytes()
-    else:
-        params = dict(Bucket=src.bucket, Key=src.path)
-        if src.version_id is not None:
-            params.update(VersionId=src.version_id)
-        s3_client = S3ClientProvider().find_correct_client(S3Api.GET_OBJECT, src.bucket, params)
-        resp = s3_client.get_object(**params)
-        data = resp['Body'].read()
-    return data
+        return _local_get_bytes(src)
+    return _s3_query_object(src)['Body'].read()
+
+
+def get_bytes_and_effective_pk(src: PhysicalKey) -> Tuple[bytes, PhysicalKey]:
+    if src.is_local():
+        return _local_get_bytes(src), src
+
+    resp = _s3_query_object(src)
+    return resp['Body'].read(), PhysicalKey(src.bucket, src.path, resp.get('VersionId'))
 
 
 def get_size_and_version(src: PhysicalKey):
@@ -862,14 +875,7 @@ def get_size_and_version(src: PhysicalKey):
             raise QuiltException("Not a file: %r" % str(src_file))
         size = src_file.stat().st_size
     else:
-        params = dict(
-            Bucket=src.bucket,
-            Key=src.path
-        )
-        if src.version_id is not None:
-            params.update(VersionId=src.version_id)
-        s3_client = S3ClientProvider().find_correct_client(S3Api.HEAD_OBJECT, src.bucket, params)
-        resp = s3_client.head_object(**params)
+        resp = _s3_query_object(src, head=True)
         size = resp['ContentLength']
         version = resp.get('VersionId')
     return size, version
