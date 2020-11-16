@@ -58,7 +58,8 @@ function parseWorkflows(workflowsYaml) {
   )
   if (!workflowsList.length) return emptyWorkflowsConfig
 
-  const noWorkflow = data.is_workflow_required ? null : getNoWorkflow(data, true)
+  const noWorkflow =
+    data.is_workflow_required === false ? getNoWorkflow(data, true) : null
 
   return {
     isRequired: data.is_workflow_required,
