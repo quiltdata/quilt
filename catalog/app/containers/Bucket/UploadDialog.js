@@ -447,10 +447,10 @@ const EMPTY_META_VALUE = {
 }
 
 // TODO: warn on duplicate keys
-function MetaInput({ input, meta, schema }) {
+function MetaInput({ schemaError, input, meta, schema }) {
   const classes = useMetaInputStyles()
   const value = input.value || EMPTY_META_VALUE
-  const error = meta.submitFailed && meta.error
+  const error = schemaError ? [schemaError] : meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
 
   const parsedValue = React.useMemo(() => parseJSON(value.text), [value])
@@ -623,18 +623,18 @@ function WorkflowInput({ input, meta, workflowsConfig }) {
   )
 }
 
-function SchemaFetcher({ children, bucket, schemaUrl }) {
+function SchemaFetcher({ children, schemaUrl }) {
   const s3 = AWS.S3.use()
-  const data = useData(requests.metadataSchema, { s3, bucket, schemaUrl })
+  const data = useData(requests.metadataSchema, { s3, schemaUrl })
   const res = React.useMemo(
     () =>
-      AsyncResult.mapCase(
-        {
-          Ok: (schema) => ({ schema, validate: validateMeta(schema) }),
-        },
-        data.result,
-      ),
-    [data.result],
+      data.case({
+        Ok: (schema) => AsyncResult.Ok({ schema, validate: validateMeta(schema) }),
+        Err: (responseError) =>
+          AsyncResult.Ok({ responseError, validate: validateMeta(null) }),
+        _: R.identity,
+      }),
+    [data],
   )
   return children(res)
 }
@@ -873,26 +873,21 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                   />
 
                   <SchemaFetcher
-                    bucket={bucket}
                     schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
                   >
                     {AsyncResult.case({
-                      Ok: ({ schema, validate }) => (
+                      Ok: ({ responseError, schema, validate }) => (
                         <RF.Field
                           component={MetaInput}
                           bucket={bucket}
                           name="meta"
                           schema={schema}
+                          schemaError={responseError}
                           validate={validate}
                           validateFields={['meta']}
                           isEqual={R.equals}
                         />
                       ),
-                      Err: (responseError) => {
-                        // eslint-disable-next-line no-console
-                        console.error(responseError)
-                        return null
-                      },
                       _: () => <Skeleton height={t.spacing(8)} width="100%" mt={3} />,
                     })}
                   </SchemaFetcher>
