@@ -45,7 +45,7 @@ def validate(*, registry: PackageRegistry, workflow, meta, message):
         pass
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] != 'NoSuchKey':
-            raise
+            raise util.QuiltException(f"Couldn't load workflows config. {e}.")
     if conf_info is None:
         if workflow is ...:
             return

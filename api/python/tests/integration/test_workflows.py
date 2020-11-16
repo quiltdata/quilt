@@ -57,7 +57,7 @@ class WorkflowTest(QuiltTestCase):
             },
             http_status_code=404,
         )
-        assert self._validate(registry='s3://some-bucket') is None
+        assert self._validate(registry=f's3://{bucket}') is None
 
     def test_no_conf_workflow_specified(self):
         for workflow in (None, 'some-string'):
@@ -73,6 +73,20 @@ class WorkflowTest(QuiltTestCase):
             with self.subTest(workflow=workflow):
                 with pytest.raises(QuiltException, match=r"Couldn't parse workflows config as YAML."):
                     self._validate(workflow=workflow)
+
+    def test_conf_load_error_s3(self):
+        bucket = 'some-bucket'
+        self.s3_stubber.add_client_error(
+            'get_object',
+            service_error_code='AccessDenied',
+            expected_params={
+                'Bucket': bucket,
+                'Key': '.quilt/workflows/config.yml',
+            },
+            http_status_code=403,
+        )
+        with pytest.raises(QuiltException, match=r"Couldn't load workflows config."):
+            self._validate(registry=f's3://{bucket}')
 
     def test_conf_invalid(self):
         set_local_conf_data('')
