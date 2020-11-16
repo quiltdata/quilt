@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -9,14 +8,6 @@ const ES_V = '6.7'
 const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    padding: `0 ${t.spacing(4)}px`,
-    overflowY: 'auto',
-
-    [t.breakpoints.down('xs')]: {
-      padding: `0 ${t.spacing(1)}px`,
-    },
-  },
   group: {
     marginTop: t.spacing(2),
   },
@@ -252,11 +243,13 @@ function DocsExternalLink() {
   )
 }
 
+const normalizeSyntaxItem = (s) => s.replace(/\s/g, '')
+
 export default function Help({ className, onQuery, ...props }) {
   const classes = useStyles()
 
   return (
-    <M.Paper className={cx(classes.root, className)} {...props}>
+    <div className={className} {...props}>
       <Lab.TreeView
         defaultCollapseIcon={<M.Icon>arrow_drop_down</M.Icon>}
         defaultExpandIcon={<M.Icon>arrow_right</M.Icon>}
@@ -282,7 +275,7 @@ export default function Help({ className, onQuery, ...props }) {
                   key={item.syntax}
                   className={classes.item}
                   button
-                  onClick={() => onQuery(item.syntax)}
+                  onClick={() => onQuery(normalizeSyntaxItem(item.syntax))}
                 >
                   <Item item={item} />
                 </M.ListItem>
@@ -293,6 +286,6 @@ export default function Help({ className, onQuery, ...props }) {
       </Lab.TreeView>
 
       <DocsExternalLink />
-    </M.Paper>
+    </div>
   )
 }

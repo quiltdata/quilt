@@ -10,8 +10,61 @@ import * as Resource from 'utils/Resource'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
+import yaml from 'utils/yaml'
 
 import * as errors from './errors'
+
+function parseSchema(schemaSlug, schemas) {
+  return {
+    url: R.path([schemaSlug, 'url'], schemas),
+  }
+}
+
+function parseWorkflow(workflowSlug, workflow, data) {
+  return {
+    description: workflow.description,
+    isDefault: workflowSlug === data.default_workflow,
+    name: workflow.name,
+    schema: parseSchema(workflow.metadata_schema, data.schemas),
+    slug: workflowSlug,
+  }
+}
+
+export const workflowNotAvaliable = Symbol('not available')
+
+export const workflowNotSelected = Symbol('not selected')
+
+function getNoWorkflow(data, hasConfig) {
+  return {
+    isDefault: !data.default_workflow,
+    slug: hasConfig ? workflowNotSelected : workflowNotAvaliable,
+  }
+}
+
+const emptyWorkflowsConfig = {
+  isRequired: false,
+  workflows: [getNoWorkflow({}, false)],
+}
+
+function parseWorkflows(workflowsYaml) {
+  const data = yaml(workflowsYaml)
+  if (!data) return emptyWorkflowsConfig
+
+  const { workflows } = data
+  if (!workflows) return emptyWorkflowsConfig
+
+  const workflowsList = Object.keys(workflows).map((slug) =>
+    parseWorkflow(slug, workflows[slug], data),
+  )
+  if (!workflowsList.length) return emptyWorkflowsConfig
+
+  const noWorkflow = data.is_workflow_required ? null : getNoWorkflow(data, true)
+
+  return {
+    isRequired: data.is_workflow_required,
+    workflows: noWorkflow ? [noWorkflow, ...workflowsList] : workflowsList,
+  }
+}
 
 const withErrorHandling = (fn, pairs) => (...args) =>
   fn(...args).catch(errors.catchErrors(pairs))
@@ -195,7 +248,9 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
         .then((r) => JSON.parse(r.Body.toString('utf-8')))
         .then(processStats)
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.log(`Unable to fetch pre-rendered stats from '${overviewUrl}':`)
+      // eslint-disable-next-line no-console
       console.error(e)
     }
   }
@@ -205,11 +260,97 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
       processStats,
     )
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.log('Unable to fetch live stats:')
+    // eslint-disable-next-line no-console
     console.error(e)
   }
 
   throw new Error('Stats unavailable')
+}
+
+const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
+  const versionExists = await ensureObjectIsPresent({
+    s3,
+    bucket,
+    key: path,
+    version,
+  })
+  if (!versionExists) {
+    throw new errors.VersionNotFound(
+      `${path} for ${bucket} and version ${version} does not exist`,
+    )
+  }
+
+  return s3
+    .getObject({
+      Bucket: bucket,
+      Key: path,
+      VersionId: version,
+    })
+    .promise()
+}
+
+const fetchFileLatest = async ({ s3, bucket, path }) => {
+  const fileExists = await ensureObjectIsPresent({
+    s3,
+    bucket,
+    key: path,
+  })
+  if (!fileExists) {
+    throw new errors.FileNotFound(`${path} for ${bucket} does not exist`)
+  }
+
+  const versions = await objectVersions({
+    s3,
+    bucket,
+    path,
+  })
+  const { id } = R.find(R.prop('isLatest'), versions)
+  const version = id === 'null' ? undefined : id
+
+  return fetchFileVersioned({ s3, bucket, path, version })
+}
+
+const fetchFile = R.ifElse(R.prop('version'), fetchFileVersioned, fetchFileLatest)
+
+export const metadataSchema = async ({ s3, schemaUrl }) => {
+  if (!schemaUrl) return null
+
+  const { bucket, key, version } = s3paths.parseS3Url(schemaUrl)
+
+  try {
+    const response = await fetchFile({ s3, bucket, path: key, version })
+    return JSON.parse(response.Body.toString('utf-8'))
+  } catch (e) {
+    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) throw e
+
+    // eslint-disable-next-line no-console
+    console.log('Unable to fetch')
+    // eslint-disable-next-line no-console
+    console.error(e)
+  }
+
+  return null
+}
+
+const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
+
+export const workflowsList = async ({ s3, bucket }) => {
+  try {
+    const response = await fetchFile({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
+    return parseWorkflows(response.Body.toString('utf-8'))
+  } catch (e) {
+    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
+      return emptyWorkflowsConfig
+
+    // eslint-disable-next-line no-console
+    console.log('Unable to fetch')
+    // eslint-disable-next-line no-console
+    console.error(e)
+  }
+
+  return emptyWorkflowsConfig
 }
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
@@ -294,7 +435,9 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
       return await summarize({ s3, handle })
     } catch (e) {
       const display = `${handle.bucket}/${handle.key}`
+      // eslint-disable-next-line no-console
       console.log(`Unable to fetch configured summary from '${display}':`)
+      // eslint-disable-next-line no-console
       console.error(e)
     }
   }
@@ -327,7 +470,9 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
           ),
         )
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.log(`Unable to fetch pre-rendered summary from '${overviewUrl}':`)
+      // eslint-disable-next-line no-console
       console.error(e)
     }
   }
@@ -352,7 +497,9 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
         ),
       )
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.log('Unable to fetch live summary:')
+      // eslint-disable-next-line no-console
       console.error(e)
     }
   }
@@ -381,7 +528,9 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
         ),
       )
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.log('Unable to fetch summary from S3 listing:')
+    // eslint-disable-next-line no-console
     console.error(e)
   }
   return []
@@ -423,7 +572,9 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
           ),
         )
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.log(`Unable to fetch images sample from '${overviewUrl}':`)
+      // eslint-disable-next-line no-console
       console.error(e)
     }
   }
@@ -448,7 +599,9 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
         ),
       )
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.log('Unable to fetch live images sample:')
+      // eslint-disable-next-line no-console
       console.error(e)
     }
   }
@@ -471,7 +624,9 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
         ),
       )
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.log('Unable to fetch images sample from S3 listing:')
+    // eslint-disable-next-line no-console
     console.error(e)
   }
   return []
@@ -535,7 +690,9 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
     const resolvePath = (path) =>
       resolveLogicalKey && handle.logicalKey
         ? resolveLogicalKey(s3paths.resolveKey(handle.logicalKey, path)).catch((e) => {
+            // eslint-disable-next-line no-console
             console.warn('Error resolving logical key for summary', { handle, path })
+            // eslint-disable-next-line no-console
             console.error(e)
             return null
           })
@@ -947,6 +1104,7 @@ export async function packageSelect({
 
   if (r.status >= 400) {
     const msg = await r.text()
+    // eslint-disable-next-line no-console
     console.error(`pkgselect error (${r.status}): ${msg}`)
     throw new errors.BucketError(msg, { status: r.status })
   }
