@@ -1610,15 +1610,18 @@ class PackageTest(QuiltTestCase):
 
     @patch('quilt3.Package._fix_sha256', wraps=quilt3.Package._fix_sha256)
     @patch('quilt3.Package._build', wraps=quilt3.Package._build)
-    @patch('quilt3.workflows.validate', side_effect=Exception('test exception'))
-    def test_workflow_validation_error(self, workflow_validate_mock, build_mock, fix_hashes):
+    def test_workflow_validation_error(self, build_mock, fix_hashes):
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
 
         pkg = Package().set('foo', DATA_DIR / 'foo.txt')
         for method in (pkg.build, pkg.push):
             with self.subTest(method=method):
-                with pytest.raises(Exception) as excinfo:
-                    method('test/pkg', registry='s3://test-bucket')
+                with patch(
+                    'quilt3.workflows.validate',
+                    side_effect=Exception('test exception')
+                ) as workflow_validate_mock:
+                    with pytest.raises(Exception) as excinfo:
+                        method('test/pkg', registry='s3://test-bucket')
                     assert excinfo.value is workflow_validate_mock.side_effect
                     workflow_validate_mock.assert_called_once()
                     assert not build_mock.mock_calls
