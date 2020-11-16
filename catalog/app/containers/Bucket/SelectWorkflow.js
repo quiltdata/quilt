@@ -26,13 +26,13 @@ export default function SelectWorkflow({ className, disabled, items, onChange, v
         <M.InputLabel id="schema-select">Metadata quality workflow</M.InputLabel>
         <M.Select
           labelId="schema-select"
-          value={value ? `${value.slug}` : ''}
+          value={value ? value.slug.toString() : ''}
           label="Metadata quality workflow"
         >
           {items.map((option) => (
             <M.MenuItem
-              key={`${option.slug}`}
-              value={`${option.slug}`}
+              key={option.slug.toString()}
+              value={option.slug.toString()}
               onClick={() => onChange(option)}
               dense
             >
@@ -41,7 +41,7 @@ export default function SelectWorkflow({ className, disabled, items, onChange, v
                   primary: classes.crop,
                   secondary: classes.crop,
                 }}
-                primary={option.name}
+                primary={option.name || 'None'}
                 secondary={option.description}
               />
             </M.MenuItem>
