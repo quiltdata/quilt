@@ -759,7 +759,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
           message: msg,
           contents,
           meta: getMetaValue(meta),
-          workflow: workflow.slug !== 'none' ? workflow.slug : null,
+          workflow: workflow.slug,
         },
       })
       if (refresh) {

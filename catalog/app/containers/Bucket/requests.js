@@ -30,18 +30,20 @@ function parseWorkflow(workflowSlug, workflow, data) {
   }
 }
 
-function getNoWorkflow(data) {
+function getNoWorkflow(data, hasConfig) {
   // TODO: use const Symbol for None workflow name
   return {
     isDefault: !data.default_workflow,
     name: 'None',
-    slug: 'none',
+    // Don't send workflow if no config at all
+    // Send `null` if there are config, but user choose no workflow
+    slug: hasConfig ? null : undefined,
   }
 }
 
 const emptyWorkflowsConfig = {
   isRequired: false,
-  workflows: [getNoWorkflow({})],
+  workflows: [getNoWorkflow({}, false)],
 }
 
 function parseWorkflows(workflowsYaml) {
@@ -58,7 +60,7 @@ function parseWorkflows(workflowsYaml) {
   const workflowsList = Object.keys(workflows).map((slug) =>
     parseWorkflow(slug, workflows[slug], data),
   )
-  const noWorkflow = data.is_workflow_required ? null : getNoWorkflow(data)
+  const noWorkflow = data.is_workflow_required ? null : getNoWorkflow(data, true)
 
   return {
     isRequired: data.is_workflow_required,
