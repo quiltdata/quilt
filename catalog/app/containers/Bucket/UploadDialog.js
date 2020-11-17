@@ -453,7 +453,10 @@ function MetaInput({ schemaError, input, meta, schema }) {
   const error = schemaError ? [schemaError] : meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
 
-  const parsedValue = React.useMemo(() => parseJSON(value.text), [value])
+  const parsedValue = React.useMemo(() => {
+    const obj = parseJSON(value.text)
+    return R.is(Object, obj) && !Array.isArray(obj) ? obj : {}
+  }, [value])
 
   const changeMode = (mode) => {
     if (disabled) return
