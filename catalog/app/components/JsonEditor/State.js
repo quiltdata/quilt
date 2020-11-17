@@ -115,7 +115,7 @@ const dissocSchemaValue = (objPath, jsonDict) =>
 const dissocObjValue = R.dissocPath
 
 // NOTE: memo is mutated, sortCounter is React.ref and mutated too
-function iterateSchema(schema, sortCounter, parentPath, memo) {
+export function iterateSchema(schema, sortCounter, parentPath, memo) {
   if (!schema.properties) return memo
 
   const requiredKeys = schema.required
@@ -230,7 +230,7 @@ function getSchemaAndObjKeys(obj, jsonDict, objPath, rootKeys) {
   ])
 }
 
-function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys) {
+export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys) {
   if (!fieldPath.length)
     return [
       pipeThru(rootKeys)(
@@ -258,7 +258,7 @@ function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys) {
   })
 }
 
-function mergeSchemaAndObjRootKeys(schema, obj) {
+export function mergeSchemaAndObjRootKeys(schema, obj) {
   const schemaKeys = getSchemaItemKeys(schema)
   const objKeys = getObjValueKeys(obj)
   return R.uniq([...schemaKeys, ...objKeys])
