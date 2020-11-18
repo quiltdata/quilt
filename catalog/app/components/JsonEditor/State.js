@@ -119,7 +119,7 @@ export function iterateSchema(schema, sortCounter, parentPath, memo) {
   if (!schema.properties) return memo
 
   const requiredKeys = schema.required
-  Object.keys(schema.properties || {}).forEach((key) => {
+  getSchemaItemKeys(schema).forEach((key) => {
     // eslint-disable-next-line no-param-reassign
     sortCounter.current += 1
 
@@ -214,7 +214,21 @@ function getObjValueKeysByPath(obj, objPath, rootKeys) {
 }
 
 function getSchemaItemKeys(schemaItem) {
-  return schemaItem && schemaItem.properties ? Object.keys(schemaItem.properties) : noKeys
+  if (!schemaItem || !schemaItem.properties) return noKeys
+  const keys = Object.keys(schemaItem.properties)
+
+  if (!schemaItem.required) return keys
+
+  const sortOrder = schemaItem.required.reduce(
+    (memo, key, index) => ({
+      [key]: index,
+      ...memo,
+    }),
+    {},
+  )
+  const getSortIndex = (key) =>
+    R.ifElse(R.has(key), R.prop(key), R.always(Infinity))(sortOrder)
+  return R.sortBy(getSortIndex, keys)
 }
 
 function getSchemaItemKeysByPath(jsonDict, objPath) {
