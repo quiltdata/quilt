@@ -73,6 +73,8 @@ function hasBrackets(valueStr) {
   )
 }
 
+const willBeNullInJson = (value) => typeof value === 'number' && !Number.isFinite(value)
+
 export default function Input({
   columnId,
   data,
@@ -113,12 +115,11 @@ export default function Input({
   )
 
   const onBlur = React.useCallback(() => {
-    if (columnId !== COLUMN_IDS.KEY || R.is(String, value)) {
-      onChange(value)
-    } else {
-      onChange(JSON.stringify(value))
-    }
-  }, [onChange, columnId, value])
+    if (R.is(String, value)) return onChange(value)
+    if (columnId === COLUMN_IDS.KEY) return onChange(valueStr)
+    if (willBeNullInJson(value)) return onChange(null)
+    return onChange(value)
+  }, [onChange, columnId, value, valueStr])
 
   const onKeyDown = React.useCallback(
     (event) => {
