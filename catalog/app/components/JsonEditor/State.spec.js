@@ -9,6 +9,7 @@ import * as booleansNulls from './mocks/booleans-nulls'
 import * as compound from './mocks/compound'
 import * as deeplyNestedArray from './mocks/deeply-nested-array'
 import * as deeplyNestedObject from './mocks/deeply-nested-object'
+import * as incorrect from './mocks/incorrect'
 import * as regular from './mocks/regular'
 
 describe('Root keys for JSON editor', () => {
@@ -275,5 +276,14 @@ describe('Schema validates', () => {
 
     const validNumber = { strOrNum: 123, strOrNumList: [1, 2, 3] }
     expect(validate(validNumber)).toHaveLength(0)
+  })
+
+  it('error when schema is incorrect', () => {
+    const validate = validateOnSchema(incorrect.schema)
+    const errors = validate({})
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toBeInstanceOf(Error)
+    expect(errors[0].message).toMatch(/schema is invalid/)
   })
 })
