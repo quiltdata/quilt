@@ -1,6 +1,12 @@
-import { iterateJsonDict, iterateSchema, mergeSchemaAndObjRootKeys } from './State'
+import {
+  iterateJsonDict,
+  iterateSchema,
+  mergeSchemaAndObjRootKeys,
+  validateOnSchema,
+} from './State'
 
 import * as booleansNulls from './mocks/booleans-nulls'
+import * as compound from './mocks/compound'
 import * as deeplyNestedArray from './mocks/deeply-nested-array'
 import * as deeplyNestedObject from './mocks/deeply-nested-object'
 import * as regular from './mocks/regular'
@@ -94,5 +100,171 @@ describe('UI columns', () => {
       rootKeys,
     )
     expect(columns).toEqual(deeplyNestedObject.columns1)
+  })
+})
+
+describe('Schema validates', () => {
+  it('required', () => {
+    const validate = validateOnSchema(regular.schema)
+
+    const obj = { optList: [{ id: 1, name: 'Name' }], optEnum: 'one' }
+    const errors = validate(obj)
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toHaveProperty('keyword', 'required')
+  })
+
+  it('enum', () => {
+    const validate = validateOnSchema(regular.schema)
+
+    const invalid = { a: 123, b: 'value', optEnum: 'value' }
+    const errors = validate(invalid)
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toHaveProperty('dataPath', '.optEnum')
+    expect(errors[0]).toHaveProperty('keyword', 'enum')
+
+    const valid = { a: 123, b: 'value', optEnum: 'one' }
+    expect(validate(valid)).toHaveLength(0)
+  })
+
+  it('array', () => {
+    const validate = validateOnSchema(deeplyNestedArray.schema)
+
+    const invalid1 = { longNestedList: [{}] }
+    const errors1 = validate(invalid1)
+    expect(errors1).toHaveLength(1)
+    expect(errors1[0]).toHaveProperty('dataPath', '.longNestedList[0]')
+    expect(errors1[0]).toHaveProperty('keyword', 'type')
+
+    const invalid2 = { longNestedList: [[[[[[[[[['string']]]]]]]]]] }
+    const errors2 = validate(invalid2)
+    expect(errors2).toHaveLength(1)
+    expect(errors2[0]).toHaveProperty(
+      'dataPath',
+      '.longNestedList[0][0][0][0][0][0][0][0][0][0]',
+    )
+    expect(errors2[0]).toHaveProperty('keyword', 'type')
+
+    const invalid3 = { longNestedList: [[[[[[[[[[1, 2, 3, 4, 'string']]]]]]]]]] }
+    const errors3 = validate(invalid3)
+    expect(errors3).toHaveLength(1)
+    expect(errors3[0]).toHaveProperty(
+      'dataPath',
+      '.longNestedList[0][0][0][0][0][0][0][0][0][4]',
+    )
+    expect(errors3[0]).toHaveProperty('keyword', 'type')
+
+    const valid = { longNestedList: [[[[[[[[[[1, 2.5, 3, 10e100, Infinity]]]]]]]]]] }
+    expect(validate(valid)).toHaveLength(0)
+  })
+
+  it('number and string types', () => {
+    const validate = validateOnSchema(regular.schema)
+
+    const invalidNumber = { a: 'b', b: 'b' }
+    const errorsNumber = validate(invalidNumber)
+    expect(errorsNumber).toHaveLength(1)
+    expect(errorsNumber[0]).toMatchObject({ dataPath: '.a', keyword: 'type' })
+
+    const invalidString = { a: 123, b: 123 }
+    const errorsString = validate(invalidString)
+    expect(errorsString).toHaveLength(1)
+    expect(errorsString[0]).toMatchObject({ dataPath: '.b', keyword: 'type' })
+
+    const valid = { a: 123, b: 'b' }
+    expect(validate(valid)).toHaveLength(0)
+  })
+
+  it('boolean and null types', () => {
+    const validate = validateOnSchema(booleansNulls.schema)
+
+    const invalidNull = { nullValue: 123 }
+    const errorsNull = validate(invalidNull)
+    expect(errorsNull).toHaveLength(1)
+    expect(errorsNull[0]).toMatchObject({ dataPath: '.nullValue', keyword: 'type' })
+
+    const invalidBool = { boolValue: 0 }
+    const errorsBool = validate(invalidBool)
+    expect(errorsBool).toHaveLength(1)
+    expect(errorsBool[0]).toMatchObject({ dataPath: '.boolValue', keyword: 'type' })
+
+    const invalidEnum = { enumBool: null }
+    const errorsEnum = validate(invalidEnum)
+    expect(errorsEnum).toHaveLength(1)
+    expect(errorsEnum[0]).toMatchObject({ dataPath: '.enumBool', keyword: 'type' })
+
+    const valid = {
+      nullValue: null,
+      boolValue: true,
+      enumBool: false,
+      extraKey: 'extra value',
+    }
+    expect(validate(valid)).toHaveLength(0)
+  })
+
+  it('compound types', () => {
+    const validate = validateOnSchema(compound.schemaAnyOf)
+
+    const emptyObject = {}
+    expect(validate(emptyObject)).toEqual([])
+
+    const invalidAnyOf = { numOrString: [] }
+    const errorsAnyOf = validate(invalidAnyOf)
+    expect(errorsAnyOf).toHaveLength(3)
+    expect(errorsAnyOf[0]).toHaveProperty('dataPath', '.numOrString')
+    expect(errorsAnyOf[0]).toHaveProperty('keyword', 'type')
+    expect(errorsAnyOf[1]).toHaveProperty('keyword', 'type')
+    expect(errorsAnyOf[2]).toHaveProperty('keyword', 'anyOf')
+
+    const invalidOneOf = { intOrNonNumberOrLess3: 4.5 }
+    const errorsOneOf = validate(invalidOneOf)
+    expect(errorsOneOf).toHaveLength(3)
+    expect(errorsOneOf[0]).toHaveProperty('dataPath', '.intOrNonNumberOrLess3')
+    expect(errorsOneOf[0]).toHaveProperty('keyword', 'maximum')
+    expect(errorsOneOf[1]).toHaveProperty('keyword', 'type')
+    expect(errorsOneOf[2]).toHaveProperty('keyword', 'oneOf')
+
+    const invalidAllOf1 = { intLessThan3: 'a' }
+    const errorsAllOf1 = validate(invalidAllOf1)
+    expect(errorsAllOf1).toHaveLength(1)
+    expect(errorsAllOf1[0]).toHaveProperty('dataPath', '.intLessThan3')
+    expect(errorsAllOf1[0]).toHaveProperty('keyword', 'type')
+
+    const invalidAllOf2 = { intLessThan3: 3.5 }
+    const errorsAllOf2 = validate(invalidAllOf2)
+    expect(errorsAllOf2).toHaveLength(1)
+    expect(errorsAllOf2[0]).toHaveProperty('dataPath', '.intLessThan3')
+    expect(errorsAllOf2[0]).toHaveProperty('keyword', 'maximum')
+
+    const validObj = { numOrString: 3.5, intOrNonNumberOrLess3: 2.5, intLessThan3: 2 }
+    const errors = validate(validObj)
+    expect(errors).toHaveLength(0)
+  })
+
+  it('array types', () => {
+    const validate = validateOnSchema(compound.schemaTypeArray)
+
+    const invalidProperty = { strOrNum: [], strOrNumList: [{}, null, true] }
+    const errorsProperty = validate(invalidProperty)
+    expect(errorsProperty).toHaveLength(1)
+    expect(errorsProperty[0]).toHaveProperty('dataPath', '.strOrNum')
+    expect(errorsProperty[0]).toHaveProperty('keyword', 'type')
+
+    const invalidItem1 = { strOrNum: 123, strOrNumList: [{}, null, true] }
+    const errorsItem1 = validate(invalidItem1)
+    expect(errorsItem1).toHaveLength(1)
+    expect(errorsItem1[0]).toHaveProperty('dataPath', '.strOrNumList[0]')
+    expect(errorsItem1[0]).toHaveProperty('keyword', 'type')
+
+    const invalidItem2 = { strOrNum: 123, strOrNumList: [123, null, true] }
+    const errorsItem2 = validate(invalidItem2)
+    expect(errorsItem2).toHaveLength(1)
+    expect(errorsItem2[0]).toHaveProperty('dataPath', '.strOrNumList[1]')
+    expect(errorsItem2[0]).toHaveProperty('keyword', 'type')
+
+    const validString = { strOrNum: 'string', strOrNumList: ['one', 2, 2.5, 0] }
+    expect(validate(validString)).toHaveLength(0)
+
+    const validNumber = { strOrNum: 123, strOrNumList: [1, 2, 3] }
+    expect(validate(validNumber)).toHaveLength(0)
   })
 })
