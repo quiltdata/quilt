@@ -27,8 +27,7 @@ describe('Root keys for JSON editor', () => {
     expect(rootKeys).toEqual(['nullValue', 'boolValue', 'enumBool', '1', 'z'])
   })
 
-  // FIXME
-  it.skip('contains both keys of object and schema, required first', () => {
+  it('contains both keys of object and schema, required first', () => {
     const rootKeys = mergeSchemaAndObjRootKeys(regular.schema, { 1: 1, z: 'z' })
     expect(rootKeys).toEqual(['a', 'b', 'optList', 'optEnum', '1', 'z'])
   })
@@ -80,7 +79,7 @@ describe('UI columns', () => {
 
   it('has three columns for empty object and path', () => {
     const jsonDict = iterateSchema(deeplyNestedObject.schema, { current: 0 }, [], {})
-    const rootKeys = mergeSchemaAndObjRootKeys(regular.schema, {})
+    const rootKeys = mergeSchemaAndObjRootKeys(deeplyNestedObject.schema, {})
     const columns = iterateJsonDict(
       jsonDict,
       {},

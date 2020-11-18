@@ -520,7 +520,6 @@ export const columnsNested = [
   {
     parent: {},
     items: [
-      { key: 'optList', reactId: 'optList+undefined', value: EMPTY_VALUE },
       {
         key: 'a',
         reactId: 'a+undefined',
@@ -531,8 +530,6 @@ export const columnsNested = [
         type: 'object',
         value: EMPTY_VALUE,
       },
-      { key: 'b', reactId: 'b+undefined', value: EMPTY_VALUE },
-      { key: 'optEnum', reactId: 'optEnum+undefined', value: EMPTY_VALUE },
     ],
   },
   {
