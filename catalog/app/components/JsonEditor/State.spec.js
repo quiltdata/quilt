@@ -109,7 +109,10 @@ describe('Schema validates', () => {
     const obj = { optList: [{ id: 1, name: 'Name' }], optEnum: 'one' }
     const errors = validate(obj)
     expect(errors).toHaveLength(1)
-    expect(errors[0]).toHaveProperty('keyword', 'required')
+    expect(errors[0]).toMatchObject({
+      keyword: 'required',
+      params: { missingProperty: 'a' },
+    })
   })
 
   it('enum', () => {
@@ -118,8 +121,7 @@ describe('Schema validates', () => {
     const invalid = { a: 123, b: 'value', optEnum: 'value' }
     const errors = validate(invalid)
     expect(errors).toHaveLength(1)
-    expect(errors[0]).toHaveProperty('dataPath', '.optEnum')
-    expect(errors[0]).toHaveProperty('keyword', 'enum')
+    expect(errors[0]).toMatchObject({ dataPath: '.optEnum', keyword: 'enum' })
 
     const valid = { a: 123, b: 'value', optEnum: 'one' }
     expect(validate(valid)).toHaveLength(0)
@@ -131,26 +133,23 @@ describe('Schema validates', () => {
     const invalid1 = { longNestedList: [{}] }
     const errors1 = validate(invalid1)
     expect(errors1).toHaveLength(1)
-    expect(errors1[0]).toHaveProperty('dataPath', '.longNestedList[0]')
-    expect(errors1[0]).toHaveProperty('keyword', 'type')
+    expect(errors1[0]).toMatchObject({ dataPath: '.longNestedList[0]', keyword: 'type' })
 
     const invalid2 = { longNestedList: [[[[[[[[[['string']]]]]]]]]] }
     const errors2 = validate(invalid2)
     expect(errors2).toHaveLength(1)
-    expect(errors2[0]).toHaveProperty(
-      'dataPath',
-      '.longNestedList[0][0][0][0][0][0][0][0][0][0]',
-    )
-    expect(errors2[0]).toHaveProperty('keyword', 'type')
+    expect(errors2[0]).toMatchObject({
+      dataPath: '.longNestedList[0][0][0][0][0][0][0][0][0][0]',
+      keyword: 'type',
+    })
 
     const invalid3 = { longNestedList: [[[[[[[[[[1, 2, 3, 4, 'string']]]]]]]]]] }
     const errors3 = validate(invalid3)
     expect(errors3).toHaveLength(1)
-    expect(errors3[0]).toHaveProperty(
-      'dataPath',
-      '.longNestedList[0][0][0][0][0][0][0][0][0][4]',
-    )
-    expect(errors3[0]).toHaveProperty('keyword', 'type')
+    expect(errors3[0]).toMatchObject({
+      dataPath: '.longNestedList[0][0][0][0][0][0][0][0][0][4]',
+      keyword: 'type',
+    })
 
     const valid = { longNestedList: [[[[[[[[[[1, 2.5, 3, 10e100, Infinity]]]]]]]]]] }
     expect(validate(valid)).toHaveLength(0)
@@ -209,30 +208,38 @@ describe('Schema validates', () => {
     const invalidAnyOf = { numOrString: [] }
     const errorsAnyOf = validate(invalidAnyOf)
     expect(errorsAnyOf).toHaveLength(3)
-    expect(errorsAnyOf[0]).toHaveProperty('dataPath', '.numOrString')
-    expect(errorsAnyOf[0]).toHaveProperty('keyword', 'type')
-    expect(errorsAnyOf[1]).toHaveProperty('keyword', 'type')
-    expect(errorsAnyOf[2]).toHaveProperty('keyword', 'anyOf')
+    expect(errorsAnyOf[0]).toMatchObject({ dataPath: '.numOrString', keyword: 'type' })
+    expect(errorsAnyOf[1]).toMatchObject({ dataPath: '.numOrString', keyword: 'type' })
+    expect(errorsAnyOf[2]).toMatchObject({ dataPath: '.numOrString', keyword: 'anyOf' })
 
     const invalidOneOf = { intOrNonNumberOrLess3: 4.5 }
     const errorsOneOf = validate(invalidOneOf)
     expect(errorsOneOf).toHaveLength(3)
-    expect(errorsOneOf[0]).toHaveProperty('dataPath', '.intOrNonNumberOrLess3')
-    expect(errorsOneOf[0]).toHaveProperty('keyword', 'maximum')
-    expect(errorsOneOf[1]).toHaveProperty('keyword', 'type')
-    expect(errorsOneOf[2]).toHaveProperty('keyword', 'oneOf')
+    expect(errorsOneOf[0]).toMatchObject({
+      dataPath: '.intOrNonNumberOrLess3',
+      keyword: 'maximum',
+    })
+    expect(errorsOneOf[1]).toMatchObject({
+      dataPath: '.intOrNonNumberOrLess3',
+      keyword: 'type',
+    })
+    expect(errorsOneOf[2]).toMatchObject({
+      dataPath: '.intOrNonNumberOrLess3',
+      keyword: 'oneOf',
+    })
 
     const invalidAllOf1 = { intLessThan3: 'a' }
     const errorsAllOf1 = validate(invalidAllOf1)
     expect(errorsAllOf1).toHaveLength(1)
-    expect(errorsAllOf1[0]).toHaveProperty('dataPath', '.intLessThan3')
-    expect(errorsAllOf1[0]).toHaveProperty('keyword', 'type')
+    expect(errorsAllOf1[0]).toMatchObject({ dataPath: '.intLessThan3', keyword: 'type' })
 
     const invalidAllOf2 = { intLessThan3: 3.5 }
     const errorsAllOf2 = validate(invalidAllOf2)
     expect(errorsAllOf2).toHaveLength(1)
-    expect(errorsAllOf2[0]).toHaveProperty('dataPath', '.intLessThan3')
-    expect(errorsAllOf2[0]).toHaveProperty('keyword', 'maximum')
+    expect(errorsAllOf2[0]).toMatchObject({
+      dataPath: '.intLessThan3',
+      keyword: 'maximum',
+    })
 
     const validObj = { numOrString: 3.5, intOrNonNumberOrLess3: 2.5, intLessThan3: 2 }
     const errors = validate(validObj)
@@ -245,20 +252,23 @@ describe('Schema validates', () => {
     const invalidProperty = { strOrNum: [], strOrNumList: [{}, null, true] }
     const errorsProperty = validate(invalidProperty)
     expect(errorsProperty).toHaveLength(1)
-    expect(errorsProperty[0]).toHaveProperty('dataPath', '.strOrNum')
-    expect(errorsProperty[0]).toHaveProperty('keyword', 'type')
+    expect(errorsProperty[0]).toMatchObject({ dataPath: '.strOrNum', keyword: 'type' })
 
     const invalidItem1 = { strOrNum: 123, strOrNumList: [{}, null, true] }
     const errorsItem1 = validate(invalidItem1)
     expect(errorsItem1).toHaveLength(1)
-    expect(errorsItem1[0]).toHaveProperty('dataPath', '.strOrNumList[0]')
-    expect(errorsItem1[0]).toHaveProperty('keyword', 'type')
+    expect(errorsItem1[0]).toMatchObject({
+      dataPath: '.strOrNumList[0]',
+      keyword: 'type',
+    })
 
     const invalidItem2 = { strOrNum: 123, strOrNumList: [123, null, true] }
     const errorsItem2 = validate(invalidItem2)
     expect(errorsItem2).toHaveLength(1)
-    expect(errorsItem2[0]).toHaveProperty('dataPath', '.strOrNumList[1]')
-    expect(errorsItem2[0]).toHaveProperty('keyword', 'type')
+    expect(errorsItem2[0]).toMatchObject({
+      dataPath: '.strOrNumList[1]',
+      keyword: 'type',
+    })
 
     const validString = { strOrNum: 'string', strOrNumList: ['one', 2, 2.5, 0] }
     expect(validate(validString)).toHaveLength(0)
