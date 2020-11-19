@@ -10,7 +10,7 @@ import * as Resource from 'utils/Resource'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
-import parseWorkflows, { emptyWorkflowsConfig } from 'data/workflows'
+import * as workflows from 'utils/workflows'
 
 import * as errors from './errors'
 
@@ -287,10 +287,10 @@ const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
 export const workflowsList = async ({ s3, bucket }) => {
   try {
     const response = await fetchFile({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
-    return parseWorkflows(response.Body.toString('utf-8'))
+    return workflows.parse(response.Body.toString('utf-8'))
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
-      return emptyWorkflowsConfig
+      return workflows.emptyConfig
 
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
@@ -298,7 +298,7 @@ export const workflowsList = async ({ s3, bucket }) => {
     console.error(e)
   }
 
-  return emptyWorkflowsConfig
+  return workflows.emptyConfig
 }
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']

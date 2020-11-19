@@ -2,32 +2,18 @@ import * as R from 'ramda'
 
 import yaml from 'utils/yaml'
 
-/* TODO:
-   ```
-   class Workflows {
-     static parse(rawData) {
-      return new Workflows(parsedData)
-     }
+export const notAvaliable = Symbol('not available')
 
-     static nil() { // instead of emptyWorkflowsConfig
-      return new Workflows()
-     }
-   }
-   ```
-*/
-
-export const workflowNotAvaliable = Symbol('not available')
-
-export const workflowNotSelected = Symbol('not selected')
+export const notSelected = Symbol('not selected')
 
 function getNoWorkflow(data, hasConfig) {
   return {
     isDefault: !data.default_workflow,
-    slug: hasConfig ? workflowNotSelected : workflowNotAvaliable,
+    slug: hasConfig ? notSelected : notAvaliable,
   }
 }
 
-export const emptyWorkflowsConfig = {
+export const emptyConfig = {
   isRequired: false,
   workflows: [getNoWorkflow({}, false)],
 }
@@ -48,17 +34,17 @@ function parseWorkflow(workflowSlug, workflow, data) {
   }
 }
 
-export default function parseWorkflows(workflowsYaml) {
+export function parse(workflowsYaml) {
   const data = yaml(workflowsYaml)
-  if (!data) return emptyWorkflowsConfig
+  if (!data) return emptyConfig
 
   const { workflows } = data
-  if (!workflows) return emptyWorkflowsConfig
+  if (!workflows) return emptyConfig
 
   const workflowsList = Object.keys(workflows).map((slug) =>
     parseWorkflow(slug, workflows[slug], data),
   )
-  if (!workflowsList.length) return emptyWorkflowsConfig
+  if (!workflowsList.length) return emptyConfig
 
   const noWorkflow =
     data.is_workflow_required === false ? getNoWorkflow(data, true) : null

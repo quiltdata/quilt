@@ -1,23 +1,19 @@
-import parseWorkflows, {
-  emptyWorkflowsConfig,
-  workflowNotAvaliable,
-  workflowNotSelected,
-} from './workflows'
+import * as workflows from './workflows'
 
 describe('Workflows config', () => {
   it('is correct for an empty file', () => {
-    const config = parseWorkflows('')
-    expect(config).toBe(emptyWorkflowsConfig)
-    expect(config.workflows[0].slug).toBe(workflowNotAvaliable)
+    const config = workflows.parse('')
+    expect(config).toBe(workflows.emptyConfig)
+    expect(config.workflows[0].slug).toBe(workflows.notAvaliable)
   })
 
   it('is correct when no workflows', () => {
     const data = `
 version: "1"
 `
-    const config = parseWorkflows(data)
-    expect(config).toBe(emptyWorkflowsConfig)
-    expect(config.workflows[0].slug).toBe(workflowNotAvaliable)
+    const config = workflows.parse(data)
+    expect(config).toBe(workflows.emptyConfig)
+    expect(config.workflows[0].slug).toBe(workflows.notAvaliable)
   })
 
   it('is correct for empty workflows list', () => {
@@ -25,7 +21,7 @@ version: "1"
 version: "1"
 workflows: []
 `
-    expect(parseWorkflows(data)).toBe(emptyWorkflowsConfig)
+    expect(workflows.parse(data)).toBe(workflows.emptyConfig)
   })
 
   it('is correct when workflow is required', () => {
@@ -36,7 +32,7 @@ workflows:
   workflow_1:
     name: Workflow №1
 `
-    const config = parseWorkflows(data)
+    const config = workflows.parse(data)
     expect(config.workflows).toHaveLength(1)
     expect(config.workflows[0].slug).toBe('workflow_1')
   })
@@ -49,9 +45,9 @@ workflows:
   workflow_1:
     name: Workflow №1
 `
-    const config = parseWorkflows(data)
+    const config = workflows.parse(data)
     expect(config.workflows).toHaveLength(2)
-    expect(config.workflows[0].slug).toBe(workflowNotSelected)
+    expect(config.workflows[0].slug).toBe(workflows.notSelected)
     expect(config.workflows[1].slug).toBe('workflow_1')
   })
 
@@ -62,7 +58,7 @@ workflows:
   workflow_1:
     name: Workflow №1
 `
-    const config = parseWorkflows(data)
+    const config = workflows.parse(data)
     expect(config.workflows).toHaveLength(1)
     expect(config.workflows[0].slug).toBe('workflow_1')
   })
@@ -83,7 +79,7 @@ schemas:
   schema_2:
     url: https://bar
 `
-    const config = parseWorkflows(data)
+    const config = workflows.parse(data)
     expect(config.workflows[0].schema.url).toBe('https://foo')
     expect(config.workflows[1].schema.url).toBe('https://bar')
   })
@@ -100,7 +96,7 @@ workflows:
   workflow_3:
     name: Workflow №3
 `
-    const config = parseWorkflows(data)
+    const config = workflows.parse(data)
     expect(config.workflows[0].isDefault).toBe(false)
     expect(config.workflows[1].isDefault).toBe(true)
     expect(config.workflows[2].isDefault).toBe(false)

@@ -23,6 +23,7 @@ import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
+import * as workflows from 'utils/workflows'
 
 import SelectWorkflow from './SelectWorkflow'
 import * as requests from './requests'
@@ -658,8 +659,8 @@ function SchemaFetcher({ children, schemaUrl }) {
 }
 
 const getWorkflowApiParam = R.cond([
-  [R.equals(requests.workflowNotAvaliable), R.always(undefined)],
-  [R.equals(requests.workflowNotSelected), R.always(null)],
+  [R.equals(workflows.workflowNotAvaliable), R.always(undefined)],
+  [R.equals(workflows.workflowNotSelected), R.always(null)],
   [R.T, R.identity],
 ])
 
