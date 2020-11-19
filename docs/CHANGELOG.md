@@ -16,8 +16,7 @@
 
 ## Catalog, Lambdas
 * [Added] Preview .pdbqt files as plain text ([#1855](https://github.com/quiltdata/quilt/pull/1855))
-* [Added] Retry logic for failed queries, minimize load on ES for sample, images
-overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
+* [Added] Retry logic for failed queries, minimize load on ES for sample, images overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
 * [Added] Enhanced JSON editor and schema validation for package metadata ([#1867](https://github.com/quiltdata/quilt/pull/1867))
 * [Added] Buttons to download packages and directories as .zip archives ([#1868](https://github.com/quiltdata/quilt/pull/1868/))
 * [Added] Search help dropdown for the index landing page ([#1838](https://github.com/quiltdata/quilt/pull/1838))
