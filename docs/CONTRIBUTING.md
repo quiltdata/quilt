@@ -174,6 +174,15 @@ The resulting files will land in `docs/` and will be ready to be checked in.
 
 All other pages in the documentation are served from corresponding Markdown pages in the `docs` directory. To edit the page, edit the Markdown file. Then check that file in.
 
+## Backporting
+
+To backport commit from master to a stable branch:
+```bash
+git checkout <stable-branch-name>
+./backport.sh <full-commit-hash-in-master>
+git push
+```
+
 ## License
 
 Quilt is open source under the [Apache License, Version 2.0](https://github.com/quiltdata/quilt/blob/master/LICENSE).
