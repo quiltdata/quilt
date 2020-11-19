@@ -5,13 +5,13 @@ import parseWorkflows, {
 } from './workflows'
 
 describe('Workflows config', () => {
-  it('empty file', () => {
+  it('is correct for an empty file', () => {
     const config = parseWorkflows('')
     expect(config).toBe(emptyWorkflowsConfig)
     expect(config.workflows[0].slug).toBe(workflowNotAvaliable)
   })
 
-  it('no workflows', () => {
+  it('is correct when no workflows', () => {
     const data = `
 version: "1"
 `
@@ -20,7 +20,7 @@ version: "1"
     expect(config.workflows[0].slug).toBe(workflowNotAvaliable)
   })
 
-  it('empty workflows list', () => {
+  it('is correct for empty workflows list', () => {
     const data = `
 version: "1"
 workflows: []
@@ -28,7 +28,7 @@ workflows: []
     expect(parseWorkflows(data)).toBe(emptyWorkflowsConfig)
   })
 
-  it('workflow is required', () => {
+  it('is correct when workflow is required', () => {
     const data = `
 version: "1"
 is_workflow_required: True
@@ -41,7 +41,7 @@ workflows:
     expect(config.workflows[0].slug).toBe('workflow_1')
   })
 
-  it('workflow is not required explicitly', () => {
+  it('is correct when workflow is not required explicitly', () => {
     const data = `
 version: "1"
 is_workflow_required: False
@@ -55,7 +55,7 @@ workflows:
     expect(config.workflows[1].slug).toBe('workflow_1')
   })
 
-  it('workflow is required by default', () => {
+  it('is correct when workflow is required by default', () => {
     const data = `
 version: "1"
 workflows:
@@ -67,7 +67,7 @@ workflows:
     expect(config.workflows[0].slug).toBe('workflow_1')
   })
 
-  it('get Schema url', () => {
+  it('contains Schema url', () => {
     const data = `
 version: "1"
 workflows:
@@ -88,7 +88,7 @@ schemas:
     expect(config.workflows[1].schema.url).toBe('https://bar')
   })
 
-  it('find default workflow', () => {
+  it('sets default workflow', () => {
     const data = `
 version: "1"
 default_workflow: workflow_2
