@@ -25,7 +25,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-// TODO: disabled MenuItem for required
 // FIXME: Show placeholder
 
 export default function Select({ menu, columnId, data, value, onChange }) {
@@ -58,7 +57,6 @@ export default function Select({ menu, columnId, data, value, onChange }) {
         />
       }
     >
-      <M.MenuItem value="">None</M.MenuItem>
       {menu[0].options.map((menuItem) => (
         <M.MenuItem key={menuItem.title} value={menuItem.title}>
           {menuItem.title}
