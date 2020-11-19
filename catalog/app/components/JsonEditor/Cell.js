@@ -1,11 +1,13 @@
 import cx from 'classnames'
 import * as React from 'react'
+import * as R from 'ramda'
 import * as M from '@material-ui/core'
 
 import { isSchemaEnum } from 'utils/json-schema'
 
 import Input from './Input'
 import Preview from './Preview'
+import Select from './Select'
 import { ACTIONS, COLUMN_IDS, EMPTY_VALUE, parseJSON } from './State'
 
 const emptyMenu = []
@@ -153,8 +155,6 @@ export default function Cell({
     [editing, isEditable, setEditing],
   )
 
-  const ValueComponent = editing ? Input : Preview
-
   const keyMenuOpened = menuOpened && isKeyCell
   const valueMenuOpened = menuOpened && isValueCell
 
@@ -174,6 +174,12 @@ export default function Cell({
       }),
     [row],
   )
+
+  const ValueComponent = R.cond([
+    [() => !!(isValueCell && menuForValue.length), () => Select],
+    [() => editing, () => Input],
+    [R.T, () => Preview],
+  ])()
 
   return (
     <div
