@@ -6,9 +6,13 @@ import { EMPTY_VALUE } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    height: t.spacing(4),
+    position: 'relative',
+  },
+
+  select: {
     ...t.typography.body2,
     padding: t.spacing(0, 1),
-    position: 'relative',
     width: '100%',
     zIndex: 1,
     '&:focus': {
@@ -21,13 +25,14 @@ const useStyles = M.makeStyles((t) => ({
   },
 
   placeholder: {
+    lineHeight: `${t.spacing(4) - 2}px`,
     color: t.palette.text.disabled,
+    left: t.spacing(1),
+    position: 'absolute',
   },
 }))
 
-// FIXME: Show placeholder
-
-export default function Select({ menu, columnId, data, value, onChange }) {
+export default function Select({ menu, columnId, data, placeholder, value, onChange }) {
   const classes = useStyles()
 
   const onChangeInternal = (e) => {
@@ -39,29 +44,26 @@ export default function Select({ menu, columnId, data, value, onChange }) {
   }
 
   return (
-    <M.Select
-      className={classes.root}
-      value={value === EMPTY_VALUE ? '' : value}
-      onChange={onChangeInternal}
-      classes={{
-        icon: classes.icon,
-      }}
-      inputProps={{
-        placeholder: 'LTINTIFWETN FT NWY',
-      }}
-      input={
-        <M.InputBase
-          endAdornment={<Note {...{ columnId, data, value }} />}
-          /* value={value === EMPTY_VALUE ? '' : value} */
-          placeholder="PLACEHOLDER"
-        />
-      }
-    >
-      {menu[0].options.map((menuItem) => (
-        <M.MenuItem key={menuItem.title} value={menuItem.title}>
-          {menuItem.title}
-        </M.MenuItem>
-      ))}
-    </M.Select>
+    <div className={classes.root}>
+      <M.Select
+        className={classes.select}
+        value={value === EMPTY_VALUE ? '' : value}
+        onChange={onChangeInternal}
+        classes={{
+          icon: classes.icon,
+        }}
+        input={<M.InputBase endAdornment={<Note {...{ columnId, data, value }} />} />}
+      >
+        {menu[0].options.map((menuItem) => (
+          <M.MenuItem key={menuItem.title} value={menuItem.title}>
+            {menuItem.title}
+          </M.MenuItem>
+        ))}
+      </M.Select>
+
+      {value === EMPTY_VALUE && (
+        <span className={classes.placeholder}>{placeholder}</span>
+      )}
+    </div>
   )
 }
