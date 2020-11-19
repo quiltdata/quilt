@@ -83,6 +83,8 @@ def lambda_handler(request):
                         "analyze_wildcard": True,
                         "lenient": user_retry > 0,
                         "query": query,
+                        # more precise searches vs OR
+                        "default_operator": "AND",
                         # see enterprise/**/bucket.py for mappings
                         "fields": my_fields
                     }
@@ -94,6 +96,7 @@ def lambda_handler(request):
                     "simple_query_string": {
                         "query": query,
                         "analyze_wildcard": user_retry < 3,
+                        "default_operator": "AND",
                         "fields": my_fields,
                         "lenient": True,
                     }
