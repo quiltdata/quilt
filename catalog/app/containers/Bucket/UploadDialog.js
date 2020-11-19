@@ -391,6 +391,20 @@ function validateMeta(schema) {
   }
 }
 
+function MetaInputSkeleton() {
+  const classes = useMetaInputStyles()
+  const t = M.useTheme()
+  return (
+    <M.Grid container spacing={1} className={classes.root}>
+      {R.range(0, 6).map((index) => (
+        <M.Grid item xs={6} key={index}>
+          <Skeleton height={t.spacing(4)} width="100%" />
+        </M.Grid>
+      ))}
+    </M.Grid>
+  )
+}
+
 const useMetaInputStyles = M.makeStyles((t) => ({
   root: {
     marginTop: t.spacing(3),
@@ -651,7 +665,6 @@ const getWorkflowApiParam = R.cond([
 
 function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
   const s3 = AWS.S3.use()
-  const t = M.useTheme()
   const req = APIConnector.use()
   const { urls } = NamedRoutes.use()
   const [uploads, setUploads] = React.useState({})
@@ -898,7 +911,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                           isEqual={R.equals}
                         />
                       ),
-                      _: () => <Skeleton height={t.spacing(8)} width="100%" mt={3} />,
+                      _: () => <MetaInputSkeleton />,
                     })}
                   </SchemaFetcher>
 
