@@ -16,6 +16,7 @@ class PackageRegistry(abc.ABC):
     latest_tag_name = 'latest'
     top_hash_len = 64
     revision_pointers = False
+    workflow_conf_path = '.quilt/workflows/config.yml'
 
     def __init__(self, base: PhysicalKey):
         self.base = base
@@ -96,6 +97,10 @@ class PackageRegistry(abc.ABC):
     @abc.abstractmethod
     def shorten_top_hash(self, pkg_name: str, top_hash: str) -> str:
         pass
+
+    @property
+    def workflow_conf_pk(self) -> PhysicalKey:
+        return self.base.join(self.workflow_conf_path)
 
 
 class PackageRegistryV1(PackageRegistry):

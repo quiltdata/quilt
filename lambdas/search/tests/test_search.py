@@ -234,11 +234,13 @@ class TestSearch(TestCase):
             'body': {'custom': 'body'},
             'size': 42,
             'from': 10,
-            '_source': ','.join(['great', 'expectations'])
+            '_source': ','.join(['great', 'expectations']),
         }
 
         url = f'https://www.example.com:443/{query["index"]}/_search?' + urlencode({
-            k: v for k, v in query.items() if k in ['size', 'from', '_source']
+            k: v for k, v in query.items() if k in [
+                'size', 'from', '_source'
+            ]
         })
 
         def _callback(request):
@@ -293,19 +295,57 @@ class TestSearch(TestCase):
             assert resp['statusCode'] == 500
             assert 'int' in resp['body']
 
+    @patch.dict(os.environ, {'MAX_DOCUMENTS_PER_SHARD': '538'})
     def test_search(self):
         """test standard search function"""
         url = 'https://www.example.com:443/bucket/_search?' + urlencode({
             'size': 1000,
             'from': 0,
             '_source': ','.join([
-                'key',
-                'version_id',
-                'updated',
-                'last_modified',
-                'size',
-                'user_meta'
+                'key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta',
+                'comment', 'handle', 'hash', 'tags', 'metadata', 'pointer_file'
             ]),
+            'terminate_after': 538,
+        })
+
+        def _callback(request):
+            payload = json.loads(request.body)
+            assert payload['query']
+            assert payload['query']['query_string']
+            assert payload['query']['query_string']['fields']
+            assert payload['query']['query_string']['query']
+
+            return 200, {}, json.dumps({'results': 'blah'})
+
+        self.requests_mock.add_callback(
+            responses.GET,
+            url,
+            callback=_callback,
+            content_type='application/json',
+            match_querystring=True,
+        )
+
+        query = {
+            'action': 'search',
+            'index': 'bucket',
+            'query': '123',
+        }
+
+        event = self._make_event(query)
+        resp = lambda_handler(event, None)
+        assert resp['statusCode'] == 200
+        assert json.loads(resp['body']) == {'results': 'blah'}
+
+    def test_search_retry(self):
+        """test standard search function"""
+        url = 'https://www.example.com:443/bucket/_search?' + urlencode({
+            'size': 1000,
+            'from': 0,
+            '_source': ','.join([
+                'key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta',
+                'comment', 'handle', 'hash', 'tags', 'metadata', 'pointer_file'
+            ]),
+            'terminate_after': 10000,
         })
 
         def _callback(request):
@@ -325,6 +365,7 @@ class TestSearch(TestCase):
             url,
             callback=_callback,
             content_type='application/json',
+            match_querystring=True,
         )
 
         for retry in [0, 1, 2, 3]:

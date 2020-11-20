@@ -1,1 +1,3 @@
+include LICENSE
 include quilt3/VERSION
+include quilt3/workflows/*.schema.json

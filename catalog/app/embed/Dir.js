@@ -7,14 +7,16 @@ import { useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
-import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import AsyncResult from 'utils/AsyncResult'
+import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 
 import Code from 'containers/Bucket/Code'
+import * as FileView from 'containers/Bucket/FileView'
 import { ListingItem, ListingWithPrefixFiltering } from 'containers/Bucket/Listing'
 import Summary from 'containers/Bucket/Summary'
 import { displayError } from 'containers/Bucket/errors'
@@ -67,6 +69,7 @@ export default function Dir({
   location: l,
 }) {
   const cfg = EmbedConfig.use()
+  const { noDownload } = Config.use()
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
@@ -124,6 +127,13 @@ export default function Dir({
           {renderCrumbs(getCrumbs({ bucket, path, urls, scope: cfg.scope }))}
         </div>
         <M.Box flexGrow={1} />
+        {!noDownload && (
+          <FileView.ZipDownloadForm
+            suffix={`dir/${bucket}/${path}`}
+            label="Download directory"
+            newTab
+          />
+        )}
       </M.Box>
 
       {!cfg.hideCode && <Code gutterBottom>{code}</Code>}

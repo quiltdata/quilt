@@ -7,12 +7,66 @@ import * as R from 'ramda'
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import { mkSearch } from 'utils/NamedRoutes'
 import * as Resource from 'utils/Resource'
+import logger from 'utils/logger'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
-import logger from 'utils/logger'
+import yaml from 'utils/yaml'
 
 import * as errors from './errors'
+
+function parseSchema(schemaSlug, schemas) {
+  return {
+    url: R.path([schemaSlug, 'url'], schemas),
+  }
+}
+
+function parseWorkflow(workflowSlug, workflow, data) {
+  return {
+    description: workflow.description,
+    isDefault: workflowSlug === data.default_workflow,
+    name: workflow.name,
+    schema: parseSchema(workflow.metadata_schema, data.schemas),
+    slug: workflowSlug,
+  }
+}
+
+export const workflowNotAvaliable = Symbol('not available')
+
+export const workflowNotSelected = Symbol('not selected')
+
+function getNoWorkflow(data, hasConfig) {
+  return {
+    isDefault: !data.default_workflow,
+    slug: hasConfig ? workflowNotSelected : workflowNotAvaliable,
+  }
+}
+
+const emptyWorkflowsConfig = {
+  isRequired: false,
+  workflows: [getNoWorkflow({}, false)],
+}
+
+function parseWorkflows(workflowsYaml) {
+  const data = yaml(workflowsYaml)
+  if (!data) return emptyWorkflowsConfig
+
+  const { workflows } = data
+  if (!workflows) return emptyWorkflowsConfig
+
+  const workflowsList = Object.keys(workflows).map((slug) =>
+    parseWorkflow(slug, workflows[slug], data),
+  )
+  if (!workflowsList.length) return emptyWorkflowsConfig
+
+  const noWorkflow =
+    data.is_workflow_required === false ? getNoWorkflow(data, true) : null
+
+  return {
+    isRequired: data.is_workflow_required,
+    workflows: noWorkflow ? [noWorkflow, ...workflowsList] : workflowsList,
+  }
+}
 
 const withErrorHandling = (fn, pairs) => (...args) =>
   fn(...args).catch(errors.catchErrors(pairs))
@@ -209,6 +263,90 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   }
 
   throw new Error('Stats unavailable')
+}
+
+const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
+  const versionExists = await ensureObjectIsPresent({
+    s3,
+    bucket,
+    key: path,
+    version,
+  })
+  if (!versionExists) {
+    throw new errors.VersionNotFound(
+      `${path} for ${bucket} and version ${version} does not exist`,
+    )
+  }
+
+  return s3
+    .getObject({
+      Bucket: bucket,
+      Key: path,
+      VersionId: version,
+    })
+    .promise()
+}
+
+const fetchFileLatest = async ({ s3, bucket, path }) => {
+  const fileExists = await ensureObjectIsPresent({
+    s3,
+    bucket,
+    key: path,
+  })
+  if (!fileExists) {
+    throw new errors.FileNotFound(`${path} for ${bucket} does not exist`)
+  }
+
+  const versions = await objectVersions({
+    s3,
+    bucket,
+    path,
+  })
+  const { id } = R.find(R.prop('isLatest'), versions)
+  const version = id === 'null' ? undefined : id
+
+  return fetchFileVersioned({ s3, bucket, path, version })
+}
+
+const fetchFile = R.ifElse(R.prop('version'), fetchFileVersioned, fetchFileLatest)
+
+export const metadataSchema = async ({ s3, schemaUrl }) => {
+  if (!schemaUrl) return null
+
+  const { bucket, key, version } = s3paths.parseS3Url(schemaUrl)
+
+  try {
+    const response = await fetchFile({ s3, bucket, path: key, version })
+    return JSON.parse(response.Body.toString('utf-8'))
+  } catch (e) {
+    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) throw e
+
+    // eslint-disable-next-line no-console
+    console.log('Unable to fetch')
+    // eslint-disable-next-line no-console
+    console.error(e)
+  }
+
+  return null
+}
+
+const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
+
+export const workflowsList = async ({ s3, bucket }) => {
+  try {
+    const response = await fetchFile({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
+    return parseWorkflows(response.Body.toString('utf-8'))
+  } catch (e) {
+    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
+      return emptyWorkflowsConfig
+
+    // eslint-disable-next-line no-console
+    console.log('Unable to fetch')
+    // eslint-disable-next-line no-console
+    console.error(e)
+  }
+
+  return emptyWorkflowsConfig
 }
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']

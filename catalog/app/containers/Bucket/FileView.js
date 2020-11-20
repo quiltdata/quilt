@@ -1,11 +1,14 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 // import Message from 'components/Message'
+import * as Auth from 'containers/Auth'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
+import * as Config from 'utils/Config'
 import pipeThru from 'utils/pipeThru'
 
 // import Code from './Code'
@@ -29,41 +32,61 @@ export function Meta({ data, ...props }) {
 }
 
 const useDownloadButtonStyles = M.makeStyles(() => ({
-  button: {
+  root: {
     flexShrink: 0,
     marginBottom: -3,
     marginTop: -3,
   },
 }))
 
-export function DownloadButton({ handle }) {
+export function DownloadButtonLayout({ label, icon, ...props }) {
   const classes = useDownloadButtonStyles()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
 
-  return AWS.Signer.withDownloadUrl(handle, (url) =>
-    xs ? (
-      <M.IconButton
-        className={classes.button}
-        href={url}
-        edge="end"
-        size="small"
-        download
-      >
-        <M.Icon>arrow_downward</M.Icon>
-      </M.IconButton>
-    ) : (
-      <M.Button
-        href={url}
-        className={classes.button}
-        variant="outlined"
-        size="small"
-        startIcon={<M.Icon>arrow_downward</M.Icon>}
-        download
-      >
-        Download file
-      </M.Button>
-    ),
+  return xs ? (
+    <M.IconButton className={classes.root} edge="end" size="small" {...props}>
+      <M.Icon>{icon}</M.Icon>
+    </M.IconButton>
+  ) : (
+    <M.Button
+      className={classes.root}
+      variant="outlined"
+      size="small"
+      startIcon={<M.Icon>{icon}</M.Icon>}
+      {...props}
+    >
+      {label}
+    </M.Button>
+  )
+}
+
+export function DownloadButton({ handle }) {
+  return AWS.Signer.withDownloadUrl(handle, (url) => (
+    <DownloadButtonLayout
+      href={url}
+      download
+      label="Download file"
+      icon="arrow_downward"
+    />
+  ))
+}
+
+export function ZipDownloadForm({ suffix, label, newTab = false }) {
+  const { s3Proxy, noDownload } = Config.use()
+  const { token } = redux.useSelector(Auth.selectors.tokens) || {}
+  if (!token || noDownload) return null
+  const action = `${s3Proxy}/zip/${suffix}`
+  return (
+    <form
+      action={action}
+      target={newTab ? '_blank' : undefined}
+      method="POST"
+      style={{ flexShrink: 0 }}
+    >
+      <input type="hidden" name="token" value={token} />
+      <DownloadButtonLayout label={label} icon="archive" type="submit" />
+    </form>
   )
 }
 

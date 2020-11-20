@@ -70,6 +70,7 @@ setup(
         'tenacity>=5.1.1',
         'tqdm>=4.32',
         'requests_futures==1.0.0',
+        'jsonschema==3.*',
     ],
     extras_require={
         'pyarrow': [
@@ -78,12 +79,14 @@ setup(
             'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
         ],
         'tests': [
+            'urllib3<1.26,>=1.25.4'         # https://github.com/quiltdata/quilt/pull/1903
             'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
             'pandas>=0.19.2',
             'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
             'pytest<5.1.0',                 # TODO: Fix pytest.ensuretemp in conftest.py
             'pytest-cov',
             'pytest-env',
+            'pytest-subtests',
             'responses',
             'tox',
             'detox',

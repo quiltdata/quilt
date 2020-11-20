@@ -83,6 +83,8 @@ def lambda_handler(request):
                         "analyze_wildcard": True,
                         "lenient": user_retry > 0,
                         "query": query,
+                        # more precise searches vs OR
+                        "default_operator": "AND",
                         # see enterprise/**/bucket.py for mappings
                         "fields": my_fields
                     }
@@ -94,6 +96,7 @@ def lambda_handler(request):
                     "simple_query_string": {
                         "query": query,
                         "analyze_wildcard": user_retry < 3,
+                        "default_operator": "AND",
                         "fields": my_fields,
                         "lenient": True,
                     }
@@ -104,8 +107,6 @@ def lambda_handler(request):
             'comment', 'handle', 'hash', 'tags', 'metadata', 'pointer_file'
         ]
         size = DEFAULT_SIZE
-        if not user_retry:
-            terminate_after = None
     elif action == 'stats':
         body = {
             "query": {"match_all": {}},
