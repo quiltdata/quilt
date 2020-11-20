@@ -29,14 +29,23 @@ const useObjectStyles = M.makeStyles((t) => ({
 function PreviewArray({ value }) {
   const classes = useArrayStyles()
 
+  const items = React.useMemo(
+    () =>
+      value.map((item, index) => ({
+        key: `${item}+${index}`,
+        value: item,
+        hasDelimiter: index < value.length - 1,
+      })),
+    [value],
+  )
+
   return (
     <span>
       <span className={classes.lbracket}>[</span>
-      {value.map((v, index) => (
-        // eslint-disable-next-line react/no-array-index-key
-        <span key={`${v}+${index}`}>
-          <PreviewValue value={v} />
-          {index < value.length - 1 && ', '}
+      {items.map((item) => (
+        <span key={item.key}>
+          <PreviewValue value={item.value} />
+          {item.hasDelimiter && ', '}
         </span>
       ))}
       <span className={classes.rbracket}>]</span>
