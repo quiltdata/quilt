@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Note from './Note'
+import PreviewValue from './PreviewValue'
 import { EMPTY_VALUE } from './State'
 
 const useStyles = M.makeStyles((t) => ({
@@ -37,8 +38,9 @@ export default function EnumSelect({ columnId, data, placeholder, value, onChang
 
   const options = React.useMemo(
     () =>
-      data.valueSchema.enum.map((item) => ({
-        title: item,
+      data.valueSchema.enum.map((enumItem, index) => ({
+        value: enumItem,
+        key: index,
       })),
     [data],
   )
@@ -63,8 +65,8 @@ export default function EnumSelect({ columnId, data, placeholder, value, onChang
         input={<M.InputBase endAdornment={<Note {...{ columnId, data, value }} />} />}
       >
         {options.map((menuItem) => (
-          <M.MenuItem key={menuItem.title} value={menuItem.title}>
-            {menuItem.title}
+          <M.MenuItem key={menuItem.key} value={menuItem.value}>
+            <PreviewValue value={menuItem.value} />
           </M.MenuItem>
         ))}
       </M.Select>
