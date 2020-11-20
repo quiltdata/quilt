@@ -28,6 +28,48 @@ export const schema = {
       type: 'string',
       enum: ['one', 'two', 'three'],
     },
+    enumObjects: {
+      type: 'object',
+      enum: [
+        {
+          id: 1,
+        },
+        {
+          id: 2,
+        },
+        {
+          id: 3,
+        },
+      ],
+    },
+    enumArrays: {
+      type: 'array',
+      enum: [
+        [1, 2, 3],
+        [3, 4, 5],
+        [6, 7, 8],
+      ],
+    },
+    enumArraysAndObjects: {
+      type: 'array',
+      enum: [
+        [
+          'miles',
+          {
+            format: '12h',
+          },
+        ],
+        [
+          'kilometers',
+          {
+            format: '24h',
+          },
+        ],
+        {
+          name: 'unspecified',
+        },
+      ],
+    },
   },
   required: ['a', 'b'],
 }
@@ -84,6 +126,50 @@ export const columnsSchemaOnly = [
         type: 'string',
         value: EMPTY_VALUE,
       },
+      {
+        key: 'enumObjects',
+        reactId: 'enumObjects+undefined',
+        address: ['enumObjects'],
+        required: false,
+        valueSchema: { type: 'object', enum: [{ id: 1 }, { id: 2 }, { id: 3 }] },
+        sortIndex: 9,
+        type: 'object',
+        value: EMPTY_VALUE,
+      },
+      {
+        key: 'enumArrays',
+        reactId: 'enumArrays+undefined',
+        address: ['enumArrays'],
+        required: false,
+        valueSchema: {
+          type: 'array',
+          enum: [
+            [1, 2, 3],
+            [3, 4, 5],
+            [6, 7, 8],
+          ],
+        },
+        sortIndex: 11,
+        type: 'array',
+        value: EMPTY_VALUE,
+      },
+      {
+        key: 'enumArraysAndObjects',
+        reactId: 'enumArraysAndObjects+undefined',
+        address: ['enumArraysAndObjects'],
+        required: false,
+        valueSchema: {
+          type: 'array',
+          enum: [
+            ['miles', { format: '12h' }],
+            ['kilometers', { format: '24h' }],
+            { name: 'unspecified' },
+          ],
+        },
+        sortIndex: 13,
+        type: 'array',
+        value: EMPTY_VALUE,
+      },
     ],
   },
 ]
@@ -138,6 +224,50 @@ export const columnsSchemaAndObject1 = [
         valueSchema: { type: 'string', enum: ['one', 'two', 'three'] },
         sortIndex: 7,
         type: 'string',
+        value: EMPTY_VALUE,
+      },
+      {
+        key: 'enumObjects',
+        reactId: 'enumObjects+undefined',
+        address: ['enumObjects'],
+        required: false,
+        valueSchema: { type: 'object', enum: [{ id: 1 }, { id: 2 }, { id: 3 }] },
+        sortIndex: 9,
+        type: 'object',
+        value: EMPTY_VALUE,
+      },
+      {
+        key: 'enumArrays',
+        reactId: 'enumArrays+undefined',
+        address: ['enumArrays'],
+        required: false,
+        valueSchema: {
+          type: 'array',
+          enum: [
+            [1, 2, 3],
+            [3, 4, 5],
+            [6, 7, 8],
+          ],
+        },
+        sortIndex: 11,
+        type: 'array',
+        value: EMPTY_VALUE,
+      },
+      {
+        key: 'enumArraysAndObjects',
+        reactId: 'enumArraysAndObjects+undefined',
+        address: ['enumArraysAndObjects'],
+        required: false,
+        valueSchema: {
+          type: 'array',
+          enum: [
+            ['miles', { format: '12h' }],
+            ['kilometers', { format: '24h' }],
+            { name: 'unspecified' },
+          ],
+        },
+        sortIndex: 13,
+        type: 'array',
         value: EMPTY_VALUE,
       },
       { key: '111', value: 'aaa', reactId: '111+"aaa"' },

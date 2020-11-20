@@ -31,7 +31,17 @@ describe('components/JsonEditor/State', () => {
 
     it('should contain both keys of object and Schema, required first', () => {
       const rootKeys = mergeSchemaAndObjRootKeys(regular.schema, { 1: 1, z: 'z' })
-      expect(rootKeys).toEqual(['a', 'b', 'optList', 'optEnum', '1', 'z'])
+      expect(rootKeys).toEqual([
+        'a',
+        'b',
+        'optList',
+        'optEnum',
+        'enumObjects',
+        'enumArrays',
+        'enumArraysAndObjects',
+        '1',
+        'z',
+      ])
     })
   })
 
