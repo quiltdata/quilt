@@ -145,11 +145,13 @@ export default function Cell({
 
   const menu = React.useMemo(
     () =>
-      getMenu({
-        required: row.original ? row.original.required : false,
-        value: key,
-      }),
-    [row, key],
+      isKeyCell
+        ? getMenu({
+            required: row.original ? row.original.required : false,
+            value: key,
+          })
+        : emptyMenu,
+    [isKeyCell, key, row],
   )
 
   const ValueComponent = R.cond([
