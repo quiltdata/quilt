@@ -173,7 +173,7 @@ export default function Cell({
           columnId: column.id,
           data: row.original || emptyCellData,
           menu,
-          menuOpened: menuOpened && isKeyCell,
+          menuOpened,
           onChange,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
           onMenu: onMenuOpen,
