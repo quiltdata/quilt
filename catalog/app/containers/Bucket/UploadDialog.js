@@ -659,8 +659,8 @@ function SchemaFetcher({ children, schemaUrl }) {
 }
 
 const getWorkflowApiParam = R.cond([
-  [R.equals(workflows.workflowNotAvaliable), R.always(undefined)],
-  [R.equals(workflows.workflowNotSelected), R.always(null)],
+  [R.equals(workflows.notAvaliable), R.always(undefined)],
+  [R.equals(workflows.notSelected), R.always(null)],
   [R.T, R.identity],
 ])
 
