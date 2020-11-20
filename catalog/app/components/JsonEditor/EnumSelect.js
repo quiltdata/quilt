@@ -10,7 +10,6 @@ const useStyles = M.makeStyles((t) => ({
     height: t.spacing(4),
     position: 'relative',
   },
-
   select: {
     ...t.typography.body2,
     padding: t.spacing(0, 1),
@@ -20,11 +19,9 @@ const useStyles = M.makeStyles((t) => ({
       outline: `2px solid ${t.palette.primary.light}`,
     },
   },
-
   icon: {
     right: t.spacing(6),
   },
-
   placeholder: {
     lineHeight: `${t.spacing(4) - 2}px`,
     color: t.palette.text.disabled,
