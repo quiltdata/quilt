@@ -22,7 +22,7 @@ const actionsSubmenu = {
   ],
 }
 
-function getMenuForKey({ required, value }) {
+function getMenu({ required, value }) {
   if (required || value === EMPTY_VALUE) {
     return emptyMenu
   }
@@ -143,9 +143,9 @@ export default function Cell({
     [editing, isEditable, setEditing],
   )
 
-  const menuForKey = React.useMemo(
+  const menu = React.useMemo(
     () =>
-      getMenuForKey({
+      getMenu({
         required: row.original ? row.original.required : false,
         value: key,
       }),
@@ -170,7 +170,7 @@ export default function Cell({
         {...{
           columnId: column.id,
           data: row.original || emptyCellData,
-          menu: isKeyCell ? menuForKey : [],
+          menu,
           menuOpened: menuOpened && isKeyCell,
           onChange,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
