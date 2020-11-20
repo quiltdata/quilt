@@ -32,7 +32,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Select({ columnId, data, placeholder, value, onChange }) {
+export default function EnumSelect({ columnId, data, placeholder, value, onChange }) {
   const classes = useStyles()
 
   const options = React.useMemo(

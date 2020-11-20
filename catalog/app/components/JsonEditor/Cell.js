@@ -5,9 +5,9 @@ import * as M from '@material-ui/core'
 
 import { isSchemaEnum } from 'utils/json-schema'
 
+import EnumSelect from './EnumSelect'
 import Input from './Input'
 import Preview from './Preview'
-import Select from './Select'
 import { ACTIONS, COLUMN_IDS, EMPTY_VALUE, parseJSON } from './State'
 
 const emptyMenu = []
@@ -153,7 +153,7 @@ export default function Cell({
   )
 
   const ValueComponent = R.cond([
-    [() => isEnumCell, () => Select],
+    [() => isEnumCell, () => EnumSelect],
     [() => editing, () => Input],
     [R.T, () => Preview],
   ])()
