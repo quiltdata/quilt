@@ -2,17 +2,9 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { EMPTY_VALUE } from './State'
+import { stringifyJSON, EMPTY_VALUE } from './State'
 
-const useStyles = M.makeStyles((t) => ({
-  lbrace: {
-    color: t.palette.secondary.dark,
-    marginRight: t.spacing(0.5),
-  },
-  rbrace: {
-    color: t.palette.secondary.dark,
-    marginLeft: t.spacing(0.5),
-  },
+const useArrayStyles = M.makeStyles((t) => ({
   lbracket: {
     color: t.palette.secondary.dark,
     marginRight: t.spacing(0.5),
@@ -23,8 +15,19 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+const useObjectStyles = M.makeStyles((t) => ({
+  lbrace: {
+    color: t.palette.secondary.dark,
+    marginRight: t.spacing(0.5),
+  },
+  rbrace: {
+    color: t.palette.secondary.dark,
+    marginLeft: t.spacing(0.5),
+  },
+}))
+
 function PreviewArray({ value }) {
-  const classes = useStyles()
+  const classes = useArrayStyles()
 
   return (
     <span>
@@ -41,22 +44,28 @@ function PreviewArray({ value }) {
   )
 }
 
-export default function PreviewValue({ value }) {
-  const classes = useStyles()
+function PreviewObject({ value }) {
+  const classes = useObjectStyles()
 
-  if (value === EMPTY_VALUE || value === undefined) return ''
+  const hintText = React.useMemo(() => stringifyJSON(value), [value])
 
-  if (Array.isArray(value)) return <PreviewArray value={value} />
-
-  if (R.is(Object, value)) {
-    return (
+  return (
+    <M.Tooltip title={hintText}>
       <span>
         <span className={classes.lbrace}>&#123;</span>
         {Object.keys(value).join(', ')}
         <span className={classes.rbrace}>&#125;</span>
       </span>
-    )
-  }
+    </M.Tooltip>
+  )
+}
+
+export default function PreviewValue({ value }) {
+  if (value === EMPTY_VALUE || value === undefined) return ''
+
+  if (Array.isArray(value)) return <PreviewArray value={value} />
+
+  if (R.is(Object, value)) return <PreviewObject value={value} />
 
   if (value === null) return 'null'
 
