@@ -29,23 +29,6 @@ function getMenuForKey({ required, value }) {
   return [actionsSubmenu]
 }
 
-function getMenuForValue({ valueSchema }) {
-  if (!isSchemaEnum(valueSchema)) {
-    return emptyMenu
-  }
-
-  const enumOptions = valueSchema.enum.map((title) => ({
-    action: ACTIONS.SELECT_ENUM,
-    title,
-  }))
-  const enumSubmenu = {
-    header: 'Enum',
-    key: 'enum',
-    options: enumOptions,
-  }
-  return [enumSubmenu]
-}
-
 const useStyles = M.makeStyles((t) => ({
   root: {
     '&:focus': {
@@ -113,6 +96,11 @@ export default function Cell({
     [isKeyCell, row.original],
   )
 
+  const isEnumCell = React.useMemo(
+    () => isValueCell && isSchemaEnum(R.path(['original', 'valueSchema'], row)),
+    [isValueCell, row],
+  )
+
   const onDoubleClick = React.useCallback(() => {
     if (!isEditable) return
     setEditing(true)
@@ -155,9 +143,6 @@ export default function Cell({
     [editing, isEditable, setEditing],
   )
 
-  const keyMenuOpened = menuOpened && isKeyCell
-  const valueMenuOpened = menuOpened && isValueCell
-
   const menuForKey = React.useMemo(
     () =>
       getMenuForKey({
@@ -167,16 +152,8 @@ export default function Cell({
     [row, key],
   )
 
-  const menuForValue = React.useMemo(
-    () =>
-      getMenuForValue({
-        valueSchema: row.original ? row.original.valueSchema : undefined,
-      }),
-    [row],
-  )
-
   const ValueComponent = R.cond([
-    [() => !!(isValueCell && menuForValue.length), () => Select],
+    [() => isEnumCell, () => Select],
     [() => editing, () => Input],
     [R.T, () => Preview],
   ])()
@@ -193,8 +170,8 @@ export default function Cell({
         {...{
           columnId: column.id,
           data: row.original || emptyCellData,
-          menu: isKeyCell ? menuForKey : menuForValue,
-          menuOpened: keyMenuOpened || valueMenuOpened,
+          menu: isKeyCell ? menuForKey : [],
+          menuOpened: menuOpened && isKeyCell,
           onChange,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
           onMenu: onMenuOpen,

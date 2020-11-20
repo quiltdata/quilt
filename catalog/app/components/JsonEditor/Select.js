@@ -32,8 +32,16 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Select({ menu, columnId, data, placeholder, value, onChange }) {
+export default function Select({ columnId, data, placeholder, value, onChange }) {
   const classes = useStyles()
+
+  const options = React.useMemo(
+    () =>
+      data.valueSchema.enum.map((item) => ({
+        title: item,
+      })),
+    [data],
+  )
 
   const onChangeInternal = (e) => {
     if (e.target.value === undefined) {
@@ -54,7 +62,7 @@ export default function Select({ menu, columnId, data, placeholder, value, onCha
         }}
         input={<M.InputBase endAdornment={<Note {...{ columnId, data, value }} />} />}
       >
-        {menu[0].options.map((menuItem) => (
+        {options.map((menuItem) => (
           <M.MenuItem key={menuItem.title} value={menuItem.title}>
             {menuItem.title}
           </M.MenuItem>
