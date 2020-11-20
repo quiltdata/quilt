@@ -14,72 +14,72 @@ import * as regular from './mocks/regular'
 
 describe('components/JsonEditor/State', () => {
   describe('Root keys for JSON editor', () => {
-    it('contain keys of a given object', () => {
+    it('should contain keys of a given object', () => {
       const rootKeys = mergeSchemaAndObjRootKeys({}, { a: 1, b: 2, c: 3 })
       expect(rootKeys).toEqual(['a', 'b', 'c'])
     })
 
-    it('contain keys of Schema', () => {
+    it('should contain keys of Schema', () => {
       const rootKeys = mergeSchemaAndObjRootKeys(booleansNulls.schema, {})
       expect(rootKeys).toEqual(['nullValue', 'boolValue', 'enumBool'])
     })
 
-    it('contain both keys of object and Schema, Schema first', () => {
+    it('should contain both keys of object and Schema, Schema first', () => {
       const rootKeys = mergeSchemaAndObjRootKeys(booleansNulls.schema, { 1: 1, z: 'z' })
       expect(rootKeys).toEqual(['nullValue', 'boolValue', 'enumBool', '1', 'z'])
     })
 
-    it('contain both keys of object and Schema, required first', () => {
+    it('should contain both keys of object and Schema, required first', () => {
       const rootKeys = mergeSchemaAndObjRootKeys(regular.schema, { 1: 1, z: 'z' })
       expect(rootKeys).toEqual(['a', 'b', 'optList', 'optEnum', '1', 'z'])
     })
   })
 
   describe('JSON dict', () => {
-    it('is empty for no Schema', () => {
+    it('should be empty for no Schema', () => {
       const jsonDict = iterateSchema({}, { current: 0 }, [], {})
       expect(jsonDict).toEqual({})
     })
 
-    it('contains values for a flat Schema', () => {
+    it('should contain values for a flat Schema', () => {
       const jsonDict = iterateSchema(booleansNulls.schema, { current: 0 }, [], {})
       expect(jsonDict).toEqual(booleansNulls.jsonDict)
     })
 
-    it('contains values for every nesting level of Schema, object', () => {
+    it('should contain values for every nesting level of Schema, object', () => {
       const jsonDict = iterateSchema(deeplyNestedObject.schema, { current: 0 }, [], {})
       expect(jsonDict).toEqual(deeplyNestedObject.jsonDict)
     })
 
-    it("doesn't contain values for every nesting level of Schema, array", () => {
+    it("shouldn't contain values for every nesting level of Schema, array", () => {
       const jsonDict = iterateSchema(deeplyNestedArray.schema, { current: 0 }, [], {})
       expect(jsonDict).toEqual(deeplyNestedArray.jsonDict)
     })
   })
 
   describe('UI columns', () => {
-    it('have one empty column for an empty object', () => {
+    it('should have one empty column for an empty object', () => {
       const jsonDict = iterateSchema({}, { current: 0 }, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys({}, {})
       const columns = iterateJsonDict(jsonDict, {}, [], rootKeys)
       expect(columns).toEqual([{ parent: {}, items: [] }])
     })
 
-    it('have one column with Schema keys for an empty object', () => {
+    it('should have one column with Schema keys for an empty object', () => {
       const jsonDict = iterateSchema(regular.schema, { current: 0 }, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys(regular.schema, {})
       const columns = iterateJsonDict(jsonDict, {}, [], rootKeys)
       expect(columns).toEqual(regular.columnsSchemaOnly)
     })
 
-    it('have one column with Schema keys for a flat object', () => {
+    it('should have one column with Schema keys for a flat object', () => {
       const jsonDict = iterateSchema(regular.schema, { current: 0 }, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys(regular.schema, regular.object1)
       const columns = iterateJsonDict(jsonDict, regular.object1, [], rootKeys)
       expect(columns).toEqual(regular.columnsSchemaAndObject1)
     })
 
-    it('have three columns for empty object and path', () => {
+    it('should have three columns for empty object and path', () => {
       const jsonDict = iterateSchema(deeplyNestedObject.schema, { current: 0 }, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys(deeplyNestedObject.schema, {})
       const columns = iterateJsonDict(
@@ -91,7 +91,7 @@ describe('components/JsonEditor/State', () => {
       expect(columns).toEqual(deeplyNestedObject.columnsNested)
     })
 
-    it('have three columns for given object and path', () => {
+    it('should have three columns for given object and path', () => {
       const jsonDict = iterateSchema({}, { current: 0 }, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys({}, deeplyNestedObject.object1)
       const columns = iterateJsonDict(
@@ -105,7 +105,7 @@ describe('components/JsonEditor/State', () => {
   })
 
   describe('Schema', () => {
-    it('validates required keyword', () => {
+    it('should validate required keyword', () => {
       const validate = validateOnSchema(regular.schema)
 
       const obj = { optList: [{ id: 1, name: 'Name' }], optEnum: 'one' }
@@ -117,7 +117,7 @@ describe('components/JsonEditor/State', () => {
       })
     })
 
-    it('validates enum type', () => {
+    it('should validate enum type', () => {
       const validate = validateOnSchema(regular.schema)
 
       const invalid = { a: 123, b: 'value', optEnum: 'value' }
@@ -160,7 +160,7 @@ describe('components/JsonEditor/State', () => {
       expect(validate(valid)).toHaveLength(0)
     })
 
-    it('validates number and string types', () => {
+    it('should validate number and string types', () => {
       const validate = validateOnSchema(regular.schema)
 
       const invalidNumber = { a: 'b', b: 'b' }
@@ -177,7 +177,7 @@ describe('components/JsonEditor/State', () => {
       expect(validate(valid)).toHaveLength(0)
     })
 
-    it('validates boolean and null types', () => {
+    it('should validate boolean and null types', () => {
       const validate = validateOnSchema(booleansNulls.schema)
 
       const invalidNull = { nullValue: 123 }
@@ -204,7 +204,7 @@ describe('components/JsonEditor/State', () => {
       expect(validate(valid)).toHaveLength(0)
     })
 
-    it('validates compound types', () => {
+    it('should validate compound types', () => {
       const validate = validateOnSchema(compound.schemaAnyOf)
 
       const emptyObject = {}
@@ -254,7 +254,7 @@ describe('components/JsonEditor/State', () => {
       expect(errors).toHaveLength(0)
     })
 
-    it('validates types as arrays', () => {
+    it('should validate types as arrays', () => {
       const validate = validateOnSchema(compound.schemaTypeArray)
 
       const invalidProperty = { strOrNum: [], strOrNumList: [{}, null, true] }
@@ -285,7 +285,7 @@ describe('components/JsonEditor/State', () => {
       expect(validate(validNumber)).toHaveLength(0)
     })
 
-    it('throws an error when schema is incorrect', () => {
+    it('should throw an error when schema is incorrect', () => {
       const validate = validateOnSchema(incorrect.schema)
       const errors = validate({})
 
