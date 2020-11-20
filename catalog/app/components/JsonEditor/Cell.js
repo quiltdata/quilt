@@ -154,11 +154,11 @@ export default function Cell({
     [isKeyCell, key, row],
   )
 
-  const ValueComponent = R.cond([
-    [() => isEnumCell, () => EnumSelect],
-    [() => editing, () => Input],
-    [R.T, () => Preview],
-  ])()
+  const ValueComponent = React.useMemo(() => {
+    if (isEnumCell) return EnumSelect
+    if (editing) return Input
+    return Preview
+  }, [editing, isEnumCell])
 
   return (
     <div
