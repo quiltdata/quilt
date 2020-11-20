@@ -321,10 +321,8 @@ export const metadataSchema = async ({ s3, schemaUrl }) => {
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) throw e
 
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
+    logger.log('Unable to fetch')
+    logger.error(e)
   }
 
   return null
@@ -340,10 +338,8 @@ export const workflowsList = async ({ s3, bucket }) => {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
       return emptyWorkflowsConfig
 
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
+    logger.log('Unable to fetch')
+    logger.error(e)
   }
 
   return emptyWorkflowsConfig
