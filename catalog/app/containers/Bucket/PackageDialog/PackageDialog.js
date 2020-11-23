@@ -19,6 +19,11 @@ import SelectWorkflow from './SelectWorkflow'
 export const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
 export const ES_LAG = 3 * 1000
 
+export const ERROR_MESSAGES = {
+  UPLOAD: 'Error uploading files',
+  MANIFEST: 'Error creating manifest',
+}
+
 export const getNormalizedPath = R.pipe(
   R.prop('path'),
   R.when(R.startsWith('/'), R.drop(1)),

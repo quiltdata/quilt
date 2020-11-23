@@ -541,7 +541,7 @@ function DialogForm({
     try {
       uploaded = await Promise.all(uploadStates.map((x) => x.promise))
     } catch (e) {
-      return { [FORM_ERROR]: 'Error uploading files' }
+      return { [FORM_ERROR]: PD.ERROR_MESSAGES.UPLOAD }
     }
 
     const newEntries = pipeThru(toUpload, uploaded)(
@@ -591,9 +591,8 @@ function DialogForm({
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
-      // TODO: see if we should use e.message
       // TODO: handle specific cases?
-      return { [FORM_ERROR]: 'Error creating manifest' }
+      return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
     }
   }
 

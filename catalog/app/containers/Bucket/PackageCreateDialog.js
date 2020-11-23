@@ -23,12 +23,6 @@ import * as validators from 'utils/validators'
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
-const ERRORS = {
-  FILES_UPLOAD: { [FORM_ERROR]: 'Error uploading files' },
-  PACKAGE_CREATION: { [FORM_ERROR]: 'Error creating manifest' },
-  PACKAGE_VALIDATION: { [FORM_ERROR]: 'Error validating package' },
-}
-
 const useFilesInputStyles = M.makeStyles((t) => ({
   root: {
     marginTop: t.spacing(2),
@@ -415,7 +409,7 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
     try {
       uploaded = await Promise.all(uploadStates.map((x) => x.promise))
     } catch (e) {
-      return ERRORS.FILES_UPLOAD
+      return { [FORM_ERROR]: PD.ERROR_MESSAGES.UPLOAD }
     }
 
     const contents = R.zipWith(
@@ -455,13 +449,8 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
-      if (e.message) {
-        return {
-          [FORM_ERROR]: e.message,
-        }
-      }
       // TODO: handle specific cases?
-      return ERRORS.PACKAGE_CREATION
+      return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
     }
   }
 
