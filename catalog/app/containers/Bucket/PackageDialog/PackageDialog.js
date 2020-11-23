@@ -146,10 +146,7 @@ export function Field({ input, meta, errors, label, ...rest }) {
 
 const useWorkflowInputStyles = M.makeStyles((t) => ({
   root: {
-    margin: t.spacing(2, 0, 3),
-  },
-  select: {
-    marginTop: t.spacing(1),
+    margin: t.spacing(3, 0),
   },
 }))
 
@@ -159,15 +156,13 @@ export function WorkflowInput({ input, meta, workflowsConfig }) {
   const disabled = meta.submitting || meta.submitSucceeded
 
   return (
-    <div className={classes.root}>
-      <SelectWorkflow
-        className={classes.select}
-        items={workflowsConfig ? workflowsConfig.workflows : []}
-        onChange={input.onChange}
-        value={input.value}
-        disabled={disabled}
-      />
-    </div>
+    <SelectWorkflow
+      className={classes.root}
+      items={workflowsConfig ? workflowsConfig.workflows : []}
+      onChange={input.onChange}
+      value={input.value}
+      disabled={disabled}
+    />
   )
 }
 
@@ -319,20 +314,6 @@ export function MetaInput({ schemaError, input, meta, schema }) {
   )
 }
 
-export function MetaInputSkeleton() {
-  const classes = useMetaInputStyles()
-  const t = M.useTheme()
-  return (
-    <M.Grid container spacing={1} className={classes.root}>
-      {R.range(0, 6).map((index) => (
-        <M.Grid item xs={6} key={index}>
-          <Skeleton height={t.spacing(4)} width="100%" />
-        </M.Grid>
-      ))}
-    </M.Grid>
-  )
-}
-
 export function SchemaFetcher({ children, schemaUrl }) {
   const s3 = AWS.S3.use()
   const data = useData(requests.metadataSchema, { s3, schemaUrl })
@@ -349,11 +330,28 @@ export function SchemaFetcher({ children, schemaUrl }) {
   return children(res)
 }
 
+export function MetaInputSkeleton() {
+  const classes = useMetaInputStyles()
+  const t = M.useTheme()
+  return (
+    <M.Grid container spacing={1} className={classes.root}>
+      {R.times(
+        (index) => (
+          <M.Grid item xs={6} key={index}>
+            <Skeleton height={t.spacing(4)} width="100%" />
+          </M.Grid>
+        ),
+        6,
+      )}
+    </M.Grid>
+  )
+}
+
 export function FormSkeleton({ animate }) {
   return (
     <>
-      <Skeleton {...{ height: 48, mt: 2, mb: 1, animate }} />
-      <Skeleton {...{ height: 48, mt: 2, mb: 1, animate }} />
+      <Skeleton {...{ height: 48, mt: 2, animate }} />
+      <Skeleton {...{ height: 48, mt: 3, animate }} />
       <M.Box mt={3}>
         <Skeleton {...{ height: 24, width: 64, animate }} />
         <Skeleton {...{ height: 140, mt: 2, animate }} />
@@ -373,7 +371,7 @@ export function FormSkeleton({ animate }) {
           <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
         </M.Box>
       </M.Box>
-      <Skeleton {...{ height: 80, mt: 2, mb: 3, animate }} />
+      <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
     </>
   )
 }

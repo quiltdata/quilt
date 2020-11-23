@@ -31,7 +31,7 @@ const ERRORS = {
 
 const useFilesInputStyles = M.makeStyles((t) => ({
   root: {
-    marginTop: t.spacing(3),
+    marginTop: t.spacing(2),
   },
   header: {
     alignItems: 'center',
