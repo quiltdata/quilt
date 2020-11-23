@@ -13,6 +13,11 @@ const useStyles = M.makeStyles((t) => ({
   icon: {
     right: t.spacing(6),
   },
+  // TODO: reuse component from ButtonMenu
+  note: {
+    fontFamily: t.typography.monospace.fontFamily,
+    fontSize: t.typography.caption.fontSize,
+  },
   placeholder: {
     color: t.palette.text.disabled,
     left: t.spacing(1),
@@ -59,7 +64,15 @@ export default function EnumSelect({ columnId, data, placeholder, value, onChang
         classes={{
           icon: classes.icon,
         }}
-        input={<M.InputBase endAdornment={<Note {...{ columnId, data, value }} />} />}
+        input={
+          <M.InputBase
+            endAdornment={
+              <code className={classes.note}>
+                <Note {...{ columnId, data, value }} />
+              </code>
+            }
+          />
+        }
       >
         {options.map((menuItem) => (
           <M.MenuItem key={menuItem.key} value={menuItem.value}>
