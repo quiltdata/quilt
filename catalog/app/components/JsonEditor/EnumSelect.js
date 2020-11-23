@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -41,10 +42,10 @@ export default function EnumSelect({ columnId, data, placeholder, value, onChang
   const options = React.useMemo(
     () =>
       data.valueSchema.enum.map((enumItem, index) => ({
-        value: enumItem,
+        value: R.equals(value, enumItem) ? value : enumItem,
         key: index,
       })),
-    [data],
+    [data, value],
   )
 
   const onChangeInternal = (e) => {
