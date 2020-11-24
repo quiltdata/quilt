@@ -623,10 +623,11 @@ const useWorkflowInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-function WorkflowInput({ input, meta, workflowsConfig }) {
+function WorkflowInput({ errors, input, meta, workflowsConfig }) {
   const classes = useWorkflowInputStyles()
 
   const disabled = meta.submitting || meta.submitSucceeded
+  const errorKey = meta.submitFailed && meta.error
 
   return (
     <div className={classes.root}>
@@ -636,6 +637,7 @@ function WorkflowInput({ input, meta, workflowsConfig }) {
         onChange={input.onChange}
         value={input.value}
         disabled={disabled}
+        error={errors[errorKey]}
       />
     </div>
   )
@@ -924,7 +926,11 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                         : null
                     }
                     name="workflow"
+                    validate={validators.required}
                     validateFields={['meta', 'workflow']}
+                    errors={{
+                      required: 'Select workflow to create a package',
+                    }}
                   />
 
                   <input type="submit" style={{ display: 'none' }} />

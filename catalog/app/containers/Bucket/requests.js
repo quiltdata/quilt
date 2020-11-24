@@ -42,7 +42,6 @@ function getNoWorkflow(data, hasConfig) {
 }
 
 const emptyWorkflowsConfig = {
-  isRequired: false,
   workflows: [getNoWorkflow({}, false)],
 }
 
@@ -62,7 +61,6 @@ function parseWorkflows(workflowsYaml) {
     data.is_workflow_required === false ? getNoWorkflow(data, true) : null
 
   return {
-    isRequired: data.is_workflow_required,
     workflows: noWorkflow ? [noWorkflow, ...workflowsList] : workflowsList,
   }
 }

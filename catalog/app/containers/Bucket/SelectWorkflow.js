@@ -8,21 +8,35 @@ const useStyles = M.makeStyles((t) => ({
     flex: 'none',
     marginRight: t.spacing(3),
   },
-
   crop: {
     textOverflow: 'ellipsis',
     overflow: 'hidden',
   },
+  error: {
+    marginRight: t.spacing(1),
+  },
 }))
 
-export default function SelectWorkflow({ className, disabled, items, onChange, value }) {
+export default function SelectWorkflow({
+  className,
+  disabled,
+  error,
+  items,
+  onChange,
+  value,
+}) {
   const classes = useStyles()
 
   const noChoice = items.length === 1
 
   return (
     <div className={className}>
-      <M.FormControl disabled={disabled || noChoice} fullWidth size="small">
+      <M.FormControl
+        disabled={disabled || noChoice}
+        fullWidth
+        size="small"
+        error={!!error}
+      >
         <M.InputLabel id="schema-select">Metadata quality workflow</M.InputLabel>
         <M.Select
           labelId="schema-select"
@@ -48,6 +62,7 @@ export default function SelectWorkflow({ className, disabled, items, onChange, v
           ))}
         </M.Select>
         <M.FormHelperText>
+          {error && <span className={classes.error}>{error}</span>}
           <M.Link href={`${docs}/advanced-usage/workflows`} target="_blank">
             Learn about quality workflows
           </M.Link>
