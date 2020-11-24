@@ -555,6 +555,7 @@ function DialogForm({
           }),
           size: f.file.size,
           hash: u.hash,
+          meta: R.prop('meta', files.existing[f.path]),
         },
       ]),
       R.fromPairs,
