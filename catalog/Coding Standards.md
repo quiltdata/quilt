@@ -12,7 +12,7 @@
 
 ### Unit-tests
 
-  * Main test unit is a function. `Describe` test for function
+  * Main test unit is a function. `Describe` test for a function
 
   * One test for one assertion
 
