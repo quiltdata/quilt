@@ -929,7 +929,7 @@ function UploadDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
                     validate={validators.required}
                     validateFields={['meta', 'workflow']}
                     errors={{
-                      required: 'Select workflow to create a package',
+                      required: 'Workflow is required for this bucket.',
                     }}
                   />
 
