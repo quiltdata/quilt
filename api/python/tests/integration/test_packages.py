@@ -1,5 +1,6 @@
 """ Integration tests for Quilt Packages. """
 import io
+import locale
 import os
 import pathlib
 import shutil
@@ -1167,14 +1168,21 @@ class PackageTest(QuiltTestCase):
         assert r == "(empty Package)"
 
     def test_manifest(self):
-        pkg = Package()
+        pkg = Package().set_meta({'metadata': '💩'})
         pkg.set('as/df', LOCAL_MANIFEST)
         pkg.set('as/qw', LOCAL_MANIFEST)
         top_hash = pkg.build('foo/bar')
         manifest = list(pkg.manifest)
 
-        pkg2 = Package.browse('foo/bar', top_hash=top_hash)
-        assert list(pkg.manifest) == list(pkg2.manifest)
+        current_locale = locale.setlocale(locale.LC_ALL)
+        try:
+            for locale_name in ('C', ''):
+                with self.subTest(locale_name=locale_name):
+                    locale.setlocale(locale.LC_ALL, locale_name)
+                    pkg2 = Package.browse('foo/bar', top_hash=top_hash)
+                    assert list(pkg2.manifest) == manifest
+        finally:
+            locale.setlocale(locale.LC_ALL, current_locale)
 
     @patch('quilt3.Package._build', mock.MagicMock())
     @patch('quilt3.packages.copy_file_list', mock.MagicMock())
