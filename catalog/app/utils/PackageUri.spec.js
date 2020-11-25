@@ -9,7 +9,7 @@ describe('utils/PackageUri', () => {
           'quilt+s3://bucket-name#package=quilt/test:latest&path=sub/path',
         ),
       ).toEqual({
-        registry: 's3://bucket-name',
+        bucket: 's3://bucket-name',
         name: 'quilt/test',
         tag: 'latest',
         path: 'sub/path',
@@ -21,7 +21,7 @@ describe('utils/PackageUri', () => {
     it('should work', () => {
       expect(
         PackageUri.stringify({
-          registry: 's3://bucket-name',
+          bucket: 'bucket-name',
           name: 'quilt/test',
           tag: 'latest',
           path: 'sub/path',

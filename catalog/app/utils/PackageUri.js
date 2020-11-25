@@ -10,7 +10,7 @@ export class PackageUriError extends BaseError {
   static displayName = 'PackageUriError'
 
   constructor(msg, uri) {
-    super(`Invalid package URI (${uri}): ${msg}`, { uri })
+    super(`Invalid package URI (${uri}): ${msg}`, { msg, uri })
   }
 }
 
@@ -63,13 +63,19 @@ export function parse(uri) {
   if (!url.slashes) {
     throw new PackageUriError('missing slashes between protocol and registry.', uri)
   }
-  const registry = `s3://${url.host}${url.path || ''}`
+  if (url.path) {
+    throw new PackageUriError(
+      'non-bucket-root registries are not supported currently.',
+      uri,
+    )
+  }
+  const bucket = url.host
   const params = parseQs(url.hash.replace('#', ''))
   if (!params.package) {
     throw new PackageUriError('missing "package=" part.', uri)
   }
   const { name, hash, tag } = parsePackageSpec(params.package, uri)
-  return R.reject(R.isNil, { registry, name, hash, tag, path: params.path || null })
+  return R.reject(R.isNil, { bucket, name, hash, tag, path: params.path || null })
 }
 
 export function stringify(parsed) {
@@ -80,5 +86,5 @@ export function stringify(parsed) {
   } else if (parsed.tag) {
     pkgSpec += `:${parsed.tag}`
   }
-  return `quilt+${parsed.registry}#package=${pkgSpec}${pathPart}`
+  return `quilt+s3://${parsed.bucket}#package=${pkgSpec}${pathPart}`
 }
