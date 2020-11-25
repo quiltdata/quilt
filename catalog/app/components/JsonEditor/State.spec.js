@@ -261,36 +261,40 @@ describe('components/JsonEditor/State', () => {
         const invalidAnyOf = { numOrString: [] }
         const errorsAnyOf = validate(invalidAnyOf)
         expect(errorsAnyOf).toHaveLength(3)
-        expect(errorsAnyOf[0]).toMatchObject({
-          dataPath: '.numOrString',
-          keyword: 'type',
-        })
-        expect(errorsAnyOf[1]).toMatchObject({
-          dataPath: '.numOrString',
-          keyword: 'type',
-        })
-        expect(errorsAnyOf[2]).toMatchObject({
-          dataPath: '.numOrString',
-          keyword: 'anyOf',
-        })
+        expect(errorsAnyOf).toMatchObject([
+          {
+            dataPath: '.numOrString',
+            keyword: 'type',
+          },
+          {
+            dataPath: '.numOrString',
+            keyword: 'type',
+          },
+          {
+            dataPath: '.numOrString',
+            keyword: 'anyOf',
+          },
+        ])
       })
 
       it("shouldn't return error, when value doesn't match oneOf types", () => {
         const invalidOneOf = { intOrNonNumberOrLess3: 4.5 }
         const errorsOneOf = validate(invalidOneOf)
         expect(errorsOneOf).toHaveLength(3)
-        expect(errorsOneOf[0]).toMatchObject({
-          dataPath: '.intOrNonNumberOrLess3',
-          keyword: 'maximum',
-        })
-        expect(errorsOneOf[1]).toMatchObject({
-          dataPath: '.intOrNonNumberOrLess3',
-          keyword: 'type',
-        })
-        expect(errorsOneOf[2]).toMatchObject({
-          dataPath: '.intOrNonNumberOrLess3',
-          keyword: 'oneOf',
-        })
+        expect(errorsOneOf).toMatchObject([
+          {
+            dataPath: '.intOrNonNumberOrLess3',
+            keyword: 'maximum',
+          },
+          {
+            dataPath: '.intOrNonNumberOrLess3',
+            keyword: 'type',
+          },
+          {
+            dataPath: '.intOrNonNumberOrLess3',
+            keyword: 'oneOf',
+          },
+        ])
       })
 
       it("shouldn't return error, when value doesn't match `allOf` type", () => {
