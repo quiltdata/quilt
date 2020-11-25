@@ -178,7 +178,7 @@ function ExposeLinkedData({ bucketCfg, bucket, name, revision }) {
 function PkgCode({ data, bucket, name, revision, path }) {
   const code = data.case({
     Ok: ({ hash }) => {
-      const nameWithPath = path ? `${name}/${path}` : name
+      const nameWithPath = JSON.stringify(s3paths.ensureNoSlash(`${name}/${path}`))
       const hashDisplay = revision === 'latest' ? '' : hash.substring(0, 10)
       const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
       const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
@@ -189,9 +189,9 @@ function PkgCode({ data, bucket, name, revision, path }) {
           contents: dedent`
             import quilt3
             # browse
-            quilt3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
-            # download
-            quilt3.Package.install("${nameWithPath}"${hashPy}, registry="s3://${bucket}", dest=".")
+            p = quilt3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
+            # download (be mindful of large packages)
+            quilt3.Package.install(${nameWithPath}${hashPy}, registry="s3://${bucket}", dest=".")
           `,
         },
         {

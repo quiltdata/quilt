@@ -73,7 +73,7 @@ function doesTypeMatchCompoundSchema(value, optSchema, condition) {
 
 export function doesTypeMatchSchema(value, optSchema) {
   return R.cond([
-    [isSchemaEnum, () => R.propOr([], 'enum', optSchema).includes(value)],
+    [isSchemaEnum, () => R.includes(value, R.propOr([], 'enum', optSchema))],
     [
       (s) => Array.isArray(R.prop('type', s)),
       () =>
