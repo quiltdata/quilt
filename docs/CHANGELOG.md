@@ -7,6 +7,13 @@
 ## Catalog, Lambdas
 !-->
 
+# 3.4.0dev - YYYY-MM-DD
+## Python API
+
+## CLI
+
+## Catalog, Lambdas
+
 # 3.3.0rc1 - 2020-11-25
 ## Python API
 * [Added] Metadata quality API ([#1855](https://github.com/quiltdata/quilt/pull/1874)). For details see this [section](Advanced Features/workflows.md).
