@@ -588,7 +588,7 @@ class Package:
     @classmethod
     def _from_path(cls, path):
         """ Takes a path and returns a package loaded from that path"""
-        with open(path) as open_file:
+        with open(path, encoding='utf-8') as open_file:
             pkg = cls._load(open_file)
         return pkg
 
