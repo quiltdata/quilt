@@ -7,12 +7,18 @@
 ## Catalog, Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
+# 3.4.0dev - YYYY-MM-DD
+## Python API
+
+## CLI
+
+## Catalog, Lambdas
+
+# 3.3.0rc1 - 2020-11-25
 ## Python API
 * [Added] Metadata quality API ([#1855](https://github.com/quiltdata/quilt/pull/1874)). For details see this [section](Advanced Features/workflows.md).
 * [Changed] Improved formatting of package load progress bar ([#1897](https://github.com/quiltdata/quilt/pull/1897))
-
-## CLI
+* [Fixed] Crash during load of package manifest with unicode symbols with non-unicode locale set ([#1931](https://github.com/quiltdata/quilt/pull/1931))
 
 ## Catalog, Lambdas
 * [Added] Preview .pdbqt files as plain text ([#1855](https://github.com/quiltdata/quilt/pull/1855))
