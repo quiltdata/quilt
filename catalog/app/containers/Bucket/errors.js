@@ -30,6 +30,9 @@ export class FileNotFound extends BucketError {}
 export class VersionNotFound extends BucketError {}
 
 export class ManifestTooLarge extends BucketError {
+  // eslint-disable-next-line react/static-property-placement
+  static displayName = 'ManifestTooLarge'
+
   constructor(props) {
     super(
       `Package manifest at s3://${props.bucket}/${props.key} is too large: ${props.actualSize} (max size: ${props.maxSize})`,
@@ -37,7 +40,18 @@ export class ManifestTooLarge extends BucketError {
     )
   }
 }
-ManifestTooLarge.displayName = 'ManifestTooLarge'
+
+export class BadRevision extends BucketError {
+  // eslint-disable-next-line react/static-property-placement
+  static displayName = 'BadRevision'
+
+  constructor(props) {
+    super(
+      `Could not resolve revision "${props.revision}" for package "${props.handle}" in s3://${props.bucket}`,
+      props,
+    )
+  }
+}
 
 const WhenAuth = connect(
   createStructuredSelector({

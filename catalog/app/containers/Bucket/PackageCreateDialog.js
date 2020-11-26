@@ -445,7 +445,7 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
         await new Promise((resolve) => setTimeout(resolve, PD.ES_LAG))
         refresh()
       }
-      setSuccess({ name, revision: res.timestamp })
+      setSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
@@ -480,9 +480,9 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
                 <M.Typography>
                   Package{' '}
                   <StyledLink
-                    to={urls.bucketPackageTree(bucket, success.name, success.revision)}
+                    to={urls.bucketPackageTree(bucket, success.name, success.hash)}
                   >
-                    {success.name}@{success.revision}
+                    {success.name}@{R.take(10, success.hash)}
                   </StyledLink>{' '}
                   successfully created
                 </M.Typography>
@@ -491,7 +491,7 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
                 <M.Button onClick={handleClose()}>Close</M.Button>
                 <M.Button
                   component={Link}
-                  to={urls.bucketPackageTree(bucket, success.name, success.revision)}
+                  to={urls.bucketPackageTree(bucket, success.name, success.hash)}
                   variant="contained"
                   color="primary"
                 >

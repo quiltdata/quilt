@@ -289,17 +289,7 @@ const useRevisionStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Revision({
-  bucket,
-  name,
-  hash,
-  id,
-  stats,
-  message,
-  modified,
-  metadata,
-  counts,
-}) {
+function Revision({ bucket, name, hash, stats, message, modified, metadata, counts }) {
   const classes = useRevisionStyles()
   const { urls } = NamedRoutes.use()
   const t = M.useTheme()
@@ -308,7 +298,7 @@ function Revision({
   return (
     <RevisionLayout
       link={
-        <Link className={classes.time} to={urls.bucketPackageTree(bucket, name, id)}>
+        <Link className={classes.time} to={urls.bucketPackageTree(bucket, name, hash)}>
           {dateFns.format(modified, dateFmt)}
         </Link>
       }
