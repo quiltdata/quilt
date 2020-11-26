@@ -4,7 +4,7 @@ import * as workflows from './workflows'
 
 describe('utils/workflows', () => {
   describe('parse', () => {
-    describe('For no config input', () => {
+    describe('no config input', () => {
       const config = workflows.parse('')
 
       it('should return default empty values', () => {
@@ -16,7 +16,7 @@ describe('utils/workflows', () => {
       })
     })
 
-    describe("For config without `workflows` (it's invalid config)", () => {
+    describe('config without `workflows` (invalid config)', () => {
       const data = dedent`
         version: "1"
       `
@@ -31,7 +31,7 @@ describe('utils/workflows', () => {
       })
     })
 
-    describe("For config with empty list as `workflows` (it's invalid config)", () => {
+    describe('config with empty list as `workflows` (invalid config)', () => {
       const data = dedent`
         version: "1"
         workflows: []
@@ -47,7 +47,7 @@ describe('utils/workflows', () => {
       })
     })
 
-    describe('Config with required workflow', () => {
+    describe('config with required workflow', () => {
       const data = dedent`
         version: "1"
         is_workflow_required: True
@@ -66,7 +66,7 @@ describe('utils/workflows', () => {
       })
     })
 
-    describe('Config with workflow not required explicitly', () => {
+    describe('config with workflow not required explicitly', () => {
       const data = dedent`
         version: "1"
         is_workflow_required: False
@@ -89,7 +89,7 @@ describe('utils/workflows', () => {
       })
     })
 
-    describe('Config with workflow required implicitly', () => {
+    describe('config with workflow required implicitly', () => {
       const data = dedent`
         version: "1"
         workflows:
@@ -107,7 +107,7 @@ describe('utils/workflows', () => {
       })
     })
 
-    describe('Config with Schema urls', () => {
+    describe('config with Schema urls', () => {
       const data = dedent`
         version: "1"
         workflows:
@@ -131,7 +131,7 @@ describe('utils/workflows', () => {
       })
     })
 
-    describe('Config with default workflow', () => {
+    describe('config with default workflow', () => {
       const data = dedent`
         version: "1"
         default_workflow: workflow_2
