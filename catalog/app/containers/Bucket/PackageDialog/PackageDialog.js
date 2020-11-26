@@ -12,6 +12,7 @@ import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import pipeThru from 'utils/pipeThru'
 import * as validators from 'utils/validators'
+import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
 import SelectWorkflow from './SelectWorkflow'
@@ -175,8 +176,8 @@ export const defaultWorkflowFromConfig = (cfg) =>
   cfg ? cfg.workflows.find((item) => item.isDefault) : null
 
 export const getWorkflowApiParam = R.cond([
-  [R.equals(requests.workflowNotAvailable), R.always(undefined)],
-  [R.equals(requests.workflowNotSelected), R.always(null)],
+  [R.equals(workflows.notAvaliable), R.always(undefined)],
+  [R.equals(workflows.notSelected), R.always(null)],
   [R.T, R.identity],
 ])
 
