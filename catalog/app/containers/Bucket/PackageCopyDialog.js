@@ -5,6 +5,7 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import AsyncResult from 'utils/AsyncResult'
+import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
@@ -39,6 +40,25 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(3),
   },
 }))
+
+async function requestPackageCopy(req, { bucket, commitMessage, meta, name, workflow }) {
+  try {
+    return req({
+      endpoint: '/packages',
+      method: 'POST',
+      body: {
+        name,
+        registry: `s3://${bucket}`,
+        message: commitMessage,
+        contents: [],
+        meta: PD.getMetaValue(meta),
+        workflow: PD.getWorkflowApiParam(workflow.slug),
+      },
+    })
+  } catch (e) {
+    return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
+  }
+}
 
 export function FilesInput({ input: { value: inputValue }, meta }) {
   const classes = useFilesInputStyles()
@@ -118,8 +138,17 @@ function DialogForm({
     file,
   }))
 
-  const onSubmit = async ({ name }) => {
-    onSuccess({ name })
+  const req = APIConnector.use()
+
+  const onSubmit = async ({ commitMessage, name, meta, workflow }) => {
+    const res = await requestPackageCopy(req, {
+      bucket,
+      commitMessage,
+      meta,
+      name,
+      workflow,
+    })
+    onSuccess({ name, revision: res.timestamp })
     return { [FORM_ERROR]: 'Error creating manifest' }
   }
 
@@ -162,11 +191,11 @@ function DialogForm({
 
               <RF.Field
                 component={PD.Field}
-                name="msg"
+                name="commitMessage"
                 label="Commit message"
                 placeholder="Enter a commit message"
                 validate={validators.required}
-                validateFields={['msg']}
+                validateFields={['commitMessage']}
                 errors={{
                   required: 'Enter a commit message',
                 }}
