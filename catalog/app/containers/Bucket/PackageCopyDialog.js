@@ -2,7 +2,6 @@ import * as R from 'ramda'
 import { FORM_ERROR } from 'final-form'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import AsyncResult from 'utils/AsyncResult'
@@ -317,36 +316,6 @@ function DialogLoading({ bucket, onCancel }) {
   )
 }
 
-function DialogSuccess({ bucket, name, revision, onClose }) {
-  const { urls } = NamedRoutes.use()
-
-  return (
-    <>
-      <M.DialogTitle>Promotion is complete</M.DialogTitle>
-      <M.DialogContent style={{ paddingTop: 0 }}>
-        <M.Typography>
-          Package revision{' '}
-          <StyledLink to={urls.bucketPackageTree(bucket, name, revision)}>
-            {name}@{revision}
-          </StyledLink>{' '}
-          successfully created
-        </M.Typography>
-      </M.DialogContent>
-      <M.DialogActions>
-        <M.Button onClick={onClose}>Close</M.Button>
-        <M.Button
-          component={Link}
-          to={urls.bucketPackageTree(bucket, name, revision)}
-          variant="contained"
-          color="primary"
-        >
-          Browse
-        </M.Button>
-      </M.DialogActions>
-    </>
-  )
-}
-
 const DialogState = tagged(['Loading', 'Error', 'Form', 'Success'])
 
 export default function PackageCopyDialog({
@@ -402,7 +371,7 @@ export default function PackageCopyDialog({
           />
         ),
         Success: (props) => (
-          <DialogSuccess
+          <PD.DialogSuccess
             bucket={targetBucket}
             name={props.name}
             revision={props.revision}

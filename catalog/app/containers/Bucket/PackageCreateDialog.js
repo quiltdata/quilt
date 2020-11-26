@@ -5,7 +5,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import * as RF from 'react-final-form'
-import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { useData } from 'utils/Data'
@@ -13,8 +12,6 @@ import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import Delay from 'utils/Delay'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import StyledLink from 'utils/StyledLink'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
@@ -615,33 +612,6 @@ function PackageCreateDialog({
   )
 }
 
-function DialogSuccess({ bucket, name, revision, onClose }) {
-  const { urls } = NamedRoutes.use()
-
-  const packageUrl = urls.bucketPackageTree(bucket, name, revision)
-
-  return (
-    <div>
-      <M.DialogTitle>Push complete</M.DialogTitle>
-      <M.DialogContent style={{ paddingTop: 0 }}>
-        <M.Typography>
-          Package{' '}
-          <StyledLink to={packageUrl}>
-            {name}@{revision}
-          </StyledLink>{' '}
-          successfully created
-        </M.Typography>
-      </M.DialogContent>
-      <M.DialogActions>
-        <M.Button onClick={onClose}>Close</M.Button>
-        <M.Button component={Link} to={packageUrl} variant="contained" color="primary">
-          Browse package
-        </M.Button>
-      </M.DialogActions>
-    </div>
-  )
-}
-
 const DialogState = tagged(['Loading', 'Error', 'Form', 'Success'])
 
 export default function PackageCreateDialogWrapper({ bucket, open, onClose, refresh }) {
@@ -686,7 +656,7 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
       ),
       Success: ({ name, revision }) => (
         <M.Dialog open={open} onClose={onClose} fullWidth scroll="body">
-          <DialogSuccess bucket={bucket} name={name} revision={revision} />
+          <PD.DialogSuccess bucket={bucket} name={name} revision={revision} />
         </M.Dialog>
       ),
     },
