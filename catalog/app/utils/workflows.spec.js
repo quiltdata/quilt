@@ -3,31 +3,51 @@ import dedent from 'dedent'
 import * as workflows from './workflows'
 
 describe('utils/workflows', () => {
-  describe('Workflows config', () => {
-    it('is correct for an empty file', () => {
+  describe('parse', () => {
+    describe('For no config input', () => {
       const config = workflows.parse('')
-      expect(config).toBe(workflows.emptyConfig)
-      expect(config.workflows[0].slug).toBe(workflows.notAvaliable)
+
+      it('should return default empty values', () => {
+        expect(config).toBe(workflows.emptyConfig)
+      })
+
+      it('should return data with special `notAvailable` workflow', () => {
+        expect(config.workflows[0].slug).toBe(workflows.notAvaliable)
+      })
     })
 
-    it('is correct when no workflows', () => {
+    describe("For config without `workflows` (it's invalid config)", () => {
       const data = dedent`
         version: "1"
       `
       const config = workflows.parse(data)
-      expect(config).toBe(workflows.emptyConfig)
-      expect(config.workflows[0].slug).toBe(workflows.notAvaliable)
+
+      it('should return default empty values', () => {
+        expect(config).toBe(workflows.emptyConfig)
+      })
+
+      it('should return data with special `notAvailable` workflow', () => {
+        expect(config.workflows[0].slug).toBe(workflows.notAvaliable)
+      })
     })
 
-    it('is correct for empty workflows list', () => {
+    describe("For config with empty list as `workflows` (it's invalid config)", () => {
       const data = dedent`
         version: "1"
         workflows: []
       `
-      expect(workflows.parse(data)).toBe(workflows.emptyConfig)
+      const config = workflows.parse(data)
+
+      it('should return default empty values', () => {
+        expect(config).toBe(workflows.emptyConfig)
+      })
+
+      it('should return data with special `notAvailable` workflow', () => {
+        expect(config.workflows[0].slug).toBe(workflows.notAvaliable)
+      })
     })
 
-    it('is correct when workflow is required', () => {
+    describe('Config with required workflow', () => {
       const data = dedent`
         version: "1"
         is_workflow_required: True
@@ -36,11 +56,17 @@ describe('utils/workflows', () => {
             name: Workflow №1
       `
       const config = workflows.parse(data)
-      expect(config.workflows).toHaveLength(1)
-      expect(config.workflows[0].slug).toBe('workflow_1')
+
+      it('should return workflows list', () => {
+        expect(config.workflows).toHaveLength(1)
+      })
+
+      it('should return workflow with exact key/slug', () => {
+        expect(config.workflows[0].slug).toBe('workflow_1')
+      })
     })
 
-    it('is correct when workflow is not required explicitly', () => {
+    describe('Config with workflow not required explicitly', () => {
       const data = dedent`
         version: "1"
         is_workflow_required: False
@@ -49,12 +75,21 @@ describe('utils/workflows', () => {
             name: Workflow №1
       `
       const config = workflows.parse(data)
-      expect(config.workflows).toHaveLength(2)
-      expect(config.workflows[0].slug).toBe(workflows.notSelected)
-      expect(config.workflows[1].slug).toBe('workflow_1')
+
+      it('should return two workflows', () => {
+        expect(config.workflows).toHaveLength(2)
+      })
+
+      it('should return first workflow as special `notSelected` workflow', () => {
+        expect(config.workflows[0].slug).toBe(workflows.notSelected)
+      })
+
+      it('should return workflow with exact key/slug from config', () => {
+        expect(config.workflows[1].slug).toBe('workflow_1')
+      })
     })
 
-    it('is correct when workflow is required by default', () => {
+    describe('Config with workflow required implicitly', () => {
       const data = dedent`
         version: "1"
         workflows:
@@ -62,11 +97,17 @@ describe('utils/workflows', () => {
             name: Workflow №1
       `
       const config = workflows.parse(data)
-      expect(config.workflows).toHaveLength(1)
-      expect(config.workflows[0].slug).toBe('workflow_1')
+
+      it('should return one workflow', () => {
+        expect(config.workflows).toHaveLength(1)
+      })
+
+      it('should return workflow with exact key/slug from config', () => {
+        expect(config.workflows[0].slug).toBe('workflow_1')
+      })
     })
 
-    it('contains Schema url', () => {
+    describe('Config with Schema urls', () => {
       const data = dedent`
         version: "1"
         workflows:
@@ -83,11 +124,14 @@ describe('utils/workflows', () => {
             url: https://bar
       `
       const config = workflows.parse(data)
-      expect(config.workflows[0].schema.url).toBe('https://foo')
-      expect(config.workflows[1].schema.url).toBe('https://bar')
+
+      it('should return workflow with matched url', () => {
+        expect(config.workflows[0].schema.url).toBe('https://foo')
+        expect(config.workflows[1].schema.url).toBe('https://bar')
+      })
     })
 
-    it('sets default workflow', () => {
+    describe('Config with default workflow', () => {
       const data = dedent`
         version: "1"
         default_workflow: workflow_2
@@ -100,9 +144,14 @@ describe('utils/workflows', () => {
             name: Workflow №3
       `
       const config = workflows.parse(data)
-      expect(config.workflows[0].isDefault).toBe(false)
-      expect(config.workflows[1].isDefault).toBe(true)
-      expect(config.workflows[2].isDefault).toBe(false)
+
+      it("should return workflows' list, one of which is default", () => {
+        expect(config.workflows).toMatchObject([
+          { isDefault: false },
+          { isDefault: true },
+          { isDefault: false },
+        ])
+      })
     })
   })
 })
