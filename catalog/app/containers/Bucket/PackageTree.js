@@ -323,9 +323,8 @@ function DirDisplay({ bucket, name, revision, path, crumbs, onRevisionPush }) {
               size="small"
               style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
               onClick={updateDialog.open}
-              startIcon={<M.Icon>add</M.Icon>}
             >
-              Push revision
+              Revise package
             </M.Button>
             {!noDownload &&
               hashData.case({

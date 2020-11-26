@@ -478,9 +478,8 @@ export default function PackageRevisions({
           color="primary"
           style={{ marginTop: -3, marginBottom: -3 }}
           onClick={updateDialog.open}
-          startIcon={<M.Icon>add</M.Icon>}
         >
-          Push revision
+          Revise package
         </M.Button>
       </M.Box>
 

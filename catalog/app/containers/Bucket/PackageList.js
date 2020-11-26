@@ -436,12 +436,7 @@ export default function PackageList({
               <M.Box pt={5} textAlign="center">
                 <M.Typography variant="h4">No packages</M.Typography>
                 <M.Box pt={3} />
-                <M.Button
-                  variant="contained"
-                  color="primary"
-                  onClick={openUpload}
-                  startIcon={<M.Icon>add</M.Icon>}
-                >
+                <M.Button variant="contained" color="primary" onClick={openUpload}>
                   Push package
                 </M.Button>
                 <M.Box pt={2} />
@@ -494,7 +489,6 @@ export default function PackageList({
                     color="primary"
                     style={{ paddingTop: 7, paddingBottom: 7 }}
                     onClick={openUpload}
-                    startIcon={<M.Icon>add</M.Icon>}
                   >
                     Push package
                   </M.Button>
