@@ -7,12 +7,18 @@
 ## Catalog, Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
+# 3.4.0dev - YYYY-MM-DD
+## Python API
+
+## CLI
+
+## Catalog, Lambdas
+
+# 3.3.0rc1 - 2020-11-25
 ## Python API
 * [Added] Metadata quality API ([#1855](https://github.com/quiltdata/quilt/pull/1874)). For details see this [section](Advanced Features/workflows.md).
 * [Changed] Improved formatting of package load progress bar ([#1897](https://github.com/quiltdata/quilt/pull/1897))
-
-## CLI
+* [Fixed] Crash during load of package manifest with unicode symbols with non-unicode locale set ([#1931](https://github.com/quiltdata/quilt/pull/1931))
 
 ## Catalog, Lambdas
 * [Added] Preview .pdbqt files as plain text ([#1855](https://github.com/quiltdata/quilt/pull/1855))
@@ -20,6 +26,7 @@
 * [Added] Enhanced JSON editor and schema validation for package metadata ([#1867](https://github.com/quiltdata/quilt/pull/1867))
 * [Added] Buttons to download packages and directories as .zip archives ([#1868](https://github.com/quiltdata/quilt/pull/1868/))
 * [Added] Search help dropdown for the index landing page ([#1838](https://github.com/quiltdata/quilt/pull/1838))
+* [Added] Ad-hoc package updates ([#1856](https://github.com/quiltdata/quilt/pull/1856))
 * [Changed] Get package revisions from ElasticSearch, not S3 ([#1851](https://github.com/quiltdata/quilt/pull/1851))
 * [Changed] Render vega specs smaller than 20 MiB right away, render larger ones after pressing a button ([#1873](https://github.com/quiltdata/quilt/pull/1873))
 * [Changed] Prefix filtering for directory view similar to AWS Console ([#1876](https://github.com/quiltdata/quilt/pull/1876), [#1880](https://github.com/quiltdata/quilt/pull/1880))

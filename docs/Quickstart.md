@@ -1,5 +1,8 @@
 # Quick start
 
+## Video tutorials
+* [How to work with S3 data sets using Quilt](https://www.youtube.com/playlist?list=PLmXfD6KoA_vBtgGgt0X4ui4cRlEkdJKp9)
+
 ## Jupyter notebooks for getting started with Quilt
 * [QuickStart notebook](https://open.quiltdata.com/b/quilt-example/packages/examples/hurdat/tree/latest/) - Create your own data package 
 * [CORD-19 exploration](https://open.quiltdata.com/b/quilt-example/packages/akarve/cord19) - Explore a real world dataset with the Quilt API

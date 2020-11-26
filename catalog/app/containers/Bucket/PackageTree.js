@@ -18,10 +18,14 @@ import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link, { linkStyle } from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
+import usePrevious from 'utils/usePrevious'
 
 import Code from './Code'
+import CopyButton from './CopyButton'
 import * as FileView from './FileView'
 import { ListingItem, ListingWithLocalFiltering } from './Listing'
+import { usePackageUpdateDialog } from './PackageUpdateDialog'
+import PackageCopyDialog from './PackageCopyDialog'
 import Section from './Section'
 import Summary from './Summary'
 import renderPreview from './renderPreview'
@@ -178,7 +182,7 @@ function ExposeLinkedData({ bucketCfg, bucket, name, revision }) {
 function PkgCode({ data, bucket, name, revision, path }) {
   const code = data.case({
     Ok: ({ hash }) => {
-      const nameWithPath = path ? `${name}/${path}` : name
+      const nameWithPath = JSON.stringify(s3paths.ensureNoSlash(`${name}/${path}`))
       const hashDisplay = revision === 'latest' ? '' : hash.substring(0, 10)
       const hashPy = hashDisplay && `, top_hash="${hashDisplay}"`
       const hashCli = hashDisplay && ` --top-hash ${hashDisplay}`
@@ -189,9 +193,9 @@ function PkgCode({ data, bucket, name, revision, path }) {
           contents: dedent`
             import quilt3
             # browse
-            quilt3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
-            # download
-            quilt3.Package.install("${nameWithPath}"${hashPy}, registry="s3://${bucket}", dest=".")
+            p = quilt3.Package.browse("${name}"${hashPy}, registry="s3://${bucket}")
+            # download (be mindful of large packages)
+            quilt3.Package.install(${nameWithPath}${hashPy}, registry="s3://${bucket}", dest=".")
           `,
         },
         {
@@ -241,7 +245,7 @@ function TopBar({ crumbs, children }) {
   )
 }
 
-function DirDisplay({ bucket, name, revision, path, crumbs }) {
+function DirDisplay({ bucket, name, revision, path, crumbs, onRevisionPush }) {
   const s3 = AWS.S3.use()
   const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
   const credentials = AWS.Credentials.use()
@@ -269,6 +273,20 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
     (handle) => urls.bucketPackageTree(bucket, name, revision, handle.logicalKey),
     [urls, bucket, name, revision],
   )
+
+  const updateDialog = usePackageUpdateDialog({
+    bucket,
+    name,
+    revision,
+    onExited: onRevisionPush,
+  })
+
+  const [bucketCopyTarget, setBucketCopyTarget] = React.useState(null)
+
+  usePrevious({ bucket, name, revision }, (prev) => {
+    // close the dialog when navigating away
+    if (!R.equals({ bucket, name, revision }, prev)) updateDialog.close()
+  })
 
   return data.case({
     Ok: ({ objects, prefixes, meta }) => {
@@ -301,14 +319,40 @@ function DirDisplay({ bucket, name, revision, path, crumbs }) {
       }))
       return (
         <>
+          {bucketCopyTarget && (
+            <PackageCopyDialog
+              name={name}
+              targetBucket={bucketCopyTarget}
+              sourceBucket={bucket}
+              revision={revision}
+              onClose={() => setBucketCopyTarget(null)}
+            />
+          )}
+
+          {updateDialog.render()}
+
           <TopBar crumbs={crumbs}>
+            <CopyButton bucket={bucket} onChange={(b) => setBucketCopyTarget(b.slug)} />
+            <M.Box ml={1} />
+            <M.Button
+              variant="contained"
+              color="primary"
+              size="small"
+              style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
+              onClick={updateDialog.open}
+            >
+              Revise package
+            </M.Button>
             {!noDownload &&
               hashData.case({
                 Ok: ({ hash }) => (
-                  <FileView.ZipDownloadForm
-                    label="Download package"
-                    suffix={`package/${bucket}/${name}/${hash}`}
-                  />
+                  <>
+                    <M.Box ml={1} />
+                    <FileView.ZipDownloadForm
+                      label="Download package"
+                      suffix={`package/${bucket}/${name}/${hash}`}
+                    />
+                  </>
                 ),
                 _: () => null,
               })}
@@ -431,6 +475,7 @@ function FileDisplay({ bucket, name, revision, path, crumbs }) {
             if (e.code === 'Forbidden') {
               return renderError('Access Denied', "You don't have access to this object")
             }
+            // eslint-disable-next-line no-console
             console.error(e)
             return renderError('Error loading file', 'Something went wrong')
           },
@@ -455,6 +500,7 @@ function FileDisplay({ bucket, name, revision, path, crumbs }) {
       </Data>
     ),
     Err: (e) => {
+      // eslint-disable-next-line no-console
       console.error(e)
       return renderError(
         'Error loading file',
@@ -499,19 +545,48 @@ export default function PackageTree({
     ).concat(path.endsWith('/') ? Crumb.Sep(<>&nbsp;/</>) : [])
   }, [bucket, name, revision, path, urls])
 
+  const [revisionKey, setRevisionKey] = React.useState(1)
+  const [revisionListKey, setRevisionListKey] = React.useState(1)
+
+  const onRevisionPush = React.useCallback(
+    (res) => {
+      const pushedSamePackage = R.pathEq(['pushed', 'name'], name, res)
+      if (pushedSamePackage) {
+        // refresh revision list if a new revision of the current package has been pushed
+        setRevisionListKey(R.inc)
+        if (revision === 'latest') {
+          // when browsing 'latest' revision, also refresh the pacakge view
+          setRevisionKey(R.inc)
+        }
+      }
+    },
+    [name, revision, setRevisionKey, setRevisionListKey],
+  )
+
   return (
     <FileView.Root>
-      {!!bucketCfg && <ExposeLinkedData {...{ bucketCfg, bucket, name, revision }} />}
+      {!!bucketCfg && (
+        <ExposeLinkedData
+          {...{ bucketCfg, bucket, name, revision }}
+          key={`links:${revisionKey}`}
+        />
+      )}
       <M.Typography variant="body1">
         <Link to={urls.bucketPackageDetail(bucket, name)} className={classes.name}>
           {name}
         </Link>
         {' @ '}
-        <RevisionInfo {...{ revision, bucket, name, path }} />
+        <RevisionInfo
+          {...{ revision, bucket, name, path }}
+          key={`revinfo:${revisionListKey}`}
+        />
       </M.Typography>
 
       {isDir ? (
-        <DirDisplay {...{ bucket, name, revision, path, crumbs }} />
+        <DirDisplay
+          {...{ bucket, name, revision, path, crumbs, onRevisionPush }}
+          key={`dir:${revisionKey}`}
+        />
       ) : (
         <FileDisplay {...{ bucket, name, revision, path, crumbs }} />
       )}

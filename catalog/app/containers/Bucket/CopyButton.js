@@ -1,8 +1,8 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
-import Skeleton from 'components/Skeleton'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
@@ -12,9 +12,8 @@ import * as requests from './requests'
 const useStyles = M.makeStyles((t) => ({
   root: {
     flexShrink: 0,
-    margin: `-3px 0`,
+    margin: '-3px 0',
   },
-
   placeholder: {
     minWidth: t.spacing(30),
   },
@@ -24,15 +23,15 @@ function MenuPlaceholder() {
   const t = M.useTheme()
 
   return (
-    <M.Box minWidth={t.spacing(30)}>
+    <M.Box minWidth={t.spacing(22)}>
       <M.MenuItem disabled>
-        <Skeleton height={t.spacing(4)} width="100%" />
+        <Lab.Skeleton height={t.spacing(4)} width="100%" />
       </M.MenuItem>
       <M.MenuItem disabled>
-        <Skeleton height={t.spacing(4)} width="100%" />
+        <Lab.Skeleton height={t.spacing(4)} width="100%" />
       </M.MenuItem>
       <M.MenuItem disabled>
-        <Skeleton height={t.spacing(4)} width="100%" />
+        <Lab.Skeleton height={t.spacing(4)} width="100%" />
       </M.MenuItem>
     </M.Box>
   )
@@ -87,11 +86,11 @@ export default function CopyButton({ bucket, onChange }) {
         className={classes.root}
         color="primary"
         size="small"
-        startIcon={<M.Icon>save_alt_outlined</M.Icon>}
+        startIcon={<M.Icon>arrow_right_alt</M.Icon>}
         variant="outlined"
         onClick={onButtonClick}
       >
-        Copy to bucket
+        Promote to bucket
       </M.Button>
 
       <M.Menu
@@ -99,13 +98,22 @@ export default function CopyButton({ bucket, onChange }) {
         className={classes.menu}
         onClose={onMenuClose}
         open={!!menuAnchorEl}
+        getContentAnchorEl={null}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
       >
         <BucketsListFetcher bucket={bucket}>
           {AsyncResult.case({
-            Ok: ({ workflows }) => (
+            Ok: ({ successors }) => (
               <>
-                {workflows.map((workflow) => (
-                  <MenuItem key={workflow.slug} item={workflow} onClick={onMenuClick} />
+                {successors.map((b) => (
+                  <MenuItem key={b.slug} item={b} onClick={onMenuClick} />
                 ))}
               </>
             ),

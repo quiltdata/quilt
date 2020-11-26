@@ -1,0 +1,415 @@
+import * as R from 'ramda'
+import { FORM_ERROR } from 'final-form'
+import * as React from 'react'
+import * as RF from 'react-final-form'
+import { Link } from 'react-router-dom'
+import * as M from '@material-ui/core'
+
+import AsyncResult from 'utils/AsyncResult'
+import * as AWS from 'utils/AWS'
+import * as Data from 'utils/Data'
+import Delay from 'utils/Delay'
+import Dropzone, { Overlay as DropzoneOverlay } from 'components/Dropzone'
+import * as NamedRoutes from 'utils/NamedRoutes'
+import { getBasename } from 'utils/s3paths'
+import { readableBytes } from 'utils/string'
+import StyledLink from 'utils/StyledLink'
+import tagged from 'utils/tagged'
+import * as validators from 'utils/validators'
+
+import * as PD from './PackageDialog'
+import * as requests from './requests'
+
+const getTotalProgress = R.pipe(
+  R.values,
+  R.reduce(
+    (acc, { progress: p = {} }) => ({
+      total: acc.total + (p.total || 0),
+      loaded: acc.loaded + (p.loaded || 0),
+    }),
+    { total: 0, loaded: 0 },
+  ),
+  (p) => ({
+    ...p,
+    percent: p.total ? Math.floor((p.loaded / p.total) * 100) : 100,
+  }),
+)
+
+const useFilesInputStyles = M.makeStyles((t) => ({
+  root: {
+    marginTop: t.spacing(3),
+  },
+}))
+
+export function FilesInput({ input: { value: inputValue }, meta }) {
+  const classes = useFilesInputStyles()
+
+  const value = inputValue || []
+  const error = meta.submitFailed && meta.error
+
+  const totalSize = React.useMemo(() => value.reduce((sum, f) => sum + f.file.size, 0), [
+    value,
+  ])
+
+  const warn = totalSize > PD.MAX_SIZE
+
+  const files = value.map(({ file }) => ({
+    iconName: 'attach_file',
+    key: file.physicalKey,
+    path: getBasename(decodeURIComponent(file.physicalKey)),
+    size: file.size,
+  }))
+
+  const statsComponent = !!files.length && (
+    <>
+      : {files.length} ({readableBytes(totalSize)})
+      {warn && <M.Icon style={{ marginLeft: 4 }}>error_outline</M.Icon>}
+    </>
+  )
+
+  return (
+    <Dropzone
+      className={classes.root}
+      disabled
+      error={error}
+      files={files}
+      overlayComponent={<DropzoneOverlay />}
+      statsComponent={statsComponent}
+      warning={warn}
+      onDrop={R.always([])}
+    />
+  )
+}
+
+function DialogTitle({ bucket }) {
+  const { urls } = NamedRoutes.use()
+
+  return (
+    <M.DialogTitle>
+      Promote package to{' '}
+      <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
+        {bucket}
+      </StyledLink>{' '}
+      bucket
+    </M.DialogTitle>
+  )
+}
+
+function DialogForm({
+  bucket,
+  name: initialName,
+  close,
+  onSuccess,
+  manifest,
+  workflowsConfig,
+}) {
+  const [uploads, setUploads] = React.useState({})
+
+  const nameValidator = PD.useNameValidator()
+
+  const initialMeta = React.useMemo(
+    () => ({
+      mode: 'kv',
+      text: JSON.stringify(manifest.meta || {}),
+    }),
+    [manifest.meta],
+  )
+
+  const initialFiles = Object.values(manifest.entries).map((file) => ({
+    file,
+  }))
+
+  const onSubmit = async ({ name }) => {
+    onSuccess({ name })
+    return { [FORM_ERROR]: 'Error creating manifest' }
+  }
+
+  const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
+
+  return (
+    <RF.Form onSubmit={onSubmit}>
+      {({
+        handleSubmit,
+        submitting,
+        submitFailed,
+        error,
+        submitError,
+        hasValidationErrors,
+        form,
+        values,
+      }) => (
+        <>
+          <DialogTitle bucket={bucket} />
+          <M.DialogContent style={{ paddingTop: 0 }}>
+            <form onSubmit={handleSubmit}>
+              <RF.Field
+                component={PD.Field}
+                name="name"
+                label="Name"
+                placeholder="Enter a package name"
+                validate={validators.composeAsync(
+                  validators.required,
+                  nameValidator.validate,
+                )}
+                validateFields={['name']}
+                errors={{
+                  required: 'Enter a package name',
+                  invalid: 'Invalid package name',
+                }}
+                margin="normal"
+                fullWidth
+                initialValue={initialName}
+              />
+
+              <RF.Field
+                component={PD.Field}
+                name="msg"
+                label="Commit message"
+                placeholder="Enter a commit message"
+                validate={validators.required}
+                validateFields={['msg']}
+                errors={{
+                  required: 'Enter a commit message',
+                }}
+                fullWidth
+                margin="normal"
+              />
+
+              <RF.Field
+                component={FilesInput}
+                name="files"
+                validate={validators.nonEmpty}
+                validateFields={['files']}
+                errors={{
+                  nonEmpty: 'Add files to create a package',
+                }}
+                uploads={uploads}
+                setUploads={setUploads}
+                isEqual={R.equals}
+                initialValue={initialFiles}
+              />
+
+              <PD.SchemaFetcher
+                schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
+              >
+                {AsyncResult.case({
+                  Ok: ({ responseError, schema, validate }) => (
+                    <RF.Field
+                      component={PD.MetaInput}
+                      name="meta"
+                      bucket={bucket}
+                      schema={schema}
+                      schemaError={responseError}
+                      validate={validate}
+                      validateFields={['meta']}
+                      isEqual={R.equals}
+                      initialValue={initialMeta}
+                    />
+                  ),
+                  _: () => <PD.MetaInputSkeleton />,
+                })}
+              </PD.SchemaFetcher>
+
+              <RF.Field
+                component={PD.WorkflowInput}
+                name="workflow"
+                workflowsConfig={workflowsConfig}
+                initialValue={PD.defaultWorkflowFromConfig(workflowsConfig)}
+                validateFields={['meta', 'workflow']}
+              />
+
+              <input type="submit" style={{ display: 'none' }} />
+            </form>
+          </M.DialogContent>
+          <M.DialogActions>
+            {submitting && (
+              <Delay ms={200} alwaysRender>
+                {(ready) => (
+                  <M.Fade in={ready}>
+                    <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
+                      <M.CircularProgress
+                        size={24}
+                        variant={
+                          totalProgress.percent < 100 ? 'determinate' : 'indeterminate'
+                        }
+                        value={
+                          totalProgress.percent < 100
+                            ? totalProgress.percent * 0.9
+                            : undefined
+                        }
+                      />
+                      <M.Box pl={1} />
+                      <M.Typography variant="body2" color="textSecondary">
+                        {totalProgress.percent < 100
+                          ? 'Uploading files'
+                          : 'Writing manifest'}
+                      </M.Typography>
+                    </M.Box>
+                  </M.Fade>
+                )}
+              </Delay>
+            )}
+
+            {!submitting && (!!error || !!submitError) && (
+              <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
+                <M.Icon color="error">error_outline</M.Icon>
+                <M.Box pl={1} />
+                <M.Typography variant="body2" color="error">
+                  {error || submitError}
+                </M.Typography>
+              </M.Box>
+            )}
+
+            <M.Button onClick={close} disabled={submitting}>
+              Cancel
+            </M.Button>
+            <M.Button
+              onClick={handleSubmit}
+              variant="contained"
+              color="primary"
+              disabled={submitting || (submitFailed && hasValidationErrors)}
+            >
+              Push
+            </M.Button>
+          </M.DialogActions>
+        </>
+      )}
+    </RF.Form>
+  )
+}
+
+function DialogError({ bucket, error, onCancel }) {
+  const { urls } = NamedRoutes.use()
+
+  return (
+    <PD.DialogError
+      error={error}
+      title={
+        <>
+          Promote package to{' '}
+          <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
+            {bucket}
+          </StyledLink>{' '}
+          bucket
+        </>
+      }
+      onCancel={onCancel}
+    />
+  )
+}
+
+function DialogLoading({ bucket, onCancel }) {
+  const { urls } = NamedRoutes.use()
+
+  return (
+    <PD.DialogLoading
+      title={
+        <>
+          Promote package to{' '}
+          <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
+            {bucket}
+          </StyledLink>{' '}
+          bucket
+        </>
+      }
+      onCancel={onCancel}
+    />
+  )
+}
+
+function DialogSuccess({ bucket, name, revision, onClose }) {
+  const { urls } = NamedRoutes.use()
+
+  return (
+    <>
+      <M.DialogTitle>Promotion is complete</M.DialogTitle>
+      <M.DialogContent style={{ paddingTop: 0 }}>
+        <M.Typography>
+          Package revision{' '}
+          <StyledLink to={urls.bucketPackageTree(bucket, name, revision)}>
+            {name}@{revision}
+          </StyledLink>{' '}
+          successfully created
+        </M.Typography>
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={onClose}>Close</M.Button>
+        <M.Button
+          component={Link}
+          to={urls.bucketPackageTree(bucket, name, revision)}
+          variant="contained"
+          color="primary"
+        >
+          Browse
+        </M.Button>
+      </M.DialogActions>
+    </>
+  )
+}
+
+const DialogState = tagged(['Loading', 'Error', 'Form', 'Success'])
+
+export default function PackageCopyDialog({
+  sourceBucket,
+  targetBucket,
+  name,
+  revision,
+  onClose,
+}) {
+  const s3 = AWS.S3.use()
+
+  const [success, setSuccess] = React.useState(false)
+
+  const manifestData = Data.use(requests.loadManifest, {
+    s3,
+    bucket: sourceBucket,
+    name,
+    revision,
+  })
+
+  const workflowsData = Data.use(requests.workflowsList, { s3, bucket: targetBucket })
+
+  const state = React.useMemo(() => {
+    if (success) return DialogState.Success(success)
+    return workflowsData.case({
+      Ok: (workflowsConfig) =>
+        manifestData.case({
+          Ok: (manifest) => DialogState.Form({ manifest, workflowsConfig }),
+          Err: DialogState.Error,
+          _: DialogState.Loading,
+        }),
+      Err: DialogState.Error,
+      _: DialogState.Loading,
+    })
+  }, [success, workflowsData, manifestData])
+
+  const stateCase = React.useCallback((cases) => DialogState.case(cases, state), [state])
+
+  return (
+    <M.Dialog open onClose={onClose} fullWidth scroll="body">
+      {stateCase({
+        Error: (e) => <DialogError bucket={targetBucket} onClose={onClose} error={e} />,
+        Loading: () => <DialogLoading bucket={targetBucket} onCancel={onClose} />,
+        Form: (props) => (
+          <DialogForm
+            {...{
+              bucket: targetBucket,
+              close: onClose,
+              name,
+              onSuccess: setSuccess,
+              ...props,
+            }}
+          />
+        ),
+        Success: (props) => (
+          <DialogSuccess
+            bucket={targetBucket}
+            name={props.name}
+            revision={props.revision}
+            onClose={onClose}
+          />
+        ),
+      })}
+    </M.Dialog>
+  )
+}
