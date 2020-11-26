@@ -340,7 +340,7 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
             size="small"
             endIcon={<M.Icon fontSize="small">restore</M.Icon>}
           >
-            Revert files
+            Undo changes
           </M.Button>
         )}
       </div>
