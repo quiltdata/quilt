@@ -139,14 +139,14 @@ describe('components/JsonEditor/State', () => {
     describe('validator for Schema with enum types', () => {
       const validate = validateOnSchema(regular.schema)
 
-      test("should return error, when value doesn't match enum", () => {
+      it("should return error, when value doesn't match enum", () => {
         const invalid = { a: 123, b: 'value', optEnum: 'value' }
         const errors = validate(invalid)
         expect(errors).toHaveLength(1)
         expect(errors[0]).toMatchObject({ dataPath: '.optEnum', keyword: 'enum' })
       })
 
-      test("shouldn't return error, when value doesn matches enum", () => {
+      it("shouldn't return error, when value doesn matches enum", () => {
         const valid = { a: 123, b: 'value', optEnum: 'one' }
         expect(validate(valid)).toHaveLength(0)
       })
@@ -155,7 +155,7 @@ describe('components/JsonEditor/State', () => {
     describe('validator for Schema with deeply nested array', () => {
       const validate = validateOnSchema(deeplyNestedArray.schema)
 
-      test("should return error, when value doesn't match this array structure", () => {
+      it("should return error, when value doesn't match this array structure", () => {
         const invalid = { longNestedList: [{}] }
         const errors = validate(invalid)
         expect(errors).toHaveLength(1)
@@ -165,7 +165,7 @@ describe('components/JsonEditor/State', () => {
         })
       })
 
-      test("should return error, when value doesn't match last nesting level of array structure", () => {
+      it("should return error, when value doesn't match last nesting level of array structure", () => {
         const invalid = { longNestedList: [[[[[[[[[['string']]]]]]]]]] }
         const errors = validate(invalid)
         expect(errors).toHaveLength(1)
@@ -175,7 +175,7 @@ describe('components/JsonEditor/State', () => {
         })
       })
 
-      test("should return error, when value doesn't match one of array items at last nesting level of array structure", () => {
+      it("should return error, when value doesn't match one of array items at last nesting level of array structure", () => {
         const invalid = { longNestedList: [[[[[[[[[[1, 2, 3, 4, 'string']]]]]]]]]] }
         const errors = validate(invalid)
         expect(errors).toHaveLength(1)
@@ -185,7 +185,7 @@ describe('components/JsonEditor/State', () => {
         })
       })
 
-      test("shouldn't return error, when value matches array structure and types inside last nesting level", () => {
+      it("shouldn't return error, when value matches array structure and types inside last nesting level", () => {
         const valid = { longNestedList: [[[[[[[[[[1, 2.5, 3, 10e100, Infinity]]]]]]]]]] }
         expect(validate(valid)).toHaveLength(0)
       })
