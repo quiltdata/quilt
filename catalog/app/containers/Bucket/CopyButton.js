@@ -86,7 +86,6 @@ export default function CopyButton({ bucket, onChange }) {
         className={classes.root}
         color="primary"
         size="small"
-        startIcon={<M.Icon>arrow_right_alt</M.Icon>}
         variant="outlined"
         onClick={onButtonClick}
       >
