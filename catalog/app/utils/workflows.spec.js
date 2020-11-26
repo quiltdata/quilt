@@ -8,7 +8,7 @@ describe('utils/workflows', () => {
       const config = workflows.parse('')
 
       it('should return default empty values', () => {
-        expect(config).toBe(workflows.emptyConfig)
+        expect(config).toEqual(workflows.emptyConfig)
       })
 
       it('should return data with special `notAvailable` workflow', () => {
@@ -23,7 +23,7 @@ describe('utils/workflows', () => {
       const config = workflows.parse(data)
 
       it('should return default empty values', () => {
-        expect(config).toBe(workflows.emptyConfig)
+        expect(config).toEqual(workflows.emptyConfig)
       })
 
       it('should return data with special `notAvailable` workflow', () => {
@@ -39,7 +39,7 @@ describe('utils/workflows', () => {
       const config = workflows.parse(data)
 
       it('should return default empty values', () => {
-        expect(config).toBe(workflows.emptyConfig)
+        expect(config).toEqual(workflows.emptyConfig)
       })
 
       it('should return data with special `notAvailable` workflow', () => {
