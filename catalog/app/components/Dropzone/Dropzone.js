@@ -26,11 +26,11 @@ const useStyles = M.makeStyles((t) => ({
   active: {
     background: t.palette.action.selected,
   },
-  error: {
-    borderColor: t.palette.error.main,
-  },
   warning: {
     borderColor: t.palette.warning.dark,
+  },
+  error: {
+    borderColor: t.palette.error.main,
   },
   files: {
     borderBottom: `1px solid ${t.palette.action.disabled}`,
@@ -38,11 +38,11 @@ const useStyles = M.makeStyles((t) => ({
     overflowX: 'hidden',
     overflowY: 'auto',
   },
-  filesError: {
-    borderColor: t.palette.error.main,
-  },
   filesWarning: {
     borderColor: t.palette.warning.dark,
+  },
+  filesError: {
+    borderColor: t.palette.error.main,
   },
 }))
 
@@ -61,7 +61,7 @@ export default function Dropzone({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
 
   return (
-    <div className={cx(classes.root, className)}>
+    <div className={className}>
       <Header disabled error={error} warning={warning}>
         {statsComponent}
       </Header>

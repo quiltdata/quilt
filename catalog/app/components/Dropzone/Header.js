@@ -12,14 +12,14 @@ const useStyles = M.makeStyles((t) => ({
     ...t.typography.body1,
     display: 'flex',
   },
-  disabled: {
-    color: t.palette.text.secondary,
+  warning: {
+    color: t.palette.warning.dark,
   },
   error: {
     color: t.palette.error.main,
   },
-  warning: {
-    color: t.palette.warning.dark,
+  disabled: {
+    color: t.palette.text.secondary,
   },
 }))
 
@@ -31,8 +31,8 @@ export default function Header({ children, disabled, error, warning }) {
       <div
         className={cx(classes.title, {
           [classes.disabled]: disabled,
-          [classes.error]: error,
-          [classes.warning]: warning,
+          [classes.error]: !!error,
+          [classes.warning]: !!warning,
         })}
       >
         Files
