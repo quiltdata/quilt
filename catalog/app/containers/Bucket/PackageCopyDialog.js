@@ -95,7 +95,7 @@ export function FilesInput({ input: { value: inputValue }, meta }) {
       overlayComponent={<DropzoneOverlay />}
       statsComponent={statsComponent}
       warning={warn}
-      onDrop={R.always([])}
+      onDrop={R.always(files)}
     />
   )
 }
