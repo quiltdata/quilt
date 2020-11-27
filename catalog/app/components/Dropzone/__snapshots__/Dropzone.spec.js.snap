@@ -1,0 +1,50 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Dropzone should render 1`] = `
+<div>
+  <div
+    className="makeStyles-root-7"
+  >
+    <div
+      className="makeStyles-title-8 makeStyles-disabled-11"
+    >
+      Files
+    </div>
+  </div>
+  <div
+    className="makeStyles-dropzone-1"
+  >
+    <div
+      className="makeStyles-dropArea-2"
+      onBlur={[Function]}
+      onClick={[Function]}
+      onDragEnter={[Function]}
+      onDragLeave={[Function]}
+      onDragOver={[Function]}
+      onDrop={[Function]}
+      onFocus={[Function]}
+      onKeyDown={[Function]}
+      tabIndex={0}
+    >
+      <input
+        autoComplete="off"
+        multiple={true}
+        onChange={[Function]}
+        onClick={[Function]}
+        style={
+          Object {
+            "display": "none",
+          }
+        }
+        tabIndex={-1}
+        type="file"
+      />
+      <div
+        className="makeStyles-root-12"
+      >
+        Drop files here or click to browse
+      </div>
+    </div>
+  </div>
+</div>
+`;

@@ -1,0 +1,37 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Header should change color on error 1`] = `
+<div
+  className="makeStyles-root-1"
+>
+  <div
+    className="makeStyles-title-2 makeStyles-error-4"
+  >
+    Files
+  </div>
+</div>
+`;
+
+exports[`Header should change color on warning 1`] = `
+<div
+  className="makeStyles-root-1"
+>
+  <div
+    className="makeStyles-title-2 makeStyles-warning-3"
+  >
+    Files
+  </div>
+</div>
+`;
+
+exports[`Header should render 1`] = `
+<div
+  className="makeStyles-root-1"
+>
+  <div
+    className="makeStyles-title-2"
+  >
+    Files
+  </div>
+</div>
+`;
