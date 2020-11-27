@@ -70,7 +70,7 @@ export function FilesInput({ input: { value: inputValue }, meta }) {
     value,
   ])
 
-  const warn = totalSize > PD.MAX_SIZE
+  const warning = totalSize > PD.MAX_SIZE
 
   const files = value.map(({ file }) => ({
     iconName: 'attach_file',
@@ -79,11 +79,15 @@ export function FilesInput({ input: { value: inputValue }, meta }) {
     size: file.size,
   }))
 
-  const statsComponent = !!files.length && (
-    <>
-      : {files.length} ({readableBytes(totalSize)})
-      {warn && <M.Icon style={{ marginLeft: 4 }}>error_outline</M.Icon>}
-    </>
+  const statsComponent = React.useMemo(
+    () =>
+      !!files.length && (
+        <>
+          : {files.length} ({readableBytes(totalSize)})
+          {warning && <M.Icon style={{ marginLeft: 4 }}>error_outline</M.Icon>}
+        </>
+      ),
+    [files, totalSize, warning],
   )
 
   return (
@@ -94,7 +98,7 @@ export function FilesInput({ input: { value: inputValue }, meta }) {
       files={files}
       overlayComponent={<DropzoneOverlay />}
       statsComponent={statsComponent}
-      warning={warn}
+      warning={warning}
       onDrop={R.always(files)}
     />
   )
