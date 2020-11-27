@@ -9,16 +9,6 @@ import { useData } from 'utils/Data'
 
 import * as requests from './requests'
 
-const useStyles = M.makeStyles((t) => ({
-  root: {
-    flexShrink: 0,
-    margin: '-3px 0',
-  },
-  placeholder: {
-    minWidth: t.spacing(30),
-  },
-}))
-
 function MenuPlaceholder() {
   const t = M.useTheme()
 
@@ -59,9 +49,64 @@ const BucketsListFetcher = React.forwardRef(({ bucket, children }, ref) => {
   })
 })
 
-export default function CopyButton({ bucket, onChange }) {
-  const classes = useStyles()
+function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
+  return (
+    <M.Menu
+      anchorEl={anchorEl}
+      onClose={onClose}
+      open={open}
+      getContentAnchorEl={null}
+      anchorOrigin={{
+        vertical: 'bottom',
+        horizontal: 'center',
+      }}
+      transformOrigin={{
+        vertical: 'top',
+        horizontal: 'center',
+      }}
+    >
+      <BucketsListFetcher bucket={bucket}>
+        {AsyncResult.case({
+          Ok: ({ successors }) => (
+            <>
+              {successors.map((b) => (
+                <MenuItem key={b.slug} item={b} onClick={onChange} />
+              ))}
+            </>
+          ),
+          _: () => <MenuPlaceholder />,
+          Err: () => null,
+        })}
+      </BucketsListFetcher>
+    </M.Menu>
+  )
+}
 
+const useButtonStyles = M.makeStyles(() => ({
+  root: {
+    flexShrink: 0,
+    margin: '-3px 0',
+  },
+}))
+
+function Button({ children, onClick }) {
+  const classes = useButtonStyles()
+
+  return (
+    <M.Button
+      aria-haspopup="true"
+      className={classes.root}
+      color="primary"
+      size="small"
+      variant="outlined"
+      onClick={onClick}
+    >
+      {children}
+    </M.Button>
+  )
+}
+
+export default function CopyButton({ bucket, onChange }) {
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null)
 
   const onButtonClick = React.useCallback(
@@ -81,46 +126,15 @@ export default function CopyButton({ bucket, onChange }) {
 
   return (
     <>
-      <M.Button
-        aria-haspopup="true"
-        className={classes.root}
-        color="primary"
-        size="small"
-        variant="outlined"
-        onClick={onButtonClick}
-      >
-        Promote to bucket
-      </M.Button>
+      <Button onClick={onButtonClick}>Promote to bucket</Button>
 
-      <M.Menu
+      <SuccessorsSelect
         anchorEl={menuAnchorEl}
-        className={classes.menu}
-        onClose={onMenuClose}
+        bucket={bucket}
         open={!!menuAnchorEl}
-        getContentAnchorEl={null}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'center',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'center',
-        }}
-      >
-        <BucketsListFetcher bucket={bucket}>
-          {AsyncResult.case({
-            Ok: ({ successors }) => (
-              <>
-                {successors.map((b) => (
-                  <MenuItem key={b.slug} item={b} onClick={onMenuClick} />
-                ))}
-              </>
-            ),
-            _: () => <MenuPlaceholder />,
-            Err: () => null,
-          })}
-        </BucketsListFetcher>
-      </M.Menu>
+        onChange={onMenuClick}
+        onClose={onMenuClose}
+      />
     </>
   )
 }
