@@ -13,6 +13,7 @@
 ## CLI
 
 ## Catalog, Lambdas
+* [Changed] `top_hash`-based package routes (backwards compatible) ([#1938](https://github.com/quiltdata/quilt/pull/1938))
 
 # 3.3.0rc1 - 2020-11-25
 ## Python API
