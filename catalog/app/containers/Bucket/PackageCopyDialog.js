@@ -62,7 +62,7 @@ async function requestPackageCopy(req, { bucket, commitMessage, meta, name, work
 
 const filesInitialValue = { existing: [] }
 
-export function FilesInput({ input: { value: inputValue }, meta }) {
+function FilesInput({ input: { value: inputValue }, meta }) {
   const classes = useFilesInputStyles()
 
   const value = inputValue || filesInitialValue
