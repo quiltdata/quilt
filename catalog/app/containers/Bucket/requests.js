@@ -10,62 +10,9 @@ import * as Resource from 'utils/Resource'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
-import yaml from 'utils/yaml'
+import * as workflows from 'utils/workflows'
 
 import * as errors from './errors'
-
-function parseSchema(schemaSlug, schemas) {
-  return {
-    url: R.path([schemaSlug, 'url'], schemas),
-  }
-}
-
-function parseWorkflow(workflowSlug, workflow, data) {
-  return {
-    description: workflow.description,
-    isDefault: workflowSlug === data.default_workflow,
-    name: workflow.name,
-    schema: parseSchema(workflow.metadata_schema, data.schemas),
-    slug: workflowSlug,
-  }
-}
-
-export const workflowNotAvailable = Symbol('not available')
-
-export const workflowNotSelected = Symbol('not selected')
-
-function getNoWorkflow(data, hasConfig) {
-  return {
-    isDefault: !data.default_workflow,
-    slug: hasConfig ? workflowNotSelected : workflowNotAvailable,
-  }
-}
-
-const emptyWorkflowsConfig = {
-  isRequired: false,
-  workflows: [getNoWorkflow({}, false)],
-}
-
-function parseWorkflows(workflowsYaml) {
-  const data = yaml(workflowsYaml)
-  if (!data) return emptyWorkflowsConfig
-
-  const { workflows } = data
-  if (!workflows) return emptyWorkflowsConfig
-
-  const workflowsList = Object.keys(workflows).map((slug) =>
-    parseWorkflow(slug, workflows[slug], data),
-  )
-  if (!workflowsList.length) return emptyWorkflowsConfig
-
-  const noWorkflow =
-    data.is_workflow_required === false ? getNoWorkflow(data, true) : null
-
-  return {
-    isRequired: data.is_workflow_required,
-    workflows: noWorkflow ? [noWorkflow, ...workflowsList] : workflowsList,
-  }
-}
 
 const withErrorHandling = (fn, pairs) => (...args) =>
   fn(...args).catch(errors.catchErrors(pairs))
@@ -340,10 +287,10 @@ const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
 export const workflowsList = async ({ s3, bucket }) => {
   try {
     const response = await fetchFile({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
-    return parseWorkflows(response.Body.toString('utf-8'))
+    return workflows.parse(response.Body.toString('utf-8'))
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
-      return emptyWorkflowsConfig
+      return workflows.emptyConfig
 
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
@@ -351,7 +298,7 @@ export const workflowsList = async ({ s3, bucket }) => {
     console.error(e)
   }
 
-  return emptyWorkflowsConfig
+  return workflows.emptyConfig
 }
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
