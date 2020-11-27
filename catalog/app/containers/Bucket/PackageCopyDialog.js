@@ -70,7 +70,13 @@ export function FilesInput({ input: { value: inputValue }, meta }) {
     value,
   ])
 
-  const warning = totalSize > PD.MAX_SIZE
+  const warning = React.useMemo(
+    () =>
+      totalSize > PD.MAX_SIZE
+        ? `Total file size exceeds recommended maximum of ${readableBytes(PD.MAX_SIZE)}`
+        : null,
+    [totalSize],
+  )
 
   const files = value.map(({ file }) => ({
     iconName: 'attach_file',

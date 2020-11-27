@@ -2,9 +2,6 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as PD from 'containers/Bucket/PackageDialog'
-import { readableBytes } from 'utils/string'
-
 const useStyles = M.makeStyles((t) => ({
   root: {
     ...t.typography.body2,
@@ -30,10 +27,7 @@ export default function DropMessage({ disabled, error, warning }) {
 
   const label = React.useMemo(() => {
     if (error) return error
-    if (warning)
-      return `Total file size exceeds recommended maximum of ${readableBytes(
-        PD.MAX_SIZE,
-      )}`
+    if (warning) return warning
     if (disabled) return ''
     return 'Drop files here or click to browse'
   }, [disabled, error, warning])

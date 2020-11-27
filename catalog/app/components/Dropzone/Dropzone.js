@@ -12,7 +12,7 @@ const useStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(2),
     position: 'relative',
   },
-  dropzoneContainer: {
+  dropArea: {
     background: t.palette.action.hover,
     border: `1px solid ${t.palette.action.disabled}`,
     borderRadius: t.shape.borderRadius,
@@ -23,7 +23,7 @@ const useStyles = M.makeStyles((t) => ({
     outline: 'none',
     overflow: 'hidden',
   },
-  active: {
+  dragOver: {
     background: t.palette.action.selected,
   },
   warning: {
@@ -37,12 +37,6 @@ const useStyles = M.makeStyles((t) => ({
     maxHeight: 200,
     overflowX: 'hidden',
     overflowY: 'auto',
-  },
-  filesWarning: {
-    borderColor: t.palette.warning.dark,
-  },
-  filesError: {
-    borderColor: t.palette.error.main,
   },
 }))
 
@@ -69,8 +63,8 @@ export default function Dropzone({
       <div className={classes.dropzone}>
         <div
           {...getRootProps({
-            className: cx(classes.dropzoneContainer, {
-              [classes.active]: isDragActive && !disabled,
+            className: cx(classes.dropArea, {
+              [classes.dragOver]: isDragActive && !disabled,
               [classes.error]: !!error,
               [classes.warning]: !!warning,
             }),
@@ -81,8 +75,8 @@ export default function Dropzone({
           {!!files.length && (
             <div
               className={cx(classes.files, {
-                [classes.filesError]: !!error,
-                [classes.filesWarning]: !!warning,
+                [classes.error]: !!error,
+                [classes.warning]: !!warning,
               })}
             >
               {files.map((file) => (
