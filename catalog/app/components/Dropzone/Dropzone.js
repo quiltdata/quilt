@@ -46,7 +46,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Area({
+export default function Dropzone({
   className,
   disabled,
   error,
