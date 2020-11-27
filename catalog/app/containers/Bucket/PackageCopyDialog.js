@@ -9,10 +9,10 @@ import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
-import Dropzone, { Overlay as DropzoneOverlay } from 'components/Dropzone'
+import Dropzone, { FilesStats, Overlay as DropzoneOverlay } from 'components/Dropzone'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { getBasename } from 'utils/s3paths'
-import { readableBytes } from 'utils/string'
+// import { readableBytes } from 'utils/string'
 import StyledLink from 'utils/StyledLink'
 import tagged from 'utils/tagged'
 import * as validators from 'utils/validators'
@@ -60,41 +60,35 @@ async function requestPackageCopy(req, { bucket, commitMessage, meta, name, work
   }
 }
 
+const filesInitialValue = { existing: [] }
+
 export function FilesInput({ input: { value: inputValue }, meta }) {
   const classes = useFilesInputStyles()
 
-  const value = inputValue || []
+  const value = inputValue || filesInitialValue
   const error = meta.submitFailed && meta.error
 
-  const totalSize = React.useMemo(() => value.reduce((sum, f) => sum + f.file.size, 0), [
-    value,
-  ])
-
-  const warning = React.useMemo(
-    () =>
-      totalSize > PD.MAX_SIZE
-        ? `Total file size exceeds recommended maximum of ${readableBytes(PD.MAX_SIZE)}`
-        : null,
-    [totalSize],
-  )
-
-  const files = value.map(({ file }) => ({
+  const files = value.existing.map(({ file }) => ({
     iconName: 'attach_file',
     key: file.physicalKey,
     path: getBasename(decodeURIComponent(file.physicalKey)),
     size: file.size,
   }))
 
-  const statsComponent = React.useMemo(
-    () =>
-      !!files.length && (
-        <>
-          : {files.length} ({readableBytes(totalSize)})
-          {warning && <M.Icon style={{ marginLeft: 4 }}>error_outline</M.Icon>}
-        </>
-      ),
-    [files, totalSize, warning],
-  )
+  // const totalSize = React.useMemo(() => value.reduce((sum, f) => sum + f.file.size, 0), [
+  //   value,
+  // ])
+
+  // const warning = React.useMemo(
+  //   () =>
+  //     totalSize > PD.MAX_SIZE
+  //       ? `Total file size exceeds recommended maximum of ${readableBytes(PD.MAX_SIZE)}`
+  //       : null,
+  //   [totalSize],
+  // )
+
+  // NOTE: User can't upload 1Gb, because Dropzone is disabled
+  const warning = null
 
   return (
     <Dropzone
@@ -103,7 +97,7 @@ export function FilesInput({ input: { value: inputValue }, meta }) {
       error={error}
       files={files}
       overlayComponent={<DropzoneOverlay />}
-      statsComponent={statsComponent}
+      statsComponent={<FilesStats files={files} warning={warning} />}
       warning={warning}
       onDrop={R.always(files)}
     />
