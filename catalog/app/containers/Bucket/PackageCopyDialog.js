@@ -138,9 +138,11 @@ function DialogForm({
     [manifest.meta],
   )
 
-  const initialFiles = Object.values(manifest.entries).map((file) => ({
-    file,
-  }))
+  const initialFiles = {
+    existing: Object.values(manifest.entries).map((file) => ({
+      file,
+    })),
+  }
 
   const req = APIConnector.use()
 
