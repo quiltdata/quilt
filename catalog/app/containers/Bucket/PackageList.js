@@ -22,8 +22,8 @@ import { readableQuantity } from 'utils/string'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
+import PackageCreateDialog from './PackageCreateDialog'
 import Pagination from './Pagination'
-import UploadDialog from './UploadDialog'
 import { displayError } from './errors'
 import * as requests from './requests'
 
@@ -391,7 +391,9 @@ export default function PackageList({
 
   return (
     <>
-      <UploadDialog {...{ bucket, refresh, open: uploadOpen, onClose: closeUpload }} />
+      <PackageCreateDialog
+        {...{ bucket, refresh, open: uploadOpen, onClose: closeUpload }}
+      />
       {totalCountData.case({
         _: () => (
           <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
@@ -434,12 +436,7 @@ export default function PackageList({
               <M.Box pt={5} textAlign="center">
                 <M.Typography variant="h4">No packages</M.Typography>
                 <M.Box pt={3} />
-                <M.Button
-                  variant="contained"
-                  color="primary"
-                  onClick={openUpload}
-                  startIcon={<M.Icon>add</M.Icon>}
-                >
+                <M.Button variant="contained" color="primary" onClick={openUpload}>
                   Push package
                 </M.Button>
                 <M.Box pt={2} />
@@ -492,7 +489,6 @@ export default function PackageList({
                     color="primary"
                     style={{ paddingTop: 7, paddingBottom: 7 }}
                     onClick={openUpload}
-                    startIcon={<M.Icon>add</M.Icon>}
                   >
                     Push package
                   </M.Button>
