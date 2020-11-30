@@ -128,7 +128,7 @@ export default function CopyButton({ bucket, onChange }) {
 
   return (
     <>
-      <Button onClick={onButtonClick}>Promote to bucket</Button>
+      <Button onClick={onButtonClick}>Push to bucket</Button>
 
       <SuccessorsSelect
         anchorEl={menuAnchorEl}

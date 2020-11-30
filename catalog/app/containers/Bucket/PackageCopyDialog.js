@@ -103,7 +103,7 @@ function DialogTitle({ bucket }) {
 
   return (
     <M.DialogTitle>
-      Promote package to{' '}
+      Push package to{' '}
       <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
         {bucket}
       </StyledLink>{' '}
@@ -319,7 +319,7 @@ function DialogError({ bucket, error, onCancel }) {
       error={error}
       title={
         <>
-          Promote package to{' '}
+          Push package to{' '}
           <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
             {bucket}
           </StyledLink>{' '}
@@ -338,7 +338,7 @@ function DialogLoading({ bucket, onCancel }) {
     <PD.DialogLoading
       title={
         <>
-          Promote package to{' '}
+          Push package to{' '}
           <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
             {bucket}
           </StyledLink>{' '}
