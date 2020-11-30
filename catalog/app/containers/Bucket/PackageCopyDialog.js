@@ -12,7 +12,6 @@ import Delay from 'utils/Delay'
 import Dropzone, { FilesStats, Overlay as DropzoneOverlay } from 'components/Dropzone'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { getBasename } from 'utils/s3paths'
-// import { readableBytes } from 'utils/string'
 import StyledLink from 'utils/StyledLink'
 import tagged from 'utils/tagged'
 import * as validators from 'utils/validators'
@@ -81,18 +80,6 @@ function FilesInput({ input: { value: inputValue }, meta }) {
     path: getBasename(decodeURIComponent(file.physicalKey)),
     size: file.size,
   }))
-
-  // const totalSize = React.useMemo(() => value.reduce((sum, f) => sum + f.file.size, 0), [
-  //   value,
-  // ])
-
-  // const warning = React.useMemo(
-  //   () =>
-  //     totalSize > PD.MAX_SIZE
-  //       ? `Total file size exceeds recommended maximum of ${readableBytes(PD.MAX_SIZE)}`
-  //       : null,
-  //   [totalSize],
-  // )
 
   // NOTE: User can't upload 1Gb, because Dropzone is disabled
   const warning = null
