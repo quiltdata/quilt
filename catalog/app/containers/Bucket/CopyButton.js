@@ -51,20 +51,7 @@ const BucketsListFetcher = React.forwardRef(({ bucket, children }, ref) => {
 
 function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
   return (
-    <M.Menu
-      anchorEl={anchorEl}
-      onClose={onClose}
-      open={open}
-      getContentAnchorEl={null}
-      anchorOrigin={{
-        vertical: 'bottom',
-        horizontal: 'center',
-      }}
-      transformOrigin={{
-        vertical: 'top',
-        horizontal: 'center',
-      }}
-    >
+    <M.Menu anchorEl={anchorEl} onClose={onClose} open={open}>
       <BucketsListFetcher bucket={bucket}>
         {AsyncResult.case({
           Ok: ({ successors }) => (
