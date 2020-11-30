@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
@@ -6,10 +7,10 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 
 // TODO: use the same API as for DialogError and DialogLoading
-export default function DialogSuccess({ bucket, name, revision, onClose }) {
+export default function DialogSuccess({ bucket, hash, name, onClose }) {
   const { urls } = NamedRoutes.use()
 
-  const packageUrl = urls.bucketPackageTree(bucket, name, revision)
+  const packageUrl = urls.bucketPackageTree(bucket, name, hash)
 
   return (
     <div>
@@ -18,7 +19,7 @@ export default function DialogSuccess({ bucket, name, revision, onClose }) {
         <M.Typography>
           Package{' '}
           <StyledLink to={packageUrl}>
-            {name}@{revision}
+            {name}@{R.take(10, hash)}
           </StyledLink>{' '}
           successfully created
         </M.Typography>

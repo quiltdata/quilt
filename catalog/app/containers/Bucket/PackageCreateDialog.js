@@ -448,7 +448,7 @@ function PackageCreateDialog({
         await new Promise((resolve) => setTimeout(resolve, PD.ES_LAG))
         refresh()
       }
-      onSuccess({ name, revision: res.timestamp })
+      onSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
@@ -654,9 +654,9 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
           <PD.DialogLoading title="Push package" onCancel={onClose} />
         </M.Dialog>
       ),
-      Success: ({ name, revision }) => (
+      Success: ({ name, hash }) => (
         <M.Dialog open={open} onClose={onClose} fullWidth scroll="body">
-          <PD.DialogSuccess bucket={bucket} name={name} revision={revision} />
+          <PD.DialogSuccess bucket={bucket} name={name} hash={hash} />
         </M.Dialog>
       ),
     },
