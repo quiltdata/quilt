@@ -588,7 +588,7 @@ function DialogForm({
           workflow: PD.getWorkflowApiParam(workflow.slug),
         },
       })
-      onSuccess({ name, revision: res.timestamp })
+      onSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
@@ -839,7 +839,7 @@ function DialogError({ error, close }) {
   )
 }
 
-function DialogSuccess({ bucket, name, revision, close }) {
+function DialogSuccess({ bucket, name, hash, close }) {
   const { urls } = NamedRoutes.use()
   return (
     <>
@@ -847,8 +847,8 @@ function DialogSuccess({ bucket, name, revision, close }) {
       <M.DialogContent style={{ paddingTop: 0 }}>
         <M.Typography>
           Package revision{' '}
-          <StyledLink to={urls.bucketPackageTree(bucket, name, revision)}>
-            {name}@{revision}
+          <StyledLink to={urls.bucketPackageTree(bucket, name, hash)}>
+            {name}@{R.take(10, hash)}
           </StyledLink>{' '}
           successfully created
         </M.Typography>
@@ -857,7 +857,7 @@ function DialogSuccess({ bucket, name, revision, close }) {
         <M.Button onClick={close}>Close</M.Button>
         <M.Button
           component={Link}
-          to={urls.bucketPackageTree(bucket, name, revision)}
+          to={urls.bucketPackageTree(bucket, name, hash)}
           variant="contained"
           color="primary"
         >
@@ -886,10 +886,10 @@ const DialogState = tagged([
   'Loading',
   'Error',
   'Form', // { manifest, workflowsConfig }
-  'Success', // { name, revision }
+  'Success', // { name, hash }
 ])
 
-export function usePackageUpdateDialog({ bucket, name, revision, onExited }) {
+export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
   const s3 = AWS.S3.use()
 
   const [isOpen, setOpen] = React.useState(false)
@@ -902,7 +902,7 @@ export function usePackageUpdateDialog({ bucket, name, revision, onExited }) {
 
   const manifestData = Data.use(
     requests.loadManifest,
-    { s3, bucket, name, revision, key },
+    { s3, bucket, name, hash, key },
     { noAutoFetch: !wasOpened },
   )
   const workflowsData = Data.use(requests.workflowsList, { s3, bucket })
