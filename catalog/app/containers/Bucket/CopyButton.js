@@ -50,19 +50,33 @@ const BucketsListFetcher = React.forwardRef(({ bucket, children }, ref) => {
 })
 
 function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
+  // FIXME: add documentation link
   return (
     <M.Menu anchorEl={anchorEl} onClose={onClose} open={open}>
       <BucketsListFetcher bucket={bucket}>
         {AsyncResult.case({
-          Ok: ({ successors }) => (
-            <>
-              {successors.map((b) => (
-                <MenuItem key={b.slug} item={b} onClick={onChange} />
-              ))}
-            </>
-          ),
+          Ok: ({ successors }) =>
+            successors.length ? (
+              <>
+                {successors.map((b) => (
+                  <MenuItem key={b.slug} item={b} onClick={onChange} />
+                ))}
+              </>
+            ) : (
+              <M.Box px={2} py={1}>
+                <M.Typography>
+                  Bucket&apos;s successors are not configured.
+                  <br />
+                  Please, refer to a documentation.
+                </M.Typography>
+              </M.Box>
+            ),
           _: () => <MenuPlaceholder />,
-          Err: () => null,
+          Err: (error) => (
+            <M.Box px={2} py={1}>
+              <Lab.Alert severity="error">{error.message}</Lab.Alert>
+            </M.Box>
+          ),
         })}
       </BucketsListFetcher>
     </M.Menu>
