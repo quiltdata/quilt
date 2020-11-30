@@ -11,62 +11,9 @@ import logger from 'utils/logger'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
-import yaml from 'utils/yaml'
+import * as workflows from 'utils/workflows'
 
 import * as errors from './errors'
-
-function parseSchema(schemaSlug, schemas) {
-  return {
-    url: R.path([schemaSlug, 'url'], schemas),
-  }
-}
-
-function parseWorkflow(workflowSlug, workflow, data) {
-  return {
-    description: workflow.description,
-    isDefault: workflowSlug === data.default_workflow,
-    name: workflow.name,
-    schema: parseSchema(workflow.metadata_schema, data.schemas),
-    slug: workflowSlug,
-  }
-}
-
-export const workflowNotAvailable = Symbol('not available')
-
-export const workflowNotSelected = Symbol('not selected')
-
-function getNoWorkflow(data, hasConfig) {
-  return {
-    isDefault: !data.default_workflow,
-    slug: hasConfig ? workflowNotSelected : workflowNotAvailable,
-  }
-}
-
-const emptyWorkflowsConfig = {
-  isRequired: false,
-  workflows: [getNoWorkflow({}, false)],
-}
-
-function parseWorkflows(workflowsYaml) {
-  const data = yaml(workflowsYaml)
-  if (!data) return emptyWorkflowsConfig
-
-  const { workflows } = data
-  if (!workflows) return emptyWorkflowsConfig
-
-  const workflowsList = Object.keys(workflows).map((slug) =>
-    parseWorkflow(slug, workflows[slug], data),
-  )
-  if (!workflowsList.length) return emptyWorkflowsConfig
-
-  const noWorkflow =
-    data.is_workflow_required === false ? getNoWorkflow(data, true) : null
-
-  return {
-    isRequired: data.is_workflow_required,
-    workflows: noWorkflow ? [noWorkflow, ...workflowsList] : workflowsList,
-  }
-}
 
 const withErrorHandling = (fn, pairs) => (...args) =>
   fn(...args).catch(errors.catchErrors(pairs))
@@ -333,16 +280,16 @@ const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
 export const workflowsList = async ({ s3, bucket }) => {
   try {
     const response = await fetchFile({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
-    return parseWorkflows(response.Body.toString('utf-8'))
+    return workflows.parse(response.Body.toString('utf-8'))
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
-      return emptyWorkflowsConfig
+      return workflows.emptyConfig
 
     logger.log('Unable to fetch')
     logger.error(e)
   }
 
-  return emptyWorkflowsConfig
+  return workflows.emptyConfig
 }
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
@@ -950,14 +897,9 @@ export const getPackageRevisions = withErrorHandling(
       }),
       size: perPage,
       from: perPage * (page - 1),
-      _source: [
-        'comment',
-        'hash',
-        'last_modified',
-        'metadata',
-        'package_stats',
-        'pointer_file', // TODO: rm after switching to hash-based routing
-      ].join(','),
+      _source: ['comment', 'hash', 'last_modified', 'metadata', 'package_stats'].join(
+        ',',
+      ),
     }).then(
       R.pipe(
         R.path(['hits', 'hits']),
@@ -970,7 +912,6 @@ export const getPackageRevisions = withErrorHandling(
           },
           message: s.comment,
           metadata: tryParse(s.metadata),
-          id: s.pointer_file, // TODO: rm after switching to hash-based routing
           // header, // not in ES
         })),
       ),
@@ -986,23 +927,55 @@ export const loadRevisionHash = ({ s3, bucket, name, id }) =>
       hash: res.Body.toString('utf-8'),
     }))
 
+const HASH_RE = /^[a-f0-9]{64}$/
+const TIMESTAMP_RE = /^1[0-9]{9}$/
+
+// returns { hash, modified }
+export async function resolvePackageRevision({ s3, bucket, name, revision }) {
+  if (HASH_RE.test(revision)) {
+    const manifestKey = `${MANIFESTS_PREFIX}${revision}`
+    try {
+      const head = await s3.headObject({ Bucket: bucket, Key: manifestKey }).promise()
+      return { hash: revision, modified: head.LastModified }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(
+        'resolvePackageRevision: revision appears like top_hash, but manifest could not be loaded',
+        { bucket, name, revision },
+      )
+      // eslint-disable-next-line no-console
+      console.error(e)
+    }
+  } else if (TIMESTAMP_RE.test(revision) || revision === 'latest') {
+    try {
+      return await loadRevisionHash({ s3, bucket, name, id: revision })
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(
+        'resolvePackageRevision: revision appears like pointer file name, but it could not be loaded',
+        { bucket, name, revision },
+      )
+      // eslint-disable-next-line no-console
+      console.error(e)
+    }
+  }
+  throw new errors.BadRevision({ bucket, handle: name, revision })
+  // TODO: try tags (when implemented), resolve short hashes
+}
+
 // TODO: Preview endpoint only allows up to 512 lines right now. Increase it to 1000.
 const MAX_PACKAGE_ENTRIES = 500
 
 export const MANIFEST_MAX_SIZE = 10 * 1000 * 1000
 
 export const getRevisionData = async ({
-  s3,
   endpoint,
   sign,
   bucket,
-  name,
-  id,
+  hash,
   maxKeys = MAX_PACKAGE_ENTRIES,
 }) => {
-  const { hash, modified } = await loadRevisionHash({ s3, bucket, name, id })
-  const manifestKey = `${MANIFESTS_PREFIX}${hash}`
-  const url = sign({ bucket, key: manifestKey })
+  const url = sign({ bucket, key: `${MANIFESTS_PREFIX}${hash}` })
   const maxLines = maxKeys + 2 // 1 for the meta and 1 for checking overflow
   const r = await fetch(
     `${endpoint}/preview?url=${encodeURIComponent(url)}&input=txt&line_count=${maxLines}`,
@@ -1014,8 +987,6 @@ export const getRevisionData = async ({
   const bytes = entries.slice(0, maxKeys).reduce((sum, i) => sum + i.size, 0)
   const truncated = entries.length > maxKeys
   return {
-    hash,
-    modified,
     stats: { files, bytes, truncated },
     message: header.message,
     header,
@@ -1026,11 +997,11 @@ export async function loadManifest({
   s3,
   bucket,
   name,
-  revision = 'latest',
+  hash: maybeHash,
   maxSize = MANIFEST_MAX_SIZE,
 }) {
   try {
-    const { hash } = await loadRevisionHash({ s3, bucket, name, id: revision })
+    const hash = maybeHash || (await loadRevisionHash({ s3, bucket, name, id: 'latest' }))
     const manifestKey = `${MANIFESTS_PREFIX}${hash}`
 
     if (maxSize) {
@@ -1107,18 +1078,15 @@ export async function packageSelect({
   endpoint,
   bucket,
   name,
-  revision,
+  hash,
   ...args
 }) {
-  const { hash } = await loadRevisionHash({ s3, bucket, name, id: revision })
-  const manifest = `${MANIFESTS_PREFIX}${hash}`
-
   await credentials.getPromise()
 
   const r = await fetch(
     `${endpoint}/pkgselect${mkSearch({
       bucket,
-      manifest,
+      manifest: `${MANIFESTS_PREFIX}${hash}`,
       access_key: credentials.accessKeyId,
       secret_key: credentials.secretAccessKey,
       session_token: credentials.sessionToken,

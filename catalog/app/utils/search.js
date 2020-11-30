@@ -35,7 +35,6 @@ Package: {
   score: num,
   bucket: str,
   handle: str,
-  revision: str,
   hash: str,
   lastModified: ?Date,
   meta: str, // should it be parsed?
@@ -91,7 +90,6 @@ const extractPkgData = ({ bucket, score, src }) => {
       bucket,
       score,
       handle: src.handle,
-      revision: src.pointer_file || 'latest',
       hash: src.hash,
       lastModified: parseDate(src.last_modified),
       meta: parseJSON(src.metadata),
@@ -182,7 +180,6 @@ export default async function search({
         throw new SearchError('Timeout')
       }
     }
-
     logger.log('Search error:')
     logger.error(e)
     throw new SearchError('Unexpected', { originalError: e })
