@@ -9,9 +9,9 @@ from quilt3.data_transfer import put_bytes
 from quilt3.util import PhysicalKey, QuiltException
 
 
-def get_v1_conf_data(conf_data):
+def get_v1_conf_data(conf_data, version="1"):
     conf_data = textwrap.dedent(conf_data)
-    return f'version: "1"\n{conf_data}'
+    return f'version: "{version}"\n{conf_data}'
 
 
 def set_local_conf_data(conf_data):
@@ -420,3 +420,24 @@ class WorkflowTest(QuiltTestCase):
                         'schema-id': str(get_package_registry().root.join('schemas/schema')),
                     },
                 }
+
+    def test_successors(self):
+        data = '''
+            is_workflow_required: false
+            workflows:
+              w1:
+                name: Name
+            successors:
+              s3://some-bucket:
+                title: successor title
+        '''
+
+        set_local_conf_data(get_v1_conf_data(data))
+        with pytest.raises(QuiltException, match=r"Workflows config failed validation"):
+            self._validate()
+
+        set_local_conf_data(get_v1_conf_data(data, version="1.1"))
+        assert self._validate() == {
+            'id': None,
+            'config': str(get_package_registry().workflow_conf_pk),
+        }
