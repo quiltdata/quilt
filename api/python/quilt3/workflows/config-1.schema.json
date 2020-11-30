@@ -1,15 +1,27 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://quiltdata.com/workflows/config/1",
+  "$id": "https://quiltdata.com/workflows/config/1.1",
   "type": "object",
   "required": [
     "version",
     "workflows"
   ],
   "additionalProperties": false,
+  "if": {
+    "properties": {
+      "version": {
+        "const": "1"
+      }
+    }
+  },
+  "then": {
+    "properties": {
+      "successors": false
+    }
+  },
   "properties": {
     "version": {
-      "const": "1"
+      "enum": ["1", "1.1"]
     },
     "is_workflow_required": {
       "type": "boolean",
@@ -69,6 +81,25 @@
             "type": "string",
             "description": "URL from where the schema will be obtained.",
             "format": "uri"
+          }
+        }
+      }
+    },
+    "successors": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "format": "uri"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
