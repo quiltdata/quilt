@@ -166,7 +166,7 @@ function DialogForm({
       targetBucket,
       workflow,
     })
-    onSuccess({ name, hash: res.hash })
+    onSuccess({ name, hash: res.top_hash })
     return { [FORM_ERROR]: 'Error creating manifest' }
   }
 
