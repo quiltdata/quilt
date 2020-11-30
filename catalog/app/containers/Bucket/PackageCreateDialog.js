@@ -507,6 +507,10 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
                     component={PD.Field}
                     name="name"
                     label="Name"
+                    onBlur={() => {
+                      // Do nothing, just redefine final-form's onBlur.
+                      // That way input is not getting inactive before validation becomes fullfilled
+                    }}
                     placeholder="Enter a package name"
                     validate={validators.composeAsync(
                       validators.required,

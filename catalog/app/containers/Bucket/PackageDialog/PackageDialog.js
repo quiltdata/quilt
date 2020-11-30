@@ -79,15 +79,21 @@ export function useNameValidator() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const validate = React.useCallback(
-    cacheDebounce(async (name) => {
+    cacheDebounce(async (name, values, meta) => {
       if (name) {
         const res = await req({
           endpoint: '/package_name_valid',
           method: 'POST',
           body: { name },
         })
+        // Final-form field's `state.blur()` on next tick
+        // Field should update UI before becomes inactive
+        setTimeout(meta.blur)
         if (!res.valid) return 'invalid'
       }
+      // Final-form field's `state.blur()` on next tick
+      // Field should update UI before becomes inactive
+      setTimeout(meta.blur)
       return undefined
     }, 200),
     [req, counter],
