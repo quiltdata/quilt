@@ -163,7 +163,7 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
         img = AICSImage(img.data[0, :, :, :, :, :])
     # Always choose middle time slice
     if "T" in img.reader.dims:
-        img = AICSImage(img.data[0, img.data.shape[1] / 2, :, :, :, :])
+        img = AICSImage(img.data[0, img.data.shape[1] // 2, :, :, :, :])
 
     # Keep Channel data, but max project when possible
     if "C" in img.reader.dims:
