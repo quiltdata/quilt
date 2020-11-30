@@ -330,8 +330,6 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
           {updateDialog.render()}
 
           <TopBar crumbs={crumbs}>
-            <CopyButton bucket={bucket} onChange={(b) => setBucketCopyTarget(b.slug)} />
-            <M.Box ml={1} />
             <M.Button
               variant="contained"
               color="primary"
@@ -341,6 +339,8 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
             >
               Revise package
             </M.Button>
+            <M.Box ml={1} />
+            <CopyButton bucket={bucket} onChange={(b) => setBucketCopyTarget(b.slug)} />
             {!noDownload && (
               <>
                 <M.Box ml={1} />

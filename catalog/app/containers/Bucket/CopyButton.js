@@ -85,6 +85,7 @@ function Button({ children, onClick }) {
       className={classes.root}
       color="primary"
       size="small"
+      startIcon={<M.Icon>arrow_right_alt</M.Icon>}
       variant="outlined"
       onClick={onClick}
     >
