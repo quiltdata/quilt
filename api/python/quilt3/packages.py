@@ -1005,7 +1005,7 @@ class Package:
         self._dump(manifest)
 
         top_hash = self.top_hash
-        self.timestamp = registry.push_manifest(name, top_hash, manifest.getvalue())
+        self._timestamp = registry.push_manifest(name, top_hash, manifest.getvalue())
 
         return top_hash
 
