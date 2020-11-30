@@ -35,6 +35,12 @@ function parseWorkflow(workflowSlug, workflow, data) {
   }
 }
 
+const parseSuccessor = (url, successor) => ({
+  name: successor.title,
+  slug: s3paths.parseS3Url(url).bucket,
+  url,
+})
+
 export function parse(workflowsYaml) {
   const data = yaml(workflowsYaml)
   if (!data) return emptyConfig
@@ -53,10 +59,9 @@ export function parse(workflowsYaml) {
   const successors = data.successors || {}
   return {
     isRequired: data.is_workflow_required,
-    successors: Object.keys(successors).map((url) => ({
-      name: successors[url].title,
-      slug: s3paths.parseS3Url(url).bucket,
-    })),
+    successors: Object.keys(successors).map((url) =>
+      parseSuccessor(url, successors[url]),
+    ),
     workflows: noWorkflow ? [noWorkflow, ...workflowsList] : workflowsList,
   }
 }

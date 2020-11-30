@@ -30,7 +30,7 @@ function MenuPlaceholder() {
 function MenuItem({ item, onClick }) {
   return (
     <M.MenuItem onClick={React.useCallback(() => onClick(item), [item, onClick])}>
-      {item.name}
+      <M.ListItemText primary={item.name} secondary={item.url} />
     </M.MenuItem>
   )
 }
