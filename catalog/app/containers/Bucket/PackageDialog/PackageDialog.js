@@ -88,11 +88,13 @@ export function useNameValidator() {
         })
         // Final-form field's `state.blur()` on next tick
         // Field should update UI before becomes inactive
+        // TODO: remove when issue will be fixed https://github.com/final-form/react-final-form/issues/676
         setTimeout(meta.blur)
         if (!res.valid) return 'invalid'
       }
       // Final-form field's `state.blur()` on next tick
       // Field should update UI before becomes inactive
+      // TODO: remove when issue will be fixed https://github.com/final-form/react-final-form/issues/676
       setTimeout(meta.blur)
       return undefined
     }, 200),

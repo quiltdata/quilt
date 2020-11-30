@@ -510,6 +510,7 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
                     onBlur={() => {
                       // Do nothing, just redefine final-form's onBlur.
                       // That way input is not getting inactive before validation becomes fullfilled
+                      // TODO: remove when issue will be fixed https://github.com/final-form/react-final-form/issues/676
                     }}
                     placeholder="Enter a package name"
                     validate={validators.composeAsync(
