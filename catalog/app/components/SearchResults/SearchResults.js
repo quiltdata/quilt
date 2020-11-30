@@ -109,7 +109,7 @@ function ObjectHeader({ handle, showBucket, downloadable }) {
   )
 }
 
-function PackageHeader({ bucket, handle, revision, showBucket }) {
+function PackageHeader({ bucket, handle, hash, showBucket }) {
   const { urls } = NamedRoutes.use()
   return (
     <Heading mb={1}>
@@ -126,16 +126,12 @@ function PackageHeader({ bucket, handle, revision, showBucket }) {
             &nbsp;/{' '}
           </>
         )}
-        <CrumbLink to={urls.bucketPackageTree(bucket, handle, revision)}>
+        <CrumbLink to={urls.bucketPackageTree(bucket, handle, hash)}>
           {handle}
-          {revision !== 'latest' && (
-            <>
-              <M.Box component="span" color="text.hint">
-                @
-              </M.Box>
-              {revision}
-            </>
-          )}
+          <M.Box component="span" color="text.hint">
+            @
+          </M.Box>
+          {R.take(10, hash)}
         </CrumbLink>
       </span>
       <M.Box flexGrow={1} />
@@ -435,17 +431,9 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
     overflowWrap: 'break-word',
     textOverflow: 'ellipsis',
   },
-  hash: {
-    ...t.typography.body2,
-    color: t.palette.text.secondary,
-    fontFamily: t.typography.monospace.fontFamily,
-    marginTop: t.spacing(1),
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
 }))
 
-function RevisionInfo({ bucket, handle, revision, hash, comment, lastModified }) {
+function RevisionInfo({ bucket, handle, hash, comment, lastModified }) {
   const classes = useRevisionInfoStyles()
   const { urls } = NamedRoutes.use()
   return (
@@ -454,10 +442,11 @@ function RevisionInfo({ bucket, handle, revision, hash, comment, lastModified })
         <Nowrap>
           Revision{' '}
           <StyledLink
-            to={urls.bucketPackageTree(bucket, handle, revision)}
+            to={urls.bucketPackageTree(bucket, handle, hash)}
             className={classes.mono}
+            title={hash}
           >
-            {revision}
+            {R.take(10, hash)}
           </StyledLink>
         </Nowrap>{' '}
         <Nowrap>
@@ -465,7 +454,6 @@ function RevisionInfo({ bucket, handle, revision, hash, comment, lastModified })
         </Nowrap>
       </p>
       <p className={classes.msg}>{comment || <i>No message</i>}</p>
-      <p className={classes.hash}>{hash}</p>
     </M.Box>
   )
 }
@@ -506,12 +494,12 @@ function ObjectHit({ showBucket, hit: { path, versions, bucket } }) {
 
 function PackageHit({
   showBucket,
-  hit: { bucket, handle, revision, hash, lastModified, meta, tags, comment },
+  hit: { bucket, handle, hash, lastModified, meta, tags, comment },
 }) {
   return (
     <Section>
-      <PackageHeader {...{ handle, bucket, revision, showBucket }} />
-      <RevisionInfo {...{ bucket, handle, revision, hash, comment, lastModified }} />
+      <PackageHeader {...{ handle, bucket, hash, showBucket }} />
+      <RevisionInfo {...{ bucket, handle, hash, comment, lastModified }} />
       {tags && tags.length > 0 && (
         <M.Box mt={2}>
           {tags.map((t) => (
