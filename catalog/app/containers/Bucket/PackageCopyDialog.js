@@ -69,7 +69,6 @@ function FilesInput({ input: { value: inputValue }, meta }) {
   const error = meta.submitFailed && meta.error
 
   const files = value.existing.map(({ file }) => ({
-    iconName: 'attach_file',
     key: file.physicalKey,
     path: getBasename(decodeURIComponent(file.physicalKey)),
     size: file.size,

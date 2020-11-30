@@ -15,6 +15,9 @@ const useStyles = M.makeStyles((t) => ({
       borderColor: 'inherit',
     },
   },
+  noIcon: {
+    paddingLeft: t.spacing(1),
+  },
   filePath: {
     ...t.typography.body2,
     flexGrow: 1,
@@ -34,10 +37,12 @@ export default function FileEntry({ className, iconName, path, size, title, onCl
   const classes = useStyles()
 
   return (
-    <div className={cx(classes.root, className)}>
-      <M.IconButton onClick={onClick} size="small" title={title}>
-        <M.Icon fontSize="inherit">{iconName}</M.Icon>
-      </M.IconButton>
+    <div className={cx(classes.root, className, { [classes.noIcon]: !iconName })}>
+      {iconName && (
+        <M.IconButton onClick={onClick} size="small" title={title}>
+          <M.Icon fontSize="inherit">{iconName}</M.Icon>
+        </M.IconButton>
+      )}
       <div className={classes.filePath} title={path}>
         {path}
       </div>
