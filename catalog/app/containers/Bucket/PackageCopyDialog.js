@@ -154,7 +154,7 @@ function DialogForm({
       name,
       workflow,
     })
-    onSuccess({ name, revision: res.timestamp })
+    onSuccess({ name, hash: res.hash })
     return { [FORM_ERROR]: 'Error creating manifest' }
   }
 
@@ -357,7 +357,7 @@ export default function PackageCopyDialog({
   sourceBucket,
   targetBucket,
   name,
-  revision,
+  hash,
   onClose,
 }) {
   const s3 = AWS.S3.use()
@@ -368,7 +368,7 @@ export default function PackageCopyDialog({
     s3,
     bucket: sourceBucket,
     name,
-    revision,
+    hash,
   })
 
   const workflowsData = Data.use(requests.workflowsList, { s3, bucket: targetBucket })
@@ -409,7 +409,7 @@ export default function PackageCopyDialog({
           <PD.DialogSuccess
             bucket={targetBucket}
             name={props.name}
-            revision={props.revision}
+            hash={props.hash}
             onClose={onClose}
           />
         ),

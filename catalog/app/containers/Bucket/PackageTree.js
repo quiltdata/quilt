@@ -322,7 +322,7 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
               name={name}
               targetBucket={bucketCopyTarget}
               sourceBucket={bucket}
-              revision={revision}
+              hash={hash}
               onClose={() => setBucketCopyTarget(null)}
             />
           )}
