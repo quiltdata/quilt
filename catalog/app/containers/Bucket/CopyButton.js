@@ -58,16 +58,16 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
           Ok: ({ successors }) =>
             successors.length ? (
               <>
-                {successors.map((b) => (
-                  <MenuItem key={b.slug} item={b} onClick={onChange} />
+                {successors.map((successor) => (
+                  <MenuItem key={successor.slug} item={successor} onClick={onChange} />
                 ))}
               </>
             ) : (
               <M.Box px={2} py={1}>
                 <M.Typography>
                   Bucket&apos;s successors are not configured.
-                  <br />
-                  Please, refer to a documentation.
+                  {/* <br /> */}
+                  {/* Please, refer to a documentation. */}
                 </M.Typography>
               </M.Box>
             ),
