@@ -16,6 +16,7 @@ function getNoWorkflow(data, hasConfig) {
 
 export const emptyConfig = {
   isRequired: false,
+  successors: [],
   workflows: [getNoWorkflow({}, false)],
 }
 

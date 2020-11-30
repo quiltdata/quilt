@@ -41,17 +41,25 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-async function requestPackageCopy(req, { bucket, commitMessage, meta, name, workflow }) {
+async function requestPackageCopy(
+  req,
+  { commitMessage, hash, initialName, meta, name, sourceBucket, targetBucket, workflow },
+) {
   try {
     return req({
-      endpoint: '/packages',
+      endpoint: '/packages/promote',
       method: 'POST',
       body: {
-        name,
-        registry: `s3://${bucket}`,
+        copy_data: true,
         message: commitMessage,
-        contents: [],
         meta: PD.getMetaValue(meta),
+        name,
+        parent: {
+          top_hash: hash,
+          registry: `s3://${sourceBucket}`,
+          name: initialName,
+        },
+        registry: `s3://${targetBucket}`,
         workflow: PD.getWorkflowApiParam(workflow.slug),
       },
     })
@@ -118,11 +126,13 @@ function DialogTitle({ bucket }) {
 }
 
 function DialogForm({
-  bucket,
-  name: initialName,
   close,
-  onSuccess,
+  hash,
   manifest,
+  name: initialName,
+  onSuccess,
+  sourceBucket,
+  targetBucket,
   workflowsConfig,
 }) {
   const [uploads, setUploads] = React.useState({})
@@ -147,10 +157,13 @@ function DialogForm({
 
   const onSubmit = async ({ commitMessage, name, meta, workflow }) => {
     const res = await requestPackageCopy(req, {
-      bucket,
       commitMessage,
+      hash,
+      initialName,
       meta,
       name,
+      sourceBucket,
+      targetBucket,
       workflow,
     })
     onSuccess({ name, hash: res.hash })
@@ -172,7 +185,7 @@ function DialogForm({
         values,
       }) => (
         <>
-          <DialogTitle bucket={bucket} />
+          <DialogTitle bucket={targetBucket} />
           <M.DialogContent style={{ paddingTop: 0 }}>
             <form onSubmit={handleSubmit}>
               <RF.Field
@@ -230,7 +243,7 @@ function DialogForm({
                     <RF.Field
                       component={PD.MetaInput}
                       name="meta"
-                      bucket={bucket}
+                      bucket={targetBucket}
                       schema={schema}
                       schemaError={responseError}
                       validate={validate}
@@ -396,10 +409,12 @@ export default function PackageCopyDialog({
         Form: (props) => (
           <DialogForm
             {...{
-              bucket: targetBucket,
               close: onClose,
+              hash,
               name,
               onSuccess: setSuccess,
+              sourceBucket,
+              targetBucket,
               ...props,
             }}
           />
