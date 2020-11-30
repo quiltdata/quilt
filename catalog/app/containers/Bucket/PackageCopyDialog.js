@@ -19,21 +19,6 @@ import * as validators from 'utils/validators'
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
-const getTotalProgress = R.pipe(
-  R.values,
-  R.reduce(
-    (acc, { progress: p = {} }) => ({
-      total: acc.total + (p.total || 0),
-      loaded: acc.loaded + (p.loaded || 0),
-    }),
-    { total: 0, loaded: 0 },
-  ),
-  (p) => ({
-    ...p,
-    percent: p.total ? Math.floor((p.loaded / p.total) * 100) : 100,
-  }),
-)
-
 const useFilesInputStyles = M.makeStyles((t) => ({
   root: {
     marginTop: t.spacing(3),
@@ -122,8 +107,6 @@ function DialogForm({
   targetBucket,
   workflowsConfig,
 }) {
-  const [uploads, setUploads] = React.useState({})
-
   const nameValidator = PD.useNameValidator()
 
   const initialMeta = React.useMemo(
@@ -156,8 +139,6 @@ function DialogForm({
     onSuccess({ name, hash: res.top_hash })
     return { [FORM_ERROR]: 'Error creating manifest' }
   }
-
-  const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
 
   return (
     <RF.Form onSubmit={onSubmit}>
@@ -216,8 +197,6 @@ function DialogForm({
                 errors={{
                   nonEmpty: 'Add files to create a package',
                 }}
-                uploads={uploads}
-                setUploads={setUploads}
                 isEqual={R.equals}
                 initialValue={initialFiles}
               />
@@ -260,22 +239,10 @@ function DialogForm({
                 {(ready) => (
                   <M.Fade in={ready}>
                     <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
-                      <M.CircularProgress
-                        size={24}
-                        variant={
-                          totalProgress.percent < 100 ? 'determinate' : 'indeterminate'
-                        }
-                        value={
-                          totalProgress.percent < 100
-                            ? totalProgress.percent * 0.9
-                            : undefined
-                        }
-                      />
+                      <M.CircularProgress size={24} variant="indeterminate" />
                       <M.Box pl={1} />
                       <M.Typography variant="body2" color="textSecondary">
-                        {totalProgress.percent < 100
-                          ? 'Uploading files'
-                          : 'Writing manifest'}
+                        Writing manifest
                       </M.Typography>
                     </M.Box>
                   </M.Fade>
