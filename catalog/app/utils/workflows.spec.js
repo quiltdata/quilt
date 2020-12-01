@@ -153,5 +153,36 @@ describe('utils/workflows', () => {
         ])
       })
     })
+
+    describe('config with successors', () => {
+      const data = dedent`
+        version: "1"
+        default_workflow: workflow_2
+        successors:
+          s3://something:
+            title: Successor №1
+          s3://bucket-multiworded:
+            title: Multi worded bucket
+        workflows:
+          workflow_1:
+            name: Workflow №1
+      `
+      const config = workflows.parse(data)
+
+      it('should return successors list', () => {
+        expect(config.successors).toMatchObject([
+          {
+            name: 'Successor №1',
+            slug: 'something',
+            url: 's3://something',
+          },
+          {
+            name: 'Multi worded bucket',
+            slug: 'bucket-multiworded',
+            url: 's3://bucket-multiworded',
+          },
+        ])
+      })
+    })
   })
 })
