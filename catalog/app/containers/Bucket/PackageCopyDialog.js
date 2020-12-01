@@ -92,9 +92,8 @@ function CopyDataSwitcher({ input: { onChange, value }, targetBucket, sourceBuck
   return (
     <div className={classes.root}>
       <M.FormControlLabel
-        control={<M.Switch color="primary" checked={value} onChange={handleChange} />}
+        control={<M.Checkbox color="primary" checked={value} onChange={handleChange} />}
         label={hint}
-        labelPlacement="end"
       />
     </div>
   )
