@@ -64,26 +64,20 @@ const useCopyDataSwitcherStyles = M.makeStyles((t) => ({
   },
 }))
 
-function CopyDataSwitcher({ input }) {
+function CopyDataSwitcher({ input: { onChange, value } }) {
   const classes = useCopyDataSwitcherStyles()
 
-  const handleChange = React.useCallback(
-    (event) => input.onChange(event.target.checked),
-    [input],
-  )
+  const handleChange = React.useCallback((event) => onChange(event.target.checked), [
+    onChange,
+  ])
 
   return (
     <M.FormControlLabel
       className={classes.root}
       control={
-        <M.Switch
-          color="primary"
-          size="small"
-          checked={input.value}
-          onChange={handleChange}
-        />
+        <M.Switch color="primary" size="small" checked={value} onChange={handleChange} />
       }
-      label="Full copy"
+      label="Copy data"
       labelPlacement="end"
     />
   )
