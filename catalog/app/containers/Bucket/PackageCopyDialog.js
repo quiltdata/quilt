@@ -217,7 +217,7 @@ function DialogForm({
               <RF.Field
                 className={classes.filesSwitcher}
                 component={CopyDataSwitcher}
-                initialValue={false}
+                initialValue={workflowsConfig.copyData}
                 name="copyData"
                 sourceBucket={sourceBucket}
                 targetBucket={targetBucket}
