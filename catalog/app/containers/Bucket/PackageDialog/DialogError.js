@@ -62,7 +62,7 @@ export default function DialogError({ error, title, onCancel }) {
   const classes = useStyles()
 
   return (
-    <div>
+    <>
       <M.DialogTitle>{title}</M.DialogTitle>
 
       <M.DialogContent className={classes.content}>
@@ -76,6 +76,6 @@ export default function DialogError({ error, title, onCancel }) {
           Push
         </M.Button>
       </M.DialogActions>
-    </div>
+    </>
   )
 }
