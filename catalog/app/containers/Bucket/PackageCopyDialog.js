@@ -246,7 +246,7 @@ function DialogForm({
                   className={classes.filesSwitcher}
                   component={CopyDataSwitcher}
                   name="copyData"
-                  initialValue
+                  initialValue={false}
                   validateFields={['copyData']}
                 />
 
