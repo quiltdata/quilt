@@ -420,3 +420,17 @@ class WorkflowTest(QuiltTestCase):
                         'schema-id': str(get_package_registry().root.join('schemas/schema')),
                     },
                 }
+
+    def test_successors(self):
+        set_local_conf_data(get_v1_conf_data('''
+            workflows:
+              w1:
+                name: Name
+            successors:
+              s3://some-bucket:
+                title: successor title
+        '''))
+        assert self._validate(workflow='w1') == {
+            'id': 'w1',
+            'config': str(get_package_registry().workflow_conf_pk),
+        }
