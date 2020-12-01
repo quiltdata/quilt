@@ -126,20 +126,26 @@ function DialogForm({
 
   const req = APIConnector.use()
 
+  // eslint-disable-next-line consistent-return
   const onSubmit = async ({ commitMessage, copyData, name, meta, workflow }) => {
-    const res = await requestPackageCopy(req, {
-      commitMessage,
-      copyData,
-      hash,
-      initialName,
-      meta,
-      name,
-      sourceBucket,
-      targetBucket,
-      workflow,
-    })
-    onSuccess({ name, hash: res.top_hash })
-    return { [FORM_ERROR]: 'Error creating manifest' }
+    try {
+      const res = await requestPackageCopy(req, {
+        commitMessage,
+        copyData,
+        hash,
+        initialName,
+        meta,
+        name,
+        sourceBucket,
+        targetBucket,
+        workflow,
+      })
+      onSuccess({ name, hash: res.top_hash })
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log('error creating manifest', e)
+      return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
+    }
   }
 
   return (
