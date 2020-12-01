@@ -9,9 +9,7 @@ import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
-import Dropzone, { FilesStats, Overlay as DropzoneOverlay } from 'components/Dropzone'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import { getBasename } from 'utils/s3paths'
 import StyledLink from 'utils/StyledLink'
 import tagged from 'utils/tagged'
 import * as validators from 'utils/validators'
@@ -58,13 +56,11 @@ async function requestPackageCopy(
 
 const useCopyDataSwitcherStyles = M.makeStyles((t) => ({
   root: {
-    position: 'absolute',
-    right: t.spacing(-2),
-    top: 0,
+    marginTop: t.spacing(2),
   },
 }))
 
-function CopyDataSwitcher({ input: { onChange, value } }) {
+function CopyDataSwitcher({ input: { onChange, value }, targetBucket, sourceBucket }) {
   const classes = useCopyDataSwitcherStyles()
 
   const handleChange = React.useCallback((event) => onChange(event.target.checked), [
@@ -72,51 +68,17 @@ function CopyDataSwitcher({ input: { onChange, value } }) {
   ])
 
   return (
-    <M.FormControlLabel
-      className={classes.root}
-      control={
-        <M.Switch color="primary" size="small" checked={value} onChange={handleChange} />
-      }
-      label="Copy data"
-      labelPlacement="end"
-    />
-  )
-}
-
-const useFilesInputStyles = M.makeStyles((t) => ({
-  root: {
-    marginTop: t.spacing(3),
-  },
-}))
-
-const filesInitialValue = { existing: [] }
-
-function FilesInput({ input: { value: inputValue }, meta }) {
-  const classes = useFilesInputStyles()
-
-  const value = inputValue || filesInitialValue
-  const error = meta.submitFailed && meta.error
-
-  const files = value.existing.map(({ file }) => ({
-    key: file.physicalKey,
-    path: getBasename(decodeURIComponent(file.physicalKey)),
-    size: file.size,
-  }))
-
-  // NOTE: User can't upload 1Gb, because Dropzone is disabled
-  const warning = null
-
-  return (
-    <Dropzone
-      className={classes.root}
-      disabled
-      error={error}
-      files={files}
-      overlayElement={<DropzoneOverlay />}
-      statsElement={<FilesStats files={files} warning={warning} />}
-      warning={warning}
-      onDrop={R.always(files)}
-    />
+    <div className={classes.root}>
+      <M.FormControlLabel
+        control={<M.Switch color="primary" checked={value} onChange={handleChange} />}
+        label={
+          value
+            ? `Files will be copied from "${sourceBucket}" to "${targetBucket}"`
+            : `Files will persist in "${sourceBucket}", but links will be copied`
+        }
+        labelPlacement="end"
+      />
+    </div>
   )
 }
 
@@ -161,12 +123,6 @@ function DialogForm({
     }),
     [manifest.meta],
   )
-
-  const initialFiles = {
-    existing: Object.values(manifest.entries).map((file) => ({
-      file,
-    })),
-  }
 
   const req = APIConnector.use()
 
@@ -235,27 +191,15 @@ function DialogForm({
                 margin="normal"
               />
 
-              <div className={classes.filesWrapper}>
-                <RF.Field
-                  className={classes.filesSwitcher}
-                  component={CopyDataSwitcher}
-                  name="copyData"
-                  initialValue={false}
-                  validateFields={['copyData']}
-                />
-
-                <RF.Field
-                  component={FilesInput}
-                  name="files"
-                  validate={validators.nonEmpty}
-                  validateFields={['files']}
-                  errors={{
-                    nonEmpty: 'Add files to create a package',
-                  }}
-                  isEqual={R.equals}
-                  initialValue={initialFiles}
-                />
-              </div>
+              <RF.Field
+                className={classes.filesSwitcher}
+                component={CopyDataSwitcher}
+                initialValue={false}
+                name="copyData"
+                sourceBucket={sourceBucket}
+                targetBucket={targetBucket}
+                validateFields={['copyData']}
+              />
 
               <PD.SchemaFetcher
                 schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
