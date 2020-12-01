@@ -14,13 +14,13 @@ function MenuPlaceholder() {
   return (
     <M.Box minWidth={t.spacing(22)}>
       <M.MenuItem disabled>
-        <Lab.Skeleton height={t.spacing(4)} width="100%" />
+        <Lab.Skeleton height={t.spacing(6)} width="100%" />
       </M.MenuItem>
       <M.MenuItem disabled>
-        <Lab.Skeleton height={t.spacing(4)} width="100%" />
+        <Lab.Skeleton height={t.spacing(6)} width="100%" />
       </M.MenuItem>
       <M.MenuItem disabled>
-        <Lab.Skeleton height={t.spacing(4)} width="100%" />
+        <Lab.Skeleton height={t.spacing(6)} width="100%" />
       </M.MenuItem>
     </M.Box>
   )
