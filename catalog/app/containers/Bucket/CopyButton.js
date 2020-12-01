@@ -35,7 +35,7 @@ function MenuItem({ item, onClick }) {
   )
 }
 
-const BucketsListFetcher = React.forwardRef(({ bucket, children }, ref) => {
+const BucketsListFetcher = React.forwardRef(function BucketsListFetcher({ bucket, children }, ref) {
   const s3 = AWS.S3.use()
   const data = useData(requests.workflowsList, { s3, bucket })
   const res = data.case({
