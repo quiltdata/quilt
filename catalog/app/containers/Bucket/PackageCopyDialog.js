@@ -19,22 +19,26 @@ import * as validators from 'utils/validators'
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
-const useFilesInputStyles = M.makeStyles((t) => ({
-  root: {
-    marginTop: t.spacing(3),
-  },
-}))
-
 async function requestPackageCopy(
   req,
-  { commitMessage, hash, initialName, meta, name, sourceBucket, targetBucket, workflow },
+  {
+    commitMessage,
+    copyData,
+    hash,
+    initialName,
+    meta,
+    name,
+    sourceBucket,
+    targetBucket,
+    workflow,
+  },
 ) {
   try {
     return req({
       endpoint: '/packages/promote',
       method: 'POST',
       body: {
-        copy_data: true,
+        copy_data: copyData,
         message: commitMessage,
         meta: PD.getMetaValue(meta),
         name,
@@ -51,6 +55,45 @@ async function requestPackageCopy(
     return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
   }
 }
+
+const useCopyDataSwitcherStyles = M.makeStyles((t) => ({
+  root: {
+    position: 'absolute',
+    right: t.spacing(-2),
+    top: 0,
+  },
+}))
+
+function CopyDataSwitcher({ input }) {
+  const classes = useCopyDataSwitcherStyles()
+
+  const handleChange = React.useCallback(
+    (event) => input.onChange(event.target.checked),
+    [input],
+  )
+
+  return (
+    <M.FormControlLabel
+      className={classes.root}
+      control={
+        <M.Switch
+          color="primary"
+          size="small"
+          checked={input.value}
+          onChange={handleChange}
+        />
+      }
+      label="Full copy"
+      labelPlacement="end"
+    />
+  )
+}
+
+const useFilesInputStyles = M.makeStyles((t) => ({
+  root: {
+    marginTop: t.spacing(3),
+  },
+}))
 
 const filesInitialValue = { existing: [] }
 
@@ -97,6 +140,12 @@ function DialogTitle({ bucket }) {
   )
 }
 
+const useDialogFormStyles = M.makeStyles(() => ({
+  filesWrapper: {
+    position: 'relative',
+  },
+}))
+
 function DialogForm({
   close,
   hash,
@@ -107,6 +156,8 @@ function DialogForm({
   targetBucket,
   workflowsConfig,
 }) {
+  const classes = useDialogFormStyles()
+
   const nameValidator = PD.useNameValidator()
 
   const initialMeta = React.useMemo(
@@ -125,9 +176,10 @@ function DialogForm({
 
   const req = APIConnector.use()
 
-  const onSubmit = async ({ commitMessage, name, meta, workflow }) => {
+  const onSubmit = async ({ commitMessage, copyData, name, meta, workflow }) => {
     const res = await requestPackageCopy(req, {
       commitMessage,
+      copyData,
       hash,
       initialName,
       meta,
@@ -189,17 +241,27 @@ function DialogForm({
                 margin="normal"
               />
 
-              <RF.Field
-                component={FilesInput}
-                name="files"
-                validate={validators.nonEmpty}
-                validateFields={['files']}
-                errors={{
-                  nonEmpty: 'Add files to create a package',
-                }}
-                isEqual={R.equals}
-                initialValue={initialFiles}
-              />
+              <div className={classes.filesWrapper}>
+                <RF.Field
+                  className={classes.filesSwitcher}
+                  component={CopyDataSwitcher}
+                  name="copyData"
+                  initialValue
+                  validateFields={['copyData']}
+                />
+
+                <RF.Field
+                  component={FilesInput}
+                  name="files"
+                  validate={validators.nonEmpty}
+                  validateFields={['files']}
+                  errors={{
+                    nonEmpty: 'Add files to create a package',
+                  }}
+                  isEqual={R.equals}
+                  initialValue={initialFiles}
+                />
+              </div>
 
               <PD.SchemaFetcher
                 schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
