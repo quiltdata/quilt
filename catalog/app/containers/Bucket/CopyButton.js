@@ -1,4 +1,3 @@
-import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -35,18 +34,14 @@ function MenuItem({ item, onClick }) {
   )
 }
 
-const BucketsListFetcher = React.forwardRef(function BucketsListFetcher({
-  bucket,
-  children,
-}) {
+// TODO: use ref according to proper use of M.Menu
+const BucketsListFetcher = React.forwardRef(function BucketsListFetcher(
+  { bucket, children },
+  ref,
+) {
   const s3 = AWS.S3.use()
   const data = useData(requests.workflowsList, { s3, bucket })
-  const res = data.case({
-    Ok: AsyncResult.Ok,
-    Err: AsyncResult.Err,
-    _: R.identity,
-  })
-  return children(res)
+  return children(data.result, ref)
 })
 
 function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
@@ -54,28 +49,33 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
   return (
     <M.Menu anchorEl={anchorEl} onClose={onClose} open={open}>
       <BucketsListFetcher bucket={bucket}>
-        {AsyncResult.case({
-          Ok: ({ successors }) =>
-            successors.length ? (
-              successors.map((successor) => (
-                <MenuItem key={successor.slug} item={successor} onClick={onChange} />
-              ))
-            ) : (
-              <M.Box px={2} py={1}>
-                <M.Typography>
-                  Bucket&apos;s successors are not configured.
-                  {/* <br /> */}
-                  {/* Please, refer to a documentation. */}
-                </M.Typography>
-              </M.Box>
-            ),
-          _: () => <MenuPlaceholder />,
-          Err: (error) => (
-            <M.Box px={2} py={1}>
-              <Lab.Alert severity="error">{error.message}</Lab.Alert>
-            </M.Box>
-          ),
-        })}
+        {(data) =>
+          AsyncResult.case(
+            {
+              Ok: ({ successors }) =>
+                successors.length ? (
+                  successors.map((successor) => (
+                    <MenuItem key={successor.slug} item={successor} onClick={onChange} />
+                  ))
+                ) : (
+                  <M.Box px={2} py={1}>
+                    <M.Typography>
+                      Bucket&apos;s successors are not configured.
+                      {/* <br /> */}
+                      {/* Please, refer to a documentation. */}
+                    </M.Typography>
+                  </M.Box>
+                ),
+              _: () => <MenuPlaceholder />,
+              Err: (error) => (
+                <M.Box px={2} py={1}>
+                  <Lab.Alert severity="error">{error.message}</Lab.Alert>
+                </M.Box>
+              ),
+            },
+            data,
+          )
+        }
       </BucketsListFetcher>
     </M.Menu>
   )
