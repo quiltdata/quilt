@@ -75,6 +75,17 @@
     },
     "successors": {
       "type": "object",
+      "description": "Buckets usable as destination with \"Push to Bucket\" in web UI.",
+      "examples": [
+        {
+          "s3://some-bucket-1": {
+            "title": "Staging"
+          },
+          "s3://some-bucket-2": {
+            "title": "Production"
+          }
+        }
+      ],
       "minProperties": 1,
       "propertyNames": {
         "format": "uri"
