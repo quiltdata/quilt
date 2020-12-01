@@ -78,8 +78,8 @@ function CopyDataSwitcher({ input: { onChange, value }, targetBucket, sourceBuck
       <M.Tooltip
         title={
           value
-            ? `Files will be copied from "${sourceBucket}" to "${targetBucket}"`
-            : `Files will persist in "${sourceBucket}", but links will be copied`
+            ? `Files will be copied to s3://${targetBucket}`
+            : `Files from the package will be reused, only links will be copied`
         }
       >
         <M.Icon color="inherit" className={classes.icon} fontSize="small">
