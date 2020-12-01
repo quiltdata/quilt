@@ -92,17 +92,22 @@ const useButtonStyles = M.makeStyles(() => ({
 
 function Button({ children, onClick }) {
   const classes = useButtonStyles()
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
 
-  return (
-    <M.Button
-      aria-haspopup="true"
-      className={classes.root}
-      color="primary"
-      size="small"
-      startIcon={<M.Icon>arrow_right_alt</M.Icon>}
-      variant="outlined"
-      onClick={onClick}
-    >
+  const props = {
+    'aria-haspopup': 'true',
+    className: classes.root,
+    onClick,
+    size: 'small',
+  }
+
+  return xs ? (
+    <M.IconButton aria-haspopup="true" edge="end" title={children} {...props}>
+      <M.Icon>input</M.Icon>
+    </M.IconButton>
+  ) : (
+    <M.Button startIcon={<M.Icon>arrow_right_alt</M.Icon>} variant="outlined" {...props}>
       {children}
     </M.Button>
   )
