@@ -89,7 +89,7 @@ function Button({ children, onClick }) {
   }
 
   return xs ? (
-    <M.IconButton aria-haspopup="true" edge="end" title={children} {...props}>
+    <M.IconButton edge="end" title={children} {...props}>
       <M.Icon>input</M.Icon>
     </M.IconButton>
   ) : (
