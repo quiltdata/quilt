@@ -9,6 +9,7 @@
 
 # 3.4.0dev - YYYY-MM-DD
 ## Python API
+* [Added] Support `successors` property in workflows config ([#1939](https://github.com/quiltdata/quilt/pull/1939))
 
 ## CLI
 
