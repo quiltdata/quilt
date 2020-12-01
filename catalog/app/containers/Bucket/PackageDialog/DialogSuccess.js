@@ -26,7 +26,13 @@ export default function DialogSuccess({ bucket, hash, name, onClose }) {
       </M.DialogContent>
       <M.DialogActions>
         <M.Button onClick={onClose}>Close</M.Button>
-        <M.Button component={Link} to={packageUrl} variant="contained" color="primary">
+        <M.Button
+          onClick={onClose}
+          component={Link}
+          to={packageUrl}
+          variant="contained"
+          color="primary"
+        >
           Browse package
         </M.Button>
       </M.DialogActions>

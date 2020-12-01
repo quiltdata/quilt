@@ -324,6 +324,7 @@ export default function PackageCopyDialog({
   targetBucket,
   name,
   hash,
+  onExited,
   onClose,
 }) {
   const s3 = AWS.S3.use()
@@ -355,8 +356,29 @@ export default function PackageCopyDialog({
 
   const stateCase = React.useCallback((cases) => DialogState.case(cases, state), [state])
 
+  const handleSuccess = React.useCallback(
+    (successData) => {
+      setSuccess(successData)
+    },
+    [setSuccess],
+  )
+
+  const handleExited = React.useCallback(() => {
+    onExited({
+      pushed: success,
+    })
+    onClose()
+  }, [onExited, onClose, success])
+
+  const handleClose = React.useCallback(() => {
+    onExited({
+      pushed: success,
+    })
+    onClose()
+  }, [onExited, success, onClose])
+
   return (
-    <M.Dialog open onClose={onClose} fullWidth scroll="body">
+    <M.Dialog open onClose={onClose} fullWidth scroll="body" onExited={handleExited}>
       {stateCase({
         Error: (e) => <DialogError bucket={targetBucket} onClose={onClose} error={e} />,
         Loading: () => <DialogLoading bucket={targetBucket} onCancel={onClose} />,
@@ -366,7 +388,7 @@ export default function PackageCopyDialog({
               close: onClose,
               hash,
               name,
-              onSuccess: setSuccess,
+              onSuccess: handleSuccess,
               sourceBucket,
               targetBucket,
               ...props,
@@ -378,7 +400,7 @@ export default function PackageCopyDialog({
             bucket={targetBucket}
             name={props.name}
             hash={props.hash}
-            onClose={onClose}
+            onClose={handleClose}
           />
         ),
       })}
