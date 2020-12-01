@@ -184,5 +184,21 @@ describe('utils/workflows', () => {
         ])
       })
     })
+
+    describe('config with copy_data', () => {
+      const data = dedent`
+        version: "1"
+        default_workflow: workflow_2
+        copy_data: True
+        workflows:
+          workflow_1:
+            name: Workflow №1
+      `
+      const config = workflows.parse(data)
+
+      it('should return copyData param', () => {
+        expect(config.copyData).toBe(true)
+      })
+    })
   })
 })

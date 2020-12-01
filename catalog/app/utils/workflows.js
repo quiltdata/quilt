@@ -15,6 +15,7 @@ function getNoWorkflow(data, hasConfig) {
 }
 
 export const emptyConfig = {
+  copyData: false,
   isRequired: false,
   successors: [],
   workflows: [getNoWorkflow({}, false)],
@@ -59,6 +60,7 @@ export function parse(workflowsYaml) {
 
   const successors = data.successors || {}
   return {
+    copyData: data.copy_data || false,
     isRequired: data.is_workflow_required,
     successors: Object.entries(successors).map(([url, successor]) =>
       parseSuccessor(url, successor),
