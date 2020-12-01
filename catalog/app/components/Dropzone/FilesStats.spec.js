@@ -3,7 +3,7 @@ import renderer from 'react-test-renderer'
 
 import FilesStats from './FilesStats'
 
-describe('FilesStats', () => {
+describe('components/Dropzone/FilesStats', () => {
   it('should render', () => {
     const tree = renderer.create(<FilesStats files={[]} />).toJSON()
     expect(tree).toMatchSnapshot()

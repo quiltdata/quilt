@@ -3,7 +3,7 @@ import renderer from 'react-test-renderer'
 
 import DropMessage from './DropMessage'
 
-describe('DropMessage', () => {
+describe('components/Dropzone/DropMessage', () => {
   it('should render with default message', () => {
     const tree = renderer.create(<DropMessage />).toJSON()
     expect(tree).toMatchSnapshot()
