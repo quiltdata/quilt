@@ -10,6 +10,7 @@ import StyledLink from 'utils/StyledLink'
 export default function DialogSuccess({ bucket, hash, name, onClose }) {
   const { urls } = NamedRoutes.use()
 
+  const bucketUrl = urls.bucketOverview(bucket)
   const packageUrl = urls.bucketPackageTree(bucket, name, hash)
 
   return (
@@ -17,11 +18,10 @@ export default function DialogSuccess({ bucket, hash, name, onClose }) {
       <M.DialogTitle>Push complete</M.DialogTitle>
       <M.DialogContent style={{ paddingTop: 0 }}>
         <M.Typography>
-          Package{' '}
+          Pushed to <StyledLink to={bucketUrl}>s3://{bucket}</StyledLink> as{' '}
           <StyledLink to={packageUrl}>
             {name}@{R.take(10, hash)}
           </StyledLink>{' '}
-          successfully created
         </M.Typography>
       </M.DialogContent>
       <M.DialogActions>
