@@ -248,7 +248,9 @@ function DialogForm({
                       <M.CircularProgress size={24} variant="indeterminate" />
                       <M.Box pl={1} />
                       <M.Typography variant="body2" color="textSecondary">
-                        Writing manifest
+                        {values.copyData
+                          ? 'Copying files and writing manfest'
+                          : 'Writing manifest'}
                       </M.Typography>
                     </M.Box>
                   </M.Fade>
