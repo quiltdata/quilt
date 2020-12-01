@@ -58,6 +58,11 @@ const useCopyDataSwitcherStyles = M.makeStyles((t) => ({
   root: {
     marginTop: t.spacing(2),
   },
+  icon: {
+    color: t.palette.text.hint,
+    marginLeft: t.spacing(1),
+    verticalAlign: '-4px',
+  },
 }))
 
 function CopyDataSwitcher({ input: { onChange, value }, targetBucket, sourceBucket }) {
@@ -67,15 +72,28 @@ function CopyDataSwitcher({ input: { onChange, value }, targetBucket, sourceBuck
     onChange,
   ])
 
-  return (
-    <div className={classes.root}>
-      <M.FormControlLabel
-        control={<M.Switch color="primary" checked={value} onChange={handleChange} />}
-        label={
+  const hint = (
+    <span>
+      Copy data
+      <M.Tooltip
+        title={
           value
             ? `Files will be copied from "${sourceBucket}" to "${targetBucket}"`
             : `Files will persist in "${sourceBucket}", but links will be copied`
         }
+      >
+        <M.Icon color="inherit" className={classes.icon} fontSize="small">
+          help_outline
+        </M.Icon>
+      </M.Tooltip>
+    </span>
+  )
+
+  return (
+    <div className={classes.root}>
+      <M.FormControlLabel
+        control={<M.Switch color="primary" checked={value} onChange={handleChange} />}
+        label={hint}
         labelPlacement="end"
       />
     </div>
