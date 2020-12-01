@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`DropMessage should be empty when disabled 1`] = `
+exports[`components/Dropzone/DropMessage should be empty when disabled 1`] = `
 <div
   className="makeStyles-root-1 makeStyles-error-3 makeStyles-warning-2"
 >
@@ -8,7 +8,7 @@ exports[`DropMessage should be empty when disabled 1`] = `
 </div>
 `;
 
-exports[`DropMessage should render error 1`] = `
+exports[`components/Dropzone/DropMessage should render error 1`] = `
 <div
   className="makeStyles-root-1 makeStyles-error-3 makeStyles-warning-2"
 >
@@ -16,7 +16,7 @@ exports[`DropMessage should render error 1`] = `
 </div>
 `;
 
-exports[`DropMessage should render warning 1`] = `
+exports[`components/Dropzone/DropMessage should render warning 1`] = `
 <div
   className="makeStyles-root-1 makeStyles-warning-2"
 >
@@ -24,7 +24,7 @@ exports[`DropMessage should render warning 1`] = `
 </div>
 `;
 
-exports[`DropMessage should render with default message 1`] = `
+exports[`components/Dropzone/DropMessage should render with default message 1`] = `
 <div
   className="makeStyles-root-1"
 >

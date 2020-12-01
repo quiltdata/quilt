@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Dropzone should render 1`] = `
+exports[`components/Dropzone/Dropzone should render 1`] = `
 <div>
   <div
     className="makeStyles-root-7"

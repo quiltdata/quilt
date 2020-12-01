@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Header should change color on error 1`] = `
+exports[`components/Dropzone/Header should change color on error 1`] = `
 <div
   className="makeStyles-root-1"
 >
@@ -12,7 +12,7 @@ exports[`Header should change color on error 1`] = `
 </div>
 `;
 
-exports[`Header should change color on warning 1`] = `
+exports[`components/Dropzone/Header should change color on warning 1`] = `
 <div
   className="makeStyles-root-1"
 >
@@ -24,7 +24,7 @@ exports[`Header should change color on warning 1`] = `
 </div>
 `;
 
-exports[`Header should render 1`] = `
+exports[`components/Dropzone/Header should render 1`] = `
 <div
   className="makeStyles-root-1"
 >
