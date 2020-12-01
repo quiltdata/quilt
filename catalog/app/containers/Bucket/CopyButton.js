@@ -25,13 +25,16 @@ function MenuPlaceholder() {
   )
 }
 
-function MenuItem({ item, onClick }) {
+const MenuItem = React.forwardRef(function MenuItem({ item, onClick }, ref) {
   return (
-    <M.MenuItem onClick={React.useCallback(() => onClick(item), [item, onClick])}>
+    <M.MenuItem
+      ref={ref}
+      onClick={React.useCallback(() => onClick(item), [item, onClick])}
+    >
       <M.ListItemText primary={item.name} secondary={item.url} />
     </M.MenuItem>
   )
-}
+})
 
 function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
   const s3 = AWS.S3.use()
@@ -41,23 +44,20 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
   return (
     <M.Menu anchorEl={anchorEl} onClose={onClose} open={open}>
       {data.case({
-        Ok: ({ successors }) => (
-          <div>
-            {successors.length ? (
-              successors.map((successor) => (
-                <MenuItem key={successor.slug} item={successor} onClick={onChange} />
-              ))
-            ) : (
-              <M.Box px={2} py={1}>
-                <M.Typography>
-                  Bucket&apos;s successors are not configured.
-                  {/* <br /> */}
-                  {/* Please, refer to a documentation. */}
-                </M.Typography>
-              </M.Box>
-            )}
-          </div>
-        ),
+        Ok: ({ successors }) =>
+          successors.length ? (
+            successors.map((successor) => (
+              <MenuItem key={successor.slug} item={successor} onClick={onChange} />
+            ))
+          ) : (
+            <M.Box px={2} py={1}>
+              <M.Typography>
+                Bucket&apos;s successors are not configured.
+                {/* <br /> */}
+                {/* Please, refer to a documentation. */}
+              </M.Typography>
+            </M.Box>
+          ),
         _: () => <MenuPlaceholder />,
         Err: (error) => (
           <M.Box px={2} py={1}>
