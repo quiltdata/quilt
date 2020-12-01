@@ -46,8 +46,8 @@ export default function Dropzone({
   error,
   files,
   onDrop,
-  overlayComponent,
-  statsComponent,
+  overlayElement,
+  statsElement,
   warning,
 }) {
   const classes = useStyles()
@@ -57,7 +57,7 @@ export default function Dropzone({
   return (
     <div className={className}>
       <Header disabled error={error} warning={warning}>
-        {statsComponent}
+        {statsElement}
       </Header>
 
       <div className={classes.dropzone}>
@@ -93,7 +93,7 @@ export default function Dropzone({
           <DropMessage disabled={disabled} error={error} warning={warning} />
         </div>
 
-        {overlayComponent}
+        {overlayElement}
       </div>
     </div>
   )

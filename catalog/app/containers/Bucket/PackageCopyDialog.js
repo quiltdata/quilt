@@ -112,8 +112,8 @@ function FilesInput({ input: { value: inputValue }, meta }) {
       disabled
       error={error}
       files={files}
-      overlayComponent={<DropzoneOverlay />}
-      statsComponent={<FilesStats files={files} warning={warning} />}
+      overlayElement={<DropzoneOverlay />}
+      statsElement={<FilesStats files={files} warning={warning} />}
       warning={warning}
       onDrop={R.always(files)}
     />
