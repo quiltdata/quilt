@@ -60,8 +60,8 @@ export function parse(workflowsYaml) {
   const successors = data.successors || {}
   return {
     isRequired: data.is_workflow_required,
-    successors: Object.keys(successors).map((url) =>
-      parseSuccessor(url, successors[url]),
+    successors: Object.entries(successors).map(([url, successor]) =>
+      parseSuccessor(url, successor),
     ),
     workflows: noWorkflow ? [noWorkflow, ...workflowsList] : workflowsList,
   }
