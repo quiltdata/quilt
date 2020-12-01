@@ -57,11 +57,9 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
         {AsyncResult.case({
           Ok: ({ successors }) =>
             successors.length ? (
-              <>
-                {successors.map((successor) => (
-                  <MenuItem key={successor.slug} item={successor} onClick={onChange} />
-                ))}
-              </>
+              successors.map((successor) => (
+                <MenuItem key={successor.slug} item={successor} onClick={onChange} />
+              ))
             ) : (
               <M.Box px={2} py={1}>
                 <M.Typography>
