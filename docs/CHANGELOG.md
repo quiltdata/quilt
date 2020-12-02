@@ -14,6 +14,7 @@
 ## CLI
 
 ## Catalog, Lambdas
+* [Added] Support filling package metadata by dropping a JSON file into metadata controls ([#1950](https://github.com/quiltdata/quilt/pull/1950))
 * [Changed] `top_hash`-based package routes (timestamp routes are still supported in the same way) ([#1938](https://github.com/quiltdata/quilt/pull/1938))
 
 # 3.3.0rc1 - 2020-11-25
