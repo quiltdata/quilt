@@ -90,7 +90,7 @@ function Button({ children, onClick }) {
 
   return sm ? (
     <M.IconButton edge="end" title={children} {...props}>
-      <M.Icon>input</M.Icon>
+      <M.Icon>exit_to_app</M.Icon>
     </M.IconButton>
   ) : (
     <M.Button startIcon={<M.Icon>arrow_right_alt</M.Icon>} variant="outlined" {...props}>
