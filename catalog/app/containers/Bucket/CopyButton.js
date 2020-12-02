@@ -93,7 +93,7 @@ function Button({ children, onClick }) {
       <M.Icon>exit_to_app</M.Icon>
     </M.IconButton>
   ) : (
-    <M.Button startIcon={<M.Icon>arrow_right_alt</M.Icon>} variant="outlined" {...props}>
+    <M.Button variant="outlined" {...props}>
       {children}
     </M.Button>
   )
