@@ -366,7 +366,7 @@ export default function PackageCopyDialog({
   return (
     <M.Dialog open onClose={onClose} fullWidth scroll="body" onExited={handleExited}>
       {stateCase({
-        Error: (e) => <DialogError bucket={targetBucket} onClose={onClose} error={e} />,
+        Error: (e) => <DialogError bucket={targetBucket} onCancel={onClose} error={e} />,
         Loading: () => <DialogLoading bucket={targetBucket} onCancel={onClose} />,
         Form: (props) => (
           <DialogForm
