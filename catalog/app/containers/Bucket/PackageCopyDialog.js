@@ -12,6 +12,7 @@ import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import tagged from 'utils/tagged'
+import * as workflows from 'utils/workflows'
 import * as validators from 'utils/validators'
 
 import * as PD from './PackageDialog'
@@ -99,6 +100,11 @@ function DialogForm({
       return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
     }
   }
+
+  const copyData = React.useMemo(
+    () => workflows.shouldSuccessorCopyData(workflowsConfig, targetBucket),
+    [targetBucket, workflowsConfig],
+  )
 
   return (
     <RF.Form onSubmit={onSubmit}>
@@ -190,7 +196,9 @@ function DialogForm({
                       <M.CircularProgress size={24} variant="indeterminate" />
                       <M.Box pl={1} />
                       <M.Typography variant="body2" color="textSecondary">
-                        {false ? 'Copying files and writing manfest' : 'Writing manifest'}
+                        {copyData
+                          ? 'Copying files and writing manfest'
+                          : 'Writing manifest'}
                       </M.Typography>
                     </M.Box>
                   </M.Fade>

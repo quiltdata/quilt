@@ -227,5 +227,35 @@ describe('utils/workflows', () => {
         ])
       })
     })
+
+    describe('shouldSuccessorCopyData', () => {
+      const data = dedent`
+        version: "1"
+        default_workflow: workflow_2
+        successors:
+          s3://something:
+            title: Successor №1
+            copy_data: True
+          s3://bucket-multiworded:
+            copy_data: False
+            title: Multi worded bucket
+          s3://bucket-copy-default:
+            title: Copy default
+        workflows:
+          workflow_1:
+            name: Workflow №1
+      `
+      const config = workflows.parse(data)
+
+      it('should return false by default', () => {
+        expect(workflows.shouldSuccessorCopyData(config, 'fgsfds')).toBe(true)
+      })
+
+      it('should return correct value when value set', () => {
+        expect(workflows.shouldSuccessorCopyData(config, 'bucket-multiworded')).toBe(
+          false,
+        )
+      })
+    })
   })
 })
