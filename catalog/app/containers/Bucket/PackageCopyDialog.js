@@ -306,6 +306,7 @@ function DialogLoading({ bucket, onCancel }) {
 const DialogState = tagged(['Loading', 'Error', 'Form', 'Success'])
 
 export default function PackageCopyDialog({
+  open,
   sourceBucket,
   targetBucket,
   name,
@@ -317,14 +318,22 @@ export default function PackageCopyDialog({
 
   const [success, setSuccess] = React.useState(false)
 
-  const manifestData = Data.use(requests.loadManifest, {
-    s3,
-    bucket: sourceBucket,
-    name,
-    hash,
-  })
+  const manifestData = Data.use(
+    requests.loadManifest,
+    {
+      s3,
+      bucket: sourceBucket,
+      name,
+      hash,
+    },
+    { noAutoFetch: !targetBucket || !open },
+  )
 
-  const workflowsData = Data.use(requests.workflowsList, { s3, bucket: targetBucket })
+  const workflowsData = Data.use(
+    requests.workflowsList,
+    { s3, bucket: targetBucket },
+    { noAutoFetch: !targetBucket || !open },
+  )
 
   const state = React.useMemo(() => {
     if (success) return DialogState.Success(success)
@@ -364,7 +373,13 @@ export default function PackageCopyDialog({
   }, [onExited, success, onClose])
 
   return (
-    <M.Dialog open onClose={onClose} fullWidth scroll="body" onExited={handleExited}>
+    <M.Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      scroll="body"
+      onExited={handleExited}
+    >
       {stateCase({
         Error: (e) => <DialogError bucket={targetBucket} onCancel={onClose} error={e} />,
         Loading: () => <DialogLoading bucket={targetBucket} onCancel={onClose} />,

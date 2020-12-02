@@ -317,16 +317,15 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
       }))
       return (
         <>
-          {bucketCopyTarget && (
-            <PackageCopyDialog
-              name={name}
-              targetBucket={bucketCopyTarget}
-              sourceBucket={bucket}
-              hash={hash}
-              onExited={onRevisionPush}
-              onClose={() => setBucketCopyTarget(null)}
-            />
-          )}
+          <PackageCopyDialog
+            open={!!bucketCopyTarget}
+            name={name}
+            targetBucket={bucketCopyTarget}
+            sourceBucket={bucket}
+            hash={hash}
+            onExited={onRevisionPush}
+            onClose={() => setBucketCopyTarget(null)}
+          />
 
           {updateDialog.render()}
 
