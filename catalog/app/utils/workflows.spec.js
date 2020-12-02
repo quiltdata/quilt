@@ -222,7 +222,7 @@ describe('utils/workflows', () => {
             name: 'Copy default',
             slug: 'bucket-copy-default',
             url: 's3://bucket-copy-default',
-            copyData: false,
+            copyData: true,
           },
         ])
       })
@@ -247,8 +247,14 @@ describe('utils/workflows', () => {
       `
       const config = workflows.parse(data)
 
-      it('should return true by default', () => {
+      it('should return true when bucket is not found', () => {
         expect(workflows.shouldSuccessorCopyData(config, 'fgsfds')).toBe(true)
+      })
+
+      it('should return true when copy_data is not specified', () => {
+        expect(workflows.shouldSuccessorCopyData(config, 'bucket-copy-default')).toBe(
+          true,
+        )
       })
 
       it('should return correct value when value set', () => {
