@@ -19,30 +19,26 @@ import * as validators from 'utils/validators'
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
-async function requestPackageCopy(
+function requestPackageCopy(
   req,
   { commitMessage, hash, initialName, meta, name, sourceBucket, targetBucket, workflow },
 ) {
-  try {
-    return req({
-      endpoint: '/packages/promote',
-      method: 'POST',
-      body: {
-        message: commitMessage,
-        meta: PD.getMetaValue(meta),
-        name,
-        parent: {
-          top_hash: hash,
-          registry: `s3://${sourceBucket}`,
-          name: initialName,
-        },
-        registry: `s3://${targetBucket}`,
-        workflow: PD.getWorkflowApiParam(workflow.slug),
+  return req({
+    endpoint: '/packages/promote',
+    method: 'POST',
+    body: {
+      message: commitMessage,
+      meta: PD.getMetaValue(meta),
+      name,
+      parent: {
+        top_hash: hash,
+        registry: `s3://${sourceBucket}`,
+        name: initialName,
       },
-    })
-  } catch (e) {
-    return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
-  }
+      registry: `s3://${targetBucket}`,
+      workflow: PD.getWorkflowApiParam(workflow.slug),
+    },
+  })
 }
 
 function FormSkeleton({ animate }) {
