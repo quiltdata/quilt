@@ -1,8 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import FormSkeleton from './FormSkeleton'
-
 const useStyles = M.makeStyles(() => ({
   content: {
     paddingTop: 0,
@@ -10,16 +8,14 @@ const useStyles = M.makeStyles(() => ({
   },
 }))
 
-export default function DialogLoading({ animate, title, onCancel }) {
+export default function DialogLoading({ skeletonElement, title, onCancel }) {
   const classes = useStyles()
 
   return (
     <div>
       <M.DialogTitle>{title}</M.DialogTitle>
 
-      <M.DialogContent className={classes.content}>
-        <FormSkeleton animate={animate} />
-      </M.DialogContent>
+      <M.DialogContent className={classes.content}>{skeletonElement}</M.DialogContent>
 
       <M.DialogActions>
         <M.Button onClick={onCancel}>Cancel</M.Button>

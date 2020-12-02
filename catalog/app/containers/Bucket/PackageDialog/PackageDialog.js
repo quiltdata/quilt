@@ -336,6 +336,7 @@ export function SchemaFetcher({ children, schemaUrl }) {
   return children(res)
 }
 
+// TODO: use this skeleton for FormSkeleton
 export function MetaInputSkeleton() {
   const classes = useMetaInputStyles()
   const t = M.useTheme()

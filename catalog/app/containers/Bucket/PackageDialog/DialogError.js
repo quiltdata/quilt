@@ -5,7 +5,6 @@ import { fade } from '@material-ui/core/styles'
 
 import { readableBytes } from 'utils/string'
 
-import FormSkeleton from './FormSkeleton'
 import * as ERRORS from '../errors'
 
 const useStyles = M.makeStyles((t) => ({
@@ -58,7 +57,7 @@ const errorDisplay = R.cond([
   ],
 ])
 
-export default function DialogError({ error, title, onCancel }) {
+export default function DialogError({ error, skeletonElement, title, onCancel }) {
   const classes = useStyles()
 
   return (
@@ -66,7 +65,7 @@ export default function DialogError({ error, title, onCancel }) {
       <M.DialogTitle>{title}</M.DialogTitle>
 
       <M.DialogContent className={classes.content}>
-        <FormSkeleton animate={false} />
+        {skeletonElement}
         <div className={classes.overlay}>{errorDisplay(error)}</div>
       </M.DialogContent>
 

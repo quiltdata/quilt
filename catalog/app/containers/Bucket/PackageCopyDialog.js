@@ -10,6 +10,7 @@ import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import Skeleton from 'components/Skeleton'
 import StyledLink from 'utils/StyledLink'
 import tagged from 'utils/tagged'
 import * as workflows from 'utils/workflows'
@@ -42,6 +43,37 @@ async function requestPackageCopy(
   } catch (e) {
     return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
   }
+}
+
+function FormSkeleton({ animate }) {
+  const headerSkeleton = <Skeleton {...{ height: 48, mt: 2, animate }} />
+  const inputsSkeleton = <Skeleton {...{ height: 48, mt: 3, animate }} />
+  const metadataSkeleton = (
+    <M.Box mt={3}>
+      <M.Box display="flex" mb={2}>
+        <Skeleton {...{ height: 24, width: 64, animate }} />
+        <M.Box flexGrow={1} />
+        <Skeleton {...{ height: 24, width: 64, animate }} />
+      </M.Box>
+      <M.Box display="flex">
+        <Skeleton {...{ height: 32, width: 200, animate }} />
+        <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
+      </M.Box>
+      <M.Box display="flex" mt={0.5}>
+        <Skeleton {...{ height: 32, width: 200, animate }} />
+        <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
+      </M.Box>
+    </M.Box>
+  )
+  const workflowSkeleton = <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
+  return (
+    <>
+      {headerSkeleton}
+      {inputsSkeleton}
+      {metadataSkeleton}
+      {workflowSkeleton}
+    </>
+  )
 }
 
 function DialogTitle({ bucket }) {
@@ -240,6 +272,7 @@ function DialogError({ bucket, error, onCancel }) {
   return (
     <PD.DialogError
       error={error}
+      skeletonElement={<FormSkeleton animate={false} />}
       title={
         <>
           Push package to{' '}
@@ -259,6 +292,7 @@ function DialogLoading({ bucket, onCancel }) {
 
   return (
     <PD.DialogLoading
+      skeletonElement={<FormSkeleton animate={false} />}
       title={
         <>
           Push package to{' '}
