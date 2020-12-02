@@ -195,7 +195,14 @@ def lambda_handler(request):
             sql_stmt=sql_stmt
         )
         # Parse the response into a logical folder view
-        df = pd.read_json(result, lines=True)
+        df = pd.read_json(
+            result,
+            lines=True,
+            dtype=dict(
+                logical_key='string',
+                physical_keys='string'
+            )
+        )
         response_data = file_list_to_folder(df)
 
         # Fetch package-level or directory-level metadata
