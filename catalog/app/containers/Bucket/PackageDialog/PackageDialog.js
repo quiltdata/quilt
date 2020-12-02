@@ -276,12 +276,11 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-const EMPTY_META_VALUE = { mode: 'kv', text: '{}' }
+export const EMPTY_META_VALUE = { mode: 'kv', text: '{}' }
 
 // TODO: warn on duplicate keys
-export function MetaInput({ schemaError, input, meta, schema }) {
+export function MetaInput({ schemaError, input: { value, onChange }, meta, schema }) {
   const classes = useMetaInputStyles()
-  const value = input.value || EMPTY_META_VALUE
   const error = schemaError ? [schemaError] : meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
 
@@ -292,15 +291,15 @@ export function MetaInput({ schemaError, input, meta, schema }) {
 
   const changeMode = (mode) => {
     if (disabled) return
-    input.onChange({ ...value, mode })
+    onChange({ ...value, mode })
   }
 
   const changeText = React.useCallback(
     (text) => {
       if (disabled) return
-      input.onChange({ ...value, text })
+      onChange({ ...value, text })
     },
-    [disabled, input, value],
+    [disabled, onChange, value],
   )
 
   const handleModeChange = (e, m) => {
