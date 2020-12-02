@@ -19,24 +19,13 @@ import * as requests from './requests'
 
 async function requestPackageCopy(
   req,
-  {
-    commitMessage,
-    copyData,
-    hash,
-    initialName,
-    meta,
-    name,
-    sourceBucket,
-    targetBucket,
-    workflow,
-  },
+  { commitMessage, hash, initialName, meta, name, sourceBucket, targetBucket, workflow },
 ) {
   try {
     return req({
       endpoint: '/packages/promote',
       method: 'POST',
       body: {
-        copy_data: copyData,
         message: commitMessage,
         meta: PD.getMetaValue(meta),
         name,
@@ -54,51 +43,6 @@ async function requestPackageCopy(
   }
 }
 
-const useCopyDataSwitcherStyles = M.makeStyles((t) => ({
-  root: {
-    marginTop: t.spacing(2),
-  },
-  icon: {
-    color: t.palette.text.hint,
-    marginLeft: t.spacing(1),
-    verticalAlign: '-4px',
-  },
-}))
-
-function CopyDataSwitcher({ input: { onChange, value }, targetBucket }) {
-  const classes = useCopyDataSwitcherStyles()
-
-  const handleChange = React.useCallback((event) => onChange(event.target.checked), [
-    onChange,
-  ])
-
-  const hint = (
-    <span>
-      Copy data
-      <M.Tooltip
-        title={
-          value
-            ? `Files will be copied to s3://${targetBucket}`
-            : `Files from the package will be reused, only links will be copied`
-        }
-      >
-        <M.Icon color="inherit" className={classes.icon} fontSize="small">
-          help_outline
-        </M.Icon>
-      </M.Tooltip>
-    </span>
-  )
-
-  return (
-    <div className={classes.root}>
-      <M.FormControlLabel
-        control={<M.Checkbox color="primary" checked={value} onChange={handleChange} />}
-        label={hint}
-      />
-    </div>
-  )
-}
-
 function DialogTitle({ bucket }) {
   const { urls } = NamedRoutes.use()
 
@@ -113,12 +57,6 @@ function DialogTitle({ bucket }) {
   )
 }
 
-const useDialogFormStyles = M.makeStyles(() => ({
-  filesWrapper: {
-    position: 'relative',
-  },
-}))
-
 function DialogForm({
   close,
   hash,
@@ -129,8 +67,6 @@ function DialogForm({
   targetBucket,
   workflowsConfig,
 }) {
-  const classes = useDialogFormStyles()
-
   const nameValidator = PD.useNameValidator()
 
   const initialMeta = React.useMemo(
@@ -144,11 +80,10 @@ function DialogForm({
   const req = APIConnector.use()
 
   // eslint-disable-next-line consistent-return
-  const onSubmit = async ({ commitMessage, copyData, name, meta, workflow }) => {
+  const onSubmit = async ({ commitMessage, name, meta, workflow }) => {
     try {
       const res = await requestPackageCopy(req, {
         commitMessage,
-        copyData,
         hash,
         initialName,
         meta,
@@ -214,15 +149,6 @@ function DialogForm({
                 margin="normal"
               />
 
-              <RF.Field
-                className={classes.filesSwitcher}
-                component={CopyDataSwitcher}
-                initialValue={workflowsConfig.copyData || false}
-                name="copyData"
-                targetBucket={targetBucket}
-                validateFields={['copyData']}
-              />
-
               <PD.SchemaFetcher
                 schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
               >
@@ -264,9 +190,7 @@ function DialogForm({
                       <M.CircularProgress size={24} variant="indeterminate" />
                       <M.Box pl={1} />
                       <M.Typography variant="body2" color="textSecondary">
-                        {values.copyData
-                          ? 'Copying files and writing manfest'
-                          : 'Writing manifest'}
+                        {false ? 'Copying files and writing manfest' : 'Writing manifest'}
                       </M.Typography>
                     </M.Box>
                   </M.Fade>
