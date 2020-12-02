@@ -681,6 +681,7 @@ function DialogForm({
                       schema={schema}
                       schemaError={responseError}
                       validate={validate}
+                      validateFields={['meta']}
                       isEqual={R.equals}
                       initialValue={initialMeta}
                     />
