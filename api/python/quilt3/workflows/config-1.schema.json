@@ -78,11 +78,16 @@
       "description": "Buckets usable as destination with \"Push to Bucket\" in web UI.",
       "examples": [
         {
-          "s3://some-bucket-1": {
-            "title": "Staging"
+          "s3://bucket1": {
+            "title": "Bucket 1 Title",
+            "copy_data": true
           },
-          "s3://some-bucket-2": {
-            "title": "Production"
+          "s3://bucket2": {
+            "title": "Bucket 2 Title",
+            "copy_data": false
+          },
+          "s3://bucket3": {
+            "title": "Bucket 3 Title (`copy_data` defaults to `true`)"
           }
         }
       ],
@@ -99,6 +104,11 @@
           "title": {
             "type": "string",
             "minLength": 1
+          },
+          "copy_data": {
+            "type": "boolean",
+            "default": true,
+            "description": "If true, all package entries will be copied to the destination bucket. If false, all entries will remain in their current locations."
           }
         }
       }
