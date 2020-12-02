@@ -247,7 +247,7 @@ describe('utils/workflows', () => {
       `
       const config = workflows.parse(data)
 
-      it('should return false by default', () => {
+      it('should return true by default', () => {
         expect(workflows.shouldSuccessorCopyData(config, 'fgsfds')).toBe(true)
       })
 
