@@ -13,6 +13,7 @@
 ## CLI
 
 ## Catalog, Lambdas
+* [Fixed] lambda previews for time series `AICSImage` data (potential `IndexError` if odd number of time points) ([#1945](https://github.com/quiltdata/quilt/pull/1945))
 * [Changed] `top_hash`-based package routes (timestamp routes are still supported in the same way) ([#1938](https://github.com/quiltdata/quilt/pull/1938))
 
 # 3.3.0rc1 - 2020-11-25
