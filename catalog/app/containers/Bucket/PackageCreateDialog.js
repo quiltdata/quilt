@@ -474,7 +474,7 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
           onExited={reset(form)}
         >
           <M.DialogTitle>
-            {success ? 'Creation complete' : 'Create package'}
+            {success ? 'Package created' : 'Create package'}
           </M.DialogTitle>
           {success ? (
             <>
