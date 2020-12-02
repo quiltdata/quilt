@@ -473,7 +473,9 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
           scroll="body"
           onExited={reset(form)}
         >
-          <M.DialogTitle>{success ? 'Push complete' : 'Push package'}</M.DialogTitle>
+          <M.DialogTitle>
+            {success ? 'Creation complete' : 'Create package'}
+          </M.DialogTitle>
           {success ? (
             <>
               <M.DialogContent style={{ paddingTop: 0 }}>
@@ -629,7 +631,7 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
                   color="primary"
                   disabled={submitting || (submitFailed && hasValidationErrors)}
                 >
-                  Push
+                  Create
                 </M.Button>
               </M.DialogActions>
             </>
