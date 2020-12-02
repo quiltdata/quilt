@@ -38,6 +38,7 @@ function parseWorkflow(workflowSlug, workflow, data) {
 }
 
 const parseSuccessor = (url, successor) => ({
+  copyData: successor.copy_data || false,
   name: successor.title,
   slug: s3paths.parseS3Url(url).bucket,
   url,
@@ -60,7 +61,6 @@ export function parse(workflowsYaml) {
 
   const successors = data.successors || {}
   return {
-    copyData: data.copy_data || false,
     isRequired: data.is_workflow_required,
     successors: Object.entries(successors).map(([url, successor]) =>
       parseSuccessor(url, successor),

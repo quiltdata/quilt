@@ -65,7 +65,7 @@ const useCopyDataSwitcherStyles = M.makeStyles((t) => ({
   },
 }))
 
-function CopyDataSwitcher({ input: { onChange, value }, targetBucket, sourceBucket }) {
+function CopyDataSwitcher({ input: { onChange, value }, targetBucket }) {
   const classes = useCopyDataSwitcherStyles()
 
   const handleChange = React.useCallback((event) => onChange(event.target.checked), [
@@ -217,9 +217,8 @@ function DialogForm({
               <RF.Field
                 className={classes.filesSwitcher}
                 component={CopyDataSwitcher}
-                initialValue={workflowsConfig.copyData}
+                initialValue={workflowsConfig.copyData || false}
                 name="copyData"
-                sourceBucket={sourceBucket}
                 targetBucket={targetBucket}
                 validateFields={['copyData']}
               />

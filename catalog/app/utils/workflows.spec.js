@@ -189,15 +189,42 @@ describe('utils/workflows', () => {
       const data = dedent`
         version: "1"
         default_workflow: workflow_2
-        copy_data: True
+        successors:
+          s3://something:
+            title: Successor №1
+            copy_data: True
+          s3://bucket-multiworded:
+            copy_data: False
+            title: Multi worded bucket
+          s3://bucket-copy-default:
+            title: Copy default
         workflows:
           workflow_1:
             name: Workflow №1
       `
       const config = workflows.parse(data)
 
-      it('should return copyData param', () => {
-        expect(config.copyData).toBe(true)
+      it('should return copyData params', () => {
+        expect(config.successors).toMatchObject([
+          {
+            name: 'Successor №1',
+            slug: 'something',
+            url: 's3://something',
+            copyData: true,
+          },
+          {
+            name: 'Multi worded bucket',
+            slug: 'bucket-multiworded',
+            url: 's3://bucket-multiworded',
+            copyData: false,
+          },
+          {
+            name: 'Copy default',
+            slug: 'bucket-copy-default',
+            url: 's3://bucket-copy-default',
+            copyData: false,
+          },
+        ])
       })
     })
   })
