@@ -79,7 +79,7 @@ const useButtonStyles = M.makeStyles(() => ({
 function Button({ children, onClick }) {
   const classes = useButtonStyles()
   const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
   const props = {
     'aria-haspopup': 'true',
@@ -88,7 +88,7 @@ function Button({ children, onClick }) {
     size: 'small',
   }
 
-  return xs ? (
+  return sm ? (
     <M.IconButton edge="end" title={children} {...props}>
       <M.Icon>input</M.Icon>
     </M.IconButton>
