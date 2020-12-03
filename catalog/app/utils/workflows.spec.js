@@ -153,5 +153,115 @@ describe('utils/workflows', () => {
         ])
       })
     })
+
+    describe('config with successors', () => {
+      const data = dedent`
+        version: "1"
+        default_workflow: workflow_2
+        successors:
+          s3://something:
+            title: Successor №1
+          s3://bucket-multiworded:
+            title: Multi worded bucket
+        workflows:
+          workflow_1:
+            name: Workflow №1
+      `
+      const config = workflows.parse(data)
+
+      it('should return successors list', () => {
+        expect(config.successors).toMatchObject([
+          {
+            name: 'Successor №1',
+            slug: 'something',
+            url: 's3://something',
+          },
+          {
+            name: 'Multi worded bucket',
+            slug: 'bucket-multiworded',
+            url: 's3://bucket-multiworded',
+          },
+        ])
+      })
+    })
+
+    describe('config with copy_data', () => {
+      const data = dedent`
+        version: "1"
+        default_workflow: workflow_2
+        successors:
+          s3://something:
+            title: Successor №1
+            copy_data: True
+          s3://bucket-multiworded:
+            copy_data: False
+            title: Multi worded bucket
+          s3://bucket-copy-default:
+            title: Copy default
+        workflows:
+          workflow_1:
+            name: Workflow №1
+      `
+      const config = workflows.parse(data)
+
+      it('should return copyData params', () => {
+        expect(config.successors).toMatchObject([
+          {
+            name: 'Successor №1',
+            slug: 'something',
+            url: 's3://something',
+            copyData: true,
+          },
+          {
+            name: 'Multi worded bucket',
+            slug: 'bucket-multiworded',
+            url: 's3://bucket-multiworded',
+            copyData: false,
+          },
+          {
+            name: 'Copy default',
+            slug: 'bucket-copy-default',
+            url: 's3://bucket-copy-default',
+            copyData: true,
+          },
+        ])
+      })
+    })
+
+    describe('shouldSuccessorCopyData', () => {
+      const data = dedent`
+        version: "1"
+        default_workflow: workflow_2
+        successors:
+          s3://something:
+            title: Successor №1
+            copy_data: True
+          s3://bucket-multiworded:
+            copy_data: False
+            title: Multi worded bucket
+          s3://bucket-copy-default:
+            title: Copy default
+        workflows:
+          workflow_1:
+            name: Workflow №1
+      `
+      const config = workflows.parse(data)
+
+      it('should return true when bucket is not found', () => {
+        expect(workflows.shouldSuccessorCopyData(config, 'fgsfds')).toBe(true)
+      })
+
+      it('should return true when copy_data is not specified', () => {
+        expect(workflows.shouldSuccessorCopyData(config, 'bucket-copy-default')).toBe(
+          true,
+        )
+      })
+
+      it('should return correct value when value set', () => {
+        expect(workflows.shouldSuccessorCopyData(config, 'bucket-multiworded')).toBe(
+          false,
+        )
+      })
+    })
   })
 })

@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`components/Dropzone/Overlay should apply className 1`] = `
+<div
+  className="makeStyles-root-1 alteredStyles"
+/>
+`;
+
+exports[`components/Dropzone/Overlay should render 1`] = `
+<div
+  className="makeStyles-root-1"
+/>
+`;
