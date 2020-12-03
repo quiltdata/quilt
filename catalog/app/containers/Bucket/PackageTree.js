@@ -504,6 +504,55 @@ function FileDisplay({ bucket, name, hash, revision, path, crumbs }) {
   })
 }
 
+function TestData() {
+  const s3 = AWS.S3.use()
+
+  const [requestData, setRequestData] = React.useState({
+    bucket: 'fiskus-sandbox-dev',
+    revision: '02339375913ab98da3d7c0589df032df454fc6d4c254b3b680ec2f26c035cfd3',
+  })
+  const revisionData = useData(requests.resolvePackageRevision, {
+    s3,
+    bucket: requestData.bucket,
+    name: 'fiskus/2020-12-01',
+    revision: requestData.revision,
+  })
+  React.useEffect(() => {
+    setTimeout(() => {
+      setRequestData({
+        bucket: 'quilt-bio-staging',
+        revision: '607482d238c125f78a8bb0805198339b2eac0bda7ff8486be58646561087f871',
+      })
+    }, 10000)
+  }, [])
+
+  const isHashCorrectForFiskusBucket = (b, h) =>
+    b === 'fiskus-sandbox-dev' &&
+    h === '02339375913ab98da3d7c0589df032df454fc6d4c254b3b680ec2f26c035cfd3'
+  const isHashCorrectForStagingBucket = (b, h) =>
+    b === 'quilt-bio-staging' &&
+    h === '607482d238c125f78a8bb0805198339b2eac0bda7ff8486be58646561087f871'
+
+  return (
+    <div>
+      {revisionData.case({
+        Ok: ({ hash }) => {
+          if (
+            !isHashCorrectForFiskusBucket(requestData.bucket, hash) &&
+            !isHashCorrectForStagingBucket(requestData.bucket, hash)
+          ) {
+            window.console.log('WTF:', { hash, ...requestData })
+            return <h1>WTF</h1>
+          }
+          return <h1>Hash is: {hash}</h1>
+        },
+        _: () => <h1>Loading...</h1>,
+        Err: (error) => <h1>Error: {error.message}</h1>,
+      })}
+    </div>
+  )
+}
+
 const useStyles = M.makeStyles(() => ({
   name: {
     wordBreak: 'break-all',
@@ -574,6 +623,7 @@ export default function PackageTree({
           ),
           _: () => null,
         })}
+      <TestData />
       <M.Typography variant="body1">
         <Link to={urls.bucketPackageDetail(bucket, name)} className={classes.name}>
           {name}
