@@ -21,9 +21,11 @@ import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 
 import Code from './Code'
+import CopyButton from './CopyButton'
 import * as FileView from './FileView'
 import { ListingItem, ListingWithLocalFiltering } from './Listing'
 import { usePackageUpdateDialog } from './PackageUpdateDialog'
+import PackageCopyDialog from './PackageCopyDialog'
 import Section from './Section'
 import Summary from './Summary'
 import * as errors from './errors'
@@ -277,6 +279,8 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
     onExited: onRevisionPush,
   })
 
+  const [bucketCopyTarget, setBucketCopyTarget] = React.useState(null)
+
   usePrevious({ bucket, name, revision }, (prev) => {
     // close the dialog when navigating away
     if (!R.equals({ bucket, name, revision }, prev)) updateDialog.close()
@@ -313,7 +317,19 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
       }))
       return (
         <>
+          {bucketCopyTarget && (
+            <PackageCopyDialog
+              name={name}
+              targetBucket={bucketCopyTarget}
+              sourceBucket={bucket}
+              hash={hash}
+              onExited={onRevisionPush}
+              onClose={() => setBucketCopyTarget(null)}
+            />
+          )}
+
           {updateDialog.render()}
+
           <TopBar crumbs={crumbs}>
             <M.Button
               variant="contained"
@@ -324,6 +340,8 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
             >
               Revise package
             </M.Button>
+            <M.Box ml={1} />
+            <CopyButton bucket={bucket} onChange={(b) => setBucketCopyTarget(b.slug)} />
             {!noDownload && (
               <>
                 <M.Box ml={1} />

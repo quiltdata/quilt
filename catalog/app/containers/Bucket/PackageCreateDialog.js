@@ -473,7 +473,7 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
           scroll="body"
           onExited={reset(form)}
         >
-          <M.DialogTitle>{success ? 'Push complete' : 'Push package'}</M.DialogTitle>
+          <M.DialogTitle>{success ? 'Package created' : 'Create package'}</M.DialogTitle>
           {success ? (
             <>
               <M.DialogContent style={{ paddingTop: 0 }}>
@@ -562,6 +562,7 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
                           validate={validate}
                           validateFields={['meta']}
                           isEqual={R.equals}
+                          initialValue={PD.EMPTY_META_VALUE}
                         />
                       ),
                       _: () => <PD.MetaInputSkeleton />,
@@ -633,7 +634,7 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
                   color="primary"
                   disabled={submitting || (submitFailed && hasValidationErrors)}
                 >
-                  Push
+                  Create
                 </M.Button>
               </M.DialogActions>
             </>
