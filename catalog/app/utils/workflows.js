@@ -18,7 +18,6 @@ const COPY_DATA_DEFAULT = true
 
 export const emptyConfig = {
   copyData: COPY_DATA_DEFAULT,
-  isRequired: false,
   successors: [],
   workflows: [getNoWorkflow({}, false)],
 }
@@ -73,7 +72,6 @@ export function parse(workflowsYaml) {
 
   const successors = data.successors || {}
   return {
-    isRequired: data.is_workflow_required,
     successors: Object.entries(successors).map(([url, successor]) =>
       parseSuccessor(url, successor),
     ),
