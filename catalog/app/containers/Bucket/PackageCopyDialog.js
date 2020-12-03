@@ -91,6 +91,7 @@ function DialogForm({
   hash,
   manifest,
   name: initialName,
+  onRequest,
   onSuccess,
   sourceBucket,
   targetBucket,
@@ -110,6 +111,7 @@ function DialogForm({
 
   // eslint-disable-next-line consistent-return
   const onSubmit = async ({ commitMessage, name, meta, workflow }) => {
+    onRequest(true)
     try {
       const res = await requestPackageCopy(req, {
         commitMessage,
@@ -121,8 +123,10 @@ function DialogForm({
         targetBucket,
         workflow,
       })
+      onRequest(false)
       onSuccess({ name, hash: res.top_hash })
     } catch (e) {
+      onRequest(false)
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
       return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
@@ -317,6 +321,7 @@ export default function PackageCopyDialog({
   const s3 = AWS.S3.use()
 
   const [success, setSuccess] = React.useState(false)
+  const [submitting, setSubmitting] = React.useState(false)
 
   const manifestData = Data.use(
     requests.loadManifest,
@@ -359,20 +364,22 @@ export default function PackageCopyDialog({
   )
 
   const handleExited = React.useCallback(() => {
+    if (submitting) return
     onExited({
       pushed: success,
     })
     onClose()
     setSuccess(null)
-  }, [onExited, onClose, setSuccess, success])
+  }, [submitting, onExited, onClose, setSuccess, success])
 
   const handleClose = React.useCallback(() => {
+    if (submitting) return
     onExited({
       pushed: success,
     })
     onClose()
     setSuccess(null)
-  }, [onExited, success, setSuccess, onClose])
+  }, [submitting, onExited, success, setSuccess, onClose])
 
   return (
     <M.Dialog
@@ -394,6 +401,7 @@ export default function PackageCopyDialog({
               hash,
               name,
               onSuccess: handleSuccess,
+              onRequest: setSubmitting,
               sourceBucket,
               targetBucket,
               ...props,
