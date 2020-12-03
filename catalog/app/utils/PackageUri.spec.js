@@ -35,70 +35,61 @@ describe('utils/PackageUri', () => {
     it('should throw on invalid protocol', () => {
       expect(() =>
         PackageUri.parse('quilt+http://bucket-name#package=quilt/test'),
-      ).toThrowError(PackageUri.PackageUriError, /unsupported protocol "quilt+http:"/)
+      ).toThrowError('unsupported protocol "quilt+http:"')
     })
 
     it('should throw on missing slashes', () => {
       expect(() =>
-        PackageUri.parse('quilt+http://bucket-name#package=quilt/test'),
-      ).toThrowError(PackageUri.PackageUriError, /missing slashes/)
+        PackageUri.parse('quilt+s3:bucket-name#package=quilt/test'),
+      ).toThrowError('missing slashes')
+    })
+
+    it(`should throw when there's no "#"`, () => {
+      expect(() => PackageUri.parse('quilt+s3://bucket-name:latest@abc1')).toThrowError(
+        'missing "package=" part',
+      )
     })
 
     it('should throw on non-root registry', () => {
       expect(() =>
-        PackageUri.parse('quilt+http://bucket-name/sub/path#package=quilt/test'),
-      ).toThrowError(
-        PackageUri.PackageUriError,
-        /non-bucket-root registries are not supported/,
-      )
+        PackageUri.parse('quilt+s3://bucket-name/sub/path#package=quilt/test'),
+      ).toThrowError('non-bucket-root registries are not supported')
     })
 
     it('should throw on missing "package=" part', () => {
       expect(() =>
-        PackageUri.parse('quilt+http://bucket-name#pacakge=quilt/test'),
-      ).toThrowError(PackageUri.PackageUriError, /missing "package=" part/)
+        PackageUri.parse('quilt+s3://bucket-name#pacakge=quilt/test'),
+      ).toThrowError('missing "package=" part')
     })
 
     it('should throw on empty tag', () => {
       expect(() =>
-        PackageUri.parse('quilt+http://bucket-name#package=quilt/test:'),
-      ).toThrowError(PackageUri.PackageUriError, /"package=" part: tag must not be empty/)
+        PackageUri.parse('quilt+s3://bucket-name#package=quilt/test:'),
+      ).toThrowError('"package=" part: tag must not be empty')
     })
 
     it('should throw on more than one ":" in "package="', () => {
       expect(() =>
-        PackageUri.parse('quilt+http://bucket-name#package=quilt/test:latest:sup'),
-      ).toThrowError(
-        PackageUri.PackageUriError,
-        /"package=" part may contain only one ":"/,
-      )
+        PackageUri.parse('quilt+s3://bucket-name#package=quilt/test:latest:sup'),
+      ).toThrowError('"package=" part may contain only one ":"')
     })
 
     it('should throw on empty hash', () => {
       expect(() =>
-        PackageUri.parse('quilt+http://bucket-name#package=quilt/test@'),
-      ).toThrowError(
-        PackageUri.PackageUriError,
-        /"package=" part: hash must not be empty/,
-      )
+        PackageUri.parse('quilt+s3://bucket-name#package=quilt/test@'),
+      ).toThrowError('"package=" part: hash must not be empty')
     })
 
     it('should throw on more than one "@" in "package="', () => {
       expect(() =>
-        PackageUri.parse('quilt+http://bucket-name#package=quilt/test@abc1@cde2'),
-      ).toThrowError(
-        PackageUri.PackageUriError,
-        /"package=" part may contain only one "@"/,
-      )
+        PackageUri.parse('quilt+s3://bucket-name#package=quilt/test@abc1@cde2'),
+      ).toThrowError('"package=" part may contain only one "@"')
     })
 
     it('should throw on both ":" and "@" in "package="', () => {
       expect(() =>
-        PackageUri.parse('quilt+http://bucket-name#package=quilt/test:latest@abc1'),
-      ).toThrowError(
-        PackageUri.PackageUriError,
-        /"package=" part may either contain ":" or "@"/,
-      )
+        PackageUri.parse('quilt+s3://bucket-name#package=quilt/test:latest@abc1'),
+      ).toThrowError('"package=" part may either contain ":" or "@"')
     })
   })
 

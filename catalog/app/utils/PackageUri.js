@@ -73,7 +73,7 @@ export function parse(uri) {
     )
   }
   const bucket = url.host
-  const params = parseQs(url.hash.replace('#', ''))
+  const params = parseQs((url.hash || '').replace('#', ''))
   if (!params.package) {
     throw new PackageUriError('missing "package=" part.', uri)
   }
