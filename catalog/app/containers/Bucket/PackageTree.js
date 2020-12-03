@@ -290,6 +290,11 @@ function DirDisplay({
 
   const [bucketCopyTarget, setBucketCopyTarget] = React.useState(null)
 
+  const onPackageCopyDialogExited = React.useState((res) => {
+    if (res && res.pushed) onCrossBucketPush(res)
+    setBucketCopyTarget(null)
+  })
+
   usePrevious({ bucket, name, revision }, (prev) => {
     // close the dialog when navigating away
     if (!R.equals({ bucket, name, revision }, prev)) updateDialog.close()
@@ -332,8 +337,7 @@ function DirDisplay({
             targetBucket={bucketCopyTarget}
             sourceBucket={bucket}
             hash={hash}
-            onExited={onCrossBucketPush}
-            onClose={() => setBucketCopyTarget(null)}
+            onExited={onPackageCopyDialogExited}
           />
 
           {updateDialog.render()}

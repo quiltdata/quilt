@@ -363,14 +363,16 @@ export default function PackageCopyDialog({
       pushed: success,
     })
     onClose()
-  }, [onExited, onClose, success])
+    setSuccess(null)
+  }, [onExited, onClose, setSuccess, success])
 
   const handleClose = React.useCallback(() => {
     onExited({
       pushed: success,
     })
     onClose()
-  }, [onExited, success, onClose])
+    setSuccess(null)
+  }, [onExited, success, setSuccess, onClose])
 
   return (
     <M.Dialog
@@ -381,12 +383,14 @@ export default function PackageCopyDialog({
       onExited={handleExited}
     >
       {stateCase({
-        Error: (e) => <DialogError bucket={targetBucket} onCancel={onClose} error={e} />,
-        Loading: () => <DialogLoading bucket={targetBucket} onCancel={onClose} />,
+        Error: (e) => (
+          <DialogError bucket={targetBucket} onCancel={handleClose} error={e} />
+        ),
+        Loading: () => <DialogLoading bucket={targetBucket} onCancel={handleClose} />,
         Form: (props) => (
           <DialogForm
             {...{
-              close: onClose,
+              close: handleClose,
               hash,
               name,
               onSuccess: handleSuccess,
