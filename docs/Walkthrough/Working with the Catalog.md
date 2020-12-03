@@ -28,7 +28,7 @@ Catalogs also enable you to search the contents of your bucket. We support both 
 
 ### Upload package
 
-You can upload a new package providing the name of the package, commit message, files, metadata, and workflow.
+You can upload a new package providing the name of the package, commit message, files, metadata, and [workflow](../Advanced Features/workflows.md).
 
 The name should have the format `namespace/package-name`.
 
@@ -36,7 +36,7 @@ The message needs to add notes on a new revision for this package.
 
 Files are the content of your package.
 
-The associated workflow contains rules for validation you package. You can create a workflow with python API.
+The associated workflow contains the rules for validating your package.
 
 The metadata can be added with JSON editor, represented as a key/value table with infinite nesting. If workflow contains JSON schema, you will have predefined key/value pairs according to the schema.
 
@@ -47,6 +47,10 @@ To add a new key/value field double click on an empty cell and type key name, th
 Values can be strings, numbers, arrays, or objects. Every value that you type will be parsed as JSON.
 
 We don't support references and compound types yet.
+
+### Push to bucket
+
+You can push the existing package from one bucket to another. To use this feature consult [workflows](../Advanced Features/workflows.md) page.
 
 ### Summarize
 
