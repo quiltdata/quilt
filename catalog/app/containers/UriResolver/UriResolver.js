@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useHistory, Link, Redirect } from 'react-router-dom'
+import { useHistory, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -7,34 +7,17 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
 
 const useStyles = M.makeStyles((t) => ({
+  container: {
+    paddingTop: t.spacing(6),
+    paddingBottom: t.spacing(6),
+    maxWidth: '656px !important',
+  },
   form: {
     display: 'flex',
     marginTop: t.spacing(3),
   },
   btn: {
     marginLeft: t.spacing(2),
-  },
-  linkBox: {
-    marginTop: t.spacing(4),
-    marginLeft: 'auto',
-    marginRight: 'auto',
-  },
-  link: {
-    display: 'block',
-    padding: t.spacing(1.5, 2),
-    '&:hover': {
-      background: t.palette.action.hover,
-    },
-  },
-  field: {
-    ...t.typography.body1,
-    display: 'block',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  name: {
-    fontWeight: t.typography.fontWeightMedium,
   },
 }))
 
@@ -78,20 +61,12 @@ export default function UriResolver({ match }) {
       parsed.path,
     ) + NamedRoutes.mkSearch({ resolvedFrom: uri })
 
-  // automatically redirect if URI is pre-filled with a correct value
-  const [redirect] = React.useState(!!to)
-  if (redirect) return <Redirect to={to} />
-
-  const field = (name, val) => (
-    <span className={classes.field}>
-      <span className={classes.name}>{name}:</span> {val}
-    </span>
-  )
+  if (to) return <Redirect to={to} />
 
   return (
     <Layout
       pre={
-        <M.Box pt={6} pb={4} maxWidth={'656px !important'} component={M.Container}>
+        <M.Container className={classes.container}>
           <M.Typography variant="h4" align="center">
             Resolve a Quilt package URI
           </M.Typography>
@@ -121,18 +96,7 @@ export default function UriResolver({ match }) {
               </M.Typography>
             </M.Box>
           )}
-          {!!parsed && (
-            <M.Paper className={classes.linkBox}>
-              <Link to={to} className={classes.link}>
-                {field('Registry', `s3://${parsed.bucket}`)}
-                {field('Package', parsed.name)}
-                {!!parsed.hash && field('Hash', parsed.hash)}
-                {!!parsed.tag && field('Tag', parsed.tag)}
-                {!!parsed.path && field('Path', parsed.path)}
-              </Link>
-            </M.Paper>
-          )}
-        </M.Box>
+        </M.Container>
       }
     />
   )

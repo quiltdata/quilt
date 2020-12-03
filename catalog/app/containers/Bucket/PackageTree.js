@@ -591,7 +591,21 @@ export default function PackageTree({
         })}
       {!!resolvedFrom && (
         <M.Box mb={2}>
-          <Lab.Alert severity="info" icon={false} classes={{ message: classes.alertMsg }}>
+          <Lab.Alert
+            severity="info"
+            icon={false}
+            classes={{ message: classes.alertMsg }}
+            action={
+              <M.IconButton
+                size="small"
+                color="inherit"
+                component={RRLink}
+                to={urls.bucketPackageTree(bucket, name, revision, path)}
+              >
+                <M.Icon fontSize="small">close</M.Icon>
+              </M.IconButton>
+            }
+          >
             Resolved from{' '}
             <M.Box
               fontFamily="monospace.fontFamily"

@@ -15,6 +15,9 @@ export class PackageUriError extends BaseError {
 }
 
 function parsePackageSpec(spec, uri) {
+  if (spec.includes(':') && spec.includes('@')) {
+    throw new PackageUriError('"package=" part may either contain ":" or "@".', uri)
+  }
   if (spec.includes(':')) {
     const [name, tag, ...rest] = spec.split(':')
     if (!name) {
@@ -74,17 +77,22 @@ export function parse(uri) {
   if (!params.package) {
     throw new PackageUriError('missing "package=" part.', uri)
   }
+  const path = params.path ? decodeURIComponent(params.path) : undefined
   const { name, hash, tag } = parsePackageSpec(params.package, uri)
-  return R.reject(R.isNil, { bucket, name, hash, tag, path: params.path || null })
+  return R.reject(R.isNil, { bucket, name, hash, tag, path })
 }
 
-export function stringify(parsed) {
-  const pathPart = parsed.path ? `&path=${parsed.path}` : ''
-  let pkgSpec = parsed.name
-  if (parsed.hash) {
-    pkgSpec += `@${parsed.hash}`
-  } else if (parsed.tag) {
-    pkgSpec += `:${parsed.tag}`
+export function stringify({ bucket, name, hash, tag, path }) {
+  if (!bucket) throw new Error('PackageUri.stringify: missing "bucket"')
+  if (!name) throw new Error('PackageUri.stringify: missing "name"')
+  if (hash && tag)
+    throw new Error(`PackageUri.stringify: can't have both "hash" and "tag"`)
+  let pkgSpec = name
+  if (hash) {
+    pkgSpec += `@${hash}`
+  } else if (tag) {
+    pkgSpec += `:${tag}`
   }
-  return `quilt+s3://${parsed.bucket}#package=${pkgSpec}${pathPart}`
+  const pathPart = path ? `&path=${encodeURIComponent(path)}` : ''
+  return `quilt+s3://${bucket}#package=${pkgSpec}${pathPart}`
 }

@@ -120,9 +120,9 @@ export const bucketPackageDetail = {
 export const bucketPackageTree = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
   url: (bucket, name, revision, path = '') =>
-    (!revision || revision === 'latest') && !path
-      ? bucketPackageDetail.url(bucket, name)
-      : `/b/${bucket}/packages/${name}/tree/${revision || 'latest'}/${encode(path)}`,
+    path || (revision && revision !== 'latest')
+      ? `/b/${bucket}/packages/${name}/tree/${revision || 'latest'}/${encode(path)}`
+      : bucketPackageDetail.url(bucket, name),
 }
 export const bucketPackageRevisions = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/revisions`,
