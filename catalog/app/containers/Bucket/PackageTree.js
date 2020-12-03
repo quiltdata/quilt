@@ -245,7 +245,16 @@ function TopBar({ crumbs, children }) {
   )
 }
 
-function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush }) {
+function DirDisplay({
+  bucket,
+  name,
+  hash,
+  revision,
+  path,
+  crumbs,
+  onRevisionPush,
+  onCrossBucketPush,
+}) {
   const s3 = AWS.S3.use()
   const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
   const credentials = AWS.Credentials.use()
@@ -323,7 +332,7 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
             targetBucket={bucketCopyTarget}
             sourceBucket={bucket}
             hash={hash}
-            onExited={onRevisionPush}
+            onExited={onCrossBucketPush}
             onClose={() => setBucketCopyTarget(null)}
           />
 
@@ -556,13 +565,20 @@ export default function PackageTree({
     [name, revision, setRevisionKey, setRevisionListKey],
   )
 
-  const revisionData = useData(requests.resolvePackageRevision, {
-    s3,
-    bucket,
-    name,
-    revision,
-    revisionKey,
-  })
+  const onCrossBucketPush = React.useCallback(() => {
+    setRevisionKey(R.inc)
+  }, [setRevisionKey])
+
+  const revisionData = useData(
+    requests.resolvePackageRevision,
+    {
+      s3,
+      bucket,
+      name,
+      revision,
+    },
+    { key: revisionKey },
+  )
 
   return (
     <FileView.Root>
@@ -596,6 +612,7 @@ export default function PackageTree({
                 revision,
                 crumbs,
                 onRevisionPush,
+                onCrossBucketPush,
                 key: hash,
               }}
             />
