@@ -1,5 +1,6 @@
 *New in Quilt 3.3*
 
+### Workflows basics
 `quilt3` provides an API to ensure the quality of package metadata. To get started, create a
 configuration file in your registry under `.quilt/workflows/config.yml`. For example:
 
@@ -137,6 +138,23 @@ Package test/package@06b2815 pushed to s3://quilt-sergey-dev-metadata
 Also `default_workflow` can be set in config to specify which workflow will be used
 if `workflow` parameter is not provided.
 
+### Push to bucket
+
+Catalog "[Push to bucket](../Walkthrough/Working with the Catalog.md)" feature can be enabled via workflows config by adding `successors` property:
+
+```yaml
+successors:
+  s3://bucket1
+    title: Staging
+    copy_data: false
+  s3://bucket2
+    title: Production
+```
+
+If `copy_data` is set to `true`, all package entries will be copied to the destination bucket.
+If it's set to `false`, all entries will remain in their current locations. It defaults to `true`.
+
+### Config schema
 You could also check
 [JSON Schema](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/workflows/config-1.schema.json)
 that is used for validation of workflow file.
