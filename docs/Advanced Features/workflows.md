@@ -139,7 +139,6 @@ Also `default_workflow` can be set in config to specify which workflow will be u
 if `workflow` parameter is not provided.
 
 ### Push to bucket
-
 Catalog "[Push to bucket](../Walkthrough/Working with the Catalog.md)" feature can be enabled via workflows config by adding `successors` property:
 
 ```yaml

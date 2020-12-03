@@ -50,7 +50,7 @@ We don't support references and compound types yet.
 
 ### Push to bucket
 
-You can push the existing package from one bucket to another. To use this feature consult to [workflows](../Advanced Features/workflows.md) page.
+You can push the existing package from one bucket to another. To use this feature consult [workflows](../Advanced Features/workflows.md) page.
 
 ### Summarize
 
