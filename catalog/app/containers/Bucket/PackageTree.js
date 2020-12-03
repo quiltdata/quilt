@@ -569,16 +569,13 @@ export default function PackageTree({
     setRevisionKey(R.inc)
   }, [setRevisionKey])
 
-  const revisionData = useData(
-    requests.resolvePackageRevision,
-    {
-      s3,
-      bucket,
-      name,
-      revision,
-    },
-    { key: revisionKey },
-  )
+  const revisionData = useData(requests.resolvePackageRevision, {
+    s3,
+    bucket,
+    name,
+    revision,
+    revisionKey,
+  })
 
   return (
     <FileView.Root>
