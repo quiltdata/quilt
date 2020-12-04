@@ -21,16 +21,6 @@ export const emptyConfig = {
   workflows: [getNoWorkflow({}, false)],
 }
 
-export function shouldSuccessorCopyData(workflowsConfig, bucket) {
-  if (!workflowsConfig.successors || !workflowsConfig.successors.length)
-    return COPY_DATA_DEFAULT
-
-  const successor = R.find(R.propEq('slug', bucket), workflowsConfig.successors)
-  if (!successor) return COPY_DATA_DEFAULT
-
-  return successor.copyData
-}
-
 function parseSchema(schemaSlug, schemas) {
   return {
     url: R.path([schemaSlug, 'url'], schemas),
