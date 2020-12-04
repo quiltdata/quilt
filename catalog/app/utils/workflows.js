@@ -17,7 +17,6 @@ function getNoWorkflow(data, hasConfig) {
 const COPY_DATA_DEFAULT = true
 
 export const emptyConfig = {
-  copyData: COPY_DATA_DEFAULT,
   successors: [],
   workflows: [getNoWorkflow({}, false)],
 }
