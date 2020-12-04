@@ -5,15 +5,8 @@ import * as RC from 'recompose'
 
 import * as RT from 'utils/reactTools'
 
-export const createBoundary = (handle, name = 'ErrorBoundary') =>
-  class extends React.Component {
-    static displayName = name
-
-    static propTypes = {
-      children: PT.node,
-      id: PT.string,
-    }
-
+export const createBoundary = (handle, name = 'ErrorBoundary') => {
+  class ErrorBoundary extends React.Component {
     constructor(props) {
       super(props)
       this.state = { handled: null }
@@ -42,6 +35,16 @@ export const createBoundary = (handle, name = 'ErrorBoundary') =>
       return this.state.handled || this.props.children
     }
   }
+
+  ErrorBoundary.displayName = name
+
+  ErrorBoundary.propTypes = {
+    children: PT.node,
+    id: PT.string,
+  }
+
+  return ErrorBoundary
+}
 
 export const withBoundary = (handle) =>
   RT.composeHOC('withErrorBoundary', (Component) =>

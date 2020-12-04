@@ -4,10 +4,6 @@ import * as React from 'react'
 import embed from 'vega-embed'
 
 class Vega extends React.Component {
-  static propTypes = {
-    spec: PT.object.isRequired,
-  }
-
   constructor() {
     super()
     this.state = { el: null }
@@ -34,6 +30,10 @@ class Vega extends React.Component {
     const { spec, ...props } = this.props
     return <div ref={this.setEl} {...props} />
   }
+}
+
+Vega.propTypes = {
+  spec: PT.object.isRequired,
 }
 
 export default ({ spec }, props) => <Vega spec={spec} {...props} />
