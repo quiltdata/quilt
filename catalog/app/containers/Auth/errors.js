@@ -3,6 +3,7 @@ import { BaseError } from 'utils/error'
 const withDefaultMessage = (message, props) => ({ message, ...props })
 
 export class AuthError extends BaseError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'AuthError'
 
   constructor(props) {
@@ -12,6 +13,7 @@ export class AuthError extends BaseError {
 }
 
 export class InvalidToken extends AuthError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'InvalidToken'
 
   constructor(props) {
@@ -20,6 +22,7 @@ export class InvalidToken extends AuthError {
 }
 
 export class InvalidCredentials extends AuthError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'InvalidCredentials'
 
   constructor(props) {
@@ -28,6 +31,7 @@ export class InvalidCredentials extends AuthError {
 }
 
 export class EmailTaken extends AuthError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'EmailTaken'
 
   constructor(props) {
@@ -36,6 +40,7 @@ export class EmailTaken extends AuthError {
 }
 
 export class EmailDomainNotAllowed extends AuthError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'EmailDomainNotAllowed'
 
   constructor(props) {
@@ -44,6 +49,7 @@ export class EmailDomainNotAllowed extends AuthError {
 }
 
 export class UsernameTaken extends AuthError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'UsernameTaken'
 
   constructor(props) {
@@ -52,6 +58,7 @@ export class UsernameTaken extends AuthError {
 }
 
 export class InvalidUsername extends AuthError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'InvalidUsername'
 
   constructor(props) {
@@ -60,6 +67,7 @@ export class InvalidUsername extends AuthError {
 }
 
 export class InvalidEmail extends AuthError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'InvalidEmail'
 
   constructor(props) {
@@ -68,6 +76,7 @@ export class InvalidEmail extends AuthError {
 }
 
 export class InvalidResetLink extends AuthError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'InvalidResetLink'
 
   constructor(props) {
@@ -76,6 +85,7 @@ export class InvalidResetLink extends AuthError {
 }
 
 export class InvalidPassword extends AuthError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'InvalidPassword'
 
   constructor(props) {
@@ -84,6 +94,7 @@ export class InvalidPassword extends AuthError {
 }
 
 export class SMTPError extends AuthError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'SMTPError'
 
   constructor(props) {
@@ -92,6 +103,7 @@ export class SMTPError extends AuthError {
 }
 
 export class SSOUserNotFound extends AuthError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'SSOUserNotFound'
 
   constructor(props) {
@@ -100,6 +112,7 @@ export class SSOUserNotFound extends AuthError {
 }
 
 export class SSOError extends AuthError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'SSOError'
 
   constructor(props) {

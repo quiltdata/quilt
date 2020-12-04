@@ -2,6 +2,7 @@
  * Extensible error class.
  */
 export class BaseError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'BaseError'
 
   /**
@@ -31,6 +32,7 @@ Object.defineProperty(BaseError.prototype, 'name', {
  * Error class with fields designed to feed <Error /> via object rest spread.
  */
 export class ErrorDisplay extends BaseError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'ErrorDisplay'
 
   /**

@@ -18,6 +18,7 @@ describe('utils/error', () => {
 
     describe('subclass without constructor', () => {
       class SpecificError extends BaseError {
+        // eslint-disable-next-line react/static-property-placement
         static displayName = 'SpecificError'
       }
 
@@ -37,6 +38,7 @@ describe('utils/error', () => {
 
     describe('subclass with constructor', () => {
       class SpecificError extends BaseError {
+        // eslint-disable-next-line react/static-property-placement
         static displayName = 'SpecificError'
 
         constructor(data) {
