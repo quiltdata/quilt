@@ -34,6 +34,7 @@ export default function copyToClipboard(text, { container = document.body } = {}
     // Security exception may be thrown by some browsers.
     return document.execCommand('copy')
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.warn('copy to clipboard failed', e)
     return false
   } finally {
