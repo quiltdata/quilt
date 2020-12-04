@@ -156,10 +156,10 @@ A *successor* is a destination bucket.
 
 ```yaml
 successors:
-  s3://bucket1
+  s3://bucket1:
     title: Staging
     copy_data: false
-  s3://bucket2
+  s3://bucket2:
     title: Production
 ```
 
