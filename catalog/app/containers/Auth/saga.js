@@ -490,7 +490,7 @@ function* handleGetCode({ meta: { resolve, reject } }) {
  * @param {function} options.forgetUser
  * @param {function} options.onAuthLost
  */
-export default function* ({
+export default function* Saga({
   latency,
   checkOn,
   storeTokens,
