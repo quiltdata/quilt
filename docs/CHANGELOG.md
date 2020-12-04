@@ -7,11 +7,9 @@
 ## Catalog, Lambdas
 !-->
 
-# 3.4.0dev - YYYY-MM-DD
+# 3.3.0rc2 - 2020-12-04
 ## Python API
 * [Added] Support `successors` property in workflows config ([#1939](https://github.com/quiltdata/quilt/pull/1939))
-
-## CLI
 
 ## Catalog, Lambdas
 * [Added] Fill package metadata by dropping a JSON file into metadata controls ([#1950](https://github.com/quiltdata/quilt/pull/1950))
