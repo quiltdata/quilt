@@ -1032,7 +1032,9 @@ export async function loadManifest({
   maxSize = MANIFEST_MAX_SIZE,
 }) {
   try {
-    const hash = maybeHash || (await loadRevisionHash({ s3, bucket, name, id: 'latest' }))
+    const hash =
+      maybeHash ||
+      (await loadRevisionHash({ s3, bucket, name, id: 'latest' }).then(R.prop('hash')))
     const manifestKey = `${MANIFESTS_PREFIX}${hash}`
 
     if (maxSize) {

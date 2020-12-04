@@ -7,6 +7,14 @@
 ## Catalog, Lambdas
 !-->
 
+# unreleased - YYYY-MM-DD
+## Python API
+
+## CLI
+
+## Catalog, Lambdas
+* [Added] Generate and resolve Quilt package URIs ([#1935](https://github.com/quiltdata/quilt/pull/1935))
+
 # 3.3.0rc2 - 2020-12-04
 ## Python API
 * [Added] Support `successors` property in workflows config ([#1939](https://github.com/quiltdata/quilt/pull/1939))
