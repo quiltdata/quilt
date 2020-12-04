@@ -28,13 +28,13 @@ export default composeComponent(
     headline = 'Something went wrong',
     object,
   }) => (
-    <React.Fragment>
+    <>
       <Typography variant="h4" gutterBottom>
         {headline}
       </Typography>
       <Typography variant="body1">{detail}</Typography>
       <Img height={600} mt={2} />
       {!!object && <Box component="pre">{printObject(object)}</Box>}
-    </React.Fragment>
+    </>
   ),
 )
