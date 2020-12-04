@@ -12,7 +12,8 @@ const appPalette = {
     main: colors.orange[600],
   },
   info: {
-    main: colors.lightBlue[50],
+    main: colors.lightBlue[600],
+    light: colors.lightBlue[50],
   },
   warning: {
     main: colors.yellow[200],
