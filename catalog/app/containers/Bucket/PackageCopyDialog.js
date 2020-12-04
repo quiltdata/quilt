@@ -366,26 +366,28 @@ export default function PackageCopyDialog({
 
   const handleExited = React.useCallback(() => {
     if (submitting) return
+
     onExited({
       pushed: success,
     })
-    onClose()
+    if (onClose) onClose()
     setSuccess(null)
-  }, [submitting, onExited, onClose, setSuccess, success])
+  }, [submitting, success, setSuccess, onClose, onExited])
 
   const handleClose = React.useCallback(() => {
     if (submitting) return
+
     onExited({
       pushed: success,
     })
-    onClose()
+    if (onClose) onClose()
     setSuccess(null)
-  }, [submitting, onExited, success, setSuccess, onClose])
+  }, [submitting, success, setSuccess, onClose, onExited])
 
   return (
     <M.Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       fullWidth
       scroll="body"
       onExited={handleExited}
