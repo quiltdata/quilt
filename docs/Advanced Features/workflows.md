@@ -37,7 +37,7 @@ With the above configuration, you must specify a workflow before you can push:
 QuiltException: Workflow required, but none specified.
 ```
 
-Let's try with with the `workflow=` parameter:
+Let's try with the `workflow=` parameter:
 
 ```python
 >>> quilt3.Package().push('test/package', registry='s3://quilt-sergey-dev-metadata', workflow='alpha')
@@ -68,9 +68,9 @@ Now let's push with `workflow='beta'`:
 QuiltException: Metadata failed validation: 'superhero' is a required property.
 ```
 
-We encounterd another exception because the `beta` workflows specifies
+We encountered another exception because the `beta` workflow specifies
 `metadata_schema: superheroes`.
-Therefore the `test/package` metadata must validated against the
+Therefore, the `test/package` metadata must validate against the
 [JSON Schema](https://json-schema.org/) at
 `s3://quilt-sergey-dev-metadata/schemas/superheroes.schema.json`:
 ```json
@@ -143,7 +143,7 @@ and specify `workflow=None` in the API:
 Package test/package@06b2815 pushed to s3://quilt-sergey-dev-metadata
 ```
 
-Also `default_workflow` can be set in config to specify which workflow will be used
+Also `default_workflow` can be set in the config to specify which workflow will be used
 if `workflow` parameter is not provided.
 
 
