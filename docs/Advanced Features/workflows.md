@@ -70,7 +70,7 @@ QuiltException: Metadata failed validation: 'superhero' is a required property.
 
 We encountered another exception because the `beta` workflow specifies
 `metadata_schema: superheroes`.
-Therefore, the `test/package` metadata must be validated against the
+Therefore, the `test/package` metadata must validate against the
 [JSON Schema](https://json-schema.org/) at
 `s3://quilt-sergey-dev-metadata/schemas/superheroes.schema.json`:
 ```json
