@@ -143,7 +143,7 @@ and specify `workflow=None` in the API:
 Package test/package@06b2815 pushed to s3://quilt-sergey-dev-metadata
 ```
 
-Also `default_workflow` can be set in config to specify which workflow will be used
+Also `default_workflow` can be set in the config to specify which workflow will be used
 if `workflow` parameter is not provided.
 
 
