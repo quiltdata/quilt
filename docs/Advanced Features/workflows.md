@@ -148,7 +148,7 @@ if `workflow` parameter is not provided.
 
 
 ### Pushing across buckets with the Quilt catalog
-The catalog's [Push to bucket](../Walkthrough/Working with the Catalog.md)
+The catalog's [Push to bucket](../Walkthrough/Working%20with%20the%20Catalog.md)
 feature can be enabled by adding a `successors` property to the config.
 A *successor* is a destination bucket.
 
