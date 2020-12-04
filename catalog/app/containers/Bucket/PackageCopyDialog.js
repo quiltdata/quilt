@@ -91,7 +91,8 @@ function DialogForm({
   hash,
   manifest,
   name: initialName,
-  onRequest,
+  onSubmitEnd,
+  onSubmitStart,
   onSuccess,
   sourceBucket,
   targetBucket,
@@ -111,7 +112,7 @@ function DialogForm({
 
   // eslint-disable-next-line consistent-return
   const onSubmit = async ({ commitMessage, name, meta, workflow }) => {
-    onRequest(true)
+    onSubmitStart()
     try {
       const res = await requestPackageCopy(req, {
         commitMessage,
@@ -123,10 +124,10 @@ function DialogForm({
         targetBucket,
         workflow,
       })
-      onRequest(false)
+      onSubmitEnd()
       onSuccess({ name, hash: res.top_hash })
     } catch (e) {
-      onRequest(false)
+      onSubmitEnd()
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
       return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
@@ -400,10 +401,11 @@ export default function PackageCopyDialog({
               close: handleClose,
               hash,
               name,
-              onSuccess: handleSuccess,
-              onRequest: setSubmitting,
               sourceBucket,
               targetBucket,
+              onSubmitStart: () => setSubmitting(true),
+              onSubmitEnd: () => setSubmitting(false),
+              onSuccess: handleSuccess,
               ...props,
             }}
           />
