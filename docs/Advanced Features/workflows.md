@@ -3,7 +3,9 @@
 
 ### Workflows basics
 A *workflow* is a quality gate that your data must pass in order to be pushed
-to S3. To get started, create a configuration file in your Quilt S3 bucket
+to S3. As of now, workflows only support validation of package-level metadata. In the future we plan to support more types of validation.
+
+To get started, create a configuration file in your Quilt S3 bucket
 at `s3://BUCKET/.quilt/workflows/config.yml`.
 
 Here's an example:
@@ -37,7 +39,7 @@ With the above configuration, you must specify a workflow before you can push:
 QuiltException: Workflow required, but none specified.
 ```
 
-Let's try with with the `workflow=` parameter:
+Let's try with the `workflow=` parameter:
 
 ```python
 >>> quilt3.Package().push('test/package', registry='s3://quilt-sergey-dev-metadata', workflow='alpha')
@@ -68,9 +70,9 @@ Now let's push with `workflow='beta'`:
 QuiltException: Metadata failed validation: 'superhero' is a required property.
 ```
 
-We encounterd another exception because the `beta` workflows specifies
+We encountered another exception because the `beta` workflow specifies
 `metadata_schema: superheroes`.
-Therefore the `test/package` metadata must validated against the
+Therefore the `test/package` metadata must validate against the
 [JSON Schema](https://json-schema.org/) at
 `s3://quilt-sergey-dev-metadata/schemas/superheroes.schema.json`:
 ```json
