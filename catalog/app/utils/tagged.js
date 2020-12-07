@@ -109,14 +109,7 @@ export default (variants) => {
       )
       return doCase(
         {
-          ...R.mapObjIndexed(
-            (fn, variant) =>
-              R.pipe(
-                fn,
-                constructors[variant],
-              ),
-            cases,
-          ),
+          ...R.mapObjIndexed((fn, variant) => R.pipe(fn, constructors[variant]), cases),
           _: R.identity,
         },
         ...args,
