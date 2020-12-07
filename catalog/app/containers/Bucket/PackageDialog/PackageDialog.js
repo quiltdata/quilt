@@ -178,10 +178,11 @@ const useWorkflowInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function WorkflowInput({ input, meta, workflowsConfig }) {
+export function WorkflowInput({ input, meta, workflowsConfig, errors = {} }) {
   const classes = useWorkflowInputStyles()
 
   const disabled = meta.submitting || meta.submitSucceeded
+  const errorKey = meta.submitFailed && meta.error
 
   return (
     <SelectWorkflow
@@ -190,6 +191,7 @@ export function WorkflowInput({ input, meta, workflowsConfig }) {
       onChange={input.onChange}
       value={input.value}
       disabled={disabled}
+      error={errorKey ? errors[errorKey] || errorKey : undefined}
     />
   )
 }

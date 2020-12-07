@@ -225,7 +225,7 @@ function DialogForm({
                       <M.Box pl={1} />
                       <M.Typography variant="body2" color="textSecondary">
                         {copyData
-                          ? 'Copying files and writing manfest'
+                          ? 'Copying files and writing manifest'
                           : 'Writing manifest'}
                       </M.Typography>
                     </M.Box>

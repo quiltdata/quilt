@@ -81,6 +81,12 @@ export const search = {
     `/search${mkSearch({ q, buckets, p, mode, retry })}`,
 }
 
+// immutable URI resolver
+export const uriResolver = {
+  path: '/uri/:uri(.*)',
+  url: (uri) => `/uri/${uri ? encodeURIComponent(uri) : ''}`,
+}
+
 // bucket
 export const bucketRoot = {
   path: '/b/:bucket',
@@ -114,9 +120,9 @@ export const bucketPackageDetail = {
 export const bucketPackageTree = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
   url: (bucket, name, revision, path = '') =>
-    revision === 'latest' && !path
-      ? bucketPackageDetail.url(bucket, name)
-      : `/b/${bucket}/packages/${name}/tree/${revision}/${encode(path)}`,
+    path || (revision && revision !== 'latest')
+      ? `/b/${bucket}/packages/${name}/tree/${revision || 'latest'}/${encode(path)}`
+      : bucketPackageDetail.url(bucket, name),
 }
 export const bucketPackageRevisions = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/revisions`,

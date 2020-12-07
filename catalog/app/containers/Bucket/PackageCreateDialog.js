@@ -574,7 +574,11 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
                     name="workflow"
                     workflowsConfig={workflowsConfig}
                     initialValue={PD.defaultWorkflowFromConfig(workflowsConfig)}
+                    validate={validators.required}
                     validateFields={['meta', 'workflow']}
+                    errors={{
+                      required: 'Workflow is required for this bucket.',
+                    }}
                   />
 
                   <input type="submit" style={{ display: 'none' }} />
