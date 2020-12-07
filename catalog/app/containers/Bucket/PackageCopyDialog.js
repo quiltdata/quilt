@@ -13,7 +13,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import Skeleton from 'components/Skeleton'
 import StyledLink from 'utils/StyledLink'
 import tagged from 'utils/tagged'
-import * as workflows from 'utils/workflows'
 import * as validators from 'utils/validators'
 
 import * as PD from './PackageDialog'
@@ -91,9 +90,9 @@ function DialogForm({
   hash,
   manifest,
   name: initialName,
+  bucket,
   onSuccess,
-  sourceBucket,
-  targetBucket,
+  successor,
   workflowsConfig,
 }) {
   const nameValidator = PD.useNameValidator()
@@ -117,8 +116,8 @@ function DialogForm({
         initialName,
         meta,
         name,
-        sourceBucket,
-        targetBucket,
+        sourceBucket: bucket,
+        targetBucket: successor.slug,
         workflow,
       })
       onSuccess({ name, hash: res.top_hash })
@@ -128,11 +127,6 @@ function DialogForm({
       return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
     }
   }
-
-  const copyData = React.useMemo(
-    () => workflows.shouldSuccessorCopyData(workflowsConfig, targetBucket),
-    [targetBucket, workflowsConfig],
-  )
 
   return (
     <RF.Form onSubmit={onSubmit}>
@@ -147,7 +141,7 @@ function DialogForm({
         values,
       }) => (
         <>
-          <DialogTitle bucket={targetBucket} />
+          <DialogTitle bucket={successor.slug} />
           <M.DialogContent style={{ paddingTop: 0 }}>
             <form onSubmit={handleSubmit}>
               <RF.Field
@@ -191,7 +185,7 @@ function DialogForm({
                     <RF.Field
                       component={PD.MetaInput}
                       name="meta"
-                      bucket={targetBucket}
+                      bucket={successor.slug}
                       schema={schema}
                       schemaError={responseError}
                       validate={validate}
@@ -224,7 +218,7 @@ function DialogForm({
                       <M.CircularProgress size={24} variant="indeterminate" />
                       <M.Box pl={1} />
                       <M.Typography variant="body2" color="textSecondary">
-                        {copyData
+                        {successor.copyData
                           ? 'Copying files and writing manifest'
                           : 'Writing manifest'}
                       </M.Typography>
@@ -306,8 +300,8 @@ function DialogLoading({ bucket, onCancel }) {
 const DialogState = tagged(['Loading', 'Error', 'Form', 'Success'])
 
 export default function PackageCopyDialog({
-  sourceBucket,
-  targetBucket,
+  bucket,
+  successor,
   name,
   hash,
   onExited,
@@ -319,12 +313,12 @@ export default function PackageCopyDialog({
 
   const manifestData = Data.use(requests.loadManifest, {
     s3,
-    bucket: sourceBucket,
+    bucket,
     name,
     hash,
   })
 
-  const workflowsData = Data.use(requests.workflowsList, { s3, bucket: targetBucket })
+  const workflowsData = Data.use(requests.workflowsList, { s3, bucket: successor.slug })
 
   const state = React.useMemo(() => {
     if (success) return DialogState.Success(success)
@@ -366,24 +360,26 @@ export default function PackageCopyDialog({
   return (
     <M.Dialog open onClose={onClose} fullWidth scroll="body" onExited={handleExited}>
       {stateCase({
-        Error: (e) => <DialogError bucket={targetBucket} onCancel={onClose} error={e} />,
-        Loading: () => <DialogLoading bucket={targetBucket} onCancel={onClose} />,
+        Error: (e) => (
+          <DialogError bucket={successor.slug} onCancel={onClose} error={e} />
+        ),
+        Loading: () => <DialogLoading bucket={successor.slug} onCancel={onClose} />,
         Form: (props) => (
           <DialogForm
             {...{
-              close: onClose,
+              bucket,
               hash,
               name,
+              successor,
+              close: onClose,
               onSuccess: handleSuccess,
-              sourceBucket,
-              targetBucket,
               ...props,
             }}
           />
         ),
         Success: (props) => (
           <PD.DialogSuccess
-            bucket={targetBucket}
+            bucket={successor.slug}
             name={props.name}
             hash={props.hash}
             onClose={handleClose}

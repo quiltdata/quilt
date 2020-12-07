@@ -286,7 +286,7 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
     onExited: onRevisionPush,
   })
 
-  const [bucketCopyTarget, setBucketCopyTarget] = React.useState(null)
+  const [successor, setSuccessor] = React.useState(null)
 
   usePrevious({ bucket, name, revision }, (prev) => {
     // close the dialog when navigating away
@@ -324,14 +324,14 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
       }))
       return (
         <>
-          {bucketCopyTarget && (
+          {successor && (
             <PackageCopyDialog
               name={name}
-              targetBucket={bucketCopyTarget}
-              sourceBucket={bucket}
+              successor={successor}
+              bucket={bucket}
               hash={hash}
               onExited={onRevisionPush}
-              onClose={() => setBucketCopyTarget(null)}
+              onClose={() => setSuccessor(null)}
             />
           )}
 
@@ -348,7 +348,7 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
               Revise package
             </M.Button>
             <M.Box ml={1} />
-            <CopyButton bucket={bucket} onChange={(b) => setBucketCopyTarget(b.slug)} />
+            <CopyButton bucket={bucket} onChange={setSuccessor} />
             {!noDownload && (
               <>
                 <M.Box ml={1} />
