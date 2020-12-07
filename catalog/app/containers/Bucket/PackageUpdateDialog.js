@@ -896,7 +896,7 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
   const [isOpen, setOpen] = React.useState(false)
   const [wasOpened, setWasOpened] = React.useState(false)
   const [exited, setExited] = React.useState(!isOpen)
-  const [exitValue, setExitValue] = React.useState(null)
+  const exitValueRef = React.useRef(null)
   const [success, setSuccess] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [key, setKey] = React.useState(1)
@@ -917,8 +917,8 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
   const close = React.useCallback(() => {
     if (submitting) return
     setOpen(false)
-    setExitValue({ pushed: success })
-  }, [submitting, setOpen, success, setExitValue])
+    exitValueRef.current = { pushed: success }
+  }, [submitting, setOpen, success, exitValueRef])
 
   const refreshManifest = React.useCallback(() => {
     setWasOpened(false)
@@ -928,12 +928,12 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
   const handleExited = React.useCallback(() => {
     setExited(true)
     setSuccess(false)
-    setExitValue(null)
     if (onExited) {
-      const shouldRefreshManifest = onExited(exitValue)
+      const shouldRefreshManifest = onExited(exitValueRef.current)
       if (shouldRefreshManifest) refreshManifest()
     }
-  }, [setExited, setSuccess, setExitValue, onExited, exitValue, refreshManifest])
+    exitValueRef.current = null
+  }, [setExited, setSuccess, onExited, exitValueRef, refreshManifest])
 
   const state = React.useMemo(() => {
     if (exited) return DialogState.Closed()
