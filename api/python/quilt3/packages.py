@@ -331,8 +331,19 @@ class PackageEntry:
         return [self.physical_key]
 
 
+class PackageRevInfo:
+    __slots__ = ('registry', 'name', 'top_hash')
+
+    def __init__(self, registry, name, top_hash):
+        self.registry = registry
+        self.name = name
+        self.top_hash = top_hash
+
+
 class Package:
     """ In-memory representation of a package """
+
+    _origin = None
 
     def __init__(self):
         self._children = {}
@@ -1005,7 +1016,8 @@ class Package:
         self._dump(manifest)
 
         top_hash = self.top_hash
-        self.timestamp = registry.push_manifest(name, top_hash, manifest.getvalue())
+        self._timestamp = registry.push_manifest(name, top_hash, manifest.getvalue())
+        self._origin = PackageRevInfo(str(registry.base), name, top_hash)
 
         return top_hash
 
@@ -1264,6 +1276,9 @@ class Package:
         Returns:
             A new package that points to the copied objects.
         """
+        return self._push(name, registry, dest, message, selector_fn, workflow=workflow, print_info=True)
+
+    def _push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow, print_info):
         if selector_fn is None:
             def selector_fn(*args):
                 return True
@@ -1361,20 +1376,21 @@ class Package:
 
         top_hash = pkg._build(name, registry=registry, message=message)
 
-        shorthash = registry.shorten_top_hash(name, top_hash)
-        print(f"Package {name}@{shorthash} pushed to s3://{dest_parsed.bucket}")
+        if print_info:
+            shorthash = registry.shorten_top_hash(name, top_hash)
+            print(f"Package {name}@{shorthash} pushed to s3://{dest_parsed.bucket}")
 
-        if user_is_configured_to_custom_stack():
-            navigator_url = get_from_config("navigator_url")
+            if user_is_configured_to_custom_stack():
+                navigator_url = get_from_config("navigator_url")
 
-            print(f"Successfully pushed the new package to "
-                  f"{catalog_package_url(navigator_url, dest_parsed.bucket, name, tree=False)}")
-        else:
-            dest_s3_url = str(dest_parsed)
-            if not dest_s3_url.endswith("/"):
-                dest_s3_url += "/"
-            print(f"Run `quilt3 catalog {dest_s3_url}` to browse.")
-            print("Successfully pushed the new package")
+                print(f"Successfully pushed the new package to "
+                      f"{catalog_package_url(navigator_url, dest_parsed.bucket, name, tree=False)}")
+            else:
+                dest_s3_url = str(dest_parsed)
+                if not dest_s3_url.endswith("/"):
+                    dest_s3_url += "/"
+                print(f"Run `quilt3 catalog {dest_s3_url}` to browse.")
+                print("Successfully pushed the new package")
 
         return pkg
 

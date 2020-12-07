@@ -25,5 +25,8 @@ module.exports = {
   setupFiles: ['raf/polyfill', 'jest-localstorage-mock'],
   testRegex: '.*\\.(test|spec)\\.js$',
   testURL: 'https://quilt-test',
+  transformIgnorePatterns: [
+    'node_modules/(?!(redux-form/es|connected-react-router/esm)/)',
+  ],
   snapshotSerializers: [],
 }

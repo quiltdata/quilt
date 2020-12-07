@@ -5,6 +5,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import * as Intercom from 'components/Intercom'
@@ -16,14 +17,18 @@ import * as Config from 'utils/Config'
 import Data, { useData } from 'utils/Data'
 import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as PackageUri from 'utils/PackageUri'
 import Link, { linkStyle } from 'utils/StyledLink'
+import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 
 import Code from './Code'
+import CopyButton from './CopyButton'
 import * as FileView from './FileView'
 import { ListingItem, ListingWithLocalFiltering } from './Listing'
 import { usePackageUpdateDialog } from './PackageUpdateDialog'
+import PackageCopyDialog from './PackageCopyDialog'
 import Section from './Section'
 import Summary from './Summary'
 import * as errors from './errors'
@@ -206,6 +211,10 @@ function PkgCode({ bucket, name, hash, revision, path }) {
         quilt3 install ${nameWithPath}${hashCli} --registry s3://${bucket} --dest .
       `,
     },
+    {
+      label: 'URI',
+      contents: PackageUri.stringify({ bucket, name, hash, path }),
+    },
   ]
   return <Code>{code}</Code>
 }
@@ -277,6 +286,8 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
     onExited: onRevisionPush,
   })
 
+  const [bucketCopyTarget, setBucketCopyTarget] = React.useState(null)
+
   usePrevious({ bucket, name, revision }, (prev) => {
     // close the dialog when navigating away
     if (!R.equals({ bucket, name, revision }, prev)) updateDialog.close()
@@ -313,7 +324,19 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
       }))
       return (
         <>
+          {bucketCopyTarget && (
+            <PackageCopyDialog
+              name={name}
+              targetBucket={bucketCopyTarget}
+              sourceBucket={bucket}
+              hash={hash}
+              onExited={onRevisionPush}
+              onClose={() => setBucketCopyTarget(null)}
+            />
+          )}
+
           {updateDialog.render()}
+
           <TopBar crumbs={crumbs}>
             <M.Button
               variant="contained"
@@ -324,6 +347,8 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
             >
               Revise package
             </M.Button>
+            <M.Box ml={1} />
+            <CopyButton bucket={bucket} onChange={(b) => setBucketCopyTarget(b.slug)} />
             {!noDownload && (
               <>
                 <M.Box ml={1} />
@@ -490,12 +515,18 @@ const useStyles = M.makeStyles(() => ({
   name: {
     wordBreak: 'break-all',
   },
+  alertMsg: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
 }))
 
 export default function PackageTree({
   match: {
     params: { bucket, name, revision = 'latest', path: encodedPath = '' },
   },
+  location,
 }) {
   const classes = useStyles()
   const s3 = AWS.S3.use()
@@ -504,6 +535,8 @@ export default function PackageTree({
 
   const path = s3paths.decode(encodedPath)
   const isDir = s3paths.isDir(path)
+
+  const { resolvedFrom } = parseSearch(location.search)
 
   const crumbs = React.useMemo(() => {
     const segments = [{ label: 'ROOT', path: '' }, ...s3paths.getBreadCrumbs(path)]
@@ -556,6 +589,35 @@ export default function PackageTree({
           ),
           _: () => null,
         })}
+      {!!resolvedFrom && (
+        <M.Box mb={2}>
+          <Lab.Alert
+            severity="info"
+            icon={false}
+            classes={{ message: classes.alertMsg }}
+            action={
+              <M.IconButton
+                size="small"
+                color="inherit"
+                component={RRLink}
+                to={urls.bucketPackageTree(bucket, name, revision, path)}
+              >
+                <M.Icon fontSize="small">close</M.Icon>
+              </M.IconButton>
+            }
+          >
+            Resolved from{' '}
+            <M.Box
+              fontFamily="monospace.fontFamily"
+              fontWeight="fontWeightBold"
+              component="span"
+              title={resolvedFrom}
+            >
+              {resolvedFrom}
+            </M.Box>
+          </Lab.Alert>
+        </M.Box>
+      )}
       <M.Typography variant="body1">
         <Link to={urls.bucketPackageDetail(bucket, name)} className={classes.name}>
           {name}
