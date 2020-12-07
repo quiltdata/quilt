@@ -191,7 +191,7 @@ export function WorkflowInput({ input, meta, workflowsConfig, errors = {} }) {
       onChange={input.onChange}
       value={input.value}
       disabled={disabled}
-      error={errorKey ? (errors[errorKey] || errorKey) : undefined}
+      error={errorKey ? errors[errorKey] || errorKey : undefined}
     />
   )
 }
