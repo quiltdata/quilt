@@ -13,7 +13,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import Skeleton from 'components/Skeleton'
 import StyledLink from 'utils/StyledLink'
 import tagged from 'utils/tagged'
-import * as workflows from 'utils/workflows'
 import * as validators from 'utils/validators'
 
 import * as PD from './PackageDialog'
@@ -93,9 +92,9 @@ function DialogForm({
   name: initialName,
   onSubmitEnd,
   onSubmitStart,
+  bucket,
   onSuccess,
-  sourceBucket,
-  targetBucket,
+  successor,
   workflowsConfig,
 }) {
   const nameValidator = PD.useNameValidator()
@@ -120,8 +119,8 @@ function DialogForm({
         initialName,
         meta,
         name,
-        sourceBucket,
-        targetBucket,
+        sourceBucket: bucket,
+        targetBucket: successor.slug,
         workflow,
       })
       onSubmitEnd()
@@ -133,11 +132,6 @@ function DialogForm({
       return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
     }
   }
-
-  const copyData = React.useMemo(
-    () => workflows.shouldSuccessorCopyData(workflowsConfig, targetBucket),
-    [targetBucket, workflowsConfig],
-  )
 
   return (
     <RF.Form onSubmit={onSubmit}>
@@ -152,7 +146,7 @@ function DialogForm({
         values,
       }) => (
         <>
-          <DialogTitle bucket={targetBucket} />
+          <DialogTitle bucket={successor.slug} />
           <M.DialogContent style={{ paddingTop: 0 }}>
             <form onSubmit={handleSubmit}>
               <RF.Field
@@ -196,7 +190,7 @@ function DialogForm({
                     <RF.Field
                       component={PD.MetaInput}
                       name="meta"
-                      bucket={targetBucket}
+                      bucket={successor.slug}
                       schema={schema}
                       schemaError={responseError}
                       validate={validate}
@@ -229,7 +223,7 @@ function DialogForm({
                       <M.CircularProgress size={24} variant="indeterminate" />
                       <M.Box pl={1} />
                       <M.Typography variant="body2" color="textSecondary">
-                        {copyData
+                        {successor.copyData
                           ? 'Copying files and writing manifest'
                           : 'Writing manifest'}
                       </M.Typography>
@@ -312,8 +306,8 @@ const DialogState = tagged(['Loading', 'Error', 'Form', 'Success'])
 
 export default function PackageCopyDialog({
   open,
-  sourceBucket,
-  targetBucket,
+  bucket,
+  successor,
   name,
   hash,
   onExited,
@@ -328,17 +322,17 @@ export default function PackageCopyDialog({
     requests.loadManifest,
     {
       s3,
-      bucket: sourceBucket,
+      bucket,
       name,
       hash,
     },
-    { noAutoFetch: !targetBucket || !open },
+    { noAutoFetch: !successor || !open },
   )
 
   const workflowsData = Data.use(
     requests.workflowsList,
-    { s3, bucket: targetBucket },
-    { noAutoFetch: !targetBucket || !open },
+    { s3, bucket: successor ? successor.slug : '' },
+    { noAutoFetch: !successor || !open },
   )
 
   const state = React.useMemo(() => {
@@ -393,33 +387,42 @@ export default function PackageCopyDialog({
       onExited={handleExited}
     >
       {stateCase({
-        Error: (e) => (
-          <DialogError bucket={targetBucket} onCancel={handleClose} error={e} />
-        ),
-        Loading: () => <DialogLoading bucket={targetBucket} onCancel={handleClose} />,
-        Form: (props) => (
-          <DialogForm
-            {...{
-              close: handleClose,
-              hash,
-              name,
-              sourceBucket,
-              targetBucket,
-              onSubmitStart: () => setSubmitting(true),
-              onSubmitEnd: () => setSubmitting(false),
-              onSuccess: handleSuccess,
-              ...props,
-            }}
-          />
-        ),
-        Success: (props) => (
-          <PD.DialogSuccess
-            bucket={targetBucket}
-            name={props.name}
-            hash={props.hash}
-            onClose={handleClose}
-          />
-        ),
+        Error: (e) =>
+          successor && (
+            <DialogError bucket={successor.slug} onCancel={handleClose} error={e} />
+          ),
+        Loading: () =>
+          successor && (
+            <DialogLoading
+              bucket={successor ? successor.slug : ''}
+              onCancel={handleClose}
+            />
+          ),
+        Form: (props) =>
+          successor && (
+            <DialogForm
+              {...{
+                bucket,
+                hash,
+                name,
+                successor,
+                close: handleClose,
+                onSubmitStart: () => setSubmitting(true),
+                onSubmitEnd: () => setSubmitting(false),
+                onSuccess: handleSuccess,
+                ...props,
+              }}
+            />
+          ),
+        Success: (props) =>
+          successor && (
+            <PD.DialogSuccess
+              bucket={successor ? successor.slug : ''}
+              name={props.name}
+              hash={props.hash}
+              onClose={handleClose}
+            />
+          ),
       })}
     </M.Dialog>
   )
