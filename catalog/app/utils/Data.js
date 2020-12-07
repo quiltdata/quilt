@@ -5,6 +5,7 @@ import AsyncResult from 'utils/AsyncResult'
 import tagged from 'utils/tagged'
 import useMemoEq from 'utils/useMemoEq'
 import usePrevious from 'utils/usePrevious'
+import usePreviousSync from 'utils/usePreviousSync'
 
 const Action = tagged(['Reset', 'Request', 'Response'])
 
@@ -27,6 +28,7 @@ const reducer = Action.reducer({
 })
 
 export function useData(request, params, { noAutoFetch = false } = {}) {
+  let stateResetingIsInProgress = false
   // TODO: accept custom key extraction fn (params => key for comparison)
   const [state, dispatch] = React.useReducer(reducer, initial)
 
@@ -47,7 +49,13 @@ export function useData(request, params, { noAutoFetch = false } = {}) {
     else fetch()
   })
 
-  const result = useMemoEq(state, mapResult)
+  usePreviousSync(params, (prev) => {
+    if (!R.equals(params, prev)) {
+      stateResetingIsInProgress = true
+    }
+  })
+
+  const result = useMemoEq(stateResetingIsInProgress ? initial : state, mapResult)
 
   const doCase = useMemoEq([result], () => (cases, ...args) =>
     AsyncResult.case(cases, result, ...args),
