@@ -1,16 +1,20 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import { useDropzone } from 'react-dropzone'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import JsonEditor from 'components/JsonEditor'
 import { parseJSON, stringifyJSON, validateOnSchema } from 'components/JsonEditor/State'
 import Skeleton from 'components/Skeleton'
+import * as Notifications from 'containers/Notifications'
 import { useData } from 'utils/Data'
+import Delay from 'utils/Delay'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import pipeThru from 'utils/pipeThru'
+import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
@@ -19,6 +23,7 @@ import SelectWorkflow from './SelectWorkflow'
 
 export const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
 export const ES_LAG = 3 * 1000
+export const MAX_META_FILE_SIZE = 10 * 1000 * 1000 // 10MB
 
 export const ERROR_MESSAGES = {
   UPLOAD: 'Error uploading files',
@@ -72,6 +77,21 @@ function cacheDebounce(fn, wait, getKey = R.identity) {
   }
 }
 
+const readFile = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onabort = () => {
+      reject(new Error('abort'))
+    }
+    reader.onerror = () => {
+      reject(reader.error)
+    }
+    reader.onload = () => {
+      resolve(reader.result)
+    }
+    reader.readAsText(file)
+  })
+
 export function useNameValidator() {
   const req = APIConnector.use()
   const [counter, setCounter] = React.useState(0)
@@ -104,16 +124,18 @@ function mkMetaValidator(schema) {
   return function validateMeta(value) {
     const noError = undefined
 
+    const jsonObjectErr = validators.jsonObject(value.text)
+    if (jsonObjectErr) {
+      return value.mode === 'json'
+        ? jsonObjectErr
+        : [{ message: 'Metadata must be a valid JSON object' }]
+    }
+
     if (schema) {
       const obj = value ? parseJSON(value.text) : {}
       const errors = schemaValidator(obj)
-      return errors.length ? errors : noError
-    }
-
-    if (!value) return noError
-
-    if (value.mode === 'json') {
-      return validators.jsonObject(value.text)
+      if (!errors.length) return noError
+      return value.mode === 'json' ? 'schema' : errors
     }
 
     return noError
@@ -156,10 +178,11 @@ const useWorkflowInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function WorkflowInput({ input, meta, workflowsConfig }) {
+export function WorkflowInput({ input, meta, workflowsConfig, errors = {} }) {
   const classes = useWorkflowInputStyles()
 
   const disabled = meta.submitting || meta.submitSucceeded
+  const errorKey = meta.submitFailed && meta.error
 
   return (
     <SelectWorkflow
@@ -168,6 +191,7 @@ export function WorkflowInput({ input, meta, workflowsConfig }) {
       onChange={input.onChange}
       value={input.value}
       disabled={disabled}
+      error={errorKey ? errors[errorKey] || errorKey : undefined}
     />
   )
 }
@@ -226,14 +250,39 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     flexBasis: 100,
     flexGrow: 2,
   },
+  dropzone: {
+    position: 'relative',
+  },
+  overlay: {
+    background: 'rgba(255,255,255,0.6)',
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 1,
+  },
+  overlayContents: {
+    alignItems: 'center',
+    display: 'flex',
+    height: '100%',
+    justifyContent: 'center',
+    maxHeight: 120,
+  },
+  overlayText: {
+    ...t.typography.body1,
+    color: t.palette.text.secondary,
+  },
+  overlayProgress: {
+    marginRight: t.spacing(1),
+  },
 }))
 
-const EMPTY_META_VALUE = { mode: 'kv', text: '{}' }
+export const EMPTY_META_VALUE = { mode: 'kv', text: '{}' }
 
 // TODO: warn on duplicate keys
-export function MetaInput({ schemaError, input, meta, schema }) {
+export function MetaInput({ schemaError, input: { value, onChange }, meta, schema }) {
   const classes = useMetaInputStyles()
-  const value = input.value || EMPTY_META_VALUE
   const error = schemaError ? [schemaError] : meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
 
@@ -244,15 +293,15 @@ export function MetaInput({ schemaError, input, meta, schema }) {
 
   const changeMode = (mode) => {
     if (disabled) return
-    input.onChange({ ...value, mode })
+    onChange({ ...value, mode })
   }
 
   const changeText = React.useCallback(
     (text) => {
       if (disabled) return
-      input.onChange({ ...value, text })
+      onChange({ ...value, text })
     },
-    [disabled, input, value],
+    [disabled, onChange, value],
   )
 
   const handleModeChange = (e, m) => {
@@ -267,6 +316,51 @@ export function MetaInput({ schemaError, input, meta, schema }) {
   const onJsonEditor = React.useCallback((json) => changeText(stringifyJSON(json)), [
     changeText,
   ])
+
+  const { push: notify } = Notifications.use()
+  const [locked, setLocked] = React.useState(false)
+  // used to force json editor re-initialization
+  const [jsonEditorKey, setJsonEditorKey] = React.useState(1)
+
+  const onDrop = React.useCallback(
+    ([file]) => {
+      if (file.size > MAX_META_FILE_SIZE) {
+        notify(
+          <>
+            File too large ({readableBytes(file.size)}), must be under{' '}
+            {readableBytes(MAX_META_FILE_SIZE)}.
+          </>,
+        )
+        return
+      }
+      setLocked(true)
+      readFile(file)
+        .then((contents) => {
+          try {
+            JSON.parse(contents)
+          } catch (e) {
+            notify('The file does not contain valid JSON')
+          }
+          changeText(contents)
+          // force json editor to re-initialize
+          setJsonEditorKey(R.inc)
+        })
+        .catch((e) => {
+          if (e.message === 'abort') return
+          // eslint-disable-next-line no-console
+          console.log('Error reading file')
+          // eslint-disable-next-line no-console
+          console.error(e)
+          notify("Couldn't read that file")
+        })
+        .finally(() => {
+          setLocked(false)
+        })
+    },
+    [setLocked, changeText, setJsonEditorKey, notify],
+  )
+
+  const { getRootProps, isDragActive } = useDropzone({ onDrop })
 
   return (
     <div className={classes.root}>
@@ -287,35 +381,62 @@ export function MetaInput({ schemaError, input, meta, schema }) {
         </Lab.ToggleButtonGroup>
       </div>
 
-      {value.mode === 'kv' ? (
-        <JsonEditor
-          error={error}
-          disabled={disabled}
-          value={parsedValue}
-          onChange={onJsonEditor}
-          schema={schema}
-        />
-      ) : (
-        <M.TextField
-          variant="outlined"
-          size="small"
-          value={value.text}
-          onChange={handleTextChange}
-          placeholder="Enter JSON metadata if necessary"
-          error={!!error}
-          helperText={
-            !!error &&
-            {
-              jsonObject: 'Metadata must be a valid JSON object',
-            }[error]
-          }
-          fullWidth
-          multiline
-          rowsMax={10}
-          InputProps={{ classes: { input: classes.jsonInput } }}
-          disabled={disabled}
-        />
-      )}
+      <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
+        {value.mode === 'kv' ? (
+          <JsonEditor
+            error={error}
+            disabled={disabled}
+            value={parsedValue}
+            onChange={onJsonEditor}
+            schema={schema}
+            key={jsonEditorKey}
+          />
+        ) : (
+          <M.TextField
+            variant="outlined"
+            size="small"
+            value={value.text}
+            onChange={handleTextChange}
+            placeholder="Enter JSON metadata if necessary"
+            error={!!error}
+            helperText={
+              !!error &&
+              {
+                jsonObject: 'Metadata must be a valid JSON object',
+                schema: 'Metadata must conform to the schema',
+              }[error]
+            }
+            fullWidth
+            multiline
+            rowsMax={10}
+            InputProps={{ classes: { input: classes.jsonInput } }}
+            disabled={disabled}
+          />
+        )}
+
+        {(isDragActive || locked) && (
+          <div className={classes.overlay}>
+            {isDragActive ? (
+              <div className={classes.overlayContents}>
+                <div className={classes.overlayText}>
+                  Drop file containing JSON metadata
+                </div>
+              </div>
+            ) : (
+              <Delay ms={500} alwaysRender>
+                {(ready) => (
+                  <M.Fade in={ready}>
+                    <div className={classes.overlayContents}>
+                      <M.CircularProgress size={20} className={classes.overlayProgress} />
+                      <div className={classes.overlayText}>Reading file contents</div>
+                    </div>
+                  </M.Fade>
+                )}
+              </Delay>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -336,6 +457,7 @@ export function SchemaFetcher({ children, schemaUrl }) {
   return children(res)
 }
 
+// TODO: use this skeleton for FormSkeleton
 export function MetaInputSkeleton() {
   const classes = useMetaInputStyles()
   const t = M.useTheme()
@@ -350,34 +472,5 @@ export function MetaInputSkeleton() {
         6,
       )}
     </M.Grid>
-  )
-}
-
-export function FormSkeleton({ animate }) {
-  return (
-    <>
-      <Skeleton {...{ height: 48, mt: 2, animate }} />
-      <Skeleton {...{ height: 48, mt: 3, animate }} />
-      <M.Box mt={3}>
-        <Skeleton {...{ height: 24, width: 64, animate }} />
-        <Skeleton {...{ height: 140, mt: 2, animate }} />
-      </M.Box>
-      <M.Box mt={3}>
-        <M.Box display="flex" mb={2}>
-          <Skeleton {...{ height: 24, width: 64, animate }} />
-          <M.Box flexGrow={1} />
-          <Skeleton {...{ height: 24, width: 64, animate }} />
-        </M.Box>
-        <M.Box display="flex">
-          <Skeleton {...{ height: 32, width: 200, animate }} />
-          <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
-        </M.Box>
-        <M.Box display="flex" mt={0.5}>
-          <Skeleton {...{ height: 32, width: 200, animate }} />
-          <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
-        </M.Box>
-      </M.Box>
-      <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
-    </>
   )
 }

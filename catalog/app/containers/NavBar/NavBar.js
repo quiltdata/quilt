@@ -284,6 +284,7 @@ function useLinks() {
   const { urls } = NamedRoutes.use()
   const cfg = Config.useConfig()
   return [
+    cfg.mode !== 'MARKETING' && { to: urls.uriResolver(), label: 'URI' },
     { href: URLS.docs, label: 'Docs' },
     cfg.mode === 'MARKETING' && { to: `${urls.home()}#pricing`, label: 'Pricing' },
     (cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') && {
