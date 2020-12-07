@@ -12,9 +12,6 @@ const selectLanguage = (state) => state.get(REDUX_KEY)
  */
 
 const makeSelectLocale = () =>
-  createSelector(
-    selectLanguage,
-    (languageState) => languageState.get('locale'),
-  )
+  createSelector(selectLanguage, (languageState) => languageState.get('locale'))
 
 export { selectLanguage, makeSelectLocale }
