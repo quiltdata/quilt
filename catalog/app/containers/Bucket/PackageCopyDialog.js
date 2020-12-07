@@ -392,12 +392,7 @@ export default function PackageCopyDialog({
             <DialogError bucket={successor.slug} onCancel={handleClose} error={e} />
           ),
         Loading: () =>
-          successor && (
-            <DialogLoading
-              bucket={successor ? successor.slug : ''}
-              onCancel={handleClose}
-            />
-          ),
+          successor && <DialogLoading bucket={successor.slug} onCancel={handleClose} />,
         Form: (props) =>
           successor && (
             <DialogForm
@@ -417,7 +412,7 @@ export default function PackageCopyDialog({
         Success: (props) =>
           successor && (
             <PD.DialogSuccess
-              bucket={successor ? successor.slug : ''}
+              bucket={successor.slug}
               name={props.name}
               hash={props.hash}
               onClose={handleClose}
