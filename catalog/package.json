@@ -173,7 +173,7 @@
     "husky": "^4.2.5",
     "jest-cli": "^26.2.2",
     "jest-localstorage-mock": "^2.4.3",
-    "lint-staged": "^10.2.11",
+    "lint-staged": "^10.5.3",
     "ngrok": "^3.2.7",
     "node-plop": "^0.26.2",
     "plop": "^2.7.4",
