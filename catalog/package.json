@@ -179,7 +179,7 @@
     "plop": "^2.7.4",
     "prettier": "^2.2.1",
     "raf": "^3.4.1",
-    "raw-loader": "^4.0.1",
+    "raw-loader": "^4.0.2",
     "react-app-polyfill": "^1.0.6",
     "react-test-renderer": "^16.13.1",
     "redux-logger": "^3.0.6",
