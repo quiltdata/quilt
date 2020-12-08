@@ -20,17 +20,13 @@ const useStyles = M.makeStyles((t) => ({
       top: 0,
     },
   },
-  inner: {
-    display: 'flex',
-    overflowX: 'auto',
-    MsOverflowStyle: 'none',
-    scrollbarWidth: 'none',
-    '&::-webkit-scrollbar': {
-      display: 'none',
-    },
-  },
   errors: {
     marginTop: t.spacing(1),
+  },
+  inner: {
+    display: 'flex',
+    maxHeight: t.spacing(45),
+    overflow: 'auto',
   },
 }))
 
