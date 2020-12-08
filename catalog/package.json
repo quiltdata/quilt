@@ -126,7 +126,7 @@
     "uuid": "^3.4.0",
     "vega": "^5.13.0",
     "vega-embed": "^6.10.0",
-    "vega-lite": "^4.14.1",
+    "vega-lite": "^4.17.0",
     "warning": "^4.0.3"
   },
   "devDependencies": {
