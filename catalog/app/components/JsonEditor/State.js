@@ -1,7 +1,7 @@
-import Ajv from 'ajv'
 import * as R from 'ramda'
 import * as React from 'react'
 
+import { makeSchemaValidator } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 
 export const COLUMN_IDS = {
@@ -34,26 +34,6 @@ function convertType(value, typeOf) {
       return Number(value)
     default:
       return value
-  }
-}
-
-const emptySchema = {}
-
-// TODO: move to utils/validators
-export function validateOnSchema(optSchema) {
-  const schema = optSchema || emptySchema
-
-  const ajv = new Ajv({ schemaId: 'auto' })
-
-  try {
-    const validate = ajv.compile(schema)
-
-    return (obj) => {
-      validate(obj)
-      return validate.errors || []
-    }
-  } catch (e) {
-    return () => [e]
   }
 }
 
@@ -324,6 +304,8 @@ function removeFieldReducer(removingFieldPath, { data, jsonDict, rootKeys }) {
   }
 }
 
+const emptySchema = {}
+
 export default function JsonEditorState({ children, obj, optSchema }) {
   const schema = optSchema || emptySchema
 
@@ -361,7 +343,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
     [data, jsonDict, fieldPath, rootKeys],
   )
 
-  const schemaValidator = React.useMemo(() => validateOnSchema(schema), [schema])
+  const schemaValidator = React.useMemo(() => makeSchemaValidator(schema), [schema])
 
   const changeType = React.useCallback(
     (contextFieldPath, columnId, typeOf) => {
