@@ -7,8 +7,8 @@
     "url": "git://github.com/quiltdata/quilt.git"
   },
   "engines": {
-    "npm": ">=5",
-    "node": ">=8.15.1"
+    "npm": "7",
+    "node": "15"
   },
   "author": "Quilt Data, Inc. <contact@quiltdata.io> (https://quiltdata.com)",
   "license": "MIT",
