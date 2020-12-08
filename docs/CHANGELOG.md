@@ -14,7 +14,7 @@
 * [Fixed] Crash during load of package manifest with unicode symbols with non-unicode locale set ([#1931](https://github.com/quiltdata/quilt/pull/1931))
 
 ## Catalog, Lambdas
-* [Added] Ad-hoc package updates ([#1856](https://github.com/quiltdata/quilt/pull/1856))
+* [Added] Ad hoc package updates ([#1856](https://github.com/quiltdata/quilt/pull/1856))
 * [Added] Copy packages from one bucket to another ([#1932](https://github.com/quiltdata/quilt/pull/1932))
 * [Added] Enhanced JSON editor and schema validation for package metadata ([#1867](https://github.com/quiltdata/quilt/pull/1867))
 * [Added] Preview .pdbqt files as plain text ([#1855](https://github.com/quiltdata/quilt/pull/1855))
