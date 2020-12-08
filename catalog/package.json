@@ -98,7 +98,7 @@
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-dropzone": "^11.2.4",
-    "react-final-form": "^6.5.1",
+    "react-final-form": "^6.5.2",
     "react-github-btn": "^1.2.0",
     "react-google-login": "^5.1.25",
     "react-helmet": "^6.1.0",
