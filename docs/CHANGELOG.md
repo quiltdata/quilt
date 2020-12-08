@@ -16,9 +16,9 @@
 ## Catalog, Lambdas
 * [Added] Ad-hoc package updates ([#1856](https://github.com/quiltdata/quilt/pull/1856))
 * [Added] Copy packages from one bucket to another ([#1932](https://github.com/quiltdata/quilt/pull/1932))
+* [Added] Enhanced JSON editor and schema validation for package metadata ([#1867](https://github.com/quiltdata/quilt/pull/1867))
 * [Added] Preview .pdbqt files as plain text ([#1855](https://github.com/quiltdata/quilt/pull/1855))
 * [Added] Retry logic for failed queries, minimize load on ES for sample, images overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
-* [Added] Enhanced JSON editor and schema validation for package metadata ([#1867](https://github.com/quiltdata/quilt/pull/1867))
 * [Added] Buttons to download packages and directories as .zip archives ([#1868](https://github.com/quiltdata/quilt/pull/1868/))
 * [Added] Search help dropdown for the index landing page ([#1838](https://github.com/quiltdata/quilt/pull/1838))
 * [Changed] Get package revisions from ElasticSearch, not S3 ([#1851](https://github.com/quiltdata/quilt/pull/1851))
