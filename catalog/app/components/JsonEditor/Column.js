@@ -19,7 +19,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function getColumntType(columnPath, jsonDict, parent) {
+function getColumnType(columnPath, jsonDict, parent) {
   const columnSchema = getJsonDictValue(columnPath, jsonDict)
   if (!parent) return columnSchema.type
 
@@ -92,7 +92,7 @@ export default function Column({
   })
   const { getTableProps, getTableBodyProps, rows, prepareRow } = tableInstance
 
-  const columnType = getColumntType(columnPath, jsonDict, data.parent)
+  const columnType = getColumnType(columnPath, jsonDict, data.parent)
 
   const onAddRowInternal = React.useCallback(
     (...params) => {
