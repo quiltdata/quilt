@@ -23,7 +23,15 @@ describe('utils/workflows', () => {
       const config = workflows.parse(data)
 
       it('should return default empty values', () => {
-        expect(config).toEqual(workflows.emptyConfig)
+        expect(config).toMatchObject({
+          ...workflows.emptyConfig,
+          errors: [
+            {
+              dataPath: '',
+              message: "should have required property 'workflows'",
+            },
+          ],
+        })
       })
 
       it('should return data with special `notAvailable` workflow', () => {
@@ -39,7 +47,15 @@ describe('utils/workflows', () => {
       const config = workflows.parse(data)
 
       it('should return default empty values', () => {
-        expect(config).toEqual(workflows.emptyConfig)
+        expect(config).toMatchObject({
+          ...workflows.emptyConfig,
+          errors: [
+            {
+              dataPath: '.workflows',
+              message: 'should be object',
+            },
+          ],
+        })
       })
 
       it('should return data with special `notAvailable` workflow', () => {

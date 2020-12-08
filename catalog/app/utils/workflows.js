@@ -1,7 +1,10 @@
 import * as R from 'ramda'
 
+import { makeSchemaValidator } from 'utils/json-schema'
 import * as s3paths from 'utils/s3paths'
 import yaml from 'utils/yaml'
+
+import workflowsConfigSchema from 'utils/workflows.schema.json'
 
 export const notAvaliable = Symbol('not available')
 
@@ -20,6 +23,11 @@ export const emptyConfig = {
   successors: [],
   workflows: [getNoWorkflow({}, false)],
 }
+
+export const getEmptyConfig = (errors) => ({
+  ...emptyConfig,
+  errors,
+})
 
 function parseSchema(schemaSlug, schemas) {
   return {
@@ -44,17 +52,19 @@ const parseSuccessor = (url, successor) => ({
   url,
 })
 
+const workflowsConfigValidator = makeSchemaValidator(workflowsConfigSchema)
+
 export function parse(workflowsYaml) {
   const data = yaml(workflowsYaml)
   if (!data) return emptyConfig
 
-  const { workflows } = data
-  if (!workflows) return emptyConfig
+  const errors = workflowsConfigValidator(data)
+  if (errors.length) return getEmptyConfig(errors)
 
+  const { workflows } = data
   const workflowsList = Object.keys(workflows).map((slug) =>
     parseWorkflow(slug, workflows[slug], data),
   )
-  if (!workflowsList.length) return emptyConfig
 
   const noWorkflow =
     data.is_workflow_required === false ? getNoWorkflow(data, true) : null
