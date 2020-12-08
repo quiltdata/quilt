@@ -70,27 +70,25 @@ function JsonEditor({
     [changeValue, onChange],
   )
 
+  const columnData = R.last(newColumns)
+  const columnPath = R.slice(0, newColumns.length - 1, fieldPath)
+
   return (
     <div className={cx({ [classes.disabled]: disabled }, className)}>
       <div className={classes.inner}>
-        {newColumns.map((columnData, index) => {
-          const columnPath = R.slice(0, index, fieldPath)
-          return (
-            <Column
-              {...{
-                columnPath,
-                data: columnData,
-                jsonDict,
-                key: columnPath,
-                onAddRow: addRow,
-                onBreadcrumb: setFieldPath,
-                onExpand: setFieldPath,
-                onMenuAction,
-                onChange: onChangeInternal,
-              }}
-            />
-          )
-        })}
+        <Column
+          {...{
+            columnPath,
+            data: columnData,
+            jsonDict,
+            key: columnPath,
+            onAddRow: addRow,
+            onBreadcrumb: setFieldPath,
+            onExpand: setFieldPath,
+            onMenuAction,
+            onChange: onChangeInternal,
+          }}
+        />
       </div>
 
       <Errors className={classes.errors} errors={error || errors} />
