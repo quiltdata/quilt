@@ -35,7 +35,7 @@ function JsonEditor({
   changeValue,
   className,
   disabled,
-  newColumns,
+  columns,
   jsonDict,
   error,
   errors,
@@ -66,8 +66,8 @@ function JsonEditor({
     [changeValue, onChange],
   )
 
-  const columnData = R.last(newColumns)
-  const columnPath = R.slice(0, newColumns.length - 1, fieldPath)
+  const columnData = R.last(columns)
+  const columnPath = R.slice(0, columns.length - 1, fieldPath)
 
   return (
     <div className={cx({ [classes.disabled]: disabled }, className)}>
