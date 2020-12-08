@@ -149,7 +149,7 @@
     "babel-plugin-react-intl": "^4.3.0",
     "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
     "bundlesize": "^0.18.0",
-    "circular-dependency-plugin": "^5.2.0",
+    "circular-dependency-plugin": "^5.2.2",
     "compare-versions": "^3.6.0",
     "compression-webpack-plugin": "^4.0.0",
     "copy-webpack-plugin": "^6.0.3",
