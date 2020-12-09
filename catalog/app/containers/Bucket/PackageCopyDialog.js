@@ -90,6 +90,8 @@ function DialogForm({
   hash,
   manifest,
   name: initialName,
+  onSubmitEnd,
+  onSubmitStart,
   bucket,
   onSuccess,
   successor,
@@ -109,6 +111,7 @@ function DialogForm({
 
   // eslint-disable-next-line consistent-return
   const onSubmit = async ({ commitMessage, name, meta, workflow }) => {
+    onSubmitStart()
     try {
       const res = await requestPackageCopy(req, {
         commitMessage,
@@ -120,8 +123,10 @@ function DialogForm({
         targetBucket: successor.slug,
         workflow,
       })
+      onSubmitEnd()
       onSuccess({ name, hash: res.top_hash })
     } catch (e) {
+      onSubmitEnd()
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
       return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
@@ -300,6 +305,7 @@ function DialogLoading({ bucket, onCancel }) {
 const DialogState = tagged(['Loading', 'Error', 'Form', 'Success'])
 
 export default function PackageCopyDialog({
+  open,
   bucket,
   successor,
   name,
@@ -310,15 +316,24 @@ export default function PackageCopyDialog({
   const s3 = AWS.S3.use()
 
   const [success, setSuccess] = React.useState(false)
+  const [submitting, setSubmitting] = React.useState(false)
 
-  const manifestData = Data.use(requests.loadManifest, {
-    s3,
-    bucket,
-    name,
-    hash,
-  })
+  const manifestData = Data.use(
+    requests.loadManifest,
+    {
+      s3,
+      bucket,
+      name,
+      hash,
+    },
+    { noAutoFetch: !successor || !open },
+  )
 
-  const workflowsData = Data.use(requests.workflowsList, { s3, bucket: successor.slug })
+  const workflowsData = Data.use(
+    requests.workflowsList,
+    { s3, bucket: successor ? successor.slug : '' },
+    { noAutoFetch: !successor || !open },
+  )
 
   const state = React.useMemo(() => {
     if (success) return DialogState.Success(success)
@@ -344,47 +359,65 @@ export default function PackageCopyDialog({
   )
 
   const handleExited = React.useCallback(() => {
+    if (submitting) return
+
     onExited({
       pushed: success,
     })
-    onClose()
-  }, [onExited, onClose, success])
+    if (onClose) onClose()
+    setSuccess(null)
+  }, [submitting, success, setSuccess, onClose, onExited])
 
   const handleClose = React.useCallback(() => {
+    if (submitting) return
+
     onExited({
       pushed: success,
     })
-    onClose()
-  }, [onExited, success, onClose])
+    if (onClose) onClose()
+    setSuccess(null)
+  }, [submitting, success, setSuccess, onClose, onExited])
 
   return (
-    <M.Dialog open onClose={onClose} fullWidth scroll="body" onExited={handleExited}>
+    <M.Dialog
+      open={open}
+      onClose={handleClose}
+      fullWidth
+      scroll="body"
+      onExited={handleExited}
+    >
       {stateCase({
-        Error: (e) => (
-          <DialogError bucket={successor.slug} onCancel={onClose} error={e} />
-        ),
-        Loading: () => <DialogLoading bucket={successor.slug} onCancel={onClose} />,
-        Form: (props) => (
-          <DialogForm
-            {...{
-              bucket,
-              hash,
-              name,
-              successor,
-              close: onClose,
-              onSuccess: handleSuccess,
-              ...props,
-            }}
-          />
-        ),
-        Success: (props) => (
-          <PD.DialogSuccess
-            bucket={successor.slug}
-            name={props.name}
-            hash={props.hash}
-            onClose={handleClose}
-          />
-        ),
+        Error: (e) =>
+          successor && (
+            <DialogError bucket={successor.slug} onCancel={handleClose} error={e} />
+          ),
+        Loading: () =>
+          successor && <DialogLoading bucket={successor.slug} onCancel={handleClose} />,
+        Form: (props) =>
+          successor && (
+            <DialogForm
+              {...{
+                bucket,
+                hash,
+                name,
+                successor,
+                close: handleClose,
+                onSubmitStart: () => setSubmitting(true),
+                onSubmitEnd: () => setSubmitting(false),
+                onSuccess: handleSuccess,
+                ...props,
+              }}
+            />
+          ),
+        Success: (props) =>
+          successor && (
+            <PD.DialogSuccess
+              bucket={successor.slug}
+              name={props.name}
+              hash={props.hash}
+              onClose={handleClose}
+            />
+          ),
       })}
     </M.Dialog>
   )
