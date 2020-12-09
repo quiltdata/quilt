@@ -661,11 +661,16 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
         }}
       />
     ),
-    Err: (error) => {
-      // eslint-disable-next-line no-console
-      console.error(error)
-      return null
-    },
+    Err: (error) => (
+      <M.Dialog fullWidth open={open} scroll="body" onClose={onClose}>
+        <PD.DialogError
+          error={error}
+          skeletonElement={<PD.FormSkeleton animate={false} />}
+          title="Create package"
+          onCancel={onClose}
+        />
+      </M.Dialog>
+    ),
     // TODO: show some progress indicator, e.g. skeleton or spinner
     _: () => null,
   })
