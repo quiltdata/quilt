@@ -156,7 +156,7 @@
     "coveralls": "^3.1.0",
     "css-loader": "^4.2.0",
     "eslint": "^7.15.0",
-    "eslint-config-airbnb": "^18.2.0",
+    "eslint-config-airbnb": "^18.2.1",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-config-prettier": "^6.15.0",
     "eslint-import-resolver-webpack": "^0.12.2",
