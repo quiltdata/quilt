@@ -67,7 +67,7 @@ function JsonEditor({
   )
 
   const columnData = R.last(columns)
-  const columnPath = R.slice(0, columns.length - 1, fieldPath)
+  const columnPath = R.take(columns.length - 1, fieldPath)
 
   return (
     <div className={cx({ [classes.disabled]: disabled }, className)}>
