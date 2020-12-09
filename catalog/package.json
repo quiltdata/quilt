@@ -39,8 +39,9 @@
     "lint:js": "npm run lint:eslint -- '**/*.js'",
     "pretest": "npm run test:clean && npm run lint",
     "test:clean": "rimraf ./coverage",
-    "test": "cross-env NODE_ENV=test jest --coverage",
-    "test:watch": "cross-env NODE_ENV=test jest --watch",
+    "test:only": "cross-env NODE_ENV=test jest",
+    "test": "npm run test:only -- --coverage",
+    "test:watch": "npm run test:only -- --watch",
     "coveralls": "cat ./coverage/lcov.info | coveralls",
     "prettify": "prettier --write"
   },
