@@ -27,6 +27,20 @@ const useStyles = M.makeStyles((t) => ({
 
 const errorDisplay = R.cond([
   [
+    R.is(ERRORS.WorkflowsConfigInvalid),
+    (e) => (
+      <>
+        <M.Typography variant="h6" gutterBottom>
+          Workflows&apos; config is invalid
+        </M.Typography>
+        <M.Typography gutterBottom>
+          Error: <code>{e.message}</code>
+        </M.Typography>
+        <M.Typography>
+          Please fix workflows&apos; config according to documentation.
+        </M.Typography>
+      </>
+    ),
     R.is(ERRORS.ManifestTooLarge),
     (e) => (
       <>
