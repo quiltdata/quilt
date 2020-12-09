@@ -59,7 +59,11 @@ export function parse(workflowsYaml) {
   if (!data) return emptyConfig
 
   const errors = workflowsConfigValidator(data)
-  if (errors.length) return getEmptyConfig(errors)
+  if (errors.length)
+    // TODO: use custom Error
+    throw new Error(
+      errors.map(({ dataPath, message }) => `${dataPath} ${message}`).join(', '),
+    )
 
   const { workflows } = data
   const workflowsList = Object.keys(workflows).map((slug) =>

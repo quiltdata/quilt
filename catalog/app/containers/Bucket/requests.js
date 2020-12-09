@@ -296,9 +296,8 @@ export const workflowsList = async ({ s3, bucket }) => {
     console.log('Unable to fetch')
     // eslint-disable-next-line no-console
     console.error(e)
+    throw e
   }
-
-  return workflows.emptyConfig
 }
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
