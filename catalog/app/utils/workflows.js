@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import { makeSchemaValidator } from 'utils/json-schema'
 import * as s3paths from 'utils/s3paths'
 import yaml from 'utils/yaml'
-import workflowsConfigSchema from 'utils/workflows.schema.json'
+import workflowsConfigSchema from 'schemas/workflows.yml.json'
 import * as bucketErrors from 'containers/Bucket/errors'
 
 export const notAvaliable = Symbol('not available')
