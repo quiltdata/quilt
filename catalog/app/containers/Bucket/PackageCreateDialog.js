@@ -671,7 +671,14 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
         />
       </M.Dialog>
     ),
-    // TODO: show some progress indicator, e.g. skeleton or spinner
-    _: () => null,
+    _: () => (
+      <M.Dialog fullWidth open={open} scroll="body" onClose={onClose}>
+        <PD.DialogLoading
+          skeletonElement={<PD.FormSkeleton animate={false} />}
+          title="Create package"
+          onCancel={onClose}
+        />
+      </M.Dialog>
+    ),
   })
 }
