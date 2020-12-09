@@ -647,7 +647,7 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
 
 export default function PackageCreateDialogWrapper({ bucket, open, onClose, refresh }) {
   const s3 = AWS.S3.use()
-  const data = useData(requests.workflowsList, { s3, bucket })
+  const data = useData(requests.workflowsList, { s3, bucket }, { noAutoFetch: !open })
 
   return data.case({
     Ok: (workflowsConfig) => (
