@@ -1,10 +1,14 @@
+import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
+import StyledLink from 'utils/StyledLink'
+import { docs } from 'constants/urls'
 
+import * as ERRORS from './errors'
 import * as requests from './requests'
 
 function MenuPlaceholder() {
@@ -40,7 +44,6 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
   const s3 = AWS.S3.use()
   const data = useData(requests.workflowsList, { s3, bucket })
 
-  // FIXME: add documentation link
   return (
     <M.Menu anchorEl={anchorEl} onClose={onClose} open={open}>
       {data.case({
@@ -51,17 +54,35 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
             ))
           ) : (
             <M.Box px={2} py={1}>
-              <M.Typography>
+              <M.Typography gutterBottom>
                 Bucket&apos;s successors are not configured.
-                {/* <br /> */}
-                {/* Please, refer to a documentation. */}
+              </M.Typography>
+              <M.Typography>
+                Please, read{' '}
+                <StyledLink
+                  href={`${docs}/advanced-usage/workflows#pushing-across-buckets-with-the-quilt-catalog`}
+                  target="_blank"
+                >
+                  the documentation
+                </StyledLink>
+                .
               </M.Typography>
             </M.Box>
           ),
         _: () => <MenuPlaceholder />,
         Err: (error) => (
           <M.Box px={2} py={1}>
-            <Lab.Alert severity="error">{error.message}</Lab.Alert>
+            <M.Typography gutterBottom>
+              Error: <code>{error.message}</code>
+            </M.Typography>
+            {R.is(ERRORS.WorkflowsConfigInvalid, error) && (
+              <M.Typography>
+                Please fix workflows&apos; config according to{' '}
+                <StyledLink href={`${docs}/advanced-usage/workflows`} target="_blank">
+                  the documentation
+                </StyledLink>
+              </M.Typography>
+            )}
           </M.Box>
         ),
       })}
