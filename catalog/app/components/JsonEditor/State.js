@@ -356,7 +356,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
 
   // NOTE: this data represents table columns shown to user
   //       it's the main source of UI data
-  const newColumns = React.useMemo(
+  const columns = React.useMemo(
     () => iterateJsonDict(jsonDict, data, fieldPath, rootKeys),
     [data, jsonDict, fieldPath, rootKeys],
   )
@@ -464,7 +464,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   return children({
     addRow,
     changeValue,
-    newColumns,
+    columns,
     jsonDict,
     errors,
     fieldPath,

@@ -17,9 +17,13 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     width: '100%',
   },
+
+  table: {
+    tableLayout: 'fixed',
+  },
 }))
 
-function getColumntType(columnPath, jsonDict, parent) {
+function getColumnType(columnPath, jsonDict, parent) {
   const columnSchema = getJsonDictValue(columnPath, jsonDict)
   if (!parent) return columnSchema.type
 
@@ -92,7 +96,7 @@ export default function Column({
   })
   const { getTableProps, getTableBodyProps, rows, prepareRow } = tableInstance
 
-  const columnType = getColumntType(columnPath, jsonDict, data.parent)
+  const columnType = getColumnType(columnPath, jsonDict, data.parent)
 
   const onAddRowInternal = React.useCallback(
     (...params) => {
@@ -107,7 +111,7 @@ export default function Column({
       {!!columnPath.length && <Breadcrumbs items={columnPath} onSelect={onBreadcrumb} />}
 
       <M.TableContainer>
-        <M.Table {...getTableProps()}>
+        <M.Table {...getTableProps({ className: classes.table })}>
           <M.TableBody {...getTableBodyProps()}>
             {rows.map((row, index) => {
               const isLastRow = index === rows.length - 1
