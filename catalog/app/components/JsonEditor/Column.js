@@ -17,6 +17,10 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     width: '100%',
   },
+
+  table: {
+    tableLayout: 'fixed',
+  },
 }))
 
 function getColumnType(columnPath, jsonDict, parent) {
@@ -107,7 +111,7 @@ export default function Column({
       {!!columnPath.length && <Breadcrumbs items={columnPath} onSelect={onBreadcrumb} />}
 
       <M.TableContainer>
-        <M.Table {...getTableProps()}>
+        <M.Table {...getTableProps({ className: classes.table })}>
           <M.TableBody {...getTableBodyProps()}>
             {rows.map((row, index) => {
               const isLastRow = index === rows.length - 1
