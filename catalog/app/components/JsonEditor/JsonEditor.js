@@ -67,17 +67,16 @@ function JsonEditor({
   )
 
   const columnData = R.last(columns)
-  const columnPath = R.take(columns.length - 1, fieldPath)
 
   return (
     <div className={cx({ [classes.disabled]: disabled }, className)}>
       <div className={classes.inner}>
         <Column
           {...{
-            columnPath,
+            columnPath: fieldPath,
             data: columnData,
             jsonDict,
-            key: columnPath,
+            key: fieldPath,
             onAddRow: addRow,
             onBreadcrumb: setFieldPath,
             onExpand: setFieldPath,
