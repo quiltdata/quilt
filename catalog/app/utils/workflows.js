@@ -3,8 +3,8 @@ import * as R from 'ramda'
 import { makeSchemaValidator } from 'utils/json-schema'
 import * as s3paths from 'utils/s3paths'
 import yaml from 'utils/yaml'
-
 import workflowsConfigSchema from 'utils/workflows.schema.json'
+import * as bucketErrors from 'containers/Bucket/errors'
 
 export const notAvaliable = Symbol('not available')
 
@@ -60,10 +60,9 @@ export function parse(workflowsYaml) {
 
   const errors = workflowsConfigValidator(data)
   if (errors.length)
-    // TODO: use custom Error
-    throw new Error(
-      errors.map(({ dataPath, message }) => `${dataPath} ${message}`).join(', '),
-    )
+    throw new bucketErrors.WorkflowsConfigInvalid({
+      errors,
+    })
 
   const { workflows } = data
   const workflowsList = Object.keys(workflows).map((slug) =>

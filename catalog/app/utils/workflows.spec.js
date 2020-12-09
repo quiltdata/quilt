@@ -1,5 +1,6 @@
 import dedent from 'dedent'
 
+import * as errors from 'containers/Bucket/errors'
 import * as workflows from './workflows'
 
 describe('utils/workflows', () => {
@@ -20,22 +21,9 @@ describe('utils/workflows', () => {
       const data = dedent`
         version: "1"
       `
-      const config = workflows.parse(data)
-
-      it('should return default empty values', () => {
-        expect(config).toMatchObject({
-          ...workflows.emptyConfig,
-          errors: [
-            {
-              dataPath: '',
-              message: "should have required property 'workflows'",
-            },
-          ],
-        })
-      })
-
-      it('should return data with special `notAvailable` workflow', () => {
-        expect(config.workflows[0].slug).toBe(workflows.notAvaliable)
+      const parser = () => workflows.parse(data)
+      it('should throw errors.WorkflowsConfigInvalid', () => {
+        expect(parser).toThrow(errors.WorkflowsConfigInvalid)
       })
     })
 
@@ -44,22 +32,9 @@ describe('utils/workflows', () => {
         version: "1"
         workflows: []
       `
-      const config = workflows.parse(data)
-
+      const parser = () => workflows.parse(data)
       it('should return default empty values', () => {
-        expect(config).toMatchObject({
-          ...workflows.emptyConfig,
-          errors: [
-            {
-              dataPath: '.workflows',
-              message: 'should be object',
-            },
-          ],
-        })
-      })
-
-      it('should return data with special `notAvailable` workflow', () => {
-        expect(config.workflows[0].slug).toBe(workflows.notAvaliable)
+        expect(parser).toThrow(errors.WorkflowsConfigInvalid)
       })
     })
 
