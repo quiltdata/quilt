@@ -334,7 +334,15 @@ const getTotalProgress = R.pipe(
   }),
 )
 
-function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
+function PackageCreateDialog({
+  bucket,
+  open,
+  initError,
+  loading,
+  workflowsConfig,
+  onClose,
+  refresh,
+}) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
   const { urls } = NamedRoutes.use()
@@ -473,34 +481,56 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
           scroll="body"
           onExited={reset(form)}
         >
-          <M.DialogTitle>{success ? 'Package created' : 'Create package'}</M.DialogTitle>
-          {success ? (
+          {initError || loading || success ? (
             <>
-              <M.DialogContent style={{ paddingTop: 0 }}>
-                <M.Typography>
-                  Package{' '}
-                  <StyledLink
-                    to={urls.bucketPackageTree(bucket, success.name, success.hash)}
-                  >
-                    {success.name}@{R.take(10, success.hash)}
-                  </StyledLink>{' '}
-                  successfully created
-                </M.Typography>
-              </M.DialogContent>
-              <M.DialogActions>
-                <M.Button onClick={handleClose()}>Close</M.Button>
-                <M.Button
-                  component={Link}
-                  to={urls.bucketPackageTree(bucket, success.name, success.hash)}
-                  variant="contained"
-                  color="primary"
-                >
-                  Browse package
-                </M.Button>
-              </M.DialogActions>
+              {initError && (
+                <PD.DialogError
+                  error={initError}
+                  skeletonElement={<PD.FormSkeleton animate={false} />}
+                  title="Create package"
+                  onCancel={handleClose({ submitting })}
+                />
+              )}
+
+              {loading && (
+                <PD.DialogLoading
+                  skeletonElement={<PD.FormSkeleton />}
+                  title="Create package"
+                  onCancel={handleClose({ submitting })}
+                />
+              )}
+
+              {success && (
+                <>
+                  <M.DialogTitle>Package created</M.DialogTitle>
+                  <M.DialogContent style={{ paddingTop: 0 }}>
+                    <M.Typography>
+                      Package{' '}
+                      <StyledLink
+                        to={urls.bucketPackageTree(bucket, success.name, success.hash)}
+                      >
+                        {success.name}@{R.take(10, success.hash)}
+                      </StyledLink>{' '}
+                      successfully created
+                    </M.Typography>
+                  </M.DialogContent>
+                  <M.DialogActions>
+                    <M.Button onClick={handleClose()}>Close</M.Button>
+                    <M.Button
+                      component={Link}
+                      to={urls.bucketPackageTree(bucket, success.name, success.hash)}
+                      variant="contained"
+                      color="primary"
+                    >
+                      Browse package
+                    </M.Button>
+                  </M.DialogActions>
+                </>
+              )}
             </>
           ) : (
             <>
+              <M.DialogTitle>Create package</M.DialogTitle>
               <M.DialogContent style={{ paddingTop: 0 }}>
                 <form onSubmit={handleSubmit}>
                   <RF.Field
@@ -648,37 +678,18 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
 export default function PackageCreateDialogWrapper({ bucket, open, onClose, refresh }) {
   const s3 = AWS.S3.use()
   const data = useData(requests.workflowsList, { s3, bucket }, { noAutoFetch: !open })
-
+  const props = {
+    bucket,
+    open,
+    onClose,
+    refresh,
+    workflowsConfig: null,
+  }
   return data.case({
     Ok: (workflowsConfig) => (
-      <PackageCreateDialog
-        {...{
-          bucket,
-          open,
-          onClose,
-          refresh,
-          workflowsConfig,
-        }}
-      />
+      <PackageCreateDialog {...props} workflowsConfig={workflowsConfig} />
     ),
-    Err: (error) => (
-      <M.Dialog fullWidth open={open} scroll="body" onClose={onClose}>
-        <PD.DialogError
-          error={error}
-          skeletonElement={<PD.FormSkeleton animate={false} />}
-          title="Create package"
-          onCancel={onClose}
-        />
-      </M.Dialog>
-    ),
-    _: () => (
-      <M.Dialog fullWidth open={open} scroll="body" onClose={onClose}>
-        <PD.DialogLoading
-          skeletonElement={<PD.FormSkeleton />}
-          title="Create package"
-          onCancel={onClose}
-        />
-      </M.Dialog>
-    ),
+    Err: (error) => <PackageCreateDialog {...props} initError={error} />,
+    _: () => <PackageCreateDialog {...props} loading />,
   })
 }
