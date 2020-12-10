@@ -108,9 +108,11 @@ export function makeSchemaValidator(optSchema) {
 
     return (obj) => {
       validate(obj)
+      // TODO: add custom errors
       return validate.errors || []
     }
   } catch (e) {
+    // TODO: add custom errors
     return () => [e]
   }
 }
