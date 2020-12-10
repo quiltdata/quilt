@@ -168,7 +168,7 @@ jobs:
   js-test:
     executor:
       name: node/default
-      tag: "15"
+      tag: "15.4"
     steps:
       - checkout
       - node/install-packages:
