@@ -258,7 +258,7 @@ const Edit = RT.composeComponent(
           throw new RF.SubmissionError({ _error: 'unexpected' })
         }
       },
-      [close, username, req, cache, push],
+      [close, username, oldEmail, req, cache, push],
     )
 
     return (
@@ -415,7 +415,7 @@ const AdminRights = RT.composeComponent(
               throw e
             }),
         ),
-      [req, cache, push],
+      [admin, close, username, req, cache, push],
     )
 
     return (
@@ -512,6 +512,8 @@ export default RT.composeComponent(
     const req = APIConnector.use()
     const cache = Cache.use()
     const { push } = Notifications.use()
+    const dialogs = Dialogs.use()
+    const { open: openDialog } = dialogs
 
     const setRole = React.useCallback(
       (username, role) =>
@@ -638,7 +640,7 @@ export default RT.composeComponent(
             <Editable
               value={v}
               onChange={async (admin) => {
-                const res = await dialogs.open(({ close }) => (
+                const res = await openDialog(({ close }) => (
                   <AdminRights {...{ close, admin, username: u.username }} />
                 ))
                 if (res !== 'ok') throw new Error('cancelled')
@@ -656,22 +658,21 @@ export default RT.composeComponent(
           ),
         },
       ],
-      [roles],
+      [roles, openDialog, setIsActive, setRole],
     )
 
     const ordering = Table.useOrdering({ rows, column: columns[0] })
     const pagination = Pagination.use(ordering.ordered, {
       getItemId: R.prop('username'),
     })
-    const dialogs = Dialogs.use()
 
     const toolbarActions = [
       {
         title: 'Invite',
         icon: <Icon>add</Icon>,
         fn: React.useCallback(() => {
-          dialogs.open(({ close }) => <Invite {...{ close, roles }} />)
-        }, [dialogs.open]),
+          openDialog(({ close }) => <Invite {...{ close, roles }} />)
+        }, [roles, openDialog]),
       },
     ]
 
