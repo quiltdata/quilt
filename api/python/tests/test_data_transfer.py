@@ -18,6 +18,8 @@ from botocore.exceptions import ClientError, ReadTimeoutError
 from botocore.stub import ANY
 
 from quilt3 import data_transfer
+from quilt3.backends.local import LocalPhysicalKey
+from quilt3.backends.s3 import S3PhysicalKey
 from quilt3.util import PhysicalKey
 
 from .utils import QuiltTestCase
@@ -147,7 +149,7 @@ class DataTransferTest(QuiltTestCase):
 
     def test_list_local_url(self):
         dir_path = DATA_DIR / 'dir'
-        contents = set(list(data_transfer.list_url(PhysicalKey.from_path(dir_path))))
+        contents = set(PhysicalKey.from_path(dir_path).list_url())
         assert contents == set([
             ('foo.txt', 4),
             ('x/blah.txt', 6)
@@ -451,7 +453,7 @@ class DataTransferTest(QuiltTestCase):
 
         a_contents = b'a' * 10
 
-        pk = PhysicalKey(bucket, key, vid)
+        pk = S3PhysicalKey(bucket, key, vid)
         exc = ReadTimeoutError('Error Uploading', endpoint_url="s3://foobar")
         mocked_api_call.side_effect = exc
         results = data_transfer.calculate_sha256([pk], [len(a_contents)])
@@ -464,8 +466,8 @@ class DataTransferTest(QuiltTestCase):
         key = 'dir/a'
         vid = None
 
-        src = PhysicalKey(bucket, key, vid)
-        dst = PhysicalKey(other_bucket, key, vid)
+        src = S3PhysicalKey(bucket, key, vid)
+        dst = S3PhysicalKey(other_bucket, key, vid)
 
         with mock.patch('botocore.client.BaseClient._make_api_call',
                         side_effect=ClientError({}, 'CopyObject')) as mocked_api_call:
@@ -482,8 +484,8 @@ class DataTransferTest(QuiltTestCase):
         key = 'dir/a'
         vid = None
 
-        src = PhysicalKey(bucket, key, vid)
-        dst = PhysicalKey(other_bucket, key, vid)
+        src = S3PhysicalKey(bucket, key, vid)
+        dst = S3PhysicalKey(other_bucket, key, vid)
 
         with mock.patch('botocore.client.BaseClient._make_api_call',
                         side_effect=Exception('test exception')) as mocked_api_call:
@@ -497,8 +499,8 @@ class DataTransferTest(QuiltTestCase):
         key = 'dir/a'
         vid = None
 
-        src = PhysicalKey(bucket, key, vid)
-        dst = PhysicalKey(other_bucket, key, vid)
+        src = S3PhysicalKey(bucket, key, vid)
+        dst = S3PhysicalKey(other_bucket, key, vid)
         parts = 2 * data_transfer.s3_transfer_config.max_request_concurrency
         size = parts * data_transfer.s3_transfer_config.multipart_threshold
 
@@ -571,13 +573,13 @@ class S3DownloadTest(QuiltTestCase):
 
     bucket = 'test-bucket'
     key = 'test-key'
-    src = PhysicalKey(bucket, key, None)
+    src = S3PhysicalKey(bucket, key, None)
 
     filename = 'some-file-name'
-    dst = PhysicalKey(None, filename, None)
+    dst = LocalPhysicalKey(filename)
 
     def _test_download(self, *, threshold, chunksize, parts=data, devnull=False):
-        dst = PhysicalKey(None, os.devnull, None) if devnull else self.dst
+        dst = LocalPhysicalKey(os.devnull) if devnull else self.dst
 
         with self.s3_test_multi_thread_download(
             self.bucket, self.key, parts, threshold=threshold, chunksize=chunksize
@@ -621,7 +623,7 @@ class S3HashingTest(QuiltTestCase):
 
     bucket = 'test-bucket'
     key = 'test-key'
-    src = PhysicalKey(bucket, key, None)
+    src = S3PhysicalKey(bucket, key, None)
 
     def _hashing_subtest(self, *, threshold, chunksize, data=data):
         with self.s3_test_multi_thread_download(

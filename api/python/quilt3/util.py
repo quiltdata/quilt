@@ -5,15 +5,8 @@ import pathlib
 import re
 import warnings
 from collections import OrderedDict
-from urllib.parse import (
-    parse_qs,
-    quote,
-    unquote,
-    urlencode,
-    urlparse,
-    urlunparse,
-)
-from urllib.request import pathname2url, url2pathname
+from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
+from urllib.request import url2pathname
 
 import requests
 # Third-Party
@@ -98,28 +91,6 @@ class URLParseError(ValueError):
 
 
 class PhysicalKey:
-    __slots__ = ['bucket', 'path', 'version_id']
-
-    def __init__(self, bucket, path, version_id):
-        """
-        For internal use only; call from_path or from_url instead.
-        """
-        assert bucket is None or isinstance(bucket, str)
-        assert isinstance(path, str)
-        assert version_id is None or isinstance(version_id, str)
-
-        if bucket is None:
-            assert path is not None, "Local keys must have a path"
-            assert version_id is None, "Local keys cannot have a version ID"
-            if os.name == 'nt':
-                assert '\\' not in path, "Paths must use / as a separator"
-        else:
-            assert not path.startswith('/'), "S3 paths must not start with '/'"
-
-        self.bucket = bucket
-        self.path = path
-        self.version_id = version_id
-
     @classmethod
     def from_url(cls, url):
         parsed = urlparse(url)
@@ -136,7 +107,8 @@ class PhysicalKey:
             version_id = query.pop('versionId', [None])[0]
             if query:
                 raise URLParseError(f"Unexpected S3 query string: {parsed.query!r}")
-            return cls(bucket, path, version_id)
+            from quilt3.backends.s3 import S3PhysicalKey
+            return S3PhysicalKey(bucket, path, version_id)
         elif parsed.scheme == 'file':
             if parsed.netloc not in ('', 'localhost'):
                 raise URLParseError("Unexpected hostname")
@@ -156,56 +128,20 @@ class PhysicalKey:
 
     @classmethod
     def from_path(cls, path):
-        path = os.fspath(path)
-        new_path = os.path.realpath(path)
-        # Use '/' as the path separator.
-        if os.path.sep != '/':
-            new_path = new_path.replace(os.path.sep, '/')
-        # Add back a trailing '/' if the original path has it.
-        if (path.endswith(os.path.sep) or
-                (os.path.altsep is not None and path.endswith(os.path.altsep))):
-            new_path += '/'
-        return cls(None, new_path, None)
+        from .backends.local import LocalPhysicalKey
+        return LocalPhysicalKey.from_path(path)
 
     def is_local(self):
-        return self.bucket is None
-
-    def join(self, rel_path):
-        if self.version_id is not None:
-            raise ValueError('Cannot append paths to URLs with a version ID')
-
-        if os.name == 'nt' and '\\' in rel_path:
-            raise ValueError("Paths must use / as a separator")
-
-        if self.path:
-            new_path = self.path.rstrip('/') + '/' + rel_path.lstrip('/')
-        else:
-            new_path = rel_path.lstrip('/')
-        return PhysicalKey(self.bucket, new_path, None)
+        return False
 
     def basename(self):
         return self.path.rsplit('/', 1)[-1]
 
-    def __eq__(self, other):
-        return (
-            isinstance(other, self.__class__) and
-            self.bucket == other.bucket and
-            self.path == other.path and
-            self.version_id == other.version_id
-        )
+    def _looks_like_dir(self):
+        return self.basename() == ''
 
-    def __repr__(self):
-        return f'{self.__class__.__name__}({self.bucket!r}, {self.path!r}, {self.version_id!r})'
-
-    def __str__(self):
-        if self.bucket is None:
-            return urlunparse(('file', '', pathname2url(self.path.replace('/', os.path.sep)), None, None, None))
-        else:
-            if self.version_id is None:
-                params = {}
-            else:
-                params = {'versionId': self.version_id}
-            return urlunparse(('s3', self.bucket, quote(self.path), None, urlencode(params), None))
+    def put_bytes(self, data):
+        return self._put_bytes(data)
 
 
 def fix_url(url):

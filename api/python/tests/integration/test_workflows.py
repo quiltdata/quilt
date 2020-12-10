@@ -5,7 +5,6 @@ from tests.utils import QuiltTestCase
 
 from quilt3 import workflows
 from quilt3.backends import get_package_registry
-from quilt3.data_transfer import put_bytes
 from quilt3.util import PhysicalKey, QuiltException
 
 
@@ -15,12 +14,12 @@ def get_v1_conf_data(conf_data):
 
 
 def set_local_conf_data(conf_data):
-    put_bytes(conf_data.encode(), get_package_registry().workflow_conf_pk)
+    get_package_registry().workflow_conf_pk.put_bytes(conf_data.encode())
 
 
 def create_local_tmp_schema(data):
     pk = get_package_registry().root.join('schemas/schema')
-    put_bytes(data.encode(), pk)
+    pk.put_bytes(data.encode())
     return pk
 
 

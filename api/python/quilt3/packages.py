@@ -16,17 +16,17 @@ from multiprocessing import Pool
 import jsonlines
 from tqdm import tqdm
 
+from quilt3.backends.local import LocalPhysicalKey
+from quilt3.backends.s3 import S3PhysicalKey
+
 from . import workflows
 from .backends import get_package_registry
 from .data_transfer import (
     calculate_sha256,
     copy_file,
     copy_file_list,
-    get_bytes,
     get_size_and_version,
     list_object_versions,
-    list_url,
-    put_bytes,
 )
 from .exceptions import PackageException
 from .formats import FormatRegistry
@@ -230,9 +230,9 @@ class PackageEntry:
         if use_cache_if_available:
             cached_path = self.get_cached_path()
             if cached_path is not None:
-                return get_bytes(PhysicalKey(None, cached_path, None))
+                return LocalPhysicalKey(cached_path).get_bytes()
 
-        data = get_bytes(self.physical_key)
+        data = self.physical_key.get_bytes()
         return data
 
     def get_as_json(self, use_cache_if_available=True):
@@ -271,7 +271,7 @@ class PackageEntry:
             hash verification fail
             when deserialization metadata is not present
         """
-        data = get_bytes(self.physical_key)
+        data = self.physical_key.get_bytes()
 
         if func is not None:
             return func(data)
@@ -578,7 +578,7 @@ class Package:
         registry = get_package_registry(registry)
 
         top_hash = (
-            get_bytes(registry.pointer_latest_pk(name)).decode()
+            registry.pointer_latest_pk(name).get_bytes().decode()
             if top_hash is None else
             registry.resolve_top_hash(name, top_hash)
         )
@@ -862,7 +862,7 @@ class Package:
                     if obj['Size'] != 0:
                         warnings.warn(f'Logical keys cannot end in "/", skipping: {obj["Key"]}')
                     continue
-                obj_pk = PhysicalKey(src.bucket, obj['Key'], obj.get('VersionId'))
+                obj_pk = S3PhysicalKey(src.bucket, obj['Key'], obj.get('VersionId'))
                 logical_key = obj['Key'][len(src_path):]
                 # check update policy
                 if update_policy == 'existing' and logical_key in root:
@@ -965,10 +965,7 @@ class Package:
 
         manifest = io.BytesIO()
         self._dump(manifest)
-        put_bytes(
-            manifest.getvalue(),
-            pkg_manifest_file
-        )
+        pkg_manifest_file.put_bytes(manifest.getvalue())
         return pkg_manifest_file.path
 
     @property
@@ -1413,7 +1410,7 @@ class Package:
         latest_path = registry.pointer_latest_pk(name)
         get_size_and_version(registry.pointer_latest_pk(name))
 
-        put_bytes(top_hash.encode('utf-8'), latest_path)
+        latest_path.put_bytes(top_hash.encode())
 
     @ApiTelemetry("package.diff")
     def diff(self, other_pkg):
@@ -1518,7 +1515,7 @@ class Package:
             True if the package matches the directory; False otherwise.
         """
         src = PhysicalKey.from_url(fix_url(src))
-        src_dict = dict(list_url(src))
+        src_dict = dict(src.list_url())
         url_list = []
         size_list = []
         for logical_key, entry in self.walk():
