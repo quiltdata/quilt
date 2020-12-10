@@ -31,7 +31,7 @@ describe('utils/workflows', () => {
         version: "1"
         workflows: []
       `
-      it('should return default empty values', () => {
+      it('should throw errors.WorkflowsConfigInvalid', () => {
         expect(() => workflows.parse(data)).toThrow(errors.WorkflowsConfigInvalid)
       })
     })
