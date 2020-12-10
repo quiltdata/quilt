@@ -39,7 +39,7 @@ describe('utils/json-schema', () => {
         expect(errors[0]).toMatchObject({ dataPath: '.optEnum', keyword: 'enum' })
       })
 
-      it("shouldn't return error, when value doesn matches enum", () => {
+      it("shouldn't return error, when value matches enum", () => {
         const valid = { a: 123, b: 'value', optEnum: 'one' }
         expect(validate(valid)).toHaveLength(0)
       })

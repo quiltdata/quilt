@@ -33,13 +33,13 @@ const errorDisplay = R.cond([
     (e) => (
       <>
         <M.Typography variant="h6" gutterBottom>
-          Workflows&apos; config is invalid
+          Invalid workflows config
         </M.Typography>
         <M.Typography gutterBottom>
           Error: <code>{e.message}</code>
         </M.Typography>
         <M.Typography>
-          Please fix workflows&apos; config according to{' '}
+          Please fix the workflows config according to{' '}
           <StyledLink href={`${docs}/advanced-usage/workflows`} target="_blank">
             the documentation
           </StyledLink>

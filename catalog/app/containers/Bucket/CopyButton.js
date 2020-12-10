@@ -77,7 +77,7 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
             </M.Typography>
             {R.is(ERRORS.WorkflowsConfigInvalid, error) && (
               <M.Typography>
-                Please fix workflows&apos; config according to{' '}
+                Please fix the workflows config according to{' '}
                 <StyledLink href={`${docs}/advanced-usage/workflows`} target="_blank">
                   the documentation
                 </StyledLink>
