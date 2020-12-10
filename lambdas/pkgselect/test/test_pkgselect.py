@@ -437,7 +437,7 @@ class TestPackageSelect(TestCase):
         for key in logical_keys:
             entry = dict(
                 logical_key=key,
-                physical_key=f"foo{key}",
+                physical_key=key,
                 size=100
             )
             entries.append(json.dumps(entry))

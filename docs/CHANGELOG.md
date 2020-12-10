@@ -15,6 +15,7 @@
 ## CLI
 
 ## Catalog, Lambdas
+* [Fixed] Fix pkgselect empty response for packages with all non-string logical_keys or physical_keys.
 * [Added] Preview .pdbqt files as plain text ([#1855](https://github.com/quiltdata/quilt/pull/1855))
 * [Added] Retry logic for failed queries, minimize load on ES for sample, images
 overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
