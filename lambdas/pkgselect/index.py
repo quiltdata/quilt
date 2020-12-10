@@ -200,7 +200,7 @@ def lambda_handler(request):
             lines=True,
             dtype=dict(
                 logical_key='string',
-                physical_keys='string'
+                physical_key='string'
             )
         )
         response_data = file_list_to_folder(df)
