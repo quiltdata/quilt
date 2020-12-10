@@ -77,8 +77,9 @@ def file_list_to_folder(df: pd.DataFrame) -> dict:
         # choice to allow this to raise the exception instead of
         # testing for the empty case ahead of time optimizes the
         # case where the result set is large.
-        prefixes = []
-        objects = []
+        #prefixes = []
+        #objects = []
+        raise err
 
     return dict(
         prefixes=prefixes,
