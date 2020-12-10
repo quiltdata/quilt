@@ -287,7 +287,7 @@ function DialogLoading({ bucket, onCancel }) {
 
   return (
     <PD.DialogLoading
-      skeletonElement={<FormSkeleton animate={false} />}
+      skeletonElement={<FormSkeleton />}
       title={
         <>
           Push package to{' '}

@@ -674,7 +674,7 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
     _: () => (
       <M.Dialog fullWidth open={open} scroll="body" onClose={onClose}>
         <PD.DialogLoading
-          skeletonElement={<PD.FormSkeleton animate={false} />}
+          skeletonElement={<PD.FormSkeleton />}
           title="Create package"
           onCancel={onClose}
         />
