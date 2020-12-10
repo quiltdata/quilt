@@ -96,10 +96,10 @@ export function doesTypeMatchSchema(value, optSchema) {
   ])(optSchema)
 }
 
-const emptySchema = {}
+export const EMPTY_SCHEMA = {}
 
 export function makeSchemaValidator(optSchema) {
-  const schema = optSchema || emptySchema
+  const schema = optSchema || EMPTY_SCHEMA
 
   const ajv = new Ajv({ schemaId: 'auto' })
 

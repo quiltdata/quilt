@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
-import { makeSchemaValidator } from 'utils/json-schema'
+import { EMPTY_SCHEMA, makeSchemaValidator } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 
 export const COLUMN_IDS = {
@@ -304,10 +304,8 @@ function removeFieldReducer(removingFieldPath, { data, jsonDict, rootKeys }) {
   }
 }
 
-const emptySchema = {}
-
 export default function JsonEditorState({ children, obj, optSchema }) {
-  const schema = optSchema || emptySchema
+  const schema = optSchema || EMPTY_SCHEMA
 
   // TODO: use function syntax and Ramda currying for setData((prevState) => RamdaCurryFunc(prevState))
 
