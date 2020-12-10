@@ -1,10 +1,10 @@
 import { makeSchemaValidator } from './json-schema'
 
-import * as booleansNulls from '../components/JsonEditor/mocks/booleans-nulls'
-import * as compound from '../components/JsonEditor/mocks/compound'
-import * as deeplyNestedArray from '../components/JsonEditor/mocks/deeply-nested-array'
-import * as incorrect from '../components/JsonEditor/mocks/incorrect'
-import * as regular from '../components/JsonEditor/mocks/regular'
+import * as booleansNulls from '../../components/JsonEditor/mocks/booleans-nulls'
+import * as compound from '../../components/JsonEditor/mocks/compound'
+import * as deeplyNestedArray from '../../components/JsonEditor/mocks/deeply-nested-array'
+import * as incorrect from '../../components/JsonEditor/mocks/incorrect'
+import * as regular from '../../components/JsonEditor/mocks/regular'
 
 describe('utils/json-schema', () => {
   describe('makeSchemaValidator', () => {
