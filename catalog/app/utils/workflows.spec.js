@@ -21,9 +21,8 @@ describe('utils/workflows', () => {
       const data = dedent`
         version: "1"
       `
-      const parser = () => workflows.parse(data)
       it('should throw errors.WorkflowsConfigInvalid', () => {
-        expect(parser).toThrow(errors.WorkflowsConfigInvalid)
+        expect(() => workflows.parse(data)).toThrow(errors.WorkflowsConfigInvalid)
       })
     })
 
@@ -32,9 +31,8 @@ describe('utils/workflows', () => {
         version: "1"
         workflows: []
       `
-      const parser = () => workflows.parse(data)
       it('should return default empty values', () => {
-        expect(parser).toThrow(errors.WorkflowsConfigInvalid)
+        expect(() => workflows.parse(data)).toThrow(errors.WorkflowsConfigInvalid)
       })
     })
 
