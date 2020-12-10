@@ -121,8 +121,10 @@ def buffer_s3response(s3response):
             found_records = True
         elif 'Progress' in event:
             logger_.info("select progress: %s", event['Progress'].get('Details'))
+            print(event['Progress'].get('Details'))
         elif 'Stats' in event:
             logger_.info("select stats: %s", event['Stats'])
+            print(event['Stats'])
         elif 'End' in event:
             # End event indicates that the request finished successfully
             end_event_received = True

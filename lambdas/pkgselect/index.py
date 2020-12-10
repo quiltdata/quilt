@@ -7,9 +7,9 @@ import os
 
 import boto3
 import botocore
-import pandas as pd
 from botocore import UNSIGNED
 from botocore.client import Config
+import pandas as pd
 
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.utils import (
@@ -77,9 +77,8 @@ def file_list_to_folder(df: pd.DataFrame) -> dict:
         # choice to allow this to raise the exception instead of
         # testing for the empty case ahead of time optimizes the
         # case where the result set is large.
-        #prefixes = []
-        #objects = []
-        raise err
+        prefixes = []
+        objects = []
 
     return dict(
         prefixes=prefixes,
@@ -195,16 +194,20 @@ def lambda_handler(request):
             key=key,
             sql_stmt=sql_stmt
         )
-        # Parse the response into a logical folder view
-        df = pd.read_json(
-            result,
-            lines=True,
-            dtype=dict(
-                logical_key='string',
-                physical_key='string'
+
+        if result is None:
+            response_data = file_list_to_folder(pd.DataFrame())
+        else:
+            # Parse the response into a logical folder view
+            df = pd.read_json(
+                result,
+                lines=True,
+                dtype=dict(
+                    logical_key='string',
+                    physical_key='string'
+                )
             )
-        )
-        response_data = file_list_to_folder(df)
+            response_data = file_list_to_folder(df)
 
         # Fetch package-level or directory-level metadata
         if prefix:
