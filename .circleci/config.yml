@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
   win: circleci/windows@2.4.0
+  node: circleci/node@4.1.0
 
 # This is used to run the PyPI release job and the jobs it depends on,
 # when Git tag for release is created (by default jobs don't run on tags).
@@ -46,52 +47,6 @@ commands:
           command: |
             curl --connect-timeout 5 --retry 10 -o codecov-upload.sh https://codecov.io/bash
             bash codecov-upload.sh -n "$CIRCLE_JOB" -F "<< parameters.flags >>" -Z
-
-workflows:
-  version: 2
-  ci:
-    jobs:
-      - linter
-      - isort
-      - test-client:
-          matrix:
-            parameters:
-              executor:
-                - python-36
-                - python-37
-                - python-38
-          filters:
-            <<: *release-tags
-      - test-client:
-          name: test-client-windows
-          executor:
-            name: win/default
-            shell: bash --login -eo pipefail
-          filters:
-            <<: *release-tags
-      - test-lambda:
-          name: test-lambda-<< matrix.path >>
-          matrix:
-            parameters:
-              path:
-                - access_counts
-                - preview
-                - s3select
-                - search
-                - thumbnail
-                - pkgselect
-                - shared
-      - test-lambda:
-          name: test-lambda-indexer
-          path: es/indexer
-      - pypi-release:
-          requires:
-            - test-client
-            - test-client-windows
-          filters:
-            <<: *release-tags
-            branches:
-              ignore: /.*/
 
 jobs:
   linter:
@@ -209,3 +164,67 @@ jobs:
             cd api/python
             pip install twine==3.1.1
             twine upload dist/*
+
+  js-test:
+    executor:
+      name: node/default
+      tag: "15"
+    steps:
+      - checkout
+      - node/install-packages:
+          app-dir: catalog
+      - run:
+          working_directory: catalog
+          command: npm test
+      - run:
+          working_directory: catalog
+          command: npm run build
+
+workflows:
+  version: 2
+  py-ci:
+    jobs:
+      - linter
+      - isort
+      - test-client:
+          matrix:
+            parameters:
+              executor:
+                - python-36
+                - python-37
+                - python-38
+          filters:
+            <<: *release-tags
+      - test-client:
+          name: test-client-windows
+          executor:
+            name: win/default
+            shell: bash --login -eo pipefail
+          filters:
+            <<: *release-tags
+      - test-lambda:
+          name: test-lambda-<< matrix.path >>
+          matrix:
+            parameters:
+              path:
+                - access_counts
+                - preview
+                - s3select
+                - search
+                - thumbnail
+                - pkgselect
+                - shared
+      - test-lambda:
+          name: test-lambda-indexer
+          path: es/indexer
+      - pypi-release:
+          requires:
+            - test-client
+            - test-client-windows
+          filters:
+            <<: *release-tags
+            branches:
+              ignore: /.*/
+  js-ci:
+    jobs:
+      - js-test
