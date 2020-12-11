@@ -22,7 +22,7 @@ class TestPackageSelect(TestCase):
     Unit tests for the PackageSelect API endpoint.
     """
 
-    def make_s3response(self, bytes):
+    def make_s3response(self, payload_bytes):
         """
         Generate a mock s3 select response
         """
@@ -30,7 +30,7 @@ class TestPackageSelect(TestCase):
             'Payload': [
                 {
                     'Records': {
-                        'Payload': bytes
+                        'Payload': payload_bytes
                     }
                 },
                 {
