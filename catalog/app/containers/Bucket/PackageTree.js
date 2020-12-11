@@ -252,7 +252,16 @@ function TopBar({ crumbs, children }) {
   )
 }
 
-function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush }) {
+function DirDisplay({
+  bucket,
+  name,
+  hash,
+  revision,
+  path,
+  crumbs,
+  onRevisionPush,
+  onCrossBucketPush,
+}) {
   const s3 = AWS.S3.use()
   const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
   const credentials = AWS.Credentials.use()
@@ -287,6 +296,14 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
   })
 
   const [successor, setSuccessor] = React.useState(null)
+
+  const onPackageCopyDialogExited = React.useCallback(
+    (res) => {
+      if (res && res.pushed) onCrossBucketPush(res)
+      setSuccessor(null)
+    },
+    [setSuccessor, onCrossBucketPush],
+  )
 
   usePrevious({ bucket, name, revision }, (prev) => {
     // close the dialog when navigating away
@@ -324,16 +341,14 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
       }))
       return (
         <>
-          {successor && (
-            <PackageCopyDialog
-              name={name}
-              successor={successor}
-              bucket={bucket}
-              hash={hash}
-              onExited={onRevisionPush}
-              onClose={() => setSuccessor(null)}
-            />
-          )}
+          <PackageCopyDialog
+            bucket={bucket}
+            hash={hash}
+            name={name}
+            open={!!successor}
+            successor={successor}
+            onExited={onPackageCopyDialogExited}
+          />
 
           {updateDialog.render()}
 
@@ -572,6 +587,10 @@ export default function PackageTree({
     [name, revision, setRevisionKey, setRevisionListKey],
   )
 
+  const onCrossBucketPush = React.useCallback(() => {
+    setRevisionKey(R.inc)
+  }, [setRevisionKey])
+
   const revisionData = useData(requests.resolvePackageRevision, {
     s3,
     bucket,
@@ -641,6 +660,7 @@ export default function PackageTree({
                 revision,
                 crumbs,
                 onRevisionPush,
+                onCrossBucketPush,
                 key: hash,
               }}
             />
