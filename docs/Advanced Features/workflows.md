@@ -1,8 +1,12 @@
 *New in Quilt 3.3*
 
-`quilt3` provides an API to ensure the quality of package metadata. To get started, create a
-configuration file in your registry under `.quilt/workflows/config.yml`. For example:
 
+### Workflows basics
+A *workflow* is a quality gate that your data must pass in order to be pushed
+to S3. To get started, create a configuration file in your Quilt S3 bucket
+at `s3://BUCKET/.quilt/workflows/config.yml`.
+
+Here's an example:
 ```yaml
 version: "1"
 workflows:
@@ -18,13 +22,13 @@ workflows:
     is_message_required: true
     metadata_schema: top-secret
 schemas:
- superheroes:
-   url: s3://quilt-sergey-dev-metadata/schemas/superheroes.schema.json
- top-secret:
-   url: s3://quilt-sergey-dev-metadata/schemas/top-secret.schema.json
+  superheroes:
+    url: s3://quilt-sergey-dev-metadata/schemas/superheroes.schema.json
+  top-secret:
+    url: s3://quilt-sergey-dev-metadata/schemas/top-secret.schema.json
 ```
 
-With the above configuration you must specify a workflow before you can push:
+With the above configuration, you must specify a workflow before you can push:
 
 ```python
 >>> import quilt3
@@ -33,8 +37,7 @@ With the above configuration you must specify a workflow before you can push:
 QuiltException: Workflow required, but none specified.
 ```
 
-
-Let's try with with `workflow` parameter set:
+Let's try with the `workflow=` parameter:
 
 ```python
 >>> quilt3.Package().push('test/package', registry='s3://quilt-sergey-dev-metadata', workflow='alpha')
@@ -42,7 +45,8 @@ Let's try with with `workflow` parameter set:
 QuiltException: Commit message is required by workflow, but none was provided.
 ```
 
-This behavior is caused by `is_message_required: true` option. It requires you specify a `message` parameter:
+The above `QuiltException` is caused by `is_message_required: true`.
+Here's how we can pass the workflow:
 ```python
 >>> quilt3.Package().push(
         'test/package',
@@ -56,16 +60,19 @@ Package test/package@bc9a838 pushed to s3://quilt-sergey-dev-metadata
 Now let's push with `workflow='beta'`:
 
 ```python
->>> quilt3.Package().push('test/package', registry='s3://quilt-sergey-dev-metadata', workflow='beta')
+>>> quilt3.Package().push(
+        'test/package',
+        registry='s3://quilt-sergey-dev-metadata',
+        workflow='beta')
 
 QuiltException: Metadata failed validation: 'superhero' is a required property.
 ```
 
-It fails because we have `metadata_schema: superheroes` specified for `beta` workflow. It makes package
-metadata to be validated against [JSON Schema](https://json-schema.org/) located at
-`s3://quilt-sergey-dev-metadata/schemas/superheroes.schema.json`.
-
-Here's it that schema:
+We encountered another exception because the `beta` workflow specifies
+`metadata_schema: superheroes`.
+Therefore, the `test/package` metadata must validate against the
+[JSON Schema](https://json-schema.org/) at
+`s3://quilt-sergey-dev-metadata/schemas/superheroes.schema.json`:
 ```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
@@ -85,7 +92,7 @@ Here's it that schema:
 }
 ```
 
-It requires `superhero` property to be set:
+Note that `superhero` is a required property:
 
 ```python
 >>> quilt3.Package().set_meta({'superhero': 'Batman'}).push(
@@ -96,16 +103,14 @@ It requires `superhero` property to be set:
 Package test/package@c4691d8 pushed to s3://quilt-sergey-dev-metadata
 ```
 
-> Currently there are these limitations is JSON Schema support:
-> * only [Draft 7 Json Schemas](https://json-schema.org/specification-links.html#draft-7) are supported
-> * schemas with [`$ref`](https://json-schema.org/draft-07/json-schema-core.html#rfc.section.8.3) are not supported
-> * schemas must be on S3
-
-For `gamma` workflow both `is_message_required: true` and `metadata_schema` are set, so both `message`
-and package metadata are validated:
+For the `gamma` workflow, both `is_message_required: true` and `metadata_schema`
+are set, so both `message` and package metadata are validated:
 
 ```python
->>> quilt3.Package().push('test/package', registry='s3://quilt-sergey-dev-metadata', workflow='gamma')
+>>> quilt3.Package().push(
+        'test/package',
+        registry='s3://quilt-sergey-dev-metadata',
+        workflow='gamma')
 
 QuiltException: Metadata failed validation: 'answer' is a required property.
 
@@ -125,18 +130,48 @@ QuiltException: Commit message is required by workflow, but none was provided.
 Package test/package@6331508 pushed to s3://quilt-sergey-dev-metadata
 ```
 
-You can make workflow validation optional, you need to set `is_workflow_required: false` in config and
-specify `workflow=None`:
+If you wish for your users to be able to skip workflows altogether, you can make
+workflow validation optional with `is_workflow_required: false` in your `config.yml`,
+and specify `workflow=None` in the API:
 
 ```python
->>> quilt3.Package().push('test/package', registry='s3://quilt-sergey-dev-metadata', workflow=None)
+>>> quilt3.Package().push(
+        'test/package',
+        registry='s3://quilt-sergey-dev-metadata',
+        workflow=None)
 
 Package test/package@06b2815 pushed to s3://quilt-sergey-dev-metadata
 ```
 
-Also `default_workflow` can be set in config to specify which workflow will be used
+Also `default_workflow` can be set in the config to specify which workflow will be used
 if `workflow` parameter is not provided.
 
-You could also check
-[JSON Schema](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/workflows/config-1.schema.json)
-that is used for validation of workflow file.
+
+### Pushing across buckets with the Quilt catalog
+The catalog's [Push to bucket](../Walkthrough/Working%20with%20the%20Catalog.md)
+feature can be enabled by adding a `successors` property to the config.
+A *successor* is a destination bucket.
+
+```yaml
+successors:
+  s3://bucket1:
+    title: Staging
+    copy_data: false
+  s3://bucket2:
+    title: Production
+```
+
+If `copy_data` is `true` (the default), all package entries will be copied to the
+destination bucket. If `copy_data` is `false`, all entries will remain in their
+current locations.
+
+
+### Full `config.yml` schema
+See
+[config-1-.schema.json](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/workflows/config-1.schema.json).
+
+
+### Known limitations
+* Only [Draft 7 Json Schemas](https://json-schema.org/specification-links.html#draft-7) are supported
+* Schemas with [`$ref`](https://json-schema.org/draft-07/json-schema-core.html#rfc.section.8.3) are not supported
+* Schemas must be in an S3 bucket for which the Quilt user has read permissions

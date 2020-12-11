@@ -1,9 +1,11 @@
 import cx from 'classnames'
 import * as React from 'react'
+import * as R from 'ramda'
 import * as M from '@material-ui/core'
 
 import { isSchemaEnum } from 'utils/json-schema'
 
+import EnumSelect from './EnumSelect'
 import Input from './Input'
 import Preview from './Preview'
 import { ACTIONS, COLUMN_IDS, EMPTY_VALUE, parseJSON } from './State'
@@ -20,28 +22,11 @@ const actionsSubmenu = {
   ],
 }
 
-function getMenuForKey({ required, value }) {
+function getMenu({ required, value }) {
   if (required || value === EMPTY_VALUE) {
     return emptyMenu
   }
   return [actionsSubmenu]
-}
-
-function getMenuForValue({ valueSchema }) {
-  if (!isSchemaEnum(valueSchema)) {
-    return emptyMenu
-  }
-
-  const enumOptions = valueSchema.enum.map((title) => ({
-    action: ACTIONS.SELECT_ENUM,
-    title,
-  }))
-  const enumSubmenu = {
-    header: 'Enum',
-    key: 'enum',
-    options: enumOptions,
-  }
-  return [enumSubmenu]
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -111,6 +96,11 @@ export default function Cell({
     [isKeyCell, row.original],
   )
 
+  const isEnumCell = React.useMemo(
+    () => isValueCell && isSchemaEnum(R.path(['original', 'valueSchema'], row)),
+    [isValueCell, row],
+  )
+
   const onDoubleClick = React.useCallback(() => {
     if (!isEditable) return
     setEditing(true)
@@ -153,27 +143,22 @@ export default function Cell({
     [editing, isEditable, setEditing],
   )
 
-  const ValueComponent = editing ? Input : Preview
-
-  const keyMenuOpened = menuOpened && isKeyCell
-  const valueMenuOpened = menuOpened && isValueCell
-
-  const menuForKey = React.useMemo(
+  const menu = React.useMemo(
     () =>
-      getMenuForKey({
-        required: row.original ? row.original.required : false,
-        value: key,
-      }),
-    [row, key],
+      isKeyCell
+        ? getMenu({
+            required: row.original ? row.original.required : false,
+            value: key,
+          })
+        : emptyMenu,
+    [isKeyCell, key, row],
   )
 
-  const menuForValue = React.useMemo(
-    () =>
-      getMenuForValue({
-        valueSchema: row.original ? row.original.valueSchema : undefined,
-      }),
-    [row],
-  )
+  const ValueComponent = React.useMemo(() => {
+    if (isEnumCell) return EnumSelect
+    if (editing) return Input
+    return Preview
+  }, [editing, isEnumCell])
 
   return (
     <div
@@ -187,8 +172,8 @@ export default function Cell({
         {...{
           columnId: column.id,
           data: row.original || emptyCellData,
-          menu: isKeyCell ? menuForKey : menuForValue,
-          menuOpened: keyMenuOpened || valueMenuOpened,
+          menu,
+          menuOpened,
           onChange,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
           onMenu: onMenuOpen,

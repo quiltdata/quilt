@@ -478,7 +478,9 @@ function Reindex({ bucket, open, close }) {
       } else if (APIConnector.HTTPError.is(e, 409, /in progress/)) {
         setError('Indexing already in progress')
       } else {
+        // eslint-disable-next-line no-console
         console.log('Error re-indexing bucket:')
+        // eslint-disable-next-line no-console
         console.error(e)
         setError('Unexpected error')
       }

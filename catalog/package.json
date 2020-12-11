@@ -7,8 +7,8 @@
     "url": "git://github.com/quiltdata/quilt.git"
   },
   "engines": {
-    "npm": ">=5",
-    "node": ">=8.15.1"
+    "npm": "7",
+    "node": "15"
   },
   "author": "Quilt Data, Inc. <contact@quiltdata.io> (https://quiltdata.com)",
   "license": "MIT",
@@ -16,7 +16,7 @@
     "analyze:clean": "rimraf stats.json",
     "preanalyze": "npm run analyze:clean",
     "analyze": "cross-env NODE_ENV=production node ./internals/scripts/analyze.js",
-    "bundlesize": "bundlesize -f './build/*.js'",
+    "bundlewatch": "cd build && bundlewatch --normalize '^.+?(\\.\\w+)(?:\\.chunk)?\\.js$' '*.js'",
     "extract-intl": "node ./internals/scripts/extract-intl.js",
     "npmcheckversion": "node ./internals/scripts/npmcheckversion.js",
     "preinstall": "npm run npmcheckversion",
@@ -37,11 +37,11 @@
     "lint:eslint": "eslint --ignore-path .gitignore",
     "lint:eslint:fix": "npm run lint:eslint -- --fix",
     "lint:js": "npm run lint:eslint -- '**/*.js'",
-    "pretest": "npm run test:clean && npm run lint",
+    "pretest": "npm run test:clean #&& npm run lint",
     "test:clean": "rimraf ./coverage",
-    "test": "cross-env NODE_ENV=test jest --coverage",
-    "test:watch": "cross-env NODE_ENV=test jest --watchAll",
-    "coveralls": "cat ./coverage/lcov.info | coveralls",
+    "test:only": "cross-env NODE_ENV=test jest",
+    "test": "npm run test:only -- --coverage",
+    "test:watch": "npm run test:only -- --watch",
     "prettify": "prettier --write"
   },
   "browserslist": [
@@ -148,12 +148,11 @@
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "babel-plugin-react-intl": "^4.3.0",
     "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
-    "bundlesize": "^0.18.0",
+    "bundlewatch": "^0.3.1",
     "circular-dependency-plugin": "^5.2.0",
     "compare-versions": "^3.6.0",
     "compression-webpack-plugin": "^4.0.0",
     "copy-webpack-plugin": "^6.0.3",
-    "coveralls": "^3.1.0",
     "css-loader": "^4.2.0",
     "eslint": "^7.6.0",
     "eslint-config-airbnb": "^18.2.0",

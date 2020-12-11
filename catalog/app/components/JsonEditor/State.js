@@ -12,7 +12,6 @@ export const COLUMN_IDS = {
 export const ACTIONS = {
   CHANGE_TYPE: 'change_type',
   REMOVE_FIELD: 'remove_field',
-  SELECT_ENUM: 'select_enum',
 }
 
 export const EMPTY_VALUE = Symbol('empty')
@@ -115,7 +114,7 @@ const dissocSchemaValue = (objPath, jsonDict) =>
 const dissocObjValue = R.dissocPath
 
 // NOTE: memo is mutated, sortCounter is React.ref and mutated too
-function iterateSchema(schema, sortCounter, parentPath, memo) {
+export function iterateSchema(schema, sortCounter, parentPath, memo) {
   if (!schema.properties) return memo
 
   const requiredKeys = schema.required
@@ -244,7 +243,7 @@ function getSchemaAndObjKeys(obj, jsonDict, objPath, rootKeys) {
   ])
 }
 
-function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys) {
+export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys) {
   if (!fieldPath.length)
     return [
       pipeThru(rootKeys)(
@@ -272,7 +271,7 @@ function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys) {
   })
 }
 
-function mergeSchemaAndObjRootKeys(schema, obj) {
+export function mergeSchemaAndObjRootKeys(schema, obj) {
   const schemaKeys = getSchemaItemKeys(schema)
   const objKeys = getObjValueKeys(obj)
   return R.uniq([...schemaKeys, ...objKeys])
@@ -357,7 +356,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
 
   // NOTE: this data represents table columns shown to user
   //       it's the main source of UI data
-  const newColumns = React.useMemo(
+  const columns = React.useMemo(
     () => iterateJsonDict(jsonDict, data, fieldPath, rootKeys),
     [data, jsonDict, fieldPath, rootKeys],
   )
@@ -380,15 +379,13 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       switch (actionItem.action) {
         case ACTIONS.REMOVE_FIELD:
           return removeField(contextFieldPath)
-        case ACTIONS.SELECT_ENUM:
-          return changeValue(contextFieldPath, COLUMN_IDS.VALUE, actionItem.title)
         case ACTIONS.CHANGE_TYPE:
           return changeType(contextFieldPath, COLUMN_IDS.VALUE, actionItem.title)
         default:
           return null
       }
     },
-    [changeType, changeValue, removeField],
+    [changeType, removeField],
   )
 
   const removeField = React.useCallback(
@@ -467,7 +464,7 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   return children({
     addRow,
     changeValue,
-    newColumns,
+    columns,
     jsonDict,
     errors,
     fieldPath,

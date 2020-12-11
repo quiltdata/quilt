@@ -80,6 +80,7 @@ function Embedder() {
     (msg) => {
       if (!iframeRef.current) return
       const w = iframeRef.current.contentWindow
+      // eslint-disable-next-line no-console
       console.log('Sending message to the iframe', msg)
       // TODO: use origin?
       w.postMessage(msg)

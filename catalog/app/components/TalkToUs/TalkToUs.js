@@ -52,6 +52,7 @@ export function TalkToUsProvider({ children }) {
       t.track('WEB', { type: 'meeting', action: 'popup', ...extra })
 
       if (!cfg.calendlyLink) {
+        // eslint-disable-next-line no-console
         console.warn('Unable to open Calendly popup: missing Config.calendlyLink', extra)
         return
       }

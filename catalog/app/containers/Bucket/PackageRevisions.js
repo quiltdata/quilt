@@ -17,11 +17,13 @@ import * as Data from 'utils/Data'
 // import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
+import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 import parseSearch from 'utils/parseSearch'
 import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
+import { usePackageUpdateDialog } from './PackageUpdateDialog'
 import Pagination from './Pagination'
 import { displayError } from './errors'
 import * as requests from './requests'
@@ -154,6 +156,7 @@ function RevisionLayout({ link, msg, meta, hash, stats, counts }) {
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  // eslint-disable-next-line no-nested-ternary
   const sparklineW = xs ? 176 : sm ? 300 : 400
   const sparklineH = xs ? 32 : 48
   return (
@@ -286,17 +289,7 @@ const useRevisionStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Revision({
-  bucket,
-  name,
-  hash,
-  id,
-  stats,
-  message,
-  modified,
-  metadata,
-  counts,
-}) {
+function Revision({ bucket, name, hash, stats, message, modified, metadata, counts }) {
   const classes = useRevisionStyles()
   const { urls } = NamedRoutes.use()
   const t = M.useTheme()
@@ -305,7 +298,7 @@ function Revision({
   return (
     <RevisionLayout
       link={
-        <Link className={classes.time} to={urls.bucketPackageTree(bucket, name, id)}>
+        <Link className={classes.time} to={urls.bucketPackageTree(bucket, name, hash)}>
           {dateFns.format(modified, dateFmt)}
         </Link>
       }
@@ -375,17 +368,17 @@ function Revision({
   )
 }
 
-function useRevisionCountData({ bucket, name }) {
+function useRevisionCountData({ bucket, name, key }) {
   const req = AWS.APIGateway.use()
-  return Data.use(requests.countPackageRevisions, { req, bucket, name })
+  return Data.use(requests.countPackageRevisions, { req, bucket, name, key })
 }
 
-function useRevisionsData({ bucket, name, page, perPage }) {
+function useRevisionsData({ bucket, name, page, perPage, key }) {
   const req = AWS.APIGateway.use()
-  return Data.use(requests.getPackageRevisions, { req, bucket, name, page, perPage })
+  return Data.use(requests.getPackageRevisions, { req, bucket, name, page, perPage, key })
 }
 
-function useCountsData({ bucket, name }) {
+function useCountsData({ bucket, name, key }) {
   const s3 = AWS.S3.use()
   const { analyticsBucket } = Config.useConfig()
   const today = React.useMemo(() => new Date(), [])
@@ -396,6 +389,7 @@ function useCountsData({ bucket, name }) {
     window: 30,
     bucket,
     name,
+    key,
   })
 }
 
@@ -428,21 +422,55 @@ export default function PackageRevisions({
     }
   })
 
-  const revisionCountData = useRevisionCountData({ bucket, name })
+  const [key, setKey] = React.useState(1)
+
+  const revisionCountData = useRevisionCountData({ bucket, name, key })
   const revisionsData = useRevisionsData({
     bucket,
     name,
     page: actualPage,
     perPage: PER_PAGE,
+    key,
   })
-  const countsData = useCountsData({ bucket, name })
+  const countsData = useCountsData({ bucket, name, key })
+
+  const onExited = React.useCallback(
+    (res) => {
+      // refresh data if new revision of current package was pushed
+      if (res && res.pushed && res.pushed.name === name) {
+        setKey(R.inc)
+        return true
+      }
+      return false
+    },
+    [name, setKey],
+  )
+
+  const updateDialog = usePackageUpdateDialog({ bucket, name, onExited })
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-      <M.Box pt={{ xs: 2, sm: 3 }} pb={{ xs: 2, sm: 1 }} px={{ xs: 2, sm: 0 }}>
+      {updateDialog.render()}
+
+      <M.Box
+        pt={{ xs: 2, sm: 3 }}
+        pb={{ xs: 2, sm: 1 }}
+        px={{ xs: 2, sm: 0 }}
+        display="flex"
+      >
         <M.Typography variant="h5" ref={scrollRef}>
-          {name}
+          <StyledLink to={urls.bucketPackageDetail(bucket, name)}>{name}</StyledLink>{' '}
+          revisions
         </M.Typography>
+        <M.Box flexGrow={1} />
+        <M.Button
+          variant="contained"
+          color="primary"
+          style={{ marginTop: -3, marginBottom: -3 }}
+          onClick={updateDialog.open}
+        >
+          Revise package
+        </M.Button>
       </M.Box>
 
       {revisionCountData.case({

@@ -202,7 +202,9 @@ export default function BucketSummary({
             >
               {AsyncResult.case({
                 Err: (e) => {
+                  // eslint-disable-next-line no-console
                   console.warn('Error loading summary')
+                  // eslint-disable-next-line no-console
                   console.error(e)
                   return null
                 },

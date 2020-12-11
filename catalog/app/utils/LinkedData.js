@@ -55,16 +55,7 @@ function mkBucketAnnotation({ bucket, catalog, urls }) {
   }
 }
 
-const mkPackageAnnotation = ({
-  bucket,
-  name,
-  revision,
-  hash,
-  modified,
-  header,
-  catalog,
-  urls,
-}) => {
+const mkPackageAnnotation = ({ bucket, name, hash, modified, header, catalog, urls }) => {
   const getLD = (prop) => R.path(['user_meta', 'json-ld', prop], header)
   return {
     '@context': 'https://schema.org/',
@@ -72,7 +63,7 @@ const mkPackageAnnotation = ({
     name: getLD('name') || name,
     alternateName: getLD('name') && name,
     description: getLD('description'),
-    url: window.location.origin + urls.bucketPackageTree(bucket.name, name, revision),
+    url: window.location.origin + urls.bucketPackageTree(bucket.name, name, hash),
     version: hash,
     dateModified: modified,
     sameAs: getLD('sameAs'),

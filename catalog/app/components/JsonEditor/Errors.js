@@ -17,17 +17,19 @@ export default function Errors({ className, errors }) {
   const classes = useStyles()
 
   return (
-    <div className={className}>
-      {errors.map((error) => (
-        <Lab.Alert severity="error" key={error.dataPath + error.message}>
-          {error.dataPath && (
-            <>
-              <code className={classes.code}>{error.dataPath}</code>
-            </>
-          )}
-          {error.message}
-        </Lab.Alert>
-      ))}
-    </div>
+    !!errors.length && (
+      <div className={className}>
+        {errors.map((error) => (
+          <Lab.Alert severity="error" key={error.dataPath + error.message}>
+            {error.dataPath && (
+              <>
+                <code className={classes.code}>{error.dataPath}</code>
+              </>
+            )}
+            {error.message}
+          </Lab.Alert>
+        ))}
+      </div>
+    )
   )
 }

@@ -7,8 +7,6 @@ import os
 
 import boto3
 import botocore
-from botocore import UNSIGNED
-from botocore.client import Config
 import pandas as pd
 
 from t4_lambda_shared.decorator import api, validate
@@ -141,7 +139,10 @@ def lambda_handler(request):
     ):
         # Test to see if the target key is publicly accessible. If not, the call
         # below will raise and exception and return a 403 response
-        anons3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
+        anons3 = boto3.client(
+            's3',
+            config=botocore.client.Config(signature_version=botocore.UNSIGNED)
+        )
         try:
             anons3.head_object(Bucket=bucket, Key=key)
         except botocore.exceptions.ClientError as error:
