@@ -30,7 +30,6 @@ export class FileNotFound extends BucketError {}
 export class VersionNotFound extends BucketError {}
 
 export class WorkflowsConfigInvalid extends BucketError {
-  // eslint-disable-next-line react/static-property-placement
   static displayName = 'WorkflowsConfigInvalid'
 
   constructor(props) {
@@ -42,7 +41,6 @@ export class WorkflowsConfigInvalid extends BucketError {
 }
 
 export class ManifestTooLarge extends BucketError {
-  // eslint-disable-next-line react/static-property-placement
   static displayName = 'ManifestTooLarge'
 
   constructor(props) {
@@ -54,7 +52,6 @@ export class ManifestTooLarge extends BucketError {
 }
 
 export class BadRevision extends BucketError {
-  // eslint-disable-next-line react/static-property-placement
   static displayName = 'BadRevision'
 
   constructor(props) {
