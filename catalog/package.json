@@ -37,7 +37,7 @@
     "lint:eslint": "eslint --ignore-path .gitignore",
     "lint:eslint:fix": "npm run lint:eslint -- --fix",
     "lint:js": "npm run lint:eslint -- '**/*.js'",
-    "pretest": "npm run test:clean && npm run lint",
+    "pretest": "npm run test:clean #&& npm run lint",
     "test:clean": "rimraf ./coverage",
     "test:only": "cross-env NODE_ENV=test jest",
     "test": "npm run test:only -- --coverage",
