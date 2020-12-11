@@ -15,7 +15,6 @@
 ## CLI
 
 ## Catalog, Lambdas
-* [Fixed] Fix pkgselect empty response for packages with all non-string logical_keys or physical_keys.
 * [Added] Preview .pdbqt files as plain text ([#1855](https://github.com/quiltdata/quilt/pull/1855))
 * [Added] Retry logic for failed queries, minimize load on ES for sample, images
 overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
@@ -26,6 +25,7 @@ overviews ([#1864](https://github.com/quiltdata/quilt/pull/1864/))
 * [Changed] Render vega specs smaller than 20 MiB right away, render larger ones after pressing a button ([#1873](https://github.com/quiltdata/quilt/pull/1873))
 * [Changed] Prefix filtering for directory view similar to AWS Console ([#1876](https://github.com/quiltdata/quilt/pull/1876), [#1880](https://github.com/quiltdata/quilt/pull/1880))
 * [Changed] Preview `*notes` files as plain text ([#1896](https://github.com/quiltdata/quilt/pull/1896))
+* [Fixed] Empty response from `pkgselect` folder view for packages with all non-string logical_keys or physical_keys.
 * [Fixed] Incomplete package stats for empty packages in es/indexer Lambda ([#1869](https://github.com/quiltdata/quilt/pull/1869))
 * [Fixed] Slow parquet preview rendering (and probably other occurrences of JsonDisplay) ([#1878](https://github.com/quiltdata/quilt/pull/1878))
 

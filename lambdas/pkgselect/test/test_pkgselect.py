@@ -57,7 +57,6 @@ class TestPackageSelect(TestCase):
             ]
         }
 
-
     def setUp(self):
         """
         Mocks to tests calls to S3 Select
@@ -285,18 +284,18 @@ class TestPackageSelect(TestCase):
         }
 
         mock_s3 = boto3.client('s3')
-        client_patch = patch.object(
-            mock_s3,
-            'select_object_content',
-            return_value=self.s3response_detail
-        )
-        client_patch.start()
-        with patch('boto3.Session.client', return_value=mock_s3):
+        with patch.object(
+                mock_s3,
+                'select_object_content',
+                return_value=self.s3response_detail
+        ) as client_patch, patch(
+            'boto3.Session.client',
+            return_value=mock_s3
+        ):
             response = lambda_handler(self._make_event(params), None)
             print(response)
             assert response['statusCode'] == 200
             json.loads(read_body(response))['contents']
-        client_patch.stop()
 
     def test_incomplete_credentials(self):
         """
