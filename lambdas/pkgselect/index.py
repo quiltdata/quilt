@@ -196,10 +196,8 @@ def lambda_handler(request):
             sql_stmt=sql_stmt
         )
 
-        if result is None:
-            response_data = file_list_to_folder(pd.DataFrame())
-        else:
-            # Parse the response into a logical folder view
+        # Parse the response into a logical folder view
+        if result is not None:
             df = pd.read_json(
                 result,
                 lines=True,
@@ -208,7 +206,9 @@ def lambda_handler(request):
                     physical_key='string'
                 )
             )
-            response_data = file_list_to_folder(df)
+        else:
+            df = pd.DataFrame()
+        response_data = file_list_to_folder(df)
 
         # Fetch package-level or directory-level metadata
         if prefix:
