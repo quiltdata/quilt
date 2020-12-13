@@ -395,7 +395,7 @@ def test_map_event_name_and_validate():
         event["eventName"] = name
         mapped = index.map_event_name(event)
         assert name != mapped
-        if name.startswith("DeleteObject"):
+        if name == "DeleteObject":
             assert mapped.startswith(EVENT_PREFIX["Removed"])
         else:
             assert mapped.startswith(EVENT_PREFIX["Created"])
