@@ -36,7 +36,65 @@ counterintuitive things:
     - turning off versioning doesn't mean version stack can't get deeper (by at
     least 1) as indicated above in the case where a new marker is pushed onto
     the version stack
+
+Workaround for clashing S3 events: use AWS eventbridge via CloudTrail as follows.
+
+EventPattern
+{
+  "source": [
+    "aws.s3"
+  ],
+  "detail-type": [
+    "AWS API Call via CloudTrail"
+  ],
+  "detail": {
+    "eventSource": [
+      "s3.amazonaws.com"
+    ],
+    "eventName": [
+      "DeleteObject",
+      "PutObject"
+    ],
+    "requestParameters": {
+      "bucketName": [
+        "MY_BUCKET"
+      ]
+    }
+  }
+}
+
+InputTransformer
+{
+    "awsRegion": "$.detail.awsRegion",
+    "bucketName": "$.detail.requestParameters.bucketName",
+    "eventName": "$.detail.eventName",
+    "isDeleteMarker": "$.detail.responseElements.x-amz-delete-marker",
+    "key": "$.detail.requestParameters.key",
+    "versionId": "$.detail.requestParameters.x-amz-version-id"
+}
+
+{
+    "Records": [
+        {
+            "awsRegion": <awsRegion>,
+            "eventName": <eventName>,
+            "s3": {
+                "bucket": {
+                    "name": <bucketName>
+                },
+                "object": {
+                    "eTag": "",  # not available per AWS
+                    "isDeleteMarker": <isDeleteMarker>,
+                    "key": <key>,
+                    "versionId": <versionId>
+                }
+            }
+        }
+    ]
+}
 """
+
+
 import datetime
 import json
 import pathlib
@@ -55,6 +113,7 @@ from document_queue import (
     DocTypes,
     DocumentQueue,
 )
+from jsonschema import validate, ValidationError
 from tenacity import (
     retry,
     retry_if_exception,
@@ -80,6 +139,56 @@ from t4_lambda_shared.utils import (
     separated_env_to_iter,
 )
 
+# ensure that we process events of known and expected shape
+EVENT_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'awsRegion': {
+            'type': 'string'
+        },
+        'eventName': {
+            'type': 'string'
+        },
+        's3': {
+            'type': 'object',
+            'properties': {
+                'bucket': {
+                    'type': 'object',
+                    'properties': {
+                        'name': {
+                            'type': 'string'
+                        }
+                    },
+                    'required': ['name'],
+                    'additionalProperties': True
+                },
+                'object': {
+                    'type': 'object',
+                    'properties': {
+                        'eTag': {
+                            'type': 'string'
+                        },
+                        'isDeleteMarker': {
+                            'type': 'string'
+                        },
+                        'key': {
+                            'type': 'string'
+                        },
+                        'versionId': {
+                            'type': 'string'
+                        }
+                    },
+                    'required': ['key'],
+                    'additionalProperties': True
+                },
+            },
+            'required': ['bucket', 'object'],
+            'additionalProperties': True
+        },
+    },
+    'required': ['s3', 'eventName'],
+    'additionalProperties': True
+}
 # 10 MB, see https://amzn.to/2xJpngN
 NB_VERSION = 4  # default notebook version for nbformat
 # currently only affects .parquet, TODO: extend to other extensions
@@ -445,6 +554,36 @@ def make_s3_client():
     return boto3.client("s3", config=configuration)
 
 
+def map_event_name(event: dict):
+    """transform eventbridge names into S3-like ones"""
+    input = event["eventName"]
+    # by construction, we should only get these events from EventBridge
+    if input == "PutObject":
+        # we are losing some information about multipart, etc. uploads here
+        return EVENT_PREFIX["Created"] + "Put"
+    elif input == "DeleteObject":
+        if event["s3"]["object"].get("isDeleteMarker"):
+            return EVENT_PREFIX["Removed"] + "DeleteMarkerCreated"
+        return EVENT_PREFIX["Removed"] + "Delete"
+
+    return input
+
+
+def shape_event(event: dict):
+    """check event schema, return None if schema check fails"""
+    logger_ = get_quilt_logger()
+
+    try:
+        validate(instance=event, schema=EVENT_SCHEMA)
+    except ValidationError as error:
+        logger_.error("Invalid event format: %s", event)
+        return None
+
+    event["eventName"] = map_event_name(name)
+
+    return event
+
+
 def handler(event, context):
     """enumerate S3 keys in event, extract relevant data, queue events, send to
     elastic via bulk() API
@@ -459,26 +598,28 @@ def handler(event, context):
         body = json.loads(message["body"])
         body_message = json.loads(body["Message"])
         if "Records" not in body_message:
-            if body_message.get("Event") == TEST_EVENT:
-                logger_.debug("Skipping S3 Test Event")
-                # Consume and ignore this event, which is an initial message from
-                # SQS; see https://forums.aws.amazon.com/thread.jspa?threadID=84331
-                continue
-            print("Unexpected message['body']. No 'Records' key.", message)
-            raise Exception("Unexpected message['body']. No 'Records' key.")
+            # could be TEST_EVENT, or another unexpected event; skip it
+            logger_.error("No 'Records' key in message['body']: %s", message)
+            continue
         batch_processor = DocumentQueue(context)
-        events = body_message.get("Records", [])
         s3_client = make_s3_client()
+        events = body_message["Records"]
         # event is a single S3 event
         for event_ in events:
             logger_.debug("Processing %s", event_)
+            validated = shape_event(event_)
+            if not validated:
+                continue
+            event_ = validated
             try:
                 event_name = event_["eventName"]
                 # Process all Create:* and Remove:* events
                 if not any(event_name.startswith(n) for n in EVENT_PREFIX.values()):
+                    logger_.warning("Skipping unknown event type: %s", event_name)
                     continue
                 bucket = unquote(event_["s3"]["bucket"]["name"])
                 # In the grand tradition of IE6, S3 events turn spaces into '+'
+                # TODO: check if eventbridge events do the same thing with +
                 key = unquote_plus(event_["s3"]["object"]["key"])
                 version_id = event_["s3"]["object"].get("versionId")
                 version_id = unquote(version_id) if version_id else None
@@ -639,7 +780,7 @@ def retry_s3(
         arguments['Range'] = f"bytes=0-{min(size, limit)}"
     if version_id:
         arguments['VersionId'] = version_id
-    else:
+    elif etag:
         arguments['IfMatch'] = etag
 
     @retry(
