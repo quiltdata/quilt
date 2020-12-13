@@ -579,7 +579,7 @@ def shape_event(event: dict):
         logger_.error("Invalid event format: %s", event)
         return None
 
-    event["eventName"] = map_event_name(name)
+    event["eventName"] = map_event_name(event)
 
     return event
 
