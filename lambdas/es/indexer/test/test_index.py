@@ -45,13 +45,9 @@ DELETE_EVENT_TYPES = {
     "ObjectRemoved:Delete",
     "ObjectRemoved:DeleteMarkerCreated"
 }
-EVENT_BRIDGE_TYPES = {
-    "PutObject",
-    "DeleteObject"
-}
 UNKNOWN_EVENT_TYPE = "Event:WeNeverHeardOf"
 # Reshaped EventBridge events from CloudTrail => S3 (see index.py notes)
-EVENT_BRIDGE_CORE = {
+EVENTBRIDGE_CORE = {
     'awsRegion': 'us-east-1',
     'eventName': 'PutObject',
     's3': {
@@ -394,18 +390,19 @@ def test_map_event_name_and_validate():
         original = event["eventName"]
         assert original == index.map_event_name(event)
 
-    for name in EVENT_BRIDGE_TYPES:
-        event = EVENT_BRIDGE_CORE.copy()
+    for name in index.EVENTBRIDGE_TO_S3.keys():
+        event = EVENTBRIDGE_CORE.copy()
         event["eventName"] = name
         mapped = index.map_event_name(event)
         assert name != mapped
-        if name == "PutObject":
-            assert mapped.startswith(EVENT_PREFIX["Created"])
-        elif name == "DeleteObject":
+        if name.startswith("DeleteObject"):
             assert mapped.startswith(EVENT_PREFIX["Removed"])
+        else:
+            assert mapped.startswith(EVENT_PREFIX["Created"])
+
         assert index.shape_event(event)
 
-    delete_marker = EVENT_BRIDGE_CORE.copy()
+    delete_marker = EVENTBRIDGE_CORE.copy()
     delete_marker["eventName"] = "DeleteObject"
     delete_marker["s3"]["object"]["isDeleteMarker"] = "true"
     delete_marker["s3"]["object"]["versionId"] = "someid"
@@ -417,7 +414,7 @@ def test_map_event_name_and_validate():
 
     assert not index.shape_event({"bad": "event"})
 
-    malformed = EVENT_BRIDGE_CORE.copy()
+    malformed = EVENTBRIDGE_CORE.copy()
     del malformed["s3"]["bucket"]["name"]
     assert not index.shape_event(malformed)
 

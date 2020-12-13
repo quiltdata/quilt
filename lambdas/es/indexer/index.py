@@ -139,6 +139,15 @@ from t4_lambda_shared.utils import (
     separated_env_to_iter,
 )
 
+# translate events to S3 native names
+EVENTBRIDGE_TO_S3 =  {
+    "PutObject": EVENT_PREFIX["Created"] + "Put",
+    "CopyObject": EVENT_PREFIX["Created"] + "Copy",
+    "CompleteMultipartUpload": EVENT_PREFIX["Created"] + "CompleteMultipartUpload",
+    # see map_event_name for proper logic
+    "DeleteObject": None,
+}
+
 # ensure that we process events of known and expected shape
 EVENT_SCHEMA = {
     'type': 'object',
@@ -557,16 +566,20 @@ def make_s3_client():
 def map_event_name(event: dict):
     """transform eventbridge names into S3-like ones"""
     input = event["eventName"]
-    # by construction, we should only get these events from EventBridge
-    if input == "PutObject":
-        # we are losing some information about multipart, etc. uploads here
-        return EVENT_PREFIX["Created"] + "Put"
     if input == "DeleteObject":
         if event["s3"]["object"].get("isDeleteMarker"):
             return EVENT_PREFIX["Removed"] + "DeleteMarkerCreated"
         return EVENT_PREFIX["Removed"] + "Delete"
+    # TODO: what about "DeleteObjects"?
+    # convert EventBridge to S3 events
+    to_s3 = {
+        "PutObject": EVENT_PREFIX["Created"] + "Put",
+        "CopyObject": EVENT_PREFIX["Created"] + "Copy",
+        "CompleteMultipartUpload": EVENT_PREFIX["Created"] + "CompleteMultipartUpload",
+        # TODO: "UploadPartCopy"? (doubt it)
+    }
 
-    return input
+    return to_s3[input] if input in to_s3 else input
 
 
 def shape_event(event: dict):
