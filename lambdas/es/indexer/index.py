@@ -106,13 +106,6 @@ from urllib.parse import unquote, unquote_plus
 import boto3
 import botocore
 import nbformat
-from document_queue import (
-    CONTENT_INDEX_EXTS,
-    EVENT_PREFIX,
-    MAX_RETRY,
-    DocTypes,
-    DocumentQueue,
-)
 from jsonschema import validate, ValidationError
 from tenacity import (
     retry,
@@ -137,6 +130,13 @@ from t4_lambda_shared.utils import (
     get_quilt_logger,
     query_manifest_content,
     separated_env_to_iter,
+)
+from document_queue import (
+    CONTENT_INDEX_EXTS,
+    EVENT_PREFIX,
+    MAX_RETRY,
+    DocTypes,
+    DocumentQueue,
 )
 
 # ensure that we process events of known and expected shape
@@ -561,7 +561,7 @@ def map_event_name(event: dict):
     if input == "PutObject":
         # we are losing some information about multipart, etc. uploads here
         return EVENT_PREFIX["Created"] + "Put"
-    elif input == "DeleteObject":
+    if input == "DeleteObject":
         if event["s3"]["object"].get("isDeleteMarker"):
             return EVENT_PREFIX["Removed"] + "DeleteMarkerCreated"
         return EVENT_PREFIX["Removed"] + "Delete"
@@ -576,10 +576,9 @@ def shape_event(event: dict):
     try:
         validate(instance=event, schema=EVENT_SCHEMA)
     except ValidationError as error:
-        print(">>>", event)
-        logger_.error("Invalid event format: %s", event)
+        logger_.error("Invalid event format: %s\n%s", error, event)
         return None
-    # be a good citizen and don't modify params 
+    # be a good citizen and don't modify params
     shaped = event.copy()
     shaped["eventName"] = map_event_name(event)
 

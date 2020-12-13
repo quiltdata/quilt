@@ -23,14 +23,13 @@ from botocore.client import Config
 from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
-from document_queue import DocTypes, EVENT_PREFIX, RetryError
 
 from t4_lambda_shared.utils import (
     MANIFEST_PREFIX_V1,
     POINTER_PREFIX_V1,
     separated_env_to_iter,
 )
-
+from document_queue import DocTypes, EVENT_PREFIX, RetryError
 from .. import index
 
 BASE_DIR = Path(__file__).parent / 'data'
@@ -54,12 +53,15 @@ UNKNOWN_EVENT_TYPE = "Event:WeNeverHeardOf"
 EVENT_BRIDGE_CORE = {
     'awsRegion': 'us-east-1',
     'eventName': 'PutObject',
-    's3': {'bucket': {'name': 'quilt-s3-eventbridge'},
-    'object': {
-        'isDeleteMarker': '',
-        'key':
-        'clear/README.md',
-        'versionId': ''}
+    's3': {
+        'bucket': {
+            'name': 'quilt-s3-eventbridge'
+        },
+        'object': {
+            'isDeleteMarker': '',
+            'key': 'clear/README.md',
+            'versionId': ''
+        }
     }
 }
 # See the following AWS docs for event structure:
