@@ -622,11 +622,12 @@ def handler(event, context):
                 # In the grand tradition of IE6, S3 events turn spaces into '+'
                 # TODO: check if eventbridge events do the same thing with +
                 key = unquote_plus(event_["s3"]["object"]["key"])
-                version_id = event_["s3"]["object"].get("versionId")
-                version_id = unquote(version_id) if version_id else None
-                # Skip delete markers when versioning is on
-                if version_id and event_name == "ObjectRemoved:DeleteMarkerCreated":
-                    continue
+                version_id = event_["s3"]["object"].get("versionId", None)
+                if version_id:
+                    version_id = unquote(version_id)
+                    # Skip delete markers when versioning is on
+                    if event_name == "ObjectRemoved:DeleteMarkerCreated":
+                        continue
                 # ObjectRemoved:Delete does not include "eTag"
                 etag = unquote(event_["s3"]["object"].get("eTag", ""))
                 # Get two levels of extensions to handle files like .csv.gz

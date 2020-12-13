@@ -112,7 +112,7 @@ class DocumentQueue:
             "_index": index_name,
             "_op_type": _op_type,
             "_type": "_doc",
-            # TODO nest fields under detail and use _type:{package, object}
+            # TODO nest fields under "document" and use _type:{package, object}
             "comment": comment,
             "etag": etag,
             "key": key,
@@ -124,11 +124,11 @@ class DocumentQueue:
                 raise ValueError("missing required argument for package document")
             if not (
                 package_stats is None
-                or isinstance(package_stats, dict) and {'total_files', 'total_bytes'}.issubset(package_stats)
+                or isinstance(package_stats, dict)
+                and {'total_files', 'total_bytes'}.issubset(package_stats)
             ):
                 raise ValueError("Malformed package_stats")
             body.update({
-                # TODO: fix this primary key; it _could_ collide with object  pkey
                 "_id": f"{handle}:{package_hash}",
                 "handle": handle,
                 "hash": package_hash,
@@ -143,7 +143,9 @@ class DocumentQueue:
         elif doc_type == DocTypes.OBJECT:
             body.update({
                 # Elastic native keys
-                "_id": f"{key}:{version_id}",
+                # ensure the same primary keys (_id) structure as given by
+                # the list-object-versions in the enterprise bulk_scanner
+                "_id": f"{key}:{version_id if version_id else 'null'}",
                 # TODO: remove this field from ES in /enterprise (now deprecated and unused)
                 # here we explicitly drop the comment
                 "comment": "",
