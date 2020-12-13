@@ -41,7 +41,27 @@ CREATE_EVENT_TYPES = {
     "ObjectCreated:Post",
     "ObjectCreated:CompleteMultipartUpload"
 }
+DELETE_EVENT_TYPES = {
+    "ObjectRemoved:Delete",
+    "ObjectRemoved:DeleteMarkerCreated"
+}
+EVENT_BRIDGE_TYPES = {
+    "PutObject",
+    "DeleteObject"
+}
 UNKNOWN_EVENT_TYPE = "Event:WeNeverHeardOf"
+# Reshaped EventBridge events from CloudTrail => S3 (see index.py notes)
+EVENT_BRIDGE_CORE = {
+    'awsRegion': 'us-east-1',
+    'eventName': 'PutObject',
+    's3': {'bucket': {'name': 'quilt-s3-eventbridge'},
+    'object': {
+        'isDeleteMarker': '',
+        'key':
+        'clear/README.md',
+        'versionId': ''}
+    }
+}
 # See the following AWS docs for event structure:
 EVENT_CORE = {
     "awsRegion": "us-east-1",
@@ -361,6 +381,19 @@ def test_append(_append_mock, event_type, doc_type, kwargs):
         assert not _append_mock.call_count
     else:
         assert _append_mock.call_count == 1
+
+
+def test_map_event_name():
+    """ensure that we map eventName properly"""
+    for name in CREATE_EVENT_TYPES.union(DELETE_EVENT_TYPES).union({UNKNOWN_EVENT_TYPE}):
+        event = make_event(name)
+        original = event["eventName"]
+        assert original == index.map_event_name(event)
+
+    for name in EVENT_BRIDGE_TYPES:
+        event = EVENT_BRIDGE_CORE.copy()
+        event["eventName"] = name
+        assert name != index.map_event_name(event)
 
 
 class MockContext():
