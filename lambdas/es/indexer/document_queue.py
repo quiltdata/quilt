@@ -14,7 +14,6 @@ from elasticsearch.helpers import bulk
 from t4_lambda_shared.preview import ELASTIC_LIMIT_BYTES
 from t4_lambda_shared.utils import get_quilt_logger, separated_env_to_iter
 
-
 CONTENT_INDEX_EXTS = separated_env_to_iter("CONTENT_INDEX_EXTS") or {
     ".csv",
     ".ipynb",
@@ -113,7 +112,7 @@ class DocumentQueue:
             "_index": index_name,
             "_op_type": _op_type,
             "_type": "_doc",
-            # TODO, nest fields under detail and use _type:{package, object}
+            # TODO nest fields under detail and use _type:{package, object}
             "comment": comment,
             "etag": etag,
             "key": key,
@@ -129,6 +128,7 @@ class DocumentQueue:
             ):
                 raise ValueError("Malformed package_stats")
             body.update({
+                # TODO: fix this primary key; it _could_ collide with object  pkey
                 "_id": f"{handle}:{package_hash}",
                 "handle": handle,
                 "hash": package_hash,
