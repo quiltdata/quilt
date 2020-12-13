@@ -576,12 +576,14 @@ def shape_event(event: dict):
     try:
         validate(instance=event, schema=EVENT_SCHEMA)
     except ValidationError as error:
+        print(">>>", event)
         logger_.error("Invalid event format: %s", event)
         return None
+    # be a good citizen and don't modify params 
+    shaped = event.copy()
+    shaped["eventName"] = map_event_name(event)
 
-    event["eventName"] = map_event_name(event)
-
-    return event
+    return shaped
 
 
 def handler(event, context):

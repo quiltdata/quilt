@@ -383,10 +383,11 @@ def test_append(_append_mock, event_type, doc_type, kwargs):
         assert _append_mock.call_count == 1
 
 
-def test_map_event_name():
-    """ensure that we map eventName properly"""
+def test_map_event_name_and_validate():
+    """ensure that we map eventName properly, ensure that shape validation code works"""
     for name in CREATE_EVENT_TYPES.union(DELETE_EVENT_TYPES).union({UNKNOWN_EVENT_TYPE}):
         event = make_event(name)
+        assert index.shape_event(event)
         original = event["eventName"]
         assert original == index.map_event_name(event)
 
@@ -399,13 +400,23 @@ def test_map_event_name():
             assert mapped.startswith(EVENT_PREFIX["Created"])
         elif name == "DeleteObject":
             assert mapped.startswith(EVENT_PREFIX["Removed"])
+        assert index.shape_event(event)
 
     delete_marker = EVENT_BRIDGE_CORE.copy()
     delete_marker["eventName"] = "DeleteObject"
-    delete_marker["s3"]["object"]["isDeleteMarker"] = True
+    delete_marker["s3"]["object"]["isDeleteMarker"] = "true"
     delete_marker["s3"]["object"]["versionId"] = "someid"
     mapped = index.map_event_name(delete_marker)
     assert mapped == "ObjectRemoved:DeleteMarkerCreated"
+    reshaped = index.shape_event(delete_marker.copy())
+    assert reshaped
+    assert delete_marker != reshaped
+
+    assert not index.shape_event({"bad": "event"})
+
+    malformed = EVENT_BRIDGE_CORE.copy()
+    del malformed["s3"]["bucket"]["name"]
+    assert not index.shape_event(malformed)
 
 
 class MockContext():
