@@ -23,13 +23,14 @@ from botocore.client import Config
 from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
+from document_queue import EVENT_PREFIX, DocTypes, RetryError
 
 from t4_lambda_shared.utils import (
     MANIFEST_PREFIX_V1,
     POINTER_PREFIX_V1,
     separated_env_to_iter,
 )
-from document_queue import DocTypes, EVENT_PREFIX, RetryError
+
 from .. import index
 
 BASE_DIR = Path(__file__).parent / 'data'

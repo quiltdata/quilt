@@ -106,7 +106,14 @@ from urllib.parse import unquote, unquote_plus
 import boto3
 import botocore
 import nbformat
-from jsonschema import validate, ValidationError
+from document_queue import (
+    CONTENT_INDEX_EXTS,
+    EVENT_PREFIX,
+    MAX_RETRY,
+    DocTypes,
+    DocumentQueue,
+)
+from jsonschema import ValidationError, validate
 from tenacity import (
     retry,
     retry_if_exception,
@@ -130,13 +137,6 @@ from t4_lambda_shared.utils import (
     get_quilt_logger,
     query_manifest_content,
     separated_env_to_iter,
-)
-from document_queue import (
-    CONTENT_INDEX_EXTS,
-    EVENT_PREFIX,
-    MAX_RETRY,
-    DocTypes,
-    DocumentQueue,
 )
 
 # ensure that we process events of known and expected shape
