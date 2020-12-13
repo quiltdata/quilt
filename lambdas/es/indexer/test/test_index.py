@@ -23,7 +23,7 @@ from botocore.client import Config
 from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
-from document_queue import DocTypes, RetryError
+from document_queue import DocTypes, EVENT_PREFIX, RetryError
 
 from t4_lambda_shared.utils import (
     MANIFEST_PREFIX_V1,
@@ -393,7 +393,19 @@ def test_map_event_name():
     for name in EVENT_BRIDGE_TYPES:
         event = EVENT_BRIDGE_CORE.copy()
         event["eventName"] = name
-        assert name != index.map_event_name(event)
+        mapped = index.map_event_name(event)
+        assert name != mapped
+        if name == "PutObject":
+            assert mapped.startswith(EVENT_PREFIX["Created"])
+        elif name == "DeleteObject":
+            assert mapped.startswith(EVENT_PREFIX["Removed"])
+
+    delete_marker = EVENT_BRIDGE_CORE.copy()
+    delete_marker["eventName"] = "DeleteObject"
+    delete_marker["s3"]["object"]["isDeleteMarker"] = True
+    delete_marker["s3"]["object"]["versionId"] = "someid"
+    mapped = index.map_event_name(delete_marker)
+    assert mapped == "ObjectRemoved:DeleteMarkerCreated"
 
 
 class MockContext():
