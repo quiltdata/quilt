@@ -12,7 +12,8 @@ from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 
 from t4_lambda_shared.preview import ELASTIC_LIMIT_BYTES
-from t4_lambda_shared.utils import separated_env_to_iter
+from t4_lambda_shared.utils import get_quilt_logger, separated_env_to_iter
+
 
 CONTENT_INDEX_EXTS = separated_env_to_iter("CONTENT_INDEX_EXTS") or {
     ".csv",
@@ -86,6 +87,7 @@ class DocumentQueue:
             size: int = 0
     ):
         """format event as a document and then queue the document"""
+        logger_ = get_quilt_logger()
         if not bucket or not key:
             raise ValueError(f"bucket={bucket} or key={key} required but missing")
         if event_type.startswith(EVENT_PREFIX["Created"]):
@@ -93,7 +95,7 @@ class DocumentQueue:
         elif event_type.startswith(EVENT_PREFIX["Removed"]):
             _op_type = "delete"
         else:
-            print("Skipping unrecognized event type {event_type}")
+            logger_.error("Skipping unrecognized event type %s", event_type)
             return
         # On types and fields, see
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
@@ -105,9 +107,13 @@ class DocumentQueue:
             index_name += "_packages"
         if not index_name:
             raise ValueError(f"Can't infer index name; bucket={bucket}, doc_type={doc_type}")
+        # core properties for all document types;
+        # see https://elasticsearch-py.readthedocs.io/en/6.3.1/helpers.html
         body = {
             "_index": index_name,
+            "_op_type": _op_type,
             "_type": "_doc",
+            # TODO, nest fields under detail and use _type:{package, object}
             "comment": comment,
             "etag": etag,
             "key": key,
@@ -151,7 +157,7 @@ class DocumentQueue:
                 "version_id": version_id
             })
         else:
-            print(f"Skipping unhandled document type: {doc_type}")
+            logger_.error("Skipping unexpected document type: %s", doc_type)
 
         self._append_document(body)
 
@@ -160,10 +166,12 @@ class DocumentQueue:
 
     def _append_document(self, doc):
         """append well-formed documents (used for retry or by append())"""
+        logger_ = get_quilt_logger()
         if doc.get("content"):
             # document text dominates memory footprint; OK to neglect the
             # small fixed size for the JSON metadata
             self.size += min(doc["size"], ELASTIC_LIMIT_BYTES)
+        logger_.debug("Appending document %s", doc)
         self.queue.append(doc)
 
     def send_all(self):
@@ -235,11 +243,11 @@ class DocumentQueue:
 
 def get_time_remaining(context):
     """returns time remaining in seconds before lambda context is shut down"""
+    logger_ = get_quilt_logger()
     time_remaining = floor(context.get_remaining_time_in_millis()/1000)
     if time_remaining < 30:
-        print(
-            f"Warning: Lambda function has less than {time_remaining} seconds."
-            " Consider reducing bulk batch size."
+        logger_.warning(
+            "Lambda function has {time_remaining} sec remaining. Reduce batch size?"
         )
 
     return time_remaining
@@ -247,6 +255,8 @@ def get_time_remaining(context):
 
 def bulk_send(elastic, list_):
     """make a bulk() call to elastic"""
+    logger_ = get_quilt_logger()
+    logger_.debug("Calling bulk() helper")
     return bulk(
         elastic,
         list_,
