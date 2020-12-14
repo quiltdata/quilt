@@ -296,7 +296,7 @@ function FilesInput({
               !error && warn && classes.dropMsgWarn,
             )}
           >
-            {label}
+            <M.Typography>{label}</M.Typography>
           </div>
         </div>
         {disabled && (
