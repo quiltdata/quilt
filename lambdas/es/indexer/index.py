@@ -616,16 +616,21 @@ def handler(event, context):
         events = body_message["Records"]
         # event is a single S3 event
         for event_ in events:
-            logger_.debug("Processing %s", event_)
             validated = shape_event(event_)
             if not validated:
+                logger_.debug("Skipping invalid event %s", event_)
                 continue
             event_ = validated
+            logger_.debug("Processing %s", event_)
             try:
                 event_name = event_["eventName"]
                 # Process all Create:* and Remove:* events
                 if not any(event_name.startswith(n) for n in EVENT_PREFIX.values()):
                     logger_.warning("Skipping unknown event type: %s", event_name)
+                    continue
+                # Nothing to do in ES for delete markers
+                if event_name == "ObjectRemoved:DeleteMarkerCreated":
+                    logger_.debug("Skipping DeleteMarkerCreated: %s", event_name)
                     continue
                 bucket = unquote(event_["s3"]["bucket"]["name"])
                 # In the grand tradition of IE6, S3 events turn spaces into '+'
@@ -634,10 +639,7 @@ def handler(event, context):
                 version_id = event_["s3"]["object"].get("versionId", None)
                 if version_id:
                     version_id = unquote(version_id)
-                    # Skip delete markers when versioning is on
-                    if event_name == "ObjectRemoved:DeleteMarkerCreated":
-                        continue
-                # ObjectRemoved:Delete does not include "eTag"
+               # ObjectRemoved:Delete does not include "eTag"
                 etag = unquote(event_["s3"]["object"].get("eTag", ""))
                 # Get two levels of extensions to handle files like .csv.gz
                 path = pathlib.PurePosixPath(key)

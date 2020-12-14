@@ -784,8 +784,8 @@ class TestIndex(TestCase):
         # don't mock head or get; this event should never call them
         self._test_index_events(
             ["ObjectRemoved:DeleteMarkerCreated"],
+            mock_elastic=False,
             bucket_versioning=False,
-            expected_es_calls=1
         )
 
     @patch.object(index, 'extract_parquet')
