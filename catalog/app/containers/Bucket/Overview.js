@@ -1163,8 +1163,8 @@ function Summary({ req, s3, bucket, inStack, overviewUrl }) {
       return (
         <>
           {shownEntries.map((h) => (
-            <EnsureAvailability s3={s3} handle={h}>
-              {() => <FilePreview key={`${h.bucket}/${h.key}`} handle={h} />}
+            <EnsureAvailability key={`${h.bucket}/${h.key}`} s3={s3} handle={h}>
+              {() => <FilePreview handle={h} />}
             </EnsureAvailability>
           ))}
           {shown < entries.length && (
