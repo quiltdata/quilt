@@ -70,7 +70,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     background: t.palette.action.selected,
   },
   dropMsg: {
-    ...t.typography.body2,
     alignItems: 'center',
     display: 'flex',
     flexGrow: 1,
@@ -296,7 +295,7 @@ function FilesInput({
               !error && warn && classes.dropMsgWarn,
             )}
           >
-            <M.Typography>{label}</M.Typography>
+            <M.Typography variant="body2">{label}</M.Typography>
           </div>
         </div>
         {disabled && (
