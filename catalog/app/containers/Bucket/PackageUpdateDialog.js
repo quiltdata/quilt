@@ -7,7 +7,6 @@ import { useDropzone } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
-import { fade } from '@material-ui/core/styles'
 
 import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
@@ -24,7 +23,6 @@ import useMemoEq from 'utils/useMemoEq'
 import * as validators from 'utils/validators'
 
 import * as PD from './PackageDialog'
-import * as ERRORS from './errors'
 import * as requests from './requests'
 
 const TYPE_ORDER = ['added', 'modified', 'deleted', 'unchanged']
@@ -775,68 +773,14 @@ function DialogPlaceholder({ close }) {
   )
 }
 
-const errorDisplay = R.cond([
-  [
-    R.is(ERRORS.ManifestTooLarge),
-    (e) => (
-      <>
-        <M.Typography variant="h6" gutterBottom>
-          Package manifest too large
-        </M.Typography>
-        <M.Typography gutterBottom>
-          This package is not editable via the web UI&mdash;it cannot handle package
-          manifest that large ({readableBytes(e.actualSize)}).
-        </M.Typography>
-        <M.Typography>Please use Quilt CLI to edit this package.</M.Typography>
-      </>
-    ),
-  ],
-  [
-    R.T,
-    () => (
-      <>
-        <M.Typography variant="h6" gutterBottom>
-          Unexpected error
-        </M.Typography>
-        <M.Typography gutterBottom>
-          Something went wrong. Please contact Quilt support.
-        </M.Typography>
-        <M.Typography>You can also use Quilt CLI to edit this package.</M.Typography>
-      </>
-    ),
-  ],
-])
-
-const useDialogErrorStyles = M.makeStyles((t) => ({
-  overlay: {
-    background: fade(t.palette.common.white, 0.4),
-    bottom: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    left: 0,
-    padding: t.spacing(2, 3, 4),
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-}))
-
 function DialogError({ error, close }) {
-  const classes = useDialogErrorStyles()
   return (
-    <>
-      <M.DialogTitle>Push package revision</M.DialogTitle>
-      <M.DialogContent style={{ paddingTop: 0, position: 'relative' }}>
-        <PD.FormSkeleton animate={false} />
-        <div className={classes.overlay}>{errorDisplay(error)}</div>
-      </M.DialogContent>
-      <M.DialogActions>
-        <M.Button onClick={close}>Cancel</M.Button>
-        <M.Button variant="contained" color="primary" disabled>
-          Push
-        </M.Button>
-      </M.DialogActions>
-    </>
+    <PD.DialogError
+      error={error}
+      skeletonElement={<PD.FormSkeleton animate={false} />}
+      title="Push package revision"
+      onCancel={close}
+    />
   )
 }
 

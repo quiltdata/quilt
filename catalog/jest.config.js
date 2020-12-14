@@ -1,3 +1,5 @@
+const path = require('path')
+
 module.exports = {
   collectCoverageFrom: [
     'app/**/*.{js,jsx}',
@@ -17,7 +19,7 @@ module.exports = {
       lines: 4,
     },
   },
-  moduleDirectories: ['node_modules', 'app'],
+  moduleDirectories: ['node_modules', 'app', path.resolve(__dirname, '../shared')],
   moduleNameMapper: {
     '.*\\.(css|less|styl|scss|sass)$': '<rootDir>/internals/mocks/cssModule.js',
     '.*\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
