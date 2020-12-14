@@ -402,7 +402,7 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
               !error && warn && classes.dropMsgWarn,
             )}
           >
-            {label}
+            <span>{label}</span>
           </div>
         </div>
         {disabled && (
