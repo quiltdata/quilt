@@ -52,12 +52,14 @@ EventPattern
       "s3.amazonaws.com"
     ],
     "eventName": [
-      "DeleteObject",
-      "PutObject"
+      "PutObject",
+      "CopyObject",
+      "CompleteMultipartUpload",
+      "DeleteObject"
     ],
     "requestParameters": {
       "bucketName": [
-        "MY_BUCKET"
+        "quilt-s3-eventbridge"
       ]
     }
   }
@@ -144,8 +146,10 @@ EVENTBRIDGE_TO_S3 =  {
     "PutObject": EVENT_PREFIX["Created"] + "Put",
     "CopyObject": EVENT_PREFIX["Created"] + "Copy",
     "CompleteMultipartUpload": EVENT_PREFIX["Created"] + "CompleteMultipartUpload",
-    # see map_event_name for proper logic
+    # see map_event_name for complete logic
     "DeleteObject": None,
+    # "DeleteObjects" is not handled since it does not contain enough information on 
+    # which objects where deleted
 }
 
 # ensure that we process events of known and expected shape
@@ -567,7 +571,6 @@ def map_event_name(event: dict):
     """transform eventbridge names into S3-like ones"""
     input = event["eventName"]
     if input in EVENTBRIDGE_TO_S3:
-        # TODO: what about "DeleteObjects"?
         if input == "DeleteObject":
             if event["s3"]["object"].get("isDeleteMarker"):
                 return EVENT_PREFIX["Removed"] + "DeleteMarkerCreated"
@@ -695,12 +698,14 @@ def handler(event, context):
                             # (e.g. foreign owner) and there's no reason to torpedo
                             # the whole batch (which might include good files)
                             logger_.warning("Retried head_object error: %s", second)
-
                     logger_.error("Fatal head_object, skipping event: %s", event_)
                     continue
 
                 size = head["ContentLength"]
                 last_modified = head["LastModified"]
+                # backfill etag and version_id if we can
+                etag = head.get("etag", etag)
+                version_id = head.get("VersionId", version_id)
 
                 did_index = index_if_manifest(
                     s3_client,
@@ -748,7 +753,7 @@ def handler(event, context):
 
             except botocore.exceptions.ClientError as boto_exc:
                 if not should_retry_exception(boto_exc):
-                    logger_.warning("Got exception but retrying: %s", boto_exc)
+                    logger_.warning("Skipping non-fatal exception: %s", boto_exc)
                     continue
                 logger_.critical("Failed record: %s, %s", event, boto_exc)
                 raise boto_exc
