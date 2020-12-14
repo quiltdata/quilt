@@ -141,11 +141,13 @@ class DocumentQueue:
                     "package_stats": package_stats,
                 })
         elif doc_type == DocTypes.OBJECT:
+            if not version_id:
+                # ensure the same versionId and primary keys (_id) as given by
+                # list-object-versions in the enterprise bulk_scanner
+                version_id = "null"
             body.update({
                 # Elastic native keys
-                # ensure the same primary keys (_id) structure as given by
-                # the list-object-versions in the enterprise bulk_scanner
-                "_id": f"{key}:{version_id if version_id else 'null'}",
+               "_id": f"{key}:{version_id}",
                 # TODO: remove this field from ES in /enterprise (now deprecated and unused)
                 # here we explicitly drop the comment
                 "comment": "",

@@ -390,7 +390,7 @@ def test_map_event_name_and_validate():
         original = event["eventName"]
         assert original == index.map_event_name(event)
 
-    for name in index.EVENTBRIDGE_TO_S3.keys():
+    for name in index.EVENTBRIDGE_TO_S3:
         event = EVENTBRIDGE_CORE.copy()
         event["eventName"] = name
         mapped = index.map_event_name(event)
