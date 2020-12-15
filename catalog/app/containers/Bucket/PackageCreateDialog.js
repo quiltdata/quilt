@@ -166,7 +166,7 @@ function FilesInput({
 }) {
   const classes = useFilesInputStyles()
 
-  const value = inputValue || []
+  const value = React.useMemo(() => inputValue || [], [inputValue])
   const disabled = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
 

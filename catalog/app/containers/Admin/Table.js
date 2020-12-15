@@ -14,8 +14,8 @@ export function useOrdering({ rows, ...opts }) {
   const [direction, setDirection] = React.useState(opts.direction || 'asc')
 
   const sortBy = column.sortBy || column.getValue
-  const sort = React.useCallback(
-    R.pipe(R.sortBy(sortBy), direction === 'asc' ? R.identity : R.reverse),
+  const sort = React.useMemo(
+    () => R.pipe(R.sortBy(sortBy), direction === 'asc' ? R.identity : R.reverse),
     [sortBy, direction],
   )
 
@@ -63,7 +63,6 @@ export function useSelection({ rows, getId = R.unary(I.fromJS) }) {
     getId,
   ])
 
-  // eslint-disable-next-line object-curly-newline
   return { toggle, toggleAll, clear, isSelected, selected, all: allSelected }
 }
 

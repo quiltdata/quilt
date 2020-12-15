@@ -36,12 +36,12 @@ export function ExperimentsProvider({ children }) {
       }
       return ref.current[name]
     },
-    [ref.current],
+    [ref],
   )
 
   const getSelectedVariants = React.useCallback(
     (prefix = '') => mapKeys((k) => `${prefix}${k}`)(ref.current),
-    [ref.current],
+    [ref],
   )
 
   return <Ctx.Provider value={{ get, getSelectedVariants }}>{children}</Ctx.Provider>

@@ -207,7 +207,7 @@ function usePostInit(init) {
         console.error(e)
         setState(new ErrorDisplay('Authentication Failure'))
       })
-  }, [init])
+  }, [init, dispatch])
 
   return state
 }

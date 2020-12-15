@@ -15,8 +15,8 @@ const withValue = (fn) => (inst, ...rest) => fn(getValue(inst), ...rest)
 const exhaustive = (variants, cases) => cases._ || variants.every((v) => cases[v])
 
 const chooseCase = (cases, variant) => {
-  if (!variant) return cases.__ // eslint-disable-line no-underscore-dangle
-  if (!(variant in cases)) return cases._ // eslint-disable-line no-underscore-dangle
+  if (!variant) return cases.__
+  if (!(variant in cases)) return cases._
   return withValue(cases[variant])
 }
 
@@ -73,7 +73,6 @@ export default (variants) => {
       `${scope}/case: cases must be an object of functions`,
     )
     invariant(
-      // eslint-disable-next-line no-underscore-dangle
       R.all(R.contains(R.__, ['_', '__', ...variants]), R.keys(cases)),
       `${scope}/case: cases may only include type variants and placeholders (_ and __)`,
     )
@@ -81,7 +80,6 @@ export default (variants) => {
 
     const exec = (inst, ...extra) => {
       const variant = getVariant(inst)
-      // eslint-disable-next-line no-underscore-dangle
       if (!cases.__) {
         invariant(
           variant,
