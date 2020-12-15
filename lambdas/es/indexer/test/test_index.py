@@ -946,7 +946,7 @@ class TestIndex(TestCase):
             expected_params={
                 "Bucket": "test-bucket",
                 "Key": pointer_key,
-                "VersionId": "1313131313131.Vier50HdNbi7ZirO65"
+                "VersionId": OBJECT_RESPONSE["VersionId"],
             }
         )
 
@@ -962,7 +962,7 @@ class TestIndex(TestCase):
             expected_params={
                 "Bucket": "test-bucket",
                 "Key": pointer_key,
-                "VersionId": "1313131313131.Vier50HdNbi7ZirO65",
+                "VersionId": OBJECT_RESPONSE["VersionId"],
                 'Range': "bytes=0-64"
             }
         )
@@ -1011,7 +1011,8 @@ class TestIndex(TestCase):
                 mock_elastic=False,
                 mock_overrides={
                     "event_kwargs": {
-                        "key": pointer_key
+                        "key": pointer_key,
+                        "versionId": OBJECT_RESPONSE["VersionId"]
                     },
                     # we, not _test_index_events, patch all the S3 calls in this test
                     "mock_object": False,
@@ -1060,7 +1061,7 @@ class TestIndex(TestCase):
             key=pointer_key,
             ext="",
             etag="123456",
-            version_id="1313131313131.Vier50HdNbi7ZirO65",
+            version_id=OBJECT_RESPONSE["VersionId"],
             last_modified=ANY,
             size=64,
             text=""

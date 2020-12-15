@@ -704,8 +704,8 @@ def handler(event, context):
                 size = head["ContentLength"]
                 last_modified = head["LastModified"]
                 # backfill etag and version_id if we can
-                etag = head.get("etag", etag)
-                version_id = head.get("VersionId", version_id)
+                etag = head.get("etag") or etag
+                version_id = head.get("VersionId") or version_id
 
                 did_index = index_if_manifest(
                     s3_client,
