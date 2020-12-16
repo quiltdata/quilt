@@ -3,14 +3,7 @@ import * as R from 'ramda'
 
 const scope = 'app/utils/tagged'
 
-const TAG = Symbol('tag')
-const VALUE = Symbol('value')
-
-const getTag = (inst) => (inst ? inst[TAG] : undefined)
-
-const getValue = (inst) => (inst ? inst[VALUE] : undefined)
-
-const withValue = (fn) => (inst, ...rest) => fn(getValue(inst), ...rest)
+const withValue = (fn) => (inst, ...rest) => fn(R.prop('value', inst), ...rest)
 
 const exhaustive = (variants, cases) => cases._ || variants.every((v) => cases[v])
 
@@ -44,12 +37,12 @@ export default (variants) => {
   const variantMap = R.invertObj(symbols)
 
   const getVariant = (inst) => {
-    const tag = getTag(inst)
+    const tag = R.prop('type', inst)
     return tag && variantMap[tag]
   }
 
   const mkConstructor = (tag, variant) => {
-    const constructor = (value) => ({ [TAG]: tag, [VALUE]: value, type: tag })
+    const constructor = (value) => ({ type: tag, value })
 
     constructor.is = (inst, pred) =>
       getVariant(inst) === variant && (pred ? pred(constructor.unbox(inst)) : true)
@@ -59,7 +52,7 @@ export default (variants) => {
         constructor.is(inst),
         `${scope}/unbox: must be called with an instance of type`,
       )
-      return getValue(inst)
+      return R.prop('value', inst)
     }
 
     return constructor
@@ -119,7 +112,6 @@ export default (variants) => {
      */
     reducer: (cases) => (acc, next) => doCase(cases, next)(acc),
 
-    // TODO: mapCase
     ...constructors,
   }
 }
