@@ -7,6 +7,7 @@ import { useDropzone } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import { darken } from '@material-ui/core'
 
 import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
@@ -25,7 +26,460 @@ import * as validators from 'utils/validators'
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
-const TYPE_ORDER = ['added', 'modified', 'deleted', 'unchanged']
+const FilesEntry = tagged([
+  'Dir', // { name: str, type: enum, children: [FilesEntry] }
+  'File', // { name: str, type: enum, size: num }
+])
+
+const FilesAction = tagged([
+  'Add', // { files: [File], prefix: str }
+  'Delete', // path: str
+  'DeleteDir', // prefix: str
+  'Revert', // path: str
+  'RevertDir', // prefix: str
+  'Reset',
+])
+
+const insertIntoTree = (path = [], file, entries) => {
+  let inserted = file
+  let restEntries = entries
+  if (path.length) {
+    const [current, ...rest] = path
+    let baseDir = FilesEntry.Dir({ name: current, type: file.type, children: [] })
+    const existingDir = entries.find(
+      FilesEntry.case({
+        File: () => false,
+        Dir: R.propEq('name', current),
+      }),
+    )
+    if (existingDir) {
+      restEntries = R.without([existingDir], entries)
+      baseDir = existingDir
+    }
+    inserted = insertIntoDir(rest, file, baseDir)
+  }
+  const getOrder = FilesEntry.case({
+    Dir: (d) => [0, d.name],
+    File: (f) => [1, f.name],
+  })
+  const tree = R.sortBy(getOrder, [inserted, ...restEntries])
+  return tree
+}
+
+const insertIntoDir = (path, file, dir) => {
+  const { name, children } = FilesEntry.Dir.unbox(dir)
+  const newChildren = insertIntoTree(path, file, children)
+  const type = newChildren
+    .map(FilesEntry.case({ Dir: R.prop('type'), File: R.prop('type') }))
+    .reduce((acc, entryType) => (acc === entryType ? acc : 'modified'))
+  return FilesEntry.Dir({ name, type, children: newChildren })
+}
+
+const dissocBy = (fn) =>
+  R.pipe(
+    R.toPairs,
+    R.filter(([k]) => !fn(k)),
+    R.fromPairs,
+  )
+
+/*
+// TODO: use tree as the main data model / source of truth?
+state type: {
+  existing: { [path]: file },
+  added: { [path]: file },
+  // TODO: use Array or Set?
+  deleted: { [path]: true },
+}
+*/
+
+const handleFilesAction = FilesAction.case({
+  Add: ({ files, prefix }) => (state) =>
+    files.reduce((acc, file) => {
+      const path = (prefix || '') + PD.getNormalizedPath(file)
+      return R.evolve(
+        {
+          added: R.assoc(path, file),
+          deleted: R.dissoc(path),
+        },
+        acc,
+      )
+    }, state),
+  Delete: (path) => R.evolve({ deleted: R.assoc(path, true) }),
+  // add all descendants from existing to deleted
+  DeleteDir: (prefix) => ({ existing, added, deleted }) => ({
+    existing,
+    added,
+    deleted: R.mergeLeft(
+      Object.keys(existing).reduce(
+        (acc, k) => (k.startsWith(prefix) ? { ...acc, [k]: true } : acc),
+        {},
+      ),
+      deleted,
+    ),
+  }),
+  Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
+  // remove all descendants from added and deleted
+  RevertDir: (prefix) =>
+    R.evolve({
+      added: dissocBy(R.startsWith(prefix)),
+      deleted: dissocBy(R.startsWith(prefix)),
+    }),
+  Reset: (_, { initial }) => () => initial,
+})
+
+const computeEntries = ({ added, deleted, existing }) => {
+  const existingEntries = Object.entries(existing).map(([path, { size }]) => {
+    if (path in deleted) {
+      return { type: 'deleted', path, size }
+    }
+    if (path in added) {
+      const a = added[path]
+      return { type: 'modified', path, size: a.size }
+    }
+    return { type: 'unchanged', path, size }
+  })
+  const addedEntries = Object.entries(added).reduce((acc, [path, { size }]) => {
+    if (path in existing) return acc
+    return acc.concat({ type: 'added', path, size })
+  }, [])
+  const entries = [...existingEntries, ...addedEntries]
+  return entries.reduce((children, { path, ...rest }) => {
+    const parts = path.split('/')
+    const prefixPath = R.init(parts).map((p) => `${p}/`)
+    const name = R.last(parts)
+    const file = FilesEntry.File({ name, ...rest })
+    return insertIntoTree(prefixPath, file, children)
+  }, [])
+}
+
+const COLORS = {
+  default: {
+    main: M.colors.grey[600],
+    accent: M.colors.grey[900],
+  },
+  added: {
+    main: M.colors.green[600],
+    accent: M.colors.green[900],
+  },
+  modified: {
+    main: M.colors.yellow[800],
+    accent: darken(M.colors.yellow[800], 0.2),
+  },
+  deleted: {
+    main: M.colors.red[600],
+    accent: M.colors.red[900],
+  },
+}
+
+const useFileStyles = M.makeStyles((t) => ({
+  added: {},
+  modified: {},
+  deleted: {},
+  unchanged: {},
+  root: {
+    alignItems: 'center',
+    background: t.palette.background.paper,
+    cursor: 'default',
+    display: 'flex',
+    outline: 'none',
+
+    color: COLORS.default.main,
+    '&:hover': {
+      color: COLORS.default.accent,
+    },
+    '&$added': {
+      color: COLORS.added.main,
+      '&:hover': {
+        color: COLORS.added.accent,
+      },
+    },
+    '&$modified': {
+      color: COLORS.modified.main,
+      '&:hover': {
+        color: COLORS.modified.accent,
+      },
+    },
+    '&$deleted': {
+      color: COLORS.deleted.main,
+      '&:hover': {
+        color: COLORS.deleted.accent,
+      },
+    },
+  },
+  icon: {
+    boxSizing: 'content-box',
+    fontSize: 18,
+    padding: 3,
+  },
+  name: {
+    ...t.typography.body2,
+    flexGrow: 1,
+    marginRight: t.spacing(1),
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  size: {
+    ...t.typography.body2,
+    marginRight: t.spacing(0.5),
+    opacity: 0.62,
+  },
+}))
+
+function File({ name, type, size, prefix, dispatch }) {
+  const classes = useFileStyles()
+
+  const path = (prefix || '') + name
+
+  const handle = React.useCallback(
+    (cons) => (e) => {
+      e.stopPropagation()
+      dispatch(cons(path))
+    },
+    [dispatch, path],
+  )
+
+  const action = React.useMemo(
+    () =>
+      ({
+        added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.Revert) },
+        modified: {
+          hint: 'Revert',
+          icon: 'restore',
+          handler: handle(FilesAction.Revert),
+        },
+        deleted: {
+          hint: 'Restore',
+          icon: 'restore',
+          handler: handle(FilesAction.Revert),
+        },
+        unchanged: { hint: 'Delete', icon: 'clear', handler: handle(FilesAction.Delete) },
+      }[type]),
+    [type, handle],
+  )
+
+  const onClick = React.useCallback((e) => {
+    e.stopPropagation()
+  }, [])
+
+  return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
+    <div
+      className={cx(classes.root, classes[type])}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+    >
+      <M.Icon className={classes.icon}>insert_drive_file</M.Icon>
+      <div className={classes.name} title={name}>
+        {name}
+      </div>
+      <div className={classes.size}>{readableBytes(size)}</div>
+      <M.IconButton onClick={action.handler} title={action.hint} size="small">
+        <M.Icon fontSize="inherit">{action.icon}</M.Icon>
+      </M.IconButton>
+    </div>
+  )
+}
+
+const useDirStyles = M.makeStyles((t) => ({
+  // TODO: support non-diff mode (for package creation)
+  diff: {},
+  added: {},
+  modified: {},
+  deleted: {},
+  unchanged: {},
+  active: {},
+  root: {
+    background: t.palette.background.paper,
+    cursor: 'pointer',
+    outline: 'none',
+    position: 'relative',
+  },
+  head: {
+    alignItems: 'center',
+    display: 'flex',
+    outline: 'none',
+
+    color: COLORS.default.main,
+    '$active > &, &:hover': {
+      color: COLORS.default.accent,
+    },
+    '$added > &': {
+      color: COLORS.added.main,
+    },
+    '$added$active > &, $added > &:hover': {
+      color: COLORS.added.accent,
+    },
+    '$modified > &': {
+      color: COLORS.modified.main,
+    },
+    '$modified$active > &, $modified > &:hover': {
+      color: COLORS.modified.accent,
+    },
+    '$deleted > &': {
+      color: COLORS.deleted.main,
+    },
+    '$deleted$active > &, $deleted > &:hover': {
+      color: COLORS.deleted.accent,
+    },
+  },
+  icon: {
+    boxSizing: 'content-box',
+    fontSize: 18,
+    padding: 3,
+  },
+  name: {
+    ...t.typography.body2,
+    flexGrow: 1,
+    marginRight: t.spacing(1),
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  body: {
+    paddingLeft: 20,
+  },
+  bar: {
+    bottom: 0,
+    left: 0,
+    opacity: 0.2,
+    position: 'absolute',
+    top: 24,
+    width: 24,
+    '$active > $head > &, $head:hover > &': {
+      opacity: 0.4,
+    },
+    '&::before': {
+      background: 'currentColor',
+      borderRadius: 2,
+      bottom: 4,
+      content: '""',
+      left: 10,
+      position: 'absolute',
+      top: 4,
+      width: 4,
+    },
+  },
+  emptyDummy: {
+    height: 24,
+  },
+  empty: {
+    ...t.typography.body2,
+    bottom: 0,
+    fontStyle: 'italic',
+    left: 24,
+    lineHeight: '24px',
+    opacity: 0.6,
+    overflow: 'hidden',
+    position: 'absolute',
+    right: 0,
+    top: 24,
+  },
+}))
+
+function Dir({ name, type, children, prefix, dispatch }) {
+  const classes = useDirStyles()
+  // TODO: move state out?
+  const [expanded, setExpanded] = React.useState(true)
+
+  const toggleExpanded = React.useCallback(
+    (e) => {
+      e.stopPropagation()
+      setExpanded((x) => !x)
+    },
+    [setExpanded],
+  )
+
+  const onClick = React.useCallback((e) => {
+    e.stopPropagation()
+  }, [])
+
+  const path = (prefix || '') + name
+
+  const onDrop = React.useCallback(
+    (files) => {
+      dispatch(FilesAction.Add({ prefix: path, files }))
+    },
+    [dispatch, path],
+  )
+
+  const { getRootProps, isDragActive } = useDropzone({
+    onDrop,
+    noDragEventsBubbling: true,
+  })
+
+  const handle = React.useCallback(
+    (cons) => (e) => {
+      e.stopPropagation()
+      dispatch(cons(path))
+    },
+    [dispatch, path],
+  )
+
+  const action = React.useMemo(
+    () =>
+      ({
+        added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.RevertDir) },
+        modified: {
+          hint: 'Revert',
+          icon: 'restore',
+          handler: handle(FilesAction.RevertDir),
+        },
+        deleted: {
+          hint: 'Restore',
+          icon: 'restore',
+          handler: handle(FilesAction.RevertDir),
+        },
+        unchanged: {
+          hint: 'Delete',
+          icon: 'clear',
+          handler: handle(FilesAction.DeleteDir),
+        },
+      }[type]),
+    [type, handle],
+  )
+
+  return (
+    <div
+      {...getRootProps({
+        className: cx(classes.root, classes[type], { [classes.active]: isDragActive }),
+        onClick,
+      })}
+    >
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
+      <div onClick={toggleExpanded} className={classes.head} role="button" tabIndex={0}>
+        <M.Icon className={classes.icon}>{expanded ? 'folder_open' : 'folder'}</M.Icon>
+        <div className={classes.name}>{name}</div>
+        <M.IconButton onClick={action.handler} title={action.hint} size="small">
+          <M.Icon fontSize="inherit">{action.icon}</M.Icon>
+        </M.IconButton>
+        <div className={classes.bar} />
+        {!children.length && <div className={classes.empty}>{'<EMPTY DIRECTORY>'}</div>}
+      </div>
+      <M.Collapse in={expanded}>
+        <div className={classes.body}>
+          {children.length ? (
+            children.map((entry) => {
+              const [Component, props] = FilesEntry.case(
+                {
+                  Dir: (ps) => [Dir, ps],
+                  File: (ps) => [File, ps],
+                },
+                entry,
+              )
+              return (
+                <Component {...{ ...props, key: props.name, prefix: path, dispatch }} />
+              )
+            })
+          ) : (
+            <div className={classes.emptyDummy} />
+          )}
+        </div>
+      </M.Collapse>
+    </div>
+  )
+}
 
 const useFilesInputStyles = M.makeStyles((t) => ({
   root: {
@@ -65,7 +519,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     background: t.palette.action.hover,
     border: `1px solid ${t.palette.action.disabled}`,
     borderRadius: t.shape.borderRadius,
-    cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
     minHeight: 140,
@@ -84,6 +537,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   dropMsg: {
     ...t.typography.body2,
     alignItems: 'center',
+    cursor: 'pointer',
     display: 'flex',
     flexGrow: 1,
     justifyContent: 'center',
@@ -98,6 +552,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     color: t.palette.warning.dark,
   },
   filesContainer: {
+    direction: 'rtl', // show the scrollbar on the right
     borderBottom: `1px solid ${t.palette.action.disabled}`,
     maxHeight: 200,
     overflowX: 'hidden',
@@ -109,41 +564,8 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   filesContainerWarn: {
     borderColor: t.palette.warning.dark,
   },
-  added: {},
-  modified: {},
-  deleted: {},
-  unchanged: {},
-  fileEntry: {
-    alignItems: 'center',
-    background: t.palette.background.paper,
-    display: 'flex',
-    '&:not(:last-child)': {
-      borderBottomStyle: 'solid',
-      borderBottomWidth: '1px',
-      borderColor: 'inherit',
-    },
-    '&$added': {
-      background: M.colors.green[100],
-    },
-    '&$modified': {
-      background: M.colors.yellow[100],
-    },
-    '&$deleted': {
-      background: M.colors.red[100],
-    },
-  },
-  filePath: {
-    ...t.typography.body2,
-    flexGrow: 1,
-    marginRight: t.spacing(1),
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  fileSize: {
-    ...t.typography.body2,
-    color: t.palette.text.secondary,
-    marginRight: t.spacing(0.5),
+  filesContainerInner: {
+    direction: 'ltr',
   },
   lock: {
     alignItems: 'center',
@@ -182,14 +604,17 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
+function FilesInput({
+  input: { value, onChange },
+  meta,
+  uploads,
+  onFilesAction,
+  errors = {},
+}) {
   const classes = useFilesInputStyles()
 
-  const value = input.value || { added: {}, deleted: {}, existing: {} }
   const disabled = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
-
-  const onInputChange = input.onChange
 
   const totalSize = React.useMemo(
     () => Object.values(value.added).reduce((sum, f) => sum + f.size, 0),
@@ -209,80 +634,38 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
     'Drop files here or click to browse'
   )
 
-  const pipeValue = useMemoEq([onInputChange, value], () => (...fns) =>
-    R.pipe(...fns, onInputChange)(value),
-  )
+  const ref = React.useRef()
+  ref.current = {
+    value,
+    disabled,
+    initial: meta.initial,
+    onChange,
+    onFilesAction,
+  }
+  const { current: dispatch } = React.useRef((action) => {
+    const cur = ref.current
+    if (cur.disabled) return
+    const newValue = handleFilesAction(action, { initial: cur.initial })(cur.value)
+    cur.onChange(newValue)
+    if (cur.onFilesAction) cur.onFilesAction(action, cur.value, newValue)
+  })
 
   const onDrop = React.useCallback(
     (files) => {
-      if (disabled) return
-      pipeValue(
-        R.reduce(
-          (acc, file) => {
-            const path = PD.getNormalizedPath(file)
-            return R.evolve(
-              {
-                added: R.assoc(path, file),
-                deleted: R.dissoc(path),
-              },
-              acc,
-            )
-          },
-          R.__, // eslint-disable-line no-underscore-dangle
-          files,
-        ),
-      )
+      dispatch(FilesAction.Add({ files }))
     },
-    [disabled, pipeValue],
+    [dispatch],
   )
 
-  const rm = (path) => {
-    pipeValue(R.evolve({ added: R.dissoc(path) }))
-    setUploads(R.dissoc(path))
-  }
-
-  const del = (path) => {
-    pipeValue(R.evolve({ deleted: R.assoc(path, true) }))
-  }
-
-  const restore = (path) => {
-    pipeValue(R.evolve({ deleted: R.dissoc(path) }))
-  }
-
-  const handleAction = (handler, ...args) => (e) => {
-    e.stopPropagation()
-    if (disabled) return
-    handler(...args)
-  }
-
-  const revertFiles = React.useCallback(() => {
-    if (disabled) return
-    onInputChange(meta.initial)
-    setUploads({})
-  }, [disabled, onInputChange, setUploads, meta.initial])
+  const resetFiles = React.useCallback(() => {
+    dispatch(FilesAction.Reset())
+  }, [dispatch])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
 
   const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
 
-  const computedEntries = useMemoEq(value, ({ added, deleted, existing }) => {
-    const existingEntries = Object.entries(existing).map(([path, { size }]) => {
-      if (path in deleted) {
-        return { type: 'deleted', path, size }
-      }
-      if (path in added) {
-        const a = added[path]
-        return { type: 'modified', path, size: a.size, delta: a.size - size }
-      }
-      return { type: 'unchanged', path, size }
-    })
-    const addedEntries = Object.entries(added).reduce((acc, [path, { size }]) => {
-      if (path in existing) return acc
-      return acc.concat({ type: 'added', path, size })
-    }, [])
-    const entries = [...existingEntries, ...addedEntries]
-    return R.sortBy((x) => [TYPE_ORDER.indexOf(x.type), x.path], entries)
-  })
+  const computedEntries = useMemoEq(value, computeEntries)
 
   const stats = useMemoEq(value, ({ added, deleted, existing }) => ({
     added: Object.values(added).reduce(
@@ -333,7 +716,7 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
         <M.Box flexGrow={1} />
         {meta.dirty && (
           <M.Button
-            onClick={revertFiles}
+            onClick={resetFiles}
             disabled={disabled}
             size="small"
             endIcon={<M.Icon fontSize="small">restore</M.Icon>}
@@ -364,34 +747,18 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
                 !error && warn && classes.filesContainerWarn,
               )}
             >
-              {computedEntries.map(({ type, path, size }) => {
-                const action = {
-                  added: { hint: 'Remove', icon: 'clear', handler: rm },
-                  modified: { hint: 'Revert', icon: 'restore', handler: rm },
-                  deleted: { hint: 'Restore', icon: 'restore', handler: restore },
-                  unchanged: { hint: 'Delete', icon: 'clear', handler: del },
-                }[type]
-                return (
-                  // TODO: dif display for dif types
-                  // TODO: show delta for modified?
-                  <div
-                    key={`${type}:${path}`}
-                    className={cx(classes.fileEntry, classes[type])}
-                  >
-                    <M.IconButton
-                      onClick={handleAction(action.handler, path)}
-                      title={action.hint}
-                      size="small"
-                    >
-                      <M.Icon fontSize="inherit">{action.icon}</M.Icon>
-                    </M.IconButton>
-                    <div className={classes.filePath} title={path}>
-                      {path}
-                    </div>
-                    <div className={classes.fileSize}>{readableBytes(size)}</div>
-                  </div>
-                )
-              })}
+              <div className={classes.filesContainerInner}>
+                {computedEntries.map((entry) => {
+                  const [Component, props, key] = FilesEntry.case(
+                    {
+                      Dir: (ps) => [Dir, ps, `dir:${ps.name}`],
+                      File: (ps) => [File, ps, `file:${ps.name}`],
+                    },
+                    entry,
+                  )
+                  return <Component {...{ ...props, key, dispatch }} />
+                })}
+              </div>
             </div>
           )}
 
@@ -484,6 +851,17 @@ function DialogForm({
   }, [manifest, workflowsConfig])
 
   const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
+
+  const onFilesAction = React.useMemo(
+    () =>
+      FilesAction.case({
+        _: () => {},
+        Revert: (path) => setUploads(R.dissoc(path)),
+        RevertDir: (prefix) => setUploads(dissocBy(R.startsWith(prefix))),
+        Reset: () => setUploads({}),
+      }),
+    [setUploads],
+  )
 
   // eslint-disable-next-line consistent-return
   const onSubmit = async ({ name, msg, files, meta, workflow }) => {
@@ -662,7 +1040,7 @@ function DialogForm({
                   nonEmpty: 'Add files to create a package',
                 }}
                 uploads={uploads}
-                setUploads={setUploads}
+                onFilesAction={onFilesAction}
                 isEqual={R.equals}
                 initialValue={initialFiles}
               />
