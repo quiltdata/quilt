@@ -153,22 +153,62 @@ const computeEntries = ({ added, deleted, existing }) => {
 }
 
 const COLORS = {
-  default: {
-    main: M.colors.grey[600],
-    accent: M.colors.grey[900],
+  default: M.colors.grey[900],
+  added: M.colors.green[900],
+  modified: darken(M.colors.yellow[900], 0.2),
+  deleted: M.colors.red[900],
+}
+
+const useEntryIconStyles = M.makeStyles((t) => ({
+  root: {
+    position: 'relative',
   },
-  added: {
-    main: M.colors.green[600],
-    accent: M.colors.green[900],
+  icon: {
+    boxSizing: 'content-box',
+    display: 'block',
+    fontSize: 18,
+    padding: 3,
   },
-  modified: {
-    main: M.colors.yellow[800],
-    accent: darken(M.colors.yellow[800], 0.2),
+  stateContainer: {
+    alignItems: 'center',
+    background: 'currentColor',
+    border: `1px solid ${t.palette.background.paper}`,
+    borderRadius: '100%',
+    bottom: 0,
+    display: 'flex',
+    height: 12,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    width: 12,
   },
-  deleted: {
-    main: M.colors.red[600],
-    accent: M.colors.red[900],
+  state: {
+    fontFamily: t.typography.fontFamily,
+    fontWeight: t.typography.fontWeightBold,
+    fontSize: 9,
+    color: t.palette.background.paper,
   },
+}))
+
+function EntryIcon({ state, children }) {
+  const classes = useEntryIconStyles()
+  const stateContents =
+    state &&
+    {
+      added: '+',
+      deleted: <>&ndash;</>,
+      modified: '~',
+    }[state]
+  return (
+    <div className={classes.root}>
+      <M.Icon className={classes.icon}>{children}</M.Icon>
+      {!!stateContents && (
+        <div className={classes.stateContainer}>
+          <div className={classes.state}>{stateContents}</div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 const useFileStyles = M.makeStyles((t) => ({
@@ -177,39 +217,27 @@ const useFileStyles = M.makeStyles((t) => ({
   deleted: {},
   unchanged: {},
   root: {
-    alignItems: 'center',
     background: t.palette.background.paper,
+    color: COLORS.default,
     cursor: 'default',
-    display: 'flex',
     outline: 'none',
-
-    color: COLORS.default.main,
-    '&:hover': {
-      color: COLORS.default.accent,
-    },
     '&$added': {
-      color: COLORS.added.main,
-      '&:hover': {
-        color: COLORS.added.accent,
-      },
+      color: COLORS.added,
     },
     '&$modified': {
-      color: COLORS.modified.main,
-      '&:hover': {
-        color: COLORS.modified.accent,
-      },
+      color: COLORS.modified,
     },
     '&$deleted': {
-      color: COLORS.deleted.main,
-      '&:hover': {
-        color: COLORS.deleted.accent,
-      },
+      color: COLORS.deleted,
     },
   },
-  icon: {
-    boxSizing: 'content-box',
-    fontSize: 18,
-    padding: 3,
+  contents: {
+    alignItems: 'center',
+    display: 'flex',
+    opacity: 0.7,
+    '$root:hover > &': {
+      opacity: 1,
+    },
   },
   name: {
     ...t.typography.body2,
@@ -222,7 +250,7 @@ const useFileStyles = M.makeStyles((t) => ({
   size: {
     ...t.typography.body2,
     marginRight: t.spacing(0.5),
-    opacity: 0.62,
+    opacity: 0.6,
   },
 }))
 
@@ -245,12 +273,12 @@ function File({ name, type, size, prefix, dispatch }) {
         added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.Revert) },
         modified: {
           hint: 'Revert',
-          icon: 'restore',
+          icon: 'undo',
           handler: handle(FilesAction.Revert),
         },
         deleted: {
           hint: 'Restore',
-          icon: 'restore',
+          icon: 'undo',
           handler: handle(FilesAction.Revert),
         },
         unchanged: { hint: 'Delete', icon: 'clear', handler: handle(FilesAction.Delete) },
@@ -270,14 +298,16 @@ function File({ name, type, size, prefix, dispatch }) {
       role="button"
       tabIndex={0}
     >
-      <M.Icon className={classes.icon}>insert_drive_file</M.Icon>
-      <div className={classes.name} title={name}>
-        {name}
+      <div className={classes.contents}>
+        <EntryIcon state={type}>insert_drive_file</EntryIcon>
+        <div className={classes.name} title={name}>
+          {name}
+        </div>
+        <div className={classes.size}>{readableBytes(size)}</div>
+        <M.IconButton onClick={action.handler} title={action.hint} size="small">
+          <M.Icon fontSize="inherit">{action.icon}</M.Icon>
+        </M.IconButton>
       </div>
-      <div className={classes.size}>{readableBytes(size)}</div>
-      <M.IconButton onClick={action.handler} title={action.hint} size="small">
-        <M.Icon fontSize="inherit">{action.icon}</M.Icon>
-      </M.IconButton>
     </div>
   )
 }
@@ -298,36 +328,22 @@ const useDirStyles = M.makeStyles((t) => ({
   },
   head: {
     alignItems: 'center',
+    color: COLORS.default,
     display: 'flex',
+    opacity: 0.7,
     outline: 'none',
-
-    color: COLORS.default.main,
     '$active > &, &:hover': {
-      color: COLORS.default.accent,
+      opacity: 1,
     },
     '$added > &': {
-      color: COLORS.added.main,
-    },
-    '$added$active > &, $added > &:hover': {
-      color: COLORS.added.accent,
+      color: COLORS.added,
     },
     '$modified > &': {
-      color: COLORS.modified.main,
-    },
-    '$modified$active > &, $modified > &:hover': {
-      color: COLORS.modified.accent,
+      color: COLORS.modified,
     },
     '$deleted > &': {
-      color: COLORS.deleted.main,
+      color: COLORS.deleted,
     },
-    '$deleted$active > &, $deleted > &:hover': {
-      color: COLORS.deleted.accent,
-    },
-  },
-  icon: {
-    boxSizing: 'content-box',
-    fontSize: 18,
-    padding: 3,
   },
   name: {
     ...t.typography.body2,
@@ -343,7 +359,7 @@ const useDirStyles = M.makeStyles((t) => ({
   bar: {
     bottom: 0,
     left: 0,
-    opacity: 0.2,
+    opacity: 0.3,
     position: 'absolute',
     top: 24,
     width: 24,
@@ -423,12 +439,12 @@ function Dir({ name, type, children, prefix, dispatch }) {
         added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.RevertDir) },
         modified: {
           hint: 'Revert',
-          icon: 'restore',
+          icon: 'undo',
           handler: handle(FilesAction.RevertDir),
         },
         deleted: {
           hint: 'Restore',
-          icon: 'restore',
+          icon: 'undo',
           handler: handle(FilesAction.RevertDir),
         },
         unchanged: {
@@ -449,7 +465,7 @@ function Dir({ name, type, children, prefix, dispatch }) {
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
       <div onClick={toggleExpanded} className={classes.head} role="button" tabIndex={0}>
-        <M.Icon className={classes.icon}>{expanded ? 'folder_open' : 'folder'}</M.Icon>
+        <EntryIcon state={type}>{expanded ? 'folder_open' : 'folder'}</EntryIcon>
         <div className={classes.name}>{name}</div>
         <M.IconButton onClick={action.handler} title={action.hint} size="small">
           <M.Icon fontSize="inherit">{action.icon}</M.Icon>
@@ -719,7 +735,7 @@ function FilesInput({
             onClick={resetFiles}
             disabled={disabled}
             size="small"
-            endIcon={<M.Icon fontSize="small">restore</M.Icon>}
+            endIcon={<M.Icon fontSize="small">undo</M.Icon>}
           >
             Undo changes
           </M.Button>
