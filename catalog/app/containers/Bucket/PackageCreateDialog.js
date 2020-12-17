@@ -462,6 +462,13 @@ function PackageCreateDialog({
     }
   }
 
+  const TABS = {
+    GENERAL: 0,
+    FILES: 1,
+    METADATA: 2,
+  }
+  const [tab, setTab] = React.useState(TABS.GENERAL)
+
   return (
     <RF.Form onSubmit={uploadPackage}>
       {({
@@ -532,84 +539,104 @@ function PackageCreateDialog({
             <>
               <M.DialogTitle>Create package</M.DialogTitle>
               <M.DialogContent style={{ paddingTop: 0 }}>
+                <M.Tabs value={tab} onChange={(e, t) => setTab(t)}>
+                  <M.Tab label="General" />
+                  <M.Tab label="Files" />
+                  <M.Tab
+                    label="Metadata"
+                    icon={submitFailed ? <M.Icon color="error">error</M.Icon> : null}
+                  />
+                </M.Tabs>
                 <form onSubmit={handleSubmit}>
-                  <RF.Field
-                    component={PD.Field}
-                    name="name"
-                    label="Name"
-                    placeholder="Enter a package name"
-                    validate={validators.composeAsync(
-                      validators.required,
-                      nameValidator.validate,
-                    )}
-                    validateFields={['name']}
-                    errors={{
-                      required: 'Enter a package name',
-                      invalid: 'Invalid package name',
-                    }}
-                    margin="normal"
-                    fullWidth
-                  />
+                  <M.Collapse in={tab === TABS.GENERAL}>
+                    <div>
+                      <RF.Field
+                        component={PD.Field}
+                        name="name"
+                        label="Name"
+                        placeholder="Enter a package name"
+                        validate={validators.composeAsync(
+                          validators.required,
+                          nameValidator.validate,
+                        )}
+                        validateFields={['name']}
+                        errors={{
+                          required: 'Enter a package name',
+                          invalid: 'Invalid package name',
+                        }}
+                        margin="normal"
+                        fullWidth
+                      />
 
-                  <RF.Field
-                    component={PD.Field}
-                    name="msg"
-                    label="Commit message"
-                    placeholder="Enter a commit message"
-                    validate={validators.required}
-                    validateFields={['msg']}
-                    errors={{
-                      required: 'Enter a commit message',
-                    }}
-                    fullWidth
-                    margin="normal"
-                  />
+                      <RF.Field
+                        component={PD.Field}
+                        name="msg"
+                        label="Commit message"
+                        placeholder="Enter a commit message"
+                        validate={validators.required}
+                        validateFields={['msg']}
+                        errors={{
+                          required: 'Enter a commit message',
+                        }}
+                        fullWidth
+                        margin="normal"
+                      />
+                    </div>
+                  </M.Collapse>
 
-                  <RF.Field
-                    component={FilesInput}
-                    name="files"
-                    validate={validators.nonEmpty}
-                    validateFields={['files']}
-                    errors={{
-                      nonEmpty: 'Add files to create a package',
-                    }}
-                    uploads={uploads}
-                    setUploads={setUploads}
-                    isEqual={R.equals}
-                  />
+                  <M.Collapse in={tab === TABS.FILES}>
+                    <div>
+                      <RF.Field
+                        component={FilesInput}
+                        name="files"
+                        validate={validators.nonEmpty}
+                        validateFields={['files']}
+                        errors={{
+                          nonEmpty: 'Add files to create a package',
+                        }}
+                        uploads={uploads}
+                        setUploads={setUploads}
+                        isEqual={R.equals}
+                      />
+                    </div>
+                  </M.Collapse>
 
-                  <PD.SchemaFetcher
-                    schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
-                  >
-                    {AsyncResult.case({
-                      Ok: ({ responseError, schema, validate }) => (
-                        <RF.Field
-                          component={PD.MetaInput}
-                          name="meta"
-                          bucket={bucket}
-                          schema={schema}
-                          schemaError={responseError}
-                          validate={validate}
-                          validateFields={['meta']}
-                          isEqual={R.equals}
-                          initialValue={PD.EMPTY_META_VALUE}
-                        />
-                      ),
-                      _: () => <PD.MetaInputSkeleton />,
-                    })}
-                  </PD.SchemaFetcher>
+                  <M.Collapse in={tab === TABS.METADATA}>
+                    <div>
+                      <PD.SchemaFetcher
+                        schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
+                      >
+                        {AsyncResult.case({
+                          Ok: ({ responseError, schema, validate }) => (
+                            <RF.Field
+                              component={PD.MetaInput}
+                              name="meta"
+                              bucket={bucket}
+                              schema={schema}
+                              schemaError={responseError}
+                              validate={validate}
+                              validateFields={['meta']}
+                              isEqual={R.equals}
+                              initialValue={PD.EMPTY_META_VALUE}
+                            />
+                          ),
+                          _: () => <PD.MetaInputSkeleton />,
+                        })}
+                      </PD.SchemaFetcher>
 
-                  <RF.Field
-                    component={PD.WorkflowInput}
-                    name="workflow"
-                    workflowsConfig={workflowsConfig}
-                    initialValue={PD.defaultWorkflowFromConfig(workflowsConfig)}
-                    validate={validators.required}
-                    validateFields={['meta', 'workflow']}
-                    errors={{
-                      required: 'Workflow is required for this bucket.',
-                    }}
-                  />
+                      <RF.Field
+                        component={PD.WorkflowInput}
+                        name="workflow"
+                        workflowsConfig={workflowsConfig}
+                        initialValue={PD.defaultWorkflowFromConfig(workflowsConfig)}
+                        validate={validators.required}
+                        validateFields={['meta', 'workflow']}
+                        errors={{
+                          required: 'Workflow is required for this bucket.',
+                        }}
+                      />
+                    </div>
+                  </M.Collapse>
 
                   <input type="submit" style={{ display: 'none' }} />
                 </form>
@@ -618,7 +645,7 @@ function PackageCreateDialog({
                 {submitting && (
                   <Delay ms={200} alwaysRender>
                     {(ready) => (
-                      <M.Fade in={ready}>
+                      <M.Collapse in={ready}>
                         <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
                           <M.CircularProgress
                             size={24}
@@ -640,7 +667,7 @@ function PackageCreateDialog({
                               : 'Writing manifest'}
                           </M.Typography>
                         </M.Box>
-                      </M.Fade>
+                      </M.Collapse>
                     )}
                   </Delay>
                 )}
