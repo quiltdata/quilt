@@ -33,6 +33,7 @@ const CrumbLink = M.styled(StyledLink)({ wordBreak: 'break-word' })
 
 function ObjectCrumbs({ handle, showBucket = false }) {
   const { urls } = NamedRoutes.use()
+  const isDir = handle.key.endsWith('/')
 
   const crumbs = React.useMemo(() => {
     const all = getBreadCrumbs(handle.key)
@@ -55,7 +56,9 @@ function ObjectCrumbs({ handle, showBucket = false }) {
 
   return (
     <span onCopy={copyWithoutSpaces}>
-      <HeaderIcon title="File">insert_drive_file</HeaderIcon>
+      <HeaderIcon title={isDir ? 'Directory' : 'File'}>
+        {isDir ? 'folder_open' : 'insert_drive_file'}
+      </HeaderIcon>
       {crumbs.bucket && (
         <>
           <CrumbLink {...crumbs.bucket} />
@@ -85,12 +88,12 @@ function HeaderIcon(props) {
   )
 }
 
-function ObjectHeader({ handle, showBucket, downloadable }) {
+function ObjectHeader({ handle, showBucket, downloadable = false }) {
   return (
     <Heading display="flex" alignItems="center" mb={1}>
       <ObjectCrumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
-      {downloadable &&
+      {!!downloadable &&
         AWS.Signer.withDownloadUrl(handle, (url) => (
           <M.Box
             alignItems="center"
@@ -458,7 +461,12 @@ function RevisionInfo({ bucket, handle, hash, comment, lastModified }) {
   )
 }
 
-function ObjectHit({ showBucket, hit: { path, versions, bucket } }) {
+function ObjectHit({ hit, ...props }) {
+  const Component = hit.path.endsWith('/') ? DirHit : FileHit
+  return <Component {...{ hit, ...props }} />
+}
+
+function FileHit({ showBucket, hit: { path, versions, bucket } }) {
   const cfg = Config.use()
   const s3 = AWS.S3.use()
 
@@ -492,6 +500,23 @@ function ObjectHit({ showBucket, hit: { path, versions, bucket } }) {
   )
 }
 
+function DirHit({
+  showBucket,
+  hit: {
+    path,
+    versions: [v],
+    bucket,
+  },
+}) {
+  const handle = { bucket, key: path }
+  return (
+    <Section>
+      <ObjectHeader {...{ handle, showBucket }} />
+      <Meta meta={v.meta} />
+    </Section>
+  )
+}
+
 function PackageHit({
   showBucket,
   hit: { bucket, handle, hash, lastModified, meta, tags, comment },
@@ -515,7 +540,7 @@ function PackageHit({
 }
 
 export function Hit(props) {
-  const Component = props.hit.type === 'object' ? ObjectHit : PackageHit
+  const Component = props.hit.type === 'package' ? PackageHit : ObjectHit
   return <Component {...props} />
 }
 
