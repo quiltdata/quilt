@@ -90,7 +90,7 @@ function HeaderIcon(props) {
 
 function ObjectHeader({ handle, showBucket, downloadable = false }) {
   return (
-    <Heading display="flex" alignItems="center" mb={1}>
+    <Heading display="flex" alignItems="center" mb="0 !important">
       <ObjectCrumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
       {!!downloadable &&
@@ -193,7 +193,7 @@ function VersionInfo({ bucket, path, version, versions }) {
   }
 
   return (
-    <>
+    <M.Box mt={1}>
       <M.Typography variant="subtitle1" className={classes.versionContainer}>
         <Nowrap>
           Version{' '}
@@ -241,7 +241,7 @@ function VersionInfo({ bucket, path, version, versions }) {
           ))}
         </SmallerSection>
       )}
-    </>
+    </M.Box>
   )
 }
 
@@ -577,16 +577,20 @@ export function Hits({
   )
 }
 
-export function Alt({ ...props }) {
-  return (
-    <M.Box
-      borderTop={{ xs: 1, sm: 0 }}
-      borderColor="divider"
-      pt={3}
-      px={{ xs: 2, sm: 0 }}
-      {...props}
-    />
-  )
+const useAltStyles = M.makeStyles((t) => ({
+  root: {
+    paddingTop: t.spacing(3),
+    [t.breakpoints.down('xs')]: {
+      borderTop: `1px solid ${t.palette.divider}`,
+      paddingLeft: t.spacing(2),
+      paddingRight: t.spacing(2),
+    },
+  },
+}))
+
+export function Alt({ className, ...props }) {
+  const classes = useAltStyles()
+  return <M.Box className={cx(className, classes.root)} {...props} />
 }
 
 export function Progress({ children }) {
