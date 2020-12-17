@@ -14,6 +14,7 @@
 
 ## Catalog, Lambdas
 * [Added] Generate and resolve Quilt package URIs ([#1935](https://github.com/quiltdata/quilt/pull/1935))
+* [Changed] Tree view for files in package update dialog ([#1989](https://github.com/quiltdata/quilt/pull/1989))
 
 # 3.3.0 - 2020-12-08
 ## Python API
