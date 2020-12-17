@@ -477,12 +477,13 @@ function PackageCreateDialog({
         <M.Dialog
           open={open}
           onClose={handleClose({ submitting })}
-          fullWidth
+          fullScreen
           scroll="body"
           onExited={reset(form)}
+          style={{ top: '128px' }}
         >
           {initError || loading || success ? (
-            <>
+            <M.Container maxWidth="sm">
               {initError && (
                 <PD.DialogError
                   error={initError}
@@ -527,9 +528,9 @@ function PackageCreateDialog({
                   </M.DialogActions>
                 </>
               )}
-            </>
+            </M.Container>
           ) : (
-            <>
+            <M.Container maxWidth="sm">
               <M.DialogTitle>Create package</M.DialogTitle>
               <M.DialogContent style={{ paddingTop: 0 }}>
                 <form onSubmit={handleSubmit}>
@@ -667,7 +668,7 @@ function PackageCreateDialog({
                   Create
                 </M.Button>
               </M.DialogActions>
-            </>
+            </M.Container>
           )}
         </M.Dialog>
       )}

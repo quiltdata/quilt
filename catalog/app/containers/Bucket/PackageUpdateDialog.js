@@ -1293,28 +1293,31 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
         open={isOpen}
         exited={exited}
         onClose={close}
-        fullWidth
+        fullScreen
         scroll="body"
         onExited={handleExited}
+        style={{ top: '128px' }}
       >
-        {stateCase({
-          Closed: () => null,
-          Loading: () => <DialogPlaceholder close={close} />,
-          Error: (e) => <DialogError close={close} error={e} />,
-          Form: (props) => (
-            <DialogForm
-              {...{
-                bucket,
-                name,
-                close,
-                onSuccess: setSuccess,
-                setSubmitting,
-                ...props,
-              }}
-            />
-          ),
-          Success: (props) => <DialogSuccess {...{ bucket, close, ...props }} />,
-        })}
+        <M.Container maxWidth="sm">
+          {stateCase({
+            Closed: () => null,
+            Loading: () => <DialogPlaceholder close={close} />,
+            Error: (e) => <DialogError close={close} error={e} />,
+            Form: (props) => (
+              <DialogForm
+                {...{
+                  bucket,
+                  name,
+                  close,
+                  onSuccess: setSuccess,
+                  setSubmitting,
+                  ...props,
+                }}
+              />
+            ),
+            Success: (props) => <DialogSuccess {...{ bucket, close, ...props }} />,
+          })}
+        </M.Container>
       </DialogWrapper>
     ),
     [bucket, name, isOpen, exited, close, stateCase, handleExited],
