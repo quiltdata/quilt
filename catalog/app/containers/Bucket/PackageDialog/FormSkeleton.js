@@ -7,7 +7,7 @@ export default function FormSkeleton({ animate }) {
   return (
     <>
       <M.Grid container spacing={2}>
-        <M.Grid item xs={6}>
+        <M.Grid item xs={12} sm={6}>
           <Skeleton {...{ height: 48, mt: 2, animate }} />
           <Skeleton {...{ height: 48, mt: 3, animate }} />
           <M.Box mt={3}>
@@ -27,7 +27,7 @@ export default function FormSkeleton({ animate }) {
           </M.Box>
           <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
         </M.Grid>
-        <M.Grid item xs={6}>
+        <M.Grid item xs={12} sm={6}>
           <M.Box mt={2}>
             <Skeleton {...{ height: 24, width: 64, animate }} />
             <Skeleton {...{ height: 140, mt: 2, animate }} />

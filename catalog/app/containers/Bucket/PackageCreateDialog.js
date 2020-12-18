@@ -551,7 +551,7 @@ function PackageCreateDialog({
               <M.DialogContent style={{ paddingTop: 0 }}>
                 <form onSubmit={handleSubmit}>
                   <M.Grid container spacing={2}>
-                    <M.Grid item xs={6}>
+                    <M.Grid item xs={12} sm={6}>
                       <RF.Field
                         component={PD.Field}
                         name="name"
@@ -618,7 +618,7 @@ function PackageCreateDialog({
                       />
                     </M.Grid>
 
-                    <M.Grid item xs={6}>
+                    <M.Grid item xs={12} sm={6}>
                       <RF.Field
                         component={FilesInput}
                         name="files"
