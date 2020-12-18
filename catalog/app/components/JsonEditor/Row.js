@@ -10,10 +10,16 @@ const useStyles = M.makeStyles((t) => ({
     padding: 0,
   },
   key: {
-    width: t.spacing(27),
+    width: '50%',
+    [t.breakpoints.up('lg')]: {
+      width: t.spacing(27),
+    },
   },
   value: {
-    width: t.spacing(40),
+    width: '50%',
+    [t.breakpoints.up('lg')]: {
+      width: t.spacing(40),
+    },
   },
 }))
 
