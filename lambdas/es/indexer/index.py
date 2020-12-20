@@ -649,9 +649,7 @@ def handler(event, context):
                 ext1 = path.suffix
                 ext2 = path.with_suffix('').suffix
                 ext = (ext2 + ext1).lower()
-
-                # Handle delete first and then continue so that
-                # head_object and get_object (below) don't fail
+                # Handle delete now to save a head_object
                 if event_name.startswith(EVENT_PREFIX["Removed"]):
                     logger_.debug("Object delete to queue")
                     batch_processor.append(

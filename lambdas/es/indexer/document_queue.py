@@ -110,9 +110,9 @@ class DocumentQueue:
         # see https://elasticsearch-py.readthedocs.io/en/6.3.1/helpers.html
         body = {
             "_index": index_name,
-            "_op_type": _op_type,
+            "_op_type": _op_type,  # determines if action is upsert (index) or delete
             "_type": "_doc",
-            # TODO nest fields under "document" and use _type:{package, object}
+            # TODO nest fields under "document" and maybe use _type:{package, object}
             "comment": comment,
             "etag": etag,
             "key": key,
