@@ -11,7 +11,11 @@ from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 
 from t4_lambda_shared.decorator import api
-from t4_lambda_shared.utils import get_default_origins, make_json_response, PACKAGE_INDEX_SUFFIX
+from t4_lambda_shared.utils import (
+    PACKAGE_INDEX_SUFFIX,
+    get_default_origins,
+    make_json_response,
+)
 
 DEFAULT_SIZE = 1_000
 MAX_QUERY_DURATION = 27  # Just shy of 29s API Gateway limit
