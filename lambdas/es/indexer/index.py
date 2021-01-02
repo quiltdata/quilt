@@ -144,7 +144,7 @@ from t4_lambda_shared.utils import (
 )
 
 # translate events to S3 native names
-EVENTBRIDGE_TO_S3 =  {
+EVENTBRIDGE_TO_S3 = {
     "PutObject": EVENT_PREFIX["Created"] + "Put",
     "CopyObject": EVENT_PREFIX["Created"] + "Copy",
     "CompleteMultipartUpload": EVENT_PREFIX["Created"] + "CompleteMultipartUpload",
@@ -691,7 +691,7 @@ def handler(event, context):
             logger_.debug("Processing %s", event_)
             try:
                 event_name = event_["eventName"]
-               # Process all Create:* and Remove:* events
+                # Process all Create:* and Remove:* events
                 if not any(event_name.startswith(n) for n in EVENT_PREFIX.values()):
                     logger_.warning("Skipping unknown event type: %s", event_name)
                     continue
@@ -702,7 +702,7 @@ def handler(event, context):
                 version_id = event_["s3"]["object"].get("versionId", None)
                 if version_id:
                     version_id = unquote(version_id)
-               # ObjectRemoved:Delete does not include "eTag"
+                # ObjectRemoved:Delete does not include "eTag"
                 etag = unquote(event_["s3"]["object"].get("eTag", ""))
                 # guess last_modified, since the event doesn't give it to us
                 last_modified = isoparse(event_["eventTime"])

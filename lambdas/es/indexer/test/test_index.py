@@ -146,7 +146,6 @@ def _check_event(synthetic, organic):
     assert organic["s3"]["object"]["eTag"] == synthetic["s3"]["object"]["eTag"]
 
 
-
 def make_event(
         name,
         *,

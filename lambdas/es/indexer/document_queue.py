@@ -155,7 +155,7 @@ class DocumentQueue:
         elif doc_type == DocTypes.OBJECT:
             if not version_id:
                 # ensure the same versionId and primary keys (_id) as given by
-                # list-object-versions in the enterprise bulk_scanner
+                #  list-object-versions in the enterprise bulk_scanner
                 version_id = "null"
             body.update({
                 # Elastic native keys
@@ -246,7 +246,6 @@ class DocumentQueue:
 
     def send_all(self):
         """flush self.queue in 1-2 bulk calls"""
-        logger_ = get_quilt_logger()
         if not self.queue:
             return
         elastic = self._make_elastic()
