@@ -159,7 +159,7 @@ class DocumentQueue:
                 version_id = "null"
             body.update({
                 # Elastic native keys
-               "_id": f"{key}:{version_id}",
+                "_id": f"{key}:{version_id}",
                 # TODO: remove this field from ES in /enterprise (now deprecated and unused)
                 # here we explicitly drop the comment
                 "comment": "",
