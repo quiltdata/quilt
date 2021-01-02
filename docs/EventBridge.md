@@ -48,6 +48,7 @@ that you created above.
         "awsRegion": "$.detail.awsRegion",
         "bucketName": "$.detail.requestParameters.bucketName",
         "eventName": "$.detail.eventName",
+        "eventTime": "$.detail.eventTime",
         "isDeleteMarker": "$.detail.responseElements.x-amz-delete-marker",
         "key": "$.detail.requestParameters.key",
         "versionId": "$.detail.requestParameters.x-amz-version-id"
