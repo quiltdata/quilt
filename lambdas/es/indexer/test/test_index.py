@@ -50,6 +50,7 @@ UNKNOWN_EVENT_TYPE = "Event:WeNeverHeardOf"
 EVENTBRIDGE_CORE = {
     'awsRegion': 'us-east-1',
     'eventName': 'PutObject',
+    'eventTime': '2020-12-30T21:29:41Z',
     's3': {
         'bucket': {
             'name': 'quilt-s3-eventbridge'
@@ -143,6 +144,7 @@ def _check_event(synthetic, organic):
     assert organic["s3"]["bucket"]["name"] == synthetic["s3"]["bucket"]["name"]
     assert organic["s3"]["object"]["key"] == synthetic["s3"]["object"]["key"]
     assert organic["s3"]["object"]["eTag"] == synthetic["s3"]["object"]["eTag"]
+
 
 
 def make_event(
@@ -551,7 +553,7 @@ class TestIndex(TestCase):
                 expected_params["VersionId"] = versionId
             elif eTag:
                 expected_params["IfMatch"] = eTag
-            # infer mock status (we only talk to S3 on create events)
+            # infer mock status (we only talk head S3 on create events)
             mock_head = mock_object = name in CREATE_EVENT_TYPES
             # check for occasional overrides (which can be false)
             if mock_overrides and "mock_head" in mock_overrides:
@@ -621,7 +623,7 @@ class TestIndex(TestCase):
     @patch.object(index.DocumentQueue, 'send_all')
     @patch.object(index.DocumentQueue, 'append')
     @patch.object(index, 'maybe_get_contents')
-    @patch.object(index, 'index_if_manifest')
+    @patch.object(index, 'index_if_package')
     def test_40X(self, index_if_mock, contents_mock, append_mock, send_mock):
         """
         test fatal head 40Xs that will cause us to skip objects
@@ -768,12 +770,11 @@ class TestIndex(TestCase):
 
     def test_delete_marker_event(self):
         """
-        common event in versioned; buckets, should no-op
+        common event in versioned buckets
         """
         self._test_index_events(
             ["ObjectRemoved:DeleteMarkerCreated"],
-            # we should never call elastic in this case
-            mock_elastic=False
+            expected_es_calls=1
         )
 
     def test_delete_marker_event_no_versioning(self):
@@ -784,8 +785,8 @@ class TestIndex(TestCase):
         # don't mock head or get; this event should never call them
         self._test_index_events(
             ["ObjectRemoved:DeleteMarkerCreated"],
-            mock_elastic=False,
             bucket_versioning=False,
+            expected_es_calls=1
         )
 
     @patch.object(index, 'extract_parquet')
@@ -856,12 +857,12 @@ class TestIndex(TestCase):
                 }
             )
 
-    def test_index_if_manifest_skip(self):
-        """test cases where index_if_manifest ignores input for different reasons"""
+    def test_index_if_package_skip(self):
+        """test cases where index_if_package ignores input for different reasons"""
         # none of these should index due to out-of-range timestamp or non-integer name
         for file_name in [1451631500, 1767250801, 'latest']:
             key = f".quilt/named_packages/foo/bar/{file_name}"
-            assert not index.index_if_manifest(
+            assert not index.index_if_package(
                 self.s3_client,
                 index.DocumentQueue(None),
                 "ObjectCreated:Put",
@@ -881,7 +882,7 @@ class TestIndex(TestCase):
                 f".quilt/named_packages/not-deep-enough/{good_timestamp}",
                 f"somewhere/else/foo/bar/{floor(time())}",
         ]:
-            assert not index.index_if_manifest(
+            assert not index.index_if_package(
                 self.s3_client,
                 index.DocumentQueue(None),
                 "ObjectCreated:Put",
@@ -897,9 +898,9 @@ class TestIndex(TestCase):
 
     @patch.object(index.DocumentQueue, 'append')
     @patch.object(index, 'maybe_get_contents')
-    @patch.object(index, 'index_if_manifest')
-    def test_index_if_manifest_negative(self, index_mock, get_mock, append_mock):
-        """test non-manifest file (still calls index_if_manifest)"""
+    @patch.object(index, 'index_if_package')
+    def test_index_if_package_negative(self, index_mock, get_mock, append_mock):
+        """test non-manifest file (still calls index_if_package)"""
         json_data = json.dumps({"version": 1})
         get_mock.return_value = json_data
         self._test_index_events(
@@ -932,7 +933,7 @@ class TestIndex(TestCase):
         )
 
     @patch.object(index.DocumentQueue, 'append')
-    def test_index_if_manifest_positive(self, append_mock):
+    def test_index_if_package_positive(self, append_mock):
         """test manifest file and its indexing"""
         timestamp = floor(time())
         pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
@@ -951,7 +952,7 @@ class TestIndex(TestCase):
         )
 
         sha_hash = "50f4d0fc2c22a70893a7f356a4929046ce529b53c1ef87e28378d92b884691a5"
-        # next, handler() calls index_if_manifest which gets the hash from pointer_file
+        # next, handler() calls index_if_package which gets the hash from pointer_file
         self.s3_stubber.add_response(
             method="get_object",
             service_response={

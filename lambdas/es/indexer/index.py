@@ -108,6 +108,8 @@ from urllib.parse import unquote, unquote_plus
 import boto3
 import botocore
 import nbformat
+from dateutil.parser import isoparse
+from dateutil.tz import tzutc
 from document_queue import (
     CONTENT_INDEX_EXTS,
     EVENT_PREFIX,
@@ -115,7 +117,7 @@ from document_queue import (
     DocTypes,
     DocumentQueue,
 )
-from jsonschema import ValidationError, validate
+from jsonschema import ValidationError, draft7_format_checker, validate
 from tenacity import (
     retry,
     retry_if_exception,
@@ -148,7 +150,7 @@ EVENTBRIDGE_TO_S3 =  {
     "CompleteMultipartUpload": EVENT_PREFIX["Created"] + "CompleteMultipartUpload",
     # see map_event_name for complete logic
     "DeleteObject": None,
-    # "DeleteObjects" is not handled since it does not contain enough information on 
+    # "DeleteObjects" is not handled since it does not contain enough information on
     # which objects where deleted
 }
 
@@ -161,6 +163,10 @@ EVENT_SCHEMA = {
         },
         'eventName': {
             'type': 'string'
+        },
+        'eventTime': {
+            'type': 'string',
+            'format': 'date-time'
         },
         's3': {
             'type': 'object',
@@ -199,7 +205,7 @@ EVENT_SCHEMA = {
             'additionalProperties': True
         },
     },
-    'required': ['s3', 'eventName'],
+    'required': ['s3', 'eventName', 'eventTime'],
     'additionalProperties': True
 }
 # 10 MB, see https://amzn.to/2xJpngN
@@ -224,21 +230,13 @@ def now_like_boto3():
     Example of what boto3 returns on head_object:
         'LastModified': datetime.datetime(2019, 11, 6, 3, 1, 16, tzinfo=tzutc()),
     """
-    return datetime.datetime.now(tz=datetime.timezone.utc)
-
-
-def should_retry_exception(exception):
-    """don't retry certain 40X errors"""
-    if hasattr(exception, 'response'):
-        error_code = exception.response.get('Error', {}).get('Code', 218)
-        return error_code not in ["402", "403", "404"]
-    return False
+    return datetime.datetime.now(tz=tzutc())
 
 
 def infer_extensions(key, ext):
     """guess extensions if possible"""
     # Handle special case of hive partitions
-    # see https://www.qubole.com/blog/direct-writes-to-increase-spark-performance/
+    # see https://www.qubole.com/blog/direct-writes-increase-spark-performance/
     if (
             re.fullmatch(r".c\d{3,5}", ext) or re.fullmatch(r".*-c\d{3,5}$", key)
             or key.endswith("_0")
@@ -247,6 +245,14 @@ def infer_extensions(key, ext):
         return ".parquet"
 
     return ext
+
+
+def should_retry_exception(exception):
+    """don't retry certain 40X errors"""
+    if hasattr(exception, 'response'):
+        error_code = exception.response.get('Error', {}).get('Code', 218)
+        return error_code not in ["402", "403", "404"]
+    return False
 
 
 @retry(
@@ -272,7 +278,53 @@ def select_manifest_meta(s3_client, bucket: str, key: str):
     return None
 
 
-def index_if_manifest(
+def do_index(
+        s3_client,
+        doc_queue: DocumentQueue,
+        event_type: str,
+        *,
+        bucket: str,
+        etag: str,
+        ext: str,
+        key: str,
+        last_modified: str,
+        text: str = '',
+        size: int = 0,
+        version_id: Optional[str]
+):
+    """wrap dual indexing of packages and objects"""
+    logger_ = get_quilt_logger()
+    # index as object (always)
+    logger_.debug("%s to indexing queue (%s)", key, event_type)
+    doc_queue.append(
+        event_type,
+        DocTypes.OBJECT,
+        bucket=bucket,
+        ext=ext,
+        etag=etag,
+        key=key,
+        last_modified=last_modified,
+        size=size,
+        text=text,
+        version_id=version_id
+    )
+    # maybe index as package
+    if index_if_package(
+        s3_client,
+        doc_queue,
+        event_type,
+        bucket=bucket,
+        etag=etag,
+        ext=ext,
+        key=key,
+        last_modified=last_modified,
+        size=size,
+        version_id=version_id,
+    ):
+        logger_.debug("%s indexed as package (%s)", key, event_type)
+
+
+def index_if_package(
         s3_client,
         doc_queue: DocumentQueue,
         event_type: str,
@@ -285,9 +337,9 @@ def index_if_manifest(
         version_id: Optional[str],
         size: int
 ) -> bool:
-    """index manifest files as package documents in ES
+    """index manifest pointer files as package documents in ES
         Returns:
-            - True if manifest (and passes to doc_queue for indexing)
+            - True if pointer to manifest (and passes to doc_queue for indexing)
             - False if not a manifest (no attempt at indexing)
     """
     logger_ = get_quilt_logger()
@@ -311,47 +363,53 @@ def index_if_manifest(
             logger_.warning("Unexpected manifest timestamp s3://%s/%s", bucket, key)
             return False
 
-    package_hash = get_plain_text(
-        bucket,
-        key,
-        size,
-        None,
-        etag=etag,
-        s3_client=s3_client,
-        version_id=version_id,
-    ).strip()
-
-    manifest_key = f"{MANIFEST_PREFIX_V1}{package_hash}"
-    first = select_manifest_meta(s3_client, bucket, manifest_key)
-    stats = select_package_stats(s3_client, bucket, manifest_key)
-    if not first:
-        logger_.error("S3 select failed %s %s", bucket, manifest_key)
-        return False
-    try:
-        first_dict = json.loads(first)
-        doc_queue.append(
-            event_type,
-            DocTypes.PACKAGE,
-            bucket=bucket,
+    package_hash = ''
+    first_dict = ''
+    stats = None
+    # we only need to touch the manifest for create events
+    if event_type.startswith(EVENT_PREFIX["Created"]):
+        package_hash = get_plain_text(
+            bucket,
+            key,
+            size,
+            None,
             etag=etag,
-            ext=ext,
-            handle=handle,
-            key=manifest_key,
-            last_modified=last_modified,
-            package_hash=package_hash,
-            package_stats=stats,
-            pointer_file=pointer_file,
-            comment=str(first_dict.get("message", "")),
-            metadata=json.dumps(first_dict.get("user_meta", {})),
-        )
-        return True
-    except (json.JSONDecodeError, botocore.exceptions.ClientError) as exc:
-        print(
-            f"{exc}\n"
-            f"\tFailed to select first line of manifest s3://{bucket}/{key}."
-            f"\tGot {first}."
-        )
-        return False
+            s3_client=s3_client,
+            version_id=version_id,
+        ).strip()
+        manifest_key = f"{MANIFEST_PREFIX_V1}{package_hash}"
+        first = select_manifest_meta(s3_client, bucket, manifest_key)
+        stats = select_package_stats(s3_client, bucket, manifest_key)
+        if not first:
+            logger_.error("S3 select failed %s %s", bucket, manifest_key)
+            return False
+        try:
+            first_dict = json.loads(first)
+        except (json.JSONDecodeError, botocore.exceptions.ClientError) as exc:
+            print(
+                f"{exc}\n"
+                f"\tFailed to select first line of manifest s3://{bucket}/{key}."
+                f"\tGot {first}."
+            )
+            return False
+
+    doc_queue.append(
+        event_type,
+        DocTypes.PACKAGE,
+        bucket=bucket,
+        etag=etag,
+        ext=ext,
+        handle=handle,
+        key=manifest_key,
+        last_modified=last_modified,
+        package_hash=package_hash,
+        package_stats=stats,
+        pointer_file=pointer_file,
+        comment=str(first_dict.get("message", "")),
+        metadata=json.dumps(first_dict.get("user_meta", {})),
+    )
+
+    return True
 
 
 def select_package_stats(s3_client, bucket, manifest_key) -> str:
@@ -575,8 +633,8 @@ def map_event_name(event: dict):
             if event["s3"]["object"].get("isDeleteMarker"):
                 return EVENT_PREFIX["Removed"] + "DeleteMarkerCreated"
             return EVENT_PREFIX["Removed"] + "Delete"
-        else:
-            return EVENTBRIDGE_TO_S3[input]
+        # all non-delete events just use the map
+        return EVENTBRIDGE_TO_S3[input]
     # leave event type unchanged if we don't recognize it
     return input
 
@@ -586,7 +644,13 @@ def shape_event(event: dict):
     logger_ = get_quilt_logger()
 
     try:
-        validate(instance=event, schema=EVENT_SCHEMA)
+        validate(
+            instance=event,
+            schema=EVENT_SCHEMA,
+            # format_checker= required for for format:date-time validation
+            # (we also need strict-rfc3339 in requirements.txt)
+            format_checker=draft7_format_checker,
+        )
     except ValidationError as error:
         logger_.error("Invalid event format: %s\n%s", error, event)
         return None
@@ -627,13 +691,9 @@ def handler(event, context):
             logger_.debug("Processing %s", event_)
             try:
                 event_name = event_["eventName"]
-                # Process all Create:* and Remove:* events
+               # Process all Create:* and Remove:* events
                 if not any(event_name.startswith(n) for n in EVENT_PREFIX.values()):
                     logger_.warning("Skipping unknown event type: %s", event_name)
-                    continue
-                # Nothing to do in ES for delete markers
-                if event_name == "ObjectRemoved:DeleteMarkerCreated":
-                    logger_.debug("Skipping DeleteMarkerCreated: %s", event_name)
                     continue
                 bucket = unquote(event_["s3"]["bucket"]["name"])
                 # In the grand tradition of IE6, S3 events turn spaces into '+'
@@ -644,27 +704,28 @@ def handler(event, context):
                     version_id = unquote(version_id)
                # ObjectRemoved:Delete does not include "eTag"
                 etag = unquote(event_["s3"]["object"].get("eTag", ""))
+                # guess last_modified, since the event doesn't give it to us
+                last_modified = isoparse(event_["eventTime"])
                 # Get two levels of extensions to handle files like .csv.gz
                 path = pathlib.PurePosixPath(key)
                 ext1 = path.suffix
                 ext2 = path.with_suffix('').suffix
                 ext = (ext2 + ext1).lower()
-                # Handle delete now to save a head_object
+                # Handle delete and deletemarker first and then continue so that
+                # head_object and get_object (below) don't fail
                 if event_name.startswith(EVENT_PREFIX["Removed"]):
-                    logger_.debug("Object delete to queue")
-                    batch_processor.append(
+                    do_index(
+                        s3_client,
+                        batch_processor,
                         event_name,
-                        DocTypes.OBJECT,
                         bucket=bucket,
-                        ext=ext,
                         etag=etag,
+                        ext=ext,
                         key=key,
-                        last_modified=now_like_boto3(),
-                        text="",
+                        last_modified=last_modified,
                         version_id=version_id
                     )
                     continue
-
                 try:
                     logger_.debug("Get object head")
                     head = retry_s3(
@@ -698,27 +759,11 @@ def handler(event, context):
                             logger_.warning("Retried head_object error: %s", second)
                     logger_.error("Fatal head_object, skipping event: %s", event_)
                     continue
-
+                # backfill fields based on the head_object
                 size = head["ContentLength"]
                 last_modified = head["LastModified"]
-                # backfill etag and version_id if we can
                 etag = head.get("etag") or etag
                 version_id = head.get("VersionId") or version_id
-
-                did_index = index_if_manifest(
-                    s3_client,
-                    batch_processor,
-                    event_name,
-                    bucket=bucket,
-                    etag=etag,
-                    ext=ext,
-                    key=key,
-                    last_modified=last_modified,
-                    size=size,
-                    version_id=version_id
-                )
-                logger_.debug("Logged as manifest? %s", did_index)
-
                 try:
                     text = maybe_get_contents(
                         bucket,
@@ -736,17 +781,18 @@ def handler(event, context):
                     content_exception = exc
                     logger_.error("Content extraction failed %s %s %s", bucket, key, exc)
 
-                batch_processor.append(
+                do_index(
+                    s3_client,
+                    batch_processor,
                     event_name,
-                    DocTypes.OBJECT,
                     bucket=bucket,
-                    key=key,
-                    ext=ext,
                     etag=etag,
-                    version_id=version_id,
+                    ext=ext,
+                    key=key,
                     last_modified=last_modified,
                     size=size,
-                    text=text
+                    text=text,
+                    version_id=version_id
                 )
 
             except botocore.exceptions.ClientError as boto_exc:

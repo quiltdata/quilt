@@ -12,7 +12,7 @@ from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 
 from t4_lambda_shared.preview import ELASTIC_LIMIT_BYTES
-from t4_lambda_shared.utils import get_quilt_logger, separated_env_to_iter
+from t4_lambda_shared.utils import get_quilt_logger, PACKAGE_INDEX_SUFFIX, separated_env_to_iter
 
 CONTENT_INDEX_EXTS = separated_env_to_iter("CONTENT_INDEX_EXTS") or {
     ".csv",
@@ -35,9 +35,6 @@ CHUNK_LIMIT_BYTES = int(os.getenv('CHUNK_LIMIT_BYTES') or 9_500_000)
 ELASTIC_TIMEOUT = 30
 MAX_BACKOFF = 360  # seconds
 MAX_RETRY = 4  # prevent long-running lambdas due to malformed calls
-# signifies that the object is truly deleted, not to be confused with
-# s3:ObjectRemoved:DeleteMarkerCreated, which we may see in versioned buckets
-# see https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
 QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
 RETRY_429 = 5
 
@@ -89,7 +86,10 @@ class DocumentQueue:
         logger_ = get_quilt_logger()
         if not bucket or not key:
             raise ValueError(f"bucket={bucket} or key={key} required but missing")
-        if event_type.startswith(EVENT_PREFIX["Created"]):
+        # TODO: which event does deleting a delete marker cause?
+        is_delete_marker = event_type.endswith("DeleteMarkerCreated")
+        # we index delete markers, instead of deleting them
+        if event_type.startswith(EVENT_PREFIX["Created"]) or is_delete_marker:
             _op_type = "index"
         elif event_type.startswith(EVENT_PREFIX["Removed"]):
             _op_type = "delete"
@@ -103,7 +103,7 @@ class DocumentQueue:
         # can cause exceptions from ES
         index_name = bucket
         if doc_type == DocTypes.PACKAGE:
-            index_name += "_packages"
+            index_name += PACKAGE_INDEX_SUFFIX
         if not index_name:
             raise ValueError(f"Can't infer index name; bucket={bucket}, doc_type={doc_type}")
         # core properties for all document types;
@@ -118,10 +118,18 @@ class DocumentQueue:
             "key": key,
             "last_modified": last_modified.isoformat(),
             "size": size,
+            "delete_marker": is_delete_marker,
         }
         if doc_type == DocTypes.PACKAGE:
-            if not handle or not package_hash or not pointer_file:
-                raise ValueError("missing required argument for package document")
+            if not handle:
+                raise ValueError("missing required argument for package doc")
+            if _op_type == "index":
+                if not pointer_file or not package_hash:
+                    raise ValueError("missing required argument for package doc")
+            elif _op_type == "delete":
+                if not is_delete_marker:
+                    # delete by query to pointer_file
+                    pass
             if not (
                 package_stats is None
                 or isinstance(package_stats, dict)
@@ -178,10 +186,8 @@ class DocumentQueue:
         logger_.debug("Appending document %s", doc)
         self.queue.append(doc)
 
-    def send_all(self):
-        """flush self.queue in 1-2 bulk calls"""
-        if not self.queue:
-            return
+    def _make_elastic(self):
+        """create elasticsearch client"""
         elastic_host = os.environ["ES_HOST"]
         session = boto3.session.Session()
         credentials = session.get_credentials().get_frozen_credentials()
@@ -195,7 +201,7 @@ class DocumentQueue:
             aws_service="es"
         )
 
-        elastic = Elasticsearch(
+        return Elasticsearch(
             hosts=[{"host": elastic_host, "port": 443}],
             http_auth=awsauth,
             max_backoff=get_time_remaining(self.context) if self.context else MAX_BACKOFF,
@@ -205,10 +211,46 @@ class DocumentQueue:
             verify_certs=True,
             connection_class=RequestsHttpConnection
         )
+
+    def _filter_and_delete_packages(self, elastic):
+        """handle package hard delete"""
+        true_docs = []
+        for doc in self.queue:
+            # handle hard package delete outside of the bulk operation
+            pointer_file = doc.get("pointer_file")
+            if pointer_file and not doc.get("delete_marker"):
+                index = doc.get("_index")
+                assert index.endswith(PACKAGE_INDEX_SUFFIX), f"Refuse to delete non-package: {doc}"
+                handle = doc.get("handle")
+                assert handle, "Cannot delete package without handle"
+                elastic.delete_by_query(
+                    index=index,
+                    body={
+                        "query": {
+                            "match": {
+                                "handle": handle,
+                                "pointer_file": pointer_file,
+                            }
+                        }
+                    }
+                )
+            # send everything else to bulk()
+            else:
+                true_docs.append(doc)
+        # the queue is now everything we didn't delete by query above
+        self.queue = true_docs
+
+    def send_all(self):
+        """flush self.queue in 1-2 bulk calls"""
+        logger_ = get_quilt_logger()
+        if not self.queue:
+            return
+        elastic = self._make_elastic()
         # For response format see
         # https://www.elastic.co/guide/en/elasticsearch/reference/6.7/docs-bulk.html
         # (We currently use Elastic 6.7 per quiltdata/deployment search.py)
         # note that `elasticsearch` post-processes this response
+        self._filter_and_delete_packages(elastic)
         _, errors = bulk_send(elastic, self.queue)
         if errors:
             id_to_doc = {d["_id"]: d for d in self.queue}
