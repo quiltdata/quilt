@@ -218,6 +218,7 @@ class DocumentQueue:
 
     def _filter_and_delete_packages(self, elastic):
         """handle package hard delete"""
+        logger_ = get_quilt_logger()
         true_docs = []
         for doc in self.queue:
             # handle hard package delete outside of the bulk operation
@@ -227,17 +228,25 @@ class DocumentQueue:
                 assert index.endswith(PACKAGE_INDEX_SUFFIX), f"Refuse to delete non-package: {doc}"
                 handle = doc.get("handle")
                 assert handle, "Cannot delete package without handle"
-                elastic.delete_by_query(
+                # TODO: mocks for this
+                deletes = elastic.delete_by_query(
                     index=index,
                     body={
                         "query": {
-                            "match": {
-                                "handle": handle,
-                                "pointer_file": pointer_file,
+                            "bool": {
+                                "must": [
+                                    {"match": {"handle": handle}},
+                                    {"match": {"pointer_file": pointer_file}},
+                                ],
+                                # TODO: is there ever a case where we should drop the delete marker as well?
+                                "must_not": {
+                                    "match": {"delete_marker": True}
+                                }
                             }
                         }
                     }
                 )
+                logger_.debug("Deleted %s stamped %s: %s", handle, pointer_file, deletes)
             # send everything else to bulk()
             else:
                 true_docs.append(doc)
