@@ -34,10 +34,11 @@ export default composeComponent(
   branch(
     R.prop('authenticated'),
     renderComponent(({ waiting }) => {
-      const doSignOut = useSignOut()
+      const signOutRef = React.useRef()
+      signOutRef.current = useSignOut()
       React.useEffect(() => {
-        if (!waiting) doSignOut()
-      }, [waiting])
+        if (!waiting) signOutRef.current()
+      }, [waiting, signOutRef])
       return (
         <Container>
           <Working style={{ textAlign: 'center' }}>

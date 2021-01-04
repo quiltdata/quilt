@@ -66,7 +66,7 @@ function usePolling(callback, { interval = POLL_INTERVAL } = {}) {
     return () => {
       clearInterval(int)
     }
-  }, [])
+  }, [interval])
 }
 
 export function useDownloadUrl(handle) {

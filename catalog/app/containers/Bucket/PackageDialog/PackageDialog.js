@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import JsonEditor from 'components/JsonEditor'
-import { parseJSON, stringifyJSON, validateOnSchema } from 'components/JsonEditor/State'
+import { parseJSON, stringifyJSON } from 'components/JsonEditor/State'
 import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import { useData } from 'utils/Data'
@@ -13,6 +13,7 @@ import Delay from 'utils/Delay'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
+import { makeSchemaValidator } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
@@ -120,7 +121,7 @@ function mkMetaValidator(schema) {
   // TODO: move schema validation to utils/validators
   //       but don't forget that validation depends on library.
   //       Maybe we should split validators to files at first
-  const schemaValidator = validateOnSchema(schema)
+  const schemaValidator = makeSchemaValidator(schema)
   return function validateMeta(value) {
     const noError = undefined
 

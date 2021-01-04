@@ -65,20 +65,16 @@ const NotAuthorized = RT.composeComponent(
   ),
 )
 
-export default ({ authorizedSelector = R.T } = {}) =>
-  memoize(
+export default ({ authorizedSelector = R.T } = {}) => {
+  const select = createStructuredSelector({
+    authenticated: selectors.authenticated,
+    authorized: authorizedSelector,
+    error: selectors.error,
+    waiting: selectors.waiting,
+    location: selectLocation,
+  })
+  return memoize(
     RT.composeHOC('Auth.Wrapper', (Component) => (props) => {
-      const select = React.useMemo(
-        () =>
-          createStructuredSelector({
-            authenticated: selectors.authenticated,
-            authorized: authorizedSelector,
-            error: selectors.error,
-            waiting: selectors.waiting,
-            location: selectLocation,
-          }),
-        [authorizedSelector],
-      )
       const state = redux.useSelector(select)
       const { urls } = NamedRoutes.use()
 
@@ -107,3 +103,4 @@ export default ({ authorizedSelector = R.T } = {}) =>
       return <Component {...props} />
     }),
   )
+}

@@ -1,5 +1,6 @@
 import dedent from 'dedent'
 
+import * as errors from 'containers/Bucket/errors'
 import * as workflows from './workflows'
 
 describe('utils/workflows', () => {
@@ -20,14 +21,8 @@ describe('utils/workflows', () => {
       const data = dedent`
         version: "1"
       `
-      const config = workflows.parse(data)
-
-      it('should return default empty values', () => {
-        expect(config).toEqual(workflows.emptyConfig)
-      })
-
-      it('should return data with special `notAvailable` workflow', () => {
-        expect(config.workflows[0].slug).toBe(workflows.notAvaliable)
+      it('should throw errors.WorkflowsConfigInvalid', () => {
+        expect(() => workflows.parse(data)).toThrow(errors.WorkflowsConfigInvalid)
       })
     })
 
@@ -36,14 +31,8 @@ describe('utils/workflows', () => {
         version: "1"
         workflows: []
       `
-      const config = workflows.parse(data)
-
-      it('should return default empty values', () => {
-        expect(config).toEqual(workflows.emptyConfig)
-      })
-
-      it('should return data with special `notAvailable` workflow', () => {
-        expect(config.workflows[0].slug).toBe(workflows.notAvaliable)
+      it('should throw errors.WorkflowsConfigInvalid', () => {
+        expect(() => workflows.parse(data)).toThrow(errors.WorkflowsConfigInvalid)
       })
     })
 

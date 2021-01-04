@@ -1,4 +1,3 @@
-import * as R from 'ramda'
 import * as React from 'react'
 import SwipeableViews from 'react-swipeable-views'
 import { mod } from 'react-swipeable-views-core'
@@ -70,7 +69,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Screenshots(props) {
   const classes = useStyles()
   const [index, setIndex] = React.useState(0)
-  const onChangeIndex = React.useCallback(R.unary(setIndex), [])
+  const onChangeIndex = React.useCallback((i) => setIndex(i), [])
   const actualIndex = mod(index, slides.length)
   const current = slides[actualIndex]
   const maxSlides = slides.length * SLIDE_COUNT_FACTOR
@@ -89,7 +88,7 @@ export default function Screenshots(props) {
         alt=""
       />
     ),
-    [slides],
+    [classes.slide],
   )
 
   return (

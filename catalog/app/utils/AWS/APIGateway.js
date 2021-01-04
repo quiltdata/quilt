@@ -22,7 +22,7 @@ export function useAPIGatewayRequest() {
   const signRequest = Signer.useRequestSigner()
 
   const endpoint = React.useMemo(() => new AWS.Endpoint(ep), [ep])
-  const region = React.useMemo(() => getRegion(endpoint), [ep])
+  const region = React.useMemo(() => getRegion(endpoint), [endpoint])
 
   return React.useCallback(
     (path, params = {}) => {
