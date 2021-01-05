@@ -217,9 +217,10 @@ class DocumentQueue:
         logger_ = get_quilt_logger()
         true_docs = []
         for doc in self.queue:
-            # handle hard package delete outside of the bulk operation
             pointer_file = doc.get("pointer_file")
-            if pointer_file and not doc.get("delete_marker"):
+            # handle hard package delete outside of the bulk operation
+            # TODO: what does this do for deleting delete markers?
+            if doc["_op_type"] == "delete" and pointer_file and not doc.get("delete_marker"):
                 index = doc.get("_index")
                 assert index.endswith(PACKAGE_INDEX_SUFFIX), f"Refuse to delete non-package: {doc}"
                 handle = doc.get("handle")

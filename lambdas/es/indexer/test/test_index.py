@@ -1095,8 +1095,8 @@ class TestIndex(TestCase):
         url = 'https://example.com:443/test_packages/_delete_by_query', params = {}
         body = b'{"query":{"bool":{"must":[{"match":{"handle":"pkg/usr"}},{"match":{"pointer_file":"1598026253"}},{"match":{"delete_marker":false}}]}}}'
         """
-        # docs.send_all()
-        # assert bulk_mock.call_count == 1
+        docs.send_all()
+        assert bulk_mock.call_count == 1
 
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
