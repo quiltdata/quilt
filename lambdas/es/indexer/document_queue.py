@@ -130,10 +130,6 @@ class DocumentQueue:
             if _op_type == "index":
                 if not pointer_file or not package_hash:
                     raise ValueError("missing required argument for package doc")
-            elif _op_type == "delete":
-                if not is_delete_marker:
-                    # delete by query to pointer_file
-                    pass
             if not (
                 package_stats is None
                 or isinstance(package_stats, dict)
@@ -235,13 +231,12 @@ class DocumentQueue:
                         "query": {
                             "bool": {
                                 "must": [
+                                    # use match (not term) because some of these fields are analyzed
                                     {"match": {"handle": handle}},
                                     {"match": {"pointer_file": pointer_file}},
-                                ],
-                                # TODO: is there ever a case where we should drop the delete marker as well?
-                                "must_not": {
-                                    "match": {"delete_marker": True}
-                                }
+                                    # TODO: is there ever a case where we should drop the delete marker as well?
+                                    {"match": {"delete_marker": False}},
+                                ]
                             }
                         }
                     }
@@ -314,7 +309,7 @@ def get_time_remaining(context):
 def bulk_send(elastic, list_):
     """make a bulk() call to elastic"""
     logger_ = get_quilt_logger()
-    logger_.debug("Calling bulk() helper")
+    logger_.info("bulk_send(): %s", list_)
     return bulk(
         elastic,
         list_,

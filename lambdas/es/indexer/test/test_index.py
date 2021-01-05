@@ -24,6 +24,7 @@ from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
 from document_queue import EVENT_PREFIX, DocTypes, RetryError
+import document_queue
 
 from t4_lambda_shared.utils import (
     MANIFEST_PREFIX_V1,
@@ -44,6 +45,12 @@ CREATE_EVENT_TYPES = {
 DELETE_EVENT_TYPES = {
     "ObjectRemoved:Delete",
     "ObjectRemoved:DeleteMarkerCreated"
+}
+ES_ENVIRONMENT = {
+    'ES_HOST': 'example.com',
+    'AWS_ACCESS_KEY_ID': 'test_key',
+    'AWS_SECRET_ACCESS_KEY': 'test_secret',
+    'AWS_DEFAULT_REGION': 'ng-north-1',
 }
 UNKNOWN_EVENT_TYPE = "Event:WeNeverHeardOf"
 # Reshaped EventBridge events from CloudTrail => S3 (see index.py notes)
@@ -383,6 +390,7 @@ def test_append(_append_mock, event_type, doc_type, kwargs):
         assert _append_mock.call_count == 1
 
 
+
 def test_map_event_name_and_validate():
     """ensure that we map eventName properly, ensure that shape validation code works"""
     for name in CREATE_EVENT_TYPES.union(DELETE_EVENT_TYPES).union({UNKNOWN_EVENT_TYPE}):
@@ -446,12 +454,7 @@ class TestIndex(TestCase):
         self.s3_stubber = Stubber(self.s3_client)
         self.s3_stubber.activate()
 
-        self.env_patcher = patch.dict(os.environ, {
-            'ES_HOST': 'example.com',
-            'AWS_ACCESS_KEY_ID': 'test_key',
-            'AWS_SECRET_ACCESS_KEY': 'test_secret',
-            'AWS_DEFAULT_REGION': 'ng-north-1',
-        })
+        self.env_patcher = patch.dict(os.environ, ES_ENVIRONMENT)
         self.env_patcher.start()
 
     def tearDown(self):
@@ -931,8 +934,9 @@ class TestIndex(TestCase):
             version_id='1313131313131.Vier50HdNbi7ZirO65'
         )
 
+    @patch.object(index.DocumentQueue, '_filter_and_delete_packages')
     @patch.object(index.DocumentQueue, 'append')
-    def test_index_if_package_positive(self, append_mock):
+    def test_index_if_package_positive(self, append_mock, filter_mock):
         """test manifest file and its indexing"""
         timestamp = floor(time())
         pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
@@ -1066,8 +1070,33 @@ class TestIndex(TestCase):
             size=64,
             text=""
         )
-
         assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
+
+    @patch.object(document_queue, 'bulk_send')
+    def test_send_all(self, bulk_mock):
+        """test filter and send, the final step of the DQ as it talks to ES"""
+        docs = index.DocumentQueue(None)
+        kwargs = {
+            "bucket": "test",
+            "etag": "123",
+            "ext": "",
+            "handle": "pkg/usr",
+            "key": "foo",
+            "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+            "pointer_file": "1598026253",
+            "package_hash": "abc",
+            "package_stats": None,
+        }
+        docs.append("ObjectCreated:Put", DocTypes.PACKAGE, **kwargs)
+        bulk_mock.return_value = None, {}
+        """
+        TODO: mock this call out
+        self = <RequestsHttpConnection: https://example.com:443>, method = 'POST'
+        url = 'https://example.com:443/test_packages/_delete_by_query', params = {}
+        body = b'{"query":{"bool":{"must":[{"match":{"handle":"pkg/usr"}},{"match":{"pointer_file":"1598026253"}},{"match":{"delete_marker":false}}]}}}'
+        """
+        # docs.send_all()
+        # assert bulk_mock.call_count == 1
 
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
