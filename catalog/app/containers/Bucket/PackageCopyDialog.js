@@ -153,7 +153,7 @@ function DialogForm({
                 component={PD.Field}
                 name="name"
                 label="Name"
-                placeholder="Enter a package name"
+                placeholder="e.g. user/package"
                 validate={validators.composeAsync(
                   validators.required,
                   nameValidator.validate,
@@ -287,7 +287,7 @@ function DialogLoading({ bucket, onCancel }) {
 
   return (
     <PD.DialogLoading
-      skeletonElement={<FormSkeleton animate={false} />}
+      skeletonElement={<FormSkeleton />}
       title={
         <>
           Push package to{' '}

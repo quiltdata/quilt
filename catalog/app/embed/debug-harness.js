@@ -74,7 +74,7 @@ function Embedder() {
   const getOktaCredentials = React.useCallback(async () => {
     const token = await authenticate()
     fields.credentials.set(JSON.stringify({ provider: 'okta', token }))
-  }, [authenticate, fields.credentials.set])
+  }, [authenticate, fields.credentials.set]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const postMessage = React.useCallback(
     (msg) => {

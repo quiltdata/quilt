@@ -13,10 +13,11 @@ const dummy = async (method, args) => {
 
 export const Provider = function SentryProvider({ children }) {
   const sentryRef = React.useRef(Promise.resolve(dummy))
-  const sentry = React.useCallback(
-    R.curryN(2, (method, ...args) =>
-      sentryRef.current.then((call) => call(method, ...args)),
-    ),
+  const sentry = React.useMemo(
+    () =>
+      R.curryN(2, (method, ...args) =>
+        sentryRef.current.then((call) => call(method, ...args)),
+      ),
     [],
   )
   return <Ctx.Provider value={{ sentry, sentryRef }}>{children}</Ctx.Provider>
@@ -47,6 +48,8 @@ export const Loader = function SentryLoader({ children, userSelector }) {
           })
         : dummy,
     )
+    // only run this once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   React.useEffect(() => {

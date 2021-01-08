@@ -3,7 +3,9 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
+import StyledLink from 'utils/StyledLink'
 import { readableBytes } from 'utils/string'
+import { docs } from 'constants/urls'
 
 import * as ERRORS from '../errors'
 
@@ -27,6 +29,24 @@ const useStyles = M.makeStyles((t) => ({
 
 const errorDisplay = R.cond([
   [
+    R.is(ERRORS.WorkflowsConfigInvalid),
+    (e) => (
+      <>
+        <M.Typography variant="h6" gutterBottom>
+          Invalid workflows config
+        </M.Typography>
+        <M.Typography gutterBottom>
+          Error: <code>{e.message}</code>
+        </M.Typography>
+        <M.Typography>
+          Please fix the workflows config according to{' '}
+          <StyledLink href={`${docs}/advanced-usage/workflows`} target="_blank">
+            the documentation
+          </StyledLink>
+          .
+        </M.Typography>
+      </>
+    ),
     R.is(ERRORS.ManifestTooLarge),
     (e) => (
       <>

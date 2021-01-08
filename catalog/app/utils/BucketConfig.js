@@ -67,6 +67,5 @@ export function useInStackBuckets() {
 
 export function useIsInStack() {
   const buckets = useInStackBuckets()
-  // eslint-disable-next-line no-underscore-dangle
-  return React.useCallback(R.includes(R.__, buckets), [buckets])
+  return React.useMemo(() => R.includes(R.__, buckets), [buckets])
 }

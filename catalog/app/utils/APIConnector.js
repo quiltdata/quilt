@@ -19,7 +19,7 @@ import { actionCreator, createActions } from 'utils/reduxTools'
 
 const REDUX_KEY = 'app/utils/APIConnector'
 
-const actions = createActions(REDUX_KEY, 'API_REQUEST', 'API_RESPONSE') // eslint-disable-line function-paren-newline
+const actions = createActions(REDUX_KEY, 'API_REQUEST', 'API_RESPONSE')
 
 /**
  * Options object for creating Requests, with some minor additions:
@@ -81,7 +81,6 @@ const response = actionCreator(actions.API_RESPONSE, (payload, requestOpts) => (
 const test = R.ifElse(R.is(RegExp), R.test, R.equals)
 
 export class HTTPError extends BaseError {
-  // eslint-disable-next-line react/static-property-placement
   static displayName = 'HTTPError'
 
   static is = (e, status, msg) => {
@@ -95,7 +94,9 @@ export class HTTPError extends BaseError {
     let json
     try {
       json = JSON.parse(text)
-    } catch (e) {} // eslint-disable-line no-empty
+    } catch (e) {
+      // ignore it
+    }
 
     super(message || (json && (json.message || json.error)) || resp.statusText, {
       response: resp,
@@ -276,19 +277,19 @@ function* apiSaga({ fetch, base = '', middleware = [] }) {
     mkFetchMiddleware({ fetch, base }),
   )
 
-  yield takeEvery(request.type, function* handleRequest({
-    payload: opts,
-    meta: { resolve, reject },
-  }) {
-    try {
-      const result = yield call(execRequest, opts)
-      yield put(response(result, opts))
-      yield call(resolve, result)
-    } catch (e) {
-      yield put(response(e, opts))
-      yield call(reject, e)
-    }
-  })
+  yield takeEvery(
+    request.type,
+    function* handleRequest({ payload: opts, meta: { resolve, reject } }) {
+      try {
+        const result = yield call(execRequest, opts)
+        yield put(response(result, opts))
+        yield call(resolve, result)
+      } catch (e) {
+        yield put(response(e, opts))
+        yield call(reject, e)
+      }
+    },
+  )
 }
 
 /**

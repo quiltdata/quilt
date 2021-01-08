@@ -92,7 +92,7 @@ export default function Buckets() {
   const paginated = React.useMemo(
     () =>
       pages === 1 ? filtered : filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE),
-    [filtered, page],
+    [filtered, pages, page],
   )
 
   usePrevious(page, (prev) => {

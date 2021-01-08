@@ -106,7 +106,7 @@ module.exports = (options) => ({
     }),
   ]),
   resolve: {
-    modules: ['app', 'node_modules'],
+    modules: ['app', 'node_modules', path.resolve(__dirname, '../../../shared')],
     extensions: ['.js', '.jsx', '.react.js'],
     mainFields: ['module', 'browser', 'jsnext:main', 'main'],
   },

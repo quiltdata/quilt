@@ -37,7 +37,7 @@ function APILoader({ appId, userSelector = defaultUserSelector, children, ...pro
 
   if (!window.Intercom) window.Intercom = mkPlaceholder()
 
-  const api = React.useCallback((...args) => window.Intercom(...args), [])
+  const { current: api } = React.useRef((...args) => window.Intercom(...args))
   if (!('dummy' in api)) api.dummy = false
   if (!('isAvailable' in api)) api.isAvailable = () => !!window.Intercom
 
@@ -56,6 +56,8 @@ function APILoader({ appId, userSelector = defaultUserSelector, children, ...pro
       api('shutdown')
       delete window.Intercom
     }
+    // run this only once, ignore settings changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const user = redux.useSelector(userSelector)

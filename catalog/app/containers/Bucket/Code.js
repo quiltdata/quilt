@@ -66,7 +66,7 @@ export default function Code({ defaultSelected = 0, children, ...props }) {
       copyToClipboard(selected.contents)
       push('Code has been copied to clipboard')
     },
-    [selected.contents],
+    [selected.contents, push],
   )
 
   return (

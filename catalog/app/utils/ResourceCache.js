@@ -154,7 +154,7 @@ export const Provider = function ResourceCacheProvider({ children }) {
     [store],
   )
 
-  const get = React.useCallback(R.pipe(accessResult, suspend), [accessResult])
+  const get = React.useMemo(() => R.pipe(accessResult, suspend), [accessResult])
 
   const patch = React.useCallback(
     (resource, input, update, silent) => {
@@ -194,7 +194,10 @@ export const Provider = function ResourceCacheProvider({ children }) {
     [store],
   )
 
-  const inst = { access: accessResult, get, patch, patchOk, claim, release }
+  const inst = React.useMemo(
+    () => ({ access: accessResult, get, patch, patchOk, claim, release }),
+    [accessResult, get, patch, patchOk, claim, release],
+  )
 
   return <Ctx.Provider value={inst}>{children}</Ctx.Provider>
 }
@@ -207,16 +210,14 @@ export const use = useResourceCache
 
 export function useData(resource, input, opts = {}) {
   const cache = use()
-  const get = useMemoEq({ cache, resource, input }, (args) => () =>
-    args.cache.access(args.resource, args.input),
-  )
-  const [entry, setEntry] = React.useState(get)
+  const inputMemo = useMemoEq(input, R.identity)
+  const [entry, setEntry] = React.useState(() => cache.access(resource, input))
   const store = redux.useStore()
   React.useEffect(() => {
-    let prevEntry = get()
-    cache.claim(resource, input)
+    let prevEntry = cache.access(resource, inputMemo)
+    cache.claim(resource, inputMemo)
     const unsubscribe = store.subscribe(() => {
-      const newEntry = get()
+      const newEntry = cache.access(resource, inputMemo)
       if (!R.equals(newEntry, prevEntry)) {
         setEntry(newEntry)
         prevEntry = newEntry
@@ -224,9 +225,9 @@ export function useData(resource, input, opts = {}) {
     })
     return () => {
       unsubscribe()
-      cache.release(resource, input)
+      cache.release(resource, inputMemo)
     }
-  }, [store, get])
+  }, [store, cache, resource, inputMemo])
 
   return opts.suspend ? suspend(entry) : entry
 }

@@ -70,7 +70,7 @@ export function useOkta({ clientId, baseUrl }) {
         window.addEventListener('message', handleMessage)
         popup.focus()
       }),
-    [baseUrl, clientId, window.location.origin],
+    [baseUrl, clientId],
   )
 }
 

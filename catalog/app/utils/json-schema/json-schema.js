@@ -1,3 +1,4 @@
+import Ajv from 'ajv'
 import * as R from 'ramda'
 
 const isSchemaArray = (optSchema) => R.prop('type', optSchema) === 'array'
@@ -93,4 +94,25 @@ export function doesTypeMatchSchema(value, optSchema) {
     [isSchemaBoolean, () => R.is(Boolean, value)],
     [R.T, R.T], // It's not a user's fault that we can't handle the type
   ])(optSchema)
+}
+
+export const EMPTY_SCHEMA = {}
+
+export function makeSchemaValidator(optSchema) {
+  const schema = optSchema || EMPTY_SCHEMA
+
+  const ajv = new Ajv({ schemaId: 'auto' })
+
+  try {
+    const validate = ajv.compile(schema)
+
+    return (obj) => {
+      validate(obj)
+      // TODO: add custom errors
+      return validate.errors || []
+    }
+  } catch (e) {
+    // TODO: add custom errors
+    return () => [e]
+  }
 }
