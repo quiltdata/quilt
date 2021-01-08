@@ -225,7 +225,8 @@ class DocumentQueue:
                 assert index.endswith(PACKAGE_INDEX_SUFFIX), f"Refuse to delete non-package: {doc}"
                 handle = doc.get("handle")
                 assert handle, "Cannot delete package without handle"
-                # this doesn't throw exceptions if we try to delete
+                # no try/except because failure to delete, or trying to delete things
+                # that aren't in ES, does not throw
                 deletes = elastic.delete_by_query(
                     index=index,
                     body={
@@ -235,7 +236,6 @@ class DocumentQueue:
                                     # use match (not term) because some of these fields are analyzed
                                     {"match": {"handle": handle}},
                                     {"match": {"pointer_file": pointer_file}},
-                                    # TODO: is there ever a case where we should drop the delete marker as well?
                                     {"match": {"delete_marker": False}},
                                 ]
                             }
