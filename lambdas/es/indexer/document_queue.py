@@ -242,7 +242,7 @@ class DocumentQueue:
                         }
                     },
                     # we delete synchronously, so don't let it linger too long
-                    timeout='30s'
+                    timeout='20s'
                 )
                 logger_.debug("Deleted %s stamped %s: %s", handle, pointer_file, deletes)
                 if not deletes.get("deleted"):
