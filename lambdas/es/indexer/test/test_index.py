@@ -16,7 +16,6 @@ from unittest.mock import ANY, Mock, patch
 from urllib.parse import unquote_plus
 
 import boto3
-import document_queue
 import pytest
 import responses
 from botocore import UNSIGNED
@@ -462,7 +461,8 @@ def test_filter_delete():
                         }
                 }
             },
-        index='test_packages'
+        index='test_packages',
+        timeout='30s',
     )
     # should be two docs left, since we deleted one of three
     assert len(doc_queue.queue) == 2
