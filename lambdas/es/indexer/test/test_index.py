@@ -395,7 +395,7 @@ def test_filter_delete():
     doc_queue = index.DocumentQueue(None)
     doc_kwargs = [
         (
-            # should no-op
+            # should not get filtered out
             "ObjectCreated:Put",
             DocTypes.PACKAGE,
             {
@@ -411,7 +411,7 @@ def test_filter_delete():
             }
         ),
         (
-            # should cause a delete
+            # should get filtered out and cause a delete
             "ObjectRemoved:Delete",
             DocTypes.PACKAGE,
             {
@@ -427,7 +427,7 @@ def test_filter_delete():
             }
         ),
         (
-            # should no-op
+            # should not get filtered out
             "ObjectRemoved:DeleteMarkerCreated",
             DocTypes.PACKAGE,
             {
