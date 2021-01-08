@@ -243,8 +243,11 @@ class DocumentQueue:
                     }
                 )
                 logger_.debug("Deleted %s stamped %s: %s", handle, pointer_file, deletes)
+                if not deletes.get("deleted"):
+                    logger_.warning("Unable to delete: %s", doc)
             # send everything else to bulk()
             else:
+                logger_.info("Not filtering docs: %s", doc)
                 true_docs.append(doc)
         # the queue is now everything we didn't delete by query above
         self.queue = true_docs

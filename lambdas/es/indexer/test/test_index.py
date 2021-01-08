@@ -394,29 +394,58 @@ def test_filter_delete():
     """test package filter and delete which occurs before bulk send"""
     doc_queue = index.DocumentQueue(None)
     doc_kwargs = [
-        {
-            "bucket": "test",
-            "etag": "123",
-            "ext": "",
-            "handle": "pkg/usr",
-            "key": "foo",
-            "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
-            "pointer_file": "1598026253",
-            "package_hash": "abc",
-            "package_stats": None,
-        }
+        (
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": "",
+                "handle": "usr/pkg",
+                "key": ".quilt/named_packages/foo/bar/1598026253",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "pointer_file": "1598026253",
+                "package_hash": "abc",
+                "package_stats": None,
+            }
+        ),
+        (
+            "ObjectRemoved:Delete",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": "",
+                "handle": "usr/pkg",
+                "key": ".quilt/named_packages/foo/bar/1598026553",
+                "last_modified": datetime.datetime(2019, 6, 1, 23, 27, 29, tzinfo=tzutc()),
+                "pointer_file": "1598026553",
+                "package_hash": "abc",
+                "package_stats": None,
+            }
+        )
     ]
-    for kwargs in doc_kwargs:
-        doc_queue.append("ObjectCreated:Put", DocTypes.PACKAGE, **kwargs)
+    for event, type_, kwargs in doc_kwargs:
+        doc_queue.append(event, type_, **kwargs)
     elastic = Mock()
+    elastic.delete_by_query = Mock()
     doc_queue._filter_and_delete_packages(elastic)
-    """
-    TODO: mock this call out
-    self = <RequestsHttpConnection: https://example.com:443>, method = 'POST'
-    url = 'https://example.com:443/test_packages/_delete_by_query', params = {}
-    body = b'{"query":{"bool":{"must":[{"match":{"handle":"pkg/usr"}},{"match":{"pointer_file":"1598026253"}},{"match":{"delete_marker":false}}]}}}'
-    """
-    print(">>>", elastic.call_args_list)
+    elastic.delete_by_query.assert_called_once_with(
+        body={
+            'query':
+                {
+                    'bool':
+                        {
+                            'must': [
+                                {'match': {'handle': 'usr/pkg'}},
+                                {'match': {'pointer_file': '1598026553'}},
+                                {'match': {'delete_marker': False}}
+                            ]
+                        }
+                }
+            },
+        index='test_packages'
+    )
 
 def test_map_event_name_and_validate():
     """ensure that we map eventName properly, ensure that shape validation code works"""
