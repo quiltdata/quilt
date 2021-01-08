@@ -225,7 +225,7 @@ class DocumentQueue:
                 assert index.endswith(PACKAGE_INDEX_SUFFIX), f"Refuse to delete non-package: {doc}"
                 handle = doc.get("handle")
                 assert handle, "Cannot delete package without handle"
-                # TODO: mocks for this
+                # this doesn't throw exceptions if we try to delete
                 deletes = elastic.delete_by_query(
                     index=index,
                     body={

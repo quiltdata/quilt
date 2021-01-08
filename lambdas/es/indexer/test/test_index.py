@@ -12,7 +12,7 @@ from pathlib import Path
 from string import ascii_lowercase
 from time import time
 from unittest import TestCase
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, Mock, patch
 from urllib.parse import unquote_plus
 
 import boto3
@@ -390,6 +390,33 @@ def test_append(_append_mock, event_type, doc_type, kwargs):
         assert _append_mock.call_count == 1
 
 
+def test_filter_delete():
+    """test package filter and delete which occurs before bulk send"""
+    doc_queue = index.DocumentQueue(None)
+    doc_kwargs = [
+        {
+            "bucket": "test",
+            "etag": "123",
+            "ext": "",
+            "handle": "pkg/usr",
+            "key": "foo",
+            "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+            "pointer_file": "1598026253",
+            "package_hash": "abc",
+            "package_stats": None,
+        }
+    ]
+    for kwargs in doc_kwargs:
+        doc_queue.append("ObjectCreated:Put", DocTypes.PACKAGE, **kwargs)
+    elastic = Mock()
+    doc_queue._filter_and_delete_packages(elastic)
+    """
+    TODO: mock this call out
+    self = <RequestsHttpConnection: https://example.com:443>, method = 'POST'
+    url = 'https://example.com:443/test_packages/_delete_by_query', params = {}
+    body = b'{"query":{"bool":{"must":[{"match":{"handle":"pkg/usr"}},{"match":{"pointer_file":"1598026253"}},{"match":{"delete_marker":false}}]}}}'
+    """
+    print(">>>", elastic.call_args_list)
 
 def test_map_event_name_and_validate():
     """ensure that we map eventName properly, ensure that shape validation code works"""
@@ -1071,32 +1098,6 @@ class TestIndex(TestCase):
             text=""
         )
         assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
-
-    @patch.object(document_queue, 'bulk_send')
-    def test_send_all(self, bulk_mock):
-        """test filter and send, the final step of the DQ as it talks to ES"""
-        docs = index.DocumentQueue(None)
-        kwargs = {
-            "bucket": "test",
-            "etag": "123",
-            "ext": "",
-            "handle": "pkg/usr",
-            "key": "foo",
-            "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
-            "pointer_file": "1598026253",
-            "package_hash": "abc",
-            "package_stats": None,
-        }
-        docs.append("ObjectCreated:Put", DocTypes.PACKAGE, **kwargs)
-        bulk_mock.return_value = None, {}
-        """
-        TODO: mock this call out
-        self = <RequestsHttpConnection: https://example.com:443>, method = 'POST'
-        url = 'https://example.com:443/test_packages/_delete_by_query', params = {}
-        body = b'{"query":{"bool":{"must":[{"match":{"handle":"pkg/usr"}},{"match":{"pointer_file":"1598026253"}},{"match":{"delete_marker":false}}]}}}'
-        """
-        docs.send_all()
-        assert bulk_mock.call_count == 1
 
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
