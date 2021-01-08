@@ -17,7 +17,7 @@ nbformat==4.4.0
 numpy==1.19.1
 pandas==1.1.1
 psutil==5.7.0
-pyarrow==1.0.1
+pyarrow==2.0.0
 pyrsistent==0.15.4
 python-dateutil==2.8.0
 pytz==2019.2
