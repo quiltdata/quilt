@@ -16,6 +16,7 @@ from unittest.mock import ANY, Mock, patch
 from urllib.parse import unquote_plus
 
 import boto3
+import document_queue
 import pytest
 import responses
 from botocore import UNSIGNED
@@ -24,7 +25,6 @@ from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
 from document_queue import EVENT_PREFIX, DocTypes, RetryError
-import document_queue
 
 from t4_lambda_shared.utils import (
     MANIFEST_PREFIX_V1,
@@ -395,6 +395,7 @@ def test_filter_delete():
     doc_queue = index.DocumentQueue(None)
     doc_kwargs = [
         (
+            # should no-op
             "ObjectCreated:Put",
             DocTypes.PACKAGE,
             {
@@ -402,7 +403,7 @@ def test_filter_delete():
                 "etag": "123",
                 "ext": "",
                 "handle": "usr/pkg",
-                "key": ".quilt/named_packages/foo/bar/1598026253",
+                "key": ".quilt/named_packages/usr/pkg/1598026253",
                 "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
                 "pointer_file": "1598026253",
                 "package_hash": "abc",
@@ -410,6 +411,7 @@ def test_filter_delete():
             }
         ),
         (
+            # should cause a delete
             "ObjectRemoved:Delete",
             DocTypes.PACKAGE,
             {
@@ -417,8 +419,24 @@ def test_filter_delete():
                 "etag": "123",
                 "ext": "",
                 "handle": "usr/pkg",
-                "key": ".quilt/named_packages/foo/bar/1598026553",
+                "key": ".quilt/named_packages/usr/pkg/1598026553",
                 "last_modified": datetime.datetime(2019, 6, 1, 23, 27, 29, tzinfo=tzutc()),
+                "pointer_file": "1598026553",
+                "package_hash": "abc",
+                "package_stats": None,
+            }
+        ),
+        (
+            # should no-op
+            "ObjectRemoved:DeleteMarkerCreated",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": "",
+                "handle": "usr/pkg2",
+                "key": ".quilt/named_packages/usr/pkg2/1598026953",
+                "last_modified": datetime.datetime(2019, 8, 1, 23, 27, 29, tzinfo=tzutc()),
                 "pointer_file": "1598026553",
                 "package_hash": "abc",
                 "package_stats": None,
@@ -446,6 +464,12 @@ def test_filter_delete():
             },
         index='test_packages'
     )
+    # should be two docs left, since we deleted one of three
+    assert len(doc_queue.queue) == 2
+    # there should be at least one delete_marker
+    assert any(d.get("delete_marker") for d in doc_queue.queue)
+    assert not all(d.get("delete_marker") for d in doc_queue.queue)
+
 
 def test_map_event_name_and_validate():
     """ensure that we map eventName properly, ensure that shape validation code works"""
