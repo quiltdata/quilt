@@ -61,6 +61,7 @@ that you created above.
             {
                 "awsRegion": <awsRegion>,
                 "eventName": <eventName>,
+                "eventTime": <eventTime>,
                 "s3": {
                     "bucket": {
                         "name": <bucketName>

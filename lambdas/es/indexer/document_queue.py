@@ -83,7 +83,7 @@ class DocumentQueue:
             comment: str = '',
             key: str,
             etag: str,
-            last_modified: datetime,
+            last_modified: str,
             size: int = 0
     ):
         """format event as a document and then queue the document"""
@@ -120,7 +120,7 @@ class DocumentQueue:
             "comment": comment,
             "etag": etag,
             "key": key,
-            "last_modified": last_modified.isoformat(),
+            "last_modified": last_modified,
             "size": size,
             "delete_marker": is_delete_marker,
         }

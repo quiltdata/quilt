@@ -68,7 +68,8 @@ EVENTBRIDGE_CORE = {
         }
     }
 }
-# See the following AWS docs for event structure:
+# See for event structure:
+# https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html 
 EVENT_CORE = {
     "awsRegion": "us-east-1",
     "eventName": "ObjectCreated:Put",

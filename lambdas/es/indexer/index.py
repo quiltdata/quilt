@@ -37,63 +37,7 @@ counterintuitive things:
     least 1) as indicated above in the case where a new marker is pushed onto
     the version stack
 
-Workaround for clashing S3 events: use AWS eventbridge via CloudTrail as follows.
-
-EventPattern
-{
-  "source": [
-    "aws.s3"
-  ],
-  "detail-type": [
-    "AWS API Call via CloudTrail"
-  ],
-  "detail": {
-    "eventSource": [
-      "s3.amazonaws.com"
-    ],
-    "eventName": [
-      "PutObject",
-      "CopyObject",
-      "CompleteMultipartUpload",
-      "DeleteObject"
-    ],
-    "requestParameters": {
-      "bucketName": [
-        "quilt-s3-eventbridge"
-      ]
-    }
-  }
-}
-
-InputTransformer
-{
-    "awsRegion": "$.detail.awsRegion",
-    "bucketName": "$.detail.requestParameters.bucketName",
-    "eventName": "$.detail.eventName",
-    "isDeleteMarker": "$.detail.responseElements.x-amz-delete-marker",
-    "key": "$.detail.requestParameters.key",
-    "versionId": "$.detail.requestParameters.x-amz-version-id"
-}
-
-{
-    "Records": [
-        {
-            "awsRegion": <awsRegion>,
-            "eventName": <eventName>,
-            "s3": {
-                "bucket": {
-                    "name": <bucketName>
-                },
-                "object": {
-                    "eTag": "",  # not available per AWS
-                    "isDeleteMarker": <isDeleteMarker>,
-                    "key": <key>,
-                    "versionId": <versionId>
-                }
-            }
-        }
-    ]
-}
+See docs/EventBridge.md for more
 """
 
 
@@ -205,7 +149,7 @@ EVENT_SCHEMA = {
             'additionalProperties': True
         },
     },
-    'required': ['s3', 'eventName', 'eventTime'],
+    'required': ['s3', 'eventName'],
     'additionalProperties': True
 }
 # 10 MB, see https://amzn.to/2xJpngN
@@ -704,8 +648,10 @@ def handler(event, context):
                     version_id = unquote(version_id)
                 # ObjectRemoved:Delete does not include "eTag"
                 etag = unquote(event_["s3"]["object"].get("eTag", ""))
-                # guess last_modified, since the event doesn't give it to us
-                last_modified = isoparse(event_["eventTime"])
+                # synthetic events from bulk scanner might define lastModified
+                last_modified = (
+                    event_["s3"]["object"].get("lastModified") or event_["eventTime"]
+                )
                 # Get two levels of extensions to handle files like .csv.gz
                 path = pathlib.PurePosixPath(key)
                 ext1 = path.suffix
@@ -761,7 +707,7 @@ def handler(event, context):
                     continue
                 # backfill fields based on the head_object
                 size = head["ContentLength"]
-                last_modified = head["LastModified"]
+                last_modified = last_modified or head["LastModified"].isoformat()
                 etag = head.get("etag") or etag
                 version_id = head.get("VersionId") or version_id
                 try:
