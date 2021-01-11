@@ -349,12 +349,14 @@ function PackageCreateDialog({
   const [uploads, setUploads] = React.useState({})
   const [success, setSuccess] = React.useState(null)
   const nameValidator = PD.useNameValidator()
+  const nameExistence = PD.useNameExistence(bucket)
 
   const reset = (form) => () => {
     form.restart()
     setSuccess(null)
     setUploads({})
     nameValidator.inc()
+    nameExistence.inc()
   }
 
   const handleClose = ({ submitting = false } = {}) => () => {
@@ -539,11 +541,15 @@ function PackageCreateDialog({
                     validate={validators.composeAsync(
                       validators.required,
                       nameValidator.validate,
+                      nameExistence.validate,
                     )}
                     validateFields={['name']}
                     errors={{
                       required: 'Enter a package name',
                       invalid: 'Invalid package name',
+                    }}
+                    warnings={{
+                      exists: 'Package with this name exists already',
                     }}
                   />
 

@@ -117,6 +117,31 @@ export function useNameValidator() {
   return React.useMemo(() => ({ validate, inc }), [validate, inc])
 }
 
+export function useNameExistence(bucket) {
+  const [counter, setCounter] = React.useState(0)
+  const inc = React.useCallback(() => setCounter(R.inc), [setCounter])
+
+  const s3 = AWS.S3.use()
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const validate = React.useCallback(
+    cacheDebounce(async (name) => {
+      if (name) {
+        const list = await requests.bucketListing({
+          s3,
+          bucket,
+          path: name,
+        })
+        if (list.dirs.includes(`${name}/`)) return 'exists'
+      }
+      return undefined
+    }, 200),
+    [bucket, counter, s3],
+  )
+
+  return React.useMemo(() => ({ validate, inc }), [validate, inc])
+}
+
 function mkMetaValidator(schema) {
   // TODO: move schema validation to utils/validators
   //       but don't forget that validation depends on library.
@@ -154,23 +179,27 @@ export const getMetaValue = (value) =>
       )
     : undefined
 
-export function Field({ errorCode, errors, validating, ...rest }) {
+export function Field({ error, validating, warning, ...rest }) {
   const props = {
     InputLabelProps: { shrink: true },
     InputProps: {
       endAdornment: validating && <M.CircularProgress size={20} />,
     },
-    error: !!errorCode,
-    helperText: errorCode ? errors[errorCode] || errorCode : '',
+    error: !!error,
+    helperText: error || warning,
     ...rest,
   }
   return <M.TextField {...props} />
 }
 
-export function PackageNameInput({ input, meta, ...rest }) {
+export function PackageNameInput({ errors, input, meta, warnings, ...rest }) {
+  const errorCode = (input.value || meta.submitFailed) && meta.error
+  const warning = errorCode ? warnings[errorCode] : ''
+  const error = errorCode && !warning ? errors[errorCode] || errorCode : ''
   const props = {
     disabled: meta.submitting || meta.submitSucceeded,
-    errorCode: (input.value || meta.submitFailed) && meta.error,
+    error,
+    warning,
     fullWidth: true,
     label: 'Name',
     margin: 'normal',
@@ -182,10 +211,12 @@ export function PackageNameInput({ input, meta, ...rest }) {
   return <Field {...props} />
 }
 
-export function CommitMessageInput({ input, meta, ...rest }) {
+export function CommitMessageInput({ errors, input, meta, ...rest }) {
+  const errorCode = meta.submitFailed && meta.error
+  const error = errorCode ? errors[errorCode] || errorCode : ''
   const props = {
     disabled: meta.submitting || meta.submitSucceeded,
-    errorCode: meta.submitFailed && meta.error,
+    error,
     fullWidth: true,
     label: 'Commit message',
     margin: 'normal',
