@@ -1,5 +1,6 @@
 import dedent from 'dedent'
 
+import * as errors from 'containers/Bucket/errors'
 import * as workflows from './workflows'
 
 describe('utils/workflows', () => {
@@ -20,14 +21,8 @@ describe('utils/workflows', () => {
       const data = dedent`
         version: "1"
       `
-      const config = workflows.parse(data)
-
-      it('should return default empty values', () => {
-        expect(config).toEqual(workflows.emptyConfig)
-      })
-
-      it('should return data with special `notAvailable` workflow', () => {
-        expect(config.workflows[0].slug).toBe(workflows.notAvaliable)
+      it('should throw errors.WorkflowsConfigInvalid', () => {
+        expect(() => workflows.parse(data)).toThrow(errors.WorkflowsConfigInvalid)
       })
     })
 
@@ -36,14 +31,8 @@ describe('utils/workflows', () => {
         version: "1"
         workflows: []
       `
-      const config = workflows.parse(data)
-
-      it('should return default empty values', () => {
-        expect(config).toEqual(workflows.emptyConfig)
-      })
-
-      it('should return data with special `notAvailable` workflow', () => {
-        expect(config.workflows[0].slug).toBe(workflows.notAvaliable)
+      it('should throw errors.WorkflowsConfigInvalid', () => {
+        expect(() => workflows.parse(data)).toThrow(errors.WorkflowsConfigInvalid)
       })
     })
 
@@ -225,42 +214,6 @@ describe('utils/workflows', () => {
             copyData: true,
           },
         ])
-      })
-    })
-
-    describe('shouldSuccessorCopyData', () => {
-      const data = dedent`
-        version: "1"
-        default_workflow: workflow_2
-        successors:
-          s3://something:
-            title: Successor №1
-            copy_data: True
-          s3://bucket-multiworded:
-            copy_data: False
-            title: Multi worded bucket
-          s3://bucket-copy-default:
-            title: Copy default
-        workflows:
-          workflow_1:
-            name: Workflow №1
-      `
-      const config = workflows.parse(data)
-
-      it('should return true when bucket is not found', () => {
-        expect(workflows.shouldSuccessorCopyData(config, 'fgsfds')).toBe(true)
-      })
-
-      it('should return true when copy_data is not specified', () => {
-        expect(workflows.shouldSuccessorCopyData(config, 'bucket-copy-default')).toBe(
-          true,
-        )
-      })
-
-      it('should return correct value when value set', () => {
-        expect(workflows.shouldSuccessorCopyData(config, 'bucket-multiworded')).toBe(
-          false,
-        )
       })
     })
   })

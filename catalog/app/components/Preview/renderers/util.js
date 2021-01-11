@@ -14,7 +14,7 @@ const useMsgStyles = M.makeStyles((t) => ({
     overflow: 'auto',
   },
   info: {
-    background: t.palette.info.light,
+    background: t.palette.info.main,
     color: t.palette.info.contrastText,
   },
   warning: {

@@ -78,7 +78,7 @@ export default ({ location: { search } }) => {
         throw new SubmissionError({ _error: 'unexpected' })
       }
     },
-    [provider, token, next, urls, dispatch],
+    [provider, token, next, urls, dispatch, sentry],
   )
 
   if (authenticated) {

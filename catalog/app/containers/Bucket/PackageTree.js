@@ -10,6 +10,7 @@ import * as Lab from '@material-ui/lab'
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import * as Intercom from 'components/Intercom'
 import * as Preview from 'components/Preview'
+import * as Notifications from 'containers/Notifications'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
@@ -19,6 +20,7 @@ import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
 import Link, { linkStyle } from 'utils/StyledLink'
+import copyToClipboard from 'utils/clipboard'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
@@ -65,8 +67,10 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
 
 function RevisionInfo({ revisionData, revision, bucket, name, path }) {
   const { urls } = NamedRoutes.use()
+  const { push } = Notifications.use()
   const classes = useRevisionInfoStyles()
 
+  const listRef = React.useRef()
   const [anchor, setAnchor] = React.useState()
   const [opened, setOpened] = React.useState(false)
   const open = React.useCallback(() => setOpened(true), [])
@@ -84,6 +88,15 @@ function RevisionInfo({ revisionData, revision, bucket, name, path }) {
     _: R.identity,
   })
 
+  const getHttpsUri = (r) =>
+    `${window.origin}${urls.bucketPackageTree(bucket, name, r.hash, path)}`
+
+  const copyHttpsUri = (r, containerRef) => (e) => {
+    e.preventDefault()
+    copyToClipboard(getHttpsUri(r), { container: containerRef && containerRef.current })
+    push('Canonical URI copied to clipboard')
+  }
+
   return (
     <>
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
@@ -96,6 +109,21 @@ function RevisionInfo({ revisionData, revision, bucket, name, path }) {
         {R.take(10, revision)} <M.Icon>expand_more</M.Icon>
       </span>
 
+      {revisionData.case({
+        Ok: (r) => (
+          <M.IconButton
+            size="small"
+            title="Copy package revision's canonical catalog URI to the clipboard"
+            href={getHttpsUri(r)}
+            onClick={copyHttpsUri(r)}
+            style={{ marginTop: -4, marginBottom: -4 }}
+          >
+            <M.Icon>link</M.Icon>
+          </M.IconButton>
+        ),
+        _: () => null,
+      })}
+
       <M.Popover
         open={opened && !!anchor}
         anchorEl={anchor}
@@ -103,7 +131,7 @@ function RevisionInfo({ revisionData, revision, bucket, name, path }) {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         transformOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <M.List className={classes.list}>
+        <M.List className={classes.list} ref={listRef}>
           {AsyncResult.case(
             {
               Ok: R.map((r) => (
@@ -127,6 +155,15 @@ function RevisionInfo({ revisionData, revision, bucket, name, path }) {
                       </span>
                     }
                   />
+                  <M.ListItemSecondaryAction>
+                    <M.IconButton
+                      title="Copy package revision's canonical catalog URI to the clipboard"
+                      href={getHttpsUri(r)}
+                      onClick={copyHttpsUri(r, listRef)}
+                    >
+                      <M.Icon>link</M.Icon>
+                    </M.IconButton>
+                  </M.ListItemSecondaryAction>
                 </M.ListItem>
               )),
               Err: () => (
@@ -252,7 +289,16 @@ function TopBar({ crumbs, children }) {
   )
 }
 
-function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush }) {
+function DirDisplay({
+  bucket,
+  name,
+  hash,
+  revision,
+  path,
+  crumbs,
+  onRevisionPush,
+  onCrossBucketPush,
+}) {
   const s3 = AWS.S3.use()
   const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
   const credentials = AWS.Credentials.use()
@@ -286,7 +332,15 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
     onExited: onRevisionPush,
   })
 
-  const [bucketCopyTarget, setBucketCopyTarget] = React.useState(null)
+  const [successor, setSuccessor] = React.useState(null)
+
+  const onPackageCopyDialogExited = React.useCallback(
+    (res) => {
+      if (res && res.pushed) onCrossBucketPush(res)
+      setSuccessor(null)
+    },
+    [setSuccessor, onCrossBucketPush],
+  )
 
   usePrevious({ bucket, name, revision }, (prev) => {
     // close the dialog when navigating away
@@ -324,16 +378,14 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
       }))
       return (
         <>
-          {bucketCopyTarget && (
-            <PackageCopyDialog
-              name={name}
-              targetBucket={bucketCopyTarget}
-              sourceBucket={bucket}
-              hash={hash}
-              onExited={onRevisionPush}
-              onClose={() => setBucketCopyTarget(null)}
-            />
-          )}
+          <PackageCopyDialog
+            bucket={bucket}
+            hash={hash}
+            name={name}
+            open={!!successor}
+            successor={successor}
+            onExited={onPackageCopyDialogExited}
+          />
 
           {updateDialog.render()}
 
@@ -348,7 +400,7 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
               Revise package
             </M.Button>
             <M.Box ml={1} />
-            <CopyButton bucket={bucket} onChange={(b) => setBucketCopyTarget(b.slug)} />
+            <CopyButton bucket={bucket} onChange={setSuccessor} />
             {!noDownload && (
               <>
                 <M.Box ml={1} />
@@ -572,6 +624,10 @@ export default function PackageTree({
     [name, revision, setRevisionKey, setRevisionListKey],
   )
 
+  const onCrossBucketPush = React.useCallback(() => {
+    setRevisionKey(R.inc)
+  }, [setRevisionKey])
+
   const revisionData = useData(requests.resolvePackageRevision, {
     s3,
     bucket,
@@ -641,6 +697,7 @@ export default function PackageTree({
                 revision,
                 crumbs,
                 onRevisionPush,
+                onCrossBucketPush,
                 key: hash,
               }}
             />

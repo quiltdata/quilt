@@ -27,7 +27,6 @@ const useStyles = M.makeStyles((t) => ({
     height: t.spacing(4),
     lineHeight: `${t.spacing(4) - 2}px`,
     marginRight: t.spacing(1),
-    maxWidth: t.spacing(35),
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',

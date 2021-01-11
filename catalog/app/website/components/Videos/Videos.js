@@ -1,5 +1,4 @@
 import cx from 'classnames'
-import * as R from 'ramda'
 import * as React from 'react'
 import SwipeableViews from 'react-swipeable-views'
 import { mod } from 'react-swipeable-views-core'
@@ -105,7 +104,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Videos() {
   const classes = useStyles()
   const [index, setIndex] = React.useState(0)
-  const onChangeIndex = React.useCallback(R.unary(setIndex), [])
+  const onChangeIndex = React.useCallback((i) => setIndex(i), [])
   const nearestZero = Math.floor(index / videos.length) * videos.length
   const goToNearestIndex = (i) => setIndex(nearestZero + i)
 
@@ -122,7 +121,7 @@ export default function Videos() {
         />
       </div>
     ),
-    [],
+    [classes.slide, classes.iframe],
   )
 
   return (

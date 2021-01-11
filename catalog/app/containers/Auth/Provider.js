@@ -7,6 +7,7 @@ import { useIntl } from 'containers/LanguageProvider'
 import { useReducer } from 'utils/ReducerInjector'
 import { useSaga } from 'utils/SagaInjector'
 import { withInitialState } from 'utils/reduxTools'
+import useConstant from 'utils/useConstant'
 
 import { REDUX_KEY } from './constants'
 import msg from './messages'
@@ -67,7 +68,7 @@ export default function AuthProvider({
    */
   latency = 20, // number
 }) {
-  const reducerWithInit = React.useMemo(() => {
+  const reducerWithInit = useConstant(() => {
     const init = fromJS(storage.load())
       .filter(Boolean)
       .update((s) =>
@@ -76,7 +77,7 @@ export default function AuthProvider({
           .set('sessionId', 0),
       )
     return withInitialState(init, reducer)
-  }, [])
+  })
   useReducer(REDUX_KEY, reducerWithInit)
 
   const handlers = {
