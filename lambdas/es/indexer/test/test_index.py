@@ -463,7 +463,7 @@ def test_filter_delete():
                 }
             },
         index='test_packages',
-        timeout='30s',
+        timeout='20s',
     )
     # should be two docs left, since we deleted one of three
     assert len(doc_queue.queue) == 2

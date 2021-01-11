@@ -308,7 +308,8 @@ def index_if_package(
             return False
 
     package_hash = ''
-    first_dict = ''
+    manifest_key = ''
+    first_dict = {} 
     stats = None
     # we only need to touch the manifest for create events
     if event_type.startswith(EVENT_PREFIX["Created"]):
@@ -321,7 +322,7 @@ def index_if_package(
             s3_client=s3_client,
             version_id=version_id,
         ).strip()
-        manifest_key = f"{MANIFEST_PREFIX_V1}{package_hash}"
+        manifest_key = f'{MANIFEST_PREFIX_V1}{package_hash}'
         first = select_manifest_meta(s3_client, bucket, manifest_key)
         stats = select_package_stats(s3_client, bucket, manifest_key)
         if not first:
@@ -673,7 +674,6 @@ def handler(event, context):
                     )
                     continue
                 try:
-                    logger_.debug("Get object head")
                     head = retry_s3(
                         "head",
                         bucket,
@@ -772,6 +772,8 @@ def retry_s3(
     retry is necessary since, due to eventual consistency, we may not
     always get the required version of the object.
     """
+    logger_ = get_quilt_logger()
+
     if operation == "head":
         function_ = s3_client.head_object
     elif operation == "get":
@@ -791,6 +793,7 @@ def retry_s3(
     elif etag:
         arguments['IfMatch'] = etag
 
+    logger_.debug("Entering @retry: %s, %s", operation, arguments)
     @retry(
         # debug
         reraise=True,
