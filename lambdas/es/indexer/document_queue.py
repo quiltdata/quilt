@@ -90,7 +90,6 @@ class DocumentQueue:
         logger_ = get_quilt_logger()
         if not bucket or not key:
             raise ValueError(f"bucket={bucket} or key={key} required but missing")
-        # TODO: which event does deleting a delete marker cause?
         is_delete_marker = event_type.endswith("DeleteMarkerCreated")
         # we index delete markers, instead of deleting them
         if event_type.startswith(EVENT_PREFIX["Created"]) or is_delete_marker:
@@ -249,7 +248,7 @@ class DocumentQueue:
                     logger_.warning("Unable to delete: %s", doc)
             # send everything else to bulk()
             else:
-                logger_.info("Not filtering docs: %s", doc)
+                logger_.debug("Not filtering docs: %s", doc)
                 true_docs.append(doc)
         # the queue is now everything we didn't delete by query above
         self.queue = true_docs
@@ -315,7 +314,7 @@ def get_time_remaining(context):
 def bulk_send(elastic, list_):
     """make a bulk() call to elastic"""
     logger_ = get_quilt_logger()
-    logger_.info("bulk_send(): %s", list_)
+    logger_.debug("bulk_send(): %s", list_)
     return bulk(
         elastic,
         list_,

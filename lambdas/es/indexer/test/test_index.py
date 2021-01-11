@@ -940,6 +940,38 @@ class TestIndex(TestCase):
                 }
             )
 
+    @patch.object(index.DocumentQueue, 'append')
+    @patch.object(index, 'index_if_package')
+    def test_index_if_package_delete(self, index_mock, append_mock):
+        """test manifest delete"""
+        timestamp = floor(time())
+        pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
+        self._test_index_events(
+            ["ObjectRemoved:DeleteMarkerCreated"],
+            # we're mocking append so ES will never get called
+            mock_elastic=False,
+            mock_overrides={
+                "event_kwargs": {
+                    "key": pointer_key
+                },
+                # we patch maybe_get_contents so _test_index_events doesn't need to
+                "mock_object": False,
+            }
+        )
+        index_mock.assert_called_once()
+        append_mock.assert_called_once_with(
+            'ObjectRemoved:DeleteMarkerCreated',
+            DocTypes.OBJECT,
+            bucket='test-bucket',
+            etag='123456',
+            ext='',
+            key=pointer_key,
+            last_modified=ANY,
+            size=0,
+            text='',
+            version_id='1313131313131.Vier50HdNbi7ZirO65'
+        )
+
     def test_index_if_package_skip(self):
         """test cases where index_if_package ignores input for different reasons"""
         # none of these should index due to out-of-range timestamp or non-integer name
@@ -986,6 +1018,7 @@ class TestIndex(TestCase):
         """test non-manifest file (still calls index_if_package)"""
         json_data = json.dumps({"version": 1})
         get_mock.return_value = json_data
+
         self._test_index_events(
             ["ObjectCreated:Put"],
             # we're mocking append so ES will never get called

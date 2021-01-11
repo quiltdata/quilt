@@ -51,7 +51,7 @@ that you created above.
         "eventTime": "$.detail.eventTime",
         "isDeleteMarker": "$.detail.responseElements.x-amz-delete-marker",
         "key": "$.detail.requestParameters.key",
-        "versionId": "$.detail.requestParameters.x-amz-version-id"
+        "versionId": "$.detail.responseElements.x-amz-version-id"
     }
     ```
     #### Input Template

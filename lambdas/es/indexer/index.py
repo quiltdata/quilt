@@ -36,6 +36,11 @@ counterintuitive things:
     - turning off versioning doesn't mean version stack can't get deeper (by at
     least 1) as indicated above in the case where a new marker is pushed onto
     the version stack
+    - both creating a delete marker (soft delete) and hard deleting a delete marker
+    by providing it's version-id will result in an eventType of DeleteObject
+    and $.detail.responseElements.x-amz-delete-marker = true; it is therefore
+    not possible to tell the difference between a new delete marker and the deletion
+    of an existing one
 
 See docs/EventBridge.md for more
 """
@@ -308,8 +313,10 @@ def index_if_package(
             return False
 
     package_hash = ''
-    manifest_key = ''
-    first_dict = {} 
+    manifest_key = MANIFEST_PREFIX_V1
+    # TODO: the dq will not pass this, either we start passing blank keys
+    # or we find a way to backfill the package hash
+    first_dict = {}
     stats = None
     # we only need to touch the manifest for create events
     if event_type.startswith(EVENT_PREFIX["Created"]):
@@ -322,7 +329,7 @@ def index_if_package(
             s3_client=s3_client,
             version_id=version_id,
         ).strip()
-        manifest_key = f'{MANIFEST_PREFIX_V1}{package_hash}'
+        manifest_key += package_hash
         first = select_manifest_meta(s3_client, bucket, manifest_key)
         stats = select_package_stats(s3_client, bucket, manifest_key)
         if not first:
