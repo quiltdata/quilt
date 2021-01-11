@@ -154,9 +154,7 @@ export const getMetaValue = (value) =>
       )
     : undefined
 
-export function Field({ input, meta, errors, label, ...rest }) {
-  const error = meta.submitFailed && meta.error
-  const validating = meta.submitFailed && meta.validating
+export function Field({ input, error, errors, label, validating, ...rest }) {
   const props = {
     error: !!error,
     label: (
@@ -165,12 +163,39 @@ export function Field({ input, meta, errors, label, ...rest }) {
         {validating && <M.CircularProgress size={13} style={{ marginLeft: 8 }} />}
       </>
     ),
-    disabled: meta.submitting || meta.submitSucceeded,
     InputLabelProps: { shrink: true },
     ...input,
     ...rest,
   }
   return <M.TextField {...props} />
+}
+
+export function PackageNameInput({ meta, ...rest }) {
+  const props = {
+    disabled: meta.submitting || meta.submitSucceeded,
+    error: rest.input.value && meta.error,
+    fullWidth: true,
+    label: 'Name',
+    margin: 'normal',
+    placeholder: 'e.g. user/package',
+    validating: meta.validating,
+    ...rest,
+  }
+  return <Field {...props} />
+}
+
+export function CommitMessageInput({ meta, ...rest }) {
+  const props = {
+    disabled: meta.submitting || meta.submitSucceeded,
+    error: meta.submitFailed && meta.error,
+    fullWidth: true,
+    label: 'Commit message',
+    margin: 'normal',
+    placeholder: 'Enter a commit message',
+    validating: meta.submitFailed && meta.validating,
+    ...rest,
+  }
+  return <Field {...props} />
 }
 
 const useWorkflowInputStyles = M.makeStyles((t) => ({
