@@ -154,7 +154,7 @@ export const getMetaValue = (value) =>
       )
     : undefined
 
-export function Field({ input, errorCode, errors, validating, ...rest }) {
+export function Field({ errorCode, errors, validating, ...rest }) {
   const props = {
     InputLabelProps: { shrink: true },
     InputProps: {
@@ -162,27 +162,27 @@ export function Field({ input, errorCode, errors, validating, ...rest }) {
     },
     error: !!errorCode,
     helperText: errorCode ? errors[errorCode] || errorCode : '',
-    ...input,
     ...rest,
   }
   return <M.TextField {...props} />
 }
 
-export function PackageNameInput({ meta, ...rest }) {
+export function PackageNameInput({ input, meta, ...rest }) {
   const props = {
     disabled: meta.submitting || meta.submitSucceeded,
-    errorCode: (rest.input.value || meta.submitFailed) && meta.error,
+    errorCode: (input.value || meta.submitFailed) && meta.error,
     fullWidth: true,
     label: 'Name',
     margin: 'normal',
     placeholder: 'e.g. user/package',
     validating: meta.validating,
+    ...input,
     ...rest,
   }
   return <Field {...props} />
 }
 
-export function CommitMessageInput({ meta, ...rest }) {
+export function CommitMessageInput({ input, meta, ...rest }) {
   const props = {
     disabled: meta.submitting || meta.submitSucceeded,
     errorCode: meta.submitFailed && meta.error,
@@ -191,6 +191,7 @@ export function CommitMessageInput({ meta, ...rest }) {
     margin: 'normal',
     placeholder: 'Enter a commit message',
     validating: meta.submitFailed && meta.validating,
+    ...input,
     ...rest,
   }
   return <Field {...props} />
