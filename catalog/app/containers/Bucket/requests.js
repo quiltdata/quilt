@@ -432,7 +432,8 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
             // eslint-disable-next-line no-underscore-dangle
             const s = (h.inner_hits.latest.hits.hits[0] || {})._source
             return (
-              s && {
+              s &&
+              !s.delete_marker && {
                 bucket,
                 key: s.key,
                 version: s.version_id,
@@ -533,7 +534,8 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
             // eslint-disable-next-line no-underscore-dangle
             const s = (h.inner_hits.latest.hits.hits[0] || {})._source
             return (
-              s && {
+              s &&
+              !s.delete_marker && {
                 bucket,
                 key: s.key,
                 version: s.version_id,

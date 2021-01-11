@@ -132,7 +132,7 @@ def lambda_handler(request):
                     'name': 'latest',
                     'size': 1,
                     'sort': [{'last_modified': 'desc'}],
-                    '_source': ['key', 'version_id'],
+                    '_source': ['key', 'version_id', 'delete_marker'],
                 },
             },
         }
@@ -155,7 +155,7 @@ def lambda_handler(request):
                     'name': 'latest',
                     'size': 1,
                     'sort': [{'last_modified': 'desc'}],
-                    '_source': ['key', 'version_id'],
+                    '_source': ['key', 'version_id', 'delete_marker'],
                 },
             },
         }
