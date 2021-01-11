@@ -64,12 +64,13 @@ const useQueryInputStyles = M.makeStyles((t) => ({
 function QueryInput({ query, bucket, onChange }) {
   const classes = useQueryInputStyles()
   const state = useEditableValue(query, onChange)
+  const { change, commit } = state
 
   const handleChange = React.useCallback(
     (e) => {
-      state.change(e.target.value)
+      change(e.target.value)
     },
-    [state.change],
+    [change],
   )
 
   const handleKeyDown = React.useCallback(
@@ -79,7 +80,7 @@ function QueryInput({ query, bucket, onChange }) {
         case 'Enter':
           // suppress onSubmit (didn't actually find this to be a problem tho)
           e.preventDefault()
-          state.commit()
+          commit()
           e.target.blur()
           break
         case 'Escape':
@@ -87,7 +88,7 @@ function QueryInput({ query, bucket, onChange }) {
           break
       }
     },
-    [state.commit],
+    [commit],
   )
 
   return (

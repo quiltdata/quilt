@@ -6,7 +6,6 @@ import * as R from 'ramda'
 import { BaseError } from 'utils/error'
 
 export class PackageUriError extends BaseError {
-  // eslint-disable-next-line react/static-property-placement
   static displayName = 'PackageUriError'
 
   constructor(msg, uri) {

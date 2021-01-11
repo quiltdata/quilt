@@ -1,10 +1,11 @@
 import * as React from 'react'
 
-export default (value, onChange) => {
+export default function usePrevious(value, onChange) {
   const ref = React.useRef()
+  const prev = ref.current
+  ref.current = value
   React.useEffect(() => {
-    if (onChange) onChange(ref.current)
-    ref.current = value
+    if (onChange) onChange(prev)
   })
-  return ref.current
+  return prev
 }

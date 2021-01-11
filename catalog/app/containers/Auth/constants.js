@@ -20,4 +20,4 @@ export const actions = createActions(
   'REFRESH_RESULT',
   'AUTH_LOST',
   'GET_CODE',
-) // eslint-disable-line function-paren-newline
+)

@@ -1,7 +1,10 @@
 import * as R from 'ramda'
 
+import { makeSchemaValidator } from 'utils/json-schema'
 import * as s3paths from 'utils/s3paths'
 import yaml from 'utils/yaml'
+import workflowsConfigSchema from 'schemas/workflows.yml.json'
+import * as bucketErrors from 'containers/Bucket/errors'
 
 export const notAvaliable = Symbol('not available')
 
@@ -17,20 +20,14 @@ function getNoWorkflow(data, hasConfig) {
 const COPY_DATA_DEFAULT = true
 
 export const emptyConfig = {
-  copyData: COPY_DATA_DEFAULT,
   successors: [],
   workflows: [getNoWorkflow({}, false)],
 }
 
-export function shouldSuccessorCopyData(workflowsConfig, bucket) {
-  if (!workflowsConfig.successors || !workflowsConfig.successors.length)
-    return COPY_DATA_DEFAULT
-
-  const successor = R.find(R.propEq('slug', bucket), workflowsConfig.successors)
-  if (!successor) return COPY_DATA_DEFAULT
-
-  return successor.copyData
-}
+export const getEmptyConfig = (errors) => ({
+  ...emptyConfig,
+  errors,
+})
 
 function parseSchema(schemaSlug, schemas) {
   return {
@@ -55,17 +52,22 @@ const parseSuccessor = (url, successor) => ({
   url,
 })
 
+const workflowsConfigValidator = makeSchemaValidator(workflowsConfigSchema)
+
 export function parse(workflowsYaml) {
   const data = yaml(workflowsYaml)
   if (!data) return emptyConfig
 
-  const { workflows } = data
-  if (!workflows) return emptyConfig
+  const errors = workflowsConfigValidator(data)
+  if (errors.length)
+    throw new bucketErrors.WorkflowsConfigInvalid({
+      errors,
+    })
 
+  const { workflows } = data
   const workflowsList = Object.keys(workflows).map((slug) =>
     parseWorkflow(slug, workflows[slug], data),
   )
-  if (!workflowsList.length) return emptyConfig
 
   const noWorkflow =
     data.is_workflow_required === false ? getNoWorkflow(data, true) : null

@@ -287,9 +287,8 @@ export const workflowsList = async ({ s3, bucket }) => {
 
     logger.log('Unable to fetch')
     logger.error(e)
+    throw e
   }
-
-  return workflows.emptyConfig
 }
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
@@ -449,7 +448,6 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
                 R.complement(R.startsWith('.quilt/')),
                 R.complement(R.startsWith('/')),
                 R.complement(R.endsWith(SUMMARIZE_KEY)),
-                // eslint-disable-next-line no-underscore-dangle
                 R.complement(R.includes(R.__, README_KEYS)),
                 R.anyPass(SAMPLE_EXTS.map(R.unary(R.endsWith))),
               ]),
@@ -695,7 +693,6 @@ const fetchPackagesAccessCounts = async ({
   }
 }
 
-// eslint-disable-next-line no-underscore-dangle
 const isReserved = R.includes(R.__, '.+|{}[]()"\\#@&<>~')
 
 const escapeReserved = (c) => `\\${c}`

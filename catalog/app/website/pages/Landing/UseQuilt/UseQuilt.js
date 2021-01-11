@@ -1,5 +1,4 @@
 import cx from 'classnames'
-import * as R from 'ramda'
 import * as React from 'react'
 import Swipeable from 'react-swipeable-views'
 import * as M from '@material-ui/core'
@@ -233,7 +232,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function UseQuilt() {
   const classes = useStyles()
   const [index, setIndex] = React.useState(0)
-  const onChangeIndex = React.useCallback(R.unary(setIndex), [])
+  const onChangeIndex = React.useCallback((i) => setIndex(i), [])
 
   return (
     <M.Container maxWidth="lg" style={{ position: 'relative', zIndex: 1 }}>

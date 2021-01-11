@@ -32,7 +32,7 @@ export const Display = composeComponent(
           onClick: PT.func.isRequired,
         }),
       }).isRequired,
-    ).isRequired, // eslint-disable-line function-paren-newline
+    ).isRequired,
     dismiss: PT.func.isRequired,
     NotificationComponent: PT.oneOfType([PT.string, PT.func]),
   }),
