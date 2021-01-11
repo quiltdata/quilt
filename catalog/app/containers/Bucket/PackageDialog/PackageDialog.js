@@ -154,16 +154,14 @@ export const getMetaValue = (value) =>
       )
     : undefined
 
-export function Field({ input, error, errors, label, validating, ...rest }) {
+export function Field({ input, errorCode, errors, validating, ...rest }) {
   const props = {
-    error: !!error,
-    label: (
-      <>
-        {error ? errors[error] || error : label}
-        {validating && <M.CircularProgress size={13} style={{ marginLeft: 8 }} />}
-      </>
-    ),
     InputLabelProps: { shrink: true },
+    InputProps: {
+      endAdornment: validating && <M.CircularProgress size={20} />,
+    },
+    error: !!errorCode,
+    helperText: errorCode ? errors[errorCode] || errorCode : '',
     ...input,
     ...rest,
   }
@@ -173,7 +171,7 @@ export function Field({ input, error, errors, label, validating, ...rest }) {
 export function PackageNameInput({ meta, ...rest }) {
   const props = {
     disabled: meta.submitting || meta.submitSucceeded,
-    error: rest.input.value && meta.error,
+    errorCode: (rest.input.value || meta.submitFailed) && meta.error,
     fullWidth: true,
     label: 'Name',
     margin: 'normal',
@@ -187,7 +185,7 @@ export function PackageNameInput({ meta, ...rest }) {
 export function CommitMessageInput({ meta, ...rest }) {
   const props = {
     disabled: meta.submitting || meta.submitSucceeded,
-    error: meta.submitFailed && meta.error,
+    errorCode: meta.submitFailed && meta.error,
     fullWidth: true,
     label: 'Commit message',
     margin: 'normal',
