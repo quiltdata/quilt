@@ -312,8 +312,6 @@ def index_if_package(
             logger_.warning("Unexpected manifest timestamp s3://%s/%s", bucket, key)
             return False
 
-    package_hash = ''
-    manifest_key = MANIFEST_PREFIX_V1
     # TODO: the dq will not pass this, either we start passing blank keys
     # or we find a way to backfill the package hash
     first_dict = {}
@@ -329,7 +327,7 @@ def index_if_package(
             s3_client=s3_client,
             version_id=version_id,
         ).strip()
-        manifest_key += package_hash
+        manifest_key = f'{MANIFEST_PREFIX_V1}{package_hash}'
         first = select_manifest_meta(s3_client, bucket, manifest_key)
         stats = select_package_stats(s3_client, bucket, manifest_key)
         if not first:
@@ -352,7 +350,7 @@ def index_if_package(
         etag=etag,
         ext=ext,
         handle=handle,
-        key=manifest_key,
+        key=key,
         last_modified=last_modified,
         package_hash=package_hash,
         package_stats=stats,

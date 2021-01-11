@@ -1160,7 +1160,7 @@ class TestIndex(TestCase):
             etag="123456",
             ext="",
             handle="author/semantic",
-            key=f".quilt/packages/{sha_hash}",
+            key=pointer_key,
             last_modified=ANY,
             package_hash=sha_hash,
             package_stats={
