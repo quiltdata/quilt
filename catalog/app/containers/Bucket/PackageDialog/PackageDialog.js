@@ -109,7 +109,9 @@ export function useNameValidator() {
         })
         if (!res.valid) return 'invalid'
       }
-      return undefined
+      // HACK: react-form doesn't change `FormState.validating` on async validation when field loses focus
+      //       but it handles errors: if error is happened, then it's no longer validating
+      return 'noError'
     }, 200),
     [req, counter],
   )
@@ -194,7 +196,7 @@ export function Field({ error, helperText, validating, warning, ...rest }) {
 
 export function PackageNameInput({ errors, input, meta, ...rest }) {
   const errorCode = (input.value || meta.submitFailed) && meta.error
-  const error = errorCode ? errors[errorCode] || errorCode : ''
+  const error = errorCode && errorCode !== 'noError' ? errors[errorCode] || errorCode : ''
   const props = {
     disabled: meta.submitting || meta.submitSucceeded,
     error,
@@ -202,7 +204,7 @@ export function PackageNameInput({ errors, input, meta, ...rest }) {
     label: 'Name',
     margin: 'normal',
     placeholder: 'e.g. user/package',
-    validating: meta.validating,
+    validating: meta.validating && !errorCode,
     ...input,
     ...rest,
   }
