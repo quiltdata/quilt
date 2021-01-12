@@ -141,6 +141,8 @@ function DialogForm({
       const { name } = values
       setNameWarning('')
 
+      if (!name) return
+
       const nameExists = await nameExistence.validate(name)
       const fullName = `${successor.slug}/${name}`
       if (nameExists) {

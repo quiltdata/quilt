@@ -1008,9 +1008,7 @@ function DialogForm({
 
       setNameWarning('')
 
-      if (initialName === name) {
-        return
-      }
+      if (initialName === name) return
 
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {
