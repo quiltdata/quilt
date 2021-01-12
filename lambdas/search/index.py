@@ -103,8 +103,19 @@ def lambda_handler(request):
                 }
             }
         _source = user_source or [
-            'key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta',
-            'comment', 'handle', 'hash', 'tags', 'metadata', 'pointer_file'
+            'key',
+            'version_id',
+            'updated',
+            'last_modified',
+            'size',
+            'user_meta',
+            'comment',
+            'handle',
+            'hash',
+            'tags',
+            'metadata',
+            'pointer_file',
+            'delete_marker',
         ]
         size = DEFAULT_SIZE
     elif action == 'stats':
