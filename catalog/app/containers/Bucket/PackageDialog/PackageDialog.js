@@ -179,27 +179,25 @@ export const getMetaValue = (value) =>
       )
     : undefined
 
-export function Field({ error, validating, warning, ...rest }) {
+export function Field({ error, helperText, validating, warning, ...rest }) {
   const props = {
     InputLabelProps: { shrink: true },
     InputProps: {
       endAdornment: validating && <M.CircularProgress size={20} />,
     },
     error: !!error,
-    helperText: error || warning,
+    helperText: error || helperText,
     ...rest,
   }
   return <M.TextField {...props} />
 }
 
-export function PackageNameInput({ errors, input, meta, warnings, ...rest }) {
+export function PackageNameInput({ errors, input, meta, ...rest }) {
   const errorCode = (input.value || meta.submitFailed) && meta.error
-  const warning = errorCode ? warnings[errorCode] : ''
-  const error = errorCode && !warning ? errors[errorCode] || errorCode : ''
+  const error = errorCode ? errors[errorCode] || errorCode : ''
   const props = {
     disabled: meta.submitting || meta.submitSucceeded,
     error,
-    warning,
     fullWidth: true,
     label: 'Name',
     margin: 'normal',

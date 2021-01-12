@@ -98,7 +98,7 @@ function DialogForm({
   workflowsConfig,
 }) {
   const nameValidator = PD.useNameValidator()
-  const nameExistence = PD.useNameExistence(bucket)
+  const nameExistence = PD.useNameExistence(successor.slug)
 
   const initialMeta = React.useMemo(
     () => ({
@@ -134,6 +134,24 @@ function DialogForm({
     }
   }
 
+  const [nameWarning, setNameWarning] = React.useState('')
+
+  const onFormChanged = React.useCallback(
+    async ({ values }) => {
+      const { name } = values
+      setNameWarning('')
+
+      const nameExists = await nameExistence.validate(name)
+      const fullName = `${successor.slug}/${name}`
+      if (nameExists) {
+        setNameWarning(`Package "${fullName}" exists. Submitting will revise it`)
+      } else {
+        setNameWarning(`Package "${fullName}" will be created`)
+      }
+    },
+    [successor, nameExistence],
+  )
+
   return (
     <RF.Form onSubmit={onSubmit}>
       {({
@@ -150,22 +168,21 @@ function DialogForm({
           <DialogTitle bucket={successor.slug} />
           <M.DialogContent style={{ paddingTop: 0 }}>
             <form onSubmit={handleSubmit}>
+              <RF.FormSpy subscription={{ values: true }} onChange={onFormChanged} />
+
               <RF.Field
                 component={PD.PackageNameInput}
                 name="name"
                 validate={validators.composeAsync(
                   validators.required,
                   nameValidator.validate,
-                  nameExistence.validate,
                 )}
                 validateFields={['name']}
                 errors={{
                   required: 'Enter a package name',
                   invalid: 'Invalid package name',
                 }}
-                warnings={{
-                  exists: 'Package with this name exists already',
-                }}
+                helperText={nameWarning}
                 initialValue={initialName}
               />
 

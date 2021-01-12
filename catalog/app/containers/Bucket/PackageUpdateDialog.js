@@ -842,6 +842,7 @@ function DialogForm({
   const req = APIConnector.use()
   const [uploads, setUploads] = React.useState({})
   const nameValidator = PD.useNameValidator()
+  const nameExistence = PD.useNameExistence(bucket)
 
   const initialMeta = React.useMemo(
     () => ({
@@ -998,6 +999,29 @@ function DialogForm({
     }
   }
 
+  const [nameWarning, setNameWarning] = React.useState('')
+
+  const onFormChanged = React.useCallback(
+    async ({ modified, values }) => {
+      const { name } = values
+      if (!modified.name) return
+
+      setNameWarning('')
+
+      if (initialName === name) {
+        return
+      }
+
+      const nameExists = await nameExistence.validate(name)
+      if (nameExists) {
+        setNameWarning('Package with this name exists already')
+      } else {
+        setNameWarning('New package will be created')
+      }
+    },
+    [initialName, nameExistence],
+  )
+
   return (
     <RF.Form onSubmit={onSubmitWrapped}>
       {({
@@ -1014,22 +1038,24 @@ function DialogForm({
           <M.DialogTitle>Push package revision</M.DialogTitle>
           <M.DialogContent style={{ paddingTop: 0 }}>
             <form onSubmit={handleSubmit}>
+              <RF.FormSpy
+                subscription={{ modified: true, values: true }}
+                onChange={onFormChanged}
+              />
+
               <RF.Field
                 component={PD.PackageNameInput}
                 name="name"
                 validate={validators.composeAsync(
                   validators.required,
                   nameValidator.validate,
-                  validators.persists(initialName),
                 )}
                 validateFields={['name']}
                 errors={{
                   required: 'Enter a package name',
                   invalid: 'Invalid package name',
                 }}
-                warnings={{
-                  changed: 'You are about to create new bucket',
-                }}
+                helperText={nameWarning}
                 initialValue={initialName}
               />
 

@@ -464,6 +464,20 @@ function PackageCreateDialog({
     }
   }
 
+  const [nameWarning, setNameWarning] = React.useState('')
+
+  const onFormChanged = React.useCallback(
+    async ({ values }) => {
+      setNameWarning('')
+
+      const nameExists = await nameExistence.validate(values.name)
+      if (nameExists) {
+        setNameWarning(`Package "${values.name}" exists. You will revise it`)
+      }
+    },
+    [nameExistence],
+  )
+
   return (
     <RF.Form onSubmit={uploadPackage}>
       {({
@@ -535,22 +549,21 @@ function PackageCreateDialog({
               <M.DialogTitle>Create package</M.DialogTitle>
               <M.DialogContent style={{ paddingTop: 0 }}>
                 <form onSubmit={handleSubmit}>
+                  <RF.FormSpy subscription={{ values: true }} onChange={onFormChanged} />
+
                   <RF.Field
                     component={PD.PackageNameInput}
                     name="name"
                     validate={validators.composeAsync(
                       validators.required,
                       nameValidator.validate,
-                      nameExistence.validate,
                     )}
                     validateFields={['name']}
                     errors={{
                       required: 'Enter a package name',
                       invalid: 'Invalid package name',
                     }}
-                    warnings={{
-                      exists: 'Package with this name exists already',
-                    }}
+                    helperText={nameWarning}
                   />
 
                   <RF.Field
