@@ -472,7 +472,7 @@ function PackageCreateDialog({
 
       const nameExists = await nameExistence.validate(values.name)
       if (nameExists) {
-        setNameWarning(`Package "${values.name}" exists. You will revise it`)
+        setNameWarning(`Package "${values.name}" exists. Submitting will revise it`)
       }
     },
     [nameExistence],
