@@ -139,17 +139,20 @@ function DialogForm({
   const onFormChanged = React.useCallback(
     async ({ values }) => {
       const { name } = values
-      setNameWarning('')
-
-      if (!name) return
+      const fullName = `${successor.slug}/${name}`
 
       const nameExists = await nameExistence.validate(name)
-      const fullName = `${successor.slug}/${name}`
       if (nameExists) {
         setNameWarning(`Package "${fullName}" exists. Submitting will revise it`)
-      } else {
-        setNameWarning(`Package "${fullName}" will be created`)
+        return
       }
+
+      if (name) {
+        setNameWarning(`Package "${fullName}" will be created`)
+        return
+      }
+
+      setNameWarning('')
     },
     [successor, nameExistence],
   )

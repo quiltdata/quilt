@@ -468,11 +468,13 @@ function PackageCreateDialog({
 
   const onFormChanged = React.useCallback(
     async ({ values }) => {
+      const { name } = values
+
       setNameWarning('')
 
-      const nameExists = await nameExistence.validate(values.name)
+      const nameExists = await nameExistence.validate(name)
       if (nameExists) {
-        setNameWarning(`Package "${values.name}" exists. Submitting will revise it`)
+        setNameWarning(`Package "${name}" exists. Submitting will revise it`)
       }
     },
     [nameExistence],
