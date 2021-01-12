@@ -1015,10 +1015,8 @@ function DialogForm({
           <M.DialogContent style={{ paddingTop: 0 }}>
             <form onSubmit={handleSubmit}>
               <RF.Field
-                component={PD.Field}
+                component={PD.PackageNameInput}
                 name="name"
-                label="Name"
-                placeholder="e.g. user/package"
                 validate={validators.composeAsync(
                   validators.required,
                   nameValidator.validate,
@@ -1028,23 +1026,17 @@ function DialogForm({
                   required: 'Enter a package name',
                   invalid: 'Invalid package name',
                 }}
-                margin="normal"
-                fullWidth
                 initialValue={initialName}
               />
 
               <RF.Field
-                component={PD.Field}
+                component={PD.CommitMessageInput}
                 name="msg"
-                label="Commit message"
-                placeholder="Enter a commit message"
                 validate={validators.required}
                 validateFields={['msg']}
                 errors={{
                   required: 'Enter a commit message',
                 }}
-                fullWidth
-                margin="normal"
               />
 
               <RF.Field
