@@ -109,13 +109,14 @@ def lambda_handler(request):
         size = DEFAULT_SIZE
     elif action == 'stats':
         body = {
-            "query": {"match_all": {}},
+            "query": {"term": {"delete_marker": False}},
             "aggs": {
                 "totalBytes": {"sum": {"field": 'size'}},
                 "exts": {
                     "terms": {"field": 'ext'},
                     "aggs": {"size": {"sum": {"field": 'size'}}},
                 },
+                # TODO: move this to a separate action (pkg_stats)
                 "totalPackageHandles": {"value_count": {"field": "handle"}},
             }
         }

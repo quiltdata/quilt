@@ -181,7 +181,6 @@ const processStats = R.applySpec({
   ),
   totalObjects: R.path(['hits', 'total']),
   totalBytes: R.path(['aggregations', 'totalBytes', 'value']),
-  totalPackages: R.path(['aggregations', 'totalPackageHandles', 'value']),
 })
 
 export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
@@ -204,9 +203,7 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   }
 
   try {
-    return await req('/search', { index: `${bucket}*`, action: 'stats' }).then(
-      processStats,
-    )
+    return await req('/search', { index: bucket, action: 'stats' }).then(processStats)
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Unable to fetch live stats:')
@@ -215,6 +212,24 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   }
 
   throw new Error('Stats unavailable')
+}
+
+export const bucketPkgStats = async ({ req, bucket }) => {
+  try {
+    // TODO: use pkg_stats action when it's implemented
+    return await req('/search', { index: `${bucket}_packages`, action: 'stats' }).then(
+      R.applySpec({
+        totalPackages: R.path(['aggregations', 'totalPackageHandles', 'value']),
+      }),
+    )
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.log('Unable to fetch package stats:')
+    // eslint-disable-next-line no-console
+    console.error(e)
+  }
+
+  throw new Error('Package stats unavailable')
 }
 
 const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
