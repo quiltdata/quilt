@@ -302,8 +302,19 @@ class TestSearch(TestCase):
             'size': 1000,
             'from': 0,
             '_source': ','.join([
-                'key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta',
-                'comment', 'handle', 'hash', 'tags', 'metadata', 'pointer_file'
+                'key',
+                'version_id',
+                'updated',
+                'last_modified',
+                'size',
+                'user_meta',
+                'comment',
+                'handle',
+                'hash',
+                'tags',
+                'metadata',
+                'pointer_file',
+                'delete_marker',
             ]),
             'terminate_after': 538,
         })
@@ -342,8 +353,19 @@ class TestSearch(TestCase):
             'size': 1000,
             'from': 0,
             '_source': ','.join([
-                'key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta',
-                'comment', 'handle', 'hash', 'tags', 'metadata', 'pointer_file'
+                'key',
+                'version_id',
+                'updated',
+                'last_modified',
+                'size',
+                'user_meta',
+                'comment',
+                'handle',
+                'hash',
+                'tags',
+                'metadata',
+                'pointer_file',
+                'delete_marker',
             ]),
             'terminate_after': 10000,
         })
@@ -393,13 +415,14 @@ class TestSearch(TestCase):
         def _callback(request):
             payload = json.loads(request.body)
             assert payload == {
-                "query": {"match_all": {}},
+                "query": {"term": {"delete_marker": False}},
                 "aggs": {
-                    "totalBytes": {"sum": {"field": "size"}},
+                    "totalBytes": {"sum": {"field": 'size'}},
                     "exts": {
                         "terms": {"field": 'ext'},
-                        "aggs": {"size": {"sum": {"field": "size"}}},
+                        "aggs": {"size": {"sum": {"field": 'size'}}},
                     },
+                    # TODO: move this to a separate action (pkg_stats)
                     "totalPackageHandles": {"value_count": {"field": "handle"}},
                 }
             }
