@@ -13,7 +13,7 @@
 ## CLI
 
 ## Catalog, Lambdas
-* [Added] Support for EventBridge S3 events to es/indexer([#1987](https://github.com/quiltdata/quilt/pull/1987))
+* [Added] Support for EventBridge S3 events to es/indexer ([#1987](https://github.com/quiltdata/quilt/pull/1987))
 * [Added] Generate and resolve Quilt package URIs ([#1935](https://github.com/quiltdata/quilt/pull/1935))
 * [Fixed] Bug that caused search to miss delete object and delete package events ([#1987](https://github.com/quiltdata/quilt/pull/1987))
 * [Changed] Tree view for files in package update dialog ([#1989](https://github.com/quiltdata/quilt/pull/1989))
