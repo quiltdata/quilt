@@ -579,16 +579,16 @@ def make_s3_client():
 
 def map_event_name(event: dict):
     """transform eventbridge names into S3-like ones"""
-    input = event["eventName"]
-    if input in EVENTBRIDGE_TO_S3:
-        if input == "DeleteObject":
+    input_ = event["eventName"]
+    if input_ in EVENTBRIDGE_TO_S3:
+        if input_ == "DeleteObject":
             if event["s3"]["object"].get("isDeleteMarker"):
                 return EVENT_PREFIX["Removed"] + "DeleteMarkerCreated"
             return EVENT_PREFIX["Removed"] + "Delete"
         # all non-delete events just use the map
-        return EVENTBRIDGE_TO_S3[input]
+        return EVENTBRIDGE_TO_S3[input_]
     # leave event type unchanged if we don't recognize it
-    return input
+    return input_
 
 
 def shape_event(event: dict):
