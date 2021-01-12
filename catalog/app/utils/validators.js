@@ -142,3 +142,10 @@ export const composeAsync = (...validators) => (value) =>
     (error, next) => Promise.resolve(error).then((e) => e || next(value)),
     undefined,
   )
+
+/**
+ * Validate that the value is persistent. Error string: 'changed'.
+ *
+ * @type {Validator}
+ */
+export const persists = (original) => (changed) => original !== changed && 'changed'

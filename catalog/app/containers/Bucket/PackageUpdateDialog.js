@@ -1020,11 +1020,15 @@ function DialogForm({
                 validate={validators.composeAsync(
                   validators.required,
                   nameValidator.validate,
+                  validators.persists(initialName),
                 )}
                 validateFields={['name']}
                 errors={{
                   required: 'Enter a package name',
                   invalid: 'Invalid package name',
+                }}
+                warnings={{
+                  changed: 'You are about to create new bucket',
                 }}
                 initialValue={initialName}
               />
