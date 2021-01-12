@@ -354,10 +354,6 @@ def _make_event(
                 "package_hash": "abc",
                 "pointer_file": "1598026253",
             },
-            marks=pytest.mark.xfail(
-                raises=AttributeError,
-                reason="last_modified should be an object"
-            )
         ),
         pytest.param(
             "ObjectCreated:Put",
@@ -372,10 +368,6 @@ def _make_event(
                 "package_hash": "",
                 "pointer_file": "1598026253",
             },
-            marks=pytest.mark.xfail(
-                raises=ValueError,
-                reason="package_hash required"
-            )
         ),
     ]
 )

@@ -129,7 +129,7 @@ class DocumentQueue:
             if not handle:
                 raise ValueError("missing required argument for package doc")
             if _op_type == "index":
-                if not pointer_file or not package_hash:
+                if not (pointer_file or package_hash):
                     raise ValueError("missing required argument for package doc")
             if not (
                 package_stats is None
