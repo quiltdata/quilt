@@ -239,7 +239,7 @@ def do_index(
         last_modified: str,
         text: str = '',
         size: int = 0,
-        version_id: Optional[str]
+        version_id: Optional[str] = None,
 ):
     """wrap dual indexing of packages and objects"""
     logger_ = get_quilt_logger()
@@ -316,6 +316,7 @@ def index_if_package(
     # or we find a way to backfill the package hash
     first_dict = {}
     stats = None
+    package_hash = ''
     # we only need to touch the manifest for create events
     if event_type.startswith(EVENT_PREFIX["Created"]):
         package_hash = get_plain_text(
@@ -357,6 +358,7 @@ def index_if_package(
         pointer_file=pointer_file,
         comment=str(first_dict.get("message", "")),
         metadata=json.dumps(first_dict.get("user_meta", {})),
+        version_id=version_id,
     )
 
     return True

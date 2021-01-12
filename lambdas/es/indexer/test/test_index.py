@@ -12,7 +12,7 @@ from pathlib import Path
 from string import ascii_lowercase
 from time import time
 from unittest import TestCase
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import ANY, call, Mock, patch
 from urllib.parse import unquote_plus
 
 import boto3
@@ -940,11 +940,11 @@ class TestIndex(TestCase):
                 }
             )
 
+
     @patch.object(index.DocumentQueue, 'append')
-    @patch.object(index, 'index_if_package')
-    def test_index_if_package_delete(self, index_mock, append_mock):
+    def test_index_if_package_delete(self, append_mock):
         """test manifest delete"""
-        timestamp = floor(time())
+        timestamp = "1610412903"
         pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
         self._test_index_events(
             ["ObjectRemoved:DeleteMarkerCreated"],
@@ -958,19 +958,38 @@ class TestIndex(TestCase):
                 "mock_object": False,
             }
         )
-        index_mock.assert_called_once()
-        append_mock.assert_called_once_with(
-            'ObjectRemoved:DeleteMarkerCreated',
-            DocTypes.OBJECT,
-            bucket='test-bucket',
-            etag='123456',
-            ext='',
-            key=pointer_key,
-            last_modified=ANY,
-            size=0,
-            text='',
-            version_id='1313131313131.Vier50HdNbi7ZirO65'
-        )
+
+        append_mock.assert_has_calls([
+            call(
+                'ObjectRemoved:DeleteMarkerCreated',
+                DocTypes.OBJECT,
+                bucket='test-bucket',
+                etag='123456',
+                ext='',
+                key=pointer_key,
+                last_modified=ANY,
+                size=0,
+                text='',
+                version_id='1313131313131.Vier50HdNbi7ZirO65',
+            ),
+            call(
+                'ObjectRemoved:DeleteMarkerCreated',
+                DocTypes.PACKAGE,
+                bucket='test-bucket',
+                comment='',
+                etag='123456',
+                ext='',
+                handle='author/semantic',
+                key=pointer_key,
+                last_modified=ANY,
+                metadata='{}',
+                package_hash='',
+                package_stats=None,
+                pointer_file=timestamp,
+                version_id='1313131313131.Vier50HdNbi7ZirO65',
+            )
+        ])
+        assert append_mock.call_count == 2
 
     def test_index_if_package_skip(self):
         """test cases where index_if_package ignores input for different reasons"""
@@ -1169,7 +1188,8 @@ class TestIndex(TestCase):
             },
             pointer_file=ANY,
             comment=MANIFEST_DATA["message"],
-            metadata=json.dumps(MANIFEST_DATA["user_meta"])
+            metadata=json.dumps(MANIFEST_DATA["user_meta"]),
+            version_id=OBJECT_RESPONSE["VersionId"],
         )
 
         append_mock.assert_any_call(

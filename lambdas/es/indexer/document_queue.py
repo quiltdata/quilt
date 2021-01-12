@@ -91,7 +91,8 @@ class DocumentQueue:
         if not bucket or not key:
             raise ValueError(f"bucket={bucket} or key={key} required but missing")
         is_delete_marker = event_type.endswith("DeleteMarkerCreated")
-        # we index delete markers, instead of deleting them
+        # we index delete markers, instead of deleting them, so as to match
+        # the state of S3 in ES
         if event_type.startswith(EVENT_PREFIX["Created"]) or is_delete_marker:
             _op_type = "index"
         elif event_type.startswith(EVENT_PREFIX["Removed"]):
@@ -122,6 +123,7 @@ class DocumentQueue:
             "last_modified": last_modified,
             "size": size,
             "delete_marker": is_delete_marker,
+            "version_id": version_id,
         }
         if doc_type == DocTypes.PACKAGE:
             if not handle:
@@ -165,7 +167,6 @@ class DocumentQueue:
                 "meta_text": "",
                 "target": "",
                 "updated": datetime.utcnow().isoformat(),
-                "version_id": version_id
             })
         else:
             logger_.error("Skipping unexpected document type: %s", doc_type)
