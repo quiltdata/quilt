@@ -493,10 +493,10 @@ function PackageCreateDialog({
         <M.Dialog
           open={open}
           onClose={handleClose({ submitting })}
-          fullScreen
+          fullWidth
+          maxWidth="lg"
           scroll="body"
           onExited={reset(form)}
-          style={{ top: '128px' }}
         >
           {initError || loading || success ? (
             <DialogContainer>
