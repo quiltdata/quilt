@@ -3,8 +3,8 @@ import cx from 'classnames'
 import * as M from '@material-ui/core'
 
 export const TABS = {
-  FILES: 0,
-  METADATA: 1,
+  FILES: 'files',
+  METADATA: 'metadata',
 }
 
 const useTabContentStyles = M.makeStyles((t) => ({
@@ -48,11 +48,13 @@ export default function Tabs({ className, errors, tab, onTabChange }) {
     >
       <M.Tab
         label={<TabContent title="Files" error={errors.files && tab !== TABS.FILES} />}
+        value={TABS.FILES}
       />
       <M.Tab
         label={
           <TabContent title="Metadata" error={errors.meta && tab !== TABS.METADATA} />
         }
+        value={TABS.METADATA}
       />
     </M.Tabs>
   )
