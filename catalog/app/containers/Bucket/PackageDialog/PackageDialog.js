@@ -2,7 +2,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import JsonEditor from 'components/JsonEditor'
 import { parseJSON, stringifyJSON } from 'components/JsonEditor/State'
@@ -213,7 +212,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   header: {
     alignItems: 'center',
     display: 'flex',
-    marginBottom: t.spacing(2),
+    marginTop: t.spacing(2),
     height: 24,
   },
   btn: {
@@ -305,9 +304,12 @@ export function MetaInput({ schemaError, input: { value, onChange }, meta, schem
     [disabled, onChange, value],
   )
 
-  const handleModeChange = (e, m) => {
-    if (!m) return
-    changeMode(m)
+  const handleModeChange = (e) => {
+    if (e.target.checked) {
+      changeMode('json')
+    } else {
+      changeMode('kv')
+    }
   }
 
   const handleTextChange = (e) => {
@@ -365,23 +367,6 @@ export function MetaInput({ schemaError, input: { value, onChange }, meta, schem
 
   return (
     <div className={classes.root}>
-      <div className={classes.header}>
-        {/* eslint-disable-next-line no-nested-ternary */}
-        <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
-          Metadata
-        </M.Typography>
-
-        <M.Box flexGrow={1} />
-        <Lab.ToggleButtonGroup value={value.mode} exclusive onChange={handleModeChange}>
-          <Lab.ToggleButton value="kv" className={classes.btn} disabled={disabled}>
-            Key : Value
-          </Lab.ToggleButton>
-          <Lab.ToggleButton value="json" className={classes.btn} disabled={disabled}>
-            JSON
-          </Lab.ToggleButton>
-        </Lab.ToggleButtonGroup>
-      </div>
-
       <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
         {value.mode === 'kv' ? (
           <JsonEditor
@@ -437,6 +422,15 @@ export function MetaInput({ schemaError, input: { value, onChange }, meta, schem
             )}
           </div>
         )}
+      </div>
+
+      <div className={classes.header}>
+        <M.FormControlLabel
+          control={<M.Switch checked={value.mode === 'json'} />}
+          onChange={handleModeChange}
+          disabled={disabled}
+          label="Use raw JSON view"
+        />
       </div>
     </div>
   )

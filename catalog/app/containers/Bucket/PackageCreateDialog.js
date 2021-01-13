@@ -31,6 +31,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
     height: 24,
+    marginTop: t.spacing(1),
   },
   headerFiles: {
     ...t.typography.body1,
@@ -220,40 +221,6 @@ function FilesInput({
   const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
   return (
     <div className={classes.root}>
-      <div className={classes.header}>
-        <div
-          className={cx(
-            classes.headerFiles,
-            disabled // eslint-disable-line no-nested-ternary
-              ? classes.headerFilesDisabled
-              : error // eslint-disable-line no-nested-ternary
-              ? classes.headerFilesError
-              : warn
-              ? classes.headerFilesWarn
-              : undefined,
-          )}
-        >
-          Files
-          {!!value.length && (
-            <>
-              : {value.length} ({readableBytes(totalSize)})
-              {warn && <M.Icon style={{ marginLeft: 4 }}>error_outline</M.Icon>}
-            </>
-          )}
-        </div>
-        <M.Box flexGrow={1} />
-        {!!value.length && (
-          <M.Button
-            onClick={clearFiles}
-            disabled={disabled}
-            size="small"
-            endIcon={<M.Icon fontSize="small">clear</M.Icon>}
-          >
-            clear files
-          </M.Button>
-        )}
-      </div>
-
       <div className={classes.dropzoneContainer}>
         <div
           {...getRootProps({
@@ -313,6 +280,39 @@ function FilesInput({
               {readableBytes(totalProgress.loaded)} / {readableBytes(totalProgress.total)}
             </div>
           </div>
+        )}
+      </div>
+
+      <div className={classes.header}>
+        <div
+          className={cx(
+            classes.headerFiles,
+            disabled // eslint-disable-line no-nested-ternary
+              ? classes.headerFilesDisabled
+              : error // eslint-disable-line no-nested-ternary
+              ? classes.headerFilesError
+              : warn
+              ? classes.headerFilesWarn
+              : undefined,
+          )}
+        >
+          {!!value.length && (
+            <>
+              Number of files: {value.length} ({readableBytes(totalSize)})
+              {warn && <M.Icon style={{ marginLeft: 4 }}>error_outline</M.Icon>}
+            </>
+          )}
+        </div>
+        <M.Box flexGrow={1} />
+        {!!value.length && (
+          <M.Button
+            onClick={clearFiles}
+            disabled={disabled}
+            size="small"
+            endIcon={<M.Icon fontSize="small">clear</M.Icon>}
+          >
+            clear files
+          </M.Button>
         )}
       </div>
     </div>
@@ -463,11 +463,10 @@ function PackageCreateDialog({
   }
 
   const TABS = {
-    GENERAL: 0,
-    FILES: 1,
-    METADATA: 2,
+    FILES: 0,
+    METADATA: 1,
   }
-  const [tab, setTab] = React.useState(TABS.GENERAL)
+  const [tab, setTab] = React.useState(TABS.FILES)
 
   return (
     <RF.Form onSubmit={uploadPackage}>
@@ -475,6 +474,7 @@ function PackageCreateDialog({
         handleSubmit,
         submitting,
         submitFailed,
+        errors,
         error,
         submitError,
         hasValidationErrors,
@@ -539,50 +539,74 @@ function PackageCreateDialog({
             <>
               <M.DialogTitle>Create package</M.DialogTitle>
               <M.DialogContent style={{ paddingTop: 0 }}>
-                <M.Tabs value={tab} onChange={(e, t) => setTab(t)}>
-                  <M.Tab label="General" />
-                  <M.Tab label="Files" />
-                  <M.Tab
-                    label="Metadata"
-                    icon={submitFailed ? <M.Icon color="error">error</M.Icon> : null}
-                  />
-                </M.Tabs>
                 <form onSubmit={handleSubmit}>
-                  <M.Collapse in={tab === TABS.GENERAL}>
-                    <div>
-                      <RF.Field
-                        component={PD.Field}
-                        name="name"
-                        label="Name"
-                        placeholder="Enter a package name"
-                        validate={validators.composeAsync(
-                          validators.required,
-                          nameValidator.validate,
-                        )}
-                        validateFields={['name']}
-                        errors={{
-                          required: 'Enter a package name',
-                          invalid: 'Invalid package name',
-                        }}
-                        margin="normal"
-                        fullWidth
-                      />
+                  <div>
+                    <RF.Field
+                      component={PD.Field}
+                      name="name"
+                      label="Name"
+                      placeholder="Enter a package name"
+                      validate={validators.composeAsync(
+                        validators.required,
+                        nameValidator.validate,
+                      )}
+                      validateFields={['name']}
+                      errors={{
+                        required: 'Enter a package name',
+                        invalid: 'Invalid package name',
+                      }}
+                      margin="normal"
+                      fullWidth
+                    />
 
-                      <RF.Field
-                        component={PD.Field}
-                        name="msg"
-                        label="Commit message"
-                        placeholder="Enter a commit message"
-                        validate={validators.required}
-                        validateFields={['msg']}
-                        errors={{
-                          required: 'Enter a commit message',
-                        }}
-                        fullWidth
-                        margin="normal"
-                      />
-                    </div>
-                  </M.Collapse>
+                    <RF.Field
+                      component={PD.Field}
+                      name="msg"
+                      label="Commit message"
+                      placeholder="Enter a commit message"
+                      validate={validators.required}
+                      validateFields={['msg']}
+                      errors={{
+                        required: 'Enter a commit message',
+                      }}
+                      fullWidth
+                      margin="normal"
+                    />
+                  </div>
+
+                  <M.Tabs
+                    style={{
+                      borderBottom: '1px solid rgba(0,0,0,0.2)',
+                      marginTop: '8px',
+                    }}
+                    value={tab}
+                    onChange={(e, t) => setTab(t)}
+                  >
+                    <M.Tab
+                      label={
+                        <span style={{ display: 'flex' }}>
+                          Files
+                          {submitFailed && errors.files && tab !== TABS.FILES ? (
+                            <M.Icon style={{ marginLeft: '8px' }} color="error">
+                              error
+                            </M.Icon>
+                          ) : null}
+                        </span>
+                      }
+                    />
+                    <M.Tab
+                      label={
+                        <span style={{ display: 'flex' }}>
+                          Metadata
+                          {submitFailed && errors.meta && tab !== TABS.METADATA ? (
+                            <M.Icon style={{ marginLeft: '8px' }} color="error">
+                              error
+                            </M.Icon>
+                          ) : null}
+                        </span>
+                      }
+                    />
+                  </M.Tabs>
 
                   <M.Collapse in={tab === TABS.FILES}>
                     <div>
@@ -623,20 +647,20 @@ function PackageCreateDialog({
                           _: () => <PD.MetaInputSkeleton />,
                         })}
                       </PD.SchemaFetcher>
-
-                      <RF.Field
-                        component={PD.WorkflowInput}
-                        name="workflow"
-                        workflowsConfig={workflowsConfig}
-                        initialValue={PD.defaultWorkflowFromConfig(workflowsConfig)}
-                        validate={validators.required}
-                        validateFields={['meta', 'workflow']}
-                        errors={{
-                          required: 'Workflow is required for this bucket.',
-                        }}
-                      />
                     </div>
                   </M.Collapse>
+
+                  <RF.Field
+                    component={PD.WorkflowInput}
+                    name="workflow"
+                    workflowsConfig={workflowsConfig}
+                    initialValue={PD.defaultWorkflowFromConfig(workflowsConfig)}
+                    validate={validators.required}
+                    validateFields={['meta', 'workflow']}
+                    errors={{
+                      required: 'Workflow is required for this bucket.',
+                    }}
+                  />
 
                   <input type="submit" style={{ display: 'none' }} />
                 </form>
