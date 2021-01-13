@@ -571,6 +571,7 @@ function PackageCreateDialog({
                       invalid: 'Invalid package name',
                     }}
                     helperText={nameWarning}
+                    validating={nameValidator.processing}
                   />
 
                   <RF.Field

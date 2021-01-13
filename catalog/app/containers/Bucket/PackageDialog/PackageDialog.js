@@ -93,28 +93,39 @@ const readFile = (file) =>
     reader.readAsText(file)
   })
 
+const validateName = (req) =>
+  cacheDebounce(async (name) => {
+    if (name) {
+      const res = await req({
+        endpoint: '/package_name_valid',
+        method: 'POST',
+        body: { name },
+      })
+      if (!res.valid) return 'invalid'
+    }
+    return undefined
+  }, 200)
+
 export function useNameValidator() {
   const req = APIConnector.use()
   const [counter, setCounter] = React.useState(0)
+  const [processing, setProcessing] = React.useState(false)
   const inc = React.useCallback(() => setCounter(R.inc), [setCounter])
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const validator = React.useMemo(() => validateName(req), [req])
+
   const validate = React.useCallback(
-    cacheDebounce(async (name) => {
-      if (name) {
-        const res = await req({
-          endpoint: '/package_name_valid',
-          method: 'POST',
-          body: { name },
-        })
-        if (!res.valid) return 'invalid'
-      }
-      return undefined
-    }, 200),
-    [req, counter],
+    async (name) => {
+      setProcessing(true)
+      const error = await validator(name)
+      setProcessing(false)
+      return error
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [counter, validator],
   )
 
-  return React.useMemo(() => ({ validate, inc }), [validate, inc])
+  return React.useMemo(() => ({ validate, processing, inc }), [validate, processing, inc])
 }
 
 export function useNameExistence(bucket) {
@@ -192,7 +203,7 @@ export function Field({ error, helperText, validating, warning, ...rest }) {
   return <M.TextField {...props} />
 }
 
-export function PackageNameInput({ errors, input, meta, ...rest }) {
+export function PackageNameInput({ errors, input, meta, validating, ...rest }) {
   const errorCode = (input.value || meta.submitFailed) && meta.error
   const error = errorCode ? errors[errorCode] || errorCode : ''
   const props = {
@@ -202,7 +213,8 @@ export function PackageNameInput({ errors, input, meta, ...rest }) {
     label: 'Name',
     margin: 'normal',
     placeholder: 'e.g. user/package',
-    validating: meta.validating && !errorCode,
+    // NOTE: react-form doesn't change `FormState.validating` on async validation when field loses focus
+    validating,
     ...input,
     ...rest,
   }
