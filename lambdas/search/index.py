@@ -137,12 +137,7 @@ def lambda_handler(request):
         terminate_after = None
     elif action == 'images':
         body = {
-            'query': {
-                'bool': {
-                    'must': [{'regexp': {'ext': IMG_EXTS}}],
-                    'must_not': [{'match': {'delete_marker': True}}],
-                }
-            },
+            'query': {'regexp': {'ext': IMG_EXTS}},
             'collapse': {
                 'field': 'key',
                 'inner_hits': {
@@ -163,7 +158,6 @@ def lambda_handler(request):
                     'must_not': [
                         {'terms': {'key': README_KEYS + [SUMMARIZE_KEY]}},
                         {'wildcard': {'key': '*/' + SUMMARIZE_KEY}},
-                        {'match': {'delete_marker': True}},
                     ],
                 },
             },
