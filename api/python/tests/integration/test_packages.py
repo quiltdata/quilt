@@ -938,6 +938,9 @@ class PackageTest(QuiltTestCase):
 
         assert pkg.top_hash == top_hash, f'Unexpected top_hash for {manifest_path}'
 
+        pkg['b'].set_meta({'key': 'value'})
+        assert pkg.top_hash == 'd606d6c32a11229c7bdbcb5d88a464ce5f03974f9f40096f387f6cdb752bb5d0'
+
     def test_local_package_delete(self):
         """Verify local package delete works."""
         top_hash = Package().build("Quilt/Test")
