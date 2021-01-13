@@ -103,19 +103,31 @@ def lambda_handler(request):
                 }
             }
         _source = user_source or [
-            'key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta',
-            'comment', 'handle', 'hash', 'tags', 'metadata', 'pointer_file'
+            'key',
+            'version_id',
+            'updated',
+            'last_modified',
+            'size',
+            'user_meta',
+            'comment',
+            'handle',
+            'hash',
+            'tags',
+            'metadata',
+            'pointer_file',
+            'delete_marker',
         ]
         size = DEFAULT_SIZE
     elif action == 'stats':
         body = {
-            "query": {"match_all": {}},
+            "query": {"term": {"delete_marker": False}},
             "aggs": {
                 "totalBytes": {"sum": {"field": 'size'}},
                 "exts": {
                     "terms": {"field": 'ext'},
                     "aggs": {"size": {"sum": {"field": 'size'}}},
                 },
+                # TODO: move this to a separate action (pkg_stats)
                 "totalPackageHandles": {"value_count": {"field": "handle"}},
             }
         }
@@ -132,7 +144,7 @@ def lambda_handler(request):
                     'name': 'latest',
                     'size': 1,
                     'sort': [{'last_modified': 'desc'}],
-                    '_source': ['key', 'version_id'],
+                    '_source': ['key', 'version_id', 'delete_marker'],
                 },
             },
         }
@@ -155,7 +167,7 @@ def lambda_handler(request):
                     'name': 'latest',
                     'size': 1,
                     'sort': [{'last_modified': 'desc'}],
-                    '_source': ['key', 'version_id'],
+                    '_source': ['key', 'version_id', 'delete_marker'],
                 },
             },
         }
