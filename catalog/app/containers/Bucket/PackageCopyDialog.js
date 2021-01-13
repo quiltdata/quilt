@@ -380,41 +380,39 @@ export default function PackageCopyDialog({
 
   return (
     <M.Dialog onClose={handleClose} onExited={handleExited} open={open} scroll="body">
-      <M.Container maxWidth="sm">
-        {stateCase({
-          Error: (e) =>
-            successor && (
-              <DialogError bucket={successor.slug} onCancel={handleClose} error={e} />
-            ),
-          Loading: () =>
-            successor && <DialogLoading bucket={successor.slug} onCancel={handleClose} />,
-          Form: (props) =>
-            successor && (
-              <DialogForm
-                {...{
-                  bucket,
-                  hash,
-                  name,
-                  successor,
-                  close: handleClose,
-                  onSubmitStart: () => setSubmitting(true),
-                  onSubmitEnd: () => setSubmitting(false),
-                  onSuccess: handleSuccess,
-                  ...props,
-                }}
-              />
-            ),
-          Success: (props) =>
-            successor && (
-              <PD.DialogSuccess
-                bucket={successor.slug}
-                name={props.name}
-                hash={props.hash}
-                onClose={handleClose}
-              />
-            ),
-        })}
-      </M.Container>
+      {stateCase({
+        Error: (e) =>
+          successor && (
+            <DialogError bucket={successor.slug} onCancel={handleClose} error={e} />
+          ),
+        Loading: () =>
+          successor && <DialogLoading bucket={successor.slug} onCancel={handleClose} />,
+        Form: (props) =>
+          successor && (
+            <DialogForm
+              {...{
+                bucket,
+                hash,
+                name,
+                successor,
+                close: handleClose,
+                onSubmitStart: () => setSubmitting(true),
+                onSubmitEnd: () => setSubmitting(false),
+                onSuccess: handleSuccess,
+                ...props,
+              }}
+            />
+          ),
+        Success: (props) =>
+          successor && (
+            <PD.DialogSuccess
+              bucket={successor.slug}
+              name={props.name}
+              hash={props.hash}
+              onClose={handleClose}
+            />
+          ),
+      })}
     </M.Dialog>
   )
 }

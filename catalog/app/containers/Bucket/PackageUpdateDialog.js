@@ -1014,81 +1014,87 @@ function DialogForm({
           <M.DialogTitle>Push package revision</M.DialogTitle>
           <M.DialogContent style={{ paddingTop: 0 }}>
             <form onSubmit={handleSubmit}>
-              <RF.Field
-                component={PD.Field}
-                name="name"
-                label="Name"
-                placeholder="e.g. user/package"
-                validate={validators.composeAsync(
-                  validators.required,
-                  nameValidator.validate,
-                )}
-                validateFields={['name']}
-                errors={{
-                  required: 'Enter a package name',
-                  invalid: 'Invalid package name',
-                }}
-                margin="normal"
-                fullWidth
-                initialValue={initialName}
-              />
+              <M.Grid container spacing={2}>
+                <M.Grid item xs={12} sm={6}>
+                  <RF.Field
+                    component={PD.Field}
+                    name="name"
+                    label="Name"
+                    placeholder="e.g. user/package"
+                    validate={validators.composeAsync(
+                      validators.required,
+                      nameValidator.validate,
+                    )}
+                    validateFields={['name']}
+                    errors={{
+                      required: 'Enter a package name',
+                      invalid: 'Invalid package name',
+                    }}
+                    margin="normal"
+                    fullWidth
+                    initialValue={initialName}
+                  />
 
-              <RF.Field
-                component={PD.Field}
-                name="msg"
-                label="Commit message"
-                placeholder="Enter a commit message"
-                validate={validators.required}
-                validateFields={['msg']}
-                errors={{
-                  required: 'Enter a commit message',
-                }}
-                fullWidth
-                margin="normal"
-              />
+                  <RF.Field
+                    component={PD.Field}
+                    name="msg"
+                    label="Commit message"
+                    placeholder="Enter a commit message"
+                    validate={validators.required}
+                    validateFields={['msg']}
+                    errors={{
+                      required: 'Enter a commit message',
+                    }}
+                    fullWidth
+                    margin="normal"
+                  />
 
-              <RF.Field
-                component={FilesInput}
-                name="files"
-                validate={validators.nonEmpty}
-                validateFields={['files']}
-                errors={{
-                  nonEmpty: 'Add files to create a package',
-                }}
-                uploads={uploads}
-                onFilesAction={onFilesAction}
-                isEqual={R.equals}
-                initialValue={initialFiles}
-              />
+                  <PD.SchemaFetcher
+                    schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
+                  >
+                    {AsyncResult.case({
+                      Ok: ({ responseError, schema, validate }) => (
+                        <RF.Field
+                          component={PD.MetaInput}
+                          name="meta"
+                          bucket={bucket}
+                          schema={schema}
+                          schemaError={responseError}
+                          validate={validate}
+                          validateFields={['meta']}
+                          isEqual={R.equals}
+                          initialValue={initialMeta}
+                        />
+                      ),
+                      _: () => <PD.MetaInputSkeleton />,
+                    })}
+                  </PD.SchemaFetcher>
 
-              <PD.SchemaFetcher
-                schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
-              >
-                {AsyncResult.case({
-                  Ok: ({ responseError, schema, validate }) => (
-                    <RF.Field
-                      component={PD.MetaInput}
-                      name="meta"
-                      bucket={bucket}
-                      schema={schema}
-                      schemaError={responseError}
-                      validate={validate}
-                      validateFields={['meta']}
-                      isEqual={R.equals}
-                      initialValue={initialMeta}
-                    />
-                  ),
-                  _: () => <PD.MetaInputSkeleton />,
-                })}
-              </PD.SchemaFetcher>
+                  <RF.Field
+                    component={PD.WorkflowInput}
+                    name="workflow"
+                    workflowsConfig={workflowsConfig}
+                    initialValue={initialWorkflow}
+                    validateFields={['meta', 'workflow']}
+                  />
+                </M.Grid>
 
-              <RF.Field
-                component={PD.WorkflowInput}
-                name="workflow"
-                workflowsConfig={workflowsConfig}
-                initialValue={initialWorkflow}
-                validateFields={['meta', 'workflow']}
-              />
+                <M.Grid item xs={12} sm={6}>
+                  <RF.Field
+                    component={FilesInput}
+                    name="files"
+                    validate={validators.nonEmpty}
+                    validateFields={['files']}
+                    errors={{
+                      nonEmpty: 'Add files to create a package',
+                    }}
+                    uploads={uploads}
+                    onFilesAction={onFilesAction}
+                    isEqual={R.equals}
+                    initialValue={initialFiles}
+                  />
+                </M.Grid>
+              </M.Grid>
 
               <input type="submit" style={{ display: 'none' }} />
             </form>
@@ -1298,26 +1304,24 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
         open={isOpen}
         scroll="body"
       >
-        <M.Container maxWidth="sm">
-          {stateCase({
-            Closed: () => null,
-            Loading: () => <DialogPlaceholder close={close} />,
-            Error: (e) => <DialogError close={close} error={e} />,
-            Form: (props) => (
-              <DialogForm
-                {...{
-                  bucket,
-                  name,
-                  close,
-                  onSuccess: setSuccess,
-                  setSubmitting,
-                  ...props,
-                }}
-              />
-            ),
-            Success: (props) => <DialogSuccess {...{ bucket, close, ...props }} />,
-          })}
-        </M.Container>
+        {stateCase({
+          Closed: () => null,
+          Loading: () => <DialogPlaceholder close={close} />,
+          Error: (e) => <DialogError close={close} error={e} />,
+          Form: (props) => (
+            <DialogForm
+              {...{
+                bucket,
+                name,
+                close,
+                onSuccess: setSuccess,
+                setSubmitting,
+                ...props,
+              }}
+            />
+          ),
+          Success: (props) => <DialogSuccess {...{ bucket, close, ...props }} />,
+        })}
       </DialogWrapper>
     ),
     [bucket, name, isOpen, exited, close, stateCase, handleExited],
