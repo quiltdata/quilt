@@ -1290,13 +1290,13 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
   const render = React.useCallback(
     () => (
       <DialogWrapper
-        open={isOpen}
         exited={exited}
+        fullWidth
+        maxWidth="lg"
         onClose={close}
-        fullScreen
-        scroll="body"
         onExited={handleExited}
-        style={{ top: '128px' }}
+        open={isOpen}
+        scroll="body"
       >
         <M.Container maxWidth="sm">
           {stateCase({

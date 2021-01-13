@@ -491,12 +491,12 @@ function PackageCreateDialog({
         values,
       }) => (
         <M.Dialog
-          open={open}
-          onClose={handleClose({ submitting })}
           fullWidth
           maxWidth="lg"
-          scroll="body"
+          onClose={handleClose({ submitting })}
           onExited={reset(form)}
+          open={open}
+          scroll="body"
         >
           {initError || loading || success ? (
             <DialogContainer>

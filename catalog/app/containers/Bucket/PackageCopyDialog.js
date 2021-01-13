@@ -379,14 +379,7 @@ export default function PackageCopyDialog({
   }, [submitting, success, setSuccess, onClose, onExited])
 
   return (
-    <M.Dialog
-      open={open}
-      onClose={handleClose}
-      fullScreen
-      scroll="body"
-      onExited={handleExited}
-      style={{ top: '128px' }}
-    >
+    <M.Dialog onClose={handleClose} onExited={handleExited} open={open} scroll="body">
       <M.Container maxWidth="sm">
         {stateCase({
           Error: (e) =>
