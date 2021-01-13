@@ -1003,8 +1003,9 @@ function DialogForm({
 
   const onFormChanged = React.useCallback(
     async ({ modified, values }) => {
-      const { name } = values
       if (!modified.name) return
+
+      const { name } = values
 
       setNameWarning('')
 

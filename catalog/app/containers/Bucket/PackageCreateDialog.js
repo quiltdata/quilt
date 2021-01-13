@@ -467,7 +467,9 @@ function PackageCreateDialog({
   const [nameWarning, setNameWarning] = React.useState('')
 
   const onFormChanged = React.useCallback(
-    async ({ values }) => {
+    async ({ modified, values }) => {
+      if (!modified.name) return
+
       const { name } = values
 
       setNameWarning('')
@@ -551,7 +553,10 @@ function PackageCreateDialog({
               <M.DialogTitle>Create package</M.DialogTitle>
               <M.DialogContent style={{ paddingTop: 0 }}>
                 <form onSubmit={handleSubmit}>
-                  <RF.FormSpy subscription={{ values: true }} onChange={onFormChanged} />
+                  <RF.FormSpy
+                    subscription={{ modified: true, values: true }}
+                    onChange={onFormChanged}
+                  />
 
                   <RF.Field
                     component={PD.PackageNameInput}
