@@ -829,6 +829,12 @@ const getTotalProgress = R.pipe(
   }),
 )
 
+const useStyles = M.makeStyles((t) => ({
+  tabs: {
+    marginTop: t.spacing(2),
+  },
+}))
+
 function DialogForm({
   bucket,
   name: initialName,
@@ -842,6 +848,7 @@ function DialogForm({
   const req = APIConnector.use()
   const [uploads, setUploads] = React.useState({})
   const nameValidator = PD.useNameValidator()
+  const classes = useStyles()
 
   const initialMeta = React.useMemo(
     () => ({
@@ -998,6 +1005,8 @@ function DialogForm({
     }
   }
 
+  const [tab, setTab] = React.useState(PD.TABS.FILES)
+
   return (
     <RF.Form onSubmit={onSubmitWrapped}>
       {({
@@ -1005,6 +1014,7 @@ function DialogForm({
         submitting,
         submitFailed,
         error,
+        errors,
         submitError,
         hasValidationErrors,
         form,
@@ -1047,40 +1057,55 @@ function DialogForm({
                 margin="normal"
               />
 
-              <RF.Field
-                component={FilesInput}
-                name="files"
-                validate={validators.nonEmpty}
-                validateFields={['files']}
-                errors={{
-                  nonEmpty: 'Add files to create a package',
-                }}
-                uploads={uploads}
-                onFilesAction={onFilesAction}
-                isEqual={R.equals}
-                initialValue={initialFiles}
+              <PD.Tabs
+                className={classes.tabs}
+                tab={tab}
+                onTabChange={setTab}
+                errors={submitFailed ? errors : {}}
               />
 
-              <PD.SchemaFetcher
-                schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
-              >
-                {AsyncResult.case({
-                  Ok: ({ responseError, schema, validate }) => (
-                    <RF.Field
-                      component={PD.MetaInput}
-                      name="meta"
-                      bucket={bucket}
-                      schema={schema}
-                      schemaError={responseError}
-                      validate={validate}
-                      validateFields={['meta']}
-                      isEqual={R.equals}
-                      initialValue={initialMeta}
-                    />
-                  ),
-                  _: () => <PD.MetaInputSkeleton />,
-                })}
-              </PD.SchemaFetcher>
+              <M.Collapse in={tab === PD.TABS.FILES}>
+                <div>
+                  <RF.Field
+                    component={FilesInput}
+                    name="files"
+                    validate={validators.nonEmpty}
+                    validateFields={['files']}
+                    errors={{
+                      nonEmpty: 'Add files to create a package',
+                    }}
+                    uploads={uploads}
+                    onFilesAction={onFilesAction}
+                    isEqual={R.equals}
+                    initialValue={initialFiles}
+                  />
+                </div>
+              </M.Collapse>
+
+              <M.Collapse in={tab === PD.TABS.METADATA}>
+                <div>
+                  <PD.SchemaFetcher
+                    schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
+                  >
+                    {AsyncResult.case({
+                      Ok: ({ responseError, schema, validate }) => (
+                        <RF.Field
+                          component={PD.MetaInput}
+                          name="meta"
+                          bucket={bucket}
+                          schema={schema}
+                          schemaError={responseError}
+                          validate={validate}
+                          validateFields={['meta']}
+                          isEqual={R.equals}
+                          initialValue={initialMeta}
+                        />
+                      ),
+                      _: () => <PD.MetaInputSkeleton />,
+                    })}
+                  </PD.SchemaFetcher>
+                </div>
+              </M.Collapse>
 
               <RF.Field
                 component={PD.WorkflowInput}

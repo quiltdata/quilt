@@ -334,6 +334,12 @@ const getTotalProgress = R.pipe(
   }),
 )
 
+const useStyles = M.makeStyles((t) => ({
+  tabs: {
+    marginTop: t.spacing(2),
+  },
+}))
+
 function PackageCreateDialog({
   bucket,
   open,
@@ -349,6 +355,7 @@ function PackageCreateDialog({
   const [uploads, setUploads] = React.useState({})
   const [success, setSuccess] = React.useState(null)
   const nameValidator = PD.useNameValidator()
+  const classes = useStyles()
 
   const reset = (form) => () => {
     form.restart()
@@ -462,11 +469,7 @@ function PackageCreateDialog({
     }
   }
 
-  const TABS = {
-    FILES: 0,
-    METADATA: 1,
-  }
-  const [tab, setTab] = React.useState(TABS.FILES)
+  const [tab, setTab] = React.useState(PD.TABS.FILES)
 
   return (
     <RF.Form onSubmit={uploadPackage}>
@@ -574,41 +577,14 @@ function PackageCreateDialog({
                     />
                   </div>
 
-                  <M.Tabs
-                    style={{
-                      borderBottom: '1px solid rgba(0,0,0,0.2)',
-                      marginTop: '8px',
-                    }}
-                    value={tab}
-                    onChange={(e, t) => setTab(t)}
-                  >
-                    <M.Tab
-                      label={
-                        <span style={{ display: 'flex' }}>
-                          Files
-                          {submitFailed && errors.files && tab !== TABS.FILES ? (
-                            <M.Icon style={{ marginLeft: '8px' }} color="error">
-                              error
-                            </M.Icon>
-                          ) : null}
-                        </span>
-                      }
-                    />
-                    <M.Tab
-                      label={
-                        <span style={{ display: 'flex' }}>
-                          Metadata
-                          {submitFailed && errors.meta && tab !== TABS.METADATA ? (
-                            <M.Icon style={{ marginLeft: '8px' }} color="error">
-                              error
-                            </M.Icon>
-                          ) : null}
-                        </span>
-                      }
-                    />
-                  </M.Tabs>
+                  <PD.Tabs
+                    className={classes.tabs}
+                    tab={tab}
+                    onTabChange={setTab}
+                    errors={submitFailed ? errors : {}}
+                  />
 
-                  <M.Collapse in={tab === TABS.FILES}>
+                  <M.Collapse in={tab === PD.TABS.FILES}>
                     <div>
                       <RF.Field
                         component={FilesInput}
@@ -625,7 +601,7 @@ function PackageCreateDialog({
                     </div>
                   </M.Collapse>
 
-                  <M.Collapse in={tab === TABS.METADATA}>
+                  <M.Collapse in={tab === PD.TABS.METADATA}>
                     <div>
                       <PD.SchemaFetcher
                         schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
