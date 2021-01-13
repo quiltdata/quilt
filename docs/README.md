@@ -3,7 +3,7 @@
 [![codecov](https://codecov.io/gh/quiltdata/quilt/branch/master/graph/badge.svg)](https://codecov.io/gh/quiltdata/quilt)
 [![pypi](https://img.shields.io/pypi/v/quilt3.svg?style=flat-square)](https://pypi.org/project/quilt3/)
 
-# Quilt is a self-organizing data lake
+# Quilt is a self-organizing data hub
 
 ## Quilt in action
 * [open.quiltdata.com](https://open.quiltdata.com/) is a petabyte-scale open

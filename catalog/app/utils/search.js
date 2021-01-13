@@ -66,6 +66,7 @@ const extractObjData = ({ bucket, score, src }) => {
           lastModified: parseDate(src.last_modified),
           size: src.size,
           meta: src.user_meta,
+          deleteMarker: src.delete_marker,
         },
       ],
     },

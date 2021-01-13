@@ -1018,7 +1018,7 @@ function DialogForm({
                 component={PD.Field}
                 name="name"
                 label="Name"
-                placeholder="Enter a package name"
+                placeholder="e.g. user/package"
                 validate={validators.composeAsync(
                   validators.required,
                   nameValidator.validate,
