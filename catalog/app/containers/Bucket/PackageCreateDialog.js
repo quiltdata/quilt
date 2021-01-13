@@ -579,9 +579,17 @@ function PackageCreateDialog({
 
                   <PD.Tabs
                     className={classes.tabs}
-                    tab={tab}
+                    errors={
+                      submitFailed
+                        ? {
+                            [PD.TABS.FILES.key]: errors.files,
+                            [PD.TABS.METADATA.key]: errors.meta,
+                          }
+                        : {}
+                    }
                     onTabChange={setTab}
-                    errors={submitFailed ? errors : {}}
+                    tab={tab}
+                    tabsList={[PD.TABS.FILES, PD.TABS.METADATA]}
                   />
 
                   <M.Collapse in={tab === PD.TABS.FILES}>

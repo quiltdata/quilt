@@ -85,6 +85,12 @@ function DialogTitle({ bucket }) {
   )
 }
 
+const useStyles = M.makeStyles((t) => ({
+  tabs: {
+    marginTop: t.spacing(2),
+  },
+}))
+
 function DialogForm({
   close,
   hash,
@@ -98,6 +104,7 @@ function DialogForm({
   workflowsConfig,
 }) {
   const nameValidator = PD.useNameValidator()
+  const classes = useStyles()
 
   const initialMeta = React.useMemo(
     () => ({
@@ -140,6 +147,7 @@ function DialogForm({
         submitting,
         submitFailed,
         error,
+        errors,
         submitError,
         hasValidationErrors,
         form,
@@ -180,6 +188,20 @@ function DialogForm({
                 }}
                 fullWidth
                 margin="normal"
+              />
+
+              <PD.Tabs
+                className={classes.tabs}
+                errors={
+                  submitFailed
+                    ? {
+                        [PD.TABS.METADATA.key]: errors.meta,
+                      }
+                    : {}
+                }
+                onTabChange={R.identity}
+                tab={PD.TABS.METADATA}
+                tabsList={[PD.TABS.METADATA]}
               />
 
               <PD.SchemaFetcher
