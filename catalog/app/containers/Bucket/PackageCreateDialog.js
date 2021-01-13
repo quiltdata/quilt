@@ -87,7 +87,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
   filesContainer: {
     borderBottom: `1px solid ${t.palette.action.disabled}`,
-    maxHeight: 562,
+    maxHeight: t.spacing(64),
     overflowX: 'hidden',
     overflowY: 'auto',
   },

@@ -570,7 +570,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   filesContainer: {
     direction: 'rtl', // show the scrollbar on the right
     borderBottom: `1px solid ${t.palette.action.disabled}`,
-    maxHeight: 200,
+    maxHeight: t.spacing(64),
     overflowX: 'hidden',
     overflowY: 'auto',
   },

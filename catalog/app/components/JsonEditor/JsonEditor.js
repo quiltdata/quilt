@@ -27,7 +27,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   inner: {
     display: 'flex',
-    maxHeight: t.spacing(46),
+    maxHeight: t.spacing(42),
     overflow: 'auto',
   },
 }))
