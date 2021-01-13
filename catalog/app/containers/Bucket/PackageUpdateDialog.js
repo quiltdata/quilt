@@ -1001,7 +1001,7 @@ function DialogForm({
 
   const [nameWarning, setNameWarning] = React.useState('')
 
-  const onFormChanged = React.useCallback(
+  const onFormChange = React.useCallback(
     async ({ modified, values }) => {
       if (!modified.name) return
 
@@ -1039,7 +1039,7 @@ function DialogForm({
             <form onSubmit={handleSubmit}>
               <RF.FormSpy
                 subscription={{ modified: true, values: true }}
-                onChange={onFormChanged}
+                onChange={onFormChange}
               />
 
               <RF.Field

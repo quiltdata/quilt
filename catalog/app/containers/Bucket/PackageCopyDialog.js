@@ -136,7 +136,7 @@ function DialogForm({
 
   const [nameWarning, setNameWarning] = React.useState('')
 
-  const onFormChanged = React.useCallback(
+  const onFormChange = React.useCallback(
     async ({ values }) => {
       const { name } = values
       const fullName = `${successor.slug}/${name}`
@@ -173,7 +173,7 @@ function DialogForm({
           <DialogTitle bucket={successor.slug} />
           <M.DialogContent style={{ paddingTop: 0 }}>
             <form onSubmit={handleSubmit}>
-              <RF.FormSpy subscription={{ values: true }} onChange={onFormChanged} />
+              <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
 
               <RF.Field
                 component={PD.PackageNameInput}
