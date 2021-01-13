@@ -999,6 +999,7 @@ function DialogForm({
     }
   }
 
+  const defaultNameWarning = ' ' // Reserve space for warning
   const [nameWarning, setNameWarning] = React.useState('')
 
   const onFormChange = React.useCallback(
@@ -1007,7 +1008,7 @@ function DialogForm({
 
       const { name } = values
 
-      setNameWarning('')
+      setNameWarning(defaultNameWarning)
 
       if (initialName === name) return
 

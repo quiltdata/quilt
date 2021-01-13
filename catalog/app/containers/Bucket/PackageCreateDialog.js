@@ -464,7 +464,8 @@ function PackageCreateDialog({
     }
   }
 
-  const [nameWarning, setNameWarning] = React.useState('')
+  const defaultNameWarning = ' ' // Reserve space for warning
+  const [nameWarning, setNameWarning] = React.useState(defaultNameWarning)
 
   const onFormChange = React.useCallback(
     async ({ modified, values }) => {
@@ -472,7 +473,7 @@ function PackageCreateDialog({
 
       const { name } = values
 
-      setNameWarning('')
+      setNameWarning(defaultNameWarning)
 
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {
