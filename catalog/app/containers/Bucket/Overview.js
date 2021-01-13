@@ -758,7 +758,7 @@ function Head({ req, s3, overviewUrl, bucket, description }) {
   const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
   const colorPool = useConst(() => mkKeyedPool(COLOR_MAP))
   const statsData = useData(requests.bucketStats, { req, s3, bucket, overviewUrl })
-  const pkgStatsData = useData(requests.bucketPkgStats, { req, bucket })
+  const pkgCountData = useData(requests.countPackages, { req, bucket })
   return (
     <M.Paper className={classes.root}>
       <M.Box className={classes.top}>
@@ -798,7 +798,7 @@ function Head({ req, s3, overviewUrl, bucket, description }) {
             fallback={() => '?'}
           />
           <StatDisplay
-            value={AsyncResult.prop('totalPackages', pkgStatsData.result)}
+            value={pkgCountData.result}
             format={formatQuantity}
             label="Packages"
             fallback={() => null}

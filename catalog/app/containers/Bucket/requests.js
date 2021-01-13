@@ -214,24 +214,6 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   throw new Error('Stats unavailable')
 }
 
-export const bucketPkgStats = async ({ req, bucket }) => {
-  try {
-    // TODO: use pkg_stats action when it's implemented
-    return await req('/search', { index: `${bucket}_packages`, action: 'stats' }).then(
-      R.applySpec({
-        totalPackages: R.path(['aggregations', 'totalPackageHandles', 'value']),
-      }),
-    )
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch package stats:')
-    // eslint-disable-next-line no-console
-    console.error(e)
-  }
-
-  throw new Error('Package stats unavailable')
-}
-
 const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
   const versionExists = await ensureObjectIsPresent({
     s3,
@@ -774,8 +756,20 @@ export const countPackages = withErrorHandling(async ({ req, bucket, filter }) =
   const body = {
     query: mkFilterQuery(filter),
     aggs: {
-      total: {
-        cardinality: { field: 'handle' },
+      packages: {
+        terms: { field: 'handle' },
+        aggs: {
+          revisions: { sum: { script: 'doc.delete_marker.value ? -1 : 1' } },
+          not_deleted: {
+            bucket_selector: {
+              buckets_path: { revisions: 'revisions' },
+              script: 'params.revisions > 0',
+            },
+          },
+        },
+      },
+      package_stats: {
+        stats_bucket: { buckets_path: 'packages>revisions' },
       },
     },
   }
@@ -784,8 +778,9 @@ export const countPackages = withErrorHandling(async ({ req, bucket, filter }) =
     action: 'packages',
     body: JSON.stringify(body),
     size: 0,
+    filter_path: 'aggregations.package_stats.count',
   })
-  return result.aggregations.total.value
+  return result.aggregations.package_stats.count
 })
 
 export const listPackages = withErrorHandling(
@@ -818,21 +813,20 @@ export const listPackages = withErrorHandling(
           composite: {
             // the limit is configured in ES cluster settings (search.max_buckets)
             size: 10000,
-            sources: [
-              {
-                handle: {
-                  terms: { field: 'handle' },
-                },
-              },
-            ],
+            sources: [{ handle: { terms: { field: 'handle' } } }],
           },
           aggs: {
-            modified: {
-              max: { field: 'last_modified' },
+            revisions: { sum: { script: 'doc.delete_marker.value ? -1 : 1' } },
+            modified: { max: { field: 'last_modified' } },
+            not_deleted: {
+              bucket_selector: {
+                buckets_path: { revisions: 'revisions' },
+                script: 'params.revisions > 0',
+              },
             },
             sort: {
               bucket_sort: {
-                sort: sort === 'modified' ? [{ modified: { order: 'desc' } }] : undefined,
+                sort: sort === 'modified' ? [{ modified: 'desc' }] : undefined,
                 size: perPage,
                 from: perPage * (page - 1),
               },
@@ -846,11 +840,12 @@ export const listPackages = withErrorHandling(
       action: 'packages',
       body: JSON.stringify(body),
       size: 0,
+      filter_path: 'aggregations.packages.buckets',
     })
     const packages = result.aggregations.packages.buckets.map((b) => ({
       name: b.key.handle,
       modified: new Date(b.modified.value),
-      revisions: b.doc_count,
+      revisions: b.revisions.value,
     }))
 
     if (!countsP) return packages
@@ -917,10 +912,16 @@ export const countPackageRevisions = ({ req, bucket, name }) =>
   req('/search', {
     index: `${bucket}_packages`,
     action: 'packages',
-    body: JSON.stringify({ query: { term: { handle: name } } }),
+    body: JSON.stringify({
+      query: { term: { handle: name } },
+      aggs: {
+        revisions: { sum: { script: 'doc.delete_marker.value ? -1 : 1' } },
+      },
+    }),
     size: 0,
+    filter_path: 'aggregations.revisions',
   })
-    .then(R.path(['hits', 'total']))
+    .then(R.path(['aggregations', 'revisions', 'value']))
     .catch(errors.catchErrors())
 
 function tryParse(s) {
@@ -936,19 +937,53 @@ export const getPackageRevisions = withErrorHandling(
     req('/search', {
       index: `${bucket}_packages`,
       action: 'packages',
+      size: 0,
+      filter_path: 'aggregations.revisions.buckets.latest.hits.hits._source',
       body: JSON.stringify({
         query: { term: { handle: name } },
-        sort: [{ last_modified: 'desc' }],
+        aggs: {
+          revisions: {
+            composite: {
+              // the limit is configured in ES cluster settings (search.max_buckets)
+              size: 10000,
+              sources: [{ pointer: { terms: { field: 'key' } } }],
+            },
+            aggs: {
+              deletes: { sum: { script: 'doc.delete_marker.value ? 1 : -1' } },
+              not_deleted: {
+                bucket_selector: {
+                  buckets_path: { deletes: 'deletes' },
+                  script: 'params.deletes < 0',
+                },
+              },
+              latest: {
+                top_hits: {
+                  size: 1,
+                  sort: { last_modified: 'desc' },
+                  _source: [
+                    'comment',
+                    'hash',
+                    'last_modified',
+                    'metadata',
+                    'package_stats',
+                  ],
+                },
+              },
+              sort: {
+                bucket_sort: {
+                  sort: [{ _key: 'desc' }],
+                  size: perPage,
+                  from: perPage * (page - 1),
+                },
+              },
+            },
+          },
+        },
       }),
-      size: perPage,
-      from: perPage * (page - 1),
-      _source: ['comment', 'hash', 'last_modified', 'metadata', 'package_stats'].join(
-        ',',
-      ),
     }).then(
       R.pipe(
-        R.path(['hits', 'hits']),
-        R.map(({ _source: s }) => ({
+        R.path(['aggregations', 'revisions', 'buckets']),
+        R.map(({ latest: { hits: { hits: [{ _source: s }] } } }) => ({
           hash: s.hash,
           modified: new Date(s.last_modified),
           stats: {
