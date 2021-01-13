@@ -39,6 +39,7 @@ def lambda_handler(request):
     # 0-indexed starting position (for pagination)
     user_from = int(request.args.get('from', 0))
     user_retry = int(request.args.get('retry', 0))
+    filter_path = request.args.get('filter_path')
     terminate_after = int(os.environ.get('MAX_DOCUMENTS_PER_SHARD', 10_000))
 
     if not user_indexes or not isinstance(user_indexes, str):
@@ -127,8 +128,6 @@ def lambda_handler(request):
                     "terms": {"field": 'ext'},
                     "aggs": {"size": {"sum": {"field": 'size'}}},
                 },
-                # TODO: move this to a separate action (pkg_stats)
-                "totalPackageHandles": {"value_count": {"field": "handle"}},
             }
         }
         size = 0  # We still get all aggregates, just don't need the results
@@ -202,6 +201,7 @@ def lambda_handler(request):
         _source=_source,
         size=size,
         from_=user_from,
+        filter_path=filter_path,
         # try turning this off to consider all documents
         terminate_after=terminate_after,
     )
