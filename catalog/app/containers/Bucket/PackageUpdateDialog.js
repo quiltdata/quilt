@@ -499,7 +499,7 @@ function Dir({ name, type, children, prefix, dispatch }) {
 
 const useFilesInputStyles = M.makeStyles((t) => ({
   root: {
-    marginTop: t.spacing(2),
+    marginTop: 22,
   },
   header: {
     alignItems: 'center',
