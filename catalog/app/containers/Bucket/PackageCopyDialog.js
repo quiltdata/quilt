@@ -10,7 +10,6 @@ import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import Skeleton from 'components/Skeleton'
 import StyledLink from 'utils/StyledLink'
 import tagged from 'utils/tagged'
 import * as validators from 'utils/validators'
@@ -52,14 +51,13 @@ const useFormSkeletonStyles = M.makeStyles((t) => ({
 function FormSkeleton({ animate }) {
   const classes = useFormSkeletonStyles()
 
-  const headerSkeleton = <Skeleton {...{ height: 48, mt: 2, animate }} />
-  const workflowSkeleton = <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
   return (
     <>
-      {headerSkeleton}
-      <PD.FilesInputSkeleton className={classes.files} animate />
-      <PD.MetaInputSkeleton className={classes.meta} animate />
-      {workflowSkeleton}
+      <PD.TextFieldSkeleton animate={animate} />
+      <PD.TextFieldSkeleton animate={animate} />
+
+      <PD.MetaInputSkeleton className={classes.meta} animate={animate} />
+      <PD.WorkflowsInputSkeleton animate={animate} />
     </>
   )
 }

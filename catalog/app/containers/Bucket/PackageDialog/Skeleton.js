@@ -3,6 +3,10 @@ import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
 
+export function TextFieldSkeleton({ animate }) {
+  return <Skeleton {...{ height: 48, mt: 2, mb: 1, animate }} />
+}
+
 export function FilesInputSkeleton({ animate, className }) {
   return (
     <M.Box className={className}>
@@ -32,9 +36,13 @@ export function MetaInputSkeleton({ animate, className }) {
   )
 }
 
+function WorkflowsInputSkeleton({ animate }) {
+  return <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
+}
+
 const useFormSkeletonStyles = M.makeStyles((t) => ({
   files: {
-    marginTop: t.spacing(3),
+    marginTop: t.spacing(2),
   },
   meta: {
     marginTop: t.spacing(3),
@@ -46,14 +54,14 @@ export function FormSkeleton({ animate }) {
 
   return (
     <>
-      <Skeleton {...{ height: 48, mt: 2, animate }} />
-      <Skeleton {...{ height: 48, mt: 3, animate }} />
+      <TextFieldSkeleton animate={animate} />
+      <TextFieldSkeleton animate={animate} />
 
-      <FilesInputSkeleton className={classes.files} animate />
+      <FilesInputSkeleton className={classes.files} animate={animate} />
 
-      <MetaInputSkeleton className={classes.meta} animate />
+      <MetaInputSkeleton className={classes.meta} animate={animate} />
 
-      <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
+      <WorkflowsInputSkeleton animate={animate} />
     </>
   )
 }
