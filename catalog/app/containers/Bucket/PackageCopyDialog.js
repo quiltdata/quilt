@@ -41,6 +41,9 @@ function requestPackageCopy(
 }
 
 const useFormSkeletonStyles = M.makeStyles((t) => ({
+  files: {
+    marginTop: t.spacing(3),
+  },
   meta: {
     marginTop: t.spacing(3),
   },
@@ -50,13 +53,12 @@ function FormSkeleton({ animate }) {
   const classes = useFormSkeletonStyles()
 
   const headerSkeleton = <Skeleton {...{ height: 48, mt: 2, animate }} />
-  const inputsSkeleton = <Skeleton {...{ height: 48, mt: 3, animate }} />
   const workflowSkeleton = <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
   return (
     <>
       {headerSkeleton}
-      {inputsSkeleton}
-      <PD.MetaInputSkeleton className={classes.meta} />
+      <PD.FilesInputSkeleton className={classes.files} animate />
+      <PD.MetaInputSkeleton className={classes.meta} animate />
       {workflowSkeleton}
     </>
   )
