@@ -303,21 +303,17 @@ def index_if_package(
         return False
     try:
         manifest_timestamp = int(pointer_file)
-    except ValueError as err:
-        logger_.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
-        # this is probably the latest pointer, skip it. manifest already indexed.
-        return False
-    else:
         if not 1451631600 <= manifest_timestamp <= 1767250800:
             logger_.warning("Unexpected manifest timestamp s3://%s/%s", bucket, key)
-            return False
+    except ValueError as err:
+        logger_.debug("Non-integer manifest pointer: s3://%s/%s, %s", bucket, key, err)
 
     # TODO: the dq will not pass this, either we start passing blank keys
     # or we find a way to backfill the package hash
     first_dict = {}
     stats = None
     package_hash = ''
-    # we only need to touch the manifest for create events
+    # we only need to get manifest contents for create events
     if event_type.startswith(EVENT_PREFIX["Created"]):
         package_hash = get_plain_text(
             bucket,
