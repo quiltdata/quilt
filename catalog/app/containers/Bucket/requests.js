@@ -1235,3 +1235,8 @@ export const objectAccessCounts = ({ s3, analyticsBucket, bucket, path, today })
     today,
     window: 365,
   })
+
+export const ensurePackageIsPresent = ({ s3, bucket, name }) => {
+  const key = getRevisionKeyFromId(name, 'latest')
+  return ensureObjectIsPresent({ s3, bucket, key })
+}

@@ -138,12 +138,12 @@ export function useNameExistence(bucket) {
   const validate = React.useCallback(
     cacheDebounce(async (name) => {
       if (name) {
-        const list = await requests.bucketListing({
+        const packageExists = await requests.ensurePackageIsPresent({
           s3,
           bucket,
-          path: name,
+          name,
         })
-        if (list.dirs.includes(`${name}/`)) return 'exists'
+        if (packageExists) return 'exists'
       }
       return undefined
     }, 200),
