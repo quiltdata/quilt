@@ -1237,11 +1237,12 @@ export const objectAccessCounts = ({ s3, analyticsBucket, bucket, path, today })
   })
 
 export const ensurePackageIsPresent = async ({ s3, bucket, name }) => {
-  const listOfRevisions = await bucketListing({
-    s3,
-    bucket,
-    path: `${PACKAGES_PREFIX}${name}/`,
-  })
-
-  return !!listOfRevisions.files.length
+  const response = await s3
+    .listObjectsV2({
+      Bucket: bucket,
+      Prefix: `${PACKAGES_PREFIX}${name}/`,
+      MaxKeys: 1,
+    })
+    .promise()
+  return !!response.KeyCount
 }
