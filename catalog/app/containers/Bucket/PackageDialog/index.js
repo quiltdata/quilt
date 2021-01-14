@@ -6,4 +6,4 @@ export { default as DialogLoading } from './DialogLoading'
 
 export { default as DialogSuccess } from './DialogSuccess'
 
-export * from './FormSkeleton'
+export * from './Skeleton'
