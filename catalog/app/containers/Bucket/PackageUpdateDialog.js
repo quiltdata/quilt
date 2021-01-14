@@ -537,7 +537,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     borderRadius: t.shape.borderRadius,
     display: 'flex',
     flexDirection: 'column',
-    minHeight: 140,
+    minHeight: t.spacing(23),
     outline: 'none',
     overflow: 'hidden',
   },

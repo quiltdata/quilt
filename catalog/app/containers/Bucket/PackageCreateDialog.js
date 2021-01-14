@@ -56,7 +56,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
-    minHeight: 182,
+    minHeight: t.spacing(23),
     outline: 'none',
     overflow: 'hidden',
   },
