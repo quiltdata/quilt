@@ -236,7 +236,11 @@ function VersionInfo({ bucket, path, version, versions }) {
               {' from '}
               <Bold>{v.updated.toLocaleString()}</Bold>
               {' | '}
-              <Bold>{readableBytes(v.size)}</Bold>
+              {v.deleteMarker ? (
+                <Bold>Delete Marker</Bold>
+              ) : (
+                <Bold>{readableBytes(v.size)}</Bold>
+              )}
             </M.Typography>
           ))}
         </SmallerSection>
