@@ -9,16 +9,16 @@ export function TextFieldSkeleton({ animate }) {
 
 export function FilesInputSkeleton({ animate, className }) {
   return (
-    <M.Box className={className}>
+    <div className={className}>
       <Skeleton {...{ height: 24, width: 64, animate }} />
       <Skeleton {...{ height: 140, mt: 2, animate }} />
-    </M.Box>
+    </div>
   )
 }
 
 export function MetaInputSkeleton({ animate, className }) {
   return (
-    <M.Box className={className}>
+    <div className={className}>
       <M.Box display="flex" mb={2}>
         <Skeleton {...{ height: 24, width: 64, animate }} />
         <M.Box flexGrow={1} />
@@ -32,7 +32,7 @@ export function MetaInputSkeleton({ animate, className }) {
         <Skeleton {...{ height: 32, width: 200, animate }} />
         <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
       </M.Box>
-    </M.Box>
+    </div>
   )
 }
 
