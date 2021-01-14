@@ -18,12 +18,6 @@ import * as validators from 'utils/validators'
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
-const useStyles = M.makeStyles((t) => ({
-  meta: {
-    marginTop: t.spacing(3),
-  },
-}))
-
 function requestPackageCopy(
   req,
   { commitMessage, hash, initialName, meta, name, sourceBucket, targetBucket, workflow },
@@ -81,6 +75,12 @@ function DialogTitle({ bucket }) {
     </M.DialogTitle>
   )
 }
+
+const useStyles = M.makeStyles((t) => ({
+  meta: {
+    marginTop: t.spacing(3),
+  },
+}))
 
 function DialogForm({
   close,

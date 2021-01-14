@@ -23,15 +23,6 @@ import * as validators from 'utils/validators'
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
-const useStyles = M.makeStyles((t) => ({
-  files: {
-    marginTop: t.spacing(2),
-  },
-  meta: {
-    marginTop: t.spacing(3),
-  },
-}))
-
 const useFilesInputStyles = M.makeStyles((t) => ({
   header: {
     alignItems: 'center',
@@ -325,6 +316,15 @@ function FilesInput({
     </div>
   )
 }
+
+const useStyles = M.makeStyles((t) => ({
+  files: {
+    marginTop: t.spacing(2),
+  },
+  meta: {
+    marginTop: t.spacing(3),
+  },
+}))
 
 const getTotalProgress = R.pipe(
   R.values,
