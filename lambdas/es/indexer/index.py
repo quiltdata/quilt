@@ -57,7 +57,6 @@ from urllib.parse import unquote, unquote_plus
 import boto3
 import botocore
 import nbformat
-from dateutil.parser import isoparse
 from dateutil.tz import tzutc
 from document_queue import (
     CONTENT_INDEX_EXTS,
