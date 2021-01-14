@@ -18,6 +18,12 @@ import * as validators from 'utils/validators'
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
+const useStyles = M.makeStyles((t) => ({
+  meta: {
+    marginTop: t.spacing(3),
+  },
+}))
+
 function requestPackageCopy(
   req,
   { commitMessage, hash, initialName, meta, name, sourceBucket, targetBucket, workflow },
@@ -40,32 +46,23 @@ function requestPackageCopy(
   })
 }
 
+const useFormSkeletonStyles = M.makeStyles((t) => ({
+  meta: {
+    marginTop: t.spacing(3),
+  },
+}))
+
 function FormSkeleton({ animate }) {
+  const classes = useFormSkeletonStyles()
+
   const headerSkeleton = <Skeleton {...{ height: 48, mt: 2, animate }} />
   const inputsSkeleton = <Skeleton {...{ height: 48, mt: 3, animate }} />
-  const metadataSkeleton = (
-    <M.Box mt={3}>
-      <M.Box display="flex" mb={2}>
-        <Skeleton {...{ height: 24, width: 64, animate }} />
-        <M.Box flexGrow={1} />
-        <Skeleton {...{ height: 24, width: 64, animate }} />
-      </M.Box>
-      <M.Box display="flex">
-        <Skeleton {...{ height: 32, width: 200, animate }} />
-        <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
-      </M.Box>
-      <M.Box display="flex" mt={0.5}>
-        <Skeleton {...{ height: 32, width: 200, animate }} />
-        <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
-      </M.Box>
-    </M.Box>
-  )
   const workflowSkeleton = <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
   return (
     <>
       {headerSkeleton}
       {inputsSkeleton}
-      {metadataSkeleton}
+      <PD.MetaInputSkeleton className={classes.meta} />
       {workflowSkeleton}
     </>
   )
@@ -98,6 +95,7 @@ function DialogForm({
   workflowsConfig,
 }) {
   const nameValidator = PD.useNameValidator()
+  const classes = useStyles()
 
   const initialMeta = React.useMemo(
     () => ({
@@ -188,6 +186,7 @@ function DialogForm({
                 {AsyncResult.case({
                   Ok: ({ responseError, schema, validate }) => (
                     <RF.Field
+                      className={classes.meta}
                       component={PD.MetaInput}
                       name="meta"
                       bucket={successor.slug}
@@ -199,7 +198,7 @@ function DialogForm({
                       initialValue={initialMeta}
                     />
                   ),
-                  _: () => <PD.MetaInputSkeleton />,
+                  _: () => <PD.MetaInputSkeleton className={classes.meta} />,
                 })}
               </PD.SchemaFetcher>
 
