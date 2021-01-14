@@ -36,7 +36,7 @@ export function MetaInputSkeleton({ animate, className }) {
   )
 }
 
-function WorkflowsInputSkeleton({ animate }) {
+export function WorkflowsInputSkeleton({ animate }) {
   return <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
 }
 

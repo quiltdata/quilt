@@ -40,9 +40,6 @@ function requestPackageCopy(
 }
 
 const useFormSkeletonStyles = M.makeStyles((t) => ({
-  files: {
-    marginTop: t.spacing(3),
-  },
   meta: {
     marginTop: t.spacing(3),
   },
