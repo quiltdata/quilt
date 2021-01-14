@@ -758,7 +758,7 @@ function Head({ req, s3, overviewUrl, bucket, description }) {
   const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
   const colorPool = useConst(() => mkKeyedPool(COLOR_MAP))
   const statsData = useData(requests.bucketStats, { req, s3, bucket, overviewUrl })
-  const pkgCountData = useData(requests.countPackages, { req, bucket })
+  const pkgCountData = useData(requests.countPackageRevisions, { req, bucket })
   return (
     <M.Paper className={classes.root}>
       <M.Box className={classes.top}>

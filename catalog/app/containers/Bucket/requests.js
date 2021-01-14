@@ -754,7 +754,11 @@ const mkFilterQuery = (filter) =>
 
 export const countPackages = withErrorHandling(async ({ req, bucket, filter }) => {
   const body = {
-    query: mkFilterQuery(filter),
+    query: {
+      bool: {
+        must: [mkFilterQuery(filter), { regexp: { pointer_file: TIMESTAMP_RE_SRC } }],
+      },
+    },
     aggs: {
       packages: {
         terms: { field: 'handle' },
@@ -807,7 +811,11 @@ export const listPackages = withErrorHandling(
       })
 
     const body = {
-      query: mkFilterQuery(filter),
+      query: {
+        bool: {
+          must: [mkFilterQuery(filter), { regexp: { pointer_file: TIMESTAMP_RE_SRC } }],
+        },
+      },
       aggs: {
         packages: {
           composite: {
@@ -913,7 +921,14 @@ export const countPackageRevisions = ({ req, bucket, name }) =>
     index: `${bucket}_packages`,
     action: 'packages',
     body: JSON.stringify({
-      query: { term: { handle: name } },
+      query: {
+        bool: {
+          must: [
+            name ? { term: { handle: name } } : { match_all: {} },
+            { regexp: { pointer_file: TIMESTAMP_RE_SRC } },
+          ],
+        },
+      },
       aggs: {
         revisions: { sum: { script: 'doc.delete_marker.value ? -1 : 1' } },
       },
@@ -940,7 +955,14 @@ export const getPackageRevisions = withErrorHandling(
       size: 0,
       filter_path: 'aggregations.revisions.buckets.latest.hits.hits._source',
       body: JSON.stringify({
-        query: { term: { handle: name } },
+        query: {
+          bool: {
+            must: [
+              { term: { handle: name } },
+              { regexp: { pointer_file: TIMESTAMP_RE_SRC } },
+            ],
+          },
+        },
         aggs: {
           revisions: {
             composite: {
@@ -1008,7 +1030,8 @@ export const loadRevisionHash = ({ s3, bucket, name, id }) =>
     }))
 
 const HASH_RE = /^[a-f0-9]{64}$/
-const TIMESTAMP_RE = /^1[0-9]{9}$/
+const TIMESTAMP_RE_SRC = '[0-9]{10}'
+const TIMESTAMP_RE = new RegExp(`^${TIMESTAMP_RE_SRC}$`)
 
 // returns { hash, modified }
 export async function resolvePackageRevision({ s3, bucket, name, revision }) {
