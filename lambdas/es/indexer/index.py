@@ -339,6 +339,7 @@ def index_if_package(
                 f"\tGot {first}."
             )
             return False
+
     doc_queue.append(
         event_type,
         DocTypes.PACKAGE,
