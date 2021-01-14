@@ -319,22 +319,6 @@ function FilesInput({
   )
 }
 
-const useDialogContainerStyles = M.makeStyles((t) => ({
-  root: {
-    padding: t.spacing(1, 2),
-  },
-}))
-
-function DialogContainer({ children }) {
-  const classes = useDialogContainerStyles()
-
-  return (
-    <M.Container className={classes.root} maxWidth="lg">
-      {children}
-    </M.Container>
-  )
-}
-
 const getTotalProgress = R.pipe(
   R.values,
   R.reduce(
@@ -499,7 +483,7 @@ function PackageCreateDialog({
           scroll="body"
         >
           {initError || loading || success ? (
-            <DialogContainer>
+            <>
               {initError && (
                 <PD.DialogError
                   error={initError}
@@ -544,9 +528,9 @@ function PackageCreateDialog({
                   </M.DialogActions>
                 </>
               )}
-            </DialogContainer>
+            </>
           ) : (
-            <DialogContainer>
+            <>
               <M.DialogTitle>Create package</M.DialogTitle>
               <M.DialogContent style={{ paddingTop: 0 }}>
                 <form onSubmit={handleSubmit}>
@@ -690,7 +674,7 @@ function PackageCreateDialog({
                   Create
                 </M.Button>
               </M.DialogActions>
-            </DialogContainer>
+            </>
           )}
         </M.Dialog>
       )}
