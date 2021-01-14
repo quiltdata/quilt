@@ -38,9 +38,9 @@ EVENT_PREFIX = {
 CHUNK_LIMIT_BYTES = int(os.getenv('CHUNK_LIMIT_BYTES') or 9_500_000)
 ELASTIC_TIMEOUT = 30
 MAX_BACKOFF = 360  # seconds
-MAX_RETRY = 4  # prevent long-running lambdas due to malformed calls
+MAX_RETRY = 2  # prevent long-running lambdas due to malformed calls
 QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
-RETRY_429 = 5
+RETRY_429 = 3
 
 
 # pylint: disable=super-init-not-called
@@ -219,7 +219,6 @@ class DocumentQueue:
         for doc in self.queue:
             pointer_file = doc.get("pointer_file")
             # handle hard package delete outside of the bulk operation
-            # TODO: what does this do for deleting delete markers?
             if doc["_op_type"] == "delete" and pointer_file and not doc.get("delete_marker"):
                 index = doc.get("_index")
                 assert index.endswith(PACKAGE_INDEX_SUFFIX), f"Refuse to delete non-package: {doc}"

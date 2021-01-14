@@ -206,7 +206,7 @@ def should_retry_exception(exception):
 
 @retry(
     stop=stop_after_attempt(MAX_RETRY),
-    wait=wait_exponential(multiplier=2, min=4, max=30),
+    wait=wait_exponential(multiplier=2, min=4, max=10),
     retry=(retry_if_exception(should_retry_exception))
 )
 def select_manifest_meta(s3_client, bucket: str, key: str):
@@ -805,7 +805,7 @@ def retry_s3(
         # debug
         reraise=True,
         stop=stop_after_attempt(MAX_RETRY),
-        wait=wait_exponential(multiplier=2, min=4, max=30),
+        wait=wait_exponential(multiplier=2, min=4, max=10),
         retry=(retry_if_exception(should_retry_exception))
     )
     def call():
