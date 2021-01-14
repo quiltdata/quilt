@@ -321,6 +321,7 @@ def _make_event(
             marks=pytest.mark.xfail(
                 raises=ValueError,
                 reason="Malformed package_stats",
+                strict=True,
             )
         ),
         pytest.param(
@@ -338,7 +339,8 @@ def _make_event(
             },
             marks=pytest.mark.xfail(
                 raises=ValueError,
-                reason="missing bucket"
+                reason="missing bucket",
+                strict=True
             )
         ),
         pytest.param(
@@ -368,6 +370,39 @@ def _make_event(
                 "package_hash": "",
                 "pointer_file": "1598026253",
             },
+        ),
+        pytest.param(
+            "ObjectRemoved:DeleteMarkerCreated",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "nice-bucket",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "package_hash": "",
+                "pointer_file": "latest",
+            },
+        ),
+        pytest.param(
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "nice-bucket",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": "not_an_object",
+                "package_hash": "",
+                "pointer_file": "",
+            },
+            marks=pytest.mark.xfail(
+                raises=ValueError,
+                reason="must have one of package_hash or pointer_file",
+                strict=True
+            )
         ),
     ]
 )
@@ -986,7 +1021,7 @@ class TestIndex(TestCase):
     def test_index_if_package_skip(self):
         """test cases where index_if_package ignores input for different reasons"""
         # none of these should index due to out-of-range timestamp or non-integer name
-        for file_name in [1451631500, 1767250801, 'latest']:
+        for file_name in [1451631500, 1767250801]:
             key = f".quilt/named_packages/foo/bar/{file_name}"
             assert not index.index_if_package(
                 self.s3_client,
@@ -1198,6 +1233,73 @@ class TestIndex(TestCase):
         )
         assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
 
+    @patch.object(index.DocumentQueue, '_filter_and_delete_packages')
+    @patch.object(index.DocumentQueue, 'append')
+    def test_index_if_package_tag(self, append_mock, filter_mock):
+        """test manifest file and its indexing"""
+        timestamp = floor(time())
+        pointer_key = f"{POINTER_PREFIX_V1}author/semantic/latest"
+        # first, handler() will head the object
+        self.s3_stubber.add_response(
+            method="head_object",
+            service_response={
+                **OBJECT_RESPONSE,
+                "ContentLength": 64
+            },
+            expected_params={
+                "Bucket": "test-bucket",
+                "Key": pointer_key,
+                "VersionId": OBJECT_RESPONSE["VersionId"],
+            }
+        )
+
+        self._test_index_events(
+            ["ObjectCreated:Put"],
+            # we're mocking append so ES will never get called
+            mock_elastic=False,
+            mock_overrides={
+                "event_kwargs": {
+                    "key": pointer_key,
+                    "versionId": OBJECT_RESPONSE["VersionId"]
+                },
+                # we, not _test_index_events, patch all the S3 calls in this test
+                "mock_object": False,
+                "mock_head": False
+            }
+        )
+
+        append_mock.assert_has_calls([
+            call(
+                "ObjectCreated:Put",
+                DocTypes.OBJECT,
+                bucket="test-bucket",
+                etag="123456",
+                ext="",
+                key=".quilt/named_packages/author/semantic/latest",
+                last_modified="2020-05-22T00:32:20.515Z",
+                size=64,
+                text="",
+                version_id="wcOZpjy5G.tJ2N.rwPhiR.NY_RftJ3A_",
+            ),
+            call(
+                "ObjectCreated:Put",
+                DocTypes.PACKAGE,
+                bucket="test-bucket",
+                comment="",
+                etag="123456",
+                ext="",
+                handle="author/semantic",
+                key=".quilt/named_packages/author/semantic/latest",
+                last_modified="2020-05-22T00:32:20.515Z",
+                metadata="{}",
+                package_hash="",
+                package_stats=None,
+                pointer_file="latest",
+                version_id="wcOZpjy5G.tJ2N.rwPhiR.NY_RftJ3A_",
+            ),
+        ])
+        assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
+
     def test_infer_extensions(self):
         """ensure we are guessing file types well"""
         # parquet
@@ -1298,7 +1400,8 @@ class TestIndex(TestCase):
 
     @pytest.mark.xfail(
         raises=ParamValidationError,
-        reason="boto bug https://github.com/boto/botocore/issues/1621"
+        reason="boto bug https://github.com/boto/botocore/issues/1621",
+        strict=True,
     )
     def test_stub_select_object_content(self):
         """Demonstrate that mocking S3 select with boto3 is broken"""
