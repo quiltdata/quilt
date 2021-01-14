@@ -334,6 +334,8 @@ const getTotalProgress = R.pipe(
   }),
 )
 
+const defaultNameWarning = ' ' // Reserve space for warning
+
 function PackageCreateDialog({
   bucket,
   open,
@@ -350,6 +352,7 @@ function PackageCreateDialog({
   const [success, setSuccess] = React.useState(null)
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
+  const [nameWarning, setNameWarning] = React.useState(defaultNameWarning)
 
   const reset = (form) => () => {
     form.restart()
@@ -357,6 +360,7 @@ function PackageCreateDialog({
     setUploads({})
     nameValidator.inc()
     nameExistence.inc()
+    setNameWarning(defaultNameWarning)
   }
 
   const handleClose = ({ submitting = false } = {}) => () => {
@@ -463,9 +467,6 @@ function PackageCreateDialog({
       return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
     }
   }
-
-  const defaultNameWarning = ' ' // Reserve space for warning
-  const [nameWarning, setNameWarning] = React.useState(defaultNameWarning)
 
   const onFormChange = React.useCallback(
     async ({ modified, values }) => {
