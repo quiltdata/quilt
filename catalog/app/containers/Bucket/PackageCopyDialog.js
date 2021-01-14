@@ -379,7 +379,13 @@ export default function PackageCopyDialog({
   }, [submitting, success, setSuccess, onClose, onExited])
 
   return (
-    <M.Dialog onClose={handleClose} onExited={handleExited} open={open} scroll="body">
+    <M.Dialog
+      fullWidth
+      onClose={handleClose}
+      onExited={handleExited}
+      open={open}
+      scroll="body"
+    >
       {stateCase({
         Error: (e) =>
           successor && (
