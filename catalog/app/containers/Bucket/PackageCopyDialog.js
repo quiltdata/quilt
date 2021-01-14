@@ -85,6 +85,8 @@ function DialogTitle({ bucket }) {
   )
 }
 
+const defaultNameWarning = ' ' // Reserve space for warning
+
 function DialogForm({
   close,
   hash,
@@ -99,6 +101,7 @@ function DialogForm({
 }) {
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(successor.slug)
+  const [nameWarning, setNameWarning] = React.useState('')
 
   const initialMeta = React.useMemo(
     () => ({
@@ -133,9 +136,6 @@ function DialogForm({
       return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
     }
   }
-
-  const defaultNameWarning = ' ' // Reserve space for warning
-  const [nameWarning, setNameWarning] = React.useState('')
 
   const onFormChange = React.useCallback(
     async ({ values }) => {

@@ -829,6 +829,8 @@ const getTotalProgress = R.pipe(
   }),
 )
 
+const defaultNameWarning = ' ' // Reserve space for warning
+
 function DialogForm({
   bucket,
   name: initialName,
@@ -843,6 +845,7 @@ function DialogForm({
   const [uploads, setUploads] = React.useState({})
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
+  const [nameWarning, setNameWarning] = React.useState('')
 
   const initialMeta = React.useMemo(
     () => ({
@@ -998,9 +1001,6 @@ function DialogForm({
       setSubmitting(false)
     }
   }
-
-  const defaultNameWarning = ' ' // Reserve space for warning
-  const [nameWarning, setNameWarning] = React.useState('')
 
   const onFormChange = React.useCallback(
     async ({ modified, values }) => {
