@@ -73,6 +73,8 @@ function DialogTitle({ bucket }) {
   )
 }
 
+const defaultNameWarning = ' ' // Reserve space for warning
+
 const useStyles = M.makeStyles((t) => ({
   meta: {
     marginTop: t.spacing(3),
@@ -92,6 +94,8 @@ function DialogForm({
   workflowsConfig,
 }) {
   const nameValidator = PD.useNameValidator()
+  const nameExistence = PD.useNameExistence(successor.slug)
+  const [nameWarning, setNameWarning] = React.useState('')
   const classes = useStyles()
 
   const initialMeta = React.useMemo(
@@ -128,6 +132,27 @@ function DialogForm({
     }
   }
 
+  const onFormChange = React.useCallback(
+    async ({ values }) => {
+      const { name } = values
+      const fullName = `${successor.slug}/${name}`
+
+      const nameExists = await nameExistence.validate(name)
+      if (nameExists) {
+        setNameWarning(`Package "${fullName}" exists. Submitting will revise it`)
+        return
+      }
+
+      if (name) {
+        setNameWarning(`Package "${fullName}" will be created`)
+        return
+      }
+
+      setNameWarning(defaultNameWarning)
+    },
+    [successor, nameExistence],
+  )
+
   return (
     <RF.Form onSubmit={onSubmit}>
       {({
@@ -144,11 +169,11 @@ function DialogForm({
           <DialogTitle bucket={successor.slug} />
           <M.DialogContent style={{ paddingTop: 0 }}>
             <form onSubmit={handleSubmit}>
+              <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
+
               <RF.Field
-                component={PD.Field}
+                component={PD.PackageNameInput}
                 name="name"
-                label="Name"
-                placeholder="e.g. user/package"
                 validate={validators.composeAsync(
                   validators.required,
                   nameValidator.validate,
@@ -158,23 +183,18 @@ function DialogForm({
                   required: 'Enter a package name',
                   invalid: 'Invalid package name',
                 }}
-                margin="normal"
-                fullWidth
+                helperText={nameWarning}
                 initialValue={initialName}
               />
 
               <RF.Field
-                component={PD.Field}
+                component={PD.CommitMessageInput}
                 name="commitMessage"
-                label="Commit message"
-                placeholder="Enter a commit message"
                 validate={validators.required}
                 validateFields={['commitMessage']}
                 errors={{
                   required: 'Enter a commit message',
                 }}
-                fullWidth
-                margin="normal"
               />
 
               <PD.SchemaFetcher

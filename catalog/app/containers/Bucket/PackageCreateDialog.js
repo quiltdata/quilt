@@ -341,6 +341,8 @@ const getTotalProgress = R.pipe(
   }),
 )
 
+const defaultNameWarning = ' ' // Reserve space for warning
+
 function PackageCreateDialog({
   bucket,
   open,
@@ -356,6 +358,8 @@ function PackageCreateDialog({
   const [uploads, setUploads] = React.useState({})
   const [success, setSuccess] = React.useState(null)
   const nameValidator = PD.useNameValidator()
+  const nameExistence = PD.useNameExistence(bucket)
+  const [nameWarning, setNameWarning] = React.useState(defaultNameWarning)
   const classes = useStyles()
 
   const reset = (form) => () => {
@@ -363,6 +367,8 @@ function PackageCreateDialog({
     setSuccess(null)
     setUploads({})
     nameValidator.inc()
+    nameExistence.inc()
+    setNameWarning(defaultNameWarning)
   }
 
   const handleClose = ({ submitting = false } = {}) => () => {
@@ -470,6 +476,22 @@ function PackageCreateDialog({
     }
   }
 
+  const onFormChange = React.useCallback(
+    async ({ modified, values }) => {
+      if (!modified.name) return
+
+      const { name } = values
+
+      setNameWarning(defaultNameWarning)
+
+      const nameExists = await nameExistence.validate(name)
+      if (nameExists) {
+        setNameWarning(`Package "${name}" exists. Submitting will revise it`)
+      }
+    },
+    [nameExistence],
+  )
+
   return (
     <RF.Form onSubmit={uploadPackage}>
       {({
@@ -541,11 +563,14 @@ function PackageCreateDialog({
               <M.DialogTitle>Create package</M.DialogTitle>
               <M.DialogContent style={{ paddingTop: 0 }}>
                 <form onSubmit={handleSubmit}>
+                  <RF.FormSpy
+                    subscription={{ modified: true, values: true }}
+                    onChange={onFormChange}
+                  />
+
                   <RF.Field
-                    component={PD.Field}
+                    component={PD.PackageNameInput}
                     name="name"
-                    label="Name"
-                    placeholder="e.g. user/package"
                     validate={validators.composeAsync(
                       validators.required,
                       nameValidator.validate,
@@ -555,22 +580,18 @@ function PackageCreateDialog({
                       required: 'Enter a package name',
                       invalid: 'Invalid package name',
                     }}
-                    margin="normal"
-                    fullWidth
+                    helperText={nameWarning}
+                    validating={nameValidator.processing}
                   />
 
                   <RF.Field
-                    component={PD.Field}
+                    component={PD.CommitMessageInput}
                     name="msg"
-                    label="Commit message"
-                    placeholder="Enter a commit message"
                     validate={validators.required}
                     validateFields={['msg']}
                     errors={{
                       required: 'Enter a commit message',
                     }}
-                    fullWidth
-                    margin="normal"
                   />
 
                   <RF.Field
