@@ -318,9 +318,6 @@ function FilesInput({
 }
 
 const useStyles = M.makeStyles((t) => ({
-  files: {
-    marginTop: t.spacing(2),
-  },
   meta: {
     marginTop: t.spacing(3),
   },
@@ -571,6 +568,8 @@ function PackageCreateDialog({
 
                   <M.Grid container spacing={2}>
                     <M.Grid item xs={12} sm={6}>
+                      <M.Typography>Main</M.Typography>
+
                       <RF.Field
                         component={PD.PackageNameInput}
                         name="name"
@@ -634,7 +633,6 @@ function PackageCreateDialog({
 
                     <M.Grid item xs={12} sm={6}>
                       <RF.Field
-                        className={classes.files}
                         component={FilesInput}
                         name="files"
                         validate={validators.nonEmpty}
