@@ -130,7 +130,6 @@ const render = (messages) => {
       [
         Intercom.Provider,
         {
-          alignment: 'left',
           userSelector: intercomUserSelector,
           horizontal_padding:
             // align the launcher with the right side of the container
