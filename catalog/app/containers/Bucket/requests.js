@@ -752,6 +752,30 @@ const mkFilterQuery = (filter) =>
       }
     : { match_all: {} }
 
+const NOT_DELETED_METRIC = {
+  scripted_metric: {
+    init_script: 'state.last_modified = 0; state.deleted = false',
+    map_script: `
+      def last_modified = doc.last_modified.getValue().toInstant().toEpochMilli();
+      if (last_modified > state.last_modified) {
+        state.last_modified = last_modified;
+        state.deleted = doc.delete_marker.getValue();
+      }
+    `,
+    reduce_script: `
+      def last_modified = 0;
+      def deleted = false;
+      for (s in states) {
+        if (s.last_modified > last_modified) {
+          last_modified = s.last_modified;
+          deleted = s.deleted;
+        }
+      }
+      return deleted ? 0 : 1;
+    `,
+  },
+}
+
 export const countPackages = withErrorHandling(async ({ req, bucket, filter }) => {
   const body = {
     query: {
@@ -761,19 +785,22 @@ export const countPackages = withErrorHandling(async ({ req, bucket, filter }) =
     },
     aggs: {
       packages: {
-        terms: { field: 'handle' },
+        terms: { field: 'handle', size: 1000000 },
         aggs: {
-          revisions: { sum: { script: 'doc.delete_marker.value ? -1 : 1' } },
-          not_deleted: {
-            bucket_selector: {
-              buckets_path: { revisions: 'revisions' },
-              script: 'params.revisions > 0',
-            },
+          revision_objects: {
+            // TODO: use pointer_file when it's converted to a keyword field
+            terms: { field: 'key', size: 1000000 },
+            aggs: { not_deleted: NOT_DELETED_METRIC },
+          },
+          revision_count: {
+            sum_bucket: { buckets_path: 'revision_objects>not_deleted.value' },
           },
         },
       },
-      package_stats: {
-        stats_bucket: { buckets_path: 'packages>revisions' },
+      total_revisions: {
+        sum_bucket: {
+          buckets_path: 'packages>revision_count',
+        },
       },
     },
   }
@@ -782,9 +809,9 @@ export const countPackages = withErrorHandling(async ({ req, bucket, filter }) =
     action: 'packages',
     body: JSON.stringify(body),
     size: 0,
-    filter_path: 'aggregations.package_stats.count',
+    filter_path: 'aggregations.total_revisions',
   })
-  return result.aggregations.package_stats.count
+  return result.aggregations.total_revisions.value
 })
 
 export const listPackages = withErrorHandling(
@@ -930,13 +957,19 @@ export const countPackageRevisions = ({ req, bucket, name }) =>
         },
       },
       aggs: {
-        revisions: { sum: { script: 'doc.delete_marker.value ? -1 : 1' } },
+        revision_objects: {
+          terms: { field: 'key', size: 1000000 },
+          aggs: { not_deleted: NOT_DELETED_METRIC },
+        },
+        revision_count: {
+          sum_bucket: { buckets_path: 'revision_objects>not_deleted.value' },
+        },
       },
     }),
     size: 0,
-    filter_path: 'aggregations.revisions',
+    filter_path: 'aggregations.revision_count',
   })
-    .then(R.path(['aggregations', 'revisions', 'value']))
+    .then(R.path(['aggregations', 'revision_count', 'value']))
     .catch(errors.catchErrors())
 
 function tryParse(s) {
