@@ -331,8 +331,19 @@ class PackageEntry:
         return [self.physical_key]
 
 
+class PackageRevInfo:
+    __slots__ = ('registry', 'name', 'top_hash')
+
+    def __init__(self, registry, name, top_hash):
+        self.registry = registry
+        self.name = name
+        self.top_hash = top_hash
+
+
 class Package:
     """ In-memory representation of a package """
+
+    _origin = None
 
     def __init__(self):
         self._children = {}
@@ -1006,6 +1017,7 @@ class Package:
 
         top_hash = self.top_hash
         self._timestamp = registry.push_manifest(name, top_hash, manifest.getvalue())
+        self._origin = PackageRevInfo(str(registry.base), name, top_hash)
 
         return top_hash
 
@@ -1209,20 +1221,27 @@ class Package:
         """
         top_hash = hashlib.sha256()
         assert 'top_hash' not in self._meta
-        top_meta = json.dumps(self._meta, sort_keys=True, separators=(',', ':'))
-        top_hash.update(top_meta.encode('utf-8'))
+
+        json_encode = json.JSONEncoder(sort_keys=True, separators=(',', ':')).encode
+        for part in self._get_top_hash_parts():
+            top_hash.update(json_encode(part).encode())
+
+        return top_hash.hexdigest()
+
+    def _get_top_hash_parts(self):
+        yield self._meta
+        # TODO: dir-level metadata should affect top hash as well.
         for logical_key, entry in self.walk():
             if entry.hash is None or entry.size is None:
                 raise QuiltException(
                     "PackageEntry missing hash and/or size: %s" % entry.physical_key
                 )
-            entry_dict = entry.as_dict()
-            entry_dict['logical_key'] = logical_key
-            entry_dict.pop('physical_keys', None)
-            entry_dict_str = json.dumps(entry_dict, sort_keys=True, separators=(',', ':'))
-            top_hash.update(entry_dict_str.encode('utf-8'))
-
-        return top_hash.hexdigest()
+            yield {
+                'hash': entry.hash,
+                'logical_key': logical_key,
+                'meta': entry._meta,
+                'size': entry.size,
+            }
 
     @ApiTelemetry("package.push")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
@@ -1264,6 +1283,9 @@ class Package:
         Returns:
             A new package that points to the copied objects.
         """
+        return self._push(name, registry, dest, message, selector_fn, workflow=workflow, print_info=True)
+
+    def _push(self, name, registry=None, dest=None, message=None, selector_fn=None, *, workflow, print_info):
         if selector_fn is None:
             def selector_fn(*args):
                 return True
@@ -1361,20 +1383,21 @@ class Package:
 
         top_hash = pkg._build(name, registry=registry, message=message)
 
-        shorthash = registry.shorten_top_hash(name, top_hash)
-        print(f"Package {name}@{shorthash} pushed to s3://{dest_parsed.bucket}")
+        if print_info:
+            shorthash = registry.shorten_top_hash(name, top_hash)
+            print(f"Package {name}@{shorthash} pushed to s3://{dest_parsed.bucket}")
 
-        if user_is_configured_to_custom_stack():
-            navigator_url = get_from_config("navigator_url")
+            if user_is_configured_to_custom_stack():
+                navigator_url = get_from_config("navigator_url")
 
-            print(f"Successfully pushed the new package to "
-                  f"{catalog_package_url(navigator_url, dest_parsed.bucket, name, tree=False)}")
-        else:
-            dest_s3_url = str(dest_parsed)
-            if not dest_s3_url.endswith("/"):
-                dest_s3_url += "/"
-            print(f"Run `quilt3 catalog {dest_s3_url}` to browse.")
-            print("Successfully pushed the new package")
+                print(f"Successfully pushed the new package to "
+                      f"{catalog_package_url(navigator_url, dest_parsed.bucket, name, tree=False)}")
+            else:
+                dest_s3_url = str(dest_parsed)
+                if not dest_s3_url.endswith("/"):
+                    dest_s3_url += "/"
+                print(f"Run `quilt3 catalog {dest_s3_url}` to browse.")
+                print("Successfully pushed the new package")
 
         return pkg
 

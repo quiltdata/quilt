@@ -938,6 +938,11 @@ class PackageTest(QuiltTestCase):
 
         assert pkg.top_hash == top_hash, f'Unexpected top_hash for {manifest_path}'
 
+        pkg['b'].set_meta({'key': 'value'})
+
+        # Currently dir-level metadata doesn't affect top hash, though it should.
+        assert pkg.top_hash == top_hash
+
     def test_local_package_delete(self):
         """Verify local package delete works."""
         top_hash = Package().build("Quilt/Test")

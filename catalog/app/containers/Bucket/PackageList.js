@@ -437,7 +437,7 @@ export default function PackageList({
                 <M.Typography variant="h4">No packages</M.Typography>
                 <M.Box pt={3} />
                 <M.Button variant="contained" color="primary" onClick={openUpload}>
-                  Push package
+                  Create package
                 </M.Button>
                 <M.Box pt={2} />
                 <M.Typography>
@@ -490,7 +490,7 @@ export default function PackageList({
                     style={{ paddingTop: 7, paddingBottom: 7 }}
                     onClick={openUpload}
                   >
-                    Push package
+                    Create package
                   </M.Button>
                 </M.Box>
                 <M.Box component={M.Paper} className={classes.paper}>

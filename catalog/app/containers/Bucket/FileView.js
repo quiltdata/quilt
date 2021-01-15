@@ -42,9 +42,9 @@ const useDownloadButtonStyles = M.makeStyles(() => ({
 export function DownloadButtonLayout({ label, icon, ...props }) {
   const classes = useDownloadButtonStyles()
   const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
-  return xs ? (
+  return sm ? (
     <M.IconButton className={classes.root} edge="end" size="small" {...props}>
       <M.Icon>{icon}</M.Icon>
     </M.IconButton>

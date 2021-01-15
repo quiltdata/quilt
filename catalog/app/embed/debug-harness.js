@@ -74,12 +74,13 @@ function Embedder() {
   const getOktaCredentials = React.useCallback(async () => {
     const token = await authenticate()
     fields.credentials.set(JSON.stringify({ provider: 'okta', token }))
-  }, [authenticate, fields.credentials.set])
+  }, [authenticate, fields.credentials.set]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const postMessage = React.useCallback(
     (msg) => {
       if (!iframeRef.current) return
       const w = iframeRef.current.contentWindow
+      // eslint-disable-next-line no-console
       console.log('Sending message to the iframe', msg)
       // TODO: use origin?
       w.postMessage(msg)

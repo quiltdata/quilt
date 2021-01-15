@@ -257,7 +257,7 @@ const Edit = RT.composeComponent(
             console.dir(e)
             throw new RF.SubmissionError({ _error: 'unexpected' })
           }),
-      [req, cache, close],
+      [req, cache, close, role.id],
     )
 
     return (
@@ -352,7 +352,7 @@ export default RT.composeComponent(
         icon: <Icon>add</Icon>,
         fn: React.useCallback(() => {
           dialogs.open(({ close }) => <Create {...{ close }} />)
-        }, [dialogs.open]),
+        }, [dialogs.open]), // eslint-disable-line react-hooks/exhaustive-deps
       },
     ]
 

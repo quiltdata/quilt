@@ -28,7 +28,13 @@ const reducer = Action.reducer({
 
 export function useData(request, params, { noAutoFetch = false } = {}) {
   // TODO: accept custom key extraction fn (params => key for comparison)
-  const [state, dispatch] = React.useReducer(reducer, initial)
+  const [state, setState] = React.useState(initial)
+  const stateRef = React.useRef()
+  stateRef.current = state
+
+  const dispatch = (action) => {
+    setState((stateRef.current = reducer(stateRef.current, action)))
+  }
 
   const fetch = useMemoEq([request, params], () => () => {
     dispatch(Action.Request({ request, params }))
@@ -41,13 +47,13 @@ export function useData(request, params, { noAutoFetch = false } = {}) {
       })
   })
 
-  usePrevious({ params, noAutoFetch }, (prev) => {
-    if (R.equals({ params, noAutoFetch }, prev)) return
+  const prev = usePrevious({ params, noAutoFetch })
+  if (!R.equals({ params, noAutoFetch }, prev)) {
     if (noAutoFetch) dispatch(Action.Reset())
     else fetch()
-  })
+  }
 
-  const result = useMemoEq(state, mapResult)
+  const result = useMemoEq(stateRef.current, mapResult)
 
   const doCase = useMemoEq([result], () => (cases, ...args) =>
     AsyncResult.case(cases, result, ...args),

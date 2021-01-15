@@ -150,7 +150,9 @@ function useInit() {
         }
         setState(init)
       } catch (e) {
+        // eslint-disable-next-line no-console
         console.error(`Configuration error: ${e.message}`)
+        // eslint-disable-next-line no-console
         console.log('init object:', init)
         setState(e)
       }
@@ -199,11 +201,13 @@ function usePostInit(init) {
         setState(true)
       })
       .catch((e) => {
+        // eslint-disable-next-line no-console
         console.warn('Authentication failure:')
+        // eslint-disable-next-line no-console
         console.error(e)
         setState(new ErrorDisplay('Authentication Failure'))
       })
-  }, [init])
+  }, [init, dispatch])
 
   return state
 }

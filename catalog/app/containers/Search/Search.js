@@ -68,12 +68,13 @@ const useQueryInputStyles = M.makeStyles((t) => ({
 function QueryInput({ query, buckets, onChange }) {
   const classes = useQueryInputStyles()
   const state = useEditableValue(query, onChange)
+  const { change, commit } = state
 
   const handleChange = React.useCallback(
     (e) => {
-      state.change(e.target.value)
+      change(e.target.value)
     },
-    [state.change],
+    [change],
   )
 
   const handleKeyDown = React.useCallback(
@@ -83,7 +84,7 @@ function QueryInput({ query, buckets, onChange }) {
         case 'Enter':
           // suppress onSubmit (didn't actually find this to be a problem tho)
           e.preventDefault()
-          state.commit()
+          commit()
           e.target.blur()
           break
         case 'Escape':
@@ -91,7 +92,7 @@ function QueryInput({ query, buckets, onChange }) {
           break
       }
     },
-    [state.commit],
+    [commit],
   )
 
   const t = M.useTheme()
@@ -138,6 +139,7 @@ const useBucketSelectDropdownStyles = M.makeStyles((t) => ({
 function BucketSelectDropdown({ buckets, onChange, short = false }) {
   const classes = useBucketSelectDropdownStyles()
   const state = useEditableValue(buckets, onChange)
+  const { commitValue } = state
 
   const options = BucketConfig.useRelevantBucketConfigs()
 
@@ -154,8 +156,8 @@ function BucketSelectDropdown({ buckets, onChange, short = false }) {
   }
 
   const selectAll = React.useCallback(() => {
-    state.commitValue([])
-  }, [state.commitValue])
+    commitValue([])
+  }, [commitValue])
 
   return (
     <>
@@ -320,7 +322,10 @@ export default function Search({ location: l }) {
   const classes = useSearchStyles()
 
   const { q, p, mode, ...params } = parseSearch(l.search)
-  const buckets = params.buckets ? params.buckets.split(',').sort() : []
+  const buckets = React.useMemo(
+    () => (params.buckets ? params.buckets.split(',').sort() : []),
+    [params.buckets],
+  )
   const retry = (params.retry && parseInt(params.retry, 10)) || undefined
   const page = p && parseInt(p, 10)
 

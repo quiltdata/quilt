@@ -7,7 +7,7 @@ import { useDropzone } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
-import { fade } from '@material-ui/core/styles'
+import { darken } from '@material-ui/core'
 
 import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
@@ -24,10 +24,478 @@ import useMemoEq from 'utils/useMemoEq'
 import * as validators from 'utils/validators'
 
 import * as PD from './PackageDialog'
-import * as ERRORS from './errors'
 import * as requests from './requests'
 
-const TYPE_ORDER = ['added', 'modified', 'deleted', 'unchanged']
+const FilesEntry = tagged([
+  'Dir', // { name: str, type: enum, children: [FilesEntry] }
+  'File', // { name: str, type: enum, size: num }
+])
+
+const FilesAction = tagged([
+  'Add', // { files: [File], prefix: str }
+  'Delete', // path: str
+  'DeleteDir', // prefix: str
+  'Revert', // path: str
+  'RevertDir', // prefix: str
+  'Reset',
+])
+
+const insertIntoTree = (path = [], file, entries) => {
+  let inserted = file
+  let restEntries = entries
+  if (path.length) {
+    const [current, ...rest] = path
+    let baseDir = FilesEntry.Dir({ name: current, type: file.type, children: [] })
+    const existingDir = entries.find(
+      FilesEntry.case({
+        File: () => false,
+        Dir: R.propEq('name', current),
+      }),
+    )
+    if (existingDir) {
+      restEntries = R.without([existingDir], entries)
+      baseDir = existingDir
+    }
+    inserted = insertIntoDir(rest, file, baseDir)
+  }
+  const getOrder = FilesEntry.case({
+    Dir: (d) => [0, d.name],
+    File: (f) => [1, f.name],
+  })
+  const tree = R.sortBy(getOrder, [inserted, ...restEntries])
+  return tree
+}
+
+const insertIntoDir = (path, file, dir) => {
+  const { name, children } = FilesEntry.Dir.unbox(dir)
+  const newChildren = insertIntoTree(path, file, children)
+  const type = newChildren
+    .map(FilesEntry.case({ Dir: R.prop('type'), File: R.prop('type') }))
+    .reduce((acc, entryType) => (acc === entryType ? acc : 'modified'))
+  return FilesEntry.Dir({ name, type, children: newChildren })
+}
+
+const dissocBy = (fn) =>
+  R.pipe(
+    R.toPairs,
+    R.filter(([k]) => !fn(k)),
+    R.fromPairs,
+  )
+
+/*
+// TODO: use tree as the main data model / source of truth?
+state type: {
+  existing: { [path]: file },
+  added: { [path]: file },
+  // TODO: use Array or Set?
+  deleted: { [path]: true },
+}
+*/
+
+const handleFilesAction = FilesAction.case({
+  Add: ({ files, prefix }) => (state) =>
+    files.reduce((acc, file) => {
+      const path = (prefix || '') + PD.getNormalizedPath(file)
+      return R.evolve(
+        {
+          added: R.assoc(path, file),
+          deleted: R.dissoc(path),
+        },
+        acc,
+      )
+    }, state),
+  Delete: (path) => R.evolve({ deleted: R.assoc(path, true) }),
+  // add all descendants from existing to deleted
+  DeleteDir: (prefix) => ({ existing, added, deleted }) => ({
+    existing,
+    added,
+    deleted: R.mergeLeft(
+      Object.keys(existing).reduce(
+        (acc, k) => (k.startsWith(prefix) ? { ...acc, [k]: true } : acc),
+        {},
+      ),
+      deleted,
+    ),
+  }),
+  Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
+  // remove all descendants from added and deleted
+  RevertDir: (prefix) =>
+    R.evolve({
+      added: dissocBy(R.startsWith(prefix)),
+      deleted: dissocBy(R.startsWith(prefix)),
+    }),
+  Reset: (_, { initial }) => () => initial,
+})
+
+const computeEntries = ({ added, deleted, existing }) => {
+  const existingEntries = Object.entries(existing).map(([path, { size }]) => {
+    if (path in deleted) {
+      return { type: 'deleted', path, size }
+    }
+    if (path in added) {
+      const a = added[path]
+      return { type: 'modified', path, size: a.size }
+    }
+    return { type: 'unchanged', path, size }
+  })
+  const addedEntries = Object.entries(added).reduce((acc, [path, { size }]) => {
+    if (path in existing) return acc
+    return acc.concat({ type: 'added', path, size })
+  }, [])
+  const entries = [...existingEntries, ...addedEntries]
+  return entries.reduce((children, { path, ...rest }) => {
+    const parts = path.split('/')
+    const prefixPath = R.init(parts).map((p) => `${p}/`)
+    const name = R.last(parts)
+    const file = FilesEntry.File({ name, ...rest })
+    return insertIntoTree(prefixPath, file, children)
+  }, [])
+}
+
+const COLORS = {
+  default: M.colors.grey[900],
+  added: M.colors.green[900],
+  modified: darken(M.colors.yellow[900], 0.2),
+  deleted: M.colors.red[900],
+}
+
+const useEntryIconStyles = M.makeStyles((t) => ({
+  root: {
+    position: 'relative',
+  },
+  icon: {
+    boxSizing: 'content-box',
+    display: 'block',
+    fontSize: 18,
+    padding: 3,
+  },
+  stateContainer: {
+    alignItems: 'center',
+    background: 'currentColor',
+    border: `1px solid ${t.palette.background.paper}`,
+    borderRadius: '100%',
+    bottom: 0,
+    display: 'flex',
+    height: 12,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    width: 12,
+  },
+  state: {
+    fontFamily: t.typography.fontFamily,
+    fontWeight: t.typography.fontWeightBold,
+    fontSize: 9,
+    color: t.palette.background.paper,
+  },
+}))
+
+function EntryIcon({ state, children }) {
+  const classes = useEntryIconStyles()
+  const stateContents =
+    state &&
+    {
+      added: '+',
+      deleted: <>&ndash;</>,
+      modified: '~',
+    }[state]
+  return (
+    <div className={classes.root}>
+      <M.Icon className={classes.icon}>{children}</M.Icon>
+      {!!stateContents && (
+        <div className={classes.stateContainer}>
+          <div className={classes.state}>{stateContents}</div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const useFileStyles = M.makeStyles((t) => ({
+  added: {},
+  modified: {},
+  deleted: {},
+  unchanged: {},
+  root: {
+    background: t.palette.background.paper,
+    color: COLORS.default,
+    cursor: 'default',
+    outline: 'none',
+    '&$added': {
+      color: COLORS.added,
+    },
+    '&$modified': {
+      color: COLORS.modified,
+    },
+    '&$deleted': {
+      color: COLORS.deleted,
+    },
+  },
+  contents: {
+    alignItems: 'center',
+    display: 'flex',
+    opacity: 0.7,
+    '$root:hover > &': {
+      opacity: 1,
+    },
+  },
+  name: {
+    ...t.typography.body2,
+    flexGrow: 1,
+    marginRight: t.spacing(1),
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  size: {
+    ...t.typography.body2,
+    marginRight: t.spacing(0.5),
+    opacity: 0.6,
+  },
+}))
+
+function File({ name, type, size, prefix, dispatch }) {
+  const classes = useFileStyles()
+
+  const path = (prefix || '') + name
+
+  const handle = React.useCallback(
+    (cons) => (e) => {
+      e.stopPropagation()
+      dispatch(cons(path))
+    },
+    [dispatch, path],
+  )
+
+  const action = React.useMemo(
+    () =>
+      ({
+        added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.Revert) },
+        modified: {
+          hint: 'Revert',
+          icon: 'undo',
+          handler: handle(FilesAction.Revert),
+        },
+        deleted: {
+          hint: 'Restore',
+          icon: 'undo',
+          handler: handle(FilesAction.Revert),
+        },
+        unchanged: { hint: 'Delete', icon: 'clear', handler: handle(FilesAction.Delete) },
+      }[type]),
+    [type, handle],
+  )
+
+  const onClick = React.useCallback((e) => {
+    e.stopPropagation()
+  }, [])
+
+  return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
+    <div
+      className={cx(classes.root, classes[type])}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+    >
+      <div className={classes.contents}>
+        <EntryIcon state={type}>insert_drive_file</EntryIcon>
+        <div className={classes.name} title={name}>
+          {name}
+        </div>
+        <div className={classes.size}>{readableBytes(size)}</div>
+        <M.IconButton onClick={action.handler} title={action.hint} size="small">
+          <M.Icon fontSize="inherit">{action.icon}</M.Icon>
+        </M.IconButton>
+      </div>
+    </div>
+  )
+}
+
+const useDirStyles = M.makeStyles((t) => ({
+  // TODO: support non-diff mode (for package creation)
+  diff: {},
+  added: {},
+  modified: {},
+  deleted: {},
+  unchanged: {},
+  active: {},
+  root: {
+    background: t.palette.background.paper,
+    cursor: 'pointer',
+    outline: 'none',
+    position: 'relative',
+  },
+  head: {
+    alignItems: 'center',
+    color: COLORS.default,
+    display: 'flex',
+    opacity: 0.7,
+    outline: 'none',
+    '$active > &, &:hover': {
+      opacity: 1,
+    },
+    '$added > &': {
+      color: COLORS.added,
+    },
+    '$modified > &': {
+      color: COLORS.modified,
+    },
+    '$deleted > &': {
+      color: COLORS.deleted,
+    },
+  },
+  name: {
+    ...t.typography.body2,
+    flexGrow: 1,
+    marginRight: t.spacing(1),
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  body: {
+    paddingLeft: 20,
+  },
+  bar: {
+    bottom: 0,
+    left: 0,
+    opacity: 0.3,
+    position: 'absolute',
+    top: 24,
+    width: 24,
+    '$active > $head > &, $head:hover > &': {
+      opacity: 0.4,
+    },
+    '&::before': {
+      background: 'currentColor',
+      borderRadius: 2,
+      bottom: 4,
+      content: '""',
+      left: 10,
+      position: 'absolute',
+      top: 4,
+      width: 4,
+    },
+  },
+  emptyDummy: {
+    height: 24,
+  },
+  empty: {
+    ...t.typography.body2,
+    bottom: 0,
+    fontStyle: 'italic',
+    left: 24,
+    lineHeight: '24px',
+    opacity: 0.6,
+    overflow: 'hidden',
+    position: 'absolute',
+    right: 0,
+    top: 24,
+  },
+}))
+
+function Dir({ name, type, children, prefix, dispatch }) {
+  const classes = useDirStyles()
+  // TODO: move state out?
+  const [expanded, setExpanded] = React.useState(true)
+
+  const toggleExpanded = React.useCallback(
+    (e) => {
+      e.stopPropagation()
+      setExpanded((x) => !x)
+    },
+    [setExpanded],
+  )
+
+  const onClick = React.useCallback((e) => {
+    e.stopPropagation()
+  }, [])
+
+  const path = (prefix || '') + name
+
+  const onDrop = React.useCallback(
+    (files) => {
+      dispatch(FilesAction.Add({ prefix: path, files }))
+    },
+    [dispatch, path],
+  )
+
+  const { getRootProps, isDragActive } = useDropzone({
+    onDrop,
+    noDragEventsBubbling: true,
+  })
+
+  const handle = React.useCallback(
+    (cons) => (e) => {
+      e.stopPropagation()
+      dispatch(cons(path))
+    },
+    [dispatch, path],
+  )
+
+  const action = React.useMemo(
+    () =>
+      ({
+        added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.RevertDir) },
+        modified: {
+          hint: 'Revert',
+          icon: 'undo',
+          handler: handle(FilesAction.RevertDir),
+        },
+        deleted: {
+          hint: 'Restore',
+          icon: 'undo',
+          handler: handle(FilesAction.RevertDir),
+        },
+        unchanged: {
+          hint: 'Delete',
+          icon: 'clear',
+          handler: handle(FilesAction.DeleteDir),
+        },
+      }[type]),
+    [type, handle],
+  )
+
+  return (
+    <div
+      {...getRootProps({
+        className: cx(classes.root, classes[type], { [classes.active]: isDragActive }),
+        onClick,
+      })}
+    >
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
+      <div onClick={toggleExpanded} className={classes.head} role="button" tabIndex={0}>
+        <EntryIcon state={type}>{expanded ? 'folder_open' : 'folder'}</EntryIcon>
+        <div className={classes.name}>{name}</div>
+        <M.IconButton onClick={action.handler} title={action.hint} size="small">
+          <M.Icon fontSize="inherit">{action.icon}</M.Icon>
+        </M.IconButton>
+        <div className={classes.bar} />
+        {!children.length && <div className={classes.empty}>{'<EMPTY DIRECTORY>'}</div>}
+      </div>
+      <M.Collapse in={expanded}>
+        <div className={classes.body}>
+          {children.length ? (
+            children.map((entry) => {
+              const [Component, props] = FilesEntry.case(
+                {
+                  Dir: (ps) => [Dir, ps],
+                  File: (ps) => [File, ps],
+                },
+                entry,
+              )
+              return (
+                <Component {...{ ...props, key: props.name, prefix: path, dispatch }} />
+              )
+            })
+          ) : (
+            <div className={classes.emptyDummy} />
+          )}
+        </div>
+      </M.Collapse>
+    </div>
+  )
+}
 
 const useFilesInputStyles = M.makeStyles((t) => ({
   root: {
@@ -67,7 +535,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     background: t.palette.action.hover,
     border: `1px solid ${t.palette.action.disabled}`,
     borderRadius: t.shape.borderRadius,
-    cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
     minHeight: 140,
@@ -86,6 +553,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   dropMsg: {
     ...t.typography.body2,
     alignItems: 'center',
+    cursor: 'pointer',
     display: 'flex',
     flexGrow: 1,
     justifyContent: 'center',
@@ -100,6 +568,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     color: t.palette.warning.dark,
   },
   filesContainer: {
+    direction: 'rtl', // show the scrollbar on the right
     borderBottom: `1px solid ${t.palette.action.disabled}`,
     maxHeight: 200,
     overflowX: 'hidden',
@@ -111,41 +580,8 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   filesContainerWarn: {
     borderColor: t.palette.warning.dark,
   },
-  added: {},
-  modified: {},
-  deleted: {},
-  unchanged: {},
-  fileEntry: {
-    alignItems: 'center',
-    background: t.palette.background.paper,
-    display: 'flex',
-    '&:not(:last-child)': {
-      borderBottomStyle: 'solid',
-      borderBottomWidth: '1px',
-      borderColor: 'inherit',
-    },
-    '&$added': {
-      background: M.colors.green[100],
-    },
-    '&$modified': {
-      background: M.colors.yellow[100],
-    },
-    '&$deleted': {
-      background: M.colors.red[100],
-    },
-  },
-  filePath: {
-    ...t.typography.body2,
-    flexGrow: 1,
-    marginRight: t.spacing(1),
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  fileSize: {
-    ...t.typography.body2,
-    color: t.palette.text.secondary,
-    marginRight: t.spacing(0.5),
+  filesContainerInner: {
+    direction: 'ltr',
   },
   lock: {
     alignItems: 'center',
@@ -184,14 +620,17 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
+function FilesInput({
+  input: { value, onChange },
+  meta,
+  uploads,
+  onFilesAction,
+  errors = {},
+}) {
   const classes = useFilesInputStyles()
 
-  const value = input.value || { added: {}, deleted: {}, existing: {} }
   const disabled = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
-
-  const onInputChange = input.onChange
 
   const totalSize = React.useMemo(
     () => Object.values(value.added).reduce((sum, f) => sum + f.size, 0),
@@ -211,80 +650,38 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
     'Drop files here or click to browse'
   )
 
-  const pipeValue = useMemoEq([onInputChange, value], () => (...fns) =>
-    R.pipe(...fns, onInputChange)(value),
-  )
+  const ref = React.useRef()
+  ref.current = {
+    value,
+    disabled,
+    initial: meta.initial,
+    onChange,
+    onFilesAction,
+  }
+  const { current: dispatch } = React.useRef((action) => {
+    const cur = ref.current
+    if (cur.disabled) return
+    const newValue = handleFilesAction(action, { initial: cur.initial })(cur.value)
+    cur.onChange(newValue)
+    if (cur.onFilesAction) cur.onFilesAction(action, cur.value, newValue)
+  })
 
   const onDrop = React.useCallback(
     (files) => {
-      if (disabled) return
-      pipeValue(
-        R.reduce(
-          (acc, file) => {
-            const path = PD.getNormalizedPath(file)
-            return R.evolve(
-              {
-                added: R.assoc(path, file),
-                deleted: R.dissoc(path),
-              },
-              acc,
-            )
-          },
-          R.__, // eslint-disable-line no-underscore-dangle
-          files,
-        ),
-      )
+      dispatch(FilesAction.Add({ files }))
     },
-    [disabled, pipeValue],
+    [dispatch],
   )
 
-  const rm = (path) => {
-    pipeValue(R.evolve({ added: R.dissoc(path) }))
-    setUploads(R.dissoc(path))
-  }
-
-  const del = (path) => {
-    pipeValue(R.evolve({ deleted: R.assoc(path, true) }))
-  }
-
-  const restore = (path) => {
-    pipeValue(R.evolve({ deleted: R.dissoc(path) }))
-  }
-
-  const handleAction = (handler, ...args) => (e) => {
-    e.stopPropagation()
-    if (disabled) return
-    handler(...args)
-  }
-
-  const revertFiles = React.useCallback(() => {
-    if (disabled) return
-    onInputChange(meta.initial)
-    setUploads({})
-  }, [disabled, onInputChange, setUploads, meta.initial])
+  const resetFiles = React.useCallback(() => {
+    dispatch(FilesAction.Reset())
+  }, [dispatch])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
 
   const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
 
-  const computedEntries = useMemoEq(value, ({ added, deleted, existing }) => {
-    const existingEntries = Object.entries(existing).map(([path, { size }]) => {
-      if (path in deleted) {
-        return { type: 'deleted', path, size }
-      }
-      if (path in added) {
-        const a = added[path]
-        return { type: 'modified', path, size: a.size, delta: a.size - size }
-      }
-      return { type: 'unchanged', path, size }
-    })
-    const addedEntries = Object.entries(added).reduce((acc, [path, { size }]) => {
-      if (path in existing) return acc
-      return acc.concat({ type: 'added', path, size })
-    }, [])
-    const entries = [...existingEntries, ...addedEntries]
-    return R.sortBy((x) => [TYPE_ORDER.indexOf(x.type), x.path], entries)
-  })
+  const computedEntries = useMemoEq(value, computeEntries)
 
   const stats = useMemoEq(value, ({ added, deleted, existing }) => ({
     added: Object.values(added).reduce(
@@ -335,10 +732,10 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
         <M.Box flexGrow={1} />
         {meta.dirty && (
           <M.Button
-            onClick={revertFiles}
+            onClick={resetFiles}
             disabled={disabled}
             size="small"
-            endIcon={<M.Icon fontSize="small">restore</M.Icon>}
+            endIcon={<M.Icon fontSize="small">undo</M.Icon>}
           >
             Undo changes
           </M.Button>
@@ -366,34 +763,18 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
                 !error && warn && classes.filesContainerWarn,
               )}
             >
-              {computedEntries.map(({ type, path, size }) => {
-                const action = {
-                  added: { hint: 'Remove', icon: 'clear', handler: rm },
-                  modified: { hint: 'Revert', icon: 'restore', handler: rm },
-                  deleted: { hint: 'Restore', icon: 'restore', handler: restore },
-                  unchanged: { hint: 'Delete', icon: 'clear', handler: del },
-                }[type]
-                return (
-                  // TODO: dif display for dif types
-                  // TODO: show delta for modified?
-                  <div
-                    key={`${type}:${path}`}
-                    className={cx(classes.fileEntry, classes[type])}
-                  >
-                    <M.IconButton
-                      onClick={handleAction(action.handler, path)}
-                      title={action.hint}
-                      size="small"
-                    >
-                      <M.Icon fontSize="inherit">{action.icon}</M.Icon>
-                    </M.IconButton>
-                    <div className={classes.filePath} title={path}>
-                      {path}
-                    </div>
-                    <div className={classes.fileSize}>{readableBytes(size)}</div>
-                  </div>
-                )
-              })}
+              <div className={classes.filesContainerInner}>
+                {computedEntries.map((entry) => {
+                  const [Component, props, key] = FilesEntry.case(
+                    {
+                      Dir: (ps) => [Dir, ps, `dir:${ps.name}`],
+                      File: (ps) => [File, ps, `file:${ps.name}`],
+                    },
+                    entry,
+                  )
+                  return <Component {...{ ...props, key, dispatch }} />
+                })}
+              </div>
             </div>
           )}
 
@@ -404,7 +785,7 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
               !error && warn && classes.dropMsgWarn,
             )}
           >
-            {label}
+            <span>{label}</span>
           </div>
         </div>
         {disabled && (
@@ -433,6 +814,15 @@ function FilesInput({ input, meta, uploads, setUploads, errors = {} }) {
   )
 }
 
+const useStyles = M.makeStyles((t) => ({
+  files: {
+    marginTop: t.spacing(2),
+  },
+  meta: {
+    marginTop: t.spacing(3),
+  },
+}))
+
 const getTotalProgress = R.pipe(
   R.values,
   R.reduce(
@@ -448,6 +838,8 @@ const getTotalProgress = R.pipe(
   }),
 )
 
+const defaultNameWarning = ' ' // Reserve space for warning
+
 function DialogForm({
   bucket,
   name: initialName,
@@ -461,6 +853,9 @@ function DialogForm({
   const req = APIConnector.use()
   const [uploads, setUploads] = React.useState({})
   const nameValidator = PD.useNameValidator()
+  const nameExistence = PD.useNameExistence(bucket)
+  const [nameWarning, setNameWarning] = React.useState('')
+  const classes = useStyles()
 
   const initialMeta = React.useMemo(
     () => ({
@@ -486,6 +881,17 @@ function DialogForm({
   }, [manifest, workflowsConfig])
 
   const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
+
+  const onFilesAction = React.useMemo(
+    () =>
+      FilesAction.case({
+        _: () => {},
+        Revert: (path) => setUploads(R.dissoc(path)),
+        RevertDir: (prefix) => setUploads(dissocBy(R.startsWith(prefix))),
+        Reset: () => setUploads({}),
+      }),
+    [setUploads],
+  )
 
   // eslint-disable-next-line consistent-return
   const onSubmit = async ({ name, msg, files, meta, workflow }) => {
@@ -606,6 +1012,26 @@ function DialogForm({
     }
   }
 
+  const onFormChange = React.useCallback(
+    async ({ modified, values }) => {
+      if (!modified.name) return
+
+      const { name } = values
+
+      setNameWarning(defaultNameWarning)
+
+      if (initialName === name) return
+
+      const nameExists = await nameExistence.validate(name)
+      if (nameExists) {
+        setNameWarning('Package with this name exists already')
+      } else {
+        setNameWarning('New package will be created')
+      }
+    },
+    [initialName, nameExistence],
+  )
+
   return (
     <RF.Form onSubmit={onSubmitWrapped}>
       {({
@@ -622,11 +1048,14 @@ function DialogForm({
           <M.DialogTitle>Push package revision</M.DialogTitle>
           <M.DialogContent style={{ paddingTop: 0 }}>
             <form onSubmit={handleSubmit}>
+              <RF.FormSpy
+                subscription={{ modified: true, values: true }}
+                onChange={onFormChange}
+              />
+
               <RF.Field
-                component={PD.Field}
+                component={PD.PackageNameInput}
                 name="name"
-                label="Name"
-                placeholder="Enter a package name"
                 validate={validators.composeAsync(
                   validators.required,
                   nameValidator.validate,
@@ -636,26 +1065,22 @@ function DialogForm({
                   required: 'Enter a package name',
                   invalid: 'Invalid package name',
                 }}
-                margin="normal"
-                fullWidth
+                helperText={nameWarning}
                 initialValue={initialName}
               />
 
               <RF.Field
-                component={PD.Field}
+                component={PD.CommitMessageInput}
                 name="msg"
-                label="Commit message"
-                placeholder="Enter a commit message"
                 validate={validators.required}
                 validateFields={['msg']}
                 errors={{
                   required: 'Enter a commit message',
                 }}
-                fullWidth
-                margin="normal"
               />
 
               <RF.Field
+                className={classes.files}
                 component={FilesInput}
                 name="files"
                 validate={validators.nonEmpty}
@@ -664,7 +1089,7 @@ function DialogForm({
                   nonEmpty: 'Add files to create a package',
                 }}
                 uploads={uploads}
-                setUploads={setUploads}
+                onFilesAction={onFilesAction}
                 isEqual={R.equals}
                 initialValue={initialFiles}
               />
@@ -675,17 +1100,19 @@ function DialogForm({
                 {AsyncResult.case({
                   Ok: ({ responseError, schema, validate }) => (
                     <RF.Field
+                      className={classes.meta}
                       component={PD.MetaInput}
                       name="meta"
                       bucket={bucket}
                       schema={schema}
                       schemaError={responseError}
                       validate={validate}
+                      validateFields={['meta']}
                       isEqual={R.equals}
                       initialValue={initialMeta}
                     />
                   ),
-                  _: () => <PD.MetaInputSkeleton />,
+                  _: () => <PD.MetaInputSkeleton className={classes.meta} />,
                 })}
               </PD.SchemaFetcher>
 
@@ -774,68 +1201,14 @@ function DialogPlaceholder({ close }) {
   )
 }
 
-const errorDisplay = R.cond([
-  [
-    R.is(ERRORS.ManifestTooLarge),
-    (e) => (
-      <>
-        <M.Typography variant="h6" gutterBottom>
-          Package manifest too large
-        </M.Typography>
-        <M.Typography gutterBottom>
-          This package is not editable via the web UI&mdash;it cannot handle package
-          manifest that large ({readableBytes(e.actualSize)}).
-        </M.Typography>
-        <M.Typography>Please use Quilt CLI to edit this package.</M.Typography>
-      </>
-    ),
-  ],
-  [
-    R.T,
-    () => (
-      <>
-        <M.Typography variant="h6" gutterBottom>
-          Unexpected error
-        </M.Typography>
-        <M.Typography gutterBottom>
-          Something went wrong. Please contact Quilt support.
-        </M.Typography>
-        <M.Typography>You can also use Quilt CLI to edit this package.</M.Typography>
-      </>
-    ),
-  ],
-])
-
-const useDialogErrorStyles = M.makeStyles((t) => ({
-  overlay: {
-    background: fade(t.palette.common.white, 0.4),
-    bottom: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    left: 0,
-    padding: t.spacing(2, 3, 4),
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-}))
-
 function DialogError({ error, close }) {
-  const classes = useDialogErrorStyles()
   return (
-    <>
-      <M.DialogTitle>Push package revision</M.DialogTitle>
-      <M.DialogContent style={{ paddingTop: 0, position: 'relative' }}>
-        <PD.FormSkeleton animate={false} />
-        <div className={classes.overlay}>{errorDisplay(error)}</div>
-      </M.DialogContent>
-      <M.DialogActions>
-        <M.Button onClick={close}>Cancel</M.Button>
-        <M.Button variant="contained" color="primary" disabled>
-          Push
-        </M.Button>
-      </M.DialogActions>
-    </>
+    <PD.DialogError
+      error={error}
+      skeletonElement={<PD.FormSkeleton animate={false} />}
+      title="Push package revision"
+      onCancel={close}
+    />
   )
 }
 
@@ -895,7 +1268,6 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
   const [isOpen, setOpen] = React.useState(false)
   const [wasOpened, setWasOpened] = React.useState(false)
   const [exited, setExited] = React.useState(!isOpen)
-  const [exitValue, setExitValue] = React.useState(null)
   const [success, setSuccess] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [key, setKey] = React.useState(1)
@@ -916,8 +1288,7 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
   const close = React.useCallback(() => {
     if (submitting) return
     setOpen(false)
-    setExitValue({ pushed: success })
-  }, [submitting, setOpen, success, setExitValue])
+  }, [submitting, setOpen])
 
   const refreshManifest = React.useCallback(() => {
     setWasOpened(false)
@@ -927,12 +1298,11 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
   const handleExited = React.useCallback(() => {
     setExited(true)
     setSuccess(false)
-    setExitValue(null)
     if (onExited) {
-      const shouldRefreshManifest = onExited(exitValue)
+      const shouldRefreshManifest = onExited({ pushed: success })
       if (shouldRefreshManifest) refreshManifest()
     }
-  }, [setExited, setSuccess, setExitValue, onExited, exitValue, refreshManifest])
+  }, [setExited, setSuccess, success, onExited, refreshManifest])
 
   const state = React.useMemo(() => {
     if (exited) return DialogState.Closed()

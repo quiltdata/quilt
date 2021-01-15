@@ -102,6 +102,10 @@ class PackageRegistry(abc.ABC):
     def workflow_conf_pk(self) -> PhysicalKey:
         return self.base.join(self.workflow_conf_path)
 
+    def get_workflow_validator(self):
+        from quilt3.workflows import WorkflowValidator
+        return WorkflowValidator.load(self.workflow_conf_pk)
+
 
 class PackageRegistryV1(PackageRegistry):
     root_path = '.quilt'

@@ -40,7 +40,9 @@ async function loadBlob({ endpoint, sign, handle, page, firstPageBlob }) {
     }
     return await r.blob()
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.warn('error loading pdf preview')
+    // eslint-disable-next-line no-console
     console.error(e)
     throw e
   }

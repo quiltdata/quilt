@@ -108,9 +108,12 @@ function Thumbnails({ images, mkUrl, resolveLogicalKey }) {
   const classes = useThumbnailsStyles()
 
   const scrollRef = React.useRef(null)
-  const scroll = React.useCallback((prev) => {
-    if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
-  })
+  const scroll = React.useCallback(
+    (prev) => {
+      if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
+    },
+    [scrollRef],
+  )
 
   const pagination = Pagination.use(images, { perPage: 25, onChange: scroll })
 
@@ -177,7 +180,7 @@ export default function BucketSummary({
       mkUrlProp
         ? mkUrlProp(handle)
         : urls.bucketFile(handle.bucket, handle.key, handle.version),
-    [mkUrlProp, urls.bucketFile],
+    [mkUrlProp, urls],
   )
   const { readme, images, summarize } = extractSummary(files)
 
@@ -202,7 +205,9 @@ export default function BucketSummary({
             >
               {AsyncResult.case({
                 Err: (e) => {
+                  // eslint-disable-next-line no-console
                   console.warn('Error loading summary')
+                  // eslint-disable-next-line no-console
                   console.error(e)
                   return null
                 },

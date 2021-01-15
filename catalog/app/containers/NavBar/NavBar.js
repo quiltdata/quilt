@@ -284,6 +284,7 @@ function useLinks() {
   const { urls } = NamedRoutes.use()
   const cfg = Config.useConfig()
   return [
+    cfg.mode !== 'MARKETING' && { to: urls.uriResolver(), label: 'URI' },
     { href: URLS.docs, label: 'Docs' },
     cfg.mode === 'MARKETING' && { to: `${urls.home()}#pricing`, label: 'Pricing' },
     (cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') && {
@@ -295,17 +296,15 @@ function useLinks() {
   ].filter(Boolean)
 }
 
+const selector = createStructuredSelector(
+  R.pick(['error', 'waiting', 'authenticated'], authSelectors),
+)
+
 export function NavBar() {
   const cfg = Config.use()
   const bucket = BucketConfig.useCurrentBucket()
   const { paths } = NamedRoutes.use()
   const isSignIn = !!useRoute(paths.signIn, { exact: true }).match
-  const selector = React.useCallback(
-    createStructuredSelector(
-      R.pick(['error', 'waiting', 'authenticated'], authSelectors),
-    ),
-    [],
-  )
   const { error, waiting, authenticated } = redux.useSelector(selector)
   const t = M.useTheme()
   const useHamburger = M.useMediaQuery(t.breakpoints.down('sm'))

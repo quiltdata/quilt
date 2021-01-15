@@ -34,7 +34,9 @@ async function loadPdf({ endpoint, sign, handle }) {
       }
       throw PreviewError.Forbidden({ handle })
     }
+    // eslint-disable-next-line no-console
     console.warn('error loading pdf preview', { ...e })
+    // eslint-disable-next-line no-console
     console.error(e)
     throw e
   }

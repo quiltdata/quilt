@@ -30,7 +30,7 @@ export default function SSOOkta({ mutex, next, ...props }) {
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
-  const intl = useIntl()
+  const { formatMessage } = useIntl()
   const { push: notify } = Notifications.use()
   const { urls } = NamedRoutes.use()
 
@@ -53,9 +53,9 @@ export default function SSOOkta({ mutex, next, ...props }) {
             // dont release mutex on redirect
             return
           }
-          notify(intl.formatMessage(msg.ssoOktaNotFound))
+          notify(formatMessage(msg.ssoOktaNotFound))
         } else {
-          notify(intl.formatMessage(msg.ssoOktaErrorUnexpected))
+          notify(formatMessage(msg.ssoOktaErrorUnexpected))
           sentry('captureException', e)
         }
         mutex.release(MUTEX_REQUEST)
@@ -63,16 +63,26 @@ export default function SSOOkta({ mutex, next, ...props }) {
     } catch (e) {
       if (e instanceof Okta.OktaError) {
         if (e.code !== 'popup_closed_by_user') {
-          notify(intl.formatMessage(msg.ssoOktaError, { details: e.details }))
+          notify(formatMessage(msg.ssoOktaError, { details: e.details }))
           sentry('captureException', e)
         }
       } else {
-        notify(intl.formatMessage(msg.ssoOktaErrorUnexpected))
+        notify(formatMessage(msg.ssoOktaErrorUnexpected))
         sentry('captureException', e)
       }
       mutex.release(MUTEX_POPUP)
     }
-  }, [authenticate, dispatch, mutex.claim, mutex.release, sentry, notify])
+  }, [
+    authenticate,
+    dispatch,
+    mutex,
+    sentry,
+    notify,
+    cfg.ssoAuth,
+    formatMessage,
+    next,
+    urls,
+  ])
 
   return (
     <M.Button

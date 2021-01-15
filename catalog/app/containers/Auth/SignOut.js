@@ -27,14 +27,15 @@ export function useSignOut() {
     dispatch(signOut(result.resolver))
     result.promise.catch(sentry('captureException'))
     return result.promise
-  }, [dispatch])
+  }, [dispatch, sentry])
 }
 
 export default function SignOut() {
-  const doSignOut = useSignOut()
+  const signOutRef = React.useRef()
+  signOutRef.current = useSignOut()
   const { waiting, authenticated } = redux.useSelector(selector)
   React.useEffect(() => {
-    if (!waiting && authenticated) doSignOut()
+    if (!waiting && authenticated) signOutRef.current()
   }, [waiting, authenticated])
   return (
     <>

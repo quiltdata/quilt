@@ -5,10 +5,12 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import * as Intercom from 'components/Intercom'
 import * as Preview from 'components/Preview'
+import * as Notifications from 'containers/Notifications'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
@@ -16,14 +18,19 @@ import * as Config from 'utils/Config'
 import Data, { useData } from 'utils/Data'
 import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as PackageUri from 'utils/PackageUri'
 import Link, { linkStyle } from 'utils/StyledLink'
+import copyToClipboard from 'utils/clipboard'
+import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 
 import Code from './Code'
+import CopyButton from './CopyButton'
 import * as FileView from './FileView'
 import { ListingItem, ListingWithLocalFiltering } from './Listing'
 import { usePackageUpdateDialog } from './PackageUpdateDialog'
+import PackageCopyDialog from './PackageCopyDialog'
 import Section from './Section'
 import Summary from './Summary'
 import * as errors from './errors'
@@ -60,8 +67,10 @@ const useRevisionInfoStyles = M.makeStyles((t) => ({
 
 function RevisionInfo({ revisionData, revision, bucket, name, path }) {
   const { urls } = NamedRoutes.use()
+  const { push } = Notifications.use()
   const classes = useRevisionInfoStyles()
 
+  const listRef = React.useRef()
   const [anchor, setAnchor] = React.useState()
   const [opened, setOpened] = React.useState(false)
   const open = React.useCallback(() => setOpened(true), [])
@@ -79,6 +88,15 @@ function RevisionInfo({ revisionData, revision, bucket, name, path }) {
     _: R.identity,
   })
 
+  const getHttpsUri = (r) =>
+    `${window.origin}${urls.bucketPackageTree(bucket, name, r.hash, path)}`
+
+  const copyHttpsUri = (r, containerRef) => (e) => {
+    e.preventDefault()
+    copyToClipboard(getHttpsUri(r), { container: containerRef && containerRef.current })
+    push('Canonical URI copied to clipboard')
+  }
+
   return (
     <>
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
@@ -91,6 +109,21 @@ function RevisionInfo({ revisionData, revision, bucket, name, path }) {
         {R.take(10, revision)} <M.Icon>expand_more</M.Icon>
       </span>
 
+      {revisionData.case({
+        Ok: (r) => (
+          <M.IconButton
+            size="small"
+            title="Copy package revision's canonical catalog URI to the clipboard"
+            href={getHttpsUri(r)}
+            onClick={copyHttpsUri(r)}
+            style={{ marginTop: -4, marginBottom: -4 }}
+          >
+            <M.Icon>link</M.Icon>
+          </M.IconButton>
+        ),
+        _: () => null,
+      })}
+
       <M.Popover
         open={opened && !!anchor}
         anchorEl={anchor}
@@ -98,7 +131,7 @@ function RevisionInfo({ revisionData, revision, bucket, name, path }) {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         transformOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <M.List className={classes.list}>
+        <M.List className={classes.list} ref={listRef}>
           {AsyncResult.case(
             {
               Ok: R.map((r) => (
@@ -122,6 +155,15 @@ function RevisionInfo({ revisionData, revision, bucket, name, path }) {
                       </span>
                     }
                   />
+                  <M.ListItemSecondaryAction>
+                    <M.IconButton
+                      title="Copy package revision's canonical catalog URI to the clipboard"
+                      href={getHttpsUri(r)}
+                      onClick={copyHttpsUri(r, listRef)}
+                    >
+                      <M.Icon>link</M.Icon>
+                    </M.IconButton>
+                  </M.ListItemSecondaryAction>
                 </M.ListItem>
               )),
               Err: () => (
@@ -206,6 +248,10 @@ function PkgCode({ bucket, name, hash, revision, path }) {
         quilt3 install ${nameWithPath}${hashCli} --registry s3://${bucket} --dest .
       `,
     },
+    {
+      label: 'URI',
+      contents: PackageUri.stringify({ bucket, name, hash, path }),
+    },
   ]
   return <Code>{code}</Code>
 }
@@ -243,7 +289,16 @@ function TopBar({ crumbs, children }) {
   )
 }
 
-function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush }) {
+function DirDisplay({
+  bucket,
+  name,
+  hash,
+  revision,
+  path,
+  crumbs,
+  onRevisionPush,
+  onCrossBucketPush,
+}) {
   const s3 = AWS.S3.use()
   const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
   const credentials = AWS.Credentials.use()
@@ -276,6 +331,16 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
     hash,
     onExited: onRevisionPush,
   })
+
+  const [successor, setSuccessor] = React.useState(null)
+
+  const onPackageCopyDialogExited = React.useCallback(
+    (res) => {
+      if (res && res.pushed) onCrossBucketPush(res)
+      setSuccessor(null)
+    },
+    [setSuccessor, onCrossBucketPush],
+  )
 
   usePrevious({ bucket, name, revision }, (prev) => {
     // close the dialog when navigating away
@@ -313,7 +378,17 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
       }))
       return (
         <>
+          <PackageCopyDialog
+            bucket={bucket}
+            hash={hash}
+            name={name}
+            open={!!successor}
+            successor={successor}
+            onExited={onPackageCopyDialogExited}
+          />
+
           {updateDialog.render()}
+
           <TopBar crumbs={crumbs}>
             <M.Button
               variant="contained"
@@ -324,6 +399,8 @@ function DirDisplay({ bucket, name, hash, revision, path, crumbs, onRevisionPush
             >
               Revise package
             </M.Button>
+            <M.Box ml={1} />
+            <CopyButton bucket={bucket} onChange={setSuccessor} />
             {!noDownload && (
               <>
                 <M.Box ml={1} />
@@ -490,12 +567,18 @@ const useStyles = M.makeStyles(() => ({
   name: {
     wordBreak: 'break-all',
   },
+  alertMsg: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
 }))
 
 export default function PackageTree({
   match: {
     params: { bucket, name, revision = 'latest', path: encodedPath = '' },
   },
+  location,
 }) {
   const classes = useStyles()
   const s3 = AWS.S3.use()
@@ -504,6 +587,8 @@ export default function PackageTree({
 
   const path = s3paths.decode(encodedPath)
   const isDir = s3paths.isDir(path)
+
+  const { resolvedFrom } = parseSearch(location.search)
 
   const crumbs = React.useMemo(() => {
     const segments = [{ label: 'ROOT', path: '' }, ...s3paths.getBreadCrumbs(path)]
@@ -539,6 +624,10 @@ export default function PackageTree({
     [name, revision, setRevisionKey, setRevisionListKey],
   )
 
+  const onCrossBucketPush = React.useCallback(() => {
+    setRevisionKey(R.inc)
+  }, [setRevisionKey])
+
   const revisionData = useData(requests.resolvePackageRevision, {
     s3,
     bucket,
@@ -556,6 +645,35 @@ export default function PackageTree({
           ),
           _: () => null,
         })}
+      {!!resolvedFrom && (
+        <M.Box mb={2}>
+          <Lab.Alert
+            severity="info"
+            icon={false}
+            classes={{ message: classes.alertMsg }}
+            action={
+              <M.IconButton
+                size="small"
+                color="inherit"
+                component={RRLink}
+                to={urls.bucketPackageTree(bucket, name, revision, path)}
+              >
+                <M.Icon fontSize="small">close</M.Icon>
+              </M.IconButton>
+            }
+          >
+            Resolved from{' '}
+            <M.Box
+              fontFamily="monospace.fontFamily"
+              fontWeight="fontWeightBold"
+              component="span"
+              title={resolvedFrom}
+            >
+              {resolvedFrom}
+            </M.Box>
+          </Lab.Alert>
+        </M.Box>
+      )}
       <M.Typography variant="body1">
         <Link to={urls.bucketPackageDetail(bucket, name)} className={classes.name}>
           {name}
@@ -579,6 +697,7 @@ export default function PackageTree({
                 revision,
                 crumbs,
                 onRevisionPush,
+                onCrossBucketPush,
                 key: hash,
               }}
             />

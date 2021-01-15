@@ -153,7 +153,7 @@ const useCodeStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.grey[300],
     borderRadius: '2px',
-    color: t.palette.info.contrastText,
+    color: t.palette.text.primary,
     fontFamily: t.typography.monospace.fontFamily,
     padding: '0 3px',
     whiteSpace: 'pre-wrap',

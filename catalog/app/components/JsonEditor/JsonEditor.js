@@ -11,26 +11,24 @@ const useStyles = M.makeStyles((t) => ({
   disabled: {
     position: 'relative',
     '&:after': {
-      background: t.palette.action.disabledBackground,
+      background: 'rgba(255,255,255,0.9)',
       bottom: 0,
       content: '""',
+      cursor: 'not-allowed',
       left: 0,
       position: 'absolute',
       right: 0,
       top: 0,
-    },
-  },
-  inner: {
-    display: 'flex',
-    overflowX: 'auto',
-    MsOverflowStyle: 'none',
-    scrollbarWidth: 'none',
-    '&::-webkit-scrollbar': {
-      display: 'none',
+      zIndex: 1,
     },
   },
   errors: {
     marginTop: t.spacing(1),
+  },
+  inner: {
+    display: 'flex',
+    maxHeight: t.spacing(46),
+    overflow: 'auto',
   },
 }))
 
@@ -39,7 +37,7 @@ function JsonEditor({
   changeValue,
   className,
   disabled,
-  newColumns,
+  columns,
   jsonDict,
   error,
   errors,
@@ -70,27 +68,24 @@ function JsonEditor({
     [changeValue, onChange],
   )
 
+  const columnData = R.last(columns)
+
   return (
     <div className={cx({ [classes.disabled]: disabled }, className)}>
       <div className={classes.inner}>
-        {newColumns.map((columnData, index) => {
-          const columnPath = R.slice(0, index, fieldPath)
-          return (
-            <Column
-              {...{
-                columnPath,
-                data: columnData,
-                jsonDict,
-                key: columnPath,
-                onAddRow: addRow,
-                onBreadcrumb: setFieldPath,
-                onExpand: setFieldPath,
-                onMenuAction,
-                onChange: onChangeInternal,
-              }}
-            />
-          )
-        })}
+        <Column
+          {...{
+            columnPath: fieldPath,
+            data: columnData,
+            jsonDict,
+            key: fieldPath,
+            onAddRow: addRow,
+            onBreadcrumb: setFieldPath,
+            onExpand: setFieldPath,
+            onMenuAction,
+            onChange: onChangeInternal,
+          }}
+        />
       </div>
 
       <Errors className={classes.errors} errors={error || errors} />

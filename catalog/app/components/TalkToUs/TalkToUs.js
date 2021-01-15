@@ -52,6 +52,7 @@ export function TalkToUsProvider({ children }) {
       t.track('WEB', { type: 'meeting', action: 'popup', ...extra })
 
       if (!cfg.calendlyLink) {
+        // eslint-disable-next-line no-console
         console.warn('Unable to open Calendly popup: missing Config.calendlyLink', extra)
         return
       }
@@ -71,16 +72,19 @@ export function TalkToUsProvider({ children }) {
         w.show()
       })
     },
-    [calendlyP, t.track],
+    [t, cfg.calendlyLink, calendlyP],
   )
 
   return <Ctx.Provider value={showPopup}>{children}</Ctx.Provider>
 }
 
 export function useTalkToUs(extra) {
-  const show = React.useContext(Ctx)
-  const bound = React.useCallback(() => show(extra), [show])
-  return extra ? bound : show
+  const ref = React.useRef({
+    bound: (localExtra) => ref.current.show(ref.current.extra || localExtra),
+  })
+  ref.current.show = React.useContext(Ctx)
+  ref.current.extra = extra
+  return ref.current.bound
 }
 
 export { TalkToUsProvider as Provider, useTalkToUs as use }

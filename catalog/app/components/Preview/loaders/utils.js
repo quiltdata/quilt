@@ -177,6 +177,7 @@ const fetchPreview = async ({ endpoint, handle, sign, type, compression, query }
       }
       throw PreviewError.Forbidden({ handle })
     }
+    // eslint-disable-next-line no-console
     console.log('Error from preview endpoint', json)
     throw new Error(json.error)
   }
@@ -207,7 +208,9 @@ export function useErrorHandling(result, { handle, retry } = {}) {
     pipeThru(result)(
       AsyncResult.mapCase({
         Err: R.unless(PreviewError.is, (e) => {
+          // eslint-disable-next-line no-console
           console.log('error while loading preview')
+          // eslint-disable-next-line no-console
           console.error(e)
           return PreviewError.Unexpected({ handle, retry, originalError: e })
         }),
