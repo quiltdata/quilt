@@ -529,6 +529,9 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     marginLeft: t.spacing(0.5),
   },
   dropzoneContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
     marginTop: t.spacing(2),
     position: 'relative',
   },
@@ -536,9 +539,10 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     background: t.palette.action.hover,
     border: `1px solid ${t.palette.action.disabled}`,
     borderRadius: t.shape.borderRadius,
+    cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
-    minHeight: t.spacing(23),
+    flexGrow: 1,
     outline: 'none',
     overflow: 'hidden',
   },
@@ -571,7 +575,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   filesContainer: {
     direction: 'rtl', // show the scrollbar on the right
     borderBottom: `1px solid ${t.palette.action.disabled}`,
-    maxHeight: t.spacing(64),
+    maxHeight: t.spacing(68),
     overflowX: 'hidden',
     overflowY: 'auto',
   },
@@ -1117,6 +1121,7 @@ function DialogForm({
 
                 <PD.RightColumn>
                   <RF.Field
+                    className={classes.files}
                     component={FilesInput}
                     name="files"
                     validate={validators.nonEmpty}

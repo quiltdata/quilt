@@ -76,6 +76,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   dropMsg: {
     ...t.typography.body2,
     alignItems: 'center',
+    cursor: 'pointer',
     display: 'flex',
     flexGrow: 1,
     justifyContent: 'center',
