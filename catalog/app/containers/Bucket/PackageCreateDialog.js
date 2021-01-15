@@ -24,6 +24,10 @@ import * as PD from './PackageDialog'
 import * as requests from './requests'
 
 const useFilesInputStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
   header: {
     alignItems: 'center',
     display: 'flex',
@@ -43,6 +47,9 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     color: t.palette.warning.dark,
   },
   dropzoneContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
     marginTop: t.spacing(2),
     position: 'relative',
   },
@@ -53,7 +60,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
-    minHeight: t.spacing(40),
+    flexGrow: 1,
     outline: 'none',
     overflow: 'hidden',
   },
@@ -84,7 +91,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
   filesContainer: {
     borderBottom: `1px solid ${t.palette.action.disabled}`,
-    maxHeight: '595px',
+    maxHeight: t.spacing(68),
     overflowX: 'hidden',
     overflowY: 'auto',
   },
@@ -217,7 +224,7 @@ function FilesInput({
 
   const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
   return (
-    <div className={className}>
+    <div className={cx(classes.root, className)}>
       <div className={classes.header}>
         <div
           className={cx(
@@ -318,6 +325,11 @@ function FilesInput({
 }
 
 const useStyles = M.makeStyles((t) => ({
+  files: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+  },
   meta: {
     marginTop: t.spacing(3),
   },
@@ -633,6 +645,7 @@ function PackageCreateDialog({
 
                     <PD.RightColumn>
                       <RF.Field
+                        className={classes.files}
                         component={FilesInput}
                         name="files"
                         validate={validators.nonEmpty}

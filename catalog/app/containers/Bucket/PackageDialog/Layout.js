@@ -17,19 +17,13 @@ export function Container({ children }) {
 
 const useColumnStyles = M.makeStyles((t) => ({
   root: {
-    flexGrow: 0,
-    marginBottom: '32px',
     flexBasis: '100%',
-    [t.breakpoints.up('lg')]: {
+    flexGrow: 0,
+    margin: t.spacing(0, 0, 3),
+    [t.breakpoints.up('sm')]: {
       flexBasis: '50%',
-      margin: '0 32px 0 0',
+      margin: t.spacing(0, 3, 0, 0),
       maxWidth: 'calc(50% - 16px)',
-    },
-  },
-  rightColumn: {
-    margin: t.spacing(0, 0, 4),
-    [t.breakpoints.up('lg')]: {
-      margin: t.spacing(0, 0, 3),
     },
   },
 }))
@@ -42,8 +36,16 @@ export function Column({ children, className }) {
 
 export const LeftColumn = Column
 
-export function RightColumn({ children }) {
-  const classes = useColumnStyles()
+const useRightColumnStyles = M.makeStyles((t) => ({
+  root: {
+    [t.breakpoints.up('sm')]: {
+      margin: t.spacing(0, 0, 3),
+    },
+  },
+}))
 
-  return <Column className={classes.rightColumn}>{children}</Column>
+export function RightColumn({ children }) {
+  const classes = useRightColumnStyles()
+
+  return <Column className={classes.root}>{children}</Column>
 }

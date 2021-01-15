@@ -498,6 +498,10 @@ function Dir({ name, type, children, prefix, dispatch }) {
 }
 
 const useFilesInputStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
   header: {
     alignItems: 'center',
     display: 'flex',
@@ -619,6 +623,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
 
 function FilesInput({
   input: { value, onChange },
+  className,
   meta,
   uploads,
   onFilesAction,
@@ -692,7 +697,7 @@ function FilesInput({
   }))
 
   return (
-    <div>
+    <div className={cx(classes.root, className)}>
       <div className={classes.header}>
         <div
           className={cx(
@@ -812,6 +817,9 @@ function FilesInput({
 }
 
 const useStyles = M.makeStyles((t) => ({
+  files: {
+    height: '100%',
+  },
   meta: {
     marginTop: t.spacing(3),
   },
