@@ -814,6 +814,15 @@ function FilesInput({
   )
 }
 
+const useStyles = M.makeStyles((t) => ({
+  files: {
+    marginTop: t.spacing(2),
+  },
+  meta: {
+    marginTop: t.spacing(3),
+  },
+}))
+
 const getTotalProgress = R.pipe(
   R.values,
   R.reduce(
@@ -842,6 +851,7 @@ function DialogForm({
   const req = APIConnector.use()
   const [uploads, setUploads] = React.useState({})
   const nameValidator = PD.useNameValidator()
+  const classes = useStyles()
 
   const initialMeta = React.useMemo(
     () => ({
@@ -1048,6 +1058,7 @@ function DialogForm({
               />
 
               <RF.Field
+                className={classes.files}
                 component={FilesInput}
                 name="files"
                 validate={validators.nonEmpty}
@@ -1067,6 +1078,7 @@ function DialogForm({
                 {AsyncResult.case({
                   Ok: ({ responseError, schema, validate }) => (
                     <RF.Field
+                      className={classes.meta}
                       component={PD.MetaInput}
                       name="meta"
                       bucket={bucket}
@@ -1078,7 +1090,7 @@ function DialogForm({
                       initialValue={initialMeta}
                     />
                   ),
-                  _: () => <PD.MetaInputSkeleton />,
+                  _: () => <PD.MetaInputSkeleton className={classes.meta} />,
                 })}
               </PD.SchemaFetcher>
 

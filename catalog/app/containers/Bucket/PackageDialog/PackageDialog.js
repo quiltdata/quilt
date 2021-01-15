@@ -6,7 +6,6 @@ import * as Lab from '@material-ui/lab'
 
 import JsonEditor from 'components/JsonEditor'
 import { parseJSON, stringifyJSON } from 'components/JsonEditor/State'
-import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import { useData } from 'utils/Data'
 import Delay from 'utils/Delay'
@@ -207,9 +206,6 @@ export const getWorkflowApiParam = R.cond([
 ])
 
 const useMetaInputStyles = M.makeStyles((t) => ({
-  root: {
-    marginTop: t.spacing(3),
-  },
   header: {
     alignItems: 'center',
     display: 'flex',
@@ -282,7 +278,13 @@ const useMetaInputStyles = M.makeStyles((t) => ({
 export const EMPTY_META_VALUE = { mode: 'kv', text: '{}' }
 
 // TODO: warn on duplicate keys
-export function MetaInput({ schemaError, input: { value, onChange }, meta, schema }) {
+export function MetaInput({
+  className,
+  schemaError,
+  input: { value, onChange },
+  meta,
+  schema,
+}) {
   const classes = useMetaInputStyles()
   const error = schemaError ? [schemaError] : meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
@@ -364,7 +366,7 @@ export function MetaInput({ schemaError, input: { value, onChange }, meta, schem
   const { getRootProps, isDragActive } = useDropzone({ onDrop })
 
   return (
-    <div className={classes.root}>
+    <div className={className}>
       <div className={classes.header}>
         {/* eslint-disable-next-line no-nested-ternary */}
         <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
@@ -456,22 +458,4 @@ export function SchemaFetcher({ children, schemaUrl }) {
     [data],
   )
   return children(res)
-}
-
-// TODO: use this skeleton for FormSkeleton
-export function MetaInputSkeleton() {
-  const classes = useMetaInputStyles()
-  const t = M.useTheme()
-  return (
-    <M.Grid container spacing={1} className={classes.root}>
-      {R.times(
-        (index) => (
-          <M.Grid item xs={6} key={index}>
-            <Skeleton height={t.spacing(4)} width="100%" />
-          </M.Grid>
-        ),
-        6,
-      )}
-    </M.Grid>
-  )
 }
