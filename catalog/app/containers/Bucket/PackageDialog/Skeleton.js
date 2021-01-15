@@ -3,6 +3,8 @@ import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
 
+import * as Layout from './Layout'
+
 export function TextFieldSkeleton({ animate }) {
   return <Skeleton {...{ height: 54, mt: 2, mb: 1, animate }} />
 }
@@ -53,18 +55,19 @@ export function FormSkeleton({ animate }) {
   const classes = useFormSkeletonStyles()
 
   return (
-    <M.Grid container spacing={2}>
-      <M.Grid item xs={12} sm={6}>
+    <Layout.Container>
+      <Layout.LeftColumn>
         <TextFieldSkeleton animate={animate} />
         <TextFieldSkeleton animate={animate} />
 
         <MetaInputSkeleton className={classes.meta} animate={animate} />
 
         <WorkflowsInputSkeleton animate={animate} />
-      </M.Grid>
-      <M.Grid item xs={12} sm={6}>
+      </Layout.LeftColumn>
+
+      <Layout.RightColumn>
         <FilesInputSkeleton className={classes.files} animate={animate} />
-      </M.Grid>
-    </M.Grid>
+      </Layout.RightColumn>
+    </Layout.Container>
   )
 }

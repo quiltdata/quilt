@@ -566,8 +566,8 @@ function PackageCreateDialog({
                     onChange={onFormChange}
                   />
 
-                  <M.Grid container spacing={2}>
-                    <M.Grid item xs={12} sm={6}>
+                  <PD.Container>
+                    <PD.LeftColumn>
                       <M.Typography>Main</M.Typography>
 
                       <RF.Field
@@ -629,9 +629,9 @@ function PackageCreateDialog({
                           required: 'Workflow is required for this bucket.',
                         }}
                       />
-                    </M.Grid>
+                    </PD.LeftColumn>
 
-                    <M.Grid item xs={12} sm={6}>
+                    <PD.RightColumn>
                       <RF.Field
                         component={FilesInput}
                         name="files"
@@ -644,8 +644,8 @@ function PackageCreateDialog({
                         setUploads={setUploads}
                         isEqual={R.equals}
                       />
-                    </M.Grid>
-                  </M.Grid>
+                    </PD.RightColumn>
+                  </PD.Container>
 
                   <input type="submit" style={{ display: 'none' }} />
                 </form>
