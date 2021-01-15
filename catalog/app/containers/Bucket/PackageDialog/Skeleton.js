@@ -4,14 +4,14 @@ import * as M from '@material-ui/core'
 import Skeleton from 'components/Skeleton'
 
 export function TextFieldSkeleton({ animate }) {
-  return <Skeleton {...{ height: 48, mt: 2, mb: 1, animate }} />
+  return <Skeleton {...{ height: 54, mt: 2, mb: 1, animate }} />
 }
 
 export function FilesInputSkeleton({ animate, className }) {
   return (
     <div className={className}>
       <Skeleton {...{ height: 24, width: 64, animate }} />
-      <Skeleton {...{ height: 140, mt: 2, animate }} />
+      <Skeleton {...{ height: 320, mt: 2, animate }} />
     </div>
   )
 }

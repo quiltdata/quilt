@@ -53,7 +53,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
-    minHeight: t.spacing(23),
+    minHeight: t.spacing(40),
     outline: 'none',
     overflow: 'hidden',
   },
@@ -84,7 +84,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
   filesContainer: {
     borderBottom: `1px solid ${t.palette.action.disabled}`,
-    maxHeight: t.spacing(64),
+    maxHeight: '595px',
     overflowX: 'hidden',
     overflowY: 'auto',
   },
