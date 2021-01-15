@@ -10,7 +10,6 @@ import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import Skeleton from 'components/Skeleton'
 import StyledLink from 'utils/StyledLink'
 import tagged from 'utils/tagged'
 import * as validators from 'utils/validators'
@@ -40,33 +39,22 @@ function requestPackageCopy(
   })
 }
 
+const useFormSkeletonStyles = M.makeStyles((t) => ({
+  meta: {
+    marginTop: t.spacing(3),
+  },
+}))
+
 function FormSkeleton({ animate }) {
-  const headerSkeleton = <Skeleton {...{ height: 48, mt: 2, animate }} />
-  const inputsSkeleton = <Skeleton {...{ height: 48, mt: 3, animate }} />
-  const metadataSkeleton = (
-    <M.Box mt={3}>
-      <M.Box display="flex" mb={2}>
-        <Skeleton {...{ height: 24, width: 64, animate }} />
-        <M.Box flexGrow={1} />
-        <Skeleton {...{ height: 24, width: 64, animate }} />
-      </M.Box>
-      <M.Box display="flex">
-        <Skeleton {...{ height: 32, width: 200, animate }} />
-        <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
-      </M.Box>
-      <M.Box display="flex" mt={0.5}>
-        <Skeleton {...{ height: 32, width: 200, animate }} />
-        <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
-      </M.Box>
-    </M.Box>
-  )
-  const workflowSkeleton = <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
+  const classes = useFormSkeletonStyles()
+
   return (
     <>
-      {headerSkeleton}
-      {inputsSkeleton}
-      {metadataSkeleton}
-      {workflowSkeleton}
+      <PD.TextFieldSkeleton animate={animate} />
+      <PD.TextFieldSkeleton animate={animate} />
+
+      <PD.MetaInputSkeleton className={classes.meta} animate={animate} />
+      <PD.WorkflowsInputSkeleton animate={animate} />
     </>
   )
 }
@@ -87,6 +75,12 @@ function DialogTitle({ bucket }) {
 
 const defaultNameWarning = ' ' // Reserve space for warning
 
+const useStyles = M.makeStyles((t) => ({
+  meta: {
+    marginTop: t.spacing(3),
+  },
+}))
+
 function DialogForm({
   close,
   hash,
@@ -102,6 +96,7 @@ function DialogForm({
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState('')
+  const classes = useStyles()
 
   const initialMeta = React.useMemo(
     () => ({
@@ -208,6 +203,7 @@ function DialogForm({
                 {AsyncResult.case({
                   Ok: ({ responseError, schema, validate }) => (
                     <RF.Field
+                      className={classes.meta}
                       component={PD.MetaInput}
                       name="meta"
                       bucket={successor.slug}
@@ -219,7 +215,7 @@ function DialogForm({
                       initialValue={initialMeta}
                     />
                   ),
-                  _: () => <PD.MetaInputSkeleton />,
+                  _: () => <PD.MetaInputSkeleton className={classes.meta} />,
                 })}
               </PD.SchemaFetcher>
 

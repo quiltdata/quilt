@@ -24,9 +24,6 @@ import * as PD from './PackageDialog'
 import * as requests from './requests'
 
 const useFilesInputStyles = M.makeStyles((t) => ({
-  root: {
-    marginTop: t.spacing(2),
-  },
   header: {
     alignItems: 'center',
     display: 'flex',
@@ -159,6 +156,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
 
 function FilesInput({
   input: { value: inputValue, onChange: onInputChange },
+  className,
   meta,
   uploads,
   setUploads,
@@ -219,7 +217,7 @@ function FilesInput({
 
   const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
   return (
-    <div className={classes.root}>
+    <div className={className}>
       <div className={classes.header}>
         <div
           className={cx(
@@ -319,6 +317,15 @@ function FilesInput({
   )
 }
 
+const useStyles = M.makeStyles((t) => ({
+  files: {
+    marginTop: t.spacing(2),
+  },
+  meta: {
+    marginTop: t.spacing(3),
+  },
+}))
+
 const getTotalProgress = R.pipe(
   R.values,
   R.reduce(
@@ -353,6 +360,7 @@ function PackageCreateDialog({
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
   const [nameWarning, setNameWarning] = React.useState(defaultNameWarning)
+  const classes = useStyles()
 
   const reset = (form) => () => {
     form.restart()
@@ -588,6 +596,7 @@ function PackageCreateDialog({
 
                   <RF.Field
                     component={FilesInput}
+                    className={classes.files}
                     name="files"
                     validate={validators.nonEmpty}
                     validateFields={['files']}
@@ -605,6 +614,7 @@ function PackageCreateDialog({
                     {AsyncResult.case({
                       Ok: ({ responseError, schema, validate }) => (
                         <RF.Field
+                          className={classes.meta}
                           component={PD.MetaInput}
                           name="meta"
                           bucket={bucket}
@@ -616,7 +626,7 @@ function PackageCreateDialog({
                           initialValue={PD.EMPTY_META_VALUE}
                         />
                       ),
-                      _: () => <PD.MetaInputSkeleton />,
+                      _: () => <PD.MetaInputSkeleton className={classes.meta} />,
                     })}
                   </PD.SchemaFetcher>
 
