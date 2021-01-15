@@ -24,9 +24,6 @@ import * as PD from './PackageDialog'
 import * as requests from './requests'
 
 const useFilesInputStyles = M.makeStyles((t) => ({
-  root: {
-    marginTop: 22,
-  },
   header: {
     alignItems: 'center',
     display: 'flex',
@@ -159,6 +156,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
 
 function FilesInput({
   input: { value: inputValue, onChange: onInputChange },
+  className,
   meta,
   uploads,
   setUploads,
@@ -219,7 +217,7 @@ function FilesInput({
 
   const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
   return (
-    <div className={classes.root}>
+    <div className={className}>
       <div className={classes.header}>
         <div
           className={cx(
@@ -319,6 +317,15 @@ function FilesInput({
   )
 }
 
+const useStyles = M.makeStyles((t) => ({
+  files: {
+    marginTop: t.spacing(2),
+  },
+  meta: {
+    marginTop: t.spacing(3),
+  },
+}))
+
 const getTotalProgress = R.pipe(
   R.values,
   R.reduce(
@@ -333,6 +340,8 @@ const getTotalProgress = R.pipe(
     percent: p.total ? Math.floor((p.loaded / p.total) * 100) : undefined,
   }),
 )
+
+const defaultNameWarning = ' ' // Reserve space for warning
 
 function PackageCreateDialog({
   bucket,
@@ -349,12 +358,17 @@ function PackageCreateDialog({
   const [uploads, setUploads] = React.useState({})
   const [success, setSuccess] = React.useState(null)
   const nameValidator = PD.useNameValidator()
+  const nameExistence = PD.useNameExistence(bucket)
+  const [nameWarning, setNameWarning] = React.useState(defaultNameWarning)
+  const classes = useStyles()
 
   const reset = (form) => () => {
     form.restart()
     setSuccess(null)
     setUploads({})
     nameValidator.inc()
+    nameExistence.inc()
+    setNameWarning(defaultNameWarning)
   }
 
   const handleClose = ({ submitting = false } = {}) => () => {
@@ -462,6 +476,22 @@ function PackageCreateDialog({
     }
   }
 
+  const onFormChange = React.useCallback(
+    async ({ modified, values }) => {
+      if (!modified.name) return
+
+      const { name } = values
+
+      setNameWarning(defaultNameWarning)
+
+      const nameExists = await nameExistence.validate(name)
+      if (nameExists) {
+        setNameWarning(`Package "${name}" exists. Submitting will revise it`)
+      }
+    },
+    [nameExistence],
+  )
+
   return (
     <RF.Form onSubmit={uploadPackage}>
       {({
@@ -534,13 +564,16 @@ function PackageCreateDialog({
               <M.DialogTitle>Create package</M.DialogTitle>
               <M.DialogContent style={{ paddingTop: 0 }}>
                 <form onSubmit={handleSubmit}>
+                  <RF.FormSpy
+                    subscription={{ modified: true, values: true }}
+                    onChange={onFormChange}
+                  />
+
                   <M.Grid container spacing={2}>
                     <M.Grid item xs={12} sm={6}>
                       <RF.Field
-                        component={PD.Field}
+                        component={PD.PackageNameInput}
                         name="name"
-                        label="Name"
-                        placeholder="Enter a package name"
                         validate={validators.composeAsync(
                           validators.required,
                           nameValidator.validate,
@@ -550,22 +583,18 @@ function PackageCreateDialog({
                           required: 'Enter a package name',
                           invalid: 'Invalid package name',
                         }}
-                        margin="normal"
-                        fullWidth
+                        helperText={nameWarning}
+                        validating={nameValidator.processing}
                       />
 
                       <RF.Field
-                        component={PD.Field}
+                        component={PD.CommitMessageInput}
                         name="msg"
-                        label="Commit message"
-                        placeholder="Enter a commit message"
                         validate={validators.required}
                         validateFields={['msg']}
                         errors={{
                           required: 'Enter a commit message',
                         }}
-                        fullWidth
-                        margin="normal"
                       />
 
                       <PD.SchemaFetcher
@@ -574,6 +603,7 @@ function PackageCreateDialog({
                         {AsyncResult.case({
                           Ok: ({ responseError, schema, validate }) => (
                             <RF.Field
+                              className={classes.meta}
                               component={PD.MetaInput}
                               name="meta"
                               bucket={bucket}
@@ -585,7 +615,7 @@ function PackageCreateDialog({
                               initialValue={PD.EMPTY_META_VALUE}
                             />
                           ),
-                          _: () => <PD.MetaInputSkeleton />,
+                          _: () => <PD.MetaInputSkeleton className={classes.meta} />,
                         })}
                       </PD.SchemaFetcher>
 
@@ -604,6 +634,7 @@ function PackageCreateDialog({
 
                     <M.Grid item xs={12} sm={6}>
                       <RF.Field
+                        className={classes.files}
                         component={FilesInput}
                         name="files"
                         validate={validators.nonEmpty}

@@ -814,6 +814,15 @@ function FilesInput({
   )
 }
 
+const useStyles = M.makeStyles((t) => ({
+  files: {
+    marginTop: t.spacing(2),
+  },
+  meta: {
+    marginTop: t.spacing(3),
+  },
+}))
+
 const getTotalProgress = R.pipe(
   R.values,
   R.reduce(
@@ -829,6 +838,8 @@ const getTotalProgress = R.pipe(
   }),
 )
 
+const defaultNameWarning = ' ' // Reserve space for warning
+
 function DialogForm({
   bucket,
   name: initialName,
@@ -842,6 +853,9 @@ function DialogForm({
   const req = APIConnector.use()
   const [uploads, setUploads] = React.useState({})
   const nameValidator = PD.useNameValidator()
+  const nameExistence = PD.useNameExistence(bucket)
+  const [nameWarning, setNameWarning] = React.useState('')
+  const classes = useStyles()
 
   const initialMeta = React.useMemo(
     () => ({
@@ -998,6 +1012,26 @@ function DialogForm({
     }
   }
 
+  const onFormChange = React.useCallback(
+    async ({ modified, values }) => {
+      if (!modified.name) return
+
+      const { name } = values
+
+      setNameWarning(defaultNameWarning)
+
+      if (initialName === name) return
+
+      const nameExists = await nameExistence.validate(name)
+      if (nameExists) {
+        setNameWarning('Package with this name exists already')
+      } else {
+        setNameWarning('New package will be created')
+      }
+    },
+    [initialName, nameExistence],
+  )
+
   return (
     <RF.Form onSubmit={onSubmitWrapped}>
       {({
@@ -1014,13 +1048,15 @@ function DialogForm({
           <M.DialogTitle>Push package revision</M.DialogTitle>
           <M.DialogContent style={{ paddingTop: 0 }}>
             <form onSubmit={handleSubmit}>
+              <RF.FormSpy
+                subscription={{ modified: true, values: true }}
+                onChange={onFormChange}
+              />
               <M.Grid container spacing={2}>
                 <M.Grid item xs={12} sm={6}>
                   <RF.Field
-                    component={PD.Field}
+                    component={PD.PackageNameInput}
                     name="name"
-                    label="Name"
-                    placeholder="e.g. user/package"
                     validate={validators.composeAsync(
                       validators.required,
                       nameValidator.validate,
@@ -1030,23 +1066,18 @@ function DialogForm({
                       required: 'Enter a package name',
                       invalid: 'Invalid package name',
                     }}
-                    margin="normal"
-                    fullWidth
+                    helperText={nameWarning}
                     initialValue={initialName}
                   />
 
                   <RF.Field
-                    component={PD.Field}
+                    component={PD.CommitMessageInput}
                     name="msg"
-                    label="Commit message"
-                    placeholder="Enter a commit message"
                     validate={validators.required}
                     validateFields={['msg']}
                     errors={{
                       required: 'Enter a commit message',
                     }}
-                    fullWidth
-                    margin="normal"
                   />
 
                   <PD.SchemaFetcher
@@ -1055,6 +1086,7 @@ function DialogForm({
                     {AsyncResult.case({
                       Ok: ({ responseError, schema, validate }) => (
                         <RF.Field
+                          className={classes.meta}
                           component={PD.MetaInput}
                           name="meta"
                           bucket={bucket}
@@ -1066,7 +1098,7 @@ function DialogForm({
                           initialValue={initialMeta}
                         />
                       ),
-                      _: () => <PD.MetaInputSkeleton />,
+                      _: () => <PD.MetaInputSkeleton className={classes.meta} />,
                     })}
                   </PD.SchemaFetcher>
 
@@ -1081,6 +1113,7 @@ function DialogForm({
 
                 <M.Grid item xs={12} sm={6}>
                   <RF.Field
+                    className={classes.files}
                     component={FilesInput}
                     name="files"
                     validate={validators.nonEmpty}
