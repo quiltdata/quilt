@@ -851,12 +851,19 @@ export const listPackages = withErrorHandling(
             sources: [{ handle: { terms: { field: 'handle' } } }],
           },
           aggs: {
-            revisions: { sum: { script: 'doc.delete_marker.value ? -1 : 1' } },
+            // TODO: take into account only timestamps of not-deleted revisions
             modified: { max: { field: 'last_modified' } },
-            not_deleted: {
+            revision_objects: {
+              terms: { field: 'key', size: 1000000 },
+              aggs: { not_deleted: NOT_DELETED_METRIC },
+            },
+            revision_count: {
+              sum_bucket: { buckets_path: 'revision_objects>not_deleted.value' },
+            },
+            drop_deleted: {
               bucket_selector: {
-                buckets_path: { revisions: 'revisions' },
-                script: 'params.revisions > 0',
+                buckets_path: { revision_count: 'revision_count' },
+                script: 'params.revision_count > 0',
               },
             },
             sort: {
@@ -875,12 +882,16 @@ export const listPackages = withErrorHandling(
       action: 'packages',
       body: JSON.stringify(body),
       size: 0,
-      filter_path: 'aggregations.packages.buckets',
+      filter_path: [
+        'aggregations.packages.buckets.key',
+        'aggregations.packages.buckets.modified',
+        'aggregations.packages.buckets.revision_count',
+      ].join(','),
     })
     const packages = result.aggregations.packages.buckets.map((b) => ({
       name: b.key.handle,
       modified: new Date(b.modified.value),
-      revisions: b.revisions.value,
+      revisions: b.revision_count.value,
     }))
 
     if (!countsP) return packages
@@ -1004,11 +1015,11 @@ export const getPackageRevisions = withErrorHandling(
               sources: [{ pointer: { terms: { field: 'key' } } }],
             },
             aggs: {
-              deletes: { sum: { script: 'doc.delete_marker.value ? 1 : -1' } },
-              not_deleted: {
+              not_deleted: NOT_DELETED_METRIC,
+              drop_deleted: {
                 bucket_selector: {
-                  buckets_path: { deletes: 'deletes' },
-                  script: 'params.deletes < 0',
+                  buckets_path: { not_deleted: 'not_deleted.value' },
+                  script: 'params.not_deleted > 0',
                 },
               },
               latest: {
