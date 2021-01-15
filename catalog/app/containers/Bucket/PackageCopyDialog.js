@@ -137,24 +137,42 @@ function DialogForm({
       const { name } = values
       const fullName = `${successor.slug}/${name}`
 
+      let warning = defaultNameWarning
+
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {
-        setNameWarning(`Package "${fullName}" exists. Submitting will revise it`)
-        return
+        warning = `Package "${fullName}" exists. Submitting will revise it`
+      } else if (name) {
+        warning = `Package "${fullName}" will be created`
       }
 
-      if (name) {
-        setNameWarning(`Package "${fullName}" will be created`)
-        return
+      if (warning !== nameWarning) {
+        setNameWarning(warning)
       }
-
-      setNameWarning(defaultNameWarning)
     },
-    [successor, nameExistence],
+    [successor, nameExistence, nameWarning],
   )
 
+  const initialWorkflow = React.useMemo(
+    () => PD.defaultWorkflowFromConfig(workflowsConfig),
+    [workflowsConfig],
+  )
+
+  const [workflow, setWorkflow] = React.useState(initialWorkflow)
+
   return (
-    <RF.Form onSubmit={onSubmit}>
+    <RF.Form
+      onSubmit={onSubmit}
+      subscription={{
+        handleSubmit: true,
+        submitting: true,
+        submitFailed: true,
+        error: true,
+        submitError: true,
+        hasValidationErrors: true,
+        form: true,
+      }}
+    >
       {({
         handleSubmit,
         submitting,
@@ -163,13 +181,21 @@ function DialogForm({
         submitError,
         hasValidationErrors,
         form,
-        values,
       }) => (
         <>
           <DialogTitle bucket={successor.slug} />
           <M.DialogContent style={{ paddingTop: 0 }}>
             <form onSubmit={handleSubmit}>
               <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
+
+              <RF.FormSpy
+                subscription={{ modified: true, values: true }}
+                onChange={({ modified, values }) => {
+                  if (modified.workflow) {
+                    setWorkflow(values.workflow)
+                  }
+                }}
+              />
 
               <RF.Field
                 component={PD.PackageNameInput}
@@ -197,9 +223,7 @@ function DialogForm({
                 }}
               />
 
-              <PD.SchemaFetcher
-                schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
-              >
+              <PD.SchemaFetcher schemaUrl={R.pathOr('', ['schema', 'url'], workflow)}>
                 {AsyncResult.case({
                   Ok: ({ responseError, schema, validate }) => (
                     <RF.Field
@@ -223,7 +247,7 @@ function DialogForm({
                 component={PD.WorkflowInput}
                 name="workflow"
                 workflowsConfig={workflowsConfig}
-                initialValue={PD.defaultWorkflowFromConfig(workflowsConfig)}
+                initialValue={initialWorkflow}
                 validateFields={['meta', 'workflow']}
               />
 
