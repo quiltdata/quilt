@@ -72,6 +72,7 @@ class DocumentQueue:
             handle: str = '',
             metadata: str = '',
             pointer_file: str = '',
+            # this could the hash OR tag; to be used in _id primary key
             package_hash: str = '',
             package_stats: Dict[str, int] = None,
             tags: List[str] = (),
@@ -129,7 +130,7 @@ class DocumentQueue:
             if not handle:
                 raise ValueError("missing required argument for package doc")
             if _op_type == "index":
-                if not (pointer_file or package_hash):
+                if not (pointer_file and package_hash):
                     raise ValueError("missing required argument for package doc")
             if not (
                 package_stats is None
