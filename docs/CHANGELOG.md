@@ -14,6 +14,7 @@
 
 ## Catalog, Lambdas
 * [Added] Generate and resolve Quilt package URIs ([#1935](https://github.com/quiltdata/quilt/pull/1935))
+* [Fixed] Empty response from `pkgselect` folder view for packages with all non-string logical_keys or physical_keys.
 
 # 3.3.0 - 2020-12-08
 ## Python API
@@ -35,7 +36,6 @@
 * [Changed] Preview `*notes` files as plain text ([#1896](https://github.com/quiltdata/quilt/pull/1896))
 * [Changed] Default search operator to "AND" (was "OR") for more precise searches ([#1924](https://github.com/quiltdata/quilt/pull/1924))
 * [Changed] `top_hash`-based package routes (timestamp routes are still supported in the same way) ([#1938](https://github.com/quiltdata/quilt/pull/1938))
-* [Fixed] Empty response from `pkgselect` folder view for packages with all non-string logical_keys or physical_keys.
 * [Fixed] Incomplete package stats for empty packages in es/indexer Lambda ([#1869](https://github.com/quiltdata/quilt/pull/1869))
 * [Fixed] Slow parquet preview rendering (and probably other occurrences of JsonDisplay) ([#1878](https://github.com/quiltdata/quilt/pull/1878))
 
