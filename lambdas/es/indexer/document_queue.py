@@ -92,14 +92,14 @@ class DocumentQueue:
         if not bucket or not key:
             raise ValueError(f"bucket={bucket} or key={key} required but missing")
         is_delete_marker = False
-        # we index delete markers, instead of deleting them, so as to match
-        # the state of S3 in ES
-        if event_type.startswith(EVENT_PREFIX["Created"]) or is_delete_marker:
+        if event_type.startswith(EVENT_PREFIX["Created"]):
             _op_type = "index"
         elif event_type.startswith(EVENT_PREFIX["Removed"]):
             _op_type = "delete"
             if event_type.endswith("DeleteMarkerCreated"):
                 is_delete_marker = True
+                # we index (not delete) delete markers to sync state with S3
+                _op_type = "index"
         else:
             logger_.error("Skipping unrecognized event type %s", event_type)
             return

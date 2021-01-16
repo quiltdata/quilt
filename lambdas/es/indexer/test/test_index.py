@@ -495,8 +495,11 @@ def test_filter_delete():
     # should be two docs left, since we deleted one of three
     assert len(doc_queue.queue) == 2
     # there should be at least one delete_marker
-    assert any(d.get("delete_marker") for d in doc_queue.queue)
-    assert not all(d.get("delete_marker") for d in doc_queue.queue)
+    assert any(d["delete_marker"] for d in doc_queue.queue)
+    assert not all(d["delete_marker"] for d in doc_queue.queue)
+    for d in doc_queue.queue:
+        if d["delete_marker"]:
+            assert d["_op_type"] == "index"
 
 
 def test_map_event_name_and_validate():
