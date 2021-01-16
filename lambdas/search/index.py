@@ -235,8 +235,6 @@ def post_process(result: dict, action: str) -> dict:
         # and all other extensions are single-level
         corrected.extend(gz)
         result["aggregations"]["exts"]["buckets"] = corrected
-    elif action == "packages":
-        result = deepcopy(result)
 
     return result
 

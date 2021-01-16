@@ -91,13 +91,15 @@ class DocumentQueue:
         logger_ = get_quilt_logger()
         if not bucket or not key:
             raise ValueError(f"bucket={bucket} or key={key} required but missing")
-        is_delete_marker = event_type.endswith("DeleteMarkerCreated")
+        is_delete_marker = False
         # we index delete markers, instead of deleting them, so as to match
         # the state of S3 in ES
         if event_type.startswith(EVENT_PREFIX["Created"]) or is_delete_marker:
             _op_type = "index"
         elif event_type.startswith(EVENT_PREFIX["Removed"]):
             _op_type = "delete"
+            if event_type.endswith("DeleteMarkerCreated"):
+                is_delete_marker = True
         else:
             logger_.error("Skipping unrecognized event type %s", event_type)
             return
@@ -116,6 +118,8 @@ class DocumentQueue:
         body = {
             "_index": index_name,
             "_op_type": _op_type,  # determines if action is upsert (index) or delete
+            # TODO remove this; it's not meaningful since we use a different index
+            # type for object vs. package documents
             "_type": "_doc",
             # TODO nest fields under "document" and maybe use _type:{package, object}
             "comment": comment,
