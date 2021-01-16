@@ -279,6 +279,9 @@ class DocumentQueue:
                         inner = error["index"]
                     if "delete" in error:
                         inner = error["delete"]
+                        # don't retry deleting things that aren't there
+                        if "not_found" in inner.get("result", ""):
+                            continue
                     if "_id" in inner:
                         doc = id_to_doc[inner["_id"]]
                         # Always retry the source document if we can identify it.
