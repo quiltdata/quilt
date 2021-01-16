@@ -757,89 +757,82 @@ function Head({ req, s3, overviewUrl, bucket, description }) {
   const classes = useHeadStyles()
   const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
   const colorPool = useConst(() => mkKeyedPool(COLOR_MAP))
+  const statsData = useData(requests.bucketStats, { req, s3, bucket, overviewUrl })
+  const pkgStatsData = useData(requests.bucketPkgStats, { req, bucket })
   return (
-    <Data fetch={requests.bucketStats} params={{ req, s3, bucket, overviewUrl }}>
-      {(res) => (
-        <M.Paper className={classes.root}>
-          <M.Box className={classes.top}>
-            <M.Typography variant="h5">{bucket}</M.Typography>
-            {!!description && (
-              <M.Box mt={1}>
-                <M.Typography variant="body1">{description}</M.Typography>
-              </M.Box>
-            )}
-            {isRODA && (
-              <M.Box
-                mt={1}
-                position={{ md: 'absolute' }}
-                right={{ md: 32 }}
-                bottom={{ md: 31 }}
-                color="grey.300"
-                textAlign={{ md: 'right' }}
-              >
-                <M.Typography variant="body2">
-                  From the{' '}
-                  <M.Link href={RODA_LINK} color="inherit" underline="always">
-                    Registry of Open Data on AWS
-                  </M.Link>
-                </M.Typography>
-              </M.Box>
-            )}
-            <M.Box mt={{ xs: 2, sm: 3 }} display="flex" alignItems="baseline">
-              <StatDisplay
-                value={AsyncResult.prop('totalBytes', res)}
-                format={readableBytes}
-                fallback={() => '? B'}
-              />
-              <StatDisplay
-                value={AsyncResult.prop('totalObjects', res)}
-                format={readableQuantity}
-                label="Objects"
-                fallback={() => '?'}
-              />
-              <StatDisplay
-                value={AsyncResult.prop('totalPackages', res)}
-                format={formatQuantity}
-                label="Packages"
-                fallback={() => null}
-              />
-            </M.Box>
+    <M.Paper className={classes.root}>
+      <M.Box className={classes.top}>
+        <M.Typography variant="h5">{bucket}</M.Typography>
+        {!!description && (
+          <M.Box mt={1}>
+            <M.Typography variant="body1">{description}</M.Typography>
           </M.Box>
+        )}
+        {isRODA && (
           <M.Box
-            p={{ xs: 2, sm: 4 }}
-            display="flex"
-            flexDirection={{ xs: 'column', md: 'row' }}
-            alignItems={{ md: 'flex-start' }}
-            position="relative"
+            mt={1}
+            position={{ md: 'absolute' }}
+            right={{ md: 32 }}
+            bottom={{ md: 31 }}
+            color="grey.300"
+            textAlign={{ md: 'right' }}
           >
-            <ObjectsByExt
-              data={AsyncResult.prop('exts', res)}
-              width="100%"
-              flexShrink={1}
-              colorPool={colorPool}
-            />
-            <M.Box
-              display="flex"
-              flexDirection="column"
-              justifyContent="center"
-              flexShrink={0}
-              height={{ xs: 32, md: '100%' }}
-              width={{ xs: '100%', md: 32 }}
-            >
-              <M.Hidden mdUp>
-                <M.Divider />
-              </M.Hidden>
-            </M.Box>
-            <Downloads
-              bucket={bucket}
-              colorPool={colorPool}
-              width="100%"
-              flexShrink={1}
-            />
+            <M.Typography variant="body2">
+              From the{' '}
+              <M.Link href={RODA_LINK} color="inherit" underline="always">
+                Registry of Open Data on AWS
+              </M.Link>
+            </M.Typography>
           </M.Box>
-        </M.Paper>
-      )}
-    </Data>
+        )}
+        <M.Box mt={{ xs: 2, sm: 3 }} display="flex" alignItems="baseline">
+          <StatDisplay
+            value={AsyncResult.prop('totalBytes', statsData.result)}
+            format={readableBytes}
+            fallback={() => '? B'}
+          />
+          <StatDisplay
+            value={AsyncResult.prop('totalObjects', statsData.result)}
+            format={readableQuantity}
+            label="Objects"
+            fallback={() => '?'}
+          />
+          <StatDisplay
+            value={AsyncResult.prop('totalPackages', pkgStatsData.result)}
+            format={formatQuantity}
+            label="Packages"
+            fallback={() => null}
+          />
+        </M.Box>
+      </M.Box>
+      <M.Box
+        p={{ xs: 2, sm: 4 }}
+        display="flex"
+        flexDirection={{ xs: 'column', md: 'row' }}
+        alignItems={{ md: 'flex-start' }}
+        position="relative"
+      >
+        <ObjectsByExt
+          data={AsyncResult.prop('exts', statsData.result)}
+          width="100%"
+          flexShrink={1}
+          colorPool={colorPool}
+        />
+        <M.Box
+          display="flex"
+          flexDirection="column"
+          justifyContent="center"
+          flexShrink={0}
+          height={{ xs: 32, md: '100%' }}
+          width={{ xs: '100%', md: 32 }}
+        >
+          <M.Hidden mdUp>
+            <M.Divider />
+          </M.Hidden>
+        </M.Box>
+        <Downloads bucket={bucket} colorPool={colorPool} width="100%" flexShrink={1} />
+      </M.Box>
+    </M.Paper>
   )
 }
 
@@ -1163,8 +1156,8 @@ function Summary({ req, s3, bucket, inStack, overviewUrl }) {
       return (
         <>
           {shownEntries.map((h) => (
-            <EnsureAvailability s3={s3} handle={h}>
-              {() => <FilePreview key={`${h.bucket}/${h.key}`} handle={h} />}
+            <EnsureAvailability key={`${h.bucket}/${h.key}`} s3={s3} handle={h}>
+              {() => <FilePreview handle={h} />}
             </EnsureAvailability>
           ))}
           {shown < entries.length && (

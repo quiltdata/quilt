@@ -14,7 +14,9 @@
 
 ## Catalog, Lambdas
 * [Added] Generate and resolve Quilt package URIs ([#1935](https://github.com/quiltdata/quilt/pull/1935))
-* [Fixed] Empty response from `pkgselect` folder view for packages with all non-string logical_keys or physical_keys.
+* [Changed] Tree view for files in package update dialog ([#1989](https://github.com/quiltdata/quilt/pull/1989))
+* [Fixed] lambda previews for time series `AICSImage` data (potential `IndexError` if odd number of time points) ([#1945](https://github.com/quiltdata/quilt/pull/1945))
+* [Fixed] Empty response from `pkgselect` folder view for packages with all non-string logical_keys or physical_keys ([#1947](https://github.com/quiltdata/quilt/pull/1947))
 
 # 3.3.0 - 2020-12-08
 ## Python API

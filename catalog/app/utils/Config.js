@@ -13,7 +13,6 @@ const ajv = new Ajv({ allErrors: true, removeAdditional: true })
 ajv.addSchema(configSchema, 'Config')
 
 export class ConfigError extends BaseError {
-  // eslint-disable-next-line react/static-property-placement
   static displayName = 'ConfigError'
 }
 

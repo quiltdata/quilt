@@ -4,6 +4,7 @@ export const Section = M.styled(M.Paper)(({ theme: t }) => ({
   position: 'relative',
   [t.breakpoints.down('xs')]: {
     borderRadius: 0,
+    borderTop: `1px solid ${t.palette.divider}`,
     padding: t.spacing(2),
   },
   [t.breakpoints.up('sm')]: {

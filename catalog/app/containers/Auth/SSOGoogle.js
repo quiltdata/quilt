@@ -27,13 +27,14 @@ export default function SSOGoogle({ mutex, next, ...props }) {
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
-  const intl = useIntl()
+  const { formatMessage } = useIntl()
   const { push: notify } = Notifications.use()
   const { urls } = NamedRoutes.use()
+  const { claim, release } = mutex
 
   const handleClick = (onClick) => (...args) => {
     if (mutex.current) return
-    mutex.claim(MUTEX_POPUP)
+    claim(MUTEX_POPUP)
     onClick(...args)
   }
 
@@ -42,7 +43,7 @@ export default function SSOGoogle({ mutex, next, ...props }) {
       const provider = 'google'
       const { id_token: token } = user.getAuthResponse()
       const result = defer()
-      mutex.claim(MUTEX_REQUEST)
+      claim(MUTEX_REQUEST)
       try {
         dispatch(actions.signIn({ provider, token }, result.resolver))
         await result.promise
@@ -53,27 +54,27 @@ export default function SSOGoogle({ mutex, next, ...props }) {
             // dont release mutex on redirect
             return
           }
-          notify(intl.formatMessage(msg.ssoGoogleNotFound))
+          notify(formatMessage(msg.ssoGoogleNotFound))
         } else {
-          notify(intl.formatMessage(msg.ssoGoogleErrorUnexpected))
+          notify(formatMessage(msg.ssoGoogleErrorUnexpected))
           sentry('captureException', e)
         }
-        mutex.release(MUTEX_REQUEST)
+        release(MUTEX_REQUEST)
       }
     },
-    [dispatch, mutex.claim, mutex.release, sentry, notify],
+    [dispatch, claim, release, sentry, notify, formatMessage, cfg.ssoAuth, next, urls],
   )
 
   const handleFailure = React.useCallback(
     ({ error: code, details }) => {
       if (code !== 'popup_closed_by_user') {
-        notify(intl.formatMessage(msg.ssoGoogleError, { details }))
+        notify(formatMessage(msg.ssoGoogleError, { details }))
         const e = new errors.SSOError({ provider: 'google', code, details })
         sentry('captureException', e)
       }
-      mutex.release(MUTEX_POPUP)
+      release(MUTEX_POPUP)
     },
-    [mutex.release, sentry],
+    [release, sentry, formatMessage, notify],
   )
 
   return (

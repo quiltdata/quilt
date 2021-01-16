@@ -24,9 +24,6 @@ import * as PD from './PackageDialog'
 import * as requests from './requests'
 
 const useFilesInputStyles = M.makeStyles((t) => ({
-  root: {
-    marginTop: t.spacing(2),
-  },
   header: {
     alignItems: 'center',
     display: 'flex',
@@ -159,6 +156,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
 
 function FilesInput({
   input: { value: inputValue, onChange: onInputChange },
+  className,
   meta,
   uploads,
   setUploads,
@@ -166,7 +164,7 @@ function FilesInput({
 }) {
   const classes = useFilesInputStyles()
 
-  const value = inputValue || []
+  const value = React.useMemo(() => inputValue || [], [inputValue])
   const disabled = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
 
@@ -219,7 +217,7 @@ function FilesInput({
 
   const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
   return (
-    <div className={classes.root}>
+    <div className={className}>
       <div className={classes.header}>
         <div
           className={cx(
@@ -296,7 +294,7 @@ function FilesInput({
               !error && warn && classes.dropMsgWarn,
             )}
           >
-            {label}
+            <span>{label}</span>
           </div>
         </div>
         {disabled && (
@@ -319,6 +317,15 @@ function FilesInput({
   )
 }
 
+const useStyles = M.makeStyles((t) => ({
+  files: {
+    marginTop: t.spacing(2),
+  },
+  meta: {
+    marginTop: t.spacing(3),
+  },
+}))
+
 const getTotalProgress = R.pipe(
   R.values,
   R.reduce(
@@ -334,19 +341,34 @@ const getTotalProgress = R.pipe(
   }),
 )
 
-function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }) {
+const defaultNameWarning = ' ' // Reserve space for warning
+
+function PackageCreateDialog({
+  bucket,
+  open,
+  initError,
+  loading,
+  workflowsConfig,
+  onClose,
+  refresh,
+}) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
   const { urls } = NamedRoutes.use()
   const [uploads, setUploads] = React.useState({})
   const [success, setSuccess] = React.useState(null)
   const nameValidator = PD.useNameValidator()
+  const nameExistence = PD.useNameExistence(bucket)
+  const [nameWarning, setNameWarning] = React.useState(defaultNameWarning)
+  const classes = useStyles()
 
   const reset = (form) => () => {
     form.restart()
     setSuccess(null)
     setUploads({})
     nameValidator.inc()
+    nameExistence.inc()
+    setNameWarning(defaultNameWarning)
   }
 
   const handleClose = ({ submitting = false } = {}) => () => {
@@ -454,6 +476,22 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
     }
   }
 
+  const onFormChange = React.useCallback(
+    async ({ modified, values }) => {
+      if (!modified.name) return
+
+      const { name } = values
+
+      setNameWarning(defaultNameWarning)
+
+      const nameExists = await nameExistence.validate(name)
+      if (nameExists) {
+        setNameWarning(`Package "${name}" exists. Submitting will revise it`)
+      }
+    },
+    [nameExistence],
+  )
+
   return (
     <RF.Form onSubmit={uploadPackage}>
       {({
@@ -473,41 +511,66 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
           scroll="body"
           onExited={reset(form)}
         >
-          <M.DialogTitle>{success ? 'Package created' : 'Create package'}</M.DialogTitle>
-          {success ? (
+          {initError || loading || success ? (
             <>
-              <M.DialogContent style={{ paddingTop: 0 }}>
-                <M.Typography>
-                  Package{' '}
-                  <StyledLink
-                    to={urls.bucketPackageTree(bucket, success.name, success.hash)}
-                  >
-                    {success.name}@{R.take(10, success.hash)}
-                  </StyledLink>{' '}
-                  successfully created
-                </M.Typography>
-              </M.DialogContent>
-              <M.DialogActions>
-                <M.Button onClick={handleClose()}>Close</M.Button>
-                <M.Button
-                  component={Link}
-                  to={urls.bucketPackageTree(bucket, success.name, success.hash)}
-                  variant="contained"
-                  color="primary"
-                >
-                  Browse package
-                </M.Button>
-              </M.DialogActions>
+              {initError && (
+                <PD.DialogError
+                  error={initError}
+                  skeletonElement={<PD.FormSkeleton animate={false} />}
+                  title="Create package"
+                  onCancel={handleClose({ submitting })}
+                />
+              )}
+
+              {loading && (
+                <PD.DialogLoading
+                  skeletonElement={<PD.FormSkeleton />}
+                  title="Create package"
+                  onCancel={handleClose({ submitting })}
+                />
+              )}
+
+              {success && (
+                <>
+                  <M.DialogTitle>Package created</M.DialogTitle>
+                  <M.DialogContent style={{ paddingTop: 0 }}>
+                    <M.Typography>
+                      Package{' '}
+                      <StyledLink
+                        to={urls.bucketPackageTree(bucket, success.name, success.hash)}
+                      >
+                        {success.name}@{R.take(10, success.hash)}
+                      </StyledLink>{' '}
+                      successfully created
+                    </M.Typography>
+                  </M.DialogContent>
+                  <M.DialogActions>
+                    <M.Button onClick={handleClose()}>Close</M.Button>
+                    <M.Button
+                      component={Link}
+                      to={urls.bucketPackageTree(bucket, success.name, success.hash)}
+                      variant="contained"
+                      color="primary"
+                    >
+                      Browse package
+                    </M.Button>
+                  </M.DialogActions>
+                </>
+              )}
             </>
           ) : (
             <>
+              <M.DialogTitle>Create package</M.DialogTitle>
               <M.DialogContent style={{ paddingTop: 0 }}>
                 <form onSubmit={handleSubmit}>
+                  <RF.FormSpy
+                    subscription={{ modified: true, values: true }}
+                    onChange={onFormChange}
+                  />
+
                   <RF.Field
-                    component={PD.Field}
+                    component={PD.PackageNameInput}
                     name="name"
-                    label="Name"
-                    placeholder="Enter a package name"
                     validate={validators.composeAsync(
                       validators.required,
                       nameValidator.validate,
@@ -517,26 +580,23 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
                       required: 'Enter a package name',
                       invalid: 'Invalid package name',
                     }}
-                    margin="normal"
-                    fullWidth
+                    helperText={nameWarning}
+                    validating={nameValidator.processing}
                   />
 
                   <RF.Field
-                    component={PD.Field}
+                    component={PD.CommitMessageInput}
                     name="msg"
-                    label="Commit message"
-                    placeholder="Enter a commit message"
                     validate={validators.required}
                     validateFields={['msg']}
                     errors={{
                       required: 'Enter a commit message',
                     }}
-                    fullWidth
-                    margin="normal"
                   />
 
                   <RF.Field
                     component={FilesInput}
+                    className={classes.files}
                     name="files"
                     validate={validators.nonEmpty}
                     validateFields={['files']}
@@ -554,6 +614,7 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
                     {AsyncResult.case({
                       Ok: ({ responseError, schema, validate }) => (
                         <RF.Field
+                          className={classes.meta}
                           component={PD.MetaInput}
                           name="meta"
                           bucket={bucket}
@@ -565,7 +626,7 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
                           initialValue={PD.EMPTY_META_VALUE}
                         />
                       ),
-                      _: () => <PD.MetaInputSkeleton />,
+                      _: () => <PD.MetaInputSkeleton className={classes.meta} />,
                     })}
                   </PD.SchemaFetcher>
 
@@ -647,26 +708,19 @@ function PackageCreateDialog({ bucket, open, workflowsConfig, onClose, refresh }
 
 export default function PackageCreateDialogWrapper({ bucket, open, onClose, refresh }) {
   const s3 = AWS.S3.use()
-  const data = useData(requests.workflowsList, { s3, bucket })
-
+  const data = useData(requests.workflowsList, { s3, bucket }, { noAutoFetch: !open })
+  const props = {
+    bucket,
+    open,
+    onClose,
+    refresh,
+    workflowsConfig: null,
+  }
   return data.case({
     Ok: (workflowsConfig) => (
-      <PackageCreateDialog
-        {...{
-          bucket,
-          open,
-          onClose,
-          refresh,
-          workflowsConfig,
-        }}
-      />
+      <PackageCreateDialog {...props} workflowsConfig={workflowsConfig} />
     ),
-    Err: (error) => {
-      // eslint-disable-next-line no-console
-      console.error(error)
-      return null
-    },
-    // TODO: show some progress indicator, e.g. skeleton or spinner
-    _: () => null,
+    Err: (error) => <PackageCreateDialog {...props} initError={error} />,
+    _: () => <PackageCreateDialog {...props} loading />,
   })
 }

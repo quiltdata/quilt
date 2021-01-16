@@ -81,11 +81,10 @@ const PLANS = [
 function Btn({ to, trackingName, ...rest }) {
   const { urls } = NamedRoutes.use()
   const t = useTracker()
-  const trackingArgs = ['WEB', { type: 'action', location: `/#${trackingName}` }]
-  const track = React.useMemo(
-    () => (to ? () => t.track(...trackingArgs) : t.trackLink(...trackingArgs)),
-    [t, to, trackingName],
-  )
+  const track = React.useMemo(() => {
+    const args = ['WEB', { type: 'action', location: `/#${trackingName}` }]
+    return to ? () => t.track(...args) : t.trackLink(...args)
+  }, [t, to, trackingName])
   const props = to ? { component: Link, to: to({ urls }), ...rest } : rest
   return <M.Button variant="contained" onClick={track} {...props} />
 }

@@ -1,4 +1,3 @@
-import * as R from 'ramda'
 import * as React from 'react'
 import SwipeableViews from 'react-swipeable-views'
 import { mod } from 'react-swipeable-views-core'
@@ -232,7 +231,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Testimonials() {
   const classes = useStyles()
   const [index, setIndex] = React.useState(0)
-  const onChangeIndex = React.useCallback(R.unary(setIndex), [])
+  const onChangeIndex = React.useCallback((i) => setIndex(i), [])
   const actualIndex = mod(index, testimonials.length)
   const nearestZero = Math.floor(index / testimonials.length) * testimonials.length
 
@@ -240,17 +239,20 @@ export default function Testimonials() {
     nearestZero,
   ])
 
-  const slideRenderer = React.useCallback(({ index: i, key }) => {
-    const t = testimonials[mod(i, testimonials.length)]
-    return (
-      <div className={classes.slide} key={key}>
-        <img className={classes.avatar} src={t.avatar} alt={t.name} />
-        <div className={classes.name}>{t.name}</div>
-        <div className={classes.title}>{t.title}</div>
-        <div className={classes.contents}>{t.contents}</div>
-      </div>
-    )
-  }, [])
+  const slideRenderer = React.useCallback(
+    ({ index: i, key }) => {
+      const t = testimonials[mod(i, testimonials.length)]
+      return (
+        <div className={classes.slide} key={key}>
+          <img className={classes.avatar} src={t.avatar} alt={t.name} />
+          <div className={classes.name}>{t.name}</div>
+          <div className={classes.title}>{t.title}</div>
+          <div className={classes.contents}>{t.contents}</div>
+        </div>
+      )
+    },
+    [classes.slide, classes.avatar, classes.name, classes.title, classes.contents],
+  )
 
   return (
     <div className={classes.root}>

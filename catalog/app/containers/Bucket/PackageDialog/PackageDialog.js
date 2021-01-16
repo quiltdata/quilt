@@ -5,14 +5,14 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import JsonEditor from 'components/JsonEditor'
-import { parseJSON, stringifyJSON, validateOnSchema } from 'components/JsonEditor/State'
-import Skeleton from 'components/Skeleton'
+import { parseJSON, stringifyJSON } from 'components/JsonEditor/State'
 import * as Notifications from 'containers/Notifications'
 import { useData } from 'utils/Data'
 import Delay from 'utils/Delay'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
+import { makeSchemaValidator } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
@@ -92,25 +92,61 @@ const readFile = (file) =>
     reader.readAsText(file)
   })
 
+const validateName = (req) =>
+  cacheDebounce(async (name) => {
+    if (name) {
+      const res = await req({
+        endpoint: '/package_name_valid',
+        method: 'POST',
+        body: { name },
+      })
+      if (!res.valid) return 'invalid'
+    }
+    return undefined
+  }, 200)
+
 export function useNameValidator() {
   const req = APIConnector.use()
   const [counter, setCounter] = React.useState(0)
+  const [processing, setProcessing] = React.useState(false)
   const inc = React.useCallback(() => setCounter(R.inc), [setCounter])
+
+  const validator = React.useMemo(() => validateName(req), [req])
+
+  const validate = React.useCallback(
+    async (name) => {
+      setProcessing(true)
+      const error = await validator(name)
+      setProcessing(false)
+      return error
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [counter, validator],
+  )
+
+  return React.useMemo(() => ({ validate, processing, inc }), [validate, processing, inc])
+}
+
+export function useNameExistence(bucket) {
+  const [counter, setCounter] = React.useState(0)
+  const inc = React.useCallback(() => setCounter(R.inc), [setCounter])
+
+  const s3 = AWS.S3.use()
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const validate = React.useCallback(
     cacheDebounce(async (name) => {
       if (name) {
-        const res = await req({
-          endpoint: '/package_name_valid',
-          method: 'POST',
-          body: { name },
+        const packageExists = await requests.ensurePackageIsPresent({
+          s3,
+          bucket,
+          name,
         })
-        if (!res.valid) return 'invalid'
+        if (packageExists) return 'exists'
       }
       return undefined
     }, 200),
-    [req, counter],
+    [bucket, counter, s3],
   )
 
   return React.useMemo(() => ({ validate, inc }), [validate, inc])
@@ -120,7 +156,7 @@ function mkMetaValidator(schema) {
   // TODO: move schema validation to utils/validators
   //       but don't forget that validation depends on library.
   //       Maybe we should split validators to files at first
-  const schemaValidator = validateOnSchema(schema)
+  const schemaValidator = makeSchemaValidator(schema)
   return function validateMeta(value) {
     const noError = undefined
 
@@ -153,23 +189,52 @@ export const getMetaValue = (value) =>
       )
     : undefined
 
-export function Field({ input, meta, errors, label, ...rest }) {
-  const error = meta.submitFailed && meta.error
-  const validating = meta.submitFailed && meta.validating
+export function Field({ error, helperText, validating, warning, ...rest }) {
   const props = {
-    error: !!error,
-    label: (
-      <>
-        {error ? errors[error] || error : label}
-        {validating && <M.CircularProgress size={13} style={{ marginLeft: 8 }} />}
-      </>
-    ),
-    disabled: meta.submitting || meta.submitSucceeded,
     InputLabelProps: { shrink: true },
-    ...input,
+    InputProps: {
+      endAdornment: validating && <M.CircularProgress size={20} />,
+    },
+    error: !!error,
+    helperText: error || helperText,
     ...rest,
   }
   return <M.TextField {...props} />
+}
+
+export function PackageNameInput({ errors, input, meta, validating, ...rest }) {
+  const errorCode = (input.value || meta.submitFailed) && meta.error
+  const error = errorCode ? errors[errorCode] || errorCode : ''
+  const props = {
+    disabled: meta.submitting || meta.submitSucceeded,
+    error,
+    fullWidth: true,
+    label: 'Name',
+    margin: 'normal',
+    placeholder: 'e.g. user/package',
+    // NOTE: react-form doesn't change `FormState.validating` on async validation when field loses focus
+    validating,
+    ...input,
+    ...rest,
+  }
+  return <Field {...props} />
+}
+
+export function CommitMessageInput({ errors, input, meta, ...rest }) {
+  const errorCode = meta.submitFailed && meta.error
+  const error = errorCode ? errors[errorCode] || errorCode : ''
+  const props = {
+    disabled: meta.submitting || meta.submitSucceeded,
+    error,
+    fullWidth: true,
+    label: 'Commit message',
+    margin: 'normal',
+    placeholder: 'Enter a commit message',
+    validating: meta.submitFailed && meta.validating,
+    ...input,
+    ...rest,
+  }
+  return <Field {...props} />
 }
 
 const useWorkflowInputStyles = M.makeStyles((t) => ({
@@ -206,9 +271,6 @@ export const getWorkflowApiParam = R.cond([
 ])
 
 const useMetaInputStyles = M.makeStyles((t) => ({
-  root: {
-    marginTop: t.spacing(3),
-  },
   header: {
     alignItems: 'center',
     display: 'flex',
@@ -281,7 +343,13 @@ const useMetaInputStyles = M.makeStyles((t) => ({
 export const EMPTY_META_VALUE = { mode: 'kv', text: '{}' }
 
 // TODO: warn on duplicate keys
-export function MetaInput({ schemaError, input: { value, onChange }, meta, schema }) {
+export function MetaInput({
+  className,
+  schemaError,
+  input: { value, onChange },
+  meta,
+  schema,
+}) {
   const classes = useMetaInputStyles()
   const error = schemaError ? [schemaError] : meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
@@ -363,7 +431,7 @@ export function MetaInput({ schemaError, input: { value, onChange }, meta, schem
   const { getRootProps, isDragActive } = useDropzone({ onDrop })
 
   return (
-    <div className={classes.root}>
+    <div className={className}>
       <div className={classes.header}>
         {/* eslint-disable-next-line no-nested-ternary */}
         <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
@@ -455,22 +523,4 @@ export function SchemaFetcher({ children, schemaUrl }) {
     [data],
   )
   return children(res)
-}
-
-// TODO: use this skeleton for FormSkeleton
-export function MetaInputSkeleton() {
-  const classes = useMetaInputStyles()
-  const t = M.useTheme()
-  return (
-    <M.Grid container spacing={1} className={classes.root}>
-      {R.times(
-        (index) => (
-          <M.Grid item xs={6} key={index}>
-            <Skeleton height={t.spacing(4)} width="100%" />
-          </M.Grid>
-        ),
-        6,
-      )}
-    </M.Grid>
-  )
 }
