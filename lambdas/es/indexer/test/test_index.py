@@ -970,7 +970,6 @@ class TestIndex(TestCase):
                 }
             )
 
-
     @patch.object(index.DocumentQueue, 'append')
     def test_index_if_package_delete(self, append_mock):
         """test manifest delete"""
