@@ -12,7 +12,7 @@ from pathlib import Path
 from string import ascii_lowercase
 from time import time
 from unittest import TestCase
-from unittest.mock import ANY, call, Mock, patch
+from unittest.mock import ANY, Mock, call, patch
 from urllib.parse import unquote_plus
 
 import boto3
@@ -69,7 +69,7 @@ EVENTBRIDGE_CORE = {
     }
 }
 # See for event structure:
-# https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html 
+# https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html
 EVENT_CORE = {
     "awsRegion": "us-east-1",
     "eventName": "ObjectCreated:Put",
