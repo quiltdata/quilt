@@ -604,10 +604,10 @@ def shape_event(event: dict):
         logger_.error("Invalid event format: %s\n%s", error, event)
         return None
     # be a good citizen and don't modify params
-    shaped = event.copy()
-    shaped["eventName"] = map_event_name(event)
-
-    return shaped
+    return {
+        **event,
+        'eventName': map_event_name(event),
+    }
 
 
 def handler(event, context):
