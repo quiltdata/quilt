@@ -234,16 +234,17 @@ class TestPackageSelect(TestCase):
         }
 
         mock_s3 = boto3.client('s3')
-        client_patch = patch.object(
+        with patch.object(
             mock_s3,
             'select_object_content',
             side_effect=[
-                self.s3response,
+                    self.s3response,
                 self.s3response_meta
-            ]
-        )
-        client_patch.start()
-        with patch('boto3.Session.client', return_value=mock_s3):
+                ]
+        ) as client_patch, patch(
+            'boto3.Session.client',
+            return_value=mock_s3
+        ):
             response = lambda_handler(self._make_event(params), None)
             print(response)
             assert response['statusCode'] == 200
@@ -252,7 +253,6 @@ class TestPackageSelect(TestCase):
             assert len(folder['objects']) == 1
             assert folder['objects'][0]['logical_key'] == 'foo.csv'
             assert folder['prefixes'][0]['logical_key'] == 'bar/'
-        client_patch.stop()
 
     def test_detail_view(self):
         """
@@ -363,15 +363,6 @@ class TestPackageSelect(TestCase):
         env_patcher.start()
 
         mock_s3 = boto3.client('s3')
-        client_patch = patch.object(
-            mock_s3,
-            'select_object_content',
-            side_effect=[
-                self.s3response,
-                self.s3response_meta
-            ]
-        )
-        client_patch.start()
         response = {
             'ETag': '12345',
             'VersionId': '1.0',
@@ -384,7 +375,17 @@ class TestPackageSelect(TestCase):
         s3_stubber = Stubber(mock_s3)
         s3_stubber.activate()
         s3_stubber.add_response('head_object', response, expected_params)
-        with patch('boto3.Session.client', return_value=mock_s3):
+        with patch.object(
+            mock_s3,
+            'select_object_content',
+            side_effect=[
+                self.s3response,
+                self.s3response_meta
+            ]
+        ) as client_patch, patch(
+            'boto3.Session.client',
+            return_value=mock_s3
+        ):
             response = lambda_handler(self._make_event(params), None)
             print(response)
             assert response['statusCode'] == 200
@@ -395,7 +396,6 @@ class TestPackageSelect(TestCase):
             assert folder['objects'][0]['logical_key'] == 'foo.csv'
             assert folder['prefixes'][0]['logical_key'] == 'bar/'
         s3_stubber.deactivate()
-        client_patch.stop()
         env_patcher.stop()
 
     def test_non_string_keys(self):
@@ -445,16 +445,17 @@ class TestPackageSelect(TestCase):
         non_string_s3response = self.make_s3response(streambytes)
 
         mock_s3 = boto3.client('s3')
-        client_patch = patch.object(
+        with patch.object(
             mock_s3,
             'select_object_content',
-            side_effect=[
+             side_effect=[
                 non_string_s3response,
                 self.s3response_meta
             ]
-        )
-        client_patch.start()
-        with patch('boto3.Session.client', return_value=mock_s3):
+        ) as client_patch, patch(
+            'boto3.Session.client',
+            return_value=mock_s3
+        ):
             response = lambda_handler(self._make_event(params), None)
             print(response)
             assert response['statusCode'] == 200
@@ -464,5 +465,3 @@ class TestPackageSelect(TestCase):
             assert folder['objects'][0]['logical_key'] == '1'
             assert folder['objects'][1]['logical_key'] == '2'
             assert folder['objects'][2]['logical_key'] == '3'
-
-        client_patch.stop()
