@@ -50,6 +50,7 @@ DELETED_METRIC = {
     },
 }
 
+
 def make_sample_objects_agg(num):
     return {
         'terms': {
@@ -78,6 +79,7 @@ def make_sample_objects_agg(num):
             },
         },
     }
+
 
 @api(cors_origins=get_default_origins())
 def lambda_handler(request):
