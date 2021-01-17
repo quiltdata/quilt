@@ -12,7 +12,7 @@ from pathlib import Path
 from string import ascii_lowercase
 from time import time
 from unittest import TestCase
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, Mock, call, patch
 from urllib.parse import unquote_plus
 
 import boto3
@@ -23,7 +23,7 @@ from botocore.client import Config
 from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
-from document_queue import DocTypes, RetryError
+from document_queue import EVENT_PREFIX, DocTypes, RetryError
 
 from t4_lambda_shared.utils import (
     MANIFEST_PREFIX_V1,
@@ -41,8 +41,35 @@ CREATE_EVENT_TYPES = {
     "ObjectCreated:Post",
     "ObjectCreated:CompleteMultipartUpload"
 }
+DELETE_EVENT_TYPES = {
+    "ObjectRemoved:Delete",
+    "ObjectRemoved:DeleteMarkerCreated"
+}
+ES_ENVIRONMENT = {
+    'ES_HOST': 'example.com',
+    'AWS_ACCESS_KEY_ID': 'test_key',
+    'AWS_SECRET_ACCESS_KEY': 'test_secret',
+    'AWS_DEFAULT_REGION': 'ng-north-1',
+}
 UNKNOWN_EVENT_TYPE = "Event:WeNeverHeardOf"
-# See the following AWS docs for event structure:
+# Reshaped EventBridge events from CloudTrail => S3 (see index.py notes)
+EVENTBRIDGE_CORE = {
+    'awsRegion': 'us-east-1',
+    'eventName': 'PutObject',
+    'eventTime': '2020-12-30T21:29:41Z',
+    's3': {
+        'bucket': {
+            'name': 'quilt-s3-eventbridge'
+        },
+        'object': {
+            'isDeleteMarker': '',
+            'key': 'clear/README.md',
+            'versionId': ''
+        }
+    }
+}
+# See for event structure:
+# https://docs.aws.amazon.com/AmazonS3/latest/dev/notification-content-structure.html
 EVENT_CORE = {
     "awsRegion": "us-east-1",
     "eventName": "ObjectCreated:Put",
@@ -294,6 +321,7 @@ def _make_event(
             marks=pytest.mark.xfail(
                 raises=ValueError,
                 reason="Malformed package_stats",
+                strict=True,
             )
         ),
         pytest.param(
@@ -311,7 +339,8 @@ def _make_event(
             },
             marks=pytest.mark.xfail(
                 raises=ValueError,
-                reason="missing bucket"
+                reason="missing bucket",
+                strict=True
             )
         ),
         pytest.param(
@@ -327,10 +356,6 @@ def _make_event(
                 "package_hash": "abc",
                 "pointer_file": "1598026253",
             },
-            marks=pytest.mark.xfail(
-                raises=AttributeError,
-                reason="last_modified should be an object"
-            )
         ),
         pytest.param(
             "ObjectCreated:Put",
@@ -342,12 +367,41 @@ def _make_event(
                 "handle": "pkg/usr",
                 "key": "foo",
                 "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
-                "package_hash": "",
+                "package_hash": "hijk" * 4,
                 "pointer_file": "1598026253",
+            },
+        ),
+        pytest.param(
+            "ObjectRemoved:DeleteMarkerCreated",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "nice-bucket",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "package_hash": "abcdef",
+                "pointer_file": "latest",
+            },
+        ),
+        pytest.param(
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "nice-bucket",
+                "etag": "123",
+                "ext": "",
+                "handle": "pkg/usr",
+                "key": "foo",
+                "last_modified": "not_an_object",
+                "package_hash": "1" * 64,
+                "pointer_file": "",
             },
             marks=pytest.mark.xfail(
                 raises=ValueError,
-                reason="package_hash required"
+                reason="must have both of package_hash or pointer_file",
+                strict=True
             )
         ),
     ]
@@ -361,6 +415,128 @@ def test_append(_append_mock, event_type, doc_type, kwargs):
         assert not _append_mock.call_count
     else:
         assert _append_mock.call_count == 1
+
+
+def test_filter_delete():
+    """test package filter and delete which occurs before bulk send"""
+    doc_queue = index.DocumentQueue(None)
+    doc_kwargs = [
+        (
+            # should not get filtered out
+            "ObjectCreated:Put",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": "",
+                "handle": "usr/pkg",
+                "key": ".quilt/named_packages/usr/pkg/1598026253",
+                "last_modified": datetime.datetime(2019, 5, 30, 23, 27, 29, tzinfo=tzutc()),
+                "pointer_file": "1598026253",
+                "package_hash": "abc",
+                "package_stats": None,
+            }
+        ),
+        (
+            # should get filtered out and cause a delete
+            "ObjectRemoved:Delete",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": "",
+                "handle": "usr/pkg",
+                "key": ".quilt/named_packages/usr/pkg/1598026553",
+                "last_modified": datetime.datetime(2019, 6, 1, 23, 27, 29, tzinfo=tzutc()),
+                "pointer_file": "1598026553",
+                "package_hash": "abc",
+                "package_stats": None,
+            }
+        ),
+        (
+            # should not get filtered out
+            "ObjectRemoved:DeleteMarkerCreated",
+            DocTypes.PACKAGE,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": "",
+                "handle": "usr/pkg2",
+                "key": ".quilt/named_packages/usr/pkg2/1598026953",
+                "last_modified": datetime.datetime(2019, 8, 1, 23, 27, 29, tzinfo=tzutc()),
+                "pointer_file": "1598026553",
+                "package_hash": "abc",
+                "package_stats": None,
+            }
+        )
+    ]
+    for event, type_, kwargs in doc_kwargs:
+        doc_queue.append(event, type_, **kwargs)
+    elastic = Mock()
+    elastic.delete_by_query = Mock()
+    doc_queue._filter_and_delete_packages(elastic)
+    elastic.delete_by_query.assert_called_once_with(
+        body={
+            'query':
+                {
+                    'bool':
+                        {
+                            'must': [
+                                {'match': {'handle': 'usr/pkg'}},
+                                {'match': {'pointer_file': '1598026553'}},
+                                {'match': {'delete_marker': False}}
+                            ]
+                        }
+                }
+            },
+        index='test_packages',
+        timeout='20s',
+    )
+    # should be two docs left, since we deleted one of three
+    assert len(doc_queue.queue) == 2
+    # there should be at least one delete_marker
+    assert any(d["delete_marker"] for d in doc_queue.queue)
+    assert not all(d["delete_marker"] for d in doc_queue.queue)
+    for d in doc_queue.queue:
+        if d["delete_marker"]:
+            assert d["_op_type"] == "index"
+
+
+def test_map_event_name_and_validate():
+    """ensure that we map eventName properly, ensure that shape validation code works"""
+    for name in CREATE_EVENT_TYPES.union(DELETE_EVENT_TYPES).union({UNKNOWN_EVENT_TYPE}):
+        event = make_event(name)
+        assert index.shape_event(event)
+        original = event["eventName"]
+        assert original == index.map_event_name(event)
+
+    for name in index.EVENTBRIDGE_TO_S3:
+        event = EVENTBRIDGE_CORE.copy()
+        event["eventName"] = name
+        mapped = index.map_event_name(event)
+        assert name != mapped
+        if name == "DeleteObject":
+            assert mapped.startswith(EVENT_PREFIX["Removed"])
+        else:
+            assert mapped.startswith(EVENT_PREFIX["Created"])
+
+        assert index.shape_event(event)
+
+    delete_marker = EVENTBRIDGE_CORE.copy()
+    delete_marker["eventName"] = "DeleteObject"
+    delete_marker["s3"]["object"]["isDeleteMarker"] = "true"
+    delete_marker["s3"]["object"]["versionId"] = "someid"
+    mapped = index.map_event_name(delete_marker)
+    assert mapped == "ObjectRemoved:DeleteMarkerCreated"
+    reshaped = index.shape_event(delete_marker.copy())
+    assert reshaped
+    assert delete_marker != reshaped
+
+    assert not index.shape_event({"bad": "event"})
+
+    malformed = EVENTBRIDGE_CORE.copy()
+    del malformed["s3"]["bucket"]["name"]
+    assert not index.shape_event(malformed)
 
 
 class MockContext():
@@ -389,12 +565,7 @@ class TestIndex(TestCase):
         self.s3_stubber = Stubber(self.s3_client)
         self.s3_stubber.activate()
 
-        self.env_patcher = patch.dict(os.environ, {
-            'ES_HOST': 'example.com',
-            'AWS_ACCESS_KEY_ID': 'test_key',
-            'AWS_SECRET_ACCESS_KEY': 'test_secret',
-            'AWS_DEFAULT_REGION': 'ng-north-1',
-        })
+        self.env_patcher = patch.dict(os.environ, ES_ENVIRONMENT)
         self.env_patcher.start()
 
     def tearDown(self):
@@ -495,7 +666,7 @@ class TestIndex(TestCase):
                 expected_params["VersionId"] = versionId
             elif eTag:
                 expected_params["IfMatch"] = eTag
-            # infer mock status (we only talk to S3 on create events)
+            # infer mock status (we only talk head S3 on create events)
             mock_head = mock_object = name in CREATE_EVENT_TYPES
             # check for occasional overrides (which can be false)
             if mock_overrides and "mock_head" in mock_overrides:
@@ -565,7 +736,7 @@ class TestIndex(TestCase):
     @patch.object(index.DocumentQueue, 'send_all')
     @patch.object(index.DocumentQueue, 'append')
     @patch.object(index, 'maybe_get_contents')
-    @patch.object(index, 'index_if_manifest')
+    @patch.object(index, 'index_if_package')
     def test_40X(self, index_if_mock, contents_mock, append_mock, send_mock):
         """
         test fatal head 40Xs that will cause us to skip objects
@@ -712,12 +883,11 @@ class TestIndex(TestCase):
 
     def test_delete_marker_event(self):
         """
-        common event in versioned; buckets, should no-op
+        common event in versioned buckets
         """
         self._test_index_events(
             ["ObjectRemoved:DeleteMarkerCreated"],
-            # we should never call elastic in this case
-            mock_elastic=False
+            expected_es_calls=1
         )
 
     def test_delete_marker_event_no_versioning(self):
@@ -800,12 +970,62 @@ class TestIndex(TestCase):
                 }
             )
 
-    def test_index_if_manifest_skip(self):
-        """test cases where index_if_manifest ignores input for different reasons"""
+    @patch.object(index.DocumentQueue, 'append')
+    def test_index_if_package_delete(self, append_mock):
+        """test manifest delete"""
+        timestamp = "1610412903"
+        pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
+        self._test_index_events(
+            ["ObjectRemoved:DeleteMarkerCreated"],
+            # we're mocking append so ES will never get called
+            mock_elastic=False,
+            mock_overrides={
+                "event_kwargs": {
+                    "key": pointer_key
+                },
+                # we patch maybe_get_contents so _test_index_events doesn't need to
+                "mock_object": False,
+            }
+        )
+
+        append_mock.assert_has_calls([
+            call(
+                'ObjectRemoved:DeleteMarkerCreated',
+                DocTypes.OBJECT,
+                bucket='test-bucket',
+                etag='123456',
+                ext='',
+                key=pointer_key,
+                last_modified=ANY,
+                size=0,
+                text='',
+                version_id='1313131313131.Vier50HdNbi7ZirO65',
+            ),
+            call(
+                'ObjectRemoved:DeleteMarkerCreated',
+                DocTypes.PACKAGE,
+                bucket='test-bucket',
+                comment='',
+                etag='123456',
+                ext='',
+                handle='author/semantic',
+                key=pointer_key,
+                last_modified=ANY,
+                metadata='{}',
+                package_hash=str(timestamp),
+                package_stats=None,
+                pointer_file=timestamp,
+                version_id='1313131313131.Vier50HdNbi7ZirO65',
+            )
+        ])
+        assert append_mock.call_count == 2
+
+    def test_index_if_package_skip(self):
+        """test cases where index_if_package ignores input for different reasons"""
         # none of these should index due to out-of-range timestamp or non-integer name
-        for file_name in [1451631500, 1767250801, 'latest']:
+        for file_name in [1451631500, 1767250801]:
             key = f".quilt/named_packages/foo/bar/{file_name}"
-            assert not index.index_if_manifest(
+            assert not index.index_if_package(
                 self.s3_client,
                 index.DocumentQueue(None),
                 "ObjectCreated:Put",
@@ -825,7 +1045,7 @@ class TestIndex(TestCase):
                 f".quilt/named_packages/not-deep-enough/{good_timestamp}",
                 f"somewhere/else/foo/bar/{floor(time())}",
         ]:
-            assert not index.index_if_manifest(
+            assert not index.index_if_package(
                 self.s3_client,
                 index.DocumentQueue(None),
                 "ObjectCreated:Put",
@@ -841,11 +1061,12 @@ class TestIndex(TestCase):
 
     @patch.object(index.DocumentQueue, 'append')
     @patch.object(index, 'maybe_get_contents')
-    @patch.object(index, 'index_if_manifest')
-    def test_index_if_manifest_negative(self, index_mock, get_mock, append_mock):
-        """test non-manifest file (still calls index_if_manifest)"""
+    @patch.object(index, 'index_if_package')
+    def test_index_if_package_negative(self, index_mock, get_mock, append_mock):
+        """test non-manifest file (still calls index_if_package)"""
         json_data = json.dumps({"version": 1})
         get_mock.return_value = json_data
+
         self._test_index_events(
             ["ObjectCreated:Put"],
             # we're mocking append so ES will never get called
@@ -875,8 +1096,9 @@ class TestIndex(TestCase):
             version_id='1313131313131.Vier50HdNbi7ZirO65'
         )
 
+    @patch.object(index.DocumentQueue, '_filter_and_delete_packages')
     @patch.object(index.DocumentQueue, 'append')
-    def test_index_if_manifest_positive(self, append_mock):
+    def test_index_if_package_positive(self, append_mock, filter_mock):
         """test manifest file and its indexing"""
         timestamp = floor(time())
         pointer_key = f"{POINTER_PREFIX_V1}author/semantic/{timestamp}"
@@ -890,12 +1112,12 @@ class TestIndex(TestCase):
             expected_params={
                 "Bucket": "test-bucket",
                 "Key": pointer_key,
-                "VersionId": "1313131313131.Vier50HdNbi7ZirO65"
+                "VersionId": OBJECT_RESPONSE["VersionId"],
             }
         )
 
         sha_hash = "50f4d0fc2c22a70893a7f356a4929046ce529b53c1ef87e28378d92b884691a5"
-        # next, handler() calls index_if_manifest which gets the hash from pointer_file
+        # next, handler() calls index_if_package which gets the hash from pointer_file
         self.s3_stubber.add_response(
             method="get_object",
             service_response={
@@ -906,7 +1128,7 @@ class TestIndex(TestCase):
             expected_params={
                 "Bucket": "test-bucket",
                 "Key": pointer_key,
-                "VersionId": "1313131313131.Vier50HdNbi7ZirO65",
+                "VersionId": OBJECT_RESPONSE["VersionId"],
                 'Range': "bytes=0-64"
             }
         )
@@ -955,7 +1177,8 @@ class TestIndex(TestCase):
                 mock_elastic=False,
                 mock_overrides={
                     "event_kwargs": {
-                        "key": pointer_key
+                        "key": pointer_key,
+                        "versionId": OBJECT_RESPONSE["VersionId"]
                     },
                     # we, not _test_index_events, patch all the S3 calls in this test
                     "mock_object": False,
@@ -985,7 +1208,7 @@ class TestIndex(TestCase):
             etag="123456",
             ext="",
             handle="author/semantic",
-            key=f".quilt/packages/{sha_hash}",
+            key=pointer_key,
             last_modified=ANY,
             package_hash=sha_hash,
             package_stats={
@@ -994,7 +1217,8 @@ class TestIndex(TestCase):
             },
             pointer_file=ANY,
             comment=MANIFEST_DATA["message"],
-            metadata=json.dumps(MANIFEST_DATA["user_meta"])
+            metadata=json.dumps(MANIFEST_DATA["user_meta"]),
+            version_id=OBJECT_RESPONSE["VersionId"],
         )
 
         append_mock.assert_any_call(
@@ -1004,12 +1228,78 @@ class TestIndex(TestCase):
             key=pointer_key,
             ext="",
             etag="123456",
-            version_id="1313131313131.Vier50HdNbi7ZirO65",
+            version_id=OBJECT_RESPONSE["VersionId"],
             last_modified=ANY,
             size=64,
             text=""
         )
+        assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
 
+    @patch.object(index.DocumentQueue, '_filter_and_delete_packages')
+    @patch.object(index.DocumentQueue, 'append')
+    def test_index_if_package_tag(self, append_mock, filter_mock):
+        """test manifest file and its indexing"""
+        timestamp = floor(time())
+        pointer_key = f"{POINTER_PREFIX_V1}author/semantic/latest"
+        # first, handler() will head the object
+        self.s3_stubber.add_response(
+            method="head_object",
+            service_response={
+                **OBJECT_RESPONSE,
+                "ContentLength": 64
+            },
+            expected_params={
+                "Bucket": "test-bucket",
+                "Key": pointer_key,
+                "VersionId": OBJECT_RESPONSE["VersionId"],
+            }
+        )
+
+        self._test_index_events(
+            ["ObjectCreated:Put"],
+            # we're mocking append so ES will never get called
+            mock_elastic=False,
+            mock_overrides={
+                "event_kwargs": {
+                    "key": pointer_key,
+                    "versionId": OBJECT_RESPONSE["VersionId"]
+                },
+                # we, not _test_index_events, patch all the S3 calls in this test
+                "mock_object": False,
+                "mock_head": False
+            }
+        )
+
+        append_mock.assert_has_calls([
+            call(
+                "ObjectCreated:Put",
+                DocTypes.OBJECT,
+                bucket="test-bucket",
+                etag="123456",
+                ext="",
+                key=".quilt/named_packages/author/semantic/latest",
+                last_modified="2020-05-22T00:32:20.515Z",
+                size=64,
+                text="",
+                version_id="wcOZpjy5G.tJ2N.rwPhiR.NY_RftJ3A_",
+            ),
+            call(
+                "ObjectCreated:Put",
+                DocTypes.PACKAGE,
+                bucket="test-bucket",
+                comment="",
+                etag="123456",
+                ext="",
+                handle="author/semantic",
+                key=".quilt/named_packages/author/semantic/latest",
+                last_modified="2020-05-22T00:32:20.515Z",
+                metadata="{}",
+                package_hash="latest",
+                package_stats=None,
+                pointer_file="latest",
+                version_id="wcOZpjy5G.tJ2N.rwPhiR.NY_RftJ3A_",
+            ),
+        ])
         assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"
 
     def test_infer_extensions(self):
@@ -1112,7 +1402,8 @@ class TestIndex(TestCase):
 
     @pytest.mark.xfail(
         raises=ParamValidationError,
-        reason="boto bug https://github.com/boto/botocore/issues/1621"
+        reason="boto bug https://github.com/boto/botocore/issues/1621",
+        strict=True,
     )
     def test_stub_select_object_content(self):
         """Demonstrate that mocking S3 select with boto3 is broken"""

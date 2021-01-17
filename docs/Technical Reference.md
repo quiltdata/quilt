@@ -66,10 +66,11 @@ Installing Quilt will modify the following Bucket characteristics:
     * Properties > Object-level logging (will be enabled)
     * Properties > Events (will add one notification)
 
-Buckets in Quilt may choose to enable versioning or disable versioning, but it
-is recommended that you avoid enabling versioning followed by disabling versioning
-as this can cause bugs in the object statistics for the bucket, shown in the Quilt
-catalog, due to inconsistent semantics of `ObjectRemoved:DeleteMarkerCreated`.
+Buckets in Quilt may choose to enable versioning or disable versioning.
+**It is strongly recommended that you keep versioning either on or off during the entire lifetime
+of the bucket**. Toggling versioning on and off incurs edge cases that may cause
+bugs with any state that Quilt stores in ElasticSearch due to inconsistent semantics
+of `ObjectRemoved:DeleteMarkerCreated`.
 
 1. A **subdomain that is as yet not mapped in DNS** where users will access Quilt on the web. For example `quilt.mycompany.com`.
 

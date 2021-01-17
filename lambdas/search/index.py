@@ -11,7 +11,11 @@ from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 
 from t4_lambda_shared.decorator import api
-from t4_lambda_shared.utils import get_default_origins, make_json_response
+from t4_lambda_shared.utils import (
+    PACKAGE_INDEX_SUFFIX,
+    get_default_origins,
+    make_json_response,
+)
 
 DEFAULT_SIZE = 1_000
 MAX_QUERY_DURATION = 27  # Just shy of 29s API Gateway limit
@@ -64,8 +68,8 @@ def lambda_handler(request):
                 }
             }
         }
-        if not all(i.endswith('_packages') for i in user_indexes.split(',')):
-            raise ValueError("'packages' action searching indexes that don't end in '_packages'")
+        if not all(i.endswith(PACKAGE_INDEX_SUFFIX) for i in user_indexes.split(',')):
+            raise ValueError(f"'packages' action to index that doesn't end in {PACKAGE_INDEX_SUFFIX}")
         _source = user_source
         size = user_size
         terminate_after = None
