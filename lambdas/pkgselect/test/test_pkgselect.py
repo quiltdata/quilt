@@ -448,7 +448,7 @@ class TestPackageSelect(TestCase):
         with patch.object(
             mock_s3,
             'select_object_content',
-             side_effect=[
+            side_effect=[
                 non_string_s3response,
                 self.s3response_meta
             ]
