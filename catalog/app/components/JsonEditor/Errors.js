@@ -13,23 +13,31 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Errors({ className, errors }) {
+function SingleError({ error }) {
   const classes = useStyles()
 
   return (
-    !!errors.length && (
-      <div className={className}>
-        {errors.map((error) => (
-          <Lab.Alert severity="error" key={error.dataPath + error.message}>
-            {error.dataPath && (
-              <>
-                <code className={classes.code}>{error.dataPath}</code>
-              </>
-            )}
-            {error.message}
-          </Lab.Alert>
-        ))}
-      </div>
-    )
+    <Lab.Alert severity="error">
+      {error.dataPath && (
+        <>
+          <code className={classes.code}>{error.dataPath}</code>
+        </>
+      )}
+      {error.message}
+    </Lab.Alert>
+  )
+}
+
+export default function ErrorHelper({ className, error }) {
+  if (!error) return null
+
+  return (
+    <div className={className}>
+      {Array.isArray(error) ? (
+        error.map((e) => <SingleError error={e} key={error.dataPath + error.message} />)
+      ) : (
+        <SingleError error={error} />
+      )}
+    </div>
   )
 }

@@ -5,7 +5,7 @@ import * as M from '@material-ui/core'
 
 import { EMPTY_SCHEMA } from 'utils/json-schema'
 import Column from './Column'
-import Errors from './Errors'
+import ErrorHelper from './Errors'
 import State from './State'
 
 const useStyles = M.makeStyles((t) => ({
@@ -88,7 +88,7 @@ function JsonEditor({
         />
       </div>
 
-      <Errors className={classes.errors} errors={error || []} />
+      <ErrorHelper className={classes.errors} error={error} />
     </div>
   )
 }
