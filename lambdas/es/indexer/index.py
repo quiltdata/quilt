@@ -725,11 +725,13 @@ def handler(event, context):
                         size=size
                     )
                 # we still want an entry for this document in elastic so that, e.g.,
-                # the file counts from elastic are correct. re-raise below.
+                # the file counts from elastic are correct
+                # these exceptions can happen for a variety of reasons (e.g. glacier
+                # storage class, index event arrives after delete has occurred, etc.)
+                # given how common they are, we shouldn't fail the batch for this
                 except Exception as exc:  # pylint: disable=broad-except
                     text = ""
-                    content_exception = exc
-                    logger_.error("Content extraction failed %s %s %s", bucket, key, exc)
+                    logger_.warning("Content extraction failed %s %s %s", bucket, key, exc)
 
                 do_index(
                     s3_client,
@@ -753,12 +755,6 @@ def handler(event, context):
                 raise boto_exc
         # flush the queue
         batch_processor.send_all()
-        # note: if there are multiple content exceptions in the batch, this will
-        # only raise the most recent one;
-        # re-raise so that get_contents() failures end up in the DLQ
-        if content_exception:
-            logger_.critical("Failed batch due to %s", content_exception)
-            raise content_exception
 
 
 def retry_s3(
