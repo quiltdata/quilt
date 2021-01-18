@@ -248,7 +248,11 @@ function DialogForm({
                 name="workflow"
                 workflowsConfig={workflowsConfig}
                 initialValue={initialWorkflow}
+                validate={validators.required}
                 validateFields={['meta', 'workflow']}
+                errors={{
+                  required: 'Workflow is required for this bucket.',
+                }}
               />
 
               <input type="submit" style={{ display: 'none' }} />
