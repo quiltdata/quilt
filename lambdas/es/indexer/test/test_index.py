@@ -748,7 +748,7 @@ class TestIndex(TestCase):
         assert self.actual_es_calls == expected_es_calls, \
             (
                 f"Expected ES endpoint to be called {expected_es_calls} times, "
-                "got {self.expected_es_calls} calls instead"
+                f"got {self.actual_es_calls} calls instead"
             )
 
     @patch.object(index.DocumentQueue, 'send_all')
@@ -978,15 +978,15 @@ class TestIndex(TestCase):
         """test indexing a single file that throws an exception"""
         class ContentException(Exception):
             pass
-        get_mock.side_effect = ContentException("Unable to get contents")
-        with pytest.raises(ContentException):
-            # get_mock already mocks get_object, so don't mock it in _test_index_event
-            self._test_index_events(
-                ["ObjectCreated:Put"],
-                mock_overrides={
-                    "mock_object": False
-                }
-            )
+        get_mock.side_effect = ContentException("Unable to get contents in Glacier")
+        # get_mock already mocks get_object, so don't mock it in _test_index_event
+        self._test_index_events(
+            ["ObjectCreated:Put"],
+            expected_es_calls=1,
+            mock_overrides={
+                "mock_object": False
+            }
+        )
 
     @patch.object(index.DocumentQueue, 'append')
     def test_index_if_package_delete(self, append_mock):
