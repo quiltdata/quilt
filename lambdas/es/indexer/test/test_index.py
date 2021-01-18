@@ -519,6 +519,7 @@ def test_filter_delete():
         if d["delete_marker"]:
             assert d["_op_type"] == "index"
 
+
 def test_map_event_name_and_validate():
     """ensure that we map eventName properly, ensure that shape validation code works"""
     for name in CREATE_EVENT_TYPES.union(DELETE_EVENT_TYPES).union({UNKNOWN_EVENT_TYPE}):
