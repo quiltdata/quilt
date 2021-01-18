@@ -128,7 +128,9 @@ class DocumentQueue:
             "last_modified": last_modified,
             "size": size,
             "delete_marker": is_delete_marker,
-            "version_id": version_id,
+            # ensure the same versionId and primary keys (_id) as given by
+            #  list-object-versions in the enterprise bulk_scanner
+            "version_id": version_id or "null",
         }
         if doc_type == DocTypes.PACKAGE:
             if not handle:
@@ -155,10 +157,6 @@ class DocumentQueue:
                     "package_stats": package_stats,
                 })
         elif doc_type == DocTypes.OBJECT:
-            if not version_id:
-                # ensure the same versionId and primary keys (_id) as given by
-                #  list-object-versions in the enterprise bulk_scanner
-                version_id = "null"
             body.update({
                 # Elastic native keys
                 "_id": f"{key}:{version_id}",

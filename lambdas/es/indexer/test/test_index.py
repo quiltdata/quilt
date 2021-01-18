@@ -468,6 +468,19 @@ def test_filter_delete():
                 "package_hash": "abc",
                 "package_stats": None,
             }
+        ),
+        (
+            # should not get filtered out
+            "ObjectRemoved:DeleteMarkerCreated",
+            DocTypes.OBJECT,
+            {
+                "bucket": "test",
+                "etag": "123",
+                "ext": "",
+                "key": "key/to/an/object.ext",
+                "last_modified": datetime.datetime(2019, 8, 1, 23, 27, 29, tzinfo=tzutc()),
+                "version_id": ''
+            }
         )
     ]
     for event, type_, kwargs in doc_kwargs:
@@ -493,14 +506,18 @@ def test_filter_delete():
         timeout='20s',
     )
     # should be two docs left, since we deleted one of three
-    assert len(doc_queue.queue) == 2
+    assert len(doc_queue.queue) == 3
+    objects = [d for d in doc_queue.queue if d.get("key") == "key/to/an/object.ext"]
+    # two package docs, one object
+    assert len(objects) == 1
+    # make sure append sets the version_id when version_id is falsy
+    assert objects[0].get("version_id") == "null"
     # there should be at least one delete_marker
     assert any(d["delete_marker"] for d in doc_queue.queue)
     assert not all(d["delete_marker"] for d in doc_queue.queue)
     for d in doc_queue.queue:
         if d["delete_marker"]:
             assert d["_op_type"] == "index"
-
 
 def test_map_event_name_and_validate():
     """ensure that we map eventName properly, ensure that shape validation code works"""
