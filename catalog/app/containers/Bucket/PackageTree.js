@@ -134,38 +134,49 @@ function RevisionInfo({ revisionData, revision, bucket, name, path }) {
         <M.List className={classes.list} ref={listRef}>
           {AsyncResult.case(
             {
-              Ok: R.map((r) => (
-                <M.ListItem
-                  key={r.hash}
-                  button
-                  onClick={close}
-                  selected={r.selected}
-                  component={RRLink}
-                  to={urls.bucketPackageTree(bucket, name, r.hash, path)}
-                >
-                  <M.ListItemText
-                    primary={dateFns.format(r.modified, 'MMMM do yyyy - h:mma')}
-                    secondary={
-                      <span className={classes.secondaryText}>
-                        <span className={classes.line}>
-                          {r.message || <i>No message</i>}
+              Ok: R.ifElse(
+                R.isEmpty,
+                () => (
+                  <M.ListItem>
+                    <M.ListItemText
+                      primary="No revisions found"
+                      secondary="Looks like this package has been deleted"
+                    />
+                  </M.ListItem>
+                ),
+                R.map((r) => (
+                  <M.ListItem
+                    key={r.hash}
+                    button
+                    onClick={close}
+                    selected={r.selected}
+                    component={RRLink}
+                    to={urls.bucketPackageTree(bucket, name, r.hash, path)}
+                  >
+                    <M.ListItemText
+                      primary={dateFns.format(r.modified, 'MMMM do yyyy - h:mma')}
+                      secondary={
+                        <span className={classes.secondaryText}>
+                          <span className={classes.line}>
+                            {r.message || <i>No message</i>}
+                          </span>
+                          <br />
+                          <span className={cx(classes.line, classes.mono)}>{r.hash}</span>
                         </span>
-                        <br />
-                        <span className={cx(classes.line, classes.mono)}>{r.hash}</span>
-                      </span>
-                    }
-                  />
-                  <M.ListItemSecondaryAction>
-                    <M.IconButton
-                      title="Copy package revision's canonical catalog URI to the clipboard"
-                      href={getHttpsUri(r)}
-                      onClick={copyHttpsUri(r, listRef)}
-                    >
-                      <M.Icon>link</M.Icon>
-                    </M.IconButton>
-                  </M.ListItemSecondaryAction>
-                </M.ListItem>
-              )),
+                      }
+                    />
+                    <M.ListItemSecondaryAction>
+                      <M.IconButton
+                        title="Copy package revision's canonical catalog URI to the clipboard"
+                        href={getHttpsUri(r)}
+                        onClick={copyHttpsUri(r, listRef)}
+                      >
+                        <M.Icon>link</M.Icon>
+                      </M.IconButton>
+                    </M.ListItemSecondaryAction>
+                  </M.ListItem>
+                )),
+              ),
               Err: () => (
                 <M.ListItem>
                   <M.ListItemIcon>

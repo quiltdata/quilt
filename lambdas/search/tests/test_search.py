@@ -422,8 +422,6 @@ class TestSearch(TestCase):
                         "terms": {"field": 'ext'},
                         "aggs": {"size": {"sum": {"field": 'size'}}},
                     },
-                    # TODO: move this to a separate action (pkg_stats)
-                    "totalPackageHandles": {"value_count": {"field": "handle"}},
                 }
             }
             # use 'all_gz' since it's not altered by the handler

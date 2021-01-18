@@ -22,6 +22,8 @@
 * [Working with Manifests](Advanced Features/Working with Manifests.md)
 * [S3 Select](Advanced Features/S3 Select.md)
 * [Workflows](Advanced Features/workflows.md)
+* [Enterprise install](Technical Reference.md)
+* [S3 Events, EventBridge](EventBridge.md)
 
 ### API Reference
 
@@ -33,6 +35,5 @@
 ### More
 
 * [Frequently Asked Questions](FAQ.md)
-* [Enterprise install](Technical Reference.md)
 * [Contributing](CONTRIBUTING.md)
 * [Changelog](CHANGELOG.md)

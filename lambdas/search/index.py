@@ -11,7 +11,11 @@ from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 
 from t4_lambda_shared.decorator import api
-from t4_lambda_shared.utils import get_default_origins, make_json_response
+from t4_lambda_shared.utils import (
+    PACKAGE_INDEX_SUFFIX,
+    get_default_origins,
+    make_json_response,
+)
 
 DEFAULT_SIZE = 1_000
 MAX_QUERY_DURATION = 27  # Just shy of 29s API Gateway limit
@@ -22,6 +26,63 @@ IMG_EXTS = r'.*\.(bmp|gif|jpg|jpeg|png|tif|tiff|webp)'
 SAMPLE_EXTS = r'.*\.(csv|ipynb|json|md|parquet|pdf|rmd|tsv|txt|vcf|xls|xlsx)(.gz)?'
 README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
 SUMMARIZE_KEY = 'quilt_summarize.json'
+
+DELETED_METRIC = {
+    "scripted_metric": {
+        "init_script": """
+            state.last_modified = 0;
+            state.deleted = false;
+        """,
+        "map_script": """
+            def last_modified = doc.last_modified.getValue().toInstant().toEpochMilli();
+            if (last_modified > state.last_modified) {
+                state.last_modified = last_modified;
+                state.deleted = doc.delete_marker.getValue();
+            }
+        """,
+        "reduce_script": """
+            def last_modified = 0;
+            def deleted = false;
+            for (s in states) {
+                if (s.last_modified > last_modified) {
+                    last_modified = s.last_modified;
+                    deleted = s.deleted;
+                }
+            }
+            return deleted ? 1 : 0;
+        """,
+    },
+}
+
+
+def make_sample_objects_agg(num):
+    return {
+        'terms': {
+            'field': 'key',
+            'order': [{'modified': 'desc'}],
+            'size': 1000000,
+        },
+        'aggs': {
+            'modified': {'max': {'field': 'last_modified'}},
+            'deleted': DELETED_METRIC,
+            'latest': {
+                'top_hits': {
+                    '_source': ['key', 'version_id'],
+                    'sort': [{'last_modified': 'desc'}],
+                    'size': 1,
+                }
+            },
+            'drop_deleted': {
+                'bucket_selector': {
+                    'buckets_path': {'deleted': 'deleted.value'},
+                    'script': 'params.deleted == 0',
+                },
+            },
+            'sort': {
+                'bucket_sort': {'size': num},
+            },
+        },
+    }
 
 
 @api(cors_origins=get_default_origins())
@@ -39,6 +100,7 @@ def lambda_handler(request):
     # 0-indexed starting position (for pagination)
     user_from = int(request.args.get('from', 0))
     user_retry = int(request.args.get('retry', 0))
+    filter_path = request.args.get('filter_path')
     terminate_after = int(os.environ.get('MAX_DOCUMENTS_PER_SHARD', 10_000))
 
     if not user_indexes or not isinstance(user_indexes, str):
@@ -63,8 +125,8 @@ def lambda_handler(request):
                 }
             }
         }
-        if not all(i.endswith('_packages') for i in user_indexes.split(',')):
-            raise ValueError("'packages' action searching indexes that don't end in '_packages'")
+        if not all(i.endswith(PACKAGE_INDEX_SUFFIX) for i in user_indexes.split(',')):
+            raise ValueError(f"'packages' action to index that doesn't end in {PACKAGE_INDEX_SUFFIX}")
         _source = user_source
         size = user_size
         terminate_after = None
@@ -127,8 +189,6 @@ def lambda_handler(request):
                     "terms": {"field": 'ext'},
                     "aggs": {"size": {"sum": {"field": 'size'}}},
                 },
-                # TODO: move this to a separate action (pkg_stats)
-                "totalPackageHandles": {"value_count": {"field": "handle"}},
             }
         }
         size = 0  # We still get all aggregates, just don't need the results
@@ -138,18 +198,11 @@ def lambda_handler(request):
     elif action == 'images':
         body = {
             'query': {'regexp': {'ext': IMG_EXTS}},
-            'collapse': {
-                'field': 'key',
-                'inner_hits': {
-                    'name': 'latest',
-                    'size': 1,
-                    'sort': [{'last_modified': 'desc'}],
-                    '_source': ['key', 'version_id', 'delete_marker'],
-                },
-            },
+            'aggs': {'objects': make_sample_objects_agg(NUM_PREVIEW_IMAGES)},
         }
-        size = NUM_PREVIEW_IMAGES
+        size = 0
         _source = False
+        filter_path = 'aggregations.objects.buckets.latest.hits.hits._source'
     elif action == 'sample':
         body = {
             'query': {
@@ -161,18 +214,11 @@ def lambda_handler(request):
                     ],
                 },
             },
-            'collapse': {
-                'field': 'key',
-                'inner_hits': {
-                    'name': 'latest',
-                    'size': 1,
-                    'sort': [{'last_modified': 'desc'}],
-                    '_source': ['key', 'version_id', 'delete_marker'],
-                },
-            },
+            'aggs': {'objects': make_sample_objects_agg(NUM_PREVIEW_FILES)},
         }
         size = NUM_PREVIEW_FILES
         _source = False
+        filter_path = 'aggregations.objects.buckets.latest.hits.hits._source'
     else:
         return make_json_response(400, {"title": "Invalid action"})
 
@@ -202,6 +248,7 @@ def lambda_handler(request):
         _source=_source,
         size=size,
         from_=user_from,
+        filter_path=filter_path,
         # try turning this off to consider all documents
         terminate_after=terminate_after,
     )
