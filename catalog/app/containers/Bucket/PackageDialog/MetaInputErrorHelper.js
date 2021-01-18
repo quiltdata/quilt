@@ -34,7 +34,7 @@ export default function ErrorHelper({ className, error }) {
   return (
     <div className={className}>
       {Array.isArray(error) ? (
-        error.map((e) => <SingleError error={e} key={error.dataPath + error.message} />)
+        error.map((e) => <SingleError error={e} key={e.dataPath + e.message} />)
       ) : (
         <SingleError error={error} />
       )}
