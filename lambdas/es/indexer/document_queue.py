@@ -113,6 +113,9 @@ class DocumentQueue:
             index_name += PACKAGE_INDEX_SUFFIX
         if not index_name:
             raise ValueError(f"Can't infer index name; bucket={bucket}, doc_type={doc_type}")
+        # ensure the same versionId and primary keys (_id) as given by
+        #  list-object-versions in the enterprise bulk_scanner
+        version_id = version_id or "null"
         # core properties for all document types;
         # see https://elasticsearch-py.readthedocs.io/en/6.3.1/helpers.html
         body = {
@@ -128,9 +131,7 @@ class DocumentQueue:
             "last_modified": last_modified,
             "size": size,
             "delete_marker": is_delete_marker,
-            # ensure the same versionId and primary keys (_id) as given by
-            #  list-object-versions in the enterprise bulk_scanner
-            "version_id": version_id or "null",
+            "version_id": version_id,
         }
         if doc_type == DocTypes.PACKAGE:
             if not handle:
