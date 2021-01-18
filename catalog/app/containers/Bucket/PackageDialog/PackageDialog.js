@@ -9,7 +9,6 @@ import { parseJSON, stringifyJSON } from 'components/JsonEditor/State'
 import * as Notifications from 'containers/Notifications'
 import { useData } from 'utils/Data'
 import Delay from 'utils/Delay'
-import ErrorHelper from 'components/JsonEditor/ErrorHelper'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
@@ -20,6 +19,7 @@ import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
+import MetaInputErrorHelper from './MetaInputErrorHelper'
 import SelectWorkflow from './SelectWorkflow'
 
 export const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
@@ -476,7 +476,7 @@ export function MetaInput({
           />
         )}
 
-        <ErrorHelper className={classes.errors} error={error} />
+        <MetaInputErrorHelper className={classes.errors} error={error} />
 
         {(isDragActive || locked) && (
           <div className={classes.overlay}>
