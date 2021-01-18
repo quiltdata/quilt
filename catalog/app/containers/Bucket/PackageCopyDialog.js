@@ -420,11 +420,11 @@ export default function PackageCopyDialog({
 
   return (
     <M.Dialog
-      open={open}
-      onClose={handleClose}
       fullWidth
-      scroll="body"
+      onClose={handleClose}
       onExited={handleExited}
+      open={open}
+      scroll="body"
     >
       {stateCase({
         Error: (e) =>

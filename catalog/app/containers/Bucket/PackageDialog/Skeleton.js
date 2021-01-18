@@ -3,15 +3,17 @@ import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
 
+import * as Layout from './Layout'
+
 export function TextFieldSkeleton({ animate }) {
-  return <Skeleton {...{ height: 48, mt: 2, mb: 1, animate }} />
+  return <Skeleton {...{ height: 54, mt: 2, mb: 1, animate }} />
 }
 
 export function FilesInputSkeleton({ animate, className }) {
   return (
     <div className={className}>
       <Skeleton {...{ height: 24, width: 64, animate }} />
-      <Skeleton {...{ height: 140, mt: 2, animate }} />
+      <Skeleton {...{ height: 320, mt: 2, animate }} />
     </div>
   )
 }
@@ -53,15 +55,19 @@ export function FormSkeleton({ animate }) {
   const classes = useFormSkeletonStyles()
 
   return (
-    <>
-      <TextFieldSkeleton animate={animate} />
-      <TextFieldSkeleton animate={animate} />
+    <Layout.Container>
+      <Layout.LeftColumn>
+        <TextFieldSkeleton animate={animate} />
+        <TextFieldSkeleton animate={animate} />
 
-      <FilesInputSkeleton className={classes.files} animate={animate} />
+        <MetaInputSkeleton className={classes.meta} animate={animate} />
 
-      <MetaInputSkeleton className={classes.meta} animate={animate} />
+        <WorkflowsInputSkeleton animate={animate} />
+      </Layout.LeftColumn>
 
-      <WorkflowsInputSkeleton animate={animate} />
-    </>
+      <Layout.RightColumn>
+        <FilesInputSkeleton className={classes.files} animate={animate} />
+      </Layout.RightColumn>
+    </Layout.Container>
   )
 }

@@ -239,7 +239,7 @@ export function CommitMessageInput({ errors, input, meta, ...rest }) {
 
 const useWorkflowInputStyles = M.makeStyles((t) => ({
   root: {
-    margin: t.spacing(3, 0),
+    marginTop: t.spacing(3),
   },
 }))
 
