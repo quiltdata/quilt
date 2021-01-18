@@ -5,7 +5,6 @@ import * as M from '@material-ui/core'
 
 import { EMPTY_SCHEMA } from 'utils/json-schema'
 import Column from './Column'
-import ErrorHelper from './Errors'
 import State from './State'
 
 const useStyles = M.makeStyles((t) => ({
@@ -23,9 +22,6 @@ const useStyles = M.makeStyles((t) => ({
       zIndex: 1,
     },
   },
-  errors: {
-    marginTop: t.spacing(1),
-  },
   inner: {
     display: 'flex',
     maxHeight: t.spacing(42),
@@ -40,7 +36,6 @@ function JsonEditor({
   disabled,
   columns,
   jsonDict,
-  error,
   fieldPath,
   makeAction,
   onChange,
@@ -87,8 +82,6 @@ function JsonEditor({
           }}
         />
       </div>
-
-      <ErrorHelper className={classes.errors} error={error} />
     </div>
   )
 }
@@ -96,7 +89,6 @@ function JsonEditor({
 export default function JsonEditorStateWrapper({
   className,
   disabled,
-  error,
   onChange,
   schema: optSchema,
   value,
@@ -110,7 +102,6 @@ export default function JsonEditorStateWrapper({
           {...{
             className,
             disabled,
-            error,
             onChange,
           }}
           {...props}

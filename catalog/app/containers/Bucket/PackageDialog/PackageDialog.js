@@ -9,6 +9,7 @@ import { parseJSON, stringifyJSON } from 'components/JsonEditor/State'
 import * as Notifications from 'containers/Notifications'
 import { useData } from 'utils/Data'
 import Delay from 'utils/Delay'
+import ErrorHelper from 'components/JsonEditor/Errors'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
@@ -162,16 +163,14 @@ function mkMetaValidator(schema) {
 
     const jsonObjectErr = validators.jsonObject(value.text)
     if (jsonObjectErr) {
-      return value.mode === 'json'
-        ? jsonObjectErr
-        : [{ message: 'Metadata must be a valid JSON object' }]
+      return [{ message: 'Metadata must be a valid JSON object' }]
     }
 
     if (schema) {
       const obj = value ? parseJSON(value.text) : {}
       const errors = schemaValidator(obj)
       if (!errors.length) return noError
-      return value.mode === 'json' ? 'schema' : errors
+      return errors
     }
 
     return noError
@@ -284,6 +283,9 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     paddingLeft: 7,
     paddingRight: 7,
     paddingTop: 0,
+  },
+  errors: {
+    marginTop: t.spacing(1),
   },
   jsonInput: {
     fontFamily: t.typography.monospace.fontFamily,
@@ -452,7 +454,6 @@ export function MetaInput({
       <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
         {value.mode === 'kv' ? (
           <JsonEditor
-            error={error}
             disabled={disabled}
             value={parsedValue}
             onChange={onJsonEditor}
@@ -465,22 +466,17 @@ export function MetaInput({
             size="small"
             value={value.text}
             onChange={handleTextChange}
-            placeholder="Enter JSON metadata if necessary"
             error={!!error}
-            helperText={
-              !!error &&
-              {
-                jsonObject: 'Metadata must be a valid JSON object',
-                schema: 'Metadata must conform to the schema',
-              }[error]
-            }
             fullWidth
             multiline
+            placeholder="Enter JSON metadata if necessary"
             rowsMax={10}
             InputProps={{ classes: { input: classes.jsonInput } }}
             disabled={disabled}
           />
         )}
+
+        <ErrorHelper className={classes.errors} error={error} />
 
         {(isDragActive || locked) && (
           <div className={classes.overlay}>
