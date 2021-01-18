@@ -15,7 +15,6 @@ import * as AWS from 'utils/AWS'
 import { makeSchemaValidator } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import { readableBytes } from 'utils/string'
-import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
@@ -160,18 +159,16 @@ function mkMetaValidator(schema) {
   return function validateMeta(value) {
     const noError = undefined
 
-    const jsonObjectErr = validators.jsonObject(value.text)
+    const jsonObjectErr = !R.is(Object, value.obj)
     if (jsonObjectErr) {
-      return value.mode === 'json'
-        ? jsonObjectErr
-        : [{ message: 'Metadata must be a valid JSON object' }]
+      return [new Error('Metadata must be a valid JSON object')]
     }
 
     if (schema) {
-      const obj = value ? parseJSON(value.text) : {}
+      const obj = value ? value.obj : {}
       const errors = schemaValidator(obj)
       if (!errors.length) return noError
-      return value.mode === 'json' ? 'schema' : errors
+      return errors
     }
 
     return noError
@@ -180,8 +177,7 @@ function mkMetaValidator(schema) {
 
 export const getMetaValue = (value) =>
   value
-    ? pipeThru(value.text || '{}')(
-        (t) => JSON.parse(t),
+    ? pipeThru(value.obj || {})(
         R.toPairs,
         R.filter(([k]) => !!k.trim()),
         R.fromPairs,
@@ -340,7 +336,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-export const EMPTY_META_VALUE = { mode: 'kv', text: '{}' }
+export const EMPTY_META_VALUE = { obj: {} }
 
 // TODO: warn on duplicate keys
 export function MetaInput({
@@ -353,37 +349,35 @@ export function MetaInput({
   const classes = useMetaInputStyles()
   const error = schemaError ? [schemaError] : meta.submitFailed && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
+  const [mode, setMode] = React.useState('kv')
 
-  const parsedValue = React.useMemo(() => {
-    const obj = parseJSON(value.text)
-    return R.is(Object, obj) && !Array.isArray(obj) ? obj : {}
-  }, [value.text])
-
-  const changeMode = (mode) => {
-    if (disabled) return
-    onChange({ ...value, mode })
-  }
+  const [textValue, setTextValue] = React.useState(() => stringifyJSON(value.obj))
 
   const changeText = React.useCallback(
     (text) => {
       if (disabled) return
-      onChange({ ...value, text })
+      setTextValue(text)
+      onChange({ ...value, obj: parseJSON(text) })
     },
     [disabled, onChange, value],
   )
 
   const handleModeChange = (e, m) => {
     if (!m) return
-    changeMode(m)
+    setMode(m)
   }
 
   const handleTextChange = (e) => {
     changeText(e.target.value)
   }
 
-  const onJsonEditor = React.useCallback((json) => changeText(stringifyJSON(json)), [
-    changeText,
-  ])
+  const onJsonEditor = React.useCallback(
+    (json) => {
+      setTextValue(stringifyJSON(json))
+      onChange({ ...value, obj: json })
+    },
+    [value, onChange],
+  )
 
   const { push: notify } = Notifications.use()
   const [locked, setLocked] = React.useState(false)
@@ -439,7 +433,7 @@ export function MetaInput({
         </M.Typography>
 
         <M.Box flexGrow={1} />
-        <Lab.ToggleButtonGroup value={value.mode} exclusive onChange={handleModeChange}>
+        <Lab.ToggleButtonGroup value={mode} exclusive onChange={handleModeChange}>
           <Lab.ToggleButton value="kv" className={classes.btn} disabled={disabled}>
             Key : Value
           </Lab.ToggleButton>
@@ -450,11 +444,11 @@ export function MetaInput({
       </div>
 
       <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
-        {value.mode === 'kv' ? (
+        {mode === 'kv' ? (
           <JsonEditor
             error={error}
             disabled={disabled}
-            value={parsedValue}
+            value={value.obj}
             onChange={onJsonEditor}
             schema={schema}
             key={jsonEditorKey}
@@ -463,7 +457,7 @@ export function MetaInput({
           <M.TextField
             variant="outlined"
             size="small"
-            value={value.text}
+            value={textValue}
             onChange={handleTextChange}
             placeholder="Enter JSON metadata if necessary"
             error={!!error}
