@@ -163,7 +163,7 @@ function mkMetaValidator(schema) {
 
     const jsonObjectErr = validators.jsonObject(value.text)
     if (jsonObjectErr) {
-      return [{ message: 'Metadata must be a valid JSON object' }]
+      return new Error('Metadata must be a valid JSON object')
     }
 
     if (schema) {
