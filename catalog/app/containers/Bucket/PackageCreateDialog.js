@@ -492,18 +492,40 @@ function PackageCreateDialog({
 
       const { name } = values
 
-      setNameWarning(defaultNameWarning)
+      let warning = defaultNameWarning
 
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {
-        setNameWarning(`Package "${name}" exists. Submitting will revise it`)
+        warning = `Package "${name}" exists. Submitting will revise it`
+      }
+
+      if (warning !== nameWarning) {
+        setNameWarning(warning)
       }
     },
-    [nameExistence],
+    [nameWarning, nameExistence],
   )
 
+  const initialWorkflow = React.useMemo(
+    () => PD.defaultWorkflowFromConfig(workflowsConfig),
+    [workflowsConfig],
+  )
+
+  const [workflow, setWorkflow] = React.useState(initialWorkflow)
+
   return (
-    <RF.Form onSubmit={uploadPackage}>
+    <RF.Form
+      onSubmit={uploadPackage}
+      subscription={{
+        handleSubmit: true,
+        submitting: true,
+        submitFailed: true,
+        error: true,
+        submitError: true,
+        hasValidationErrors: true,
+        form: true,
+      }}
+    >
       {({
         handleSubmit,
         submitting,
@@ -512,7 +534,6 @@ function PackageCreateDialog({
         submitError,
         hasValidationErrors,
         form,
-        values,
       }) => (
         <M.Dialog
           fullWidth
@@ -579,6 +600,15 @@ function PackageCreateDialog({
                     onChange={onFormChange}
                   />
 
+                  <RF.FormSpy
+                    subscription={{ modified: true, values: true }}
+                    onChange={({ modified, values }) => {
+                      if (modified.workflow) {
+                        setWorkflow(values.workflow)
+                      }
+                    }}
+                  />
+
                   <PD.Container>
                     <PD.LeftColumn>
                       <M.Typography>Main</M.Typography>
@@ -610,7 +640,7 @@ function PackageCreateDialog({
                       />
 
                       <PD.SchemaFetcher
-                        schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
+                        schemaUrl={R.pathOr('', ['schema', 'url'], workflow)}
                       >
                         {AsyncResult.case({
                           Ok: ({ responseError, schema, validate }) => (
@@ -635,7 +665,7 @@ function PackageCreateDialog({
                         component={PD.WorkflowInput}
                         name="workflow"
                         workflowsConfig={workflowsConfig}
-                        initialValue={PD.defaultWorkflowFromConfig(workflowsConfig)}
+                        initialValue={initialWorkflow}
                         validate={validators.required}
                         validateFields={['meta', 'workflow']}
                         errors={{

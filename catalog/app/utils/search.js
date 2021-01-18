@@ -82,6 +82,7 @@ const parseJSON = (s) => {
 }
 
 const extractPkgData = ({ bucket, score, src }) => {
+  if (src.delete_marker || !src.hash) return {}
   const key = `package:${bucket}/${src.handle}:${src.hash}`
   return {
     [key]: {

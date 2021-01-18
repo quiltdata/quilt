@@ -1024,22 +1024,39 @@ function DialogForm({
 
       const { name } = values
 
-      setNameWarning(defaultNameWarning)
+      let warning = defaultNameWarning
 
       if (initialName === name) return
 
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {
-        setNameWarning('Package with this name exists already')
+        warning = 'Package with this name exists already'
       } else {
-        setNameWarning('New package will be created')
+        warning = 'New package will be created'
+      }
+
+      if (warning !== nameWarning) {
+        setNameWarning(warning)
       }
     },
-    [initialName, nameExistence],
+    [nameWarning, initialName, nameExistence],
   )
 
+  const [workflow, setWorkflow] = React.useState(initialWorkflow)
+
   return (
-    <RF.Form onSubmit={onSubmitWrapped}>
+    <RF.Form
+      onSubmit={onSubmitWrapped}
+      subscription={{
+        error: true,
+        form: true,
+        handleSubmit: true,
+        hasValidationErrors: true,
+        submitError: true,
+        submitFailed: true,
+        submitting: true,
+      }}
+    >
       {({
         handleSubmit,
         submitting,
@@ -1048,7 +1065,6 @@ function DialogForm({
         submitError,
         hasValidationErrors,
         form,
-        values,
       }) => (
         <>
           <M.DialogTitle>Push package revision</M.DialogTitle>
@@ -1061,6 +1077,15 @@ function DialogForm({
               <PD.Container>
                 <PD.LeftColumn>
                   <M.Typography>Main</M.Typography>
+
+                  <RF.FormSpy
+                    subscription={{ modified: true, values: true }}
+                    onChange={({ modified, values }) => {
+                      if (modified.workflow) {
+                        setWorkflow(values.workflow)
+                      }
+                    }}
+                  />
 
                   <RF.Field
                     component={PD.PackageNameInput}
@@ -1088,9 +1113,7 @@ function DialogForm({
                     }}
                   />
 
-                  <PD.SchemaFetcher
-                    schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
-                  >
+                  <PD.SchemaFetcher schemaUrl={R.pathOr('', ['schema', 'url'], workflow)}>
                     {AsyncResult.case({
                       Ok: ({ responseError, schema, validate }) => (
                         <RF.Field
