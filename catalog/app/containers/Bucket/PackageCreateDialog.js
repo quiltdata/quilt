@@ -537,7 +537,7 @@ function PackageCreateDialog({
       }) => (
         <M.Dialog
           fullWidth
-          maxWidth="lg"
+          maxWidth={success ? 'sm' : 'lg'}
           onClose={handleClose({ submitting })}
           onExited={reset(form)}
           open={open}

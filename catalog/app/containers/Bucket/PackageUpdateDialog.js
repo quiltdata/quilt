@@ -1364,7 +1364,7 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
       <DialogWrapper
         exited={exited}
         fullWidth
-        maxWidth="lg"
+        maxWidth={success ? 'sm' : 'lg'}
         onClose={close}
         onExited={handleExited}
         open={isOpen}
@@ -1390,7 +1390,7 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
         })}
       </DialogWrapper>
     ),
-    [bucket, name, isOpen, exited, close, stateCase, handleExited],
+    [bucket, name, isOpen, exited, close, stateCase, success, handleExited],
   )
 
   return React.useMemo(() => ({ open, close, render }), [open, close, render])
