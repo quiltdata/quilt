@@ -611,7 +611,9 @@ function PackageCreateDialog({
 
                   <PD.Container>
                     <PD.LeftColumn>
-                      <M.Typography>Main</M.Typography>
+                      <M.Typography color={submitting ? 'textSecondary' : undefined}>
+                        Main
+                      </M.Typography>
 
                       <RF.Field
                         component={PD.PackageNameInput}

@@ -1076,7 +1076,9 @@ function DialogForm({
               />
               <PD.Container>
                 <PD.LeftColumn>
-                  <M.Typography>Main</M.Typography>
+                  <M.Typography color={submitting ? 'textSecondary' : undefined}>
+                    Main
+                  </M.Typography>
 
                   <RF.FormSpy
                     subscription={{ modified: true, values: true }}
