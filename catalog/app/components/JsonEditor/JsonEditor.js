@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { EMPTY_SCHEMA, makeSchemaValidator } from 'utils/json-schema'
+import { EMPTY_SCHEMA } from 'utils/json-schema'
 import Column from './Column'
 import Errors from './Errors'
 import State from './State'
@@ -41,7 +41,6 @@ function JsonEditor({
   columns,
   jsonDict,
   error,
-  errors,
   fieldPath,
   makeAction,
   onChange,
@@ -89,7 +88,7 @@ function JsonEditor({
         />
       </div>
 
-      <Errors className={classes.errors} errors={error || errors} />
+      <Errors className={classes.errors} errors={error || []} />
     </div>
   )
 }
@@ -103,16 +102,6 @@ export default function JsonEditorStateWrapper({
   value,
 }) {
   const schema = optSchema || EMPTY_SCHEMA
-  const [errors, setErrors] = React.useState([])
-  const schemaValidator = React.useMemo(() => makeSchemaValidator(schema), [schema])
-
-  const onChangeInternal = React.useCallback(
-    (data) => {
-      setErrors(schemaValidator(data))
-      onChange(data)
-    },
-    [schemaValidator, setErrors, onChange],
-  )
 
   return (
     <State obj={value} schema={schema}>
@@ -122,8 +111,7 @@ export default function JsonEditorStateWrapper({
             className,
             disabled,
             error,
-            errors,
-            onChange: onChangeInternal,
+            onChange,
           }}
           {...props}
         />

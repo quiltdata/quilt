@@ -351,7 +351,7 @@ export function MetaInput({
   schema,
 }) {
   const classes = useMetaInputStyles()
-  const error = schemaError ? [schemaError] : meta.submitFailed && meta.error
+  const error = schemaError ? [schemaError] : meta.modified && meta.error
   const disabled = meta.submitting || meta.submitSucceeded
 
   const parsedValue = React.useMemo(() => {
