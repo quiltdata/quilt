@@ -507,11 +507,13 @@ def test_filter_delete():
     )
     # should be two docs left, since we deleted one of three
     assert len(doc_queue.queue) == 3
-    objects = [d for d in doc_queue.queue if d.get("key") == "key/to/an/object.ext"]
+    object_key = "key/to/an/object.ext"
+    objects = [d for d in doc_queue.queue if d.get("key") == object_key]
     # two package docs, one object
     assert len(objects) == 1
     # make sure append sets the version_id when version_id is falsy
     assert objects[0].get("version_id") == "null"
+    assert objects[0].get("_id") == f"{object_key}:null"
     # there should be at least one delete_marker
     assert any(d["delete_marker"] for d in doc_queue.queue)
     assert not all(d["delete_marker"] for d in doc_queue.queue)
