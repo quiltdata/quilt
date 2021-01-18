@@ -1076,7 +1076,9 @@ function DialogForm({
               />
               <PD.Container>
                 <PD.LeftColumn>
-                  <M.Typography>Main</M.Typography>
+                  <M.Typography color={submitting ? 'textSecondary' : undefined}>
+                    Main
+                  </M.Typography>
 
                   <RF.FormSpy
                     subscription={{ modified: true, values: true }}
@@ -1138,7 +1140,11 @@ function DialogForm({
                     name="workflow"
                     workflowsConfig={workflowsConfig}
                     initialValue={initialWorkflow}
+                    validate={validators.required}
                     validateFields={['meta', 'workflow']}
+                    errors={{
+                      required: 'Workflow is required for this bucket.',
+                    }}
                   />
                 </PD.LeftColumn>
 
@@ -1362,7 +1368,7 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
       <DialogWrapper
         exited={exited}
         fullWidth
-        maxWidth="lg"
+        maxWidth={success ? 'sm' : 'lg'}
         onClose={close}
         onExited={handleExited}
         open={isOpen}
@@ -1388,7 +1394,7 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
         })}
       </DialogWrapper>
     ),
-    [bucket, name, isOpen, exited, close, stateCase, handleExited],
+    [bucket, name, isOpen, exited, close, stateCase, success, handleExited],
   )
 
   return React.useMemo(() => ({ open, close, render }), [open, close, render])

@@ -537,7 +537,7 @@ function PackageCreateDialog({
       }) => (
         <M.Dialog
           fullWidth
-          maxWidth="lg"
+          maxWidth={success ? 'sm' : 'lg'}
           onClose={handleClose({ submitting })}
           onExited={reset(form)}
           open={open}
@@ -611,7 +611,9 @@ function PackageCreateDialog({
 
                   <PD.Container>
                     <PD.LeftColumn>
-                      <M.Typography>Main</M.Typography>
+                      <M.Typography color={submitting ? 'textSecondary' : undefined}>
+                        Main
+                      </M.Typography>
 
                       <RF.Field
                         component={PD.PackageNameInput}
