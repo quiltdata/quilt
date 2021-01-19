@@ -812,7 +812,7 @@ function Head({ req, s3, overviewUrl, bucket, description }) {
             fallback={() => null}
           />
         </M.Box>
-        <RRLink className={classes.settings} to={urls.adminBuckets()}>
+        <RRLink className={classes.settings} to={urls.adminBuckets(bucket)}>
           <M.IconButton color="inherit">
             <M.Icon>settings</M.Icon>
           </M.IconButton>

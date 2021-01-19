@@ -2,6 +2,7 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
+import { useHistory } from 'react-router-dom'
 import * as RF from 'redux-form/es/immutable'
 import * as M from '@material-ui/core'
 
@@ -13,7 +14,9 @@ import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
+import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
+import { useRoute } from 'utils/router'
 import { useTracker } from 'utils/tracking'
 import * as validators from 'utils/validators'
 
@@ -843,6 +846,10 @@ function CRUD({ buckets }) {
   })
   const { open: openDialog, render: renderDialogs } = Dialogs.use()
 
+  const { paths, urls } = NamedRoutes.use()
+  const { location, match } = useRoute(paths.adminBuckets)
+  const history = useHistory()
+
   const toolbarActions = [
     {
       title: 'Add bucket',
@@ -871,9 +878,24 @@ function CRUD({ buckets }) {
     },
   ]
 
+  const openedBucket = React.useMemo(() => {
+    if (match && location.query && location.query.bucket) {
+      return rows.find(({ name }) => name === location.query.bucket)
+    }
+    return null
+  }, [match, location, rows])
+
+  const onBucketClose = React.useCallback(() => {
+    history.push(urls.adminBuckets())
+  }, [history, urls])
+
   return (
     <M.Paper>
       {renderDialogs({ maxWidth: 'xs', fullWidth: true })}
+      <M.Dialog open={openedBucket}>
+        {openedBucket && <Edit bucket={openedBucket} close={onBucketClose} />}
+      </M.Dialog>
+
       <Table.Toolbar heading="Buckets" actions={toolbarActions} />
       <Table.Wrapper>
         <M.Table size="small">
