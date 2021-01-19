@@ -130,7 +130,6 @@ class DocumentQueue:
             # TODO remove this; it's not meaningful since we use a different index
             # type for object vs. package documents
             "_type": "_doc",
-            # Elastic native keys
             "_id": get_id(key, version_id),
             # TODO nest fields under "document" and maybe use _type:{package, object}
             "comment": comment,
