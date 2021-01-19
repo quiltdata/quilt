@@ -513,6 +513,11 @@ function PackageCreateDialog({
 
   const [workflow, setWorkflow] = React.useState(initialWorkflow)
 
+  // FIXME: find out more elegant solution
+  React.useEffect(() => {
+    setWorkflow(initialWorkflow)
+  }, [initialWorkflow])
+
   return (
     <RF.Form
       onSubmit={uploadPackage}
