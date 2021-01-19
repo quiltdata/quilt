@@ -1007,7 +1007,7 @@ class TestIndex(TestCase):
                 "mock_object": False,
             }
         )
-
+        version_id = '1313131313131.Vier50HdNbi7ZirO65'
         append_mock.assert_has_calls([
             call(
                 'ObjectRemoved:DeleteMarkerCreated',
@@ -1019,7 +1019,7 @@ class TestIndex(TestCase):
                 last_modified=ANY,
                 size=0,
                 text='',
-                version_id='1313131313131.Vier50HdNbi7ZirO65',
+                version_id=version_id,
             ),
             call(
                 'ObjectRemoved:DeleteMarkerCreated',
@@ -1032,10 +1032,10 @@ class TestIndex(TestCase):
                 key=pointer_key,
                 last_modified=ANY,
                 metadata='{}',
-                package_hash=str(timestamp),
+                package_hash=index._hash(pointer_key, version_id),
                 package_stats=None,
                 pointer_file=timestamp,
-                version_id='1313131313131.Vier50HdNbi7ZirO65',
+                version_id=version_id,
             )
         ])
         assert append_mock.call_count == 2
@@ -1289,7 +1289,8 @@ class TestIndex(TestCase):
                 "mock_head": False
             }
         )
-
+        key = ".quilt/named_packages/author/semantic/latest"
+        version_id = "wcOZpjy5G.tJ2N.rwPhiR.NY_RftJ3A_"
         append_mock.assert_has_calls([
             call(
                 "ObjectCreated:Put",
@@ -1297,11 +1298,11 @@ class TestIndex(TestCase):
                 bucket="test-bucket",
                 etag="123456",
                 ext="",
-                key=".quilt/named_packages/author/semantic/latest",
+                key=key,
                 last_modified="2020-05-22T00:32:20.515Z",
                 size=64,
                 text="",
-                version_id="wcOZpjy5G.tJ2N.rwPhiR.NY_RftJ3A_",
+                version_id=version_id,
             ),
             call(
                 "ObjectCreated:Put",
@@ -1311,13 +1312,13 @@ class TestIndex(TestCase):
                 etag="123456",
                 ext="",
                 handle="author/semantic",
-                key=".quilt/named_packages/author/semantic/latest",
+                key=key,
                 last_modified="2020-05-22T00:32:20.515Z",
                 metadata="{}",
-                package_hash="latest",
+                package_hash=index._hash(key, version_id),
                 package_stats=None,
                 pointer_file="latest",
-                version_id="wcOZpjy5G.tJ2N.rwPhiR.NY_RftJ3A_",
+                version_id=version_id,
             ),
         ])
         assert append_mock.call_count == 2, "Expected: .append(as_manifest) .append(as_file)"

@@ -50,6 +50,7 @@ import datetime
 import json
 import pathlib
 import re
+from hashlib import sha256
 from os.path import split
 from typing import Optional
 from urllib.parse import unquote, unquote_plus
@@ -272,6 +273,13 @@ def do_index(
         logger_.debug("%s indexed as package (%s)", key, event_type)
 
 
+def _hash(key, version_id):
+    """guarantee primary key uniqueness for package delete (marker) documents"""
+    full_string = key + (version_id or '')
+    # in testing sha256 is not slower than MD5, so go with higher entropy
+    return sha256(full_string.encode()).hexdigest()
+
+
 def index_if_package(
         s3_client,
         doc_queue: DocumentQueue,
@@ -349,8 +357,8 @@ def index_if_package(
         handle=handle,
         key=key,
         last_modified=last_modified,
-        # if we don't have the hash, we're processing a tag
-        package_hash=(package_hash or pointer_file),
+        # a hard delete might not have a version_id or a package_hash
+        package_hash=(package_hash or _hash(key, version_id)),
         package_stats=stats,
         pointer_file=pointer_file,
         comment=str(first_dict.get("message", "")),
