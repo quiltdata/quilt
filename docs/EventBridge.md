@@ -82,8 +82,7 @@ that you created above.
 ARN under "Indexing and notifications". 
     ![](./imgs/quilt-eventbridge.png)
     Now Quilt will receive events directly from EventBridge and does not require S3 event notifications.
-1. Re-index the bucket using the Re-Index and Repair button, but be sure **not** to check the Repair checkbox,
-as this would attempt to create a new S3 event notification.
+1. Re-index the bucket using the Re-Index and Repair button, but be sure **not** to check the Repair checkbox, as this would attempt to create a new S3 event notification.
 
 ### Known issues (EventBridge)
 
