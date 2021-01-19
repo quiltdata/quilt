@@ -336,6 +336,8 @@ export default function JsonEditorState({ children, jsonObject, optSchema }) {
       //       because it's imposible to have `{ [newKey]: Symbol('empty') }` object
       sortCounter.current += 1
 
+      // FIXME: sorting doesn't work
+      //        repro: add {aaa: 123} then { 123: 123 }
       const newKeyPath = addFieldPath.concat([key])
       return assocObjValue(newKeyPath, value, jsonObject)
     },
