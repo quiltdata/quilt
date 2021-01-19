@@ -48,9 +48,11 @@ def _hash(s):
     # in testing sha256 is not slower than MD5, so go with higher entropy
     return sha256(s.encode()).hexdigest()
 
+
 def get_id(key, version_id):
     """guarantee primary key uniqueness for package delete (marker) documents"""
     return _hash(key) + _hash(version_id)
+
 
 # pylint: disable=super-init-not-called
 class RetryError(Exception):
