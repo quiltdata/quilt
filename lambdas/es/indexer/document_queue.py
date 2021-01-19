@@ -43,6 +43,18 @@ QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
 RETRY_429 = 3
 
 
+def get_id(key, version_id):
+    """
+    Generate unique value for every object in the bucket to be used as
+    document `_id`. This value must not exceed 512 bytes in size:
+    https://www.elastic.co/guide/en/elasticsearch/reference/7.10/mapping-id-field.html.
+    # TODO: both object key and version ID are up to 1024 bytes long, so
+    # we need to use something like `_hash(key) + _hash(version_id)` to
+    # overcome the mentioned size restriction.
+    """
+    return f"{key}:{version_id}"
+
+
 # pylint: disable=super-init-not-called
 class RetryError(Exception):
     """Fatal and final error if docs fail after multiple retries"""
@@ -124,6 +136,7 @@ class DocumentQueue:
             # TODO remove this; it's not meaningful since we use a different index
             # type for object vs. package documents
             "_type": "_doc",
+            "_id": get_id(key, version_id),
             # TODO nest fields under "document" and maybe use _type:{package, object}
             "comment": comment,
             "etag": etag,
@@ -146,7 +159,6 @@ class DocumentQueue:
             ):
                 raise ValueError("Malformed package_stats")
             body.update({
-                "_id": f"{handle}:{package_hash}",
                 "handle": handle,
                 "hash": package_hash,
                 "metadata": metadata,
@@ -159,8 +171,6 @@ class DocumentQueue:
                 })
         elif doc_type == DocTypes.OBJECT:
             body.update({
-                # Elastic native keys
-                "_id": f"{key}:{version_id}",
                 # TODO: remove this field from ES in /enterprise (now deprecated and unused)
                 # here we explicitly drop the comment
                 "comment": "",
