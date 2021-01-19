@@ -19,6 +19,7 @@ import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
+import MetaInputErrorHelper from './MetaInputErrorHelper'
 import SelectWorkflow from './SelectWorkflow'
 
 export const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
@@ -162,16 +163,14 @@ function mkMetaValidator(schema) {
 
     const jsonObjectErr = validators.jsonObject(value.text)
     if (jsonObjectErr) {
-      return value.mode === 'json'
-        ? jsonObjectErr
-        : [{ message: 'Metadata must be a valid JSON object' }]
+      return new Error('Metadata must be a valid JSON object')
     }
 
     if (schema) {
       const obj = value ? parseJSON(value.text) : {}
       const errors = schemaValidator(obj)
       if (!errors.length) return noError
-      return value.mode === 'json' ? 'schema' : errors
+      return errors
     }
 
     return noError
@@ -286,6 +285,9 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     paddingRight: 7,
     paddingTop: 0,
   },
+  errors: {
+    marginTop: t.spacing(1),
+  },
   jsonInput: {
     fontFamily: t.typography.monospace.fontFamily,
     '&::placeholder': {
@@ -352,7 +354,7 @@ export function MetaInput({
   schema,
 }) {
   const classes = useMetaInputStyles()
-  const error = schemaError ? [schemaError] : meta.submitFailed && meta.error
+  const error = schemaError || ((meta.modified || meta.submitFailed) && meta.error)
   const disabled = meta.submitting || meta.submitSucceeded
 
   const parsedValue = React.useMemo(() => {
@@ -453,7 +455,6 @@ export function MetaInput({
       <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
         {value.mode === 'kv' ? (
           <JsonEditor
-            error={error}
             disabled={disabled}
             value={parsedValue}
             onChange={onJsonEditor}
@@ -466,22 +467,17 @@ export function MetaInput({
             size="small"
             value={value.text}
             onChange={handleTextChange}
-            placeholder="Enter JSON metadata if necessary"
             error={!!error}
-            helperText={
-              !!error &&
-              {
-                jsonObject: 'Metadata must be a valid JSON object',
-                schema: 'Metadata must conform to the schema',
-              }[error]
-            }
             fullWidth
             multiline
+            placeholder="Enter JSON metadata if necessary"
             rowsMax={10}
             InputProps={{ classes: { input: classes.jsonInput } }}
             disabled={disabled}
           />
         )}
+
+        <MetaInputErrorHelper className={classes.errors} error={error} />
 
         {(isDragActive || locked) && (
           <div className={classes.overlay}>
