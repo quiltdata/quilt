@@ -112,7 +112,7 @@ export default function JsonEditorStateWrapper({
   value,
 }) {
   return (
-    <State obj={value} optSchema={schema}>
+    <State jsonObject={value} optSchema={schema}>
       {(props) => (
         <JsonEditor
           {...{

@@ -235,11 +235,8 @@ export function mergeSchemaAndObjRootKeys(schema, obj) {
   return R.uniq([...schemaKeys, ...objKeys])
 }
 
-export default function JsonEditorState({ children, obj, optSchema }) {
+export default function JsonEditorState({ children, jsonObject, optSchema }) {
   const schema = optSchema || EMPTY_SCHEMA
-
-  // NOTE: data stores actual JSON object
-  const data = obj
 
   // NOTE: fieldPath is like URL for editor columns
   //       `['a', 0, 'b']` means we are focused to `{ a: [ { b: %HERE% }, ... ], ... }`
@@ -260,28 +257,32 @@ export default function JsonEditorState({ children, obj, optSchema }) {
   ])
 
   // NOTE: list of root object keys + root schema keys
-  const rootKeys = React.useMemo(() => mergeSchemaAndObjRootKeys(schema, data), [
+  const rootKeys = React.useMemo(() => mergeSchemaAndObjRootKeys(schema, jsonObject), [
     schema,
-    data,
+    jsonObject,
   ])
 
   // NOTE: this data represents table columns shown to user
   //       it's the main source of UI data
   const columns = React.useMemo(
-    () => iterateJsonDict(jsonDict, data, fieldPath, rootKeys),
-    [data, jsonDict, fieldPath, rootKeys],
+    () => iterateJsonDict(jsonDict, jsonObject, fieldPath, rootKeys),
+    [jsonObject, jsonDict, fieldPath, rootKeys],
   )
 
   const schemaValidator = React.useMemo(() => makeSchemaValidator(schema), [schema])
 
   const changeType = React.useCallback(
     (contextFieldPath, columnId, typeOf) => {
-      const value = R.path(contextFieldPath, data)
-      const newData = R.assocPath(contextFieldPath, convertType(value, typeOf), data)
+      const value = R.path(contextFieldPath, jsonObject)
+      const newData = R.assocPath(
+        contextFieldPath,
+        convertType(value, typeOf),
+        jsonObject,
+      )
       setErrors(schemaValidator(newData))
       return newData
     },
-    [data, schemaValidator],
+    [jsonObject, schemaValidator],
   )
 
   const makeAction = React.useCallback(
@@ -300,11 +301,11 @@ export default function JsonEditorState({ children, obj, optSchema }) {
 
   const removeField = React.useCallback(
     (removingFieldPath) => {
-      const newData = dissocObjValue(removingFieldPath, data)
+      const newData = dissocObjValue(removingFieldPath, jsonObject)
       setErrors(schemaValidator(newData))
       return newData
     },
-    [data, schemaValidator],
+    [jsonObject, schemaValidator],
   )
 
   const changeValue = React.useCallback(
@@ -313,20 +314,20 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       // TODO: make this `safeStr` conversion inside component
       const safeStr = str === EMPTY_VALUE ? '' : str
       if (columnId === COLUMN_IDS.KEY) {
-        const newData = moveObjValue(editingFieldPath, safeStr, data)
+        const newData = moveObjValue(editingFieldPath, safeStr, jsonObject)
         setErrors(schemaValidator(newData))
         return newData
       }
 
       if (columnId === COLUMN_IDS.VALUE) {
-        const newData = assocObjValue(editingFieldPath, safeStr, data)
+        const newData = assocObjValue(editingFieldPath, safeStr, jsonObject)
         setErrors(schemaValidator(newData))
         return newData
       }
 
-      return data
+      return jsonObject
     },
-    [data, schemaValidator],
+    [jsonObject, schemaValidator],
   )
 
   const addRow = React.useCallback(
@@ -336,9 +337,9 @@ export default function JsonEditorState({ children, obj, optSchema }) {
       sortCounter.current += 1
 
       const newKeyPath = addFieldPath.concat([key])
-      return assocObjValue(newKeyPath, value, data)
+      return assocObjValue(newKeyPath, value, jsonObject)
     },
-    [data, sortCounter],
+    [jsonObject, sortCounter],
   )
 
   return children({
