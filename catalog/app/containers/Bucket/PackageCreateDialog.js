@@ -521,6 +521,10 @@ function PackageCreateDialog({
   const [workflow, setWorkflow] = React.useState(initialWorkflow)
 
   const user = redux.useSelector(selectUser)
+  const username = React.useMemo(
+    () => (user.name.includes('@') ? user.name.split('@')[0] : user.name),
+    [user],
+  )
 
   return (
     <RF.Form
@@ -626,7 +630,7 @@ function PackageCreateDialog({
 
                       <RF.Field
                         component={PD.PackageNameInput}
-                        initialValue={`${user.name}/`}
+                        initialValue={`${username}/`}
                         name="name"
                         validate={validators.composeAsync(
                           validators.required,
