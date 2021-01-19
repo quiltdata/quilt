@@ -3,6 +3,7 @@ sending to elastic search in memory-limited batches"""
 import os
 from datetime import datetime
 from enum import Enum
+from hashlib import sha256
 from math import floor
 from typing import Dict, List
 
@@ -42,6 +43,14 @@ MAX_RETRY = 2  # prevent long-running lambdas due to malformed calls
 QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
 RETRY_429 = 3
 
+
+def _hash(s):
+    # in testing sha256 is not slower than MD5, so go with higher entropy
+    return sha256(s.encode()).hexdigest()
+
+def get_id(key, version_id):
+    """guarantee primary key uniqueness for package delete (marker) documents"""
+    return _hash(key) + _hash(version_id)
 
 # pylint: disable=super-init-not-called
 class RetryError(Exception):
@@ -124,6 +133,8 @@ class DocumentQueue:
             # TODO remove this; it's not meaningful since we use a different index
             # type for object vs. package documents
             "_type": "_doc",
+            # Elastic native keys
+            "_id": get_id(key, version_id),
             # TODO nest fields under "document" and maybe use _type:{package, object}
             "comment": comment,
             "etag": etag,
@@ -146,7 +157,6 @@ class DocumentQueue:
             ):
                 raise ValueError("Malformed package_stats")
             body.update({
-                "_id": f"{handle}:{package_hash}",
                 "handle": handle,
                 "hash": package_hash,
                 "metadata": metadata,
@@ -159,8 +169,6 @@ class DocumentQueue:
                 })
         elif doc_type == DocTypes.OBJECT:
             body.update({
-                # Elastic native keys
-                "_id": f"{key}:{version_id}",
                 # TODO: remove this field from ES in /enterprise (now deprecated and unused)
                 # here we explicitly drop the comment
                 "comment": "",
