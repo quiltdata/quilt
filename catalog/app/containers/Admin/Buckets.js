@@ -860,8 +860,9 @@ function CRUD({ buckets }) {
     },
   ]
 
-  const edit = (bucket) => () =>
-    openDialog(({ close }) => <Edit {...{ bucket, close }} />)
+  const edit = (bucket) => () => {
+    history.push(urls.adminBuckets(bucket.name))
+  }
 
   const inlineActions = (bucket) => [
     {
@@ -878,7 +879,7 @@ function CRUD({ buckets }) {
     },
   ]
 
-  const openedBucket = React.useMemo(() => {
+  const editingBucket = React.useMemo(() => {
     if (match && location.query && location.query.bucket) {
       return rows.find(({ name }) => name === location.query.bucket)
     }
@@ -892,8 +893,8 @@ function CRUD({ buckets }) {
   return (
     <M.Paper>
       {renderDialogs({ maxWidth: 'xs', fullWidth: true })}
-      <M.Dialog open={openedBucket}>
-        {openedBucket && <Edit bucket={openedBucket} close={onBucketClose} />}
+      <M.Dialog open={!!editingBucket}>
+        {editingBucket && <Edit bucket={editingBucket} close={onBucketClose} />}
       </M.Dialog>
 
       <Table.Toolbar heading="Buckets" actions={toolbarActions} />
