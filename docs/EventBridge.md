@@ -19,16 +19,16 @@ from S3
 
 ## EventBridge workaround
 
-Suppose you wish to add the bucket `X` to Quilt and use `X` with FSx "always on".
+Suppose you wish to add the bucket `Bucket` to Quilt and use `Bucket` with FSx "always on".
 FSx will consume the S3 event notifications. So you can use EventBridge to send
 similar notifications to Quilt, thus circumventing the need for Quilt to rely 
 directly on S3 event notifications.
 
 You may of course script the following steps. See
 
-1. Create an SNS topic in the same region as `X` 
-1. Add `X` to a CloudTrail
-1. Create an EventBridge Rule in the same region as `X`
+1. Create an SNS topic in the same region as `Bucket` 
+1. Add `Bucket` to a CloudTrail
+1. Create an EventBridge Rule in the same region as `Bucket`
 1. Create an Event Pattern using Pre-defined pattern by service > AWS > S3
 1. Set Event type to "Specific operation(s)" and select the following:
    * PutObject
@@ -36,7 +36,7 @@ You may of course script the following steps. See
    * CompleteMultipartUpload
    * DeleteObject
    * DeleteObjects
-1. Select "Specific bucket(s) by name" and specify `X`
+1. Select "Specific bucket(s) by name" and specify `Bucket`
     ![](./imgs/event-pattern.png)
 1. Now we specify the event Target. You will target the SNS topic
 that you created above.
@@ -78,9 +78,30 @@ that you created above.
     }
     ```
 1. Save the Rule.
-1. In the Quilt Admin Panel, under Buckets, add `X` and/or set the SNS Topic
+1. In the Quilt Admin Panel, under Buckets, add `Bucket` and/or set the SNS Topic
 ARN under "Indexing and notifications". 
     ![](./imgs/quilt-eventbridge.png)
 
 Now Quilt will receive events directly from EventBridge and does not require
-native S3 event notifications of any kind.
+S3 event notifications.
+
+### Known issues (EventBridge)
+
+1. As of this writing, the `delete-objects` API, which is also invoked when deleting objects with AWS console, is not compatible with the EventBridge workaround.
+Unlike native S3 events, `delete-objects` does not generate individual
+`delete-object` notifications for each object that has been deleted.
+
+
+### Known issues (General)
+
+1. Object lifecycle deletes are neither supported by S3 Events nor Quilt per
+[AWS Supported Event Types](https://docs.aws.amazon.com/AmazonS3/latest/userguide/notification-how-to-event-types-and-destinations.title.html)
+
+    > You do not receive event notifications from automatic deletes from lifecycle policies
+    > or from failed operations.
+
+    Furthermore per
+    [Lifecycle and Logging](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-and-other-bucket-config.html#lifecycle-general-considerations-logging):
+    >  Amazon S3 Lifecycle actions are not captured by AWS CloudTrail object level
+    > logging. CloudTrail captures API requests made to external Amazon S3 endpoints,
+    > whereas S3 Lifecycle actions are performed using internal Amazon S3 endpoints.
