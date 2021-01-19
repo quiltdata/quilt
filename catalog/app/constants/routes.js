@@ -144,5 +144,5 @@ export const admin = {
 export const adminUsers = admin
 export const adminBuckets = {
   path: '/admin/buckets',
-  url: (bucket) => (bucket ? `/admin/buckets${mkSearch({ bucket })}` : '/admin/buckets'),
+  url: (bucket) => `/admin/buckets${mkSearch({ bucket })}`,
 }

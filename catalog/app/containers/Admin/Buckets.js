@@ -15,8 +15,8 @@ import * as Config from 'utils/Config'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import parseSearch from 'utils/parseSearch'
 import * as Cache from 'utils/ResourceCache'
-import { useRoute } from 'utils/router'
 import { useTracker } from 'utils/tracking'
 import * as validators from 'utils/validators'
 
@@ -838,7 +838,7 @@ const columns = [
   },
 ]
 
-function CRUD({ buckets }) {
+function CRUD({ bucketName, buckets }) {
   const rows = Cache.suspend(buckets)
   const ordering = Table.useOrdering({ rows, column: columns[0] })
   const pagination = Pagination.use(ordering.ordered, {
@@ -846,8 +846,7 @@ function CRUD({ buckets }) {
   })
   const { open: openDialog, render: renderDialogs } = Dialogs.use()
 
-  const { paths, urls } = NamedRoutes.use()
-  const { location, match } = useRoute(paths.adminBuckets)
+  const { urls } = NamedRoutes.use()
   const history = useHistory()
 
   const toolbarActions = [
@@ -879,12 +878,10 @@ function CRUD({ buckets }) {
     },
   ]
 
-  const editingBucket = React.useMemo(() => {
-    if (match && location.query && location.query.bucket) {
-      return rows.find(({ name }) => name === location.query.bucket)
-    }
-    return null
-  }, [match, location, rows])
+  const editingBucket = React.useMemo(
+    () => (bucketName ? rows.find(({ name }) => name === bucketName) : null),
+    [bucketName, rows],
+  )
 
   const onBucketClose = React.useCallback(() => {
     history.push(urls.adminBuckets())
@@ -893,7 +890,8 @@ function CRUD({ buckets }) {
   return (
     <M.Paper>
       {renderDialogs({ maxWidth: 'xs', fullWidth: true })}
-      <M.Dialog open={!!editingBucket}>
+
+      <M.Dialog open={!!editingBucket} fullWidth maxWidth="xs">
         {editingBucket && <Edit bucket={editingBucket} close={onBucketClose} />}
       </M.Dialog>
 
@@ -931,7 +929,8 @@ function CRUD({ buckets }) {
   )
 }
 
-export default function Buckets() {
+export default function Buckets({ location }) {
+  const { bucket } = parseSearch(location.search)
   const req = APIConnector.use()
   const buckets = Cache.useData(data.BucketsResource, { req })
   return (
@@ -944,7 +943,7 @@ export default function Buckets() {
           </M.Paper>
         }
       >
-        <CRUD buckets={buckets} />
+        <CRUD bucketName={bucket} buckets={buckets} />
       </React.Suspense>
     </M.Box>
   )
