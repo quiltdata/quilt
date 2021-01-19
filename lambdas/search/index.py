@@ -202,12 +202,12 @@ def lambda_handler(request):
         }
         size = 0
         _source = False
-        filter_path = ','.join([
+        filter_path = (
             'took',
             'timed_out',
             'hits.total',
-            'aggregations.objects.buckets.latest.hits.hits._source'
-        ])
+            'aggregations.objects.buckets.latest.hits.hits._source',
+        )
     elif action == 'sample':
         body = {
             'query': {
@@ -223,12 +223,12 @@ def lambda_handler(request):
         }
         size = NUM_PREVIEW_FILES
         _source = False
-        filter_path = ','.join([
+        filter_path = (
             'took',
             'timed_out',
             'hits.total',
             'aggregations.objects.buckets.latest.hits.hits._source',
-        ])
+        )
     else:
         return make_json_response(400, {"title": "Invalid action"})
 
