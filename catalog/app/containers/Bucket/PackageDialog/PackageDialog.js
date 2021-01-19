@@ -381,8 +381,6 @@ export function MetaInput({
 
   const { push: notify } = Notifications.use()
   const [locked, setLocked] = React.useState(false)
-  // used to force json editor re-initialization
-  const [jsonEditorKey, setJsonEditorKey] = React.useState(1)
 
   const onDrop = React.useCallback(
     ([file]) => {
@@ -399,13 +397,12 @@ export function MetaInput({
       readFile(file)
         .then((contents) => {
           try {
-            JSON.parse(contents)
+            const json = JSON.parse(contents)
+            onJsonEditor(json)
           } catch (e) {
             notify('The file does not contain valid JSON')
+            changeText(contents)
           }
-          changeText(contents)
-          // force json editor to re-initialize
-          setJsonEditorKey(R.inc)
         })
         .catch((e) => {
           if (e.message === 'abort') return
@@ -419,7 +416,7 @@ export function MetaInput({
           setLocked(false)
         })
     },
-    [setLocked, changeText, setJsonEditorKey, notify],
+    [setLocked, changeText, onJsonEditor, notify],
   )
 
   const { getRootProps, isDragActive } = useDropzone({ onDrop })
@@ -451,7 +448,6 @@ export function MetaInput({
             value={value.obj}
             onChange={onJsonEditor}
             schema={schema}
-            key={jsonEditorKey}
           />
         ) : (
           <M.TextField

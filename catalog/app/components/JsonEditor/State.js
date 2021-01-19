@@ -307,10 +307,8 @@ function removeFieldReducer(removingFieldPath, { data, jsonDict, rootKeys }) {
 export default function JsonEditorState({ children, obj, optSchema }) {
   const schema = optSchema || EMPTY_SCHEMA
 
-  // TODO: use function syntax and Ramda currying for setData((prevState) => RamdaCurryFunc(prevState))
-
   // NOTE: data stores actual JSON object
-  const [data, setData] = React.useState(obj)
+  const data = obj
 
   // NOTE: fieldPath is like URL for editor columns
   //       `['a', 0, 'b']` means we are focused to `{ a: [ { b: %HERE% }, ... ], ... }`
@@ -325,14 +323,16 @@ export default function JsonEditorState({ children, obj, optSchema }) {
 
   // NOTE: stores additional info about every object field besides value, like sortIndex, schema etc.
   //       it's a main source of data after actual JSON object
-  const [jsonDict, setJsonDict] = React.useState(() =>
-    iterateSchema(schema, sortCounter, [], {}),
-  )
+  const jsonDict = React.useMemo(() => iterateSchema(schema, sortCounter, [], {}), [
+    schema,
+    sortCounter,
+  ])
 
   // NOTE: list of root object keys + root schema keys
-  const [rootKeys, setRootKeys] = React.useState(() =>
-    mergeSchemaAndObjRootKeys(schema, obj),
-  )
+  const rootKeys = React.useMemo(() => mergeSchemaAndObjRootKeys(schema, data), [
+    schema,
+    data,
+  ])
 
   // NOTE: this data represents table columns shown to user
   //       it's the main source of UI data
@@ -347,7 +347,6 @@ export default function JsonEditorState({ children, obj, optSchema }) {
     (contextFieldPath, columnId, typeOf) => {
       const value = R.path(contextFieldPath, data)
       const newData = R.assocPath(contextFieldPath, convertType(value, typeOf), data)
-      setData(newData)
       setErrors(schemaValidator(newData))
       return newData
     },
@@ -375,13 +374,10 @@ export default function JsonEditorState({ children, obj, optSchema }) {
         jsonDict,
         rootKeys,
       })
-      setRootKeys(newState.rootKeys)
-      setJsonDict(newState.jsonDict)
-      setData(newState.data)
       setErrors(schemaValidator(newState.data))
       return newState.data
     },
-    [data, schemaValidator, setRootKeys, rootKeys, jsonDict],
+    [data, schemaValidator, rootKeys, jsonDict],
   )
 
   const changeValue = React.useCallback(
@@ -395,9 +391,6 @@ export default function JsonEditorState({ children, obj, optSchema }) {
           jsonDict,
           rootKeys,
         })
-        setRootKeys(newState.rootKeys)
-        setJsonDict(newState.jsonDict)
-        setData(newState.data)
         setErrors(schemaValidator(newState.data))
         return newState.data
       }
@@ -408,16 +401,13 @@ export default function JsonEditorState({ children, obj, optSchema }) {
           jsonDict,
           rootKeys,
         })
-        setRootKeys(newState.rootKeys)
-        setJsonDict(newState.jsonDict)
-        setData(newState.data)
         setErrors(schemaValidator(newState.data))
         return newState.data
       }
 
       return data
     },
-    [data, schemaValidator, setJsonDict, jsonDict, setRootKeys, rootKeys],
+    [data, schemaValidator, jsonDict, rootKeys],
   )
 
   const addRow = React.useCallback(
@@ -432,13 +422,9 @@ export default function JsonEditorState({ children, obj, optSchema }) {
         rootKeys,
       })
 
-      setRootKeys(newState.rootKeys)
-      setJsonDict(newState.jsonDict)
-      setData(newState.data)
-
       return newState.data
     },
-    [data, jsonDict, rootKeys, setData, setJsonDict, setRootKeys, sortCounter],
+    [data, jsonDict, rootKeys, sortCounter],
   )
 
   return children({

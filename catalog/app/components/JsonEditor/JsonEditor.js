@@ -68,6 +68,16 @@ function JsonEditor({
     [changeValue, onChange],
   )
 
+  const onAddRowInternal = React.useCallback(
+    (...args) => {
+      const newData = addRow(...args)
+      if (newData) {
+        onChange(newData)
+      }
+    },
+    [addRow, onChange],
+  )
+
   const columnData = R.last(columns)
 
   return (
@@ -79,7 +89,7 @@ function JsonEditor({
             data: columnData,
             jsonDict,
             key: fieldPath,
-            onAddRow: addRow,
+            onAddRow: onAddRowInternal,
             onBreadcrumb: setFieldPath,
             onExpand: setFieldPath,
             onMenuAction,
