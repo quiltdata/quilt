@@ -379,6 +379,7 @@ function PackageCreateDialog({
     nameValidator.inc()
     nameExistence.inc()
     setNameWarning(defaultNameWarning)
+    setWorkflow(initialWorkflow)
   }
 
   const handleClose = ({ submitting = false } = {}) => () => {
