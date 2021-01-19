@@ -3,7 +3,6 @@ sending to elastic search in memory-limited batches"""
 import os
 from datetime import datetime
 from enum import Enum
-from hashlib import sha256
 from math import floor
 from typing import Dict, List
 
@@ -44,14 +43,10 @@ QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
 RETRY_429 = 3
 
 
-def _hash(s):
-    # in testing sha256 is not slower than MD5, so go with higher entropy
-    return sha256(s.encode()).hexdigest()
-
-
 def get_id(key, version_id):
     """guarantee primary key uniqueness for package delete (marker) documents"""
-    return _hash(key) + _hash(version_id)
+    # TODO: use smth like _hash(key) + _hash(version_id) for ids to overcome field length resctriction (512 bytes)
+    return f"{key}:{version_id}"
 
 
 # pylint: disable=super-init-not-called
