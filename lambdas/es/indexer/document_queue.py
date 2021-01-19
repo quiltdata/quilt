@@ -45,7 +45,7 @@ RETRY_429 = 3
 
 def get_id(key, version_id):
     """guarantee primary key uniqueness for package delete (marker) documents"""
-    # TODO: use smth like _hash(key) + _hash(version_id) for ids to overcome field length resctriction (512 bytes)
+    # TODO: use smth like _hash(key) + _hash(version_id) for ids to overcome [512 bytes length restriction](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/mapping-id-field.html)
     return f"{key}:{version_id}"
 
 
