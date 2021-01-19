@@ -3,8 +3,8 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { EMPTY_SCHEMA } from 'utils/json-schema'
 import Column from './Column'
-import Errors from './Errors'
 import State from './State'
 
 const useStyles = M.makeStyles((t) => ({
@@ -22,9 +22,6 @@ const useStyles = M.makeStyles((t) => ({
       zIndex: 1,
     },
   },
-  errors: {
-    marginTop: t.spacing(1),
-  },
   inner: {
     display: 'flex',
     maxHeight: t.spacing(42),
@@ -39,8 +36,6 @@ function JsonEditor({
   disabled,
   columns,
   jsonDict,
-  error,
-  errors,
   fieldPath,
   makeAction,
   onChange,
@@ -77,8 +72,6 @@ function JsonEditor({
           }}
         />
       </div>
-
-      <Errors className={classes.errors} errors={error || errors} />
     </div>
   )
 }
@@ -86,19 +79,19 @@ function JsonEditor({
 export default function JsonEditorStateWrapper({
   className,
   disabled,
-  error,
   onChange,
-  schema,
+  schema: optSchema,
   value,
 }) {
+  const schema = optSchema || EMPTY_SCHEMA
+
   return (
-    <State jsonObject={value} optSchema={schema}>
+    <State jsonObject={value} schema={schema}>
       {(props) => (
         <JsonEditor
           {...{
             className,
             disabled,
-            error,
             onChange,
           }}
           {...props}
