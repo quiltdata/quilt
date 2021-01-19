@@ -199,7 +199,7 @@ function BucketFields({ add = false, reindex }) {
             margin="normal"
             multiline
             rows={1}
-            maxRows={3}
+            rowsMax={3}
           />
           <RF.Field
             component={Form.Field}
