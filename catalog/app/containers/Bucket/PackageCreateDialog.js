@@ -6,12 +6,15 @@ import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import { Link } from 'react-router-dom'
+import * as redux from 'react-redux'
+import { createStructuredSelector } from 'reselect'
 import * as M from '@material-ui/core'
 
-import { useData } from 'utils/Data'
+import * as authSelectors from 'containers/Auth/selectors'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
+import { useData } from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
@@ -353,6 +356,10 @@ const getTotalProgress = R.pipe(
 
 const defaultNameWarning = ' ' // Reserve space for warning
 
+const selectUser = createStructuredSelector({
+  name: authSelectors.username,
+})
+
 function PackageCreateDialog({
   bucket,
   open,
@@ -487,8 +494,8 @@ function PackageCreateDialog({
   }
 
   const onFormChange = React.useCallback(
-    async ({ modified, values }) => {
-      if (!modified.name) return
+    async ({ dirtyFields, values }) => {
+      if (!dirtyFields.name) return
 
       const { name } = values
 
@@ -512,6 +519,8 @@ function PackageCreateDialog({
   )
 
   const [workflow, setWorkflow] = React.useState(initialWorkflow)
+
+  const user = redux.useSelector(selectUser)
 
   return (
     <RF.Form
@@ -596,7 +605,7 @@ function PackageCreateDialog({
               <M.DialogContent style={{ paddingTop: 0 }}>
                 <form onSubmit={handleSubmit}>
                   <RF.FormSpy
-                    subscription={{ modified: true, values: true }}
+                    subscription={{ dirtyFields: true, values: true }}
                     onChange={onFormChange}
                   />
 
@@ -617,6 +626,7 @@ function PackageCreateDialog({
 
                       <RF.Field
                         component={PD.PackageNameInput}
+                        initialValue={`${user.name}/`}
                         name="name"
                         validate={validators.composeAsync(
                           validators.required,
