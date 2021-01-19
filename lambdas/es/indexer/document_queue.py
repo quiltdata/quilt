@@ -45,11 +45,11 @@ RETRY_429 = 3
 
 def get_id(key, version_id):
     """
-    Generate unique value for every object in the bucket to be used as 
+    Generate unique value for every object in the bucket to be used as
     document `_id`. This value must not exceed 512 bytes in size:
     https://www.elastic.co/guide/en/elasticsearch/reference/7.10/mapping-id-field.html.
-    # TODO: both object key and version ID are up to 1024 bytes long, so 
-    # we need to use something like `_hash(key) + _hash(version_id)` to 
+    # TODO: both object key and version ID are up to 1024 bytes long, so
+    # we need to use something like `_hash(key) + _hash(version_id)` to
     # overcome the mentioned size restriction.
     """
     return f"{key}:{version_id}"
