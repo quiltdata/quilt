@@ -396,7 +396,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
         .then(
           R.pipe(
             (r) => JSON.parse(r.Body.toString('utf-8')),
-            R.path(['aggregations', 'other', 'keys', 'buckets']),
+            R.pathOr([], ['aggregations', 'other', 'keys', 'buckets']),
             R.map((b) => ({
               bucket,
               key: b.key,
@@ -424,7 +424,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
     try {
       return await req('/search', { action: 'sample', index: bucket }).then(
         R.pipe(
-          R.path(['aggregations', 'objects', 'buckets']),
+          R.pathOr([], ['aggregations', 'objects', 'buckets']),
           R.map((h) => {
             // eslint-disable-next-line no-underscore-dangle
             const s = h.latest.hits.hits[0]._source
@@ -498,7 +498,7 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
         .then(
           R.pipe(
             (r) => JSON.parse(r.Body.toString('utf-8')),
-            R.path(['aggregations', 'images', 'keys', 'buckets']),
+            R.pathOr([], ['aggregations', 'images', 'keys', 'buckets']),
             R.map((b) => ({
               bucket,
               key: b.key,
@@ -518,7 +518,7 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
     try {
       return await req('/search', { action: 'images', index: bucket }).then(
         R.pipe(
-          R.path(['aggregations', 'objects', 'buckets']),
+          R.pathOr([], ['aggregations', 'objects', 'buckets']),
           R.map((h) => {
             // eslint-disable-next-line no-underscore-dangle
             const s = h.latest.hits.hits[0]._source
