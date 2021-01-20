@@ -379,6 +379,7 @@ function PackageCreateDialog({
     nameValidator.inc()
     nameExistence.inc()
     setNameWarning(defaultNameWarning)
+    setWorkflow(null)
   }
 
   const handleClose = ({ submitting = false } = {}) => () => {
@@ -511,7 +512,7 @@ function PackageCreateDialog({
     [workflowsConfig],
   )
 
-  const [workflow, setWorkflow] = React.useState(initialWorkflow)
+  const [workflow, setWorkflow] = React.useState(null)
 
   return (
     <RF.Form
@@ -642,7 +643,11 @@ function PackageCreateDialog({
                       />
 
                       <PD.SchemaFetcher
-                        schemaUrl={R.pathOr('', ['schema', 'url'], workflow)}
+                        schemaUrl={R.pathOr(
+                          '',
+                          ['schema', 'url'],
+                          workflow || initialWorkflow,
+                        )}
                       >
                         {AsyncResult.case({
                           Ok: ({ responseError, schema, validate }) => (
