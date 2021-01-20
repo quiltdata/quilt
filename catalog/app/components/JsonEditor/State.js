@@ -72,12 +72,6 @@ const dissocObjValue = R.dissocPath
 
 // NOTE: memo is mutated, sortOrder is React.ref and mutated too
 export function iterateSchema(schema, sortOrder, parentPath, memo) {
-  if (R.isEmpty(memo)) {
-    // It's rerendering component
-    // eslint-disable-next-line no-param-reassign
-    sortOrder.current.counter = 0
-  }
-
   if (!schema.properties) return memo
 
   const requiredKeys = schema.required
@@ -157,7 +151,7 @@ function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder) {
     [COLUMN_IDS.KEY]: key,
     [COLUMN_IDS.VALUE]: value,
     reactId: calcReactId(valuePath, storedValue),
-    sortIndex: (item && item.sortIndex) || sortOrder.current.dict[itemAddress],
+    sortIndex: (item && item.sortIndex) || sortOrder.current.dict[itemAddress] || 0,
     ...(item || {}),
   }
 }
@@ -254,10 +248,12 @@ export default function JsonEditorState({ children, jsonObject, schema }) {
 
   // NOTE: stores additional info about every object field besides value, like sortIndex, schema etc.
   //       it's a main source of data after actual JSON object
-  const jsonDict = React.useMemo(() => iterateSchema(schema, sortOrder, [], {}), [
-    schema,
-    sortOrder,
-  ])
+  const jsonDict = React.useMemo(() => {
+    sortOrder.current.counter = Number.MIN_SAFE_INTEGER
+    const result = iterateSchema(schema, sortOrder, [], {})
+    sortOrder.current.counter = 0
+    return result
+  }, [schema, sortOrder])
 
   // NOTE: list of root object keys + root schema keys
   const rootKeys = React.useMemo(() => mergeSchemaAndObjRootKeys(schema, jsonObject), [

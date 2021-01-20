@@ -24,9 +24,10 @@ export const columns2 = [
       {
         key: 'a',
         reactId: 'a+{"b":{"123":123,"c":"ccc","d":"ddd"}}',
+        sortIndex: 0,
         value: { b: { 123: 123, c: 'ccc', d: 'ddd' } },
       },
-      { key: 'b', reactId: 'b+"bbb"', value: 'bbb' },
+      { key: 'b', reactId: 'b+"bbb"', sortIndex: 0, value: 'bbb' },
       { key: '123', reactId: '123+123', sortIndex: 1, value: 123 },
     ],
     parent: { 123: 123, a: { b: { 123: 123, c: 'ccc', d: 'ddd' } }, b: 'bbb' },
@@ -36,6 +37,7 @@ export const columns2 = [
       {
         key: 'b',
         reactId: 'a, b+{"123":123,"c":"ccc","d":"ddd"}',
+        sortIndex: 0,
         value: {
           123: 123,
           c: 'ccc',
@@ -54,21 +56,22 @@ export const columns2 = [
   {
     items: [
       {
-        key: 'c',
-        reactId: 'a, b, c+"ccc"',
-        value: 'ccc',
-      },
-      {
         key: '123',
         reactId: 'a, b, 123+123',
+        sortIndex: 0,
         value: 123,
-        sortIndex: 1,
       },
       {
         key: 'd',
         reactId: 'a, b, d+"ddd"',
-        value: 'ddd',
         sortIndex: 2,
+        value: 'ddd',
+      },
+      {
+        key: 'c',
+        reactId: 'a, b, c+"ccc"',
+        sortIndex: 3,
+        value: 'ccc',
       },
     ],
     parent: {
