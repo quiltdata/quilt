@@ -116,7 +116,7 @@ describe('components/JsonEditor/State', () => {
       expect(columns).toEqual(deeplyNestedObject.columnsNested)
     })
 
-    it('should return three state objects, when input is an object and path is provided', () => {
+    it('should return three state objects, when input is an object, no Schema and path is provided', () => {
       const sortOrder = { current: { counter: 0, dict: {} } }
       const jsonDict = iterateSchema({}, sortOrder, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys({}, deeplyNestedObject.object1)

@@ -579,7 +579,7 @@ export const columnsNested = [
   },
 ]
 
-export const fieldPath1 = ['a', 'b', 'c', 'd', 'e']
+export const fieldPath1 = ['a', 'b', 2, 'c', 0, 'd', 'e']
 
 export const object1 = {
   a: {
@@ -607,6 +607,7 @@ export const columns1 = [
         key: 'a',
         value: { b: [1, 2, { c: [{ d: { e: [1, 2, 3] } }] }] },
         reactId: 'a+{"b":[1,2,{"c":[{"d":{"e":[1,2,3]}}]}]}',
+        sortIndex: 0,
       },
     ],
   },
@@ -617,22 +618,121 @@ export const columns1 = [
         key: 'b',
         value: [1, 2, { c: [{ d: { e: [1, 2, 3] } }] }],
         reactId: 'a, b+[1,2,{"c":[{"d":{"e":[1,2,3]}}]}]',
+        sortIndex: 0,
       },
     ],
   },
   {
     parent: [1, 2, { c: [{ d: { e: [1, 2, 3] } }] }],
     items: [
-      { key: 0, value: 1, reactId: 'a, b, 0+1' },
-      { key: 1, value: 2, reactId: 'a, b, 1+2' },
+      { key: 0, value: 1, reactId: 'a, b, 0+1', sortIndex: 0 },
+      { key: 1, value: 2, reactId: 'a, b, 1+2', sortIndex: 0 },
       {
         key: 2,
         value: { c: [{ d: { e: [1, 2, 3] } }] },
         reactId: 'a, b, 2+{"c":[{"d":{"e":[1,2,3]}}]}',
+        sortIndex: 0,
       },
     ],
   },
-  { items: [] },
-  { items: [] },
-  { items: [] },
+  {
+    items: [
+      {
+        key: 'c',
+        reactId: 'a, b, 2, c+[{"d":{"e":[1,2,3]}}]',
+        sortIndex: 0,
+        value: [
+          {
+            d: {
+              e: [1, 2, 3],
+            },
+          },
+        ],
+      },
+    ],
+    parent: {
+      c: [
+        {
+          d: {
+            e: [1, 2, 3],
+          },
+        },
+      ],
+    },
+  },
+
+  {
+    items: [
+      {
+        key: 0,
+        reactId: 'a, b, 2, c, 0+{"d":{"e":[1,2,3]}}',
+        sortIndex: 0,
+        value: {
+          d: {
+            e: [1, 2, 3],
+          },
+        },
+      },
+    ],
+    parent: [
+      {
+        d: {
+          e: [1, 2, 3],
+        },
+      },
+    ],
+  },
+  {
+    items: [
+      {
+        key: 'd',
+        reactId: 'a, b, 2, c, 0, d+{"e":[1,2,3]}',
+        sortIndex: 0,
+        value: {
+          e: [1, 2, 3],
+        },
+      },
+    ],
+    parent: {
+      d: {
+        e: [1, 2, 3],
+      },
+    },
+  },
+  {
+    items: [
+      {
+        key: 'e',
+        reactId: 'a, b, 2, c, 0, d, e+[1,2,3]',
+        sortIndex: 0,
+        value: [1, 2, 3],
+      },
+    ],
+    parent: {
+      e: [1, 2, 3],
+    },
+  },
+  {
+    items: [
+      {
+        key: 0,
+        reactId: 'a, b, 2, c, 0, d, e, 0+1',
+        sortIndex: 0,
+        value: 1,
+      },
+      {
+        key: 1,
+        reactId: 'a, b, 2, c, 0, d, e, 1+2',
+        sortIndex: 0,
+        value: 2,
+      },
+      {
+        key: 2,
+        reactId: 'a, b, 2, c, 0, d, e, 2+3',
+        sortIndex: 0,
+        value: 3,
+      },
+    ],
+    parent: [1, 2, 3],
+  },
 ]
