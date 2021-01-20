@@ -1043,6 +1043,7 @@ export const getPackageRevisions = withErrorHandling(
                   size: 1,
                   sort: { last_modified: 'desc' },
                   _source: [
+                    'pointer_file',
                     'comment',
                     'hash',
                     'last_modified',
@@ -1065,6 +1066,7 @@ export const getPackageRevisions = withErrorHandling(
       R.pipe(
         R.pathOr([], ['aggregations', 'revisions', 'buckets']),
         R.map(({ latest: { hits: { hits: [{ _source: s }] } } }) => ({
+          pointer: s.pointer_file,
           hash: s.hash,
           modified: new Date(s.last_modified),
           stats: {
