@@ -859,8 +859,7 @@ export const listPackages = withErrorHandling(
             // mtime of the most recent not-deleted revision
             modified: withCalculatedRevisions(`
               def mtime = 0;
-              for (def entry : merged.entrySet()) {
-                def v = entry.getValue();
+              for (def v : merged.values()) {
                 if (!v.del && v.mtime > mtime) { mtime = v.mtime; }
               }
               return mtime;
