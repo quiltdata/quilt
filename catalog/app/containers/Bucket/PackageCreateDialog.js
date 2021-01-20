@@ -604,7 +604,7 @@ function PackageCreateDialog({
                   <RF.FormSpy
                     subscription={{ modified: true, values: true }}
                     onChange={({ modified, values }) => {
-                      if (modified.workflow) {
+                      if (modified.workflow && values.workflow !== workflow) {
                         setWorkflow(values.workflow)
                       }
                     }}
