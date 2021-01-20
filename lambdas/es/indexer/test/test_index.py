@@ -23,7 +23,7 @@ from botocore.client import Config
 from botocore.exceptions import ParamValidationError
 from botocore.stub import Stubber
 from dateutil.tz import tzutc
-from document_queue import EVENT_PREFIX, DocTypes, RetryError
+from document_queue import EVENT_PREFIX, DocTypes, RetryError, get_id
 
 from t4_lambda_shared.utils import (
     MANIFEST_PREFIX_V1,
@@ -513,7 +513,7 @@ def test_filter_delete():
     assert len(objects) == 1
     # make sure append sets the version_id when version_id is falsy
     assert objects[0].get("version_id") == "null"
-    assert objects[0].get("_id") == f"{object_key}:null"
+    assert objects[0].get("_id") == get_id(object_key, "null")
     # there should be at least one delete_marker
     assert any(d["delete_marker"] for d in doc_queue.queue)
     assert not all(d["delete_marker"] for d in doc_queue.queue)
