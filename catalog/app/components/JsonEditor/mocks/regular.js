@@ -271,7 +271,7 @@ export const columnsSchemaAndObject1 = [
         value: EMPTY_VALUE,
       },
       { key: '111', value: 'aaa', reactId: '111+"aaa"' },
-      { key: 'c', value: [1, 2, 3], reactId: 'c+[1,2,3]' },
+      { key: 'c', value: [1, 2, 3], reactId: 'c+[1,2,3]', sortIndex: 15 },
       { key: 'd', value: { e: 'f' }, reactId: 'd+{"e":"f"}' },
     ],
   },

@@ -4,6 +4,7 @@ import * as booleansNulls from './mocks/booleans-nulls'
 import * as deeplyNestedArray from './mocks/deeply-nested-array'
 import * as deeplyNestedObject from './mocks/deeply-nested-object'
 import * as regular from './mocks/regular'
+import * as sorted from './mocks/sorted'
 
 describe('components/JsonEditor/State', () => {
   describe('mergeSchemaAndObjRootKeys', () => {
@@ -93,7 +94,7 @@ describe('components/JsonEditor/State', () => {
     })
 
     it('should return one state object utilizing Schema keys and object keys, when input is a flat object', () => {
-      const sortOrder = { current: { counter: 0, dict: {} } }
+      const sortOrder = { current: { counter: 0, dict: { c: 15 } } }
       const jsonDict = iterateSchema(regular.schema, sortOrder, [], {})
       const rootKeys = mergeSchemaAndObjRootKeys(regular.schema, regular.object1)
       const columns = iterateJsonDict(jsonDict, regular.object1, [], rootKeys, sortOrder)
@@ -126,6 +127,24 @@ describe('components/JsonEditor/State', () => {
         sortOrder,
       )
       expect(columns).toEqual(deeplyNestedObject.columns1)
+    })
+
+    it('should set same sortIndexes on re-render', () => {
+      const sortOrder = { current: { counter: 0, dict: {} } }
+      const jsonDict = iterateSchema({}, sortOrder, [], {})
+      const rootKeys = mergeSchemaAndObjRootKeys({}, {})
+      iterateJsonDict(jsonDict, {}, [], rootKeys, sortOrder)
+      iterateJsonDict(jsonDict, {}, [], rootKeys, sortOrder)
+      const columnsRerender = iterateJsonDict(jsonDict, {}, [], rootKeys, sortOrder)
+      expect(columnsRerender).toEqual([{ parent: {}, items: [] }])
+    })
+
+    it('should add sortIndexes to object', () => {
+      const sortOrder = { current: { counter: 0, dict: sorted.sortOrder1 } }
+      const jsonDict = iterateSchema({}, sortOrder, [], {})
+      const rootKeys = mergeSchemaAndObjRootKeys({}, sorted.object)
+      const columns = iterateJsonDict(jsonDict, sorted.object, [], rootKeys, sortOrder)
+      expect(columns).toEqual(sorted.columns1)
     })
   })
 })
