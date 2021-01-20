@@ -70,14 +70,20 @@ function moveObjValue(oldObjPath, key, obj) {
 
 const dissocObjValue = R.dissocPath
 
-// NOTE: memo is mutated, sortCounter is React.ref and mutated too
-export function iterateSchema(schema, sortCounter, parentPath, memo) {
+// NOTE: memo is mutated, sortOrder is React.ref and mutated too
+export function iterateSchema(schema, sortOrder, parentPath, memo) {
+  if (R.isEmpty(memo)) {
+    // It's rerendering component
+    // eslint-disable-next-line no-param-reassign
+    sortOrder.current.counter = 0
+  }
+
   if (!schema.properties) return memo
 
   const requiredKeys = schema.required
   getSchemaItemKeys(schema).forEach((key) => {
     // eslint-disable-next-line no-param-reassign
-    sortCounter.current.counter += 1
+    sortOrder.current.counter += 1
 
     const rawItem = schema.properties[key]
     const required = requiredKeys ? requiredKeys.includes(key) : false
@@ -87,14 +93,14 @@ export function iterateSchema(schema, sortCounter, parentPath, memo) {
       parentPath,
       required,
 
-      sortIndex: sortCounter.current.counter,
+      sortIndex: sortOrder.current.counter,
     })
     // eslint-disable-next-line no-param-reassign
     memo[serializeAddress(item.address)] = item
 
     // eslint-disable-next-line no-param-reassign
-    sortCounter.current.counter += 1
-    iterateSchema(rawItem, sortCounter, item.address, memo)
+    sortOrder.current.counter += 1
+    iterateSchema(rawItem, sortOrder, item.address, memo)
   })
 
   return memo
@@ -140,7 +146,7 @@ function calcReactId(valuePath, value) {
   return `${pathPrefix}+${JSON.stringify(value)}`
 }
 
-function getJsonDictItem(jsonDict, obj, parentPath, key, sortCounter) {
+function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder) {
   const itemAddress = serializeAddress(getAddressPath(key, parentPath))
   const item = jsonDict[itemAddress]
   // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
@@ -151,7 +157,7 @@ function getJsonDictItem(jsonDict, obj, parentPath, key, sortCounter) {
     [COLUMN_IDS.KEY]: key,
     [COLUMN_IDS.VALUE]: value,
     reactId: calcReactId(valuePath, storedValue),
-    sortIndex: (item && item.sortIndex) || sortCounter.current[itemAddress],
+    sortIndex: (item && item.sortIndex) || sortOrder.current.dict[itemAddress],
     ...(item || {}),
   }
 }
@@ -202,11 +208,11 @@ function getSchemaAndObjKeys(obj, jsonDict, objPath, rootKeys) {
   ])
 }
 
-export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys, sortCounter) {
+export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys, sortOrder) {
   if (!fieldPath.length)
     return [
       pipeThru(rootKeys)(
-        R.map((key) => getJsonDictItem(jsonDict, obj, fieldPath, key, sortCounter)),
+        R.map((key) => getJsonDictItem(jsonDict, obj, fieldPath, key, sortOrder)),
         R.sortBy(R.prop('sortIndex')),
         (items) => ({
           parent: obj,
@@ -220,7 +226,7 @@ export function iterateJsonDict(jsonDict, obj, fieldPath, rootKeys, sortCounter)
 
     const keys = getSchemaAndObjKeys(obj, jsonDict, pathPart, rootKeys)
     return pipeThru(keys)(
-      R.map((key) => getJsonDictItem(jsonDict, obj, pathPart, key, sortCounter)),
+      R.map((key) => getJsonDictItem(jsonDict, obj, pathPart, key, sortOrder)),
       R.sortBy(R.prop('sortIndex')),
       (items) => ({
         parent: R.path(pathPart, obj),
@@ -242,14 +248,15 @@ export default function JsonEditorState({ children, jsonObject, schema }) {
   const [fieldPath, setFieldPath] = React.useState([])
 
   // NOTE: incremented sortIndex counter,
+  //       and cache for sortIndexes: { [keyA]: sortIndexA, [keyB]: sortIndexB }
   //       it's required to place new fields below existing ones
-  const sortCounter = React.useRef({ counter: 0 })
+  const sortOrder = React.useRef({ counter: 0, dict: {} })
 
   // NOTE: stores additional info about every object field besides value, like sortIndex, schema etc.
   //       it's a main source of data after actual JSON object
-  const jsonDict = React.useMemo(() => iterateSchema(schema, sortCounter, [], {}), [
+  const jsonDict = React.useMemo(() => iterateSchema(schema, sortOrder, [], {}), [
     schema,
-    sortCounter,
+    sortOrder,
   ])
 
   // NOTE: list of root object keys + root schema keys
@@ -261,7 +268,7 @@ export default function JsonEditorState({ children, jsonObject, schema }) {
   // NOTE: this data represents table columns shown to user
   //       it's the main source of UI data
   const columns = React.useMemo(
-    () => iterateJsonDict(jsonDict, jsonObject, fieldPath, rootKeys, sortCounter),
+    () => iterateJsonDict(jsonDict, jsonObject, fieldPath, rootKeys, sortOrder),
     [jsonObject, jsonDict, fieldPath, rootKeys],
   )
 
@@ -314,14 +321,14 @@ export default function JsonEditorState({ children, jsonObject, schema }) {
     (addFieldPath, key, value) => {
       // NOTE: value can't be `Symbol('empty')`
       //       because it's imposible to have `{ [newKey]: Symbol('empty') }` object
-      sortCounter.current.counter += 1
+      sortOrder.current.counter += 1
 
       const newKeyPath = addFieldPath.concat([key])
       const itemAddress = serializeAddress(newKeyPath)
-      sortCounter.current[itemAddress] = sortCounter.current.counter
+      sortOrder.current.dict[itemAddress] = sortOrder.current.counter
       return assocObjValue(newKeyPath, value, jsonObject)
     },
-    [jsonObject, sortCounter],
+    [jsonObject, sortOrder],
   )
 
   return children({
