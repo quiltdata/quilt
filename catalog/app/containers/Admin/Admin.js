@@ -84,7 +84,7 @@ export default function Admin({ location }) {
     <AdminLayout section={getAdminSection(paths)(location.pathname)}>
       <RR.Switch>
         <RR.Route path={paths.adminUsers} component={UsersAndRoles} exact strict />
-        <RR.Route path={paths.adminBuckets} component={Buckets} />
+        <RR.Route path={paths.adminBuckets} component={Buckets} exact />
         <RR.Route component={ThrowNotFound} />
       </RR.Switch>
     </AdminLayout>
