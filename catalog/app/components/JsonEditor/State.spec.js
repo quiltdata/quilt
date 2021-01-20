@@ -146,5 +146,19 @@ describe('components/JsonEditor/State', () => {
       const columns = iterateJsonDict(jsonDict, sorted.object, [], rootKeys, sortOrder)
       expect(columns).toEqual(sorted.columns1)
     })
+
+    it('should add sortIndexes to nested fields of object', () => {
+      const sortOrder = { current: { counter: 0, dict: sorted.sortOrder2 } }
+      const jsonDict = iterateSchema({}, sortOrder, [], {})
+      const rootKeys = mergeSchemaAndObjRootKeys({}, sorted.object)
+      const columns = iterateJsonDict(
+        jsonDict,
+        sorted.object,
+        ['a', 'b'],
+        rootKeys,
+        sortOrder,
+      )
+      expect(columns).toEqual(sorted.columns2)
+    })
   })
 })
