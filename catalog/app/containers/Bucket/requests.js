@@ -396,7 +396,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
         .then(
           R.pipe(
             (r) => JSON.parse(r.Body.toString('utf-8')),
-            R.path(['aggregations', 'other', 'keys', 'buckets']),
+            R.pathOr([], ['aggregations', 'other', 'keys', 'buckets']),
             R.map((b) => ({
               bucket,
               key: b.key,
@@ -424,7 +424,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
     try {
       return await req('/search', { action: 'sample', index: bucket }).then(
         R.pipe(
-          R.path(['aggregations', 'objects', 'buckets']),
+          R.pathOr([], ['aggregations', 'objects', 'buckets']),
           R.map((h) => {
             // eslint-disable-next-line no-underscore-dangle
             const s = h.latest.hits.hits[0]._source
@@ -498,7 +498,7 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
         .then(
           R.pipe(
             (r) => JSON.parse(r.Body.toString('utf-8')),
-            R.path(['aggregations', 'images', 'keys', 'buckets']),
+            R.pathOr([], ['aggregations', 'images', 'keys', 'buckets']),
             R.map((b) => ({
               bucket,
               key: b.key,
@@ -518,7 +518,7 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
     try {
       return await req('/search', { action: 'images', index: bucket }).then(
         R.pipe(
-          R.path(['aggregations', 'objects', 'buckets']),
+          R.pathOr([], ['aggregations', 'objects', 'buckets']),
           R.map((h) => {
             // eslint-disable-next-line no-underscore-dangle
             const s = h.latest.hits.hits[0]._source
@@ -776,14 +776,14 @@ export const countPackages = withErrorHandling(async ({ req, bucket, filter }) =
             terms: { field: 'key', size: 1000000 },
             aggs: { not_deleted: NOT_DELETED_METRIC },
           },
-          revision_count: {
-            sum_bucket: { buckets_path: 'revision_objects>not_deleted.value' },
+          not_deleted: {
+            max_bucket: { buckets_path: 'revision_objects>not_deleted.value' },
           },
         },
       },
-      total_revisions: {
+      total_handles: {
         sum_bucket: {
-          buckets_path: 'packages>revision_count',
+          buckets_path: 'packages>not_deleted',
         },
       },
     },
@@ -793,9 +793,11 @@ export const countPackages = withErrorHandling(async ({ req, bucket, filter }) =
     action: 'packages',
     body: JSON.stringify(body),
     size: 0,
-    filter_path: 'aggregations.total_revisions',
+    filter_path: ['took', 'timed_out', 'hits.total', 'aggregations.total_handles'].join(
+      ',',
+    ),
   })
-  return result.aggregations.total_revisions.value
+  return result.aggregations.total_handles.value
 })
 
 export const listPackages = withErrorHandling(
@@ -861,22 +863,29 @@ export const listPackages = withErrorHandling(
         },
       },
     }
-    const result = await req('/search', {
+    const packages = await req('/search', {
       index: `${bucket}_packages`,
       action: 'packages',
       body: JSON.stringify(body),
       size: 0,
       filter_path: [
+        'took',
+        'timed_out',
+        'hits.total',
         'aggregations.packages.buckets.key',
         'aggregations.packages.buckets.modified',
         'aggregations.packages.buckets.revision_count',
       ].join(','),
-    })
-    const packages = result.aggregations.packages.buckets.map((b) => ({
-      name: b.key.handle,
-      modified: new Date(b.modified.value),
-      revisions: b.revision_count.value,
-    }))
+    }).then(
+      R.pipe(
+        R.pathOr([], ['aggregations', 'packages', 'buckets']),
+        R.map((b) => ({
+          name: b.key.handle,
+          modified: new Date(b.modified.value),
+          revisions: b.revision_count.value,
+        })),
+      ),
+    )
 
     if (!countsP) return packages
     const counts = await countsP
@@ -962,7 +971,9 @@ export const countPackageRevisions = ({ req, bucket, name }) =>
       },
     }),
     size: 0,
-    filter_path: 'aggregations.revision_count',
+    filter_path: ['took', 'timed_out', 'hits.total', 'aggregations.revision_count'].join(
+      ',',
+    ),
   })
     .then(R.path(['aggregations', 'revision_count', 'value']))
     .catch(errors.catchErrors())
@@ -981,7 +992,12 @@ export const getPackageRevisions = withErrorHandling(
       index: `${bucket}_packages`,
       action: 'packages',
       size: 0,
-      filter_path: 'aggregations.revisions.buckets.latest.hits.hits._source',
+      filter_path: [
+        'took',
+        'timed_out',
+        'hits.total',
+        'aggregations.revisions.buckets.latest.hits.hits._source',
+      ].join(','),
       body: JSON.stringify({
         query: {
           bool: {
@@ -1032,7 +1048,7 @@ export const getPackageRevisions = withErrorHandling(
       }),
     }).then(
       R.pipe(
-        R.path(['aggregations', 'revisions', 'buckets']),
+        R.pathOr([], ['aggregations', 'revisions', 'buckets']),
         R.map(({ latest: { hits: { hits: [{ _source: s }] } } }) => ({
           hash: s.hash,
           modified: new Date(s.last_modified),

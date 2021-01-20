@@ -2,7 +2,7 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import { FormattedRelative, FormattedPlural } from 'react-intl'
-import { useHistory, Link } from 'react-router-dom'
+import { useHistory, Link, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
@@ -522,6 +522,10 @@ export default function PackageList({
                   }
 
                   const pages = Math.ceil(filteredCount / PER_PAGE)
+
+                  if (computedPage > pages) {
+                    return <Redirect to={makePageUrl(pages)} />
+                  }
 
                   return (
                     <>
