@@ -760,6 +760,28 @@ const NOT_DELETED_METRIC = {
   },
 }
 
+const withCalculatedRevisions = (s) => ({
+  scripted_metric: {
+    init_script: `
+      state.map = new HashMap();
+    `,
+    map_script: `
+      def k = doc.key.getValue();
+      def mtime = doc.last_modified.getValue().toInstant().toEpochMilli();
+      def del = doc.delete_marker.getValue();
+      def v = ["mtime": mtime, "del": del];
+      state.map.merge(k, v, (old, val) -> val.mtime > old.mtime ? val : old);
+    `,
+    reduce_script: `
+      def merged = new HashMap();
+      for (s in states) {
+        s.map.each((k, v) -> merged.merge(k, v, (old, val) -> val.mtime > old.mtime ? val : old));
+      }
+      ${s}
+    `,
+  },
+})
+
 export const countPackages = withErrorHandling(async ({ req, bucket, filter }) => {
   const body = {
     query: {
@@ -771,19 +793,17 @@ export const countPackages = withErrorHandling(async ({ req, bucket, filter }) =
       packages: {
         terms: { field: 'handle', size: 1000000 },
         aggs: {
-          revision_objects: {
-            // TODO: use pointer_file when it's converted to a keyword field
-            terms: { field: 'key', size: 1000000 },
-            aggs: { not_deleted: NOT_DELETED_METRIC },
-          },
-          not_deleted: {
-            max_bucket: { buckets_path: 'revision_objects>not_deleted.value' },
-          },
+          not_deleted: withCalculatedRevisions(`
+            for (def v : merged.values()) {
+              if (!v.del) return 1;
+            }
+            return 0;
+          `),
         },
       },
       total_handles: {
         sum_bucket: {
-          buckets_path: 'packages>not_deleted',
+          buckets_path: 'packages>not_deleted.value',
         },
       },
     },
@@ -831,30 +851,31 @@ export const listPackages = withErrorHandling(
       },
       aggs: {
         packages: {
-          composite: {
-            // the limit is configured in ES cluster settings (search.max_buckets)
-            size: 10000,
-            sources: [{ handle: { terms: { field: 'handle' } } }],
-          },
+          terms: { field: 'handle', size: 1000000 },
           aggs: {
-            // TODO: take into account only timestamps of not-deleted revisions
-            modified: { max: { field: 'last_modified' } },
-            revision_objects: {
-              terms: { field: 'key', size: 1000000 },
-              aggs: { not_deleted: NOT_DELETED_METRIC },
-            },
-            revision_count: {
-              sum_bucket: { buckets_path: 'revision_objects>not_deleted.value' },
-            },
+            revisions: withCalculatedRevisions(`
+              return merged.count((k, v) -> !v.del);
+            `),
+            // mtime of the most recent not-deleted revision
+            modified: withCalculatedRevisions(`
+              def mtime = 0;
+              for (def v : merged.values()) {
+                if (!v.del && v.mtime > mtime) { mtime = v.mtime; }
+              }
+              return mtime;
+            `),
             drop_deleted: {
               bucket_selector: {
-                buckets_path: { revision_count: 'revision_count' },
-                script: 'params.revision_count > 0',
+                buckets_path: { revisions: 'revisions.value' },
+                script: 'params.revisions > 0',
               },
             },
             sort: {
               bucket_sort: {
-                sort: sort === 'modified' ? [{ modified: 'desc' }] : undefined,
+                sort:
+                  sort === 'modified'
+                    ? [{ 'modified.value': 'desc' }]
+                    : [{ _key: 'asc' }],
                 size: perPage,
                 from: perPage * (page - 1),
               },
@@ -874,15 +895,15 @@ export const listPackages = withErrorHandling(
         'hits.total',
         'aggregations.packages.buckets.key',
         'aggregations.packages.buckets.modified',
-        'aggregations.packages.buckets.revision_count',
+        'aggregations.packages.buckets.revisions',
       ].join(','),
     }).then(
       R.pipe(
         R.pathOr([], ['aggregations', 'packages', 'buckets']),
         R.map((b) => ({
-          name: b.key.handle,
+          name: b.key,
           modified: new Date(b.modified.value),
-          revisions: b.revision_count.value,
+          revisions: b.revisions.value,
         })),
       ),
     )
@@ -961,21 +982,15 @@ export const countPackageRevisions = ({ req, bucket, name }) =>
         },
       },
       aggs: {
-        revision_objects: {
-          terms: { field: 'key', size: 1000000 },
-          aggs: { not_deleted: NOT_DELETED_METRIC },
-        },
-        revision_count: {
-          sum_bucket: { buckets_path: 'revision_objects>not_deleted.value' },
-        },
+        revisions: withCalculatedRevisions(`
+          return merged.count((k, v) -> !v.del);
+        `),
       },
     }),
     size: 0,
-    filter_path: ['took', 'timed_out', 'hits.total', 'aggregations.revision_count'].join(
-      ',',
-    ),
+    filter_path: ['took', 'timed_out', 'hits.total', 'aggregations.revisions'].join(','),
   })
-    .then(R.path(['aggregations', 'revision_count', 'value']))
+    .then(R.path(['aggregations', 'revisions', 'value']))
     .catch(errors.catchErrors())
 
 function tryParse(s) {
@@ -1009,10 +1024,10 @@ export const getPackageRevisions = withErrorHandling(
         },
         aggs: {
           revisions: {
-            composite: {
-              // the limit is configured in ES cluster settings (search.max_buckets)
-              size: 10000,
-              sources: [{ pointer: { terms: { field: 'key' } } }],
+            terms: {
+              field: 'key',
+              size: 1000000,
+              order: { _key: 'desc' },
             },
             aggs: {
               not_deleted: NOT_DELETED_METRIC,
@@ -1027,6 +1042,7 @@ export const getPackageRevisions = withErrorHandling(
                   size: 1,
                   sort: { last_modified: 'desc' },
                   _source: [
+                    'pointer_file',
                     'comment',
                     'hash',
                     'last_modified',
@@ -1037,7 +1053,6 @@ export const getPackageRevisions = withErrorHandling(
               },
               sort: {
                 bucket_sort: {
-                  sort: [{ _key: 'desc' }],
                   size: perPage,
                   from: perPage * (page - 1),
                 },
@@ -1050,6 +1065,7 @@ export const getPackageRevisions = withErrorHandling(
       R.pipe(
         R.pathOr([], ['aggregations', 'revisions', 'buckets']),
         R.map(({ latest: { hits: { hits: [{ _source: s }] } } }) => ({
+          pointer: s.pointer_file,
           hash: s.hash,
           modified: new Date(s.last_modified),
           stats: {
