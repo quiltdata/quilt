@@ -316,8 +316,13 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     flexGrow: 2,
   },
   dropzone: {
+    display: 'flex',
+    flexDirection: 'column',
     overflowY: 'auto',
     position: 'relative',
+  },
+  editor: {
+    overflowY: 'auto',
   },
   overlay: {
     background: 'rgba(255,255,255,0.6)',
@@ -456,6 +461,7 @@ export function MetaInput({
       <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
         {value.mode === 'kv' ? (
           <JsonEditor
+            className={classes.editor}
             disabled={disabled}
             value={parsedValue}
             onChange={onJsonEditor}
