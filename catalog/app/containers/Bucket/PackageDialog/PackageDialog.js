@@ -202,7 +202,8 @@ export function Field({ error, helperText, validating, warning, ...rest }) {
 }
 
 export function PackageNameInput({ errors, input, meta, validating, ...rest }) {
-  const errorCode = (input.value || meta.submitFailed) && meta.error
+  const readyForValidation = (input.value && meta.modified) || meta.submitFailed
+  const errorCode = readyForValidation && meta.error
   const error = errorCode ? errors[errorCode] || errorCode : ''
   const props = {
     disabled: meta.submitting || meta.submitSucceeded,
