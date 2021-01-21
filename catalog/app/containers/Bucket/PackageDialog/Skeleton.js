@@ -13,7 +13,7 @@ export function FilesInputSkeleton({ animate, className }) {
   return (
     <div className={className}>
       <Skeleton {...{ height: 24, width: 64, animate }} />
-      <Skeleton {...{ height: 320, mt: 2, animate }} />
+      <Skeleton {...{ height: 336, mt: 2, animate }} />
     </div>
   )
 }
