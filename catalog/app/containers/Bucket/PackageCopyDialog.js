@@ -76,8 +76,17 @@ function DialogTitle({ bucket }) {
 const defaultNameWarning = ' ' // Reserve space for warning
 
 const useStyles = M.makeStyles((t) => ({
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    overflowY: 'auto',
+  },
   meta: {
+    display: 'flex',
+    flexDirection: 'column',
     marginTop: t.spacing(3),
+    overflowY: 'auto',
   },
 }))
 
@@ -185,7 +194,7 @@ function DialogForm({
         <>
           <DialogTitle bucket={successor.slug} />
           <M.DialogContent style={{ paddingTop: 0 }}>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className={classes.form}>
               <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
 
               <RF.FormSpy
@@ -428,7 +437,7 @@ export default function PackageCopyDialog({
       onClose={handleClose}
       onExited={handleExited}
       open={open}
-      scroll="body"
+      scroll="paper"
     >
       {stateCase({
         Error: (e) =>

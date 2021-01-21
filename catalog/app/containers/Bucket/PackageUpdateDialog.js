@@ -828,9 +828,9 @@ const useStyles = M.makeStyles((t) => ({
     height: '100%',
   },
   meta: {
-    marginTop: t.spacing(3),
     display: 'flex',
     flexDirection: 'column',
+    marginTop: t.spacing(3),
     overflowY: 'auto',
   },
 }))
