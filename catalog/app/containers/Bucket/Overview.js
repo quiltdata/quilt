@@ -3,6 +3,7 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
@@ -13,6 +14,7 @@ import * as Preview from 'components/Preview'
 import Skeleton from 'components/Skeleton'
 import StackedAreaChart from 'components/StackedAreaChart'
 import Thumbnail from 'components/Thumbnail'
+import * as authSelectors from 'containers/Auth/selectors'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketConfig from 'utils/BucketConfig'
@@ -767,6 +769,7 @@ function Head({ req, s3, overviewUrl, bucket, description }) {
   const statsData = useData(requests.bucketStats, { req, s3, bucket, overviewUrl })
   const pkgCountData = useData(requests.countPackageRevisions, { req, bucket })
   const { urls } = NamedRoutes.use()
+  const isAdmin = redux.useSelector(authSelectors.isAdmin)
   return (
     <M.Paper className={classes.root}>
       <M.Box className={classes.top}>
@@ -812,11 +815,13 @@ function Head({ req, s3, overviewUrl, bucket, description }) {
             fallback={() => null}
           />
         </M.Box>
-        <RRLink className={classes.settings} to={urls.adminBuckets(bucket)}>
-          <M.IconButton color="inherit">
-            <M.Icon>settings</M.Icon>
-          </M.IconButton>
-        </RRLink>
+        {isAdmin && (
+          <RRLink className={classes.settings} to={urls.adminBuckets(bucket)}>
+            <M.IconButton color="inherit">
+              <M.Icon>settings</M.Icon>
+            </M.IconButton>
+          </RRLink>
+        )}
       </M.Box>
       <M.Box
         p={{ xs: 2, sm: 4 }}
