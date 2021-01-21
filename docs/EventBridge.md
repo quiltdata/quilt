@@ -27,7 +27,9 @@ directly on S3 event notifications.
 You may of course script the following steps. See
 
 1. Create an SNS topic in the same region as `Bucket` 
-1. Add `Bucket` to a CloudTrail
+1. Add `Bucket` to the appropriate CloudTrail. For existing Quilt stacks, you will either see a
+trail under CloudFormation > YourStack > Resources, or you provided an existing CloudTrail bucket,
+part of a pre-existing trail, under CloudFormation > YourStack > Parameters.
 1. Create an EventBridge Rule in the same region as `Bucket`
 1. Create an Event Pattern using Pre-defined pattern by service > AWS > S3
 1. Set Event type to "Specific operation(s)" and select the following:
