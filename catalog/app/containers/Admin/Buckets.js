@@ -2,7 +2,7 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { useHistory } from 'react-router-dom'
+import { Redirect, useHistory } from 'react-router-dom'
 import * as RF from 'redux-form/es/immutable'
 import * as M from '@material-ui/core'
 
@@ -886,6 +886,11 @@ function CRUD({ bucketName, buckets }) {
   const onBucketClose = React.useCallback(() => {
     history.push(urls.adminBuckets())
   }, [history, urls])
+
+  if (bucketName && !editingBucket) {
+    // Bucket name set in URL, but it was not found in buckets list
+    return <Redirect to={urls.adminBuckets()} />
+  }
 
   return (
     <M.Paper>
