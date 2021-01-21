@@ -22,12 +22,12 @@ const useColumnStyles = M.makeStyles((t) => ({
     flexBasis: '100%',
     flexDirection: 'column',
     flexGrow: 0,
-    margin: t.spacing(0, 0, 3),
+    padding: t.spacing(0, 0, 3),
     overflowY: 'auto',
     [t.breakpoints.up('sm')]: {
       height: '100%',
       flexBasis: '50%',
-      margin: t.spacing(0, 3, 0, 0),
+      padding: t.spacing(0, 3, 0, 0),
       maxWidth: 'calc(50% - 16px)',
     },
   },
@@ -44,7 +44,7 @@ export const LeftColumn = Column
 const useRightColumnStyles = M.makeStyles((t) => ({
   root: {
     [t.breakpoints.up('sm')]: {
-      margin: t.spacing(0, 0, 3),
+      padding: t.spacing(0, 0, 3),
     },
   },
 }))
