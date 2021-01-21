@@ -1026,13 +1026,13 @@ function DialogForm({
 
       let warning = defaultNameWarning
 
-      if (initialName === name) return
-
-      const nameExists = await nameExistence.validate(name)
-      if (nameExists) {
-        warning = 'Package with this name exists already'
-      } else {
-        warning = 'New package will be created'
+      if (name !== initialName) {
+        const nameExists = await nameExistence.validate(name)
+        if (nameExists) {
+          warning = 'Package with this name exists already'
+        } else {
+          warning = 'New package will be created'
+        }
       }
 
       if (warning !== nameWarning) {
