@@ -381,6 +381,7 @@ function PackageCreateDialog({
     nameValidator.inc()
     nameExistence.inc()
     setNameWarning(defaultNameWarning)
+    setWorkflow(null)
   }
 
   const handleClose = ({ submitting = false } = {}) => () => {
@@ -513,7 +514,7 @@ function PackageCreateDialog({
     [workflowsConfig],
   )
 
-  const [workflow, setWorkflow] = React.useState(initialWorkflow)
+  const [workflow, setWorkflow] = React.useState(null)
 
   const username = redux.useSelector(authSelectors.username)
   const usernamePrefix = React.useMemo(
@@ -611,7 +612,7 @@ function PackageCreateDialog({
                   <RF.FormSpy
                     subscription={{ modified: true, values: true }}
                     onChange={({ modified, values }) => {
-                      if (modified.workflow) {
+                      if (modified.workflow && values.workflow !== workflow) {
                         setWorkflow(values.workflow)
                       }
                     }}
@@ -651,7 +652,11 @@ function PackageCreateDialog({
                       />
 
                       <PD.SchemaFetcher
-                        schemaUrl={R.pathOr('', ['schema', 'url'], workflow)}
+                        schemaUrl={R.pathOr(
+                          '',
+                          ['schema', 'url'],
+                          workflow || initialWorkflow,
+                        )}
                       >
                         {AsyncResult.case({
                           Ok: ({ responseError, schema, validate }) => (
