@@ -51,6 +51,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     flexGrow: 1,
     marginTop: t.spacing(2),
+    overflowY: 'auto',
     position: 'relative',
   },
   dropzone: {
@@ -92,7 +93,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
   filesContainer: {
     borderBottom: `1px solid ${t.palette.action.disabled}`,
-    maxHeight: t.spacing(68),
     overflowX: 'hidden',
     overflowY: 'auto',
   },
@@ -326,13 +326,17 @@ function FilesInput({
 }
 
 const useStyles = M.makeStyles((t) => ({
+  form: {
+    height: '100%',
+  },
   files: {
-    display: 'flex',
-    flexDirection: 'column',
     height: '100%',
   },
   meta: {
+    display: 'flex',
+    flexDirection: 'column',
     marginTop: t.spacing(3),
+    overflowY: 'auto',
   },
 }))
 
@@ -541,7 +545,7 @@ function PackageCreateDialog({
           onClose={handleClose({ submitting })}
           onExited={reset(form)}
           open={open}
-          scroll="body"
+          scroll="paper"
         >
           {initError || loading || success ? (
             <>
@@ -594,7 +598,7 @@ function PackageCreateDialog({
             <>
               <M.DialogTitle>Create package</M.DialogTitle>
               <M.DialogContent style={{ paddingTop: 0 }}>
-                <form onSubmit={handleSubmit}>
+                <form className={classes.form} onSubmit={handleSubmit}>
                   <RF.FormSpy
                     subscription={{ modified: true, values: true }}
                     onChange={onFormChange}
