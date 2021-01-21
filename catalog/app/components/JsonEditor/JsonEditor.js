@@ -7,7 +7,7 @@ import { EMPTY_SCHEMA } from 'utils/json-schema'
 import Column from './Column'
 import State from './State'
 
-const useStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles(() => ({
   disabled: {
     position: 'relative',
     '&:after': {
@@ -24,7 +24,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   inner: {
     display: 'flex',
-    maxHeight: t.spacing(42),
     overflow: 'auto',
   },
 }))

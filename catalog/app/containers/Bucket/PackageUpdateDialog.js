@@ -533,6 +533,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     flexGrow: 1,
     marginTop: t.spacing(2),
+    overflowY: 'auto',
     position: 'relative',
   },
   dropzone: {
@@ -575,7 +576,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   filesContainer: {
     direction: 'rtl', // show the scrollbar on the right
     borderBottom: `1px solid ${t.palette.action.disabled}`,
-    maxHeight: t.spacing(68),
     overflowX: 'hidden',
     overflowY: 'auto',
   },
@@ -821,11 +821,17 @@ function FilesInput({
 }
 
 const useStyles = M.makeStyles((t) => ({
+  form: {
+    height: '100%',
+  },
   files: {
     height: '100%',
   },
   meta: {
     marginTop: t.spacing(3),
+    display: 'flex',
+    flexDirection: 'column',
+    overflowY: 'auto',
   },
 }))
 
@@ -1069,7 +1075,7 @@ function DialogForm({
         <>
           <M.DialogTitle>Push package revision</M.DialogTitle>
           <M.DialogContent style={{ paddingTop: 0 }}>
-            <form onSubmit={handleSubmit}>
+            <form className={classes.form} onSubmit={handleSubmit}>
               <RF.FormSpy
                 subscription={{ modified: true, values: true }}
                 onChange={onFormChange}
@@ -1372,7 +1378,7 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
         onClose={close}
         onExited={handleExited}
         open={isOpen}
-        scroll="body"
+        scroll="paper"
       >
         {stateCase({
           Closed: () => null,

@@ -315,6 +315,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     flexGrow: 2,
   },
   dropzone: {
+    overflowY: 'auto',
     position: 'relative',
   },
   overlay: {

@@ -6,6 +6,7 @@ const useContainerStyles = M.makeStyles(() => ({
   root: {
     display: 'flex',
     flexWrap: 'wrap',
+    height: '100%',
   },
 }))
 
@@ -17,9 +18,13 @@ export function Container({ children }) {
 
 const useColumnStyles = M.makeStyles((t) => ({
   root: {
+    display: 'flex',
     flexBasis: '100%',
+    flexDirection: 'column',
     flexGrow: 0,
+    height: '100%',
     margin: t.spacing(0, 0, 3),
+    overflowY: 'auto',
     [t.breakpoints.up('sm')]: {
       flexBasis: '50%',
       margin: t.spacing(0, 3, 0, 0),
