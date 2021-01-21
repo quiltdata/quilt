@@ -497,7 +497,7 @@ export default function PackageRevisions({
                 },
                 Ok: R.map((r) => (
                   <Revision
-                    key={r.hash}
+                    key={r.pointer}
                     {...{ bucket, name, ...r }}
                     counts={AsyncResult.mapCase(
                       { Ok: R.prop(r.hash) },
