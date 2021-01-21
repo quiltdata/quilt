@@ -7,7 +7,6 @@ import { useDropzone } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import { Link } from 'react-router-dom'
 import * as redux from 'react-redux'
-import { createStructuredSelector } from 'reselect'
 import * as M from '@material-ui/core'
 
 import * as authSelectors from 'containers/Auth/selectors'
@@ -356,10 +355,6 @@ const getTotalProgress = R.pipe(
 
 const defaultNameWarning = ' ' // Reserve space for warning
 
-const selectUser = createStructuredSelector({
-  name: authSelectors.username,
-})
-
 function PackageCreateDialog({
   bucket,
   open,
@@ -520,10 +515,10 @@ function PackageCreateDialog({
 
   const [workflow, setWorkflow] = React.useState(initialWorkflow)
 
-  const user = redux.useSelector(selectUser)
-  const username = React.useMemo(
-    () => (user.name.includes('@') ? user.name.split('@')[0] : user.name),
-    [user],
+  const username = redux.useSelector(authSelectors.username)
+  const usernamePrefix = React.useMemo(
+    () => (username.includes('@') ? username.split('@')[0] : username),
+    [username],
   )
 
   return (
@@ -630,7 +625,7 @@ function PackageCreateDialog({
 
                       <RF.Field
                         component={PD.PackageNameInput}
-                        initialValue={`${username}/`}
+                        initialValue={`${usernamePrefix}/`}
                         name="name"
                         validate={validators.composeAsync(
                           validators.required,
