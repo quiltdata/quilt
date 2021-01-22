@@ -821,10 +821,15 @@ function FilesInput({
 }
 
 const useStyles = M.makeStyles((t) => ({
-  form: {
-    height: '100%',
+  dialogContent: {
+    height: '100vw',
+    minHeight: '420px',
+    paddingTop: 0,
   },
   files: {
+    height: '100%',
+  },
+  form: {
     height: '100%',
   },
   meta: {
@@ -1074,7 +1079,7 @@ function DialogForm({
       }) => (
         <>
           <M.DialogTitle>Push package revision</M.DialogTitle>
-          <M.DialogContent style={{ paddingTop: 0 }}>
+          <M.DialogContent className={classes.dialogContent}>
             <form className={classes.form} onSubmit={handleSubmit}>
               <RF.FormSpy
                 subscription={{ modified: true, values: true }}

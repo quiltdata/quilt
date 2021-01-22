@@ -76,6 +76,11 @@ function DialogTitle({ bucket }) {
 const defaultNameWarning = ' ' // Reserve space for warning
 
 const useStyles = M.makeStyles((t) => ({
+  dialogContent: {
+    height: '100vw',
+    minHeight: '420px',
+    paddingTop: 0,
+  },
   form: {
     display: 'flex',
     flexDirection: 'column',
@@ -193,7 +198,7 @@ function DialogForm({
       }) => (
         <>
           <DialogTitle bucket={successor.slug} />
-          <M.DialogContent style={{ paddingTop: 0 }}>
+          <M.DialogContent className={classes.dialogContent}>
             <form onSubmit={handleSubmit} className={classes.form}>
               <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
 
