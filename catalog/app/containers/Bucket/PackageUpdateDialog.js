@@ -821,11 +821,6 @@ function FilesInput({
 }
 
 const useStyles = M.makeStyles((t) => ({
-  dialogContent: {
-    height: '100vw',
-    minHeight: '420px',
-    paddingTop: 0,
-  },
   files: {
     height: '100%',
   },
@@ -839,6 +834,13 @@ const useStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
   },
 }))
+
+// <M.DialogContent /> doesn't have className prop
+const dialogContentStyles = {
+  height: '100vw',
+  minHeight: '420px',
+  paddingTop: 0,
+}
 
 const getTotalProgress = R.pipe(
   R.values,
@@ -1079,7 +1081,7 @@ function DialogForm({
       }) => (
         <>
           <M.DialogTitle>Push package revision</M.DialogTitle>
-          <M.DialogContent className={classes.dialogContent}>
+          <M.DialogContent style={dialogContentStyles}>
             <form className={classes.form} onSubmit={handleSubmit}>
               <RF.FormSpy
                 subscription={{ modified: true, values: true }}
@@ -1241,7 +1243,7 @@ function DialogPlaceholder({ close }) {
   return (
     <>
       <M.DialogTitle>Push package revision</M.DialogTitle>
-      <M.DialogContent style={{ paddingTop: 0 }}>
+      <M.DialogContent style={dialogContentStyles}>
         <PD.FormSkeleton />
       </M.DialogContent>
       <M.DialogActions>
@@ -1270,7 +1272,7 @@ function DialogSuccess({ bucket, name, hash, close }) {
   return (
     <>
       <M.DialogTitle>Push complete</M.DialogTitle>
-      <M.DialogContent style={{ paddingTop: 0 }}>
+      <M.DialogContent style={dialogContentStyles}>
         <M.Typography>
           Package revision{' '}
           <StyledLink to={urls.bucketPackageTree(bucket, name, hash)}>

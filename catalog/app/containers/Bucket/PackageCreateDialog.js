@@ -347,6 +347,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+// <M.DialogContent /> doesn't have className prop
+const dialogContentStyles = {
+  height: '100vw',
+  minHeight: '420px',
+  paddingTop: 0,
+}
+
 const getTotalProgress = R.pipe(
   R.values,
   R.reduce(
@@ -583,7 +590,7 @@ function PackageCreateDialog({
               {success && (
                 <>
                   <M.DialogTitle>Package created</M.DialogTitle>
-                  <M.DialogContent className={classes.dialogContent}>
+                  <M.DialogContent style={dialogContentStyles}>
                     <M.Typography>
                       Package{' '}
                       <StyledLink
@@ -611,7 +618,7 @@ function PackageCreateDialog({
           ) : (
             <>
               <M.DialogTitle>Create package</M.DialogTitle>
-              <M.DialogContent style={{ paddingTop: 0 }}>
+              <M.DialogContent style={dialogContentStyles}>
                 <form className={classes.form} onSubmit={handleSubmit}>
                   <RF.FormSpy
                     subscription={{ dirtyFields: true, values: true }}
