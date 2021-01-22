@@ -23,7 +23,11 @@ export class NoSuchBucket extends BucketError {}
 
 export class NoSuchPackage extends BucketError {}
 
-export class NoESIndex extends BucketError {}
+export class ESNoIndex extends BucketError {}
+
+export class ESTimeout extends BucketError {}
+
+export class ESThrottle extends BucketError {}
 
 export class FileNotFound extends BucketError {}
 
@@ -121,7 +125,7 @@ const defaultHandlers = [
     ),
   ],
   [
-    R.is(NoESIndex),
+    R.is(ESNoIndex),
     () => (
       <Message headline="Oops, no search cluster">
         The bucket owner needs to{' '}
@@ -129,6 +133,14 @@ const defaultHandlers = [
           tie this bucket to Quilt
         </StyledLink>{' '}
         to enable Packages, Search, and detailed Overviews.
+      </Message>
+    ),
+  ],
+  [
+    R.either(R.is(ESTimeout), R.is(ESThrottle)),
+    () => (
+      <Message headline="Whoa, search cluster is stressed out">
+        ElasticSearch is stressed out. Please try again in a few minutes.
       </Message>
     ),
   ],
@@ -204,7 +216,29 @@ export const catchErrors = (pairs = []) =>
         "API Gateway error (500): NotFoundError(404, 'index_not_found_exception', 'no such index')",
       ),
       () => {
-        throw new NoESIndex()
+        throw new ESNoIndex()
+      },
+    ],
+    [
+      R.propSatisfies(
+        R.startsWith(
+          'API Gateway error (500): ConnectionTimeout caused by - ReadTimeout',
+        ),
+        'message',
+      ),
+      () => {
+        throw new ESTimeout()
+      },
+    ],
+    [
+      R.propSatisfies(
+        R.startsWith(
+          "API Gateway error (500): AuthorizationException(403, '403 Request throttled due to too many requests",
+        ),
+        'message',
+      ),
+      () => {
+        throw new ESThrottle()
       },
     ],
     ...pairs,
