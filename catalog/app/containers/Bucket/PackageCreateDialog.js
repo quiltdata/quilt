@@ -355,6 +355,25 @@ const getTotalProgress = R.pipe(
 
 const defaultNameWarning = ' ' // Reserve space for warning
 
+const useNameExistsWarningStyles = M.makeStyles(() => ({
+  root: {
+    marginRight: '4px',
+    verticalAlign: '-5px',
+  },
+}))
+
+const NameExistsWarning = ({ name }) => {
+  const classes = useNameExistsWarningStyles()
+  return (
+    <>
+      <M.Icon className={classes.root} fontSize="small">
+        error_outline
+      </M.Icon>
+      Package &quot;{name}&quot; already exists, you are about to create a new revision
+    </>
+  )
+}
+
 function PackageCreateDialog({
   bucket,
   open,
@@ -499,7 +518,7 @@ function PackageCreateDialog({
 
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {
-        warning = `Package "${name}" exists. Submitting will revise it`
+        warning = <NameExistsWarning name={name} />
       }
 
       if (warning !== nameWarning) {
