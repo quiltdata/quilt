@@ -20,6 +20,8 @@ const withErrorHandling = (fn, pairs) => (...args) =>
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
 
+const decodeS3Key = R.pipe(R.replace(/\+/g, ' '), decodeURIComponent)
+
 export const bucketListing = ({ s3, bucket, path = '', prefix }) =>
   s3
     .listObjectsV2({
@@ -33,13 +35,13 @@ export const bucketListing = ({ s3, bucket, path = '', prefix }) =>
       R.applySpec({
         dirs: R.pipe(
           R.prop('CommonPrefixes'),
-          R.map((p) => decodeURIComponent(p.Prefix)),
+          R.map((p) => decodeS3Key(p.Prefix)),
           R.filter((d) => d !== '/' && d !== '../'),
           R.uniq,
         ),
         files: R.pipe(
           R.prop('Contents'),
-          R.map(R.evolve({ Key: decodeURIComponent })),
+          R.map(R.evolve({ Key: decodeS3Key })),
           // filter-out "directory-files" (files that match prefixes)
           R.filter(({ Key }) => Key !== path && !Key.endsWith('/')),
           R.map((i) => ({
@@ -449,7 +451,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
       .then(
         R.pipe(
           R.path(['Contents']),
-          R.map(R.evolve({ Key: decodeURIComponent })),
+          R.map(R.evolve({ Key: decodeS3Key })),
           R.filter(
             R.propSatisfies(
               R.allPass([
@@ -544,7 +546,7 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
       .then(
         R.pipe(
           R.path(['Contents']),
-          R.map(R.evolve({ Key: decodeURIComponent })),
+          R.map(R.evolve({ Key: decodeS3Key })),
           R.filter(
             (i) =>
               i.StorageClass !== 'GLACIER' &&
@@ -572,7 +574,7 @@ export const objectVersions = ({ s3, bucket, path }) =>
     .then(
       R.pipe(
         ({ Versions, DeleteMarkers }) => Versions.concat(DeleteMarkers),
-        R.map(R.evolve({ Key: decodeURIComponent })),
+        R.map(R.evolve({ Key: decodeS3Key })),
         R.filter((v) => v.Key === path),
         R.map((v) => ({
           isLatest: v.IsLatest || false,
