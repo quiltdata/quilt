@@ -520,8 +520,8 @@ function PackageCreateDialog({
   const usernamePrefix = React.useMemo(() => {
     const name = username.includes('@') ? username.split('@')[0] : username
     // see PACKAGE_NAME_FORMAT at quilt3/util.py
-    if (name.match(/\w+/)[0] === name) return `${name}/`
-    return ''
+    const validParts = name.match(/\w+/g)
+    return validParts ? `${validParts.join('')}/` : ''
   }, [username])
 
   return (
