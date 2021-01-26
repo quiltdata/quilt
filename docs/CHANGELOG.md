@@ -15,16 +15,20 @@
 ## Catalog, Lambdas
 * [Added] Support for EventBridge S3 events to es/indexer ([#1987](https://github.com/quiltdata/quilt/pull/1987))
 * [Added] Generate and resolve Quilt package URIs ([#1935](https://github.com/quiltdata/quilt/pull/1935))
+* [Added] Buttons for copying canonical package URIs ([#1990](https://github.com/quiltdata/quilt/pull/1990))
 * [Added] Additional validation for package name ([#1998](https://github.com/quiltdata/quilt/pull/1998))
 * [Added] Populate package name with username prefix ([#2016](https://github.com/quiltdata/quilt/pull/2016))
 * [Added] Link from bucket overview page to bucket settings ([#2022](https://github.com/quiltdata/quilt/pull/2022))
 * [Changed] Tree view for files in package update dialog ([#1989](https://github.com/quiltdata/quilt/pull/1989))
 * [Changed] Lambda indexing retry logic to not fail content extraction ([#2007](https://github.com/quiltdata/quilt/pull/2007))
 * [Changed] Number of retries per ES and S3 failure in indexing Lambda ([#1987](https://github.com/quiltdata/quilt/pull/1987))
+* [Changed] Handle delete markers in ES ([#1997](https://github.com/quiltdata/quilt/pull/1997), [#2000](https://github.com/quiltdata/quilt/pull/2000), [#2003](https://github.com/quiltdata/quilt/pull/2003), [#2017](https://github.com/quiltdata/quilt/pull/2017), [#2023](https://github.com/quiltdata/quilt/pull/2023))
 * [Changed] Two-column layout for package dialogs ([#2001](https://github.com/quiltdata/quilt/pull/2001))
 * [Changed] Show Schema validation errors in text mode ([#2010](https://github.com/quiltdata/quilt/pull/2010))
 * [Fixed] Bug that caused search to miss delete object and delete package events ([#1987](https://github.com/quiltdata/quilt/pull/1987))
 * [Fixed] lambda previews for time series `AICSImage` data (potential `IndexError` if odd number of time points) ([#1945](https://github.com/quiltdata/quilt/pull/1945))
+* [Fixed] Handle folders in search results ([#1992](https://github.com/quiltdata/quilt/pull/1992), [#1994](https://github.com/quiltdata/quilt/pull/1994))
+* [Fixed] Use EncodingType=url for S3 list requests to handle special chars in keys / prefixes ([#2026](https://github.com/quiltdata/quilt/pull/2026))
 
 # 3.3.0 - 2020-12-08
 ## Python API
