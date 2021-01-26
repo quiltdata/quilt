@@ -16,8 +16,10 @@ import parseSearch from 'utils/parseSearch'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
 
 import Code from './Code'
+import CopyButton from './CopyButton'
 import * as FileView from './FileView'
 import { ListingItem, ListingWithPrefixFiltering } from './Listing'
+import PackageDirectoryDialog from './PackageDirectoryDialog'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
@@ -117,6 +119,12 @@ export default function Dir({
     [bucket, path, dest],
   )
 
+  const [successor, setSuccessor] = React.useState(null)
+
+  const onPackageDirectoryDialogExited = React.useCallback(() => {
+    setSuccessor(null)
+  }, [setSuccessor])
+
   const data = useData(requests.bucketListing, {
     s3,
     bucket,
@@ -133,16 +141,28 @@ export default function Dir({
 
   return (
     <M.Box pt={2} pb={4}>
+      <PackageDirectoryDialog
+        bucket={bucket}
+        name={path}
+        open={!!successor}
+        successor={successor}
+        onExited={onPackageDirectoryDialogExited}
+      />
+
       <M.Box display="flex" alignItems="flex-start" mb={2}>
         <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
           {renderCrumbs(getCrumbs({ bucket, path, urls }))}
         </div>
         <M.Box flexGrow={1} />
+        <CopyButton bucket={bucket} onChange={setSuccessor} />
         {!noDownload && (
-          <FileView.ZipDownloadForm
-            suffix={`dir/${bucket}/${path}`}
-            label="Download directory"
-          />
+          <>
+            <M.Box ml={1} />
+            <FileView.ZipDownloadForm
+              suffix={`dir/${bucket}/${path}`}
+              label="Download directory"
+            />
+          </>
         )}
       </M.Box>
 
