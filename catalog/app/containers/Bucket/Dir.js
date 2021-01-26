@@ -154,7 +154,9 @@ export default function Dir({
           {renderCrumbs(getCrumbs({ bucket, path, urls }))}
         </div>
         <M.Box flexGrow={1} />
-        <CopyButton bucket={bucket} onChange={setSuccessor} />
+        <CopyButton bucket={bucket} onChange={setSuccessor}>
+          Create package from directory
+        </CopyButton>
         {!noDownload && (
           <>
             <M.Box ml={1} />
