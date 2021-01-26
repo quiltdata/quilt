@@ -143,7 +143,7 @@ export default function Dir({
     <M.Box pt={2} pb={4}>
       <PackageDirectoryDialog
         bucket={bucket}
-        name={path}
+        path={path}
         open={!!successor}
         successor={successor}
         onExited={onPackageDirectoryDialogExited}
