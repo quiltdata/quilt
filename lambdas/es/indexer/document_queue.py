@@ -177,8 +177,6 @@ class DocumentQueue:
                 "content": text,  # field for full-text search
                 "event": event_type,
                 "ext": ext,
-                # TODO: remove this field from ES in /enterprise (now deprecated and unused)
-                "meta_text": "",
                 "target": "",
                 "updated": datetime.utcnow().isoformat(),
             })
