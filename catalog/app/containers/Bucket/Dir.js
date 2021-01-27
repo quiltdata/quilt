@@ -141,14 +141,6 @@ export default function Dir({
 
   return (
     <M.Box pt={2} pb={4}>
-      <PackageDirectoryDialog
-        bucket={bucket}
-        path={path}
-        open={!!successor}
-        successor={successor}
-        onExited={onPackageDirectoryDialogExited}
-      />
-
       <M.Box display="flex" alignItems="flex-start" mb={2}>
         <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
           {renderCrumbs(getCrumbs({ bucket, path, urls }))}
@@ -195,6 +187,15 @@ export default function Dir({
           // TODO: should prefix filtering affect summary?
           return (
             <>
+              <PackageDirectoryDialog
+                bucket={bucket}
+                path={path}
+                files={res.files}
+                open={!!successor}
+                successor={successor}
+                onExited={onPackageDirectoryDialogExited}
+              />
+
               <ListingWithPrefixFiltering
                 items={items}
                 locked={locked}
