@@ -165,6 +165,20 @@ your CloudFormation stack.
 1. Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
 
+## Upgrade
+
+Once you have a Quilt stack running, you can upgrade it as follows. You will
+need a licensed CloudFormation template from Quilt.
+
+1. Navigate to AWS Console > CloudFormation > Stacks
+1. Select your Quilt stack
+1. Click Update (upper right)
+1. Choose Replace current template
+1. Enter the Amazon S3 URL for your template
+1. Click Next (several times) and proceed to apply the update
+
+Your previous setting should carry over.
+
 ## Advanced configuration
 
 The default Quilt settings are adequate for most use cases. The following section
