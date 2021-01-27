@@ -177,7 +177,7 @@ need a licensed CloudFormation template from Quilt.
 1. Enter the Amazon S3 URL for your template
 1. Click Next (several times) and proceed to apply the update
 
-Your previous setting should carry over.
+Your previous settings should carry over.
 
 ## Advanced configuration
 
