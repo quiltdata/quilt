@@ -151,7 +151,7 @@
     "bundlewatch": "^0.3.2",
     "circular-dependency-plugin": "^5.2.2",
     "compare-versions": "^3.6.0",
-    "compression-webpack-plugin": "^4.0.0",
+    "compression-webpack-plugin": "^6.1.1",
     "copy-webpack-plugin": "^6.4.1",
     "css-loader": "^5.0.1",
     "eslint": "^7.18.0",
