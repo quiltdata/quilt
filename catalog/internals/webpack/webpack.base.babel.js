@@ -103,6 +103,7 @@ module.exports = (options) => ({
     // drop any unreachable code.
     new webpack.EnvironmentPlugin({
       LOGGER_REDUX: process.env.LOGGER_REDUX || 'enabled',
+      // TODO: why is it always development?
       NODE_ENV: 'development',
     }),
   ]),
@@ -110,6 +111,9 @@ module.exports = (options) => ({
     modules: ['app', 'node_modules', path.resolve(__dirname, '../../../shared')],
     extensions: ['.js', '.jsx', '.react.js'],
     mainFields: ['module', 'browser', 'jsnext:main', 'main'],
+    fallback: {
+      path: require.resolve('path-browserify'),
+    },
   },
   devtool: options.devtool,
   target: 'web', // Make web variables accessible to webpack, e.g. window

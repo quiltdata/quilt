@@ -1,7 +1,6 @@
 // Important modules this config uses
 const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
-const { HashedModuleIdsPlugin } = require('webpack')
 const TerserPlugin = require('terser-webpack-plugin')
 const CompressionPlugin = require('compression-webpack-plugin')
 
@@ -23,6 +22,7 @@ module.exports = require('./webpack.base.babel')({
 
   // Utilize long-term caching by adding content hashes (not compilation hashes) to compiled assets
   output: {
+    // TODO: use contenthash?
     filename: '[name].[chunkhash].js',
     chunkFilename: '[name].[chunkhash].chunk.js',
   },
@@ -51,13 +51,14 @@ module.exports = require('./webpack.base.babel')({
     nodeEnv: 'production',
     sideEffects: true,
     concatenateModules: true,
+    moduleIds: 'hashed',
     runtimeChunk: 'single',
     splitChunks: {
       chunks: 'all',
       maxInitialRequests: 10,
       minSize: 0,
       cacheGroups: {
-        vendor: {
+        defaultVendors: {
           test: /[\\/]node_modules[\\/]/,
           name: (module) => {
             const packageName = module.context.match(
@@ -126,12 +127,6 @@ module.exports = require('./webpack.base.babel')({
         minifyCSS: true,
         minifyURLs: true,
       },
-    }),
-
-    new HashedModuleIdsPlugin({
-      hashFunction: 'sha256',
-      hashDigest: 'hex',
-      hashDigestLength: 20,
     }),
 
     new CompressionPlugin({
