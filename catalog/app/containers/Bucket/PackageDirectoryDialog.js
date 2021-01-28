@@ -232,6 +232,7 @@ function DialogForm({
                     errors={{
                       nonEmpty: 'Add files to create a package',
                     }}
+                    disabled
                     uploads={uploads}
                     onFilesAction={onFilesAction}
                     isEqual={R.equals}

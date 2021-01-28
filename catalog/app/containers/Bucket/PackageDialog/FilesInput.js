@@ -156,7 +156,7 @@ const useFileStyles = M.makeStyles((t) => ({
   },
 }))
 
-function File({ name, type, size, prefix, dispatch }) {
+function File({ disabled, name, type, size, prefix, dispatch }) {
   const classes = useFileStyles()
 
   const path = (prefix || '') + name
@@ -206,9 +206,11 @@ function File({ name, type, size, prefix, dispatch }) {
           {name}
         </div>
         <div className={classes.size}>{readableBytes(size)}</div>
-        <M.IconButton onClick={action.handler} title={action.hint} size="small">
-          <M.Icon fontSize="inherit">{action.icon}</M.Icon>
-        </M.IconButton>
+        {!disabled && (
+          <M.IconButton onClick={action.handler} title={action.hint} size="small">
+            <M.Icon fontSize="inherit">{action.icon}</M.Icon>
+          </M.IconButton>
+        )}
       </div>
     </div>
   )
@@ -296,7 +298,7 @@ const useDirStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Dir({ name, type, children, prefix, dispatch }) {
+function Dir({ disabled, name, type, children, prefix, dispatch }) {
   const classes = useDirStyles()
   // TODO: move state out?
   const [expanded, setExpanded] = React.useState(true)
@@ -304,9 +306,10 @@ function Dir({ name, type, children, prefix, dispatch }) {
   const toggleExpanded = React.useCallback(
     (e) => {
       e.stopPropagation()
+      if (disabled) return
       setExpanded((x) => !x)
     },
-    [setExpanded],
+    [disabled, setExpanded],
   )
 
   const onClick = React.useCallback((e) => {
@@ -457,23 +460,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   active: {
     background: t.palette.action.selected,
   },
-  dropMsg: {
-    ...t.typography.body2,
-    alignItems: 'center',
-    cursor: 'pointer',
-    display: 'flex',
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingBottom: t.spacing(1),
-    paddingTop: t.spacing(1),
-    textAlign: 'center',
-  },
-  dropMsgErr: {
-    color: t.palette.error.main,
-  },
-  dropMsgWarn: {
-    color: t.palette.warning.dark,
-  },
   filesContainer: {
     direction: 'rtl', // show the scrollbar on the right
     borderBottom: `1px solid ${t.palette.action.disabled}`,
@@ -528,8 +514,8 @@ const useFilesInputStyles = M.makeStyles((t) => ({
 }))
 
 const FilesEntry = tagged([
-  'Dir', // { name: str, type: enum, children: [FilesEntry] }
-  'File', // { name: str, type: enum, size: num }
+  'Dir', // { disabled: bool, name: str, type: enum, children: [FilesEntry] }
+  'File', // { disabled: bool, name: str, type: enum, size: num }
 ])
 
 const insertIntoDir = (path, file, dir) => {
@@ -614,17 +600,66 @@ const getTotalProgress = R.pipe(
   }),
 )
 
+const useDropdownMessageStyles = M.makeStyles((t) => ({
+  root: {
+    ...t.typography.body2,
+    alignItems: 'center',
+    cursor: 'pointer',
+    display: 'flex',
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingBottom: t.spacing(1),
+    paddingTop: t.spacing(1),
+    textAlign: 'center',
+  },
+  error: {
+    color: t.palette.error.main,
+  },
+  warning: {
+    color: t.palette.warning.dark,
+  },
+}))
+
+function DropdownMessage({ error, warning, disabled }) {
+  const classes = useDropdownMessageStyles()
+
+  const label = React.useMemo(() => {
+    if (error) return error
+    if (warning)
+      return (
+        <>
+          Total size of new files exceeds recommended maximum of{' '}
+          {readableBytes(PD.MAX_SIZE)}
+        </>
+      )
+    if (disabled) return ''
+    return 'Drop files here or click to browse'
+  }, [error, warning, disabled])
+
+  return (
+    <div
+      className={cx(classes.root, {
+        [classes.error]: error,
+        [classes.warning]: !error && warning,
+      })}
+    >
+      <span>{label}</span>
+    </div>
+  )
+}
+
 export default function FilesInput({
   input: { value, onChange },
   className,
   meta,
+  disabled,
   uploads,
   onFilesAction,
   errors = {},
 }) {
   const classes = useFilesInputStyles()
 
-  const disabled = meta.submitting || meta.submitSucceeded
+  const submitting = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
 
   const totalSize = React.useMemo(
@@ -634,21 +669,10 @@ export default function FilesInput({
 
   const warn = totalSize > PD.MAX_SIZE
 
-  // eslint-disable-next-line no-nested-ternary
-  const label = error ? (
-    errors[error] || error
-  ) : warn ? (
-    <>
-      Total size of new files exceeds recommended maximum of {readableBytes(PD.MAX_SIZE)}
-    </>
-  ) : (
-    'Drop files here or click to browse'
-  )
-
   const ref = React.useRef()
   ref.current = {
     value,
-    disabled,
+    disabled: disabled || submitting,
     initial: meta.initial,
     onChange,
     onFilesAction,
@@ -695,7 +719,7 @@ export default function FilesInput({
         <div
           className={cx(
             classes.headerFiles,
-            disabled // eslint-disable-line no-nested-ternary
+            ref.current.submitting // eslint-disable-line no-nested-ternary
               ? classes.headerFilesDisabled
               : error // eslint-disable-line no-nested-ternary
               ? classes.headerFilesError
@@ -728,7 +752,7 @@ export default function FilesInput({
         {meta.dirty && (
           <M.Button
             onClick={resetFiles}
-            disabled={disabled}
+            disabled={ref.current.disabled}
             size="small"
             endIcon={<M.Icon fontSize="small">undo</M.Icon>}
           >
@@ -742,7 +766,7 @@ export default function FilesInput({
           {...getRootProps({
             className: cx(
               classes.dropzone,
-              isDragActive && !disabled && classes.active,
+              isDragActive && !ref.current.disabled && classes.active,
               !!error && classes.dropzoneErr,
               !error && warn && classes.dropzoneWarn,
             ),
@@ -767,23 +791,19 @@ export default function FilesInput({
                     },
                     entry,
                   )
-                  return <Component {...{ ...props, key, dispatch }} />
+                  return <Component {...{ ...props, key, dispatch, disabled }} />
                 })}
               </div>
             </div>
           )}
 
-          <div
-            className={cx(
-              classes.dropMsg,
-              !!error && classes.dropMsgErr,
-              !error && warn && classes.dropMsgWarn,
-            )}
-          >
-            <span>{label}</span>
-          </div>
+          <DropdownMessage
+            error={errors[error] || error}
+            warn={error}
+            disabled={disabled}
+          />
         </div>
-        {disabled && (
+        {submitting && (
           <div className={classes.lock}>
             {!!totalProgress.total && (
               <>
