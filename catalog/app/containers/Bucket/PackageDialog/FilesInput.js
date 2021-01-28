@@ -615,7 +615,7 @@ const useDropdownMessageStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexGrow: 1,
     justifyContent: 'center',
-    padding: t.spacing(0, 1),
+    padding: t.spacing(1, 0),
     textAlign: 'center',
   },
   disabled: {
