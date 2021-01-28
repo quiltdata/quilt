@@ -1,4 +1,3 @@
-// Important modules this config uses
 const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const TerserPlugin = require('terser-webpack-plugin')
@@ -44,14 +43,12 @@ module.exports = require('./webpack.base.babel')({
           },
         },
         parallel: 4,
-        cache: true,
-        sourceMap: true,
       }),
     ],
     nodeEnv: 'production',
     sideEffects: true,
     concatenateModules: true,
-    moduleIds: 'hashed',
+    moduleIds: 'deterministic',
     runtimeChunk: 'single',
     splitChunks: {
       chunks: 'all',
