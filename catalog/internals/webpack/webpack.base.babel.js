@@ -97,21 +97,18 @@ module.exports = (options) => ({
       chunks: ['app'],
       template: 'app/index.html',
       inject: true,
-      ...options.html,
     }),
     new HtmlWebpackPlugin({
       chunks: ['embed'],
       template: 'app/embed/index.html',
       filename: 'embed.html',
       inject: true,
-      ...options.html,
     }),
     new HtmlWebpackPlugin({
       chunks: ['embed-debug-harness'],
       template: 'app/embed/debug-harness.html',
       filename: 'embed-debug-harness.html',
       inject: true,
-      ...options.html,
     }),
 
     // NODE_ENV is exposed automatically based on the "mode" option
