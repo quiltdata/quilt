@@ -21,42 +21,46 @@ class TestPackageSelect(TestCase):
     """
     Unit tests for the PackageSelect API endpoint.
     """
+
+    def make_s3response(self, payload_bytes):
+        """
+        Generate a mock s3 select response
+        """
+        return {
+            'Payload': [
+                {
+                    'Records': {
+                        'Payload': payload_bytes
+                    }
+                },
+                {
+                    'Progress': {
+                        'Details': {
+                            'BytesScanned': 123,
+                            'BytesProcessed': 123,
+                            'BytesReturned': 123
+                        }
+                    }
+                },
+                {
+                    'Stats': {
+                        'Details': {
+                            'BytesScanned': 123,
+                            'BytesProcessed': 123,
+                            'BytesReturned': 123
+                        }
+                    }
+                },
+                {
+                    'End': {}
+                }
+            ]
+        }
+
     def setUp(self):
         """
         Mocks to tests calls to S3 Select
         """
-
-        def make_s3response(bytes):
-            return {
-                'Payload': [
-                    {
-                        'Records': {
-                            'Payload': bytes
-                        }
-                    },
-                    {
-                        'Progress': {
-                            'Details': {
-                                'BytesScanned': 123,
-                                'BytesProcessed': 123,
-                                'BytesReturned': 123
-                            }
-                        }
-                    },
-                    {
-                        'Stats': {
-                            'Details': {
-                                'BytesScanned': 123,
-                                'BytesProcessed': 123,
-                                'BytesReturned': 123
-                            }
-                        }
-                    },
-                    {
-                        'End': {}
-                    }
-                ]
-            }
 
         logical_keys = [
             "foo.csv",
@@ -85,8 +89,8 @@ class TestPackageSelect(TestCase):
             meta={}
         )
         detailbytes = json.dumps(manifest_row).encode()
-        self.s3response = make_s3response(streambytes)
-        self.s3response_detail = make_s3response(detailbytes)
+        self.s3response = self.make_s3response(streambytes)
+        self.s3response_detail = self.make_s3response(detailbytes)
         self.s3response_incomplete = {
             'Payload': [
                 {
@@ -114,7 +118,7 @@ class TestPackageSelect(TestCase):
             "message": "Commit message"
         }
         metabytes = json.dumps(meta).encode()
-        self.s3response_meta = make_s3response(metabytes)
+        self.s3response_meta = self.make_s3response(metabytes)
 
         requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
         requests_mock.start()
@@ -230,16 +234,17 @@ class TestPackageSelect(TestCase):
         }
 
         mock_s3 = boto3.client('s3')
-        client_patch = patch.object(
+        with patch.object(
             mock_s3,
             'select_object_content',
             side_effect=[
-                self.s3response,
+                    self.s3response,
                 self.s3response_meta
-            ]
-        )
-        client_patch.start()
-        with patch('boto3.Session.client', return_value=mock_s3):
+                ]
+        ) as client_patch, patch(
+            'boto3.Session.client',
+            return_value=mock_s3
+        ):
             response = lambda_handler(self._make_event(params), None)
             print(response)
             assert response['statusCode'] == 200
@@ -248,7 +253,6 @@ class TestPackageSelect(TestCase):
             assert len(folder['objects']) == 1
             assert folder['objects'][0]['logical_key'] == 'foo.csv'
             assert folder['prefixes'][0]['logical_key'] == 'bar/'
-        client_patch.stop()
 
     def test_detail_view(self):
         """
@@ -280,18 +284,18 @@ class TestPackageSelect(TestCase):
         }
 
         mock_s3 = boto3.client('s3')
-        client_patch = patch.object(
-            mock_s3,
-            'select_object_content',
-            return_value=self.s3response_detail
-        )
-        client_patch.start()
-        with patch('boto3.Session.client', return_value=mock_s3):
+        with patch.object(
+                mock_s3,
+                'select_object_content',
+                return_value=self.s3response_detail
+        ) as client_patch, patch(
+            'boto3.Session.client',
+            return_value=mock_s3
+        ):
             response = lambda_handler(self._make_event(params), None)
             print(response)
             assert response['statusCode'] == 200
             json.loads(read_body(response))['contents']
-        client_patch.stop()
 
     def test_incomplete_credentials(self):
         """
@@ -359,15 +363,6 @@ class TestPackageSelect(TestCase):
         env_patcher.start()
 
         mock_s3 = boto3.client('s3')
-        client_patch = patch.object(
-            mock_s3,
-            'select_object_content',
-            side_effect=[
-                self.s3response,
-                self.s3response_meta
-            ]
-        )
-        client_patch.start()
         response = {
             'ETag': '12345',
             'VersionId': '1.0',
@@ -380,7 +375,17 @@ class TestPackageSelect(TestCase):
         s3_stubber = Stubber(mock_s3)
         s3_stubber.activate()
         s3_stubber.add_response('head_object', response, expected_params)
-        with patch('boto3.Session.client', return_value=mock_s3):
+        with patch.object(
+            mock_s3,
+            'select_object_content',
+            side_effect=[
+                self.s3response,
+                self.s3response_meta
+            ]
+        ) as client_patch, patch(
+            'boto3.Session.client',
+            return_value=mock_s3
+        ):
             response = lambda_handler(self._make_event(params), None)
             print(response)
             assert response['statusCode'] == 200
@@ -391,5 +396,72 @@ class TestPackageSelect(TestCase):
             assert folder['objects'][0]['logical_key'] == 'foo.csv'
             assert folder['prefixes'][0]['logical_key'] == 'bar/'
         s3_stubber.deactivate()
-        client_patch.stop()
         env_patcher.stop()
+
+    def test_non_string_keys(self):
+        """
+        End-to-end test (folder view without a prefix)
+        """
+        bucket = "bucket"
+        key = ".quilt/packages/manifest_hash"
+        params = dict(
+            bucket=bucket,
+            manifest=key,
+            access_key="TESTKEY",
+            secret_key="TESTSECRET",
+            session_token="TESTSESSION"
+        )
+
+        expected_args = {
+            'Bucket': bucket,
+            'Key': key,
+            'Expression': "SELECT SUBSTRING(s.logical_key, 1) AS logical_key FROM s3object s",
+            'ExpressionType': 'SQL',
+            'InputSerialization': {
+                'CompressionType': 'NONE',
+                'JSON': {'Type': 'LINES'}
+                },
+            'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
+        }
+
+        # Return a response with keys that are not strings (integers here)
+        # The important test case is where all members of a column are
+        # non-string
+        logical_keys = [
+            "1",
+            "2",
+            "3",
+        ]
+        entries = []
+        for key in logical_keys:
+            entry = dict(
+                logical_key=key,
+                physical_key=key,
+                size=100
+            )
+            entries.append(json.dumps(entry))
+        jsonl = "\n".join(entries)
+        streambytes = jsonl.encode()
+        non_string_s3response = self.make_s3response(streambytes)
+
+        mock_s3 = boto3.client('s3')
+        with patch.object(
+            mock_s3,
+            'select_object_content',
+            side_effect=[
+                non_string_s3response,
+                self.s3response_meta
+            ]
+        ) as client_patch, patch(
+            'boto3.Session.client',
+            return_value=mock_s3
+        ):
+            response = lambda_handler(self._make_event(params), None)
+            print(response)
+            assert response['statusCode'] == 200
+            folder = json.loads(read_body(response))['contents']
+            assert not folder['prefixes']
+            assert len(folder['objects']) == 3
+            assert folder['objects'][0]['logical_key'] == '1'
+            assert folder['objects'][1]['logical_key'] == '2'
+            assert folder['objects'][2]['logical_key'] == '3'
