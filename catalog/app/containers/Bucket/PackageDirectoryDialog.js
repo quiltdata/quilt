@@ -76,6 +76,7 @@ function DialogForm({
     existing: files.reduce(
       (memo, file) => ({
         [basename(file.key)]: {
+          isDir: file.isDir,
           size: file.size,
         },
         ...memo,

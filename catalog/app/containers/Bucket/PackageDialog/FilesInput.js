@@ -237,6 +237,9 @@ const useDirStyles = M.makeStyles((t) => ({
     outline: 'none',
     position: 'relative',
   },
+  disabled: {
+    cursor: 'not-allowed',
+  },
   head: {
     alignItems: 'center',
     color: COLORS.default,
@@ -254,6 +257,10 @@ const useDirStyles = M.makeStyles((t) => ({
     },
     '$deleted > &': {
       color: COLORS.deleted,
+    },
+    '$disabled &': {
+      color: t.palette.text.disabled,
+      opacity: 1,
     },
   },
   name: {
@@ -305,7 +312,7 @@ const useDirStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Dir({ disabled, name, type, children, prefix, dispatch }) {
+function Dir({ contentIsUnknown, disabled, name, type, children, prefix, dispatch }) {
   const classes = useDirStyles()
   // TODO: move state out?
   const [expanded, setExpanded] = React.useState(true)
@@ -371,7 +378,10 @@ function Dir({ disabled, name, type, children, prefix, dispatch }) {
   return (
     <div
       {...getRootProps({
-        className: cx(classes.root, classes[type], { [classes.active]: isDragActive }),
+        className: cx(classes.root, classes[type], {
+          [classes.active]: isDragActive,
+          [classes.disabled]: disabled,
+        }),
         onClick,
       })}
     >
@@ -379,32 +389,38 @@ function Dir({ disabled, name, type, children, prefix, dispatch }) {
       <div onClick={toggleExpanded} className={classes.head} role="button" tabIndex={0}>
         <EntryIcon state={type}>{expanded ? 'folder_open' : 'folder'}</EntryIcon>
         <div className={classes.name}>{name}</div>
-        <M.IconButton onClick={action.handler} title={action.hint} size="small">
-          <M.Icon fontSize="inherit">{action.icon}</M.Icon>
-        </M.IconButton>
+        {!disabled && (
+          <M.IconButton onClick={action.handler} title={action.hint} size="small">
+            <M.Icon fontSize="inherit">{action.icon}</M.Icon>
+          </M.IconButton>
+        )}
         <div className={classes.bar} />
-        {!children.length && <div className={classes.empty}>{'<EMPTY DIRECTORY>'}</div>}
+        {!children.length && !contentIsUnknown && (
+          <div className={classes.empty}>{'<EMPTY DIRECTORY>'}</div>
+        )}
       </div>
-      <M.Collapse in={expanded}>
-        <div className={classes.body}>
-          {children.length ? (
-            children.map((entry) => {
-              const [Component, props] = FilesEntry.case(
-                {
-                  Dir: (ps) => [Dir, ps],
-                  File: (ps) => [File, ps],
-                },
-                entry,
-              )
-              return (
-                <Component {...{ ...props, key: props.name, prefix: path, dispatch }} />
-              )
-            })
-          ) : (
-            <div className={classes.emptyDummy} />
-          )}
-        </div>
-      </M.Collapse>
+      {!contentIsUnknown && (
+        <M.Collapse in={expanded}>
+          <div className={classes.body}>
+            {children.length ? (
+              children.map((entry) => {
+                const [Component, props] = FilesEntry.case(
+                  {
+                    Dir: (ps) => [Dir, ps],
+                    File: (ps) => [File, ps],
+                  },
+                  entry,
+                )
+                return (
+                  <Component {...{ ...props, key: props.name, prefix: path, dispatch }} />
+                )
+              })
+            ) : (
+              <div className={classes.emptyDummy} />
+            )}
+          </div>
+        </M.Collapse>
+      )}
     </div>
   )
 }
@@ -563,18 +579,20 @@ const insertIntoTree = (path = [], file, entries) => {
     Dir: (d) => [0, d.name],
     File: (f) => [1, f.name],
   })
-  const tree = R.sortBy(getOrder, [inserted, ...restEntries])
-  return tree
+  return R.sortBy(getOrder, [inserted, ...restEntries])
 }
 
 const computeEntries = ({ added, deleted, existing }) => {
-  const existingEntries = Object.entries(existing).map(([path, { size }]) => {
+  const existingEntries = Object.entries(existing).map(([path, { isDir, size }]) => {
     if (path in deleted) {
       return { type: 'deleted', path, size }
     }
     if (path in added) {
       const a = added[path]
       return { type: 'modified', path, size: a.size }
+    }
+    if (isDir) {
+      return { type: 'unchanged', path, size, isDir }
     }
     return { type: 'unchanged', path, size }
   })
@@ -587,7 +605,9 @@ const computeEntries = ({ added, deleted, existing }) => {
     const parts = path.split('/')
     const prefixPath = R.init(parts).map((p) => `${p}/`)
     const name = R.last(parts)
-    const file = FilesEntry.File({ name, ...rest })
+    const file = rest.isDir
+      ? FilesEntry.Dir({ name, contentIsUnknown: true, children: [], ...rest })
+      : FilesEntry.File({ name, ...rest })
     return insertIntoTree(prefixPath, file, children)
   }, [])
 }
