@@ -133,11 +133,18 @@ const useFileStyles = M.makeStyles((t) => ({
       color: COLORS.deleted,
     },
   },
+  disabled: {
+    color: t.palette.text.disabled,
+    cursor: 'not-allowed',
+  },
   contents: {
     alignItems: 'center',
     display: 'flex',
     opacity: 0.7,
     '$root:hover > &': {
+      opacity: 1,
+    },
+    '$disabled &': {
       opacity: 1,
     },
   },
@@ -195,12 +202,12 @@ function File({ disabled, name, type, size, prefix, dispatch }) {
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events
     <div
-      className={cx(classes.root, classes[type])}
+      className={cx(classes.root, classes[type], { [classes.disabled]: disabled })}
       onClick={onClick}
       role="button"
       tabIndex={0}
     >
-      <div className={classes.contents}>
+      <div className={cx(classes.contents, { [classes.contentsDisabled]: disabled })}>
         <EntryIcon state={type}>insert_drive_file</EntryIcon>
         <div className={classes.name} title={name}>
           {name}
@@ -461,7 +468,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     background: t.palette.action.selected,
   },
   filesContainer: {
-    direction: 'rtl', // show the scrollbar on the right
+    direction: 'rtl', // show the scrollbar on the left
     borderBottom: `1px solid ${t.palette.action.disabled}`,
     maxHeight: t.spacing(68),
     overflowX: 'hidden',
@@ -608,9 +615,11 @@ const useDropdownMessageStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexGrow: 1,
     justifyContent: 'center',
-    paddingBottom: t.spacing(1),
-    paddingTop: t.spacing(1),
+    padding: t.spacing(0, 1),
     textAlign: 'center',
+  },
+  disabled: {
+    padding: 0,
   },
   error: {
     color: t.palette.error.main,
@@ -639,6 +648,7 @@ function DropdownMessage({ error, warning, disabled }) {
   return (
     <div
       className={cx(classes.root, {
+        [classes.disabled]: disabled,
         [classes.error]: error,
         [classes.warning]: !error && warning,
       })}
