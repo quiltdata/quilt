@@ -44,11 +44,7 @@
     "test:watch": "npm run test:only -- --watch",
     "prettify": "prettier --write"
   },
-  "browserslist": [
-    "last 2 versions",
-    "> 1%",
-    "IE 10"
-  ],
+  "browserslist": ["last 2 versions", "> 1%"],
   "lint-staged": {
     "*.js": "npm run lint:eslint --"
   },
