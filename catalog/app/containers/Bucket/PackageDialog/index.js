@@ -7,3 +7,5 @@ export { default as DialogLoading } from './DialogLoading'
 export { default as DialogSuccess } from './DialogSuccess'
 
 export * from './Skeleton'
+
+export * from './Layout'

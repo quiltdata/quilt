@@ -6,12 +6,14 @@ import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import { Link } from 'react-router-dom'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
-import { useData } from 'utils/Data'
+import * as authSelectors from 'containers/Auth/selectors'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
+import { useData } from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
@@ -24,6 +26,10 @@ import * as PD from './PackageDialog'
 import * as requests from './requests'
 
 const useFilesInputStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
   header: {
     alignItems: 'center',
     display: 'flex',
@@ -43,6 +49,9 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     color: t.palette.warning.dark,
   },
   dropzoneContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
     marginTop: t.spacing(2),
     position: 'relative',
   },
@@ -53,7 +62,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
-    minHeight: 140,
+    flexGrow: 1,
     outline: 'none',
     overflow: 'hidden',
   },
@@ -69,6 +78,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   dropMsg: {
     ...t.typography.body2,
     alignItems: 'center',
+    cursor: 'pointer',
     display: 'flex',
     flexGrow: 1,
     justifyContent: 'center',
@@ -84,7 +94,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
   filesContainer: {
     borderBottom: `1px solid ${t.palette.action.disabled}`,
-    maxHeight: 200,
+    maxHeight: t.spacing(68),
     overflowX: 'hidden',
     overflowY: 'auto',
   },
@@ -217,7 +227,7 @@ function FilesInput({
 
   const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
   return (
-    <div className={className}>
+    <div className={cx(classes.root, className)}>
       <div className={classes.header}>
         <div
           className={cx(
@@ -319,7 +329,9 @@ function FilesInput({
 
 const useStyles = M.makeStyles((t) => ({
   files: {
-    marginTop: t.spacing(2),
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
   },
   meta: {
     marginTop: t.spacing(3),
@@ -342,6 +354,25 @@ const getTotalProgress = R.pipe(
 )
 
 const defaultNameWarning = ' ' // Reserve space for warning
+
+const useNameExistsWarningStyles = M.makeStyles(() => ({
+  root: {
+    marginRight: '4px',
+    verticalAlign: '-5px',
+  },
+}))
+
+const NameExistsWarning = ({ name }) => {
+  const classes = useNameExistsWarningStyles()
+  return (
+    <>
+      <M.Icon className={classes.root} fontSize="small">
+        error_outline
+      </M.Icon>
+      Package &quot;{name}&quot; already exists, you are about to create a new revision
+    </>
+  )
+}
 
 function PackageCreateDialog({
   bucket,
@@ -369,6 +400,7 @@ function PackageCreateDialog({
     nameValidator.inc()
     nameExistence.inc()
     setNameWarning(defaultNameWarning)
+    setWorkflow(null)
   }
 
   const handleClose = ({ submitting = false } = {}) => () => {
@@ -477,23 +509,53 @@ function PackageCreateDialog({
   }
 
   const onFormChange = React.useCallback(
-    async ({ modified, values }) => {
-      if (!modified.name) return
+    async ({ dirtyFields, values }) => {
+      if (!dirtyFields.name) return
 
       const { name } = values
 
-      setNameWarning(defaultNameWarning)
+      let warning = defaultNameWarning
 
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {
-        setNameWarning(`Package "${name}" exists. Submitting will revise it`)
+        warning = <NameExistsWarning name={name} />
+      }
+
+      if (warning !== nameWarning) {
+        setNameWarning(warning)
       }
     },
-    [nameExistence],
+    [nameWarning, nameExistence],
   )
 
+  const initialWorkflow = React.useMemo(
+    () => PD.defaultWorkflowFromConfig(workflowsConfig),
+    [workflowsConfig],
+  )
+
+  const [workflow, setWorkflow] = React.useState(null)
+
+  const username = redux.useSelector(authSelectors.username)
+  const usernamePrefix = React.useMemo(() => {
+    const name = username.includes('@') ? username.split('@')[0] : username
+    // see PACKAGE_NAME_FORMAT at quilt3/util.py
+    const validParts = name.match(/\w+/g)
+    return validParts ? `${validParts.join('')}/` : ''
+  }, [username])
+
   return (
-    <RF.Form onSubmit={uploadPackage}>
+    <RF.Form
+      onSubmit={uploadPackage}
+      subscription={{
+        handleSubmit: true,
+        submitting: true,
+        submitFailed: true,
+        error: true,
+        submitError: true,
+        hasValidationErrors: true,
+        form: true,
+      }}
+    >
       {({
         handleSubmit,
         submitting,
@@ -502,14 +564,14 @@ function PackageCreateDialog({
         submitError,
         hasValidationErrors,
         form,
-        values,
       }) => (
         <M.Dialog
-          open={open}
-          onClose={handleClose({ submitting })}
           fullWidth
-          scroll="body"
+          maxWidth={success ? 'sm' : 'lg'}
+          onClose={handleClose({ submitting })}
           onExited={reset(form)}
+          open={open}
+          scroll="body"
         >
           {initError || loading || success ? (
             <>
@@ -564,83 +626,107 @@ function PackageCreateDialog({
               <M.DialogContent style={{ paddingTop: 0 }}>
                 <form onSubmit={handleSubmit}>
                   <RF.FormSpy
-                    subscription={{ modified: true, values: true }}
+                    subscription={{ dirtyFields: true, values: true }}
                     onChange={onFormChange}
                   />
 
-                  <RF.Field
-                    component={PD.PackageNameInput}
-                    name="name"
-                    validate={validators.composeAsync(
-                      validators.required,
-                      nameValidator.validate,
-                    )}
-                    validateFields={['name']}
-                    errors={{
-                      required: 'Enter a package name',
-                      invalid: 'Invalid package name',
-                    }}
-                    helperText={nameWarning}
-                    validating={nameValidator.processing}
-                  />
-
-                  <RF.Field
-                    component={PD.CommitMessageInput}
-                    name="msg"
-                    validate={validators.required}
-                    validateFields={['msg']}
-                    errors={{
-                      required: 'Enter a commit message',
+                  <RF.FormSpy
+                    subscription={{ modified: true, values: true }}
+                    onChange={({ modified, values }) => {
+                      if (modified.workflow && values.workflow !== workflow) {
+                        setWorkflow(values.workflow)
+                      }
                     }}
                   />
 
-                  <RF.Field
-                    component={FilesInput}
-                    className={classes.files}
-                    name="files"
-                    validate={validators.nonEmpty}
-                    validateFields={['files']}
-                    errors={{
-                      nonEmpty: 'Add files to create a package',
-                    }}
-                    uploads={uploads}
-                    setUploads={setUploads}
-                    isEqual={R.equals}
-                  />
+                  <PD.Container>
+                    <PD.LeftColumn>
+                      <M.Typography color={submitting ? 'textSecondary' : undefined}>
+                        Main
+                      </M.Typography>
 
-                  <PD.SchemaFetcher
-                    schemaUrl={R.pathOr('', ['schema', 'url'], values.workflow)}
-                  >
-                    {AsyncResult.case({
-                      Ok: ({ responseError, schema, validate }) => (
-                        <RF.Field
-                          className={classes.meta}
-                          component={PD.MetaInput}
-                          name="meta"
-                          bucket={bucket}
-                          schema={schema}
-                          schemaError={responseError}
-                          validate={validate}
-                          validateFields={['meta']}
-                          isEqual={R.equals}
-                          initialValue={PD.EMPTY_META_VALUE}
-                        />
-                      ),
-                      _: () => <PD.MetaInputSkeleton className={classes.meta} />,
-                    })}
-                  </PD.SchemaFetcher>
+                      <RF.Field
+                        component={PD.PackageNameInput}
+                        initialValue={usernamePrefix}
+                        name="name"
+                        validate={validators.composeAsync(
+                          validators.required,
+                          nameValidator.validate,
+                        )}
+                        validateFields={['name']}
+                        errors={{
+                          required: 'Enter a package name',
+                          invalid: 'Invalid package name',
+                        }}
+                        helperText={nameWarning}
+                        validating={nameValidator.processing}
+                      />
 
-                  <RF.Field
-                    component={PD.WorkflowInput}
-                    name="workflow"
-                    workflowsConfig={workflowsConfig}
-                    initialValue={PD.defaultWorkflowFromConfig(workflowsConfig)}
-                    validate={validators.required}
-                    validateFields={['meta', 'workflow']}
-                    errors={{
-                      required: 'Workflow is required for this bucket.',
-                    }}
-                  />
+                      <RF.Field
+                        component={PD.CommitMessageInput}
+                        name="msg"
+                        validate={validators.required}
+                        validateFields={['msg']}
+                        errors={{
+                          required: 'Enter a commit message',
+                        }}
+                      />
+
+                      <PD.SchemaFetcher
+                        schemaUrl={R.pathOr(
+                          '',
+                          ['schema', 'url'],
+                          workflow || initialWorkflow,
+                        )}
+                      >
+                        {AsyncResult.case({
+                          Ok: ({ responseError, schema, validate }) => (
+                            <RF.Field
+                              className={classes.meta}
+                              component={PD.MetaInput}
+                              name="meta"
+                              bucket={bucket}
+                              schema={schema}
+                              schemaError={responseError}
+                              validate={validate}
+                              validateFields={['meta']}
+                              isEqual={R.equals}
+                              initialValue={PD.EMPTY_META_VALUE}
+                            />
+                          ),
+                          _: () => <PD.MetaInputSkeleton className={classes.meta} />,
+                        })}
+                      </PD.SchemaFetcher>
+
+                      <RF.Field
+                        component={PD.WorkflowInput}
+                        name="workflow"
+                        workflowsConfig={workflowsConfig}
+                        initialValue={initialWorkflow}
+                        validate={validators.required}
+                        validateFields={['meta', 'workflow']}
+                        errors={{
+                          required: 'Workflow is required for this bucket.',
+                        }}
+                      />
+                    </PD.LeftColumn>
+
+                    <PD.RightColumn>
+                      <RF.Field
+                        className={classes.files}
+                        component={FilesInput}
+                        name="files"
+                        validate={validators.nonEmpty}
+                        validateFields={['files']}
+                        errors={{
+                          nonEmpty: 'Add files to create a package',
+                        }}
+                        uploads={uploads}
+                        setUploads={setUploads}
+                        isEqual={R.equals}
+                      />
+                    </PD.RightColumn>
+                  </PD.Container>
 
                   <input type="submit" style={{ display: 'none' }} />
                 </form>

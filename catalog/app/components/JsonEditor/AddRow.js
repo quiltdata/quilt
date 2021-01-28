@@ -8,12 +8,18 @@ const useStyles = M.makeStyles((t) => ({
   inputCell: {
     border: `1px solid ${t.palette.grey[400]}`,
     padding: 0,
-    width: t.spacing(20),
+    width: '50%',
+    [t.breakpoints.up('lg')]: {
+      width: t.spacing(27),
+    },
   },
   emptyCell: {
     border: `1px solid ${t.palette.grey[400]}`,
     padding: 0,
-    width: t.spacing(36),
+    width: '50%',
+    [t.breakpoints.up('lg')]: {
+      width: t.spacing(40),
+    },
   },
 }))
 

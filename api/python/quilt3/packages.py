@@ -700,8 +700,14 @@ class Package:
             if isinstance(child, PackageEntry):
                 yield name, child
             else:
-                for key, value in child.walk():
-                    yield name + '/' + key, value
+                yield from child._walk(f'{name}/')
+
+    def _walk(self, prefix):
+        for name, child in sorted(self._children.items()):
+            if isinstance(child, PackageEntry):
+                yield f'{prefix}{name}', child
+            else:
+                yield from child._walk(f'{prefix}{name}/')
 
     def _walk_dir_meta(self):
         """
