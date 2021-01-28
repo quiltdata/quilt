@@ -5,6 +5,7 @@
 const path = require('path')
 const webpack = require('webpack')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
+const HtmlWebpackPlugin = require('html-webpack-plugin')
 
 module.exports = (options) => ({
   mode: options.mode,
@@ -90,26 +91,38 @@ module.exports = (options) => ({
     ],
   },
   plugins: options.plugins.concat([
-    new CopyWebpackPlugin({
-      patterns: [
-        {
-          from: 'static',
-        },
-      ],
+    new CopyWebpackPlugin({ patterns: [{ from: 'static' }] }),
+
+    new HtmlWebpackPlugin({
+      chunks: ['app'],
+      template: 'app/index.html',
+      inject: true,
+    }),
+    new HtmlWebpackPlugin({
+      chunks: ['embed'],
+      template: 'app/embed/index.html',
+      filename: 'embed.html',
+      inject: true,
+    }),
+    new HtmlWebpackPlugin({
+      chunks: ['embed-debug-harness'],
+      template: 'app/embed/debug-harness.html',
+      filename: 'embed-debug-harness.html',
+      inject: true,
     }),
 
-    // Always expose NODE_ENV to webpack, in order to use `process.env.NODE_ENV`
-    // inside your code for any environment checks; Terser will automatically
-    // drop any unreachable code.
+    // NODE_ENV is exposed automatically based on the "mode" option
     new webpack.EnvironmentPlugin({
       LOGGER_REDUX: process.env.LOGGER_REDUX || 'enabled',
-      NODE_ENV: 'development',
     }),
   ]),
   resolve: {
     modules: ['app', 'node_modules', path.resolve(__dirname, '../../../shared')],
     extensions: ['.js', '.jsx', '.react.js'],
     mainFields: ['module', 'browser', 'jsnext:main', 'main'],
+    fallback: {
+      path: require.resolve('path-browserify'),
+    },
   },
   devtool: options.devtool,
   target: 'web', // Make web variables accessible to webpack, e.g. window
