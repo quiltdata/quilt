@@ -17,7 +17,7 @@ const COLORS = {
   deleted: M.colors.red[900],
 }
 
-const FilesAction = tagged([
+export const FilesAction = tagged([
   'Add', // { files: [File], prefix: str }
   'Delete', // path: str
   'DeleteDir', // prefix: str
