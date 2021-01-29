@@ -95,7 +95,7 @@ function DialogForm({
           targetBucket: successor.slug,
           workflow,
         })
-        onSuccess({ path, hash: res.top_hash })
+        onSuccess({ name, hash: res.top_hash })
       } catch (e) {
         onSubmitEnd()
         // eslint-disable-next-line no-console
@@ -372,7 +372,7 @@ export default function PackageDirectoryDialog({
 }) {
   const s3 = AWS.S3.use()
 
-  const [success, setSuccess] = React.useState(false)
+  const [success, setSuccess] = React.useState(null)
   const [submitting, setSubmitting] = React.useState(false)
 
   const workflowsData = Data.use(
@@ -417,32 +417,41 @@ export default function PackageDirectoryDialog({
       open={open}
       scroll="body"
     >
-      {workflowsData.case({
-        Err: (e) =>
-          successor && (
-            <DialogError bucket={successor.slug} onCancel={handleClose} error={e} />
-          ),
-        Ok: (workflowsConfig) =>
-          successor && (
-            <DialogForm
-              {...{
-                bucket,
-                close: handleClose,
-                files,
-                onSubmitEnd: () => setSubmitting(false),
-                onSubmitStart: () => setSubmitting(true),
-                onSuccess: handleSuccess,
-                path,
-                successor,
-                workflowsConfig,
-              }}
-            />
-          ),
-        _: () =>
-          successor && (
-            <DialogLoading bucket={successor.slug} path={path} onCancel={handleClose} />
-          ),
-      })}
+      {success && successor ? (
+        <PD.DialogSuccess
+          bucket={successor.slug}
+          name={success.name}
+          hash={success.hash}
+          onClose={handleClose}
+        />
+      ) : (
+        workflowsData.case({
+          Err: (e) =>
+            successor && (
+              <DialogError bucket={successor.slug} onCancel={handleClose} error={e} />
+            ),
+          Ok: (workflowsConfig) =>
+            successor && (
+              <DialogForm
+                {...{
+                  bucket,
+                  close: handleClose,
+                  files,
+                  onSubmitEnd: () => setSubmitting(false),
+                  onSubmitStart: () => setSubmitting(true),
+                  onSuccess: handleSuccess,
+                  path,
+                  successor,
+                  workflowsConfig,
+                }}
+              />
+            ),
+          _: () =>
+            successor && (
+              <DialogLoading bucket={successor.slug} path={path} onCancel={handleClose} />
+            ),
+        })
+      )}
     </M.Dialog>
   )
 }
