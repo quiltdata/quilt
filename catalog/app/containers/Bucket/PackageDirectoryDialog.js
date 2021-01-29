@@ -41,7 +41,7 @@ function requestPackageCreate(
 function DialogTitle({ bucket, path }) {
   const { urls } = NamedRoutes.use()
 
-  const directory = path ? `&quot;{path}&quot;` : 'root'
+  const directory = path ? `"${path}"` : 'root'
 
   return (
     <>
