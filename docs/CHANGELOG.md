@@ -29,6 +29,7 @@
 * [Fixed] lambda previews for time series `AICSImage` data (potential `IndexError` if odd number of time points) ([#1945](https://github.com/quiltdata/quilt/pull/1945))
 * [Fixed] Handle folders in search results ([#1992](https://github.com/quiltdata/quilt/pull/1992), [#1994](https://github.com/quiltdata/quilt/pull/1994))
 * [Fixed] Use EncodingType=url for S3 list requests to handle special chars in keys / prefixes ([#2026](https://github.com/quiltdata/quilt/pull/2026))
+* [Fixed] Empty response from `pkgselect` folder view for packages with all non-string logical_keys or physical_keys ([#1947](https://github.com/quiltdata/quilt/pull/1947))
 
 # 3.3.0 - 2020-12-08
 ## Python API
