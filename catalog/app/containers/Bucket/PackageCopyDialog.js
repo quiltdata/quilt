@@ -1,5 +1,5 @@
-import * as R from 'ramda'
 import { FORM_ERROR } from 'final-form'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'

@@ -1,9 +1,11 @@
+import { FORM_ERROR } from 'final-form'
 import { basename } from 'path'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
@@ -14,6 +16,27 @@ import * as validators from 'utils/validators'
 
 import * as PD from './PackageDialog'
 import * as requests from './requests'
+
+function requestPackageCreate(
+  req,
+  { commitMessage, name, meta, sourceBucket, path, targetBucket, workflow },
+) {
+  return req({
+    endpoint: '/packages/from-folder',
+    method: 'POST',
+    body: {
+      message: commitMessage,
+      meta: PD.getMetaValue(meta),
+      path,
+      dst: {
+        registry: `s3://${targetBucket}`,
+        name,
+      },
+      registry: `s3://${sourceBucket}`,
+      workflow: PD.getWorkflowApiParam(workflow.slug),
+    },
+  })
+}
 
 const useDialogTitleStyles = M.makeStyles((t) => ({
   directory: {
@@ -51,41 +74,66 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 function DialogForm({
+  bucket,
   close,
   files,
+  onSubmitEnd,
+  onSubmitStart,
+  onSuccess,
   path,
   successor,
-  onSubmitStart,
-  onSubmitEnd,
   workflowsConfig,
 }) {
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState('')
-  // const [uploads, setUploads] = React.useState({})
   const classes = useStyles()
 
-  const onSubmit = React.useCallback(async () => {
-    onSubmitStart()
-    onSubmitEnd()
-  }, [onSubmitStart, onSubmitEnd])
+  const req = APIConnector.use()
 
-  const onFilesAction = () => {}
+  const onSubmit = React.useCallback(
+    // eslint-disable-next-line consistent-return
+    async ({ commitMessage, name, meta, workflow }) => {
+      onSubmitStart()
+      try {
+        onSubmitEnd()
+        const res = await requestPackageCreate(req, {
+          commitMessage,
+          meta,
+          name,
+          path,
+          sourceBucket: bucket,
+          targetBucket: successor.slug,
+          workflow,
+        })
+        onSuccess({ path, hash: res.top_hash })
+      } catch (e) {
+        onSubmitEnd()
+        // eslint-disable-next-line no-console
+        console.log('error creating manifest', e)
+        return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
+      }
+    },
+    [bucket, successor, req, onSuccess, path, onSubmitStart, onSubmitEnd],
+  )
 
-  const initialFiles = {
-    existing: files.reduce(
-      (memo, file) => ({
-        [basename(file.key)]: {
-          isDir: file.isDir,
-          size: file.size,
-        },
-        ...memo,
-      }),
-      {},
-    ),
-    added: {},
-    deleted: {},
-  }
+  const initialFiles = React.useMemo(
+    () => ({
+      existing: files.reduce(
+        (memo, file) => ({
+          [basename(file.key)]: {
+            isDir: file.isDir,
+            size: file.size,
+          },
+          ...memo,
+        }),
+        {},
+      ),
+      added: {},
+      deleted: {},
+    }),
+    [files],
+  )
 
   const onFormChange = React.useCallback(
     async ({ values }) => {
@@ -108,8 +156,6 @@ function DialogForm({
     [successor, nameExistence, nameWarning],
   )
 
-  const initialName = React.useMemo(() => '', [])
-
   const initialWorkflow = React.useMemo(
     () => PD.defaultWorkflowFromConfig(workflowsConfig),
     [workflowsConfig],
@@ -117,7 +163,7 @@ function DialogForm({
 
   const [workflow, setWorkflow] = React.useState(initialWorkflow)
 
-  const uploads = [{}]
+  const uploads = React.useMemo(() => [{}], [])
 
   return (
     <RF.Form
@@ -177,7 +223,6 @@ function DialogForm({
                       invalid: 'Invalid package name',
                     }}
                     helperText={nameWarning}
-                    initialValue={initialName}
                   />
 
                   <RF.Field
@@ -235,7 +280,7 @@ function DialogForm({
                     }}
                     disabled
                     uploads={uploads}
-                    onFilesAction={onFilesAction}
+                    onFilesAction={R.T}
                     isEqual={R.equals}
                     initialValue={initialFiles}
                   />
@@ -336,6 +381,7 @@ function DialogLoading({ bucket, onCancel }) {
 }
 
 export default function PackageDirectoryDialog({
+  bucket,
   files,
   onClose,
   onExited,
@@ -399,6 +445,7 @@ export default function PackageDirectoryDialog({
           successor && (
             <DialogForm
               {...{
+                bucket,
                 close: handleClose,
                 files,
                 onSubmitEnd: () => setSubmitting(false),
