@@ -6,7 +6,6 @@ import AsyncResult from 'utils/AsyncResult'
 import * as Resource from 'utils/Resource'
 
 import { PreviewData, PreviewError } from '../types'
-import * as Text from './Text'
 import * as utils from './utils'
 
 const MAX_SIZE = 20 * 1024 * 1024
@@ -68,15 +67,41 @@ function VegaLoader({ handle, gated, children }) {
   return children(result)
 }
 
+function JsonLoader({ gated, handle, children }) {
+  const data = utils.useObjectGetter(handle, { noAutoFetch: gated })
+  const processed = utils.useProcessing(
+    data.result,
+    (r) => {
+      try {
+        const contents = r.Body.toString('utf-8')
+        const rendered = JSON.parse(contents)
+        return PreviewData.Json({ rendered })
+      } catch (e) {
+        if (e instanceof SyntaxError) {
+          throw PreviewError.MalformedJson({ handle, message: e.message })
+        }
+        throw e
+      }
+    },
+    [],
+  )
+  const handled = utils.useErrorHandling(processed, { handle, retry: data.fetch })
+  const result =
+    gated && AsyncResult.Init.is(handled)
+      ? AsyncResult.Err(PreviewError.Gated({ handle, load: data.fetch }))
+      : handled
+  return children(result)
+}
+
 export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
 
-export const Loader = function JsonLoader({ handle, children }) {
+export const Loader = function GatedJsonLoader({ handle, children }) {
   return utils.useFirstBytes({ bytes: 256, handle }).case({
     Ok: ({ firstBytes, contentLength }) =>
       detectSchema(firstBytes) ? (
         <VegaLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />
       ) : (
-        <Text.Loader {...{ handle, children, forceLang: 'json' }} />
+        <JsonLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />
       ),
     _: children,
   })
