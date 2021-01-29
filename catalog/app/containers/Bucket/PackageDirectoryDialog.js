@@ -41,9 +41,11 @@ function requestPackageCreate(
 function DialogTitle({ bucket, path }) {
   const { urls } = NamedRoutes.use()
 
+  const directory = path ? `&quot;{path}&quot;` : 'root'
+
   return (
     <>
-      Push &quot;{path}&quot; directory to{' '}
+      Push {directory} directory to{' '}
       <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
         {bucket}
       </StyledLink>{' '}
