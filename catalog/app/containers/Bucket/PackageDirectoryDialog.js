@@ -38,30 +38,17 @@ function requestPackageCreate(
   })
 }
 
-const useDialogTitleStyles = M.makeStyles((t) => ({
-  directory: {
-    background: t.palette.grey[300],
-    borderRadius: '2px',
-    color: t.palette.text.primary,
-    fontFamily: t.typography.monospace.fontFamily,
-    fontSize: '1.15rem',
-    padding: '0 3px',
-    whiteSpace: 'pre-wrap',
-  },
-}))
-
 function DialogTitle({ bucket, path }) {
   const { urls } = NamedRoutes.use()
-  const classes = useDialogTitleStyles()
 
   return (
-    <M.DialogTitle>
-      Push <code className={classes.directory}>{path}</code> directory to{' '}
+    <>
+      Push &quot;{path}&quot; directory to{' '}
       <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
         {bucket}
       </StyledLink>{' '}
       bucket as package
-    </M.DialogTitle>
+    </>
   )
 }
 
@@ -187,7 +174,10 @@ function DialogForm({
         hasValidationErrors,
       }) => (
         <>
-          <DialogTitle bucket={successor.slug} path={path} />
+          <M.DialogTitle>
+            <DialogTitle bucket={successor.slug} path={path} />
+          </M.DialogTitle>
+
           <M.DialogContent style={{ paddingTop: 0 }}>
             <form onSubmit={handleSubmit}>
               <RF.FormSpy
@@ -359,22 +349,11 @@ function DialogError({ bucket, error, onCancel }) {
   )
 }
 
-function DialogLoading({ bucket, onCancel }) {
-  const { urls } = NamedRoutes.use()
-
-  // FIXME: edit text
+function DialogLoading({ bucket, path, onCancel }) {
   return (
     <PD.DialogLoading
       skeletonElement={<PD.FormSkeleton />}
-      title={
-        <>
-          Push package to{' '}
-          <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
-            {bucket}
-          </StyledLink>{' '}
-          bucket
-        </>
-      }
+      title={<DialogTitle bucket={bucket} path={path} />}
       onCancel={onCancel}
     />
   )
@@ -458,7 +437,9 @@ export default function PackageDirectoryDialog({
             />
           ),
         _: () =>
-          successor && <DialogLoading bucket={successor.slug} onCancel={handleClose} />,
+          successor && (
+            <DialogLoading bucket={successor.slug} path={path} onCancel={handleClose} />
+          ),
       })}
     </M.Dialog>
   )
