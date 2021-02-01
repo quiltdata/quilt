@@ -57,6 +57,9 @@ function DialogTitle({ bucket, path }) {
 const defaultNameWarning = ' ' // Reserve space for warning
 
 const useStyles = M.makeStyles((t) => ({
+  files: {
+    height: '100%',
+  },
   meta: {
     marginTop: t.spacing(3),
   },
@@ -271,6 +274,7 @@ function DialogForm({
                       nonEmpty: 'Add files to create a package',
                     }}
                     disabled
+                    title="Files and directories below will be packaged"
                     uploads={uploads}
                     onFilesAction={R.T}
                     isEqual={R.equals}

@@ -394,9 +394,13 @@ function Dir({ contentIsUnknown, disabled, name, type, children, prefix, dispatc
             <M.Icon fontSize="inherit">{action.icon}</M.Icon>
           </M.IconButton>
         )}
-        <div className={classes.bar} />
-        {!children.length && !contentIsUnknown && (
-          <div className={classes.empty}>{'<EMPTY DIRECTORY>'}</div>
+        {!contentIsUnknown && (
+          <>
+            <div className={classes.bar} />
+            {!children.length && (
+              <div className={classes.empty}>{'<EMPTY DIRECTORY>'}</div>
+            )}
+          </>
         )}
       </div>
       {!contentIsUnknown && (
@@ -425,7 +429,7 @@ function Dir({ contentIsUnknown, disabled, name, type, children, prefix, dispatc
   )
 }
 
-const useFilesInputStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     flexDirection: 'column',
@@ -681,13 +685,14 @@ function DropdownMessage({ error, warning, disabled }) {
 export default function FilesInput({
   input: { value, onChange },
   className,
-  meta,
   disabled,
-  uploads,
-  onFilesAction,
   errors = {},
+  meta,
+  onFilesAction,
+  title,
+  uploads,
 }) {
-  const classes = useFilesInputStyles()
+  const classes = useStyles()
 
   const submitting = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
@@ -758,7 +763,7 @@ export default function FilesInput({
               : undefined,
           )}
         >
-          Files
+          {title}
           {(!!stats.added.count || !!stats.deleted.count) && (
             <>
               :

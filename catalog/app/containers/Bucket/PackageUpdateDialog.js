@@ -377,6 +377,7 @@ function DialogForm({
                       nonEmpty: 'Add files to create a package',
                     }}
                     uploads={uploads}
+                    title="Files"
                     onFilesAction={onFilesAction}
                     isEqual={R.equals}
                     initialValue={initialFiles}
