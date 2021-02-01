@@ -333,23 +333,12 @@ function DialogForm({
   )
 }
 
-function DialogError({ bucket, error, onCancel }) {
-  const { urls } = NamedRoutes.use()
-
-  // FIXME: edit text
+function DialogError({ bucket, error, path, onCancel }) {
   return (
     <PD.DialogError
       error={error}
       skeletonElement={<PD.FormSkeleton animate={false} />}
-      title={
-        <>
-          Push package to{' '}
-          <StyledLink target="_blank" to={urls.bucketOverview(bucket)}>
-            {bucket}
-          </StyledLink>{' '}
-          bucket
-        </>
-      }
+      title={<DialogTitle bucket={bucket} path={path} />}
       onCancel={onCancel}
     />
   )
@@ -432,7 +421,12 @@ export default function PackageDirectoryDialog({
         workflowsData.case({
           Err: (e) =>
             successor && (
-              <DialogError bucket={successor.slug} onCancel={handleClose} error={e} />
+              <DialogError
+                bucket={successor.slug}
+                path={path}
+                onCancel={handleClose}
+                error={e}
+              />
             ),
           Ok: (workflowsConfig) =>
             successor && (
