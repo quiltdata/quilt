@@ -259,7 +259,7 @@ function DialogForm({
           </M.DialogContent>
           <M.DialogActions>
             {submitting && (
-              <PD.SubmitSpinner value={100}>
+              <PD.SubmitSpinner>
                 {successor.copyData
                   ? 'Copying files and writing manifest'
                   : 'Writing manifest'}
