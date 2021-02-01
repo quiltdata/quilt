@@ -754,7 +754,7 @@ export default function FilesInput({
         <div
           className={cx(
             classes.headerFiles,
-            ref.current.submitting // eslint-disable-line no-nested-ternary
+            ref.current.submitting || disabled // eslint-disable-line no-nested-ternary
               ? classes.headerFilesDisabled
               : error // eslint-disable-line no-nested-ternary
               ? classes.headerFilesError
