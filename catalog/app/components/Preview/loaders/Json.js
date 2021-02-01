@@ -1,3 +1,4 @@
+import hljs from 'highlight.js'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -67,30 +68,46 @@ function VegaLoader({ handle, gated, children }) {
   return children(result)
 }
 
+const hl = (lang) => (contents) => hljs.highlight(lang, contents).value
+
 function JsonLoader({ gated, handle, children }) {
-  const data = utils.useObjectGetter(handle, { noAutoFetch: gated })
+  const { result, fetch } = utils.usePreview({
+    type: 'txt',
+    handle,
+    query: { max_bytes: Text.MAX_BYTES },
+  })
   const processed = utils.useProcessing(
-    data.result,
-    (r) => {
+    result,
+    ({ info: { data, note, warnings } }) => {
+      const head = data.head.join('\n')
+      const tail = data.tail.join('\n')
       try {
-        const contents = r.Body.toString('utf-8')
-        const rendered = JSON.parse(contents)
+        const rendered = JSON.parse([head, tail].join('\n'))
         return PreviewData.Json({ rendered })
       } catch (e) {
         if (e instanceof SyntaxError) {
-          throw PreviewError.MalformedJson({ handle, message: e.message })
+          const lang = 'json'
+          const highlighted = R.map(hl(lang), { head, tail })
+          return PreviewData.Text({
+            head,
+            tail,
+            lang,
+            highlighted,
+            note,
+            warnings,
+          })
         }
         throw e
       }
     },
     [],
   )
-  const handled = utils.useErrorHandling(processed, { handle, retry: data.fetch })
-  const result =
+  const handled = utils.useErrorHandling(processed, { handle, retry: fetch })
+  return children(
     gated && AsyncResult.Init.is(handled)
-      ? AsyncResult.Err(PreviewError.Gated({ handle, load: data.fetch }))
-      : handled
-  return children(result)
+      ? AsyncResult.Err(PreviewError.Gated({ handle, load: fetch }))
+      : handled,
+  )
 }
 
 export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))

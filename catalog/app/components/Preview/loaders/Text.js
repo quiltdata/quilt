@@ -6,7 +6,7 @@ import * as R from 'ramda'
 import { PreviewData } from '../types'
 import * as utils from './utils'
 
-const MAX_BYTES = 10 * 1024
+export const MAX_BYTES = 10 * 1024
 
 const LANGS = {
   accesslog: /\.log$/,
