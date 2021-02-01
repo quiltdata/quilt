@@ -160,6 +160,9 @@ CREATE_PACKAGE_HASHES = textwrap.dedent(f"""\
 # - in the order from most unique values to least unique
 # - integers rather than strings
 
+# Only look for 'GetObject' events: Catalog does not need anything else,
+# and it prevents Athena from running out of memory.
+
 OBJECT_ACCESS_COUNTS = textwrap.dedent("""\
     SELECT
         eventname,
@@ -167,6 +170,7 @@ OBJECT_ACCESS_COUNTS = textwrap.dedent("""\
         key,
         CAST(histogram(date) AS JSON) AS counts
     FROM object_access_log
+    WHERE eventname = 'GetObject'
     GROUP BY 3, 2, 1
 """)
 
@@ -193,7 +197,9 @@ PACKAGE_ACCESS_COUNTS = textwrap.dedent(f"""\
                 date,
                 count(*) AS count
             FROM object_access_log
-            WHERE substr(key, 1, {len(MANIFEST_PREFIX)}) = '{sql_escape(MANIFEST_PREFIX)}'
+            WHERE
+                eventname = 'GetObject' AND
+                substr(key, 1, {len(MANIFEST_PREFIX)}) = '{sql_escape(MANIFEST_PREFIX)}'
             GROUP BY 4, 3, 2, 1
         ) access_counts JOIN package_hashes
         ON access_counts.bucket = package_hashes.bucket AND access_counts.hash = package_hashes.hash
@@ -216,7 +222,9 @@ PACKAGE_VERSION_ACCESS_COUNTS = textwrap.dedent(f"""\
             substr(key, {len(MANIFEST_PREFIX) + 1}) AS hash,
             CAST(histogram(date) AS JSON) AS counts
         FROM object_access_log
-        WHERE substr(key, 1, {len(MANIFEST_PREFIX)}) = '{sql_escape(MANIFEST_PREFIX)}'
+        WHERE
+            eventname = 'GetObject' AND
+            substr(key, 1, {len(MANIFEST_PREFIX)}) = '{sql_escape(MANIFEST_PREFIX)}'
         GROUP BY 3, 2, 1
     ) access_counts JOIN package_hashes
     ON access_counts.bucket = package_hashes.bucket AND access_counts.hash = package_hashes.hash
@@ -228,6 +236,7 @@ BUCKET_ACCESS_COUNTS = textwrap.dedent("""\
         bucket,
         CAST(histogram(date) AS JSON) AS counts
     FROM object_access_log
+    WHERE eventname = 'GetObject'
     GROUP BY 2, 1
 """)
 
@@ -256,6 +265,7 @@ EXTS_ACCESS_COUNTS = textwrap.dedent("""\
                 bucket,
                 split(substr(element_at(split(key, '/'), -1), 2), '.') AS parts,
                 date
+            WHERE eventname = 'GetObject'
             FROM object_access_log
         )
     )
