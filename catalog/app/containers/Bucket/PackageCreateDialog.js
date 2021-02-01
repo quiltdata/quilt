@@ -14,7 +14,6 @@ import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
-import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import pipeThru from 'utils/pipeThru'
@@ -733,33 +732,9 @@ function PackageCreateDialog({
               </M.DialogContent>
               <M.DialogActions>
                 {submitting && (
-                  <Delay ms={200} alwaysRender>
-                    {(ready) => (
-                      <M.Fade in={ready}>
-                        <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
-                          <M.CircularProgress
-                            size={24}
-                            variant={
-                              totalProgress.percent < 100
-                                ? 'determinate'
-                                : 'indeterminate'
-                            }
-                            value={
-                              totalProgress.percent < 100
-                                ? totalProgress.percent * 0.9
-                                : undefined
-                            }
-                          />
-                          <M.Box pl={1} />
-                          <M.Typography variant="body2" color="textSecondary">
-                            {totalProgress.percent < 100
-                              ? 'Uploading files'
-                              : 'Writing manifest'}
-                          </M.Typography>
-                        </M.Box>
-                      </M.Fade>
-                    )}
-                  </Delay>
+                  <PD.SubmitSpinner value={totalProgress.percent}>
+                    {totalProgress.percent < 100 ? 'Uploading files' : 'Writing manifest'}
+                  </PD.SubmitSpinner>
                 )}
 
                 {!submitting && (!!error || !!submitError) && (
