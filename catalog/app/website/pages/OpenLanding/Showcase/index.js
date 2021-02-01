@@ -1,1 +1,1 @@
-export default from './Showcase'
+export { default } from './Showcase'
