@@ -8,6 +8,7 @@ import * as Resource from 'utils/Resource'
 
 import { PreviewData, PreviewError } from '../types'
 import * as utils from './utils'
+import * as Text from './Text'
 
 const MAX_SIZE = 20 * 1024 * 1024
 const SCHEMA_RE = /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/([\w-]+)\/([\w.-]+)\.json"/
