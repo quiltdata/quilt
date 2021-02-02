@@ -155,8 +155,6 @@ function DialogForm({
 
   const [workflow, setWorkflow] = React.useState(initialWorkflow)
 
-  const uploads = React.useMemo(() => [{}], [])
-
   return (
     <RF.Form
       onSubmit={onSubmit}
@@ -268,6 +266,7 @@ function DialogForm({
                     className={classes.files}
                     component={PD.FilesInput}
                     name="files"
+                    totalProgress={{}}
                     validate={validators.nonEmpty}
                     validateFields={['files']}
                     errors={{
@@ -275,7 +274,6 @@ function DialogForm({
                     }}
                     disabled
                     title="Files and directories below will be packaged"
-                    uploads={uploads}
                     onFilesAction={R.T}
                     isEqual={R.equals}
                     initialValue={initialFiles}

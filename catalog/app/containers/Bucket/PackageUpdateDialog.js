@@ -376,7 +376,7 @@ function DialogForm({
                     errors={{
                       nonEmpty: 'Add files to create a package',
                     }}
-                    uploads={uploads}
+                    totalProgress={totalProgress}
                     title="Files"
                     onFilesAction={onFilesAction}
                     isEqual={R.equals}

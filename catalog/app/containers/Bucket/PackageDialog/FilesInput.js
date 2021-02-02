@@ -616,21 +616,6 @@ const computeEntries = ({ added, deleted, existing }) => {
   }, [])
 }
 
-const getTotalProgress = R.pipe(
-  R.values,
-  R.reduce(
-    (acc, { progress: p = {} }) => ({
-      total: acc.total + (p.total || 0),
-      loaded: acc.loaded + (p.loaded || 0),
-    }),
-    { total: 0, loaded: 0 },
-  ),
-  (p) => ({
-    ...p,
-    percent: p.total ? Math.floor((p.loaded / p.total) * 100) : 100,
-  }),
-)
-
 const useDropdownMessageStyles = M.makeStyles((t) => ({
   root: {
     ...t.typography.body2,
@@ -690,7 +675,7 @@ export default function FilesInput({
   meta,
   onFilesAction,
   title,
-  uploads,
+  totalProgress,
 }) {
   const classes = useStyles()
 
@@ -732,8 +717,6 @@ export default function FilesInput({
   }, [dispatch])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
-
-  const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
 
   const computedEntries = useMemoEq(value, computeEntries)
 
