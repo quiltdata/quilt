@@ -52,7 +52,7 @@ import pathlib
 import re
 from os.path import split
 from typing import Optional
-from urllib.parse import unquote, unquote_plus
+from urllib.parse import unquote_plus
 
 import boto3
 import botocore
@@ -644,15 +644,13 @@ def handler(event, context):
                 if not any(event_name.startswith(n) for n in EVENT_PREFIX.values()):
                     logger_.warning("Skipping unknown event type: %s", event_name)
                     continue
-                bucket = unquote(event_["s3"]["bucket"]["name"])
+                bucket = event_["s3"]["bucket"]["name"]
                 # In the grand tradition of IE6, S3 events turn spaces into '+'
                 # TODO: check if eventbridge events do the same thing with +
                 key = unquote_plus(event_["s3"]["object"]["key"])
                 version_id = event_["s3"]["object"].get("versionId", None)
-                if version_id:
-                    version_id = unquote(version_id)
                 # ObjectRemoved:Delete does not include "eTag"
-                etag = unquote(event_["s3"]["object"].get("eTag", ""))
+                etag = event_["s3"]["object"].get("eTag", "")
                 # synthetic events from bulk scanner might define lastModified
                 last_modified = (
                     event_["s3"]["object"].get("lastModified") or event_["eventTime"]
