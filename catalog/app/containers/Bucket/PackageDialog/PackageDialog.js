@@ -12,7 +12,7 @@ import Delay from 'utils/Delay'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
-import { makeSchemaValidator, setDefaultValues } from 'utils/json-schema'
+import { makeSchemaValidator, makeSchemaDefaultsSetter } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
@@ -357,11 +357,13 @@ export function MetaInput({
   const error = schemaError || ((meta.modified || meta.submitFailed) && meta.error)
   const disabled = meta.submitting || meta.submitSucceeded
 
+  const schemaDefaults = React.useMemo(() => makeSchemaDefaultsSetter(schema), [schema])
+
   const parsedValue = React.useMemo(() => {
     const obj = parseJSON(value.text)
     const validObj = R.is(Object, obj) && !Array.isArray(obj) ? obj : {}
-    return setDefaultValues(schema, validObj)
-  }, [schema, value.text])
+    return schemaDefaults(validObj)
+  }, [schemaDefaults, value.text])
 
   const changeMode = (mode) => {
     if (disabled) return
