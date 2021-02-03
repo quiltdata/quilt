@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "outDir": "./build/",
+    "baseUrl": "./app/",
+    "sourceMap": true,
+    "module": "ES6",
+    "target": "ES5",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "jsx": "react",
+    "strict": true,
+    "noImplicitAny": true,
+    "forceConsistentCasingInFileNames": true,
+    "experimentalDecorators": true,
+    "allowJs": true
+  },
+  "include": [
+    "./app/**/*"
+  ]
+}

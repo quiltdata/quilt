@@ -25,12 +25,15 @@ module.exports = (options) => ({
         use: 'raw-loader',
       },
       {
-        test: /\.js$/, // Transform all .js files required somewhere with Babel
+        test: /\.[jt]sx?$/,
         exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: options.babelQuery,
-        },
+        use: 'ts-loader',
+      },
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        enforce: 'pre',
+        use: 'source-map-loader',
       },
       {
         // Preprocess our own .css files
@@ -118,7 +121,7 @@ module.exports = (options) => ({
   ]),
   resolve: {
     modules: ['app', 'node_modules', path.resolve(__dirname, '../../../shared')],
-    extensions: ['.js', '.jsx', '.react.js'],
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.react.js'],
     mainFields: ['module', 'browser', 'jsnext:main', 'main'],
     fallback: {
       path: require.resolve('path-browserify'),
