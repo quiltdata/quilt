@@ -12,7 +12,7 @@ import Delay from 'utils/Delay'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
-import { makeSchemaValidator } from 'utils/json-schema'
+import { makeSchemaValidator, setDefaultValues } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
@@ -359,8 +359,9 @@ export function MetaInput({
 
   const parsedValue = React.useMemo(() => {
     const obj = parseJSON(value.text)
-    return R.is(Object, obj) && !Array.isArray(obj) ? obj : {}
-  }, [value.text])
+    const validObj = R.is(Object, obj) && !Array.isArray(obj) ? obj : {}
+    return setDefaultValues(schema, validObj)
+  }, [schema, value.text])
 
   const changeMode = (mode) => {
     if (disabled) return
@@ -387,6 +388,13 @@ export function MetaInput({
   const onJsonEditor = React.useCallback((json) => changeText(stringifyJSON(json)), [
     changeText,
   ])
+
+  // We populated value with Schema defaults
+  // and should save this new value in final-form
+  React.useEffect(() => {
+    onJsonEditor(parsedValue)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schema, onJsonEditor])
 
   const { push: notify } = Notifications.use()
   const [locked, setLocked] = React.useState(false)
