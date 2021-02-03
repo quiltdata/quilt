@@ -167,7 +167,8 @@ function getJsonDictItem(jsonDict, obj, parentPath, key) {
   // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
   const valuePath = getAddressPath(key, parentPath)
   const storedValue = R.path(valuePath, obj)
-  const value = storedValue === undefined ? EMPTY_VALUE : storedValue
+  const value =
+    storedValue === undefined ? item.valueSchema.default || EMPTY_VALUE : storedValue
   return {
     [COLUMN_IDS.KEY]: key,
     [COLUMN_IDS.VALUE]: value,
