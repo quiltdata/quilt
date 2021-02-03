@@ -25,9 +25,10 @@ PreviewStatus: {
 
 export const PreviewData = tagged([
   'DataFrame', // { preview: string, ...PreviewStatus }
-  'Image', // { handle: object }
-  'IFrame', // { src: string }
   'Fcs', // { preview: string, metadata: object, ...PreviewStatus }
+  'IFrame', // { src: string }
+  'Image', // { handle: object }
+  'Json', // { rendered: object }
   'Markdown', // { rendered: string }
   'Notebook', // { preview: string, ...PreviewStatus }
   'Parquet', // { preview: string, ...ParquetMeta, ...PreviewStatus }
