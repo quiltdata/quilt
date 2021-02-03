@@ -8,6 +8,8 @@ export { default as DialogSuccess } from './DialogSuccess'
 
 export { default as FilesInput, FilesAction } from './FilesInput'
 
+export { default as SubmitSpinner } from './SubmitSpinner'
+
 export * from './Skeleton'
 
 export * from './Layout'

@@ -5,6 +5,11 @@
 
 # Quilt is a self-organizing data hub
 
+## Python Quick start, tutorials
+If you have Python and an S3 bucket, you're ready to create versioned datasets with Quilt.
+Visit the [Quilt docs](https://docs.quiltdata.com/installation) for installation instructions,
+a quick start, and more.
+
 ## Quilt in action
 * [open.quiltdata.com](https://open.quiltdata.com/) is a petabyte-scale open
 data portal that runs on Quilt
@@ -27,9 +32,8 @@ functions&mdash;all of which are open source&mdash;plus
 a suite of backend services and Docker containers
 orchestrated by CloudFormation.
 
-The latter are available for private use under a paid license
+The backend services are available under a paid license
 on [quiltdata.com](https://quiltdata.com).
-
 
 ## Use cases
 * **Share** data at scale. Quilt wraps AWS S3 to add simple URLs, web preview for large files, and sharing via email address (no need to create an IAM role).

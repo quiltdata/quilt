@@ -8,7 +8,6 @@ import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
-import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import tagged from 'utils/tagged'
@@ -260,21 +259,11 @@ function DialogForm({
           </M.DialogContent>
           <M.DialogActions>
             {submitting && (
-              <Delay ms={200} alwaysRender>
-                {(ready) => (
-                  <M.Fade in={ready}>
-                    <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
-                      <M.CircularProgress size={24} variant="indeterminate" />
-                      <M.Box pl={1} />
-                      <M.Typography variant="body2" color="textSecondary">
-                        {successor.copyData
-                          ? 'Copying files and writing manifest'
-                          : 'Writing manifest'}
-                      </M.Typography>
-                    </M.Box>
-                  </M.Fade>
-                )}
-              </Delay>
+              <PD.SubmitSpinner>
+                {successor.copyData
+                  ? 'Copying files and writing manifest'
+                  : 'Writing manifest'}
+              </PD.SubmitSpinner>
             )}
 
             {!submitting && (!!error || !!submitError) && (
