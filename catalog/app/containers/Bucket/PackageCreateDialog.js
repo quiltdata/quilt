@@ -721,7 +721,7 @@ function PackageCreateDialog({
                 </M.Box>
               )}
 
-              <M.Button onClick={() => onClose({ submitting })} disabled={submitting}>
+              <M.Button onClick={onClose} disabled={submitting}>
                 Cancel
               </M.Button>
               <M.Button
