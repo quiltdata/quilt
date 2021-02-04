@@ -9,18 +9,14 @@ const addDevMiddlewares = (app, webpackConfig) => {
   const webpackDevMiddleware = require('webpack-dev-middleware')
   const webpackHotMiddleware = require('webpack-hot-middleware')
   const compiler = webpack(webpackConfig)
-  const middleware = webpackDevMiddleware(compiler, {
-    logLevel: 'warn',
-    publicPath: webpackConfig.output.publicPath,
-    stats: 'errors-only',
-  })
+  const middleware = webpackDevMiddleware(compiler, { stats: 'errors-only' })
 
   app.use(middleware)
   app.use(webpackHotMiddleware(compiler))
 
   // Since webpackDevMiddleware uses memory-fs internally to store build
   // artifacts, we use it instead
-  const fs = middleware.fileSystem
+  const fs = compiler.outputFileSystem
 
   const sendFile = (name) => (req, res) => {
     fs.readFile(path.join(compiler.outputPath, name), (err, file) => {

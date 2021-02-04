@@ -8,8 +8,6 @@ import os
 import boto3
 import botocore
 import pandas as pd
-from botocore import UNSIGNED
-from botocore.client import Config
 
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.utils import (
@@ -141,7 +139,10 @@ def lambda_handler(request):
     ):
         # Test to see if the target key is publicly accessible. If not, the call
         # below will raise and exception and return a 403 response
-        anons3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
+        anons3 = boto3.client(
+            's3',
+            config=botocore.client.Config(signature_version=botocore.UNSIGNED)
+        )
         try:
             anons3.head_object(Bucket=bucket, Key=key)
         except botocore.exceptions.ClientError as error:
@@ -194,8 +195,19 @@ def lambda_handler(request):
             key=key,
             sql_stmt=sql_stmt
         )
+
         # Parse the response into a logical folder view
-        df = pd.read_json(result, lines=True)
+        if result is not None:
+            df = pd.read_json(
+                result,
+                lines=True,
+                dtype=dict(
+                    logical_key='string',
+                    physical_key='string'
+                )
+            )
+        else:
+            df = pd.DataFrame()
         response_data = file_list_to_folder(df)
 
         # Fetch package-level or directory-level metadata

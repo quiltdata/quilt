@@ -20,24 +20,28 @@ const withErrorHandling = (fn, pairs) => (...args) =>
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
 
+const decodeS3Key = R.pipe(R.replace(/\+/g, ' '), decodeURIComponent)
+
 export const bucketListing = ({ s3, bucket, path = '', prefix }) =>
   s3
     .listObjectsV2({
       Bucket: bucket,
       Delimiter: '/',
       Prefix: path + (prefix || ''),
+      EncodingType: 'url',
     })
     .promise()
     .then(
       R.applySpec({
         dirs: R.pipe(
           R.prop('CommonPrefixes'),
-          R.pluck('Prefix'),
+          R.map((p) => decodeS3Key(p.Prefix)),
           R.filter((d) => d !== '/' && d !== '../'),
           R.uniq,
         ),
         files: R.pipe(
           R.prop('Contents'),
+          R.map(R.evolve({ Key: decodeS3Key })),
           // filter-out "directory-files" (files that match prefixes)
           R.filter(({ Key }) => Key !== path && !Key.endsWith('/')),
           R.map((i) => ({
@@ -442,11 +446,12 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
   }
   try {
     return await s3
-      .listObjectsV2({ Bucket: bucket })
+      .listObjectsV2({ Bucket: bucket, EncodingType: 'url' })
       .promise()
       .then(
         R.pipe(
           R.path(['Contents']),
+          R.map(R.evolve({ Key: decodeS3Key })),
           R.filter(
             R.propSatisfies(
               R.allPass([
@@ -536,11 +541,12 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
   }
   try {
     return await s3
-      .listObjectsV2({ Bucket: bucket })
+      .listObjectsV2({ Bucket: bucket, EncodingType: 'url' })
       .promise()
       .then(
         R.pipe(
           R.path(['Contents']),
+          R.map(R.evolve({ Key: decodeS3Key })),
           R.filter(
             (i) =>
               i.StorageClass !== 'GLACIER' &&
@@ -563,11 +569,12 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
 
 export const objectVersions = ({ s3, bucket, path }) =>
   s3
-    .listObjectVersions({ Bucket: bucket, Prefix: path })
+    .listObjectVersions({ Bucket: bucket, Prefix: path, EncodingType: 'url' })
     .promise()
     .then(
       R.pipe(
         ({ Versions, DeleteMarkers }) => Versions.concat(DeleteMarkers),
+        R.map(R.evolve({ Key: decodeS3Key })),
         R.filter((v) => v.Key === path),
         R.map((v) => ({
           isLatest: v.IsLatest || false,
@@ -1360,6 +1367,7 @@ export const ensurePackageIsPresent = async ({ s3, bucket, name }) => {
       Bucket: bucket,
       Prefix: `${PACKAGES_PREFIX}${name}/`,
       MaxKeys: 1,
+      EncodingType: 'url',
     })
     .promise()
   return !!response.KeyCount

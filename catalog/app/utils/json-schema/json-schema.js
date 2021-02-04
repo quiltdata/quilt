@@ -116,3 +116,17 @@ export function makeSchemaValidator(optSchema) {
     return () => [e]
   }
 }
+
+export function makeSchemaDefaultsSetter(optSchema) {
+  if (!optSchema) return R.identity
+  const ajv = new Ajv({ schemaId: 'auto', useDefaults: true })
+  try {
+    const validate = ajv.compile(optSchema)
+    return (obj) => {
+      validate(obj)
+      return obj
+    }
+  } catch (e) {
+    return R.identity
+  }
+}

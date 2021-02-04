@@ -14,7 +14,6 @@ import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
-import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import pipeThru from 'utils/pipeThru'
@@ -371,6 +370,25 @@ const getTotalProgress = R.pipe(
 
 const defaultNameWarning = ' ' // Reserve space for warning
 
+const useNameExistsWarningStyles = M.makeStyles(() => ({
+  root: {
+    marginRight: '4px',
+    verticalAlign: '-5px',
+  },
+}))
+
+const NameExistsWarning = ({ name }) => {
+  const classes = useNameExistsWarningStyles()
+  return (
+    <>
+      <M.Icon className={classes.root} fontSize="small">
+        error_outline
+      </M.Icon>
+      Package &quot;{name}&quot; already exists, you are about to create a new revision
+    </>
+  )
+}
+
 function PackageCreateDialog({
   bucket,
   open,
@@ -515,7 +533,7 @@ function PackageCreateDialog({
 
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {
-        warning = `Package "${name}" exists. Submitting will revise it`
+        warning = <NameExistsWarning name={name} />
       }
 
       if (warning !== nameWarning) {
@@ -533,10 +551,12 @@ function PackageCreateDialog({
   const [workflow, setWorkflow] = React.useState(null)
 
   const username = redux.useSelector(authSelectors.username)
-  const usernamePrefix = React.useMemo(
-    () => (username.includes('@') ? username.split('@')[0] : username),
-    [username],
-  )
+  const usernamePrefix = React.useMemo(() => {
+    const name = username.includes('@') ? username.split('@')[0] : username
+    // see PACKAGE_NAME_FORMAT at quilt3/util.py
+    const validParts = name.match(/\w+/g)
+    return validParts ? `${validParts.join('')}/` : ''
+  }, [username])
 
   return (
     <RF.Form
@@ -642,7 +662,7 @@ function PackageCreateDialog({
 
                       <RF.Field
                         component={PD.PackageNameInput}
-                        initialValue={`${usernamePrefix}/`}
+                        initialValue={usernamePrefix}
                         name="name"
                         validate={validators.composeAsync(
                           validators.required,
@@ -728,33 +748,9 @@ function PackageCreateDialog({
               </M.DialogContent>
               <M.DialogActions>
                 {submitting && (
-                  <Delay ms={200} alwaysRender>
-                    {(ready) => (
-                      <M.Fade in={ready}>
-                        <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
-                          <M.CircularProgress
-                            size={24}
-                            variant={
-                              totalProgress.percent < 100
-                                ? 'determinate'
-                                : 'indeterminate'
-                            }
-                            value={
-                              totalProgress.percent < 100
-                                ? totalProgress.percent * 0.9
-                                : undefined
-                            }
-                          />
-                          <M.Box pl={1} />
-                          <M.Typography variant="body2" color="textSecondary">
-                            {totalProgress.percent < 100
-                              ? 'Uploading files'
-                              : 'Writing manifest'}
-                          </M.Typography>
-                        </M.Box>
-                      </M.Fade>
-                    )}
-                  </Delay>
+                  <PD.SubmitSpinner value={totalProgress.percent}>
+                    {totalProgress.percent < 100 ? 'Uploading files' : 'Writing manifest'}
+                  </PD.SubmitSpinner>
                 )}
 
                 {!submitting && (!!error || !!submitError) && (

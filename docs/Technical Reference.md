@@ -49,11 +49,14 @@ The following service role is equivalent to `AdministratorAccess`:
 1. The **ability to create DNS entries**, such as CNAME records,
 for your company's domain.
 
-1. **An SSL certificate in the same region as your Quilt instance** to secure the domain where your users will access your Quilt instance. For example,
-to make your Quilt catalog available at `https://quilt.mycompany.com`,
-you require a certificate for `*.mycompany.com` in the [AWS Certificate Manager](https://aws.amazon.com/certificate-manager/).
+1. **An SSL certificate in the same region as your Quilt instance** to secure the domain where your users will access your Quilt instance.
+For example, to make your Quilt catalog available at `https://quilt.mycompany.com`,
+you require a certificate for either `*.mycompany.com` *or* for the following 3 domains:
+`quilt.mycompany.com`, `quilt-registry.mycompany.com` and `quilt-s3-proxy.mycompany.com`
+in the [AWS Certificate Manager](https://aws.amazon.com/certificate-manager/). 
 You may either [create a new certificate](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html), or
 [import an existing certificate](https://docs.aws.amazon.com/acm/latest/userguide/import-certificate.html).
+The ARN for this certificate or set of certificates is required for use as the `CertificateArnELB` CloudFormation parameter.
 
 1. For maximum security, Quilt requires **a region that supports [AWS Fargate](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/)**. As of this writing, all U.S. regions support Fargate.
 
@@ -161,6 +164,20 @@ your CloudFormation stack.
 
 1. Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
+
+## Upgrade
+
+Once you have a Quilt stack running, you can upgrade it as follows. You will
+need a licensed CloudFormation template from Quilt.
+
+1. Navigate to AWS Console > CloudFormation > Stacks
+1. Select your Quilt stack
+1. Click Update (upper right)
+1. Choose Replace current template
+1. Enter the Amazon S3 URL for your template
+1. Click Next (several times) and proceed to apply the update
+
+Your previous settings should carry over.
 
 ## Advanced configuration
 
