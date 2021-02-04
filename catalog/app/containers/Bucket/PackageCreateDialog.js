@@ -383,6 +383,11 @@ function PackageCreateDialog({
   refresh,
   workflow: selectedWorkflow,
   workflowsConfig,
+
+  schema,
+  schemaLoading,
+  responseError,
+  validate: validateMetaInput,
 }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
@@ -528,11 +533,6 @@ function PackageCreateDialog({
     [nameWarning, nameExistence],
   )
 
-  const initialWorkflow = React.useMemo(
-    () => PD.defaultWorkflowFromConfig(workflowsConfig),
-    [workflowsConfig],
-  )
-
   const username = redux.useSelector(authSelectors.username)
   const usernamePrefix = React.useMemo(() => {
     const name = username.includes('@') ? username.split('@')[0] : username
@@ -670,37 +670,28 @@ function PackageCreateDialog({
                         }}
                       />
 
-                      <PD.SchemaFetcher
-                        schemaUrl={R.pathOr(
-                          '',
-                          ['schema', 'url'],
-                          selectedWorkflow || initialWorkflow,
-                        )}
-                      >
-                        {AsyncResult.case({
-                          Ok: ({ responseError, schema, validate }) => (
-                            <RF.Field
-                              className={classes.meta}
-                              component={PD.MetaInput}
-                              name="meta"
-                              bucket={bucket}
-                              schema={schema}
-                              schemaError={responseError}
-                              validate={validate}
-                              validateFields={['meta']}
-                              isEqual={R.equals}
-                              initialValue={PD.EMPTY_META_VALUE}
-                            />
-                          ),
-                          _: () => <PD.MetaInputSkeleton className={classes.meta} />,
-                        })}
-                      </PD.SchemaFetcher>
+                      {schemaLoading ? (
+                        <PD.MetaInputSkeleton className={classes.meta} />
+                      ) : (
+                        <RF.Field
+                          className={classes.meta}
+                          component={PD.MetaInput}
+                          name="meta"
+                          bucket={bucket}
+                          schema={schema}
+                          schemaError={responseError}
+                          validate={validateMetaInput}
+                          validateFields={['meta']}
+                          isEqual={R.equals}
+                          initialValue={PD.EMPTY_META_VALUE}
+                        />
+                      )}
 
                       <RF.Field
                         component={PD.WorkflowInput}
                         name="workflow"
                         workflowsConfig={workflowsConfig}
-                        initialValue={initialWorkflow}
+                        initialValue={selectedWorkflow}
                         validate={validators.required}
                         validateFields={['meta', 'workflow']}
                         errors={{
@@ -789,7 +780,41 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
 
   return data.case({
     Ok: (workflowsConfig) => (
-      <PackageCreateDialog {...props} workflowsConfig={workflowsConfig} />
+      <PD.SchemaFetcher
+        schemaUrl={R.pathOr(
+          '',
+          ['schema', 'url'],
+          workflow || PD.defaultWorkflowFromConfig(workflowsConfig),
+        )}
+      >
+        {AsyncResult.case({
+          Ok: ({ responseError, schema, validate }) => (
+            <PackageCreateDialog
+              {...props}
+              {...{
+                responseError,
+                schema,
+                validate,
+                workflow: workflow || PD.defaultWorkflowFromConfig(workflowsConfig),
+                workflowsConfig,
+              }}
+            />
+          ),
+          _: () => (
+            <PackageCreateDialog
+              {...props}
+              {...{
+                responseError: null,
+                schema: null,
+                schemaLoading: true,
+                validate: () => undefined,
+                workflow: workflow || PD.defaultWorkflowFromConfig(workflowsConfig),
+                workflowsConfig,
+              }}
+            />
+          ),
+        })}
+      </PD.SchemaFetcher>
     ),
     Err: (error) => <PackageCreateDialog {...props} initError={error} />,
     _: () => <PackageCreateDialog {...props} loading />,
