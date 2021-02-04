@@ -3,9 +3,11 @@
  */
 
 const path = require('path')
-const webpack = require('webpack')
+
 const CopyWebpackPlugin = require('copy-webpack-plugin')
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
+const webpack = require('webpack')
 
 module.exports = (options) => ({
   mode: options.mode,
@@ -27,7 +29,13 @@ module.exports = (options) => ({
       {
         test: /\.[jt]sx?$/,
         exclude: /node_modules/,
-        use: 'ts-loader',
+        use: {
+          loader: 'ts-loader',
+          options: {
+            // disable type checking - we use ForkTsCheckerWebpackPlugin for that
+            transpileOnly: true,
+          },
+        },
       },
       {
         test: /\.js$/,
@@ -113,6 +121,8 @@ module.exports = (options) => ({
       filename: 'embed-debug-harness.html',
       inject: true,
     }),
+
+    new ForkTsCheckerWebpackPlugin(),
 
     // NODE_ENV is exposed automatically based on the "mode" option
     new webpack.EnvironmentPlugin({

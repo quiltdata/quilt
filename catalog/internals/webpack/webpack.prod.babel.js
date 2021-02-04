@@ -1,6 +1,7 @@
 const path = require('path')
-const TerserPlugin = require('terser-webpack-plugin')
+
 const CompressionPlugin = require('compression-webpack-plugin')
+const TerserPlugin = require('terser-webpack-plugin')
 
 module.exports = require('./webpack.base.babel')({
   mode: 'production',

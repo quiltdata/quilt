@@ -1,7 +1,8 @@
 const path = require('path')
-const webpack = require('webpack')
-const CopyWebpackPlugin = require('copy-webpack-plugin')
+
 const CircularDependencyPlugin = require('circular-dependency-plugin')
+const CopyWebpackPlugin = require('copy-webpack-plugin')
+const webpack = require('webpack')
 
 module.exports = require('./webpack.base.babel')({
   mode: 'development',
