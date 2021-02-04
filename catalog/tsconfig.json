@@ -3,7 +3,7 @@
     "outDir": "./build/",
     "baseUrl": "./app/",
     "sourceMap": true,
-    "module": "ES6",
+    "module": "ESNext",
     "target": "ES5",
     "moduleResolution": "node",
     "resolveJsonModule": true,
@@ -13,6 +13,7 @@
     "noImplicitAny": true,
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
     "allowJs": true
   },
   "include": [
