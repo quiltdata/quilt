@@ -280,9 +280,8 @@ def write_yaml(data, yaml_path, keep_backup=False):
     try:
         if path.exists():
             path.rename(backup_path)
-        if not path.parent.exists():
-            path.parent.mkdir(parents=True)
-        with path.open('w') as config_file:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open('x') as config_file:
             yaml.dump(data, config_file)
     except Exception:     # intentionally wide catch -- reraised immediately.
         if backup_path.exists():
