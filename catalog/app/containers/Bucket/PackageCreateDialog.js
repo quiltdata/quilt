@@ -375,12 +375,14 @@ const NameExistsWarning = ({ name }) => {
 
 function PackageCreateDialog({
   bucket,
-  open,
   initError,
   loading,
-  workflowsConfig,
   onClose,
+  onWorkflow,
+  open,
   refresh,
+  workflow: selectedWorkflow,
+  workflowsConfig,
 }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
@@ -399,7 +401,6 @@ function PackageCreateDialog({
     nameValidator.inc()
     nameExistence.inc()
     setNameWarning(defaultNameWarning)
-    setWorkflow(null)
   }
 
   const handleClose = ({ submitting = false } = {}) => () => {
@@ -532,8 +533,6 @@ function PackageCreateDialog({
     [workflowsConfig],
   )
 
-  const [workflow, setWorkflow] = React.useState(null)
-
   const username = redux.useSelector(authSelectors.username)
   const usernamePrefix = React.useMemo(() => {
     const name = username.includes('@') ? username.split('@')[0] : username
@@ -632,8 +631,8 @@ function PackageCreateDialog({
                   <RF.FormSpy
                     subscription={{ modified: true, values: true }}
                     onChange={({ modified, values }) => {
-                      if (modified.workflow && values.workflow !== workflow) {
-                        setWorkflow(values.workflow)
+                      if (modified.workflow && values.workflow !== selectedWorkflow) {
+                        onWorkflow(values.workflow)
                       }
                     }}
                   />
@@ -675,7 +674,7 @@ function PackageCreateDialog({
                         schemaUrl={R.pathOr(
                           '',
                           ['schema', 'url'],
-                          workflow || initialWorkflow,
+                          selectedWorkflow || initialWorkflow,
                         )}
                       >
                         {AsyncResult.case({
@@ -770,13 +769,24 @@ function PackageCreateDialog({
 export default function PackageCreateDialogWrapper({ bucket, open, onClose, refresh }) {
   const s3 = AWS.S3.use()
   const data = useData(requests.workflowsList, { s3, bucket }, { noAutoFetch: !open })
+
+  const onCloseInternal = React.useCallback(() => {
+    setWorkflow(null)
+    onClose()
+  }, [onClose])
+
+  const [workflow, setWorkflow] = React.useState(null)
+
   const props = {
     bucket,
+    onClose: onCloseInternal,
+    onWorkflow: setWorkflow,
     open,
-    onClose,
     refresh,
+    workflow,
     workflowsConfig: null,
   }
+
   return data.case({
     Ok: (workflowsConfig) => (
       <PackageCreateDialog {...props} workflowsConfig={workflowsConfig} />
