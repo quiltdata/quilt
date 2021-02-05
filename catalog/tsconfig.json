@@ -14,6 +14,7 @@
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "allowJs": true
   },
   "include": [
