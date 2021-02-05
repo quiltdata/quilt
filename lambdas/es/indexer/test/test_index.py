@@ -1063,6 +1063,9 @@ class TestIndex(TestCase):
                 f".quilt/named_packages//{good_timestamp}.txt",
                 f".quilt/named_packages/{good_timestamp}",
                 f".quilt/named_packages/not-deep-enough/{good_timestamp}",
+                ".quilt/named_packages/usr/pkg/",
+                ".quilt/named_packages/usr/",
+                ".quilt/named_packages/",
                 f"somewhere/else/foo/bar/{floor(time())}",
         ]:
             assert not index.index_if_package(
