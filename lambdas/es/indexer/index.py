@@ -294,7 +294,8 @@ def index_if_package(
     pointer_prefix, pointer_file = split(key)
     handle = pointer_prefix[len(POINTER_PREFIX_V1):]
     if (
-            not pointer_prefix.startswith(POINTER_PREFIX_V1)
+            not pointer_file
+            or not pointer_prefix.startswith(POINTER_PREFIX_V1)
             or len(handle) < 3
             or '/' not in handle
     ):
