@@ -507,10 +507,22 @@ export function MetaInput({
   )
 }
 
-export function SchemaFetcher({ workflow, children }) {
-  // FIXME: pass manifest, and get default workflowFromConfig
+export function SchemaFetcher({ manifest, workflow, workflowsConfig, children }) {
   const s3 = AWS.S3.use()
-  const schemaUrl = R.pathOr('', ['schema', 'url'], workflow)
+
+  const initialWorkflow = React.useMemo(() => {
+    const slug = manifest.workflow && manifest.workflow.id
+    // reuse workflow from previous revision if it's still present in the config
+    if (slug) {
+      const w = workflowsConfig.workflows.find(R.propEq('slug', slug))
+      if (w) return w
+    }
+    return defaultWorkflowFromConfig(workflowsConfig)
+  }, [manifest, workflowsConfig])
+
+  const selectedWorkflow = workflow || initialWorkflow
+
+  const schemaUrl = R.pathOr('', ['schema', 'url'], selectedWorkflow)
   const data = useData(requests.metadataSchema, { s3, schemaUrl })
 
   const defaultProps = React.useMemo(
@@ -518,9 +530,10 @@ export function SchemaFetcher({ workflow, children }) {
       responseError: null,
       schema: null,
       schemaLoading: false,
+      selectedWorkflow,
       validate: () => undefined,
     }),
-    [],
+    [selectedWorkflow],
   )
 
   const res = React.useMemo(

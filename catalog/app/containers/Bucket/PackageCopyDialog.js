@@ -102,7 +102,7 @@ function DialogForm({
   successor,
   workflowsConfig,
 
-  workflow: selectedWorkflow,
+  selectedWorkflow,
   onWorkflow,
   schema,
   schemaLoading,
@@ -439,10 +439,18 @@ export default function PackageCopyDialog({
         Form: ({ manifest, workflowsConfig }) =>
           successor && (
             <PD.SchemaFetcher
-              workflow={workflow || PD.defaultWorkflowFromConfig(workflowsConfig)}
+              manifest={manifest}
+              workflowsConfig={workflowsConfig}
+              workflow={workflow}
             >
               {AsyncResult.case({
-                Ok: ({ responseError, schema, schemaLoading, validate }) => (
+                Ok: ({
+                  responseError,
+                  schema,
+                  schemaLoading,
+                  selectedWorkflow,
+                  validate,
+                }) => (
                   <DialogForm
                     {...{
                       bucket,
@@ -459,7 +467,7 @@ export default function PackageCopyDialog({
                       schemaLoading,
                       successor,
                       validate,
-                      workflow: workflow || PD.defaultWorkflowFromConfig(workflowsConfig),
+                      selectedWorkflow,
                       workflowsConfig,
                     }}
                   />

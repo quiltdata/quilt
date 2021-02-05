@@ -854,7 +854,7 @@ function DialogForm({
   manifest,
   workflowsConfig,
   onWorkflow,
-  workflow: selectedWorkflow,
+  selectedWorkflow,
 
   schema,
   schemaLoading,
@@ -881,16 +881,6 @@ function DialogForm({
     () => ({ existing: manifest.entries, added: {}, deleted: {} }),
     [manifest.entries],
   )
-
-  // const initialWorkflow = React.useMemo(() => {
-  //   const slug = manifest.workflow && manifest.workflow.id
-  //   // reuse workflow from previous revision if it's still present in the config
-  //   if (slug) {
-  //     const w = workflowsConfig.workflows.find(R.propEq('slug', slug))
-  //     if (w) return w
-  //   }
-  //   return PD.defaultWorkflowFromConfig(workflowsConfig)
-  // }, [manifest, workflowsConfig])
 
   const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
 
@@ -1360,10 +1350,18 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
           Error: (e) => <DialogError close={close} error={e} />,
           Form: ({ manifest, workflowsConfig }) => (
             <PD.SchemaFetcher
-              workflow={workflow || PD.defaultWorkflowFromConfig(workflowsConfig)}
+              manifest={manifest}
+              workflowsConfig={workflowsConfig}
+              workflow={workflow}
             >
               {AsyncResult.case({
-                Ok: ({ responseError, schema, schemaLoading, validate }) => (
+                Ok: ({
+                  responseError,
+                  schema,
+                  schemaLoading,
+                  selectedWorkflow,
+                  validate,
+                }) => (
                   <DialogForm
                     {...{
                       bucket,
@@ -1377,7 +1375,7 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
                       schemaLoading,
                       setSubmitting,
                       validate,
-                      workflow: workflow || PD.defaultWorkflowFromConfig(workflowsConfig),
+                      selectedWorkflow,
                       workflowsConfig,
                     }}
                   />

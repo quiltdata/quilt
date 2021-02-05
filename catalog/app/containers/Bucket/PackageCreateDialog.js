@@ -408,7 +408,7 @@ function PackageCreateDialog({
   onClose,
   onWorkflow,
   refresh,
-  workflow: selectedWorkflow,
+  selectedWorkflow,
   workflowsConfig,
 
   submitting,
@@ -772,11 +772,15 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
               onClose={handleClose}
             />
           ) : (
-            <PD.SchemaFetcher
-              workflow={workflow || PD.defaultWorkflowFromConfig(workflowsConfig)}
-            >
+            <PD.SchemaFetcher workflow={workflow} workflowsConfig={workflowsConfig}>
               {AsyncResult.case({
-                Ok: ({ responseError, schema, schemaLoading, validate }) => (
+                Ok: ({
+                  responseError,
+                  schema,
+                  schemaLoading,
+                  selectedWorkflow,
+                  validate,
+                }) => (
                   <PackageCreateDialog
                     {...props}
                     {...{
@@ -784,7 +788,7 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
                       schema,
                       schemaLoading,
                       validate,
-                      workflow: workflow || PD.defaultWorkflowFromConfig(workflowsConfig),
+                      selectedWorkflow,
                       workflowsConfig,
                     }}
                   />
