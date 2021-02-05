@@ -97,12 +97,12 @@ function DialogForm({
   name: initialName,
   setSubmitting,
   bucket,
-  onSuccess,
+  setSuccess,
   successor,
   workflowsConfig,
 
   selectedWorkflow,
-  onWorkflow,
+  setWorkflow,
   schema,
   schemaLoading,
   responseError,
@@ -137,7 +137,7 @@ function DialogForm({
         targetBucket: successor.slug,
         workflow,
       })
-      onSuccess({ name, hash: res.top_hash })
+      setSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
@@ -207,7 +207,7 @@ function DialogForm({
                 subscription={{ modified: true, values: true }}
                 onChange={({ modified, values }) => {
                   if (modified.workflow) {
-                    onWorkflow(values.workflow)
+                    setWorkflow(values.workflow)
                   }
                 }}
               />
@@ -399,13 +399,6 @@ export default function PackageCopyDialog({
 
   const stateCase = React.useCallback((cases) => DialogState.case(cases, state), [state])
 
-  const handleSuccess = React.useCallback(
-    (successData) => {
-      setSuccess(successData)
-    },
-    [setSuccess],
-  )
-
   const handleExited = React.useCallback(() => {
     if (submitting) return
 
@@ -416,7 +409,7 @@ export default function PackageCopyDialog({
     setSuccess(null)
   }, [submitting, success, setSuccess, onClose, onExited])
 
-  const handleClose = React.useCallback(() => {
+  const close = React.useCallback(() => {
     if (submitting) return
 
     onExited({
@@ -427,20 +420,12 @@ export default function PackageCopyDialog({
   }, [submitting, success, setSuccess, onClose, onExited])
 
   return (
-    <M.Dialog
-      fullWidth
-      onClose={handleClose}
-      onExited={handleExited}
-      open={open}
-      scroll="body"
-    >
+    <M.Dialog fullWidth onClose={close} onExited={handleExited} open={open} scroll="body">
       {stateCase({
         Error: (e) =>
-          successor && (
-            <DialogError bucket={successor.slug} onCancel={handleClose} error={e} />
-          ),
+          successor && <DialogError bucket={successor.slug} onCancel={close} error={e} />,
         Loading: () =>
-          successor && <DialogLoading bucket={successor.slug} onCancel={handleClose} />,
+          successor && <DialogLoading bucket={successor.slug} onCancel={close} />,
         Form: ({ manifest, workflowsConfig }) =>
           successor && (
             <PD.SchemaFetcher
@@ -454,15 +439,16 @@ export default function PackageCopyDialog({
                     {...schemaProps}
                     {...{
                       bucket,
-                      close: handleClose,
+                      close,
+                      setSubmitting,
+                      setSuccess,
+                      setWorkflow,
+                      workflowsConfig,
+
                       hash,
                       manifest,
                       name,
-                      setSubmitting,
-                      onSuccess: handleSuccess,
-                      onWorkflow: setWorkflow,
                       successor,
-                      workflowsConfig,
                     }}
                   />
                 ),
@@ -476,7 +462,7 @@ export default function PackageCopyDialog({
               bucket={successor.slug}
               name={props.name}
               hash={props.hash}
-              onClose={handleClose}
+              onClose={close}
             />
           ),
       })}

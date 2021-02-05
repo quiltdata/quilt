@@ -849,11 +849,11 @@ function DialogForm({
   bucket,
   name: initialName,
   close,
-  onSuccess,
+  setSuccess,
   setSubmitting,
   manifest,
   workflowsConfig,
-  onWorkflow,
+  setWorkflow,
   selectedWorkflow,
 
   schema,
@@ -996,7 +996,7 @@ function DialogForm({
           workflow: PD.getWorkflowApiParam(workflow.slug),
         },
       })
-      onSuccess({ name, hash: res.top_hash })
+      setSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
@@ -1078,7 +1078,7 @@ function DialogForm({
                     subscription={{ modified: true, values: true }}
                     onChange={({ modified, values }) => {
                       if (modified.workflow) {
-                        onWorkflow(values.workflow)
+                        setWorkflow(values.workflow)
                       }
                     }}
                   />
@@ -1361,12 +1361,13 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
                     {...{
                       bucket,
                       close,
+                      setSubmitting,
+                      setSuccess,
+                      setWorkflow,
+                      workflowsConfig,
+
                       manifest,
                       name,
-                      onSuccess: setSuccess,
-                      onWorkflow: setWorkflow,
-                      setSubmitting,
-                      workflowsConfig,
                     }}
                   />
                 ),

@@ -405,15 +405,14 @@ const NameExistsWarning = ({ name }) => {
 
 function PackageCreateDialog({
   bucket,
-  onClose,
-  onWorkflow,
+  close,
+  setWorkflow,
   refresh,
   selectedWorkflow,
   workflowsConfig,
 
-  submitting,
   setSubmitting,
-  onSuccess,
+  setSuccess,
   schema,
   schemaLoading,
   responseError,
@@ -517,7 +516,7 @@ function PackageCreateDialog({
         await new Promise((resolve) => setTimeout(resolve, PD.ES_LAG))
         refresh()
       }
-      onSuccess({ name, hash: res.top_hash })
+      setSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
@@ -580,12 +579,13 @@ function PackageCreateDialog({
       }}
     >
       {({
-        handleSubmit,
-        submitFailed,
         error,
-        submitError,
-        hasValidationErrors,
         form,
+        handleSubmit,
+        hasValidationErrors,
+        submitError,
+        submitFailed,
+        submitting,
       }) => (
         <>
           <M.DialogTitle>Create package</M.DialogTitle>
@@ -600,7 +600,7 @@ function PackageCreateDialog({
                 subscription={{ modified: true, values: true }}
                 onChange={({ modified, values }) => {
                   if (modified.workflow && values.workflow !== selectedWorkflow) {
-                    onWorkflow(values.workflow)
+                    setWorkflow(values.workflow)
                   }
                 }}
               />
@@ -705,7 +705,7 @@ function PackageCreateDialog({
               </M.Box>
             )}
 
-            <M.Button onClick={onClose} disabled={submitting}>
+            <M.Button onClick={close} disabled={submitting}>
               Cancel
             </M.Button>
             <M.Button
@@ -731,33 +731,19 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
   const [success, setSuccess] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
 
-  const handleClose = React.useCallback(() => {
+  const close = React.useCallback(() => {
     if (submitting && !success) return
 
     setWorkflow(null)
     onClose()
   }, [submitting, success, onClose])
 
-  const props = {
-    bucket,
-    onClose: handleClose,
-    setSubmitting,
-    onSuccess: setSuccess,
-    onWorkflow: setWorkflow,
-    open,
-    refresh,
-    submitting,
-    success,
-    workflow,
-    workflowsConfig: null,
-  }
-
   return (
     <M.Dialog
       fullWidth
       maxWidth={success ? 'sm' : 'lg'}
-      onClose={handleClose}
-      onExited={handleClose}
+      onClose={close}
+      onExited={close}
       open={open}
       scroll="body"
     >
@@ -768,17 +754,23 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
               bucket={bucket}
               hash={success.hash}
               name={success.name}
-              onClose={handleClose}
+              onClose={close}
             />
           ) : (
             <PD.SchemaFetcher workflow={workflow} workflowsConfig={workflowsConfig}>
               {AsyncResult.case({
                 Ok: (schemaProps) => (
                   <PackageCreateDialog
-                    {...props}
                     {...schemaProps}
                     {...{
+                      bucket,
+                      close,
+                      setSubmitting,
+                      setSuccess,
+                      setWorkflow,
                       workflowsConfig,
+
+                      refresh,
                     }}
                   />
                 ),
@@ -791,14 +783,14 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
             error={error}
             skeletonElement={<PD.FormSkeleton animate={false} />}
             title="Create package"
-            onCancel={handleClose}
+            onCancel={close}
           />
         ),
         _: () => (
           <PD.DialogLoading
             skeletonElement={<PD.FormSkeleton />}
             title="Create package"
-            onCancel={handleClose}
+            onCancel={close}
           />
         ),
       })}
