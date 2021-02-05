@@ -412,7 +412,7 @@ function PackageCreateDialog({
   workflowsConfig,
 
   submitting,
-  onSubmitting,
+  setSubmitting,
   onSuccess,
   schema,
   schemaLoading,
@@ -430,7 +430,7 @@ function PackageCreateDialog({
   const totalProgress = getTotalProgress(uploads)
 
   // eslint-disable-next-line consistent-return
-  const uploadPackage = async ({ name, msg, files, meta, workflow }) => {
+  const onSubmit = async ({ name, msg, files, meta, workflow }) => {
     const limit = pLimit(2)
     let rejected = false
     const uploadStates = files.map(({ path, file }) => {
@@ -542,21 +542,20 @@ function PackageCreateDialog({
     [nameWarning, nameExistence],
   )
 
-  const handleSubmitting = React.useCallback(
-    (isSubmitting) => {
-      if (submitting !== isSubmitting) {
-        onSubmitting(isSubmitting)
-      }
-    },
-    [submitting, onSubmitting],
-  )
+  const onSubmitWrapped = async (...args) => {
+    setSubmitting(true)
+    try {
+      return await onSubmit(...args)
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const onFormChange = React.useCallback(
-    ({ dirtyFields, submitting: isSubmitting, values }) => {
+    ({ dirtyFields, values }) => {
       if (dirtyFields.name) handleNameChange(values.name)
-      handleSubmitting(isSubmitting)
     },
-    [handleNameChange, handleSubmitting],
+    [handleNameChange],
   )
 
   const username = redux.useSelector(authSelectors.username)
@@ -569,7 +568,7 @@ function PackageCreateDialog({
 
   return (
     <RF.Form
-      onSubmit={uploadPackage}
+      onSubmit={onSubmitWrapped}
       subscription={{
         handleSubmit: true,
         submitting: true,
@@ -742,7 +741,7 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
   const props = {
     bucket,
     onClose: handleClose,
-    onSubmitting: setSubmitting,
+    setSubmitting,
     onSuccess: setSuccess,
     onWorkflow: setWorkflow,
     open,

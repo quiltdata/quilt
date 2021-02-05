@@ -95,8 +95,7 @@ function DialogForm({
   hash,
   manifest,
   name: initialName,
-  onSubmitEnd,
-  onSubmitStart,
+  setSubmitting,
   bucket,
   onSuccess,
   successor,
@@ -126,7 +125,6 @@ function DialogForm({
 
   // eslint-disable-next-line consistent-return
   const onSubmit = async ({ commitMessage, name, meta, workflow }) => {
-    onSubmitStart()
     try {
       const res = await requestPackageCopy(req, {
         commitMessage,
@@ -139,13 +137,20 @@ function DialogForm({
         targetBucket: successor.slug,
         workflow,
       })
-      onSubmitEnd()
       onSuccess({ name, hash: res.top_hash })
     } catch (e) {
-      onSubmitEnd()
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
       return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
+    }
+  }
+
+  const onSubmitWrapped = async (...args) => {
+    setSubmitting(true)
+    try {
+      return await onSubmit(...args)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -172,7 +177,7 @@ function DialogForm({
 
   return (
     <RF.Form
-      onSubmit={onSubmit}
+      onSubmit={onSubmitWrapped}
       subscription={{
         handleSubmit: true,
         submitting: true,
@@ -453,8 +458,7 @@ export default function PackageCopyDialog({
                       hash,
                       manifest,
                       name,
-                      onSubmitEnd: () => setSubmitting(false),
-                      onSubmitStart: () => setSubmitting(true),
+                      setSubmitting,
                       onSuccess: handleSuccess,
                       onWorkflow: setWorkflow,
                       successor,
