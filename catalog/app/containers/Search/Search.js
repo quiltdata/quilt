@@ -163,7 +163,7 @@ function BucketSelectDropdown({ buckets, onChange, short = false }) {
     <>
       <button type="button" onClick={state.edit} className={classes.btn} ref={anchorRef}>
         <span>
-          {short ? <>{'s3://'}&hellip;</> : displaySelectedBuckets(state.value)}
+          {short ? <>s3://&hellip;</> : displaySelectedBuckets(state.value)}
         </span>
         <M.Icon fontSize="inherit">expand_more</M.Icon>
       </button>

@@ -3,8 +3,10 @@ import PT from 'prop-types'
 import * as React from 'react'
 import embed from 'vega-embed'
 
+// TODO: refactor to use hooks
 class Vega extends React.Component {
   static propTypes = {
+    // eslint-disable-next-line react/forbid-prop-types
     spec: PT.object.isRequired,
   }
 
