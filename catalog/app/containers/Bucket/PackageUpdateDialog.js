@@ -1359,7 +1359,7 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
           Loading: () => <DialogPlaceholder close={close} />,
           Error: (e) => <DialogError close={close} error={e} />,
           Form: ({ manifest, workflowsConfig }) => (
-            <PD.DialogContainer
+            <PD.SchemaFetcher
               workflow={workflow || PD.defaultWorkflowFromConfig(workflowsConfig)}
             >
               {AsyncResult.case({
@@ -1384,7 +1384,7 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
                 ),
                 _: R.identity,
               })}
-            </PD.DialogContainer>
+            </PD.SchemaFetcher>
           ),
           Success: (props) => <DialogSuccess {...{ bucket, close, ...props }} />,
         })}

@@ -438,7 +438,7 @@ export default function PackageCopyDialog({
           successor && <DialogLoading bucket={successor.slug} onCancel={handleClose} />,
         Form: ({ manifest, workflowsConfig }) =>
           successor && (
-            <PD.DialogContainer
+            <PD.SchemaFetcher
               workflow={workflow || PD.defaultWorkflowFromConfig(workflowsConfig)}
             >
               {AsyncResult.case({
@@ -466,7 +466,7 @@ export default function PackageCopyDialog({
                 ),
                 _: R.identity,
               })}
-            </PD.DialogContainer>
+            </PD.SchemaFetcher>
           ),
         Success: (props) =>
           successor && (

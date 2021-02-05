@@ -507,23 +507,7 @@ export function MetaInput({
   )
 }
 
-export function SchemaFetcher({ children, schemaUrl }) {
-  const s3 = AWS.S3.use()
-  const data = useData(requests.metadataSchema, { s3, schemaUrl })
-  const res = React.useMemo(
-    () =>
-      data.case({
-        Ok: (schema) => AsyncResult.Ok({ schema, validate: mkMetaValidator(schema) }),
-        Err: (responseError) =>
-          AsyncResult.Ok({ responseError, validate: mkMetaValidator(null) }),
-        _: R.identity,
-      }),
-    [data],
-  )
-  return children(res)
-}
-
-export function DialogContainer({ workflow, children }) {
+export function SchemaFetcher({ workflow, children }) {
   // FIXME: pass manifest, and get default workflowFromConfig
   const s3 = AWS.S3.use()
   const schemaUrl = R.pathOr('', ['schema', 'url'], workflow)

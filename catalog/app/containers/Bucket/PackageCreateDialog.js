@@ -772,7 +772,7 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
               onClose={handleClose}
             />
           ) : (
-            <PD.DialogContainer
+            <PD.SchemaFetcher
               workflow={workflow || PD.defaultWorkflowFromConfig(workflowsConfig)}
             >
               {AsyncResult.case({
@@ -791,7 +791,7 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
                 ),
                 _: R.identity,
               })}
-            </PD.DialogContainer>
+            </PD.SchemaFetcher>
           ),
         Err: (error) => (
           <PD.DialogError
