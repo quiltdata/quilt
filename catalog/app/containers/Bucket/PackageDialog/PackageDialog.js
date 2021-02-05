@@ -524,6 +524,7 @@ export function SchemaFetcher({ children, schemaUrl }) {
 }
 
 export function DialogContainer({ workflow, children }) {
+  // FIXME: pass manifest, and get default workflowFromConfig
   const s3 = AWS.S3.use()
   const schemaUrl = R.pathOr('', ['schema', 'url'], workflow)
   const data = useData(requests.metadataSchema, { s3, schemaUrl })

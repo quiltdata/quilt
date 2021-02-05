@@ -18,14 +18,24 @@ import * as requests from './requests'
 
 function requestPackageCopy(
   req,
-  { commitMessage, hash, initialName, meta, name, sourceBucket, targetBucket, workflow },
+  {
+    commitMessage,
+    hash,
+    initialName,
+    meta,
+    name,
+    schema,
+    sourceBucket,
+    targetBucket,
+    workflow,
+  },
 ) {
   return req({
     endpoint: '/packages/promote',
     method: 'POST',
     body: {
       message: commitMessage,
-      meta: PD.getMetaValue(meta),
+      meta: PD.getMetaValue(meta, schema),
       name,
       parent: {
         top_hash: hash,
@@ -92,6 +102,7 @@ function DialogForm({
   successor,
   workflowsConfig,
 
+  workflow: selectedWorkflow,
   onWorkflow,
   schema,
   schemaLoading,
@@ -123,6 +134,7 @@ function DialogForm({
         initialName,
         meta,
         name,
+        schema,
         sourceBucket: bucket,
         targetBucket: successor.slug,
         workflow,
@@ -156,11 +168,6 @@ function DialogForm({
       }
     },
     [successor, nameExistence, nameWarning],
-  )
-
-  const initialWorkflow = React.useMemo(
-    () => PD.defaultWorkflowFromConfig(workflowsConfig),
-    [workflowsConfig],
   )
 
   return (
@@ -247,7 +254,7 @@ function DialogForm({
                 component={PD.WorkflowInput}
                 name="workflow"
                 workflowsConfig={workflowsConfig}
-                initialValue={initialWorkflow}
+                initialValue={selectedWorkflow}
                 validate={validators.required}
                 validateFields={['meta', 'workflow']}
                 errors={{
