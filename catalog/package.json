@@ -39,7 +39,7 @@
     "lint:app": "npm run lint:eslint -- './app/**/*.[jt]s?(x)'",
     "pretest": "npm run test:clean && npm run lint",
     "test:clean": "rimraf ./coverage",
-    "test:only": "cross-env NODE_ENV=test jest",
+    "test:only": "cross-env NODE_ENV=test jest --runInBand",
     "test": "npm run test:only -- --coverage",
     "test:watch": "npm run test:only -- --watch",
     "prettify": "prettier --write"
