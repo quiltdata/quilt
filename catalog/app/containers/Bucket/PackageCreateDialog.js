@@ -508,7 +508,7 @@ function PackageCreateDialog({
           registry: `s3://${bucket}`,
           message: msg,
           contents,
-          meta: PD.getMetaValue(meta),
+          meta: PD.getMetaValue(meta, schema),
           workflow: PD.getWorkflowApiParam(workflow.slug),
         },
       })

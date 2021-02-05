@@ -12,7 +12,7 @@ import Delay from 'utils/Delay'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
-import { makeSchemaValidator } from 'utils/json-schema'
+import { makeSchemaDefaultsSetter, makeSchemaValidator } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
@@ -177,10 +177,11 @@ function mkMetaValidator(schema) {
   }
 }
 
-export const getMetaValue = (value) =>
+export const getMetaValue = (value, optSchema) =>
   value
     ? pipeThru(value.text || '{}')(
         (t) => JSON.parse(t),
+        makeSchemaDefaultsSetter(optSchema),
         R.toPairs,
         R.filter(([k]) => !!k.trim()),
         R.fromPairs,

@@ -101,7 +101,7 @@ export const EMPTY_SCHEMA = {}
 export function makeSchemaValidator(optSchema) {
   const schema = optSchema || EMPTY_SCHEMA
 
-  const ajv = new Ajv({ schemaId: 'auto' })
+  const ajv = new Ajv({ useDefaults: true, schemaId: 'auto' })
 
   try {
     const validate = ajv.compile(schema)
