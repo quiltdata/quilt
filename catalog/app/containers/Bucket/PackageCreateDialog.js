@@ -761,41 +761,26 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
     >
       {data.case({
         Ok: (workflowsConfig) => (
-          <PD.SchemaFetcher
-            schemaUrl={R.pathOr(
-              '',
-              ['schema', 'url'],
-              workflow || PD.defaultWorkflowFromConfig(workflowsConfig),
-            )}
+          <PD.DialogContainer
+            workflow={workflow || PD.defaultWorkflowFromConfig(workflowsConfig)}
           >
             {AsyncResult.case({
-              Ok: ({ responseError, schema, validate }) => (
+              Ok: ({ responseError, schema, schemaLoading, validate }) => (
                 <PackageCreateDialog
                   {...props}
                   {...{
                     responseError,
                     schema,
+                    schemaLoading,
                     validate,
                     workflow: workflow || PD.defaultWorkflowFromConfig(workflowsConfig),
                     workflowsConfig,
                   }}
                 />
               ),
-              _: () => (
-                <PackageCreateDialog
-                  {...props}
-                  {...{
-                    responseError: null,
-                    schema: null,
-                    schemaLoading: true,
-                    validate: () => undefined,
-                    workflow: workflow || PD.defaultWorkflowFromConfig(workflowsConfig),
-                    workflowsConfig,
-                  }}
-                />
-              ),
+              _: R.identity,
             })}
-          </PD.SchemaFetcher>
+          </PD.DialogContainer>
         ),
         Err: (error) => (
           <PD.DialogError

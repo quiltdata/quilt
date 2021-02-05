@@ -521,3 +521,36 @@ export function SchemaFetcher({ children, schemaUrl }) {
   )
   return children(res)
 }
+
+export function DialogContainer({ workflow, children }) {
+  const s3 = AWS.S3.use()
+  const schemaUrl = R.pathOr('', ['schema', 'url'], workflow)
+  const data = useData(requests.metadataSchema, { s3, schemaUrl })
+
+  const defaultProps = React.useMemo(
+    () => ({
+      responseError: null,
+      schema: null,
+      schemaLoading: false,
+      validate: () => undefined,
+    }),
+    [],
+  )
+
+  const res = React.useMemo(
+    () =>
+      data.case({
+        Ok: (schema) =>
+          AsyncResult.Ok({ ...defaultProps, schema, validate: mkMetaValidator(schema) }),
+        Err: (responseError) =>
+          AsyncResult.Ok({
+            ...defaultProps,
+            responseError,
+            validate: mkMetaValidator(null),
+          }),
+        _: () => AsyncResult.Ok({ ...defaultProps, schemaLoading: true }),
+      }),
+    [defaultProps, data],
+  )
+  return children(res)
+}
