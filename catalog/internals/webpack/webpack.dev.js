@@ -4,7 +4,7 @@ const CircularDependencyPlugin = require('circular-dependency-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const webpack = require('webpack')
 
-module.exports = require('./webpack.base.babel')({
+module.exports = require('./webpack.base')({
   mode: 'development',
 
   // Add hot reloading in development

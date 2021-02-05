@@ -3,7 +3,7 @@ const path = require('path')
 const CompressionPlugin = require('compression-webpack-plugin')
 const TerserPlugin = require('terser-webpack-plugin')
 
-module.exports = require('./webpack.base.babel')({
+module.exports = require('./webpack.base')({
   mode: 'production',
 
   // In production, we skip all hot-reloading stuff
