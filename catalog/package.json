@@ -32,11 +32,11 @@
     "clean": "shjs ./internals/scripts/clean.js",
     "clean:all": "npm run analyze:clean && npm run test:clean && npm run build:clean",
     "generate": "plop --plopfile internals/generators/index.js",
-    "lint": "npm run lint:js && npm run lint:css",
+    "lint": "npm run lint:app && npm run lint:css",
     "lint:css": "stylelint app/**/*.js",
     "lint:eslint": "eslint --ignore-path .gitignore",
     "lint:eslint:fix": "npm run lint:eslint -- --fix",
-    "lint:js": "npm run lint:eslint -- '**/*.js'",
+    "lint:app": "npm run lint:eslint -- './app/**/*.[jt]s?(x)'",
     "pretest": "npm run test:clean && npm run lint",
     "test:clean": "rimraf ./coverage",
     "test:only": "cross-env NODE_ENV=test jest",
@@ -49,7 +49,7 @@
     "> 1%"
   ],
   "lint-staged": {
-    "*.js": "npm run lint:eslint --"
+    "app/**/*.[jt]s?(x)": "npm run lint:eslint --"
   },
   "husky": {
     "hooks": {
@@ -151,7 +151,8 @@
     "@types/react-dom": "^16.9.10",
     "@types/react-redux": "^7.1.16",
     "@types/react-router-dom": "^5.1.7",
-    "babel-eslint": "^10.1.0",
+    "@typescript-eslint/eslint-plugin": "^4.14.2",
+    "@typescript-eslint/parser": "^4.14.2",
     "babel-loader": "^8.2.2",
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "babel-plugin-react-intl": "^4.3.0",
@@ -163,13 +164,11 @@
     "copy-webpack-plugin": "^7.0.0",
     "css-loader": "^5.0.1",
     "eslint": "^7.18.0",
-    "eslint-config-airbnb": "^18.2.1",
-    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-config-airbnb-typescript": "^12.0.0",
     "eslint-config-prettier": "^7.2.0",
     "eslint-import-resolver-webpack": "^0.13.0",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-jsx-a11y": "^6.4.1",
-    "eslint-plugin-prettier": "^3.3.1",
     "eslint-plugin-react": "^7.22.0",
     "eslint-plugin-react-hooks": "^4.2.0",
     "eslint-plugin-redux-saga": "^1.2.1",
