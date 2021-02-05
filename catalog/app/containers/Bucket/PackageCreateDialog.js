@@ -326,6 +326,36 @@ function FilesInput({
   )
 }
 
+function DialogSuccess({ bucket, hash, name, onClose }) {
+  const { urls } = NamedRoutes.use()
+
+  return (
+    <>
+      <M.DialogTitle>Package created</M.DialogTitle>
+      <M.DialogContent style={{ paddingTop: 0 }}>
+        <M.Typography>
+          Package{' '}
+          <StyledLink to={urls.bucketPackageTree(bucket, name, hash)}>
+            {name}@{R.take(10, hash)}
+          </StyledLink>{' '}
+          successfully created
+        </M.Typography>
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={onClose}>Close</M.Button>
+        <M.Button
+          component={Link}
+          to={urls.bucketPackageTree(bucket, name, hash)}
+          variant="contained"
+          color="primary"
+        >
+          Browse package
+        </M.Button>
+      </M.DialogActions>
+    </>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   files: {
     display: 'flex',
@@ -383,7 +413,6 @@ function PackageCreateDialog({
 
   submitting,
   onSubmitting,
-  success,
   onSuccess,
   schema,
   schemaLoading,
@@ -392,7 +421,6 @@ function PackageCreateDialog({
 }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
-  const { urls } = NamedRoutes.use()
   const [uploads, setUploads] = React.useState({})
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
@@ -552,171 +580,146 @@ function PackageCreateDialog({
         form: true,
       }}
     >
-      {({ handleSubmit, submitFailed, error, submitError, hasValidationErrors, form }) =>
-        success ? (
-          <>
-            {success && (
-              <>
-                <M.DialogTitle>Package created</M.DialogTitle>
-                <M.DialogContent style={{ paddingTop: 0 }}>
-                  <M.Typography>
-                    Package{' '}
-                    <StyledLink
-                      to={urls.bucketPackageTree(bucket, success.name, success.hash)}
-                    >
-                      {success.name}@{R.take(10, success.hash)}
-                    </StyledLink>{' '}
-                    successfully created
+      {({
+        handleSubmit,
+        submitFailed,
+        error,
+        submitError,
+        hasValidationErrors,
+        form,
+      }) => (
+        <>
+          <M.DialogTitle>Create package</M.DialogTitle>
+          <M.DialogContent style={{ paddingTop: 0 }}>
+            <form onSubmit={handleSubmit}>
+              <RF.FormSpy
+                subscription={{ dirtyFields: true, submitting: true, values: true }}
+                onChange={onFormChange}
+              />
+
+              <RF.FormSpy
+                subscription={{ modified: true, values: true }}
+                onChange={({ modified, values }) => {
+                  if (modified.workflow && values.workflow !== selectedWorkflow) {
+                    onWorkflow(values.workflow)
+                  }
+                }}
+              />
+
+              <PD.Container>
+                <PD.LeftColumn>
+                  <M.Typography color={submitting ? 'textSecondary' : undefined}>
+                    Main
                   </M.Typography>
-                </M.DialogContent>
-                <M.DialogActions>
-                  <M.Button onClick={onClose}>Close</M.Button>
-                  <M.Button
-                    component={Link}
-                    to={urls.bucketPackageTree(bucket, success.name, success.hash)}
-                    variant="contained"
-                    color="primary"
-                  >
-                    Browse package
-                  </M.Button>
-                </M.DialogActions>
-              </>
-            )}
-          </>
-        ) : (
-          <>
-            <M.DialogTitle>Create package</M.DialogTitle>
-            <M.DialogContent style={{ paddingTop: 0 }}>
-              <form onSubmit={handleSubmit}>
-                <RF.FormSpy
-                  subscription={{ dirtyFields: true, submitting: true, values: true }}
-                  onChange={onFormChange}
-                />
 
-                <RF.FormSpy
-                  subscription={{ modified: true, values: true }}
-                  onChange={({ modified, values }) => {
-                    if (modified.workflow && values.workflow !== selectedWorkflow) {
-                      onWorkflow(values.workflow)
-                    }
-                  }}
-                />
-
-                <PD.Container>
-                  <PD.LeftColumn>
-                    <M.Typography color={submitting ? 'textSecondary' : undefined}>
-                      Main
-                    </M.Typography>
-
-                    <RF.Field
-                      component={PD.PackageNameInput}
-                      initialValue={usernamePrefix}
-                      name="name"
-                      validate={validators.composeAsync(
-                        validators.required,
-                        nameValidator.validate,
-                      )}
-                      validateFields={['name']}
-                      errors={{
-                        required: 'Enter a package name',
-                        invalid: 'Invalid package name',
-                      }}
-                      helperText={nameWarning}
-                      validating={nameValidator.processing}
-                    />
-
-                    <RF.Field
-                      component={PD.CommitMessageInput}
-                      name="msg"
-                      validate={validators.required}
-                      validateFields={['msg']}
-                      errors={{
-                        required: 'Enter a commit message',
-                      }}
-                    />
-
-                    {schemaLoading ? (
-                      <PD.MetaInputSkeleton className={classes.meta} />
-                    ) : (
-                      <RF.Field
-                        className={classes.meta}
-                        component={PD.MetaInput}
-                        name="meta"
-                        bucket={bucket}
-                        schema={schema}
-                        schemaError={responseError}
-                        validate={validateMetaInput}
-                        validateFields={['meta']}
-                        isEqual={R.equals}
-                        initialValue={PD.EMPTY_META_VALUE}
-                      />
+                  <RF.Field
+                    component={PD.PackageNameInput}
+                    initialValue={usernamePrefix}
+                    name="name"
+                    validate={validators.composeAsync(
+                      validators.required,
+                      nameValidator.validate,
                     )}
+                    validateFields={['name']}
+                    errors={{
+                      required: 'Enter a package name',
+                      invalid: 'Invalid package name',
+                    }}
+                    helperText={nameWarning}
+                    validating={nameValidator.processing}
+                  />
 
-                    <RF.Field
-                      component={PD.WorkflowInput}
-                      name="workflow"
-                      workflowsConfig={workflowsConfig}
-                      initialValue={selectedWorkflow}
-                      validate={validators.required}
-                      validateFields={['meta', 'workflow']}
-                      errors={{
-                        required: 'Workflow is required for this bucket.',
-                      }}
-                    />
-                  </PD.LeftColumn>
+                  <RF.Field
+                    component={PD.CommitMessageInput}
+                    name="msg"
+                    validate={validators.required}
+                    validateFields={['msg']}
+                    errors={{
+                      required: 'Enter a commit message',
+                    }}
+                  />
 
-                  <PD.RightColumn>
+                  {schemaLoading ? (
+                    <PD.MetaInputSkeleton className={classes.meta} />
+                  ) : (
                     <RF.Field
-                      className={classes.files}
-                      component={FilesInput}
-                      name="files"
-                      validate={validators.nonEmpty}
-                      validateFields={['files']}
-                      errors={{
-                        nonEmpty: 'Add files to create a package',
-                      }}
-                      uploads={uploads}
-                      setUploads={setUploads}
+                      className={classes.meta}
+                      component={PD.MetaInput}
+                      name="meta"
+                      bucket={bucket}
+                      schema={schema}
+                      schemaError={responseError}
+                      validate={validateMetaInput}
+                      validateFields={['meta']}
                       isEqual={R.equals}
+                      initialValue={PD.EMPTY_META_VALUE}
                     />
-                  </PD.RightColumn>
-                </PD.Container>
+                  )}
 
-                <input type="submit" style={{ display: 'none' }} />
-              </form>
-            </M.DialogContent>
-            <M.DialogActions>
-              {submitting && (
-                <PD.SubmitSpinner value={totalProgress.percent}>
-                  {totalProgress.percent < 100 ? 'Uploading files' : 'Writing manifest'}
-                </PD.SubmitSpinner>
-              )}
+                  <RF.Field
+                    component={PD.WorkflowInput}
+                    name="workflow"
+                    workflowsConfig={workflowsConfig}
+                    initialValue={selectedWorkflow}
+                    validate={validators.required}
+                    validateFields={['meta', 'workflow']}
+                    errors={{
+                      required: 'Workflow is required for this bucket.',
+                    }}
+                  />
+                </PD.LeftColumn>
 
-              {!submitting && (!!error || !!submitError) && (
-                <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
-                  <M.Icon color="error">error_outline</M.Icon>
-                  <M.Box pl={1} />
-                  <M.Typography variant="body2" color="error">
-                    {error || submitError}
-                  </M.Typography>
-                </M.Box>
-              )}
+                <PD.RightColumn>
+                  <RF.Field
+                    className={classes.files}
+                    component={FilesInput}
+                    name="files"
+                    validate={validators.nonEmpty}
+                    validateFields={['files']}
+                    errors={{
+                      nonEmpty: 'Add files to create a package',
+                    }}
+                    uploads={uploads}
+                    setUploads={setUploads}
+                    isEqual={R.equals}
+                  />
+                </PD.RightColumn>
+              </PD.Container>
 
-              <M.Button onClick={onClose} disabled={submitting}>
-                Cancel
-              </M.Button>
-              <M.Button
-                onClick={handleSubmit}
-                variant="contained"
-                color="primary"
-                disabled={submitting || (submitFailed && hasValidationErrors)}
-              >
-                Create
-              </M.Button>
-            </M.DialogActions>
-          </>
-        )
-      }
+              <input type="submit" style={{ display: 'none' }} />
+            </form>
+          </M.DialogContent>
+          <M.DialogActions>
+            {submitting && (
+              <PD.SubmitSpinner value={totalProgress.percent}>
+                {totalProgress.percent < 100 ? 'Uploading files' : 'Writing manifest'}
+              </PD.SubmitSpinner>
+            )}
+
+            {!submitting && (!!error || !!submitError) && (
+              <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
+                <M.Icon color="error">error_outline</M.Icon>
+                <M.Box pl={1} />
+                <M.Typography variant="body2" color="error">
+                  {error || submitError}
+                </M.Typography>
+              </M.Box>
+            )}
+
+            <M.Button onClick={onClose} disabled={submitting}>
+              Cancel
+            </M.Button>
+            <M.Button
+              onClick={handleSubmit}
+              variant="contained"
+              color="primary"
+              disabled={submitting || (submitFailed && hasValidationErrors)}
+            >
+              Create
+            </M.Button>
+          </M.DialogActions>
+        </>
+      )}
     </RF.Form>
   )
 }
@@ -730,11 +733,11 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
   const [submitting, setSubmitting] = React.useState(false)
 
   const handleClose = React.useCallback(() => {
-    if (submitting) return
+    if (submitting && !success) return
 
     setWorkflow(null)
     onClose()
-  }, [submitting, onClose])
+  }, [submitting, success, onClose])
 
   const props = {
     bucket,
@@ -760,28 +763,36 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
       scroll="body"
     >
       {data.case({
-        Ok: (workflowsConfig) => (
-          <PD.DialogContainer
-            workflow={workflow || PD.defaultWorkflowFromConfig(workflowsConfig)}
-          >
-            {AsyncResult.case({
-              Ok: ({ responseError, schema, schemaLoading, validate }) => (
-                <PackageCreateDialog
-                  {...props}
-                  {...{
-                    responseError,
-                    schema,
-                    schemaLoading,
-                    validate,
-                    workflow: workflow || PD.defaultWorkflowFromConfig(workflowsConfig),
-                    workflowsConfig,
-                  }}
-                />
-              ),
-              _: R.identity,
-            })}
-          </PD.DialogContainer>
-        ),
+        Ok: (workflowsConfig) =>
+          success ? (
+            <DialogSuccess
+              bucket={bucket}
+              hash={success.hash}
+              name={success.name}
+              onClose={handleClose}
+            />
+          ) : (
+            <PD.DialogContainer
+              workflow={workflow || PD.defaultWorkflowFromConfig(workflowsConfig)}
+            >
+              {AsyncResult.case({
+                Ok: ({ responseError, schema, schemaLoading, validate }) => (
+                  <PackageCreateDialog
+                    {...props}
+                    {...{
+                      responseError,
+                      schema,
+                      schemaLoading,
+                      validate,
+                      workflow: workflow || PD.defaultWorkflowFromConfig(workflowsConfig),
+                      workflowsConfig,
+                    }}
+                  />
+                ),
+                _: R.identity,
+              })}
+            </PD.DialogContainer>
+          ),
         Err: (error) => (
           <PD.DialogError
             error={error}
