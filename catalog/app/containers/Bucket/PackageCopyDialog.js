@@ -91,6 +91,12 @@ function DialogForm({
   onSuccess,
   successor,
   workflowsConfig,
+
+  onWorkflow,
+  schema,
+  schemaLoading,
+  responseError,
+  validate: validateMetaInput,
 }) {
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(successor.slug)
@@ -157,8 +163,6 @@ function DialogForm({
     [workflowsConfig],
   )
 
-  const [workflow, setWorkflow] = React.useState(initialWorkflow)
-
   return (
     <RF.Form
       onSubmit={onSubmit}
@@ -191,7 +195,7 @@ function DialogForm({
                 subscription={{ modified: true, values: true }}
                 onChange={({ modified, values }) => {
                   if (modified.workflow) {
-                    setWorkflow(values.workflow)
+                    onWorkflow(values.workflow)
                   }
                 }}
               />
@@ -222,25 +226,22 @@ function DialogForm({
                 }}
               />
 
-              <PD.SchemaFetcher schemaUrl={R.pathOr('', ['schema', 'url'], workflow)}>
-                {AsyncResult.case({
-                  Ok: ({ responseError, schema, validate }) => (
-                    <RF.Field
-                      className={classes.meta}
-                      component={PD.MetaInput}
-                      name="meta"
-                      bucket={successor.slug}
-                      schema={schema}
-                      schemaError={responseError}
-                      validate={validate}
-                      validateFields={['meta']}
-                      isEqual={R.equals}
-                      initialValue={initialMeta}
-                    />
-                  ),
-                  _: () => <PD.MetaInputSkeleton className={classes.meta} />,
-                })}
-              </PD.SchemaFetcher>
+              {schemaLoading ? (
+                <PD.MetaInputSkeleton className={classes.meta} />
+              ) : (
+                <RF.Field
+                  className={classes.meta}
+                  component={PD.MetaInput}
+                  name="meta"
+                  bucket={successor.slug}
+                  schema={schema}
+                  schemaError={responseError}
+                  validate={validateMetaInput}
+                  validateFields={['meta']}
+                  isEqual={R.equals}
+                  initialValue={initialMeta}
+                />
+              )}
 
               <RF.Field
                 component={PD.WorkflowInput}
@@ -351,6 +352,8 @@ export default function PackageCopyDialog({
   const [success, setSuccess] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
 
+  const [workflow, setWorkflow] = React.useState(null)
+
   const manifestData = Data.use(
     requests.loadManifest,
     {
@@ -426,21 +429,37 @@ export default function PackageCopyDialog({
           ),
         Loading: () =>
           successor && <DialogLoading bucket={successor.slug} onCancel={handleClose} />,
-        Form: (props) =>
+        Form: ({ manifest, workflowsConfig }) =>
           successor && (
-            <DialogForm
-              {...{
-                bucket,
-                hash,
-                name,
-                successor,
-                close: handleClose,
-                onSubmitStart: () => setSubmitting(true),
-                onSubmitEnd: () => setSubmitting(false),
-                onSuccess: handleSuccess,
-                ...props,
-              }}
-            />
+            <PD.DialogContainer
+              workflow={workflow || PD.defaultWorkflowFromConfig(workflowsConfig)}
+            >
+              {AsyncResult.case({
+                Ok: ({ responseError, schema, schemaLoading, validate }) => (
+                  <DialogForm
+                    {...{
+                      bucket,
+                      close: handleClose,
+                      hash,
+                      manifest,
+                      name,
+                      onSubmitEnd: () => setSubmitting(false),
+                      onSubmitStart: () => setSubmitting(true),
+                      onSuccess: handleSuccess,
+                      onWorkflow: setWorkflow,
+                      responseError,
+                      schema,
+                      schemaLoading,
+                      successor,
+                      validate,
+                      workflow: workflow || PD.defaultWorkflowFromConfig(workflowsConfig),
+                      workflowsConfig,
+                    }}
+                  />
+                ),
+                _: R.identity,
+              })}
+            </PD.DialogContainer>
           ),
         Success: (props) =>
           successor && (
