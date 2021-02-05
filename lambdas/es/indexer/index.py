@@ -621,6 +621,8 @@ def handler(event, context):
     # by enterprise/**/bulk_loader.py
     # An exception that we'll want to re-raise after the batch sends
     content_exception = None
+    batch_processor = DocumentQueue(context)
+    s3_client = make_s3_client()
     for message in event["Records"]:
         body = json.loads(message["body"])
         body_message = json.loads(body["Message"])
@@ -628,8 +630,6 @@ def handler(event, context):
             # could be TEST_EVENT, or another unexpected event; skip it
             logger_.error("No 'Records' key in message['body']: %s", message)
             continue
-        batch_processor = DocumentQueue(context)
-        s3_client = make_s3_client()
         events = body_message["Records"]
         # event is a single S3 event
         for event_ in events:
@@ -752,8 +752,8 @@ def handler(event, context):
                     continue
                 logger_.critical("Failed record: %s, %s", event, boto_exc)
                 raise boto_exc
-        # flush the queue
-        batch_processor.send_all()
+    # flush the queue
+    batch_processor.send_all()
 
 
 def retry_s3(
