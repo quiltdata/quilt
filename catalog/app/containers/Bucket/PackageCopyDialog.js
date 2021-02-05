@@ -444,14 +444,9 @@ export default function PackageCopyDialog({
               workflow={workflow}
             >
               {AsyncResult.case({
-                Ok: ({
-                  responseError,
-                  schema,
-                  schemaLoading,
-                  selectedWorkflow,
-                  validate,
-                }) => (
+                Ok: (schemaProps) => (
                   <DialogForm
+                    {...schemaProps}
                     {...{
                       bucket,
                       close: handleClose,
@@ -462,12 +457,7 @@ export default function PackageCopyDialog({
                       onSubmitStart: () => setSubmitting(true),
                       onSuccess: handleSuccess,
                       onWorkflow: setWorkflow,
-                      responseError,
-                      schema,
-                      schemaLoading,
                       successor,
-                      validate,
-                      selectedWorkflow,
                       workflowsConfig,
                     }}
                   />

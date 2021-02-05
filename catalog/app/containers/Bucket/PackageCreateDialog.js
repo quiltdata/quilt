@@ -774,21 +774,11 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
           ) : (
             <PD.SchemaFetcher workflow={workflow} workflowsConfig={workflowsConfig}>
               {AsyncResult.case({
-                Ok: ({
-                  responseError,
-                  schema,
-                  schemaLoading,
-                  selectedWorkflow,
-                  validate,
-                }) => (
+                Ok: (schemaProps) => (
                   <PackageCreateDialog
                     {...props}
+                    {...schemaProps}
                     {...{
-                      responseError,
-                      schema,
-                      schemaLoading,
-                      validate,
-                      selectedWorkflow,
                       workflowsConfig,
                     }}
                   />

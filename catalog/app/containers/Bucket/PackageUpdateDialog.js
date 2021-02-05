@@ -1355,14 +1355,9 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
               workflow={workflow}
             >
               {AsyncResult.case({
-                Ok: ({
-                  responseError,
-                  schema,
-                  schemaLoading,
-                  selectedWorkflow,
-                  validate,
-                }) => (
+                Ok: (schemaProps) => (
                   <DialogForm
+                    {...schemaProps}
                     {...{
                       bucket,
                       close,
@@ -1370,12 +1365,7 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
                       name,
                       onSuccess: setSuccess,
                       onWorkflow: setWorkflow,
-                      responseError,
-                      schema,
-                      schemaLoading,
                       setSubmitting,
-                      validate,
-                      selectedWorkflow,
                       workflowsConfig,
                     }}
                   />
