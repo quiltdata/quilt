@@ -375,8 +375,6 @@ const NameExistsWarning = ({ name }) => {
 
 function PackageCreateDialog({
   bucket,
-  initError,
-  loading,
   onClose,
   onWorkflow,
   refresh,
@@ -555,25 +553,8 @@ function PackageCreateDialog({
       }}
     >
       {({ handleSubmit, submitFailed, error, submitError, hasValidationErrors, form }) =>
-        initError || loading || success ? (
+        success ? (
           <>
-            {initError && (
-              <PD.DialogError
-                error={initError}
-                skeletonElement={<PD.FormSkeleton animate={false} />}
-                title="Create package"
-                onCancel={onClose}
-              />
-            )}
-
-            {loading && (
-              <PD.DialogLoading
-                skeletonElement={<PD.FormSkeleton />}
-                title="Create package"
-                onCancel={onClose}
-              />
-            )}
-
             {success && (
               <>
                 <M.DialogTitle>Package created</M.DialogTitle>
@@ -816,8 +797,21 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
             })}
           </PD.SchemaFetcher>
         ),
-        Err: (error) => <PackageCreateDialog {...props} initError={error} />,
-        _: () => <PackageCreateDialog {...props} loading />,
+        Err: (error) => (
+          <PD.DialogError
+            error={error}
+            skeletonElement={<PD.FormSkeleton animate={false} />}
+            title="Create package"
+            onCancel={handleClose}
+          />
+        ),
+        _: () => (
+          <PD.DialogLoading
+            skeletonElement={<PD.FormSkeleton />}
+            title="Create package"
+            onCancel={handleClose}
+          />
+        ),
       })}
     </M.Dialog>
   )
