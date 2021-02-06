@@ -32,16 +32,20 @@
     "lint:css": "stylelint app/**/*.js",
     "lint:eslint": "eslint --ignore-path .gitignore",
     "lint:eslint:fix": "npm run lint:eslint -- --fix",
-    "lint:app": "npm run lint:eslint -- './app/**/*.[jt]s?(x)'",
-    "pretest": "npm run test:clean && npm run lint",
+    "lint:prettier": "prettier --check",
+    "lint:app": "FILES='./app/**/*.[jt]s?(x)'; npm run lint:prettier -- \"$FILES\" && npm run lint:eslint -- \"$FILES\"",
+    "pretest": "npm run test:clean",
+    "test": "npm run test:only -- --coverage",
     "test:clean": "rimraf ./coverage",
     "test:only": "cross-env NODE_ENV=test jest --runInBand",
-    "test": "npm run test:only -- --coverage",
     "test:watch": "npm run test:only -- --watch",
     "prettify": "prettier --write"
   },
   "lint-staged": {
-    "app/**/*.[jt]s?(x)": "npm run lint:eslint --"
+    "app/**/*.[jt]s?(x)": [
+      "npm run lint:prettier --",
+      "npm run lint:eslint --"
+    ]
   },
   "husky": {
     "hooks": {
