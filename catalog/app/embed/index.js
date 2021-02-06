@@ -6,7 +6,4 @@ import { translationMessages } from '../i18n'
 
 import Embed from './Embed'
 
-ReactDOM.render(
-  <Embed messages={translationMessages} />,
-  document.getElementById('app'),
-)
+ReactDOM.render(<Embed messages={translationMessages} />, document.getElementById('app'))
