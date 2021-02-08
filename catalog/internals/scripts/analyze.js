@@ -9,7 +9,7 @@ const progress = animateProgress('Generating stats')
 
 // Generate stats.json file with webpack
 shelljs.exec(
-  'webpack --config internals/webpack/webpack.prod.babel.js --profile --json > stats.json',
+  'webpack --config internals/webpack/webpack.prod.js --profile --json > stats.json',
   () => {
     // Called after webpack has finished generating the stats.json file
     addCheckMark()
