@@ -18,14 +18,24 @@ import * as requests from './requests'
 
 function requestPackageCopy(
   req,
-  { commitMessage, hash, initialName, meta, name, sourceBucket, targetBucket, workflow },
+  {
+    commitMessage,
+    hash,
+    initialName,
+    meta,
+    name,
+    schema,
+    sourceBucket,
+    targetBucket,
+    workflow,
+  },
 ) {
   return req({
     endpoint: '/packages/promote',
     method: 'POST',
     body: {
       message: commitMessage,
-      meta: PD.getMetaValue(meta),
+      meta: PD.getMetaValue(meta, schema),
       name,
       parent: {
         top_hash: hash,
@@ -85,12 +95,18 @@ function DialogForm({
   hash,
   manifest,
   name: initialName,
-  onSubmitEnd,
-  onSubmitStart,
+  setSubmitting,
   bucket,
-  onSuccess,
+  setSuccess,
   successor,
   workflowsConfig,
+
+  selectedWorkflow,
+  setWorkflow,
+  schema,
+  schemaLoading,
+  responseError,
+  validate: validateMetaInput,
 }) {
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(successor.slug)
@@ -109,7 +125,6 @@ function DialogForm({
 
   // eslint-disable-next-line consistent-return
   const onSubmit = async ({ commitMessage, name, meta, workflow }) => {
-    onSubmitStart()
     try {
       const res = await requestPackageCopy(req, {
         commitMessage,
@@ -117,17 +132,25 @@ function DialogForm({
         initialName,
         meta,
         name,
+        schema,
         sourceBucket: bucket,
         targetBucket: successor.slug,
         workflow,
       })
-      onSubmitEnd()
-      onSuccess({ name, hash: res.top_hash })
+      setSuccess({ name, hash: res.top_hash })
     } catch (e) {
-      onSubmitEnd()
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
       return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
+    }
+  }
+
+  const onSubmitWrapped = async (...args) => {
+    setSubmitting(true)
+    try {
+      return await onSubmit(...args)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -152,16 +175,9 @@ function DialogForm({
     [successor, nameExistence, nameWarning],
   )
 
-  const initialWorkflow = React.useMemo(
-    () => PD.defaultWorkflowFromConfig(workflowsConfig),
-    [workflowsConfig],
-  )
-
-  const [workflow, setWorkflow] = React.useState(initialWorkflow)
-
   return (
     <RF.Form
-      onSubmit={onSubmit}
+      onSubmit={onSubmitWrapped}
       subscription={{
         handleSubmit: true,
         submitting: true,
@@ -222,31 +238,28 @@ function DialogForm({
                 }}
               />
 
-              <PD.SchemaFetcher schemaUrl={R.pathOr('', ['schema', 'url'], workflow)}>
-                {AsyncResult.case({
-                  Ok: ({ responseError, schema, validate }) => (
-                    <RF.Field
-                      className={classes.meta}
-                      component={PD.MetaInput}
-                      name="meta"
-                      bucket={successor.slug}
-                      schema={schema}
-                      schemaError={responseError}
-                      validate={validate}
-                      validateFields={['meta']}
-                      isEqual={R.equals}
-                      initialValue={initialMeta}
-                    />
-                  ),
-                  _: () => <PD.MetaInputSkeleton className={classes.meta} />,
-                })}
-              </PD.SchemaFetcher>
+              {schemaLoading ? (
+                <PD.MetaInputSkeleton className={classes.meta} />
+              ) : (
+                <RF.Field
+                  className={classes.meta}
+                  component={PD.MetaInput}
+                  name="meta"
+                  bucket={successor.slug}
+                  schema={schema}
+                  schemaError={responseError}
+                  validate={validateMetaInput}
+                  validateFields={['meta']}
+                  isEqual={R.equals}
+                  initialValue={initialMeta}
+                />
+              )}
 
               <RF.Field
                 component={PD.WorkflowInput}
                 name="workflow"
                 workflowsConfig={workflowsConfig}
-                initialValue={initialWorkflow}
+                initialValue={selectedWorkflow}
                 validate={validators.required}
                 validateFields={['meta', 'workflow']}
                 errors={{
@@ -351,6 +364,8 @@ export default function PackageCopyDialog({
   const [success, setSuccess] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
 
+  const [workflow, setWorkflow] = React.useState(null)
+
   const manifestData = Data.use(
     requests.loadManifest,
     {
@@ -384,13 +399,6 @@ export default function PackageCopyDialog({
 
   const stateCase = React.useCallback((cases) => DialogState.case(cases, state), [state])
 
-  const handleSuccess = React.useCallback(
-    (successData) => {
-      setSuccess(successData)
-    },
-    [setSuccess],
-  )
-
   const handleExited = React.useCallback(() => {
     if (submitting) return
 
@@ -401,7 +409,7 @@ export default function PackageCopyDialog({
     setSuccess(null)
   }, [submitting, success, setSuccess, onClose, onExited])
 
-  const handleClose = React.useCallback(() => {
+  const close = React.useCallback(() => {
     if (submitting) return
 
     onExited({
@@ -412,35 +420,41 @@ export default function PackageCopyDialog({
   }, [submitting, success, setSuccess, onClose, onExited])
 
   return (
-    <M.Dialog
-      fullWidth
-      onClose={handleClose}
-      onExited={handleExited}
-      open={open}
-      scroll="body"
-    >
+    <M.Dialog fullWidth onClose={close} onExited={handleExited} open={open} scroll="body">
       {stateCase({
         Error: (e) =>
-          successor && (
-            <DialogError bucket={successor.slug} onCancel={handleClose} error={e} />
-          ),
+          successor && <DialogError bucket={successor.slug} onCancel={close} error={e} />,
         Loading: () =>
-          successor && <DialogLoading bucket={successor.slug} onCancel={handleClose} />,
-        Form: (props) =>
+          successor && <DialogLoading bucket={successor.slug} onCancel={close} />,
+        Form: ({ manifest, workflowsConfig }) =>
           successor && (
-            <DialogForm
-              {...{
-                bucket,
-                hash,
-                name,
-                successor,
-                close: handleClose,
-                onSubmitStart: () => setSubmitting(true),
-                onSubmitEnd: () => setSubmitting(false),
-                onSuccess: handleSuccess,
-                ...props,
-              }}
-            />
+            <PD.SchemaFetcher
+              manifest={manifest}
+              workflowsConfig={workflowsConfig}
+              workflow={workflow}
+            >
+              {AsyncResult.case({
+                Ok: (schemaProps) => (
+                  <DialogForm
+                    {...schemaProps}
+                    {...{
+                      bucket,
+                      close,
+                      setSubmitting,
+                      setSuccess,
+                      setWorkflow,
+                      workflowsConfig,
+
+                      hash,
+                      manifest,
+                      name,
+                      successor,
+                    }}
+                  />
+                ),
+                _: R.identity,
+              })}
+            </PD.SchemaFetcher>
           ),
         Success: (props) =>
           successor && (
@@ -448,7 +462,7 @@ export default function PackageCopyDialog({
               bucket={successor.slug}
               name={props.name}
               hash={props.hash}
-              onClose={handleClose}
+              onClose={close}
             />
           ),
       })}

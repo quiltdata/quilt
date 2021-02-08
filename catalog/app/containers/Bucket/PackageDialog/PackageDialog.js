@@ -12,7 +12,7 @@ import Delay from 'utils/Delay'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
-import { makeSchemaValidator } from 'utils/json-schema'
+import { makeSchemaDefaultsSetter, makeSchemaValidator } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import { readableBytes } from 'utils/string'
 import * as validators from 'utils/validators'
@@ -177,10 +177,11 @@ function mkMetaValidator(schema) {
   }
 }
 
-export const getMetaValue = (value) =>
+export const getMetaValue = (value, optSchema) =>
   value
     ? pipeThru(value.text || '{}')(
         (t) => JSON.parse(t),
+        makeSchemaDefaultsSetter(optSchema),
         R.toPairs,
         R.filter(([k]) => !!k.trim()),
         R.fromPairs,
@@ -506,18 +507,49 @@ export function MetaInput({
   )
 }
 
-export function SchemaFetcher({ children, schemaUrl }) {
+export function SchemaFetcher({ manifest, workflow, workflowsConfig, children }) {
   const s3 = AWS.S3.use()
+
+  const initialWorkflow = React.useMemo(() => {
+    const slug = manifest && manifest.workflow && manifest.workflow.id
+    // reuse workflow from previous revision if it's still present in the config
+    if (slug) {
+      const w = workflowsConfig.workflows.find(R.propEq('slug', slug))
+      if (w) return w
+    }
+    return defaultWorkflowFromConfig(workflowsConfig)
+  }, [manifest, workflowsConfig])
+
+  const selectedWorkflow = workflow || initialWorkflow
+
+  const schemaUrl = R.pathOr('', ['schema', 'url'], selectedWorkflow)
   const data = useData(requests.metadataSchema, { s3, schemaUrl })
+
+  const defaultProps = React.useMemo(
+    () => ({
+      responseError: null,
+      schema: null,
+      schemaLoading: false,
+      selectedWorkflow,
+      validate: () => undefined,
+    }),
+    [selectedWorkflow],
+  )
+
   const res = React.useMemo(
     () =>
       data.case({
-        Ok: (schema) => AsyncResult.Ok({ schema, validate: mkMetaValidator(schema) }),
+        Ok: (schema) =>
+          AsyncResult.Ok({ ...defaultProps, schema, validate: mkMetaValidator(schema) }),
         Err: (responseError) =>
-          AsyncResult.Ok({ responseError, validate: mkMetaValidator(null) }),
-        _: R.identity,
+          AsyncResult.Ok({
+            ...defaultProps,
+            responseError,
+            validate: mkMetaValidator(null),
+          }),
+        _: () => AsyncResult.Ok({ ...defaultProps, schemaLoading: true }),
       }),
-    [data],
+    [defaultProps, data],
   )
   return children(res)
 }
