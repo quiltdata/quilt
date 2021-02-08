@@ -125,7 +125,7 @@ function objToDict(obj, parentPath, memo) {
       memo[serializeAddress(address)] = obj[key]
 
       // weird eslint bug?
-      // eslint-disable-next-line no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       objToDict(obj[key], address, memo)
     })
     return memo
@@ -140,13 +140,19 @@ function calcReactId(valuePath, value) {
   return `${pathPrefix}+${JSON.stringify(value)}`
 }
 
+function getDefaultValue(jsonDictItem) {
+  if (!jsonDictItem.valueSchema) return EMPTY_VALUE
+  if (jsonDictItem.valueSchema.default === undefined) return EMPTY_VALUE
+  return jsonDictItem.valueSchema.default
+}
+
 function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder) {
   const itemAddress = serializeAddress(getAddressPath(key, parentPath))
   const item = jsonDict[itemAddress]
   // NOTE: can't use R.pathOr, because Ramda thinks `null` is `undefined` too
   const valuePath = getAddressPath(key, parentPath)
   const storedValue = R.path(valuePath, obj)
-  const value = storedValue === undefined ? EMPTY_VALUE : storedValue
+  const value = storedValue === undefined ? getDefaultValue(item) : storedValue
   return {
     [COLUMN_IDS.KEY]: key,
     [COLUMN_IDS.VALUE]: value,

@@ -52,7 +52,7 @@ import pathlib
 import re
 from os.path import split
 from typing import Optional
-from urllib.parse import unquote, unquote_plus
+from urllib.parse import unquote_plus
 
 import boto3
 import botocore
@@ -294,7 +294,8 @@ def index_if_package(
     pointer_prefix, pointer_file = split(key)
     handle = pointer_prefix[len(POINTER_PREFIX_V1):]
     if (
-            not pointer_prefix.startswith(POINTER_PREFIX_V1)
+            not pointer_file
+            or not pointer_prefix.startswith(POINTER_PREFIX_V1)
             or len(handle) < 3
             or '/' not in handle
     ):
@@ -620,6 +621,8 @@ def handler(event, context):
     # by enterprise/**/bulk_loader.py
     # An exception that we'll want to re-raise after the batch sends
     content_exception = None
+    batch_processor = DocumentQueue(context)
+    s3_client = make_s3_client()
     for message in event["Records"]:
         body = json.loads(message["body"])
         body_message = json.loads(body["Message"])
@@ -627,8 +630,6 @@ def handler(event, context):
             # could be TEST_EVENT, or another unexpected event; skip it
             logger_.error("No 'Records' key in message['body']: %s", message)
             continue
-        batch_processor = DocumentQueue(context)
-        s3_client = make_s3_client()
         events = body_message["Records"]
         # event is a single S3 event
         for event_ in events:
@@ -644,15 +645,13 @@ def handler(event, context):
                 if not any(event_name.startswith(n) for n in EVENT_PREFIX.values()):
                     logger_.warning("Skipping unknown event type: %s", event_name)
                     continue
-                bucket = unquote(event_["s3"]["bucket"]["name"])
+                bucket = event_["s3"]["bucket"]["name"]
                 # In the grand tradition of IE6, S3 events turn spaces into '+'
                 # TODO: check if eventbridge events do the same thing with +
                 key = unquote_plus(event_["s3"]["object"]["key"])
                 version_id = event_["s3"]["object"].get("versionId", None)
-                if version_id:
-                    version_id = unquote(version_id)
                 # ObjectRemoved:Delete does not include "eTag"
-                etag = unquote(event_["s3"]["object"].get("eTag", ""))
+                etag = event_["s3"]["object"].get("eTag", "")
                 # synthetic events from bulk scanner might define lastModified
                 last_modified = (
                     event_["s3"]["object"].get("lastModified") or event_["eventTime"]
@@ -753,8 +752,8 @@ def handler(event, context):
                     continue
                 logger_.critical("Failed record: %s, %s", event, boto_exc)
                 raise boto_exc
-        # flush the queue
-        batch_processor.send_all()
+    # flush the queue
+    batch_processor.send_all()
 
 
 def retry_s3(

@@ -13,7 +13,6 @@ import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
-import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import pipeThru from 'utils/pipeThru'
@@ -850,10 +849,17 @@ function DialogForm({
   bucket,
   name: initialName,
   close,
-  onSuccess,
+  setSuccess,
   setSubmitting,
   manifest,
   workflowsConfig,
+  setWorkflow,
+  selectedWorkflow,
+
+  schema,
+  schemaLoading,
+  responseError,
+  validate: validateMetaInput,
 }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
@@ -875,16 +881,6 @@ function DialogForm({
     () => ({ existing: manifest.entries, added: {}, deleted: {} }),
     [manifest.entries],
   )
-
-  const initialWorkflow = React.useMemo(() => {
-    const slug = manifest.workflow && manifest.workflow.id
-    // reuse workflow from previous revision if it's still present in the config
-    if (slug) {
-      const w = workflowsConfig.workflows.find(R.propEq('slug', slug))
-      if (w) return w
-    }
-    return PD.defaultWorkflowFromConfig(workflowsConfig)
-  }, [manifest, workflowsConfig])
 
   const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
 
@@ -996,11 +992,11 @@ function DialogForm({
           registry: `s3://${bucket}`,
           message: msg,
           contents,
-          meta: PD.getMetaValue(meta),
+          meta: PD.getMetaValue(meta, schema),
           workflow: PD.getWorkflowApiParam(workflow.slug),
         },
       })
-      onSuccess({ name, hash: res.top_hash })
+      setSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
@@ -1041,8 +1037,6 @@ function DialogForm({
     },
     [nameWarning, initialName, nameExistence],
   )
-
-  const [workflow, setWorkflow] = React.useState(initialWorkflow)
 
   return (
     <RF.Form
@@ -1115,31 +1109,28 @@ function DialogForm({
                     }}
                   />
 
-                  <PD.SchemaFetcher schemaUrl={R.pathOr('', ['schema', 'url'], workflow)}>
-                    {AsyncResult.case({
-                      Ok: ({ responseError, schema, validate }) => (
-                        <RF.Field
-                          className={classes.meta}
-                          component={PD.MetaInput}
-                          name="meta"
-                          bucket={bucket}
-                          schema={schema}
-                          schemaError={responseError}
-                          validate={validate}
-                          validateFields={['meta']}
-                          isEqual={R.equals}
-                          initialValue={initialMeta}
-                        />
-                      ),
-                      _: () => <PD.MetaInputSkeleton className={classes.meta} />,
-                    })}
-                  </PD.SchemaFetcher>
+                  {schemaLoading ? (
+                    <PD.MetaInputSkeleton className={classes.meta} />
+                  ) : (
+                    <RF.Field
+                      className={classes.meta}
+                      component={PD.MetaInput}
+                      name="meta"
+                      bucket={bucket}
+                      schema={schema}
+                      schemaError={responseError}
+                      validate={validateMetaInput}
+                      validateFields={['meta']}
+                      isEqual={R.equals}
+                      initialValue={initialMeta}
+                    />
+                  )}
 
                   <RF.Field
                     component={PD.WorkflowInput}
                     name="workflow"
                     workflowsConfig={workflowsConfig}
-                    initialValue={initialWorkflow}
+                    initialValue={selectedWorkflow}
                     validate={validators.required}
                     validateFields={['meta', 'workflow']}
                     errors={{
@@ -1171,31 +1162,9 @@ function DialogForm({
           </M.DialogContent>
           <M.DialogActions>
             {submitting && (
-              <Delay ms={200} alwaysRender>
-                {(ready) => (
-                  <M.Fade in={ready}>
-                    <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
-                      <M.CircularProgress
-                        size={24}
-                        variant={
-                          totalProgress.percent < 100 ? 'determinate' : 'indeterminate'
-                        }
-                        value={
-                          totalProgress.percent < 100
-                            ? totalProgress.percent * 0.9
-                            : undefined
-                        }
-                      />
-                      <M.Box pl={1} />
-                      <M.Typography variant="body2" color="textSecondary">
-                        {totalProgress.percent < 100
-                          ? 'Uploading files'
-                          : 'Writing manifest'}
-                      </M.Typography>
-                    </M.Box>
-                  </M.Fade>
-                )}
-              </Delay>
+              <PD.SubmitSpinner value={totalProgress.percent}>
+                {totalProgress.percent < 100 ? 'Uploading files' : 'Writing manifest'}
+              </PD.SubmitSpinner>
             )}
 
             {!submitting && (!!error || !!submitError) && (
@@ -1313,6 +1282,7 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
   const [success, setSuccess] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [key, setKey] = React.useState(1)
+  const [workflow, setWorkflow] = React.useState(null)
 
   const manifestData = Data.use(
     requests.loadManifest,
@@ -1378,23 +1348,38 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
           Closed: () => null,
           Loading: () => <DialogPlaceholder close={close} />,
           Error: (e) => <DialogError close={close} error={e} />,
-          Form: (props) => (
-            <DialogForm
-              {...{
-                bucket,
-                name,
-                close,
-                onSuccess: setSuccess,
-                setSubmitting,
-                ...props,
-              }}
-            />
+          Form: ({ manifest, workflowsConfig }) => (
+            <PD.SchemaFetcher
+              manifest={manifest}
+              workflowsConfig={workflowsConfig}
+              workflow={workflow}
+            >
+              {AsyncResult.case({
+                Ok: (schemaProps) => (
+                  <DialogForm
+                    {...schemaProps}
+                    {...{
+                      bucket,
+                      close,
+                      setSubmitting,
+                      setSuccess,
+                      setWorkflow,
+                      workflowsConfig,
+
+                      manifest,
+                      name,
+                    }}
+                  />
+                ),
+                _: R.identity,
+              })}
+            </PD.SchemaFetcher>
           ),
           Success: (props) => <DialogSuccess {...{ bucket, close, ...props }} />,
         })}
       </DialogWrapper>
     ),
-    [bucket, name, isOpen, exited, close, stateCase, success, handleExited],
+    [bucket, name, isOpen, exited, close, stateCase, success, handleExited, workflow],
   )
 
   return React.useMemo(() => ({ open, close, render }), [open, close, render])

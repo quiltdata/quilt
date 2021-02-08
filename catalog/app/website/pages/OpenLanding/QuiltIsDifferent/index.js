@@ -1,1 +1,1 @@
-export default from './QuiltIsDifferent'
+export { default } from './QuiltIsDifferent'

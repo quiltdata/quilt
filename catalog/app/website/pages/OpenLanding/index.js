@@ -1,1 +1,1 @@
-export default from './OpenLanding'
+export { default } from './OpenLanding'

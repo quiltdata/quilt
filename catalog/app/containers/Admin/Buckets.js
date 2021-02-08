@@ -2,6 +2,7 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
+import { Redirect, useHistory } from 'react-router-dom'
 import * as RF from 'redux-form/es/immutable'
 import * as M from '@material-ui/core'
 
@@ -13,6 +14,8 @@ import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
+import * as NamedRoutes from 'utils/NamedRoutes'
+import parseSearch from 'utils/parseSearch'
 import * as Cache from 'utils/ResourceCache'
 import { useTracker } from 'utils/tracking'
 import * as validators from 'utils/validators'
@@ -196,7 +199,7 @@ function BucketFields({ add = false, reindex }) {
             margin="normal"
             multiline
             rows={1}
-            maxRows={3}
+            rowsMax={3}
           />
           <RF.Field
             component={Form.Field}
@@ -835,13 +838,16 @@ const columns = [
   },
 ]
 
-function CRUD({ buckets }) {
+function CRUD({ bucketName, buckets }) {
   const rows = Cache.suspend(buckets)
   const ordering = Table.useOrdering({ rows, column: columns[0] })
   const pagination = Pagination.use(ordering.ordered, {
     getItemId: R.prop('name'),
   })
   const { open: openDialog, render: renderDialogs } = Dialogs.use()
+
+  const { urls } = NamedRoutes.use()
+  const history = useHistory()
 
   const toolbarActions = [
     {
@@ -853,8 +859,9 @@ function CRUD({ buckets }) {
     },
   ]
 
-  const edit = (bucket) => () =>
-    openDialog(({ close }) => <Edit {...{ bucket, close }} />)
+  const edit = (bucket) => () => {
+    history.push(urls.adminBuckets(bucket.name))
+  }
 
   const inlineActions = (bucket) => [
     {
@@ -871,9 +878,28 @@ function CRUD({ buckets }) {
     },
   ]
 
+  const editingBucket = React.useMemo(
+    () => (bucketName ? rows.find(({ name }) => name === bucketName) : null),
+    [bucketName, rows],
+  )
+
+  const onBucketClose = React.useCallback(() => {
+    history.push(urls.adminBuckets())
+  }, [history, urls])
+
+  if (bucketName && !editingBucket) {
+    // Bucket name set in URL, but it was not found in buckets list
+    return <Redirect to={urls.adminBuckets()} />
+  }
+
   return (
     <M.Paper>
       {renderDialogs({ maxWidth: 'xs', fullWidth: true })}
+
+      <M.Dialog open={!!editingBucket} fullWidth maxWidth="xs">
+        {editingBucket && <Edit bucket={editingBucket} close={onBucketClose} />}
+      </M.Dialog>
+
       <Table.Toolbar heading="Buckets" actions={toolbarActions} />
       <Table.Wrapper>
         <M.Table size="small">
@@ -908,7 +934,8 @@ function CRUD({ buckets }) {
   )
 }
 
-export default function Buckets() {
+export default function Buckets({ location }) {
+  const { bucket } = parseSearch(location.search)
   const req = APIConnector.use()
   const buckets = Cache.useData(data.BucketsResource, { req })
   return (
@@ -921,7 +948,7 @@ export default function Buckets() {
           </M.Paper>
         }
       >
-        <CRUD buckets={buckets} />
+        <CRUD bucketName={bucket} buckets={buckets} />
       </React.Suspense>
     </M.Box>
   )

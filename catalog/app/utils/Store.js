@@ -21,7 +21,10 @@ export const Provider = function StoreProvider({ initialState = {}, history, chi
       middlewares.push(routerMiddleware(history))
     }
     // log redux state in development
-    if (process.env.NODE_ENV === 'development') {
+    if (
+      process.env.NODE_ENV === 'development' &&
+      process.env.LOGGER_REDUX === 'enabled'
+    ) {
       const stateTransformer = (state) =>
         // pure JS is easier to read than Immutable objects
         Iterable.isIterable(state) ? state.toJS() : state
