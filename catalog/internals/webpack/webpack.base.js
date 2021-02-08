@@ -128,6 +128,10 @@ module.exports = (options) => ({
     new webpack.EnvironmentPlugin({
       LOGGER_REDUX: process.env.LOGGER_REDUX || 'enabled',
     }),
+
+    new webpack.ProvidePlugin({
+      process: 'process/browser',
+    }),
   ]),
   resolve: {
     modules: ['app', 'node_modules', path.resolve(__dirname, '../../../shared')],
