@@ -1,9 +1,9 @@
-/* app.js - application entry point */
+/* app.tsx - application entry point */
 /* eslint-disable import/first */
 
 // Import all the third party stuff
 import * as React from 'react'
-import ReactDOM from 'react-dom'
+import * as ReactDOM from 'react-dom'
 import { createBrowserHistory as createHistory } from 'history'
 import * as M from '@material-ui/core'
 
@@ -56,7 +56,7 @@ fontLoader('Roboto', 'Roboto Mono').then(() => {
 const ErrorBoundary = composeComponent(
   'ErrorBoundary',
   Sentry.inject(),
-  createBoundary(({ sentry }) => (error, info) => {
+  createBoundary(({ sentry }: { sentry: any }) => (error: any, info: any) => {
     sentry('captureException', error, info)
     return (
       <Layout bare>
@@ -88,7 +88,7 @@ const MOUNT_NODE = document.getElementById('app')
 // TODO: make storage injectable
 const storage = mkStorage({ user: 'USER', tokens: 'TOKENS' })
 
-const intercomUserSelector = (state) => {
+const intercomUserSelector = (state: any) => {
   const { user: u } = Auth.selectors.domain(state)
   return (
     u && {
@@ -99,12 +99,12 @@ const intercomUserSelector = (state) => {
   )
 }
 
-const sentryUserSelector = (state) => {
+const sentryUserSelector = (state: any) => {
   const { user: u } = Auth.selectors.domain(state)
   return u ? { username: u.current_user, email: u.email } : {}
 }
 
-const render = (messages) => {
+const render = (messages: any) => {
   ReactDOM.render(
     nest(
       [M.MuiThemeProvider, { theme: style.appTheme }],

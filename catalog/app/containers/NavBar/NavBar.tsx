@@ -19,30 +19,39 @@ import bg from './bg.png'
 
 import Controls from './Controls'
 
-const LogoLink = (props) => {
+function LogoLink(props: M.BoxProps) {
   const { urls } = NamedRoutes.use()
   return (
+    // @ts-ignore
     <M.Box component={Link} mr={2} to={urls.home()} {...props}>
       <Logo responsive />
     </M.Box>
   )
 }
 
-const Item = React.forwardRef((props, ref) => (
-  <M.MenuItem
-    // eslint-disable-next-line no-nested-ternary
-    component={props.to ? Link : props.href ? 'a' : undefined}
-    ref={ref}
-    {...props}
-  />
-))
+interface ItemProps {
+  to?: string
+  href?: string
+}
+
+const Item = React.forwardRef(
+  (props: ItemProps & M.MenuItemProps, ref: React.Ref<any>) => (
+    <M.MenuItem
+      // @ts-ignore
+      // eslint-disable-next-line no-nested-ternary
+      component={props.to ? Link : props.href ? 'a' : undefined}
+      ref={ref}
+      {...props}
+    />
+  ),
+)
 
 const selectUser = createStructuredSelector({
   name: authSelectors.username,
   isAdmin: authSelectors.isAdmin,
 })
 
-const userDisplay = (user) => (
+const userDisplay = (user: any) => (
   <>
     {user.isAdmin && (
       <>
@@ -113,7 +122,7 @@ function useHam() {
     setAnchor(null)
   }, [setAnchor])
 
-  const render = (children) => (
+  const render = (children: React.ReactNode) => (
     <>
       <M.IconButton onClick={open} aria-label="Menu" edge="end">
         <M.Icon>menu</M.Icon>
@@ -123,10 +132,12 @@ function useHam() {
           anchorEl={anchor}
           open={!!anchor}
           onClose={close}
-          MenuListProps={{
-            component: 'nav',
-            style: { minWidth: 120 },
-          }}
+          MenuListProps={
+            {
+              component: 'nav',
+              style: { minWidth: 120 },
+            } as M.MenuListProps
+          }
         >
           {children}
         </M.Menu>
@@ -137,7 +148,13 @@ function useHam() {
   return { open, close, render }
 }
 
-function AuthHamburger({ authenticated, waiting, error }) {
+interface AuthHamburgerProps {
+  authenticated: boolean
+  waiting: boolean
+  error: boolean
+}
+
+function AuthHamburger({ authenticated, waiting, error }: AuthHamburgerProps) {
   const cfg = Config.useConfig()
   const user = redux.useSelector(selectUser)
   const { urls, paths } = NamedRoutes.use()
@@ -217,7 +234,16 @@ const useSignInStyles = M.makeStyles((t) => ({
   },
 }))
 
-function SignIn({ error, waiting }) {
+interface AuthError {
+  message: string
+}
+
+interface SignInProps {
+  error?: AuthError
+  waiting: boolean
+}
+
+function SignIn({ error, waiting }: SignInProps) {
   const classes = useSignInStyles()
   const { urls } = NamedRoutes.use()
   if (waiting) {
@@ -245,7 +271,11 @@ const AppBar = M.styled(M.AppBar)(({ theme: t }) => ({
   zIndex: t.zIndex.appBar + 1,
 }))
 
-export const Container = ({ children }) => {
+interface ContainerProps {
+  children?: React.ReactNode
+}
+
+export function Container({ children }: ContainerProps) {
   const trigger = M.useScrollTrigger()
   return (
     <M.MuiThemeProvider theme={style.navTheme}>
@@ -269,7 +299,13 @@ export const Container = ({ children }) => {
   )
 }
 
-const NavLink = React.forwardRef((props, ref) => (
+interface NavLinkOwnProps {
+  to?: string
+}
+
+type NavLinkProps = NavLinkOwnProps & M.BoxProps
+
+const NavLink = React.forwardRef((props: NavLinkProps, ref: React.Ref<any>) => (
   <M.Box
     component={props.to ? HashLink : 'a'}
     mr={2}
@@ -280,7 +316,13 @@ const NavLink = React.forwardRef((props, ref) => (
   />
 ))
 
-function useLinks() {
+interface LinkDescriptor {
+  label: string
+  to?: string
+  href?: string
+}
+
+function useLinks(): LinkDescriptor[] {
   const { urls } = NamedRoutes.use()
   const cfg = Config.useConfig()
   return [
@@ -293,7 +335,7 @@ function useLinks() {
     },
     { href: URLS.blog, label: 'Blog' },
     cfg.mode === 'MARKETING' && { to: urls.about(), label: 'About' },
-  ].filter(Boolean)
+  ].filter(Boolean) as LinkDescriptor[]
 }
 
 const selector = createStructuredSelector(
@@ -337,7 +379,7 @@ export function NavBar() {
 
       {useHamburger &&
         (cfg.disableNavigator || cfg.mode === 'LOCAL' ? (
-          <LinksHamburger {...{ authenticated, error, waiting }} />
+          <LinksHamburger />
         ) : (
           <AuthHamburger {...{ authenticated, error, waiting }} />
         ))}
