@@ -3,9 +3,11 @@
  */
 
 const path = require('path')
-const webpack = require('webpack')
+
 const CopyWebpackPlugin = require('copy-webpack-plugin')
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
+const webpack = require('webpack')
 
 module.exports = (options) => ({
   mode: options.mode,
@@ -25,12 +27,21 @@ module.exports = (options) => ({
         use: 'raw-loader',
       },
       {
-        test: /\.js$/, // Transform all .js files required somewhere with Babel
+        test: /\.[jt]sx?$/,
         exclude: /node_modules/,
         use: {
-          loader: 'babel-loader',
-          options: options.babelQuery,
+          loader: 'ts-loader',
+          options: {
+            // disable type checking - we use ForkTsCheckerWebpackPlugin for that
+            transpileOnly: true,
+          },
         },
+      },
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        enforce: 'pre',
+        use: 'source-map-loader',
       },
       {
         // Preprocess our own .css files
@@ -111,6 +122,8 @@ module.exports = (options) => ({
       inject: true,
     }),
 
+    new ForkTsCheckerWebpackPlugin(),
+
     // NODE_ENV is exposed automatically based on the "mode" option
     new webpack.EnvironmentPlugin({
       LOGGER_REDUX: process.env.LOGGER_REDUX || 'enabled',
@@ -118,7 +131,7 @@ module.exports = (options) => ({
   ]),
   resolve: {
     modules: ['app', 'node_modules', path.resolve(__dirname, '../../../shared')],
-    extensions: ['.js', '.jsx', '.react.js'],
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.react.js'],
     mainFields: ['module', 'browser', 'jsnext:main', 'main'],
     fallback: {
       path: require.resolve('path-browserify'),

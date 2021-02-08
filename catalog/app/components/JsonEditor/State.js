@@ -146,7 +146,7 @@ function objToDict(obj, parentPath, memo) {
       memo[serializeAddress(address)] = obj[key]
 
       // weird eslint bug?
-      // eslint-disable-next-line no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       objToDict(obj[key], address, memo)
     })
     return memo
