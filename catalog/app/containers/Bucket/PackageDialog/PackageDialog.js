@@ -388,6 +388,9 @@ export function MetaInput({
   const { push: notify } = Notifications.use()
   const [locked, setLocked] = React.useState(false)
 
+  // used to force json editor re-initialization
+  const [jsonEditorKey, setJsonEditorKey] = React.useState(1)
+
   const onDrop = React.useCallback(
     ([file]) => {
       if (file.size > MAX_META_FILE_SIZE) {
@@ -409,6 +412,7 @@ export function MetaInput({
             notify('The file does not contain valid JSON')
             changeText(contents)
           }
+          setJsonEditorKey(R.inc)
         })
         .catch((e) => {
           if (e.message === 'abort') return
@@ -453,6 +457,7 @@ export function MetaInput({
             value={value.obj}
             onChange={onJsonEditor}
             schema={schema}
+            key={jsonEditorKey}
           />
         ) : (
           <M.TextField

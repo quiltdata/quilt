@@ -25,7 +25,7 @@ const useStyles = M.makeStyles((t) => ({
 
 function getColumnType(columnPath, jsonDict, parent) {
   const columnSchema = getJsonDictValue(columnPath, jsonDict)
-  if (!parent) return columnSchema.type
+  if (columnSchema && !parent) return columnSchema.type
 
   if (Array.isArray(parent)) return 'array'
 
