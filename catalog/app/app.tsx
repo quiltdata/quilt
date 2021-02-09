@@ -43,7 +43,7 @@ import '!file-loader?name=[name].[ext]!./favicon.ico'
 import '!file-loader?name=[name].[ext]!./quilt-og.png'
 /* eslint-enable import/no-unresolved, import/extensions */
 // Import i18n messages
-import { translationMessages } from './i18n'
+import { translationMessages, MessagesByLocale } from './i18n'
 // Import CSS reset and Global Styles
 import WithGlobalStyles from './global-styles'
 
@@ -56,14 +56,16 @@ fontLoader('Roboto', 'Roboto Mono').then(() => {
 const ErrorBoundary = composeComponent(
   'ErrorBoundary',
   Sentry.inject(),
-  createBoundary(({ sentry }: { sentry: any }) => (error: any, info: any) => {
-    sentry('captureException', error, info)
-    return (
-      <Layout bare>
-        <Error headline="Unexpected Error" detail="Something went wrong" />
-      </Layout>
-    )
-  }),
+  createBoundary(
+    ({ sentry }: { sentry: $TSFixMe }) => (error: $TSFixMe, info: $TSFixMe) => {
+      sentry('captureException', error, info)
+      return (
+        <Layout bare>
+          <Error headline="Unexpected Error" detail="Something went wrong" />
+        </Layout>
+      )
+    },
+  ),
 )
 
 // error gets automatically logged to the console, so no need to do it explicitly
@@ -88,7 +90,7 @@ const MOUNT_NODE = document.getElementById('app')
 // TODO: make storage injectable
 const storage = mkStorage({ user: 'USER', tokens: 'TOKENS' })
 
-const intercomUserSelector = (state: any) => {
+const intercomUserSelector = (state: $TSFixMe) => {
   const { user: u } = Auth.selectors.domain(state)
   return (
     u && {
@@ -99,12 +101,12 @@ const intercomUserSelector = (state: any) => {
   )
 }
 
-const sentryUserSelector = (state: any) => {
+const sentryUserSelector = (state: $TSFixMe) => {
   const { user: u } = Auth.selectors.domain(state)
   return u ? { username: u.current_user, email: u.email } : {}
 }
 
-const render = (messages: any) => {
+const render = (messages: MessagesByLocale) => {
   ReactDOM.render(
     nest(
       [M.MuiThemeProvider, { theme: style.appTheme }],

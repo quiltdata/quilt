@@ -22,36 +22,35 @@ import Controls from './Controls'
 function LogoLink(props: M.BoxProps) {
   const { urls } = NamedRoutes.use()
   return (
-    // @ts-ignore
+    // @ts-expect-error Property 'to' does not exist on type 'IntrinsicAttributes & BoxProps & { children?: ReactNode; }'
     <M.Box component={Link} mr={2} to={urls.home()} {...props}>
       <Logo responsive />
     </M.Box>
   )
 }
 
-interface ItemProps {
+// type ItemProps = (LinkProps | { href: string }) & M.MenuItemProps
+interface ItemProps extends M.MenuItemProps {
   to?: string
   href?: string
 }
 
-const Item = React.forwardRef(
-  (props: ItemProps & M.MenuItemProps, ref: React.Ref<any>) => (
-    <M.MenuItem
-      // @ts-ignore
-      // eslint-disable-next-line no-nested-ternary
-      component={props.to ? Link : props.href ? 'a' : undefined}
-      ref={ref}
-      {...props}
-    />
-  ),
-)
+const Item = React.forwardRef((props: ItemProps, ref: React.Ref<any>) => (
+  <M.MenuItem
+    // @ts-expect-error
+    // eslint-disable-next-line no-nested-ternary
+    component={props.to ? Link : props.href ? 'a' : undefined}
+    ref={ref}
+    {...props}
+  />
+))
 
 const selectUser = createStructuredSelector({
   name: authSelectors.username,
   isAdmin: authSelectors.isAdmin,
 })
 
-const userDisplay = (user: any) => (
+const userDisplay = (user: $TSFixMe) => (
   <>
     {user.isAdmin && (
       <>

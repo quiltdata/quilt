@@ -3,11 +3,9 @@ import * as M from '@material-ui/core'
 
 import Delay from 'utils/Delay'
 
-interface PlaceholderOwnProps {
+interface PlaceholderProps extends M.BoxProps {
   delay?: number
 }
-
-type PlaceholderProps = PlaceholderOwnProps & M.BoxProps
 
 export default function Placeholder({ delay, ...props }: PlaceholderProps) {
   return (
