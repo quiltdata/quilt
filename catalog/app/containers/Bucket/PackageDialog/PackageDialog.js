@@ -160,14 +160,13 @@ function mkMetaValidator(schema) {
   return function validateMeta(value) {
     const noError = undefined
 
-    const jsonObjectErr = !R.is(Object, value.obj)
+    const jsonObjectErr = !R.is(Object, value)
     if (jsonObjectErr) {
       return new Error('Metadata must be a valid JSON object')
     }
 
     if (schema) {
-      const obj = value ? value.obj : {}
-      const errors = schemaValidator(obj)
+      const errors = schemaValidator(value || {})
       if (!errors.length) return noError
       return errors
     }
@@ -178,7 +177,7 @@ function mkMetaValidator(schema) {
 
 export const getMetaValue = (value, optSchema) =>
   value
-    ? pipeThru(value.obj || {})(
+    ? pipeThru(value || {})(
         makeSchemaDefaultsSetter(optSchema),
         R.toPairs,
         R.filter(([k]) => !!k.trim()),
@@ -342,7 +341,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-export const EMPTY_META_VALUE = { obj: {} }
+export const EMPTY_META_VALUE = {}
 
 // TODO: warn on duplicate keys
 export function MetaInput({
@@ -357,15 +356,15 @@ export function MetaInput({
   const disabled = meta.submitting || meta.submitSucceeded
   const [mode, setMode] = React.useState('kv')
 
-  const [textValue, setTextValue] = React.useState(() => stringifyJSON(value.obj))
+  const [textValue, setTextValue] = React.useState(() => stringifyJSON(value))
 
   const changeText = React.useCallback(
     (text) => {
       if (disabled) return
       setTextValue(text)
-      onChange({ ...value, obj: parseJSON(text) })
+      onChange(parseJSON(text))
     },
-    [disabled, onChange, value],
+    [disabled, onChange],
   )
 
   const handleModeChange = (e, m) => {
@@ -380,9 +379,9 @@ export function MetaInput({
   const onJsonEditor = React.useCallback(
     (json) => {
       setTextValue(stringifyJSON(json))
-      onChange({ ...value, obj: json })
+      onChange(json)
     },
-    [value, onChange],
+    [onChange],
   )
 
   const { push: notify } = Notifications.use()
@@ -454,7 +453,7 @@ export function MetaInput({
         {mode === 'kv' ? (
           <JsonEditor
             disabled={disabled}
-            value={value.obj}
+            value={value}
             onChange={onJsonEditor}
             schema={schema}
             key={jsonEditorKey}
