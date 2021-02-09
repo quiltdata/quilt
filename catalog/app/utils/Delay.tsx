@@ -1,6 +1,12 @@
 import * as React from 'react'
 
-export default function Delay({ ms = 1000, alwaysRender = false, children }) {
+interface DelayProps {
+  ms?: number
+  alwaysRender?: boolean
+  children: (ready?: boolean) => JSX.Element
+}
+
+export default function Delay({ ms = 1000, alwaysRender = false, children }: DelayProps) {
   const [ready, setReady] = React.useState(false)
   React.useEffect(() => {
     const timeout = setTimeout(() => setReady(true), ms)

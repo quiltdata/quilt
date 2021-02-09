@@ -1,3 +1,4 @@
+import * as React from 'react'
 import '@material-ui/core'
 
 declare module '@material-ui/core' {
