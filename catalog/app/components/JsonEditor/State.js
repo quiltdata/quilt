@@ -86,7 +86,6 @@ export function iterateSchema(schema, sortOrder, parentPath, memo) {
       key,
       parentPath,
       required,
-
       sortIndex: sortOrder.current.counter,
     })
     // eslint-disable-next-line no-param-reassign
