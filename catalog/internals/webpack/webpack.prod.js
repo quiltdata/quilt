@@ -1,21 +1,16 @@
 const path = require('path')
-const TerserPlugin = require('terser-webpack-plugin')
-const CompressionPlugin = require('compression-webpack-plugin')
 
-module.exports = require('./webpack.base.babel')({
+const CompressionPlugin = require('compression-webpack-plugin')
+const TerserPlugin = require('terser-webpack-plugin')
+
+module.exports = require('./webpack.base')({
   mode: 'production',
 
   // In production, we skip all hot-reloading stuff
   entry: {
-    app: [
-      require.resolve('react-app-polyfill/ie11'),
-      path.join(process.cwd(), 'app/app.js'),
-    ],
-    embed: [
-      require.resolve('react-app-polyfill/ie11'),
-      path.join(process.cwd(), 'app/embed/index.js'),
-    ],
-    'embed-debug-harness': [path.join(process.cwd(), 'app/embed/debug-harness.js')],
+    app: path.join(process.cwd(), 'app/app'),
+    embed: path.join(process.cwd(), 'app/embed/index'),
+    'embed-debug-harness': path.join(process.cwd(), 'app/embed/debug-harness'),
   },
 
   // Utilize long-term caching by adding content hashes (not compilation hashes) to compiled assets

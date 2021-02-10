@@ -1,12 +1,9 @@
-/* app.js - application entry point */
-// Needed for redux-saga es6 generator support
-import '@babel/polyfill'
-
+/* app.tsx - application entry point */
 /* eslint-disable import/first */
 
 // Import all the third party stuff
 import * as React from 'react'
-import ReactDOM from 'react-dom'
+import * as ReactDOM from 'react-dom'
 import { createBrowserHistory as createHistory } from 'history'
 import * as M from '@material-ui/core'
 
@@ -46,7 +43,7 @@ import '!file-loader?name=[name].[ext]!./favicon.ico'
 import '!file-loader?name=[name].[ext]!./quilt-og.png'
 /* eslint-enable import/no-unresolved, import/extensions */
 // Import i18n messages
-import { translationMessages } from './i18n'
+import { translationMessages, MessagesByLocale } from './i18n'
 // Import CSS reset and Global Styles
 import WithGlobalStyles from './global-styles'
 
@@ -59,14 +56,16 @@ fontLoader('Roboto', 'Roboto Mono').then(() => {
 const ErrorBoundary = composeComponent(
   'ErrorBoundary',
   Sentry.inject(),
-  createBoundary(({ sentry }) => (error, info) => {
-    sentry('captureException', error, info)
-    return (
-      <Layout bare>
-        <Error headline="Unexpected Error" detail="Something went wrong" />
-      </Layout>
-    )
-  }),
+  createBoundary(
+    ({ sentry }: { sentry: $TSFixMe }) => (error: $TSFixMe, info: $TSFixMe) => {
+      sentry('captureException', error, info)
+      return (
+        <Layout bare>
+          <Error headline="Unexpected Error" detail="Something went wrong" />
+        </Layout>
+      )
+    },
+  ),
 )
 
 // error gets automatically logged to the console, so no need to do it explicitly
@@ -91,7 +90,7 @@ const MOUNT_NODE = document.getElementById('app')
 // TODO: make storage injectable
 const storage = mkStorage({ user: 'USER', tokens: 'TOKENS' })
 
-const intercomUserSelector = (state) => {
+const intercomUserSelector = (state: $TSFixMe) => {
   const { user: u } = Auth.selectors.domain(state)
   return (
     u && {
@@ -102,12 +101,12 @@ const intercomUserSelector = (state) => {
   )
 }
 
-const sentryUserSelector = (state) => {
+const sentryUserSelector = (state: $TSFixMe) => {
   const { user: u } = Auth.selectors.domain(state)
   return u ? { username: u.current_user, email: u.email } : {}
 }
 
-const render = (messages) => {
+const render = (messages: MessagesByLocale) => {
   ReactDOM.render(
     nest(
       [M.MuiThemeProvider, { theme: style.appTheme }],
@@ -169,19 +168,4 @@ if (module.hot) {
 }
 */
 
-const polyfills = []
-
-// Chunked polyfill for browsers without Intl support
-if (!window.Intl)
-  polyfills.push(
-    import('intl').then(() => Promise.all([import('intl/locale-data/jsonp/en.js')])),
-  )
-
-if (!window.ResizeObserver)
-  polyfills.push(
-    import('resize-observer-polyfill').then(({ default: RO }) => {
-      window.ResizeObserver = RO
-    }),
-  )
-
-Promise.all(polyfills).then(() => render(translationMessages))
+render(translationMessages)

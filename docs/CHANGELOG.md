@@ -25,6 +25,10 @@
 * [Changed] Handle delete markers in ES ([#1997](https://github.com/quiltdata/quilt/pull/1997), [#2000](https://github.com/quiltdata/quilt/pull/2000), [#2003](https://github.com/quiltdata/quilt/pull/2003), [#2017](https://github.com/quiltdata/quilt/pull/2017), [#2023](https://github.com/quiltdata/quilt/pull/2023))
 * [Changed] Two-column layout for package dialogs ([#2001](https://github.com/quiltdata/quilt/pull/2001))
 * [Changed] Show Schema validation errors in text mode ([#2010](https://github.com/quiltdata/quilt/pull/2010))
+* [Changed] Toolchain: use webpack@5 ([#2036](https://github.com/quiltdata/quilt/pull/2036)) and TypeScript ([#2043](https://github.com/quiltdata/quilt/pull/2043)), ditch babel
+* [Changed] Use polyfill.io instead of bundled polyfills ([#2043](https://github.com/quiltdata/quilt/pull/2043))
+* [Changed] Render JSON with custom tree-like viewer ([#2037](https://github.com/quiltdata/quilt/pull/2037))
+* [Changed] Set JSON Schema defaults ([#2053](https://github.com/quiltdata/quilt/pull/2053))
 * [Fixed] Bug that caused search to miss delete object and delete package events ([#1987](https://github.com/quiltdata/quilt/pull/1987))
 * [Fixed] lambda previews for time series `AICSImage` data (potential `IndexError` if odd number of time points) ([#1945](https://github.com/quiltdata/quilt/pull/1945))
 * [Fixed] Handle folders in search results ([#1992](https://github.com/quiltdata/quilt/pull/1992), [#1994](https://github.com/quiltdata/quilt/pull/1994))
