@@ -126,8 +126,9 @@ export function makeSchemaDefaultsSetter(optSchema) {
     const validate = ajv.compile(schema)
 
     return (obj) => {
-      validate(R.clone(obj))
-      return obj
+      const clonedObj = R.clone(obj)
+      validate(clonedObj)
+      return clonedObj
     }
   } catch (e) {
     return R.identity
