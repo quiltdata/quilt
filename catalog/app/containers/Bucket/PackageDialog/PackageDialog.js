@@ -561,7 +561,7 @@ export function useCryptoApiValidation() {
       window.crypto && window.crypto.subtle && window.crypto.subtle.digest
     return {
       [FORM_ERROR]: !isCryptoApiAvailable
-        ? 'Please use browser supports Web Cryptography API'
+        ? 'Quilt requires the Web Cryptography API. Please try another browser.'
         : undefined,
     }
   }, [])
