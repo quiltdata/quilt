@@ -4,3 +4,5 @@ declare module '*.png' {
 }
 
 declare module 'intl/locale-data/jsonp/*'
+
+type $TSFixMe = any
