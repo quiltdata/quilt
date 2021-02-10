@@ -440,12 +440,16 @@ export function MetaInput({
       setLocked(true)
       readFile(file)
         .then((contents) => {
-          try {
-            JSON.parse(contents)
-          } catch (e) {
-            notify('The file does not contain valid JSON')
+          if (R.is(Object, contents)) {
+            onJsonEditor(contents)
+          } else {
+            try {
+              JSON.parse(contents)
+            } catch (e) {
+              notify('The file does not contain valid JSON')
+            }
+            changeText(contents)
           }
-          changeText(contents)
           // force json editor to re-initialize
           setJsonEditorKey(R.inc)
         })
@@ -461,7 +465,7 @@ export function MetaInput({
           setLocked(false)
         })
     },
-    [setLocked, changeText, setJsonEditorKey, notify],
+    [setLocked, changeText, onJsonEditor, setJsonEditorKey, notify],
   )
 
   const { getRootProps, isDragActive } = useDropzone({ onDrop })
