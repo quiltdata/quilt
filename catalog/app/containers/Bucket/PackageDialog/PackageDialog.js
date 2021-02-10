@@ -1,6 +1,8 @@
+import mime from 'mime-types'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
+import xlsx from 'xlsx'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -78,7 +80,34 @@ function cacheDebounce(fn, wait, getKey = R.identity) {
   }
 }
 
-const readFile = (file) =>
+const readExcelFile = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onabort = () => {
+      reject(new Error('abort'))
+    }
+    reader.onerror = () => {
+      reject(reader.error)
+    }
+    reader.onload = () => {
+      const workbook = xlsx.read(reader.result, { type: 'array' })
+      const result = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {
+        header: 'A',
+      })
+      resolve(
+        result.reduce(
+          (memo, { A, B }) => ({
+            ...memo,
+            [A]: B,
+          }),
+          {},
+        ),
+      )
+    }
+    reader.readAsArrayBuffer(file)
+  })
+
+const readTextFile = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onabort = () => {
@@ -92,6 +121,9 @@ const readFile = (file) =>
     }
     reader.readAsText(file)
   })
+
+const readFile = (file) =>
+  mime.extension(file.type).startsWith('ods') ? readExcelFile(file) : readTextFile(file)
 
 const validateName = (req) =>
   cacheDebounce(async (name) => {
