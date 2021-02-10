@@ -577,12 +577,7 @@ function PackageCreateDialog({
         hasValidationErrors: true,
         form: true,
       }}
-      validate={() => ({
-        [FORM_ERROR]:
-          !window.crypto || !window.crypto.subtle || !window.crypto.subtle.digest
-            ? 'Please use browser supports Web Cryptography API'
-            : undefined,
-      })}
+      validate={PD.useCryptoApiValidation()}
     >
       {({
         error,
