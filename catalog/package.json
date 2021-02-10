@@ -121,7 +121,8 @@
     "vega": "^5.19.1",
     "vega-embed": "^6.15.1",
     "vega-lite": "^4.17.0",
-    "warning": "^4.0.3"
+    "warning": "^4.0.3",
+    "xlsx": "^0.16.9"
   },
   "devDependencies": {
     "@types/fontfaceobserver": "^0.0.6",
