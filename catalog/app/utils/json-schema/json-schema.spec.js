@@ -263,10 +263,28 @@ describe('utils/json-schema', () => {
   })
 
   describe('makeSchemaDefaultsSetter', () => {
-    it('should set default values from Schema', () => {
-      const setDefaults = makeSchemaDefaultsSetter(regular.schema)
+    const setDefaults = makeSchemaDefaultsSetter(regular.schema)
+
+    it('should set default value from Schema, when value is empty', () => {
       expect(setDefaults({})).toMatchObject({
         a: 3.14,
+      })
+    })
+
+    it('should ignore default value from Schema, when value set', () => {
+      expect(setDefaults({ a: 123 })).toMatchObject({
+        a: 123,
+      })
+    })
+
+    it('should set default value from Schema, when nested value set', () => {
+      expect(setDefaults({ optList: [{}] })).toMatchObject({
+        optList: [
+          {
+            id: 123,
+            name: 'Abcdef',
+          },
+        ],
       })
     })
   })
