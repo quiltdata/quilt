@@ -39,7 +39,11 @@ function GlobalStyles() {
   return null
 }
 
-export default function WithGlobalStyles({ children }) {
+interface WithGlobalStylesProps {
+  children?: React.ReactNode
+}
+
+export default function WithGlobalStyles({ children }: WithGlobalStylesProps) {
   return (
     <CssBaseline>
       <GlobalStyles />
