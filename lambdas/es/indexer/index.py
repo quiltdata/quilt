@@ -415,8 +415,8 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
             body, info = extract_fcs(get_bytes(obj["Body"], compression), as_html=False)
             # be smart and just send column names to ES (instead of bloated full schema)
             # if this is not an HTML/catalog preview
-            return trim_to_bytes(f"{body}\n{info}", ELASTIC_LIMIT_BYTES)
-        if inferred_ext == ".ipynb":
+            content = trim_to_bytes(f"{body}\n{info}", ELASTIC_LIMIT_BYTES)
+        elif inferred_ext == ".ipynb":
             content = trim_to_bytes(
                 # we have no choice but to fetch the entire notebook, because we
                 # are going to parse it
