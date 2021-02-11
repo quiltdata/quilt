@@ -29,9 +29,6 @@ export const Provider = function AthenaProvider({
   return <AthenaContext.Provider value={client}>{children}</AthenaContext.Provider>
 }
 
-export function useAthena() {
-  const athena = React.useContext(AthenaContext)
-  return athena ? athena() : null
-}
+export const useAthena = () => React.useContext(AthenaContext)()
 
 export const use = useAthena
