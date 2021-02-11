@@ -7,10 +7,7 @@ import * as Config from './Config'
 
 const AthenaContext = React.createContext<() => Athena | null>(() => null)
 
-type AthenaProviderProps = {
-  children: React.ReactNode
-  overrides?: Partial<Athena.ClientConfiguration>
-}
+type AthenaProviderProps = React.PropsWithChildren<Partial<Athena.ClientConfiguration>>
 
 export const Provider = function AthenaProvider({
   children,
