@@ -229,10 +229,7 @@ def get_bytes(chunk_iterator, compression):
     Read a (possibly compressed) file and return a BytesIO object with the contents.
     """
     buffer = BytesIO()
-
-    for chunk in decompress_stream(chunk_iterator, compression):
-        buffer.write(chunk)
-
+    buffer.writelines(decompress_stream(chunk_iterator, compression))
     buffer.seek(0)
     return buffer
 

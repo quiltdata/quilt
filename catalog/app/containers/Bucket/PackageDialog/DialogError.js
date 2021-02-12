@@ -47,6 +47,8 @@ const errorDisplay = R.cond([
         </M.Typography>
       </>
     ),
+  ],
+  [
     R.is(ERRORS.ManifestTooLarge),
     (e) => (
       <>
