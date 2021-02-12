@@ -1,5 +1,5 @@
-import * as R from 'ramda'
 import { FORM_ERROR } from 'final-form'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
@@ -91,22 +91,21 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 function DialogForm({
+  bucket,
   close,
   hash,
   manifest,
   name: initialName,
-  setSubmitting,
-  bucket,
-  setSuccess,
-  successor,
-  workflowsConfig,
-
-  selectedWorkflow,
-  setWorkflow,
+  responseError,
   schema,
   schemaLoading,
-  responseError,
+  selectedWorkflow,
+  setSubmitting,
+  setSuccess,
+  setWorkflow,
+  successor,
   validate: validateMetaInput,
+  workflowsConfig,
 }) {
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(successor.slug)

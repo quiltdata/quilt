@@ -120,7 +120,7 @@ function Button({ children, onClick }) {
   )
 }
 
-export default function CopyButton({ bucket, onChange }) {
+export default function CopyButton({ bucket, children, onChange }) {
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null)
 
   const onButtonClick = React.useCallback(
@@ -140,7 +140,7 @@ export default function CopyButton({ bucket, onChange }) {
 
   return (
     <>
-      <Button onClick={onButtonClick}>Push to bucket</Button>
+      <Button onClick={onButtonClick}>{children}</Button>
 
       <SuccessorsSelect
         anchorEl={menuAnchorEl}

@@ -406,17 +406,16 @@ const NameExistsWarning = ({ name }) => {
 function PackageCreateDialog({
   bucket,
   close,
-  setWorkflow,
   refresh,
-  selectedWorkflow,
-  workflowsConfig,
-
-  setSubmitting,
-  setSuccess,
+  responseError,
   schema,
   schemaLoading,
-  responseError,
+  selectedWorkflow,
+  setSubmitting,
+  setSuccess,
+  setWorkflow,
   validate: validateMetaInput,
+  workflowsConfig,
 }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
