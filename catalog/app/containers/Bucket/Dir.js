@@ -16,8 +16,10 @@ import parseSearch from 'utils/parseSearch'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
 
 import Code from './Code'
+import CopyButton from './CopyButton'
 import * as FileView from './FileView'
 import { ListingItem, ListingWithPrefixFiltering } from './Listing'
+import PackageDirectoryDialog from './PackageDirectoryDialog'
 import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
@@ -117,6 +119,12 @@ export default function Dir({
     [bucket, path, dest],
   )
 
+  const [successor, setSuccessor] = React.useState(null)
+
+  const onPackageDirectoryDialogExited = React.useCallback(() => {
+    setSuccessor(null)
+  }, [setSuccessor])
+
   const data = useData(requests.bucketListing, {
     s3,
     bucket,
@@ -138,11 +146,17 @@ export default function Dir({
           {renderCrumbs(getCrumbs({ bucket, path, urls }))}
         </div>
         <M.Box flexGrow={1} />
+        <CopyButton bucket={bucket} onChange={setSuccessor}>
+          Create package from directory
+        </CopyButton>
         {!noDownload && (
-          <FileView.ZipDownloadForm
-            suffix={`dir/${bucket}/${path}`}
-            label="Download directory"
-          />
+          <>
+            <M.Box ml={1} />
+            <FileView.ZipDownloadForm
+              suffix={`dir/${bucket}/${path}`}
+              label="Download directory"
+            />
+          </>
         )}
       </M.Box>
 
@@ -173,6 +187,18 @@ export default function Dir({
           // TODO: should prefix filtering affect summary?
           return (
             <>
+              <PackageDirectoryDialog
+                bucket={bucket}
+                path={path}
+                files={[
+                  ...res.dirs.map((dir) => ({ key: dir, isDir: true })),
+                  ...res.files,
+                ]}
+                open={!!successor}
+                successor={successor}
+                onExited={onPackageDirectoryDialogExited}
+              />
+
               <ListingWithPrefixFiltering
                 items={items}
                 locked={locked}
