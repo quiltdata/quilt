@@ -91,22 +91,21 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 function DialogForm({
+  bucket,
   close,
   hash,
   manifest,
   name: initialName,
-  setSubmitting,
-  bucket,
-  setSuccess,
-  successor,
-  workflowsConfig,
-
-  selectedWorkflow,
-  setWorkflow,
+  responseError,
   schema,
   schemaLoading,
-  responseError,
+  selectedWorkflow,
+  setSubmitting,
+  setSuccess,
+  setWorkflow,
+  successor,
   validate: validateMetaInput,
+  workflowsConfig,
 }) {
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(successor.slug)

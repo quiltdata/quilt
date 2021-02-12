@@ -69,18 +69,17 @@ function DialogForm({
   bucket,
   close,
   files,
+  path,
+  responseError,
+  schema,
+  schemaLoading,
   selectedWorkflow,
   setSubmitting,
-  onSuccess,
-  path,
-  successor,
-  workflowsConfig,
-
-  schema,
+  setSuccess,
   setWorkflow,
-  schemaLoading,
-  responseError,
+  successor,
   validate: validateMetaInput,
+  workflowsConfig,
 }) {
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(successor.slug)
@@ -103,14 +102,14 @@ function DialogForm({
           targetBucket: successor.slug,
           workflow,
         })
-        onSuccess({ name, hash: res.top_hash })
+        setSuccess({ name, hash: res.top_hash })
       } catch (e) {
         // eslint-disable-next-line no-console
         console.log('error creating manifest', e)
         return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
       }
     },
-    [bucket, successor, req, onSuccess, schema, path],
+    [bucket, successor, req, setSuccess, schema, path],
   )
 
   const initialFiles = React.useMemo(
@@ -376,13 +375,6 @@ export default function PackageDirectoryDialog({
     { noAutoFetch: !successor || !open },
   )
 
-  const handleSuccess = React.useCallback(
-    (successData) => {
-      setSuccess(successData)
-    },
-    [setSuccess],
-  )
-
   const handleClose = React.useCallback(() => {
     if (submitting) return
 
@@ -441,10 +433,10 @@ export default function PackageDirectoryDialog({
                         bucket,
                         close: handleClose,
                         files,
-                        setSubmitting,
-                        onSuccess: handleSuccess,
-                        setWorkflow,
                         path,
+                        setSubmitting,
+                        setSuccess,
+                        setWorkflow,
                         successor,
                         workflowsConfig,
                       }}

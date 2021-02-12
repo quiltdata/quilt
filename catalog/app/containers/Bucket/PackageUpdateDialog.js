@@ -65,19 +65,18 @@ const defaultNameWarning = ' ' // Reserve space for warning
 
 function DialogForm({
   bucket,
-  name: initialName,
   close,
-  setSuccess,
-  setSubmitting,
   manifest,
-  workflowsConfig,
-  setWorkflow,
-  selectedWorkflow,
-
+  name: initialName,
+  responseError,
   schema,
   schemaLoading,
-  responseError,
+  selectedWorkflow,
+  setSubmitting,
+  setSuccess,
+  setWorkflow,
   validate: validateMetaInput,
+  workflowsConfig,
 }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
