@@ -19,14 +19,14 @@ import * as requests from './requests'
 
 function requestPackageCreate(
   req,
-  { commitMessage, name, meta, sourceBucket, path, targetBucket, workflow },
+  { commitMessage, name, meta, sourceBucket, path, schema, targetBucket, workflow },
 ) {
   return req({
     endpoint: '/packages/from-folder',
     method: 'POST',
     body: {
       message: commitMessage,
-      meta: PD.getMetaValue(meta),
+      meta: PD.getMetaValue(meta, schema),
       path,
       dst: {
         registry: `s3://${targetBucket}`,
@@ -69,12 +69,18 @@ function DialogForm({
   bucket,
   close,
   files,
-  onSubmitEnd,
-  onSubmitStart,
+  selectedWorkflow,
+  setSubmitting,
   onSuccess,
   path,
   successor,
   workflowsConfig,
+
+  schema,
+  setWorkflow,
+  schemaLoading,
+  responseError,
+  validate: validateMetaInput,
 }) {
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(successor.slug)
@@ -86,27 +92,25 @@ function DialogForm({
   const onSubmit = React.useCallback(
     // eslint-disable-next-line consistent-return
     async ({ commitMessage, name, meta, workflow }) => {
-      onSubmitStart()
       try {
-        onSubmitEnd()
         const res = await requestPackageCreate(req, {
           commitMessage,
           meta,
           name,
           path,
+          schema,
           sourceBucket: bucket,
           targetBucket: successor.slug,
           workflow,
         })
         onSuccess({ name, hash: res.top_hash })
       } catch (e) {
-        onSubmitEnd()
         // eslint-disable-next-line no-console
         console.log('error creating manifest', e)
         return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
       }
     },
-    [bucket, successor, req, onSuccess, path, onSubmitStart, onSubmitEnd],
+    [bucket, successor, req, onSuccess, schema, path],
   )
 
   const initialFiles = React.useMemo(
@@ -126,6 +130,15 @@ function DialogForm({
     }),
     [files],
   )
+
+  const onSubmitWrapped = async (...args) => {
+    setSubmitting(true)
+    try {
+      return await onSubmit(...args)
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const onFormChange = React.useCallback(
     async ({ values }) => {
@@ -148,16 +161,9 @@ function DialogForm({
     [successor, nameExistence, nameWarning],
   )
 
-  const initialWorkflow = React.useMemo(
-    () => PD.defaultWorkflowFromConfig(workflowsConfig),
-    [workflowsConfig],
-  )
-
-  const [workflow, setWorkflow] = React.useState(initialWorkflow)
-
   return (
     <RF.Form
-      onSubmit={onSubmit}
+      onSubmit={onSubmitWrapped}
       subscription={{
         handleSubmit: true,
         submitting: true,
@@ -191,7 +197,7 @@ function DialogForm({
               <RF.FormSpy
                 subscription={{ modified: true, values: true }}
                 onChange={({ modified, values }) => {
-                  if (modified.workflow && values.workflow !== workflow) {
+                  if (modified.workflow && values.workflow !== selectedWorkflow) {
                     setWorkflow(values.workflow)
                   }
                 }}
@@ -228,31 +234,28 @@ function DialogForm({
                     }}
                   />
 
-                  <PD.SchemaFetcher schemaUrl={R.pathOr('', ['schema', 'url'], workflow)}>
-                    {AsyncResult.case({
-                      Ok: ({ responseError, schema, validate }) => (
-                        <RF.Field
-                          className={classes.meta}
-                          component={PD.MetaInput}
-                          name="meta"
-                          bucket={successor.slug}
-                          schema={schema}
-                          schemaError={responseError}
-                          validate={validate}
-                          validateFields={['meta']}
-                          isEqual={R.equals}
-                          initialValue={PD.EMPTY_META_VALUE}
-                        />
-                      ),
-                      _: () => <PD.MetaInputSkeleton className={classes.meta} />,
-                    })}
-                  </PD.SchemaFetcher>
+                  {schemaLoading ? (
+                    <PD.MetaInputSkeleton className={classes.meta} />
+                  ) : (
+                    <RF.Field
+                      className={classes.meta}
+                      component={PD.MetaInput}
+                      name="meta"
+                      bucket={successor.slug}
+                      schema={schema}
+                      schemaError={responseError}
+                      validate={validateMetaInput}
+                      validateFields={['meta']}
+                      isEqual={R.equals}
+                      initialValue={PD.EMPTY_META_VALUE}
+                    />
+                  )}
 
                   <RF.Field
                     component={PD.WorkflowInput}
                     name="workflow"
                     workflowsConfig={workflowsConfig}
-                    initialValue={initialWorkflow}
+                    initialValue={selectedWorkflow}
                     validate={validators.required}
                     validateFields={['meta', 'workflow']}
                     errors={{
@@ -363,6 +366,7 @@ export default function PackageDirectoryDialog({
 }) {
   const s3 = AWS.S3.use()
 
+  const [workflow, setWorkflow] = React.useState(null)
   const [success, setSuccess] = React.useState(null)
   const [submitting, setSubmitting] = React.useState(false)
 
@@ -428,19 +432,27 @@ export default function PackageDirectoryDialog({
             ),
           Ok: (workflowsConfig) =>
             successor && (
-              <DialogForm
-                {...{
-                  bucket,
-                  close: handleClose,
-                  files,
-                  onSubmitEnd: () => setSubmitting(false),
-                  onSubmitStart: () => setSubmitting(true),
-                  onSuccess: handleSuccess,
-                  path,
-                  successor,
-                  workflowsConfig,
-                }}
-              />
+              <PD.SchemaFetcher workflow={workflow} workflowsConfig={workflowsConfig}>
+                {AsyncResult.case({
+                  Ok: (schemaProps) => (
+                    <DialogForm
+                      {...schemaProps}
+                      {...{
+                        bucket,
+                        close: handleClose,
+                        files,
+                        setSubmitting,
+                        onSuccess: handleSuccess,
+                        setWorkflow,
+                        path,
+                        successor,
+                        workflowsConfig,
+                      }}
+                    />
+                  ),
+                  _: R.identity,
+                })}
+              </PD.SchemaFetcher>
             ),
           _: () =>
             successor && (
