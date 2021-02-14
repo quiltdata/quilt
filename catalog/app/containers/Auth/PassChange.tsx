@@ -77,6 +77,7 @@ function Form({ onSuccess, link }: FormProps) {
         {({ handleSubmit, submitting, submitFailed, invalid, error, submitError }) => (
           <form onSubmit={handleSubmit}>
             <RF.Field
+              // @ts-expect-error
               component={Layout.Field}
               name="password"
               type="password"
@@ -90,6 +91,7 @@ function Form({ onSuccess, link }: FormProps) {
               }}
             />
             <RF.Field
+              // @ts-expect-error
               component={Layout.Field}
               name="passwordCheck"
               type="password"

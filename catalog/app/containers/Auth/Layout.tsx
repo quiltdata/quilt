@@ -1,88 +1,118 @@
-import PT from 'prop-types'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
-import { mapProps, setPropTypes } from 'recompose'
+import { Link, LinkProps } from 'react-router-dom'
 import * as M from '@material-ui/core'
-import { styled, withStyles } from '@material-ui/styles'
 import Layout from 'components/Layout'
 import Spinner from 'components/Spinner'
-import { composeComponent } from 'utils/reactTools'
 
-export const Container = styled('div')(
-  {
+const useContainerStyles = M.makeStyles({
+  root: {
     marginLeft: 'auto',
     marginRight: 'auto',
     maxWidth: 300,
     width: '100%',
   },
-  { name: 'Auth.Container' },
-)
+})
 
-export const Heading = (props) => <M.Typography variant="h4" align="center" {...props} />
+export function Container(props: JSX.IntrinsicElements['div']) {
+  const classes = useContainerStyles()
+  return <div className={classes.root} {...props} />
+}
 
-/* TODO: TS
-    input: PT.object.isRequired,
-    meta: PT.object.isRequired,
-    errors: PT.objectOf(PT.node),
-*/
-export function Field({ input, meta, errors, floatingLabelText: label, ...rest }) {
+export function Heading(props: M.TypographyProps) {
+  return <M.Typography variant="h4" align="center" {...props} />
+}
+
+interface FieldOwnProps {
+  // TODO: use redux-form / final-form type definitions
+  input: {}
+  meta: {
+    error: any
+    submitError: any
+    submitFailed: boolean
+  }
+  // for backwards compatibility
+  floatingLabelText?: React.ReactNode
+  errors: Record<string, React.ReactNode>
+}
+
+type FieldProps = FieldOwnProps & M.TextFieldProps
+
+export function Field({
+  input,
+  meta,
+  errors,
+  floatingLabelText: label,
+  ...rest
+}: FieldProps) {
   const err = meta.error || meta.submitError
   const props = {
     error: meta.submitFailed && !!err,
     helperText: meta.submitFailed && err ? errors[err] || err : undefined,
     label,
     fullWidth: true,
-    margin: 'normal',
+    margin: 'normal' as const,
     ...input,
     ...rest,
   }
   return <M.TextField {...props} />
 }
 
-export const FieldErrorLink = styled(Link)(
-  {
+const useFieldErrorLinkStyles = M.makeStyles({
+  root: {
     color: 'inherit !important',
     textDecoration: 'underline',
   },
-  { name: 'Auth.FieldErrorLink' },
-)
+})
 
-export const Error = composeComponent(
-  'Auth.Error',
-  withStyles((t) => ({
-    root: {
-      color: t.palette.error.main,
-      marginTop: t.spacing(3),
-      textAlign: 'center',
+export function FieldErrorLink(props: LinkProps) {
+  const classes = useFieldErrorLinkStyles()
+  return <Link className={classes.root} {...props} />
+}
 
-      '& a': {
-        color: 'inherit !important',
-        textDecoration: 'underline',
-      },
+const useErrorStyles = M.makeStyles((t) => ({
+  root: {
+    color: t.palette.error.main,
+    marginTop: t.spacing(3),
+    textAlign: 'center',
+
+    '& a': {
+      color: 'inherit !important',
+      textDecoration: 'underline',
     },
-  })),
-  mapProps(({ submitFailed, error, errors, classes, ...rest }) => ({
-    error:
-      submitFailed && error
-        ? errors[error] /* istanbul ignore next */ || error
-        : undefined,
-    className: classes.root,
-    ...rest,
-  })),
-  ({ error, ...rest }) => (error ? <p {...rest}>{error}</p> : null),
-)
+  },
+}))
 
-export const Actions = styled('div')(
-  ({ theme: t }) => ({
+interface ErrorProps {
+  submitFailed: boolean
+  error: string
+  errors: Record<string, React.ReactNode>
+}
+
+export function Error({ submitFailed, error, errors, ...rest }: ErrorProps) {
+  const classes = useErrorStyles()
+  const err = submitFailed && error ? errors[error] || error : undefined
+  return err ? (
+    <p className={classes.root} {...rest}>
+      {err}
+    </p>
+  ) : null
+}
+
+const useActionsStyles = M.makeStyles((t) => ({
+  root: {
     display: 'flex',
     justifyContent: 'center',
     marginTop: t.spacing(4),
-  }),
-  { name: 'Auth.Actions' },
-)
+  },
+}))
 
-export const Hint = styled('p')(
-  ({ theme: t }) => ({
+export function Actions(props: JSX.IntrinsicElements['div']) {
+  const classes = useActionsStyles()
+  return <div className={classes.root} {...props} />
+}
+
+const useHintStyles = M.makeStyles((t) => ({
+  root: {
     fontSize: 12,
     lineHeight: '16px',
     marginBottom: t.spacing(1.5),
@@ -93,11 +123,15 @@ export const Hint = styled('p')(
     'p + &': {
       marginTop: t.spacing(1.5),
     },
-  }),
-  { name: 'Auth.Hint' },
-)
+  },
+}))
 
-export function Message(props) {
+export function Hint(props: JSX.IntrinsicElements['p']) {
+  const classes = useHintStyles()
+  return <p className={classes.root} {...props} />
+}
+
+export function Message(props: M.TypographyProps) {
   return (
     <M.Box pt={2}>
       <M.Typography align="center" {...props} />
@@ -105,7 +139,16 @@ export function Message(props) {
   )
 }
 
-export const mkLayout = (heading) => ({ children, ...props }) => (
+interface LayoutProps {
+  children: React.ReactNode
+}
+
+type LayoutHeading = React.ReactNode | ((props: {}) => React.ReactNode)
+
+export const mkLayout = (heading: LayoutHeading) => ({
+  children,
+  ...props
+}: LayoutProps) => (
   <Layout>
     <Container>
       <M.Box pt={5} pb={2}>
@@ -116,15 +159,17 @@ export const mkLayout = (heading) => ({ children, ...props }) => (
   </Layout>
 )
 
-export const Submit = composeComponent(
-  'Auth.Submit',
-  setPropTypes({
-    busy: PT.bool,
-    // TODO: deprecate
-    label: PT.node,
-    children: PT.node,
-  }),
-  ({ busy, label, children, ...rest }) => (
+interface SubmitOwnProps {
+  busy: boolean
+  // TODO: deprecate
+  label?: React.ReactNode
+  children?: React.ReactNode
+}
+
+type SubmitProps = SubmitOwnProps & Omit<M.ButtonProps, 'children'>
+
+export function Submit({ busy, label, children, ...rest }: SubmitProps) {
+  return (
     <M.Button color="primary" variant="contained" type="submit" {...rest}>
       {label}
       {children}
@@ -142,27 +187,28 @@ export const Submit = composeComponent(
         </>
       )}
     </M.Button>
-  ),
-)
+  )
+}
 
-export const Or = composeComponent(
-  'Auth.Or',
-  withStyles((t) => ({
-    root: {
-      alignItems: 'center',
-      display: 'flex',
-      justifyContent: 'space-between',
-      paddingTop: t.spacing(4),
-    },
-    divider: {
-      flexGrow: 1,
-    },
-    text: {
-      paddingLeft: t.spacing(1),
-      paddingRight: t.spacing(1),
-    },
-  })),
-  ({ classes }) => (
+const useOrStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
+    paddingTop: t.spacing(4),
+  },
+  divider: {
+    flexGrow: 1,
+  },
+  text: {
+    paddingLeft: t.spacing(1),
+    paddingRight: t.spacing(1),
+  },
+}))
+
+export function Or() {
+  const classes = useOrStyles()
+  return (
     <div className={classes.root}>
       <M.Divider className={classes.divider} />
       <M.Typography variant="button" className={classes.text}>
@@ -170,5 +216,5 @@ export const Or = composeComponent(
       </M.Typography>
       <M.Divider className={classes.divider} />
     </div>
-  ),
-)
+  )
+}
