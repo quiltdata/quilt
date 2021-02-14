@@ -20,27 +20,24 @@ export const Container = styled('div')(
 
 export const Heading = (props) => <M.Typography variant="h4" align="center" {...props} />
 
-export const Field = composeComponent(
-  'Auth.Field',
-  setPropTypes({
+/* TODO: TS
     input: PT.object.isRequired,
     meta: PT.object.isRequired,
     errors: PT.objectOf(PT.node),
-  }),
-  mapProps(({ input, meta, errors, floatingLabelText: label, ...rest }) => ({
-    error: meta.submitFailed && !!meta.error,
-    helperText:
-      meta.submitFailed && meta.error
-        ? errors[meta.error] || /* istanbul ignore next */ meta.error
-        : undefined,
+*/
+export function Field({ input, meta, errors, floatingLabelText: label, ...rest }) {
+  const err = meta.error || meta.submitError
+  const props = {
+    error: meta.submitFailed && !!err,
+    helperText: meta.submitFailed && err ? errors[err] || err : undefined,
     label,
     fullWidth: true,
     margin: 'normal',
     ...input,
     ...rest,
-  })),
-  M.TextField,
-)
+  }
+  return <M.TextField {...props} />
+}
 
 export const FieldErrorLink = styled(Link)(
   {
