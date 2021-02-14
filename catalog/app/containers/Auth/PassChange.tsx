@@ -22,10 +22,10 @@ const Container = Layout.mkLayout(<FM {...msg.passChangeHeading} />)
 
 function SignOut() {
   const waiting = redux.useSelector(selectors.waiting)
-  const signOutRef = React.useRef()
+  const signOutRef = React.useRef<() => void>()
   signOutRef.current = useSignOut()
   React.useEffect(() => {
-    if (!waiting) signOutRef.current()
+    if (!waiting) signOutRef.current!()
   }, [waiting, signOutRef])
   return (
     <Container>
@@ -36,12 +36,17 @@ function SignOut() {
   )
 }
 
-function Form({ onSuccess, link }) {
+interface FormProps {
+  onSuccess(): void
+  link: string
+}
+
+function Form({ onSuccess, link }: FormProps) {
   const { urls } = NamedRoutes.use()
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
 
-  const onSubmit = async ({ password }) => {
+  const onSubmit = async ({ password }: { password: string }) => {
     try {
       const result = defer()
       dispatch(changePassword(link, password, result.resolver))
@@ -75,6 +80,7 @@ function Form({ onSuccess, link }) {
               component={Layout.Field}
               name="password"
               type="password"
+              // @ts-expect-error
               validate={validators.required}
               disabled={submitting}
               floatingLabelText={<FM {...msg.passChangePassLabel} />}
@@ -107,6 +113,7 @@ function Form({ onSuccess, link }) {
                     {...msg.passChangeErrorInvalidToken}
                     values={{
                       link: (
+                        // @ts-expect-error
                         <Link to={urls.passReset()}>
                           <FM {...msg.passChangeErrorInvalidTokenLink} />
                         </Link>
@@ -145,6 +152,7 @@ function Success() {
           {...msg.passChangeSuccessCTA}
           values={{
             link: (
+              // @ts-expect-error
               <Link to={urls.signIn()}>
                 <FM {...msg.passChangeSuccessCTALink} />
               </Link>
@@ -156,11 +164,15 @@ function Success() {
   )
 }
 
+interface PassChangeProps {
+  match: { params: { link: string } }
+}
+
 export default function PassChange({
   match: {
     params: { link },
   },
-}) {
+}: PassChangeProps) {
   const authenticated = redux.useSelector(selectors.authenticated)
   const [done, setDone] = React.useState(false)
   const onSuccess = React.useCallback(() => setDone(true), [setDone])
