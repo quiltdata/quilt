@@ -68,8 +68,14 @@ export default composeComponent(
         await result.promise
         setDone()
       } catch (e) {
-        if (e instanceof errors.InvalidResetLink) {
-          throw new SubmissionError({ _error: 'invalid' })
+        if (e instanceof errors.PassChangeInvalidToken) {
+          throw new SubmissionError({ _error: 'invalidToken' })
+        }
+        if (e instanceof errors.PassChangeNotAllowed) {
+          throw new SubmissionError({ _error: 'notAllowed' })
+        }
+        if (e instanceof errors.PassChangeUserNotFound) {
+          throw new SubmissionError({ _error: 'userNotFound' })
         }
         if (e instanceof errors.InvalidPassword) {
           throw new SubmissionError({ password: 'invalid' })
@@ -140,18 +146,20 @@ export default composeComponent(
           <Layout.Error
             {...{ submitFailed, error }}
             errors={{
-              invalid: (
+              invalidToken: (
                 <FM
-                  {...msg.passChangeErrorInvalid}
+                  {...msg.passChangeErrorInvalidToken}
                   values={{
                     link: (
                       <Link to={urls.passReset()}>
-                        <FM {...msg.passChangeErrorInvalidLink} />
+                        <FM {...msg.passChangeErrorInvalidTokenLink} />
                       </Link>
                     ),
                   }}
                 />
               ),
+              notAllowed: <FM {...msg.passChangeErrorNotAllowed} />,
+              userNotFound: <FM {...msg.passChangeErrorUserNotFound} />,
               unexpected: <FM {...msg.passChangeErrorUnexpected} />,
             }}
           />

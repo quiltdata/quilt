@@ -67,19 +67,35 @@ export class InvalidEmail extends AuthError {
   }
 }
 
-export class InvalidResetLink extends AuthError {
-  static displayName = 'InvalidResetLink'
-
-  constructor(props) {
-    super(withDefaultMessage('invalid reset link', props))
-  }
-}
-
 export class InvalidPassword extends AuthError {
   static displayName = 'InvalidPassword'
 
   constructor(props) {
     super(withDefaultMessage('invalid password', props))
+  }
+}
+
+export class PassChangeUserNotFound extends AuthError {
+  static displayName = 'PassChangeUserNotFound'
+
+  constructor(props) {
+    super(withDefaultMessage('user not found', props))
+  }
+}
+
+export class PassChangeNotAllowed extends AuthError {
+  static displayName = 'PassChangeNotAllowed'
+
+  constructor(props) {
+    super(withDefaultMessage('user not allowed to reset password', props))
+  }
+}
+
+export class PassChangeInvalidToken extends AuthError {
+  static displayName = 'PassChangeInvalidToken'
+
+  constructor(props) {
+    super(withDefaultMessage('invalid token', props))
   }
 }
 
