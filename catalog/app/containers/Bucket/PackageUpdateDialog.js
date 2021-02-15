@@ -267,6 +267,7 @@ function DialogForm({
         submitFailed: true,
         submitting: true,
       }}
+      validate={PD.useCryptoApiValidation()}
     >
       {({
         handleSubmit,
