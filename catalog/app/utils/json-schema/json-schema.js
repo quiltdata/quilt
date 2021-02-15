@@ -107,7 +107,7 @@ export function makeSchemaValidator(optSchema) {
     const validate = ajv.compile(schema)
 
     return (obj) => {
-      validate(obj)
+      validate(R.clone(obj))
       // TODO: add custom errors
       return validate.errors || []
     }
@@ -126,8 +126,9 @@ export function makeSchemaDefaultsSetter(optSchema) {
     const validate = ajv.compile(schema)
 
     return (obj) => {
-      validate(obj)
-      return obj
+      const clonedObj = R.clone(obj)
+      validate(clonedObj)
+      return clonedObj
     }
   } catch (e) {
     return R.identity

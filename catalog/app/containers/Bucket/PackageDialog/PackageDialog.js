@@ -16,7 +16,6 @@ import * as AWS from 'utils/AWS'
 import { makeSchemaDefaultsSetter, makeSchemaValidator } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import { readableBytes } from 'utils/string'
-import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
@@ -162,14 +161,13 @@ function mkMetaValidator(schema) {
   return function validateMeta(value) {
     const noError = undefined
 
-    const jsonObjectErr = validators.jsonObject(value.text)
+    const jsonObjectErr = !R.is(Object, value)
     if (jsonObjectErr) {
       return new Error('Metadata must be a valid JSON object')
     }
 
     if (schema) {
-      const obj = value ? parseJSON(value.text) : {}
-      const errors = schemaValidator(obj)
+      const errors = schemaValidator(value || {})
       if (!errors.length) return noError
       return errors
     }
@@ -180,8 +178,7 @@ function mkMetaValidator(schema) {
 
 export const getMetaValue = (value, optSchema) =>
   value
-    ? pipeThru(value.text || '{}')(
-        (t) => JSON.parse(t),
+    ? pipeThru(value || {})(
         makeSchemaDefaultsSetter(optSchema),
         R.toPairs,
         R.filter(([k]) => !!k.trim()),
@@ -345,7 +342,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-export const EMPTY_META_VALUE = { mode: 'kv', text: '{}' }
+export const EMPTY_META_VALUE = {}
 
 // TODO: warn on duplicate keys
 export function MetaInput({
@@ -358,40 +355,39 @@ export function MetaInput({
   const classes = useMetaInputStyles()
   const error = schemaError || ((meta.modified || meta.submitFailed) && meta.error)
   const disabled = meta.submitting || meta.submitSucceeded
+  const [mode, setMode] = React.useState('kv')
 
-  const parsedValue = React.useMemo(() => {
-    const obj = parseJSON(value.text)
-    return R.is(Object, obj) && !Array.isArray(obj) ? obj : {}
-  }, [value.text])
-
-  const changeMode = (mode) => {
-    if (disabled) return
-    onChange({ ...value, mode })
-  }
+  const [textValue, setTextValue] = React.useState(() => stringifyJSON(value))
 
   const changeText = React.useCallback(
     (text) => {
       if (disabled) return
-      onChange({ ...value, text })
+      setTextValue(text)
+      onChange(parseJSON(text))
     },
-    [disabled, onChange, value],
+    [disabled, onChange],
   )
 
   const handleModeChange = (e, m) => {
     if (!m) return
-    changeMode(m)
+    setMode(m)
   }
 
   const handleTextChange = (e) => {
     changeText(e.target.value)
   }
 
-  const onJsonEditor = React.useCallback((json) => changeText(stringifyJSON(json)), [
-    changeText,
-  ])
+  const onJsonEditor = React.useCallback(
+    (json) => {
+      setTextValue(stringifyJSON(json))
+      onChange(json)
+    },
+    [onChange],
+  )
 
   const { push: notify } = Notifications.use()
   const [locked, setLocked] = React.useState(false)
+
   // used to force json editor re-initialization
   const [jsonEditorKey, setJsonEditorKey] = React.useState(1)
 
@@ -410,12 +406,12 @@ export function MetaInput({
       readFile(file)
         .then((contents) => {
           try {
-            JSON.parse(contents)
+            const json = JSON.parse(contents)
+            onJsonEditor(json)
           } catch (e) {
             notify('The file does not contain valid JSON')
+            changeText(contents)
           }
-          changeText(contents)
-          // force json editor to re-initialize
           setJsonEditorKey(R.inc)
         })
         .catch((e) => {
@@ -430,7 +426,7 @@ export function MetaInput({
           setLocked(false)
         })
     },
-    [setLocked, changeText, setJsonEditorKey, notify],
+    [setLocked, changeText, onJsonEditor, notify],
   )
 
   const { getRootProps, isDragActive } = useDropzone({ onDrop })
@@ -444,7 +440,7 @@ export function MetaInput({
         </M.Typography>
 
         <M.Box flexGrow={1} />
-        <Lab.ToggleButtonGroup value={value.mode} exclusive onChange={handleModeChange}>
+        <Lab.ToggleButtonGroup value={mode} exclusive onChange={handleModeChange}>
           <Lab.ToggleButton value="kv" className={classes.btn} disabled={disabled}>
             Key : Value
           </Lab.ToggleButton>
@@ -455,10 +451,10 @@ export function MetaInput({
       </div>
 
       <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
-        {value.mode === 'kv' ? (
+        {mode === 'kv' ? (
           <JsonEditor
             disabled={disabled}
-            value={parsedValue}
+            value={value}
             onChange={onJsonEditor}
             schema={schema}
             key={jsonEditorKey}
@@ -467,7 +463,7 @@ export function MetaInput({
           <M.TextField
             variant="outlined"
             size="small"
-            value={value.text}
+            value={textValue}
             onChange={handleTextChange}
             error={!!error}
             fullWidth
