@@ -205,7 +205,9 @@ function* resetPassword(email) {
  * @param {string} password
  *
  * @throws {AuthError}
- * @throws {InvalidResetLink}
+ * @throws {PassChangeUserNotFound}
+ * @throws {PassChangeNotAllowed}
+ * @throws {PassChangeInvalidToken}
  * @throws {InvalidPassword}
  */
 function* changePassword(link, password) {
@@ -219,11 +221,18 @@ function* changePassword(link, password) {
   } catch (e) {
     /* istanbul ignore else */
     if (e instanceof HTTPError) {
-      if (e.status === 404 && e.json && e.json.error === 'User not found.') {
-        throw new errors.InvalidResetLink({ originalError: e })
+      if (e.status === 404 && e.json && e.json.message === 'User not found') {
+        throw new errors.PassChangeUserNotFound({ originalError: e })
       }
-      if (e.status === 401 && e.json && e.json.error === 'Reset token invalid.') {
-        throw new errors.InvalidResetLink({ originalError: e })
+      if (
+        e.status === 401 &&
+        e.json &&
+        e.json.message === 'User not allowed to reset password'
+      ) {
+        throw new errors.PassChangeNotAllowed({ originalError: e })
+      }
+      if (e.status === 401 && e.json && e.json.message === 'Reset token invalid') {
+        throw new errors.PassChangeInvalidToken({ originalError: e })
       }
       if (e.status === 400 && e.json && e.json.message.match(/Password must be/)) {
         throw new errors.InvalidPassword({ originalError: e })

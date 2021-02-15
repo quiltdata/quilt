@@ -316,13 +316,21 @@ export default defineMessages({
     id: `${scope}.PassChange.submit`,
     defaultMessage: 'Change Password',
   },
-  passChangeErrorInvalid: {
-    id: `${scope}.PassChange.errorInvalid`,
-    defaultMessage: 'This reset link is invalid. Try {link} again.',
+  passChangeErrorInvalidToken: {
+    id: `${scope}.PassChange.errorInvalidToken`,
+    defaultMessage: 'This reset link is invalid (probably expired). Try {link} again.',
   },
-  passChangeErrorInvalidLink: {
-    id: `${scope}.PassChange.errorInvalidLink`,
+  passChangeErrorInvalidTokenLink: {
+    id: `${scope}.PassChange.errorInvalidTokenLink`,
     defaultMessage: 'resetting password',
+  },
+  passChangeErrorNotAllowed: {
+    id: `${scope}.PassChange.errorNotAllowed`,
+    defaultMessage: 'You are not allowed to set password.',
+  },
+  passChangeErrorUserNotFound: {
+    id: `${scope}.PassChange.errorUserNotFound`,
+    defaultMessage: 'User not found for this reset link. Please contact support.',
   },
   passChangeErrorUnexpected: {
     id: `${scope}.PassChange.errorUnexpected`,
