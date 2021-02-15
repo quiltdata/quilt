@@ -576,6 +576,7 @@ function PackageCreateDialog({
         hasValidationErrors: true,
         form: true,
       }}
+      validate={PD.useCryptoApiValidation()}
     >
       {({
         error,

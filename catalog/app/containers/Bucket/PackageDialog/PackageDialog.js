@@ -1,3 +1,4 @@
+import { FORM_ERROR } from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
@@ -548,4 +549,16 @@ export function SchemaFetcher({ manifest, workflow, workflowsConfig, children })
     [defaultProps, data],
   )
   return children(res)
+}
+
+export function useCryptoApiValidation() {
+  return React.useCallback(() => {
+    const isCryptoApiAvailable =
+      window.crypto && window.crypto.subtle && window.crypto.subtle.digest
+    return {
+      [FORM_ERROR]: !isCryptoApiAvailable
+        ? 'Quilt requires the Web Cryptography API. Please try another browser.'
+        : undefined,
+    }
+  }, [])
 }
