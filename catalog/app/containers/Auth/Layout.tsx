@@ -13,7 +13,7 @@ const useContainerStyles = M.makeStyles({
   },
 })
 
-export function Container(props: JSX.IntrinsicElements['div']) {
+export function Container(props: React.HTMLAttributes<HTMLDivElement>) {
   const classes = useContainerStyles()
   return <div className={classes.root} {...props} />
 }
@@ -26,8 +26,8 @@ interface FieldOwnProps {
   // TODO: use redux-form / final-form type definitions
   input: {}
   meta: {
-    error: any
-    submitError: any
+    error?: string
+    submitError?: string
     submitFailed: boolean
   }
   // for backwards compatibility
@@ -106,7 +106,7 @@ const useActionsStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function Actions(props: JSX.IntrinsicElements['div']) {
+export function Actions(props: React.HTMLAttributes<HTMLDivElement>) {
   const classes = useActionsStyles()
   return <div className={classes.root} {...props} />
 }
@@ -126,7 +126,7 @@ const useHintStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function Hint(props: JSX.IntrinsicElements['p']) {
+export function Hint(props: React.HTMLAttributes<HTMLParagraphElement>) {
   const classes = useHintStyles()
   return <p className={classes.root} {...props} />
 }
@@ -159,14 +159,11 @@ export const mkLayout = (heading: LayoutHeading) => ({
   </Layout>
 )
 
-interface SubmitOwnProps {
+interface SubmitProps extends M.ButtonProps {
   busy: boolean
   // TODO: deprecate
   label?: React.ReactNode
-  children?: React.ReactNode
 }
-
-type SubmitProps = SubmitOwnProps & Omit<M.ButtonProps, 'children'>
 
 export function Submit({ busy, label, children, ...rest }: SubmitProps) {
   return (
