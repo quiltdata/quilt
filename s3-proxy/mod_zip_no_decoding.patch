@@ -1,0 +1,52 @@
+diff --git a/ngx_http_zip_module.c b/ngx_http_zip_module.c
+index 97e118c..2521884 100644
+--- a/ngx_http_zip_module.c
++++ b/ngx_http_zip_module.c
+@@ -546,6 +546,7 @@ ngx_http_zip_send_file_piece(ngx_http_request_t *r, ngx_http_zip_ctx_t *ctx,
+         return NGX_ERROR;
+     }
+ 
++    sr->internal = 0;
+     sr->allow_ranges = 1;
+     sr->subrequest_ranges = 1;
+     sr->single_range = 1;
+diff --git a/ngx_http_zip_parsers.c b/ngx_http_zip_parsers.c
+index 420ccf8..cabfab1 100644
+--- a/ngx_http_zip_parsers.c
++++ b/ngx_http_zip_parsers.c
+@@ -24,26 +24,6 @@ ngx_http_zip_file_init(ngx_http_zip_file_t *parsing_file)
+     parsing_file->need_zip64_offset = 0;
+ }
+ 
+-static size_t
+-destructive_url_decode_len(unsigned char* start, unsigned char* end)
+-{
+-    unsigned char *read_pos = start, *write_pos = start;
+-
+-    for (; read_pos < end; read_pos++) {
+-        unsigned char ch = *read_pos;
+-        if (ch == '+') {
+-            ch = ' ';
+-        }
+-        if (ch == '%' && (read_pos + 2 < end)) {
+-            ch = ngx_hextoi(read_pos + 1, 2);
+-            read_pos += 2;
+-        }
+-        *(write_pos++) = ch;
+-    }
+-
+-    return write_pos - start;
+-}
+-
+ 
+ static ngx_int_t
+ ngx_http_zip_clean_range(ngx_http_zip_range_t *range,
+@@ -252,7 +232,7 @@ _match:
+ 	case 2:
+ #line 102 "ngx_http_zip_parsers.rl"
+ 	{
+-            parsing_file->uri.len = destructive_url_decode_len(parsing_file->uri.data, p);
++            parsing_file->uri.len = p - parsing_file->uri.data;
+         }
+ 	break;
+ 	case 3:
