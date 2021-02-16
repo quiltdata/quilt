@@ -35,6 +35,8 @@ interface ItemProps extends M.MenuItemProps {
   href?: string
 }
 
+// FIXME: doesn't compile with Ref<unknown>
+// const Item = React.forwardRef((props: ItemProps, ref: React.Ref<unknown>) => (
 const Item = React.forwardRef((props: ItemProps, ref: React.Ref<any>) => (
   <M.MenuItem
     // @ts-expect-error
@@ -304,7 +306,7 @@ interface NavLinkOwnProps {
 
 type NavLinkProps = NavLinkOwnProps & M.BoxProps
 
-const NavLink = React.forwardRef((props: NavLinkProps, ref: React.Ref<any>) => (
+const NavLink = React.forwardRef((props: NavLinkProps, ref: React.Ref<unknown>) => (
   <M.Box
     component={props.to ? HashLink : 'a'}
     mr={2}

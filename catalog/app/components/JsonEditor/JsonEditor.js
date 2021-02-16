@@ -42,24 +42,14 @@ function JsonEditor({
 }) {
   const classes = useStyles()
 
-  const onMenuAction = React.useCallback(
-    (contextFieldPath, action) => {
-      const newData = makeAction(contextFieldPath, action)
+  const makeStateChange = React.useCallback(
+    (callback) => (...args) => {
+      const newData = callback(...args)
       if (newData) {
         onChange(newData)
       }
     },
-    [makeAction, onChange],
-  )
-
-  const onChangeInternal = React.useCallback(
-    (...args) => {
-      const newData = changeValue(...args)
-      if (newData) {
-        onChange(newData)
-      }
-    },
-    [changeValue, onChange],
+    [onChange],
   )
 
   const columnData = R.last(columns)
@@ -73,11 +63,11 @@ function JsonEditor({
             data: columnData,
             jsonDict,
             key: fieldPath,
-            onAddRow: addRow,
+            onAddRow: makeStateChange(addRow),
             onBreadcrumb: setFieldPath,
             onExpand: setFieldPath,
-            onMenuAction,
-            onChange: onChangeInternal,
+            onMenuAction: makeStateChange(makeAction),
+            onChange: makeStateChange(changeValue),
           }}
         />
       </div>
@@ -95,7 +85,7 @@ export default function JsonEditorStateWrapper({
   const schema = optSchema || EMPTY_SCHEMA
 
   return (
-    <State obj={value} schema={schema}>
+    <State jsonObject={value} schema={schema}>
       {(props) => (
         <JsonEditor
           {...{

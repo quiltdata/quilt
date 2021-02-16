@@ -9,15 +9,18 @@ export const schema = {
         properties: {
           id: {
             type: 'number',
+            default: 123,
           },
           name: {
             type: 'string',
+            default: 'Abcdef',
           },
         },
       },
     },
     a: {
       type: 'number',
+      default: 3.14,
     },
     b: {
       type: 'string',

@@ -14,14 +14,19 @@ RUN set -x \
     && addgroup --system nginx \
     && adduser --system --disabled-login --ingroup nginx --no-create-home --home /nonexistent --shell /bin/false nginx
 
+COPY mod_zip_no_decoding.patch /root/mod_zip_no_decoding.patch
+
 RUN set -x \
     && apt-get update \
-    && apt-get install -y gettext \
+    && apt-get install -y gettext patch \
     && apt-get install -y curl gcc make libssl-dev libpcre3-dev zlib1g-dev \
     && curl -L http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz | tar zx \
     && cd nginx-${NGINX_VERSION} \
     && mkdir mod_zip \
     && curl -L https://github.com/evanmiller/mod_zip/archive/1.2.0.tar.gz | tar zx --strip-components 1 --directory mod_zip \
+    && cd mod_zip \
+    && patch -p1 < /root/mod_zip_no_decoding.patch \
+    && cd .. \
     && ./configure \
         --prefix=/etc/nginx \
         --sbin-path=/usr/sbin/nginx \

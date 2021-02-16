@@ -82,7 +82,7 @@ export const matches = (re) => (str) => re.test(str)
  * @returns {TestFunction}
  */
 export const matchesField = (field) => (v, vs) => {
-  const other = vs.get(field)
+  const other = typeof vs.get === 'function' ? vs.get(field) : vs[field]
   return !other || v === other
 }
 
@@ -137,8 +137,8 @@ export const jsonObject = (v) => {
   }
 }
 
-export const composeAsync = (...validators) => (value) =>
+export const composeAsync = (...validators) => (...args) =>
   validators.reduce(
-    (error, next) => Promise.resolve(error).then((e) => e || next(value)),
+    (error, next) => Promise.resolve(error).then((e) => e || next(...args)),
     undefined,
   )

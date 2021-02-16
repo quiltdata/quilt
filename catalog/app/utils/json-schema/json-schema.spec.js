@@ -1,4 +1,4 @@
-import { makeSchemaValidator } from './json-schema'
+import { makeSchemaDefaultsSetter, makeSchemaValidator } from './json-schema'
 
 import * as booleansNulls from './mocks/booleans-nulls'
 import * as compound from './mocks/compound'
@@ -16,7 +16,7 @@ describe('utils/json-schema', () => {
       expect(errors).toHaveLength(1)
       expect(errors[0]).toMatchObject({
         keyword: 'required',
-        params: { missingProperty: 'a' },
+        params: { missingProperty: 'b' },
       })
     })
 
@@ -258,6 +258,33 @@ describe('utils/json-schema', () => {
       it("shouldn't return error, when value matches second type from array", () => {
         const validNumber = { strOrNum: 123, strOrNumList: [1, 2, 3] }
         expect(validate(validNumber)).toHaveLength(0)
+      })
+    })
+  })
+
+  describe('makeSchemaDefaultsSetter', () => {
+    const setDefaults = makeSchemaDefaultsSetter(regular.schema)
+
+    it('should set default value from Schema, when value is empty', () => {
+      expect(setDefaults({})).toMatchObject({
+        a: 3.14,
+      })
+    })
+
+    it('should ignore default value from Schema, when value set', () => {
+      expect(setDefaults({ a: 123 })).toMatchObject({
+        a: 123,
+      })
+    })
+
+    it('should set default value from Schema, when nested value set', () => {
+      expect(setDefaults({ optList: [{}] })).toMatchObject({
+        optList: [
+          {
+            id: 123,
+            name: 'Abcdef',
+          },
+        ],
       })
     })
   })
