@@ -85,11 +85,6 @@ function DialogTitle({ bucket }) {
 const defaultNameWarning = ' ' // Reserve space for warning
 
 const useStyles = M.makeStyles((t) => ({
-  dialogContent: {
-    height: '100vw',
-    minHeight: '420px',
-    paddingTop: 0,
-  },
   form: {
     display: 'flex',
     flexDirection: 'column',

@@ -357,11 +357,6 @@ function DialogSuccess({ bucket, hash, name, onClose }) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  dialogContent: {
-    height: '100vw',
-    minHeight: '420px',
-    paddingTop: 0,
-  },
   files: {
     height: '100%',
   },
