@@ -18,7 +18,6 @@ interface ErrorProps {
   object?: {}
 }
 
-// TODO add sign in
 export default function Error({
   detail = 'Check network connection and login',
   headline = 'Something went wrong',
