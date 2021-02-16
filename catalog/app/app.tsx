@@ -109,9 +109,10 @@ const sentryUserSelector = (state: $TSFixMe) => {
 const render = (messages: MessagesByLocale) => {
   ReactDOM.render(
     nest(
-      [M.MuiThemeProvider, { theme: style.appTheme }],
+      [M.MuiThemeProvider as React.ComponentType, { theme: style.appTheme }],
       WithGlobalStyles,
       FinalBoundary,
+      // @ts-expect-error
       Sentry.Provider,
       [Store.Provider, { history }],
       [LanguageProvider, { messages }],
