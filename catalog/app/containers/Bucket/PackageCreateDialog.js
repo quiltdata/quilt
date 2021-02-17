@@ -444,7 +444,7 @@ function PackageCreateDialog({
       height: R.clamp(
         420 /* minimal height */,
         window.innerHeight - 300 /* free space for headers */,
-        384 /* space to fit other inputs */ + metaHeight,
+        400 /* space to fit other inputs */ + metaHeight,
       ),
       paddingTop: 0,
     }),
@@ -677,7 +677,7 @@ function PackageCreateDialog({
                   />
 
                   {schemaLoading ? (
-                    <PD.MetaInputSkeleton className={classes.meta} />
+                    <PD.MetaInputSkeleton className={classes.meta} ref={editorRef} />
                   ) : (
                     <RF.Field
                       className={classes.meta}

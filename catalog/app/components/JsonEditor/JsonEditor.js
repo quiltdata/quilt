@@ -76,24 +76,23 @@ const JsonEditor = React.forwardRef((props, ref) => {
   )
 })
 
-export default React.forwardRef(
-  ({ className, disabled, onChange, schema: optSchema, value }, ref) => {
-    const schema = optSchema || EMPTY_SCHEMA
+export default React.forwardRef((props, ref) => {
+  const { className, disabled, onChange, schema: optSchema, value } = props
+  const schema = optSchema || EMPTY_SCHEMA
 
-    return (
-      <State jsonObject={value} schema={schema}>
-        {(props) => (
-          <JsonEditor
-            {...{
-              className,
-              disabled,
-              onChange,
-              ref,
-            }}
-            {...props}
-          />
-        )}
-      </State>
-    )
-  },
-)
+  return (
+    <State jsonObject={value} schema={schema}>
+      {(stateProps) => (
+        <JsonEditor
+          {...{
+            className,
+            disabled,
+            onChange,
+            ref,
+          }}
+          {...stateProps}
+        />
+      )}
+    </State>
+  )
+})

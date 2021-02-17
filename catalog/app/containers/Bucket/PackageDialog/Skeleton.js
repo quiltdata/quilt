@@ -18,14 +18,14 @@ export function FilesInputSkeleton({ animate, className }) {
   )
 }
 
-export function MetaInputSkeleton({ animate, className }) {
-  return (
-    <div className={className}>
-      <M.Box display="flex" mb={2}>
-        <Skeleton {...{ height: 24, width: 64, animate }} />
-        <M.Box flexGrow={1} />
-        <Skeleton {...{ height: 24, width: 64, animate }} />
-      </M.Box>
+export const MetaInputSkeleton = React.forwardRef(({ animate, className }, ref) => (
+  <div className={className}>
+    <M.Box display="flex" mb={2}>
+      <Skeleton {...{ height: 24, width: 64, animate }} />
+      <M.Box flexGrow={1} />
+      <Skeleton {...{ height: 24, width: 64, animate }} />
+    </M.Box>
+    <div ref={ref}>
       <M.Box display="flex">
         <Skeleton {...{ height: 32, width: 200, animate }} />
         <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
@@ -35,8 +35,8 @@ export function MetaInputSkeleton({ animate, className }) {
         <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
       </M.Box>
     </div>
-  )
-}
+  </div>
+))
 
 export function WorkflowsInputSkeleton({ animate }) {
   return <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
