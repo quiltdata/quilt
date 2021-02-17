@@ -397,7 +397,7 @@ const NameExistsWarning = ({ name }) => {
       <M.Icon className={classes.root} fontSize="small">
         error_outline
       </M.Icon>
-      <Code>{name}</Code> already exists, you are about to create a new revision
+      <Code>{name}</Code> already exists. Click Push to create a new revision.
     </>
   )
 }
