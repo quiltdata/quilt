@@ -53,8 +53,6 @@ function DialogTitle({ bucket, path }) {
   )
 }
 
-const defaultNameWarning = ' ' // Reserve space for warning
-
 const useStyles = M.makeStyles((t) => ({
   files: {
     height: '100%',
@@ -143,13 +141,21 @@ function DialogForm({
       const { name } = values
       const fullName = `${successor.slug}/${name}`
 
-      let warning = defaultNameWarning
+      let warning = ''
 
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {
-        warning = `Package "${fullName}" exists. Submitting will revise it`
+        warning = (
+          <>
+            <code>{fullName}</code> already exists. Click Push to create a new revision.
+          </>
+        )
       } else if (name) {
-        warning = `Package "${fullName}" will be created`
+        warning = (
+          <>
+            <code>{fullName}</code> is a new package
+          </>
+        )
       }
 
       if (warning !== nameWarning) {

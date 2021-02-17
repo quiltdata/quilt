@@ -382,8 +382,6 @@ const getTotalProgress = R.pipe(
   }),
 )
 
-const defaultNameWarning = ' ' // Reserve space for warning
-
 const useNameExistsWarningStyles = M.makeStyles(() => ({
   root: {
     marginRight: '4px',
@@ -422,7 +420,7 @@ function PackageCreateDialog({
   const [uploads, setUploads] = React.useState({})
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
-  const [nameWarning, setNameWarning] = React.useState(defaultNameWarning)
+  const [nameWarning, setNameWarning] = React.useState('')
   const classes = useStyles()
 
   const totalProgress = getTotalProgress(uploads)
@@ -526,7 +524,7 @@ function PackageCreateDialog({
 
   const handleNameChange = React.useCallback(
     async (name) => {
-      let warning = defaultNameWarning
+      let warning = ''
 
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {

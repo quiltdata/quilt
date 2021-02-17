@@ -61,8 +61,6 @@ const getTotalProgress = R.pipe(
   }),
 )
 
-const defaultNameWarning = ' ' // Reserve space for warning
-
 function DialogForm({
   bucket,
   close,
@@ -237,7 +235,7 @@ function DialogForm({
 
       const { name } = values
 
-      let warning = defaultNameWarning
+      let warning = ''
 
       if (name !== initialName) {
         const nameExists = await nameExistence.validate(name)
