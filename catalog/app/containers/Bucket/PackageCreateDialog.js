@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
 import * as authSelectors from 'containers/Auth/selectors'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
@@ -396,7 +397,7 @@ const NameExistsWarning = ({ name }) => {
       <M.Icon className={classes.root} fontSize="small">
         error_outline
       </M.Icon>
-      Package &quot;{name}&quot; already exists, you are about to create a new revision
+      <Code>{name}</Code> already exists, you are about to create a new revision
     </>
   )
 }

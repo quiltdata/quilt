@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
 import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -147,13 +148,13 @@ function DialogForm({
       if (nameExists) {
         warning = (
           <>
-            <code>{fullName}</code> already exists. Click Push to create a new revision.
+            <Code>{fullName}</Code> already exists. Click Push to create a new revision.
           </>
         )
       } else if (name) {
         warning = (
           <>
-            <code>{fullName}</code> is a new package
+            <Code>{fullName}</Code> is a new package
           </>
         )
       }
