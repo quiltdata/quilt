@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import StyledLink from 'utils/StyledLink'
+import Code from 'components/Code'
 
 const ES_V = '6.7'
 const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/query-dsl-query-string-query.html#query-string-syntax`
@@ -148,23 +149,6 @@ const syntaxHelpRows = [
     ],
   },
 ]
-
-const useCodeStyles = M.makeStyles((t) => ({
-  root: {
-    background: t.palette.grey[300],
-    borderRadius: '2px',
-    color: t.palette.text.primary,
-    fontFamily: t.typography.monospace.fontFamily,
-    padding: '0 3px',
-    whiteSpace: 'pre-wrap',
-  },
-}))
-
-function Code({ children }) {
-  const classes = useCodeStyles()
-
-  return <code className={classes.root}>{children}</code>
-}
 
 function Item({ item }) {
   const t = M.useTheme()
