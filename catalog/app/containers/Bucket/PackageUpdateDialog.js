@@ -53,12 +53,6 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 // <M.DialogContent /> doesn't have className prop
-const dialogContentStyles = {
-  height: '100vw',
-  minHeight: '420px',
-  paddingTop: 0,
-}
-
 const getTotalProgress = R.pipe(
   R.values,
   R.reduce(
@@ -97,7 +91,20 @@ function DialogForm({
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
   const [nameWarning, setNameWarning] = React.useState('')
+  const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
+
+  const dialogContentStyles = React.useMemo(
+    () => ({
+      height: R.clamp(
+        420 /* minimal height */,
+        window.innerHeight - 200 /* free space for headers */,
+        400 /* space to fit other inputs */ + metaHeight,
+      ),
+      paddingTop: 0,
+    }),
+    [metaHeight],
+  )
 
   const initialMeta = React.useMemo(
     () => ({
@@ -244,8 +251,16 @@ function DialogForm({
     }
   }
 
+  const editorRef = React.useRef()
+  const { current: editorElement } = editorRef
+
   const onFormChange = React.useCallback(
     async ({ modified, values }) => {
+      if (document.body.contains(editorElement)) {
+        setMetaHeight(editorElement.clientHeight)
+      }
+
+      // TODO: move code into handleNameChange function
       if (!modified.name) return
 
       const { name } = values
@@ -265,8 +280,14 @@ function DialogForm({
         setNameWarning(warning)
       }
     },
-    [nameWarning, initialName, nameExistence],
+    [editorElement, nameWarning, initialName, nameExistence, setMetaHeight],
   )
+
+  React.useEffect(() => {
+    if (document.body.contains(editorElement)) {
+      setMetaHeight(editorElement.clientHeight)
+    }
+  }, [editorElement, setMetaHeight])
 
   return (
     <RF.Form
@@ -341,7 +362,7 @@ function DialogForm({
                   />
 
                   {schemaLoading ? (
-                    <PD.MetaInputSkeleton className={classes.meta} />
+                    <PD.MetaInputSkeleton className={classes.meta} ref={editorRef} />
                   ) : (
                     <RF.Field
                       className={classes.meta}
@@ -354,6 +375,7 @@ function DialogForm({
                       validateFields={['meta']}
                       isEqual={R.equals}
                       initialValue={initialMeta}
+                      ref={editorRef}
                     />
                   )}
 
@@ -428,6 +450,14 @@ function DialogForm({
 }
 
 function DialogPlaceholder({ close }) {
+  const dialogContentStyles = React.useMemo(
+    () => ({
+      height: 420,
+      paddingTop: 0,
+    }),
+    [],
+  )
+
   return (
     <>
       <M.DialogTitle>Push package revision</M.DialogTitle>
@@ -456,6 +486,13 @@ function DialogError({ error, close }) {
 }
 
 function DialogSuccess({ bucket, name, hash, close }) {
+  const dialogContentStyles = React.useMemo(
+    () => ({
+      height: 420,
+      paddingTop: 0,
+    }),
+    [],
+  )
   const { urls } = NamedRoutes.use()
   return (
     <>
