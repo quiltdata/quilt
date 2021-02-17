@@ -55,7 +55,7 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
           ) : (
             <M.Box px={2} py={1}>
               <M.Typography gutterBottom>
-                Add or update a config.yml to populate this menu.
+                Add or update a config.yml file to populate this menu.
               </M.Typography>
               <M.Typography>
                 <StyledLink
