@@ -251,20 +251,8 @@ function DialogForm({
     }
   }
 
-  const editorRef = React.useRef()
-  const { current: editorElement } = editorRef
-
-  const onFormChange = React.useCallback(
-    async ({ modified, values }) => {
-      if (document.body.contains(editorElement)) {
-        setMetaHeight(editorElement.clientHeight)
-      }
-
-      // TODO: move code into handleNameChange function
-      if (!modified.name) return
-
-      const { name } = values
-
+  const handleNameChange = React.useCallback(
+    async (name) => {
       let warning = defaultNameWarning
 
       if (name !== initialName) {
@@ -280,7 +268,20 @@ function DialogForm({
         setNameWarning(warning)
       }
     },
-    [editorElement, nameWarning, initialName, nameExistence, setMetaHeight],
+    [nameWarning, nameExistence, initialName],
+  )
+
+  const [editorElement, setEditorElement] = React.useState()
+
+  const onFormChange = React.useCallback(
+    async ({ modified, values }) => {
+      if (document.body.contains(editorElement)) {
+        setMetaHeight(editorElement.clientHeight)
+      }
+
+      if (modified.name) handleNameChange(values.name)
+    },
+    [editorElement, handleNameChange, setMetaHeight],
   )
 
   React.useEffect(() => {
@@ -362,7 +363,10 @@ function DialogForm({
                   />
 
                   {schemaLoading ? (
-                    <PD.MetaInputSkeleton className={classes.meta} ref={editorRef} />
+                    <PD.MetaInputSkeleton
+                      className={classes.meta}
+                      ref={setEditorElement}
+                    />
                   ) : (
                     <RF.Field
                       className={classes.meta}
@@ -375,7 +379,7 @@ function DialogForm({
                       validateFields={['meta']}
                       isEqual={R.equals}
                       initialValue={initialMeta}
-                      ref={editorRef}
+                      ref={setEditorElement}
                     />
                   )}
 

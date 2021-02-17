@@ -443,7 +443,7 @@ function PackageCreateDialog({
     () => ({
       height: R.clamp(
         420 /* minimal height */,
-        window.innerHeight - 300 /* free space for headers */,
+        window.innerHeight - 200 /* free space for headers */,
         400 /* space to fit other inputs */ + metaHeight,
       ),
       paddingTop: 0,
@@ -575,8 +575,7 @@ function PackageCreateDialog({
     }
   }
 
-  const editorRef = React.useRef()
-  const { current: editorElement } = editorRef
+  const [editorElement, setEditorElement] = React.useState()
 
   const onFormChange = React.useCallback(
     ({ dirtyFields, values }) => {
@@ -677,7 +676,10 @@ function PackageCreateDialog({
                   />
 
                   {schemaLoading ? (
-                    <PD.MetaInputSkeleton className={classes.meta} ref={editorRef} />
+                    <PD.MetaInputSkeleton
+                      className={classes.meta}
+                      ref={setEditorElement}
+                    />
                   ) : (
                     <RF.Field
                       className={classes.meta}
@@ -690,7 +692,7 @@ function PackageCreateDialog({
                       validateFields={['meta']}
                       isEqual={R.equals}
                       initialValue={PD.EMPTY_META_VALUE}
-                      ref={editorRef}
+                      ref={setEditorElement}
                     />
                   )}
 

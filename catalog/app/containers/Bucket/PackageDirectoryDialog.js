@@ -157,16 +157,8 @@ function DialogForm({
     }
   }
 
-  const [editorElement, setEditorElement] = React.useState()
-
-  const onFormChange = React.useCallback(
-    async ({ values }) => {
-      if (document.body.contains(editorElement)) {
-        setMetaHeight(editorElement.clientHeight)
-      }
-
-      // TODO: move code into handleNameChange function
-      const { name } = values
+  const handleNameChange = React.useCallback(
+    async (name) => {
       const fullName = `${successor.slug}/${name}`
 
       let warning = defaultNameWarning
@@ -182,7 +174,20 @@ function DialogForm({
         setNameWarning(warning)
       }
     },
-    [editorElement, successor, nameExistence, nameWarning, setMetaHeight],
+    [nameWarning, nameExistence, successor],
+  )
+
+  const [editorElement, setEditorElement] = React.useState()
+
+  const onFormChange = React.useCallback(
+    async ({ values }) => {
+      if (document.body.contains(editorElement)) {
+        setMetaHeight(editorElement.clientHeight)
+      }
+
+      handleNameChange(values.name)
+    },
+    [editorElement, handleNameChange, setMetaHeight],
   )
 
   React.useEffect(() => {
