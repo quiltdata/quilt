@@ -28,18 +28,19 @@ const useStyles = M.makeStyles(() => ({
   },
 }))
 
-function JsonEditor({
-  addRow,
-  changeValue,
-  className,
-  disabled,
-  columns,
-  jsonDict,
-  fieldPath,
-  makeAction,
-  onChange,
-  setFieldPath,
-}) {
+const JsonEditor = React.forwardRef((props, ref) => {
+  const {
+    addRow,
+    changeValue,
+    className,
+    disabled,
+    columns,
+    jsonDict,
+    fieldPath,
+    makeAction,
+    onChange,
+    setFieldPath,
+  } = props
   const classes = useStyles()
 
   const makeStateChange = React.useCallback(
@@ -56,7 +57,7 @@ function JsonEditor({
 
   return (
     <div className={cx({ [classes.disabled]: disabled }, className)}>
-      <div className={classes.inner}>
+      <div className={classes.inner} ref={ref}>
         <Column
           {...{
             columnPath: fieldPath,
@@ -73,29 +74,26 @@ function JsonEditor({
       </div>
     </div>
   )
-}
+})
 
-export default function JsonEditorStateWrapper({
-  className,
-  disabled,
-  onChange,
-  schema: optSchema,
-  value,
-}) {
-  const schema = optSchema || EMPTY_SCHEMA
+export default React.forwardRef(
+  ({ className, disabled, onChange, schema: optSchema, value }, ref) => {
+    const schema = optSchema || EMPTY_SCHEMA
 
-  return (
-    <State jsonObject={value} schema={schema}>
-      {(props) => (
-        <JsonEditor
-          {...{
-            className,
-            disabled,
-            onChange,
-          }}
-          {...props}
-        />
-      )}
-    </State>
-  )
-}
+    return (
+      <State jsonObject={value} schema={schema}>
+        {(props) => (
+          <JsonEditor
+            {...{
+              className,
+              disabled,
+              onChange,
+              ref,
+            }}
+            {...props}
+          />
+        )}
+      </State>
+    )
+  },
+)

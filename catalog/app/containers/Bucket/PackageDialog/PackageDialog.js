@@ -351,13 +351,14 @@ const useMetaInputStyles = M.makeStyles((t) => ({
 export const EMPTY_META_VALUE = {}
 
 // TODO: warn on duplicate keys
-export function MetaInput({
-  className,
-  schemaError,
-  input: { value, onChange },
-  meta,
-  schema,
-}) {
+export const MetaInput = React.forwardRef((props, ref) => {
+  const {
+    className,
+    schemaError,
+    input: { value, onChange },
+    meta,
+    schema,
+  } = props
   const classes = useMetaInputStyles()
   const error = schemaError || ((meta.modified || meta.submitFailed) && meta.error)
   const disabled = meta.submitting || meta.submitSucceeded
@@ -465,6 +466,7 @@ export function MetaInput({
             onChange={onJsonEditor}
             schema={schema}
             key={jsonEditorKey}
+            ref={ref}
           />
         ) : (
           <M.TextField
@@ -509,7 +511,7 @@ export function MetaInput({
       </div>
     </div>
   )
-}
+})
 
 export function SchemaFetcher({ manifest, workflow, workflowsConfig, children }) {
   const s3 = AWS.S3.use()

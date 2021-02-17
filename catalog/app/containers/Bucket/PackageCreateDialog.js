@@ -329,6 +329,14 @@ function FilesInput({
 function DialogSuccess({ bucket, hash, name, onClose }) {
   const { urls } = NamedRoutes.use()
 
+  const dialogContentStyles = React.useMemo(
+    () => ({
+      height: 420,
+      paddingTop: 0,
+    }),
+    [],
+  )
+
   return (
     <>
       <M.DialogTitle>Package created</M.DialogTitle>
@@ -372,12 +380,6 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 // <M.DialogContent /> doesn't have className prop
-const dialogContentStyles = {
-  height: '100vw',
-  minHeight: '420px',
-  paddingTop: 0,
-}
-
 const getTotalProgress = R.pipe(
   R.values,
   R.reduce(
@@ -434,7 +436,20 @@ function PackageCreateDialog({
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
   const [nameWarning, setNameWarning] = React.useState(defaultNameWarning)
+  const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
+
+  const dialogContentStyles = React.useMemo(
+    () => ({
+      height: R.clamp(
+        420 /* minimal height */,
+        window.innerHeight - 300 /* free space for headers */,
+        384 /* space to fit other inputs */ + metaHeight,
+      ),
+      paddingTop: 0,
+    }),
+    [metaHeight],
+  )
 
   const totalProgress = getTotalProgress(uploads)
 
@@ -560,12 +575,24 @@ function PackageCreateDialog({
     }
   }
 
+  const editorRef = React.useRef()
+  const { current: editorElement } = editorRef
+
   const onFormChange = React.useCallback(
     ({ dirtyFields, values }) => {
+      if (document.body.contains(editorElement)) {
+        setMetaHeight(editorElement.clientHeight)
+      }
       if (dirtyFields.name) handleNameChange(values.name)
     },
-    [handleNameChange],
+    [editorElement, handleNameChange, setMetaHeight],
   )
+
+  React.useEffect(() => {
+    if (document.body.contains(editorElement)) {
+      setMetaHeight(editorElement.clientHeight)
+    }
+  }, [editorElement, setMetaHeight])
 
   const username = redux.useSelector(authSelectors.username)
   const usernamePrefix = React.useMemo(() => {
@@ -601,7 +628,7 @@ function PackageCreateDialog({
         <>
           <M.DialogTitle>Create package</M.DialogTitle>
           <M.DialogContent style={dialogContentStyles}>
-            <form onSubmit={handleSubmit}>
+            <form className={classes.form} onSubmit={handleSubmit}>
               <RF.FormSpy
                 subscription={{ dirtyFields: true, submitting: true, values: true }}
                 onChange={onFormChange}
@@ -663,6 +690,7 @@ function PackageCreateDialog({
                       validateFields={['meta']}
                       isEqual={R.equals}
                       initialValue={PD.EMPTY_META_VALUE}
+                      ref={editorRef}
                     />
                   )}
 
