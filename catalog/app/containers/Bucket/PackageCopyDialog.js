@@ -100,12 +100,6 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 // <M.DialogContent /> doesn't have className prop
-const dialogContentStyles = {
-  height: '100vw',
-  minHeight: '420px',
-  paddingTop: 0,
-}
-
 function DialogForm({
   bucket,
   close,
@@ -126,7 +120,20 @@ function DialogForm({
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState('')
+  const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
+
+  const dialogContentStyles = React.useMemo(
+    () => ({
+      height: R.clamp(
+        420 /* minimal height */,
+        window.innerHeight - 200 /* free space for headers */,
+        400 /* space to fit other inputs */ + metaHeight,
+      ),
+      paddingTop: 0,
+    }),
+    [metaHeight],
+  )
 
   const initialMeta = React.useMemo(
     () => ({
@@ -169,8 +176,16 @@ function DialogForm({
     }
   }
 
+  const editorRef = React.useRef()
+  const { current: editorElement } = editorRef
+
   const onFormChange = React.useCallback(
     async ({ values }) => {
+      if (document.body.contains(editorElement)) {
+        setMetaHeight(editorElement.clientHeight)
+      }
+
+      // TODO: move code into handleNameChange function
       const { name } = values
       const fullName = `${successor.slug}/${name}`
 
@@ -187,8 +202,14 @@ function DialogForm({
         setNameWarning(warning)
       }
     },
-    [successor, nameExistence, nameWarning],
+    [editorElement, successor, nameExistence, nameWarning, setMetaHeight],
   )
+
+  React.useEffect(() => {
+    if (document.body.contains(editorElement)) {
+      setMetaHeight(editorElement.clientHeight)
+    }
+  }, [editorElement, setMetaHeight])
 
   return (
     <RF.Form
@@ -254,7 +275,7 @@ function DialogForm({
               />
 
               {schemaLoading ? (
-                <PD.MetaInputSkeleton className={classes.meta} />
+                <PD.MetaInputSkeleton className={classes.meta} ref={editorRef} />
               ) : (
                 <RF.Field
                   className={classes.meta}
@@ -267,6 +288,7 @@ function DialogForm({
                   validateFields={['meta']}
                   isEqual={R.equals}
                   initialValue={initialMeta}
+                  ref={editorRef}
                 />
               )}
 
