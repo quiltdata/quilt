@@ -332,7 +332,6 @@ function DialogSuccess({ bucket, hash, name, onClose }) {
 
   const dialogContentStyles = React.useMemo(
     () => ({
-      height: 430,
       paddingTop: 0,
     }),
     [],
@@ -800,18 +799,10 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
             <PD.SchemaFetcher workflow={workflow} workflowsConfig={workflowsConfig}>
               {AsyncResult.case({
                 Ok: (schemaProps) => (
-                  <PackageCreateDialog
-                    {...schemaProps}
-                    {...{
-                      bucket,
-                      close,
-                      setSubmitting,
-                      setSuccess,
-                      setWorkflow,
-                      workflowsConfig,
-
-                      refresh,
-                    }}
+                  <PD.DialogLoading
+                    skeletonElement={<PD.FormSkeleton />}
+                    title="Create package"
+                    onCancel={close}
                   />
                 ),
                 _: R.identity,

@@ -501,7 +501,6 @@ function DialogError({ error, close }) {
 function DialogSuccess({ bucket, name, hash, close }) {
   const dialogContentStyles = React.useMemo(
     () => ({
-      height: 420,
       paddingTop: 0,
     }),
     [],
