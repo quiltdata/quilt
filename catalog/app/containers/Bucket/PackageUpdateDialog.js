@@ -55,7 +55,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-// <M.DialogContent /> doesn't have className prop
 const getTotalProgress = R.pipe(
   R.values,
   R.reduce(

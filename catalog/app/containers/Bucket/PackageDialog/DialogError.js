@@ -10,10 +10,6 @@ import { docs } from 'constants/urls'
 import * as ERRORS from '../errors'
 
 const useStyles = M.makeStyles((t) => ({
-  content: {
-    paddingTop: 0,
-    position: 'relative',
-  },
   overlay: {
     background: fade(t.palette.common.white, 0.4),
     bottom: 0,
@@ -26,6 +22,11 @@ const useStyles = M.makeStyles((t) => ({
     top: 0,
   },
 }))
+
+const dialogContentStyles = {
+  paddingTop: 0,
+  position: 'relative',
+}
 
 const errorDisplay = R.cond([
   [
@@ -86,7 +87,7 @@ export default function DialogError({ error, skeletonElement, title, onCancel })
     <>
       <M.DialogTitle>{title}</M.DialogTitle>
 
-      <M.DialogContent className={classes.content}>
+      <M.DialogContent style={dialogContentStyles}>
         {skeletonElement}
         <div className={classes.overlay}>{errorDisplay(error)}</div>
       </M.DialogContent>

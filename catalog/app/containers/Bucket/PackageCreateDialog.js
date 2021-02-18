@@ -379,7 +379,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-// <M.DialogContent /> doesn't have className prop
 const getTotalProgress = R.pipe(
   R.values,
   R.reduce(
@@ -799,10 +798,18 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
             <PD.SchemaFetcher workflow={workflow} workflowsConfig={workflowsConfig}>
               {AsyncResult.case({
                 Ok: (schemaProps) => (
-                  <PD.DialogLoading
-                    skeletonElement={<PD.FormSkeleton />}
-                    title="Create package"
-                    onCancel={close}
+                  <PackageCreateDialog
+                    {...schemaProps}
+                    {...{
+                      bucket,
+                      close,
+                      setSubmitting,
+                      setSuccess,
+                      setWorkflow,
+                      workflowsConfig,
+
+                      refresh,
+                    }}
                   />
                 ),
                 _: R.identity,

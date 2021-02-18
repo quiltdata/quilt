@@ -6,6 +6,10 @@ import * as M from '@material-ui/core'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 
+const dialogContentStyles = {
+  paddingTop: 0,
+}
+
 // TODO: use the same API as for DialogError and DialogLoading
 export default function DialogSuccess({ bucket, hash, name, onClose }) {
   const { urls } = NamedRoutes.use()
@@ -16,7 +20,7 @@ export default function DialogSuccess({ bucket, hash, name, onClose }) {
   return (
     <div>
       <M.DialogTitle>Push complete</M.DialogTitle>
-      <M.DialogContent style={{ paddingTop: 0 }}>
+      <M.DialogContent style={dialogContentStyles}>
         <M.Typography>
           Pushed to <StyledLink to={bucketUrl}>s3://{bucket}</StyledLink> as{' '}
           <StyledLink to={packageUrl}>
