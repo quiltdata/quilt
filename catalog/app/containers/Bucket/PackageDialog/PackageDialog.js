@@ -117,9 +117,14 @@ export function useNameValidator() {
   const validate = React.useCallback(
     async (name) => {
       setProcessing(true)
-      const error = await validator(name)
-      setProcessing(false)
-      return error
+      try {
+        const error = await validator(name)
+        setProcessing(false)
+        return error
+      } catch (e) {
+        setProcessing(false)
+        return e.message
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [counter, validator],
