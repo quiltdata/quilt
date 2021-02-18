@@ -20,9 +20,7 @@ function Browse({ bucket }) {
   )
 }
 
-function Results({ bucket, query, page, mode, scrollRef, makePageUrl, retry, retryUrl }) {
-  const req = AWS.APIGateway.use()
-  const data = Data.use(search, { req, buckets: [bucket], mode, query, retry })
+function Results({ data, bucket, query, page, scrollRef, makePageUrl, retryUrl }) {
   return data.case({
     _: () => (
       // TODO: display scope instead of bucket when implemented
@@ -104,6 +102,18 @@ function QueryInput({ query, bucket, onChange }) {
       startAdornment={<M.Icon className={classes.searchIcon}>search</M.Icon>}
     />
   )
+}
+
+function SearchStats({ data }) {
+  return data.case({
+    _: () => '',
+    Err: () => '',
+    Ok: ({ total }) => (
+      <M.Typography variant="body1" component="span">
+        {total} results
+      </M.Typography>
+    ),
+  })
 }
 
 const displayMode = (m) => {
@@ -243,6 +253,11 @@ const useSearchStyles = M.makeStyles((t) => ({
       },
     },
   },
+  stats: {
+    lineHeight: '40px',
+    padding: t.spacing(0, 3),
+    textAlign: 'right',
+  },
 }))
 
 function Search({ bucket, query, page, mode, retry }) {
@@ -279,6 +294,13 @@ function Search({ bucket, query, page, mode, retry }) {
 
   const retryUrl = urls.bucketSearch(bucket, { q: query, mode, retry: (retry || 0) + 1 })
 
+  const req = AWS.APIGateway.use()
+  const data = Data.use(
+    search,
+    { req, buckets: [bucket], mode, query, retry },
+    { noAutoFetch: !query },
+  )
+
   return (
     <>
       <M.Box display="flex" position="relative" mt={{ xs: 0, sm: 3 }} ref={scrollRef}>
@@ -290,15 +312,19 @@ function Search({ bucket, query, page, mode, retry }) {
         >
           <QueryInput query={query || ''} bucket={bucket} onChange={handleQueryChange} />
         </M.Box>
-        <M.Box flexGrow={1} display={{ xs: 'none', sm: 'block' }} />
+        <M.Box
+          flexGrow={1}
+          display={{ xs: 'none', sm: 'block' }}
+          className={classes.stats}
+        >
+          {query && <SearchStats data={data} />}
+        </M.Box>
         <M.Box component={M.Paper} className={classes.paper}>
           <ModeSelector mode={mode} onChange={handleModeChange} />
         </M.Box>
       </M.Box>
       {query ? (
-        <Results
-          {...{ bucket, query, page, mode, scrollRef, makePageUrl, retry, retryUrl }}
-        />
+        <Results {...{ data, bucket, query, page, scrollRef, makePageUrl, retryUrl }} />
       ) : (
         // TODO: revise copy
         <SearchResults.Alt>
