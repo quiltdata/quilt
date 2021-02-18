@@ -158,8 +158,7 @@ export default async function search({
   try {
     const result = await req('/search', { index, action: 'search', query, retry })
     const hits = mergeAllHits(result.hits.hits)
-    const total = Math.min(result.hits.total, result.hits.hits.length)
-    return { total, hits }
+    return { hits, total: result.hits.total }
   } catch (e) {
     if (e instanceof HTTPError) {
       const match = e.text.match(/^RequestError\((\d+), '(\w+)', '(.+)'\)$/)
