@@ -465,6 +465,7 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     flexGrow: 1,
     marginTop: t.spacing(2),
+    overflowY: 'auto',
     position: 'relative',
   },
   dropzone: {
@@ -490,7 +491,6 @@ const useStyles = M.makeStyles((t) => ({
   filesContainer: {
     direction: 'rtl', // show the scrollbar on the left
     borderBottom: `1px solid ${t.palette.action.disabled}`,
-    maxHeight: t.spacing(68),
     overflowX: 'hidden',
     overflowY: 'auto',
   },
