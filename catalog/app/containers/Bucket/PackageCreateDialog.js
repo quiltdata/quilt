@@ -332,7 +332,7 @@ function DialogSuccess({ bucket, hash, name, onClose }) {
 
   const dialogContentStyles = React.useMemo(
     () => ({
-      height: 420,
+      height: 430,
       paddingTop: 0,
     }),
     [],

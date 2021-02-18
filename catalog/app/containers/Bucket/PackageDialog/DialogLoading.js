@@ -3,8 +3,8 @@ import * as M from '@material-ui/core'
 
 const useStyles = M.makeStyles(() => ({
   content: {
+    height: 430,
     paddingTop: 0,
-    position: 'relative',
   },
 }))
 

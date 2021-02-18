@@ -98,7 +98,7 @@ function DialogForm({
   const dialogContentStyles = React.useMemo(
     () => ({
       height: R.clamp(
-        420 /* minimal height */,
+        430 /* minimal height */,
         window.innerHeight - 200 /* free space for headers */,
         400 /* space to fit other inputs */ + metaHeight,
       ),
@@ -465,7 +465,7 @@ function DialogForm({
 function DialogPlaceholder({ close }) {
   const dialogContentStyles = React.useMemo(
     () => ({
-      height: 420,
+      height: 430,
       paddingTop: 0,
     }),
     [],
