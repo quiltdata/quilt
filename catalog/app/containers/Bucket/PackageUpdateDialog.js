@@ -6,6 +6,7 @@ import * as RF from 'react-final-form'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
 import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -69,8 +70,6 @@ const getTotalProgress = R.pipe(
     percent: p.total ? Math.floor((p.loaded / p.total) * 100) : 100,
   }),
 )
-
-const defaultNameWarning = ' ' // Reserve space for warning
 
 function DialogForm({
   bucket,
@@ -255,14 +254,22 @@ function DialogForm({
 
   const handleNameChange = React.useCallback(
     async (name) => {
-      let warning = defaultNameWarning
+      let warning = ''
 
       if (name !== initialName) {
         const nameExists = await nameExistence.validate(name)
         if (nameExists) {
-          warning = 'Package with this name exists already'
+          warning = (
+            <>
+              <Code>{name}</Code> already exists. Click Push to create a new revision.
+            </>
+          )
         } else {
-          warning = 'New package will be created'
+          warning = (
+            <>
+              <Code>{name}</Code> is a new package
+            </>
+          )
         }
       }
 
