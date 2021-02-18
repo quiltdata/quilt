@@ -55,15 +55,14 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
           ) : (
             <M.Box px={2} py={1}>
               <M.Typography gutterBottom>
-                Bucket&apos;s successors are not configured.
+                Add or update a config.yml file to populate this menu.
               </M.Typography>
               <M.Typography>
-                Please, read{' '}
                 <StyledLink
                   href={`${docs}/advanced-usage/workflows#pushing-across-buckets-with-the-quilt-catalog`}
                   target="_blank"
                 >
-                  the documentation
+                  Learn more
                 </StyledLink>
                 .
               </M.Typography>

@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
 import * as authSelectors from 'containers/Auth/selectors'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
@@ -382,8 +383,6 @@ const getTotalProgress = R.pipe(
   }),
 )
 
-const defaultNameWarning = ' ' // Reserve space for warning
-
 const useNameExistsWarningStyles = M.makeStyles(() => ({
   root: {
     marginRight: '4px',
@@ -398,7 +397,7 @@ const NameExistsWarning = ({ name }) => {
       <M.Icon className={classes.root} fontSize="small">
         error_outline
       </M.Icon>
-      Package &quot;{name}&quot; already exists, you are about to create a new revision
+      <Code>{name}</Code> already exists. Click Push to create a new revision.
     </>
   )
 }
@@ -422,7 +421,7 @@ function PackageCreateDialog({
   const [uploads, setUploads] = React.useState({})
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
-  const [nameWarning, setNameWarning] = React.useState(defaultNameWarning)
+  const [nameWarning, setNameWarning] = React.useState('')
   const classes = useStyles()
 
   const totalProgress = getTotalProgress(uploads)
@@ -526,7 +525,7 @@ function PackageCreateDialog({
 
   const handleNameChange = React.useCallback(
     async (name) => {
-      let warning = defaultNameWarning
+      let warning = ''
 
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {

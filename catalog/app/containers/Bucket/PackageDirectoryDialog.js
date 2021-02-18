@@ -5,6 +5,7 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
 import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -52,8 +53,6 @@ function DialogTitle({ bucket, path }) {
     </>
   )
 }
-
-const defaultNameWarning = ' ' // Reserve space for warning
 
 const useStyles = M.makeStyles((t) => ({
   files: {
@@ -143,13 +142,21 @@ function DialogForm({
       const { name } = values
       const fullName = `${successor.slug}/${name}`
 
-      let warning = defaultNameWarning
+      let warning = ''
 
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {
-        warning = `Package "${fullName}" exists. Submitting will revise it`
+        warning = (
+          <>
+            <Code>{fullName}</Code> already exists. Click Push to create a new revision.
+          </>
+        )
       } else if (name) {
-        warning = `Package "${fullName}" will be created`
+        warning = (
+          <>
+            <Code>{fullName}</Code> is a new package
+          </>
+        )
       }
 
       if (warning !== nameWarning) {
