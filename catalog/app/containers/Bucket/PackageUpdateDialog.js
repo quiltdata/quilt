@@ -21,8 +21,6 @@ import * as validators from 'utils/validators'
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
-// FIXME: there is scrollbar for files
-
 const dissocBy = (fn) =>
   R.pipe(
     R.toPairs,
