@@ -556,8 +556,9 @@ function PackageCreateDialog({
     [handleNameChange],
   )
 
-  const username = redux.useSelector(authSelectors.username) || ''
+  const username = redux.useSelector(authSelectors.username)
   const usernamePrefix = React.useMemo(() => {
+    if (!username) return ''
     const name = username.includes('@') ? username.split('@')[0] : username
     // see PACKAGE_NAME_FORMAT at quilt3/util.py
     const validParts = name.match(/\w+/g)
