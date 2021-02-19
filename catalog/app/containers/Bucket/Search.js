@@ -253,9 +253,13 @@ const useSearchStyles = M.makeStyles((t) => ({
     },
   },
   stats: {
+    flexGrow: 1,
     lineHeight: '40px',
     padding: t.spacing(0, 3),
     textAlign: 'right',
+    [t.breakpoints.down('xs')]: {
+      display: 'none',
+    },
   },
 }))
 
@@ -311,13 +315,7 @@ function Search({ bucket, query, page, mode, retry }) {
         >
           <QueryInput query={query || ''} bucket={bucket} onChange={handleQueryChange} />
         </M.Box>
-        <M.Box
-          flexGrow={1}
-          display={{ xs: 'none', sm: 'block' }}
-          className={classes.stats}
-        >
-          {!!query && <SearchStats data={data} />}
-        </M.Box>
+        <div className={classes.stats}>{!!query && <SearchStats data={data} />}</div>
         <M.Box component={M.Paper} className={classes.paper}>
           <ModeSelector mode={mode} onChange={handleModeChange} />
         </M.Box>

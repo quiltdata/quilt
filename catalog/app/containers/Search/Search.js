@@ -315,9 +315,13 @@ const useSearchStyles = M.makeStyles((t) => ({
     },
   },
   stats: {
+    flexGrow: 1,
     lineHeight: '40px',
     padding: t.spacing(0, 3),
     textAlign: 'right',
+    [t.breakpoints.down('xs')]: {
+      display: 'none',
+    },
   },
 }))
 
@@ -411,13 +415,7 @@ export default function Search({ location: l }) {
                   onChange={handleQueryChange}
                 />
               </M.Box>
-              <M.Box
-                flexGrow={1}
-                display={{ xs: 'none', sm: 'block' }}
-                className={classes.stats}
-              >
-                {!!q && <SearchStats data={data} />}
-              </M.Box>
+              <div className={classes.stats}>{!!q && <SearchStats data={data} />}</div>
               <M.Box component={M.Paper} className={classes.paper}>
                 <ModeAndBucketSelector
                   mode={mode}
