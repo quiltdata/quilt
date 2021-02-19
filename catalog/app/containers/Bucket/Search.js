@@ -107,7 +107,6 @@ function QueryInput({ query, bucket, onChange }) {
 function SearchStats({ data }) {
   return data.case({
     _: () => '',
-    Err: () => '',
     Ok: ({ total }) => (
       <M.Typography variant="body1" component="span">
         {total} results

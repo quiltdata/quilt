@@ -189,7 +189,6 @@ function BucketSelectDropdown({ buckets, onChange, short = false }) {
 function SearchStats({ data }) {
   return data.case({
     _: () => '',
-    Err: () => '',
     Ok: ({ total }) => (
       <M.Typography variant="body1" component="span">
         {total} results
