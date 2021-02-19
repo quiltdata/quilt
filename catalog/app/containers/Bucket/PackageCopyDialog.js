@@ -98,7 +98,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-// <M.DialogContent /> doesn't have className prop
 function DialogForm({
   bucket,
   close,
@@ -238,7 +237,7 @@ function DialogForm({
       }) => (
         <>
           <DialogTitle bucket={successor.slug} />
-          <M.DialogContent style={dialogContentStyles}>
+          <M.DialogContent className={dialogContentStyles}>
             <form onSubmit={handleSubmit} className={classes.form}>
               <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
 

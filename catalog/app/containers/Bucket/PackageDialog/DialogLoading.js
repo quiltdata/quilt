@@ -1,16 +1,20 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-const dialogContentStyles = {
-  paddingTop: 0,
-}
+const useStyles = M.makeStyles({
+  content: {
+    paddingTop: 0,
+  },
+})
 
 export default function DialogLoading({ skeletonElement, title, onCancel }) {
+  const classes = useStyles()
+
   return (
     <div>
       <M.DialogTitle>{title}</M.DialogTitle>
 
-      <M.DialogContent style={dialogContentStyles}>{skeletonElement}</M.DialogContent>
+      <M.DialogContent className={classes.content}>{skeletonElement}</M.DialogContent>
 
       <M.DialogActions>
         <M.Button onClick={onCancel}>Cancel</M.Button>

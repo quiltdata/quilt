@@ -451,19 +451,18 @@ function DialogForm({
   )
 }
 
-function DialogPlaceholder({ close }) {
-  const dialogContentStyles = React.useMemo(
-    () => ({
-      height: 430,
-      paddingTop: 0,
-    }),
-    [],
-  )
+const useDialogStyles = M.makeStyles({
+  content: {
+    paddingTop: 0,
+  },
+})
 
+function DialogPlaceholder({ close }) {
+  const classes = useDialogStyles()
   return (
     <>
       <M.DialogTitle>Push package revision</M.DialogTitle>
-      <M.DialogContent style={dialogContentStyles}>
+      <M.DialogContent className={classes.content}>
         <PD.FormSkeleton />
       </M.DialogContent>
       <M.DialogActions>
@@ -488,17 +487,12 @@ function DialogError({ error, close }) {
 }
 
 function DialogSuccess({ bucket, name, hash, close }) {
-  const dialogContentStyles = React.useMemo(
-    () => ({
-      paddingTop: 0,
-    }),
-    [],
-  )
+  const classes = useDialogStyles()
   const { urls } = NamedRoutes.use()
   return (
     <>
       <M.DialogTitle>Push complete</M.DialogTitle>
-      <M.DialogContent style={dialogContentStyles}>
+      <M.DialogContent className={classes.content}>
         <M.Typography>
           Package revision{' '}
           <StyledLink to={urls.bucketPackageTree(bucket, name, hash)}>

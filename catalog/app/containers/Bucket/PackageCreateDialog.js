@@ -327,20 +327,21 @@ function FilesInput({
   )
 }
 
+const useDialogSuccessStyles = M.makeStyles({
+  content: {
+    paddingTop: 0,
+  },
+})
+
 function DialogSuccess({ bucket, hash, name, onClose }) {
   const { urls } = NamedRoutes.use()
 
-  const dialogContentStyles = React.useMemo(
-    () => ({
-      paddingTop: 0,
-    }),
-    [],
-  )
+  const classes = useDialogSuccessStyles()
 
   return (
     <>
       <M.DialogTitle>Package created</M.DialogTitle>
-      <M.DialogContent style={dialogContentStyles}>
+      <M.DialogContent className={classes.content}>
         <M.Typography>
           Package{' '}
           <StyledLink to={urls.bucketPackageTree(bucket, name, hash)}>
