@@ -356,14 +356,10 @@ const useMetaInputStyles = M.makeStyles((t) => ({
 export const EMPTY_META_VALUE = {}
 
 // TODO: warn on duplicate keys
-export const MetaInput = React.forwardRef((props, ref) => {
-  const {
-    className,
-    schemaError,
-    input: { value, onChange },
-    meta,
-    schema,
-  } = props
+export const MetaInput = React.forwardRef(function MetaInput(
+  { className, schemaError, input: { value, onChange }, meta, schema },
+  ref,
+) {
   const classes = useMetaInputStyles()
   const error = schemaError || ((meta.modified || meta.submitFailed) && meta.error)
   const disabled = meta.submitting || meta.submitSucceeded

@@ -28,8 +28,8 @@ const useStyles = M.makeStyles({
   },
 })
 
-const JsonEditor = React.forwardRef((props, ref) => {
-  const {
+const JsonEditor = React.forwardRef(function JsonEditor(
+  {
     addRow,
     changeValue,
     className,
@@ -40,7 +40,9 @@ const JsonEditor = React.forwardRef((props, ref) => {
     makeAction,
     onChange,
     setFieldPath,
-  } = props
+  },
+  ref,
+) {
   const classes = useStyles()
 
   const makeStateChange = React.useCallback(
@@ -76,8 +78,10 @@ const JsonEditor = React.forwardRef((props, ref) => {
   )
 })
 
-export default React.forwardRef((props, ref) => {
-  const { className, disabled, onChange, schema: optSchema, value } = props
+export default React.forwardRef(function JsonEditorWrapper(
+  { className, disabled, onChange, schema: optSchema, value },
+  ref,
+) {
   const schema = optSchema || EMPTY_SCHEMA
 
   return (
