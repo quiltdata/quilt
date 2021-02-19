@@ -2,11 +2,13 @@ import { FORM_ERROR } from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import JsonEditor from 'components/JsonEditor'
 import { parseJSON, stringifyJSON } from 'components/JsonEditor/State'
+import * as authSelectors from 'containers/Auth/selectors'
 import * as Notifications from 'containers/Notifications'
 import { useData } from 'utils/Data'
 import Delay from 'utils/Delay'
@@ -566,4 +568,15 @@ export function useCryptoApiValidation() {
         : undefined,
     }
   }, [])
+}
+
+export function useUsernamePrefix() {
+  const username = redux.useSelector(authSelectors.username)
+  return React.useMemo(() => {
+    if (!username) return ''
+    const name = username.includes('@') ? username.split('@')[0] : username
+    // see PACKAGE_NAME_FORMAT at quilt3/util.py
+    const validParts = name.match(/\w+/g)
+    return validParts ? `${validParts.join('')}/` : ''
+  }, [username])
 }

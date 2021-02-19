@@ -6,11 +6,9 @@ import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import * as RF from 'react-final-form'
 import { Link } from 'react-router-dom'
-import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
-import * as authSelectors from 'containers/Auth/selectors'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
@@ -555,14 +553,7 @@ function PackageCreateDialog({
     [handleNameChange],
   )
 
-  const username = redux.useSelector(authSelectors.username)
-  const usernamePrefix = React.useMemo(() => {
-    if (!username) return ''
-    const name = username.includes('@') ? username.split('@')[0] : username
-    // see PACKAGE_NAME_FORMAT at quilt3/util.py
-    const validParts = name.match(/\w+/g)
-    return validParts ? `${validParts.join('')}/` : ''
-  }, [username])
+  const usernamePrefix = PD.useUsernamePrefix()
 
   return (
     <RF.Form

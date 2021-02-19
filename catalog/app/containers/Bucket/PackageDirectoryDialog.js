@@ -166,6 +166,8 @@ function DialogForm({
     [successor, nameExistence, nameWarning],
   )
 
+  const usernamePrefix = PD.useUsernamePrefix()
+
   return (
     <RF.Form
       onSubmit={onSubmitWrapped}
@@ -216,6 +218,7 @@ function DialogForm({
 
                   <RF.Field
                     component={PD.PackageNameInput}
+                    initialValue={usernamePrefix}
                     name="name"
                     validate={validators.composeAsync(
                       validators.required,
