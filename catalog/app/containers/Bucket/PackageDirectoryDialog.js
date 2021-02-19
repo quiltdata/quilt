@@ -93,17 +93,7 @@ function DialogForm({
 
   const req = APIConnector.use()
 
-  const dialogContentStyles = React.useMemo(
-    () => ({
-      height: R.clamp(
-        420 /* minimal height */,
-        window.innerHeight - 200 /* free space for headers */,
-        400 /* space to fit other inputs */ + metaHeight,
-      ),
-      paddingTop: 0,
-    }),
-    [metaHeight],
-  )
+  const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   const onSubmit = React.useCallback(
     // eslint-disable-next-line consistent-return
@@ -229,7 +219,7 @@ function DialogForm({
             <DialogTitle bucket={successor.slug} path={path} />
           </M.DialogTitle>
 
-          <M.DialogContent style={dialogContentStyles}>
+          <M.DialogContent classes={dialogContentClasses}>
             <form onSubmit={handleSubmit} className={classes.form}>
               <RF.FormSpy
                 subscription={{ dirtyFields: true, values: true }}

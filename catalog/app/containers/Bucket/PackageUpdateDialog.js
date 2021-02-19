@@ -91,18 +91,7 @@ function DialogForm({
   const [nameWarning, setNameWarning] = React.useState('')
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
-
-  const dialogContentStyles = React.useMemo(
-    () => ({
-      height: R.clamp(
-        430 /* minimal height */,
-        window.innerHeight - 200 /* free space for headers */,
-        400 /* space to fit other inputs */ + metaHeight,
-      ),
-      paddingTop: 0,
-    }),
-    [metaHeight],
-  )
+  const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   const initialFiles = React.useMemo(
     () => ({ existing: manifest.entries, added: {}, deleted: {} }),
@@ -313,7 +302,7 @@ function DialogForm({
       }) => (
         <>
           <M.DialogTitle>Push package revision</M.DialogTitle>
-          <M.DialogContent style={dialogContentStyles}>
+          <M.DialogContent classes={dialogContentClasses}>
             <form className={classes.form} onSubmit={handleSubmit}>
               <RF.FormSpy
                 subscription={{ modified: true, values: true }}

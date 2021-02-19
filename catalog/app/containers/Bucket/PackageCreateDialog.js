@@ -436,18 +436,7 @@ function PackageCreateDialog({
   const [nameWarning, setNameWarning] = React.useState('')
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
-
-  const dialogContentStyles = React.useMemo(
-    () => ({
-      height: R.clamp(
-        420 /* minimal height */,
-        window.innerHeight - 200 /* free space for headers */,
-        400 /* space to fit other inputs */ + metaHeight,
-      ),
-      paddingTop: 0,
-    }),
-    [metaHeight],
-  )
+  const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   const totalProgress = getTotalProgress(uploads)
 
@@ -625,7 +614,7 @@ function PackageCreateDialog({
       }) => (
         <>
           <M.DialogTitle>Create package</M.DialogTitle>
-          <M.DialogContent style={dialogContentStyles}>
+          <M.DialogContent classes={dialogContentClasses}>
             <form className={classes.form} onSubmit={handleSubmit}>
               <RF.FormSpy
                 subscription={{ dirtyFields: true, submitting: true, values: true }}

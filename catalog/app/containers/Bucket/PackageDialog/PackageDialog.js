@@ -572,3 +572,15 @@ export function useCryptoApiValidation() {
     }
   }, [])
 }
+
+export const useContentStyles = M.makeStyles({
+  root: {
+    height: ({ metaHeight }) =>
+      R.clamp(
+        420 /* minimal height */,
+        window.innerHeight - 200 /* free space for headers */,
+        400 /* space to fit other inputs */ + metaHeight,
+      ),
+    paddingTop: 0,
+  },
+})

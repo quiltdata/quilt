@@ -121,18 +121,6 @@ function DialogForm({
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
 
-  const dialogContentStyles = React.useMemo(
-    () => ({
-      height: R.clamp(
-        420 /* minimal height */,
-        window.innerHeight - 200 /* free space for headers */,
-        400 /* space to fit other inputs */ + metaHeight,
-      ),
-      paddingTop: 0,
-    }),
-    [metaHeight],
-  )
-
   const req = APIConnector.use()
 
   // eslint-disable-next-line consistent-return
@@ -213,6 +201,8 @@ function DialogForm({
     }
   }, [editorElement, setMetaHeight])
 
+  const dialogContentClasses = PD.useContentStyles({ metaHeight })
+
   return (
     <RF.Form
       onSubmit={onSubmitWrapped}
@@ -237,7 +227,7 @@ function DialogForm({
       }) => (
         <>
           <DialogTitle bucket={successor.slug} />
-          <M.DialogContent className={dialogContentStyles}>
+          <M.DialogContent classes={dialogContentClasses}>
             <form onSubmit={handleSubmit} className={classes.form}>
               <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
 
