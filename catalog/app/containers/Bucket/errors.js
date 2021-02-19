@@ -184,6 +184,9 @@ export const displayError = (pairs = []) =>
     ],
   ])
 
+const startsWithSafe = (prefix) => (str) =>
+  typeof str === 'string' ? str.startsWith(prefix) : false
+
 export const catchErrors = (pairs = []) =>
   R.cond([
     [
@@ -221,7 +224,7 @@ export const catchErrors = (pairs = []) =>
     ],
     [
       R.propSatisfies(
-        R.startsWith(
+        startsWithSafe(
           'API Gateway error (500): ConnectionTimeout caused by - ReadTimeout',
         ),
         'message',
@@ -232,7 +235,7 @@ export const catchErrors = (pairs = []) =>
     ],
     [
       R.propSatisfies(
-        R.startsWith(
+        startsWithSafe(
           "API Gateway error (500): AuthorizationException(403, '403 Request throttled due to too many requests",
         ),
         'message',
