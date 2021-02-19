@@ -417,7 +417,7 @@ export default function Search({ location: l }) {
                 display={{ xs: 'none', sm: 'block' }}
                 className={classes.stats}
               >
-                {q && <SearchStats data={data} />}
+                {!!q && <SearchStats data={data} />}
               </M.Box>
               <M.Box component={M.Paper} className={classes.paper}>
                 <ModeAndBucketSelector

@@ -317,7 +317,7 @@ function Search({ bucket, query, page, mode, retry }) {
           display={{ xs: 'none', sm: 'block' }}
           className={classes.stats}
         >
-          {query && <SearchStats data={data} />}
+          {!!query && <SearchStats data={data} />}
         </M.Box>
         <M.Box component={M.Paper} className={classes.paper}>
           <ModeSelector mode={mode} onChange={handleModeChange} />
