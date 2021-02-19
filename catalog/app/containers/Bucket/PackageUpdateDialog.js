@@ -104,14 +104,6 @@ function DialogForm({
     [metaHeight],
   )
 
-  const initialMeta = React.useMemo(
-    () => ({
-      mode: 'kv',
-      text: JSON.stringify(manifest.meta || {}),
-    }),
-    [manifest.meta],
-  )
-
   const initialFiles = React.useMemo(
     () => ({ existing: manifest.entries, added: {}, deleted: {} }),
     [manifest.entries],
@@ -384,8 +376,8 @@ function DialogForm({
                       validate={validateMetaInput}
                       validateFields={['meta']}
                       isEqual={R.equals}
-                      initialValue={initialMeta}
                       ref={setEditorElement}
+                      initialValue={manifest.meta}
                     />
                   )}
 
