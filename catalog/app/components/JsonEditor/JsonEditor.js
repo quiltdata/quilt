@@ -7,7 +7,7 @@ import { EMPTY_SCHEMA } from 'utils/json-schema'
 import Column from './Column'
 import State from './State'
 
-const useStyles = M.makeStyles(() => ({
+const useStyles = M.makeStyles({
   disabled: {
     position: 'relative',
     '&:after': {
@@ -26,7 +26,7 @@ const useStyles = M.makeStyles(() => ({
     display: 'flex',
     overflow: 'auto',
   },
-}))
+})
 
 const JsonEditor = React.forwardRef((props, ref) => {
   const {
