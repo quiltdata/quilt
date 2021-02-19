@@ -3,11 +3,11 @@ import * as M from '@material-ui/core'
 
 import { readableBytes } from 'utils/string'
 
-const useStyles = M.makeStyles(() => ({
+const useStyles = M.makeStyles({
   icon: {
     marginLeft: 4,
   },
-}))
+})
 
 export default function FilesStats({ files, warning }) {
   const classes = useStyles()
