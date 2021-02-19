@@ -111,14 +111,6 @@ function DialogForm({
   const [nameWarning, setNameWarning] = React.useState('')
   const classes = useStyles()
 
-  const initialMeta = React.useMemo(
-    () => ({
-      mode: 'kv',
-      text: JSON.stringify(manifest.meta || {}),
-    }),
-    [manifest.meta],
-  )
-
   const req = APIConnector.use()
 
   // eslint-disable-next-line consistent-return
@@ -257,7 +249,7 @@ function DialogForm({
                   validate={validateMetaInput}
                   validateFields={['meta']}
                   isEqual={R.equals}
-                  initialValue={initialMeta}
+                  initialValue={manifest.meta}
                 />
               )}
 
