@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import JsonDisplay from 'components/JsonDisplay'
 
@@ -8,11 +9,21 @@ const useStyles = M.makeStyles({
 })
 
 interface QueryResultProps {
+  loading: boolean
   value: {}
 }
 
-export default function QueryResult({ value }: QueryResultProps) {
+function QueryResultSkeleton() {
+  const t = M.useTheme()
+  return <Lab.Skeleton height={t.spacing(3)} width="100%" />
+}
+
+export default function QueryResult({ loading, value }: QueryResultProps) {
   const classes = useStyles()
+
+  if (loading) {
+    return <QueryResultSkeleton />
+  }
 
   return (
     <JsonDisplay

@@ -1,27 +1,37 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
-type Query = {
-  content: string
-  description?: string
-  key: string
-  name: string
-  url: string
-}
+import * as requests from './requests'
 
 interface QuerySelectProps {
+  loading: boolean
   onChange: (value: string) => void
-  queries: Query[]
+  queries: requests.Query[]
   value: string
 }
 
-export default function QuerySelect({ onChange, queries, value }: QuerySelectProps) {
+function QuerySelectSkeleton() {
+  const t = M.useTheme()
+  return <Lab.Skeleton height={t.spacing(4)} width="100%" />
+}
+
+export default function QuerySelect({
+  loading,
+  onChange,
+  queries,
+  value,
+}: QuerySelectProps) {
   const handleChange = React.useCallback(
     (event) => {
       onChange(event.target.value.toString())
     },
     [onChange],
   )
+
+  if (loading) {
+    return <QuerySelectSkeleton />
+  }
 
   return (
     <M.FormControl>
