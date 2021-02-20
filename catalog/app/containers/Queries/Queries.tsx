@@ -12,6 +12,10 @@ const useStyles = M.makeStyles((t) => ({
   actions: {
     margin: t.spacing(1, 0),
   },
+  select: {
+    margin: t.spacing(0, 0, 2),
+    maxWidth: t.spacing(60),
+  },
 }))
 
 export default function Queries() {
@@ -56,6 +60,7 @@ export default function Queries() {
   return (
     <Layout>
       <QuerySelect
+        className={classes.select}
         loading={configLoading}
         queriesConfig={queriesConfig}
         value={query}
