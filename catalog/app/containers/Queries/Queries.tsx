@@ -6,7 +6,6 @@ import Layout from 'components/Layout'
 import QueryResult from './QueryResult'
 import QuerySelect from './QuerySelect'
 import QueryViewer from './QueryViewer'
-import result from './result.json'
 import * as requests from './requests'
 
 const useStyles = M.makeStyles((t) => ({
@@ -25,6 +24,8 @@ export default function Queries() {
   const { loading: queryLoading, result: queryContent } = requests.useQuery(
     query ? query.url : '',
   )
+
+  const { loading: resutlsLoading, result: results } = requests.useSearch(queryContent)
 
   React.useEffect(() => {
     if (!queriesConfig || !queriesConfig.queries) return
@@ -61,7 +62,7 @@ export default function Queries() {
         <M.Button>Run query</M.Button>
       </div>
 
-      {false && <QueryResult loading={!queriesConfig} value={result} />}
+      <QueryResult loading={resutlsLoading} value={results} />
     </Layout>
   )
 }

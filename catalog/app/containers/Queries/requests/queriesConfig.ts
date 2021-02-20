@@ -8,7 +8,6 @@ import yaml from 'utils/yaml'
 const QUERIES_CONFIG_PATH = '.quilt/queries/config.yaml'
 
 export interface Query {
-  content: string
   description?: string
   key: string
   name: string

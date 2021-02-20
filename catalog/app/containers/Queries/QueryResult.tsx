@@ -10,7 +10,7 @@ const useStyles = M.makeStyles({
 
 interface QueryResultProps {
   loading: boolean
-  value: {}
+  value: object | null
 }
 
 function QueryResultSkeleton() {
@@ -21,9 +21,9 @@ function QueryResultSkeleton() {
 export default function QueryResult({ loading, value }: QueryResultProps) {
   const classes = useStyles()
 
-  if (loading) {
-    return <QueryResultSkeleton />
-  }
+  if (loading) return <QueryResultSkeleton />
+
+  if (!value) return null
 
   return (
     <JsonDisplay
