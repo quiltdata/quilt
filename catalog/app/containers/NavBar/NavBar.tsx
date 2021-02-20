@@ -328,6 +328,7 @@ function useLinks(): LinkDescriptor[] {
   const cfg = Config.useConfig()
   return [
     cfg.mode !== 'MARKETING' && { to: urls.uriResolver(), label: 'URI' },
+    cfg.mode !== 'MARKETING' && { to: urls.queries(), label: 'Queries' },
     { href: URLS.docs, label: 'Docs' },
     cfg.mode === 'MARKETING' && { to: `${urls.home()}#pricing`, label: 'Pricing' },
     (cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') && {

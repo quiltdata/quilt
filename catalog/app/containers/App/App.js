@@ -46,6 +46,7 @@ const AuthSignOut = mkLazy(() => import('containers/Auth/SignOut'))
 const AuthSignUp = mkLazy(() => import('containers/Auth/SignUp'))
 const AuthSSOSignUp = mkLazy(() => import('containers/Auth/SSOSignUp'))
 const Bucket = mkLazy(() => import('containers/Bucket'))
+const Queries = mkLazy(() => import('containers/Queries'))
 const Search = mkLazy(() => import('containers/Search'))
 const UriResolver = mkLazy(() => import('containers/UriResolver'))
 
@@ -135,6 +136,10 @@ export default function App() {
 
         {!cfg.disableNavigator && (
           <Route path={paths.admin} component={requireAdmin(Admin)} />
+        )}
+
+        {!cfg.disableNavigator && (
+          <Route path={paths.queries} component={protect(Queries)} />
         )}
 
         {!cfg.disableNavigator && (
