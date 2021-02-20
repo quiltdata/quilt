@@ -22,6 +22,10 @@ export default function Queries() {
 
   const { loading: configLoading, result: queriesConfig } = requests.useQueriesConfig()
 
+  const { loading: queryLoading, result: queryContent } = requests.useQuery(
+    query ? query.url : '',
+  )
+
   React.useEffect(() => {
     if (!queriesConfig || !queriesConfig.queries) return
     const [key, value] = Object.entries(queriesConfig.queries)[0]
@@ -51,7 +55,7 @@ export default function Queries() {
         onChange={handleQuery}
       />
 
-      {!!(query && query.content) && <QueryViewer value={query.content} />}
+      <QueryViewer loading={queryLoading} value={queryContent} />
 
       <div className={classes.actions}>
         <M.Button>Run query</M.Button>

@@ -37,9 +37,7 @@ export default function QuerySelect({
     }))
   }, [queriesConfig])
 
-  if (loading) {
-    return <QuerySelectSkeleton />
-  }
+  if (loading) return <QuerySelectSkeleton />
 
   return (
     <M.FormControl>

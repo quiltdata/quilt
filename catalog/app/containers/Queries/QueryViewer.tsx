@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import JsonDisplay from 'components/JsonDisplay'
 
@@ -8,17 +9,33 @@ const useStyles = M.makeStyles({
 })
 
 interface QueryViewerProps {
-  value: string
+  loading: boolean
+  value: object | null
 }
 
-export default function QueryViewer({ value }: QueryViewerProps) {
+function QueryViewerSkeleton() {
+  const t = M.useTheme()
+  return (
+    <>
+      <Lab.Skeleton height={t.spacing(2)} width="100%" />
+      <Lab.Skeleton height={t.spacing(2)} width="100%" />
+      <Lab.Skeleton height={t.spacing(2)} width="100%" />
+      <Lab.Skeleton height={t.spacing(2)} width="100%" />
+      <Lab.Skeleton height={t.spacing(2)} width="100%" />
+    </>
+  )
+}
+
+export default function QueryViewer({ loading, value }: QueryViewerProps) {
   const classes = useStyles()
 
-  const query = JSON.parse(value)
+  if (loading) return <QueryViewerSkeleton />
+
+  if (!value) return null
 
   return (
     <JsonDisplay
-      value={query}
+      value={value}
       name={undefined}
       topLevel
       defaultExpanded
