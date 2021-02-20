@@ -20,23 +20,34 @@ export default function Queries() {
 
   const [query, setQuery] = React.useState<requests.Query | null>(null)
 
-  const { loading: configLoading, queriesList } = requests.useQueriesConfig()
+  const { loading: configLoading, result: queriesConfig } = requests.useQueriesConfig()
 
   React.useEffect(() => {
-    if (!queriesList || !queriesList.length) return
-    setQuery(queriesList[0])
-  }, [queriesList, setQuery])
+    if (!queriesConfig || !queriesConfig.queries) return
+    const [key, value] = Object.entries(queriesConfig.queries)[0]
+    setQuery({
+      key,
+      ...value,
+    })
+  }, [queriesConfig, setQuery])
 
-  const handleQuery = React.useCallback(() => {
-    setQuery(query)
-  }, [query, setQuery])
+  const handleQuery = React.useCallback(
+    (querySlug: string) => {
+      if (!queriesConfig) return
+      setQuery({
+        key: querySlug,
+        ...queriesConfig.queries[querySlug],
+      })
+    },
+    [queriesConfig, setQuery],
+  )
 
   return (
     <Layout>
       <QuerySelect
         loading={configLoading}
-        queries={queriesList || []}
-        value={query ? query.key : ''}
+        queriesConfig={queriesConfig}
+        value={query}
         onChange={handleQuery}
       />
 
@@ -46,7 +57,7 @@ export default function Queries() {
         <M.Button>Run query</M.Button>
       </div>
 
-      {false && <QueryResult loading={!queriesList} value={result} />}
+      {false && <QueryResult loading={!queriesConfig} value={result} />}
     </Layout>
   )
 }

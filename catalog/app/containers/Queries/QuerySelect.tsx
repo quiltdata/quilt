@@ -7,8 +7,8 @@ import * as requests from './requests'
 interface QuerySelectProps {
   loading: boolean
   onChange: (value: string) => void
-  queries: requests.Query[]
-  value: string
+  queriesConfig: requests.Config | null
+  value: requests.Query | null
 }
 
 function QuerySelectSkeleton() {
@@ -19,15 +19,23 @@ function QuerySelectSkeleton() {
 export default function QuerySelect({
   loading,
   onChange,
-  queries,
+  queriesConfig,
   value,
 }: QuerySelectProps) {
   const handleChange = React.useCallback(
     (event) => {
-      onChange(event.target.value.toString())
+      onChange(event.target.value)
     },
     [onChange],
   )
+
+  const list = React.useMemo(() => {
+    if (!queriesConfig || !queriesConfig.queries) return []
+    return Object.entries(queriesConfig.queries).map(([key, query]) => ({
+      key,
+      ...query,
+    }))
+  }, [queriesConfig])
 
   if (loading) {
     return <QuerySelectSkeleton />
@@ -35,8 +43,8 @@ export default function QuerySelect({
 
   return (
     <M.FormControl>
-      <M.Select value={value} onChange={handleChange}>
-        {queries.map((query) => (
+      <M.Select value={value ? value.key : ''} onChange={handleChange}>
+        {list.map((query) => (
           <M.MenuItem key={query.key} value={query.key}>
             {query.name}
           </M.MenuItem>

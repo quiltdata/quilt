@@ -46,7 +46,7 @@ export const queriesConfig = async ({
 
 export function useQueriesConfig() {
   const [loading, setLoading] = React.useState(false)
-  const [queriesList, setQueriesList] = React.useState<Query[] | null>(null)
+  const [result, setResult] = React.useState<Config | null>(null)
 
   const s3 = AWS.S3.use()
 
@@ -55,19 +55,15 @@ export function useQueriesConfig() {
     queriesConfig({ s3, bucket: 'fiskus-sandbox-dev' })
       .then((config) => {
         if (!config) return
-        const queries = Object.entries(config.queries).map(([key, value]) => ({
-          key,
-          ...value,
-        }))
-        setQueriesList(queries)
+        setResult(config)
       })
       .finally(() => {
         setLoading(false)
       })
-  }, [s3, setLoading, setQueriesList])
+  }, [s3, setLoading, setResult])
 
   return {
     loading,
-    queriesList,
+    result,
   }
 }
