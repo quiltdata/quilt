@@ -18,6 +18,7 @@ export default function Queries() {
   const classes = useStyles()
 
   const [query, setQuery] = React.useState<requests.Query | null>(null)
+  const [queryBody, setQueryBody] = React.useState<object | null>(null)
 
   const { loading: configLoading, result: queriesConfig } = requests.useQueriesConfig()
 
@@ -25,7 +26,7 @@ export default function Queries() {
     query ? query.url : '',
   )
 
-  const { loading: resutlsLoading, result: results } = requests.useSearch(queryContent)
+  const { loading: resutlsLoading, result: results } = requests.useSearch(queryBody)
 
   React.useEffect(() => {
     if (!queriesConfig || !queriesConfig.queries) return
@@ -35,6 +36,10 @@ export default function Queries() {
       ...value,
     })
   }, [queriesConfig, setQuery])
+
+  const handleSubmit = React.useCallback(() => {
+    setQueryBody(queryContent)
+  }, [queryContent, setQueryBody])
 
   const handleQuery = React.useCallback(
     (querySlug: string) => {
@@ -59,7 +64,9 @@ export default function Queries() {
       <QueryViewer loading={queryLoading} value={queryContent} />
 
       <div className={classes.actions}>
-        <M.Button>Run query</M.Button>
+        <M.Button disabled={resutlsLoading || !queryContent} onClick={handleSubmit}>
+          Run query
+        </M.Button>
       </div>
 
       <QueryResult loading={resutlsLoading} value={results} />
