@@ -31,7 +31,10 @@ export function useSearch(query: object | null) {
   const req = AWS.APIGateway.use()
 
   React.useEffect(() => {
-    if (!query) return
+    if (!query) {
+      if (result) setResult(null)
+      return
+    }
 
     setLoading(true)
     search({ req, body: JSON.stringify(query) })
@@ -42,7 +45,7 @@ export function useSearch(query: object | null) {
       .finally(() => {
         setLoading(false)
       })
-  }, [query, req, setLoading, setResult])
+  }, [query, req, result, setLoading, setResult])
 
   return {
     loading,

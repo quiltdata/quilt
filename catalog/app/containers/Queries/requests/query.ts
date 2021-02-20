@@ -34,7 +34,10 @@ export function useQuery(queryUrl: string) {
   const s3 = AWS.S3.use()
 
   React.useEffect(() => {
-    if (!queryUrl) return
+    if (!queryUrl) {
+      if (result) setResult(null)
+      return
+    }
 
     setLoading(true)
     query({ s3, queryUrl })
@@ -45,7 +48,7 @@ export function useQuery(queryUrl: string) {
       .finally(() => {
         setLoading(false)
       })
-  }, [queryUrl, s3, setLoading, setResult])
+  }, [queryUrl, result, s3, setLoading, setResult])
 
   return {
     loading,

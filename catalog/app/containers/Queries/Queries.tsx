@@ -48,6 +48,7 @@ export default function Queries() {
         key: querySlug,
         ...queriesConfig.queries[querySlug],
       })
+      setQueryBody(null)
     },
     [queriesConfig, setQuery],
   )
