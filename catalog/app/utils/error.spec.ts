@@ -17,9 +17,7 @@ describe('utils/error', () => {
     })
 
     describe('subclass without constructor', () => {
-      class SpecificError extends BaseError {
-        static displayName = 'SpecificError'
-      }
+      class SpecificError extends BaseError {}
 
       const e = new SpecificError('test', { prop: 'test' })
 
@@ -37,9 +35,7 @@ describe('utils/error', () => {
 
     describe('subclass with constructor', () => {
       class SpecificError extends BaseError {
-        static displayName = 'SpecificError'
-
-        constructor(data) {
+        constructor(data: string) {
           super('message', { data })
         }
       }
