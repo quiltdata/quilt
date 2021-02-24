@@ -5,11 +5,19 @@ import Skeleton from 'components/Skeleton'
 
 import * as Layout from './Layout'
 
-export function TextFieldSkeleton({ animate }) {
+interface AnimateProp {
+  animate?: boolean
+}
+
+interface ClassNameProp {
+  className?: string
+}
+
+export function TextFieldSkeleton({ animate }: AnimateProp) {
   return <Skeleton {...{ height: 54, mt: 2, mb: 1, animate }} />
 }
 
-export function FilesInputSkeleton({ animate, className }) {
+export function FilesInputSkeleton({ animate, className }: AnimateProp & ClassNameProp) {
   return (
     <div className={className}>
       <Skeleton {...{ height: 24, width: 64, animate }} />
@@ -18,7 +26,7 @@ export function FilesInputSkeleton({ animate, className }) {
   )
 }
 
-export function MetaInputSkeleton({ animate, className }) {
+export function MetaInputSkeleton({ animate, className }: AnimateProp & ClassNameProp) {
   return (
     <div className={className}>
       <M.Box display="flex" mb={2}>
@@ -38,7 +46,7 @@ export function MetaInputSkeleton({ animate, className }) {
   )
 }
 
-export function WorkflowsInputSkeleton({ animate }) {
+export function WorkflowsInputSkeleton({ animate }: AnimateProp) {
   return <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
 }
 
@@ -51,7 +59,7 @@ const useFormSkeletonStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function FormSkeleton({ animate }) {
+export function FormSkeleton({ animate }: AnimateProp) {
   const classes = useFormSkeletonStyles()
 
   return (
