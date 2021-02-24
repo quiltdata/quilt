@@ -4,9 +4,11 @@ import * as Lab from '@material-ui/lab'
 
 import JsonDisplay from 'components/JsonDisplay'
 
-const useStyles = M.makeStyles({
-  root: {},
-})
+const useStyles = M.makeStyles((t) => ({
+  root: {
+    padding: t.spacing(3, 4, 4),
+  },
+}))
 
 interface QueryViewerProps {
   loading: boolean
@@ -34,12 +36,8 @@ export default function QueryViewer({ loading, value }: QueryViewerProps) {
   if (!value) return null
 
   return (
-    <JsonDisplay
-      value={value}
-      name={undefined}
-      topLevel
-      defaultExpanded
-      className={classes.root}
-    />
+    <M.Paper className={classes.root}>
+      <JsonDisplay className="" value={value} name={undefined} topLevel defaultExpanded />
+    </M.Paper>
   )
 }

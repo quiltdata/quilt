@@ -10,11 +10,21 @@ import * as requests from './requests'
 
 const useStyles = M.makeStyles((t) => ({
   actions: {
-    margin: t.spacing(1, 0),
+    margin: t.spacing(2, 0),
+    textAlign: 'right',
+  },
+  layout: {
+    padding: t.spacing(3),
+  },
+  form: {
+    margin: t.spacing(0, 0, 2),
+    maxWidth: t.spacing(60),
+  },
+  results: {
+    margin: t.spacing(4, 0, 0),
   },
   select: {
     margin: t.spacing(0, 0, 2),
-    maxWidth: t.spacing(60),
   },
 }))
 
@@ -151,28 +161,40 @@ export default function Queries() {
         results,
         resultsLoading,
       }) => (
-        <Layout>
-          <QuerySelect
-            className={classes.select}
-            loading={configLoading}
-            queriesList={queriesList}
-            value={query}
-            onChange={handleChange}
-          />
+        <Layout
+          pre={
+            <M.Container className={classes.layout} maxWidth="lg">
+              <div className={classes.form}>
+                <QuerySelect
+                  className={classes.select}
+                  loading={configLoading}
+                  queriesList={queriesList}
+                  value={query}
+                  onChange={handleChange}
+                />
 
-          <QueryViewer loading={queryLoading} value={queryContent} />
+                <QueryViewer loading={queryLoading} value={queryContent} />
 
-          <div className={classes.actions}>
-            <M.Button
-              disabled={resultsLoading || !queryContent}
-              onClick={handleSubmit(queryContent)}
-            >
-              Run query
-            </M.Button>
-          </div>
+                <div className={classes.actions}>
+                  <M.Button
+                    variant="contained"
+                    color="primary"
+                    disabled={resultsLoading || !queryContent}
+                    onClick={handleSubmit(queryContent)}
+                  >
+                    Run query
+                  </M.Button>
+                </div>
+              </div>
 
-          <QueryResult loading={resultsLoading} value={results} />
-        </Layout>
+              <QueryResult
+                className={classes.results}
+                loading={resultsLoading}
+                value={results}
+              />
+            </M.Container>
+          }
+        />
       )}
     </QueriesState>
   )
