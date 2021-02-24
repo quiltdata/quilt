@@ -26,9 +26,8 @@ export default function Queries() {
 
   const { loading: configLoading, result: queriesConfig } = requests.useQueriesConfig()
 
-  const { loading: queryLoading, result: queryContent } = requests.useQuery(
-    query ? query.url : '',
-  )
+  const queryUrl = React.useMemo(() => (query ? query.url : ''), [query])
+  const { loading: queryLoading, result: queryContent } = requests.useQuery(queryUrl)
 
   const { loading: resutlsLoading, result: results } = requests.useSearch(queryBody)
 
