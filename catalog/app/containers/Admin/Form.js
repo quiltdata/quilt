@@ -14,12 +14,12 @@ export function Field({ input, meta, errors, helperText, ...rest }) {
   return <M.TextField {...props} />
 }
 
-const useCheckboxStyles = M.makeStyles(() => ({
+const useCheckboxStyles = M.makeStyles({
   root: {
     paddingBottom: 0,
     paddingTop: 0,
   },
-}))
+})
 
 export function Checkbox({ input, meta, errors, label, FormControlLabelProps, ...rest }) {
   const classes = useCheckboxStyles()

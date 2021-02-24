@@ -2,12 +2,12 @@ import * as M from '@material-ui/core'
 import * as React from 'react'
 import cx from 'classnames'
 
-const useContainerStyles = M.makeStyles(() => ({
+const useContainerStyles = M.makeStyles({
   root: {
     display: 'flex',
     flexWrap: 'wrap',
   },
-}))
+})
 
 export function Container({ children }) {
   const classes = useContainerStyles()

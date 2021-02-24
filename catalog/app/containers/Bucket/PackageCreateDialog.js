@@ -381,12 +381,12 @@ const getTotalProgress = R.pipe(
   }),
 )
 
-const useNameExistsWarningStyles = M.makeStyles(() => ({
+const useNameExistsWarningStyles = M.makeStyles({
   root: {
     marginRight: '4px',
     verticalAlign: '-5px',
   },
-}))
+})
 
 const NameExistsWarning = ({ name }) => {
   const classes = useNameExistsWarningStyles()
