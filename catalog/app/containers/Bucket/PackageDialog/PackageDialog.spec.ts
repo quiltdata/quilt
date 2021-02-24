@@ -1,7 +1,7 @@
 import * as PD from './PackageDialog'
 
 describe('containers/Bucket/PackageDialog/PackageDialog', () => {
-  describe('useUsernamePrefix', () => {
+  describe('getUsernamePrefix', () => {
     test('should return string anyway', () => {
       expect(PD.getUsernamePrefix()).toBe('')
       expect(PD.getUsernamePrefix(null)).toBe('')
