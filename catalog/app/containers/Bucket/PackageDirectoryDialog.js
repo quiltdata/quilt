@@ -2,10 +2,12 @@ import { FORM_ERROR } from 'final-form'
 import { basename } from 'path'
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
+import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -166,7 +168,8 @@ function DialogForm({
     [successor, nameExistence, nameWarning],
   )
 
-  const usernamePrefix = PD.useUsernamePrefix()
+  const username = redux.useSelector(authSelectors.username)
+  const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
 
   return (
     <RF.Form
