@@ -84,9 +84,23 @@ function QueryConfigFetcher({ children }: QueryConfigFetcherProps) {
   })
 }
 
-export default function Queries() {
-  const classes = useStyles()
+interface QueriesStatePropsInjectProps {
+  configLoading: boolean
+  handleQuery: (q: requests.Query) => void
+  handleSubmit: (q: object | null) => () => void
+  initialQuery: requests.Query | null
+  queriesConfig: requests.Config | null
+  query: requests.Query | null
+  queryContent: object | null
+  queryLoading: boolean
+  results: object | null
+  resultsLoading: boolean
+}
 
+interface QueriesStateProps {
+  children: (props: QueriesStatePropsInjectProps) => React.ReactElement
+}
+function QueriesState({ children }: QueriesStateProps) {
   const [query, setQuery] = React.useState<requests.Query | null>(null)
   const [queryBody, setQueryBody] = React.useState<object | null>(null)
 
@@ -106,45 +120,73 @@ export default function Queries() {
   )
 
   return (
-    <Layout>
-      <QueryConfigFetcher>
-        {({ configLoading, initialQuery, queriesConfig }) => (
-          <>
-            <QuerySelect
-              className={classes.select}
-              loading={configLoading}
-              queriesConfig={queriesConfig}
-              value={query || initialQuery}
-              onChange={handleQuery}
-            />
+    <QueryConfigFetcher>
+      {({ configLoading, initialQuery, queriesConfig }) => (
+        <SearchResultsFetcher queryBody={queryBody}>
+          {({ results, resultsLoading }) => (
+            <QueryFetcher query={query || initialQuery}>
+              {({ queryContent, queryLoading }) =>
+                children({
+                  configLoading,
+                  handleQuery,
+                  handleSubmit,
+                  initialQuery,
+                  queriesConfig,
+                  query,
+                  queryContent,
+                  queryLoading,
+                  results,
+                  resultsLoading,
+                })
+              }
+            </QueryFetcher>
+          )}
+        </SearchResultsFetcher>
+      )}
+    </QueryConfigFetcher>
+  )
+}
 
-            <SearchResultsFetcher queryBody={queryBody}>
-              {({ results, resultsLoading }) => (
-                <>
-                  <QueryFetcher query={query || initialQuery}>
-                    {({ queryContent, queryLoading }) => (
-                      <>
-                        <QueryViewer loading={queryLoading} value={queryContent} />
+export default function Queries() {
+  const classes = useStyles()
 
-                        <div className={classes.actions}>
-                          <M.Button
-                            disabled={resultsLoading || !queryContent}
-                            onClick={handleSubmit(queryContent)}
-                          >
-                            Run query
-                          </M.Button>
-                        </div>
-                      </>
-                    )}
-                  </QueryFetcher>
+  return (
+    <QueriesState>
+      {({
+        configLoading,
+        handleQuery,
+        handleSubmit,
+        initialQuery,
+        queriesConfig,
+        query,
+        queryContent,
+        queryLoading,
+        results,
+        resultsLoading,
+      }) => (
+        <Layout>
+          <QuerySelect
+            className={classes.select}
+            loading={configLoading}
+            queriesConfig={queriesConfig}
+            value={query || initialQuery}
+            onChange={handleQuery}
+          />
 
-                  <QueryResult loading={resultsLoading} value={results} />
-                </>
-              )}
-            </SearchResultsFetcher>
-          </>
-        )}
-      </QueryConfigFetcher>
-    </Layout>
+          <QueryViewer loading={queryLoading} value={queryContent} />
+
+          <div className={classes.actions}>
+            <M.Button
+              disabled={resultsLoading || !queryContent}
+              onClick={handleSubmit(queryContent)}
+            >
+              Run query
+            </M.Button>
+          </div>
+
+          <QueryResult loading={resultsLoading} value={results} />
+        </Layout>
+      )}
+    </QueriesState>
   )
 }
