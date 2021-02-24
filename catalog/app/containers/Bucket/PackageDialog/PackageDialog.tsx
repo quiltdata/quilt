@@ -2,6 +2,7 @@ import { FORM_ERROR } from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
+import type * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -31,12 +32,12 @@ export const ERROR_MESSAGES = {
   MANIFEST: 'Error creating manifest',
 }
 
-export const getNormalizedPath = R.pipe(
-  R.prop('path'),
-  R.when(R.startsWith('/'), R.drop(1)),
-)
+export const getNormalizedPath = (f: { path?: string; name: string }) => {
+  const p = f.path || f.name
+  return p.startsWith('/') ? R.drop(1, p) : p
+}
 
-export async function hashFile(file) {
+export async function hashFile(file: File) {
   if (!window.crypto || !window.crypto.subtle || !window.crypto.subtle.digest) return
   try {
     const buf = await file.arrayBuffer()
@@ -50,22 +51,27 @@ export async function hashFile(file) {
   }
 }
 
-function cacheDebounce(fn, wait, getKey = R.identity) {
-  const cache = {}
-  let timer
-  let resolveList = []
+function cacheDebounce<I extends [any, ...any[]], O, K extends string | number | symbol>(
+  fn: (...args: I) => Promise<O>,
+  wait: number,
+  getKey: (...args: I) => K = (R.identity as unknown) as (...args: I) => K,
+) {
+  type Resolver = (result: Promise<O>) => void
+  const cache = {} as Record<K, Promise<O>>
+  let timer: null | ReturnType<typeof setTimeout>
+  let resolveList: Resolver[] = []
 
-  return (...args) => {
+  return (...args: I) => {
     const key = getKey(...args)
     if (key in cache) return cache[key]
 
-    return new Promise((resolveNew) => {
-      clearTimeout(timer)
+    return new Promise((resolveNew: Resolver) => {
+      if (timer) clearTimeout(timer)
 
       timer = setTimeout(() => {
         timer = null
 
-        const result = Promise.resolve(fn(...args))
+        const result = fn(...args)
         cache[key] = result
 
         resolveList.forEach((resolve) => resolve(result))
@@ -78,7 +84,7 @@ function cacheDebounce(fn, wait, getKey = R.identity) {
   }
 }
 
-const readFile = (file) =>
+const readFile = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onabort = () => {
@@ -88,15 +94,23 @@ const readFile = (file) =>
       reject(reader.error)
     }
     reader.onload = () => {
-      resolve(reader.result)
+      resolve(reader.result as string)
     }
     reader.readAsText(file)
   })
 
-const validateName = (req) =>
-  cacheDebounce(async (name) => {
+interface ApiRequest {
+  <O>(opts: {
+    endpoint: string
+    method?: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'HEAD'
+    body?: {}
+  }): Promise<O>
+}
+
+const validateName = (req: ApiRequest) =>
+  cacheDebounce(async (name: string) => {
     if (name) {
-      const res = await req({
+      const res = await req<{ valid: boolean }>({
         endpoint: '/package_name_valid',
         method: 'POST',
         body: { name },
@@ -107,7 +121,7 @@ const validateName = (req) =>
   }, 200)
 
 export function useNameValidator() {
-  const req = APIConnector.use()
+  const req: ApiRequest = APIConnector.use()
   const [counter, setCounter] = React.useState(0)
   const [processing, setProcessing] = React.useState(false)
   const inc = React.useCallback(() => setCounter(R.inc), [setCounter])
@@ -115,7 +129,7 @@ export function useNameValidator() {
   const validator = React.useMemo(() => validateName(req), [req])
 
   const validate = React.useCallback(
-    async (name) => {
+    async (name: string) => {
       setProcessing(true)
       try {
         const error = await validator(name)
@@ -123,7 +137,7 @@ export function useNameValidator() {
         return error
       } catch (e) {
         setProcessing(false)
-        return e.message
+        return e.message as string
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -133,7 +147,7 @@ export function useNameValidator() {
   return React.useMemo(() => ({ validate, processing, inc }), [validate, processing, inc])
 }
 
-export function useNameExistence(bucket) {
+export function useNameExistence(bucket: string) {
   const [counter, setCounter] = React.useState(0)
   const inc = React.useCallback(() => setCounter(R.inc), [setCounter])
 
@@ -141,7 +155,7 @@ export function useNameExistence(bucket) {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const validate = React.useCallback(
-    cacheDebounce(async (name) => {
+    cacheDebounce(async (name: string) => {
       if (name) {
         const packageExists = await requests.ensurePackageIsPresent({
           s3,
@@ -158,12 +172,12 @@ export function useNameExistence(bucket) {
   return React.useMemo(() => ({ validate, inc }), [validate, inc])
 }
 
-function mkMetaValidator(schema) {
+function mkMetaValidator(schema: unknown) {
   // TODO: move schema validation to utils/validators
   //       but don't forget that validation depends on library.
   //       Maybe we should split validators to files at first
   const schemaValidator = makeSchemaValidator(schema)
-  return function validateMeta(value) {
+  return function validateMeta(value: unknown) {
     const noError = undefined
 
     const jsonObjectErr = !R.is(Object, value)
@@ -181,7 +195,7 @@ function mkMetaValidator(schema) {
   }
 }
 
-export const getMetaValue = (value, optSchema) =>
+export const getMetaValue = (value: unknown, optSchema: unknown) =>
   value
     ? pipeThru(value || {})(
         makeSchemaDefaultsSetter(optSchema),
@@ -192,7 +206,21 @@ export const getMetaValue = (value, optSchema) =>
       )
     : undefined
 
-export function Field({ error, helperText, validating, warning, ...rest }) {
+interface FieldProps {
+  error?: string
+  helperText?: React.ReactNode
+  validating?: boolean
+  warning?: string
+}
+
+export function Field({
+  error,
+  helperText,
+  validating,
+  warning,
+  ...rest
+}: FieldProps & M.TextFieldProps) {
+  // FIXME: warning is unused
   const props = {
     InputLabelProps: { shrink: true },
     InputProps: {
@@ -205,7 +233,23 @@ export function Field({ error, helperText, validating, warning, ...rest }) {
   return <M.TextField {...props} />
 }
 
-export function PackageNameInput({ errors, input, meta, validating, ...rest }) {
+interface PackageNameInputOwnProps {
+  errors: Record<string, React.ReactNode>
+  input: RF.FieldInputProps<string>
+  meta: RF.FieldMetaState<string>
+  validating: boolean
+}
+
+type PackageNameInputProps = PackageNameInputOwnProps &
+  Omit<Parameters<typeof Field>[0], keyof PackageNameInputOwnProps>
+
+export function PackageNameInput({
+  errors,
+  input,
+  meta,
+  validating,
+  ...rest
+}: PackageNameInputProps) {
   const readyForValidation = (input.value && meta.modified) || meta.submitFailed
   const errorCode = readyForValidation && meta.error
   const error = errorCode ? errors[errorCode] || errorCode : ''
@@ -214,7 +258,7 @@ export function PackageNameInput({ errors, input, meta, validating, ...rest }) {
     error,
     fullWidth: true,
     label: 'Name',
-    margin: 'normal',
+    margin: 'normal' as const,
     placeholder: 'e.g. user/package',
     // NOTE: react-form doesn't change `FormState.validating` on async validation when field loses focus
     validating,
@@ -224,7 +268,21 @@ export function PackageNameInput({ errors, input, meta, validating, ...rest }) {
   return <Field {...props} />
 }
 
-export function CommitMessageInput({ errors, input, meta, ...rest }) {
+interface CommitMessageInputOwnProps {
+  errors: Record<string, React.ReactNode>
+  input: RF.FieldInputProps<string>
+  meta: RF.FieldMetaState<string>
+}
+
+type CommitMessageInputProps = CommitMessageInputOwnProps &
+  Omit<Parameters<typeof Field>[0], keyof CommitMessageInputOwnProps>
+
+export function CommitMessageInput({
+  errors,
+  input,
+  meta,
+  ...rest
+}: CommitMessageInputProps) {
   const errorCode = meta.submitFailed && meta.error
   const error = errorCode ? errors[errorCode] || errorCode : ''
   const props = {
@@ -232,7 +290,7 @@ export function CommitMessageInput({ errors, input, meta, ...rest }) {
     error,
     fullWidth: true,
     label: 'Commit message',
-    margin: 'normal',
+    margin: 'normal' as const,
     placeholder: 'Enter a commit message',
     validating: meta.submitFailed && meta.validating,
     ...input,
@@ -247,7 +305,19 @@ const useWorkflowInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function WorkflowInput({ input, meta, workflowsConfig, errors = {} }) {
+interface WorkflowInputProps {
+  input: RF.FieldInputProps<workflows.Workflow>
+  meta: RF.FieldMetaState<workflows.Workflow>
+  workflowsConfig?: workflows.WorkflowsConfig
+  errors?: Record<string, React.ReactNode>
+}
+
+export function WorkflowInput({
+  input,
+  meta,
+  workflowsConfig,
+  errors = {},
+}: WorkflowInputProps) {
   const classes = useWorkflowInputStyles()
 
   const disabled = meta.submitting || meta.submitSucceeded
@@ -265,14 +335,16 @@ export function WorkflowInput({ input, meta, workflowsConfig, errors = {} }) {
   )
 }
 
-export const defaultWorkflowFromConfig = (cfg) =>
-  cfg ? cfg.workflows.find((item) => item.isDefault) : null
+export const defaultWorkflowFromConfig = (cfg?: workflows.WorkflowsConfig) =>
+  cfg && cfg.workflows.find((item) => item.isDefault)
 
 export const getWorkflowApiParam = R.cond([
   [R.equals(workflows.notAvaliable), R.always(undefined)],
   [R.equals(workflows.notSelected), R.always(null)],
   [R.T, R.identity],
-])
+]) as (
+  slug: typeof workflows.notAvaliable | typeof workflows.notSelected | string,
+) => string | null | undefined
 
 const useMetaInputStyles = M.makeStyles((t) => ({
   header: {
@@ -293,7 +365,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(1),
   },
   jsonInput: {
-    fontFamily: t.typography.monospace.fontFamily,
+    fontFamily: (t.typography as any).monospace.fontFamily,
     '&::placeholder': {
       fontFamily: t.typography.fontFamily,
     },
@@ -355,15 +427,25 @@ const useMetaInputStyles = M.makeStyles((t) => ({
 
 export const EMPTY_META_VALUE = {}
 
+interface MetaInputProps {
+  className?: string
+  schemaError: React.ReactNode
+  input: RF.FieldInputProps<{}>
+  meta: RF.FieldMetaState<{}>
+  schema: $TSFixMe
+}
+
+type Mode = 'kv' | 'json'
+
 // TODO: warn on duplicate keys
 export const MetaInput = React.forwardRef(function MetaInput(
-  { className, schemaError, input: { value, onChange }, meta, schema },
+  { className, schemaError, input: { value, onChange }, meta, schema }: MetaInputProps,
   ref,
 ) {
   const classes = useMetaInputStyles()
   const error = schemaError || ((meta.modified || meta.submitFailed) && meta.error)
   const disabled = meta.submitting || meta.submitSucceeded
-  const [mode, setMode] = React.useState('kv')
+  const [mode, setMode] = React.useState<Mode>('kv')
 
   const [textValue, setTextValue] = React.useState(() => stringifyJSON(value))
 
@@ -376,17 +458,17 @@ export const MetaInput = React.forwardRef(function MetaInput(
     [disabled, onChange],
   )
 
-  const handleModeChange = (e, m) => {
+  const handleModeChange = (e: unknown, m: Mode) => {
     if (!m) return
     setMode(m)
   }
 
-  const handleTextChange = (e) => {
+  const handleTextChange = (e: React.ChangeEvent<{ value: string }>) => {
     changeText(e.target.value)
   }
 
   const onJsonEditor = React.useCallback(
-    (json) => {
+    (json: {}) => {
       setTextValue(stringifyJSON(json))
       onChange(json)
     },
@@ -461,6 +543,7 @@ export const MetaInput = React.forwardRef(function MetaInput(
       <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
         {mode === 'kv' ? (
           <JsonEditor
+            // @ts-expect-error
             className={classes.editor}
             disabled={disabled}
             value={value}
@@ -514,7 +597,23 @@ export const MetaInput = React.forwardRef(function MetaInput(
   )
 })
 
-export function SchemaFetcher({ manifest, workflow, workflowsConfig, children }) {
+interface SchemaFetcherProps {
+  manifest?: {
+    workflow?: {
+      id?: string
+    }
+  }
+  workflow?: workflows.Workflow
+  workflowsConfig: workflows.WorkflowsConfig
+  children: (result: any) => React.ReactElement
+}
+
+export function SchemaFetcher({
+  manifest,
+  workflow,
+  workflowsConfig,
+  children,
+}: SchemaFetcherProps) {
   const s3 = AWS.S3.use()
 
   const initialWorkflow = React.useMemo(() => {
@@ -546,9 +645,9 @@ export function SchemaFetcher({ manifest, workflow, workflowsConfig, children })
   const res = React.useMemo(
     () =>
       data.case({
-        Ok: (schema) =>
+        Ok: (schema: {}) =>
           AsyncResult.Ok({ ...defaultProps, schema, validate: mkMetaValidator(schema) }),
-        Err: (responseError) =>
+        Err: (responseError: Error) =>
           AsyncResult.Ok({
             ...defaultProps,
             responseError,
@@ -575,7 +674,7 @@ export function useCryptoApiValidation() {
 
 export const useContentStyles = M.makeStyles({
   root: {
-    height: ({ metaHeight }) =>
+    height: ({ metaHeight }: { metaHeight: number }) =>
       R.clamp(
         420 /* minimal height */,
         window.innerHeight - 200 /* free space for headers */,
@@ -585,7 +684,7 @@ export const useContentStyles = M.makeStyles({
   },
 })
 
-export function getUsernamePrefix(username) {
+export function getUsernamePrefix(username?: string | undefined | null) {
   if (!username) return ''
   const name = username.includes('@') ? username.split('@')[0] : username
   // see PACKAGE_NAME_FORMAT at quilt3/util.py

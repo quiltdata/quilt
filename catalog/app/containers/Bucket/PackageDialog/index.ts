@@ -1,4 +1,4 @@
-export * from './PackageDialog.js'
+export * from './PackageDialog'
 
 export { default as DialogError } from './DialogError'
 

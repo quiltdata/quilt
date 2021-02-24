@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
-import { useDropzone } from 'react-dropzone'
+import { useDropzone, FileWithPath } from 'react-dropzone'
 import * as M from '@material-ui/core'
 
 import { readableBytes } from 'utils/string'
@@ -20,7 +20,7 @@ const COLORS = {
 export const FilesAction = tagged.create(
   'app/containers/Bucket/PackageDialog/FilesInput:FilesAction' as const,
   {
-    Add: (v: { files: File[]; prefix?: string }) => v,
+    Add: (v: { files: FileWithPath[]; prefix?: string }) => v,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
     Revert: (path: string) => path,
@@ -44,7 +44,7 @@ export interface ExistingFile {
 }
 
 export interface FilesState {
-  added: Record<string, File>
+  added: Record<string, FileWithPath>
   deleted: Record<string, true>
   existing: Record<string, ExistingFile>
 }
@@ -67,7 +67,7 @@ const handleFilesAction = FilesAction.match<
 >({
   Add: ({ files, prefix }) => (state) =>
     files.reduce((acc, file) => {
-      const path = (prefix || '') + (PD.getNormalizedPath as (f: File) => string)(file)
+      const path = (prefix || '') + PD.getNormalizedPath(file)
       return R.evolve(
         {
           added: R.assoc(path, file),
@@ -489,7 +489,7 @@ function Dir({
   const path = (prefix || '') + name
 
   const onDrop = React.useCallback(
-    (files: File[]) => {
+    (files: FileWithPath[]) => {
       dispatch(FilesAction.Add({ prefix: path, files }))
     },
     [dispatch, path],
