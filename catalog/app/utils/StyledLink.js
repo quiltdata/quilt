@@ -13,7 +13,7 @@ export const linkStyle = {
   },
 }
 
-const useStyles = M.makeStyles({ root: linkStyle })
+const useStyles = M.makeStyles(() => ({ root: linkStyle }))
 
 export default React.forwardRef(function StyledLink(
   { component, className, ...props },
