@@ -8,8 +8,8 @@ import * as requests from './requests'
 interface QuerySelectProps {
   className: string
   loading: boolean
-  onChange: (value: requests.Query) => void
-  queriesConfig: requests.Config | null
+  onChange: (value: requests.Query | null) => void
+  queriesList: requests.Query[]
   value: requests.Query | null
 }
 
@@ -39,38 +39,24 @@ export default function QuerySelect({
   className,
   loading,
   onChange,
-  queriesConfig,
+  queriesList,
   value,
 }: QuerySelectProps) {
   const classes = useStyles()
 
   const handleChange = React.useCallback(
     (event) => {
-      const querySlug = event.target.value
-      if (!queriesConfig) return
-      onChange({
-        ...queriesConfig.queries[querySlug],
-        key: querySlug,
-        body: null,
-      })
+      onChange(queriesList.find((query) => query.key === event.target.value) || null)
     },
-    [queriesConfig, onChange],
+    [queriesList, onChange],
   )
-
-  const list = React.useMemo(() => {
-    if (!queriesConfig || !queriesConfig.queries) return []
-    return Object.entries(queriesConfig.queries).map(([key, query]) => ({
-      ...query,
-      key,
-    }))
-  }, [queriesConfig])
 
   if (loading) return <QuerySelectSkeleton className={className} />
 
   return (
     <M.FormControl className={cx(classes.root, className)}>
       <M.Select value={value ? value.key : ''} onChange={handleChange}>
-        {list.map((query) => (
+        {queriesList.map((query) => (
           <M.MenuItem key={query.key} value={query.key}>
             {query.name}
           </M.MenuItem>

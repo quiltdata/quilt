@@ -18,6 +18,8 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+type ElasticSearchQuery = object | null
+
 interface SearchResultsFetcherInjectProps {
   resultsLoading: boolean
   results: object | null
@@ -57,8 +59,7 @@ function QueryFetcher({ children, query }: QueryFetcherProps) {
 
 interface QueryConfigFetcherInjectProps {
   configLoading: boolean
-  initialQuery: requests.Query | null
-  queriesConfig: requests.Config | null
+  queriesList: requests.Query[]
 }
 
 interface QueryConfigFetcherProps {
@@ -68,28 +69,26 @@ interface QueryConfigFetcherProps {
 function QueryConfigFetcher({ children }: QueryConfigFetcherProps) {
   const { loading: configLoading, result: queriesConfig } = requests.useQueriesConfig()
 
-  const initialQuery = React.useMemo(() => {
-    if (!queriesConfig || !queriesConfig.queries) return null
-    const [key, value] = Object.entries(queriesConfig.queries)[0]
-    return {
-      key,
+  const queriesList = React.useMemo(() => {
+    if (!queriesConfig || !queriesConfig.queries) return []
+    return Object.entries(queriesConfig.queries).map(([key, query]) => ({
+      ...query,
       body: null,
-      ...value,
-    }
+      key,
+    }))
   }, [queriesConfig])
 
   return children({
     configLoading,
-    initialQuery,
-    queriesConfig,
+    queriesList,
   })
 }
 
 interface QueriesStatePropsInjectProps {
   configLoading: boolean
-  handleQuery: (q: requests.Query) => void
-  handleSubmit: (q: object | null) => () => void
-  queriesConfig: requests.Config | null
+  handleChange: (q: requests.Query | null) => void
+  handleSubmit: (q: ElasticSearchQuery) => () => void
+  queriesList: requests.Query[]
   query: requests.Query | null
   queryContent: object | null
   queryLoading: boolean
@@ -101,31 +100,27 @@ interface QueriesStateProps {
   children: (props: QueriesStatePropsInjectProps) => React.ReactElement
 }
 function QueriesState({ children }: QueriesStateProps) {
-  const [query, setQuery] = React.useState<requests.Query | null>(null)
+  const [selectedQuery, setSelectedQuery] = React.useState<requests.Query | null>(null)
+  const [queryBody, setQueryBody] = React.useState<ElasticSearchQuery>(null)
 
   const handleSubmit = React.useMemo(
-    () => (body: object | null) => () => {
-      setQuery({
-        ...query,
-        body,
-      } as requests.Query) // FIXME: WTF? Why doesn't it compile?
-    },
-    [query, setQuery],
+    () => (body: ElasticSearchQuery) => () => setQueryBody(body),
+    [setQueryBody],
   )
 
   return (
     <QueryConfigFetcher>
-      {({ configLoading, initialQuery, queriesConfig }) => (
-        <SearchResultsFetcher queryBody={query ? query.body : null}>
+      {({ configLoading, queriesList }) => (
+        <SearchResultsFetcher queryBody={queryBody}>
           {({ results, resultsLoading }) => (
-            <QueryFetcher query={query || initialQuery}>
+            <QueryFetcher query={selectedQuery || queriesList[0]}>
               {({ queryContent, queryLoading }) =>
                 children({
                   configLoading,
-                  handleQuery: setQuery,
+                  handleChange: setSelectedQuery,
                   handleSubmit,
-                  queriesConfig,
-                  query: query || initialQuery,
+                  queriesList,
+                  query: selectedQuery || queriesList[0],
                   queryContent,
                   queryLoading,
                   results,
@@ -147,9 +142,9 @@ export default function Queries() {
     <QueriesState>
       {({
         configLoading,
-        handleQuery,
+        handleChange,
         handleSubmit,
-        queriesConfig,
+        queriesList,
         query,
         queryContent,
         queryLoading,
@@ -160,9 +155,9 @@ export default function Queries() {
           <QuerySelect
             className={classes.select}
             loading={configLoading}
-            queriesConfig={queriesConfig}
+            queriesList={queriesList}
             value={query}
-            onChange={handleQuery}
+            onChange={handleChange}
           />
 
           <QueryViewer loading={queryLoading} value={queryContent} />
