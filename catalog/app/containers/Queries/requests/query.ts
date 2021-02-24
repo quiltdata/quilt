@@ -28,30 +28,32 @@ export const query = async ({ s3, queryUrl }: QueryArgs): Promise<object | null>
 }
 
 export function useQuery(queryUrl: string) {
-  const [loading, setLoading] = React.useState(false)
+  const [loadingUrl, setLoadingUrl] = React.useState('')
   const [result, setResult] = React.useState<object | null>(null)
 
   const s3 = AWS.S3.use()
 
   React.useEffect(() => {
+    if (loadingUrl === queryUrl) return
+
     if (!queryUrl) {
       if (result) setResult(null)
       return
     }
 
-    setLoading(true)
+    setLoadingUrl(queryUrl)
     query({ s3, queryUrl })
       .then((queryObj) => {
         if (!queryObj) return
         setResult(queryObj)
       })
       .finally(() => {
-        setLoading(false)
+        setLoadingUrl('')
       })
-  }, [queryUrl, result, s3, setLoading, setResult])
+  }, [loadingUrl, queryUrl, result, s3, setLoadingUrl, setResult])
 
   return {
-    loading,
+    loading: Boolean(loadingUrl),
     result,
   }
 }

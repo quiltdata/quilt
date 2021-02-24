@@ -25,30 +25,32 @@ async function search({ req, body }: SearchArgs) {
 }
 
 export function useSearch(query: object | null) {
-  const [loading, setLoading] = React.useState(false)
+  const [loadingQuery, setLoadingQuery] = React.useState<object | null>(null)
   const [result, setResult] = React.useState<object | null>(null)
 
   const req = AWS.APIGateway.use()
 
   React.useEffect(() => {
+    if (loadingQuery === query) return
+
     if (!query) {
       if (result) setResult(null)
       return
     }
 
-    setLoading(true)
+    setLoadingQuery(query)
     search({ req, body: JSON.stringify(query) })
       .then((results: any) => {
         if (!results) return
         setResult(results)
       })
       .finally(() => {
-        setLoading(false)
+        setLoadingQuery(null)
       })
-  }, [query, req, result, setLoading, setResult])
+  }, [loadingQuery, query, req, result, setLoadingQuery, setResult])
 
   return {
-    loading,
+    loading: Boolean(loadingQuery),
     result,
   }
 }
