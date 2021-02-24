@@ -18,15 +18,17 @@ import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
 import * as validators from 'utils/validators'
+import type * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
-type WorkflowsConfig = $TSFixMe
-
 interface Manifest {
   entries: Record<string, PD.ExistingFile>
   meta: $TSFixMe
+  workflow?: {
+    id?: string
+  }
 }
 
 interface UploadResult extends S3.ManagedUpload.SendData {
@@ -93,15 +95,15 @@ interface DialogFormProps {
   close: () => void
   manifest: Manifest
   name: string
-  responseError: $TSFixMe
+  responseError: Error
   schema: $TSFixMe
   schemaLoading: boolean
-  selectedWorkflow: $TSFixMe
+  selectedWorkflow: workflows.Workflow
   setSubmitting: (submitting: boolean) => void
-  setSuccess: (success: $TSFixMe) => void
-  setWorkflow: (workflow: $TSFixMe) => void
+  setSuccess: (success: { name: string; hash: string }) => void
+  setWorkflow: (workflow: workflows.Workflow) => void
   validate: FF.FieldValidator<any>
-  workflowsConfig: WorkflowsConfig
+  workflowsConfig: workflows.WorkflowsConfig
 }
 
 function DialogForm({
@@ -138,7 +140,7 @@ function DialogForm({
 
   const onFilesAction = React.useMemo(
     () =>
-      PD.FilesAction.case({
+      PD.FilesAction.match({
         _: () => {},
         Revert: (path) => setUploads(R.dissoc(path)),
         RevertDir: (prefix) => setUploads(dissocBy(R.startsWith(prefix))),
@@ -158,7 +160,7 @@ function DialogForm({
     msg: string
     files: PD.FilesState
     meta: {}
-    workflow: $TSFixMe
+    workflow: workflows.Workflow
     // eslint-disable-next-line consistent-return
   }) => {
     const toUpload = Object.entries(files.added).map(([path, file]) => ({ path, file }))
@@ -260,8 +262,7 @@ function DialogForm({
           message: msg,
           contents,
           meta: PD.getMetaValue(meta, schema),
-          // FIXME: this obvsly shouldnt be cast to never
-          workflow: PD.getWorkflowApiParam(workflow.slug as never),
+          workflow: PD.getWorkflowApiParam(workflow.slug),
         },
       })
       setSuccess({ name, hash: res.top_hash })
@@ -406,7 +407,6 @@ function DialogForm({
                   ) : (
                     <RF.Field
                       className={classes.meta}
-                      // @ts-expect-error
                       component={PD.MetaInput}
                       name="meta"
                       bucket={bucket}
@@ -600,10 +600,13 @@ const DialogState = tagged.create(
     Closed: () => {},
     Loading: () => {},
     Error: (e: Error) => e,
-    Form: (v: { manifest: Manifest; workflowsConfig: WorkflowsConfig }) => v,
+    Form: (v: { manifest: Manifest; workflowsConfig: workflows.WorkflowsConfig }) => v,
     Success: (v: { name: string; hash: string }) => v,
   },
 )
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+type DialogState = tagged.InstanceOf<typeof DialogState>
 
 interface UsePackageUpdateDialogProps {
   bucket: string
@@ -628,7 +631,7 @@ export function usePackageUpdateDialog({
   )
   const [submitting, setSubmitting] = React.useState(false)
   const [key, setKey] = React.useState(1)
-  const [workflow, setWorkflow] = React.useState(null)
+  const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
 
   const manifestData = Data.use(
     requests.loadManifest,
@@ -662,11 +665,11 @@ export function usePackageUpdateDialog({
     }
   }, [setExited, setSuccess, success, onExited, refreshManifest])
 
-  const state = React.useMemo(() => {
+  const state = React.useMemo<DialogState>(() => {
     if (exited) return DialogState.Closed()
     if (success) return DialogState.Success(success)
     return workflowsData.case({
-      Ok: (workflowsConfig: WorkflowsConfig) =>
+      Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
         manifestData.case({
           Ok: (manifest: Manifest) => DialogState.Form({ manifest, workflowsConfig }),
           Err: DialogState.Error,
