@@ -8,7 +8,7 @@ import * as requests from './requests'
 interface QuerySelectProps {
   className: string
   loading: boolean
-  onChange: (value: string) => void
+  onChange: (value: requests.Query) => void
   queriesConfig: requests.Config | null
   value: requests.Query | null
 }
@@ -46,9 +46,14 @@ export default function QuerySelect({
 
   const handleChange = React.useCallback(
     (event) => {
-      onChange(event.target.value)
+      const querySlug = event.target.value
+      if (!queriesConfig) return
+      onChange({
+        key: querySlug,
+        ...queriesConfig.queries[querySlug],
+      })
     },
-    [onChange],
+    [queriesConfig, onChange],
   )
 
   const list = React.useMemo(() => {

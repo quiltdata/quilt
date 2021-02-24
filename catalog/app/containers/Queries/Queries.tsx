@@ -18,63 +18,133 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface SearchResultsFetcherInjectProps {
+  resultsLoading: boolean
+  results: object | null
+}
+
+interface SearchResultsFetcherProps {
+  children: (props: SearchResultsFetcherInjectProps) => React.ReactElement
+  queryBody: object | null
+}
+
+function SearchResultsFetcher({ children, queryBody }: SearchResultsFetcherProps) {
+  const { loading: resultsLoading, result: results } = requests.useSearch(queryBody)
+  return children({
+    resultsLoading,
+    results,
+  })
+}
+
+interface QueryFetcherInjectProps {
+  queryLoading: boolean
+  queryContent: object | null
+}
+
+interface QueryFetcherProps {
+  children: (props: QueryFetcherInjectProps) => React.ReactElement
+  query: requests.Query | null
+}
+
+function QueryFetcher({ children, query }: QueryFetcherProps) {
+  const queryUrl = React.useMemo(() => (query ? query.url : ''), [query])
+  const { loading: queryLoading, result: queryContent } = requests.useQuery(queryUrl)
+  return children({
+    queryLoading,
+    queryContent,
+  })
+}
+
+interface QueryConfigFetcherInjectProps {
+  configLoading: boolean
+  initialQuery: requests.Query | null
+  queriesConfig: requests.Config | null
+}
+
+interface QueryConfigFetcherProps {
+  children: (props: QueryConfigFetcherInjectProps) => React.ReactElement
+}
+
+function QueryConfigFetcher({ children }: QueryConfigFetcherProps) {
+  const { loading: configLoading, result: queriesConfig } = requests.useQueriesConfig()
+
+  const initialQuery = React.useMemo(() => {
+    if (!queriesConfig || !queriesConfig.queries) return null
+    const [key, value] = Object.entries(queriesConfig.queries)[0]
+    return {
+      key,
+      ...value,
+    }
+  }, [queriesConfig])
+
+  return children({
+    configLoading,
+    initialQuery,
+    queriesConfig,
+  })
+}
+
 export default function Queries() {
   const classes = useStyles()
 
   const [query, setQuery] = React.useState<requests.Query | null>(null)
   const [queryBody, setQueryBody] = React.useState<object | null>(null)
 
-  const { loading: configLoading, result: queriesConfig } = requests.useQueriesConfig()
-
-  const queryUrl = React.useMemo(() => (query ? query.url : ''), [query])
-  const { loading: queryLoading, result: queryContent } = requests.useQuery(queryUrl)
-
-  const { loading: resutlsLoading, result: results } = requests.useSearch(queryBody)
-
-  React.useEffect(() => {
-    if (!queriesConfig || !queriesConfig.queries) return
-    const [key, value] = Object.entries(queriesConfig.queries)[0]
-    setQuery({
-      key,
-      ...value,
-    })
-  }, [queriesConfig, setQuery])
-
-  const handleSubmit = React.useCallback(() => {
-    setQueryBody(queryContent)
-  }, [queryContent, setQueryBody])
+  const handleSubmit = React.useMemo(
+    () => (queryContent: object | null) => () => {
+      setQueryBody(queryContent)
+    },
+    [setQueryBody],
+  )
 
   const handleQuery = React.useCallback(
-    (querySlug: string) => {
-      if (!queriesConfig) return
-      setQuery({
-        key: querySlug,
-        ...queriesConfig.queries[querySlug],
-      })
+    (newQuery: requests.Query) => {
+      setQuery(newQuery)
       setQueryBody(null)
     },
-    [queriesConfig, setQuery],
+    [setQuery, setQueryBody],
   )
 
   return (
     <Layout>
-      <QuerySelect
-        className={classes.select}
-        loading={configLoading}
-        queriesConfig={queriesConfig}
-        value={query}
-        onChange={handleQuery}
-      />
+      <QueryConfigFetcher>
+        {({ configLoading, initialQuery, queriesConfig }) => (
+          <>
+            <QuerySelect
+              className={classes.select}
+              loading={configLoading}
+              queriesConfig={queriesConfig}
+              value={query || initialQuery}
+              onChange={handleQuery}
+            />
 
-      <QueryViewer loading={queryLoading} value={queryContent} />
+            <SearchResultsFetcher queryBody={queryBody}>
+              {({ results, resultsLoading }) => (
+                <>
+                  <QueryFetcher query={query || initialQuery}>
+                    {({ queryContent, queryLoading }) => (
+                      <>
+                        <QueryViewer loading={queryLoading} value={queryContent} />
 
-      <div className={classes.actions}>
-        <M.Button disabled={resutlsLoading || !queryContent} onClick={handleSubmit}>
-          Run query
-        </M.Button>
-      </div>
+                        <div className={classes.actions}>
+                          <M.Button
+                            disabled={resultsLoading || !queryContent}
+                            onClick={handleSubmit(queryContent)}
+                          >
+                            Run query
+                          </M.Button>
+                        </div>
+                      </>
+                    )}
+                  </QueryFetcher>
 
-      <QueryResult loading={resutlsLoading} value={results} />
+                  <QueryResult loading={resultsLoading} value={results} />
+                </>
+              )}
+            </SearchResultsFetcher>
+          </>
+        )}
+      </QueryConfigFetcher>
     </Layout>
   )
 }
