@@ -73,6 +73,7 @@ function QueryConfigFetcher({ children }: QueryConfigFetcherProps) {
     const [key, value] = Object.entries(queriesConfig.queries)[0]
     return {
       key,
+      body: null,
       ...value,
     }
   }, [queriesConfig])
@@ -88,7 +89,6 @@ interface QueriesStatePropsInjectProps {
   configLoading: boolean
   handleQuery: (q: requests.Query) => void
   handleSubmit: (q: object | null) => () => void
-  initialQuery: requests.Query | null
   queriesConfig: requests.Config | null
   query: requests.Query | null
   queryContent: object | null
@@ -102,37 +102,30 @@ interface QueriesStateProps {
 }
 function QueriesState({ children }: QueriesStateProps) {
   const [query, setQuery] = React.useState<requests.Query | null>(null)
-  const [queryBody, setQueryBody] = React.useState<object | null>(null)
 
   const handleSubmit = React.useMemo(
-    () => (queryContent: object | null) => () => {
-      setQueryBody(queryContent)
+    () => (body: object | null) => () => {
+      setQuery({
+        ...query,
+        body,
+      } as requests.Query) // FIXME: WTF? Why doesn't it compile?
     },
-    [setQueryBody],
-  )
-
-  const handleQuery = React.useCallback(
-    (newQuery: requests.Query) => {
-      setQuery(newQuery)
-      setQueryBody(null)
-    },
-    [setQuery, setQueryBody],
+    [query, setQuery],
   )
 
   return (
     <QueryConfigFetcher>
       {({ configLoading, initialQuery, queriesConfig }) => (
-        <SearchResultsFetcher queryBody={queryBody}>
+        <SearchResultsFetcher queryBody={query ? query.body : null}>
           {({ results, resultsLoading }) => (
             <QueryFetcher query={query || initialQuery}>
               {({ queryContent, queryLoading }) =>
                 children({
                   configLoading,
-                  handleQuery,
+                  handleQuery: setQuery,
                   handleSubmit,
-                  initialQuery,
                   queriesConfig,
-                  query,
+                  query: query || initialQuery,
                   queryContent,
                   queryLoading,
                   results,
@@ -156,7 +149,6 @@ export default function Queries() {
         configLoading,
         handleQuery,
         handleSubmit,
-        initialQuery,
         queriesConfig,
         query,
         queryContent,
@@ -169,7 +161,7 @@ export default function Queries() {
             className={classes.select}
             loading={configLoading}
             queriesConfig={queriesConfig}
-            value={query || initialQuery}
+            value={query}
             onChange={handleQuery}
           />
 

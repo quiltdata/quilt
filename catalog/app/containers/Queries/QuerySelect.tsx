@@ -49,8 +49,9 @@ export default function QuerySelect({
       const querySlug = event.target.value
       if (!queriesConfig) return
       onChange({
-        key: querySlug,
         ...queriesConfig.queries[querySlug],
+        key: querySlug,
+        body: null,
       })
     },
     [queriesConfig, onChange],
@@ -59,8 +60,8 @@ export default function QuerySelect({
   const list = React.useMemo(() => {
     if (!queriesConfig || !queriesConfig.queries) return []
     return Object.entries(queriesConfig.queries).map(([key, query]) => ({
-      key,
       ...query,
+      key,
     }))
   }, [queriesConfig])
 
