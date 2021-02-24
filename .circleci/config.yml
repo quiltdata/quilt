@@ -193,7 +193,7 @@ jobs:
 
 workflows:
   version: 2
-  py-ci:
+  ci:
     jobs:
       - linter
       - isort
@@ -237,6 +237,4 @@ workflows:
             <<: *release-tags
             branches:
               ignore: /.*/
-  js-ci:
-    jobs:
       - test-catalog
