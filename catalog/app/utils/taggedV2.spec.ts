@@ -62,7 +62,7 @@ describe('utils/taggedv2', () => {
     })
   })
 
-  describe('Constructor.is', () => {
+  describe('Constructor.unbox', () => {
     const Type = tagged.create('Type' as const, {
       A: (v: number) => v,
       B: () => {},
