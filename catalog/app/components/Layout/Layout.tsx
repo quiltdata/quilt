@@ -4,11 +4,11 @@ import * as M from '@material-ui/core'
 import Footer from 'components/Footer'
 import * as NavBar from 'containers/NavBar'
 
-const useRootStyles = M.makeStyles(() => ({
+const useRootStyles = M.makeStyles({
   root: {
     overflowX: 'hidden',
   },
-}))
+})
 
 interface RootProps {
   dark?: boolean

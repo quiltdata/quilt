@@ -89,12 +89,12 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
   )
 }
 
-const useButtonStyles = M.makeStyles(() => ({
+const useButtonStyles = M.makeStyles({
   root: {
     flexShrink: 0,
     margin: '-3px 0',
   },
-}))
+})
 
 function Button({ children, onClick }) {
   const classes = useButtonStyles()

@@ -5,7 +5,7 @@ import { useDropzone } from 'react-dropzone'
 import * as M from '@material-ui/core'
 
 import { readableBytes } from 'utils/string'
-import tagged from 'utils/tagged'
+import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
 
 import * as PD from './PackageDialog'
@@ -17,28 +17,66 @@ const COLORS = {
   deleted: M.colors.red[900],
 }
 
-export const FilesAction = tagged([
-  'Add', // { files: [File], prefix: str }
-  'Delete', // path: str
-  'DeleteDir', // prefix: str
-  'Revert', // path: str
-  'RevertDir', // prefix: str
-  'Reset',
-])
+export const FilesAction = tagged.create(
+  'app/containers/Bucket/PackageDialog/FilesInput:FilesAction' as const,
+  {
+    Add: (v: { files: File[]; prefix?: string }) => v,
+    Delete: (path: string) => path,
+    DeleteDir: (prefix: string) => prefix,
+    Revert: (path: string) => path,
+    RevertDir: (prefix: string) => prefix,
+    Reset: () => {},
+  },
+)
 
-const handleFilesAction = FilesAction.case({
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type FilesAction = tagged.InstanceOf<typeof FilesAction>
+
+// XXX: this looks more like a manifest entry, so we probably should move this out to a more appropriate place
+export interface ExistingFile {
+  hash: string
+  meta: {}
+  physicalKey: string
+  size: number
+  // TODO: this was added as an ad hoc workaround to display directories in PackageDirectoryDialog.
+  // We should consider changing this design, bc it breaks the consistency of the model.
+  isDir?: boolean
+}
+
+export interface FilesState {
+  added: Record<string, File>
+  deleted: Record<string, true>
+  existing: Record<string, ExistingFile>
+}
+
+interface FilesStateTransformer {
+  (state: FilesState): FilesState
+}
+
+const dissocBy = (fn: (key: string) => boolean) =>
+  R.pipe(
+    // @ts-expect-error
+    R.toPairs,
+    R.filter(([k]) => !fn(k)),
+    R.fromPairs,
+  ) as { <T>(obj: Record<string, T>): Record<string, T> }
+
+const handleFilesAction = FilesAction.match<
+  FilesStateTransformer,
+  [{ initial: FilesState }]
+>({
   Add: ({ files, prefix }) => (state) =>
     files.reduce((acc, file) => {
-      const path = (prefix || '') + PD.getNormalizedPath(file)
+      const path = (prefix || '') + (PD.getNormalizedPath as (f: File) => string)(file)
       return R.evolve(
         {
           added: R.assoc(path, file),
           deleted: R.dissoc(path),
         },
         acc,
-      )
+      ) as FilesState
     }, state),
-  Delete: (path) => R.evolve({ deleted: R.assoc(path, true) }),
+  Delete: (path) => R.evolve({ deleted: R.assoc(path, true) }) as FilesStateTransformer,
   // add all descendants from existing to deleted
   DeleteDir: (prefix) => ({ existing, added, deleted }) => ({
     existing,
@@ -51,15 +89,112 @@ const handleFilesAction = FilesAction.case({
       deleted,
     ),
   }),
-  Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
+  Revert: (path) =>
+    R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }) as FilesStateTransformer,
   // remove all descendants from added and deleted
   RevertDir: (prefix) =>
     R.evolve({
       added: dissocBy(R.startsWith(prefix)),
       deleted: dissocBy(R.startsWith(prefix)),
-    }),
+    }) as FilesStateTransformer,
   Reset: (_, { initial }) => () => initial,
 })
+
+interface DispatchFilesAction {
+  (action: FilesAction): void
+}
+
+type FilesEntryType = 'deleted' | 'modified' | 'unchanged' | 'unchanged' | 'added'
+
+const FilesEntryTag = 'app/containers/Bucket/PackageDialog/FilesInput:FilesEntry' as const
+
+const FilesEntry = tagged.create(FilesEntryTag, {
+  Dir: (v: {
+    disabled?: boolean
+    name: string
+    type: FilesEntryType
+    contentIsUnknown?: boolean
+    children: tagged.Instance<typeof FilesEntryTag>[]
+  }) => v,
+  File: (v: { disabled?: boolean; name: string; type: FilesEntryType; size: number }) =>
+    v,
+})
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+type FilesEntry = tagged.InstanceOf<typeof FilesEntry>
+type FilesEntryDir = ReturnType<typeof FilesEntry.Dir>
+
+const insertIntoDir = (path: string[], file: FilesEntry, dir: FilesEntryDir) => {
+  const { name, children } = FilesEntry.Dir.unbox(dir)
+  const newChildren = insertIntoTree(path, file, children)
+  const type = newChildren
+    .map(FilesEntry.match({ Dir: R.prop('type'), File: R.prop('type') }))
+    .reduce((acc, entryType) => (acc === entryType ? acc : 'modified'))
+  return FilesEntry.Dir({ name, type, children: newChildren })
+}
+
+const insertIntoTree = (path: string[] = [], file: FilesEntry, entries: FilesEntry[]) => {
+  let inserted = file
+  let restEntries = entries
+  if (path.length) {
+    const [current, ...rest] = path
+    const type = FilesEntry.match({ File: (f) => f.type, Dir: (d) => d.type }, file)
+    let baseDir = FilesEntry.Dir({ name: current, type, children: [] })
+    const existingDir = entries.find(
+      FilesEntry.match({
+        File: () => false,
+        Dir: R.propEq('name', current),
+      }),
+    )
+    if (existingDir) {
+      restEntries = R.without([existingDir], entries)
+      baseDir = existingDir as FilesEntryDir
+    }
+    inserted = insertIntoDir(rest, file, baseDir)
+  }
+  const sort = R.sortWith([
+    R.ascend(FilesEntry.match({ Dir: () => 0, File: () => 1 })),
+    R.ascend(FilesEntry.match({ Dir: (d) => d.name, File: (f) => f.name })),
+  ])
+  return sort([inserted, ...restEntries])
+}
+
+interface IntermediateEntry {
+  type: FilesEntryType
+  path: string
+  size: number
+  isDir?: boolean
+}
+
+const computeEntries = ({ added, deleted, existing }: FilesState) => {
+  const existingEntries = Object.entries(existing).map(([path, { isDir, size }]) => {
+    if (path in deleted) {
+      return { type: 'deleted' as const, path, size }
+    }
+    if (path in added) {
+      const a = added[path]
+      return { type: 'modified' as const, path, size: a.size }
+    }
+    if (isDir) {
+      return { type: 'unchanged' as const, path, size, isDir }
+    }
+    return { type: 'unchanged' as const, path, size }
+  })
+  const addedEntries = Object.entries(added).reduce((acc, [path, { size }]) => {
+    if (path in existing) return acc
+    return acc.concat({ type: 'added', path, size })
+  }, [] as IntermediateEntry[])
+  const entries: IntermediateEntry[] = [...existingEntries, ...addedEntries]
+  return entries.reduce((children, { path, ...rest }) => {
+    const parts = path.split('/')
+    const prefixPath = R.init(parts).map((p) => `${p}/`)
+    const name = R.last(parts)!
+    const file = rest.isDir
+      ? FilesEntry.Dir({ name, contentIsUnknown: true, children: [], ...rest })
+      : FilesEntry.File({ name, ...rest })
+    return insertIntoTree(prefixPath, file, children)
+  }, [] as FilesEntry[])
+}
 
 const useEntryIconStyles = M.makeStyles((t) => ({
   root: {
@@ -92,7 +227,9 @@ const useEntryIconStyles = M.makeStyles((t) => ({
   },
 }))
 
-function EntryIcon({ state, children }) {
+type EntryIconProps = React.PropsWithChildren<{ state: FilesEntryType }>
+
+function EntryIcon({ state, children }: EntryIconProps) {
   const classes = useEntryIconStyles()
   const stateContents =
     state &&
@@ -100,6 +237,7 @@ function EntryIcon({ state, children }) {
       added: '+',
       deleted: <>&ndash;</>,
       modified: '~',
+      unchanged: undefined,
     }[state]
   return (
     <div className={classes.root}>
@@ -163,13 +301,18 @@ const useFileStyles = M.makeStyles((t) => ({
   },
 }))
 
-function File({ disabled, name, type, size, prefix, dispatch }) {
+type FileProps = tagged.ValueOf<typeof FilesEntry.File> & {
+  prefix?: string
+  dispatch: DispatchFilesAction
+}
+
+function File({ disabled, name, type, size, prefix, dispatch }: FileProps) {
   const classes = useFileStyles()
 
   const path = (prefix || '') + name
 
   const handle = React.useCallback(
-    (cons) => (e) => {
+    (cons: tagged.ConstructorOf<typeof FilesAction>) => (e: React.MouseEvent) => {
       e.stopPropagation()
       dispatch(cons(path))
     },
@@ -195,7 +338,7 @@ function File({ disabled, name, type, size, prefix, dispatch }) {
     [type, handle],
   )
 
-  const onClick = React.useCallback((e) => {
+  const onClick = React.useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
   }, [])
 
@@ -207,7 +350,7 @@ function File({ disabled, name, type, size, prefix, dispatch }) {
       role="button"
       tabIndex={0}
     >
-      <div className={cx(classes.contents, { [classes.contentsDisabled]: disabled })}>
+      <div className={classes.contents}>
         <EntryIcon state={type}>insert_drive_file</EntryIcon>
         <div className={classes.name} title={name}>
           {name}
@@ -312,7 +455,20 @@ const useDirStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Dir({ contentIsUnknown, disabled, name, type, children, prefix, dispatch }) {
+type DirProps = tagged.ValueOf<typeof FilesEntry.Dir> & {
+  prefix?: string
+  dispatch: DispatchFilesAction
+}
+
+function Dir({
+  contentIsUnknown,
+  disabled,
+  name,
+  type,
+  children,
+  prefix,
+  dispatch,
+}: DirProps) {
   const classes = useDirStyles()
   // TODO: move state out?
   const [expanded, setExpanded] = React.useState(true)
@@ -326,14 +482,14 @@ function Dir({ contentIsUnknown, disabled, name, type, children, prefix, dispatc
     [disabled, setExpanded],
   )
 
-  const onClick = React.useCallback((e) => {
+  const onClick = React.useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
   }, [])
 
   const path = (prefix || '') + name
 
   const onDrop = React.useCallback(
-    (files) => {
+    (files: File[]) => {
       dispatch(FilesAction.Add({ prefix: path, files }))
     },
     [dispatch, path],
@@ -345,7 +501,7 @@ function Dir({ contentIsUnknown, disabled, name, type, children, prefix, dispatc
   })
 
   const handle = React.useCallback(
-    (cons) => (e) => {
+    (cons: tagged.ConstructorOf<typeof FilesAction>) => (e: React.MouseEvent) => {
       e.stopPropagation()
       dispatch(cons(path))
     },
@@ -407,18 +563,16 @@ function Dir({ contentIsUnknown, disabled, name, type, children, prefix, dispatc
         <M.Collapse in={expanded}>
           <div className={classes.body}>
             {children.length ? (
-              children.map((entry) => {
-                const [Component, props] = FilesEntry.case(
-                  {
-                    Dir: (ps) => [Dir, ps],
-                    File: (ps) => [File, ps],
-                  },
-                  entry,
-                )
-                return (
-                  <Component {...{ ...props, key: props.name, prefix: path, dispatch }} />
-                )
-              })
+              children.map(
+                FilesEntry.match({
+                  Dir: (ps) => (
+                    <Dir {...ps} key={ps.name} prefix={path} dispatch={dispatch} />
+                  ),
+                  File: (ps) => (
+                    <File {...ps} key={ps.name} prefix={path} dispatch={dispatch} />
+                  ),
+                }),
+              )
             ) : (
               <div className={classes.emptyDummy} />
             )}
@@ -540,82 +694,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const FilesEntry = tagged([
-  'Dir', // { disabled: bool, name: str, type: enum, children: [FilesEntry] }
-  'File', // { disabled: bool, name: str, type: enum, size: num }
-])
-
-const insertIntoDir = (path, file, dir) => {
-  const { name, children } = FilesEntry.Dir.unbox(dir)
-  const newChildren = insertIntoTree(path, file, children)
-  const type = newChildren
-    .map(FilesEntry.case({ Dir: R.prop('type'), File: R.prop('type') }))
-    .reduce((acc, entryType) => (acc === entryType ? acc : 'modified'))
-  return FilesEntry.Dir({ name, type, children: newChildren })
-}
-
-const dissocBy = (fn) =>
-  R.pipe(
-    R.toPairs,
-    R.filter(([k]) => !fn(k)),
-    R.fromPairs,
-  )
-
-const insertIntoTree = (path = [], file, entries) => {
-  let inserted = file
-  let restEntries = entries
-  if (path.length) {
-    const [current, ...rest] = path
-    let baseDir = FilesEntry.Dir({ name: current, type: file.type, children: [] })
-    const existingDir = entries.find(
-      FilesEntry.case({
-        File: () => false,
-        Dir: R.propEq('name', current),
-      }),
-    )
-    if (existingDir) {
-      restEntries = R.without([existingDir], entries)
-      baseDir = existingDir
-    }
-    inserted = insertIntoDir(rest, file, baseDir)
-  }
-  const getOrder = FilesEntry.case({
-    Dir: (d) => [0, d.name],
-    File: (f) => [1, f.name],
-  })
-  return R.sortBy(getOrder, [inserted, ...restEntries])
-}
-
-const computeEntries = ({ added, deleted, existing }) => {
-  const existingEntries = Object.entries(existing).map(([path, { isDir, size }]) => {
-    if (path in deleted) {
-      return { type: 'deleted', path, size }
-    }
-    if (path in added) {
-      const a = added[path]
-      return { type: 'modified', path, size: a.size }
-    }
-    if (isDir) {
-      return { type: 'unchanged', path, size, isDir }
-    }
-    return { type: 'unchanged', path, size }
-  })
-  const addedEntries = Object.entries(added).reduce((acc, [path, { size }]) => {
-    if (path in existing) return acc
-    return acc.concat({ type: 'added', path, size })
-  }, [])
-  const entries = [...existingEntries, ...addedEntries]
-  return entries.reduce((children, { path, ...rest }) => {
-    const parts = path.split('/')
-    const prefixPath = R.init(parts).map((p) => `${p}/`)
-    const name = R.last(parts)
-    const file = rest.isDir
-      ? FilesEntry.Dir({ name, contentIsUnknown: true, children: [], ...rest })
-      : FilesEntry.File({ name, ...rest })
-    return insertIntoTree(prefixPath, file, children)
-  }, [])
-}
-
 const useDropdownMessageStyles = M.makeStyles((t) => ({
   root: {
     ...t.typography.body2,
@@ -638,12 +716,18 @@ const useDropdownMessageStyles = M.makeStyles((t) => ({
   },
 }))
 
-function DropdownMessage({ error, warning, disabled }) {
+interface DropdownMessageProps {
+  error: React.ReactNode
+  warn: boolean
+  disabled: boolean
+}
+
+function DropdownMessage({ error, warn, disabled }: DropdownMessageProps) {
   const classes = useDropdownMessageStyles()
 
   const label = React.useMemo(() => {
     if (error) return error
-    if (warning)
+    if (warn)
       return (
         <>
           Total size of new files exceeds recommended maximum of{' '}
@@ -652,14 +736,14 @@ function DropdownMessage({ error, warning, disabled }) {
       )
     if (disabled) return ''
     return 'Drop files here or click to browse'
-  }, [error, warning, disabled])
+  }, [error, warn, disabled])
 
   return (
     <div
       className={cx(classes.root, {
         [classes.disabled]: disabled,
         [classes.error]: error,
-        [classes.warning]: !error && warning,
+        [classes.warning]: !error && warn,
       })}
     >
       <span>{label}</span>
@@ -667,16 +751,45 @@ function DropdownMessage({ error, warning, disabled }) {
   )
 }
 
-export default function FilesInput({
+interface FilesInputProps {
+  input: {
+    value: FilesState
+    onChange: (value: FilesState) => void
+  }
+  className?: string
+  disabled?: boolean
+  errors?: Record<string, React.ReactNode>
+  meta: {
+    submitting: boolean
+    submitSucceeded: boolean
+    submitFailed: boolean
+    dirty: boolean
+    error?: string
+    initial: FilesState
+  }
+  onFilesAction?: (
+    action: FilesAction,
+    oldValue: FilesState,
+    newValue: FilesState,
+  ) => void
+  title: React.ReactNode
+  totalProgress: {
+    total: number
+    loaded: number
+    percent: number
+  }
+}
+
+export function FilesInput({
   input: { value, onChange },
   className,
-  disabled,
+  disabled = false,
   errors = {},
   meta,
   onFilesAction,
   title,
   totalProgress,
-}) {
+}: FilesInputProps) {
   const classes = useStyles()
 
   const submitting = meta.submitting || meta.submitSucceeded
@@ -689,16 +802,17 @@ export default function FilesInput({
 
   const warn = totalSize > PD.MAX_SIZE
 
-  const ref = React.useRef()
-  ref.current = {
+  const refProps = {
     value,
     disabled: disabled || submitting,
     initial: meta.initial,
     onChange,
     onFilesAction,
   }
-  const { current: dispatch } = React.useRef((action) => {
-    const cur = ref.current
+  const ref = React.useRef<typeof refProps>()
+  ref.current = refProps
+  const { current: dispatch } = React.useRef((action: FilesAction) => {
+    const cur = ref.current!
     if (cur.disabled) return
     const newValue = handleFilesAction(action, { initial: cur.initial })(cur.value)
     cur.onChange(newValue)
@@ -737,7 +851,7 @@ export default function FilesInput({
         <div
           className={cx(
             classes.headerFiles,
-            ref.current.submitting || disabled // eslint-disable-line no-nested-ternary
+            submitting || disabled // eslint-disable-line no-nested-ternary
               ? classes.headerFilesDisabled
               : error // eslint-disable-line no-nested-ternary
               ? classes.headerFilesError
@@ -801,23 +915,33 @@ export default function FilesInput({
               )}
             >
               <div className={classes.filesContainerInner}>
-                {computedEntries.map((entry) => {
-                  const [Component, props, key] = FilesEntry.case(
-                    {
-                      Dir: (ps) => [Dir, ps, `dir:${ps.name}`],
-                      File: (ps) => [File, ps, `file:${ps.name}`],
-                    },
-                    entry,
-                  )
-                  return <Component {...{ ...props, key, dispatch, disabled }} />
-                })}
+                {computedEntries.map(
+                  FilesEntry.match({
+                    Dir: (ps) => (
+                      <Dir
+                        {...ps}
+                        key={`dir:${ps.name}`}
+                        dispatch={dispatch}
+                        disabled={disabled}
+                      />
+                    ),
+                    File: (ps) => (
+                      <File
+                        {...ps}
+                        key={`file:${ps.name}`}
+                        dispatch={dispatch}
+                        disabled={disabled}
+                      />
+                    ),
+                  }),
+                )}
               </div>
             </div>
           )}
 
           <DropdownMessage
-            error={errors[error] || error}
-            warn={error}
+            error={error && (errors[error] || error)}
+            warn={warn}
             disabled={disabled}
           />
         </div>
@@ -846,3 +970,5 @@ export default function FilesInput({
     </div>
   )
 }
+
+export default FilesInput

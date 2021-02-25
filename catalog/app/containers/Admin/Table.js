@@ -168,11 +168,11 @@ export function Head({
   )
 }
 
-const useWrapperStyles = M.makeStyles(() => ({
+const useWrapperStyles = M.makeStyles({
   root: {
     overflowX: 'auto',
   },
-}))
+})
 
 export function Wrapper({ className, ...props }) {
   const classes = useWrapperStyles()

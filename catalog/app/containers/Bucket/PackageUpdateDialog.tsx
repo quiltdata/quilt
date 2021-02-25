@@ -1,4 +1,5 @@
-import { FORM_ERROR } from 'final-form'
+import type { S3 } from 'aws-sdk'
+import * as FF from 'final-form'
 import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -15,28 +16,62 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
-import tagged from 'utils/tagged'
+import * as tagged from 'utils/taggedV2'
 import * as validators from 'utils/validators'
 
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
-const dissocBy = (fn) =>
+type WorkflowsConfig = $TSFixMe
+
+interface Manifest {
+  entries: Record<string, PD.ExistingFile>
+  meta: $TSFixMe
+}
+
+interface UploadResult extends S3.ManagedUpload.SendData {
+  VersionId: string
+}
+
+const dissocBy = (fn: (key: string) => boolean) =>
   R.pipe(
+    // @ts-expect-error
     R.toPairs,
     R.filter(([k]) => !fn(k)),
     R.fromPairs,
-  )
+  ) as { <T>(obj: Record<string, T>): Record<string, T> }
 
-/*
 // TODO: use tree as the main data model / source of truth?
-state type: {
-  existing: { [path]: file },
-  added: { [path]: file },
-  // TODO: use Array or Set?
-  deleted: { [path]: true },
+
+interface TotalProgress {
+  total: number
+  loaded: number
+  percent: number
 }
-*/
+
+interface Uploads {
+  [path: string]: {
+    file: File
+    upload: S3.ManagedUpload
+    promise: Promise<{ result: UploadResult; hash: string } | undefined>
+    progress?: { total: number; loaded: number }
+  }
+}
+
+const getTotalProgress = R.pipe(
+  R.values,
+  R.reduce(
+    (acc, { progress: p }: Uploads[string]) => ({
+      total: acc.total + ((p && p.total) || 0),
+      loaded: acc.loaded + ((p && p.loaded) || 0),
+    }),
+    { total: 0, loaded: 0 },
+  ),
+  (p) => ({
+    ...p,
+    percent: p.total ? Math.floor((p.loaded / p.total) * 100) : 100,
+  }),
+) as (uploads: Uploads) => TotalProgress
 
 const useStyles = M.makeStyles((t) => ({
   files: {
@@ -53,20 +88,21 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const getTotalProgress = R.pipe(
-  R.values,
-  R.reduce(
-    (acc, { progress: p = {} }) => ({
-      total: acc.total + (p.total || 0),
-      loaded: acc.loaded + (p.loaded || 0),
-    }),
-    { total: 0, loaded: 0 },
-  ),
-  (p) => ({
-    ...p,
-    percent: p.total ? Math.floor((p.loaded / p.total) * 100) : 100,
-  }),
-)
+interface DialogFormProps {
+  bucket: string
+  close: () => void
+  manifest: Manifest
+  name: string
+  responseError: $TSFixMe
+  schema: $TSFixMe
+  schemaLoading: boolean
+  selectedWorkflow: $TSFixMe
+  setSubmitting: (submitting: boolean) => void
+  setSuccess: (success: $TSFixMe) => void
+  setWorkflow: (workflow: $TSFixMe) => void
+  validate: FF.FieldValidator<any>
+  workflowsConfig: WorkflowsConfig
+}
 
 function DialogForm({
   bucket,
@@ -82,18 +118,18 @@ function DialogForm({
   setWorkflow,
   validate: validateMetaInput,
   workflowsConfig,
-}) {
+}: DialogFormProps) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
-  const [uploads, setUploads] = React.useState({})
+  const [uploads, setUploads] = React.useState<Uploads>({})
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
-  const [nameWarning, setNameWarning] = React.useState('')
+  const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
-  const initialFiles = React.useMemo(
+  const initialFiles: PD.FilesState = React.useMemo(
     () => ({ existing: manifest.entries, added: {}, deleted: {} }),
     [manifest.entries],
   )
@@ -111,8 +147,20 @@ function DialogForm({
     [setUploads],
   )
 
-  // eslint-disable-next-line consistent-return
-  const onSubmit = async ({ name, msg, files, meta, workflow }) => {
+  const onSubmit = async ({
+    name,
+    msg,
+    files,
+    meta,
+    workflow,
+  }: {
+    name: string
+    msg: string
+    files: PD.FilesState
+    meta: {}
+    workflow: $TSFixMe
+    // eslint-disable-next-line consistent-return
+  }) => {
     const toUpload = Object.entries(files.added).map(([path, file]) => ({ path, file }))
 
     const limit = pLimit(2)
@@ -122,7 +170,7 @@ function DialogForm({
       const entry = uploads[path]
       if (entry && entry.file === file) return { ...entry, path }
 
-      const upload = s3.upload(
+      const upload: S3.ManagedUpload = s3.upload(
         {
           Bucket: bucket,
           Key: `${name}/${path}`,
@@ -165,23 +213,26 @@ function DialogForm({
     try {
       uploaded = await Promise.all(uploadStates.map((x) => x.promise))
     } catch (e) {
-      return { [FORM_ERROR]: PD.ERROR_MESSAGES.UPLOAD }
+      return { [FF.FORM_ERROR]: PD.ERROR_MESSAGES.UPLOAD }
     }
 
     const newEntries = pipeThru(toUpload, uploaded)(
-      R.zipWith((f, u) => [
-        f.path,
-        {
-          physicalKey: s3paths.handleToS3Url({
-            bucket,
-            key: u.result.Key,
-            version: u.result.VersionId,
-          }),
-          size: f.file.size,
-          hash: u.hash,
-          meta: R.prop('meta', files.existing[f.path]),
-        },
-      ]),
+      /// XXX: u may be undefined?
+      R.zipWith(
+        (f: { path: string; file: File }, u: { result: UploadResult; hash: string }) => [
+          f.path,
+          {
+            physicalKey: s3paths.handleToS3Url({
+              bucket,
+              key: u.result.Key,
+              version: u.result.VersionId,
+            }),
+            size: f.file.size,
+            hash: u.hash,
+            meta: R.prop('meta', files.existing[f.path]),
+          },
+        ],
+      ),
       R.fromPairs,
     )
 
@@ -209,7 +260,8 @@ function DialogForm({
           message: msg,
           contents,
           meta: PD.getMetaValue(meta, schema),
-          workflow: PD.getWorkflowApiParam(workflow.slug),
+          // FIXME: this obvsly shouldnt be cast to never
+          workflow: PD.getWorkflowApiParam(workflow.slug as never),
         },
       })
       setSuccess({ name, hash: res.top_hash })
@@ -217,11 +269,11 @@ function DialogForm({
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
       // TODO: handle specific cases?
-      return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
+      return { [FF.FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
     }
   }
 
-  const onSubmitWrapped = async (...args) => {
+  const onSubmitWrapped = async (...args: Parameters<typeof onSubmit>) => {
     setSubmitting(true)
     try {
       return await onSubmit(...args)
@@ -232,7 +284,7 @@ function DialogForm({
 
   const handleNameChange = React.useCallback(
     async (name) => {
-      let warning = ''
+      let warning: React.ReactNode = ''
 
       if (name !== initialName) {
         const nameExists = await nameExistence.validate(name)
@@ -282,8 +334,6 @@ function DialogForm({
       onSubmit={onSubmitWrapped}
       subscription={{
         error: true,
-        form: true,
-        handleSubmit: true,
         hasValidationErrors: true,
         submitError: true,
         submitFailed: true,
@@ -298,7 +348,6 @@ function DialogForm({
         error,
         submitError,
         hasValidationErrors,
-        form,
       }) => (
         <>
           <M.DialogTitle>Push package revision</M.DialogTitle>
@@ -317,7 +366,7 @@ function DialogForm({
                   <RF.FormSpy
                     subscription={{ modified: true, values: true }}
                     onChange={({ modified, values }) => {
-                      if (modified.workflow) {
+                      if (modified!.workflow) {
                         setWorkflow(values.workflow)
                       }
                     }}
@@ -342,7 +391,7 @@ function DialogForm({
                   <RF.Field
                     component={PD.CommitMessageInput}
                     name="msg"
-                    validate={validators.required}
+                    validate={validators.required as FF.FieldValidator<string>}
                     validateFields={['msg']}
                     errors={{
                       required: 'Enter a commit message',
@@ -357,6 +406,7 @@ function DialogForm({
                   ) : (
                     <RF.Field
                       className={classes.meta}
+                      // @ts-expect-error
                       component={PD.MetaInput}
                       name="meta"
                       bucket={bucket}
@@ -375,7 +425,7 @@ function DialogForm({
                     name="workflow"
                     workflowsConfig={workflowsConfig}
                     initialValue={selectedWorkflow}
-                    validate={validators.required}
+                    validate={validators.required as FF.FieldValidator<any>}
                     validateFields={['meta', 'workflow']}
                     errors={{
                       required: 'Workflow is required for this bucket.',
@@ -386,9 +436,10 @@ function DialogForm({
                 <PD.RightColumn>
                   <RF.Field
                     className={classes.files}
+                    // @ts-expect-error
                     component={PD.FilesInput}
                     name="files"
-                    validate={validators.nonEmpty}
+                    validate={validators.nonEmpty as FF.FieldValidator<$TSFixMe>}
                     validateFields={['files']}
                     errors={{
                       nonEmpty: 'Add files to create a package',
@@ -446,7 +497,11 @@ const useDialogStyles = M.makeStyles({
   },
 })
 
-function DialogPlaceholder({ close }) {
+interface DialogPlaceholderProps {
+  close?: () => void
+}
+
+function DialogPlaceholder({ close }: DialogPlaceholderProps) {
   const classes = useDialogStyles()
   return (
     <>
@@ -464,7 +519,12 @@ function DialogPlaceholder({ close }) {
   )
 }
 
-function DialogError({ error, close }) {
+interface DialogErrorProps {
+  error: any
+  close: () => void
+}
+
+function DialogError({ error, close }: DialogErrorProps) {
   return (
     <PD.DialogError
       error={error}
@@ -475,7 +535,14 @@ function DialogError({ error, close }) {
   )
 }
 
-function DialogSuccess({ bucket, name, hash, close }) {
+interface DialogSuccessProps {
+  bucket: string
+  name: string
+  hash: string
+  close: () => void
+}
+
+function DialogSuccess({ bucket, name, hash, close }: DialogSuccessProps) {
   const classes = useDialogStyles()
   const { urls } = NamedRoutes.use()
   return (
@@ -505,34 +572,60 @@ function DialogSuccess({ bucket, name, hash, close }) {
   )
 }
 
-function DialogWrapper({ exited, ...props }) {
-  const ref = React.useRef()
-  ref.current = { exited, onExited: props.onExited }
+interface DialogWrapperProps {
+  exited: boolean
+}
+
+function DialogWrapper({
+  exited,
+  ...props
+}: DialogWrapperProps & React.ComponentProps<typeof M.Dialog>) {
+  const refProps = { exited, onExited: props.onExited }
+  const ref = React.useRef<typeof refProps>()
+  ref.current = refProps
   React.useEffect(
     () => () => {
       // call onExited on unmount if it has not been called yet
-      if (!ref.current.exited && ref.current.onExited) ref.current.onExited()
+      if (!ref.current!.exited && ref.current!.onExited)
+        (ref.current!.onExited as () => void)()
     },
     [],
   )
   return <M.Dialog {...props} />
 }
 
-const DialogState = tagged([
-  'Closed',
-  'Loading',
-  'Error',
-  'Form', // { manifest, workflowsConfig }
-  'Success', // { name, hash }
-])
+const DialogState = tagged.create(
+  'app/containers/Bucket/PackageUpdateDialog:DialogState' as const,
+  {
+    Closed: () => {},
+    Loading: () => {},
+    Error: (e: Error) => e,
+    Form: (v: { manifest: Manifest; workflowsConfig: WorkflowsConfig }) => v,
+    Success: (v: { name: string; hash: string }) => v,
+  },
+)
 
-export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
+interface UsePackageUpdateDialogProps {
+  bucket: string
+  name: string
+  hash: string
+  onExited: (result: { pushed: false | { name: string; hash: string } }) => boolean
+}
+
+export function usePackageUpdateDialog({
+  bucket,
+  name,
+  hash,
+  onExited,
+}: UsePackageUpdateDialogProps) {
   const s3 = AWS.S3.use()
 
   const [isOpen, setOpen] = React.useState(false)
   const [wasOpened, setWasOpened] = React.useState(false)
   const [exited, setExited] = React.useState(!isOpen)
-  const [success, setSuccess] = React.useState(false)
+  const [success, setSuccess] = React.useState<{ name: string; hash: string } | false>(
+    false,
+  )
   const [submitting, setSubmitting] = React.useState(false)
   const [key, setKey] = React.useState(1)
   const [workflow, setWorkflow] = React.useState(null)
@@ -573,9 +666,9 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
     if (exited) return DialogState.Closed()
     if (success) return DialogState.Success(success)
     return workflowsData.case({
-      Ok: (workflowsConfig) =>
+      Ok: (workflowsConfig: WorkflowsConfig) =>
         manifestData.case({
-          Ok: (manifest) => DialogState.Form({ manifest, workflowsConfig }),
+          Ok: (manifest: Manifest) => DialogState.Form({ manifest, workflowsConfig }),
           Err: DialogState.Error,
           _: DialogState.Loading,
         }),
@@ -583,8 +676,6 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
       _: DialogState.Loading,
     })
   }, [exited, success, workflowsData, manifestData])
-
-  const stateCase = React.useCallback((cases) => DialogState.case(cases, state), [state])
 
   const render = React.useCallback(
     () => (
@@ -597,42 +688,44 @@ export function usePackageUpdateDialog({ bucket, name, hash, onExited }) {
         open={isOpen}
         scroll="paper"
       >
-        {stateCase({
-          Closed: () => null,
-          Loading: () => <DialogPlaceholder close={close} />,
-          Error: (e) => <DialogError close={close} error={e} />,
-          Form: ({ manifest, workflowsConfig }) => (
-            <PD.SchemaFetcher
-              manifest={manifest}
-              workflowsConfig={workflowsConfig}
-              workflow={workflow}
-            >
-              {AsyncResult.case({
-                Ok: (schemaProps) => (
-                  <DialogForm
-                    {...schemaProps}
-                    {...{
-                      bucket,
-                      close,
-                      setSubmitting,
-                      setSuccess,
-                      setWorkflow,
-                      workflowsConfig,
-
-                      manifest,
-                      name,
-                    }}
-                  />
-                ),
-                _: R.identity,
-              })}
-            </PD.SchemaFetcher>
-          ),
-          Success: (props) => <DialogSuccess {...{ bucket, close, ...props }} />,
-        })}
+        {DialogState.match(
+          {
+            Closed: () => null,
+            Loading: () => <DialogPlaceholder close={close} />,
+            Error: (e) => <DialogError close={close} error={e} />,
+            Form: ({ manifest, workflowsConfig }) => (
+              <PD.SchemaFetcher
+                manifest={manifest}
+                workflowsConfig={workflowsConfig}
+                workflow={workflow}
+              >
+                {AsyncResult.case({
+                  Ok: (schemaProps: $TSFixMe) => (
+                    <DialogForm
+                      {...schemaProps}
+                      {...{
+                        bucket,
+                        close,
+                        setSubmitting,
+                        setSuccess,
+                        setWorkflow,
+                        workflowsConfig,
+                        manifest,
+                        name,
+                      }}
+                    />
+                  ),
+                  _: R.identity,
+                })}
+              </PD.SchemaFetcher>
+            ),
+            Success: (props) => <DialogSuccess {...{ bucket, close, ...props }} />,
+          },
+          state,
+        )}
       </DialogWrapper>
     ),
-    [bucket, name, isOpen, exited, close, stateCase, success, handleExited, workflow],
+    [bucket, name, isOpen, exited, close, state, success, handleExited, workflow],
   )
 
   return React.useMemo(() => ({ open, close, render }), [open, close, render])
