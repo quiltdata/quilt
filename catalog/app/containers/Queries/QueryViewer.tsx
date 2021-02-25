@@ -11,6 +11,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface QueryViewerProps {
+  error: Error | null
   loading: boolean
   value: object | null
 }
@@ -28,8 +29,10 @@ function QueryViewerSkeleton() {
   )
 }
 
-export default function QueryViewer({ loading, value }: QueryViewerProps) {
+export default function QueryViewer({ error, loading, value }: QueryViewerProps) {
   const classes = useStyles()
+
+  if (error) return <Lab.Alert severity="error">{error.message}</Lab.Alert>
 
   if (loading) return <QueryViewerSkeleton />
 

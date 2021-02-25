@@ -48,6 +48,7 @@ export const queriesConfig = async ({
 export function useQueriesConfig() {
   const [loading, setLoading] = React.useState(false)
   const [result, setResult] = React.useState<Config | null>(null)
+  const [error, setError] = React.useState<Error | null>(null)
 
   const s3 = AWS.S3.use()
 
@@ -58,12 +59,14 @@ export function useQueriesConfig() {
         if (!config) return
         setResult(config)
       })
+      .catch(setError)
       .finally(() => {
         setLoading(false)
       })
-  }, [s3, setLoading, setResult])
+  }, [s3])
 
   return {
+    error,
     loading,
     result,
   }

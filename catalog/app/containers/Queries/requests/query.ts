@@ -28,6 +28,7 @@ export const query = async ({ s3, queryUrl }: QueryArgs): Promise<object | null>
 }
 
 export function useQuery(queryUrl: string) {
+  const [error, setError] = React.useState<Error | null>(null)
   const [loading, setLoading] = React.useState(false)
   const [result, setResult] = React.useState<object | null>(null)
 
@@ -42,12 +43,14 @@ export function useQuery(queryUrl: string) {
         if (!queryObj) return
         setResult(queryObj)
       })
+      .catch(setError)
       .finally(() => {
         setLoading(false)
       })
-  }, [queryUrl, s3, setLoading, setResult])
+  }, [queryUrl, s3])
 
   return {
+    error,
     loading,
     result,
   }

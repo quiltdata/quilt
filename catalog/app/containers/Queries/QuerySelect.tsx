@@ -7,6 +7,7 @@ import * as requests from './requests'
 
 interface QuerySelectProps {
   className: string
+  error: Error | null
   loading: boolean
   onChange: (value: requests.Query | null) => void
   queriesList: requests.Query[]
@@ -37,6 +38,7 @@ const useStyles = M.makeStyles({
 
 export default function QuerySelect({
   className,
+  error,
   loading,
   onChange,
   queriesList,
@@ -50,6 +52,8 @@ export default function QuerySelect({
     },
     [queriesList, onChange],
   )
+
+  if (error) return <Lab.Alert severity="error">{error.message}</Lab.Alert>
 
   if (loading) return <QuerySelectSkeleton className={className} />
 

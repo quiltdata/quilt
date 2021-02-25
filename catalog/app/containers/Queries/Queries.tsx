@@ -49,8 +49,9 @@ function SearchResultsFetcher({ children, queryBody }: SearchResultsFetcherProps
 }
 
 interface QueryFetcherInjectProps {
-  queryLoading: boolean
   queryContent: object | null
+  queryError: Error | null
+  queryLoading: boolean
 }
 
 interface QueryFetcherProps {
@@ -60,14 +61,20 @@ interface QueryFetcherProps {
 
 function QueryFetcher({ children, query }: QueryFetcherProps) {
   const queryUrl = React.useMemo(() => (query ? query.url : ''), [query])
-  const { loading: queryLoading, result: queryContent } = requests.useQuery(queryUrl)
+  const {
+    error: queryError,
+    loading: queryLoading,
+    result: queryContent,
+  } = requests.useQuery(queryUrl)
   return children({
-    queryLoading,
     queryContent,
+    queryError,
+    queryLoading,
   })
 }
 
 interface QueryConfigFetcherInjectProps {
+  configError: Error | null
   configLoading: boolean
   queriesList: requests.Query[]
 }
@@ -77,10 +84,16 @@ interface QueryConfigFetcherProps {
 }
 
 function QueryConfigFetcher({ children }: QueryConfigFetcherProps) {
-  const { loading: configLoading, result: queriesConfig } = requests.useQueriesConfig()
+  const {
+    error: configError,
+    loading: configLoading,
+    result: queriesConfig,
+  } = requests.useQueriesConfig()
 
   const queriesList = React.useMemo(() => {
-    if (!queriesConfig || !queriesConfig.queries) return []
+    if (!queriesConfig || queriesConfig instanceof Error || !queriesConfig.queries)
+      return []
+
     return Object.entries(queriesConfig.queries).map(([key, query]) => ({
       ...query,
       body: null,
@@ -89,18 +102,21 @@ function QueryConfigFetcher({ children }: QueryConfigFetcherProps) {
   }, [queriesConfig])
 
   return children({
+    configError,
     configLoading,
     queriesList,
   })
 }
 
 interface QueriesStatePropsInjectProps {
+  configError: Error | null
   configLoading: boolean
   handleChange: (q: requests.Query | null) => void
   handleSubmit: (q: ElasticSearchQuery) => () => void
   queriesList: requests.Query[]
   query: requests.Query | null
   queryContent: object | null
+  queryError: Error | null
   queryLoading: boolean
   results: object | null
   resultsLoading: boolean
@@ -120,18 +136,20 @@ function QueriesState({ children }: QueriesStateProps) {
 
   return (
     <QueryConfigFetcher>
-      {({ configLoading, queriesList }) => (
+      {({ configError, configLoading, queriesList }) => (
         <SearchResultsFetcher queryBody={queryBody}>
           {({ results, resultsLoading }) => (
             <QueryFetcher query={selectedQuery || queriesList[0]}>
-              {({ queryContent, queryLoading }) =>
+              {({ queryError, queryContent, queryLoading }) =>
                 children({
+                  configError,
                   configLoading,
                   handleChange: setSelectedQuery,
                   handleSubmit,
                   queriesList,
                   query: selectedQuery || queriesList[0],
                   queryContent,
+                  queryError,
                   queryLoading,
                   results,
                   resultsLoading,
@@ -151,12 +169,14 @@ export default function Queries() {
   return (
     <QueriesState>
       {({
+        configError,
         configLoading,
         handleChange,
         handleSubmit,
         queriesList,
         query,
         queryContent,
+        queryError,
         queryLoading,
         results,
         resultsLoading,
@@ -167,13 +187,18 @@ export default function Queries() {
               <div className={classes.form}>
                 <QuerySelect
                   className={classes.select}
+                  error={configError}
                   loading={configLoading}
+                  onChange={handleChange}
                   queriesList={queriesList}
                   value={query}
-                  onChange={handleChange}
                 />
 
-                <QueryViewer loading={queryLoading} value={queryContent} />
+                <QueryViewer
+                  error={queryError}
+                  loading={queryLoading}
+                  value={queryContent}
+                />
 
                 <div className={classes.actions}>
                   <M.Button
