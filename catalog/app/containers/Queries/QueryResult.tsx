@@ -13,6 +13,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface QueryResultProps {
   className: string
+  error: Error | null
   loading: boolean
   value: object | null
 }
@@ -22,8 +23,15 @@ function QueryResultSkeleton() {
   return <Lab.Skeleton height={t.spacing(3)} width="100%" />
 }
 
-export default function QueryResult({ className, loading, value }: QueryResultProps) {
+export default function QueryResult({
+  className,
+  error,
+  loading,
+  value,
+}: QueryResultProps) {
   const classes = useStyles()
+
+  if (error) return <Lab.Alert severity="error">{error.message}</Lab.Alert>
 
   if (loading) return <QueryResultSkeleton />
 

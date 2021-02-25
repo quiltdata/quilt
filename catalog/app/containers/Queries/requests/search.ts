@@ -25,6 +25,7 @@ async function search({ req, body }: SearchArgs) {
 }
 
 export function useSearch(query: object | null) {
+  const [error, setError] = React.useState<Error | null>(null)
   const [loading, setLoading] = React.useState(false)
   const [result, setResult] = React.useState<object | null>(null)
 
@@ -39,12 +40,14 @@ export function useSearch(query: object | null) {
         if (!results) return
         setResult(results)
       })
+      .catch(setError)
       .finally(() => {
         setLoading(false)
       })
   }, [query, req, setLoading, setResult])
 
   return {
+    error,
     loading,
     result,
   }

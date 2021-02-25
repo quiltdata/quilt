@@ -31,8 +31,9 @@ const useStyles = M.makeStyles((t) => ({
 type ElasticSearchQuery = object | null
 
 interface SearchResultsFetcherInjectProps {
-  resultsLoading: boolean
   results: object | null
+  resultsError: Error | null
+  resultsLoading: boolean
 }
 
 interface SearchResultsFetcherProps {
@@ -41,8 +42,13 @@ interface SearchResultsFetcherProps {
 }
 
 function SearchResultsFetcher({ children, queryBody }: SearchResultsFetcherProps) {
-  const { loading: resultsLoading, result: results } = requests.useSearch(queryBody)
+  const {
+    error: resultsError,
+    loading: resultsLoading,
+    result: results,
+  } = requests.useSearch(queryBody)
   return children({
+    resultsError,
     resultsLoading,
     results,
   })
@@ -119,6 +125,7 @@ interface QueriesStatePropsInjectProps {
   queryError: Error | null
   queryLoading: boolean
   results: object | null
+  resultsError: Error | null
   resultsLoading: boolean
 }
 
@@ -138,7 +145,7 @@ function QueriesState({ children }: QueriesStateProps) {
     <QueryConfigFetcher>
       {({ configError, configLoading, queriesList }) => (
         <SearchResultsFetcher queryBody={queryBody}>
-          {({ results, resultsLoading }) => (
+          {({ results, resultsError, resultsLoading }) => (
             <QueryFetcher query={selectedQuery || queriesList[0]}>
               {({ queryError, queryContent, queryLoading }) =>
                 children({
@@ -152,6 +159,7 @@ function QueriesState({ children }: QueriesStateProps) {
                   queryError,
                   queryLoading,
                   results,
+                  resultsError,
                   resultsLoading,
                 })
               }
@@ -179,6 +187,7 @@ export default function Queries() {
         queryError,
         queryLoading,
         results,
+        resultsError,
         resultsLoading,
       }) => (
         <Layout
@@ -214,6 +223,7 @@ export default function Queries() {
 
               <QueryResult
                 className={classes.results}
+                error={resultsError}
                 loading={resultsLoading}
                 value={results}
               />
