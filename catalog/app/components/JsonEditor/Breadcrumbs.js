@@ -16,12 +16,12 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const useItemStyles = M.makeStyles(() => ({
+const useItemStyles = M.makeStyles({
   root: {
     cursor: 'pointer',
     display: 'flex',
   },
-}))
+})
 
 function BreadcrumbsItem({ index, children, onClick }) {
   const classes = useItemStyles()

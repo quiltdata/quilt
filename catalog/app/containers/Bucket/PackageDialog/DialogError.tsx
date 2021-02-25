@@ -30,7 +30,7 @@ const useStyles = M.makeStyles((t) => ({
 const errorDisplay = R.cond([
   [
     R.is(ERRORS.WorkflowsConfigInvalid),
-    (e) => (
+    (e: ERRORS.WorkflowsConfigInvalid) => (
       <>
         <M.Typography variant="h6" gutterBottom>
           Invalid workflows config
@@ -50,7 +50,7 @@ const errorDisplay = R.cond([
   ],
   [
     R.is(ERRORS.ManifestTooLarge),
-    (e) => (
+    (e: ERRORS.ManifestTooLarge) => (
       <>
         <M.Typography variant="h6" gutterBottom>
           Package manifest too large
@@ -79,7 +79,19 @@ const errorDisplay = R.cond([
   ],
 ])
 
-export default function DialogError({ error, skeletonElement, title, onCancel }) {
+interface DialogErrorProps {
+  error: any
+  skeletonElement: React.ReactNode
+  title: React.ReactNode
+  onCancel: () => void
+}
+
+export default function DialogError({
+  error,
+  skeletonElement,
+  title,
+  onCancel,
+}: DialogErrorProps) {
   const classes = useStyles()
 
   return (
