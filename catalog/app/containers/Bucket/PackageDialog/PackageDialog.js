@@ -320,7 +320,13 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     flexGrow: 2,
   },
   dropzone: {
+    display: 'flex',
+    flexDirection: 'column',
+    overflowY: 'auto',
     position: 'relative',
+  },
+  editor: {
+    overflowY: 'auto',
   },
   overlay: {
     background: 'rgba(255,255,255,0.6)',
@@ -350,13 +356,10 @@ const useMetaInputStyles = M.makeStyles((t) => ({
 export const EMPTY_META_VALUE = {}
 
 // TODO: warn on duplicate keys
-export function MetaInput({
-  className,
-  schemaError,
-  input: { value, onChange },
-  meta,
-  schema,
-}) {
+export const MetaInput = React.forwardRef(function MetaInput(
+  { className, schemaError, input: { value, onChange }, meta, schema },
+  ref,
+) {
   const classes = useMetaInputStyles()
   const error = schemaError || ((meta.modified || meta.submitFailed) && meta.error)
   const disabled = meta.submitting || meta.submitSucceeded
@@ -458,11 +461,13 @@ export function MetaInput({
       <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
         {mode === 'kv' ? (
           <JsonEditor
+            className={classes.editor}
             disabled={disabled}
             value={value}
             onChange={onJsonEditor}
             schema={schema}
             key={jsonEditorKey}
+            ref={ref}
           />
         ) : (
           <M.TextField
@@ -507,7 +512,7 @@ export function MetaInput({
       </div>
     </div>
   )
-}
+})
 
 export function SchemaFetcher({ manifest, workflow, workflowsConfig, children }) {
   const s3 = AWS.S3.use()
@@ -567,6 +572,18 @@ export function useCryptoApiValidation() {
     }
   }, [])
 }
+
+export const useContentStyles = M.makeStyles({
+  root: {
+    height: ({ metaHeight }) =>
+      R.clamp(
+        420 /* minimal height */,
+        window.innerHeight - 200 /* free space for headers */,
+        400 /* space to fit other inputs */ + metaHeight,
+      ),
+    paddingTop: 0,
+  },
+})
 
 export function getUsernamePrefix(username) {
   if (!username) return ''

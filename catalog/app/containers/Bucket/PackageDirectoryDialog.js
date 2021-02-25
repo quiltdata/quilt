@@ -60,8 +60,14 @@ const useStyles = M.makeStyles((t) => ({
   files: {
     height: '100%',
   },
+  form: {
+    height: '100%',
+  },
   meta: {
+    display: 'flex',
+    flexDirection: 'column',
     marginTop: t.spacing(3),
+    overflowY: 'auto',
   },
 }))
 
@@ -84,9 +90,12 @@ function DialogForm({
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState('')
+  const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
 
   const req = APIConnector.use()
+
+  const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   const onSubmit = React.useCallback(
     // eslint-disable-next-line consistent-return
@@ -139,9 +148,8 @@ function DialogForm({
     }
   }
 
-  const onFormChange = React.useCallback(
-    async ({ values }) => {
-      const { name } = values
+  const handleNameChange = React.useCallback(
+    async (name) => {
       const fullName = `${successor.slug}/${name}`
 
       let warning = ''
@@ -165,8 +173,27 @@ function DialogForm({
         setNameWarning(warning)
       }
     },
-    [successor, nameExistence, nameWarning],
+    [nameWarning, nameExistence, successor],
   )
+
+  const [editorElement, setEditorElement] = React.useState()
+
+  const onFormChange = React.useCallback(
+    async ({ values }) => {
+      if (document.body.contains(editorElement)) {
+        setMetaHeight(editorElement.clientHeight)
+      }
+
+      handleNameChange(values.name)
+    },
+    [editorElement, handleNameChange, setMetaHeight],
+  )
+
+  React.useEffect(() => {
+    if (document.body.contains(editorElement)) {
+      setMetaHeight(editorElement.clientHeight)
+    }
+  }, [editorElement, setMetaHeight])
 
   const username = redux.useSelector(authSelectors.username)
   const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
@@ -197,8 +224,8 @@ function DialogForm({
             <DialogTitle bucket={successor.slug} path={path} />
           </M.DialogTitle>
 
-          <M.DialogContent style={{ paddingTop: 0 }}>
-            <form onSubmit={handleSubmit}>
+          <M.DialogContent classes={dialogContentClasses}>
+            <form onSubmit={handleSubmit} className={classes.form}>
               <RF.FormSpy
                 subscription={{ dirtyFields: true, values: true }}
                 onChange={onFormChange}
@@ -246,7 +273,10 @@ function DialogForm({
                   />
 
                   {schemaLoading ? (
-                    <PD.MetaInputSkeleton className={classes.meta} />
+                    <PD.MetaInputSkeleton
+                      className={classes.meta}
+                      ref={setEditorElement}
+                    />
                   ) : (
                     <RF.Field
                       className={classes.meta}
@@ -259,6 +289,7 @@ function DialogForm({
                       validateFields={['meta']}
                       isEqual={R.equals}
                       initialValue={PD.EMPTY_META_VALUE}
+                      ref={setEditorElement}
                     />
                   )}
 

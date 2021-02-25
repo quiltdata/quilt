@@ -4,7 +4,6 @@ import * as M from '@material-ui/core'
 const useStyles = M.makeStyles({
   content: {
     paddingTop: 0,
-    position: 'relative',
   },
 })
 

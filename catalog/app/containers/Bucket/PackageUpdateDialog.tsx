@@ -77,8 +77,14 @@ const useStyles = M.makeStyles((t) => ({
   files: {
     height: '100%',
   },
+  form: {
+    height: '100%',
+  },
   meta: {
+    display: 'flex',
+    flexDirection: 'column',
     marginTop: t.spacing(3),
+    overflowY: 'auto',
   },
 }))
 
@@ -119,7 +125,9 @@ function DialogForm({
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
+  const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
+  const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   const initialFiles: PD.FilesState = React.useMemo(
     () => ({ existing: manifest.entries, added: {}, deleted: {} }),
@@ -274,12 +282,8 @@ function DialogForm({
     }
   }
 
-  const onFormChange = React.useCallback(
-    async ({ modified, values }) => {
-      if (!modified.name) return
-
-      const { name } = values
-
+  const handleNameChange = React.useCallback(
+    async (name) => {
       let warning: React.ReactNode = ''
 
       if (name !== initialName) {
@@ -303,8 +307,27 @@ function DialogForm({
         setNameWarning(warning)
       }
     },
-    [nameWarning, initialName, nameExistence],
+    [nameWarning, nameExistence, initialName],
   )
+
+  const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
+
+  const onFormChange = React.useCallback(
+    async ({ modified, values }) => {
+      if (editorElement && document.body.contains(editorElement)) {
+        setMetaHeight(editorElement.clientHeight)
+      }
+
+      if (modified.name) handleNameChange(values.name)
+    },
+    [editorElement, handleNameChange, setMetaHeight],
+  )
+
+  React.useEffect(() => {
+    if (editorElement && document.body.contains(editorElement)) {
+      setMetaHeight(editorElement.clientHeight)
+    }
+  }, [editorElement, setMetaHeight])
 
   return (
     <RF.Form
@@ -328,8 +351,8 @@ function DialogForm({
       }) => (
         <>
           <M.DialogTitle>Push package revision</M.DialogTitle>
-          <M.DialogContent style={{ paddingTop: 0 }}>
-            <form onSubmit={handleSubmit}>
+          <M.DialogContent classes={dialogContentClasses}>
+            <form className={classes.form} onSubmit={handleSubmit}>
               <RF.FormSpy
                 subscription={{ modified: true, values: true }}
                 onChange={onFormChange}
@@ -376,7 +399,10 @@ function DialogForm({
                   />
 
                   {schemaLoading ? (
-                    <PD.MetaInputSkeleton className={classes.meta} />
+                    <PD.MetaInputSkeleton
+                      className={classes.meta}
+                      ref={setEditorElement}
+                    />
                   ) : (
                     <RF.Field
                       className={classes.meta}
@@ -389,6 +415,7 @@ function DialogForm({
                       validate={validateMetaInput}
                       validateFields={['meta']}
                       isEqual={R.equals}
+                      ref={setEditorElement}
                       initialValue={manifest.meta}
                     />
                   )}
@@ -464,15 +491,22 @@ function DialogForm({
   )
 }
 
+const useDialogStyles = M.makeStyles({
+  content: {
+    paddingTop: 0,
+  },
+})
+
 interface DialogPlaceholderProps {
   close?: () => void
 }
 
 function DialogPlaceholder({ close }: DialogPlaceholderProps) {
+  const classes = useDialogStyles()
   return (
     <>
       <M.DialogTitle>Push package revision</M.DialogTitle>
-      <M.DialogContent style={{ paddingTop: 0 }}>
+      <M.DialogContent className={classes.content}>
         <PD.FormSkeleton />
       </M.DialogContent>
       <M.DialogActions>
@@ -509,11 +543,12 @@ interface DialogSuccessProps {
 }
 
 function DialogSuccess({ bucket, name, hash, close }: DialogSuccessProps) {
+  const classes = useDialogStyles()
   const { urls } = NamedRoutes.use()
   return (
     <>
       <M.DialogTitle>Push complete</M.DialogTitle>
-      <M.DialogContent style={{ paddingTop: 0 }}>
+      <M.DialogContent className={classes.content}>
         <M.Typography>
           Package revision{' '}
           <StyledLink to={urls.bucketPackageTree(bucket, name, hash)}>

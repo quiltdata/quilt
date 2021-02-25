@@ -21,12 +21,15 @@ export function FilesInputSkeleton({ animate, className }: AnimateProp & ClassNa
   return (
     <div className={className}>
       <Skeleton {...{ height: 24, width: 64, animate }} />
-      <Skeleton {...{ height: 320, mt: 2, animate }} />
+      <Skeleton {...{ height: 336, mt: 2, animate }} />
     </div>
   )
 }
 
-export function MetaInputSkeleton({ animate, className }: AnimateProp & ClassNameProp) {
+export const MetaInputSkeleton = React.forwardRef(function MetaInputSkeleton(
+  { animate, className }: AnimateProp & ClassNameProp,
+  ref: React.Ref<HTMLDivElement>,
+) {
   return (
     <div className={className}>
       <M.Box display="flex" mb={2}>
@@ -34,17 +37,19 @@ export function MetaInputSkeleton({ animate, className }: AnimateProp & ClassNam
         <M.Box flexGrow={1} />
         <Skeleton {...{ height: 24, width: 64, animate }} />
       </M.Box>
-      <M.Box display="flex">
-        <Skeleton {...{ height: 32, width: 200, animate }} />
-        <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
-      </M.Box>
-      <M.Box display="flex" mt={0.5}>
-        <Skeleton {...{ height: 32, width: 200, animate }} />
-        <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
-      </M.Box>
+      <div ref={ref}>
+        <M.Box display="flex">
+          <Skeleton {...{ height: 32, width: 200, animate }} />
+          <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
+        </M.Box>
+        <M.Box display="flex" mt={0.5}>
+          <Skeleton {...{ height: 32, width: 200, animate }} />
+          <Skeleton {...{ height: 32, ml: 0.5, flexGrow: 1, animate }} />
+        </M.Box>
+      </div>
     </div>
   )
-}
+})
 
 export function WorkflowsInputSkeleton({ animate }: AnimateProp) {
   return <Skeleton {...{ height: 80, mt: 3, mb: 3, animate }} />
