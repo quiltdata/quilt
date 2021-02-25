@@ -28,7 +28,7 @@ export function FilesInputSkeleton({ animate, className }: AnimateProp & ClassNa
 
 export const MetaInputSkeleton = React.forwardRef(function MetaInputSkeleton(
   { animate, className }: AnimateProp & ClassNameProp,
-  ref,
+  ref: React.Ref<HTMLDivElement>,
 ) {
   return (
     <div className={className}>

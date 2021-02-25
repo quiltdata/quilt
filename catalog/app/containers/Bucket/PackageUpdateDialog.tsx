@@ -310,11 +310,11 @@ function DialogForm({
     [nameWarning, nameExistence, initialName],
   )
 
-  const [editorElement, setEditorElement] = React.useState()
+  const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
 
   const onFormChange = React.useCallback(
     async ({ modified, values }) => {
-      if (document.body.contains(editorElement)) {
+      if (editorElement && document.body.contains(editorElement)) {
         setMetaHeight(editorElement.clientHeight)
       }
 
@@ -324,7 +324,7 @@ function DialogForm({
   )
 
   React.useEffect(() => {
-    if (document.body.contains(editorElement)) {
+    if (editorElement && document.body.contains(editorElement)) {
       setMetaHeight(editorElement.clientHeight)
     }
   }, [editorElement, setMetaHeight])
