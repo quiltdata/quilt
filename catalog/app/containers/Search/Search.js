@@ -13,18 +13,7 @@ import parseSearch from 'utils/parseSearch'
 import search from 'utils/search'
 import useEditableValue from 'utils/useEditableValue'
 
-function Results({
-  buckets,
-  mode,
-  query,
-  page,
-  scrollRef,
-  makePageUrl,
-  retry,
-  retryUrl,
-}) {
-  const req = AWS.APIGateway.use()
-  const data = Data.use(search, { req, buckets, mode, query, retry })
+function Results({ buckets, data, query, page, scrollRef, makePageUrl, retryUrl }) {
   return data.case({
     _: () => (
       <SearchResults.Progress>
@@ -197,6 +186,17 @@ function BucketSelectDropdown({ buckets, onChange, short = false }) {
   )
 }
 
+function SearchStats({ data }) {
+  return data.case({
+    _: () => '',
+    Ok: ({ total }) => (
+      <M.Typography variant="body1" component="span">
+        {total} results
+      </M.Typography>
+    ),
+  })
+}
+
 const displayMode = (m) => {
   if (m === 'packages') return 'packages'
   if (m === 'objects') return 'objects'
@@ -314,6 +314,15 @@ const useSearchStyles = M.makeStyles((t) => ({
       },
     },
   },
+  stats: {
+    flexGrow: 1,
+    lineHeight: '40px',
+    padding: t.spacing(0, 3),
+    textAlign: 'right',
+    [t.breakpoints.down('xs')]: {
+      display: 'none',
+    },
+  },
 }))
 
 export default function Search({ location: l }) {
@@ -376,6 +385,13 @@ export default function Search({ location: l }) {
     [urls, q, buckets, mode, retry],
   )
 
+  const req = AWS.APIGateway.use()
+  const data = Data.use(
+    search,
+    { req, buckets, mode, query: q, retry },
+    { noAutoFetch: !q },
+  )
+
   return (
     <Layout
       pre={
@@ -399,7 +415,7 @@ export default function Search({ location: l }) {
                   onChange={handleQueryChange}
                 />
               </M.Box>
-              <M.Box flexGrow={1} display={{ xs: 'none', sm: 'block' }} />
+              <div className={classes.stats}>{!!q && <SearchStats data={data} />}</div>
               <M.Box component={M.Paper} className={classes.paper}>
                 <ModeAndBucketSelector
                   mode={mode}
@@ -412,13 +428,12 @@ export default function Search({ location: l }) {
             {q ? (
               <Results
                 {...{
+                  data,
                   query: q,
                   buckets,
                   page,
-                  mode,
                   scrollRef,
                   makePageUrl,
-                  retry,
                   retryUrl,
                 }}
               />
