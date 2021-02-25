@@ -686,7 +686,7 @@ export function usePackageUpdateDialog({
         onClose={close}
         onExited={handleExited}
         open={isOpen}
-        scroll="paper"
+        scroll="body"
       >
         {DialogState.match(
           {
