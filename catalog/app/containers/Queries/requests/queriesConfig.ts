@@ -14,9 +14,9 @@ export interface Query {
   url: string
 }
 
-export type QueryResponse = Omit<Query, 'key' | 'body'>
+type QueryResponse = Omit<Query, 'key' | 'body'>
 
-export interface Config {
+interface ConfigResponse {
   queries: Record<string, QueryResponse>
   version: string
 }
@@ -26,10 +26,16 @@ interface QueriesConfigArgs {
   bucket: string
 }
 
+export interface ConfigData {
+  error: Error | null
+  loading: boolean
+  value: Query[]
+}
+
 export const queriesConfig = async ({
   s3,
   bucket,
-}: QueriesConfigArgs): Promise<Config | null> => {
+}: QueriesConfigArgs): Promise<ConfigResponse | null> => {
   try {
     const response = await requests.fetchFile({ s3, bucket, path: QUERIES_CONFIG_PATH })
     return yaml(response.Body.toString('utf-8'))
@@ -45,9 +51,9 @@ export const queriesConfig = async ({
   }
 }
 
-export function useQueriesConfig() {
+export function useQueriesConfig(): ConfigData {
   const [loading, setLoading] = React.useState(false)
-  const [result, setResult] = React.useState<Config | null>(null)
+  const [result, setResult] = React.useState<ConfigResponse | null>(null)
   const [error, setError] = React.useState<Error | null>(null)
 
   const s3 = AWS.S3.use()
@@ -65,9 +71,22 @@ export function useQueriesConfig() {
       })
   }, [s3])
 
-  return {
-    error,
-    loading,
-    result,
-  }
+  const queriesList = React.useMemo(() => {
+    if (!result || !result.queries) return []
+
+    return Object.entries(result.queries).map(([key, query]) => ({
+      ...query,
+      body: null,
+      key,
+    }))
+  }, [result])
+
+  return React.useMemo(
+    () => ({
+      error,
+      loading,
+      value: queriesList,
+    }),
+    [error, loading, queriesList],
+  )
 }

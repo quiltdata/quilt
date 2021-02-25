@@ -4,6 +4,8 @@ import * as Lab from '@material-ui/lab'
 
 import JsonDisplay from 'components/JsonDisplay'
 
+import * as requests from './requests'
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(3, 4, 4),
@@ -11,9 +13,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface QueryViewerProps {
-  error: Error | null
-  loading: boolean
-  value: object | null
+  query: requests.QueryData
 }
 
 function QueryViewerSkeleton() {
@@ -29,18 +29,24 @@ function QueryViewerSkeleton() {
   )
 }
 
-export default function QueryViewer({ error, loading, value }: QueryViewerProps) {
+export default function QueryViewer({ query }: QueryViewerProps) {
   const classes = useStyles()
 
-  if (error) return <Lab.Alert severity="error">{error.message}</Lab.Alert>
+  if (query.error) return <Lab.Alert severity="error">{query.error.message}</Lab.Alert>
 
-  if (loading) return <QueryViewerSkeleton />
+  if (query.loading) return <QueryViewerSkeleton />
 
-  if (!value) return null
+  if (!query.value) return null
 
   return (
     <M.Paper className={classes.root}>
-      <JsonDisplay className="" value={value} name={undefined} topLevel defaultExpanded />
+      <JsonDisplay
+        className=""
+        value={query.value}
+        name={undefined}
+        topLevel
+        defaultExpanded
+      />
     </M.Paper>
   )
 }

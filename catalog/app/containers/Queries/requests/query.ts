@@ -10,6 +10,12 @@ interface QueryArgs {
   queryUrl: string
 }
 
+export interface QueryData {
+  error: Error | null
+  loading: boolean
+  value: object | null
+}
+
 export const query = async ({ s3, queryUrl }: QueryArgs): Promise<object | null> => {
   const { bucket, key, version } = s3paths.parseS3Url(queryUrl)
   try {
@@ -49,9 +55,12 @@ export function useQuery(queryUrl: string) {
       })
   }, [queryUrl, s3])
 
-  return {
-    error,
-    loading,
-    result,
-  }
+  return React.useMemo(
+    () => ({
+      error,
+      loading,
+      value: result,
+    }),
+    [error, loading, result],
+  )
 }

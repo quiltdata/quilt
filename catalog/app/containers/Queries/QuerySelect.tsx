@@ -7,10 +7,8 @@ import * as requests from './requests'
 
 interface QuerySelectProps {
   className: string
-  error: Error | null
-  loading: boolean
+  config: requests.ConfigData
   onChange: (value: requests.Query | null) => void
-  queriesList: requests.Query[]
   value: requests.Query | null
 }
 
@@ -38,29 +36,27 @@ const useStyles = M.makeStyles({
 
 export default function QuerySelect({
   className,
-  error,
-  loading,
+  config,
   onChange,
-  queriesList,
   value,
 }: QuerySelectProps) {
   const classes = useStyles()
 
   const handleChange = React.useCallback(
     (event) => {
-      onChange(queriesList.find((query) => query.key === event.target.value) || null)
+      onChange(config.value.find((query) => query.key === event.target.value) || null)
     },
-    [queriesList, onChange],
+    [config, onChange],
   )
 
-  if (error) return <Lab.Alert severity="error">{error.message}</Lab.Alert>
+  if (config.error) return <Lab.Alert severity="error">{config.error.message}</Lab.Alert>
 
-  if (loading) return <QuerySelectSkeleton className={className} />
+  if (config.loading) return <QuerySelectSkeleton className={className} />
 
   return (
     <M.FormControl className={cx(classes.root, className)}>
       <M.Select value={value ? value.key : ''} onChange={handleChange}>
-        {queriesList.map((query) => (
+        {config.value.map((query) => (
           <M.MenuItem key={query.key} value={query.key}>
             {query.name}
           </M.MenuItem>

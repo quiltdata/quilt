@@ -30,103 +30,43 @@ const useStyles = M.makeStyles((t) => ({
 
 type ElasticSearchQuery = object | null
 
-interface SearchResultsFetcherInjectProps {
-  results: object | null
-  resultsError: Error | null
-  resultsLoading: boolean
-}
-
 interface SearchResultsFetcherProps {
-  children: (props: SearchResultsFetcherInjectProps) => React.ReactElement
+  children: (props: requests.ResultsData) => React.ReactElement
   queryBody: object | null
 }
 
 function SearchResultsFetcher({ children, queryBody }: SearchResultsFetcherProps) {
-  const {
-    error: resultsError,
-    loading: resultsLoading,
-    result: results,
-  } = requests.useSearch(queryBody)
-  return children({
-    resultsError,
-    resultsLoading,
-    results,
-  })
-}
-
-interface QueryFetcherInjectProps {
-  queryContent: object | null
-  queryError: Error | null
-  queryLoading: boolean
+  const resultsData = requests.useSearch(queryBody)
+  return children(resultsData)
 }
 
 interface QueryFetcherProps {
-  children: (props: QueryFetcherInjectProps) => React.ReactElement
+  children: (props: requests.QueryData) => React.ReactElement
   query: requests.Query | null
 }
 
 function QueryFetcher({ children, query }: QueryFetcherProps) {
   const queryUrl = React.useMemo(() => (query ? query.url : ''), [query])
-  const {
-    error: queryError,
-    loading: queryLoading,
-    result: queryContent,
-  } = requests.useQuery(queryUrl)
-  return children({
-    queryContent,
-    queryError,
-    queryLoading,
-  })
-}
-
-interface QueryConfigFetcherInjectProps {
-  configError: Error | null
-  configLoading: boolean
-  queriesList: requests.Query[]
+  const queryData = requests.useQuery(queryUrl)
+  return children(queryData)
 }
 
 interface QueryConfigFetcherProps {
-  children: (props: QueryConfigFetcherInjectProps) => React.ReactElement
+  children: (props: requests.ConfigData) => React.ReactElement
 }
 
 function QueryConfigFetcher({ children }: QueryConfigFetcherProps) {
-  const {
-    error: configError,
-    loading: configLoading,
-    result: queriesConfig,
-  } = requests.useQueriesConfig()
-
-  const queriesList = React.useMemo(() => {
-    if (!queriesConfig || queriesConfig instanceof Error || !queriesConfig.queries)
-      return []
-
-    return Object.entries(queriesConfig.queries).map(([key, query]) => ({
-      ...query,
-      body: null,
-      key,
-    }))
-  }, [queriesConfig])
-
-  return children({
-    configError,
-    configLoading,
-    queriesList,
-  })
+  const config = requests.useQueriesConfig()
+  return children(config)
 }
 
 interface QueriesStatePropsInjectProps {
-  configError: Error | null
-  configLoading: boolean
+  config: requests.ConfigData
   handleChange: (q: requests.Query | null) => void
   handleSubmit: (q: ElasticSearchQuery) => () => void
-  queriesList: requests.Query[]
   query: requests.Query | null
-  queryContent: object | null
-  queryError: Error | null
-  queryLoading: boolean
-  results: object | null
-  resultsError: Error | null
-  resultsLoading: boolean
+  queryData: requests.QueryData
+  resultsData: requests.ResultsData
 }
 
 interface QueriesStateProps {
@@ -143,24 +83,18 @@ function QueriesState({ children }: QueriesStateProps) {
 
   return (
     <QueryConfigFetcher>
-      {({ configError, configLoading, queriesList }) => (
+      {(config) => (
         <SearchResultsFetcher queryBody={queryBody}>
-          {({ results, resultsError, resultsLoading }) => (
-            <QueryFetcher query={selectedQuery || queriesList[0]}>
-              {({ queryError, queryContent, queryLoading }) =>
+          {(resultsData) => (
+            <QueryFetcher query={selectedQuery || config.value[0]}>
+              {(queryData) =>
                 children({
-                  configError,
-                  configLoading,
+                  config,
                   handleChange: setSelectedQuery,
                   handleSubmit,
-                  queriesList,
-                  query: selectedQuery || queriesList[0],
-                  queryContent,
-                  queryError,
-                  queryLoading,
-                  results,
-                  resultsError,
-                  resultsLoading,
+                  query: selectedQuery || config.value[0],
+                  queryData,
+                  resultsData,
                 })
               }
             </QueryFetcher>
@@ -176,57 +110,33 @@ export default function Queries() {
 
   return (
     <QueriesState>
-      {({
-        configError,
-        configLoading,
-        handleChange,
-        handleSubmit,
-        queriesList,
-        query,
-        queryContent,
-        queryError,
-        queryLoading,
-        results,
-        resultsError,
-        resultsLoading,
-      }) => (
+      {({ config, queryData, handleChange, handleSubmit, query, resultsData }) => (
         <Layout
           pre={
             <M.Container className={classes.layout} maxWidth="lg">
               <div className={classes.form}>
                 <QuerySelect
                   className={classes.select}
-                  error={configError}
-                  loading={configLoading}
+                  config={config}
                   onChange={handleChange}
-                  queriesList={queriesList}
                   value={query}
                 />
 
-                <QueryViewer
-                  error={queryError}
-                  loading={queryLoading}
-                  value={queryContent}
-                />
+                <QueryViewer query={queryData} />
 
                 <div className={classes.actions}>
                   <M.Button
                     variant="contained"
                     color="primary"
-                    disabled={resultsLoading || !queryContent}
-                    onClick={handleSubmit(queryContent)}
+                    disabled={resultsData.loading || !queryData.value}
+                    onClick={handleSubmit(queryData.value)}
                   >
                     Run query
                   </M.Button>
                 </div>
               </div>
 
-              <QueryResult
-                className={classes.results}
-                error={resultsError}
-                loading={resultsLoading}
-                value={results}
-              />
+              <QueryResult className={classes.results} results={resultsData} />
             </M.Container>
           }
         />

@@ -8,6 +8,12 @@ interface SearchArgs {
   body: string
 }
 
+export interface ResultsData {
+  error: Error | null
+  loading: boolean
+  value: object | null
+}
+
 async function search({ req, body }: SearchArgs) {
   try {
     const result = await req('/search', { index: '*', action: 'search', body })
@@ -46,9 +52,12 @@ export function useSearch(query: object | null) {
       })
   }, [query, req, setLoading, setResult])
 
-  return {
-    error,
-    loading,
-    result,
-  }
+  return React.useMemo(
+    () => ({
+      error,
+      loading,
+      value: result,
+    }),
+    [error, loading, result],
+  )
 }

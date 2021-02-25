@@ -5,6 +5,8 @@ import * as Lab from '@material-ui/lab'
 
 import JsonDisplay from 'components/JsonDisplay'
 
+import * as requests from './requests'
+
 const useStyles = M.makeStyles((t) => ({
   root: {
     padding: t.spacing(3, 4, 4),
@@ -13,9 +15,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface QueryResultProps {
   className: string
-  error: Error | null
-  loading: boolean
-  value: object | null
+  results: requests.ResultsData
 }
 
 function QueryResultSkeleton() {
@@ -23,23 +23,25 @@ function QueryResultSkeleton() {
   return <Lab.Skeleton height={t.spacing(3)} width="100%" />
 }
 
-export default function QueryResult({
-  className,
-  error,
-  loading,
-  value,
-}: QueryResultProps) {
+export default function QueryResult({ className, results }: QueryResultProps) {
   const classes = useStyles()
 
-  if (error) return <Lab.Alert severity="error">{error.message}</Lab.Alert>
+  if (results.error)
+    return <Lab.Alert severity="error">{results.error.message}</Lab.Alert>
 
-  if (loading) return <QueryResultSkeleton />
+  if (results.loading) return <QueryResultSkeleton />
 
-  if (!value) return null
+  if (!results.value) return null
 
   return (
     <M.Paper className={cx(classes.root, className)}>
-      <JsonDisplay className="" value={value} name={undefined} topLevel defaultExpanded />
+      <JsonDisplay
+        className=""
+        value={results.value}
+        name={undefined}
+        topLevel
+        defaultExpanded
+      />
     </M.Paper>
   )
 }
