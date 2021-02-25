@@ -25,7 +25,7 @@ import * as requests from './requests'
 
 interface Manifest {
   entries: Record<string, PD.ExistingFile>
-  meta: $TSFixMe
+  meta: {}
   workflow?: {
     id?: string
   }
@@ -163,7 +163,15 @@ function DialogForm({
     workflow: workflows.Workflow
     // eslint-disable-next-line consistent-return
   }) => {
-    const toUpload = Object.entries(files.added).map(([path, file]) => ({ path, file }))
+    const addedEntries = Object.entries(files.added).map(([path, file]) => ({
+      path,
+      file,
+    }))
+    await Promise.all(addedEntries.map((e) => e.file.hash.promise))
+    const toUpload = addedEntries.filter(({ path, file }) => {
+      const e = files.existing[path]
+      return !e || e.hash !== file.hash.value
+    })
 
     const limit = pLimit(2)
     let rejected = false

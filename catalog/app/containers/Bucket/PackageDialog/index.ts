@@ -6,12 +6,8 @@ export { default as DialogLoading } from './DialogLoading'
 
 export { default as DialogSuccess } from './DialogSuccess'
 
-export {
-  default as FilesInput,
-  FilesAction,
-  ExistingFile,
-  FilesState,
-} from './FilesInput'
+export { default as FilesInput, FilesAction } from './FilesInput'
+export type { ExistingFile, FilesState } from './FilesInput'
 
 export { default as SubmitSpinner } from './SubmitSpinner'
 
