@@ -383,12 +383,12 @@ const getTotalProgress = R.pipe(
   }),
 )
 
-const useNameExistsWarningStyles = M.makeStyles(() => ({
+const useNameExistsWarningStyles = M.makeStyles({
   root: {
     marginRight: '4px',
     verticalAlign: '-5px',
   },
-}))
+})
 
 const NameExistsWarning = ({ name }) => {
   const classes = useNameExistsWarningStyles()
@@ -556,13 +556,7 @@ function PackageCreateDialog({
   )
 
   const username = redux.useSelector(authSelectors.username)
-  const usernamePrefix = React.useMemo(() => {
-    if (!username) return ''
-    const name = username.includes('@') ? username.split('@')[0] : username
-    // see PACKAGE_NAME_FORMAT at quilt3/util.py
-    const validParts = name.match(/\w+/g)
-    return validParts ? `${validParts.join('')}/` : ''
-  }, [username])
+  const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
 
   return (
     <RF.Form
