@@ -584,3 +584,11 @@ export const useContentStyles = M.makeStyles({
     paddingTop: 0,
   },
 })
+
+export function getUsernamePrefix(username) {
+  if (!username) return ''
+  const name = username.includes('@') ? username.split('@')[0] : username
+  // see PACKAGE_NAME_FORMAT at quilt3/util.py
+  const validParts = name.match(/\w+/g)
+  return validParts ? `${validParts.join('')}/` : ''
+}

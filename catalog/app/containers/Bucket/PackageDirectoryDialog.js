@@ -3,9 +3,11 @@ import { basename } from 'path'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
+import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -193,6 +195,9 @@ function DialogForm({
     }
   }, [editorElement, setMetaHeight])
 
+  const username = redux.useSelector(authSelectors.username)
+  const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
+
   return (
     <RF.Form
       onSubmit={onSubmitWrapped}
@@ -243,6 +248,7 @@ function DialogForm({
 
                   <RF.Field
                     component={PD.PackageNameInput}
+                    initialValue={usernamePrefix}
                     name="name"
                     validate={validators.composeAsync(
                       validators.required,
