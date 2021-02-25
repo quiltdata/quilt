@@ -1,7 +1,10 @@
+import * as R from 'ramda'
 import * as React from 'react'
 
 import * as errors from 'containers/Bucket/errors'
 import * as AWS from 'utils/AWS'
+
+import { useRequest } from './requests'
 
 interface SearchArgs {
   req: any
@@ -30,34 +33,11 @@ async function search({ req, body }: SearchArgs) {
   }
 }
 
-export function useSearch(query: object | null) {
-  const [error, setError] = React.useState<Error | null>(null)
-  const [loading, setLoading] = React.useState(false)
-  const [result, setResult] = React.useState<object | null>(null)
-
+export function useSearch(query: object | null): ResultsData {
   const req = AWS.APIGateway.use()
-
-  React.useEffect(() => {
-    if (!query) return
-
-    setLoading(true)
-    search({ req, body: JSON.stringify(query) })
-      .then((results: any) => {
-        if (!results) return
-        setResult(results)
-      })
-      .catch(setError)
-      .finally(() => {
-        setLoading(false)
-      })
-  }, [query, req, setLoading, setResult])
-
-  return React.useMemo(
-    () => ({
-      error,
-      loading,
-      value: result,
-    }),
-    [error, loading, result],
-  )
+  const loader = React.useCallback(async () => {
+    if (!query) return null
+    return search({ req, body: JSON.stringify(query) })
+  }, [query, req])
+  return useRequest(loader, R.identity)
 }

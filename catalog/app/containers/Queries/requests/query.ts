@@ -1,9 +1,12 @@
+import * as R from 'ramda'
 import * as React from 'react'
 
 import * as errors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
 import * as s3paths from 'utils/s3paths'
+
+import { useRequest } from './requests'
 
 interface QueryArgs {
   s3: any
@@ -33,34 +36,11 @@ export const query = async ({ s3, queryUrl }: QueryArgs): Promise<object | null>
   }
 }
 
-export function useQuery(queryUrl: string) {
-  const [error, setError] = React.useState<Error | null>(null)
-  const [loading, setLoading] = React.useState(false)
-  const [result, setResult] = React.useState<object | null>(null)
-
+export function useQuery(queryUrl: string): QueryData {
   const s3 = AWS.S3.use()
-
-  React.useEffect(() => {
-    if (!queryUrl) return
-
-    setLoading(true)
-    query({ s3, queryUrl })
-      .then((queryObj) => {
-        if (!queryObj) return
-        setResult(queryObj)
-      })
-      .catch(setError)
-      .finally(() => {
-        setLoading(false)
-      })
+  const loader = React.useCallback(async () => {
+    if (!queryUrl) return null
+    return query({ s3, queryUrl })
   }, [queryUrl, s3])
-
-  return React.useMemo(
-    () => ({
-      error,
-      loading,
-      value: result,
-    }),
-    [error, loading, result],
-  )
+  return useRequest(loader, R.identity)
 }

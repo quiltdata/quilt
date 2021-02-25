@@ -5,6 +5,8 @@ import * as requests from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
 import yaml from 'utils/yaml'
 
+import { useRequest } from './requests'
+
 const QUERIES_CONFIG_PATH = '.quilt/queries/config.yaml'
 
 export interface Query {
@@ -51,42 +53,21 @@ export const queriesConfig = async ({
   }
 }
 
+function parseQueriesList(result: ConfigResponse | null) {
+  if (!result || !result.queries) return []
+
+  return Object.entries(result.queries).map(([key, query]) => ({
+    ...query,
+    body: null,
+    key,
+  }))
+}
+
 export function useQueriesConfig(): ConfigData {
-  const [loading, setLoading] = React.useState(false)
-  const [result, setResult] = React.useState<ConfigResponse | null>(null)
-  const [error, setError] = React.useState<Error | null>(null)
-
   const s3 = AWS.S3.use()
-
-  React.useEffect(() => {
-    setLoading(true)
-    queriesConfig({ s3, bucket: 'fiskus-sandbox-dev' })
-      .then((config) => {
-        if (!config) return
-        setResult(config)
-      })
-      .catch(setError)
-      .finally(() => {
-        setLoading(false)
-      })
-  }, [s3])
-
-  const queriesList = React.useMemo(() => {
-    if (!result || !result.queries) return []
-
-    return Object.entries(result.queries).map(([key, query]) => ({
-      ...query,
-      body: null,
-      key,
-    }))
-  }, [result])
-
-  return React.useMemo(
-    () => ({
-      error,
-      loading,
-      value: queriesList,
-    }),
-    [error, loading, queriesList],
+  const loader = React.useCallback(
+    () => queriesConfig({ s3, bucket: 'fiskus-sandbox-dev' }),
+    [s3],
   )
+  return useRequest(loader, parseQueriesList)
 }
