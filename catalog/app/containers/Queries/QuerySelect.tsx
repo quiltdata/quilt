@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -54,21 +53,21 @@ export default function QuerySelect({
   if (config.loading) return <QuerySelectSkeleton className={className} />
 
   return (
-    <M.FormControl className={cx(classes.root, className)}>
-      <M.InputLabel shrink id="query-select">
-        Select query
-      </M.InputLabel>
-      <M.Select
-        labelId="query-select"
-        value={value ? value.key : ''}
-        onChange={handleChange}
-      >
-        {config.value.map((query) => (
-          <M.MenuItem key={query.key} value={query.key}>
-            {query.name}
-          </M.MenuItem>
-        ))}
-      </M.Select>
-    </M.FormControl>
+    <div className={className}>
+      <M.Typography variant="body1">Select query</M.Typography>
+      <M.FormControl className={classes.root}>
+        <M.Select
+          labelId="query-select"
+          value={value ? value.key : ''}
+          onChange={handleChange}
+        >
+          {config.value.map((query) => (
+            <M.MenuItem key={query.key} value={query.key}>
+              {query.name}
+            </M.MenuItem>
+          ))}
+        </M.Select>
+      </M.FormControl>
+    </div>
   )
 }

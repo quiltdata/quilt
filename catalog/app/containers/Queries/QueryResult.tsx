@@ -18,9 +18,13 @@ interface QueryResultProps {
   results: requests.ResultsData
 }
 
-function QueryResultSkeleton() {
+interface QueryResultSkeletonProps {
+  className: string
+}
+
+function QueryResultSkeleton({ className }: QueryResultSkeletonProps) {
   const t = M.useTheme()
-  return <Lab.Skeleton height={t.spacing(3)} width="100%" />
+  return <Lab.Skeleton className={className} height={t.spacing(3)} width="100%" />
 }
 
 export default function QueryResult({ className, results }: QueryResultProps) {
@@ -29,13 +33,13 @@ export default function QueryResult({ className, results }: QueryResultProps) {
   if (results.error)
     return <Lab.Alert severity="error">{results.error.message}</Lab.Alert>
 
-  if (results.loading) return <QueryResultSkeleton />
+  if (results.loading) return <QueryResultSkeleton className={className} />
 
   if (!results.value) return null
 
   return (
     <div className={className}>
-      <M.Typography variant="h6">Search results</M.Typography>
+      <M.Typography variant="body1">Search results</M.Typography>
       <M.Paper className={classes.content}>
         <JsonDisplay
           className=""

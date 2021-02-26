@@ -42,7 +42,7 @@ export default function QueryViewer({ className, query }: QueryViewerProps) {
 
   return (
     <div className={className}>
-      <M.Typography variant="h6">Query body</M.Typography>
+      <M.Typography variant="body1">Query body</M.Typography>
       <M.Paper className={classes.content}>
         <JsonDisplay
           className=""

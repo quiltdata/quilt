@@ -13,18 +13,23 @@ const useStyles = M.makeStyles((t) => ({
     margin: t.spacing(2, 0),
     textAlign: 'right',
   },
-  layout: {
+  container: {
     padding: t.spacing(3),
   },
+  inner: {
+    display: 'flex',
+    margin: t.spacing(2, 0, 0),
+  },
   form: {
+    flexBasis: '50%',
     margin: t.spacing(0, 0, 2),
-    maxWidth: t.spacing(60),
   },
   results: {
-    margin: t.spacing(4, 0, 0),
+    flexBasis: '50%',
+    margin: t.spacing(0, 0, 0, 4),
   },
   select: {
-    margin: t.spacing(1, 0, 2),
+    margin: t.spacing(0, 0, 2),
   },
   viewer: {
     margin: t.spacing(2, 0),
@@ -111,37 +116,40 @@ function QueriesState({ children }: QueriesStateProps) {
 export default function Queries() {
   const classes = useStyles()
 
+  // TODO: use M.Grid, and make one column for narrow screens
   return (
     <QueriesState>
       {({ config, queryData, handleChange, handleSubmit, query, resultsData }) => (
         <Layout
           pre={
-            <M.Container className={classes.layout} maxWidth="lg">
-              <M.Typography variant="h4">Elastic Search queries</M.Typography>
+            <M.Container className={classes.container} maxWidth="lg">
+              <M.Typography variant="h6">Elastic Search queries</M.Typography>
 
-              <div className={classes.form}>
-                <QuerySelect
-                  className={classes.select}
-                  config={config}
-                  onChange={handleChange}
-                  value={query}
-                />
+              <div className={classes.inner}>
+                <div className={classes.form}>
+                  <QuerySelect
+                    className={classes.select}
+                    config={config}
+                    onChange={handleChange}
+                    value={query}
+                  />
 
-                <QueryViewer query={queryData} className={classes.viewer} />
+                  <QueryViewer query={queryData} className={classes.viewer} />
 
-                <div className={classes.actions}>
-                  <M.Button
-                    variant="contained"
-                    color="primary"
-                    disabled={resultsData.loading || !queryData.value}
-                    onClick={handleSubmit(queryData.value)}
-                  >
-                    Run query
-                  </M.Button>
+                  <div className={classes.actions}>
+                    <M.Button
+                      variant="contained"
+                      color="primary"
+                      disabled={resultsData.loading || !queryData.value}
+                      onClick={handleSubmit(queryData.value)}
+                    >
+                      Run query
+                    </M.Button>
+                  </div>
                 </div>
-              </div>
 
-              <QueryResult className={classes.results} results={resultsData} />
+                <QueryResult className={classes.results} results={resultsData} />
+              </div>
             </M.Container>
           }
         />
