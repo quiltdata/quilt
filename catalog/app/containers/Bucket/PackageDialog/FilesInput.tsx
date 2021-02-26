@@ -27,7 +27,7 @@ interface FileWithHash extends File {
 
 const hasHash = (f: File): f is FileWithHash => !!f && !!(f as any).hash
 
-// TODO: limit concurrency?
+// XXX: it might make sense to limit concurrency, tho the tests show that perf os ok, since hashing is async anyways
 function computeHash<F extends File>(f: F) {
   if (hasHash(f)) return f
   const promise = PD.hashFile(f)
@@ -36,7 +36,7 @@ function computeHash<F extends File>(f: F) {
   promise
     .catch((e) => {
       // eslint-disable-next-line no-console
-      console.log('Error hashing a file:')
+      console.log('Error hashing file:')
       // eslint-disable-next-line no-console
       console.error(e)
       return undefined
@@ -81,6 +81,9 @@ export interface FilesState {
   added: Record<string, FileWithPath & FileWithHash>
   deleted: Record<string, true>
   existing: Record<string, ExistingFile>
+  // XXX: workaround used to re-trigger validation and dependent computations
+  // required due to direct mutations of File objects
+  counter?: number
 }
 
 interface FilesStateTransformer {
@@ -110,11 +113,15 @@ const handleFilesAction = FilesAction.match<
         acc,
       ) as FilesState
     }, state),
-  Delete: (path) => R.evolve({ deleted: R.assoc(path, true) }) as FilesStateTransformer,
+  Delete: (path) =>
+    R.evolve({
+      added: R.dissoc(path),
+      deleted: R.assoc(path, true),
+    }) as FilesStateTransformer,
   // add all descendants from existing to deleted
-  DeleteDir: (prefix) => ({ existing, added, deleted }) => ({
+  DeleteDir: (prefix) => ({ existing, added, deleted, ...rest }) => ({
     existing,
-    added,
+    added: dissocBy(R.startsWith(prefix))(added),
     deleted: R.mergeLeft(
       Object.keys(existing).reduce(
         (acc, k) => (k.startsWith(prefix) ? { ...acc, [k]: true } : acc),
@@ -122,6 +129,7 @@ const handleFilesAction = FilesAction.match<
       ),
       deleted,
     ),
+    ...rest,
   }),
   Revert: (path) =>
     R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }) as FilesStateTransformer,
@@ -244,6 +252,13 @@ const computeEntries = ({ added, deleted, existing }: FilesState) => {
       : FilesEntry.File({ name, ...rest })
     return insertIntoTree(prefixPath, file, children)
   }, [] as FilesEntry[])
+}
+
+export const validateHashingComplete = (state: FilesState) => {
+  const files = Object.values(state.added)
+  if (files.some((f) => f.hash.ready && !f.hash.value)) return 'hashingError'
+  if (files.some((f) => !f.hash.ready)) return 'hashing'
+  return undefined
 }
 
 const useEntryIconStyles = M.makeStyles((t) => ({
@@ -664,7 +679,6 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
   },
   header: {
-    alignItems: 'center',
     display: 'flex',
     height: 24,
   },
@@ -871,22 +885,22 @@ export function FilesInput({
 }: FilesInputProps) {
   const classes = useStyles()
 
-  const [counter, setCounter] = React.useState(1)
-  const update = React.useCallback(() => {
-    // TODO: handle "stale" updates
-    // console.log('update')
-    setCounter(R.inc)
-  }, [setCounter])
+  const pRef = React.useRef<Promise<any>>()
+  const scheduleUpdate = (waitFor: Promise<any>[]) => {
+    const p = waitFor.length ? Promise.all(waitFor) : undefined
+    pRef.current = p
+    if (p) {
+      p.then(() => {
+        if (p === pRef.current) {
+          const v = ref.current!.value
+          onChange({ ...v, counter: (v.counter || 0) + 1 }) // trigger field validation
+        }
+      })
+    }
+  }
 
   const submitting = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
-
-  const totalSize = React.useMemo(
-    () => Object.values(value.added).reduce((sum, f) => sum + f.size, 0),
-    [value.added],
-  )
-
-  const warn = totalSize > PD.MAX_SIZE
 
   const refProps = {
     value,
@@ -894,18 +908,23 @@ export function FilesInput({
     initial: meta.initial,
     onChange,
     onFilesAction,
+    scheduleUpdate,
   }
   const ref = React.useRef<typeof refProps>()
   ref.current = refProps
   const { current: dispatch } = React.useRef((action: FilesAction) => {
     const cur = ref.current!
     if (cur.disabled) return
+
     const newValue = handleFilesAction(action, { initial: cur.initial })(cur.value)
+    // XXX: maybe observe value and trigger this when it changes,
+    // regardless of the source of change (e.g. new value supplied directly via the prop)
     const waitFor = Object.values(newValue.added).reduce(
-      (acc, f) => (f.hash.ready ? acc : acc.concat(f.hash.promise)),
+      (acc, f) => (f.hash.ready ? acc : acc.concat(f.hash.promise.catch(() => {}))),
       [] as Promise<any>[],
     )
-    if (waitFor.length) Promise.all(waitFor).then(update)
+    cur.scheduleUpdate(waitFor)
+
     cur.onChange(newValue)
     if (cur.onFilesAction) cur.onFilesAction(action, cur.value, newValue)
   })
@@ -923,26 +942,25 @@ export function FilesInput({
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
 
-  const computedEntries = useMemoEq([value, counter], () => computeEntries(value))
+  const computedEntries = useMemoEq(value, computeEntries)
 
-  const stats = useMemoEq(
-    [value, counter] as const,
-    ([{ added, deleted, existing }]) => ({
-      added: Object.entries(added).reduce(
-        (acc, [path, f]) => {
-          const e = existing[path]
-          if (e && (!f.hash.ready || f.hash.value === e.hash)) return acc
-          return R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
-        },
-        { count: 0, size: 0 },
-      ),
-      deleted: Object.keys(deleted).reduce(
-        (acc, path) => R.evolve({ count: R.inc, size: R.add(existing[path].size) }, acc),
-        { count: 0, size: 0 },
-      ),
-      hashing: Object.values(added).reduce((acc, f) => acc || !f.hash.ready, false),
-    }),
-  )
+  const stats = useMemoEq(value, ({ added, deleted, existing }) => ({
+    added: Object.entries(added).reduce(
+      (acc, [path, f]) => {
+        const e = existing[path]
+        if (e && (!f.hash.ready || f.hash.value === e.hash)) return acc
+        return R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
+      },
+      { count: 0, size: 0 },
+    ),
+    deleted: Object.keys(deleted).reduce(
+      (acc, path) => R.evolve({ count: R.inc, size: R.add(existing[path].size) }, acc),
+      { count: 0, size: 0 },
+    ),
+    hashing: Object.values(added).reduce((acc, f) => acc || !f.hash.ready, false),
+  }))
+
+  const warn = stats.added.size > PD.MAX_SIZE
 
   return (
     <div className={cx(classes.root, className)}>
@@ -972,6 +990,11 @@ export function FilesInput({
               {stats.deleted.count} ({readableBytes(stats.deleted.size)})
             </span>
           )}
+          {warn && (
+            <M.Icon style={{ marginLeft: 6 }} fontSize="small">
+              error_outline
+            </M.Icon>
+          )}
           {stats.hashing && (
             <M.CircularProgress
               className={classes.headerFilesHashing}
@@ -979,7 +1002,6 @@ export function FilesInput({
               title="Hashing files"
             />
           )}
-          {warn && <M.Icon style={{ marginLeft: 4 }}>error_outline</M.Icon>}
         </div>
         <M.Box flexGrow={1} />
         {meta.dirty && (
@@ -1048,22 +1070,22 @@ export function FilesInput({
         </div>
         {submitting && (
           <div className={classes.lock}>
+            <div className={classes.progressContainer}>
+              <M.CircularProgress
+                size={80}
+                value={totalProgress.total ? totalProgress.percent : undefined}
+                variant={totalProgress.total ? 'determinate' : 'indeterminate'}
+              />
+              {!!totalProgress.total && (
+                <div className={classes.progressPercent}>{totalProgress.percent}%</div>
+              )}
+            </div>
             {!!totalProgress.total && (
-              <>
-                <div className={classes.progressContainer}>
-                  <M.CircularProgress
-                    size={80}
-                    value={totalProgress.percent}
-                    variant="determinate"
-                  />
-                  <div className={classes.progressPercent}>{totalProgress.percent}%</div>
-                </div>
-                <div className={classes.progressSize}>
-                  {readableBytes(totalProgress.loaded)}
-                  {' / '}
-                  {readableBytes(totalProgress.total)}
-                </div>
-              </>
+              <div className={classes.progressSize}>
+                {readableBytes(totalProgress.loaded)}
+                {' / '}
+                {readableBytes(totalProgress.total)}
+              </div>
             )}
           </div>
         )}

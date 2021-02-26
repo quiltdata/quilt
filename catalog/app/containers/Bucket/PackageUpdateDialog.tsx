@@ -55,7 +55,7 @@ interface Uploads {
   [path: string]: {
     file: File
     upload: S3.ManagedUpload
-    promise: Promise<{ result: UploadResult; hash: string } | undefined>
+    promise: Promise<UploadResult>
     progress?: { total: number; loaded: number }
   }
 }
@@ -167,7 +167,6 @@ function DialogForm({
       path,
       file,
     }))
-    await Promise.all(addedEntries.map((e) => e.file.hash.promise))
     const toUpload = addedEntries.filter(({ path, file }) => {
       const e = files.existing[path]
       return !e || e.hash !== file.hash.value
@@ -199,11 +198,9 @@ function DialogForm({
           setUploads(R.dissoc(path))
           return
         }
-        const resultP = upload.promise()
-        const hashP = PD.hashFile(file)
         try {
           // eslint-disable-next-line consistent-return
-          return { result: await resultP, hash: await hashP }
+          return await upload.promise()
         } catch (e) {
           rejected = true
           setUploads(R.dissoc(path))
@@ -226,25 +223,29 @@ function DialogForm({
       return { [FF.FORM_ERROR]: PD.ERROR_MESSAGES.UPLOAD }
     }
 
+    type Zipped = [
+      string,
+      { physicalKey: string; size: number; hash: string; meta: unknown },
+    ]
     const newEntries = pipeThru(toUpload, uploaded)(
-      /// XXX: u may be undefined?
-      R.zipWith(
-        (f: { path: string; file: File }, u: { result: UploadResult; hash: string }) => [
-          f.path,
-          {
-            physicalKey: s3paths.handleToS3Url({
-              bucket,
-              key: u.result.Key,
-              version: u.result.VersionId,
-            }),
-            size: f.file.size,
-            hash: u.hash,
-            meta: R.prop('meta', files.existing[f.path]),
-          },
-        ],
-      ),
+      R.zipWith<typeof toUpload[number], UploadResult, Zipped>((f, r) => [
+        f.path,
+        {
+          physicalKey: s3paths.handleToS3Url({
+            bucket,
+            key: r.Key,
+            version: r.VersionId,
+          }),
+          size: f.file.size,
+          hash: f.file.hash.value!,
+          meta: R.prop('meta', files.existing[f.path]),
+        },
+      ]),
       R.fromPairs,
-    )
+    ) as Record<
+      string,
+      { physicalKey: string; size: number; hash: string; meta: unknown }
+    >
 
     const contents = pipeThru(files.existing)(
       R.omit(Object.keys(files.deleted)),
@@ -423,8 +424,8 @@ function DialogForm({
                       validate={validateMetaInput}
                       validateFields={['meta']}
                       isEqual={R.equals}
+                      initialValue={manifest.meta || PD.EMPTY_META_VALUE}
                       ref={setEditorElement}
-                      initialValue={manifest.meta}
                     />
                   )}
 
@@ -447,10 +448,18 @@ function DialogForm({
                     // @ts-expect-error
                     component={PD.FilesInput}
                     name="files"
-                    validate={validators.nonEmpty as FF.FieldValidator<$TSFixMe>}
+                    validate={
+                      validators.composeAsync(
+                        validators.nonEmpty,
+                        PD.validateHashingComplete,
+                      ) as FF.FieldValidator<$TSFixMe>
+                    }
                     validateFields={['files']}
                     errors={{
                       nonEmpty: 'Add files to create a package',
+                      hashing: 'Please wait while we hash the files',
+                      hashingError:
+                        'Error hashing files, probably some of them are too large. Please try again or contact support.',
                     }}
                     totalProgress={totalProgress}
                     title="Files"
