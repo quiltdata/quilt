@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -8,7 +7,8 @@ import JsonDisplay from 'components/JsonDisplay'
 import * as requests from './requests'
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
+  content: {
+    margin: t.spacing(1, 0, 0),
     padding: t.spacing(3, 4, 4),
   },
 }))
@@ -34,14 +34,17 @@ export default function QueryResult({ className, results }: QueryResultProps) {
   if (!results.value) return null
 
   return (
-    <M.Paper className={cx(classes.root, className)}>
-      <JsonDisplay
-        className=""
-        value={results.value}
-        name={undefined}
-        topLevel
-        defaultExpanded
-      />
-    </M.Paper>
+    <div className={className}>
+      <M.Typography variant="h6">Search results</M.Typography>
+      <M.Paper className={classes.content}>
+        <JsonDisplay
+          className=""
+          value={results.value}
+          name={undefined}
+          topLevel
+          defaultExpanded
+        />
+      </M.Paper>
+    </div>
   )
 }

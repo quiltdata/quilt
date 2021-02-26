@@ -24,7 +24,10 @@ const useStyles = M.makeStyles((t) => ({
     margin: t.spacing(4, 0, 0),
   },
   select: {
-    margin: t.spacing(0, 0, 2),
+    margin: t.spacing(1, 0, 2),
+  },
+  viewer: {
+    margin: t.spacing(2, 0),
   },
 }))
 
@@ -114,6 +117,8 @@ export default function Queries() {
         <Layout
           pre={
             <M.Container className={classes.layout} maxWidth="lg">
+              <M.Typography variant="h4">Elastic Search queries</M.Typography>
+
               <div className={classes.form}>
                 <QuerySelect
                   className={classes.select}
@@ -122,7 +127,7 @@ export default function Queries() {
                   value={query}
                 />
 
-                <QueryViewer query={queryData} />
+                <QueryViewer query={queryData} className={classes.viewer} />
 
                 <div className={classes.actions}>
                   <M.Button

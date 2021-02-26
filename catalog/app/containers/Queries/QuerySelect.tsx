@@ -55,7 +55,14 @@ export default function QuerySelect({
 
   return (
     <M.FormControl className={cx(classes.root, className)}>
-      <M.Select value={value ? value.key : ''} onChange={handleChange}>
+      <M.InputLabel shrink id="query-select">
+        Select query
+      </M.InputLabel>
+      <M.Select
+        labelId="query-select"
+        value={value ? value.key : ''}
+        onChange={handleChange}
+      >
         {config.value.map((query) => (
           <M.MenuItem key={query.key} value={query.key}>
             {query.name}

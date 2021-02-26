@@ -7,12 +7,14 @@ import JsonDisplay from 'components/JsonDisplay'
 import * as requests from './requests'
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
+  content: {
+    margin: t.spacing(1, 0, 0),
     padding: t.spacing(3, 4, 4),
   },
 }))
 
 interface QueryViewerProps {
+  className: string
   query: requests.QueryData
 }
 
@@ -29,7 +31,7 @@ function QueryViewerSkeleton() {
   )
 }
 
-export default function QueryViewer({ query }: QueryViewerProps) {
+export default function QueryViewer({ className, query }: QueryViewerProps) {
   const classes = useStyles()
 
   if (query.error) return <Lab.Alert severity="error">{query.error.message}</Lab.Alert>
@@ -39,14 +41,17 @@ export default function QueryViewer({ query }: QueryViewerProps) {
   if (!query.value) return null
 
   return (
-    <M.Paper className={classes.root}>
-      <JsonDisplay
-        className=""
-        value={query.value}
-        name={undefined}
-        topLevel
-        defaultExpanded
-      />
-    </M.Paper>
+    <div className={className}>
+      <M.Typography variant="h6">Query body</M.Typography>
+      <M.Paper className={classes.content}>
+        <JsonDisplay
+          className=""
+          value={query.value}
+          name={undefined}
+          topLevel
+          defaultExpanded
+        />
+      </M.Paper>
+    </div>
   )
 }
