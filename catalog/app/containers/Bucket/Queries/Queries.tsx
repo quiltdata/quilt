@@ -63,16 +63,6 @@ function QueryFetcher({ children, query }: QueryFetcherProps) {
   return children(queryData)
 }
 
-interface QueryConfigFetcherProps {
-  bucket: string
-  children: (props: requests.ConfigData) => React.ReactElement
-}
-
-function QueryConfigFetcher({ bucket, children }: QueryConfigFetcherProps) {
-  const config = requests.useQueriesConfig(bucket)
-  return children(config.result)
-}
-
 interface QueriesStatePropsInjectProps {
   queries: requests.Query[]
   handleChange: (q: requests.Query | null) => void
@@ -104,6 +94,8 @@ function NoQueries() {
 }
 
 function QueriesState({ bucket, children }: QueriesStateProps) {
+  const config: requests.AsyncData<requests.Query[]> = requests.useQueriesConfig(bucket)
+
   const [selectedQuery, setSelectedQuery] = React.useState<requests.Query | null>(null)
   const [queryBody, setQueryBody] = React.useState<ElasticSearchQuery>(null)
 
@@ -112,32 +104,28 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
     [setQueryBody],
   )
 
-  return (
-    <QueryConfigFetcher bucket={bucket}>
-      {AsyncResult.case({
-        Ok: (queries: requests.Query[]) => (
-          <SearchResultsFetcher queryBody={queryBody}>
-            {(resultsData) => (
-              <QueryFetcher query={selectedQuery || queries[0]}>
-                {(queryData) =>
-                  children({
-                    queries,
-                    handleChange: setSelectedQuery,
-                    handleSubmit,
-                    query: selectedQuery || queries[0],
-                    queryData,
-                    resultsData,
-                  })
-                }
-              </QueryFetcher>
-            )}
-          </SearchResultsFetcher>
-        ),
-        Err: (error: Error) => <Lab.Alert severity="error">{error.message}</Lab.Alert>,
-        _: () => <M.CircularProgress size={48} />,
-      })}
-    </QueryConfigFetcher>
-  )
+  return config.case({
+    Ok: (queries: requests.Query[]) => (
+      <SearchResultsFetcher queryBody={queryBody}>
+        {(resultsData) => (
+          <QueryFetcher query={selectedQuery || queries[0]}>
+            {(queryData) =>
+              children({
+                queries,
+                handleChange: setSelectedQuery,
+                handleSubmit,
+                query: selectedQuery || queries[0],
+                queryData,
+                resultsData,
+              })
+            }
+          </QueryFetcher>
+        )}
+      </SearchResultsFetcher>
+    ),
+    Err: (error: Error) => <Lab.Alert severity="error">{error.message}</Lab.Alert>,
+    _: () => <M.CircularProgress size={48} />,
+  })
 }
 
 export default function Queries({

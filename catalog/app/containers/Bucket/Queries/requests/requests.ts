@@ -1,5 +1,15 @@
 import * as React from 'react'
 
+interface Cases<Data> {
+  Ok: (data: Data) => React.ReactElement
+  Err: (error: Error) => React.ReactElement
+  _: () => React.ReactElement
+}
+
+export interface AsyncData<Data> {
+  case: (cases: Cases<Data>) => React.ReactElement
+}
+
 export function useRequest<Response, Data>(
   loader: () => Promise<Response | null>,
   parser: (r: Response | null) => Data,

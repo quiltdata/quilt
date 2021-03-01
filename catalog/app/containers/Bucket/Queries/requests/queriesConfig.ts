@@ -25,12 +25,6 @@ interface QueriesConfigArgs {
   bucket: string
 }
 
-export interface ConfigData {
-  error: Error | null
-  loading: boolean
-  value: Query[]
-}
-
 function parseQueriesList(result: ConfigResponse | null) {
   if (!result || !result.queries) return []
 
