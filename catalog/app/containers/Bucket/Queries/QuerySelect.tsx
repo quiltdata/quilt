@@ -16,7 +16,7 @@ interface QuerySelectSkeletonProps {
 }
 
 function QuerySelectSkeleton({ className }: QuerySelectSkeletonProps) {
-  return <M.CircularProgress className={className} size={96} />
+  return <M.CircularProgress className={className} size={48} />
 }
 
 const useStyles = M.makeStyles({

@@ -84,6 +84,22 @@ interface QueriesStateProps {
   children: (props: QueriesStatePropsInjectProps) => React.ReactElement
 }
 
+function NoQueries() {
+  return (
+    <M.Box pt={5} textAlign="center">
+      <M.Typography variant="h4">No queries</M.Typography>
+      <M.Box pt={2} />
+      <M.Typography>
+        Add queries to config according to{' '}
+        <StyledLink href={`${docs}`} target="_blank">
+          documentation
+        </StyledLink>
+        .
+      </M.Typography>
+    </M.Box>
+  )
+}
+
 function QueriesState({ bucket, children }: QueriesStateProps) {
   const [selectedQuery, setSelectedQuery] = React.useState<requests.Query | null>(null)
   const [queryBody, setQueryBody] = React.useState<ElasticSearchQuery>(null)
@@ -140,18 +156,22 @@ export default function Queries({
                   value={query}
                 />
 
-                <QueryViewer query={queryData} className={classes.viewer} />
+                {!config.loading && !config.error && (
+                  <>
+                    <QueryViewer query={queryData} className={classes.viewer} />
 
-                <div className={classes.actions}>
-                  <M.Button
-                    variant="contained"
-                    color="primary"
-                    disabled={resultsData.loading || !queryData.value}
-                    onClick={handleSubmit(queryData.value)}
-                  >
-                    Run query
-                  </M.Button>
-                </div>
+                    <div className={classes.actions}>
+                      <M.Button
+                        variant="contained"
+                        color="primary"
+                        disabled={resultsData.loading || !queryData.value}
+                        onClick={handleSubmit(queryData.value)}
+                      >
+                        Run query
+                      </M.Button>
+                    </div>
+                  </>
+                )}
               </M.Grid>
 
               <M.Grid item sm={8} xs={12}>
@@ -160,17 +180,7 @@ export default function Queries({
             </M.Grid>
           </M.Container>
         ) : (
-          <M.Box pt={5} textAlign="center">
-            <M.Typography variant="h4">No queries</M.Typography>
-            <M.Box pt={2} />
-            <M.Typography>
-              Add queries to config according to{' '}
-              <StyledLink href={`${docs}`} target="_blank">
-                documentation
-              </StyledLink>
-              .
-            </M.Typography>
-          </M.Box>
+          <NoQueries />
         )
       }
     </QueriesState>
