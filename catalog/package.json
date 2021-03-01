@@ -176,7 +176,7 @@
     "stylelint-config-recommended": "^3.0.0",
     "svg-url-loader": "^7.1.1",
     "terser-webpack-plugin": "^5.1.1",
-    "ts-jest": "^26.5.0",
+    "ts-jest": "^26.5.2",
     "ts-loader": "^8.0.17",
     "typescript": "^4.2.2",
     "url-loader": "^4.1.1",
