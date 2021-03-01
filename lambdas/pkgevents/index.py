@@ -9,6 +9,10 @@ event_bridge = boto3.client('events')
 s3 = boto3.client('s3')
 
 
+class PutEventsException(Exception):
+    pass
+
+
 class EventsQueue:
     MAX_SIZE = 10
 
@@ -23,7 +27,9 @@ class EventsQueue:
     def _flush(self):
         events = self._events
         self._events = []
-        event_bridge.put_events(Entries=events)
+        resp = event_bridge.put_events(Entries=events)
+        if resp['FailedEntryCount']:
+            raise PutEventsException(resp)
 
     def flush(self):
         if self:
