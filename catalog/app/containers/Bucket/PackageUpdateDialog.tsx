@@ -1,5 +1,6 @@
 import type { S3 } from 'aws-sdk'
 import * as FF from 'final-form'
+import invariant from 'invariant'
 import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -228,19 +229,22 @@ function DialogForm({
       { physicalKey: string; size: number; hash: string; meta: unknown },
     ]
     const newEntries = pipeThru(toUpload, uploaded)(
-      R.zipWith<typeof toUpload[number], UploadResult, Zipped>((f, r) => [
-        f.path,
-        {
-          physicalKey: s3paths.handleToS3Url({
-            bucket,
-            key: r.Key,
-            version: r.VersionId,
-          }),
-          size: f.file.size,
-          hash: f.file.hash.value!,
-          meta: R.prop('meta', files.existing[f.path]),
-        },
-      ]),
+      R.zipWith<typeof toUpload[number], UploadResult, Zipped>((f, r) => {
+        invariant(f.file.hash.value, 'File must have a hash')
+        return [
+          f.path,
+          {
+            physicalKey: s3paths.handleToS3Url({
+              bucket,
+              key: r.Key,
+              version: r.VersionId,
+            }),
+            size: f.file.size,
+            hash: f.file.hash.value,
+            meta: R.prop('meta', files.existing[f.path]),
+          },
+        ]
+      }),
       R.fromPairs,
     ) as Record<
       string,

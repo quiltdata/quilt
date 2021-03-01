@@ -25,7 +25,7 @@ interface FileWithHash extends File {
   }
 }
 
-const hasHash = (f: File): f is FileWithHash => !!f && !!(f as any).hash
+const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
 
 // XXX: it might make sense to limit concurrency, tho the tests show that perf os ok, since hashing is async anyways
 function computeHash<F extends File>(f: F) {
@@ -171,14 +171,11 @@ const insertIntoDir = (path: string[], file: FilesEntry, dir: FilesEntryDir) => 
   const newChildren = insertIntoTree(path, file, children)
   const type = newChildren
     .map(FilesEntry.match({ Dir: R.prop('type'), File: R.prop('type') }))
-    .reduce((acc, entryType) =>
-      // eslint-disable-next-line no-nested-ternary
-      entryType === 'hashing' || acc === 'hashing'
-        ? 'hashing'
-        : acc === entryType
-        ? acc
-        : 'modified',
-    )
+    .reduce((acc, entryType) => {
+      if (entryType === 'hashing' || acc === 'hashing') return 'hashing'
+      if (acc === entryType) return acc
+      return 'modified'
+    })
   return FilesEntry.Dir({ name, type, children: newChildren })
 }
 

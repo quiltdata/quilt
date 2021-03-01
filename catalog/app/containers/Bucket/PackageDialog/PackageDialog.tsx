@@ -34,7 +34,7 @@ export const ERROR_MESSAGES = {
 
 export const getNormalizedPath = (f: { path?: string; name: string }) => {
   const p = f.path || f.name
-  return p.startsWith('/') ? R.drop(1, p) : p
+  return p.startsWith('/') ? p.substring(1) : p
 }
 
 export async function hashFile(file: File) {
@@ -168,12 +168,12 @@ export function useNameExistence(bucket: string) {
   return React.useMemo(() => ({ validate, inc }), [validate, inc])
 }
 
-function mkMetaValidator(schema: unknown) {
+function mkMetaValidator(schema: object | null) {
   // TODO: move schema validation to utils/validators
   //       but don't forget that validation depends on library.
   //       Maybe we should split validators to files at first
   const schemaValidator = makeSchemaValidator(schema)
-  return function validateMeta(value: unknown) {
+  return function validateMeta(value: object | null) {
     const noError = undefined
 
     const jsonObjectErr = !R.is(Object, value)
@@ -593,6 +593,8 @@ export const MetaInput = React.forwardRef(function MetaInput(
   )
 })
 
+type Result = $TSFixMe
+
 interface SchemaFetcherProps {
   manifest?: {
     workflow?: {
@@ -601,7 +603,7 @@ interface SchemaFetcherProps {
   }
   workflow?: workflows.Workflow
   workflowsConfig: workflows.WorkflowsConfig
-  children: (result: any) => React.ReactElement
+  children: (result: Result) => React.ReactElement
 }
 
 export function SchemaFetcher({
@@ -680,7 +682,7 @@ export const useContentStyles = M.makeStyles({
   },
 })
 
-export function getUsernamePrefix(username?: string | undefined | null) {
+export function getUsernamePrefix(username?: string | null) {
   if (!username) return ''
   const name = username.includes('@') ? username.split('@')[0] : username
   // see PACKAGE_NAME_FORMAT at quilt3/util.py
