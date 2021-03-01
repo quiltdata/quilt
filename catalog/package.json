@@ -177,7 +177,7 @@
     "svg-url-loader": "^7.1.1",
     "terser-webpack-plugin": "^5.1.1",
     "ts-jest": "^26.5.0",
-    "ts-loader": "^8.0.15",
+    "ts-loader": "^8.0.17",
     "typescript": "^4.2.2",
     "url-loader": "^4.1.1",
     "webpack": "^5.21.2",
