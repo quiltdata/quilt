@@ -2,18 +2,17 @@ import * as errors from 'containers/Bucket/errors'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 
+import { ElasticSearchQuery } from './query'
+import { AsyncData } from './requests'
+
 interface SearchArgs {
   req: any
   body: string
 }
 
-export interface ResultsData {
-  error: Error | null
-  loading: boolean
-  value: object | null
-}
+export type ElasticSearchResults = object | null
 
-async function search({ req, body }: SearchArgs) {
+async function search({ req, body }: SearchArgs): Promise<ElasticSearchResults> {
   try {
     const result = await req('/search', { index: '*', action: 'search', body })
     return result
@@ -29,7 +28,7 @@ async function search({ req, body }: SearchArgs) {
   }
 }
 
-export function useSearch(query: object | null): any {
+export function useSearch(query: ElasticSearchQuery): AsyncData<ElasticSearchResults> {
   const req = AWS.APIGateway.use()
   return useData(search, { req, body: JSON.stringify(query) })
 }

@@ -8,6 +8,7 @@ interface Cases<Data> {
 
 export interface AsyncData<Data> {
   case: (cases: Cases<Data>) => React.ReactElement
+  result: any
 }
 
 export function useRequest<Response, Data>(

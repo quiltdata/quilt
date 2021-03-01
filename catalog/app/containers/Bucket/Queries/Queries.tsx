@@ -39,10 +39,8 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-type ElasticSearchQuery = object | null
-
 interface SearchResultsFetcherProps {
-  children: (props: requests.ResultsData) => React.ReactElement
+  children: (props: requests.AsyncData<object | null>) => React.ReactElement
   queryBody: object | null
 }
 
@@ -53,7 +51,7 @@ function SearchResultsFetcher({ children, queryBody }: SearchResultsFetcherProps
 }
 
 interface QueryFetcherProps {
-  children: (props: requests.QueryData) => React.ReactElement
+  children: (props: requests.AsyncData<object | null>) => React.ReactElement
   query: requests.Query | null
 }
 
@@ -66,10 +64,10 @@ function QueryFetcher({ children, query }: QueryFetcherProps) {
 interface QueriesStatePropsInjectProps {
   queries: requests.Query[]
   handleChange: (q: requests.Query | null) => void
-  handleSubmit: (q: ElasticSearchQuery) => () => void
+  handleSubmit: (q: requests.ElasticSearchQuery) => () => void
   query: requests.Query | null
-  queryData: any
-  resultsData: any
+  queryData: requests.AsyncData<object | null>
+  resultsData: requests.AsyncData<object | null>
 }
 
 interface QueriesStateProps {
@@ -97,19 +95,19 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
   const config: requests.AsyncData<requests.Query[]> = requests.useQueriesConfig(bucket)
 
   const [selectedQuery, setSelectedQuery] = React.useState<requests.Query | null>(null)
-  const [queryBody, setQueryBody] = React.useState<ElasticSearchQuery>(null)
+  const [queryBody, setQueryBody] = React.useState<requests.ElasticSearchQuery>(null)
 
   const handleSubmit = React.useMemo(
-    () => (body: ElasticSearchQuery) => () => setQueryBody(body),
+    () => (body: requests.ElasticSearchQuery) => () => setQueryBody(body),
     [setQueryBody],
   )
 
   return config.case({
     Ok: (queries: requests.Query[]) => (
-      <SearchResultsFetcher queryBody={queryBody}>
-        {(resultsData) => (
-          <QueryFetcher query={selectedQuery || queries[0]}>
-            {(queryData) =>
+      <QueryFetcher query={selectedQuery || queries[0]}>
+        {(queryData) => (
+          <SearchResultsFetcher queryBody={queryBody}>
+            {(resultsData) =>
               children({
                 queries,
                 handleChange: setSelectedQuery,
@@ -119,9 +117,9 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
                 resultsData,
               })
             }
-          </QueryFetcher>
+          </SearchResultsFetcher>
         )}
-      </SearchResultsFetcher>
+      </QueryFetcher>
     ),
     Err: (error: Error) => <Lab.Alert severity="error">{error.message}</Lab.Alert>,
     _: () => <M.CircularProgress size={48} />,

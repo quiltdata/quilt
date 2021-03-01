@@ -4,6 +4,8 @@ import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import yaml from 'utils/yaml'
 
+import { AsyncData } from './requests'
+
 const QUERIES_CONFIG_PATH = '.quilt/queries/config.yaml'
 
 export interface Query {
@@ -54,7 +56,7 @@ export const queriesConfig = async ({
   }
 }
 
-export function useQueriesConfig(bucket: string): any {
+export function useQueriesConfig(bucket: string): AsyncData<Query[]> {
   const s3 = AWS.S3.use()
   return useData(queriesConfig, { s3, bucket })
 }

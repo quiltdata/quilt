@@ -4,18 +4,16 @@ import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import * as s3paths from 'utils/s3paths'
 
+import { AsyncData } from './requests'
+
 interface QueryArgs {
   s3: any
   queryUrl: string
 }
 
-export interface QueryData {
-  error: Error | null
-  loading: boolean
-  value: object | null
-}
+export type ElasticSearchQuery = object | null
 
-export const query = async ({ s3, queryUrl }: QueryArgs): Promise<object | null> => {
+export const query = async ({ s3, queryUrl }: QueryArgs): Promise<ElasticSearchQuery> => {
   const { bucket, key, version } = s3paths.parseS3Url(queryUrl)
   try {
     const response = await requests.fetchFile({ s3, bucket, path: key, version })
@@ -32,7 +30,7 @@ export const query = async ({ s3, queryUrl }: QueryArgs): Promise<object | null>
   }
 }
 
-export function useQuery(queryUrl: string): any {
+export function useQuery(queryUrl: string): AsyncData<ElasticSearchQuery> {
   const s3 = AWS.S3.use()
   return useData(query, { s3, queryUrl })
 }
