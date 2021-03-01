@@ -4,13 +4,11 @@ export function useRequest<Response, Data>(
   loader: () => Promise<Response | null>,
   parser: (r: Response | null) => Data,
 ) {
-  const [loading, setLoading] = React.useState(false)
+  const [loading, setLoading] = React.useState(true)
   const [response, setResponse] = React.useState<Response | null>(null)
   const [error, setError] = React.useState<Error | null>(null)
 
   React.useEffect(() => {
-    setLoading(true)
-
     loader()
       .then((res) => {
         if (!res) return

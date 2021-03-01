@@ -2,6 +2,9 @@ import * as React from 'react'
 import { RouteComponentProps } from 'react-router'
 import * as M from '@material-ui/core'
 
+import { docs } from 'constants/urls'
+import StyledLink from 'utils/StyledLink'
+
 import QueryResult from './QueryResult'
 import QuerySelect from './QuerySelect'
 import QueryViewer from './QueryViewer'
@@ -80,6 +83,7 @@ interface QueriesStateProps {
   bucket: string
   children: (props: QueriesStatePropsInjectProps) => React.ReactElement
 }
+
 function QueriesState({ bucket, children }: QueriesStateProps) {
   const [selectedQuery, setSelectedQuery] = React.useState<requests.Query | null>(null)
   const [queryBody, setQueryBody] = React.useState<ElasticSearchQuery>(null)
@@ -122,39 +126,53 @@ export default function Queries({
 
   return (
     <QueriesState bucket={bucket}>
-      {({ config, queryData, handleChange, handleSubmit, query, resultsData }) => (
-        <M.Container className={classes.container} maxWidth="lg">
-          <M.Typography variant="h6">Elastic Search queries</M.Typography>
+      {({ config, queryData, handleChange, handleSubmit, query, resultsData }) =>
+        config.value.length || config.loading || config.error ? (
+          <M.Container className={classes.container} maxWidth="lg">
+            <M.Typography variant="h6">Elastic Search queries</M.Typography>
 
-          <M.Grid container className={classes.inner}>
-            <M.Grid item sm={4} xs={12} className={classes.form}>
-              <QuerySelect
-                className={classes.select}
-                config={config}
-                onChange={handleChange}
-                value={query}
-              />
+            <M.Grid container className={classes.inner}>
+              <M.Grid item sm={4} xs={12} className={classes.form}>
+                <QuerySelect
+                  className={classes.select}
+                  config={config}
+                  onChange={handleChange}
+                  value={query}
+                />
 
-              <QueryViewer query={queryData} className={classes.viewer} />
+                <QueryViewer query={queryData} className={classes.viewer} />
 
-              <div className={classes.actions}>
-                <M.Button
-                  variant="contained"
-                  color="primary"
-                  disabled={resultsData.loading || !queryData.value}
-                  onClick={handleSubmit(queryData.value)}
-                >
-                  Run query
-                </M.Button>
-              </div>
+                <div className={classes.actions}>
+                  <M.Button
+                    variant="contained"
+                    color="primary"
+                    disabled={resultsData.loading || !queryData.value}
+                    onClick={handleSubmit(queryData.value)}
+                  >
+                    Run query
+                  </M.Button>
+                </div>
+              </M.Grid>
+
+              <M.Grid item sm={8} xs={12}>
+                <QueryResult className={classes.results} results={resultsData} />
+              </M.Grid>
             </M.Grid>
-
-            <M.Grid item sm={8} xs={12}>
-              <QueryResult className={classes.results} results={resultsData} />
-            </M.Grid>
-          </M.Grid>
-        </M.Container>
-      )}
+          </M.Container>
+        ) : (
+          <M.Box pt={5} textAlign="center">
+            <M.Typography variant="h4">No queries</M.Typography>
+            <M.Box pt={2} />
+            <M.Typography>
+              Add queries to config according to{' '}
+              <StyledLink href={`${docs}`} target="_blank">
+                documentation
+              </StyledLink>
+              .
+            </M.Typography>
+          </M.Box>
+        )
+      }
     </QueriesState>
   )
 }
