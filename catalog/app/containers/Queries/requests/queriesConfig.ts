@@ -63,11 +63,8 @@ function parseQueriesList(result: ConfigResponse | null) {
   }))
 }
 
-export function useQueriesConfig(): ConfigData {
+export function useQueriesConfig(bucket: string): ConfigData {
   const s3 = AWS.S3.use()
-  const loader = React.useCallback(
-    () => queriesConfig({ s3, bucket: 'fiskus-sandbox-dev' }),
-    [s3],
-  )
+  const loader = React.useCallback(() => queriesConfig({ s3, bucket }), [bucket, s3])
   return useRequest(loader, parseQueriesList)
 }

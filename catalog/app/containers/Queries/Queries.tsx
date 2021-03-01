@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { RouteComponentProps } from 'react-router'
 import * as M from '@material-ui/core'
 
 import QueryResult from './QueryResult'
@@ -57,11 +58,12 @@ function QueryFetcher({ children, query }: QueryFetcherProps) {
 }
 
 interface QueryConfigFetcherProps {
+  bucket: string
   children: (props: requests.ConfigData) => React.ReactElement
 }
 
-function QueryConfigFetcher({ children }: QueryConfigFetcherProps) {
-  const config = requests.useQueriesConfig()
+function QueryConfigFetcher({ bucket, children }: QueryConfigFetcherProps) {
+  const config = requests.useQueriesConfig(bucket)
   return children(config)
 }
 
@@ -75,9 +77,10 @@ interface QueriesStatePropsInjectProps {
 }
 
 interface QueriesStateProps {
+  bucket: string
   children: (props: QueriesStatePropsInjectProps) => React.ReactElement
 }
-function QueriesState({ children }: QueriesStateProps) {
+function QueriesState({ bucket, children }: QueriesStateProps) {
   const [selectedQuery, setSelectedQuery] = React.useState<requests.Query | null>(null)
   const [queryBody, setQueryBody] = React.useState<ElasticSearchQuery>(null)
 
@@ -87,7 +90,7 @@ function QueriesState({ children }: QueriesStateProps) {
   )
 
   return (
-    <QueryConfigFetcher>
+    <QueryConfigFetcher bucket={bucket}>
       {(config) => (
         <SearchResultsFetcher queryBody={queryBody}>
           {(resultsData) => (
@@ -110,11 +113,15 @@ function QueriesState({ children }: QueriesStateProps) {
   )
 }
 
-export default function Queries() {
+export default function Queries({
+  match: {
+    params: { bucket },
+  },
+}: RouteComponentProps<{ bucket: string }>) {
   const classes = useStyles()
 
   return (
-    <QueriesState>
+    <QueriesState bucket={bucket}>
       {({ config, queryData, handleChange, handleSubmit, query, resultsData }) => (
         <M.Container className={classes.container} maxWidth="lg">
           <M.Typography variant="h6">Elastic Search queries</M.Typography>
