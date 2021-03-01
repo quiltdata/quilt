@@ -72,7 +72,7 @@ def pkg_created_event(s3_event):
         'Detail': json.dumps({
             'bucket': bucket,
             'handle': pkg_name,
-            'top_hash': pkg_hash,
+            'topHash': pkg_hash,
         }),
     }
 
