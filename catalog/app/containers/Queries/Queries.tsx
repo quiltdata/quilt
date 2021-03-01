@@ -1,8 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import Layout from 'components/Layout'
-
 import QueryResult from './QueryResult'
 import QuerySelect from './QuerySelect'
 import QueryViewer from './QueryViewer'
@@ -115,45 +113,40 @@ function QueriesState({ children }: QueriesStateProps) {
 export default function Queries() {
   const classes = useStyles()
 
-  // TODO: use M.Grid, and make one column for narrow screens
   return (
     <QueriesState>
       {({ config, queryData, handleChange, handleSubmit, query, resultsData }) => (
-        <Layout
-          pre={
-            <M.Container className={classes.container} maxWidth="lg">
-              <M.Typography variant="h6">Elastic Search queries</M.Typography>
+        <M.Container className={classes.container} maxWidth="lg">
+          <M.Typography variant="h6">Elastic Search queries</M.Typography>
 
-              <M.Grid container className={classes.inner}>
-                <M.Grid item sm={4} xs={12} className={classes.form}>
-                  <QuerySelect
-                    className={classes.select}
-                    config={config}
-                    onChange={handleChange}
-                    value={query}
-                  />
+          <M.Grid container className={classes.inner}>
+            <M.Grid item sm={4} xs={12} className={classes.form}>
+              <QuerySelect
+                className={classes.select}
+                config={config}
+                onChange={handleChange}
+                value={query}
+              />
 
-                  <QueryViewer query={queryData} className={classes.viewer} />
+              <QueryViewer query={queryData} className={classes.viewer} />
 
-                  <div className={classes.actions}>
-                    <M.Button
-                      variant="contained"
-                      color="primary"
-                      disabled={resultsData.loading || !queryData.value}
-                      onClick={handleSubmit(queryData.value)}
-                    >
-                      Run query
-                    </M.Button>
-                  </div>
-                </M.Grid>
+              <div className={classes.actions}>
+                <M.Button
+                  variant="contained"
+                  color="primary"
+                  disabled={resultsData.loading || !queryData.value}
+                  onClick={handleSubmit(queryData.value)}
+                >
+                  Run query
+                </M.Button>
+              </div>
+            </M.Grid>
 
-                <M.Grid item sm={8} xs={12}>
-                  <QueryResult className={classes.results} results={resultsData} />
-                </M.Grid>
-              </M.Grid>
-            </M.Container>
-          }
-        />
+            <M.Grid item sm={8} xs={12}>
+              <QueryResult className={classes.results} results={resultsData} />
+            </M.Grid>
+          </M.Grid>
+        </M.Container>
       )}
     </QueriesState>
   )

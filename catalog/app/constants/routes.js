@@ -74,12 +74,6 @@ export const profile = {
   url: () => '/profile',
 }
 
-// Queries
-export const queries = {
-  path: '/queries',
-  url: () => '/queries',
-}
-
 // global search
 export const search = {
   path: '/search',
@@ -134,6 +128,11 @@ export const bucketPackageRevisions = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/revisions`,
   url: (bucket, name, { p } = {}) =>
     `/b/${bucket}/packages/${name}/revisions${mkSearch({ p })}`,
+}
+
+export const bucketQueries = {
+  path: '/b/:bucket/queries',
+  url: (bucket) => `/b/${bucket}/queries`,
 }
 
 // legacy stuff
