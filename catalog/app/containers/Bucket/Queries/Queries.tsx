@@ -47,6 +47,7 @@ interface SearchResultsFetcherProps {
 }
 
 function SearchResultsFetcher({ children, queryBody }: SearchResultsFetcherProps) {
+  if (!queryBody) return children(AsyncResult.Init)
   const resultsData = requests.useSearch(queryBody)
   return children(resultsData)
 }
@@ -78,7 +79,7 @@ interface QueriesStatePropsInjectProps {
   handleSubmit: (q: ElasticSearchQuery) => () => void
   query: requests.Query | null
   queryData: any
-  resultsData: requests.ResultsData
+  resultsData: any
 }
 
 interface QueriesStateProps {
@@ -171,8 +172,8 @@ export default function Queries({
                         <M.Button
                           variant="contained"
                           color="primary"
-                          disabled={resultsData.loading || !queryContent}
-                          onClick={handleSubmit(queryData.value)}
+                          disabled={!queryContent}
+                          onClick={handleSubmit(queryContent)}
                         >
                           Run query
                         </M.Button>
@@ -187,7 +188,20 @@ export default function Queries({
               </M.Grid>
 
               <M.Grid item sm={8} xs={12}>
-                <QueryResult className={classes.results} results={resultsData} />
+                {resultsData.case &&
+                  resultsData.case({
+                    Ok: (results: object | null) => (
+                      <QueryResult className={classes.results} results={results} />
+                    ),
+                    Err: (error: Error) => (
+                      <Lab.Alert severity="error">{error.message}</Lab.Alert>
+                    ),
+                    _: () => (
+                      <M.Box pt={5} textAlign="center">
+                        <M.CircularProgress size={96} />
+                      </M.Box>
+                    ),
+                  })}
               </M.Grid>
             </M.Grid>
           </M.Container>

@@ -1,10 +1,6 @@
-import * as R from 'ramda'
-import * as React from 'react'
-
 import * as errors from 'containers/Bucket/errors'
 import * as AWS from 'utils/AWS'
-
-import { useRequest } from './requests'
+import { useData } from 'utils/Data'
 
 interface SearchArgs {
   req: any
@@ -33,11 +29,7 @@ async function search({ req, body }: SearchArgs) {
   }
 }
 
-export function useSearch(query: object | null): ResultsData {
+export function useSearch(query: object | null): any {
   const req = AWS.APIGateway.use()
-  const loader = React.useCallback(async () => {
-    if (!query) return null
-    return search({ req, body: JSON.stringify(query) })
-  }, [query, req])
-  return useRequest(loader, R.identity)
+  return useData(search, { req, body: JSON.stringify(query) })
 }

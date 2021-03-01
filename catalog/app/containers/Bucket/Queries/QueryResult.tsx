@@ -1,10 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import JsonDisplay from 'components/JsonDisplay'
-
-import * as requests from './requests'
 
 const useStyles = M.makeStyles((t) => ({
   content: {
@@ -15,30 +12,11 @@ const useStyles = M.makeStyles((t) => ({
 
 interface QueryResultProps {
   className: string
-  results: requests.ResultsData
-}
-
-interface QueryResultSkeletonProps {
-  className: string
-}
-
-function QueryResultSkeleton({ className }: QueryResultSkeletonProps) {
-  return (
-    <M.Box pt={5} textAlign="center">
-      <M.CircularProgress className={className} size={96} />
-    </M.Box>
-  )
+  results: object | null
 }
 
 export default function QueryResult({ className, results }: QueryResultProps) {
   const classes = useStyles()
-
-  if (results.error)
-    return <Lab.Alert severity="error">{results.error.message}</Lab.Alert>
-
-  if (results.loading) return <QueryResultSkeleton className={className} />
-
-  if (!results.value) return null
 
   return (
     <div className={className}>
@@ -46,7 +24,7 @@ export default function QueryResult({ className, results }: QueryResultProps) {
       <M.Paper className={classes.content}>
         <JsonDisplay
           className=""
-          value={results.value}
+          value={results}
           name={undefined}
           topLevel
           defaultExpanded
