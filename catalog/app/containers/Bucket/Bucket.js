@@ -22,7 +22,7 @@ const Overview = mkLazy(() => import('./Overview'))
 const PackageList = mkLazy(() => import('./PackageList'))
 const PackageRevisions = mkLazy(() => import('./PackageRevisions'))
 const PackageTree = mkLazy(() => import('./PackageTree'))
-const Queries = mkLazy(() => import('containers/Queries'))
+const Queries = mkLazy(() => import('./Queries'))
 const Search = mkLazy(() => import('./Search'))
 
 const match = (cases) => (pathname) => {
