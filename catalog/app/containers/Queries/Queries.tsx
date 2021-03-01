@@ -17,16 +17,15 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(3),
   },
   inner: {
-    display: 'flex',
     margin: t.spacing(2, 0, 0),
   },
   form: {
-    flexBasis: '50%',
     margin: t.spacing(0, 0, 2),
   },
   results: {
-    flexBasis: '50%',
-    margin: t.spacing(0, 0, 0, 4),
+    [t.breakpoints.up('sm')]: {
+      margin: t.spacing(0, 0, 0, 4),
+    },
   },
   select: {
     margin: t.spacing(0, 0, 2),
@@ -125,8 +124,8 @@ export default function Queries() {
             <M.Container className={classes.container} maxWidth="lg">
               <M.Typography variant="h6">Elastic Search queries</M.Typography>
 
-              <div className={classes.inner}>
-                <div className={classes.form}>
+              <M.Grid container className={classes.inner}>
+                <M.Grid item sm={4} xs={12} className={classes.form}>
                   <QuerySelect
                     className={classes.select}
                     config={config}
@@ -146,10 +145,12 @@ export default function Queries() {
                       Run query
                     </M.Button>
                   </div>
-                </div>
+                </M.Grid>
 
-                <QueryResult className={classes.results} results={resultsData} />
-              </div>
+                <M.Grid item sm={8} xs={12}>
+                  <QueryResult className={classes.results} results={resultsData} />
+                </M.Grid>
+              </M.Grid>
             </M.Container>
           }
         />
