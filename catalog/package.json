@@ -128,6 +128,7 @@
     "@types/dedent": "^0.7.0",
     "@types/fontfaceobserver": "^0.0.6",
     "@types/history": "^4.7.8",
+    "@types/invariant": "^2.2.34",
     "@types/lodash": "^4.14.168",
     "@types/ramda": "^0.27.36",
     "@types/react": "^16.14.3",
