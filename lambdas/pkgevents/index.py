@@ -3,7 +3,6 @@ import json
 import re
 
 import boto3
-from dateutil.parser import isoparse
 
 event_bridge = boto3.client('events')
 s3 = boto3.client('s3')
@@ -63,7 +62,7 @@ def pkg_created_event(s3_event):
     version_id = obj['versionId']
     pkg_hash = s3.get_object(Bucket=bucket, Key=key, IfMatch=etag, VersionId=version_id)['Body'].read().decode()
     return {
-        'Time': isoparse(s3_event['eventTime']),
+        'Time': s3_event['eventTime'],
         'Source': 'quiltdata.pkg',
         'DetailType': 'created',
         'Resources': [

@@ -1,2 +1,1 @@
-boto3==1.17.15
-python-dateutil==2.8.1
+boto3==1.17.17
