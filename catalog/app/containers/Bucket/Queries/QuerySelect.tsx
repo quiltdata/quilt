@@ -16,15 +16,7 @@ interface QuerySelectSkeletonProps {
 }
 
 function QuerySelectSkeleton({ className }: QuerySelectSkeletonProps) {
-  const t = M.useTheme()
-  return (
-    <Lab.Skeleton
-      className={className}
-      variant="rect"
-      height={t.spacing(4)}
-      width="100%"
-    />
-  )
+  return <M.CircularProgress className={className} size={96} />
 }
 
 const useStyles = M.makeStyles({

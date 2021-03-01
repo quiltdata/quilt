@@ -18,17 +18,12 @@ interface QueryViewerProps {
   query: requests.QueryData
 }
 
-function QueryViewerSkeleton() {
-  const t = M.useTheme()
-  return (
-    <>
-      <Lab.Skeleton height={t.spacing(2)} width="100%" />
-      <Lab.Skeleton height={t.spacing(2)} width="100%" />
-      <Lab.Skeleton height={t.spacing(2)} width="100%" />
-      <Lab.Skeleton height={t.spacing(2)} width="100%" />
-      <Lab.Skeleton height={t.spacing(2)} width="100%" />
-    </>
-  )
+interface QueryViewerSkeletonProps {
+  className: string
+}
+
+function QueryViewerSkeleton({ className }: QueryViewerSkeletonProps) {
+  return <M.CircularProgress className={className} size={96} />
 }
 
 export default function QueryViewer({ className, query }: QueryViewerProps) {
@@ -36,7 +31,7 @@ export default function QueryViewer({ className, query }: QueryViewerProps) {
 
   if (query.error) return <Lab.Alert severity="error">{query.error.message}</Lab.Alert>
 
-  if (query.loading) return <QueryViewerSkeleton />
+  if (query.loading) return <QueryViewerSkeleton className={className} />
 
   if (!query.value) return null
 

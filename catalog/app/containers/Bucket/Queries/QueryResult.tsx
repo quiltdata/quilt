@@ -23,8 +23,7 @@ interface QueryResultSkeletonProps {
 }
 
 function QueryResultSkeleton({ className }: QueryResultSkeletonProps) {
-  const t = M.useTheme()
-  return <Lab.Skeleton className={className} height={t.spacing(3)} width="100%" />
+  return <M.CircularProgress className={className} size={96} />
 }
 
 export default function QueryResult({ className, results }: QueryResultProps) {
