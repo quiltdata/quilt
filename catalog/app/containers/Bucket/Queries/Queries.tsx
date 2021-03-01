@@ -77,7 +77,7 @@ interface QueriesStatePropsInjectProps {
   handleChange: (q: requests.Query | null) => void
   handleSubmit: (q: ElasticSearchQuery) => () => void
   query: requests.Query | null
-  queryData: requests.QueryData
+  queryData: any
   resultsData: requests.ResultsData
 }
 
@@ -162,18 +162,28 @@ export default function Queries({
                   value={query}
                 />
 
-                <QueryViewer query={queryData} className={classes.viewer} />
+                {queryData.case({
+                  Ok: (queryContent: object | null) => (
+                    <>
+                      <QueryViewer query={queryContent} className={classes.viewer} />
 
-                <div className={classes.actions}>
-                  <M.Button
-                    variant="contained"
-                    color="primary"
-                    disabled={resultsData.loading || !queryData.value}
-                    onClick={handleSubmit(queryData.value)}
-                  >
-                    Run query
-                  </M.Button>
-                </div>
+                      <div className={classes.actions}>
+                        <M.Button
+                          variant="contained"
+                          color="primary"
+                          disabled={resultsData.loading || !queryContent}
+                          onClick={handleSubmit(queryData.value)}
+                        >
+                          Run query
+                        </M.Button>
+                      </div>
+                    </>
+                  ),
+                  Err: (error: Error) => (
+                    <Lab.Alert severity="error">{error.message}</Lab.Alert>
+                  ),
+                  _: () => <M.CircularProgress size={96} />,
+                })}
               </M.Grid>
 
               <M.Grid item sm={8} xs={12}>

@@ -1,12 +1,8 @@
-import * as React from 'react'
-
 import * as errors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import yaml from 'utils/yaml'
-
-// import { useRequest } from './requests'
 
 const QUERIES_CONFIG_PATH = '.quilt/queries/config.yaml'
 
@@ -66,6 +62,5 @@ export const queriesConfig = async ({
 
 export function useQueriesConfig(bucket: string): any {
   const s3 = AWS.S3.use()
-  const loader = React.useCallback(() => queriesConfig({ s3, bucket }), [bucket, s3])
-  return useData(loader, { s3, bucket })
+  return useData(queriesConfig, { s3, bucket })
 }
