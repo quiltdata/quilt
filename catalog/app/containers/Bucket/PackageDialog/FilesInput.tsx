@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
-import { useDropzone } from 'react-dropzone'
+import { useDropzone, FileWithPath } from 'react-dropzone'
 import * as M from '@material-ui/core'
 
 import { readableBytes } from 'utils/string'
@@ -17,10 +17,44 @@ const COLORS = {
   deleted: M.colors.red[900],
 }
 
+interface FileWithHash extends File {
+  hash: {
+    value: string | undefined
+    ready: boolean
+    promise: Promise<string>
+  }
+}
+
+const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
+
+// XXX: it might make sense to limit concurrency, tho the tests show that perf os ok, since hashing is async anyways
+function computeHash<F extends File>(f: F) {
+  if (hasHash(f)) return f
+  const promise = PD.hashFile(f)
+  const fh = f as F & FileWithHash
+  fh.hash = { value: undefined, ready: false, promise }
+  promise
+    .catch((e) => {
+      // eslint-disable-next-line no-console
+      console.log('Error hashing file:')
+      // eslint-disable-next-line no-console
+      console.error(e)
+      return undefined
+    })
+    .then((hash) => {
+      fh.hash.value = hash
+      fh.hash.ready = true
+    })
+  return fh
+}
+
 export const FilesAction = tagged.create(
   'app/containers/Bucket/PackageDialog/FilesInput:FilesAction' as const,
   {
-    Add: (v: { files: File[]; prefix?: string }) => v,
+    Add: (v: { files: FileWithPath[]; prefix?: string }) => ({
+      ...v,
+      files: v.files.map(computeHash),
+    }),
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
     Revert: (path: string) => path,
@@ -38,15 +72,18 @@ export interface ExistingFile {
   meta: {}
   physicalKey: string
   size: number
-  // TODO: this was added as an ad hoc workaround to display directories in PackageDirectoryDialog.
+  // XXX: this was added as an ad hoc workaround to display directories in PackageDirectoryDialog.
   // We should consider changing this design, bc it breaks the consistency of the model.
   isDir?: boolean
 }
 
 export interface FilesState {
-  added: Record<string, File>
+  added: Record<string, FileWithPath & FileWithHash>
   deleted: Record<string, true>
   existing: Record<string, ExistingFile>
+  // XXX: workaround used to re-trigger validation and dependent computations
+  // required due to direct mutations of File objects
+  counter?: number
 }
 
 interface FilesStateTransformer {
@@ -67,7 +104,7 @@ const handleFilesAction = FilesAction.match<
 >({
   Add: ({ files, prefix }) => (state) =>
     files.reduce((acc, file) => {
-      const path = (prefix || '') + (PD.getNormalizedPath as (f: File) => string)(file)
+      const path = (prefix || '') + PD.getNormalizedPath(file)
       return R.evolve(
         {
           added: R.assoc(path, file),
@@ -76,11 +113,15 @@ const handleFilesAction = FilesAction.match<
         acc,
       ) as FilesState
     }, state),
-  Delete: (path) => R.evolve({ deleted: R.assoc(path, true) }) as FilesStateTransformer,
+  Delete: (path) =>
+    R.evolve({
+      added: R.dissoc(path),
+      deleted: R.assoc(path, true),
+    }) as FilesStateTransformer,
   // add all descendants from existing to deleted
-  DeleteDir: (prefix) => ({ existing, added, deleted }) => ({
+  DeleteDir: (prefix) => ({ existing, added, deleted, ...rest }) => ({
     existing,
-    added,
+    added: dissocBy(R.startsWith(prefix))(added),
     deleted: R.mergeLeft(
       Object.keys(existing).reduce(
         (acc, k) => (k.startsWith(prefix) ? { ...acc, [k]: true } : acc),
@@ -88,6 +129,7 @@ const handleFilesAction = FilesAction.match<
       ),
       deleted,
     ),
+    ...rest,
   }),
   Revert: (path) =>
     R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }) as FilesStateTransformer,
@@ -104,7 +146,7 @@ interface DispatchFilesAction {
   (action: FilesAction): void
 }
 
-type FilesEntryType = 'deleted' | 'modified' | 'unchanged' | 'unchanged' | 'added'
+type FilesEntryType = 'deleted' | 'modified' | 'unchanged' | 'hashing' | 'added'
 
 const FilesEntryTag = 'app/containers/Bucket/PackageDialog/FilesInput:FilesEntry' as const
 
@@ -129,7 +171,11 @@ const insertIntoDir = (path: string[], file: FilesEntry, dir: FilesEntryDir) => 
   const newChildren = insertIntoTree(path, file, children)
   const type = newChildren
     .map(FilesEntry.match({ Dir: R.prop('type'), File: R.prop('type') }))
-    .reduce((acc, entryType) => (acc === entryType ? acc : 'modified'))
+    .reduce((acc, entryType) => {
+      if (entryType === 'hashing' || acc === 'hashing') return 'hashing'
+      if (acc === entryType) return acc
+      return 'modified'
+    })
   return FilesEntry.Dir({ name, type, children: newChildren })
 }
 
@@ -167,19 +213,28 @@ interface IntermediateEntry {
 }
 
 const computeEntries = ({ added, deleted, existing }: FilesState) => {
-  const existingEntries = Object.entries(existing).map(([path, { isDir, size }]) => {
-    if (path in deleted) {
-      return { type: 'deleted' as const, path, size }
-    }
-    if (path in added) {
-      const a = added[path]
-      return { type: 'modified' as const, path, size: a.size }
-    }
-    if (isDir) {
-      return { type: 'unchanged' as const, path, size, isDir }
-    }
-    return { type: 'unchanged' as const, path, size }
-  })
+  // TODO: use hash.{value,ready} props to descriminate unchanged | added | hashing
+  const existingEntries = Object.entries(existing).map(
+    ([path, { isDir, size, hash }]) => {
+      if (path in deleted) {
+        return { type: 'deleted' as const, path, size }
+      }
+      if (path in added) {
+        const a = added[path]
+        // eslint-disable-next-line no-nested-ternary
+        const type = !a.hash.ready
+          ? ('hashing' as const)
+          : a.hash.value === hash
+          ? ('unchanged' as const)
+          : ('modified' as const)
+        return { type, path, size: a.size }
+      }
+      if (isDir) {
+        return { type: 'unchanged' as const, path, size, isDir }
+      }
+      return { type: 'unchanged' as const, path, size }
+    },
+  )
   const addedEntries = Object.entries(added).reduce((acc, [path, { size }]) => {
     if (path in existing) return acc
     return acc.concat({ type: 'added', path, size })
@@ -194,6 +249,13 @@ const computeEntries = ({ added, deleted, existing }: FilesState) => {
       : FilesEntry.File({ name, ...rest })
     return insertIntoTree(prefixPath, file, children)
   }, [] as FilesEntry[])
+}
+
+export const validateHashingComplete = (state: FilesState) => {
+  const files = Object.values(state.added)
+  if (files.some((f) => f.hash.ready && !f.hash.value)) return 'hashingError'
+  if (files.some((f) => !f.hash.ready)) return 'hashing'
+  return undefined
 }
 
 const useEntryIconStyles = M.makeStyles((t) => ({
@@ -225,6 +287,9 @@ const useEntryIconStyles = M.makeStyles((t) => ({
     fontSize: 9,
     color: t.palette.background.paper,
   },
+  hashProgress: {
+    color: t.palette.background.paper,
+  },
 }))
 
 type EntryIconProps = React.PropsWithChildren<{ state: FilesEntryType }>
@@ -237,6 +302,7 @@ function EntryIcon({ state, children }: EntryIconProps) {
       added: '+',
       deleted: <>&ndash;</>,
       modified: '~',
+      hashing: 'hashing',
       unchanged: undefined,
     }[state]
   return (
@@ -244,7 +310,11 @@ function EntryIcon({ state, children }: EntryIconProps) {
       <M.Icon className={classes.icon}>{children}</M.Icon>
       {!!stateContents && (
         <div className={classes.stateContainer}>
-          <div className={classes.state}>{stateContents}</div>
+          {stateContents === 'hashing' ? (
+            <M.CircularProgress size={8} thickness={6} className={classes.hashProgress} />
+          ) : (
+            <div className={classes.state}>{stateContents}</div>
+          )}
         </div>
       )}
     </div>
@@ -254,6 +324,7 @@ function EntryIcon({ state, children }: EntryIconProps) {
 const useFileStyles = M.makeStyles((t) => ({
   added: {},
   modified: {},
+  hashing: {},
   deleted: {},
   unchanged: {},
   root: {
@@ -265,6 +336,9 @@ const useFileStyles = M.makeStyles((t) => ({
       color: COLORS.added,
     },
     '&$modified': {
+      color: COLORS.modified,
+    },
+    '&$hashing': {
       color: COLORS.modified,
     },
     '&$deleted': {
@@ -328,6 +402,11 @@ function File({ disabled, name, type, size, prefix, dispatch }: FileProps) {
           icon: 'undo',
           handler: handle(FilesAction.Revert),
         },
+        hashing: {
+          hint: 'Revert',
+          icon: 'undo',
+          handler: handle(FilesAction.Revert),
+        },
         deleted: {
           hint: 'Restore',
           icon: 'undo',
@@ -368,9 +447,9 @@ function File({ disabled, name, type, size, prefix, dispatch }: FileProps) {
 
 const useDirStyles = M.makeStyles((t) => ({
   // TODO: support non-diff mode (for package creation)
-  diff: {},
   added: {},
   modified: {},
+  hashing: {},
   deleted: {},
   unchanged: {},
   active: {},
@@ -396,6 +475,9 @@ const useDirStyles = M.makeStyles((t) => ({
       color: COLORS.added,
     },
     '$modified > &': {
+      color: COLORS.modified,
+    },
+    '$hashing > &': {
       color: COLORS.modified,
     },
     '$deleted > &': {
@@ -489,7 +571,7 @@ function Dir({
   const path = (prefix || '') + name
 
   const onDrop = React.useCallback(
-    (files: File[]) => {
+    (files: FileWithPath[]) => {
       dispatch(FilesAction.Add({ prefix: path, files }))
     },
     [dispatch, path],
@@ -513,6 +595,11 @@ function Dir({
       ({
         added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.RevertDir) },
         modified: {
+          hint: 'Revert',
+          icon: 'undo',
+          handler: handle(FilesAction.RevertDir),
+        },
+        hashing: {
           hint: 'Revert',
           icon: 'undo',
           handler: handle(FilesAction.RevertDir),
@@ -589,12 +676,12 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
   },
   header: {
-    alignItems: 'center',
     display: 'flex',
     height: 24,
   },
   headerFiles: {
     ...t.typography.body1,
+    alignItems: 'center',
     display: 'flex',
   },
   headerFilesDisabled: {
@@ -608,11 +695,14 @@ const useStyles = M.makeStyles((t) => ({
   },
   headerFilesAdded: {
     color: t.palette.success.main,
-    marginLeft: t.spacing(0.5),
+    marginLeft: t.spacing(1),
   },
   headerFilesDeleted: {
     color: t.palette.error.main,
-    marginLeft: t.spacing(0.5),
+    marginLeft: t.spacing(1),
+  },
+  headerFilesHashing: {
+    marginLeft: t.spacing(1),
   },
   dropzoneContainer: {
     display: 'flex',
@@ -716,13 +806,13 @@ const useDropdownMessageStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface DropdownMessageProps {
+interface DropzoneMessageProps {
   error: React.ReactNode
   warn: boolean
   disabled: boolean
 }
 
-function DropdownMessage({ error, warn, disabled }: DropdownMessageProps) {
+function DropzoneMessage({ error, warn, disabled }: DropzoneMessageProps) {
   const classes = useDropdownMessageStyles()
 
   const label = React.useMemo(() => {
@@ -792,15 +882,22 @@ export function FilesInput({
 }: FilesInputProps) {
   const classes = useStyles()
 
+  const pRef = React.useRef<Promise<any>>()
+  const scheduleUpdate = (waitFor: Promise<any>[]) => {
+    const p = waitFor.length ? Promise.all(waitFor) : undefined
+    pRef.current = p
+    if (p) {
+      p.then(() => {
+        if (p === pRef.current) {
+          const v = ref.current!.value
+          onChange({ ...v, counter: (v.counter || 0) + 1 }) // trigger field validation
+        }
+      })
+    }
+  }
+
   const submitting = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
-
-  const totalSize = React.useMemo(
-    () => Object.values(value.added).reduce((sum, f) => sum + f.size, 0),
-    [value.added],
-  )
-
-  const warn = totalSize > PD.MAX_SIZE
 
   const refProps = {
     value,
@@ -808,13 +905,23 @@ export function FilesInput({
     initial: meta.initial,
     onChange,
     onFilesAction,
+    scheduleUpdate,
   }
   const ref = React.useRef<typeof refProps>()
   ref.current = refProps
   const { current: dispatch } = React.useRef((action: FilesAction) => {
     const cur = ref.current!
     if (cur.disabled) return
+
     const newValue = handleFilesAction(action, { initial: cur.initial })(cur.value)
+    // XXX: maybe observe value and trigger this when it changes,
+    // regardless of the source of change (e.g. new value supplied directly via the prop)
+    const waitFor = Object.values(newValue.added).reduce(
+      (acc, f) => (f.hash.ready ? acc : acc.concat(f.hash.promise.catch(() => {}))),
+      [] as Promise<any>[],
+    )
+    cur.scheduleUpdate(waitFor)
+
     cur.onChange(newValue)
     if (cur.onFilesAction) cur.onFilesAction(action, cur.value, newValue)
   })
@@ -835,15 +942,22 @@ export function FilesInput({
   const computedEntries = useMemoEq(value, computeEntries)
 
   const stats = useMemoEq(value, ({ added, deleted, existing }) => ({
-    added: Object.values(added).reduce(
-      (acc, f) => R.evolve({ count: R.inc, size: R.add(f.size) }, acc),
+    added: Object.entries(added).reduce(
+      (acc, [path, f]) => {
+        const e = existing[path]
+        if (e && (!f.hash.ready || f.hash.value === e.hash)) return acc
+        return R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
+      },
       { count: 0, size: 0 },
     ),
     deleted: Object.keys(deleted).reduce(
       (acc, path) => R.evolve({ count: R.inc, size: R.add(existing[path].size) }, acc),
       { count: 0, size: 0 },
     ),
+    hashing: Object.values(added).reduce((acc, f) => acc || !f.hash.ready, false),
   }))
+
+  const warn = stats.added.size > PD.MAX_SIZE
 
   return (
     <div className={cx(classes.root, className)}>
@@ -861,23 +975,29 @@ export function FilesInput({
           )}
         >
           {title}
-          {(!!stats.added.count || !!stats.deleted.count) && (
-            <>
-              :
-              {!!stats.added.count && (
-                <span className={classes.headerFilesAdded}>
-                  {' +'}
-                  {stats.added.count} ({readableBytes(stats.added.size)})
-                </span>
-              )}
-              {!!stats.deleted.count && (
-                <span className={classes.headerFilesDeleted}>
-                  {' -'}
-                  {stats.deleted.count} ({readableBytes(stats.deleted.size)})
-                </span>
-              )}
-              {warn && <M.Icon style={{ marginLeft: 4 }}>error_outline</M.Icon>}
-            </>
+          {!!stats.added.count && (
+            <span className={classes.headerFilesAdded}>
+              {' +'}
+              {stats.added.count} ({readableBytes(stats.added.size)})
+            </span>
+          )}
+          {!!stats.deleted.count && (
+            <span className={classes.headerFilesDeleted}>
+              {' -'}
+              {stats.deleted.count} ({readableBytes(stats.deleted.size)})
+            </span>
+          )}
+          {warn && (
+            <M.Icon style={{ marginLeft: 6 }} fontSize="small">
+              error_outline
+            </M.Icon>
+          )}
+          {stats.hashing && (
+            <M.CircularProgress
+              className={classes.headerFilesHashing}
+              size={16}
+              title="Hashing files"
+            />
           )}
         </div>
         <M.Box flexGrow={1} />
@@ -939,7 +1059,7 @@ export function FilesInput({
             </div>
           )}
 
-          <DropdownMessage
+          <DropzoneMessage
             error={error && (errors[error] || error)}
             warn={warn}
             disabled={disabled}
@@ -947,22 +1067,22 @@ export function FilesInput({
         </div>
         {submitting && (
           <div className={classes.lock}>
+            <div className={classes.progressContainer}>
+              <M.CircularProgress
+                size={80}
+                value={totalProgress.total ? totalProgress.percent : undefined}
+                variant={totalProgress.total ? 'determinate' : 'indeterminate'}
+              />
+              {!!totalProgress.total && (
+                <div className={classes.progressPercent}>{totalProgress.percent}%</div>
+              )}
+            </div>
             {!!totalProgress.total && (
-              <>
-                <div className={classes.progressContainer}>
-                  <M.CircularProgress
-                    size={80}
-                    value={totalProgress.percent}
-                    variant="determinate"
-                  />
-                  <div className={classes.progressPercent}>{totalProgress.percent}%</div>
-                </div>
-                <div className={classes.progressSize}>
-                  {readableBytes(totalProgress.loaded)}
-                  {' / '}
-                  {readableBytes(totalProgress.total)}
-                </div>
-              </>
+              <div className={classes.progressSize}>
+                {readableBytes(totalProgress.loaded)}
+                {' / '}
+                {readableBytes(totalProgress.total)}
+              </div>
             )}
           </div>
         )}

@@ -1,5 +1,6 @@
 import type { S3 } from 'aws-sdk'
 import * as FF from 'final-form'
+import invariant from 'invariant'
 import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -18,15 +19,17 @@ import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
 import * as validators from 'utils/validators'
+import type * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
-type WorkflowsConfig = $TSFixMe
-
 interface Manifest {
   entries: Record<string, PD.ExistingFile>
-  meta: $TSFixMe
+  meta: {}
+  workflow?: {
+    id?: string
+  }
 }
 
 interface UploadResult extends S3.ManagedUpload.SendData {
@@ -53,7 +56,7 @@ interface Uploads {
   [path: string]: {
     file: File
     upload: S3.ManagedUpload
-    promise: Promise<{ result: UploadResult; hash: string } | undefined>
+    promise: Promise<UploadResult>
     progress?: { total: number; loaded: number }
   }
 }
@@ -93,15 +96,15 @@ interface DialogFormProps {
   close: () => void
   manifest: Manifest
   name: string
-  responseError: $TSFixMe
+  responseError: Error
   schema: $TSFixMe
   schemaLoading: boolean
-  selectedWorkflow: $TSFixMe
+  selectedWorkflow: workflows.Workflow
   setSubmitting: (submitting: boolean) => void
-  setSuccess: (success: $TSFixMe) => void
-  setWorkflow: (workflow: $TSFixMe) => void
+  setSuccess: (success: { name: string; hash: string }) => void
+  setWorkflow: (workflow: workflows.Workflow) => void
   validate: FF.FieldValidator<any>
-  workflowsConfig: WorkflowsConfig
+  workflowsConfig: workflows.WorkflowsConfig
 }
 
 function DialogForm({
@@ -138,7 +141,7 @@ function DialogForm({
 
   const onFilesAction = React.useMemo(
     () =>
-      PD.FilesAction.case({
+      PD.FilesAction.match({
         _: () => {},
         Revert: (path) => setUploads(R.dissoc(path)),
         RevertDir: (prefix) => setUploads(dissocBy(R.startsWith(prefix))),
@@ -158,10 +161,17 @@ function DialogForm({
     msg: string
     files: PD.FilesState
     meta: {}
-    workflow: $TSFixMe
+    workflow: workflows.Workflow
     // eslint-disable-next-line consistent-return
   }) => {
-    const toUpload = Object.entries(files.added).map(([path, file]) => ({ path, file }))
+    const addedEntries = Object.entries(files.added).map(([path, file]) => ({
+      path,
+      file,
+    }))
+    const toUpload = addedEntries.filter(({ path, file }) => {
+      const e = files.existing[path]
+      return !e || e.hash !== file.hash.value
+    })
 
     const limit = pLimit(2)
     let rejected = false
@@ -189,11 +199,9 @@ function DialogForm({
           setUploads(R.dissoc(path))
           return
         }
-        const resultP = upload.promise()
-        const hashP = PD.hashFile(file)
         try {
           // eslint-disable-next-line consistent-return
-          return { result: await resultP, hash: await hashP }
+          return await upload.promise()
         } catch (e) {
           rejected = true
           setUploads(R.dissoc(path))
@@ -216,25 +224,32 @@ function DialogForm({
       return { [FF.FORM_ERROR]: PD.ERROR_MESSAGES.UPLOAD }
     }
 
+    type Zipped = [
+      string,
+      { physicalKey: string; size: number; hash: string; meta: unknown },
+    ]
     const newEntries = pipeThru(toUpload, uploaded)(
-      /// XXX: u may be undefined?
-      R.zipWith(
-        (f: { path: string; file: File }, u: { result: UploadResult; hash: string }) => [
+      R.zipWith<typeof toUpload[number], UploadResult, Zipped>((f, r) => {
+        invariant(f.file.hash.value, 'File must have a hash')
+        return [
           f.path,
           {
             physicalKey: s3paths.handleToS3Url({
               bucket,
-              key: u.result.Key,
-              version: u.result.VersionId,
+              key: r.Key,
+              version: r.VersionId,
             }),
             size: f.file.size,
-            hash: u.hash,
+            hash: f.file.hash.value,
             meta: R.prop('meta', files.existing[f.path]),
           },
-        ],
-      ),
+        ]
+      }),
       R.fromPairs,
-    )
+    ) as Record<
+      string,
+      { physicalKey: string; size: number; hash: string; meta: unknown }
+    >
 
     const contents = pipeThru(files.existing)(
       R.omit(Object.keys(files.deleted)),
@@ -260,8 +275,7 @@ function DialogForm({
           message: msg,
           contents,
           meta: PD.getMetaValue(meta, schema),
-          // FIXME: this obvsly shouldnt be cast to never
-          workflow: PD.getWorkflowApiParam(workflow.slug as never),
+          workflow: PD.getWorkflowApiParam(workflow.slug),
         },
       })
       setSuccess({ name, hash: res.top_hash })
@@ -406,7 +420,6 @@ function DialogForm({
                   ) : (
                     <RF.Field
                       className={classes.meta}
-                      // @ts-expect-error
                       component={PD.MetaInput}
                       name="meta"
                       bucket={bucket}
@@ -415,8 +428,8 @@ function DialogForm({
                       validate={validateMetaInput}
                       validateFields={['meta']}
                       isEqual={R.equals}
+                      initialValue={manifest.meta || PD.EMPTY_META_VALUE}
                       ref={setEditorElement}
-                      initialValue={manifest.meta}
                     />
                   )}
 
@@ -439,10 +452,18 @@ function DialogForm({
                     // @ts-expect-error
                     component={PD.FilesInput}
                     name="files"
-                    validate={validators.nonEmpty as FF.FieldValidator<$TSFixMe>}
+                    validate={
+                      validators.composeAsync(
+                        validators.nonEmpty,
+                        PD.validateHashingComplete,
+                      ) as FF.FieldValidator<$TSFixMe>
+                    }
                     validateFields={['files']}
                     errors={{
                       nonEmpty: 'Add files to create a package',
+                      hashing: 'Please wait while we hash the files',
+                      hashingError:
+                        'Error hashing files, probably some of them are too large. Please try again or contact support.',
                     }}
                     totalProgress={totalProgress}
                     title="Files"
@@ -600,10 +621,13 @@ const DialogState = tagged.create(
     Closed: () => {},
     Loading: () => {},
     Error: (e: Error) => e,
-    Form: (v: { manifest: Manifest; workflowsConfig: WorkflowsConfig }) => v,
+    Form: (v: { manifest: Manifest; workflowsConfig: workflows.WorkflowsConfig }) => v,
     Success: (v: { name: string; hash: string }) => v,
   },
 )
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+type DialogState = tagged.InstanceOf<typeof DialogState>
 
 interface UsePackageUpdateDialogProps {
   bucket: string
@@ -628,7 +652,7 @@ export function usePackageUpdateDialog({
   )
   const [submitting, setSubmitting] = React.useState(false)
   const [key, setKey] = React.useState(1)
-  const [workflow, setWorkflow] = React.useState(null)
+  const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
 
   const manifestData = Data.use(
     requests.loadManifest,
@@ -662,11 +686,11 @@ export function usePackageUpdateDialog({
     }
   }, [setExited, setSuccess, success, onExited, refreshManifest])
 
-  const state = React.useMemo(() => {
+  const state = React.useMemo<DialogState>(() => {
     if (exited) return DialogState.Closed()
     if (success) return DialogState.Success(success)
     return workflowsData.case({
-      Ok: (workflowsConfig: WorkflowsConfig) =>
+      Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
         manifestData.case({
           Ok: (manifest: Manifest) => DialogState.Form({ manifest, workflowsConfig }),
           Err: DialogState.Error,

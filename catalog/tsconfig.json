@@ -2,6 +2,9 @@
   "compilerOptions": {
     "outDir": "./build/",
     "baseUrl": "./app/",
+    "paths": {
+      "*": ["*", "../../shared/*"]
+    },
     "sourceMap": true,
     "module": "ESNext",
     "target": "ES5",
