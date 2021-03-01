@@ -3,9 +3,10 @@ import * as React from 'react'
 import * as errors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
+import { useData } from 'utils/Data'
 import yaml from 'utils/yaml'
 
-import { useRequest } from './requests'
+// import { useRequest } from './requests'
 
 const QUERIES_CONFIG_PATH = '.quilt/queries/config.yaml'
 
@@ -34,13 +35,23 @@ export interface ConfigData {
   value: Query[]
 }
 
+function parseQueriesList(result: ConfigResponse | null) {
+  if (!result || !result.queries) return []
+
+  return Object.entries(result.queries).map(([key, query]) => ({
+    ...query,
+    body: null,
+    key,
+  }))
+}
+
 export const queriesConfig = async ({
   s3,
   bucket,
-}: QueriesConfigArgs): Promise<ConfigResponse | null> => {
+}: QueriesConfigArgs): Promise<Query[] | null> => {
   try {
     const response = await requests.fetchFile({ s3, bucket, path: QUERIES_CONFIG_PATH })
-    return yaml(response.Body.toString('utf-8'))
+    return parseQueriesList(yaml(response.Body.toString('utf-8')))
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
       return null
@@ -53,18 +64,8 @@ export const queriesConfig = async ({
   }
 }
 
-function parseQueriesList(result: ConfigResponse | null) {
-  if (!result || !result.queries) return []
-
-  return Object.entries(result.queries).map(([key, query]) => ({
-    ...query,
-    body: null,
-    key,
-  }))
-}
-
-export function useQueriesConfig(bucket: string): ConfigData {
+export function useQueriesConfig(bucket: string): any {
   const s3 = AWS.S3.use()
   const loader = React.useCallback(() => queriesConfig({ s3, bucket }), [bucket, s3])
-  return useRequest(loader, parseQueriesList)
+  return useData(loader, { s3, bucket })
 }

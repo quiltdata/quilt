@@ -1,22 +1,13 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import * as requests from './requests'
 
 interface QuerySelectProps {
   className: string
-  config: requests.ConfigData
+  queries: requests.Query[]
   onChange: (value: requests.Query | null) => void
   value: requests.Query | null
-}
-
-interface QuerySelectSkeletonProps {
-  className: string
-}
-
-function QuerySelectSkeleton({ className }: QuerySelectSkeletonProps) {
-  return <M.CircularProgress className={className} size={48} />
 }
 
 const useStyles = M.makeStyles({
@@ -27,7 +18,7 @@ const useStyles = M.makeStyles({
 
 export default function QuerySelect({
   className,
-  config,
+  queries,
   onChange,
   value,
 }: QuerySelectProps) {
@@ -35,14 +26,10 @@ export default function QuerySelect({
 
   const handleChange = React.useCallback(
     (event) => {
-      onChange(config.value.find((query) => query.key === event.target.value) || null)
+      onChange(queries.find((query) => query.key === event.target.value) || null)
     },
-    [config, onChange],
+    [queries, onChange],
   )
-
-  if (config.error) return <Lab.Alert severity="error">{config.error.message}</Lab.Alert>
-
-  if (config.loading) return <QuerySelectSkeleton className={className} />
 
   return (
     <div className={className}>
@@ -53,7 +40,7 @@ export default function QuerySelect({
           value={value ? value.key : ''}
           onChange={handleChange}
         >
-          {config.value.map((query) => (
+          {queries.map((query) => (
             <M.MenuItem key={query.key} value={query.key}>
               {query.name}
             </M.MenuItem>

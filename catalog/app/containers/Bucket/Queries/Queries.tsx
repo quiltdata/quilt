@@ -1,7 +1,9 @@
 import * as React from 'react'
 import { RouteComponentProps } from 'react-router'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
+import AsyncResult from 'utils/AsyncResult'
 import { docs } from 'constants/urls'
 import StyledLink from 'utils/StyledLink'
 
@@ -67,11 +69,11 @@ interface QueryConfigFetcherProps {
 
 function QueryConfigFetcher({ bucket, children }: QueryConfigFetcherProps) {
   const config = requests.useQueriesConfig(bucket)
-  return children(config)
+  return children(config.result)
 }
 
 interface QueriesStatePropsInjectProps {
-  config: requests.ConfigData
+  queries: requests.Query[]
   handleChange: (q: requests.Query | null) => void
   handleSubmit: (q: ElasticSearchQuery) => () => void
   query: requests.Query | null
@@ -111,24 +113,28 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
 
   return (
     <QueryConfigFetcher bucket={bucket}>
-      {(config) => (
-        <SearchResultsFetcher queryBody={queryBody}>
-          {(resultsData) => (
-            <QueryFetcher query={selectedQuery || config.value[0]}>
-              {(queryData) =>
-                children({
-                  config,
-                  handleChange: setSelectedQuery,
-                  handleSubmit,
-                  query: selectedQuery || config.value[0],
-                  queryData,
-                  resultsData,
-                })
-              }
-            </QueryFetcher>
-          )}
-        </SearchResultsFetcher>
-      )}
+      {AsyncResult.case({
+        Ok: (queries: requests.Query[]) => (
+          <SearchResultsFetcher queryBody={queryBody}>
+            {(resultsData) => (
+              <QueryFetcher query={selectedQuery || queries[0]}>
+                {(queryData) =>
+                  children({
+                    queries,
+                    handleChange: setSelectedQuery,
+                    handleSubmit,
+                    query: selectedQuery || queries[0],
+                    queryData,
+                    resultsData,
+                  })
+                }
+              </QueryFetcher>
+            )}
+          </SearchResultsFetcher>
+        ),
+        Err: (error: Error) => <Lab.Alert severity="error">{error.message}</Lab.Alert>,
+        _: () => <M.CircularProgress size={48} />,
+      })}
     </QueryConfigFetcher>
   )
 }
@@ -142,8 +148,8 @@ export default function Queries({
 
   return (
     <QueriesState bucket={bucket}>
-      {({ config, queryData, handleChange, handleSubmit, query, resultsData }) =>
-        config.value.length || config.loading || config.error ? (
+      {({ queries, queryData, handleChange, handleSubmit, query, resultsData }) =>
+        queries.length ? (
           <M.Container className={classes.container} maxWidth="lg">
             <M.Typography variant="h6">Elastic Search queries</M.Typography>
 
@@ -151,27 +157,23 @@ export default function Queries({
               <M.Grid item sm={4} xs={12} className={classes.form}>
                 <QuerySelect
                   className={classes.select}
-                  config={config}
+                  queries={queries}
                   onChange={handleChange}
                   value={query}
                 />
 
-                {!config.loading && !config.error && (
-                  <>
-                    <QueryViewer query={queryData} className={classes.viewer} />
+                <QueryViewer query={queryData} className={classes.viewer} />
 
-                    <div className={classes.actions}>
-                      <M.Button
-                        variant="contained"
-                        color="primary"
-                        disabled={resultsData.loading || !queryData.value}
-                        onClick={handleSubmit(queryData.value)}
-                      >
-                        Run query
-                      </M.Button>
-                    </div>
-                  </>
-                )}
+                <div className={classes.actions}>
+                  <M.Button
+                    variant="contained"
+                    color="primary"
+                    disabled={resultsData.loading || !queryData.value}
+                    onClick={handleSubmit(queryData.value)}
+                  >
+                    Run query
+                  </M.Button>
+                </div>
               </M.Grid>
 
               <M.Grid item sm={8} xs={12}>
