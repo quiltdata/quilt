@@ -9,6 +9,8 @@ export function useRequest<Response, Data>(
   const [error, setError] = React.useState<Error | null>(null)
 
   React.useEffect(() => {
+    setLoading(true)
+
     loader()
       .then((res) => {
         if (!res) return

@@ -23,7 +23,11 @@ interface QueryResultSkeletonProps {
 }
 
 function QueryResultSkeleton({ className }: QueryResultSkeletonProps) {
-  return <M.CircularProgress className={className} size={96} />
+  return (
+    <M.Box pt={5} textAlign="center">
+      <M.CircularProgress className={className} size={96} />
+    </M.Box>
+  )
 }
 
 export default function QueryResult({ className, results }: QueryResultProps) {
