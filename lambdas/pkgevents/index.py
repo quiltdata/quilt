@@ -4,8 +4,13 @@ import re
 
 import boto3
 
+from t4_lambda_shared.utils import get_quilt_logger
+
+EXPECTED_POINTER_SIZE = 64
+
 event_bridge = boto3.client('events')
 s3 = boto3.client('s3')
+logger = get_quilt_logger()
 
 
 class PutEventsException(Exception):
@@ -58,21 +63,30 @@ def pkg_created_event(s3_event):
         return
     bucket_obj = s3_event_obj['bucket']
     bucket = bucket_obj['name']
-    etag = obj['eTag']
-    version_id = obj['versionId']
-    pkg_hash = s3.get_object(Bucket=bucket, Key=key, IfMatch=etag, VersionId=version_id)['Body'].read().decode()
+    try:
+        resp = s3.get_object(Bucket=bucket, Key=key, Range=f'bytes=0-{EXPECTED_POINTER_SIZE}')
+    except s3.exceptions.NoSuckKey:
+        logger.warning('pointer is created in bucket %r at %r, but not found', bucket, key)
+        return
+    if resp['ContentLength'] != EXPECTED_POINTER_SIZE:
+        logger.warning('pointer in bucket %r at %r has %d bytes, but %d bytes expected',
+                       bucket, key, resp['ContentLength'], EXPECTED_POINTER_SIZE)
+        return
+
     return {
         'Time': s3_event['eventTime'],
-        'Source': 'quiltdata.pkg',
-        'DetailType': 'created',
+        'Source': 'com.quiltdata',
+        'DetailType': 'package-revision',
         'Resources': [
             bucket_obj['arn'],
             # TODO: add stack ARN?
         ],
         'Detail': json.dumps({
+            'version': '0.1',
+            'type': 'created',
             'bucket': bucket,
             'handle': pkg_name,
-            'topHash': pkg_hash,
+            'topHash': resp['Body'].read().decode(),
         }),
     }
 
