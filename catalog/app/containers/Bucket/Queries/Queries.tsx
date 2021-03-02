@@ -15,7 +15,6 @@ import * as requests from './requests'
 const useStyles = M.makeStyles((t) => ({
   actions: {
     margin: t.spacing(2, 0),
-    textAlign: 'right',
   },
   container: {
     padding: t.spacing(3),
@@ -27,12 +26,9 @@ const useStyles = M.makeStyles((t) => ({
     margin: t.spacing(0, 0, 2),
   },
   results: {
-    [t.breakpoints.up('sm')]: {
-      margin: t.spacing(0, 0, 0, 4),
-    },
   },
   select: {
-    margin: t.spacing(0, 0, 2),
+    margin: t.spacing(2, 0),
   },
   viewer: {
     margin: t.spacing(2, 0),
@@ -147,56 +143,50 @@ export default function Queries({
           <M.Container className={classes.container} maxWidth="lg">
             <M.Typography variant="h6">Elastic Search queries</M.Typography>
 
-            <M.Grid container className={classes.inner}>
-              <M.Grid item sm={4} xs={12} className={classes.form}>
-                <QuerySelect
-                  className={classes.select}
-                  queries={queries}
-                  onChange={handleChange}
-                  value={query}
-                />
+            <QuerySelect
+              className={classes.select}
+              queries={queries}
+              onChange={handleChange}
+              value={query}
+            />
 
-                {queryData.case({
-                  Ok: (queryContent: requests.ElasticSearchQuery) => (
-                    <>
-                      <QueryViewer query={queryContent} className={classes.viewer} />
+            {queryData.case({
+              Ok: (queryContent: requests.ElasticSearchQuery) => (
+                <div className={classes.form}>
+                  <QueryViewer query={queryContent} className={classes.viewer} />
 
-                      <div className={classes.actions}>
-                        <M.Button
-                          variant="contained"
-                          color="primary"
-                          disabled={isButtonDisabled(queryContent, resultsData)}
-                          onClick={handleSubmit(queryContent)}
-                        >
-                          Run query
-                        </M.Button>
-                      </div>
-                    </>
-                  ),
-                  Err: (error: Error) => (
-                    <Lab.Alert severity="error">{error.message}</Lab.Alert>
-                  ),
-                  _: () => <M.CircularProgress size={96} />,
-                })}
-              </M.Grid>
+                  <div className={classes.actions}>
+                    <M.Button
+                      variant="contained"
+                      color="primary"
+                      disabled={isButtonDisabled(queryContent, resultsData)}
+                      onClick={handleSubmit(queryContent)}
+                    >
+                      Run query
+                    </M.Button>
+                  </div>
+                </div>
+              ),
+              Err: (error: Error) => (
+                <Lab.Alert severity="error">{error.message}</Lab.Alert>
+              ),
+              _: () => <M.CircularProgress size={96} />,
+            })}
 
-              <M.Grid item sm={8} xs={12}>
-                {resultsData.case({
-                  Init: () => null,
-                  Ok: (results: requests.ElasticSearchResults) => (
-                    <QueryResult className={classes.results} results={results} />
-                  ),
-                  Err: (error: Error) => (
-                    <Lab.Alert severity="error">{error.message}</Lab.Alert>
-                  ),
-                  _: () => (
-                    <M.Box pt={5} textAlign="center">
-                      <M.CircularProgress size={96} />
-                    </M.Box>
-                  ),
-                })}
-              </M.Grid>
-            </M.Grid>
+            {resultsData.case({
+              Init: () => null,
+              Ok: (results: requests.ElasticSearchResults) => (
+                <QueryResult className={classes.results} results={results} />
+              ),
+              Err: (error: Error) => (
+                <Lab.Alert severity="error">{error.message}</Lab.Alert>
+              ),
+              _: () => (
+                <M.Box pt={5} textAlign="center">
+                  <M.CircularProgress size={96} />
+                </M.Box>
+              ),
+            })}
           </M.Container>
         ) : (
           <NoQueries />
