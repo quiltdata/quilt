@@ -115,7 +115,6 @@ function Form({ onSuccess, link }: FormProps) {
                     {...msg.passChangeErrorInvalidToken}
                     values={{
                       link: (
-                        // @ts-expect-error
                         <Link to={urls.passReset()}>
                           <FM {...msg.passChangeErrorInvalidTokenLink} />
                         </Link>
@@ -154,7 +153,6 @@ function Success() {
           {...msg.passChangeSuccessCTA}
           values={{
             link: (
-              // @ts-expect-error
               <Link to={urls.signIn()}>
                 <FM {...msg.passChangeSuccessCTALink} />
               </Link>

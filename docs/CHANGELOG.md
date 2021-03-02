@@ -30,6 +30,7 @@
 * [Changed] Use polyfill.io instead of bundled polyfills ([#2043](https://github.com/quiltdata/quilt/pull/2043))
 * [Changed] Render JSON with custom tree-like viewer ([#2037](https://github.com/quiltdata/quilt/pull/2037))
 * [Changed] Set JSON Schema defaults ([#2053](https://github.com/quiltdata/quilt/pull/2053))
+* [Changed] Don't upload unmodified files while revising a package ([#2080](https://github.com/quiltdata/quilt/pull/2080))
 * [Fixed] Bug that caused search to miss delete object and delete package events ([#1987](https://github.com/quiltdata/quilt/pull/1987))
 * [Fixed] lambda previews for time series `AICSImage` data (potential `IndexError` if odd number of time points) ([#1945](https://github.com/quiltdata/quilt/pull/1945))
 * [Fixed] Handle folders in search results ([#1992](https://github.com/quiltdata/quilt/pull/1992), [#1994](https://github.com/quiltdata/quilt/pull/1994))

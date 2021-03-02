@@ -1,12 +1,11 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-const useStyles = M.makeStyles(() => ({
+const useStyles = M.makeStyles({
   content: {
     paddingTop: 0,
-    position: 'relative',
   },
-}))
+})
 
 export default function DialogLoading({ skeletonElement, title, onCancel }) {
   const classes = useStyles()

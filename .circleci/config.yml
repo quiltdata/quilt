@@ -39,6 +39,9 @@ commands:
             else
               echo ". venv/Scripts/activate" >> $BASH_ENV # for Windows
             fi
+      - run:
+          name: update pip & setuptools
+          command: python -m pip install -U pip setuptools
   codecov:
     parameters:
       flags:

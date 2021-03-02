@@ -576,7 +576,7 @@ function FileDisplay({ bucket, name, hash, revision, path, crumbs }) {
   })
 }
 
-const useStyles = M.makeStyles(() => ({
+const useStyles = M.makeStyles({
   name: {
     wordBreak: 'break-all',
   },
@@ -585,7 +585,7 @@ const useStyles = M.makeStyles(() => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-}))
+})
 
 export default function PackageTree({
   match: {
