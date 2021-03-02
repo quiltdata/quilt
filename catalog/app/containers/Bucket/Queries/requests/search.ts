@@ -6,7 +6,7 @@ import { ElasticSearchQuery } from './query'
 import { AsyncData } from './requests'
 
 interface SearchArgs {
-  req: any
+  req: $TSFixMe
   body: string
 }
 
@@ -14,8 +14,7 @@ export type ElasticSearchResults = object | null
 
 async function search({ req, body }: SearchArgs): Promise<ElasticSearchResults> {
   try {
-    const result = await req('/search', { index: '*', action: 'search', body })
-    return result
+    return req('/search', { index: '*', action: 'search', body })
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
       return null

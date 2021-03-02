@@ -23,8 +23,8 @@ interface ConfigResponse {
 }
 
 interface QueriesConfigArgs {
-  s3: any
   bucket: string
+  s3: $TSFixMe
 }
 
 function parseQueriesList(result: ConfigResponse | null) {

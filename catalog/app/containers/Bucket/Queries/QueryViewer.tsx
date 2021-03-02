@@ -3,6 +3,8 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 
+import * as requests from './requests'
+
 const useStyles = M.makeStyles((t) => ({
   content: {
     margin: t.spacing(1, 0, 0),
@@ -12,7 +14,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface QueryViewerProps {
   className: string
-  query: object | null
+  query: requests.ElasticSearchQuery
 }
 
 export default function QueryViewer({ className, query }: QueryViewerProps) {

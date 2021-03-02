@@ -3,6 +3,8 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 
+import * as requests from './requests'
+
 const useStyles = M.makeStyles((t) => ({
   content: {
     margin: t.spacing(1, 0, 0),
@@ -12,7 +14,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface QueryResultProps {
   className: string
-  results: object | null
+  results: requests.ElasticSearchResults
 }
 
 export default function QueryResult({ className, results }: QueryResultProps) {

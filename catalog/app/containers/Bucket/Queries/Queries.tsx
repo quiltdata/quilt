@@ -157,7 +157,7 @@ export default function Queries({
                 />
 
                 {queryData.case({
-                  Ok: (queryContent: object | null) => (
+                  Ok: (queryContent: requests.ElasticSearchQuery) => (
                     <>
                       <QueryViewer query={queryContent} className={classes.viewer} />
 
@@ -183,7 +183,7 @@ export default function Queries({
               <M.Grid item sm={8} xs={12}>
                 {resultsData.case({
                   Init: () => null,
-                  Ok: (results: object | null) => (
+                  Ok: (results: requests.ElasticSearchResults) => (
                     <QueryResult className={classes.results} results={results} />
                   ),
                   Err: (error: Error) => (

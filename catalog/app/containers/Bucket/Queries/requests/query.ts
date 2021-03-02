@@ -7,8 +7,8 @@ import * as s3paths from 'utils/s3paths'
 import { AsyncData } from './requests'
 
 interface QueryArgs {
-  s3: any
   queryUrl: string
+  s3: $TSFixMe
 }
 
 export type ElasticSearchQuery = object | null

@@ -9,7 +9,7 @@ interface Cases<Data> {
 
 export interface AsyncData<Data> {
   case: (cases: Cases<Data>) => React.ReactElement
-  result: any
+  result: $TSFixMe
 }
 
 export function useRequest<Response, Data>(
