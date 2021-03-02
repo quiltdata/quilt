@@ -32,5 +32,5 @@ export const query = async ({ s3, queryUrl }: QueryArgs): Promise<ElasticSearchQ
 
 export function useQuery(queryUrl: string): AsyncData<ElasticSearchQuery> {
   const s3 = AWS.S3.use()
-  return useData(query, { s3, queryUrl })
+  return useData(query, { s3, queryUrl }, { noAutoFetch: !queryUrl })
 }

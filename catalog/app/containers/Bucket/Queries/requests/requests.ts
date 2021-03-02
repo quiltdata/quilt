@@ -1,9 +1,10 @@
 import * as React from 'react'
 
 interface Cases<Data> {
-  Ok: (data: Data) => React.ReactElement
-  Err: (error: Error) => React.ReactElement
-  _: () => React.ReactElement
+  Err?: (error: Error) => React.ReactNode
+  Init?: () => React.ReactNode
+  Ok?: (data: Data) => React.ReactNode
+  _?: () => React.ReactNode
 }
 
 export interface AsyncData<Data> {

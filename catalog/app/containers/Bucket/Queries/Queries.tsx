@@ -1,9 +1,9 @@
+import * as R from 'ramda'
 import * as React from 'react'
 import { RouteComponentProps } from 'react-router'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import AsyncResult from 'utils/AsyncResult'
 import { docs } from 'constants/urls'
 import StyledLink from 'utils/StyledLink'
 
@@ -40,18 +40,19 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface SearchResultsFetcherProps {
-  children: (props: requests.AsyncData<object | null>) => React.ReactElement
-  queryBody: object | null
+  children: (
+    props: requests.AsyncData<requests.ElasticSearchResults>,
+  ) => React.ReactElement
+  queryBody: requests.ElasticSearchQuery
 }
 
 function SearchResultsFetcher({ children, queryBody }: SearchResultsFetcherProps) {
-  if (!queryBody) return children(AsyncResult.Init)
   const resultsData = requests.useSearch(queryBody)
   return children(resultsData)
 }
 
 interface QueryFetcherProps {
-  children: (props: requests.AsyncData<object | null>) => React.ReactElement
+  children: (props: requests.AsyncData<requests.ElasticSearchQuery>) => React.ReactElement
   query: requests.Query | null
 }
 
@@ -66,8 +67,8 @@ interface QueriesStatePropsInjectProps {
   handleChange: (q: requests.Query | null) => void
   handleSubmit: (q: requests.ElasticSearchQuery) => () => void
   query: requests.Query | null
-  queryData: requests.AsyncData<object | null>
-  resultsData: requests.AsyncData<object | null>
+  queryData: requests.AsyncData<requests.ElasticSearchQuery>
+  resultsData: requests.AsyncData<requests.ElasticSearchResults>
 }
 
 interface QueriesStateProps {
@@ -133,6 +134,12 @@ export default function Queries({
 }: RouteComponentProps<{ bucket: string }>) {
   const classes = useStyles()
 
+  const isButtonDisabled = (
+    queryContent: requests.ElasticSearchQuery,
+    resultsData: requests.AsyncData<requests.ElasticSearchResults>,
+  ): boolean =>
+    !queryContent || !!resultsData.case({ _: R.T, Init: R.F, Err: R.F, Ok: R.F })
+
   return (
     <QueriesState bucket={bucket}>
       {({ queries, queryData, handleChange, handleSubmit, query, resultsData }) =>
@@ -158,7 +165,7 @@ export default function Queries({
                         <M.Button
                           variant="contained"
                           color="primary"
-                          disabled={!queryContent}
+                          disabled={isButtonDisabled(queryContent, resultsData)}
                           onClick={handleSubmit(queryContent)}
                         >
                           Run query
@@ -174,20 +181,20 @@ export default function Queries({
               </M.Grid>
 
               <M.Grid item sm={8} xs={12}>
-                {resultsData.case &&
-                  resultsData.case({
-                    Ok: (results: object | null) => (
-                      <QueryResult className={classes.results} results={results} />
-                    ),
-                    Err: (error: Error) => (
-                      <Lab.Alert severity="error">{error.message}</Lab.Alert>
-                    ),
-                    _: () => (
-                      <M.Box pt={5} textAlign="center">
-                        <M.CircularProgress size={96} />
-                      </M.Box>
-                    ),
-                  })}
+                {resultsData.case({
+                  Init: () => null,
+                  Ok: (results: object | null) => (
+                    <QueryResult className={classes.results} results={results} />
+                  ),
+                  Err: (error: Error) => (
+                    <Lab.Alert severity="error">{error.message}</Lab.Alert>
+                  ),
+                  _: () => (
+                    <M.Box pt={5} textAlign="center">
+                      <M.CircularProgress size={96} />
+                    </M.Box>
+                  ),
+                })}
               </M.Grid>
             </M.Grid>
           </M.Container>
