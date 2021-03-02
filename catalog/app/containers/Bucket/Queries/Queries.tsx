@@ -23,15 +23,14 @@ const useStyles = M.makeStyles((t) => ({
     margin: t.spacing(2, 0, 0),
   },
   form: {
-    margin: t.spacing(0, 0, 2),
+    margin: t.spacing(0, 0, 4),
   },
-  results: {
-  },
+  results: {},
   select: {
-    margin: t.spacing(2, 0),
+    margin: t.spacing(3, 0),
   },
   viewer: {
-    margin: t.spacing(2, 0),
+    margin: t.spacing(3, 0),
   },
 }))
 
