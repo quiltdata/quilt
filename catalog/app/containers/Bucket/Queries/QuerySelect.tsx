@@ -10,11 +10,17 @@ interface QuerySelectProps {
   value: requests.Query | null
 }
 
-const useStyles = M.makeStyles({
-  root: {
+const useStyles = M.makeStyles((t) => ({
+  header: {
+    margin: t.spacing(0, 0, 1),
+  },
+  selectWrapper: {
     width: '100%',
   },
-})
+  select: {
+    padding: t.spacing(1),
+  },
+}))
 
 export default function QuerySelect({
   className,
@@ -33,20 +39,28 @@ export default function QuerySelect({
 
   return (
     <div className={className}>
-      <M.Typography variant="body1">Select query</M.Typography>
-      <M.FormControl className={classes.root}>
-        <M.Select
-          labelId="query-select"
-          value={value ? value.key : ''}
-          onChange={handleChange}
-        >
-          {queries.map((query) => (
-            <M.MenuItem key={query.key} value={query.key}>
-              {query.name}
+      <M.Typography className={classes.header} variant="body1">
+        Select query
+      </M.Typography>
+      <M.Paper>
+        <M.FormControl className={classes.selectWrapper}>
+          <M.Select
+            labelId="query-select"
+            value={value ? value.key : 'none'}
+            onChange={handleChange}
+            className={classes.select}
+          >
+            <M.MenuItem disabled value="none">
+              None
             </M.MenuItem>
-          ))}
-        </M.Select>
-      </M.FormControl>
+            {queries.map((query) => (
+              <M.MenuItem key={query.key} value={query.key}>
+                {query.name}
+              </M.MenuItem>
+            ))}
+          </M.Select>
+        </M.FormControl>
+      </M.Paper>
     </div>
   )
 }

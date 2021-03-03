@@ -59,11 +59,11 @@ function QueryFetcher({ children, query }: QueryFetcherProps) {
 
 interface QueriesStatePropsInjectProps {
   queries: requests.Query[]
-  handleChange: (q: requests.Query | null) => void
-  handleQueryChange: (q: requests.ElasticSearchQuery | null) => void
+  handleQueryMetaChange: (q: requests.Query | null) => void
+  handleQueryBodyChange: (q: requests.ElasticSearchQuery | null) => void
   handleSubmit: (q: requests.ElasticSearchQuery | string) => () => void
-  query: requests.Query | null
-  queryBody: requests.ElasticSearchQuery | string
+  queryMeta: requests.Query | null
+  customQueryBody: requests.ElasticSearchQuery | string
   queryData: requests.AsyncData<requests.ElasticSearchQuery>
   resultsData: requests.AsyncData<requests.ElasticSearchResults>
 }
@@ -92,38 +92,48 @@ function NoQueries() {
 function QueriesState({ bucket, children }: QueriesStateProps) {
   const config: requests.AsyncData<requests.Query[]> = requests.useQueriesConfig(bucket)
 
-  const [selectedQuery, setSelectedQuery] = React.useState<requests.Query | null>(null)
-  const [queryBody, setQueryBody] = React.useState<requests.ElasticSearchQuery | string>(
-    null,
-  )
-  const [queryToExecute, setQueryToExecute] = React.useState<
+  // Info about query: name, url, etc.
+  const [queryMeta, setQueryMeta] = React.useState<requests.Query | null>(null)
+
+  // Custom query content, not associated fith queryMeta
+  const [customQueryBody, setCustomQueryBody] = React.useState<
+    requests.ElasticSearchQuery | string
+  >(null)
+  const [queryRequest, setQueryRequest] = React.useState<
     requests.ElasticSearchQuery | string
   >(null)
 
   const handleSubmit = React.useMemo(
-    () => (body: requests.ElasticSearchQuery | string) => () => setQueryToExecute(body),
-    [setQueryToExecute],
+    () => (body: requests.ElasticSearchQuery | string) => () => setQueryRequest(body),
+    [setQueryRequest],
   )
 
-  const handleChange = React.useCallback((q: requests.Query | null) => {
-    setSelectedQuery(q)
-    setQueryBody(null)
+  const handleQueryMetaChange = React.useCallback((q: requests.Query | null) => {
+    setQueryMeta(q)
+    setCustomQueryBody(null)
   }, [])
+
+  const handleQueryBodyChange = React.useCallback(
+    (q: requests.ElasticSearchQuery | string) => {
+      setCustomQueryBody(q)
+    },
+    [],
+  )
 
   return config.case({
     Ok: (queries: requests.Query[]) => (
-      <QueryFetcher query={selectedQuery || queries[0]}>
+      <QueryFetcher query={queryMeta || queries[0]}>
         {(queryData) => (
-          <SearchResultsFetcher queryBody={queryToExecute}>
+          <SearchResultsFetcher queryBody={queryRequest}>
             {(resultsData) =>
               children({
-                handleChange,
-                handleQueryChange: setQueryBody,
+                handleQueryMetaChange,
+                handleQueryBodyChange,
                 handleSubmit,
                 queries,
-                query: selectedQuery || queries[0],
+                queryMeta: queryMeta || queries[0],
                 queryData,
-                queryBody,
+                customQueryBody,
                 resultsData,
               })
             }
@@ -154,11 +164,11 @@ export default function Queries({
       {({
         queries,
         queryData,
-        queryBody,
-        handleChange,
-        handleQueryChange,
+        customQueryBody,
+        handleQueryMetaChange,
+        handleQueryBodyChange,
         handleSubmit,
-        query,
+        queryMeta,
         resultsData,
       }) =>
         queries.length ? (
@@ -168,25 +178,25 @@ export default function Queries({
             <QuerySelect
               className={classes.select}
               queries={queries}
-              onChange={handleChange}
-              value={query}
+              onChange={handleQueryMetaChange}
+              value={customQueryBody ? null : queryMeta}
             />
 
             {queryData.case({
-              Ok: (queryContent: requests.ElasticSearchQuery) => (
+              Ok: (queryBody: requests.ElasticSearchQuery) => (
                 <div className={classes.form}>
                   <QueryViewer
-                    query={queryBody || queryContent}
+                    query={customQueryBody || queryBody}
                     className={classes.viewer}
-                    onChange={handleQueryChange}
+                    onChange={handleQueryBodyChange}
                   />
 
                   <div className={classes.actions}>
                     <M.Button
                       variant="contained"
                       color="primary"
-                      disabled={isButtonDisabled(queryContent, resultsData)}
-                      onClick={handleSubmit(queryBody || queryContent)}
+                      disabled={isButtonDisabled(queryBody, resultsData)}
+                      onClick={handleSubmit(customQueryBody || queryBody)}
                     >
                       Run query
                     </M.Button>
