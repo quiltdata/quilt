@@ -105,6 +105,11 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
     [setQueryToExecute],
   )
 
+  const handleChange = React.useCallback((q: requests.Query | null) => {
+    setSelectedQuery(q)
+    setQueryBody(null)
+  }, [])
+
   return config.case({
     Ok: (queries: requests.Query[]) => (
       <QueryFetcher query={selectedQuery || queries[0]}>
@@ -112,7 +117,7 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
           <SearchResultsFetcher queryBody={queryToExecute}>
             {(resultsData) =>
               children({
-                handleChange: setSelectedQuery,
+                handleChange,
                 handleQueryChange: setQueryBody,
                 handleSubmit,
                 queries,
