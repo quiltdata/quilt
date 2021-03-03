@@ -12,15 +12,27 @@ interface SearchArgs {
 
 export type ElasticSearchResults = object | null
 
+type ElasticSearchRequestData = {
+  action: 'freeform'
+  body: string
+  filter_path: string
+  from?: number
+  index: string
+  size?: number
+}
+
 async function search({ req, query }: SearchArgs): Promise<ElasticSearchResults> {
   try {
     if (typeof query === 'string' || !query) throw new Error('Query is incorrect')
-    return req('/search', {
+    const requestOptions: ElasticSearchRequestData = {
       index: query.index,
       filter_path: query.filter_path,
       action: 'freeform',
       body: JSON.stringify(query.body),
-    })
+    }
+    if (query.size) requestOptions.size = query.size
+    if (query.from) requestOptions.from = query.size
+    return req('/search', requestOptions)
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
       return null

@@ -17,6 +17,8 @@ export type ElasticSearchQuery = {
   }
   filter_path: string
   index: string
+  size?: number
+  from?: number
 } | null
 
 export const query = async ({ s3, queryUrl }: QueryArgs): Promise<ElasticSearchQuery> => {
