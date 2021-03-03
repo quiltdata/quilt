@@ -25,6 +25,7 @@ const useStyles = M.makeStyles((t) => ({
   form: {
     margin: t.spacing(0, 0, 4),
   },
+  loading: {},
   results: {},
   select: {
     margin: t.spacing(3, 0),
@@ -90,6 +91,8 @@ function NoQueries() {
 }
 
 function QueriesState({ bucket, children }: QueriesStateProps) {
+  const classes = useStyles()
+
   const config: requests.AsyncData<requests.Query[]> = requests.useQueriesConfig(bucket)
 
   // Info about query: name, url, etc.
@@ -141,8 +144,16 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
         )}
       </QueryFetcher>
     ),
-    Err: (error: Error) => <Lab.Alert severity="error">{error.message}</Lab.Alert>,
-    _: () => <M.CircularProgress size={48} />,
+    Err: (error: Error) => (
+      <M.Container className={classes.container} maxWidth="lg">
+        <Lab.Alert severity="error">{error.message}</Lab.Alert>
+      </M.Container>
+    ),
+    _: () => (
+      <M.Container className={classes.container} maxWidth="lg">
+        <M.CircularProgress className={classes.loading} size={48} />
+      </M.Container>
+    ),
   })
 }
 
