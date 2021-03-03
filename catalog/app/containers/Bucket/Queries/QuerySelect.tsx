@@ -48,7 +48,7 @@ export default function QuerySelect({
             labelId="query-select"
             value={value ? value.key : 'none'}
             onChange={handleChange}
-            className={classes.select}
+            classes={{ root: classes.select }}
           >
             <M.MenuItem disabled value="none">
               None
