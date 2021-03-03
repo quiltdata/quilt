@@ -27,7 +27,9 @@ async function search({ req, body }: SearchArgs): Promise<ElasticSearchResults> 
   }
 }
 
-export function useSearch(query: ElasticSearchQuery): AsyncData<ElasticSearchResults> {
+export function useSearch(
+  query: ElasticSearchQuery | string,
+): AsyncData<ElasticSearchResults> {
   const req = AWS.APIGateway.use()
   return useData(search, { req, body: JSON.stringify(query) }, { noAutoFetch: !query })
 }

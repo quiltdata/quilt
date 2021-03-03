@@ -38,7 +38,7 @@ interface SearchResultsFetcherProps {
   children: (
     props: requests.AsyncData<requests.ElasticSearchResults>,
   ) => React.ReactElement
-  queryBody: requests.ElasticSearchQuery
+  queryBody: requests.ElasticSearchQuery | string
 }
 
 function SearchResultsFetcher({ children, queryBody }: SearchResultsFetcherProps) {
@@ -60,8 +60,10 @@ function QueryFetcher({ children, query }: QueryFetcherProps) {
 interface QueriesStatePropsInjectProps {
   queries: requests.Query[]
   handleChange: (q: requests.Query | null) => void
-  handleSubmit: (q: requests.ElasticSearchQuery) => () => void
+  handleQueryChange: (q: requests.ElasticSearchQuery | null) => void
+  handleSubmit: (q: requests.ElasticSearchQuery | string) => () => void
   query: requests.Query | null
+  queryBody: requests.ElasticSearchQuery | string
   queryData: requests.AsyncData<requests.ElasticSearchQuery>
   resultsData: requests.AsyncData<requests.ElasticSearchResults>
 }
@@ -91,25 +93,32 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
   const config: requests.AsyncData<requests.Query[]> = requests.useQueriesConfig(bucket)
 
   const [selectedQuery, setSelectedQuery] = React.useState<requests.Query | null>(null)
-  const [queryBody, setQueryBody] = React.useState<requests.ElasticSearchQuery>(null)
+  const [queryBody, setQueryBody] = React.useState<requests.ElasticSearchQuery | string>(
+    null,
+  )
+  const [queryToExecute, setQueryToExecute] = React.useState<
+    requests.ElasticSearchQuery | string
+  >(null)
 
   const handleSubmit = React.useMemo(
-    () => (body: requests.ElasticSearchQuery) => () => setQueryBody(body),
-    [setQueryBody],
+    () => (body: requests.ElasticSearchQuery | string) => () => setQueryToExecute(body),
+    [setQueryToExecute],
   )
 
   return config.case({
     Ok: (queries: requests.Query[]) => (
       <QueryFetcher query={selectedQuery || queries[0]}>
         {(queryData) => (
-          <SearchResultsFetcher queryBody={queryBody}>
+          <SearchResultsFetcher queryBody={queryToExecute}>
             {(resultsData) =>
               children({
-                queries,
                 handleChange: setSelectedQuery,
+                handleQueryChange: setQueryBody,
                 handleSubmit,
+                queries,
                 query: selectedQuery || queries[0],
                 queryData,
+                queryBody,
                 resultsData,
               })
             }
@@ -137,7 +146,16 @@ export default function Queries({
 
   return (
     <QueriesState bucket={bucket}>
-      {({ queries, queryData, handleChange, handleSubmit, query, resultsData }) =>
+      {({
+        queries,
+        queryData,
+        queryBody,
+        handleChange,
+        handleQueryChange,
+        handleSubmit,
+        query,
+        resultsData,
+      }) =>
         queries.length ? (
           <M.Container className={classes.container} maxWidth="lg">
             <M.Typography variant="h6">Elastic Search queries</M.Typography>
@@ -152,14 +170,18 @@ export default function Queries({
             {queryData.case({
               Ok: (queryContent: requests.ElasticSearchQuery) => (
                 <div className={classes.form}>
-                  <QueryViewer query={queryContent} className={classes.viewer} />
+                  <QueryViewer
+                    query={queryBody || queryContent}
+                    className={classes.viewer}
+                    onChange={handleQueryChange}
+                  />
 
                   <div className={classes.actions}>
                     <M.Button
                       variant="contained"
                       color="primary"
                       disabled={isButtonDisabled(queryContent, resultsData)}
-                      onClick={handleSubmit(queryContent)}
+                      onClick={handleSubmit(queryBody || queryContent)}
                     >
                       Run query
                     </M.Button>
