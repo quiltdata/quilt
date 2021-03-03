@@ -7,14 +7,20 @@ import { AsyncData } from './requests'
 
 interface SearchArgs {
   req: $TSFixMe
-  body: string
+  query: ElasticSearchQuery | string
 }
 
 export type ElasticSearchResults = object | null
 
-async function search({ req, body }: SearchArgs): Promise<ElasticSearchResults> {
+async function search({ req, query }: SearchArgs): Promise<ElasticSearchResults> {
   try {
-    return req('/search', { index: '*', action: 'search', body })
+    if (typeof query === 'string' || !query) throw new Error('Query is incorrect')
+    return req('/search', {
+      index: query.index,
+      filter_path: query.filter_path,
+      action: 'freeform',
+      body: JSON.stringify(query.body),
+    })
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
       return null
@@ -31,5 +37,5 @@ export function useSearch(
   query: ElasticSearchQuery | string,
 ): AsyncData<ElasticSearchResults> {
   const req = AWS.APIGateway.use()
-  return useData(search, { req, body: JSON.stringify(query) }, { noAutoFetch: !query })
+  return useData(search, { req, query }, { noAutoFetch: !query })
 }

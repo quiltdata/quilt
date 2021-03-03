@@ -11,7 +11,13 @@ interface QueryArgs {
   s3: $TSFixMe
 }
 
-export type ElasticSearchQuery = object | null
+export type ElasticSearchQuery = {
+  body: {
+    query: object
+  }
+  filter_path: string
+  index: string
+} | null
 
 export const query = async ({ s3, queryUrl }: QueryArgs): Promise<ElasticSearchQuery> => {
   const { bucket, key, version } = s3paths.parseS3Url(queryUrl)
