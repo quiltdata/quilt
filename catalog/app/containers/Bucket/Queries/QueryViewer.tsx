@@ -1,17 +1,18 @@
-import * as Lab from '@material-ui/lab'
-import * as M from '@material-ui/core'
-import * as React from 'react'
 import Ajv from 'ajv'
 import brace from 'brace'
 import { JsonEditor } from 'jsoneditor-react'
+import * as React from 'react'
+import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
+
+import 'brace/mode/json'
+import 'brace/theme/textmate'
+import 'jsoneditor-react/es/editor.min.css'
 
 import schema from 'schemas/query.json'
 
 import * as requests from './requests'
 
-import 'brace/mode/json'
-import 'brace/theme/textmate'
-import 'jsoneditor-react/es/editor.min.css'
 import '../../../../static/json-editor.css'
 
 const ajv = new Ajv({ allErrors: true, verbose: true })
