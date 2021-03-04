@@ -11,7 +11,7 @@ export class AzureError extends BaseError {
   }
 }
 
-export function useAzure({ clientId, authUrl }) {
+export function useAzure({ clientId, baseUrl }) {
   return React.useCallback(
     () =>
       new Promise((resolve, reject) => {
@@ -26,7 +26,7 @@ export function useAzure({ clientId, authUrl }) {
           nonce,
           state,
         })
-        const url = `${authUrl}${query}`
+        const url = `${baseUrl}/oauth2/v2.0/authorize${query}`
         const popup = window.open(url, 'quilt_azure_popup', 'width=500,height=700')
         const timer = setInterval(() => {
           if (popup.closed) {
@@ -75,7 +75,7 @@ export function useAzure({ clientId, authUrl }) {
         window.addEventListener('message', handleMessage)
         popup.focus()
       }),
-    [authUrl, clientId],
+    [baseUrl, clientId],
   )
 }
 

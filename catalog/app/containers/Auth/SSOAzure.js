@@ -25,10 +25,10 @@ const MUTEX_REQUEST = 'sso:azure:request'
 export default function SSOAzure({ mutex, next, ...props }) {
   const cfg = Config.useConfig()
   invariant(!!cfg.azureClientId, 'Auth.SSO.Azure: config missing "azureClientId"')
-  invariant(!!cfg.azureTenantId, 'Auth.SSO.Azure: config missing "azureTenantId"')
+  invariant(!!cfg.azureBaseUrl, 'Auth.SSO.Azure: config missing "azureBaseUrl"')
   const authenticate = Azure.use({
     clientId: cfg.azureClientId,
-    authUrl: `https://login.microsoftonline.com/${cfg.azureTenantId}/oauth2/v2.0/authorize`,
+    baseUrl: cfg.azureBaseUrl,
   })
 
   const sentry = Sentry.use()
