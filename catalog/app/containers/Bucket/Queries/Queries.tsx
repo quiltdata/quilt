@@ -59,13 +59,15 @@ function QueryFetcher({ children, query }: QueryFetcherProps) {
 }
 
 interface QueriesStatePropsInjectProps {
-  queries: requests.Query[]
-  handleQueryMetaChange: (q: requests.Query | null) => void
-  handleQueryBodyChange: (q: requests.ElasticSearchQuery | null) => void
-  handleSubmit: (q: requests.ElasticSearchQuery | string) => () => void
-  queryMeta: requests.Query | null
   customQueryBody: requests.ElasticSearchQuery | string
+  error: Error | null
+  handleError: (error: Error | null) => void
+  handleQueryBodyChange: (q: requests.ElasticSearchQuery | null) => void
+  handleQueryMetaChange: (q: requests.Query | null) => void
+  handleSubmit: (q: requests.ElasticSearchQuery | string) => () => void
+  queries: requests.Query[]
   queryData: requests.AsyncData<requests.ElasticSearchQuery>
+  queryMeta: requests.Query | null
   resultsData: requests.AsyncData<requests.ElasticSearchResults>
 }
 
@@ -106,6 +108,8 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
     requests.ElasticSearchQuery | string
   >(null)
 
+  const [error, setError] = React.useState<Error | null>(null)
+
   const handleSubmit = React.useMemo(
     () => (body: requests.ElasticSearchQuery | string) => () => setQueryRequest(body),
     [setQueryRequest],
@@ -116,13 +120,6 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
     setCustomQueryBody(null)
   }, [])
 
-  const handleQueryBodyChange = React.useCallback(
-    (q: requests.ElasticSearchQuery | string) => {
-      setCustomQueryBody(q)
-    },
-    [],
-  )
-
   return config.case({
     Ok: (queries: requests.Query[]) => (
       <QueryFetcher query={queryMeta || queries[0]}>
@@ -130,13 +127,15 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
           <SearchResultsFetcher queryBody={queryRequest}>
             {(resultsData) =>
               children({
+                customQueryBody,
+                error,
+                handleError: setError,
+                handleQueryBodyChange: setCustomQueryBody,
                 handleQueryMetaChange,
-                handleQueryBodyChange,
                 handleSubmit,
                 queries,
-                queryMeta: queryMeta || queries[0],
                 queryData,
-                customQueryBody,
+                queryMeta: queryMeta || queries[0],
                 resultsData,
               })
             }
@@ -144,9 +143,9 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
         )}
       </QueryFetcher>
     ),
-    Err: (error: Error) => (
+    Err: (requestError: Error) => (
       <M.Container className={classes.container} maxWidth="lg">
-        <Lab.Alert severity="error">{error.message}</Lab.Alert>
+        <Lab.Alert severity="error">{requestError.message}</Lab.Alert>
       </M.Container>
     ),
     _: () => (
@@ -167,18 +166,23 @@ export default function Queries({
   const isButtonDisabled = (
     queryContent: requests.ElasticSearchQuery,
     resultsData: requests.AsyncData<requests.ElasticSearchResults>,
+    error: Error | null,
   ): boolean =>
-    !queryContent || !!resultsData.case({ _: R.T, Init: R.F, Err: R.F, Ok: R.F })
+    !!error ||
+    !queryContent ||
+    !!resultsData.case({ _: R.T, Init: R.F, Err: R.F, Ok: R.F })
 
   return (
     <QueriesState bucket={bucket}>
       {({
+        customQueryBody,
+        error: queryBodyError,
+        handleError,
+        handleQueryBodyChange,
+        handleQueryMetaChange,
+        handleSubmit,
         queries,
         queryData,
-        customQueryBody,
-        handleQueryMetaChange,
-        handleQueryBodyChange,
-        handleSubmit,
         queryMeta,
         resultsData,
       }) =>
@@ -200,13 +204,14 @@ export default function Queries({
                     query={customQueryBody || queryBody}
                     className={classes.viewer}
                     onChange={handleQueryBodyChange}
+                    onError={handleError}
                   />
 
                   <div className={classes.actions}>
                     <M.Button
                       variant="contained"
                       color="primary"
-                      disabled={isButtonDisabled(queryBody, resultsData)}
+                      disabled={isButtonDisabled(queryBody, resultsData, queryBodyError)}
                       onClick={handleSubmit(customQueryBody || queryBody)}
                     >
                       Run query

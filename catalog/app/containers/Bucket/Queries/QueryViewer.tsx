@@ -1,15 +1,25 @@
-import 'jsoneditor-react/es/editor.min.css'
-import '../../../../static/json-editor.css'
-
+import * as Lab from '@material-ui/lab'
+import * as M from '@material-ui/core'
+import * as React from 'react'
+import Ajv from 'ajv'
 import brace from 'brace'
 import { JsonEditor } from 'jsoneditor-react'
-import * as React from 'react'
-import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
+
+import schema from 'schemas/query.json'
 
 import * as requests from './requests'
 
+import 'brace/mode/json'
+import 'brace/theme/textmate'
+import 'jsoneditor-react/es/editor.min.css'
+import '../../../../static/json-editor.css'
+
+const ajv = new Ajv({ allErrors: true, verbose: true })
+
 const useStyles = M.makeStyles((t) => ({
+  editor: {
+    padding: t.spacing(1),
+  },
   header: {
     margin: t.spacing(0, 0, 1),
   },
@@ -31,20 +41,49 @@ export const stringifyJSON = (obj: object | string) => {
 interface QueryViewerProps {
   className: string
   onChange: (value: requests.ElasticSearchQuery) => void
+  onError: (error: Error | null) => void
   query: requests.ElasticSearchQuery | string
 }
 
-export default function QueryViewer({ className, query, onChange }: QueryViewerProps) {
+export default function QueryViewer({
+  className,
+  query,
+  onChange,
+  onError,
+}: QueryViewerProps) {
   const classes = useStyles()
 
-  const [errors, setErrors] = React.useState<Error[]>([])
+  const t = M.useTheme()
+
+  const [error, setError] = React.useState<Error | null>(null)
 
   const handleChange = React.useCallback(
     (value: object) => {
       onChange(value as requests.ElasticSearchQuery)
-      setErrors([])
     },
-    [onChange, setErrors],
+    [onChange],
+  )
+
+  const handleError = React.useCallback(
+    (e: Error) => {
+      setError(e)
+      onError(e)
+    },
+    [onError, setError],
+  )
+
+  const handleErrors = React.useCallback(
+    (errors: Error[]) => {
+      onError(errors && errors.length ? errors[0] : null)
+    },
+    [onError],
+  )
+
+  const editorHtmlProps = React.useMemo(
+    () => ({
+      style: { height: t.spacing(30) },
+    }),
+    [t],
   )
 
   if (!query) return null
@@ -54,25 +93,28 @@ export default function QueryViewer({ className, query, onChange }: QueryViewerP
       <M.Typography className={classes.header} variant="body1">
         Query body
       </M.Typography>
-      <M.Paper style={{ padding: '8px' }}>
+      <M.Paper className={classes.editor}>
         <JsonEditor
           ace={brace}
+          ajv={ajv}
+          htmlElementProps={editorHtmlProps}
           mainMenuBar={false}
           mode="code"
           navigationBar={false}
           onChange={handleChange}
-          onError={setErrors}
-          onValidationError={setErrors}
+          onError={handleError}
+          onValidationError={handleErrors}
+          schema={schema}
           search={false}
           statusBar={false}
-          htmlElementProps={{ style: { height: '300px' } }}
+          theme="ace/theme/textmate"
           value={query}
         />
-        {errors.map((error: Error) => (
+        {error && (
           <Lab.Alert key={error.message} severity="error">
             {error.message}
           </Lab.Alert>
-        ))}
+        )}
       </M.Paper>
     </div>
   )
