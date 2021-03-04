@@ -13,15 +13,14 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface QueryResultProps {
-  className: string
   results: requests.ElasticSearchResults
 }
 
-export default function QueryResult({ className, results }: QueryResultProps) {
+export default function QueryResult({ results }: QueryResultProps) {
   const classes = useStyles()
 
   return (
-    <div className={className}>
+    <div>
       <M.Typography variant="body1">Search results</M.Typography>
       <M.Paper className={classes.content}>
         <JsonDisplay

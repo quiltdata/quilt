@@ -25,8 +25,6 @@ const useStyles = M.makeStyles((t) => ({
   form: {
     margin: t.spacing(0, 0, 4),
   },
-  loading: {},
-  results: {},
   select: {
     margin: t.spacing(3, 0),
   },
@@ -100,10 +98,12 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
   // Info about query: name, url, etc.
   const [queryMeta, setQueryMeta] = React.useState<requests.Query | null>(null)
 
-  // Custom query content, not associated fith queryMeta
+  // Custom query content, not associated with queryMeta
   const [customQueryBody, setCustomQueryBody] = React.useState<
     requests.ElasticSearchQuery | string
   >(null)
+
+  // Query content requested to Elastic Search
   const [queryRequest, setQueryRequest] = React.useState<
     requests.ElasticSearchQuery | string
   >(null)
@@ -150,7 +150,7 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
     ),
     _: () => (
       <M.Container className={classes.container} maxWidth="lg">
-        <M.CircularProgress className={classes.loading} size={48} />
+        <M.CircularProgress size={48} />
       </M.Container>
     ),
   })
@@ -228,7 +228,7 @@ export default function Queries({
             {resultsData.case({
               Init: () => null,
               Ok: (results: requests.ElasticSearchResults) => (
-                <QueryResult className={classes.results} results={results} />
+                <QueryResult results={results} />
               ),
               Err: (error: Error) => (
                 <Lab.Alert severity="error">{error.message}</Lab.Alert>
