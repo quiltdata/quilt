@@ -1,13 +1,17 @@
+import 'jsoneditor-react/es/editor.min.css'
+import '../../../../static/json-editor.css'
+
+import brace from 'brace'
+import { JsonEditor } from 'jsoneditor-react'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-
-import JsonEditor from 'components/JsonEditor'
+import * as Lab from '@material-ui/lab'
 
 import * as requests from './requests'
 
 const useStyles = M.makeStyles((t) => ({
-  editor: {
-    margin: t.spacing(1, 0, 0),
+  header: {
+    margin: t.spacing(0, 0, 1),
   },
 }))
 
@@ -33,14 +37,43 @@ interface QueryViewerProps {
 export default function QueryViewer({ className, query, onChange }: QueryViewerProps) {
   const classes = useStyles()
 
-  if (!query) return null
+  const [errors, setErrors] = React.useState<Error[]>([])
 
-  const JE = JsonEditor as $TSFixMe
+  const handleChange = React.useCallback(
+    (value: object) => {
+      onChange(value as requests.ElasticSearchQuery)
+      setErrors([])
+    },
+    [onChange, setErrors],
+  )
+
+  if (!query) return null
 
   return (
     <div className={className}>
-      <M.Typography variant="body1">Query body</M.Typography>
-      <JE className={classes.editor} onChange={onChange} value={query} />
+      <M.Typography className={classes.header} variant="body1">
+        Query body
+      </M.Typography>
+      <M.Paper style={{ padding: '8px' }}>
+        <JsonEditor
+          ace={brace}
+          mainMenuBar={false}
+          mode="code"
+          navigationBar={false}
+          onChange={handleChange}
+          onError={setErrors}
+          onValidationError={setErrors}
+          search={false}
+          statusBar={false}
+          htmlElementProps={{ style: { height: '300px' } }}
+          value={query}
+        />
+        {errors.map((error: Error) => (
+          <Lab.Alert key={error.message} severity="error">
+            {error.message}
+          </Lab.Alert>
+        ))}
+      </M.Paper>
     </div>
   )
 }
