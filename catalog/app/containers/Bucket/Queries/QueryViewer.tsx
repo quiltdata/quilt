@@ -6,7 +6,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import 'brace/mode/json'
-import 'brace/theme/textmate'
+import 'brace/theme/eclipse'
 import 'jsoneditor-react/es/editor.min.css'
 
 import schema from 'schemas/query.json'
@@ -108,7 +108,7 @@ export default function QueryViewer({
           schema={schema}
           search={false}
           statusBar={false}
-          theme="ace/theme/textmate"
+          theme="ace/theme/eclipse"
           value={query}
         />
         {error && (
