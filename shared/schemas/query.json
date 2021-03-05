@@ -7,6 +7,6 @@
     "index": { "type": "string" },
     "size": { "type": "number" }
   },
-  "required": ["body", "index", "filter_path"],
+  "required": ["body", "index"],
   "additionalProperties": false
 }

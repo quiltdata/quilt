@@ -15,7 +15,7 @@ export type ElasticSearchQuery = {
   body: {
     query: object
   }
-  filter_path: string
+  filter_path?: string
   index: string
   size?: number
   from?: number
