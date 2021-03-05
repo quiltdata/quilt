@@ -77,6 +77,18 @@ default_registry_version: 1
 """.format(BASE_PATH.as_uri() + '/packages')
 
 
+def get_pos_int_from_env(var_name):
+    val = os.getenv(var_name)
+    if val:
+        try:
+            val = int(val)
+        except ValueError:
+            val = None
+        if val is None or val <= 0:
+            raise ValueError(f'{var_name} must be a positive integer')
+        return val
+
+
 class QuiltException(Exception):
     def __init__(self, message, **kwargs):
         # We use NewError("Prefix: " + str(error)) a lot.
