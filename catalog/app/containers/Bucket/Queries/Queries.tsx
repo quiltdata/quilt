@@ -169,7 +169,7 @@ export default function Queries({
   ): boolean =>
     !!error ||
     !queryContent ||
-    !!resultsData.case({ _: R.T, Init: R.F, Err: R.F, Ok: R.F })
+    !!resultsData.case({ Pending: R.T, _: R.F })
 
   return (
     <QueriesState bucket={bucket}>
@@ -187,7 +187,7 @@ export default function Queries({
       }) =>
         queries.length ? (
           <M.Container className={classes.container} maxWidth="lg">
-            <M.Typography variant="h6">Elastic Search queries</M.Typography>
+            <M.Typography variant="h6">ElasticSearch queries</M.Typography>
 
             <QuerySelect
               className={classes.select}
