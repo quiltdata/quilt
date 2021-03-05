@@ -1,3 +1,3 @@
 declare module 'brace/mode/json' {}
 
-declare module 'brace/theme/textmate' {}
+declare module 'brace/theme/eclipse' {}
