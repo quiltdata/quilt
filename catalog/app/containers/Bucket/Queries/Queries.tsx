@@ -4,9 +4,6 @@ import { RouteComponentProps } from 'react-router'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import { docs } from 'constants/urls'
-import StyledLink from 'utils/StyledLink'
-
 import QueryResult from './QueryResult'
 import QuerySelect from './QuerySelect'
 import QueryViewer from './QueryViewer'
@@ -37,7 +34,7 @@ interface SearchResultsFetcherProps {
   children: (
     props: requests.AsyncData<requests.ElasticSearchResults>,
   ) => React.ReactElement
-  queryBody: requests.ElasticSearchQuery | string
+  queryBody: requests.ElasticSearchQuery
 }
 
 function SearchResultsFetcher({ children, queryBody }: SearchResultsFetcherProps) {
@@ -56,12 +53,12 @@ function QueryFetcher({ children, query }: QueryFetcherProps) {
 }
 
 interface QueriesStatePropsRenderProps {
-  customQueryBody: requests.ElasticSearchQuery | string
+  customQueryBody: requests.ElasticSearchQuery
   error: Error | null
   handleError: (error: Error | null) => void
   handleQueryBodyChange: (q: requests.ElasticSearchQuery | null) => void
   handleQueryMetaChange: (q: requests.Query | null) => void
-  handleSubmit: (q: requests.ElasticSearchQuery | string) => () => void
+  handleSubmit: (q: requests.ElasticSearchQuery) => () => void
   queries: requests.Query[]
   queryData: requests.AsyncData<requests.ElasticSearchQuery>
   queryMeta: requests.Query | null
@@ -73,22 +70,6 @@ interface QueriesStateProps {
   children: (props: QueriesStatePropsRenderProps) => React.ReactElement
 }
 
-function NoQueries() {
-  return (
-    <M.Box pt={5} textAlign="center">
-      <M.Typography variant="h4">No queries</M.Typography>
-      <M.Box pt={2} />
-      <M.Typography>
-        Add queries to config according to{' '}
-        <StyledLink href={`${docs}`} target="_blank">
-          documentation
-        </StyledLink>
-        .
-      </M.Typography>
-    </M.Box>
-  )
-}
-
 function QueriesState({ bucket, children }: QueriesStateProps) {
   const classes = useStyles()
 
@@ -98,19 +79,20 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
   const [queryMeta, setQueryMeta] = React.useState<requests.Query | null>(null)
 
   // Custom query content, not associated with queryMeta
-  const [customQueryBody, setCustomQueryBody] = React.useState<
-    requests.ElasticSearchQuery | string
-  >(null)
+  const [
+    customQueryBody,
+    setCustomQueryBody,
+  ] = React.useState<requests.ElasticSearchQuery>(null)
 
   // Query content requested to Elastic Search
-  const [queryRequest, setQueryRequest] = React.useState<
-    requests.ElasticSearchQuery | string
-  >(null)
+  const [queryRequest, setQueryRequest] = React.useState<requests.ElasticSearchQuery>(
+    null,
+  )
 
   const [error, setError] = React.useState<Error | null>(null)
 
   const handleSubmit = React.useMemo(
-    () => (body: requests.ElasticSearchQuery | string) => () => setQueryRequest(body),
+    () => (body: requests.ElasticSearchQuery) => () => setQueryRequest(body),
     [setQueryRequest],
   )
 
@@ -155,6 +137,45 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
   })
 }
 
+interface FormProps {
+  disabled: boolean
+  onChange: (value: requests.ElasticSearchQuery) => void
+  onError: (value: Error | null) => void
+  onSubmit: (value: requests.ElasticSearchQuery) => () => void
+  value: requests.ElasticSearchQuery
+}
+
+function Form({ disabled, value, onChange, onError, onSubmit }: FormProps) {
+  const classes = useStyles()
+
+  return (
+    <div className={classes.form}>
+      <QueryViewer
+        query={value}
+        className={classes.viewer}
+        onChange={onChange}
+        onError={onError}
+      />
+
+      <div className={classes.actions}>
+        <M.Button
+          variant="contained"
+          color="primary"
+          disabled={disabled}
+          onClick={onSubmit(value)}
+        >
+          Run query
+        </M.Button>
+      </div>
+    </div>
+  )
+}
+
+const QUERY_PLACEHOLDER = {
+  body: { query: {} },
+  index: '_all',
+}
+
 export default function Queries({
   match: {
     params: { bucket },
@@ -166,10 +187,7 @@ export default function Queries({
     queryContent: requests.ElasticSearchQuery,
     resultsData: requests.AsyncData<requests.ElasticSearchResults>,
     error: Error | null,
-  ): boolean =>
-    !!error ||
-    !queryContent ||
-    !!resultsData.case({ Pending: R.T, _: R.F })
+  ): boolean => !!error || !queryContent || !!resultsData.case({ Pending: R.T, _: R.F })
 
   return (
     <QueriesState bucket={bucket}>
@@ -184,65 +202,58 @@ export default function Queries({
         queryData,
         queryMeta,
         resultsData,
-      }) =>
-        queries.length ? (
-          <M.Container className={classes.container} maxWidth="lg">
-            <M.Typography variant="h6">ElasticSearch queries</M.Typography>
+      }) => (
+        <M.Container className={classes.container} maxWidth="lg">
+          <M.Typography variant="h6">ElasticSearch queries</M.Typography>
 
-            <QuerySelect
-              className={classes.select}
-              queries={queries}
-              onChange={handleQueryMetaChange}
-              value={customQueryBody ? null : queryMeta}
-            />
+          <QuerySelect
+            className={classes.select}
+            queries={queries}
+            onChange={handleQueryMetaChange}
+            value={customQueryBody ? null : queryMeta}
+          />
 
-            {queryData.case({
-              Ok: (queryBody: requests.ElasticSearchQuery) => (
-                <div className={classes.form}>
-                  <QueryViewer
-                    query={customQueryBody || queryBody}
-                    className={classes.viewer}
-                    onChange={handleQueryBodyChange}
-                    onError={handleError}
-                  />
+          {queryData.case({
+            Init: () => (
+              <Form
+                disabled={isButtonDisabled(null, resultsData, queryBodyError)}
+                onChange={handleQueryBodyChange}
+                onError={handleError}
+                onSubmit={handleSubmit}
+                value={customQueryBody || QUERY_PLACEHOLDER}
+              />
+            ),
+            Ok: (queryBody: requests.ElasticSearchQuery) => (
+              <Form
+                disabled={isButtonDisabled(queryBody, resultsData, queryBodyError)}
+                onChange={handleQueryBodyChange}
+                onError={handleError}
+                onSubmit={handleSubmit}
+                value={customQueryBody || queryBody || QUERY_PLACEHOLDER}
+              />
+            ),
+            Err: (error: Error) => (
+              <Lab.Alert severity="error">{error.message}</Lab.Alert>
+            ),
+            Pending: () => <M.CircularProgress size={96} />,
+          })}
 
-                  <div className={classes.actions}>
-                    <M.Button
-                      variant="contained"
-                      color="primary"
-                      disabled={isButtonDisabled(queryBody, resultsData, queryBodyError)}
-                      onClick={handleSubmit(customQueryBody || queryBody)}
-                    >
-                      Run query
-                    </M.Button>
-                  </div>
-                </div>
-              ),
-              Err: (error: Error) => (
-                <Lab.Alert severity="error">{error.message}</Lab.Alert>
-              ),
-              _: () => <M.CircularProgress size={96} />,
-            })}
-
-            {resultsData.case({
-              Init: () => null,
-              Ok: (results: requests.ElasticSearchResults) => (
-                <QueryResult results={results} />
-              ),
-              Err: (error: Error) => (
-                <Lab.Alert severity="error">{error.message}</Lab.Alert>
-              ),
-              _: () => (
-                <M.Box pt={5} textAlign="center">
-                  <M.CircularProgress size={96} />
-                </M.Box>
-              ),
-            })}
-          </M.Container>
-        ) : (
-          <NoQueries />
-        )
-      }
+          {resultsData.case({
+            Init: () => null,
+            Ok: (results: requests.ElasticSearchResults) => (
+              <QueryResult results={results} />
+            ),
+            Err: (error: Error) => (
+              <Lab.Alert severity="error">{error.message}</Lab.Alert>
+            ),
+            _: () => (
+              <M.Box pt={5} textAlign="center">
+                <M.CircularProgress size={96} />
+              </M.Box>
+            ),
+          })}
+        </M.Container>
+      )}
     </QueriesState>
   )
 }

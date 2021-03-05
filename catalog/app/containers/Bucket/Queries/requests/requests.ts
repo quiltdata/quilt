@@ -5,7 +5,7 @@ interface Cases<Data, Output = React.ReactNode> {
   Init?: () => Output
   Ok?: (data: Data) => Output
   Pending?: () => Output
-  _?: () => Output
+  _?: (data: Data) => Output
 }
 
 export interface AsyncData<Data, Output = React.ReactElement> {
