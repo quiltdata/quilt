@@ -65,7 +65,6 @@ setup(
         'flask_cors',
         'flask_json',
         'jsonlines==1.2.0',
-        'packaging>=16.8',
         'PyYAML>=5.1',
         'requests>=2.12.4',
         'tenacity>=5.1.1',
