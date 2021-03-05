@@ -10,14 +10,21 @@ import 'brace/theme/eclipse'
 import 'jsoneditor-react/es/editor.min.css'
 
 import schema from 'schemas/query.json'
+import StyledLink from 'utils/StyledLink'
 
 import * as requests from './requests'
 
 import './json-editor.css'
 
+const ES_V = '6.7'
+const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/search.html`
+
 const ajv = new Ajv({ allErrors: true, verbose: true })
 
 const useStyles = M.makeStyles((t) => ({
+  bottomNote: {
+    margin: t.spacing(1, 0, 0),
+  },
   editor: {
     padding: t.spacing(1),
   },
@@ -117,6 +124,13 @@ export default function QueryViewer({
           </Lab.Alert>
         )}
       </M.Paper>
+      <M.Typography variant="body2" component="p" className={classes.bottomNote}>
+        Quilt uses ElasticSearch 6.7 Search API.{' '}
+        <StyledLink href={ES_REF} target="_blank">
+          Learn more
+        </StyledLink>
+        .
+      </M.Typography>
     </div>
   )
 }

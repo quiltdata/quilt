@@ -45,10 +45,11 @@ export default function QuerySelect({
       <M.Paper>
         <M.FormControl className={classes.selectWrapper}>
           <M.Select
-            labelId="query-select"
-            value={value ? value.key : 'none'}
-            onChange={handleChange}
             classes={{ root: classes.select }}
+            disabled={!queries.length}
+            labelId="query-select"
+            onChange={handleChange}
+            value={value ? value.key : 'none'}
           >
             <M.MenuItem disabled value="none">
               Custom
