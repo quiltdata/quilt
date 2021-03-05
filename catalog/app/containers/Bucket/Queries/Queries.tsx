@@ -55,7 +55,7 @@ function QueryFetcher({ children, query }: QueryFetcherProps) {
   return children(queryData)
 }
 
-interface QueriesStatePropsInjectProps {
+interface QueriesStatePropsRenderProps {
   customQueryBody: requests.ElasticSearchQuery | string
   error: Error | null
   handleError: (error: Error | null) => void
@@ -70,7 +70,7 @@ interface QueriesStatePropsInjectProps {
 
 interface QueriesStateProps {
   bucket: string
-  children: (props: QueriesStatePropsInjectProps) => React.ReactElement
+  children: (props: QueriesStatePropsRenderProps) => React.ReactElement
 }
 
 function NoQueries() {
