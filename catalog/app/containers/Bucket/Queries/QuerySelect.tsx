@@ -1,8 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { docs } from 'constants/urls'
-import StyledLink from 'utils/StyledLink'
+// import { docs } from 'constants/urls'
+// import StyledLink from 'utils/StyledLink'
 
 import * as requests from './requests'
 
@@ -67,10 +67,10 @@ export default function QuerySelect({
       </M.Paper>
       <M.FormHelperText>
         {!queries.length && 'There are no saved queries. '}
-        <StyledLink href={`${docs}`} target="_blank">
+        {/* <StyledLink href={`${docs}/advanced-usage/queries`} target="_blank">
           Refer to documentation
         </StyledLink>{' '}
-        to edit or save new queries.
+        to edit or save new queries. */}
       </M.FormHelperText>
     </div>
   )
