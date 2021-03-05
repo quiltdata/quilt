@@ -15,7 +15,7 @@ export type ElasticSearchResults = object | null
 type ElasticSearchRequestData = {
   action: 'freeform'
   body: string
-  filter_path: string
+  filter_path?: string
   from?: number
   index: string
   size?: number
