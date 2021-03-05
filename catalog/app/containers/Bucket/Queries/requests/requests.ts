@@ -1,14 +1,15 @@
 import * as React from 'react'
 
-interface Cases<Data> {
-  Err?: (error: Error) => React.ReactNode
-  Init?: () => React.ReactNode
-  Ok?: (data: Data) => React.ReactNode
-  _?: () => React.ReactNode
+interface Cases<Data, Output = React.ReactNode> {
+  Err?: (error: Error) => Output
+  Init?: () => Output
+  Ok?: (data: Data) => Output
+  Pending?: () => Output
+  _?: () => Output
 }
 
-export interface AsyncData<Data> {
-  case: (cases: Cases<Data>) => React.ReactElement
+export interface AsyncData<Data, Output = React.ReactElement> {
+  case: (cases: Cases<Data>) => Output
   result: $TSFixMe
 }
 
