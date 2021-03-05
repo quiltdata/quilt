@@ -5,18 +5,19 @@ declare module 'jsoneditor-react' {
   interface JsonEditorProps {
     ace?: $TSFixMe
     ajv?: Ajv
-    theme?: string
     htmlElementProps?: React.HTMLAttributes<{}>
     mainMenuBar?: boolean
     mode?: 'tree' | 'view' | 'form' | 'code' | 'text'
     navigationBar?: boolean
     onChange: (value: $TSFixMe) => void
     onError: (errors: Error) => void
+    onValidate?: () => [{ path: string[]; message: string }]
     onValidationError: (errors: Error[]) => void
     schema?: object
     search?: boolean
     statusBar?: boolean
     style?: React.CSSProperties
+    theme?: string
     value: $TSFixMe
   }
 

@@ -172,7 +172,7 @@ function Form({ disabled, value, onChange, onError, onSubmit }: FormProps) {
 }
 
 const QUERY_PLACEHOLDER = {
-  body: { query: {} },
+  body: { query: { query_string: { query: 'test' } } },
   index: '_all',
 }
 
