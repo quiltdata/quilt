@@ -188,7 +188,7 @@ export default function Queries({
       }) =>
         queries.length ? (
           <M.Container className={classes.container} maxWidth="lg">
-            <M.Typography variant="h6">Elastic Search queries</M.Typography>
+            <M.Typography variant="h6">ElasticSearch queries</M.Typography>
 
             <QuerySelect
               className={classes.select}
