@@ -13,7 +13,7 @@ import schema from 'schemas/query.json'
 
 import * as requests from './requests'
 
-import '../../../../static/json-editor.css'
+import './json-editor.css'
 
 const ajv = new Ajv({ allErrors: true, verbose: true })
 
