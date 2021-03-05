@@ -73,7 +73,7 @@ export default function QueryViewer({
     [onError, setError],
   )
 
-  const handleErrors = React.useCallback(
+  const handleValidation = React.useCallback(
     (errors: Error[]) => {
       onError(errors && errors.length ? errors[0] : null)
     },
@@ -104,7 +104,7 @@ export default function QueryViewer({
           navigationBar={false}
           onChange={handleChange}
           onError={handleError}
-          onValidationError={handleErrors}
+          onValidationError={handleValidation}
           schema={schema}
           search={false}
           statusBar={false}
