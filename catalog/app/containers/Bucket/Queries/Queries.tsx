@@ -51,8 +51,7 @@ interface QueryFetcherProps {
 }
 
 function QueryFetcher({ children, query }: QueryFetcherProps) {
-  const queryUrl = React.useMemo(() => (query ? query.url : ''), [query])
-  const queryData = requests.useQuery(queryUrl)
+  const queryData = requests.useQuery(query ? query.url : '')
   return children(queryData)
 }
 
