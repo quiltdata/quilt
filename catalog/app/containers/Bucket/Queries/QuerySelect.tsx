@@ -66,7 +66,7 @@ export default function QuerySelect({
         </M.FormControl>
       </M.Paper>
       <M.FormHelperText>
-        {!queries.length && 'There are no saved queries.'}
+        {!queries.length && 'There are no saved queries. '}
         <StyledLink href={`${docs}`} target="_blank">
           Refer to documentation
         </StyledLink>{' '}
