@@ -170,7 +170,7 @@ export default function Queries({
   ): boolean =>
     !!error ||
     !queryContent ||
-    !!resultsData.case({ _: R.T, Init: R.F, Err: R.F, Ok: R.F })
+    !!resultsData.case({ Pending: R.T, _: R.F })
 
   return (
     <QueriesState bucket={bucket}>
