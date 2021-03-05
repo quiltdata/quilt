@@ -16,21 +16,22 @@ exports[`containers/Bucket/Queries/QuerySelect should render 1`] = `
       className="MuiFormControl-root makeStyles-selectWrapper-2"
     >
       <div
-        className="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        className="MuiInputBase-root MuiInput-root MuiInput-underline Mui-disabled Mui-disabled MuiInputBase-formControl MuiInput-formControl"
         onClick={[Function]}
       >
         <div
+          aria-disabled="true"
           aria-haspopup="listbox"
           aria-labelledby="query-select"
-          className="MuiSelect-root makeStyles-select-3 MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+          className="MuiSelect-root makeStyles-select-3 MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input Mui-disabled Mui-disabled Mui-disabled"
           onBlur={[Function]}
           onFocus={[Function]}
           onKeyDown={[Function]}
-          onMouseDown={[Function]}
+          onMouseDown={null}
           role="button"
-          tabIndex={0}
+          tabIndex={null}
         >
-          None
+          Custom
         </div>
         <input
           aria-hidden={true}
@@ -43,7 +44,7 @@ exports[`containers/Bucket/Queries/QuerySelect should render 1`] = `
         />
         <svg
           aria-hidden={true}
-          className="MuiSvgIcon-root MuiSelect-icon"
+          className="MuiSvgIcon-root MuiSelect-icon Mui-disabled"
           focusable="false"
           viewBox="0 0 24 24"
         >
@@ -54,6 +55,11 @@ exports[`containers/Bucket/Queries/QuerySelect should render 1`] = `
       </div>
     </div>
   </div>
+  <p
+    className="MuiFormHelperText-root"
+  >
+    There are no saved queries. 
+  </p>
 </div>
 `;
 
@@ -111,5 +117,8 @@ exports[`containers/Bucket/Queries/QuerySelect should render with selected value
       </div>
     </div>
   </div>
+  <p
+    className="MuiFormHelperText-root"
+  />
 </div>
 `;
