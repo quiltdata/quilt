@@ -45,8 +45,7 @@ export const queriesConfig = async ({
     const response = await requests.fetchFile({ s3, bucket, path: QUERIES_CONFIG_PATH })
     return parseQueriesList(yaml(response.Body.toString('utf-8')))
   } catch (e) {
-    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
-      return null
+    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) return []
 
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')

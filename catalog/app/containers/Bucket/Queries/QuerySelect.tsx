@@ -51,7 +51,7 @@ export default function QuerySelect({
             classes={{ root: classes.select }}
           >
             <M.MenuItem disabled value="none">
-              None
+              Custom
             </M.MenuItem>
             {queries.map((query) => (
               <M.MenuItem key={query.key} value={query.key}>
