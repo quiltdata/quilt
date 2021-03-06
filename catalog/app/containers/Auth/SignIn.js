@@ -16,6 +16,7 @@ import useMutex from 'utils/useMutex'
 import * as validators from 'utils/validators'
 
 import * as Layout from './Layout'
+import SSOAzure from './SSOAzure'
 import SSOGoogle from './SSOGoogle'
 import SSOOkta from './SSOOkta'
 import SSOOneLogin from './SSOOneLogin'
@@ -139,6 +140,16 @@ export default ({ location: { search } }) => {
               <>
                 <M.Box mt={2} />
                 <SSOOneLogin
+                  mutex={mutex}
+                  next={next}
+                  style={{ justifyContent: 'flex-start' }}
+                />
+              </>
+            )}
+            {ssoEnabled('azure') && (
+              <>
+                <M.Box mt={2} />
+                <SSOAzure
                   mutex={mutex}
                   next={next}
                   style={{ justifyContent: 'flex-start' }}
