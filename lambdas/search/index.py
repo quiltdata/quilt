@@ -229,6 +229,10 @@ def lambda_handler(request):
             'hits.total',
             'aggregations.objects.buckets.latest.hits.hits._source',
         )
+    elif action == 'freeform':
+        body = user_body
+        size = user_size
+        _source = user_source
     else:
         return make_json_response(400, {"title": "Invalid action"})
 
