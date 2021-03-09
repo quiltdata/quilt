@@ -1,9 +1,10 @@
-import * as R from 'ramda'
 import { FORM_ERROR } from 'final-form'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
@@ -82,44 +83,43 @@ function DialogTitle({ bucket }) {
   )
 }
 
-const defaultNameWarning = ' ' // Reserve space for warning
-
 const useStyles = M.makeStyles((t) => ({
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    overflowY: 'auto',
+  },
   meta: {
+    display: 'flex',
+    flexDirection: 'column',
     marginTop: t.spacing(3),
+    overflowY: 'auto',
   },
 }))
 
 function DialogForm({
+  bucket,
   close,
   hash,
   manifest,
   name: initialName,
-  setSubmitting,
-  bucket,
-  setSuccess,
-  successor,
-  workflowsConfig,
-
-  selectedWorkflow,
-  setWorkflow,
+  responseError,
   schema,
   schemaLoading,
-  responseError,
+  selectedWorkflow,
+  setSubmitting,
+  setSuccess,
+  setWorkflow,
+  successor,
   validate: validateMetaInput,
+  workflowsConfig,
 }) {
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState('')
+  const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
-
-  const initialMeta = React.useMemo(
-    () => ({
-      mode: 'kv',
-      text: JSON.stringify(manifest.meta || {}),
-    }),
-    [manifest.meta],
-  )
 
   const req = APIConnector.use()
 
@@ -154,26 +154,54 @@ function DialogForm({
     }
   }
 
-  const onFormChange = React.useCallback(
-    async ({ values }) => {
-      const { name } = values
+  const handleNameChange = React.useCallback(
+    async (name) => {
       const fullName = `${successor.slug}/${name}`
 
-      let warning = defaultNameWarning
+      let warning = ''
 
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {
-        warning = `Package "${fullName}" exists. Submitting will revise it`
+        warning = (
+          <>
+            <Code>{fullName}</Code> already exists. Click Push to create a new revision.
+          </>
+        )
       } else if (name) {
-        warning = `Package "${fullName}" will be created`
+        warning = (
+          <>
+            <Code>{fullName}</Code> is a new package
+          </>
+        )
       }
 
       if (warning !== nameWarning) {
         setNameWarning(warning)
       }
     },
-    [successor, nameExistence, nameWarning],
+    [nameWarning, nameExistence, successor],
   )
+
+  const [editorElement, setEditorElement] = React.useState()
+
+  const onFormChange = React.useCallback(
+    async ({ values }) => {
+      if (document.body.contains(editorElement)) {
+        setMetaHeight(editorElement.clientHeight)
+      }
+
+      handleNameChange(values.name)
+    },
+    [editorElement, handleNameChange, setMetaHeight],
+  )
+
+  React.useEffect(() => {
+    if (document.body.contains(editorElement)) {
+      setMetaHeight(editorElement.clientHeight)
+    }
+  }, [editorElement, setMetaHeight])
+
+  const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   return (
     <RF.Form
@@ -199,8 +227,8 @@ function DialogForm({
       }) => (
         <>
           <DialogTitle bucket={successor.slug} />
-          <M.DialogContent style={{ paddingTop: 0 }}>
-            <form onSubmit={handleSubmit}>
+          <M.DialogContent classes={dialogContentClasses}>
+            <form onSubmit={handleSubmit} className={classes.form}>
               <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
 
               <RF.FormSpy
@@ -239,7 +267,7 @@ function DialogForm({
               />
 
               {schemaLoading ? (
-                <PD.MetaInputSkeleton className={classes.meta} />
+                <PD.MetaInputSkeleton className={classes.meta} ref={setEditorElement} />
               ) : (
                 <RF.Field
                   className={classes.meta}
@@ -251,7 +279,8 @@ function DialogForm({
                   validate={validateMetaInput}
                   validateFields={['meta']}
                   isEqual={R.equals}
-                  initialValue={initialMeta}
+                  ref={setEditorElement}
+                  initialValue={manifest.meta}
                 />
               )}
 

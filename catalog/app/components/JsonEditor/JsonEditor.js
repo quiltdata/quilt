@@ -7,7 +7,7 @@ import { EMPTY_SCHEMA } from 'utils/json-schema'
 import Column from './Column'
 import State from './State'
 
-const useStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles({
   disabled: {
     position: 'relative',
     '&:after': {
@@ -24,89 +24,79 @@ const useStyles = M.makeStyles((t) => ({
   },
   inner: {
     display: 'flex',
-    maxHeight: t.spacing(42),
     overflow: 'auto',
   },
-}))
+})
 
-function JsonEditor({
-  addRow,
-  changeValue,
-  className,
-  disabled,
-  columns,
-  jsonDict,
-  fieldPath,
-  makeAction,
-  onChange,
-  setFieldPath,
-}) {
+const JsonEditor = React.forwardRef(function JsonEditor(
+  {
+    addRow,
+    changeValue,
+    className,
+    disabled,
+    columns,
+    jsonDict,
+    fieldPath,
+    makeAction,
+    onChange,
+    setFieldPath,
+  },
+  ref,
+) {
   const classes = useStyles()
 
-  const onMenuAction = React.useCallback(
-    (contextFieldPath, action) => {
-      const newData = makeAction(contextFieldPath, action)
+  const makeStateChange = React.useCallback(
+    (callback) => (...args) => {
+      const newData = callback(...args)
       if (newData) {
         onChange(newData)
       }
     },
-    [makeAction, onChange],
-  )
-
-  const onChangeInternal = React.useCallback(
-    (...args) => {
-      const newData = changeValue(...args)
-      if (newData) {
-        onChange(newData)
-      }
-    },
-    [changeValue, onChange],
+    [onChange],
   )
 
   const columnData = R.last(columns)
 
   return (
     <div className={cx({ [classes.disabled]: disabled }, className)}>
-      <div className={classes.inner}>
+      <div className={classes.inner} ref={ref}>
         <Column
           {...{
             columnPath: fieldPath,
             data: columnData,
             jsonDict,
             key: fieldPath,
-            onAddRow: addRow,
+            onAddRow: makeStateChange(addRow),
             onBreadcrumb: setFieldPath,
             onExpand: setFieldPath,
-            onMenuAction,
-            onChange: onChangeInternal,
+            onMenuAction: makeStateChange(makeAction),
+            onChange: makeStateChange(changeValue),
           }}
         />
       </div>
     </div>
   )
-}
+})
 
-export default function JsonEditorStateWrapper({
-  className,
-  disabled,
-  onChange,
-  schema: optSchema,
-  value,
-}) {
+export default React.forwardRef(function JsonEditorWrapper(
+  { className, disabled, onChange, schema: optSchema, value },
+  ref,
+) {
   const schema = optSchema || EMPTY_SCHEMA
 
   return (
-    <State obj={value} schema={schema}>
-      {(props) => (
+    <State jsonObject={value} schema={schema}>
+      {(stateProps) => (
         <JsonEditor
           {...{
             className,
             disabled,
             onChange,
+            ref,
           }}
-          {...props}
+          {...stateProps}
         />
       )}
     </State>
   )
-}
+})

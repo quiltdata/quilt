@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
+import Code from 'components/Code'
 import * as authSelectors from 'containers/Auth/selectors'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
@@ -52,6 +53,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     flexGrow: 1,
     marginTop: t.spacing(2),
+    overflowY: 'auto',
     position: 'relative',
   },
   dropzone: {
@@ -93,7 +95,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
   filesContainer: {
     borderBottom: `1px solid ${t.palette.action.disabled}`,
-    maxHeight: t.spacing(68),
     overflowX: 'hidden',
     overflowY: 'auto',
   },
@@ -326,13 +327,21 @@ function FilesInput({
   )
 }
 
+const useDialogSuccessStyles = M.makeStyles({
+  content: {
+    paddingTop: 0,
+  },
+})
+
 function DialogSuccess({ bucket, hash, name, onClose }) {
   const { urls } = NamedRoutes.use()
+
+  const classes = useDialogSuccessStyles()
 
   return (
     <>
       <M.DialogTitle>Package created</M.DialogTitle>
-      <M.DialogContent style={{ paddingTop: 0 }}>
+      <M.DialogContent className={classes.content}>
         <M.Typography>
           Package{' '}
           <StyledLink to={urls.bucketPackageTree(bucket, name, hash)}>
@@ -358,12 +367,16 @@ function DialogSuccess({ bucket, hash, name, onClose }) {
 
 const useStyles = M.makeStyles((t) => ({
   files: {
-    display: 'flex',
-    flexDirection: 'column',
+    height: '100%',
+  },
+  form: {
     height: '100%',
   },
   meta: {
+    display: 'flex',
+    flexDirection: 'column',
     marginTop: t.spacing(3),
+    overflowY: 'auto',
   },
 }))
 
@@ -382,14 +395,12 @@ const getTotalProgress = R.pipe(
   }),
 )
 
-const defaultNameWarning = ' ' // Reserve space for warning
-
-const useNameExistsWarningStyles = M.makeStyles(() => ({
+const useNameExistsWarningStyles = M.makeStyles({
   root: {
     marginRight: '4px',
     verticalAlign: '-5px',
   },
-}))
+})
 
 const NameExistsWarning = ({ name }) => {
   const classes = useNameExistsWarningStyles()
@@ -398,7 +409,7 @@ const NameExistsWarning = ({ name }) => {
       <M.Icon className={classes.root} fontSize="small">
         error_outline
       </M.Icon>
-      Package &quot;{name}&quot; already exists, you are about to create a new revision
+      <Code>{name}</Code> already exists. Click Push to create a new revision.
     </>
   )
 }
@@ -406,25 +417,26 @@ const NameExistsWarning = ({ name }) => {
 function PackageCreateDialog({
   bucket,
   close,
-  setWorkflow,
   refresh,
-  selectedWorkflow,
-  workflowsConfig,
-
-  setSubmitting,
-  setSuccess,
+  responseError,
   schema,
   schemaLoading,
-  responseError,
+  selectedWorkflow,
+  setSubmitting,
+  setSuccess,
+  setWorkflow,
   validate: validateMetaInput,
+  workflowsConfig,
 }) {
   const s3 = AWS.S3.use()
   const req = APIConnector.use()
   const [uploads, setUploads] = React.useState({})
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
-  const [nameWarning, setNameWarning] = React.useState(defaultNameWarning)
+  const [nameWarning, setNameWarning] = React.useState('')
+  const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
+  const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   const totalProgress = getTotalProgress(uploads)
 
@@ -527,7 +539,7 @@ function PackageCreateDialog({
 
   const handleNameChange = React.useCallback(
     async (name) => {
-      let warning = defaultNameWarning
+      let warning = ''
 
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {
@@ -550,20 +562,26 @@ function PackageCreateDialog({
     }
   }
 
+  const [editorElement, setEditorElement] = React.useState()
+
   const onFormChange = React.useCallback(
     ({ dirtyFields, values }) => {
+      if (document.body.contains(editorElement)) {
+        setMetaHeight(editorElement.clientHeight)
+      }
       if (dirtyFields.name) handleNameChange(values.name)
     },
-    [handleNameChange],
+    [editorElement, handleNameChange, setMetaHeight],
   )
 
+  React.useEffect(() => {
+    if (document.body.contains(editorElement)) {
+      setMetaHeight(editorElement.clientHeight)
+    }
+  }, [editorElement, setMetaHeight])
+
   const username = redux.useSelector(authSelectors.username)
-  const usernamePrefix = React.useMemo(() => {
-    const name = username.includes('@') ? username.split('@')[0] : username
-    // see PACKAGE_NAME_FORMAT at quilt3/util.py
-    const validParts = name.match(/\w+/g)
-    return validParts ? `${validParts.join('')}/` : ''
-  }, [username])
+  const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
 
   return (
     <RF.Form
@@ -577,6 +595,7 @@ function PackageCreateDialog({
         hasValidationErrors: true,
         form: true,
       }}
+      validate={PD.useCryptoApiValidation()}
     >
       {({
         error,
@@ -589,8 +608,8 @@ function PackageCreateDialog({
       }) => (
         <>
           <M.DialogTitle>Create package</M.DialogTitle>
-          <M.DialogContent style={{ paddingTop: 0 }}>
-            <form onSubmit={handleSubmit}>
+          <M.DialogContent classes={dialogContentClasses}>
+            <form className={classes.form} onSubmit={handleSubmit}>
               <RF.FormSpy
                 subscription={{ dirtyFields: true, submitting: true, values: true }}
                 onChange={onFormChange}
@@ -639,7 +658,10 @@ function PackageCreateDialog({
                   />
 
                   {schemaLoading ? (
-                    <PD.MetaInputSkeleton className={classes.meta} />
+                    <PD.MetaInputSkeleton
+                      className={classes.meta}
+                      ref={setEditorElement}
+                    />
                   ) : (
                     <RF.Field
                       className={classes.meta}
@@ -652,6 +674,7 @@ function PackageCreateDialog({
                       validateFields={['meta']}
                       isEqual={R.equals}
                       initialValue={PD.EMPTY_META_VALUE}
+                      ref={setEditorElement}
                     />
                   )}
 

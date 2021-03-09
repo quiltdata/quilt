@@ -411,7 +411,9 @@ function DirDisplay({
               Revise package
             </M.Button>
             <M.Box ml={1} />
-            <CopyButton bucket={bucket} onChange={setSuccessor} />
+            <CopyButton bucket={bucket} onChange={setSuccessor}>
+              Push to bucket
+            </CopyButton>
             {!noDownload && (
               <>
                 <M.Box ml={1} />
@@ -574,7 +576,7 @@ function FileDisplay({ bucket, name, hash, revision, path, crumbs }) {
   })
 }
 
-const useStyles = M.makeStyles(() => ({
+const useStyles = M.makeStyles({
   name: {
     wordBreak: 'break-all',
   },
@@ -583,7 +585,7 @@ const useStyles = M.makeStyles(() => ({
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-}))
+})
 
 export default function PackageTree({
   match: {

@@ -265,8 +265,8 @@ EXTS_ACCESS_COUNTS = textwrap.dedent("""\
                 bucket,
                 split(substr(element_at(split(key, '/'), -1), 2), '.') AS parts,
                 date
-            WHERE eventname = 'GetObject'
             FROM object_access_log
+            WHERE eventname = 'GetObject'
         )
     )
     GROUP BY 3, 2, 1

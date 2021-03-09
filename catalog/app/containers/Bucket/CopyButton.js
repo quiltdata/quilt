@@ -55,15 +55,14 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
           ) : (
             <M.Box px={2} py={1}>
               <M.Typography gutterBottom>
-                Bucket&apos;s successors are not configured.
+                Add or update a config.yml file to populate this menu.
               </M.Typography>
               <M.Typography>
-                Please, read{' '}
                 <StyledLink
                   href={`${docs}/advanced-usage/workflows#pushing-across-buckets-with-the-quilt-catalog`}
                   target="_blank"
                 >
-                  the documentation
+                  Learn more
                 </StyledLink>
                 .
               </M.Typography>
@@ -90,12 +89,12 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
   )
 }
 
-const useButtonStyles = M.makeStyles(() => ({
+const useButtonStyles = M.makeStyles({
   root: {
     flexShrink: 0,
     margin: '-3px 0',
   },
-}))
+})
 
 function Button({ children, onClick }) {
   const classes = useButtonStyles()
@@ -120,7 +119,7 @@ function Button({ children, onClick }) {
   )
 }
 
-export default function CopyButton({ bucket, onChange }) {
+export default function CopyButton({ bucket, children, onChange }) {
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null)
 
   const onButtonClick = React.useCallback(
@@ -140,7 +139,7 @@ export default function CopyButton({ bucket, onChange }) {
 
   return (
     <>
-      <Button onClick={onButtonClick}>Push to bucket</Button>
+      <Button onClick={onButtonClick}>{children}</Button>
 
       <SuccessorsSelect
         anchorEl={menuAnchorEl}

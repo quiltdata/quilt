@@ -115,8 +115,8 @@ describe('utils/workflows', () => {
       const config = workflows.parse(data)
 
       it('should return workflow with matched url', () => {
-        expect(config.workflows[0].schema.url).toBe('https://foo')
-        expect(config.workflows[1].schema.url).toBe('https://bar')
+        expect(config.workflows[0].schema!.url).toBe('https://foo')
+        expect(config.workflows[1].schema!.url).toBe('https://bar')
       })
     })
 

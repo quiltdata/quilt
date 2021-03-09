@@ -1,7 +1,9 @@
+import { FORM_ERROR } from 'final-form'
 import mime from 'mime-types'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
+import type * as RF from 'react-final-form'
 import xlsx from 'xlsx'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -17,7 +19,6 @@ import * as AWS from 'utils/AWS'
 import { makeSchemaDefaultsSetter, makeSchemaValidator } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import { readableBytes } from 'utils/string'
-import * as validators from 'utils/validators'
 import * as workflows from 'utils/workflows'
 
 import * as requests from '../requests'
@@ -33,41 +34,42 @@ export const ERROR_MESSAGES = {
   MANIFEST: 'Error creating manifest',
 }
 
-export const getNormalizedPath = R.pipe(
-  R.prop('path'),
-  R.when(R.startsWith('/'), R.drop(1)),
-)
-
-export async function hashFile(file) {
-  if (!window.crypto || !window.crypto.subtle || !window.crypto.subtle.digest) return
-  try {
-    const buf = await file.arrayBuffer()
-    const hashBuf = await window.crypto.subtle.digest('SHA-256', buf)
-    // eslint-disable-next-line consistent-return
-    return Array.from(new Uint8Array(hashBuf))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-  } catch (e) {
-    // return undefined on error
-  }
+export const getNormalizedPath = (f: { path?: string; name: string }) => {
+  const p = f.path || f.name
+  return p.startsWith('/') ? p.substring(1) : p
 }
 
-function cacheDebounce(fn, wait, getKey = R.identity) {
-  const cache = {}
-  let timer
-  let resolveList = []
+export async function hashFile(file: File) {
+  if (!window.crypto || !window.crypto.subtle || !window.crypto.subtle.digest)
+    throw new Error('Crypto API unavailable')
+  const buf = await file.arrayBuffer()
+  const hashBuf = await window.crypto.subtle.digest('SHA-256', buf)
+  return Array.from(new Uint8Array(hashBuf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
 
-  return (...args) => {
+function cacheDebounce<I extends [any, ...any[]], O, K extends string | number | symbol>(
+  fn: (...args: I) => Promise<O>,
+  wait: number,
+  getKey: (...args: I) => K = (R.identity as unknown) as (...args: I) => K,
+) {
+  type Resolver = (result: Promise<O>) => void
+  const cache = {} as Record<K, Promise<O>>
+  let timer: null | ReturnType<typeof setTimeout>
+  let resolveList: Resolver[] = []
+
+  return (...args: I) => {
     const key = getKey(...args)
     if (key in cache) return cache[key]
 
-    return new Promise((resolveNew) => {
-      clearTimeout(timer)
+    return new Promise((resolveNew: Resolver) => {
+      if (timer) clearTimeout(timer)
 
       timer = setTimeout(() => {
         timer = null
 
-        const result = Promise.resolve(fn(...args))
+        const result = fn(...args)
         cache[key] = result
 
         resolveList.forEach((resolve) => resolve(result))
@@ -80,7 +82,9 @@ function cacheDebounce(fn, wait, getKey = R.identity) {
   }
 }
 
-const readExcelFile = (file) =>
+type MetadataValue = $TSFixMe
+
+const readExcelFile = (file: File): Promise<{}> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onabort = () => {
@@ -91,12 +95,15 @@ const readExcelFile = (file) =>
     }
     reader.onload = () => {
       const workbook = xlsx.read(reader.result, { type: 'array' })
-      const result = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {
-        header: 'A',
-      })
+      const result = xlsx.utils.sheet_to_json<MetadataValue>(
+        workbook.Sheets[workbook.SheetNames[0]],
+        {
+          header: 'A',
+        },
+      )
       resolve(
         result.reduce(
-          (memo, { A, B }) => ({
+          (memo: {}, { A, B }: { A: string; B: MetadataValue }) => ({
             ...memo,
             [A]: B,
           }),
@@ -107,7 +114,7 @@ const readExcelFile = (file) =>
     reader.readAsArrayBuffer(file)
   })
 
-const readTextFile = (file) =>
+const readTextFile = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onabort = () => {
@@ -117,18 +124,29 @@ const readTextFile = (file) =>
       reject(reader.error)
     }
     reader.onload = () => {
-      resolve(reader.result)
+      resolve(reader.result as string)
     }
     reader.readAsText(file)
   })
 
-const readFile = (file) =>
-  mime.extension(file.type).startsWith('ods') ? readExcelFile(file) : readTextFile(file)
+const readFile = (file: File): Promise<string | {}> => {
+  const mimeType = mime.extension(file.type)
+  if (mimeType && /ods|odt|csv|xlsx|xls/.test(mimeType)) return readExcelFile(file)
+  return readTextFile(file)
+}
 
-const validateName = (req) =>
-  cacheDebounce(async (name) => {
+interface ApiRequest {
+  <O>(opts: {
+    endpoint: string
+    method?: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'HEAD'
+    body?: {}
+  }): Promise<O>
+}
+
+const validateName = (req: ApiRequest) =>
+  cacheDebounce(async (name: string) => {
     if (name) {
-      const res = await req({
+      const res = await req<{ valid: boolean }>({
         endpoint: '/package_name_valid',
         method: 'POST',
         body: { name },
@@ -139,7 +157,7 @@ const validateName = (req) =>
   }, 200)
 
 export function useNameValidator() {
-  const req = APIConnector.use()
+  const req: ApiRequest = APIConnector.use()
   const [counter, setCounter] = React.useState(0)
   const [processing, setProcessing] = React.useState(false)
   const inc = React.useCallback(() => setCounter(R.inc), [setCounter])
@@ -147,11 +165,16 @@ export function useNameValidator() {
   const validator = React.useMemo(() => validateName(req), [req])
 
   const validate = React.useCallback(
-    async (name) => {
+    async (name: string) => {
       setProcessing(true)
-      const error = await validator(name)
-      setProcessing(false)
-      return error
+      try {
+        const error = await validator(name)
+        setProcessing(false)
+        return error
+      } catch (e) {
+        setProcessing(false)
+        return e.message as string
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [counter, validator],
@@ -160,7 +183,7 @@ export function useNameValidator() {
   return React.useMemo(() => ({ validate, processing, inc }), [validate, processing, inc])
 }
 
-export function useNameExistence(bucket) {
+export function useNameExistence(bucket: string) {
   const [counter, setCounter] = React.useState(0)
   const inc = React.useCallback(() => setCounter(R.inc), [setCounter])
 
@@ -168,7 +191,7 @@ export function useNameExistence(bucket) {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const validate = React.useCallback(
-    cacheDebounce(async (name) => {
+    cacheDebounce(async (name: string) => {
       if (name) {
         const packageExists = await requests.ensurePackageIsPresent({
           s3,
@@ -185,22 +208,21 @@ export function useNameExistence(bucket) {
   return React.useMemo(() => ({ validate, inc }), [validate, inc])
 }
 
-function mkMetaValidator(schema) {
+function mkMetaValidator(schema: object | null) {
   // TODO: move schema validation to utils/validators
   //       but don't forget that validation depends on library.
   //       Maybe we should split validators to files at first
   const schemaValidator = makeSchemaValidator(schema)
-  return function validateMeta(value) {
+  return function validateMeta(value: object | null) {
     const noError = undefined
 
-    const jsonObjectErr = validators.jsonObject(value.text)
+    const jsonObjectErr = !R.is(Object, value)
     if (jsonObjectErr) {
       return new Error('Metadata must be a valid JSON object')
     }
 
     if (schema) {
-      const obj = value ? parseJSON(value.text) : {}
-      const errors = schemaValidator(obj)
+      const errors = schemaValidator(value || {})
       if (!errors.length) return noError
       return errors
     }
@@ -209,10 +231,9 @@ function mkMetaValidator(schema) {
   }
 }
 
-export const getMetaValue = (value, optSchema) =>
+export const getMetaValue = (value: unknown, optSchema: unknown) =>
   value
-    ? pipeThru(value.text || '{}')(
-        (t) => JSON.parse(t),
+    ? pipeThru(value || {})(
         makeSchemaDefaultsSetter(optSchema),
         R.toPairs,
         R.filter(([k]) => !!k.trim()),
@@ -221,7 +242,21 @@ export const getMetaValue = (value, optSchema) =>
       )
     : undefined
 
-export function Field({ error, helperText, validating, warning, ...rest }) {
+interface FieldProps {
+  error?: string
+  helperText?: React.ReactNode
+  validating?: boolean
+  warning?: string
+}
+
+export function Field({
+  error,
+  helperText,
+  validating,
+  warning,
+  ...rest
+}: FieldProps & M.TextFieldProps) {
+  // FIXME: warning is unused
   const props = {
     InputLabelProps: { shrink: true },
     InputProps: {
@@ -234,7 +269,23 @@ export function Field({ error, helperText, validating, warning, ...rest }) {
   return <M.TextField {...props} />
 }
 
-export function PackageNameInput({ errors, input, meta, validating, ...rest }) {
+interface PackageNameInputOwnProps {
+  errors: Record<string, React.ReactNode>
+  input: RF.FieldInputProps<string>
+  meta: RF.FieldMetaState<string>
+  validating: boolean
+}
+
+type PackageNameInputProps = PackageNameInputOwnProps &
+  Omit<Parameters<typeof Field>[0], keyof PackageNameInputOwnProps>
+
+export function PackageNameInput({
+  errors,
+  input,
+  meta,
+  validating,
+  ...rest
+}: PackageNameInputProps) {
   const readyForValidation = (input.value && meta.modified) || meta.submitFailed
   const errorCode = readyForValidation && meta.error
   const error = errorCode ? errors[errorCode] || errorCode : ''
@@ -243,7 +294,7 @@ export function PackageNameInput({ errors, input, meta, validating, ...rest }) {
     error,
     fullWidth: true,
     label: 'Name',
-    margin: 'normal',
+    margin: 'normal' as const,
     placeholder: 'e.g. user/package',
     // NOTE: react-form doesn't change `FormState.validating` on async validation when field loses focus
     validating,
@@ -253,7 +304,21 @@ export function PackageNameInput({ errors, input, meta, validating, ...rest }) {
   return <Field {...props} />
 }
 
-export function CommitMessageInput({ errors, input, meta, ...rest }) {
+interface CommitMessageInputOwnProps {
+  errors: Record<string, React.ReactNode>
+  input: RF.FieldInputProps<string>
+  meta: RF.FieldMetaState<string>
+}
+
+type CommitMessageInputProps = CommitMessageInputOwnProps &
+  Omit<Parameters<typeof Field>[0], keyof CommitMessageInputOwnProps>
+
+export function CommitMessageInput({
+  errors,
+  input,
+  meta,
+  ...rest
+}: CommitMessageInputProps) {
   const errorCode = meta.submitFailed && meta.error
   const error = errorCode ? errors[errorCode] || errorCode : ''
   const props = {
@@ -261,7 +326,7 @@ export function CommitMessageInput({ errors, input, meta, ...rest }) {
     error,
     fullWidth: true,
     label: 'Commit message',
-    margin: 'normal',
+    margin: 'normal' as const,
     placeholder: 'Enter a commit message',
     validating: meta.submitFailed && meta.validating,
     ...input,
@@ -276,7 +341,19 @@ const useWorkflowInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function WorkflowInput({ input, meta, workflowsConfig, errors = {} }) {
+interface WorkflowInputProps {
+  input: RF.FieldInputProps<workflows.Workflow>
+  meta: RF.FieldMetaState<workflows.Workflow>
+  workflowsConfig?: workflows.WorkflowsConfig
+  errors?: Record<string, React.ReactNode>
+}
+
+export function WorkflowInput({
+  input,
+  meta,
+  workflowsConfig,
+  errors = {},
+}: WorkflowInputProps) {
   const classes = useWorkflowInputStyles()
 
   const disabled = meta.submitting || meta.submitSucceeded
@@ -294,14 +371,16 @@ export function WorkflowInput({ input, meta, workflowsConfig, errors = {} }) {
   )
 }
 
-export const defaultWorkflowFromConfig = (cfg) =>
-  cfg ? cfg.workflows.find((item) => item.isDefault) : null
+export const defaultWorkflowFromConfig = (cfg?: workflows.WorkflowsConfig) =>
+  cfg && cfg.workflows.find((item) => item.isDefault)
 
 export const getWorkflowApiParam = R.cond([
   [R.equals(workflows.notAvaliable), R.always(undefined)],
   [R.equals(workflows.notSelected), R.always(null)],
   [R.T, R.identity],
-])
+]) as (
+  slug: typeof workflows.notAvaliable | typeof workflows.notSelected | string,
+) => string | null | undefined
 
 const useMetaInputStyles = M.makeStyles((t) => ({
   header: {
@@ -322,7 +401,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(1),
   },
   jsonInput: {
-    fontFamily: t.typography.monospace.fontFamily,
+    fontFamily: (t.typography as any).monospace.fontFamily,
     '&::placeholder': {
       fontFamily: t.typography.fontFamily,
     },
@@ -349,7 +428,13 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     flexGrow: 2,
   },
   dropzone: {
+    display: 'flex',
+    flexDirection: 'column',
+    overflowY: 'auto',
     position: 'relative',
+  },
+  editor: {
+    overflowY: 'auto',
   },
   overlay: {
     background: 'rgba(255,255,255,0.6)',
@@ -376,53 +461,59 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   },
 }))
 
-export const EMPTY_META_VALUE = { mode: 'kv', text: '{}' }
+export const EMPTY_META_VALUE = {}
+
+interface MetaInputProps {
+  className?: string
+  schemaError: React.ReactNode
+  input: RF.FieldInputProps<{}>
+  meta: RF.FieldMetaState<{}>
+  schema: $TSFixMe
+}
+
+type Mode = 'kv' | 'json'
 
 // TODO: warn on duplicate keys
-export function MetaInput({
-  className,
-  schemaError,
-  input: { value, onChange },
-  meta,
-  schema,
-}) {
+export const MetaInput = React.forwardRef(function MetaInput(
+  { className, schemaError, input: { value, onChange }, meta, schema }: MetaInputProps,
+  ref,
+) {
   const classes = useMetaInputStyles()
   const error = schemaError || ((meta.modified || meta.submitFailed) && meta.error)
   const disabled = meta.submitting || meta.submitSucceeded
+  const [mode, setMode] = React.useState<Mode>('kv')
 
-  const parsedValue = React.useMemo(() => {
-    const obj = parseJSON(value.text)
-    return R.is(Object, obj) && !Array.isArray(obj) ? obj : {}
-  }, [value.text])
-
-  const changeMode = (mode) => {
-    if (disabled) return
-    onChange({ ...value, mode })
-  }
+  const [textValue, setTextValue] = React.useState(() => stringifyJSON(value))
 
   const changeText = React.useCallback(
     (text) => {
       if (disabled) return
-      onChange({ ...value, text })
+      setTextValue(text)
+      onChange(parseJSON(text))
     },
-    [disabled, onChange, value],
+    [disabled, onChange],
   )
 
-  const handleModeChange = (e, m) => {
+  const handleModeChange = (e: unknown, m: Mode) => {
     if (!m) return
-    changeMode(m)
+    setMode(m)
   }
 
-  const handleTextChange = (e) => {
+  const handleTextChange = (e: React.ChangeEvent<{ value: string }>) => {
     changeText(e.target.value)
   }
 
-  const onJsonEditor = React.useCallback((json) => changeText(stringifyJSON(json)), [
-    changeText,
-  ])
+  const onJsonEditor = React.useCallback(
+    (json: {}) => {
+      setTextValue(stringifyJSON(json))
+      onChange(json)
+    },
+    [onChange],
+  )
 
   const { push: notify } = Notifications.use()
   const [locked, setLocked] = React.useState(false)
+
   // used to force json editor re-initialization
   const [jsonEditorKey, setJsonEditorKey] = React.useState(1)
 
@@ -439,12 +530,12 @@ export function MetaInput({
       }
       setLocked(true)
       readFile(file)
-        .then((contents) => {
+        .then((contents: string | {}) => {
           if (R.is(Object, contents)) {
             onJsonEditor(contents)
           } else {
             try {
-              JSON.parse(contents)
+              JSON.parse(contents as string)
             } catch (e) {
               notify('The file does not contain valid JSON')
             }
@@ -479,7 +570,7 @@ export function MetaInput({
         </M.Typography>
 
         <M.Box flexGrow={1} />
-        <Lab.ToggleButtonGroup value={value.mode} exclusive onChange={handleModeChange}>
+        <Lab.ToggleButtonGroup value={mode} exclusive onChange={handleModeChange}>
           <Lab.ToggleButton value="kv" className={classes.btn} disabled={disabled}>
             Key : Value
           </Lab.ToggleButton>
@@ -490,19 +581,22 @@ export function MetaInput({
       </div>
 
       <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
-        {value.mode === 'kv' ? (
+        {mode === 'kv' ? (
           <JsonEditor
+            // @ts-expect-error
+            className={classes.editor}
             disabled={disabled}
-            value={parsedValue}
+            value={value}
             onChange={onJsonEditor}
             schema={schema}
             key={jsonEditorKey}
+            ref={ref}
           />
         ) : (
           <M.TextField
             variant="outlined"
             size="small"
-            value={value.text}
+            value={textValue}
             onChange={handleTextChange}
             error={!!error}
             fullWidth
@@ -541,9 +635,27 @@ export function MetaInput({
       </div>
     </div>
   )
+})
+
+type Result = $TSFixMe
+
+interface SchemaFetcherProps {
+  manifest?: {
+    workflow?: {
+      id?: string
+    }
+  }
+  workflow?: workflows.Workflow
+  workflowsConfig: workflows.WorkflowsConfig
+  children: (result: Result) => React.ReactElement
 }
 
-export function SchemaFetcher({ manifest, workflow, workflowsConfig, children }) {
+export function SchemaFetcher({
+  manifest,
+  workflow,
+  workflowsConfig,
+  children,
+}: SchemaFetcherProps) {
   const s3 = AWS.S3.use()
 
   const initialWorkflow = React.useMemo(() => {
@@ -575,9 +687,9 @@ export function SchemaFetcher({ manifest, workflow, workflowsConfig, children })
   const res = React.useMemo(
     () =>
       data.case({
-        Ok: (schema) =>
+        Ok: (schema: {}) =>
           AsyncResult.Ok({ ...defaultProps, schema, validate: mkMetaValidator(schema) }),
-        Err: (responseError) =>
+        Err: (responseError: Error) =>
           AsyncResult.Ok({
             ...defaultProps,
             responseError,
@@ -588,4 +700,36 @@ export function SchemaFetcher({ manifest, workflow, workflowsConfig, children })
     [defaultProps, data],
   )
   return children(res)
+}
+
+export function useCryptoApiValidation() {
+  return React.useCallback(() => {
+    const isCryptoApiAvailable =
+      window.crypto && window.crypto.subtle && window.crypto.subtle.digest
+    return {
+      [FORM_ERROR]: !isCryptoApiAvailable
+        ? 'Quilt requires the Web Cryptography API. Please try another browser.'
+        : undefined,
+    }
+  }, [])
+}
+
+export const useContentStyles = M.makeStyles({
+  root: {
+    height: ({ metaHeight }: { metaHeight: number }) =>
+      R.clamp(
+        420 /* minimal height */,
+        window.innerHeight - 200 /* free space for headers */,
+        400 /* space to fit other inputs */ + metaHeight,
+      ),
+    paddingTop: 0,
+  },
+})
+
+export function getUsernamePrefix(username?: string | null) {
+  if (!username) return ''
+  const name = username.includes('@') ? username.split('@')[0] : username
+  // see PACKAGE_NAME_FORMAT at quilt3/util.py
+  const validParts = name.match(/\w+/g)
+  return validParts ? `${validParts.join('')}/` : ''
 }

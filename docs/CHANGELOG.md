@@ -19,6 +19,7 @@
 * [Added] Additional validation for package name ([#1998](https://github.com/quiltdata/quilt/pull/1998))
 * [Added] Populate package name with username prefix ([#2016](https://github.com/quiltdata/quilt/pull/2016))
 * [Added] Link from bucket overview page to bucket settings ([#2022](https://github.com/quiltdata/quilt/pull/2022))
+* [Added] Folder to package dialog ([#2040](https://github.com/quiltdata/quilt/pull/2040))
 * [Changed] Tree view for files in package update dialog ([#1989](https://github.com/quiltdata/quilt/pull/1989))
 * [Changed] Lambda indexing retry logic to not fail content extraction ([#2007](https://github.com/quiltdata/quilt/pull/2007))
 * [Changed] Number of retries per ES and S3 failure in indexing Lambda ([#1987](https://github.com/quiltdata/quilt/pull/1987))
@@ -29,11 +30,13 @@
 * [Changed] Use polyfill.io instead of bundled polyfills ([#2043](https://github.com/quiltdata/quilt/pull/2043))
 * [Changed] Render JSON with custom tree-like viewer ([#2037](https://github.com/quiltdata/quilt/pull/2037))
 * [Changed] Set JSON Schema defaults ([#2053](https://github.com/quiltdata/quilt/pull/2053))
+* [Changed] Don't upload unmodified files while revising a package ([#2080](https://github.com/quiltdata/quilt/pull/2080))
 * [Fixed] Bug that caused search to miss delete object and delete package events ([#1987](https://github.com/quiltdata/quilt/pull/1987))
 * [Fixed] lambda previews for time series `AICSImage` data (potential `IndexError` if odd number of time points) ([#1945](https://github.com/quiltdata/quilt/pull/1945))
 * [Fixed] Handle folders in search results ([#1992](https://github.com/quiltdata/quilt/pull/1992), [#1994](https://github.com/quiltdata/quilt/pull/1994))
 * [Fixed] Use EncodingType=url for S3 list requests to handle special chars in keys / prefixes ([#2026](https://github.com/quiltdata/quilt/pull/2026))
 * [Fixed] Empty response from `pkgselect` folder view for packages with all non-string logical_keys or physical_keys ([#1947](https://github.com/quiltdata/quilt/pull/1947))
+* [Fixed] "Download Directory" bug that caused 502 or failed downloads when any files contained the "+" character ([#2067](https://github.com/quiltdata/quilt/pull/2067/))
 
 # 3.3.0 - 2020-12-08
 ## Python API

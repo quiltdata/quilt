@@ -30,8 +30,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface SkeletonProps {
+  className?: string
+  animate?: boolean
+}
+
 export default React.forwardRef(function Skeleton(
-  { className, animate = true, ...props },
+  { className, animate = true, ...props }: SkeletonProps,
   ref,
 ) {
   const classes = useStyles()

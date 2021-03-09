@@ -31,13 +31,13 @@ export function Meta({ data, ...props }) {
   )
 }
 
-const useDownloadButtonStyles = M.makeStyles(() => ({
+const useDownloadButtonStyles = M.makeStyles({
   root: {
     flexShrink: 0,
     marginBottom: -3,
     marginTop: -3,
   },
-}))
+})
 
 export function DownloadButtonLayout({ label, icon, ...props }) {
   const classes = useDownloadButtonStyles()

@@ -25,7 +25,7 @@ const useStyles = M.makeStyles((t) => ({
 
 function getColumnType(columnPath, jsonDict, parent) {
   const columnSchema = getJsonDictValue(columnPath, jsonDict)
-  if (!parent) return columnSchema.type
+  if (columnSchema && !parent) return columnSchema.type
 
   if (Array.isArray(parent)) return 'array'
 
@@ -48,7 +48,9 @@ function EmptyColumn({ columnType }) {
 
   return (
     <M.TableRow className={classes.root}>
-      <M.TableCell colSpan={2}>This array is empty, click above to edit</M.TableCell>
+      <M.TableCell colSpan={2}>
+        This array is empty. Add the first item or create array at the parent level
+      </M.TableCell>
     </M.TableRow>
   )
 }
@@ -135,7 +137,7 @@ export default function Column({
 
             {!rows.length && <EmptyColumn columnType={columnType} />}
 
-            {columnType === 'array' && !!rows.length && (
+            {columnType === 'array' && (
               <AddArrayItem
                 {...{
                   columnPath,
