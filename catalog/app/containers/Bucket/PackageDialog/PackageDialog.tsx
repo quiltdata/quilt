@@ -82,9 +82,39 @@ function cacheDebounce<I extends [any, ...any[]], O, K extends string | number |
   }
 }
 
+type JsonSchema = $TSFixMe
 type MetadataValue = $TSFixMe
+type JsonObject = Record<string, MetadataValue>
 
-const readExcelFile = (file: File): Promise<{}> =>
+function verticalSheetToJson(sheet: xlsx.WorkSheet): JsonObject {
+  const result = xlsx.utils.sheet_to_json<MetadataValue>(sheet, {
+    header: 'A',
+  })
+  return result.reduce(
+    (memo: JsonObject, { A, B }: { A: string; B: MetadataValue }) => ({
+      ...memo,
+      [A]: B,
+    }),
+    {},
+  )
+}
+
+function horizontalSheetToJson(sheet: xlsx.WorkSheet): JsonObject {
+  const result = xlsx.utils.sheet_to_json<MetadataValue>(sheet, {
+    header: 1,
+  })
+  return R.zipObj(result[0], result[1])
+}
+
+function scoreObjectDiff(obj1: {}, obj2: {}): number {
+  const keys = Object.keys(obj1)
+  return keys.reduce((memo, key) => {
+    if (key in obj2) return memo + 1
+    return memo
+  }, 0)
+}
+
+const readExcelFile = (file: File, schema: JsonSchema = {}): Promise<{}> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onabort = () => {
@@ -95,21 +125,18 @@ const readExcelFile = (file: File): Promise<{}> =>
     }
     reader.onload = () => {
       const workbook = xlsx.read(reader.result, { type: 'array' })
-      const result = xlsx.utils.sheet_to_json<MetadataValue>(
-        workbook.Sheets[workbook.SheetNames[0]],
-        {
-          header: 'A',
-        },
-      )
-      resolve(
-        result.reduce(
-          (memo: {}, { A, B }: { A: string; B: MetadataValue }) => ({
-            ...memo,
-            [A]: B,
-          }),
-          {},
-        ),
-      )
+      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      const horizontalObj = horizontalSheetToJson(sheet)
+      if (schema.properties) {
+        const verticalObj = verticalSheetToJson(sheet)
+        if (
+          scoreObjectDiff(verticalObj, schema.properties) >
+          scoreObjectDiff(horizontalObj, schema.properties)
+        ) {
+          resolve(verticalObj)
+        }
+      }
+      resolve(horizontalObj)
     }
     reader.readAsArrayBuffer(file)
   })
@@ -129,9 +156,10 @@ const readTextFile = (file: File): Promise<string> =>
     reader.readAsText(file)
   })
 
-const readFile = (file: File): Promise<string | {}> => {
+const readFile = (file: File, schema?: JsonSchema): Promise<string | {}> => {
   const mimeType = mime.extension(file.type)
-  if (mimeType && /ods|odt|csv|xlsx|xls/.test(mimeType)) return readExcelFile(file)
+  if (mimeType && /ods|odt|csv|xlsx|xls/.test(mimeType))
+    return readExcelFile(file, schema)
   return readTextFile(file)
 }
 
@@ -529,7 +557,7 @@ export const MetaInput = React.forwardRef(function MetaInput(
         return
       }
       setLocked(true)
-      readFile(file)
+      readFile(file, schema)
         .then((contents: string | {}) => {
           if (R.is(Object, contents)) {
             onJsonEditor(contents)
@@ -556,7 +584,7 @@ export const MetaInput = React.forwardRef(function MetaInput(
           setLocked(false)
         })
     },
-    [setLocked, changeText, onJsonEditor, setJsonEditorKey, notify],
+    [schema, setLocked, changeText, onJsonEditor, setJsonEditorKey, notify],
   )
 
   const { getRootProps, isDragActive } = useDropzone({ onDrop })
