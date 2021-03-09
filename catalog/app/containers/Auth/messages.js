@@ -79,6 +79,24 @@ export default defineMessages({
     defaultMessage:
       'No Quilt user linked to this OneLogin account. Notify your Quilt administrator.',
   },
+  ssoAzureUse: {
+    id: `${scope}.SSO.Azure.use`,
+    defaultMessage: 'Sign in with Microsoft',
+  },
+  ssoAzureError: {
+    id: `${scope}.SSO.Azure.error`,
+    defaultMessage: 'Unable to sign in with Microsoft. {details}',
+  },
+  ssoAzureErrorUnexpected: {
+    id: `${scope}.SSO.Azure.errorUnexpected`,
+    defaultMessage:
+      'Unable to sign in with Microsoft. Try again later or contact support.',
+  },
+  ssoAzureNotFound: {
+    id: `${scope}.SSO.Azure.notFound`,
+    defaultMessage:
+      'No Quilt user linked to this Microsoft account. Notify your Quilt administrator.',
+  },
   ssoSignUpHeading: {
     id: `${scope}.SSO.SignUp.heading`,
     defaultMessage: 'Complete sign-up',
