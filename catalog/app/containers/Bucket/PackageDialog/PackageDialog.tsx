@@ -86,24 +86,31 @@ type JsonSchema = $TSFixMe
 type MetadataValue = $TSFixMe
 type JsonObject = Record<string, MetadataValue>
 
-function verticalSheetToJson(sheet: xlsx.WorkSheet): JsonObject {
-  const result = xlsx.utils.sheet_to_json<MetadataValue>(sheet, {
-    header: 'A',
-  })
-  return result.reduce(
-    (memo: JsonObject, { A, B }: { A: string; B: MetadataValue }) => ({
-      ...memo,
-      [A]: B,
-    }),
-    {},
+function rowsToJson(rows: MetadataValue[][]) {
+  return pipeThru(rows)(
+    R.map(([key, ...values]) => [
+      key,
+      pipeThru(values)(
+        R.reject(R.isNil),
+        R.ifElse(R.pipe(R.length, R.equals(1)), R.head, R.identity),
+      ),
+    ]),
+    R.fromPairs,
   )
 }
 
-function horizontalSheetToJson(sheet: xlsx.WorkSheet): JsonObject {
+function leftRightSheetToJson(sheet: xlsx.WorkSheet): JsonObject {
   const result = xlsx.utils.sheet_to_json<MetadataValue>(sheet, {
     header: 1,
   })
-  return R.zipObj(result[0], result[1])
+  return rowsToJson(result)
+}
+
+function topDownSheetToJson(sheet: xlsx.WorkSheet): JsonObject {
+  const result = xlsx.utils.sheet_to_json<MetadataValue>(sheet, {
+    header: 1,
+  })
+  return rowsToJson(R.transpose(result))
 }
 
 function scoreObjectDiff(obj1: {}, obj2: {}): number {
@@ -114,7 +121,7 @@ function scoreObjectDiff(obj1: {}, obj2: {}): number {
   }, 0)
 }
 
-const readExcelFile = (file: File, schema: JsonSchema = {}): Promise<{}> =>
+const readExcelFile = (file: File, schema: JsonSchema): Promise<{}> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onabort = () => {
@@ -126,17 +133,17 @@ const readExcelFile = (file: File, schema: JsonSchema = {}): Promise<{}> =>
     reader.onload = () => {
       const workbook = xlsx.read(reader.result, { type: 'array' })
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
-      const horizontalObj = horizontalSheetToJson(sheet)
-      if (schema.properties) {
-        const verticalObj = verticalSheetToJson(sheet)
+      const verticalObj = topDownSheetToJson(sheet)
+      if (schema && schema.properties) {
+        const horizontalObj = leftRightSheetToJson(sheet)
         if (
-          scoreObjectDiff(verticalObj, schema.properties) >
-          scoreObjectDiff(horizontalObj, schema.properties)
+          scoreObjectDiff(horizontalObj, schema.properties) >
+          scoreObjectDiff(verticalObj, schema.properties)
         ) {
-          resolve(verticalObj)
+          resolve(horizontalObj)
         }
       }
-      resolve(horizontalObj)
+      resolve(verticalObj)
     }
     reader.readAsArrayBuffer(file)
   })
