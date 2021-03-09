@@ -9,6 +9,7 @@
 
 # unreleased - YYYY-MM-DD
 ## Python API
+* [Changed] Removed unused dependency on `packaging` ([#2090](https://github.com/quiltdata/quilt/pull/2090))
 
 ## CLI
 
