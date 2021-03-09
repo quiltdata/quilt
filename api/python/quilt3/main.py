@@ -18,6 +18,7 @@ from .backends import get_package_registry
 from .session import open_url
 from .util import (
     QuiltException,
+    QuiltInstallPackageParser,
     catalog_package_url,
     catalog_s3_url,
     get_from_config,
@@ -231,6 +232,68 @@ def cmd_push(name, dir, registry, dest, message, meta):
     pkg.push(name, registry=registry, dest=dest, message=message)
 
 
+install_cmd_detailed_help = """
+Run `quilt install user/pkg` to install a single package from the specified registry.<br/>
+One or more packages can also be installed from same or different registries using a yaml dependency file.<br/>
+To install through a dependency file, run `quilt install [@]file.y[a]ml`.
+
+#### Constrains
+- A valid YAML file (`quilt.yaml` or `quilt.yml`)
+- All the keys under registries must start with a scheme
+- If `quilt3 install @quilt.yml` gets a `--registry` an exception is raised.
+
+#### Syntax
+version: `<STR>`<br/>
+registries: `<STR: url scheme>`<br/>
+packages: `<LIST(STR: usr/pkg[/path][:TAG|HASH])>`
+
+#### Example
+```bash
+version: 1.0
+registries:
+ s3://some-bucket:
+   packages:
+     - asah/gpt3:def132
+     - akarve/lmnb1:c698234
+     - akarve/lmnb3/sub/path:c698234
+ s3://another-bucket:
+   packages:
+     - asah/gpt3:def132
+```
+"""
+
+
+def cmd_install(name, registry, top_hash, path, detailed_help=False, **kwargs):
+    """
+    Install a package or a collection of packages.
+    If detailed_help=True, display detailed information about the `quilt3 install` command and then exit
+    """
+
+    if detailed_help:
+        print(install_cmd_detailed_help)
+        return
+
+    parser = QuiltInstallPackageParser(name)
+    if parser.parsed_yaml:
+        # raise exception if quilt.yml gets a registry
+        if registry:
+            raise QuiltException('--registry is not allowed while installing packages from yaml file.')
+        registries = parser.get_registries()
+        for registry, packages in registries:
+            print(f'Installing packages from {registry!r} registry')
+            for package in packages:
+                Package.install(
+                    package.name,
+                    registry=registry,
+                    top_hash=package.top_hash,
+                    path=package.path,
+                    **kwargs
+                )
+    else:
+        package = parser.package
+        Package.install(package.name, registry=registry, top_hash=top_hash, path=path, **kwargs)
+
+
 def create_parser():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument(
@@ -312,18 +375,25 @@ def create_parser():
     disable_telemetry_p.set_defaults(func=cmd_disable_telemetry)
 
     # install
-    shorthelp = "Install a package"
-    install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp, allow_abbrev=False)
+    shorthelp = "Install a package or a collection of packages"
+    install_p = subparsers.add_parser(
+        "install",
+        description=shorthelp,
+        help=shorthelp,
+        allow_abbrev=False,
+        formatter_class=argparse.RawTextHelpFormatter
+    )
     install_p.add_argument(
         "name",
-        help=(
-            "Name of package, in the USER/PKG[/PATH] format ([/PATH] is deprecated, use --path parameter instead)"
-        ),
-        type=str,
+        help="Name can be of two representations:\n"
+             "- Name of package, in the USER/PKG[/PATH] format ([/PATH] is deprecated, use --path parameter instead)\n"
+             "- Path to quilt.yaml or quilt.yml package dependency file.",
+        type=str
     )
     install_p.add_argument(
         "--registry",
-        help="Registry where package is located, usually s3://MY-BUCKET. Defaults to the default remote registry.",
+        help="Registry where package is located, usually s3://MY-BUCKET.\n"
+             "Defaults to the default remote registry.",
         type=str,
         required=False,
     )
@@ -351,7 +421,12 @@ def create_parser():
         type=str,
         required=False,
     )
-    install_p.set_defaults(func=Package.install)
+    install_p.add_argument(
+        "--detailed_help",
+        help="Display detailed information about this command and then exit",
+        action="store_true",
+    )
+    install_p.set_defaults(func=cmd_install)
 
     # list-packages
     shorthelp = "List all packages in a registry"

@@ -1,7 +1,8 @@
+import shutil
 import tempfile
 from pathlib import Path
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import pytest
 
@@ -45,6 +46,42 @@ class QuiltCLITestCase(CommandLineTestCase):
                 mocked_package_class.assert_called_once_with(quilt3.Package)
                 mocked_set_dir.assert_called_once_with('.', tmp_dir, meta=None)
                 mocked_push.assert_called_once_with(name, registry=None, dest=None, message=None)
+
+
+@pytest.mark.parametrize(
+    'name, registry, expected_calls, expected_no_of_calls',
+    [
+        ('asah/gpt3', 's3://another-bucket', [], 1),
+        (
+            'quilt.yml',
+            None,
+            [
+                call('asah/gpt3', dest=None, dest_registry=None, path=None, registry='s3://some-bucket',
+                     top_hash=None),
+                call('akarve/lmnb1', dest=None, dest_registry=None, path=None, registry='s3://some-bucket',
+                     top_hash='c698234'),
+                call('asah/gpt3', dest=None, dest_registry=None, path=None, registry='s3://another-bucket',
+                     top_hash=None),
+                call('akarve/lmnb1', dest=None, dest_registry=None, path=None, registry='s3://another-bucket',
+                     top_hash='c698234'),
+                call('akarve/lmnb3', dest=None, dest_registry=None, path='sub/path', registry='s3://another-bucket',
+                     top_hash='c698234')
+            ],
+            5
+        )
+    ]
+)
+def test_cli_install(name, registry, expected_calls, expected_no_of_calls):
+    config_file = Path(__file__).parent / 'data/quilt.yml'
+    shutil.copy(config_file, 'quilt.yml')
+
+    with mock.patch('quilt3.Package.install') as mocked_package_install:
+        if registry:
+            main.main(('install', name, '--registry', registry))
+        else:
+            main.main(('install', 'quilt.yml'))
+        mocked_package_install.assert_has_calls(expected_calls)
+        assert mocked_package_install.call_count == expected_no_of_calls
 
 
 @pytest.mark.parametrize(

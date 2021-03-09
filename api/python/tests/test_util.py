@@ -1,10 +1,12 @@
 """ Testing for util.py """
 
 import pathlib
+import shutil
 
 import pytest
 
 from quilt3 import util
+from quilt3.util import QuiltException
 
 # Constants
 TEST_YAML = """
@@ -64,3 +66,55 @@ def test_validate_url():
 
     with pytest.raises(util.QuiltException, match='Requires at least scheme and host'):
         util.validate_url('blah')
+
+
+@pytest.mark.parametrize(
+    'package, expected_package_name, expected_sub_path, expected_top_hash',
+    [
+        ('greg/test', 'greg/test', None, None),
+        ('greg/test:latest', 'greg/test', None, None),
+        ('greg/test:00934has2', 'greg/test', None, '00934has2'),
+        ('greg/test/sub/package/dir', 'greg/test', 'sub/package/dir', None),
+        ('greg/test/sub/package/dir:00934has2', 'greg/test', 'sub/package/dir', '00934has2'),
+        pytest.param('invalid package', 'invalid', None, None, marks=pytest.mark.xfail(raises=QuiltException)),
+    ]
+)
+def test_parse_package(package, expected_package_name, expected_sub_path, expected_top_hash):
+    parsed = util.parse_package(package)
+    assert parsed.name == expected_package_name
+    assert parsed.top_hash == expected_top_hash
+    assert parsed.path == expected_sub_path
+
+
+@pytest.mark.parametrize(
+    'name, extension, expected_quilt_version, expected_registries',
+    [
+        ('@quilt.yml', 'yml', 1.0, {'s3://some-bucket': 2, 's3://another-bucket': 3}),
+        ('quilt.yml', 'yml', 1.0, {'s3://some-bucket': 2, 's3://another-bucket': 3}),
+        ('quilt.yaml', 'yaml', 1.0, {'s3://some-bucket': 2, 's3://another-bucket': 3}),
+        ('akarve/cord19', None, None, {})
+    ]
+)
+def test_quilt_install_package_parser(name, extension, expected_quilt_version, expected_registries):
+    config_file = pathlib.Path(__file__).parent / 'data/quilt.yml'
+    shutil.copy(config_file, f'quilt.{extension}')
+    parser = util.QuiltInstallPackageParser(name)
+    registries = dict(parser.get_registries())
+
+    assert parser.get_yaml_version() == expected_quilt_version
+    assert registries.keys() == expected_registries.keys()
+
+    for key, value in expected_registries.items():
+        assert len(registries[key]) == value
+
+
+def test_quilt_install_package_parse_failure():
+    # Invalid file type
+    with pytest.raises(QuiltException) as e:
+        util.QuiltInstallPackageParser('quilt.ynnl')
+    assert "'quilt.ynnl' is not a valid" in str(e.value)
+
+    # Config file not in current path
+    with pytest.raises(QuiltException) as e:
+        util.QuiltInstallPackageParser('quilt.yml')
+    assert "'quilt.yml' does not exist" in str(e.value)
