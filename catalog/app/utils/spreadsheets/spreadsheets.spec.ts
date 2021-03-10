@@ -168,7 +168,7 @@ describe('utils/spreadsheets', () => {
 
       it('parses OpenOffice archive format', () => {
         const workbook = xlsx.readFile(
-          path.resolve(__dirname, './spreadsheets.bilbo.ods'),
+          path.resolve(__dirname, './mocks/spreadsheets.bilbo.ods'),
           { cellDates: true },
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
@@ -180,7 +180,7 @@ describe('utils/spreadsheets', () => {
 
       it('parses OpenOffice single XML format', () => {
         const workbook = xlsx.readFile(
-          path.resolve(__dirname, './spreadsheets.bilbo.fods'),
+          path.resolve(__dirname, './mocks/spreadsheets.bilbo.fods'),
           { cellDates: true },
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
@@ -192,7 +192,7 @@ describe('utils/spreadsheets', () => {
 
       it('parses CSV format', () => {
         const workbook = xlsx.readFile(
-          path.resolve(__dirname, './spreadsheets.bilbo.csv'),
+          path.resolve(__dirname, './mocks/spreadsheets.bilbo.csv'),
           { cellDates: true },
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
@@ -204,7 +204,7 @@ describe('utils/spreadsheets', () => {
 
       it.skip('parses XLS format', () => {
         const workbook = xlsx.readFile(
-          path.resolve(__dirname, './spreadsheets.bilbo.xls'),
+          path.resolve(__dirname, './mocks/spreadsheets.bilbo.xls'),
           { cellDates: true },
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
@@ -216,7 +216,7 @@ describe('utils/spreadsheets', () => {
 
       it.skip('parses XLSX format', () => {
         const workbook = xlsx.readFile(
-          path.resolve(__dirname, './spreadsheets.bilbo.xlsx'),
+          path.resolve(__dirname, './mocks/spreadsheets.bilbo.xlsx'),
           { cellDates: true },
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
@@ -228,7 +228,7 @@ describe('utils/spreadsheets', () => {
 
       it.skip('parses XLSM format', () => {
         const workbook = xlsx.readFile(
-          path.resolve(__dirname, './spreadsheets.bilbo.xlsm'),
+          path.resolve(__dirname, './mocks/spreadsheets.bilbo.xlsm'),
           { cellDates: true },
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
