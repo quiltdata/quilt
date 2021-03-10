@@ -33,7 +33,7 @@ describe('utils/spreadsheets', () => {
   })
 
   describe('parseSpreadsheet', () => {
-    test('converts CSV to dictionary object', () => {
+    it('converts CSV to dictionary object', () => {
       const csv = dedent`
         a,b,c
         d,e,f
@@ -50,7 +50,7 @@ describe('utils/spreadsheets', () => {
   })
 
   describe('scoreObjectDiff', () => {
-    test('object with more keys in commont has bigger score', () => {
+    it('object with more keys in commont has bigger score', () => {
       const testA = { a: 1, b: 2, c: 3 }
       const testB = { c: 4, d: 5, e: 6 }
       const control = { b: 123, c: 456 }
@@ -69,7 +69,7 @@ describe('utils/spreadsheets', () => {
       },
     }
 
-    test('parse vertical spreadsheet', () => {
+    it('parse vertical spreadsheet', () => {
       const csv = dedent`
         b,c
         1,2
@@ -82,7 +82,7 @@ describe('utils/spreadsheets', () => {
       })
     })
 
-    test('parse horizontal spreadsheet', () => {
+    it('parse horizontal spreadsheet', () => {
       const csv = dedent`
         b,1
         c,2
@@ -95,7 +95,7 @@ describe('utils/spreadsheets', () => {
       })
     })
 
-    test('parse as vertical when no keys in common', () => {
+    it('parse as vertical when no keys in common', () => {
       const csv = dedent`
         d,e,f
         1,2,3
@@ -109,7 +109,7 @@ describe('utils/spreadsheets', () => {
       })
     })
 
-    test('parse invalid data with no error', () => {
+    it('parse invalid data with no error', () => {
       const sheet = ['123']
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({})
     })
