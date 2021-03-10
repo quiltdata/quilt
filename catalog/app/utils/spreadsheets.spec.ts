@@ -95,5 +95,10 @@ describe('utils/spreadsheets', () => {
         f: 3,
       })
     })
+
+    test('parse invalid data with no error', () => {
+      const sheet = ['123']
+      expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({})
+    })
   })
 })
