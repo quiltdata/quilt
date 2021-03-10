@@ -4,7 +4,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import type * as RF from 'react-final-form'
-import xlsx from 'xlsx'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -18,6 +17,7 @@ import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import { makeSchemaDefaultsSetter, makeSchemaValidator } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
+import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
 import * as workflows from 'utils/workflows'
 
@@ -82,72 +82,6 @@ function cacheDebounce<I extends [any, ...any[]], O, K extends string | number |
   }
 }
 
-type JsonSchema = $TSFixMe
-type MetadataValue = $TSFixMe
-type JsonObject = Record<string, MetadataValue>
-
-function rowsToJson(rows: MetadataValue[][]) {
-  return pipeThru(rows)(
-    R.map(([key, ...values]) => [
-      key,
-      pipeThru(values)(
-        R.reject(R.isNil),
-        R.ifElse(R.pipe(R.length, R.equals(1)), R.head, R.identity),
-      ),
-    ]),
-    R.fromPairs,
-  )
-}
-
-function leftRightSheetToJson(sheet: xlsx.WorkSheet): JsonObject {
-  const result = xlsx.utils.sheet_to_json<MetadataValue>(sheet, {
-    header: 1,
-  })
-  return rowsToJson(result)
-}
-
-function topDownSheetToJson(sheet: xlsx.WorkSheet): JsonObject {
-  const result = xlsx.utils.sheet_to_json<MetadataValue>(sheet, {
-    header: 1,
-  })
-  return rowsToJson(R.transpose(result))
-}
-
-function scoreObjectDiff(obj1: {}, obj2: {}): number {
-  const keys = Object.keys(obj1)
-  return keys.reduce((memo, key) => {
-    if (key in obj2) return memo + 1
-    return memo
-  }, 0)
-}
-
-const readExcelFile = (file: File, schema: JsonSchema): Promise<{}> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onabort = () => {
-      reject(new Error('abort'))
-    }
-    reader.onerror = () => {
-      reject(reader.error)
-    }
-    reader.onload = () => {
-      const workbook = xlsx.read(reader.result, { type: 'array' })
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
-      const verticalObj = topDownSheetToJson(sheet)
-      if (schema && schema.properties) {
-        const horizontalObj = leftRightSheetToJson(sheet)
-        if (
-          scoreObjectDiff(horizontalObj, schema.properties) >
-          scoreObjectDiff(verticalObj, schema.properties)
-        ) {
-          resolve(horizontalObj)
-        }
-      }
-      resolve(verticalObj)
-    }
-    reader.readAsArrayBuffer(file)
-  })
-
 const readTextFile = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -163,10 +97,12 @@ const readTextFile = (file: File): Promise<string> =>
     reader.readAsText(file)
   })
 
+type JsonSchema = $TSFixMe
+
 const readFile = (file: File, schema?: JsonSchema): Promise<string | {}> => {
   const mimeType = mime.extension(file.type)
   if (mimeType && /ods|odt|csv|xlsx|xls/.test(mimeType))
-    return readExcelFile(file, schema)
+    return spreadsheets.readAgainstSchema(file, schema)
   return readTextFile(file)
 }
 
