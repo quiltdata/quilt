@@ -176,18 +176,18 @@ const QUERY_PLACEHOLDER = {
   index: '_all',
 }
 
+const isButtonDisabled = (
+  queryContent: requests.ElasticSearchQuery,
+  resultsData: requests.AsyncData<requests.ElasticSearchResults>,
+  error: Error | null,
+): boolean => !!error || !queryContent || !!resultsData.case({ Pending: R.T, _: R.F })
+
 export default function Queries({
   match: {
     params: { bucket },
   },
 }: RouteComponentProps<{ bucket: string }>) {
   const classes = useStyles()
-
-  const isButtonDisabled = (
-    queryContent: requests.ElasticSearchQuery,
-    resultsData: requests.AsyncData<requests.ElasticSearchResults>,
-    error: Error | null,
-  ): boolean => !!error || !queryContent || !!resultsData.case({ Pending: R.T, _: R.F })
 
   return (
     <QueriesState bucket={bucket}>
@@ -216,7 +216,7 @@ export default function Queries({
           {queryData.case({
             Init: () => (
               <Form
-                disabled={isButtonDisabled(null, resultsData, queryBodyError)}
+                disabled={isButtonDisabled(customQueryBody, resultsData, queryBodyError)}
                 onChange={handleQueryBodyChange}
                 onError={handleError}
                 onSubmit={handleSubmit}
@@ -225,7 +225,11 @@ export default function Queries({
             ),
             Ok: (queryBody: requests.ElasticSearchQuery) => (
               <Form
-                disabled={isButtonDisabled(queryBody, resultsData, queryBodyError)}
+                disabled={isButtonDisabled(
+                  customQueryBody || queryBody,
+                  resultsData,
+                  queryBodyError,
+                )}
                 onChange={handleQueryBodyChange}
                 onError={handleError}
                 onSubmit={handleSubmit}
