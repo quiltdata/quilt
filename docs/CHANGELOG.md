@@ -11,6 +11,7 @@
 ## Python API
 * [Added] `QUILT_TRANSFER_MAX_CONCURRENCY` environment variable ([#2092](https://github.com/quiltdata/quilt/pull/2092))
 * [Changed] Removed unused dependency on `packaging` ([#2090](https://github.com/quiltdata/quilt/pull/2090))
+* [Fixed] Possible downloading of truncated manifests ([#1977](https://github.com/quiltdata/quilt/pull/1977))
 
 ## CLI
 
