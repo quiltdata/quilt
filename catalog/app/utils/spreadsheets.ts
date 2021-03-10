@@ -7,15 +7,18 @@ type MetadataValue = $TSFixMe
 
 type JsonSchema = $TSFixMe
 
+export function parseCellsAsValues(
+  values: MetadataValue[],
+): MetadataValue | MetadataValue[] {
+  return pipeThru(values)(
+    R.reject(R.isNil),
+    R.ifElse(R.pipe(R.length, R.equals(1)), R.head, R.identity),
+  )
+}
+
 export function rowsToJson(rows: MetadataValue[][]) {
   return pipeThru(rows)(
-    R.map(([key, ...values]) => [
-      key,
-      pipeThru(values)(
-        R.reject(R.isNil), // remove `null` and `undefined` from [value, undefined, null]
-        R.ifElse(R.pipe(R.length, R.equals(1)), R.head, R.identity), // get array or just first item if array
-      ),
-    ]),
+    R.map(([key, ...values]) => [key, parseCellsAsValues(values)]),
     R.fromPairs,
   )
 }

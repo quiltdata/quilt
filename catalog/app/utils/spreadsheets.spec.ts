@@ -4,8 +4,21 @@ import xlsx from 'xlsx'
 import * as spreadsheets from './spreadsheets'
 
 describe('utils/spreadsheets', () => {
+  describe('parseCellsAsValues', () => {
+    it('parses to single value', () => {
+      expect(spreadsheets.parseCellsAsValues(['abc'])).toBe('abc')
+    })
+
+    it('parses to list of values', () => {
+      expect(spreadsheets.parseCellsAsValues(['abc', null, undefined, 'ghi'])).toEqual([
+        'abc',
+        'ghi',
+      ])
+    })
+  })
+
   describe('rowsToJson', () => {
-    test('converts rows array to dictionary object', () => {
+    it('converts rows array to dictionary object', () => {
       const rows = [
         ['a', 'b', 'c'],
         ['d', 'e', 'f'],
