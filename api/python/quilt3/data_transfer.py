@@ -45,11 +45,13 @@ from tenacity import (
 )
 from tqdm import tqdm
 
+from . import util
 from .session import create_botocore_session
 from .util import DISABLE_TQDM, PhysicalKey, QuiltException
 
 MAX_COPY_FILE_LIST_RETRIES = 3
 MAX_FIX_HASH_RETRIES = 3
+MAX_CONCURRENCY = util.get_pos_int_from_env('QUILT_TRANSFER_MAX_CONCURRENCY') or 10
 
 
 logger = logging.getLogger(__name__)
@@ -539,7 +541,7 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
     s3_client_provider = S3ClientProvider()  # Share provider across threads to reduce redundant public bucket checks
 
     with tqdm(desc=message, total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress, \
-         ThreadPoolExecutor(s3_transfer_config.max_request_concurrency) as executor:
+         ThreadPoolExecutor(MAX_CONCURRENCY) as executor:
 
         def progress_callback(bytes_transferred):
             if stopped:
@@ -986,7 +988,7 @@ def _calculate_sha256_internal(src_list, sizes, results):
     # This controls how many parts can be stored in the memory.
     # This includes the ones that are being downloaded or hashed.
     # The number was chosen empirically.
-    s3_max_pending_parts = s3_transfer_config.max_request_concurrency * 4
+    s3_max_pending_parts = MAX_CONCURRENCY * 4
     stopped = False
 
     def get_file_chunks(src, size):
@@ -1032,7 +1034,7 @@ def _calculate_sha256_internal(src_list, sizes, results):
     with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True, disable=DISABLE_TQDM) as progress, \
          ThreadPoolExecutor() as executor, \
          ThreadPoolExecutor(
-             s3_transfer_config.max_request_concurrency,
+             MAX_CONCURRENCY,
              thread_name_prefix='s3-executor',
          ) as s3_executor:
         s3_context = types.SimpleNamespace(
