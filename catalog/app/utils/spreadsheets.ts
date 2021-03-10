@@ -3,21 +3,21 @@ import xlsx from 'xlsx'
 
 import pipeThru from 'utils/pipeThru'
 
+type MetadataValue = $TSFixMe
+
+type JsonSchema = $TSFixMe
+
 export enum Mode {
   SingleCellContainsAllValues,
   OneCellPerValue,
 }
-
-type MetadataValue = $TSFixMe
-
-type JsonSchema = $TSFixMe
 
 interface Options {
   mode: Mode
 }
 
 const defaultOptions = {
-  mode: Mode.SingleCellContainsAllValues,
+  mode: Mode.OneCellPerValue,
 }
 
 export function parseCellsAsValues(
@@ -75,7 +75,25 @@ export function scoreObjectDiff(obj1: {}, obj2: {}): number {
   }, 0)
 }
 
-export function parseSpreadsheetAgainstSchema(sheet: xlsx.WorkSheet, schema: JsonSchema) {
+export function postProcess(
+  obj: Record<string, MetadataValue>,
+  schema?: JsonSchema,
+): Record<string, MetadataValue> {
+  const schemaRoot = schema ? schema.properties : null
+  if (!schemaRoot) return obj
+  return R.mapObjIndexed((value: MetadataValue, key: string) => {
+    if (!schemaRoot[key]) return value
+    if (schemaRoot[key].type === 'array' && typeof value === 'string') {
+      return value.split(',')
+    }
+    return value
+  }, obj)
+}
+
+export function parseSpreadsheetAgainstSchema(
+  sheet: xlsx.WorkSheet,
+  schema?: JsonSchema,
+): Record<string, MetadataValue> {
   const verticalObj = parseSpreadsheet(sheet, true)
   const schemaRoot = schema ? schema.properties : null
   if (schemaRoot) {
@@ -84,10 +102,10 @@ export function parseSpreadsheetAgainstSchema(sheet: xlsx.WorkSheet, schema: Jso
       scoreObjectDiff(horizontalObj, schemaRoot) >
       scoreObjectDiff(verticalObj, schemaRoot)
     ) {
-      return horizontalObj
+      return postProcess(horizontalObj, schema)
     }
   }
-  return verticalObj
+  return postProcess(verticalObj, schema)
 }
 
 export async function readSpreadsheetAgainstSchema(

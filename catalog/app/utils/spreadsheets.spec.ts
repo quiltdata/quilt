@@ -18,32 +18,58 @@ describe('utils/spreadsheets', () => {
   })
 
   describe('rowsToJson', () => {
-    it('converts rows array to dictionary object', () => {
-      const rows = [
-        ['a', 'b', 'c'],
-        ['d', 'e', 'f'],
-        ['g', 'h'],
-      ]
-      expect(spreadsheets.rowsToJson(rows)).toEqual({
+    const rows = [
+      ['a', 'b', 'c'],
+      ['d', 'e,i,j,k', 'f'],
+      ['g', 'h'],
+    ]
+
+    it('converts rows array to dictionary object, array of cells', () => {
+      expect(
+        spreadsheets.rowsToJson(rows, {
+          mode: spreadsheets.Mode.SingleCellContainsAllValues,
+        }),
+      ).toEqual({
         a: ['b', 'c'],
-        d: ['e', 'f'],
+        d: ['e,i,j,k', 'f'],
+        g: 'h',
+      })
+    })
+
+    it('converts rows array to dictionary object, one cell per value', () => {
+      expect(spreadsheets.rowsToJson(rows)).toEqual({
+        a: 'b',
+        d: 'e,i,j,k',
         g: 'h',
       })
     })
   })
 
   describe('parseSpreadsheet', () => {
-    it('converts CSV to dictionary object', () => {
-      const csv = dedent`
+    const csv = dedent`
         a,b,c
-        d,e,f
+        d,"e,i,j,k",f
         g,h
       `
-      const workbook = xlsx.read(csv, { type: 'string' })
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
-      expect(spreadsheets.parseSpreadsheet(sheet, false)).toEqual({
+    const workbook = xlsx.read(csv, { type: 'string' })
+    const sheet = workbook.Sheets[workbook.SheetNames[0]]
+
+    it('converts CSV to dictionary object, array of cells', () => {
+      expect(
+        spreadsheets.parseSpreadsheet(sheet, false, {
+          mode: spreadsheets.Mode.SingleCellContainsAllValues,
+        }),
+      ).toEqual({
         a: ['b', 'c'],
-        d: ['e', 'f'],
+        d: ['e,i,j,k', 'f'],
+        g: 'h',
+      })
+    })
+
+    it('converts CSV to dictionary object, one cell per value', () => {
+      expect(spreadsheets.parseSpreadsheet(sheet, false)).toEqual({
+        a: 'b',
+        d: 'e,i,j,k',
         g: 'h',
       })
     })
@@ -112,6 +138,25 @@ describe('utils/spreadsheets', () => {
     it('parse invalid data with no error', () => {
       const sheet = ['123']
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({})
+    })
+  })
+
+  describe('postProcess', () => {
+    const obj = {
+      a: 'b',
+      d: 'e,i,j,k',
+      g: 'h',
+    }
+    const schema = {
+      type: 'object',
+      properties: {
+        d: { type: 'array' },
+      },
+    }
+    expect(spreadsheets.postProcess(obj, schema)).toEqual({
+      a: 'b',
+      d: ['e', 'i', 'j', 'k'],
+      g: 'h',
     })
   })
 })
