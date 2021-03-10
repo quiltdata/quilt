@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "properties": {
+    "body": { "type": "object" },
+    "filter_path": { "type": "string" },
+    "from": { "type": "number" },
+    "index": { "type": "string" },
+    "size": { "type": "number" }
+  },
+  "required": ["body", "index"],
+  "additionalProperties": false
+}

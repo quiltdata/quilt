@@ -1,0 +1,124 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`containers/Bucket/Queries/QuerySelect should render 1`] = `
+<div
+  className=""
+>
+  <p
+    className="MuiTypography-root makeStyles-header-1 MuiTypography-body1"
+  >
+    Select query
+  </p>
+  <div
+    className="MuiPaper-root MuiPaper-elevation1 MuiPaper-rounded"
+  >
+    <div
+      className="MuiFormControl-root makeStyles-selectWrapper-2"
+    >
+      <div
+        className="MuiInputBase-root MuiInput-root MuiInput-underline Mui-disabled Mui-disabled MuiInputBase-formControl MuiInput-formControl"
+        onClick={[Function]}
+      >
+        <div
+          aria-disabled="true"
+          aria-haspopup="listbox"
+          aria-labelledby="query-select"
+          className="MuiSelect-root makeStyles-select-3 MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input Mui-disabled Mui-disabled Mui-disabled"
+          onBlur={[Function]}
+          onFocus={[Function]}
+          onKeyDown={[Function]}
+          onMouseDown={null}
+          role="button"
+          tabIndex={null}
+        >
+          Custom
+        </div>
+        <input
+          aria-hidden={true}
+          className="MuiSelect-nativeInput"
+          onAnimationStart={[Function]}
+          onChange={[Function]}
+          required={false}
+          tabIndex={-1}
+          value="none"
+        />
+        <svg
+          aria-hidden={true}
+          className="MuiSvgIcon-root MuiSelect-icon Mui-disabled"
+          focusable="false"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M7 10l5 5 5-5z"
+          />
+        </svg>
+      </div>
+    </div>
+  </div>
+  <p
+    className="MuiFormHelperText-root"
+  >
+    There are no saved queries. 
+  </p>
+</div>
+`;
+
+exports[`containers/Bucket/Queries/QuerySelect should render with selected value 1`] = `
+<div
+  className="class"
+>
+  <p
+    className="MuiTypography-root makeStyles-header-1 MuiTypography-body1"
+  >
+    Select query
+  </p>
+  <div
+    className="MuiPaper-root MuiPaper-elevation1 MuiPaper-rounded"
+  >
+    <div
+      className="MuiFormControl-root makeStyles-selectWrapper-2"
+    >
+      <div
+        className="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-formControl MuiInput-formControl"
+        onClick={[Function]}
+      >
+        <div
+          aria-haspopup="listbox"
+          aria-labelledby="query-select"
+          className="MuiSelect-root makeStyles-select-3 MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
+          onBlur={[Function]}
+          onFocus={[Function]}
+          onKeyDown={[Function]}
+          onMouseDown={[Function]}
+          role="button"
+          tabIndex={0}
+        >
+          name2
+        </div>
+        <input
+          aria-hidden={true}
+          className="MuiSelect-nativeInput"
+          onAnimationStart={[Function]}
+          onChange={[Function]}
+          required={false}
+          tabIndex={-1}
+          value="key2"
+        />
+        <svg
+          aria-hidden={true}
+          className="MuiSvgIcon-root MuiSelect-icon"
+          focusable="false"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M7 10l5 5 5-5z"
+          />
+        </svg>
+      </div>
+    </div>
+  </div>
+  <p
+    className="MuiFormHelperText-root"
+  />
+</div>
+`;
