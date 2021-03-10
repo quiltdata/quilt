@@ -1,7 +1,7 @@
 import Ajv from 'ajv'
 import * as R from 'ramda'
 
-const isSchemaArray = (optSchema) => R.prop('type', optSchema) === 'array'
+export const isSchemaArray = (optSchema) => R.prop('type', optSchema) === 'array'
 
 const isSchemaObject = (optSchema) => R.prop('type', optSchema) === 'object'
 

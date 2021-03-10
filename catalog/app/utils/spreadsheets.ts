@@ -1,6 +1,8 @@
+import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import xlsx from 'xlsx'
 
+import * as jsonSchema from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 
 type MetadataValue = $TSFixMe
@@ -60,7 +62,7 @@ export function readSpreadsheet(file: File): Promise<xlsx.WorkSheet> {
       reject(reader.error)
     }
     reader.onload = () => {
-      const workbook = xlsx.read(reader.result, { type: 'array' })
+      const workbook = xlsx.read(reader.result, { type: 'array', cellDates: true })
       resolve(workbook.Sheets[workbook.SheetNames[0]])
     }
     reader.readAsArrayBuffer(file)
@@ -75,18 +77,34 @@ export function scoreObjectDiff(obj1: {}, obj2: {}): number {
   }, 0)
 }
 
+function parseJSON(str: string | number | boolean) {
+  if (typeof str !== 'string') return str
+
+  try {
+    return JSON.parse(str)
+  } catch (e) {
+    return str
+  }
+}
+
+const isDate = (value: MetadataValue) => value instanceof Date
+
+const isList = (value: MetadataValue, key: string, schema?: JsonSchema) =>
+  schema &&
+  schema.properties &&
+  jsonSchema.isSchemaArray(schema.properties[key]) &&
+  typeof value === 'string'
+
 export function postProcess(
   obj: Record<string, MetadataValue>,
   schema?: JsonSchema,
 ): Record<string, MetadataValue> {
-  const schemaRoot = schema ? schema.properties : null
-  if (!schemaRoot) return obj
   return R.mapObjIndexed((value: MetadataValue, key: string) => {
-    if (!schemaRoot[key]) return value
-    if (schemaRoot[key].type === 'array' && typeof value === 'string') {
-      return value.split(',')
-    }
-    return value
+    if (isDate(value)) return dateFns.format(value, 'yyyy-MM-dd')
+
+    if (isList(value, key, schema)) return value.split(',').map(parseJSON)
+
+    return parseJSON(value)
   }, obj)
 }
 

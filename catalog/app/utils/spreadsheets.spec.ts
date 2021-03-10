@@ -1,4 +1,5 @@
 import dedent from 'dedent'
+import path from 'path'
 import xlsx from 'xlsx'
 
 import * as spreadsheets from './spreadsheets'
@@ -51,7 +52,7 @@ describe('utils/spreadsheets', () => {
         d,"e,i,j,k",f
         g,h
       `
-    const workbook = xlsx.read(csv, { type: 'string' })
+    const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
 
     it('converts CSV to dictionary object, array of cells', () => {
@@ -100,7 +101,7 @@ describe('utils/spreadsheets', () => {
         b,c
         1,2
       `
-      const workbook = xlsx.read(csv, { type: 'string' })
+      const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
         b: 1,
@@ -113,7 +114,7 @@ describe('utils/spreadsheets', () => {
         b,1
         c,2
       `
-      const workbook = xlsx.read(csv, { type: 'string' })
+      const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
         b: 1,
@@ -126,7 +127,7 @@ describe('utils/spreadsheets', () => {
         d,e,f
         1,2,3
       `
-      const workbook = xlsx.read(csv, { type: 'string' })
+      const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
         d: 1,
@@ -138,6 +139,43 @@ describe('utils/spreadsheets', () => {
     it('parse invalid data with no error', () => {
       const sheet = ['123']
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({})
+    })
+
+    describe('for Excel file', () => {
+      const workbook = xlsx.readFile(
+        path.resolve(__dirname, './spreadsheets.bilbo.ods'),
+        { cellDates: true },
+      )
+      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+
+      it('parses values as primitives without Schema', () => {
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual({
+          Age: 131,
+          Date: '2890-09-22',
+          Fingers: '1,2,3,4,5,6,7,8,9,10',
+          Male: true,
+          Name: 'Bilbo Beggins',
+          Parts: 'head,legs,arms',
+        })
+      })
+
+      it('parses values as lists with Schema', () => {
+        const bilboSchema = {
+          type: 'object',
+          properties: {
+            Fingers: { type: 'array' },
+            Parts: { type: 'array' },
+          },
+        }
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual({
+          Age: 131,
+          Date: '2890-09-22',
+          Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          Male: true,
+          Name: 'Bilbo Beggins',
+          Parts: ['head', 'legs', 'arms'],
+        })
+      })
     })
   })
 
