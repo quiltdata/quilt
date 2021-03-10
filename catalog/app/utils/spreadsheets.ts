@@ -7,7 +7,7 @@ type MetadataValue = $TSFixMe
 
 type JsonSchema = $TSFixMe
 
-function rowsToJson(rows: MetadataValue[][]) {
+export function rowsToJson(rows: MetadataValue[][]) {
   return pipeThru(rows)(
     R.map(([key, ...values]) => [
       key,
@@ -47,7 +47,7 @@ export function readSpreadsheet(file: File): Promise<xlsx.WorkSheet> {
   })
 }
 
-function scoreObjectDiff(obj1: {}, obj2: {}): number {
+export function scoreObjectDiff(obj1: {}, obj2: {}): number {
   const keys = Object.keys(obj1)
   return keys.reduce((memo, key) => {
     if (key in obj2) return memo + 1
@@ -55,11 +55,7 @@ function scoreObjectDiff(obj1: {}, obj2: {}): number {
   }, 0)
 }
 
-export async function readSpreadsheetAgainstSchema(
-  file: File,
-  schema: JsonSchema,
-): Promise<MetadataValue> {
-  const sheet = await readSpreadsheet(file)
+export function parseSpreadsheetAgainstSchema(sheet: xlsx.WorkSheet, schema: JsonSchema) {
   const verticalObj = parseSpreadsheet(sheet, true)
   const schemaRoot = schema ? schema.properties : null
   if (schemaRoot) {
@@ -72,6 +68,14 @@ export async function readSpreadsheetAgainstSchema(
     }
   }
   return verticalObj
+}
+
+export async function readSpreadsheetAgainstSchema(
+  file: File,
+  schema: JsonSchema,
+): Promise<MetadataValue> {
+  const sheet = await readSpreadsheet(file)
+  return parseSpreadsheetAgainstSchema(sheet, schema)
 }
 
 export const parse = parseSpreadsheet
