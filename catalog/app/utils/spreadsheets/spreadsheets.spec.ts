@@ -202,7 +202,7 @@ describe('utils/spreadsheets', () => {
         )
       })
 
-      it.skip('parses XLS format', () => {
+      it('parses XLS format', () => {
         const workbook = xlsx.readFile(
           path.resolve(__dirname, './mocks/spreadsheets.bilbo.xls'),
           { cellDates: true },
@@ -214,7 +214,7 @@ describe('utils/spreadsheets', () => {
         )
       })
 
-      it.skip('parses XLSX format', () => {
+      it('parses XLSX format', () => {
         const workbook = xlsx.readFile(
           path.resolve(__dirname, './mocks/spreadsheets.bilbo.xlsx'),
           { cellDates: true },
@@ -226,7 +226,7 @@ describe('utils/spreadsheets', () => {
         )
       })
 
-      it.skip('parses XLSM format', () => {
+      it('parses XLSM format', () => {
         const workbook = xlsx.readFile(
           path.resolve(__dirname, './mocks/spreadsheets.bilbo.xlsm'),
           { cellDates: true },

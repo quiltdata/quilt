@@ -100,7 +100,7 @@ export function postProcess(
   schema?: JsonSchema,
 ): Record<string, MetadataValue> {
   return R.mapObjIndexed((value: MetadataValue, key: string) => {
-    if (isDate(value)) return dateFns.format(value, 'yyyy-MM-dd')
+    if (isDate(value)) return dateFns.formatISO(value, { representation: 'date' })
 
     if (isList(value, key, schema)) return value.split(',').map(parseJSON)
 
