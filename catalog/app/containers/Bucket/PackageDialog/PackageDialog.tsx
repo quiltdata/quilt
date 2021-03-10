@@ -672,12 +672,13 @@ export function useCryptoApiValidation() {
 
 export const useContentStyles = M.makeStyles({
   root: {
-    height: ({ metaHeight }: { metaHeight: number }) =>
-      R.clamp(
-        420 /* minimal height */,
-        window.innerHeight - 200 /* free space for headers */,
-        400 /* space to fit other inputs */ + metaHeight,
-      ),
+    height: ({ metaHeight }: { metaHeight: number }) => {
+      const neededSpace = 400 /* space to fit other inputs */ + metaHeight
+      const availableSpace = window.innerHeight - 200 /* free space for headers */
+      const minimalSpace = 420 /* minimal height */
+      if (availableSpace < minimalSpace) return minimalSpace
+      return R.clamp(minimalSpace, availableSpace, neededSpace)
+    },
     paddingTop: 0,
   },
 })
