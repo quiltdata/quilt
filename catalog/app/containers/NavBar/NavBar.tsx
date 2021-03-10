@@ -302,20 +302,24 @@ export function Container({ children }: ContainerProps) {
 
 interface NavLinkOwnProps {
   to?: string
+  path?: string
 }
 
 type NavLinkProps = NavLinkOwnProps & M.BoxProps
 
-const NavLink = React.forwardRef((props: NavLinkProps, ref: React.Ref<unknown>) => (
-  <M.Box
-    component={props.to ? HashLink : 'a'}
-    mr={2}
-    color="text.secondary"
-    fontSize="body2.fontSize"
-    {...props}
-    ref={ref}
-  />
-))
+const NavLink = React.forwardRef((props: NavLinkProps, ref: React.Ref<unknown>) => {
+  const isActive = !!useRoute(props.path, { exact: true }).match
+  return (
+    <M.Box
+      component={props.to ? HashLink : 'a'}
+      mr={2}
+      color={isActive ? 'text.disabled' : 'text.secondary'}
+      fontSize="body2.fontSize"
+      {...props}
+      ref={ref}
+    />
+  )
+})
 
 interface LinkDescriptor {
   label: string
@@ -324,10 +328,14 @@ interface LinkDescriptor {
 }
 
 function useLinks(): LinkDescriptor[] {
-  const { urls } = NamedRoutes.use()
+  const { paths, urls } = NamedRoutes.use()
   const cfg = Config.useConfig()
   return [
-    cfg.mode !== 'MARKETING' && { to: urls.uriResolver(), label: 'URI' },
+    cfg.mode !== 'MARKETING' && {
+      to: urls.uriResolver(),
+      label: 'URI',
+      path: paths.uriResolver,
+    },
     { href: URLS.docs, label: 'Docs' },
     cfg.mode === 'MARKETING' && { to: `${urls.home()}#pricing`, label: 'Pricing' },
     (cfg.mode === 'MARKETING' || cfg.mode === 'OPEN') && {

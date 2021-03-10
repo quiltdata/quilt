@@ -444,3 +444,41 @@ class TestSearch(TestCase):
         resp = lambda_handler(event, None)
         assert resp['statusCode'] == 200
         assert json.loads(resp['body']) == ES_STATS_RESPONSES['all_gz']
+
+    @patch.dict(os.environ, {'MAX_DOCUMENTS_PER_SHARD': '538'})
+    def test_freeform(self):
+        resp_body = '{"some": "results"}'
+        body = {'query': {'match_all': {}}}
+        query = {
+            'action': 'freeform',
+            'index': 'idx1,idx2',
+            '_source': 'false',
+            'size': 0,
+            'from': 0,
+            'body': body,
+            'filter_path': 'hits',
+        }
+        url = 'https://www.example.com:443/idx1,idx2/_search?' + urlencode({
+            '_source': query['_source'],
+            'size': query['size'],
+            'from': query['from'],
+            'filter_path': query['filter_path'],
+            'terminate_after': 538,
+        })
+
+        def _callback(request):
+            assert json.loads(request.body) == body
+            return 200, {}, resp_body
+
+        self.requests_mock.add_callback(
+            responses.GET,
+            url,
+            callback=_callback,
+            content_type='application/json',
+            match_querystring=True,
+        )
+
+        event = self._make_event(query)
+        resp = lambda_handler(event, None)
+        assert resp['statusCode'] == 200
+        assert resp['body'] == resp_body

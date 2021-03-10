@@ -130,6 +130,11 @@ export const bucketPackageRevisions = {
     `/b/${bucket}/packages/${name}/revisions${mkSearch({ p })}`,
 }
 
+export const bucketQueries = {
+  path: '/b/:bucket/queries',
+  url: (bucket) => `/b/${bucket}/queries`,
+}
+
 // legacy stuff
 export const legacyPackages = {
   path: `/package/:path+`,

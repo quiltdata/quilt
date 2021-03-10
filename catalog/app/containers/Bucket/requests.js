@@ -190,7 +190,7 @@ const processStats = R.applySpec({
 export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   if (overviewUrl) {
     try {
-      return await s3
+      return s3
         .getObject({
           Bucket: getOverviewBucket(overviewUrl),
           Key: getOverviewKey(overviewUrl, 'stats.json'),
@@ -261,7 +261,7 @@ const fetchFileLatest = async ({ s3, bucket, path }) => {
   return fetchFileVersioned({ s3, bucket, path, version })
 }
 
-const fetchFile = R.ifElse(R.prop('version'), fetchFileVersioned, fetchFileLatest)
+export const fetchFile = R.ifElse(R.prop('version'), fetchFileVersioned, fetchFileLatest)
 
 export const metadataSchema = async ({ s3, schemaUrl }) => {
   if (!schemaUrl) return null
@@ -391,7 +391,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
   }
   if (overviewUrl) {
     try {
-      return await s3
+      return s3
         .getObject({
           Bucket: getOverviewBucket(overviewUrl),
           Key: getOverviewKey(overviewUrl, 'summary.json'),
@@ -494,7 +494,7 @@ export const bucketReadmes = ({ s3, bucket, overviewUrl }) =>
 export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
   if (overviewUrl) {
     try {
-      return await s3
+      return s3
         .getObject({
           Bucket: getOverviewBucket(overviewUrl),
           Key: getOverviewKey(overviewUrl, 'summary.json'),
@@ -1118,7 +1118,7 @@ export async function resolvePackageRevision({ s3, bucket, name, revision }) {
     }
   } else if (TIMESTAMP_RE.test(revision) || revision === 'latest') {
     try {
-      return await loadRevisionHash({ s3, bucket, name, id: revision })
+      return loadRevisionHash({ s3, bucket, name, id: revision })
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log(

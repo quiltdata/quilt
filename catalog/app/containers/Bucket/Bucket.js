@@ -20,8 +20,9 @@ const Dir = mkLazy(() => import('./Dir'))
 const File = mkLazy(() => import('./File'))
 const Overview = mkLazy(() => import('./Overview'))
 const PackageList = mkLazy(() => import('./PackageList'))
-const PackageTree = mkLazy(() => import('./PackageTree'))
 const PackageRevisions = mkLazy(() => import('./PackageRevisions'))
+const PackageTree = mkLazy(() => import('./PackageTree'))
+const Queries = mkLazy(() => import('./Queries'))
 const Search = mkLazy(() => import('./Search'))
 
 const match = (cases) => (pathname) => {
@@ -42,6 +43,7 @@ const sections = {
     { path: 'bucketFile', exact: true, strict: true },
     { path: 'bucketDir', exact: true },
   ],
+  queries: { path: 'bucketQueries', exact: true },
   search: { path: 'bucketSearch', exact: true },
 }
 
@@ -93,6 +95,7 @@ function BucketLayout({ bucket, section = false, children }) {
                 value="packages"
                 to={urls.bucketPackageList(bucket)}
               />
+              <NavTab label="Queries" value="queries" to={urls.bucketQueries(bucket)} />
               {section === 'search' && (
                 <NavTab label="Search" value="search" to={urls.bucketSearch(bucket)} />
               )}
@@ -129,6 +132,7 @@ export default function Bucket({
         <Route path={paths.bucketPackageDetail} component={PackageTree} exact />
         <Route path={paths.bucketPackageTree} component={PackageTree} exact />
         <Route path={paths.bucketPackageRevisions} component={PackageRevisions} exact />
+        <Route path={paths.bucketQueries} component={Queries} exact />
         <Route component={ThrowNotFound} />
       </Switch>
     </BucketLayout>
