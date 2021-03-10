@@ -3,9 +3,22 @@ import xlsx from 'xlsx'
 
 import pipeThru from 'utils/pipeThru'
 
+export enum Mode {
+  SingleCellContainsAllValues,
+  OneCellPerValue,
+}
+
 type MetadataValue = $TSFixMe
 
 type JsonSchema = $TSFixMe
+
+interface Options {
+  mode: Mode
+}
+
+const defaultOptions = {
+  mode: Mode.SingleCellContainsAllValues,
+}
 
 export function parseCellsAsValues(
   values: MetadataValue[],
@@ -16,21 +29,25 @@ export function parseCellsAsValues(
   )
 }
 
-export function rowsToJson(rows: MetadataValue[][]) {
+export function rowsToJson(rows: MetadataValue[][], options: Options = defaultOptions) {
   return pipeThru(rows)(
-    R.map(([key, ...values]) => [key, parseCellsAsValues(values)]),
+    R.map(([key, ...values]) => [
+      key,
+      options.mode === Mode.OneCellPerValue ? values[0] : parseCellsAsValues(values),
+    ]),
     R.fromPairs,
   )
 }
 
 export function parseSpreadsheet(
   sheet: xlsx.WorkSheet,
-  transpose?: boolean,
+  transpose: boolean,
+  options: Options = defaultOptions,
 ): Record<string, MetadataValue> {
   const rows = xlsx.utils.sheet_to_json<MetadataValue>(sheet, {
     header: 1,
   })
-  return rowsToJson(transpose ? R.transpose(rows) : rows)
+  return rowsToJson(transpose ? R.transpose(rows) : rows, options)
 }
 
 export function readSpreadsheet(file: File): Promise<xlsx.WorkSheet> {
@@ -62,7 +79,7 @@ export function parseSpreadsheetAgainstSchema(sheet: xlsx.WorkSheet, schema: Jso
   const verticalObj = parseSpreadsheet(sheet, true)
   const schemaRoot = schema ? schema.properties : null
   if (schemaRoot) {
-    const horizontalObj = parseSpreadsheet(sheet)
+    const horizontalObj = parseSpreadsheet(sheet, false)
     if (
       scoreObjectDiff(horizontalObj, schemaRoot) >
       scoreObjectDiff(verticalObj, schemaRoot)

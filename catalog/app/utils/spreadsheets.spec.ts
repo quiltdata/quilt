@@ -41,7 +41,7 @@ describe('utils/spreadsheets', () => {
       `
       const workbook = xlsx.read(csv, { type: 'string' })
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
-      expect(spreadsheets.parseSpreadsheet(sheet)).toEqual({
+      expect(spreadsheets.parseSpreadsheet(sheet, false)).toEqual({
         a: ['b', 'c'],
         d: ['e', 'f'],
         g: 'h',
