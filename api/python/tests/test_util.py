@@ -1,6 +1,7 @@
 """ Testing for util.py """
 
 import pathlib
+from unittest import mock
 
 import pytest
 
@@ -64,3 +65,28 @@ def test_validate_url():
 
     with pytest.raises(util.QuiltException, match='Requires at least scheme and host'):
         util.validate_url('blah')
+
+
+@pytest.mark.parametrize(
+    'env_val, expected_val',
+    (
+        (None, None),
+        ('', None),
+        ('1', 1),
+        ('10', 10),
+        ('20', 20),
+    )
+)
+def test_get_pos_int_from_env(env_val, expected_val):
+    var_name = 'ENV_VAR_NAME'
+    with mock.patch.dict('os.environ', {} if env_val is None else {var_name: env_val}, clear=True):
+        assert util.get_pos_int_from_env(var_name) == expected_val
+
+
+@pytest.mark.parametrize('env_val', ('blah', '-3', '0'))
+def test_get_pos_int_from_env_error(env_val):
+    var_name = 'ENV_VAR_NAME'
+    with mock.patch.dict('os.environ', {} if env_val is None else {var_name: env_val}, clear=True):
+        with pytest.raises(ValueError) as e:
+            util.get_pos_int_from_env(var_name)
+        assert f'{var_name} must be a positive integer' == str(e.value)

@@ -9,6 +9,8 @@
 
 # unreleased - YYYY-MM-DD
 ## Python API
+* [Added] `QUILT_TRANSFER_MAX_CONCURRENCY` environment variable ([#2092](https://github.com/quiltdata/quilt/pull/2092))
+* [Changed] Removed unused dependency on `packaging` ([#2090](https://github.com/quiltdata/quilt/pull/2090))
 
 ## CLI
 
@@ -20,7 +22,7 @@
 * [Added] Populate package name with username prefix ([#2016](https://github.com/quiltdata/quilt/pull/2016))
 * [Added] Link from bucket overview page to bucket settings ([#2022](https://github.com/quiltdata/quilt/pull/2022))
 * [Added] Folder to package dialog ([#2040](https://github.com/quiltdata/quilt/pull/2040))
-* [Added] Elastic Search freeform queries ([#2087](https://github.com/quiltdata/quilt/pull/2087), [#2088](https://github.com/quiltdata/quilt/pull/2088))
+* [Added] Search lambda: `freeform` action API and UI ([#2087](https://github.com/quiltdata/quilt/pull/2087), [#2088](https://github.com/quiltdata/quilt/pull/2088))
 * [Changed] Tree view for files in package update dialog ([#1989](https://github.com/quiltdata/quilt/pull/1989))
 * [Changed] Lambda indexing retry logic to not fail content extraction ([#2007](https://github.com/quiltdata/quilt/pull/2007))
 * [Changed] Number of retries per ES and S3 failure in indexing Lambda ([#1987](https://github.com/quiltdata/quilt/pull/1987))

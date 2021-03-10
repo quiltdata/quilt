@@ -465,7 +465,7 @@ class PackageTest(QuiltTestCase):
             pointer_name=str(timestamp1),
         )
         with patch('time.time', return_value=timestamp1), \
-             patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
+             patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
             remote_pkg = new_pkg.push(pkg_name, registry)
 
         # Modify one file, and check that only that file gets uploaded.
@@ -480,7 +480,7 @@ class PackageTest(QuiltTestCase):
         )
         with patch('time.time', return_value=timestamp2), \
              patch('quilt3.packages.DISABLE_TQDM', True), patch('quilt3.data_transfer.DISABLE_TQDM', True), \
-             patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
+             patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
             stderr = io.StringIO()
 
             with redirect_stderr(stderr), patch('quilt3.packages.DISABLE_TQDM', True):
@@ -1301,7 +1301,7 @@ class PackageTest(QuiltTestCase):
             ),
         )
 
-        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
+        with patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
             Package.install(pkg_name, registry=registry, dest='package')
 
         p = Package.browse(pkg_name)
@@ -1337,7 +1337,7 @@ class PackageTest(QuiltTestCase):
             ),
         )
 
-        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1):
+        with patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
             Package.install(pkg_name, registry=registry, dest='package/')
 
             # import works for installation outside named package directory
@@ -1360,7 +1360,7 @@ class PackageTest(QuiltTestCase):
             # Manifest is cached on PackageRegistryV1, since it's on the same path.
             manifest=None if same_manifest_path else REMOTE_MANIFEST.read_bytes(),
         )
-        with patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1), \
+        with patch('quilt3.data_transfer.MAX_CONCURRENCY', 1), \
              tempfile.TemporaryDirectory() as tmp_dir, \
              patch(
                  'quilt3.packages.get_install_location',
@@ -1397,7 +1397,7 @@ class PackageTest(QuiltTestCase):
                 Package.install(f'{pkg_name}/{path}', registry=f's3://{bucket}', dest=dest, path=path)
 
     @pytest.mark.usefixtures('isolate_packages_cache')
-    @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
+    @patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
     @patch('quilt3.packages.ObjectPathCache.set')
     def test_install_subpackage_deprecated(self, mocked_cache_set):
         registry = 's3://my-test-bucket'
@@ -1424,7 +1424,7 @@ class PackageTest(QuiltTestCase):
         assert path.read_bytes() == entry_content
 
     @pytest.mark.usefixtures('isolate_packages_cache')
-    @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
+    @patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
     @patch('quilt3.packages.ObjectPathCache.set')
     def test_install_entry_deprecated(self, mocked_cache_set):
         registry = 's3://my-test-bucket'
@@ -1451,7 +1451,7 @@ class PackageTest(QuiltTestCase):
         assert path.read_bytes() == entry_content
 
     @pytest.mark.usefixtures('isolate_packages_cache')
-    @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
+    @patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
     @patch('quilt3.packages.ObjectPathCache.set')
     def test_install_subpackage(self, mocked_cache_set):
         registry = 's3://my-test-bucket'
@@ -1477,7 +1477,7 @@ class PackageTest(QuiltTestCase):
         assert path.read_bytes() == entry_content
 
     @pytest.mark.usefixtures('isolate_packages_cache')
-    @patch('quilt3.data_transfer.s3_transfer_config.max_request_concurrency', 1)
+    @patch('quilt3.data_transfer.MAX_CONCURRENCY', 1)
     @patch('quilt3.packages.ObjectPathCache.set')
     def test_install_entry(self, mocked_cache_set):
         registry = 's3://my-test-bucket'
