@@ -142,39 +142,100 @@ describe('utils/spreadsheets', () => {
     })
 
     describe('for Excel file', () => {
-      const workbook = xlsx.readFile(
-        path.resolve(__dirname, './spreadsheets.bilbo.ods'),
-        { cellDates: true },
-      )
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      const bilboSchema = {
+        type: 'object',
+        properties: {
+          Fingers: { type: 'array' },
+          Parts: { type: 'array' },
+        },
+      }
+      const outputStrings = {
+        Age: 131,
+        Date: '2890-09-22',
+        Fingers: '1,2,3,4,5,6,7,8,9,10',
+        Male: true,
+        Name: 'Bilbo Beggins',
+        Parts: 'head,legs,arms',
+      }
+      const outputLists = {
+        Age: 131,
+        Date: '2890-09-22',
+        Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        Male: true,
+        Name: 'Bilbo Beggins',
+        Parts: ['head', 'legs', 'arms'],
+      }
 
-      it('parses values as primitives without Schema', () => {
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual({
-          Age: 131,
-          Date: '2890-09-22',
-          Fingers: '1,2,3,4,5,6,7,8,9,10',
-          Male: true,
-          Name: 'Bilbo Beggins',
-          Parts: 'head,legs,arms',
-        })
+      it('parses OpenOffice archive format', () => {
+        const workbook = xlsx.readFile(
+          path.resolve(__dirname, './spreadsheets.bilbo.ods'),
+          { cellDates: true },
+        )
+        const sheet = workbook.Sheets[workbook.SheetNames[0]]
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputStrings)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
+          outputLists,
+        )
       })
 
-      it('parses values as lists with Schema', () => {
-        const bilboSchema = {
-          type: 'object',
-          properties: {
-            Fingers: { type: 'array' },
-            Parts: { type: 'array' },
-          },
-        }
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual({
-          Age: 131,
-          Date: '2890-09-22',
-          Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-          Male: true,
-          Name: 'Bilbo Beggins',
-          Parts: ['head', 'legs', 'arms'],
-        })
+      it('parses OpenOffice single XML format', () => {
+        const workbook = xlsx.readFile(
+          path.resolve(__dirname, './spreadsheets.bilbo.fods'),
+          { cellDates: true },
+        )
+        const sheet = workbook.Sheets[workbook.SheetNames[0]]
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputStrings)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
+          outputLists,
+        )
+      })
+
+      it('parses CSV format', () => {
+        const workbook = xlsx.readFile(
+          path.resolve(__dirname, './spreadsheets.bilbo.csv'),
+          { cellDates: true },
+        )
+        const sheet = workbook.Sheets[workbook.SheetNames[0]]
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputStrings)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
+          outputLists,
+        )
+      })
+
+      it.skip('parses XLS format', () => {
+        const workbook = xlsx.readFile(
+          path.resolve(__dirname, './spreadsheets.bilbo.xls'),
+          { cellDates: true },
+        )
+        const sheet = workbook.Sheets[workbook.SheetNames[0]]
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputStrings)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
+          outputLists,
+        )
+      })
+
+      it.skip('parses XLSX format', () => {
+        const workbook = xlsx.readFile(
+          path.resolve(__dirname, './spreadsheets.bilbo.xlsx'),
+          { cellDates: true },
+        )
+        const sheet = workbook.Sheets[workbook.SheetNames[0]]
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputStrings)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
+          outputLists,
+        )
+      })
+
+      it.skip('parses XLSM format', () => {
+        const workbook = xlsx.readFile(
+          path.resolve(__dirname, './spreadsheets.bilbo.xlsm'),
+          { cellDates: true },
+        )
+        const sheet = workbook.Sheets[workbook.SheetNames[0]]
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputStrings)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
+          outputLists,
+        )
       })
     })
   })
