@@ -14,8 +14,6 @@ import StyledLink from 'utils/StyledLink'
 
 import * as requests from './requests'
 
-import './json-editor.css'
-
 const ES_V = '6.7'
 const ES_REF = `https://www.elastic.co/guide/en/elasticsearch/reference/${ES_V}/search.html`
 
@@ -24,6 +22,9 @@ const ajv = new Ajv({ allErrors: true, verbose: true })
 const useStyles = M.makeStyles((t) => ({
   editor: {
     padding: t.spacing(1),
+    '& .jsoneditor': {
+      border: 0,
+    },
   },
   header: {
     margin: t.spacing(0, 0, 1),
