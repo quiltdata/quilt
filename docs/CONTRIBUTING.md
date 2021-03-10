@@ -47,8 +47,6 @@ $ cd api/python/tests
 $ pytest
 ```
 
-When your branch is ready, you may run `tox` or `detox` to test a new install. To additionally test dependencies use `detox --refresh`, which will reset the environment it creates.
-
 ## Local catalog development
 
 Note that, at the current time, it is only possible to run a local catalog if you already have a catalog deployed to AWS, because the catalog relies on certain services (namely, AWS Lambda and the AWS Elasticsearch Service) which cannot be run locally.
