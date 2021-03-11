@@ -3,7 +3,7 @@ import * as R from 'ramda'
 
 export const isSchemaArray = (optSchema) => R.prop('type', optSchema) === 'array'
 
-const isSchemaObject = (optSchema) => R.prop('type', optSchema) === 'object'
+export const isSchemaObject = (optSchema) => R.prop('type', optSchema) === 'object'
 
 const isSchemaString = (optSchema) => R.prop('type', optSchema) === 'string'
 

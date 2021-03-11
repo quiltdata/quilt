@@ -22,14 +22,32 @@ export function rowsToJson(rows: MetadataValue[][]) {
   )
 }
 
+export function rowsToRows([head, ...tail]: MetadataValue[][]): Record<
+  string,
+  MetadataValue
+>[] {
+  return tail.map((row) =>
+    row.reduce((memo, value, index) => {
+      if (value === undefined) return memo
+      if (head[index] === undefined) return memo
+      return {
+        ...memo,
+        [head[index]]: value,
+      }
+    }, {}),
+  )
+}
+
 export function parseSpreadsheet(
   sheet: xlsx.WorkSheet,
   transpose: boolean,
+  shouldBeListOfObject?: boolean,
 ): Record<string, MetadataValue> {
   const rows = xlsx.utils.sheet_to_json<MetadataValue>(sheet, {
     header: 1,
   })
-  return rowsToJson(transpose ? R.transpose(rows) : rows)
+  const parser = shouldBeListOfObject ? rowsToRows : rowsToJson
+  return parser(transpose ? R.transpose(rows) : rows)
 }
 
 export function readSpreadsheet(file: File): Promise<xlsx.WorkSheet> {
@@ -86,6 +104,8 @@ const isBoolean = (value: MetadataValue, schema?: JsonSchema) =>
 const isArrayOfBooleans = (value: MetadataValue, schema?: JsonSchema) =>
   isBoolean(value, schema?.items) || isBoolean(value, schema?.contains)
 
+const isObject = (value: MetadataValue) => R.is(Object, value)
+
 const getSchemaItem = (key: string, schema?: JsonSchema) =>
   schema && schema.properties && schema.properties[key]
 
@@ -98,6 +118,8 @@ export function postProcessValue(
   if (isList(value, schema)) return value.split(',').map(parseJSON)
 
   if (isBoolean(value, schema)) return Boolean(value)
+
+  if (isObject(value)) return postProcess(value, schema)
 
   return parseJSON(value)
 }
@@ -120,6 +142,7 @@ export function postProcess(
   obj: Record<string, MetadataValue>,
   schema?: JsonSchema,
 ): Record<string, MetadataValue> {
+  if (Array.isArray(obj)) return obj.map((v) => postProcess(v, schema.items))
   return R.mapObjIndexed(
     (value: MetadataValue, key: string) =>
       Array.isArray(value)
@@ -133,13 +156,17 @@ export function parseSpreadsheetAgainstSchema(
   sheet: xlsx.WorkSheet,
   schema?: JsonSchema,
 ): Record<string, MetadataValue> {
-  const verticalObj = parseSpreadsheet(sheet, true)
-  const schemaRoot = schema ? schema.properties : null
+  const verticalObj = parseSpreadsheet(sheet, true, schema?.type === 'array')
+  const schemaRoot =
+    schema?.type === 'array' ? schema?.items?.properties : schema?.properties
   if (schemaRoot) {
-    const horizontalObj = parseSpreadsheet(sheet, false)
+    const horizontalObj = parseSpreadsheet(sheet, false, schema?.type === 'array')
     if (
-      scoreObjectDiff(horizontalObj, schemaRoot) >
-      scoreObjectDiff(verticalObj, schemaRoot)
+      scoreObjectDiff(
+        schema?.type === 'array' ? horizontalObj[0] : horizontalObj,
+        schemaRoot,
+      ) >
+      scoreObjectDiff(schema?.type === 'array' ? verticalObj[0] : verticalObj, schemaRoot)
     ) {
       return postProcess(horizontalObj, schema)
     }

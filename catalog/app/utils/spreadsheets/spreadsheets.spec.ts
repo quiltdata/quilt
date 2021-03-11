@@ -306,6 +306,88 @@ describe('utils/spreadsheets', () => {
         )
       })
     })
+
+    describe('as root list', () => {
+      const hobbitsSchema = {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            Fingers: {
+              type: 'array',
+              items: { type: 'number' },
+            },
+            Male: {
+              type: 'boolean',
+            },
+            Parts: {
+              type: 'array',
+              items: { type: 'string' },
+            },
+            Date: {
+              type: 'string',
+              format: 'date',
+            },
+          },
+        },
+      }
+      const output = [
+        {
+          Age: 131,
+          Date: '1990-09-22',
+          Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          Male: true,
+          Name: 'Bilbo Baggins',
+          Parts: ['head', 'legs', 'arms'],
+          Unlisted: 'yes',
+        },
+        {
+          Age: 53,
+          Date: '1968-09-22',
+          Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          Male: true,
+          Name: 'Frodo Baggins',
+          Parts: ['head', 'legs', 'arms'],
+        },
+        {
+          Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          Male: true,
+          Name: 'Sauron',
+          Parts: ['head', 'legs', 'arms'],
+        },
+        {
+          Age: 8374,
+          Date: '2068-01-01',
+          Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          Male: false,
+          Name: 'Galadriel',
+          Parts: ['head', 'legs', 'arms'],
+        },
+        {
+          Date: '1983-12-26',
+          Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          Male: true,
+          Name: 'Maxim',
+          Parts: ['head', 'legs', 'arms'],
+        },
+        {
+          Name: { a: 123, b: 345 },
+        },
+      ]
+
+      it('parses OpenOffice archive format', () => {
+        const workbook = xlsx.readFile(
+          path.resolve(__dirname, './mocks/hobbits-list.ods'),
+          {
+            cellDates: true,
+          },
+        )
+        const sheet = workbook.Sheets[workbook.SheetNames[0]]
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, hobbitsSchema)).toEqual(
+          output,
+        )
+      })
+    })
   })
 
   describe('postProcess', () => {
