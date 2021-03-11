@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 from botocore.stub import Stubber
-from index import s3, pkg_created_event, handler
+from index import handler, pkg_created_event, s3, EventsQueue, PutEventsException
 
 
 @pytest.mark.parametrize(
@@ -153,3 +153,20 @@ def test_handler(pkg_created_event_mock, queue_append_mock, queue_flush_mock):
     assert pkg_created_event_mock.call_args_list == [((x,),) for x in range(6)]
     assert queue_append_mock.call_args_list == [((str(x),),) for x in range(6)]
     queue_flush_mock.assert_called_once_with()
+
+
+@pytest.mark.parametrize('failed_count', (0, 1))
+def test_queue(failed_count):
+    with mock.patch('index.event_bridge.put_events') as put_events_mock:
+        put_events_mock.return_value = {'FailedEntryCount': failed_count}
+        q = EventsQueue()
+        for x in range(EventsQueue.MAX_SIZE - 1):
+            q.append(x)
+            put_events_mock.assert_not_called()
+
+        if failed_count:
+            with pytest.raises(PutEventsException):
+                q.append(EventsQueue.MAX_SIZE - 1)
+        else:
+            q.append(EventsQueue.MAX_SIZE - 1)
+            put_events_mock.assert_called_once_with(Entries=list(range(EventsQueue.MAX_SIZE)))
