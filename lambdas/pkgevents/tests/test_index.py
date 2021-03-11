@@ -1,10 +1,11 @@
 import itertools
 import json
 from io import BytesIO
+from unittest import mock
 
 import pytest
 from botocore.stub import Stubber
-from index import s3, pkg_created_event
+from index import s3, pkg_created_event, handler
 
 
 @pytest.mark.parametrize(
@@ -48,6 +49,18 @@ def test_pkg_created_event():
     key = f'.quilt/named_packages/{handle}/1451631600'
     event_time = '2021-03-11T14:29:19.277067Z'
     top_hash = b'a' * 64
+    event = {
+        'eventName': 'ObjectCreated:Put',
+        'eventTime': event_time,
+        's3': {
+            'object': {
+                'key': key,
+            },
+            'bucket': {
+                'name': bucket_name,
+            },
+        },
+    }
 
     with Stubber(s3) as stubber:
         stubber.add_response(
@@ -64,18 +77,7 @@ def test_pkg_created_event():
         )
 
         assert pkg_created_event(
-            {
-                'eventName': 'ObjectCreated:Put',
-                'eventTime': event_time,
-                's3': {
-                    'object': {
-                        'key': key,
-                    },
-                    'bucket': {
-                        'name': bucket_name,
-                    },
-                },
-            }
+            event
         ) == {
             'Time': event_time,
             'Source': 'com.quiltdata',
@@ -91,3 +93,63 @@ def test_pkg_created_event():
                 }
             ),
         }
+        stubber.assert_no_pending_responses()
+
+    for content_length in (63, 65):
+        with Stubber(s3) as stubber:
+            stubber.add_response(
+                method='get_object',
+                service_response={
+                    'Body': BytesIO(top_hash),
+                    'ContentLength': content_length,
+                },
+                expected_params={
+                    'Bucket': bucket_name,
+                    'Key': key,
+                    'Range': 'bytes=0-63',
+                }
+            )
+
+            assert pkg_created_event(event) is None
+            stubber.assert_no_pending_responses()
+
+    with Stubber(s3) as stubber:
+        stubber.add_client_error(
+            method='get_object',
+            http_status_code=404,
+            service_error_code='NoSuchKey',
+            expected_params={
+                'Bucket': bucket_name,
+                'Key': key,
+                'Range': 'bytes=0-63',
+            }
+        )
+
+        assert pkg_created_event(event) is None
+        stubber.assert_no_pending_responses()
+
+
+@mock.patch('index.EventsQueue.flush')
+@mock.patch('index.EventsQueue.append')
+@mock.patch('index.pkg_created_event', wraps=str)
+def test_handler(pkg_created_event_mock, queue_append_mock, queue_flush_mock):
+    event = {
+        'Records': [
+            {
+                'body': json.dumps(
+                    {
+                        'Records': records
+                    }
+                )
+            }
+            for records in (
+                (0, 1),
+                (2, 3, 4),
+                (5,)
+            )
+        ]
+    }
+    handler(event, None)
+    assert pkg_created_event_mock.call_args_list == [((x,),) for x in range(6)]
+    assert queue_append_mock.call_args_list == [((str(x),),) for x in range(6)]
+    queue_flush_mock.assert_called_once_with()
