@@ -209,7 +209,7 @@ In the template menu (CloudFormation or Service Catalog), select Google under *U
 1. Once the application has been created you will need both its
 Application (client) ID and Directory (tenant) ID
 1. Your `AzureBaseUrl` will be of the form
-`https://ENDPOINT/TENANT_ID`. In most cases `ENDPOINT` is simple
+`https://ENDPOINT/TENANT_ID`. In most cases `ENDPOINT` is simply
 `login.microsoftonline.com`. Reference
 [Microsoft identity platform and OpenID Connect protocol](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc)
 and
