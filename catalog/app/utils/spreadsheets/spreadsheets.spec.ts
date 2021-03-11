@@ -1,5 +1,6 @@
 import dedent from 'dedent'
 import path from 'path'
+import * as R from 'ramda'
 import xlsx from 'xlsx'
 
 import * as spreadsheets from './spreadsheets'
@@ -26,21 +27,9 @@ describe('utils/spreadsheets', () => {
     ]
 
     it('converts rows array to dictionary object, array of cells', () => {
-      expect(
-        spreadsheets.rowsToJson(rows, {
-          mode: spreadsheets.Mode.SingleCellContainsAllValues,
-        }),
-      ).toEqual({
+      expect(spreadsheets.rowsToJson(rows)).toEqual({
         a: ['b', 'c'],
         d: ['e,i,j,k', 'f'],
-        g: 'h',
-      })
-    })
-
-    it('converts rows array to dictionary object, one cell per value', () => {
-      expect(spreadsheets.rowsToJson(rows)).toEqual({
-        a: 'b',
-        d: 'e,i,j,k',
         g: 'h',
       })
     })
@@ -56,21 +45,9 @@ describe('utils/spreadsheets', () => {
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
 
     it('converts CSV to dictionary object, array of cells', () => {
-      expect(
-        spreadsheets.parseSpreadsheet(sheet, false, {
-          mode: spreadsheets.Mode.SingleCellContainsAllValues,
-        }),
-      ).toEqual({
+      expect(spreadsheets.parseSpreadsheet(sheet, false)).toEqual({
         a: ['b', 'c'],
         d: ['e,i,j,k', 'f'],
-        g: 'h',
-      })
-    })
-
-    it('converts CSV to dictionary object, one cell per value', () => {
-      expect(spreadsheets.parseSpreadsheet(sheet, false)).toEqual({
-        a: 'b',
-        d: 'e,i,j,k',
         g: 'h',
       })
     })
@@ -146,10 +123,11 @@ describe('utils/spreadsheets', () => {
         type: 'object',
         properties: {
           Fingers: { type: 'array' },
+          Male: { type: 'boolean' },
           Parts: { type: 'array' },
         },
       }
-      const outputStrings = {
+      const outputRaw = {
         Age: 131,
         Date: '2890-09-22',
         Fingers: '1,2,3,4,5,6,7,8,9,10',
@@ -157,7 +135,7 @@ describe('utils/spreadsheets', () => {
         Name: 'Bilbo Beggins',
         Parts: 'head,legs,arms',
       }
-      const outputLists = {
+      const outputSchemed = {
         Age: 131,
         Date: '2890-09-22',
         Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -172,9 +150,9 @@ describe('utils/spreadsheets', () => {
           { cellDates: true },
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputStrings)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
-          outputLists,
+          outputSchemed,
         )
       })
 
@@ -184,9 +162,9 @@ describe('utils/spreadsheets', () => {
           { cellDates: true },
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputStrings)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
-          outputLists,
+          outputSchemed,
         )
       })
 
@@ -196,9 +174,9 @@ describe('utils/spreadsheets', () => {
           { cellDates: true },
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputStrings)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
-          outputLists,
+          outputSchemed,
         )
       })
 
@@ -208,9 +186,11 @@ describe('utils/spreadsheets', () => {
           { cellDates: true },
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputStrings)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(
+          R.assoc('Male', 1, outputRaw),
+        )
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
-          outputLists,
+          outputSchemed,
         )
       })
 
@@ -220,9 +200,11 @@ describe('utils/spreadsheets', () => {
           { cellDates: true },
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputStrings)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(
+          R.assoc('Date', '2890-09-21', R.assoc('Male', 1, outputRaw)),
+        )
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
-          outputLists,
+          R.assoc('Date', '2890-09-21', outputSchemed),
         )
       })
 
@@ -232,9 +214,11 @@ describe('utils/spreadsheets', () => {
           { cellDates: true },
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputStrings)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(
+          R.assoc('Date', '2890-09-21', R.assoc('Male', 1, outputRaw)),
+        )
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
-          outputLists,
+          R.assoc('Date', '2890-09-21', outputSchemed),
         )
       })
     })

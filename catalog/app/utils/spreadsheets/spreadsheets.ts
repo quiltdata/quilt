@@ -9,19 +9,6 @@ type MetadataValue = $TSFixMe
 
 type JsonSchema = $TSFixMe
 
-export enum Mode {
-  SingleCellContainsAllValues,
-  OneCellPerValue,
-}
-
-interface Options {
-  mode: Mode
-}
-
-const defaultOptions = {
-  mode: Mode.OneCellPerValue,
-}
-
 export function parseCellsAsValues(
   values: MetadataValue[],
 ): MetadataValue | MetadataValue[] {
@@ -31,12 +18,9 @@ export function parseCellsAsValues(
   )
 }
 
-export function rowsToJson(rows: MetadataValue[][], options: Options = defaultOptions) {
+export function rowsToJson(rows: MetadataValue[][]) {
   return pipeThru(rows)(
-    R.map(([key, ...values]) => [
-      key,
-      options.mode === Mode.OneCellPerValue ? values[0] : parseCellsAsValues(values),
-    ]),
+    R.map(([key, ...values]) => [key, parseCellsAsValues(values)]),
     R.fromPairs,
   )
 }
@@ -44,12 +28,11 @@ export function rowsToJson(rows: MetadataValue[][], options: Options = defaultOp
 export function parseSpreadsheet(
   sheet: xlsx.WorkSheet,
   transpose: boolean,
-  options: Options = defaultOptions,
 ): Record<string, MetadataValue> {
   const rows = xlsx.utils.sheet_to_json<MetadataValue>(sheet, {
     header: 1,
   })
-  return rowsToJson(transpose ? R.transpose(rows) : rows, options)
+  return rowsToJson(transpose ? R.transpose(rows) : rows)
 }
 
 export function readSpreadsheet(file: File): Promise<xlsx.WorkSheet> {
@@ -95,6 +78,12 @@ const isList = (value: MetadataValue, key: string, schema?: JsonSchema) =>
   jsonSchema.isSchemaArray(schema.properties[key]) &&
   typeof value === 'string'
 
+const isBoolean = (value: MetadataValue, key: string, schema?: JsonSchema) =>
+  schema &&
+  schema.properties &&
+  jsonSchema.isSchemaBoolean(schema.properties[key]) &&
+  (value === 1 || value === 0)
+
 export function postProcess(
   obj: Record<string, MetadataValue>,
   schema?: JsonSchema,
@@ -103,6 +92,8 @@ export function postProcess(
     if (isDate(value)) return dateFns.formatISO(value, { representation: 'date' })
 
     if (isList(value, key, schema)) return value.split(',').map(parseJSON)
+
+    if (isBoolean(value, key, schema)) return Boolean(value)
 
     return parseJSON(value)
   }, obj)

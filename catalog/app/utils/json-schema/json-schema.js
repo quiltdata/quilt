@@ -11,7 +11,7 @@ const isSchemaNumber = (optSchema) => R.prop('type', optSchema) === 'number'
 
 const isSchemaInteger = (optSchema) => R.prop('type', optSchema) === 'integer'
 
-const isSchemaBoolean = (optSchema) => R.prop('type', optSchema) === 'boolean'
+export const isSchemaBoolean = (optSchema) => R.prop('type', optSchema) === 'boolean'
 
 const isSchemaNull = (optSchema) => R.prop('type', optSchema) === 'null'
 
