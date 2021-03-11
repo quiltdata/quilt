@@ -78,7 +78,6 @@ def pkg_created_event(s3_event):
         'Source': 'com.quiltdata',
         'DetailType': 'package-revision',
         'Resources': [
-            bucket_obj['arn'],
             # TODO: add stack ARN?
         ],
         'Detail': json.dumps({
