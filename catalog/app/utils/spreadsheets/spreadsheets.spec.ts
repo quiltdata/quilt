@@ -131,7 +131,7 @@ describe('utils/spreadsheets', () => {
       }
       const outputRaw = {
         Age: 131,
-        Date: '2890-09-22',
+        Date: '1990-09-22',
         Fingers: '1,2,3,4,5,6,7,8,9,10',
         Male: true,
         Name: 'Bilbo Beggins',
@@ -139,7 +139,7 @@ describe('utils/spreadsheets', () => {
       }
       const outputSchemed = {
         Age: 131,
-        Date: '2890-09-22',
+        Date: '1990-09-22',
         Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         Male: true,
         Name: 'Bilbo Beggins',
@@ -188,9 +188,7 @@ describe('utils/spreadsheets', () => {
           { cellDates: true },
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(
-          R.assoc('Male', 1, outputRaw),
-        )
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
           outputSchemed,
         )
@@ -203,10 +201,10 @@ describe('utils/spreadsheets', () => {
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(
-          R.assoc('Date', '2890-09-21', R.assoc('Male', 1, outputRaw)),
+          R.assoc('Male', 1, outputRaw),
         )
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
-          R.assoc('Date', '2890-09-21', outputSchemed),
+          outputSchemed,
         )
       })
 
@@ -217,10 +215,10 @@ describe('utils/spreadsheets', () => {
         )
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(
-          R.assoc('Date', '2890-09-21', R.assoc('Male', 1, outputRaw)),
+          R.assoc('Male', 1, outputRaw),
         )
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
-          R.assoc('Date', '2890-09-21', outputSchemed),
+          outputSchemed,
         )
       })
     })
