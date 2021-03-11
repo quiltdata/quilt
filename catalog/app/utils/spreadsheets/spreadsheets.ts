@@ -72,17 +72,14 @@ function parseJSON(str: string | number | boolean) {
 
 const isDate = (value: MetadataValue) => value instanceof Date
 
-const isList = (value: MetadataValue, key: string, schema?: JsonSchema) =>
-  schema &&
-  schema.properties &&
-  jsonSchema.isSchemaArray(schema.properties[key]) &&
-  typeof value === 'string'
+const isList = (value: MetadataValue, schema?: JsonSchema) =>
+  schema && jsonSchema.isSchemaArray(schema) && typeof value === 'string'
 
-const isBoolean = (value: MetadataValue, key: string, schema?: JsonSchema) =>
-  schema &&
-  schema.properties &&
-  jsonSchema.isSchemaBoolean(schema.properties[key]) &&
-  (value === 1 || value === 0)
+const isBoolean = (value: MetadataValue, schema?: JsonSchema) =>
+  schema && jsonSchema.isSchemaBoolean(schema) && (value === 1 || value === 0)
+
+const getSchemaItem = (key: string, schema?: JsonSchema) =>
+  schema && schema.properties && schema.properties[key]
 
 export function postProcess(
   obj: Record<string, MetadataValue>,
@@ -91,9 +88,9 @@ export function postProcess(
   return R.mapObjIndexed((value: MetadataValue, key: string) => {
     if (isDate(value)) return dateFns.formatISO(value, { representation: 'date' })
 
-    if (isList(value, key, schema)) return value.split(',').map(parseJSON)
+    if (isList(value, getSchemaItem(key, schema))) return value.split(',').map(parseJSON)
 
-    if (isBoolean(value, key, schema)) return Boolean(value)
+    if (isBoolean(value, getSchemaItem(key, schema))) return Boolean(value)
 
     return parseJSON(value)
   }, obj)
