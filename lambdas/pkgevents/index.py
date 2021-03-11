@@ -64,8 +64,8 @@ def pkg_created_event(s3_event):
     bucket_obj = s3_event_obj['bucket']
     bucket = bucket_obj['name']
     try:
-        resp = s3.get_object(Bucket=bucket, Key=key, Range=f'bytes=0-{EXPECTED_POINTER_SIZE}')
-    except s3.exceptions.NoSuckKey:
+        resp = s3.get_object(Bucket=bucket, Key=key, Range=f'bytes=0-{EXPECTED_POINTER_SIZE - 1}')
+    except s3.exceptions.NoSuchKey:
         logger.warning('pointer is created in bucket %r at %r, but not found', bucket, key)
         return
     if resp['ContentLength'] != EXPECTED_POINTER_SIZE:
