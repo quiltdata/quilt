@@ -71,11 +71,20 @@ const isDate = (value: MetadataValue, schema?: JsonSchema) =>
   value instanceof Date ||
   (schema && schema.type === 'string' && schema.format === 'date' && value)
 
+const isArrayOfDates = (value: MetadataValue, schema?: JsonSchema) =>
+  isDate(value, schema?.items) || isDate(value, schema?.contains)
+
 const isList = (value: MetadataValue, schema?: JsonSchema) =>
   schema && jsonSchema.isSchemaArray(schema) && typeof value === 'string'
 
+const isArrayOfLists = (value: MetadataValue, schema?: JsonSchema) =>
+  isList(value, schema?.items) || isList(value, schema?.contains)
+
 const isBoolean = (value: MetadataValue, schema?: JsonSchema) =>
   schema && jsonSchema.isSchemaBoolean(schema) && (value === 1 || value === 0)
+
+const isArrayOfBooleans = (value: MetadataValue, schema?: JsonSchema) =>
+  isBoolean(value, schema?.items) || isBoolean(value, schema?.contains)
 
 const getSchemaItem = (key: string, schema?: JsonSchema) =>
   schema && schema.properties && schema.properties[key]
@@ -93,6 +102,20 @@ export function postProcessValue(
   return parseJSON(value)
 }
 
+export function postProcessListValue(
+  value: MetadataValue,
+  schema?: JsonSchema,
+): MetadataValue {
+  if (isArrayOfDates(value, schema))
+    return dateFns.formatISO(value, { representation: 'date' })
+
+  if (isArrayOfLists(value, schema)) return value.split(',').map(parseJSON)
+
+  if (isArrayOfBooleans(value, schema)) return Boolean(value)
+
+  return parseJSON(value)
+}
+
 export function postProcess(
   obj: Record<string, MetadataValue>,
   schema?: JsonSchema,
@@ -100,9 +123,7 @@ export function postProcess(
   return R.mapObjIndexed(
     (value: MetadataValue, key: string) =>
       Array.isArray(value)
-        ? value.map((v) =>
-            postProcessValue(v, R.path(['items'], getSchemaItem(key, schema))),
-          )
+        ? value.map((v) => postProcessListValue(v, getSchemaItem(key, schema)))
         : postProcessValue(value, getSchemaItem(key, schema)),
     obj,
   )
