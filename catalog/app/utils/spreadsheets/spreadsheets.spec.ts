@@ -147,10 +147,9 @@ describe('utils/spreadsheets', () => {
       }
 
       it('parses OpenOffice archive format', () => {
-        const workbook = xlsx.readFile(
-          path.resolve(__dirname, './mocks/spreadsheets.bilbo.ods'),
-          { cellDates: true },
-        )
+        const workbook = xlsx.readFile(path.resolve(__dirname, './mocks/bilbo.ods'), {
+          cellDates: true,
+        })
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
@@ -159,10 +158,9 @@ describe('utils/spreadsheets', () => {
       })
 
       it('parses OpenOffice single XML format', () => {
-        const workbook = xlsx.readFile(
-          path.resolve(__dirname, './mocks/spreadsheets.bilbo.fods'),
-          { cellDates: true },
-        )
+        const workbook = xlsx.readFile(path.resolve(__dirname, './mocks/bilbo.fods'), {
+          cellDates: true,
+        })
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
@@ -171,10 +169,9 @@ describe('utils/spreadsheets', () => {
       })
 
       it('parses CSV format', () => {
-        const workbook = xlsx.readFile(
-          path.resolve(__dirname, './mocks/spreadsheets.bilbo.csv'),
-          { cellDates: true },
-        )
+        const workbook = xlsx.readFile(path.resolve(__dirname, './mocks/bilbo.csv'), {
+          cellDates: true,
+        })
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
@@ -183,10 +180,9 @@ describe('utils/spreadsheets', () => {
       })
 
       it('parses XLS format', () => {
-        const workbook = xlsx.readFile(
-          path.resolve(__dirname, './mocks/spreadsheets.bilbo.xls'),
-          { cellDates: true },
-        )
+        const workbook = xlsx.readFile(path.resolve(__dirname, './mocks/bilbo.xls'), {
+          cellDates: true,
+        })
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
@@ -195,10 +191,9 @@ describe('utils/spreadsheets', () => {
       })
 
       it('parses XLSX format', () => {
-        const workbook = xlsx.readFile(
-          path.resolve(__dirname, './mocks/spreadsheets.bilbo.xlsx'),
-          { cellDates: true },
-        )
+        const workbook = xlsx.readFile(path.resolve(__dirname, './mocks/bilbo.xlsx'), {
+          cellDates: true,
+        })
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(
           R.assoc('Male', 1, outputRaw),
@@ -209,10 +204,9 @@ describe('utils/spreadsheets', () => {
       })
 
       it('parses XLSM format', () => {
-        const workbook = xlsx.readFile(
-          path.resolve(__dirname, './mocks/spreadsheets.bilbo.xlsm'),
-          { cellDates: true },
-        )
+        const workbook = xlsx.readFile(path.resolve(__dirname, './mocks/bilbo.xlsm'), {
+          cellDates: true,
+        })
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(
           R.assoc('Male', 1, outputRaw),
