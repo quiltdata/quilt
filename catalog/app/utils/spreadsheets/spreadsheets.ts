@@ -12,10 +12,7 @@ type JsonSchema = $TSFixMe
 export function parseCellsAsValues(
   values: MetadataValue[],
 ): MetadataValue | MetadataValue[] {
-  return pipeThru(values)(
-    R.reject(R.isNil),
-    R.ifElse(R.pipe(R.length, R.equals(1)), R.head, R.identity),
-  )
+  return values.length === 1 ? values[0] : values
 }
 
 export function rowsToJson(rows: MetadataValue[][]) {
@@ -70,7 +67,9 @@ function parseJSON(str: string | number | boolean) {
   }
 }
 
-const isDate = (value: MetadataValue) => value instanceof Date
+const isDate = (value: MetadataValue, schema?: JsonSchema) =>
+  value instanceof Date ||
+  (schema && schema.type === 'string' && schema.format === 'date' && value)
 
 const isList = (value: MetadataValue, schema?: JsonSchema) =>
   schema && jsonSchema.isSchemaArray(schema) && typeof value === 'string'
@@ -81,19 +80,32 @@ const isBoolean = (value: MetadataValue, schema?: JsonSchema) =>
 const getSchemaItem = (key: string, schema?: JsonSchema) =>
   schema && schema.properties && schema.properties[key]
 
+export function postProcessValue(
+  value: MetadataValue,
+  schema?: JsonSchema,
+): MetadataValue {
+  if (isDate(value, schema)) return dateFns.formatISO(value, { representation: 'date' })
+
+  if (isList(value, schema)) return value.split(',').map(parseJSON)
+
+  if (isBoolean(value, schema)) return Boolean(value)
+
+  return parseJSON(value)
+}
+
 export function postProcess(
   obj: Record<string, MetadataValue>,
   schema?: JsonSchema,
 ): Record<string, MetadataValue> {
-  return R.mapObjIndexed((value: MetadataValue, key: string) => {
-    if (isDate(value)) return dateFns.formatISO(value, { representation: 'date' })
-
-    if (isList(value, getSchemaItem(key, schema))) return value.split(',').map(parseJSON)
-
-    if (isBoolean(value, getSchemaItem(key, schema))) return Boolean(value)
-
-    return parseJSON(value)
-  }, obj)
+  return R.mapObjIndexed(
+    (value: MetadataValue, key: string) =>
+      Array.isArray(value)
+        ? value.map((v) =>
+            postProcessValue(v, R.path(['items'], getSchemaItem(key, schema))),
+          )
+        : postProcessValue(value, getSchemaItem(key, schema)),
+    obj,
+  )
 }
 
 export function parseSpreadsheetAgainstSchema(

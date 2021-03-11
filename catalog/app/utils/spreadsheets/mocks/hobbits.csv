@@ -1,0 +1,6 @@
+Name,Age,Male,Parts,Date,Fingers,Unlisted
+Bilbo Baggins,131,TRUE,"head,legs,arms",09/22/1990,"1,2,3,4,5,6,7,8,9,10",yes
+Frodo Baggins,53.00,TRUE,"head,legs,arms",09/22/1968,"1,2,3,4,5,6,7,8,9,10",
+Sauron,,TRUE,"head,legs,arms",,"1,2,3,4,5,6,7,8,9,10",
+Galadriel,8374,FALSE,"head,legs,arms",01/01/2068,"1,2,3,4,5,6,7,8,9,10",
+Maxim,,TRUE,"head,legs,arms",1983-12-26,"1,2,3,4,5,6,7,8,9,10",
