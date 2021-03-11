@@ -5,7 +5,13 @@ from unittest import mock
 
 import pytest
 from botocore.stub import Stubber
-from index import handler, pkg_created_event, s3, EventsQueue, PutEventsException
+from index import (
+    EventsQueue,
+    PutEventsException,
+    handler,
+    pkg_created_event,
+    s3,
+)
 
 
 @pytest.mark.parametrize(
