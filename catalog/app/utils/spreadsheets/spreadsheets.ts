@@ -47,10 +47,8 @@ export function readSpreadsheet(file: File): Promise<xlsx.WorkSheet> {
   })
 }
 
-export function scoreObjectDiff(obj1: {}, obj2: {}): number {
-  const keys = Object.keys(obj1)
-  return keys.reduce((memo, key) => (key in obj2 ? memo + 1 : memo), 0)
-}
+export const scoreObjectDiff = (obj1: {}, obj2: {}): number =>
+  R.intersection(Object.keys(obj1), Object.keys(obj2)).length
 
 function parseJSON(str: string | number | boolean) {
   if (typeof str !== 'string') return str
