@@ -10,8 +10,7 @@ type MetadataValue = $TSFixMe
 type JsonSchema = $TSFixMe
 
 export function rowsToJson(rows: MetadataValue[][]) {
-  // TODO: R.pipe(R.tail, R.length, R.max(memo)) ?
-  const maxSize = rows.reduce((memo, row) => R.max(memo, R.tail(row).length), 0)
+  const maxSize = rows.reduce((memo, row) => R.max(memo, row.length - 1), 0)
   return pipeThru(rows)(
     R.map(([key, ...values]) => {
       const nullsTail = R.repeat(null, maxSize - values.length)
