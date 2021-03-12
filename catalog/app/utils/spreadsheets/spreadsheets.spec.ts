@@ -4,6 +4,13 @@ import xlsx from 'xlsx'
 
 import * as spreadsheets from './spreadsheets'
 
+function readXlsx(filename: string): xlsx.WorkSheet {
+  const workbook = xlsx.readFile(path.resolve(__dirname, filename), {
+    cellDates: true,
+  })
+  return workbook.Sheets[workbook.SheetNames[0]]
+}
+
 describe('utils/spreadsheets', () => {
   describe('rowsToJson', () => {
     const rows = [
@@ -132,49 +139,18 @@ describe('utils/spreadsheets', () => {
         Parts: [['head', 'legs', 'arms']],
       }
 
-      it('parses OpenOffice archive format', () => {
-        const workbook = xlsx.readFile(path.resolve(__dirname, './mocks/bilbo.ods'), {
-          cellDates: true,
-        })
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      const testParsing = (filename: string) => {
+        const sheet = readXlsx(filename)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
           outputSchemed,
         )
-      })
+      }
 
-      it('parses OpenOffice single XML format', () => {
-        const workbook = xlsx.readFile(path.resolve(__dirname, './mocks/bilbo.fods'), {
-          cellDates: true,
-        })
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
-          outputSchemed,
-        )
-      })
-
-      it('parses CSV format', () => {
-        const workbook = xlsx.readFile(path.resolve(__dirname, './mocks/bilbo.csv'), {
-          cellDates: true,
-        })
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
-          outputSchemed,
-        )
-      })
-
-      it('parses XLS format', () => {
-        const workbook = xlsx.readFile(path.resolve(__dirname, './mocks/bilbo.xls'), {
-          cellDates: true,
-        })
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
-          outputSchemed,
-        )
-      })
+      it('parses .ods', () => testParsing('./mocks/bilbo.ods'))
+      it('parses .fods', () => testParsing('./mocks/bilbo.fods'))
+      it('parses .csv', () => testParsing('./mocks/bilbo.csv'))
+      it('parses .xls', () => testParsing('./mocks/bilbo.xls'))
     })
 
     describe('for multivalued Excel files', () => {
@@ -242,29 +218,16 @@ describe('utils/spreadsheets', () => {
         Unlisted: ['yes', null, null, null, null],
       }
 
-      it('parses OpenOffice archive format', () => {
-        const workbook = xlsx.readFile(path.resolve(__dirname, './mocks/hobbits.ods'), {
-          cellDates: true,
-          dateNF: 'yyyy-mm-dd',
-        })
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      const testParsing = (filename: string) => {
+        const sheet = readXlsx(filename)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, hobbitsSchema)).toEqual(
           outputSchemed,
         )
-      })
+      }
 
-      it('parses CSV', () => {
-        const workbook = xlsx.readFile(path.resolve(__dirname, './mocks/hobbits.csv'), {
-          cellDates: true,
-          dateNF: 'yyyy-mm-dd',
-        })
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, hobbitsSchema)).toEqual(
-          outputSchemed,
-        )
-      })
+      it('parses .ods', () => testParsing('./mocks/hobbits.ods'))
+      it('parses .csv', () => testParsing('./mocks/hobbits.csv'))
     })
   })
 
