@@ -1,3 +1,4 @@
+import contextlib
 import gc
 import hashlib
 import inspect
@@ -6,6 +7,7 @@ import json
 import os
 import pathlib
 import shutil
+import tempfile
 import textwrap
 import time
 import uuid
@@ -16,7 +18,7 @@ from multiprocessing import Pool
 import jsonlines
 from tqdm import tqdm
 
-from . import workflows
+from . import util, workflows
 from .backends import get_package_registry
 from .data_transfer import (
     calculate_sha256,
@@ -218,7 +220,7 @@ class PackageEntry:
         """
         Returns a locally cached physical key, if available.
         """
-        if not self.physical_key.is_local():
+        if util.IS_CACHE_ENABLED and not self.physical_key.is_local():
             return ObjectPathCache.get(str(self.physical_key))
         return None
 
@@ -499,10 +501,11 @@ class Package:
             # Copy the datafiles in the package.
             physical_key = entry.physical_key
 
-            # Try a local cache.
-            cached_file = ObjectPathCache.get(str(physical_key))
-            if cached_file is not None:
-                physical_key = PhysicalKey.from_path(cached_file)
+            if util.IS_CACHE_ENABLED:
+                # Try a local cache.
+                cached_file = ObjectPathCache.get(str(physical_key))
+                if cached_file is not None:
+                    physical_key = PhysicalKey.from_path(cached_file)
 
             new_physical_key = dest_parsed.join(logical_key)
             if physical_key != new_physical_key:
@@ -512,7 +515,11 @@ class Package:
             if not old.is_local() and new.is_local():
                 ObjectPathCache.set(str(old), new.path)
 
-        copy_file_list(file_list, callback=_maybe_add_to_cache, message="Copying objects")
+        copy_file_list(
+            file_list,
+            callback=_maybe_add_to_cache if util.IS_CACHE_ENABLED else None,
+            message="Copying objects",
+        )
 
         pkg._build(name, registry=dest_registry, message=message)
         if top_hash is None:
@@ -583,18 +590,30 @@ class Package:
             registry.resolve_top_hash(name, top_hash)
         )
         pkg_manifest = registry.manifest_pk(name, top_hash)
-        if pkg_manifest.is_local():
-            local_pkg_manifest = pkg_manifest.path
-        else:
-            local_pkg_manifest = CACHE_PATH / "manifest" / _filesystem_safe_encode(str(pkg_manifest))
-            if not local_pkg_manifest.exists():
-                # Copy to a temporary file first, to make sure we don't cache a truncated file
-                # if the download gets interrupted.
-                tmp_path = local_pkg_manifest.with_suffix('.tmp')
-                copy_file(pkg_manifest, PhysicalKey.from_path(tmp_path), message="Downloading manifest")
-                tmp_path.rename(local_pkg_manifest)
 
-        return cls._from_path(local_pkg_manifest)
+        def download_manifest(dst):
+            copy_file(pkg_manifest, PhysicalKey.from_path(dst), message="Downloading manifest")
+
+        with contextlib.ExitStack() as stack:
+            if pkg_manifest.is_local():
+                local_pkg_manifest = pkg_manifest.path
+            elif util.IS_CACHE_ENABLED:
+                local_pkg_manifest = CACHE_PATH / "manifest" / _filesystem_safe_encode(str(pkg_manifest))
+                if not local_pkg_manifest.exists():
+                    # Copy to a temporary file first, to make sure we don't cache a truncated file
+                    # if the download gets interrupted.
+                    tmp_path = local_pkg_manifest.with_suffix('.tmp')
+                    download_manifest(tmp_path)
+                    tmp_path.rename(local_pkg_manifest)
+            else:
+                # This tmp file has to closed before downloading, because on Windows it can't be
+                # opened for concurrent access.
+                with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                    local_pkg_manifest = tmp_file.name
+                    stack.callback(os.unlink, local_pkg_manifest)
+                download_manifest(local_pkg_manifest)
+
+            return cls._from_path(local_pkg_manifest)
 
     @classmethod
     def _from_path(cls, path):

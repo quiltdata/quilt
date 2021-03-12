@@ -1387,6 +1387,45 @@ class PackageTest(QuiltTestCase):
                 'test/foo/foo',
             )))
 
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    @patch('quilt3.util.IS_CACHE_ENABLED', False)
+    @patch('quilt3.packages.ObjectPathCache')
+    def test_install_disabled_cache(self, object_path_cache_mock):
+        registry = 's3://my-test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/Foo'
+
+        # Install a package twice and make sure cache functions weren't called.
+        for x in range(2):
+            self.setup_s3_stubber_pkg_install(
+                pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(),
+                entries=(
+                    ('s3://my_bucket/my_data_pkg/bar.csv', b'a,b,c'),
+                    ('s3://my_bucket/my_data_pkg/baz/bat', b'Hello World!'),
+                    ('s3://my_bucket/my_data_pkg/foo', '💩'.encode()),
+                ),
+            )
+            with patch('quilt3.data_transfer.MAX_CONCURRENCY', 1):
+                Package.install(pkg_name, registry=registry, dest='package')
+            object_path_cache_mock.get.assert_not_called()
+            object_path_cache_mock.set.assert_not_called()
+
+    @pytest.mark.usefixtures('isolate_packages_cache')
+    @patch('quilt3.util.IS_CACHE_ENABLED', False)
+    @patch('quilt3.packages.ObjectPathCache')
+    def test_package_entry_disabled_cache(self, object_path_cache_mock):
+        registry = 's3://my-test-bucket'
+        pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url(registry))
+        pkg_name = 'Quilt/Foo'
+
+        self.setup_s3_stubber_pkg_install(
+            pkg_registry, pkg_name, manifest=REMOTE_MANIFEST.read_bytes(),
+        )
+        pkg = Package.browse(pkg_name, registry=registry)
+        for lk, entry in pkg.walk():
+            assert entry.get_cached_path() is None
+            object_path_cache_mock.get.assert_not_called()
+
     def test_install_subpackage_deprecated_and_new(self):
         pkg_name = 'Quilt/Foo'
         bucket = 'my-test-bucket'
