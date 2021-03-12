@@ -67,11 +67,11 @@ const isDate = (value: MetadataValue, schema?: JsonSchema) =>
 const isArrayOfDates = (value: MetadataValue, schema?: JsonSchema) =>
   isDate(value, schema?.items) || isDate(value, schema?.contains)
 
-const isList = (value: MetadataValue, schema?: JsonSchema) =>
+const isArray = (value: MetadataValue, schema?: JsonSchema) =>
   schema && jsonSchema.isSchemaArray(schema) && typeof value === 'string'
 
-const isArrayOfLists = (value: MetadataValue, schema?: JsonSchema) =>
-  isList(value, schema?.items) || isList(value, schema?.contains)
+const isArrayOfArrays = (value: MetadataValue, schema?: JsonSchema) =>
+  isArray(value, schema?.items) || isArray(value, schema?.contains)
 
 const isBoolean = (value: MetadataValue, schema?: JsonSchema) =>
   schema && jsonSchema.isSchemaBoolean(schema) && (value === 1 || value === 0)
@@ -90,7 +90,7 @@ export function postProcessValue(
 ): MetadataValue {
   if (isDate(value, schema)) return dateFns.formatISO(value, { representation: 'date' })
 
-  if (isList(value, schema)) return value.split(',').map(parseJSON)
+  if (isArray(value, schema)) return value.split(',').map(parseJSON)
 
   if (isBoolean(value, schema)) return Boolean(value)
 
@@ -99,14 +99,14 @@ export function postProcessValue(
   return parseJSON(value)
 }
 
-export function postProcessListValue(
+export function postProcessArrayValue(
   value: MetadataValue,
   schema?: JsonSchema,
 ): MetadataValue {
   if (isArrayOfDates(value, schema))
     return dateFns.formatISO(value, { representation: 'date' })
 
-  if (isArrayOfLists(value, schema)) return value.split(',').map(parseJSON)
+  if (isArrayOfArrays(value, schema)) return value.split(',').map(parseJSON)
 
   if (isArrayOfBooleans(value, schema)) return Boolean(value)
 
@@ -121,7 +121,7 @@ export function postProcess(
   return R.mapObjIndexed(
     (value: MetadataValue, key: string) =>
       Array.isArray(value)
-        ? value.map((v) => postProcessListValue(v, getSchemaItem(key, schema)))
+        ? value.map((v) => postProcessArrayValue(v, getSchemaItem(key, schema)))
         : postProcessValue(value, getSchemaItem(key, schema)),
     obj,
   )
