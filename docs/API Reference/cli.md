@@ -189,7 +189,11 @@ Turn off TQDM progress bars for log files. Defaults to `False`
 ```
 $ export QUILT_MINIMIZE_STDOUT=true
 ```
-
+### `QUILT_DISABLE_CACHE`
+Turn off cache. Defaults to `False`.
+```
+$ export QUILT_DISABLE_CACHE=true
+```
 ### `QUILT_TRANSFER_MAX_CONCURRENCY`
 Number of threads for file transfers. Defaults to `10`.
 

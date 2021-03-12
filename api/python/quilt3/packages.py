@@ -1,3 +1,4 @@
+import contextlib
 import gc
 import hashlib
 import inspect
@@ -6,6 +7,7 @@ import json
 import os
 import pathlib
 import shutil
+import tempfile
 import textwrap
 import time
 import uuid
@@ -16,7 +18,7 @@ from multiprocessing import Pool
 import jsonlines
 from tqdm import tqdm
 
-from . import workflows
+from . import util, workflows
 from .backends import get_package_registry
 from .data_transfer import (
     calculate_sha256,
@@ -218,7 +220,7 @@ class PackageEntry:
         """
         Returns a locally cached physical key, if available.
         """
-        if not self.physical_key.is_local():
+        if util.IS_CACHE_ENABLED and not self.physical_key.is_local():
             return ObjectPathCache.get(str(self.physical_key))
         return None
 
@@ -499,10 +501,11 @@ class Package:
             # Copy the datafiles in the package.
             physical_key = entry.physical_key
 
-            # Try a local cache.
-            cached_file = ObjectPathCache.get(str(physical_key))
-            if cached_file is not None:
-                physical_key = PhysicalKey.from_path(cached_file)
+            if util.IS_CACHE_ENABLED:
+                # Try a local cache.
+                cached_file = ObjectPathCache.get(str(physical_key))
+                if cached_file is not None:
+                    physical_key = PhysicalKey.from_path(cached_file)
 
             new_physical_key = dest_parsed.join(logical_key)
             if physical_key != new_physical_key:
@@ -512,7 +515,11 @@ class Package:
             if not old.is_local() and new.is_local():
                 ObjectPathCache.set(str(old), new.path)
 
-        copy_file_list(file_list, callback=_maybe_add_to_cache, message="Copying objects")
+        copy_file_list(
+            file_list,
+            callback=_maybe_add_to_cache if util.IS_CACHE_ENABLED else None,
+            message="Copying objects",
+        )
 
         pkg._build(name, registry=dest_registry, message=message)
         if top_hash is None:
@@ -583,18 +590,30 @@ class Package:
             registry.resolve_top_hash(name, top_hash)
         )
         pkg_manifest = registry.manifest_pk(name, top_hash)
-        if pkg_manifest.is_local():
-            local_pkg_manifest = pkg_manifest.path
-        else:
-            local_pkg_manifest = CACHE_PATH / "manifest" / _filesystem_safe_encode(str(pkg_manifest))
-            if not local_pkg_manifest.exists():
-                # Copy to a temporary file first, to make sure we don't cache a truncated file
-                # if the download gets interrupted.
-                tmp_path = local_pkg_manifest.with_suffix('.tmp')
-                copy_file(pkg_manifest, PhysicalKey.from_path(tmp_path), message="Downloading manifest")
-                tmp_path.rename(local_pkg_manifest)
 
-        return cls._from_path(local_pkg_manifest)
+        def download_manifest(dst):
+            copy_file(pkg_manifest, PhysicalKey.from_path(dst), message="Downloading manifest")
+
+        with contextlib.ExitStack() as stack:
+            if pkg_manifest.is_local():
+                local_pkg_manifest = pkg_manifest.path
+            elif util.IS_CACHE_ENABLED:
+                local_pkg_manifest = CACHE_PATH / "manifest" / _filesystem_safe_encode(str(pkg_manifest))
+                if not local_pkg_manifest.exists():
+                    # Copy to a temporary file first, to make sure we don't cache a truncated file
+                    # if the download gets interrupted.
+                    tmp_path = local_pkg_manifest.with_suffix('.tmp')
+                    download_manifest(tmp_path)
+                    tmp_path.rename(local_pkg_manifest)
+            else:
+                # This tmp file has to closed before downloading, because on Windows it can't be
+                # opened for concurrent access.
+                with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                    local_pkg_manifest = tmp_file.name
+                    stack.callback(os.unlink, local_pkg_manifest)
+                download_manifest(local_pkg_manifest)
+
+            return cls._from_path(local_pkg_manifest)
 
     @classmethod
     def _from_path(cls, path):
@@ -1016,16 +1035,17 @@ class Package:
         registry = get_package_registry(registry)
 
         self._set_commit_message(message)
-
         self._fix_sha256()
-        manifest = io.BytesIO()
-        self._dump(manifest)
 
         top_hash = self.top_hash
+        self._push_manifest(name, registry, top_hash)
+        return top_hash
+
+    def _push_manifest(self, name, registry, top_hash):
+        manifest = io.BytesIO()
+        self._dump(manifest)
         self._timestamp = registry.push_manifest(name, top_hash, manifest.getvalue())
         self._origin = PackageRevInfo(str(registry.base), name, top_hash)
-
-        return top_hash
 
     @ApiTelemetry("package.dump")
     def dump(self, writable_file):
@@ -1225,19 +1245,24 @@ class Package:
         Returns:
             A string that represents the top hash of the package
         """
+        return self._calculate_top_hash(self._meta, self.walk())
+
+    @classmethod
+    def _calculate_top_hash(cls, meta, entries):
         top_hash = hashlib.sha256()
-        assert 'top_hash' not in self._meta
 
         json_encode = json.JSONEncoder(sort_keys=True, separators=(',', ':')).encode
-        for part in self._get_top_hash_parts():
+        for part in cls._get_top_hash_parts(meta, entries):
             top_hash.update(json_encode(part).encode())
 
         return top_hash.hexdigest()
 
-    def _get_top_hash_parts(self):
-        yield self._meta
+    @classmethod
+    def _get_top_hash_parts(cls, meta, entries):
+        assert 'top_hash' not in meta
+        yield meta
         # TODO: dir-level metadata should affect top hash as well.
-        for logical_key, entry in self.walk():
+        for logical_key, entry in entries:
             if entry.hash is None or entry.size is None:
                 raise QuiltException(
                     "PackageEntry missing hash and/or size: %s" % entry.physical_key
@@ -1277,6 +1302,8 @@ class Package:
         Args:
             name: name for package in registry
             dest: where to copy the objects in the package
+                Must be either an S3 URI prefix in the registry bucket, or a callable that takes
+                logical_key, package_entry, and top_hash and returns S3 URI. S3 URIs format is s3://$bucket/$key.
             registry: registry where to create the new package
             message: the commit message for the new package
             selector_fn: An optional function that determines which package entries should be copied to S3.
@@ -1323,15 +1350,29 @@ class Package:
                     f"'build' instead."
                 )
 
-        if dest is None:
-            dest_parsed = registry_parsed.join(name)
+        if callable(dest):
+            def dest_fn(*args, **kwargs):
+                url = dest(*args, **kwargs)
+                if not isinstance(url, str):
+                    raise TypeError(f'{dest!r} returned {url!r}, but str is expected')
+                pk = PhysicalKey.from_url(url)
+                if pk.is_local():
+                    raise util.URLParseError("Unexpected scheme: 'file'")
+                if pk.version_id:
+                    raise ValueError(f'{dest!r} returned {url!r}, but URI must not include versionId')
+                return pk
         else:
-            dest_parsed = PhysicalKey.from_url(fix_url(dest))
-            if dest_parsed.bucket != registry_parsed.bucket:
-                raise QuiltException(
-                    f"Invalid package destination path {dest!r}. 'dest', if set, must be a path "
-                    f"in the {registry!r} package registry specified by 'registry'."
-                )
+            def dest_fn(lk, *args, **kwargs):
+                return dest_parsed.join(lk)
+            if dest is None:
+                dest_parsed = registry_parsed.join(name)
+            else:
+                dest_parsed = PhysicalKey.from_url(fix_url(dest))
+                if dest_parsed.bucket != registry_parsed.bucket:
+                    raise QuiltException(
+                        f"Invalid package destination path {dest!r}. 'dest', if set, must be a path "
+                        f"in the {registry!r} package registry specified by 'registry'."
+                    )
 
         registry = get_package_registry(registry)
         self._validate_with_workflow(registry=registry, workflow=workflow, message=message)
@@ -1340,6 +1381,9 @@ class Package:
 
         pkg = self.__class__()
         pkg._meta = self._meta
+        pkg._set_commit_message(message)
+        top_hash = self._calculate_top_hash(pkg._meta, self.walk())
+
         # Since all that is modified is physical keys, pkg will have the same top hash
         file_list = []
         entries = []
@@ -1352,7 +1396,7 @@ class Package:
             # Copy the datafiles in the package.
             physical_key = entry.physical_key
 
-            new_physical_key = dest_parsed.join(logical_key)
+            new_physical_key = dest_fn(logical_key, entry, top_hash)
             if (
                 physical_key.bucket == new_physical_key.bucket and
                 physical_key.path == new_physical_key.path
@@ -1387,19 +1431,19 @@ class Package:
         for lk in temp_file_logical_keys:
             self._set(lk, pkg[lk])
 
-        top_hash = pkg._build(name, registry=registry, message=message)
+        pkg._push_manifest(name, registry, top_hash)
 
         if print_info:
             shorthash = registry.shorten_top_hash(name, top_hash)
-            print(f"Package {name}@{shorthash} pushed to s3://{dest_parsed.bucket}")
+            print(f"Package {name}@{shorthash} pushed to s3://{registry.base.bucket}")
 
             if user_is_configured_to_custom_stack():
                 navigator_url = get_from_config("navigator_url")
 
                 print(f"Successfully pushed the new package to "
-                      f"{catalog_package_url(navigator_url, dest_parsed.bucket, name, tree=False)}")
+                      f"{catalog_package_url(navigator_url, registry.base.bucket, name, tree=False)}")
             else:
-                dest_s3_url = str(dest_parsed)
+                dest_s3_url = str(registry.base)
                 if not dest_s3_url.endswith("/"):
                     dest_s3_url += "/"
                 print(f"Run `quilt3 catalog {dest_s3_url}` to browse.")
