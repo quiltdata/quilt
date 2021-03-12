@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import { FORM_ERROR } from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -396,15 +395,14 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     position: 'relative',
   },
   draggable: {
-    '&::after': {
-      bottom: '3px',
-      content: '""',
-      left: '3px',
-      outline: `2px dashed ${t.palette.secondary.main}`,
-      position: 'absolute',
-      right: '3px',
-      top: '3px',
-    },
+    border: `3px dashed ${t.palette.secondary.main}`,
+    borderRadius: '4px',
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 1,
   },
   editor: {
     overflowY: 'auto',
@@ -553,7 +551,7 @@ export const MetaInput = React.forwardRef(function MetaInput(
 
       <div
         {...getRootProps({
-          className: cx(classes.dropzone, { [classes.draggable]: isDragging }),
+          className: classes.dropzone,
         })}
         tabIndex={undefined}
       >
@@ -585,6 +583,8 @@ export const MetaInput = React.forwardRef(function MetaInput(
         )}
 
         <MetaInputErrorHelper className={classes.errors} error={error} />
+
+        {isDragging && <div className={classes.draggable} />}
 
         {(isDragActive || locked) && (
           <div className={classes.overlay}>
