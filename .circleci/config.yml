@@ -137,6 +137,23 @@ jobs:
       - codecov:
           flags: "lambda"
 
+  test-gendocs:
+    executor: python
+    environment:
+      QUILT_DISABLE_USAGE_METRICS: true
+    steps:
+      - checkout
+      - setup-venv
+      - run:
+          name: install deps
+          command: pip install api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@quilt
+      - run:
+          name: generate docs
+          command: cd gendocs && python build.py
+      - run:
+          name: check there are no changes
+          command: git diff --exit-code
+
   pypi-release:
     executor: python
     environment:
@@ -197,6 +214,7 @@ workflows:
     jobs:
       - linter
       - isort
+      - test-gendocs
       - test-client:
           matrix:
             parameters:
