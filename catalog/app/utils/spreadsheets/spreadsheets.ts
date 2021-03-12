@@ -9,45 +9,26 @@ type MetadataValue = $TSFixMe
 
 type JsonSchema = $TSFixMe
 
-export function parseCellsAsValues(
-  values: MetadataValue[],
-): MetadataValue | MetadataValue[] {
-  return values.length === 1 ? values[0] : values
-}
-
 export function rowsToJson(rows: MetadataValue[][]) {
+  // TODO: R.pipe(R.tail, R.length, R.max(memo)) ?
+  const maxSize = rows.reduce((memo, row) => R.max(memo, R.tail(row).length), 0)
   return pipeThru(rows)(
-    R.map(([key, ...values]) => [key, parseCellsAsValues(values)]),
+    R.map(([key, ...values]) => {
+      const nullsTail = R.repeat(null, maxSize - values.length)
+      return [key, R.concat(values, nullsTail)]
+    }),
     R.fromPairs,
-  )
-}
-
-export function rowsToRows([head, ...tail]: MetadataValue[][]): Record<
-  string,
-  MetadataValue
->[] {
-  return tail.map((row) =>
-    row.reduce((memo, value, index) => {
-      if (value === undefined) return memo
-      if (head[index] === undefined) return memo
-      return {
-        ...memo,
-        [head[index]]: value,
-      }
-    }, {}),
   )
 }
 
 export function parseSpreadsheet(
   sheet: xlsx.WorkSheet,
   transpose: boolean,
-  shouldBeListOfObject?: boolean,
 ): Record<string, MetadataValue> {
   const rows = xlsx.utils.sheet_to_json<MetadataValue>(sheet, {
     header: 1,
   })
-  const parser = shouldBeListOfObject ? rowsToRows : rowsToJson
-  return parser(transpose ? R.transpose(rows) : rows)
+  return rowsToJson(transpose ? R.transpose(rows) : rows)
 }
 
 export function readSpreadsheet(file: File): Promise<xlsx.WorkSheet> {
@@ -142,7 +123,7 @@ export function postProcess(
   obj: Record<string, MetadataValue>,
   schema?: JsonSchema,
 ): Record<string, MetadataValue> {
-  if (Array.isArray(obj)) return obj.map((v) => postProcess(v, schema.items))
+  if (Array.isArray(obj)) return obj.map((v) => postProcess(v, schema?.items))
   return R.mapObjIndexed(
     (value: MetadataValue, key: string) =>
       Array.isArray(value)
@@ -156,11 +137,11 @@ export function parseSpreadsheetAgainstSchema(
   sheet: xlsx.WorkSheet,
   schema?: JsonSchema,
 ): Record<string, MetadataValue> {
-  const verticalObj = parseSpreadsheet(sheet, true, schema?.type === 'array')
+  const verticalObj = parseSpreadsheet(sheet, true)
   const schemaRoot =
     schema?.type === 'array' ? schema?.items?.properties : schema?.properties
   if (schemaRoot) {
-    const horizontalObj = parseSpreadsheet(sheet, false, schema?.type === 'array')
+    const horizontalObj = parseSpreadsheet(sheet, false)
     if (
       scoreObjectDiff(
         schema?.type === 'array' ? horizontalObj[0] : horizontalObj,

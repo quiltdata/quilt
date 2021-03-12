@@ -1,38 +1,22 @@
 import dedent from 'dedent'
 import path from 'path'
-import * as R from 'ramda'
 import xlsx from 'xlsx'
 
 import * as spreadsheets from './spreadsheets'
 
 describe('utils/spreadsheets', () => {
-  describe('parseCellsAsValues', () => {
-    it('parses to single value', () => {
-      expect(spreadsheets.parseCellsAsValues(['abc'])).toBe('abc')
-    })
-
-    it('parses to list of values', () => {
-      expect(spreadsheets.parseCellsAsValues(['abc', null, undefined, 'ghi'])).toEqual([
-        'abc',
-        null,
-        undefined,
-        'ghi',
-      ])
-    })
-  })
-
   describe('rowsToJson', () => {
     const rows = [
       ['a', 'b', 'c'],
       ['d', 'e,i,j,k', 'f'],
-      ['g', 'h'],
+      ['g', 'h', null],
     ]
 
     it('converts rows array to dictionary object, array of cells', () => {
       expect(spreadsheets.rowsToJson(rows)).toEqual({
         a: ['b', 'c'],
         d: ['e,i,j,k', 'f'],
-        g: 'h',
+        g: ['h', null],
       })
     })
   })
@@ -50,7 +34,7 @@ describe('utils/spreadsheets', () => {
       expect(spreadsheets.parseSpreadsheet(sheet, false)).toEqual({
         a: ['b', 'c'],
         d: ['e,i,j,k', 'f'],
-        g: 'h',
+        g: ['h', null],
       })
     })
   })
@@ -83,8 +67,8 @@ describe('utils/spreadsheets', () => {
       const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
-        b: 1,
-        c: 2,
+        b: [1],
+        c: [2],
       })
     })
 
@@ -96,8 +80,8 @@ describe('utils/spreadsheets', () => {
       const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
-        b: 1,
-        c: 2,
+        b: [1],
+        c: [2],
       })
     })
 
@@ -109,9 +93,9 @@ describe('utils/spreadsheets', () => {
       const workbook = xlsx.read(csv, { type: 'string', cellDates: true })
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({
-        d: 1,
-        e: 2,
-        f: 3,
+        d: [1],
+        e: [2],
+        f: [3],
       })
     })
 
@@ -124,26 +108,26 @@ describe('utils/spreadsheets', () => {
       const bilboSchema = {
         type: 'object',
         properties: {
-          Fingers: { type: 'array' },
-          Male: { type: 'boolean' },
-          Parts: { type: 'array' },
+          Fingers: { type: 'array', items: { type: 'array' } },
+          Male: { type: 'array', tems: { type: 'boolean' } },
+          Parts: { type: 'array', items: { type: 'array' } },
         },
       }
       const outputRaw = {
-        Age: 131,
-        Date: '1990-09-22',
-        Fingers: '1,2,3,4,5,6,7,8,9,10',
-        Male: true,
-        Name: 'Bilbo Beggins',
-        Parts: 'head,legs,arms',
+        Age: [131],
+        Date: ['1990-09-22'],
+        Fingers: ['1,2,3,4,5,6,7,8,9,10'],
+        Male: [true],
+        Name: ['Bilbo Beggins'],
+        Parts: ['head,legs,arms'],
       }
       const outputSchemed = {
-        Age: 131,
-        Date: '1990-09-22',
-        Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-        Male: true,
-        Name: 'Bilbo Beggins',
-        Parts: ['head', 'legs', 'arms'],
+        Age: [131],
+        Date: ['1990-09-22'],
+        Fingers: [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]],
+        Male: [true],
+        Name: ['Bilbo Beggins'],
+        Parts: [['head', 'legs', 'arms']],
       }
 
       it('parses OpenOffice archive format', () => {
@@ -185,32 +169,6 @@ describe('utils/spreadsheets', () => {
         })
         const sheet = workbook.Sheets[workbook.SheetNames[0]]
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
-          outputSchemed,
-        )
-      })
-
-      it('parses XLSX format', () => {
-        const workbook = xlsx.readFile(path.resolve(__dirname, './mocks/bilbo.xlsx'), {
-          cellDates: true,
-        })
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(
-          R.assoc('Male', 1, outputRaw),
-        )
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
-          outputSchemed,
-        )
-      })
-
-      it('parses XLSM format', () => {
-        const workbook = xlsx.readFile(path.resolve(__dirname, './mocks/bilbo.xlsm'), {
-          cellDates: true,
-        })
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(
-          R.assoc('Male', 1, outputRaw),
-        )
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, bilboSchema)).toEqual(
           outputSchemed,
         )
@@ -258,7 +216,7 @@ describe('utils/spreadsheets', () => {
           'head,legs,arms',
           'head,legs,arms',
         ],
-        Unlisted: 'yes',
+        Unlisted: ['yes', null, null, null, null],
       }
       const outputSchemed = {
         Age: [131, 53, undefined, 8374, undefined],
@@ -279,7 +237,7 @@ describe('utils/spreadsheets', () => {
           ['head', 'legs', 'arms'],
           ['head', 'legs', 'arms'],
         ],
-        Unlisted: 'yes',
+        Unlisted: ['yes', null, null, null, null],
       }
 
       it('parses OpenOffice archive format', () => {
@@ -303,88 +261,6 @@ describe('utils/spreadsheets', () => {
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
         expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, hobbitsSchema)).toEqual(
           outputSchemed,
-        )
-      })
-    })
-
-    describe('as root list', () => {
-      const hobbitsSchema = {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            Fingers: {
-              type: 'array',
-              items: { type: 'number' },
-            },
-            Male: {
-              type: 'boolean',
-            },
-            Parts: {
-              type: 'array',
-              items: { type: 'string' },
-            },
-            Date: {
-              type: 'string',
-              format: 'date',
-            },
-          },
-        },
-      }
-      const output = [
-        {
-          Age: 131,
-          Date: '1990-09-22',
-          Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-          Male: true,
-          Name: 'Bilbo Baggins',
-          Parts: ['head', 'legs', 'arms'],
-          Unlisted: 'yes',
-        },
-        {
-          Age: 53,
-          Date: '1968-09-22',
-          Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-          Male: true,
-          Name: 'Frodo Baggins',
-          Parts: ['head', 'legs', 'arms'],
-        },
-        {
-          Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-          Male: true,
-          Name: 'Sauron',
-          Parts: ['head', 'legs', 'arms'],
-        },
-        {
-          Age: 8374,
-          Date: '2068-01-01',
-          Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-          Male: false,
-          Name: 'Galadriel',
-          Parts: ['head', 'legs', 'arms'],
-        },
-        {
-          Date: '1983-12-26',
-          Fingers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-          Male: true,
-          Name: 'Maxim',
-          Parts: ['head', 'legs', 'arms'],
-        },
-        {
-          Name: { a: 123, b: 345 },
-        },
-      ]
-
-      it('parses OpenOffice archive format', () => {
-        const workbook = xlsx.readFile(
-          path.resolve(__dirname, './mocks/hobbits-list.ods'),
-          {
-            cellDates: true,
-          },
-        )
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, hobbitsSchema)).toEqual(
-          output,
         )
       })
     })
