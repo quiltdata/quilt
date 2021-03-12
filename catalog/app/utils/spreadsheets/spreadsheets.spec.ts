@@ -45,7 +45,9 @@ describe('utils/spreadsheets', () => {
       const testB = { c: 4, d: 5, e: 6 }
       const control = { b: 123, c: 456 }
       const scoreA = spreadsheets.scoreObjectDiff(testA, control)
+      expect(scoreA).toBe(2)
       const scoreB = spreadsheets.scoreObjectDiff(testB, control)
+      expect(scoreB).toBe(1)
       expect(scoreA > scoreB).toBe(true)
     })
   })
