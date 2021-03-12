@@ -215,7 +215,7 @@ and
 [National clouds](https://docs.microsoft.com/en-us/azure/active-directory/develop/authentication-national-cloud)
 for further details. 
 1. Go to App registrations > Your Quilt app > Authentication > Implicit grants
-and hybrid flows, and check the box issue ID tokens 
+and hybrid flows, and check the box to issue ID tokens 
 1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
 
 ![](./imgs/active-directory.png)
