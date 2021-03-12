@@ -10,12 +10,12 @@ type MetadataValue = $TSFixMe
 type JsonSchema = $TSFixMe
 
 export function rowsToJson(rows: MetadataValue[][]) {
-  const maxSize = rows.reduce((memo, row) => R.max(memo, row.length - 1), 0)
+  // const maxSize = rows.reduce((memo, row) => R.max(memo, row.length - 1), 0)
   return pipeThru(rows)(
-    R.map(([key, ...values]) => {
-      const nullsTail = R.repeat(null, maxSize - values.length)
-      return [key, R.concat(values, nullsTail)]
-    }),
+    // R.map(([key, ...values]) => {
+    //   const nullsTail = R.repeat(null, maxSize - values.length)
+    //   return [key, R.concat(values, nullsTail)]
+    // }),
     R.fromPairs,
   )
 }
@@ -27,6 +27,16 @@ export function parseSpreadsheet(
   const rows = xlsx.utils.sheet_to_json<MetadataValue>(sheet, {
     header: 1,
   })
+  // const maxSize = rows.reduce((memo, row) => R.max(memo, row.length), 0)
+  // const normalizedRows = rows.map((row: any[]) => {
+  //   const nullsTail = R.repeat(null, maxSize - row.length)
+  //   return R.concat(row, nullsTail)
+  // })
+  // console.log({
+  //   normalizedRows: JSON.stringify(normalizedRows),
+  //   rows: JSON.stringify(rows),
+  //   transposed: JSON.stringify(R.transpose(normalizedRows)),
+  // })
   return rowsToJson(transpose ? R.transpose(rows) : rows)
 }
 
