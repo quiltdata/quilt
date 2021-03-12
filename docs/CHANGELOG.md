@@ -26,6 +26,7 @@
 * [Added] Link from bucket overview page to bucket settings ([#2022](https://github.com/quiltdata/quilt/pull/2022))
 * [Added] Folder to package dialog ([#2040](https://github.com/quiltdata/quilt/pull/2040))
 * [Added] Search lambda: `freeform` action API and UI ([#2087](https://github.com/quiltdata/quilt/pull/2087), [#2088](https://github.com/quiltdata/quilt/pull/2088))
+* [Added] Spreadsheets Drag'n'Drop to Metadata ([#2094](https://github.com/quiltdata/quilt/pull/2094))
 * [Changed] Tree view for files in package update dialog ([#1989](https://github.com/quiltdata/quilt/pull/1989))
 * [Changed] Lambda indexing retry logic to not fail content extraction ([#2007](https://github.com/quiltdata/quilt/pull/2007))
 * [Changed] Number of retries per ES and S3 failure in indexing Lambda ([#1987](https://github.com/quiltdata/quilt/pull/1987))

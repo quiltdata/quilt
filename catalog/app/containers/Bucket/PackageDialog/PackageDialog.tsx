@@ -1,4 +1,5 @@
 import { FORM_ERROR } from 'final-form'
+import mime from 'mime-types'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
@@ -16,6 +17,7 @@ import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import { makeSchemaDefaultsSetter, makeSchemaValidator } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
+import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
 import * as workflows from 'utils/workflows'
 
@@ -80,7 +82,7 @@ function cacheDebounce<I extends [any, ...any[]], O, K extends string | number |
   }
 }
 
-const readFile = (file: File): Promise<string> =>
+const readTextFile = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onabort = () => {
@@ -94,6 +96,15 @@ const readFile = (file: File): Promise<string> =>
     }
     reader.readAsText(file)
   })
+
+type JsonSchema = $TSFixMe
+
+const readFile = (file: File, schema?: JsonSchema): Promise<string | {}> => {
+  const mimeType = mime.extension(file.type)
+  if (mimeType && /ods|odt|csv|xlsx|xls/.test(mimeType))
+    return spreadsheets.readAgainstSchema(file, schema)
+  return readTextFile(file)
+}
 
 interface ApiRequest {
   <O>(opts: {
@@ -489,15 +500,19 @@ export const MetaInput = React.forwardRef(function MetaInput(
         return
       }
       setLocked(true)
-      readFile(file)
-        .then((contents) => {
-          try {
-            const json = JSON.parse(contents)
-            onJsonEditor(json)
-          } catch (e) {
-            notify('The file does not contain valid JSON')
+      readFile(file, schema)
+        .then((contents: string | {}) => {
+          if (R.is(Object, contents)) {
+            onJsonEditor(contents)
+          } else {
+            try {
+              JSON.parse(contents as string)
+            } catch (e) {
+              notify('The file does not contain valid JSON')
+            }
             changeText(contents)
           }
+          // force json editor to re-initialize
           setJsonEditorKey(R.inc)
         })
         .catch((e) => {
@@ -512,7 +527,7 @@ export const MetaInput = React.forwardRef(function MetaInput(
           setLocked(false)
         })
     },
-    [setLocked, changeText, onJsonEditor, notify],
+    [schema, setLocked, changeText, onJsonEditor, setJsonEditorKey, notify],
   )
 
   const { getRootProps, isDragActive } = useDropzone({ onDrop })

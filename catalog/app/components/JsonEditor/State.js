@@ -140,7 +140,7 @@ function calcReactId(valuePath, value) {
 }
 
 function getDefaultValue(jsonDictItem) {
-  if (!jsonDictItem.valueSchema) return EMPTY_VALUE
+  if (!jsonDictItem || !jsonDictItem.valueSchema) return EMPTY_VALUE
   if (jsonDictItem.valueSchema.default === undefined) return EMPTY_VALUE
   return jsonDictItem.valueSchema.default
 }
