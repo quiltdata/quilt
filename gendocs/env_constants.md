@@ -10,6 +10,15 @@ Turn off TQDM progress bars for log files. Defaults to `False`
 $ export QUILT_MINIMIZE_STDOUT=true
 ```
 
+### `QUILT_TRANSFER_MAX_CONCURRENCY`
+Number of threads for file transfers. Defaults to `10`.
+
+This variable could be tried for improving file transfer rate. The optimal value
+depends on network bandwidth, CPU performance, file sizes, etc.
+```
+$ export QUILT_TRANSFER_MAX_CONCURRENCY=20
+```
+
 ### `XDG_*`
 Quilt uses appdirs for Python to determine where to write data. You can therefore
 override the following path constants with environment variables using the XDG
