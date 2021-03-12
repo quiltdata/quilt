@@ -29,10 +29,10 @@ Schema is mandatory to convert this data to JSON:
 
 ```json
 {
-  type: "object",
+  "type": "object",
   "properties": {
     "keyA": {
-      "type": "array",
+      "type": "array"
     }
   }
 }
@@ -40,5 +40,6 @@ Schema is mandatory to convert this data to JSON:
 
 Quilt will try to guess table orientation by analazyng Schema.
 
-Table may have empty cells. They will be replaced by null in resulting JSON
-Tables may contain strings, numbers, booleans and dates. Dates will be converted into YYYY-MM-DD format. If JSON Schema has `{ type: "array" }` for cell, quilt will convert this string to array, splitting items by coma.
+Table may have empty cells. They will be replaced by null in resulting JSON.
+
+Tables may contain strings, numbers, booleans and dates. Dates will be converted into YYYY-MM-DD format. If JSON Schema has `{ type: "array" }` for cell, quilt will convert this string to array, splitting items by coma. Also quilt will try to parse strings as JSON, string `"{"a": 1, "b", 2}"` in spreadsheet's cell will become real object in resulting JSON.
