@@ -49,10 +49,7 @@ export function readSpreadsheet(file: File): Promise<xlsx.WorkSheet> {
 
 export function scoreObjectDiff(obj1: {}, obj2: {}): number {
   const keys = Object.keys(obj1)
-  return keys.reduce((memo, key) => {
-    if (key in obj2) return memo + 1
-    return memo
-  }, 0)
+  return keys.reduce((memo, key) => (key in obj2 ? memo + 1 : memo), 0)
 }
 
 function parseJSON(str: string | number | boolean) {
