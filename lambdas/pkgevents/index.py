@@ -46,7 +46,7 @@ class EventsQueue:
         return bool(self._events)
 
 
-PKG_POINTER_REGEX = re.compile(r'\.quilt/named_packages/([\w-]+/[\w-]+)/(.{10})')
+PKG_POINTER_REGEX = re.compile(r'\.quilt/named_packages/([\w-]+/[\w-]+)/([0-9]{10})')
 
 
 def pkg_created_event(s3_event):
