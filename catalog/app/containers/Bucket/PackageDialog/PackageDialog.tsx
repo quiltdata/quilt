@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import { FORM_ERROR } from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -14,6 +15,7 @@ import Delay from 'utils/Delay'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
+import useDragging from 'utils/dragging'
 import { makeSchemaDefaultsSetter, makeSchemaValidator } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import { readableBytes } from 'utils/string'
@@ -393,6 +395,17 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
     position: 'relative',
   },
+  draggable: {
+    '&::after': {
+      bottom: '3px',
+      content: '""',
+      left: '3px',
+      outline: `2px dashed ${t.palette.secondary.main}`,
+      position: 'absolute',
+      right: '3px',
+      top: '3px',
+    },
+  },
   editor: {
     overflowY: 'auto',
   },
@@ -515,6 +528,8 @@ export const MetaInput = React.forwardRef(function MetaInput(
     [setLocked, changeText, onJsonEditor, notify],
   )
 
+  const isDragging = useDragging()
+
   const { getRootProps, isDragActive } = useDropzone({ onDrop })
 
   return (
@@ -536,7 +551,12 @@ export const MetaInput = React.forwardRef(function MetaInput(
         </Lab.ToggleButtonGroup>
       </div>
 
-      <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
+      <div
+        {...getRootProps({
+          className: cx(classes.dropzone, { [classes.draggable]: isDragging }),
+        })}
+        tabIndex={undefined}
+      >
         {mode === 'kv' ? (
           <JsonEditor
             // @ts-expect-error
