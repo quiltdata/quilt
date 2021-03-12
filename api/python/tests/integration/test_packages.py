@@ -726,7 +726,7 @@ class PackageTest(QuiltTestCase):
                                                    "that was serialized"
 
         # Test that push cleans up the temporary files, if and only if the serialization_location was not set
-        with patch('quilt3.Package._build'), \
+        with patch('quilt3.Package._push_manifest'), \
              patch('quilt3.packages.copy_file_list', _mock_copy_file_list):
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket')
 
@@ -1089,17 +1089,18 @@ class PackageTest(QuiltTestCase):
         """ Verify commit messages populate correctly on push."""
         self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
         with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
-             patch('quilt3.Package._build') as build_mock:
+             patch('quilt3.Package._push_manifest') as push_manifest_mock, \
+             patch('quilt3.Package._calculate_top_hash', return_value=mock.sentinel.top_hash):
             with open(REMOTE_MANIFEST) as fd:
                 pkg = Package.load(fd)
 
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket', message='test_message')
             registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
             message = 'test_message'
-            build_mock.assert_called_once_with(
+            push_manifest_mock.assert_called_once_with(
                 'Quilt/test_pkg_name',
-                registry=registry,
-                message=message,
+                registry,
+                mock.sentinel.top_hash,
             )
             mocked_workflow_validate.assert_called_once_with(
                 registry=registry,
@@ -1190,7 +1191,7 @@ class PackageTest(QuiltTestCase):
         finally:
             locale.setlocale(locale.LC_ALL, current_locale)
 
-    @patch('quilt3.Package._build', mock.MagicMock())
+    @patch('quilt3.Package._push_manifest', mock.MagicMock())
     @patch('quilt3.packages.copy_file_list', mock.MagicMock())
     @patch('quilt3.workflows.validate', mock.MagicMock(return_value='workflow data'))
     def test_manifest_workflow(self):
@@ -1683,6 +1684,8 @@ class PackageTest(QuiltTestCase):
 
     @patch('quilt3.packages.copy_file_list')
     @patch('quilt3.workflows.validate', return_value=mock.sentinel.returned_workflow)
+    @patch('quilt3.Package._calculate_top_hash', mock.MagicMock(return_value=mock.sentinel.top_hash))
+    @patch('quilt3.Package._set_commit_message', mock.MagicMock())
     def test_workflow_validation(self, workflow_validate_mock, copy_file_list_mock):
         registry = 's3://test-bucket'
         pkg_registry = self.S3PackageRegistryDefault(PhysicalKey.from_url('s3://test-bucket'))
@@ -1690,7 +1693,7 @@ class PackageTest(QuiltTestCase):
 
         for method in (Package.build, Package.push):
             with self.subTest(method=method):
-                with patch('quilt3.Package._build') as build_mock:
+                with patch('quilt3.Package._push_manifest') as push_manifest_mock:
                     pkg = Package().set('foo', DATA_DIR / 'foo.txt')
                     method(pkg, 'test/pkg', registry)
                     workflow_validate_mock.assert_called_once_with(
@@ -1700,13 +1703,14 @@ class PackageTest(QuiltTestCase):
                         message=None,
                     )
                     assert pkg._workflow is mock.sentinel.returned_workflow
-                    build_mock.assert_called_once()
+                    push_manifest_mock.assert_called_once()
                     workflow_validate_mock.reset_mock()
                     if method is Package.push:
                         copy_file_list_mock.assert_called_once()
                         copy_file_list_mock.reset_mock()
 
-                with patch('quilt3.Package._build') as build_mock:
+            with self.subTest(method=method):
+                with patch('quilt3.Package._push_manifest') as push_manifest_mock:
                     pkg = Package().set('foo', DATA_DIR / 'foo.txt').set_meta(mock.sentinel.pkg_meta)
                     method(
                         pkg,
@@ -1722,11 +1726,69 @@ class PackageTest(QuiltTestCase):
                         message=mock.sentinel.message,
                     )
                     assert pkg._workflow is mock.sentinel.returned_workflow
-                    build_mock.assert_called_once()
+                    push_manifest_mock.assert_called_once()
                     workflow_validate_mock.reset_mock()
                     if method is Package.push:
                         copy_file_list_mock.assert_called_once()
                         copy_file_list_mock.reset_mock()
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_push_dest_fn_non_string(self):
+        pkg = Package().set('foo', DATA_DIR / 'foo.txt')
+        for val in (None, 42):
+            with self.subTest(value=val):
+                with pytest.raises(TypeError) as excinfo:
+                    pkg.push('foo/bar', registry='s3://test-bucket',
+                             dest=(lambda v: lambda *args, **kwargs: v)(val))
+                assert 'str is expected' in str(excinfo.value)
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_push_dest_fn_non_supported_uri(self):
+        pkg = Package().set('foo', DATA_DIR / 'foo.txt')
+        for val in ('http://example.com', 'file:///bffd'):
+            with self.subTest(value=val):
+                with pytest.raises(quilt3.util.URLParseError):
+                    pkg.push('foo/bar', registry='s3://test-bucket',
+                             dest=(lambda v: lambda *args, **kwargs: v)(val))
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    def test_push_dest_fn_s3_uri_with_version_id(self):
+        pkg = Package().set('foo', DATA_DIR / 'foo.txt')
+        with pytest.raises(ValueError) as excinfo:
+            pkg.push('foo/bar', registry='s3://test-bucket', dest=lambda *args, **kwargs: 's3://bucket/ds?versionId=v')
+        assert 'URI must not include versionId' in str(excinfo.value)
+
+    @patch('quilt3.workflows.validate', mock.MagicMock(return_value=None))
+    @patch('quilt3.Package._calculate_top_hash', mock.MagicMock(return_value=mock.sentinel.top_hash))
+    def test_push_dest_fn(self):
+        pkg_name = 'foo/bar'
+        lk = 'foo'
+        pkg = Package().set(lk, DATA_DIR / 'foo.txt')
+        dest_bucket = 'new-bucket'
+        dest_key = 'new-key'
+        dest_fn = mock.MagicMock(return_value=f's3://{dest_bucket}/{dest_key}')
+        version = '1'
+
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': '1',
+            },
+            expected_params={
+                'Body': ANY,
+                'Bucket': dest_bucket,
+                'Key': dest_key,
+            }
+        )
+        push_manifest_mock = self.patch_s3_registry('push_manifest')
+        self.patch_s3_registry('shorten_top_hash', return_value='7a67ff4')
+        pkg.push(pkg_name, registry='s3://test-bucket', dest=dest_fn)
+
+        dest_fn.assert_called_once_with(lk, pkg[lk], mock.sentinel.top_hash)
+        push_manifest_mock.assert_called_once_with(pkg_name, mock.sentinel.top_hash, ANY)
+        assert Package.load(
+            BytesIO(push_manifest_mock.call_args[0][2])
+        )[lk].physical_key == PhysicalKey(dest_bucket, dest_key, version)
 
 
 class PackageTestV2(PackageTest):
