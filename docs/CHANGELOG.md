@@ -41,6 +41,8 @@
 * [Fixed] Use EncodingType=url for S3 list requests to handle special chars in keys / prefixes ([#2026](https://github.com/quiltdata/quilt/pull/2026))
 * [Fixed] Empty response from `pkgselect` folder view for packages with all non-string logical_keys or physical_keys ([#1947](https://github.com/quiltdata/quilt/pull/1947))
 * [Fixed] "Download Directory" bug that caused 502 or failed downloads when any files contained the "+" character ([#2067](https://github.com/quiltdata/quilt/pull/2067/))
+* [Added] Ability to log in with Microsoft Azure Active Directory
+via OIDC ([#2089](https://github.com/quiltdata/quilt/pull/2089))
 
 # 3.3.0 - 2020-12-08
 ## Python API
