@@ -173,7 +173,7 @@
     "jest": "^26.6.3",
     "jest-localstorage-mock": "^2.4.7",
     "lint-staged": "^10.5.4",
-    "ngrok": "^3.4.0",
+    "ngrok": "^3.4.1",
     "prettier": "^2.2.1",
     "raw-loader": "^4.0.2",
     "react-test-renderer": "^16.14.0",
