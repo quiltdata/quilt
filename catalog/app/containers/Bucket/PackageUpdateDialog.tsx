@@ -659,7 +659,7 @@ export function usePackageUpdateDialog({
     { s3, bucket, name, hash, key },
     { noAutoFetch: !wasOpened },
   )
-  const workflowsData = Data.use(requests.workflowsList, { s3, bucket })
+  const workflowsData = Data.use(requests.workflowsConfig, { s3, bucket })
 
   const open = React.useCallback(() => {
     setOpen(true)

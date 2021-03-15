@@ -748,7 +748,7 @@ function PackageCreateDialog({
 
 export default function PackageCreateDialogWrapper({ bucket, open, onClose, refresh }) {
   const s3 = AWS.S3.use()
-  const data = useData(requests.workflowsList, { s3, bucket }, { noAutoFetch: !open })
+  const data = useData(requests.workflowsConfig, { s3, bucket }, { noAutoFetch: !open })
 
   const [workflow, setWorkflow] = React.useState(null)
   const [success, setSuccess] = React.useState(false)

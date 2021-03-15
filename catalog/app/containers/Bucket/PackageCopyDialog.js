@@ -407,7 +407,7 @@ export default function PackageCopyDialog({
   )
 
   const workflowsData = Data.use(
-    requests.workflowsList,
+    requests.workflowsConfig,
     { s3, bucket: successor ? successor.slug : '' },
     { noAutoFetch: !successor || !open },
   )
