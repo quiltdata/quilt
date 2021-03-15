@@ -153,7 +153,7 @@ describe('utils/spreadsheets', () => {
       it('parses .xls', () => testParsing('./mocks/bilbo.xls'))
     })
 
-    describe('for multivalued Excel files', () => {
+    describe('for multivalued LibreOffice files', () => {
       const hobbitsSchema = {
         type: 'object',
         properties: {
@@ -242,12 +242,102 @@ describe('utils/spreadsheets', () => {
       it('parses .ods', () => testParsing('./mocks/hobbits.ods'))
       it('parses .csv', () => testParsing('./mocks/hobbits.csv'))
       it('parses .fods', () => testParsing('./mocks/hobbits.fods'))
-      it.skip('parses .xlsx', () => testParsing('./mocks/hobbits.xlsx'))
-      it.skip('parses .xlsx', () => testParsing('./mocks/hobbits-1.xlsx'))
-      it.skip('parses .xlsm', () => testParsing('./mocks/hobbits.xlsm'))
 
       it('parses transposed .ods', () =>
         testParsingTransposed('./mocks/hobbits-horizontal.ods'))
+      it('parses transposed .csv', () =>
+        testParsingTransposed('./mocks/hobbits-horizontal.csv'))
+      it('parses transposed .fods', () =>
+        testParsingTransposed('./mocks/hobbits-horizontal.fods'))
+    })
+
+    describe('for multivalued Excel files', () => {
+      const hobbitsSchema = {
+        type: 'object',
+        properties: {
+          Fingers: {
+            type: 'array',
+            items: { type: 'array' },
+          },
+          Male: {
+            type: 'array',
+            items: { type: 'boolean' },
+          },
+          Parts: {
+            type: 'array',
+            items: { type: 'array' },
+          },
+        },
+      }
+      const outputRaw = {
+        Age: [131, 53, null, 8374, null, { a: 123, b: 345 }],
+        Fingers: [
+          '1,2,3,4,5,6,7,8,9,10',
+          '1,2,3,4,5,6,7,8,9,10',
+          '1,2,3,4,5,6,7,8,9,10',
+          '1,2,3,4,5,6,7,8,9,10',
+          '1,2,3,4,5,6,7,8,9,10',
+          null,
+        ],
+        Male: [true, true, true, false, true, null],
+        Name: ['Bilbo Baggins', 'Frodo Baggins', 'Sauron', 'Galadriel', 'Maxim', null],
+        Parts: [
+          'head,legs,arms',
+          'head,legs,arms',
+          'head,legs,arms',
+          'head,legs,arms',
+          'head,legs,arms',
+          null,
+        ],
+        Unlisted: ['yes', null, null, null, null, null],
+        null: ['break it', null, null, null, null, null],
+      }
+      const outputSchemed = {
+        Age: [131, 53, null, 8374, null, { a: 123, b: 345 }],
+        Fingers: [
+          [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+          null,
+        ],
+        Male: [true, true, true, false, true, null],
+        Name: ['Bilbo Baggins', 'Frodo Baggins', 'Sauron', 'Galadriel', 'Maxim', null],
+        Parts: [
+          ['head', 'legs', 'arms'],
+          ['head', 'legs', 'arms'],
+          ['head', 'legs', 'arms'],
+          ['head', 'legs', 'arms'],
+          ['head', 'legs', 'arms'],
+          null,
+        ],
+        Unlisted: ['yes', null, null, null, null, null],
+        null: ['break it', null, null, null, null, null],
+      }
+
+      const testParsing = (filename: string) => {
+        const sheet = readXlsx(filename)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet)).toEqual(outputRaw)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, hobbitsSchema)).toEqual(
+          outputSchemed,
+        )
+      }
+
+      const testParsingTransposed = (filename: string) => {
+        const sheet = readXlsx(filename)
+        expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, hobbitsSchema)).toEqual(
+          outputSchemed,
+        )
+      }
+
+      it('parses .xlsx', () => testParsing('./mocks/hobbits.xlsx'))
+      it('parses .xlsm', () => testParsing('./mocks/hobbits.xlsm'))
+
+      it('parses transposed .xlsx', () =>
+        testParsingTransposed('./mocks/hobbits-horizontal.xlsx'))
+      it('parses transposed .xlsm', () =>
+        testParsingTransposed('./mocks/hobbits-horizontal.xlsm'))
     })
   })
 
