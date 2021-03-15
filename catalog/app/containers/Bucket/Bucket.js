@@ -100,7 +100,7 @@ function BucketNav({ bucket, section = false }) {
       </M.Tabs>
     ),
     Err: () => null,
-    _: () => null,
+    _: () => <M.CircularProgress size={32} style={{ margin: '16px auto' }} />,
   })
 }
 
