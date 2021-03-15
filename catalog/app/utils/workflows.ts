@@ -39,13 +39,15 @@ export interface Successor {
   copyData: boolean
 }
 
+export interface NavPreferences {
+  files: boolean
+  overview: boolean
+  packages: boolean
+  queries: boolean
+}
+
 interface UiPreferences {
-  nav: {
-    files: boolean
-    overview: boolean
-    packages: boolean
-    queries: boolean
-  }
+  nav: NavPreferences
 }
 
 export interface Schema {
@@ -84,7 +86,7 @@ export const emptyConfig: WorkflowsConfig = {
   workflows: [getNoWorkflow({} as WorkflowsYaml, false)],
   ui: {
     nav: {
-      files: false,
+      files: true,
       overview: true,
       packages: true,
       queries: true,

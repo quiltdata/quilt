@@ -1,20 +1,17 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link, Route, Switch, matchPath } from 'react-router-dom'
-import * as RC from 'recompose'
+import { Route, Switch, matchPath } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import { ThrowNotFound } from 'containers/NotFoundPage'
-import * as AWS from 'utils/AWS'
 import { useBucketExistence } from 'utils/BucketCache'
-import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
 
 import { displayError } from './errors'
-import * as requests from './requests'
+import BucketNav from './BucketNav'
 
 const mkLazy = (load) =>
   RT.loadable(load, { fallback: () => <Placeholder color="text.secondary" /> })
@@ -57,52 +54,6 @@ const getBucketSection = (paths) =>
       sections,
     ),
   )
-
-const NavTab = RT.composeComponent(
-  'Bucket.Layout.Tab',
-  M.withStyles((t) => ({
-    root: {
-      minHeight: t.spacing(8),
-      minWidth: 120,
-    },
-  })),
-  RC.withProps({ component: Link }),
-  M.Tab,
-)
-
-function useWorkflowsConfig(bucket, options) {
-  const s3 = AWS.S3.use()
-  return useData(requests.workflowsConfig, { s3, bucket }, options)
-}
-
-function BucketNav({ bucket, section = false }) {
-  const workflowsConfigData = useWorkflowsConfig(bucket)
-  const { urls } = NamedRoutes.use()
-
-  return workflowsConfigData.case({
-    Ok: (workflowsConfig) => (
-      <M.Tabs value={section} centered>
-        {workflowsConfig.ui.nav.overview && (
-          <NavTab label="Overview" value="overview" to={urls.bucketOverview(bucket)} />
-        )}
-        {workflowsConfig.ui.nav.files && (
-          <NavTab label="Files" value="tree" to={urls.bucketDir(bucket)} />
-        )}
-        {workflowsConfig.ui.nav.packages && (
-          <NavTab label="Packages" value="packages" to={urls.bucketPackageList(bucket)} />
-        )}
-        {workflowsConfig.ui.nav.queries && (
-          <NavTab label="Queries" value="queries" to={urls.bucketQueries(bucket)} />
-        )}
-        {section === 'search' && (
-          <NavTab label="Search" value="search" to={urls.bucketSearch(bucket)} />
-        )}
-      </M.Tabs>
-    ),
-    Err: () => null,
-    _: () => <M.CircularProgress size={32} style={{ margin: '16px auto' }} />,
-  })
-}
 
 const useStyles = M.makeStyles((t) => ({
   appBar: {
