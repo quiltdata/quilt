@@ -35,11 +35,15 @@ export function parseSpreadsheet(
     header: 1,
   })
   const maxSize = rows.reduce((memo, row) => R.max(memo, row.length), 0)
-  const normalizedRows = rows.map((row: any[]) => {
-    const nullsTail = R.repeat(null, maxSize - row.length)
-    return R.concat(row, nullsTail)
-  })
-  return rowsToJson(transpose ? R.transpose(normalizedRows) : normalizedRows)
+  return pipeThru(rows)(
+    R.without([[]]),
+    R.map((row: any[]) => {
+      const nullsTail = R.repeat(null, maxSize - row.length)
+      return R.concat(row, nullsTail)
+    }),
+    R.when(() => transpose, R.transpose),
+    rowsToJson,
+  )
 }
 
 export function readSpreadsheet(file: File): Promise<xlsx.WorkSheet> {
