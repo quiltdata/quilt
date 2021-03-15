@@ -53,7 +53,6 @@ function BucketNavSkeleton() {
       <Skeleton className={classes.item} animate />
       <Skeleton className={classes.item} animate />
       <Skeleton className={classes.item} animate />
-      <Skeleton className={classes.item} animate />
     </div>
   )
 }
