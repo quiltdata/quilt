@@ -28,7 +28,7 @@ describe('utils/spreadsheets', () => {
     })
   })
 
-  describe.skip('parseSpreadsheet', () => {
+  describe('parseSpreadsheet', () => {
     const csv = dedent`
         a,b,c
         d,"e,i,j,k",f
@@ -68,7 +68,7 @@ describe('utils/spreadsheets', () => {
       },
     }
 
-    it.skip('parse vertical spreadsheet', () => {
+    it('parse vertical spreadsheet', () => {
       const csv = dedent`
         b,c
         1,2
@@ -81,7 +81,7 @@ describe('utils/spreadsheets', () => {
       })
     })
 
-    it.skip('parse horizontal spreadsheet', () => {
+    it('parse horizontal spreadsheet', () => {
       const csv = dedent`
         b,1
         c,2
@@ -94,7 +94,7 @@ describe('utils/spreadsheets', () => {
       })
     })
 
-    it.skip('parse as vertical when no keys in common', () => {
+    it('parse as vertical when no keys in common', () => {
       const csv = dedent`
         d,e,f
         1,2,3
@@ -108,12 +108,12 @@ describe('utils/spreadsheets', () => {
       })
     })
 
-    it.skip('parse invalid data with no error', () => {
+    it('parse invalid data with no error', () => {
       const sheet = ['123']
       expect(spreadsheets.parseSpreadsheetAgainstSchema(sheet, schema)).toEqual({})
     })
 
-    describe.skip('for flat Excel files', () => {
+    describe('for flat Excel files', () => {
       const bilboSchema = {
         type: 'object',
         properties: {
