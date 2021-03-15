@@ -12,7 +12,7 @@ function readXlsx(filename: string): xlsx.WorkSheet {
 }
 
 describe('utils/spreadsheets', () => {
-  describe.skip('rowsToJson', () => {
+  describe('rowsToJson', () => {
     const rows = [
       ['a', 'b', 'c'],
       ['d', 'e,i,j,k', 'f'],
@@ -176,8 +176,8 @@ describe('utils/spreadsheets', () => {
         },
       }
       const outputRaw = {
-        Age: [131, 53, undefined, 8374, undefined, { a: 123, b: 345 }],
-        Date: ['1990-09-22', '1968-09-22', undefined, '2068-01-01', '1983-12-26', null],
+        Age: [131, 53, null, 8374, null, { a: 123, b: 345 }],
+        Date: ['1990-09-22', '1968-09-22', null, '2068-01-01', '1983-12-26', null],
         Fingers: [
           '1,2,3,4,5,6,7,8,9,10',
           '1,2,3,4,5,6,7,8,9,10',
@@ -187,14 +187,7 @@ describe('utils/spreadsheets', () => {
           null,
         ],
         Male: [true, true, true, false, true, null],
-        Name: [
-          'Bilbo Baggins',
-          'Frodo Baggins',
-          'Sauron',
-          'Galadriel',
-          'Maxim',
-          undefined,
-        ],
+        Name: ['Bilbo Baggins', 'Frodo Baggins', 'Sauron', 'Galadriel', 'Maxim', null],
         Parts: [
           'head,legs,arms',
           'head,legs,arms',
@@ -204,11 +197,11 @@ describe('utils/spreadsheets', () => {
           null,
         ],
         Unlisted: ['yes', null, null, null, null, null],
-        'break it': [null, null, null, null, null, null],
+        null: ['break it', null, null, null, null, null],
       }
       const outputSchemed = {
-        Age: [131, 53, undefined, 8374, undefined, { a: 123, b: 345 }],
-        Date: ['1990-09-22', '1968-09-22', undefined, '2068-01-01', '1983-12-26', null],
+        Age: [131, 53, null, 8374, null, { a: 123, b: 345 }],
+        Date: ['1990-09-22', '1968-09-22', null, '2068-01-01', '1983-12-26', null],
         Fingers: [
           [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
           [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -218,14 +211,7 @@ describe('utils/spreadsheets', () => {
           null,
         ],
         Male: [true, true, true, false, true, null],
-        Name: [
-          'Bilbo Baggins',
-          'Frodo Baggins',
-          'Sauron',
-          'Galadriel',
-          'Maxim',
-          undefined,
-        ],
+        Name: ['Bilbo Baggins', 'Frodo Baggins', 'Sauron', 'Galadriel', 'Maxim', null],
         Parts: [
           ['head', 'legs', 'arms'],
           ['head', 'legs', 'arms'],
@@ -235,7 +221,7 @@ describe('utils/spreadsheets', () => {
           null,
         ],
         Unlisted: ['yes', null, null, null, null, null],
-        'break it': [null, null, null, null, null, null],
+        null: ['break it', null, null, null, null, null],
       }
 
       const testParsing = (filename: string) => {
@@ -254,9 +240,9 @@ describe('utils/spreadsheets', () => {
       }
 
       it('parses .ods', () => testParsing('./mocks/hobbits.ods'))
-      it.skip('parses .csv', () => testParsing('./mocks/hobbits.csv'))
+      it('parses .csv', () => testParsing('./mocks/hobbits.csv'))
 
-      it.skip('parses transposed .ods', () =>
+      it('parses transposed .ods', () =>
         testParsingTransposed('./mocks/hobbits-horizontal.ods'))
     })
   })
