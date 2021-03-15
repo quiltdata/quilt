@@ -7,15 +7,13 @@
 ## Catalog, Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
+# 3.4.0rc1 - 2021-03-15
 ## Python API
 * [Added] `QUILT_TRANSFER_MAX_CONCURRENCY` environment variable ([#2092](https://github.com/quiltdata/quilt/pull/2092))
 * [Added] `QUILT_DISABLE_CACHE` environment variable ([#2091](https://github.com/quiltdata/quilt/pull/2091))
 * [Added] Support for callable `dest` parameter in `Package.push()` ([#2095](https://github.com/quiltdata/quilt/pull/2095))
 * [Changed] Removed unused dependency on `packaging` ([#2090](https://github.com/quiltdata/quilt/pull/2090))
 * [Fixed] Possible downloading of truncated manifests ([#1977](https://github.com/quiltdata/quilt/pull/1977))
-
-## CLI
 
 ## Catalog, Lambdas
 * [Added] Support for EventBridge S3 events to es/indexer ([#1987](https://github.com/quiltdata/quilt/pull/1987))
