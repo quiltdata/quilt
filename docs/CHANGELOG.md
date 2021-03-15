@@ -7,7 +7,7 @@
 ## Catalog, Lambdas
 !-->
 
-# 3.4.0rc1 - 2021-03-15
+# 3.4.0 - 2021-03-15
 ## Python API
 * [Added] `QUILT_TRANSFER_MAX_CONCURRENCY` environment variable ([#2092](https://github.com/quiltdata/quilt/pull/2092))
 * [Added] `QUILT_DISABLE_CACHE` environment variable ([#2091](https://github.com/quiltdata/quilt/pull/2091))
