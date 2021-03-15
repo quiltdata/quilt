@@ -8,6 +8,7 @@ import logging
 import os
 import pathlib
 import shutil
+import sys
 import tempfile
 import textwrap
 import time
@@ -57,7 +58,8 @@ logger = logging.getLogger(__name__)
 
 def _fix_docstring(**kwargs):
     def f(wrapped):
-        wrapped.__doc__ = textwrap.dedent(wrapped.__doc__) % kwargs
+        if sys.flags.optimize < 2:
+            wrapped.__doc__ = textwrap.dedent(wrapped.__doc__) % kwargs
         return wrapped
     return f
 
