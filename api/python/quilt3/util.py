@@ -20,6 +20,11 @@ import requests
 import yaml
 from appdirs import user_cache_dir, user_data_dir
 
+
+def get_bool_from_env(var_name: str):
+    return os.getenv(var_name, '').lower() == 'true'
+
+
 APP_NAME = "Quilt"
 APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
@@ -30,8 +35,10 @@ CONFIG_PATH = BASE_PATH / 'config.yml'
 OPEN_DATA_URL = "https://open.quiltdata.com"
 
 PACKAGE_NAME_FORMAT = r"([\w-]+/[\w-]+)(?:/(.+))?$"
-DISABLE_TQDM = os.getenv('QUILT_MINIMIZE_STDOUT', '').lower() == 'true'
+DISABLE_TQDM = get_bool_from_env('QUILT_MINIMIZE_STDOUT')
 PACKAGE_UPDATE_POLICY = {'incoming', 'existing'}
+IS_CACHE_ENABLED = not get_bool_from_env('QUILT_DISABLE_CACHE')
+
 
 # CONFIG_TEMPLATE
 # Must contain every permitted config key, as well as their default values (which can be 'null'/None).

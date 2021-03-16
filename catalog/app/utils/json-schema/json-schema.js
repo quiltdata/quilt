@@ -1,9 +1,9 @@
 import Ajv from 'ajv'
 import * as R from 'ramda'
 
-const isSchemaArray = (optSchema) => R.prop('type', optSchema) === 'array'
+export const isSchemaArray = (optSchema) => R.prop('type', optSchema) === 'array'
 
-const isSchemaObject = (optSchema) => R.prop('type', optSchema) === 'object'
+export const isSchemaObject = (optSchema) => R.prop('type', optSchema) === 'object'
 
 const isSchemaString = (optSchema) => R.prop('type', optSchema) === 'string'
 
@@ -11,7 +11,7 @@ const isSchemaNumber = (optSchema) => R.prop('type', optSchema) === 'number'
 
 const isSchemaInteger = (optSchema) => R.prop('type', optSchema) === 'integer'
 
-const isSchemaBoolean = (optSchema) => R.prop('type', optSchema) === 'boolean'
+export const isSchemaBoolean = (optSchema) => R.prop('type', optSchema) === 'boolean'
 
 const isSchemaNull = (optSchema) => R.prop('type', optSchema) === 'null'
 

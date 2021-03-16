@@ -173,7 +173,9 @@ function Form({ disabled, value, onChange, onError, onSubmit }: FormProps) {
 
 const QUERY_PLACEHOLDER = {
   body: { query: { query_string: { query: 'test' } } },
+  filter_path: 'hits.hits._source.key',
   index: '_all',
+  size: 10,
 }
 
 const isButtonDisabled = (

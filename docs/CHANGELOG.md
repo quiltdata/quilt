@@ -9,11 +9,18 @@
 
 # unreleased - YYYY-MM-DD
 ## Python API
-* [Added] `QUILT_TRANSFER_MAX_CONCURRENCY` environment variable ([#2092](https://github.com/quiltdata/quilt/pull/2092))
-* [Changed] Removed unused dependency on `packaging` ([#2090](https://github.com/quiltdata/quilt/pull/2090))
-* [Fixed] Possible downloading of truncated manifests ([#1977](https://github.com/quiltdata/quilt/pull/1977))
 
 ## CLI
+
+## Catalog, Lambdas
+
+# 3.4.0 - 2021-03-15
+## Python API
+* [Added] `QUILT_TRANSFER_MAX_CONCURRENCY` environment variable ([#2092](https://github.com/quiltdata/quilt/pull/2092))
+* [Added] `QUILT_DISABLE_CACHE` environment variable ([#2091](https://github.com/quiltdata/quilt/pull/2091))
+* [Added] Support for callable `dest` parameter in `Package.push()` ([#2095](https://github.com/quiltdata/quilt/pull/2095))
+* [Changed] Removed unused dependency on `packaging` ([#2090](https://github.com/quiltdata/quilt/pull/2090))
+* [Fixed] Possible downloading of truncated manifests ([#1977](https://github.com/quiltdata/quilt/pull/1977))
 
 ## Catalog, Lambdas
 * [Added] Support for EventBridge S3 events to es/indexer ([#1987](https://github.com/quiltdata/quilt/pull/1987))
@@ -24,6 +31,7 @@
 * [Added] Link from bucket overview page to bucket settings ([#2022](https://github.com/quiltdata/quilt/pull/2022))
 * [Added] Folder to package dialog ([#2040](https://github.com/quiltdata/quilt/pull/2040))
 * [Added] Search lambda: `freeform` action API and UI ([#2087](https://github.com/quiltdata/quilt/pull/2087), [#2088](https://github.com/quiltdata/quilt/pull/2088))
+* [Added] Spreadsheets Drag'n'Drop to Metadata ([#2094](https://github.com/quiltdata/quilt/pull/2094))
 * [Changed] Tree view for files in package update dialog ([#1989](https://github.com/quiltdata/quilt/pull/1989))
 * [Changed] Lambda indexing retry logic to not fail content extraction ([#2007](https://github.com/quiltdata/quilt/pull/2007))
 * [Changed] Number of retries per ES and S3 failure in indexing Lambda ([#1987](https://github.com/quiltdata/quilt/pull/1987))
@@ -41,6 +49,8 @@
 * [Fixed] Use EncodingType=url for S3 list requests to handle special chars in keys / prefixes ([#2026](https://github.com/quiltdata/quilt/pull/2026))
 * [Fixed] Empty response from `pkgselect` folder view for packages with all non-string logical_keys or physical_keys ([#1947](https://github.com/quiltdata/quilt/pull/1947))
 * [Fixed] "Download Directory" bug that caused 502 or failed downloads when any files contained the "+" character ([#2067](https://github.com/quiltdata/quilt/pull/2067/))
+* [Added] Ability to log in with Microsoft Azure Active Directory
+via OIDC ([#2089](https://github.com/quiltdata/quilt/pull/2089))
 
 # 3.3.0 - 2020-12-08
 ## Python API

@@ -198,6 +198,28 @@ In the template menu (CloudFormation or Service Catalog), select Google under *U
 
 ![](./imgs/google_auth.png)
 
+#### Active Directory
+
+1. Go to Azure Portal > Active Directory > App Registrations
+1. Click New Registration
+1. Name the app, select the Supported account types
+1. Set a Redirect URI from a "Single-page application" to
+`https://<QuiltWebHost>/oauth-callback`
+1. Once the application has been created you will need both its Application
+(client) ID and Directory (tenant) ID
+1. Your `AzureBaseUrl` will be of the form
+`https://ENDPOINT/TENANT_ID`. In most cases `ENDPOINT` is simply
+`login.microsoftonline.com`. Reference
+[Microsoft identity platform and OpenID Connect protocol](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc)
+and
+[National clouds](https://docs.microsoft.com/en-us/azure/active-directory/develop/authentication-national-cloud)
+for further details. 
+1. Go to App registrations > Your Quilt app > Authentication > Implicit grants
+and hybrid flows, and check the box to issue ID tokens 
+1. Proceed to [Enabling SSO](#enabling-sso-in-cloudformation)
+
+![](./imgs/active-directory.png)
+
 #### Okta
 
 1. Go to Okta > Admin > Applications
