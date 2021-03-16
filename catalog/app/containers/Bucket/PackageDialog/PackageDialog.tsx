@@ -602,7 +602,7 @@ export const MetaInput = React.forwardRef(function MetaInput(
             {isDragActive ? (
               <div className={classes.overlayContents}>
                 <div className={classes.overlayText}>
-                  Drop file containing JSON metadata
+                  Drop metadata file (XLSX, CSV, JSON)
                 </div>
               </div>
             ) : (
