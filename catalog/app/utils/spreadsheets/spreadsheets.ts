@@ -41,7 +41,7 @@ export function parseSpreadsheet(
       const nullsTail = R.repeat(null, maxSize - row.length)
       return R.concat(row, nullsTail)
     }),
-    R.when(() => transpose, R.transpose),
+    transpose ? R.transpose : R.identity,
     rowsToJson,
   )
 }
