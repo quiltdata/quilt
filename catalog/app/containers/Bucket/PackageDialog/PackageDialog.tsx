@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import { FORM_ERROR } from 'final-form'
 import mime from 'mime-types'
 import * as R from 'ramda'
@@ -406,25 +407,21 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     position: 'relative',
   },
   draggable: {
-    border: `3px dashed ${t.palette.secondary.main}`,
-    borderRadius: '4px',
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    zIndex: 1,
+    borderColor: t.palette.primary.main,
+    borderStyle: 'dashed',
+    borderWidth: '2px',
+    margin: 0,
   },
   editor: {
     overflowY: 'auto',
   },
   overlay: {
     background: 'rgba(255,255,255,0.6)',
-    bottom: 0,
-    left: 0,
+    bottom: '2px',
+    left: '2px',
     position: 'absolute',
-    right: 0,
-    top: 0,
+    right: '2px',
+    top: '2px',
     zIndex: 1,
   },
   overlayContents: {
@@ -579,6 +576,7 @@ export const MetaInput = React.forwardRef(function MetaInput(
             onChange={onJsonEditor}
             schema={schema}
             key={jsonEditorKey}
+            tableClassName={cx({ [classes.draggable]: isDragging })}
             ref={ref}
           />
         ) : (
@@ -598,8 +596,6 @@ export const MetaInput = React.forwardRef(function MetaInput(
         )}
 
         <MetaInputErrorHelper className={classes.errors} error={error} />
-
-        {isDragging && <div className={classes.draggable} />}
 
         {(isDragActive || locked) && (
           <div className={classes.overlay}>

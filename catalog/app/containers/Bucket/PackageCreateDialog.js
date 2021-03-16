@@ -57,10 +57,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
     position: 'relative',
   },
-  draggable: {
-    border: `3px dashed ${t.palette.secondary.main}`,
-    borderRadius: '4px',
-  },
   dropzone: {
     background: t.palette.action.hover,
     border: `1px solid ${t.palette.action.disabled}`,
@@ -71,6 +67,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     flexGrow: 1,
     outline: 'none',
     overflow: 'hidden',
+    padding: '1px', // compensate 2px border
   },
   dropzoneErr: {
     borderColor: t.palette.error.main,
@@ -80,6 +77,9 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
   active: {
     background: t.palette.action.selected,
+  },
+  draggable: {
+    border: `2px dashed ${t.palette.primary.main}`,
   },
   dropMsg: {
     ...t.typography.body2,
@@ -268,7 +268,7 @@ function FilesInput({
         )}
       </div>
 
-      <div className={cx(classes.dropzoneContainer, { [classes.draggable]: isDragging })}>
+      <div className={cx(classes.dropzoneContainer)}>
         <div
           {...getRootProps({
             className: cx(
@@ -276,6 +276,7 @@ function FilesInput({
               isDragActive && !disabled && classes.active,
               !!error && classes.dropzoneErr,
               !error && warn && classes.dropzoneWarn,
+              isDragging && classes.draggable,
             ),
           })}
         >

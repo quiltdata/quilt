@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import { useTable } from 'react-table'
 import * as M from '@material-ui/core'
@@ -13,12 +14,12 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.common.white,
     flex: 'none',
-    padding: '1px 0', // NOTE: fit 2px border for input
     position: 'relative',
     width: '100%',
   },
 
   table: {
+    margin: '1px 0', // NOTE: compensate 2px border for input
     tableLayout: 'fixed',
   },
 }))
@@ -61,9 +62,10 @@ export default function Column({
   jsonDict,
   onAddRow,
   onBreadcrumb,
+  onChange,
   onExpand,
   onMenuAction,
-  onChange,
+  tableClassName,
 }) {
   const columns = React.useMemo(
     () => [
@@ -113,7 +115,7 @@ export default function Column({
       {!!columnPath.length && <Breadcrumbs items={columnPath} onSelect={onBreadcrumb} />}
 
       <M.TableContainer>
-        <M.Table {...getTableProps({ className: classes.table })}>
+        <M.Table {...getTableProps({ className: cx(classes.table, tableClassName) })}>
           <M.TableBody {...getTableBodyProps()}>
             {rows.map((row, index) => {
               const isLastRow = index === rows.length - 1
