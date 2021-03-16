@@ -1,0 +1,8 @@
+Name,Bilbo Baggins,Frodo Baggins,Sauron,Galadriel,Maxim,
+Age,131,53,,8374,,"{""a"": 123, ""b"": 345}"
+Male,TRUE,TRUE,TRUE,FALSE,TRUE,
+Parts,"head,legs,arms","head,legs,arms","head,legs,arms","head,legs,arms","head,legs,arms",
+Date,09/22/1990,09/22/1968,,01/01/2068,1983-12-26,
+Fingers,"1,2,3,4,5,6,7,8,9,10","1,2,3,4,5,6,7,8,9,10","1,2,3,4,5,6,7,8,9,10","1,2,3,4,5,6,7,8,9,10","1,2,3,4,5,6,7,8,9,10",
+Unlisted,yes,,,,,
+,break it,,,,,
