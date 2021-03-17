@@ -614,6 +614,38 @@ function FilteredOverlay() {
   )
 }
 
+function compareBy<T, V extends R.Ord>(a: T, b: T, getValue: (arg: T) => V) {
+  const va = getValue(a)
+  const vb = getValue(b)
+  // eslint-disable-next-line no-nested-ternary
+  return va < vb ? -1 : va > vb ? 1 : 0
+}
+
+// workaround to always have folders at the top and .. at the very top
+// example when sorting in ascending order:
+// 0 (dir "..")
+// 1:dirA (dir "dirA")
+// 1:dirB (dir "dirB")
+// 2:fileA (file "fileA")
+// 2:fileB (file "fileB")
+const getNameSortValueAsc = (row: DG.GridRowModel) => {
+  const i = (row as unknown) as Item
+  if (i.type === 'dir' && i.name === '..') return '0'
+  return `${i.type === 'dir' ? 1 : 2}:${i.name}`
+}
+
+// example when sorting in descending order:
+// 2 (dir "..")
+// 1:dirB (dir "dirB")
+// 1:dirA (dir "dirA")
+// 0:fileB (file "fileB")
+// 0:fileA (file "fileA")
+const getNameSortValueDesc = (row: DG.GridRowModel) => {
+  const i = (row as unknown) as Item
+  if (i.type === 'dir' && i.name === '..') return '2'
+  return `${i.type === 'dir' ? 1 : 0}:${i.name}`
+}
+
 const localeText = {
   columnMenuSortAsc: 'Sort ascending',
   columnMenuSortDesc: 'Sort descending',
@@ -735,6 +767,20 @@ export function Listing({
         type: 'string',
         width: 80,
         flex: 1,
+        sortComparator: (
+          _v1: unknown,
+          _v2: unknown,
+          p1: DG.GridCellParams,
+          p2: DG.GridCellParams,
+        ) => {
+          // we only support one-column sorting, so assuming the first sortItem is the one we need
+          const [{ sort }] = (p1.api as DG.GridApi).state.sorting.sortModel
+          return compareBy(
+            p1.row,
+            p2.row,
+            sort === 'desc' ? getNameSortValueDesc : getNameSortValueAsc,
+          )
+        },
         renderCell: (params: DG.GridCellParams) => {
           const i = (params.row as unknown) as Item
           return (
