@@ -112,32 +112,6 @@
           }
         }
       }
-    },
-    "ui": {
-      "type": "object",
-      "properties": {
-        "nav": {
-          "type": "object",
-          "properties": {
-            "overview": {
-              "default": true,
-              "type": "boolean"
-            },
-            "files": {
-              "default": true,
-              "type": "boolean"
-            },
-            "packages": {
-              "default": true,
-              "type": "boolean"
-            },
-            "queries": {
-              "default": true,
-              "type": "boolean"
-            }
-          }
-        }
-      }
     }
   }
 }
