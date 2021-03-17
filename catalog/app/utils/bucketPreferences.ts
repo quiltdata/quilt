@@ -97,6 +97,8 @@ export const fetchBucketPreferences = async ({
 }
 
 export function useBucketPreferences(bucket: string): BucketPreferences | null {
+  // FIXME: fetch only on bucket change
+
   const s3 = AWS.S3.use()
   const data = useData(fetchBucketPreferences, { s3, bucket })
 
