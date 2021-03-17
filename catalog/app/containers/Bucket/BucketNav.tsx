@@ -4,13 +4,9 @@ import * as RC from 'recompose'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
-import * as AWS from 'utils/AWS'
-import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
 import * as bucketPreferences from 'utils/bucketPreferences'
-
-import * as requests from './requests'
 
 const NavTab = RT.composeComponent(
   'Bucket.Layout.Tab',
@@ -23,11 +19,6 @@ const NavTab = RT.composeComponent(
   RC.withProps({ component: Link }),
   M.Tab,
 )
-
-function useBucketPreferences(bucket: string) {
-  const s3 = AWS.S3.use()
-  return useData(requests.fetchBucketPreferences, { s3, bucket })
-}
 
 interface BucketNavProps {
   bucket: string
@@ -87,19 +78,9 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
 }
 
 export default function BucketNav({ bucket, section = false }: BucketNavProps) {
-  const bucketPreferencesData = useBucketPreferences(bucket)
+  const preferences = bucketPreferences.useBucketPreferences(bucket)
 
-  return bucketPreferencesData.case({
-    Ok: (preferences: bucketPreferences.BucketPreferences) => (
-      <Tabs bucket={bucket} preferences={preferences.ui.nav} section={section} />
-    ),
-    Err: () => (
-      <Tabs
-        bucket={bucket}
-        preferences={bucketPreferences.defaultPreferences.ui.nav}
-        section={section}
-      />
-    ),
-    _: () => <BucketNavSkeleton />,
-  })
+  if (!preferences) return <BucketNavSkeleton />
+
+  return <Tabs bucket={bucket} preferences={preferences.ui.nav} section={section} />
 }

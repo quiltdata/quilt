@@ -12,6 +12,7 @@ import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as bucketPreferences from 'utils/bucketPreferences'
 import parseSearch from 'utils/parseSearch'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
 
@@ -139,6 +140,8 @@ export default function Dir({
     [history, urls, bucket, path],
   )
 
+  const preferences = bucketPreferences.useBucketPreferences(bucket)
+
   return (
     <M.Box pt={2} pb={4}>
       <M.Box display="flex" alignItems="flex-start" mb={2}>
@@ -146,9 +149,11 @@ export default function Dir({
           {renderCrumbs(getCrumbs({ bucket, path, urls }))}
         </div>
         <M.Box flexGrow={1} />
-        <CopyButton bucket={bucket} onChange={setSuccessor}>
-          Create package from directory
-        </CopyButton>
+        {preferences?.ui?.actions?.create && (
+          <CopyButton bucket={bucket} onChange={setSuccessor}>
+            Create package from directory
+          </CopyButton>
+        )}
         {!noDownload && (
           <>
             <M.Box ml={1} />

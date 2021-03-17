@@ -11,7 +11,6 @@ import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 import * as workflows from 'utils/workflows'
-import * as bucketPreferences from 'utils/bucketPreferences'
 
 import * as errors from './errors'
 
@@ -293,24 +292,6 @@ export const workflowsConfig = async ({ s3, bucket }) => {
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
       return workflows.emptyConfig
-
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    throw e
-  }
-}
-
-const BUCKET_PREFERENCES_PATH = '.quilt/catalog/config.yml'
-
-export const fetchBucketPreferences = async ({ s3, bucket }) => {
-  try {
-    const response = await fetchFile({ s3, bucket, path: BUCKET_PREFERENCES_PATH })
-    return bucketPreferences.parse(response.Body.toString('utf-8'))
-  } catch (e) {
-    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
-      return bucketPreferences.defaultPreferences
 
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')

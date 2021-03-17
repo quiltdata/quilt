@@ -20,6 +20,7 @@ import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
 import Link, { linkStyle } from 'utils/StyledLink'
+import * as bucketPreferences from 'utils/bucketPreferences'
 import copyToClipboard from 'utils/clipboard'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
@@ -358,6 +359,8 @@ function DirDisplay({
     if (!R.equals({ bucket, name, revision }, prev)) updateDialog.close()
   })
 
+  const preferences = bucketPreferences.useBucketPreferences(bucket)
+
   return data.case({
     Ok: ({ objects, prefixes, meta }) => {
       const up =
@@ -401,19 +404,23 @@ function DirDisplay({
           {updateDialog.render()}
 
           <TopBar crumbs={crumbs}>
-            <M.Button
-              variant="contained"
-              color="primary"
-              size="small"
-              style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
-              onClick={updateDialog.open}
-            >
-              Revise package
-            </M.Button>
+            {preferences?.ui?.actions?.revise && (
+              <M.Button
+                variant="contained"
+                color="primary"
+                size="small"
+                style={{ marginTop: -3, marginBottom: -3, flexShrink: 0 }}
+                onClick={updateDialog.open}
+              >
+                Revise package
+              </M.Button>
+            )}
             <M.Box ml={1} />
-            <CopyButton bucket={bucket} onChange={setSuccessor}>
-              Push to bucket
-            </CopyButton>
+            {preferences?.ui?.actions?.copy && (
+              <CopyButton bucket={bucket} onChange={setSuccessor}>
+                Push to bucket
+              </CopyButton>
+            )}
             {!noDownload && (
               <>
                 <M.Box ml={1} />

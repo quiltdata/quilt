@@ -6,10 +6,6 @@ import yaml from 'utils/yaml'
 import workflowsConfigSchema from 'schemas/workflows.yml.json'
 import * as bucketErrors from 'containers/Bucket/errors'
 
-interface UiYaml {
-  nav?: Record<'overview' | 'files' | 'packages' | 'queries', boolean>
-}
-
 interface WorkflowsYaml {
   version: '1'
   is_workflow_required?: boolean
@@ -17,7 +13,6 @@ interface WorkflowsYaml {
   workflows: Record<string, WorkflowYaml>
   schemas?: Record<string, Schema>
   successors?: Record<string, SuccessorYaml>
-  ui?: UiYaml
 }
 
 interface WorkflowYaml {
@@ -46,10 +41,6 @@ export interface NavPreferences {
   queries: boolean
 }
 
-interface UiPreferences {
-  nav: NavPreferences
-}
-
 export interface Schema {
   url: string
 }
@@ -64,7 +55,6 @@ export interface Workflow {
 
 export interface WorkflowsConfig {
   successors: Successor[]
-  ui: UiPreferences
   workflows: Workflow[]
 }
 
@@ -84,14 +74,6 @@ const COPY_DATA_DEFAULT = true
 export const emptyConfig: WorkflowsConfig = {
   successors: [],
   workflows: [getNoWorkflow({} as WorkflowsYaml, false)],
-  ui: {
-    nav: {
-      files: true,
-      overview: true,
-      packages: true,
-      queries: true,
-    },
-  },
 }
 
 function parseSchema(
@@ -116,12 +98,6 @@ function parseWorkflow(
     name: workflow.name,
     schema: parseSchema(workflow.metadata_schema, data.schemas),
     slug: workflowSlug,
-  }
-}
-
-function parseUi(ui: UiYaml): UiPreferences {
-  return {
-    nav: R.mergeRight(emptyConfig.ui.nav, ui.nav || {}),
   }
 }
 
@@ -158,7 +134,6 @@ export function parse(workflowsYaml: string): WorkflowsConfig {
     successors: Object.entries(successors).map(([url, successor]) =>
       parseSuccessor(url, successor),
     ),
-    ui: parseUi(data.ui || {}),
     workflows: noWorkflow ? [noWorkflow, ...workflowsList] : workflowsList,
   }
 }

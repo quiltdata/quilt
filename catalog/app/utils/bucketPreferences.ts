@@ -1,9 +1,12 @@
 import * as R from 'ramda'
 
+import * as AWS from 'utils/AWS'
+import { useData } from 'utils/Data'
 import { makeSchemaValidator } from 'utils/json-schema'
 import yaml from 'utils/yaml'
 import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 import * as bucketErrors from 'containers/Bucket/errors'
+import * as requests from 'containers/Bucket/requests'
 
 export type ActionPreferences = Record<'copy' | 'create' | 'revise', boolean>
 
@@ -60,4 +63,46 @@ export function parse(bucketPreferencesYaml: string): BucketPreferences {
       nav: R.mergeRight(defaultPreferences.ui.nav, data?.ui?.nav || {}),
     },
   }
+}
+
+const BUCKET_PREFERENCES_PATH = '.quilt/catalog/config.yml'
+
+export const fetchBucketPreferences = async ({
+  s3,
+  bucket,
+}: {
+  s3: any
+  bucket: string
+}) => {
+  try {
+    const response = await requests.fetchFile({
+      s3,
+      bucket,
+      path: BUCKET_PREFERENCES_PATH,
+    })
+    return parse(response.Body.toString('utf-8'))
+  } catch (e) {
+    if (
+      e instanceof bucketErrors.FileNotFound ||
+      e instanceof bucketErrors.VersionNotFound
+    )
+      return defaultPreferences
+
+    // eslint-disable-next-line no-console
+    console.log('Unable to fetch')
+    // eslint-disable-next-line no-console
+    console.error(e)
+    throw e
+  }
+}
+
+export function useBucketPreferences(bucket: string): BucketPreferences | null {
+  const s3 = AWS.S3.use()
+  const data = useData(fetchBucketPreferences, { s3, bucket })
+
+  return data.case({
+    Ok: R.identity,
+    Err: () => defaultPreferences,
+    _: () => null,
+  })
 }

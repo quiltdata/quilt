@@ -10,8 +10,8 @@ import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
 
-import { displayError } from './errors'
 import BucketNav from './BucketNav'
+import { displayError } from './errors'
 
 const mkLazy = (load) =>
   RT.loadable(load, { fallback: () => <Placeholder color="text.secondary" /> })

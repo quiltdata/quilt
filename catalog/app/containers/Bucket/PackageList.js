@@ -17,6 +17,7 @@ import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as SVG from 'utils/SVG'
+import * as bucketPreferences from 'utils/bucketPreferences'
 import parseSearch from 'utils/parseSearch'
 import { readableQuantity } from 'utils/string'
 import useDebouncedInput from 'utils/useDebouncedInput'
@@ -389,6 +390,8 @@ export default function PackageList({
     }
   })
 
+  const preferences = bucketPreferences.useBucketPreferences(bucket)
+
   return (
     <>
       <PackageCreateDialog
@@ -436,17 +439,21 @@ export default function PackageList({
               <M.Box pt={5} textAlign="center">
                 <M.Typography variant="h4">No packages</M.Typography>
                 <M.Box pt={3} />
-                <M.Button variant="contained" color="primary" onClick={openUpload}>
-                  Create package
-                </M.Button>
-                <M.Box pt={2} />
-                <M.Typography>
-                  Or{' '}
-                  <StyledLink href={EXAMPLE_PACKAGE_URL} target="_blank">
-                    push a package
-                  </StyledLink>{' '}
-                  with the Quilt Python API.
-                </M.Typography>
+                {preferences?.ui?.actions?.create && (
+                  <>
+                    <M.Button variant="contained" color="primary" onClick={openUpload}>
+                      Create package
+                    </M.Button>
+                    <M.Box pt={2} />
+                    <M.Typography>
+                      Or{' '}
+                      <StyledLink href={EXAMPLE_PACKAGE_URL} target="_blank">
+                        push a package
+                      </StyledLink>{' '}
+                      with the Quilt Python API.
+                    </M.Typography>
+                  </>
+                )}
               </M.Box>
             )
           }
@@ -482,17 +489,19 @@ export default function PackageList({
                   />
                 </M.Box>
                 <M.Box flexGrow={1} display={{ xs: 'none', sm: 'block' }} />
-                <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
-                  <M.Button
-                    variant="contained"
-                    size="large"
-                    color="primary"
-                    style={{ paddingTop: 7, paddingBottom: 7 }}
-                    onClick={openUpload}
-                  >
-                    Create package
-                  </M.Button>
-                </M.Box>
+                {preferences?.ui?.actions?.create && (
+                  <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
+                    <M.Button
+                      variant="contained"
+                      size="large"
+                      color="primary"
+                      style={{ paddingTop: 7, paddingBottom: 7 }}
+                      onClick={openUpload}
+                    >
+                      Create package
+                    </M.Button>
+                  </M.Box>
+                )}
                 <M.Box component={M.Paper} className={classes.paper}>
                   <SortDropdown
                     value={computedSort.key}
