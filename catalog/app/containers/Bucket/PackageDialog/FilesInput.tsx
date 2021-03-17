@@ -1029,7 +1029,7 @@ export function FilesInput({
               isDragActive && !ref.current.disabled && classes.active,
               !!error && classes.dropzoneErr,
               !error && warn && classes.dropzoneWarn,
-              isDragging && classes.draggable && !disabled,
+              isDragging && !disabled && classes.draggable,
             ),
           })}
         >
