@@ -17,7 +17,7 @@ import * as s3paths from 'utils/s3paths'
 
 import Code from 'containers/Bucket/Code'
 import * as FileView from 'containers/Bucket/FileView'
-import { ListingItem, ListingWithPrefixFiltering } from 'containers/Bucket/Listing'
+import Listing from 'containers/Bucket/Listing'
 import Summary from 'containers/Bucket/Summary'
 import { displayError } from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
@@ -26,32 +26,29 @@ import * as EmbedConfig from './EmbedConfig'
 import getCrumbs from './getCrumbs'
 
 const formatListing = ({ urls, scope }, r) => {
-  const dirs = r.dirs.map((name) =>
-    ListingItem.Dir({
-      name: s3paths.ensureNoSlash(s3paths.withoutPrefix(r.path, name)),
-      to: urls.bucketDir(r.bucket, name),
-    }),
-  )
-  const files = r.files.map(({ key, size, modified, archived }) =>
-    ListingItem.File({
-      name: basename(key),
-      to: urls.bucketFile(r.bucket, key),
-      size,
-      modified,
-      archived,
-    }),
-  )
+  const dirs = r.dirs.map((name) => ({
+    type: 'dir',
+    name: s3paths.ensureNoSlash(s3paths.withoutPrefix(r.path, name)),
+    to: urls.bucketDir(r.bucket, name),
+  }))
+  const files = r.files.map(({ key, size, modified, archived }) => ({
+    type: 'file',
+    name: basename(key),
+    to: urls.bucketFile(r.bucket, key),
+    size,
+    modified,
+    archived,
+  }))
   const items = [...dirs, ...files]
   if (r.path !== '' && r.path !== scope && !r.prefix) {
-    items.unshift(
-      ListingItem.Dir({
-        name: '..',
-        to: urls.bucketDir(r.bucket, s3paths.up(r.path)),
-      }),
-    )
+    items.unshift({
+      type: 'dir',
+      name: '..',
+      to: urls.bucketDir(r.bucket, s3paths.up(r.path)),
+    })
   }
   // filter-out files with same name as one of dirs
-  return R.uniqBy(ListingItem.case({ Dir: R.prop('name'), File: R.prop('name') }), items)
+  return R.uniqBy(R.prop('name'), items)
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -162,14 +159,13 @@ export default function Dir({
 
           return (
             <>
-              <ListingWithPrefixFiltering
+              <Listing
                 items={items}
                 locked={locked}
                 truncated={res.truncated}
                 prefix={res.prefix}
                 setPrefix={setPrefix}
-                bucket={res.bucket}
-                path={res.path}
+                filterKey={`${res.bucket}/${res.path}`}
               />
               <Summary files={res.files} />
             </>
