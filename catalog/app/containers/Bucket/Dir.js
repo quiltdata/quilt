@@ -18,7 +18,7 @@ import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/
 import Code from './Code'
 import CopyButton from './CopyButton'
 import * as FileView from './FileView'
-import { ListingItem, ListingWithPrefixFiltering } from './Listing'
+import { Listing, PrefixFilter } from './Listing'
 import PackageDirectoryDialog from './PackageDirectoryDialog'
 import Summary from './Summary'
 import { displayError } from './errors'
@@ -37,35 +37,34 @@ const getCrumbs = R.compose(
 )
 
 const formatListing = ({ urls }, r) => {
-  const dirs = r.dirs.map((name) =>
-    ListingItem.Dir({
-      name: ensureNoSlash(withoutPrefix(r.path, name)),
-      to: urls.bucketDir(r.bucket, name),
-    }),
-  )
-  const files = r.files.map(({ key, size, modified, archived }) =>
-    ListingItem.File({
-      name: basename(key),
-      to: urls.bucketFile(r.bucket, key),
-      size,
-      modified,
-      archived,
-    }),
-  )
+  const dirs = r.dirs.map((name) => ({
+    type: 'dir',
+    name: ensureNoSlash(withoutPrefix(r.path, name)),
+    to: urls.bucketDir(r.bucket, name),
+  }))
+  const files = r.files.map(({ key, size, modified, archived }) => ({
+    type: 'file',
+    name: withoutPrefix(r.path, key),
+    to: urls.bucketFile(r.bucket, key),
+    size,
+    modified,
+    archived,
+  }))
   const items = [
     ...(r.path !== '' && !r.prefix
       ? [
-          ListingItem.Dir({
+          {
+            type: 'dir',
             name: '..',
             to: urls.bucketDir(r.bucket, up(r.path)),
-          }),
+          },
         ]
       : []),
     ...dirs,
     ...files,
   ]
   // filter-out files with same name as one of dirs
-  return R.uniqBy(ListingItem.case({ Dir: R.prop('name'), File: R.prop('name') }), items)
+  return R.uniqBy(R.prop('name'), items)
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -180,6 +179,7 @@ export default function Dir({
 
           if (!res) return <M.CircularProgress />
 
+          // TODO: memoize
           const items = formatListing({ urls }, res)
 
           const locked = !AsyncResult.Ok.is(x)
@@ -199,14 +199,18 @@ export default function Dir({
                 onExited={onPackageDirectoryDialogExited}
               />
 
-              <ListingWithPrefixFiltering
+              <Listing
                 items={items}
                 locked={locked}
                 truncated={res.truncated}
-                prefix={res.prefix}
-                setPrefix={setPrefix}
-                bucket={res.bucket}
-                path={res.path}
+                prefixFilter={res.prefix}
+                toolbarContents={
+                  <PrefixFilter
+                    key={`${res.bucket}/${res.path}`}
+                    prefix={res.prefix}
+                    setPrefix={setPrefix}
+                  />
+                }
               />
               <Summary files={res.files} />
             </>

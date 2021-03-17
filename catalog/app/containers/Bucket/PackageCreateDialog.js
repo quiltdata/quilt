@@ -98,8 +98,8 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexGrow: 1,
     justifyContent: 'center',
-    paddingBottom: t.spacing(1),
-    paddingTop: t.spacing(1),
+    paddingBottom: t.spacing(6),
+    paddingTop: t.spacing(6),
     textAlign: 'center',
   },
   dropMsgErr: {

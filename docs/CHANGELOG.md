@@ -13,6 +13,7 @@
 ## CLI
 
 ## Catalog, Lambdas
+* [Changed] New DataGrid-based file listing UI with arbitrary sorting and filtering ([#2097](https://github.com/quiltdata/quilt/pull/2097))
 
 # 3.4.0 - 2021-03-15
 ## Python API

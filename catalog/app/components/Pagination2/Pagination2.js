@@ -15,16 +15,19 @@ const MAX_PAGE_BUTTONS = 8 // fits on 320px-wide screen
 // 100   | 1...4    | [1, 2, 3, 4, 5, 6, <G>, 100]
 // 100   | 5...95   | [1, <G>, N-1, N, N+1, N+2, <G>, 100]
 // 100   | 96...100 | [1, <G>, 95, 96, 97, 98, 99, 100]
-const displayRange = (total, current) => {
-  if (total <= MAX_PAGE_BUTTONS) return R.range(1, total + 1)
-  if (current <= MAX_PAGE_BUTTONS - 4) {
-    return [...R.range(1, MAX_PAGE_BUTTONS - 1), Gap, total]
+const displayRange = (total, current, max = MAX_PAGE_BUTTONS) => {
+  if (total <= max) return R.range(1, total + 1)
+  if (current <= max - 4) {
+    return [...R.range(1, max - 1), Gap, total]
   }
-  if (current >= total - MAX_PAGE_BUTTONS + 4) {
-    return [1, Gap, ...R.range(total - MAX_PAGE_BUTTONS + 3, total + 1)]
+  if (current >= total - max + 4) {
+    return [1, Gap, ...R.range(total - max + 3, total + 1)]
   }
   return [1, Gap, ...R.range(current - 1, current + 3), Gap, total]
 }
+
+export const renderPageRange = ({ pages, page, max, renderPage, renderGap }) =>
+  displayRange(pages, page, max).map((p, i) => (p === Gap ? renderGap(i) : renderPage(p)))
 
 const useStyles = M.makeStyles((t) => ({
   button: {
@@ -47,17 +50,19 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Pagination2({
-  page,
-  pages,
-  makePageUrl,
-  onChange,
-  classes: customClasses = {},
-  buttonGroupProps,
-  ...props
-}) {
+export default React.forwardRef(function Pagination2(
+  {
+    page,
+    pages,
+    makePageUrl,
+    onChange,
+    classes: customClasses = {},
+    buttonGroupProps,
+    ...props
+  },
+  ref,
+) {
   const classes = useStyles()
-  const range = React.useMemo(() => displayRange(pages, page), [pages, page])
 
   const renderGap = (i) => (
     <M.Button
@@ -96,10 +101,17 @@ export default function Pagination2({
   }
 
   return (
-    <M.Box display="flex" justifyContent="center" mt={3} mb={{ xs: 5, sm: 0 }} {...props}>
+    <M.Box
+      display="flex"
+      justifyContent="center"
+      mt={3}
+      mb={{ xs: 5, sm: 0 }}
+      {...props}
+      ref={ref}
+    >
       <M.ButtonGroup variant="contained" {...buttonGroupProps}>
-        {range.map((p, i) => (p === Gap ? renderGap(i) : renderPage(p)))}
+        {renderPageRange({ pages, page, renderGap, renderPage })}
       </M.ButtonGroup>
     </M.Box>
   )
-}
+})
