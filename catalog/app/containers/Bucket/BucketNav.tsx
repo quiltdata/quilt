@@ -8,7 +8,7 @@ import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
-import * as workflows from 'utils/workflows'
+import * as bucketPreferences from 'utils/bucketPreferences'
 
 import * as requests from './requests'
 
@@ -24,9 +24,9 @@ const NavTab = RT.composeComponent(
   M.Tab,
 )
 
-function useWorkflowsConfig(bucket: string) {
+function useBucketPreferences(bucket: string) {
   const s3 = AWS.S3.use()
-  return useData(requests.workflowsConfig, { s3, bucket })
+  return useData(requests.fetchBucketPreferences, { s3, bucket })
 }
 
 interface BucketNavProps {
@@ -59,7 +59,7 @@ function BucketNavSkeleton() {
 
 interface TabsProps {
   bucket: string
-  preferences: workflows.NavPreferences
+  preferences: bucketPreferences.NavPreferences
   section: string | boolean
 }
 
@@ -87,16 +87,16 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
 }
 
 export default function BucketNav({ bucket, section = false }: BucketNavProps) {
-  const workflowsConfigData = useWorkflowsConfig(bucket)
+  const bucketPreferencesData = useBucketPreferences(bucket)
 
-  return workflowsConfigData.case({
-    Ok: (workflowsConfig: workflows.WorkflowsConfig) => (
-      <Tabs bucket={bucket} preferences={workflowsConfig.ui.nav} section={section} />
+  return bucketPreferencesData.case({
+    Ok: (preferences: bucketPreferences.BucketPreferences) => (
+      <Tabs bucket={bucket} preferences={preferences.ui.nav} section={section} />
     ),
     Err: () => (
       <Tabs
         bucket={bucket}
-        preferences={workflows.emptyConfig.ui.nav}
+        preferences={bucketPreferences.defaultPreferences.ui.nav}
         section={section}
       />
     ),
