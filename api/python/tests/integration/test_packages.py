@@ -933,7 +933,7 @@ class PackageTest(QuiltTestCase):
     def test_top_hash_stable(self):
         """Ensure that top_hash() never changes for a given manifest"""
 
-        top_hash = '20de5433549a4db332a11d8d64b934a82bdea8f144b4aecd901e7d4134f8e733'
+        top_hash = '3426a3f721e41a1d83174c691432a39ff13720426267fc799dccf3583153e850'
         manifest_path = DATA_DIR / 'top_hash_test_manifest.jsonl'
         pkg = Package._from_path(manifest_path)
 
