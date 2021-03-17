@@ -566,12 +566,7 @@ export const MetaInput = React.forwardRef(function MetaInput(
         </Lab.ToggleButtonGroup>
       </div>
 
-      <div
-        {...getRootProps({
-          className: classes.dropzone,
-        })}
-        tabIndex={undefined}
-      >
+      <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
         {mode === 'kv' ? (
           <JsonEditor
             // @ts-expect-error

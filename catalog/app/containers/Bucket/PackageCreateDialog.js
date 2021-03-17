@@ -269,7 +269,7 @@ function FilesInput({
         )}
       </div>
 
-      <div className={cx(classes.dropzoneContainer)}>
+      <div className={classes.dropzoneContainer}>
         <div
           {...getRootProps({
             className: cx(
