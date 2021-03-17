@@ -723,7 +723,6 @@ const useStyles = M.makeStyles((t) => ({
     flexGrow: 1,
     outline: 'none',
     overflow: 'hidden',
-    padding: '1px', // compensate 2px border
   },
   dropzoneErr: {
     borderColor: t.palette.error.main,
@@ -735,8 +734,18 @@ const useStyles = M.makeStyles((t) => ({
     background: t.palette.action.selected,
   },
   draggable: {
-    border: `2px dashed ${t.palette.primary.main}`,
-    padding: 0,
+    borderColor: 'transparent',
+    position: 'relative',
+    '&::after': {
+      border: `2px dashed ${t.palette.primary.main}`,
+      borderRadius: t.shape.borderRadius,
+      bottom: 0,
+      content: '""',
+      left: 0,
+      position: 'absolute',
+      right: 0,
+      top: 0,
+    },
   },
   filesContainer: {
     direction: 'rtl', // show the scrollbar on the left
