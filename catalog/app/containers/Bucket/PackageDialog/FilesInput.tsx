@@ -803,6 +803,7 @@ const useDropdownMessageStyles = M.makeStyles((t) => ({
   },
   disabled: {
     padding: 0,
+    cursor: 'not-allowed',
   },
   error: {
     color: t.palette.error.main,
@@ -944,7 +945,7 @@ export function FilesInput({
   }, [dispatch])
 
   const isDragging = useDragging()
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ disabled, onDrop })
 
   const computedEntries = useMemoEq(value, computeEntries)
 
@@ -1028,7 +1029,7 @@ export function FilesInput({
               isDragActive && !ref.current.disabled && classes.active,
               !!error && classes.dropzoneErr,
               !error && warn && classes.dropzoneWarn,
-              isDragging && classes.draggable,
+              isDragging && classes.draggable && !disabled,
             ),
           })}
         >
