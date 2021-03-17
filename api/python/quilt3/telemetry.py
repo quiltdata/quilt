@@ -62,12 +62,8 @@ class ApiTelemetry:
     @classmethod
     def check_telemetry_disabled_by_envvar(cls):
         envvar = os.environ.get(DISABLE_USAGE_METRICS_ENVVAR, "")
-        if envvar.lower() == "false":
-            envvar = False
-        elif envvar.lower() == "no":
-            envvar = False
-        elif envvar == "0":
-            envvar = False
+        if envvar.lower() in ("false", "no", "0"):
+            return False
         return bool(envvar)
 
     @classmethod
