@@ -80,6 +80,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
   draggable: {
     border: `2px dashed ${t.palette.primary.main}`,
+    padding: 0,
   },
   dropMsg: {
     ...t.typography.body2,
