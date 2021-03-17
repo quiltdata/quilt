@@ -6,6 +6,7 @@ import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import type * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 import * as Lab from '@material-ui/lab'
 
 import JsonEditor from 'components/JsonEditor'
@@ -422,7 +423,11 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     position: 'absolute',
     right: '2px',
     top: '2px',
+    transition: 'background 0.15s ease',
     zIndex: 1,
+  },
+  overlayDragActive: {
+    background: fade(t.palette.grey[200], 0.8),
   },
   overlayContents: {
     alignItems: 'center',
@@ -597,26 +602,30 @@ export const MetaInput = React.forwardRef(function MetaInput(
 
         <MetaInputErrorHelper className={classes.errors} error={error} />
 
-        {(isDragActive || locked) && (
+        {locked && (
           <div className={classes.overlay}>
-            {isDragActive ? (
-              <div className={classes.overlayContents}>
-                <div className={classes.overlayText}>
-                  Drop metadata file (XLSX, CSV, JSON)
-                </div>
+            <Delay ms={500} alwaysRender>
+              {(ready) => (
+                <M.Fade in={ready}>
+                  <div className={classes.overlayContents}>
+                    <M.CircularProgress size={20} className={classes.overlayProgress} />
+                    <div className={classes.overlayText}>Reading file contents</div>
+                  </div>
+                </M.Fade>
+              )}
+            </Delay>
+          </div>
+        )}
+
+        {isDragging && (
+          <div
+            className={cx(classes.overlay, { [classes.overlayDragActive]: isDragActive })}
+          >
+            <div className={classes.overlayContents}>
+              <div className={classes.overlayText}>
+                Drop metadata file (XLSX, CSV, JSON)
               </div>
-            ) : (
-              <Delay ms={500} alwaysRender>
-                {(ready) => (
-                  <M.Fade in={ready}>
-                    <div className={classes.overlayContents}>
-                      <M.CircularProgress size={20} className={classes.overlayProgress} />
-                      <div className={classes.overlayText}>Reading file contents</div>
-                    </div>
-                  </M.Fade>
-                )}
-              </Delay>
-            )}
+            </div>
           </div>
         )}
       </div>
