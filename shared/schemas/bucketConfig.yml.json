@@ -14,14 +14,17 @@
           "properties": {
             "files": {
               "default": true,
+              "description": "Hides Files tab",
               "type": "boolean"
             },
             "packages": {
               "default": true,
+              "description": "Hides Packages tab",
               "type": "boolean"
             },
             "queries": {
               "default": true,
+              "description": "Hides Queries tab",
               "type": "boolean"
             }
           }
@@ -31,14 +34,17 @@
           "properties": {
             "createPackage": {
               "default": true,
+              "description": "Hides buttons triggering Create Package dialog, both creating package from scratch and from directory",
               "type": "boolean"
             },
             "revisePackage": {
               "default": true,
+              "description": "Hides button triggering Revise Package dialog",
               "type": "boolean"
             },
             "copyPackage": {
               "default": true,
+              "description": "Hides button triggering Push to Bucket dialog",
               "type": "boolean"
             }
           }
