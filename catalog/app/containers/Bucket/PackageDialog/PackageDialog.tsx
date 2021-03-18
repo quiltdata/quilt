@@ -416,13 +416,19 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   },
   overlay: {
     background: 'rgba(255,255,255,0.6)',
-    bottom: '3px',
-    left: '2px',
+    bottom: 0,
+    left: 0,
     position: 'absolute',
-    right: '2px',
-    top: '3px',
+    right: 0,
+    top: 0,
     transition: 'background 0.15s ease',
     zIndex: 1,
+  },
+  overlayDraggable: {
+    bottom: '3px',
+    left: '2px',
+    right: '2px',
+    top: '3px',
   },
   overlayDragActive: {
     background: fade(t.palette.grey[200], 0.8),
@@ -612,7 +618,9 @@ export const MetaInput = React.forwardRef(function MetaInput(
 
         {isDragging && (
           <div
-            className={cx(classes.overlay, { [classes.overlayDragActive]: isDragActive })}
+            className={cx(classes.overlay, classes.overlayDraggable, {
+              [classes.overlayDragActive]: isDragActive,
+            })}
           >
             <div className={classes.overlayContents}>
               <div className={classes.overlayText}>
