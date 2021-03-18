@@ -28,7 +28,7 @@ import usePrevious from 'utils/usePrevious'
 import Code from './Code'
 import CopyButton from './CopyButton'
 import * as FileView from './FileView'
-import { ListingItem, ListingWithLocalFiltering } from './Listing'
+import Listing from './Listing'
 import { usePackageUpdateDialog } from './PackageUpdateDialog'
 import PackageCopyDialog from './PackageCopyDialog'
 import Section from './Section'
@@ -364,24 +364,23 @@ function DirDisplay({
         path === ''
           ? []
           : [
-              ListingItem.Dir({
+              {
+                type: 'dir',
                 name: '..',
                 to: urls.bucketPackageTree(bucket, name, revision, s3paths.up(path)),
-              }),
+              },
             ]
-      const dirs = prefixes.map((p) =>
-        ListingItem.Dir({
-          name: s3paths.ensureNoSlash(p),
-          to: urls.bucketPackageTree(bucket, name, revision, path + p),
-        }),
-      )
-      const files = objects.map((o) =>
-        ListingItem.File({
-          name: o.name,
-          to: urls.bucketPackageTree(bucket, name, revision, path + o.name),
-          size: o.size,
-        }),
-      )
+      const dirs = prefixes.map((p) => ({
+        type: 'dir',
+        name: s3paths.ensureNoSlash(p),
+        to: urls.bucketPackageTree(bucket, name, revision, path + p),
+      }))
+      const files = objects.map((o) => ({
+        type: 'file',
+        name: o.name,
+        to: urls.bucketPackageTree(bucket, name, revision, path + o.name),
+        size: o.size,
+      }))
       const items = [...up, ...dirs, ...files]
       const summaryHandles = objects.map((o) => ({
         ...s3paths.parseS3Url(o.physicalKey),
@@ -427,7 +426,7 @@ function DirDisplay({
           <PkgCode {...{ bucket, name, hash, revision, path }} />
           <FileView.Meta data={AsyncResult.Ok(meta)} />
           <M.Box mt={2}>
-            <ListingWithLocalFiltering items={items} />
+            <Listing items={items} />
             <Summary files={summaryHandles} mkUrl={mkUrl} />
           </M.Box>
         </>
