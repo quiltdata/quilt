@@ -58,9 +58,7 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
   const { urls } = NamedRoutes.use()
   return (
     <M.Tabs value={section} centered>
-      {preferences.overview && (
-        <NavTab label="Overview" value="overview" to={urls.bucketOverview(bucket)} />
-      )}
+      <NavTab label="Overview" value="overview" to={urls.bucketOverview(bucket)} />
       {preferences.files && (
         <NavTab label="Files" value="tree" to={urls.bucketDir(bucket)} />
       )}

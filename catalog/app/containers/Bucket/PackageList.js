@@ -439,7 +439,7 @@ export default function PackageList({
               <M.Box pt={5} textAlign="center">
                 <M.Typography variant="h4">No packages</M.Typography>
                 <M.Box pt={3} />
-                {preferences?.ui?.actions?.create && (
+                {preferences?.ui?.actions?.createPackage && (
                   <>
                     <M.Button variant="contained" color="primary" onClick={openUpload}>
                       Create package
@@ -489,7 +489,7 @@ export default function PackageList({
                   />
                 </M.Box>
                 <M.Box flexGrow={1} display={{ xs: 'none', sm: 'block' }} />
-                {preferences?.ui?.actions?.create && (
+                {preferences?.ui?.actions?.createPackage && (
                   <M.Box display={{ xs: 'none', sm: 'block' }} pr={1}>
                     <M.Button
                       variant="contained"

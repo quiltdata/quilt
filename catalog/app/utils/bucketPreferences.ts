@@ -8,12 +8,12 @@ import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 import * as bucketErrors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 
-export type ActionPreferences = Record<'copy' | 'create' | 'revise', boolean>
-
-export type NavPreferences = Record<
-  'overview' | 'files' | 'packages' | 'queries',
+export type ActionPreferences = Record<
+  'copyPackage' | 'createPackage' | 'revisePackage',
   boolean
 >
+
+export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 
 type UiPreferences = {
   actions: ActionPreferences
@@ -31,13 +31,12 @@ export interface BucketPreferences {
 export const defaultPreferences: BucketPreferences = {
   ui: {
     actions: {
-      copy: true,
-      create: true,
-      revise: true,
+      copyPackage: true,
+      createPackage: true,
+      revisePackage: true,
     },
     nav: {
       files: true,
-      overview: true,
       packages: true,
       queries: true,
     },

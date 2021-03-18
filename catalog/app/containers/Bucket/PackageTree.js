@@ -403,7 +403,7 @@ function DirDisplay({
           {updateDialog.render()}
 
           <TopBar crumbs={crumbs}>
-            {preferences?.ui?.actions?.revise && (
+            {preferences?.ui?.actions?.revisePackage && (
               <M.Button
                 variant="contained"
                 color="primary"
@@ -415,7 +415,7 @@ function DirDisplay({
               </M.Button>
             )}
             <M.Box ml={1} />
-            {preferences?.ui?.actions?.copy && (
+            {preferences?.ui?.actions?.copyPackage && (
               <CopyButton bucket={bucket} onChange={setSuccessor}>
                 Push to bucket
               </CopyButton>
