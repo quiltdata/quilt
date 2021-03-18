@@ -14,7 +14,7 @@ const useStyles = M.makeStyles((t) => ({
   root: {
     background: t.palette.common.white,
     flex: 'none',
-    padding: '1px 0', // NOTE: compensate 2px border for input
+    padding: '1px 0', // NOTE: fit 2px border for input
     position: 'relative',
     width: '100%',
   },
