@@ -329,7 +329,6 @@ const useFileStyles = M.makeStyles((t) => ({
   deleted: {},
   unchanged: {},
   root: {
-    background: t.palette.background.paper,
     color: COLORS.default,
     cursor: 'default',
     outline: 'none',
@@ -455,7 +454,6 @@ const useDirStyles = M.makeStyles((t) => ({
   unchanged: {},
   active: {},
   root: {
-    background: t.palette.background.paper,
     cursor: 'pointer',
     outline: 'none',
     position: 'relative',
@@ -714,7 +712,6 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
   },
   dropzone: {
-    background: t.palette.action.hover,
     border: `1px solid ${t.palette.action.disabled}`,
     borderRadius: t.shape.borderRadius,
     cursor: 'pointer',
@@ -734,18 +731,8 @@ const useStyles = M.makeStyles((t) => ({
     background: t.palette.action.selected,
   },
   draggable: {
-    borderColor: 'transparent',
-    position: 'relative',
-    '&::after': {
-      border: `2px dashed ${t.palette.primary.main}`,
-      borderRadius: t.shape.borderRadius,
-      bottom: 0,
-      content: '""',
-      left: 0,
-      position: 'absolute',
-      right: 0,
-      top: 0,
-    },
+    outline: `2px dashed ${t.palette.primary.main}`,
+    outlineOffset: '-2px',
   },
   filesContainer: {
     direction: 'rtl', // show the scrollbar on the left
@@ -803,6 +790,7 @@ const useDropdownMessageStyles = M.makeStyles((t) => ({
   root: {
     ...t.typography.body2,
     alignItems: 'center',
+    background: t.palette.action.hover,
     cursor: 'pointer',
     display: 'flex',
     flexGrow: 1,
@@ -1030,7 +1018,11 @@ export function FilesInput({
         )}
       </div>
 
-      <div className={classes.dropzoneContainer}>
+      <div
+        className={cx(classes.dropzoneContainer, {
+          [classes.draggable]: isDragging && !disabled,
+        })}
+      >
         <div
           {...getRootProps({
             className: cx(
@@ -1038,7 +1030,6 @@ export function FilesInput({
               isDragActive && !ref.current.disabled && classes.active,
               !!error && classes.dropzoneErr,
               !error && warn && classes.dropzoneWarn,
-              isDragging && !disabled && classes.draggable,
             ),
           })}
         >

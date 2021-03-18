@@ -58,7 +58,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     position: 'relative',
   },
   dropzone: {
-    background: t.palette.action.hover,
     border: `1px solid ${t.palette.action.disabled}`,
     borderRadius: t.shape.borderRadius,
     cursor: 'pointer',
@@ -78,22 +77,13 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     background: t.palette.action.selected,
   },
   draggable: {
-    borderColor: 'transparent',
-    position: 'relative',
-    '&::after': {
-      border: `2px dashed ${t.palette.primary.main}`,
-      borderRadius: t.shape.borderRadius,
-      bottom: 0,
-      content: '""',
-      left: 0,
-      position: 'absolute',
-      right: 0,
-      top: 0,
-    },
+    outline: `2px dashed ${t.palette.primary.main}`,
+    outlineOffset: '-2px',
   },
   dropMsg: {
     ...t.typography.body2,
     alignItems: 'center',
+    background: t.palette.action.hover,
     cursor: 'pointer',
     display: 'flex',
     flexGrow: 1,
@@ -121,7 +111,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
   fileEntry: {
     alignItems: 'center',
-    background: t.palette.background.paper,
     display: 'flex',
     '&:not(:last-child)': {
       borderBottomStyle: 'solid',
