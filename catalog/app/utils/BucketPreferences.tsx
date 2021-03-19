@@ -25,11 +25,11 @@ interface BucketPreferencesYaml {
   ui?: Partial<UiPreferences>
 }
 
-export interface BucketPreferences {
+interface BucketPreferences {
   ui: UiPreferences
 }
 
-export const defaultPreferences: BucketPreferences = {
+const defaultPreferences: BucketPreferences = {
   ui: {
     actions: {
       copyPackage: true,
@@ -51,7 +51,7 @@ function validate(data: unknown): asserts data is BucketPreferencesYaml {
   if (errors.length) throw new bucketErrors.BucketPreferencesInvalid({ errors })
 }
 
-export function parse(bucketPreferencesYaml: string): BucketPreferences {
+function parse(bucketPreferencesYaml: string): BucketPreferences {
   const data = yaml(bucketPreferencesYaml)
   if (!data) return defaultPreferences
 
@@ -67,13 +67,7 @@ export function parse(bucketPreferencesYaml: string): BucketPreferences {
 
 const BUCKET_PREFERENCES_PATH = '.quilt/catalog/config.yml'
 
-export const fetchBucketPreferences = async ({
-  s3,
-  bucket,
-}: {
-  s3: any
-  bucket: string
-}) => {
+const fetchBucketPreferences = async ({ s3, bucket }: { s3: any; bucket: string }) => {
   try {
     const response = await requests.fetchFile({
       s3,
