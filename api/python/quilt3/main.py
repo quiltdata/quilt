@@ -237,7 +237,7 @@ def create_parser():
             "--version",
             help="Show quilt3 version and exit",
             action="version",
-            version=quilt3_version.strip()
+            version=quilt3_version,
     )
 
     subparsers = parser.add_subparsers(metavar="<command>")
