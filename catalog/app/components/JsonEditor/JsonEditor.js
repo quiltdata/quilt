@@ -33,13 +33,14 @@ const JsonEditor = React.forwardRef(function JsonEditor(
     addRow,
     changeValue,
     className,
-    disabled,
     columns,
-    jsonDict,
+    disabled,
     fieldPath,
+    jsonDict,
     makeAction,
     onChange,
     setFieldPath,
+    tableClassName,
   },
   ref,
 ) {
@@ -68,9 +69,10 @@ const JsonEditor = React.forwardRef(function JsonEditor(
             key: fieldPath,
             onAddRow: makeStateChange(addRow),
             onBreadcrumb: setFieldPath,
+            onChange: makeStateChange(changeValue),
             onExpand: setFieldPath,
             onMenuAction: makeStateChange(makeAction),
-            onChange: makeStateChange(changeValue),
+            tableClassName,
           }}
         />
       </div>
@@ -79,7 +81,7 @@ const JsonEditor = React.forwardRef(function JsonEditor(
 })
 
 export default React.forwardRef(function JsonEditorWrapper(
-  { className, disabled, onChange, schema: optSchema, value },
+  { className, disabled, onChange, schema: optSchema, tableClassName, value },
   ref,
 ) {
   const schema = optSchema || EMPTY_SCHEMA
@@ -93,6 +95,7 @@ export default React.forwardRef(function JsonEditorWrapper(
             disabled,
             onChange,
             ref,
+            tableClassName,
           }}
           {...stateProps}
         />

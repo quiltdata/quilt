@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import { FORM_ERROR } from 'final-form'
 import mime from 'mime-types'
 import * as R from 'ramda'
@@ -5,6 +6,7 @@ import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import type * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 import * as Lab from '@material-ui/lab'
 
 import JsonEditor from 'components/JsonEditor'
@@ -15,6 +17,7 @@ import Delay from 'utils/Delay'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
+import useDragging from 'utils/dragging'
 import { makeSchemaDefaultsSetter, makeSchemaValidator } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import * as spreadsheets from 'utils/spreadsheets'
@@ -179,7 +182,7 @@ export function useNameExistence(bucket: string) {
   return React.useMemo(() => ({ validate, inc }), [validate, inc])
 }
 
-function mkMetaValidator(schema: object | null) {
+export function mkMetaValidator(schema: object | null) {
   // TODO: move schema validation to utils/validators
   //       but don't forget that validation depends on library.
   //       Maybe we should split validators to files at first
@@ -187,7 +190,7 @@ function mkMetaValidator(schema: object | null) {
   return function validateMeta(value: object | null) {
     const noError = undefined
 
-    const jsonObjectErr = !R.is(Object, value)
+    const jsonObjectErr = value && !R.is(Object, value)
     if (jsonObjectErr) {
       return new Error('Metadata must be a valid JSON object')
     }
@@ -404,6 +407,10 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
     position: 'relative',
   },
+  draggable: {
+    outline: `2px dashed ${t.palette.primary.main}`,
+    outlineOffset: '-2px',
+  },
   editor: {
     overflowY: 'auto',
   },
@@ -414,7 +421,17 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     position: 'absolute',
     right: 0,
     top: 0,
+    transition: 'background 0.15s ease',
     zIndex: 1,
+  },
+  overlayDraggable: {
+    bottom: '3px',
+    left: '2px',
+    right: '2px',
+    top: '3px',
+  },
+  overlayDragActive: {
+    background: fade(t.palette.grey[200], 0.8),
   },
   overlayContents: {
     alignItems: 'center',
@@ -530,6 +547,8 @@ export const MetaInput = React.forwardRef(function MetaInput(
     [schema, setLocked, changeText, onJsonEditor, setJsonEditorKey, notify],
   )
 
+  const isDragging = useDragging()
+
   const { getRootProps, isDragActive } = useDropzone({ onDrop })
 
   return (
@@ -561,6 +580,7 @@ export const MetaInput = React.forwardRef(function MetaInput(
             onChange={onJsonEditor}
             schema={schema}
             key={jsonEditorKey}
+            tableClassName={cx({ [classes.draggable]: isDragging })}
             ref={ref}
           />
         ) : (
@@ -581,26 +601,32 @@ export const MetaInput = React.forwardRef(function MetaInput(
 
         <MetaInputErrorHelper className={classes.errors} error={error} />
 
-        {(isDragActive || locked) && (
+        {locked && (
           <div className={classes.overlay}>
-            {isDragActive ? (
-              <div className={classes.overlayContents}>
-                <div className={classes.overlayText}>
-                  Drop file containing JSON metadata
-                </div>
+            <Delay ms={500} alwaysRender>
+              {(ready) => (
+                <M.Fade in={ready}>
+                  <div className={classes.overlayContents}>
+                    <M.CircularProgress size={20} className={classes.overlayProgress} />
+                    <div className={classes.overlayText}>Reading file contents</div>
+                  </div>
+                </M.Fade>
+              )}
+            </Delay>
+          </div>
+        )}
+
+        {isDragging && (
+          <div
+            className={cx(classes.overlay, classes.overlayDraggable, {
+              [classes.overlayDragActive]: isDragActive,
+            })}
+          >
+            <div className={classes.overlayContents}>
+              <div className={classes.overlayText}>
+                Drop metadata file (XLSX, CSV, JSON)
               </div>
-            ) : (
-              <Delay ms={500} alwaysRender>
-                {(ready) => (
-                  <M.Fade in={ready}>
-                    <div className={classes.overlayContents}>
-                      <M.CircularProgress size={20} className={classes.overlayProgress} />
-                      <div className={classes.overlayText}>Reading file contents</div>
-                    </div>
-                  </M.Fade>
-                )}
-              </Delay>
-            )}
+            </div>
           </div>
         )}
       </div>
