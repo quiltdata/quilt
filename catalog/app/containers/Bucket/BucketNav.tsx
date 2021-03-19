@@ -23,7 +23,7 @@ function NavTab(props: NavTabProps) {
 
 interface BucketNavProps {
   bucket: string
-  section: string | boolean
+  section: 'overview' | 'packages' | 'queries' | 'search' | 'tree' | false // `keyof` sections object
 }
 
 const useBucketNavSkeletonStyles = M.makeStyles((t) => ({
