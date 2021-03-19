@@ -113,3 +113,5 @@ export function Provider({ bucket, children }: ProviderProps) {
 }
 
 export const useBucketPreferences = () => React.useContext(Ctx)
+
+export const use = useBucketPreferences

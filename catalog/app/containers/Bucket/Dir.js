@@ -12,7 +12,7 @@ import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as bucketPreferences from 'utils/bucketPreferences'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
 
@@ -139,7 +139,7 @@ export default function Dir({
     [history, urls, bucket, path],
   )
 
-  const preferences = bucketPreferences.useBucketPreferences()
+  const preferences = BucketPreferences.use()
 
   return (
     <M.Box pt={2} pb={4}>

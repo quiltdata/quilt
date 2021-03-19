@@ -17,7 +17,7 @@ import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as SVG from 'utils/SVG'
-import * as bucketPreferences from 'utils/bucketPreferences'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
 import { readableQuantity } from 'utils/string'
 import useDebouncedInput from 'utils/useDebouncedInput'
@@ -390,7 +390,7 @@ export default function PackageList({
     }
   })
 
-  const preferences = bucketPreferences.useBucketPreferences()
+  const preferences = BucketPreferences.use()
 
   return (
     <>

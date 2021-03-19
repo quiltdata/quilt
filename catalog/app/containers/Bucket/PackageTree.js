@@ -20,7 +20,7 @@ import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
 import Link, { linkStyle } from 'utils/StyledLink'
-import * as bucketPreferences from 'utils/bucketPreferences'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import copyToClipboard from 'utils/clipboard'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
@@ -359,7 +359,7 @@ function DirDisplay({
     if (!R.equals({ bucket, name, revision }, prev)) updateDialog.close()
   })
 
-  const preferences = bucketPreferences.useBucketPreferences()
+  const preferences = BucketPreferences.use()
 
   return data.case({
     Ok: ({ objects, prefixes, meta }) => {

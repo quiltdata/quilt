@@ -4,7 +4,7 @@ import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as bucketPreferences from 'utils/bucketPreferences'
+import * as BucketPreferences from 'utils/BucketPreferences'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -51,7 +51,7 @@ function BucketNavSkeleton() {
 
 interface TabsProps {
   bucket: string
-  preferences: bucketPreferences.NavPreferences
+  preferences: BucketPreferences.NavPreferences
   section: string | boolean
 }
 
@@ -77,7 +77,7 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
 }
 
 export default function BucketNav({ bucket, section = false }: BucketNavProps) {
-  const preferences = bucketPreferences.useBucketPreferences()
+  const preferences = BucketPreferences.use()
 
   if (!preferences) return <BucketNavSkeleton />
 

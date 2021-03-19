@@ -8,7 +8,7 @@ import Placeholder from 'components/Placeholder'
 import { ThrowNotFound } from 'containers/NotFoundPage'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as bucketPreferences from 'utils/bucketPreferences'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as RT from 'utils/reactTools'
 
 import BucketNav from './BucketNav'
@@ -94,7 +94,7 @@ export default function Bucket({
 }) {
   const { paths } = NamedRoutes.use()
   return (
-    <bucketPreferences.Provider bucket={bucket}>
+    <BucketPreferences.Provider bucket={bucket}>
       <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
         <Switch>
           <Route path={paths.bucketFile} component={File} exact strict />
@@ -109,6 +109,6 @@ export default function Bucket({
           <Route component={ThrowNotFound} />
         </Switch>
       </BucketLayout>
-    </bucketPreferences.Provider>
+    </BucketPreferences.Provider>
   )
 }
