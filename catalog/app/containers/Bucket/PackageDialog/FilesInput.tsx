@@ -4,6 +4,7 @@ import * as React from 'react'
 import { useDropzone, FileWithPath } from 'react-dropzone'
 import * as M from '@material-ui/core'
 
+import useDragging from 'utils/dragging'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
@@ -328,7 +329,6 @@ const useFileStyles = M.makeStyles((t) => ({
   deleted: {},
   unchanged: {},
   root: {
-    background: t.palette.background.paper,
     color: COLORS.default,
     cursor: 'default',
     outline: 'none',
@@ -454,7 +454,6 @@ const useDirStyles = M.makeStyles((t) => ({
   unchanged: {},
   active: {},
   root: {
-    background: t.palette.background.paper,
     cursor: 'pointer',
     outline: 'none',
     position: 'relative',
@@ -713,7 +712,6 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
   },
   dropzone: {
-    background: t.palette.action.hover,
     border: `1px solid ${t.palette.action.disabled}`,
     borderRadius: t.shape.borderRadius,
     cursor: 'pointer',
@@ -731,6 +729,10 @@ const useStyles = M.makeStyles((t) => ({
   },
   active: {
     background: t.palette.action.selected,
+  },
+  draggable: {
+    outline: `2px dashed ${t.palette.primary.main}`,
+    outlineOffset: '-2px',
   },
   filesContainer: {
     direction: 'rtl', // show the scrollbar on the left
@@ -788,6 +790,7 @@ const useDropdownMessageStyles = M.makeStyles((t) => ({
   root: {
     ...t.typography.body2,
     alignItems: 'center',
+    background: t.palette.action.hover,
     cursor: 'pointer',
     display: 'flex',
     flexGrow: 1,
@@ -797,6 +800,7 @@ const useDropdownMessageStyles = M.makeStyles((t) => ({
   },
   disabled: {
     padding: 0,
+    cursor: 'not-allowed',
   },
   error: {
     color: t.palette.error.main,
@@ -937,7 +941,8 @@ export function FilesInput({
     dispatch(FilesAction.Reset())
   }, [dispatch])
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
+  const isDragging = useDragging()
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ disabled, onDrop })
 
   const computedEntries = useMemoEq(value, computeEntries)
 
@@ -1013,7 +1018,11 @@ export function FilesInput({
         )}
       </div>
 
-      <div className={classes.dropzoneContainer}>
+      <div
+        className={cx(classes.dropzoneContainer, {
+          [classes.draggable]: isDragging && !disabled,
+        })}
+      >
         <div
           {...getRootProps({
             className: cx(

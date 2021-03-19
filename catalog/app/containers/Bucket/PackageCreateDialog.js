@@ -17,6 +17,7 @@ import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
+import useDragging from 'utils/dragging'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
@@ -57,7 +58,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     position: 'relative',
   },
   dropzone: {
-    background: t.palette.action.hover,
     border: `1px solid ${t.palette.action.disabled}`,
     borderRadius: t.shape.borderRadius,
     cursor: 'pointer',
@@ -76,9 +76,14 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   active: {
     background: t.palette.action.selected,
   },
+  draggable: {
+    outline: `2px dashed ${t.palette.primary.main}`,
+    outlineOffset: '-2px',
+  },
   dropMsg: {
     ...t.typography.body2,
     alignItems: 'center',
+    background: t.palette.action.hover,
     cursor: 'pointer',
     display: 'flex',
     flexGrow: 1,
@@ -106,7 +111,6 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
   fileEntry: {
     alignItems: 'center',
-    background: t.palette.background.paper,
     display: 'flex',
     '&:not(:last-child)': {
       borderBottomStyle: 'solid',
@@ -223,6 +227,7 @@ function FilesInput({
     setUploads({})
   }, [disabled, setUploads, onInputChange])
 
+  const isDragging = useDragging()
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
 
   const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
@@ -270,6 +275,7 @@ function FilesInput({
               isDragActive && !disabled && classes.active,
               !!error && classes.dropzoneErr,
               !error && warn && classes.dropzoneWarn,
+              isDragging && classes.draggable,
             ),
           })}
         >
