@@ -187,7 +187,7 @@ export function mkMetaValidator(schema: object | null) {
   return function validateMeta(value: object | null) {
     const noError = undefined
 
-    const jsonObjectErr = !R.is(Object, value)
+    const jsonObjectErr = value && !R.is(Object, value)
     if (jsonObjectErr) {
       return new Error('Metadata must be a valid JSON object')
     }
