@@ -35,4 +35,36 @@ describe('containers/Bucket/PackageDialog/PackageDialog', () => {
       expect(PD.calcDialogHeight(windowHeight, metaHeight)).toBe(700)
     })
   })
+
+  describe('mkMetaValidator', () => {
+    test('should return no error when no metadata', () => {
+      expect(PD.mkMetaValidator(null)(null)).toBeUndefined()
+    })
+
+    test('should return error when metadata is not an object', () => {
+      // TODO: remove this test when all references will be in typescript
+      // @ts-expect-error
+      expect(PD.mkMetaValidator(null)(123)).toMatchObject({
+        message: 'Metadata must be a valid JSON object',
+      })
+    })
+
+    test('should return no error when no Schema and metadata is object', () => {
+      expect(PD.mkMetaValidator(null)({ any: 'thing' })).toBeUndefined()
+    })
+
+    test("should return error when metadata isn't compliant with Schema", () => {
+      expect(PD.mkMetaValidator({ type: 'array' })({ any: 'thing' })).toMatchObject([
+        { message: 'should be array' },
+      ])
+    })
+
+    test('should return no error when metadata is compliant with Schema', () => {
+      expect(
+        PD.mkMetaValidator({ type: 'object', properties: { any: { type: 'string' } } })({
+          any: 'thing',
+        }),
+      ).toBeUndefined()
+    })
+  })
 })

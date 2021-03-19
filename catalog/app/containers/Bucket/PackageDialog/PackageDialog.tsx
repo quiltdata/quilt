@@ -179,7 +179,7 @@ export function useNameExistence(bucket: string) {
   return React.useMemo(() => ({ validate, inc }), [validate, inc])
 }
 
-function mkMetaValidator(schema: object | null) {
+export function mkMetaValidator(schema: object | null) {
   // TODO: move schema validation to utils/validators
   //       but don't forget that validation depends on library.
   //       Maybe we should split validators to files at first
@@ -187,7 +187,7 @@ function mkMetaValidator(schema: object | null) {
   return function validateMeta(value: object | null) {
     const noError = undefined
 
-    const jsonObjectErr = !R.is(Object, value)
+    const jsonObjectErr = value && !R.is(Object, value)
     if (jsonObjectErr) {
       return new Error('Metadata must be a valid JSON object')
     }
