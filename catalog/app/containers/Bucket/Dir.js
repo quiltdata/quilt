@@ -139,7 +139,7 @@ export default function Dir({
     [history, urls, bucket, path],
   )
 
-  const preferences = bucketPreferences.useBucketPreferences(bucket)
+  const preferences = bucketPreferences.useBucketPreferences()
 
   return (
     <M.Box pt={2} pb={4}>

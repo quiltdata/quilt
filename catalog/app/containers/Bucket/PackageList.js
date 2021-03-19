@@ -390,7 +390,7 @@ export default function PackageList({
     }
   })
 
-  const preferences = bucketPreferences.useBucketPreferences(bucket)
+  const preferences = bucketPreferences.useBucketPreferences()
 
   return (
     <>

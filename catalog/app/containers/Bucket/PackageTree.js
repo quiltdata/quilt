@@ -359,7 +359,7 @@ function DirDisplay({
     if (!R.equals({ bucket, name, revision }, prev)) updateDialog.close()
   })
 
-  const preferences = bucketPreferences.useBucketPreferences(bucket)
+  const preferences = bucketPreferences.useBucketPreferences()
 
   return data.case({
     Ok: ({ objects, prefixes, meta }) => {

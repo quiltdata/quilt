@@ -77,7 +77,7 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
 }
 
 export default function BucketNav({ bucket, section = false }: BucketNavProps) {
-  const preferences = bucketPreferences.useBucketPreferences(bucket)
+  const preferences = bucketPreferences.useBucketPreferences()
 
   if (!preferences) return <BucketNavSkeleton />
 

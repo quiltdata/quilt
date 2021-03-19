@@ -1,4 +1,5 @@
 import * as R from 'ramda'
+import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
@@ -95,15 +96,20 @@ export const fetchBucketPreferences = async ({
   }
 }
 
-export function useBucketPreferences(bucket: string): BucketPreferences | null {
-  // FIXME: fetch only on bucket change
+const Ctx = React.createContext<BucketPreferences | null>(null)
 
+type ProviderProps = React.PropsWithChildren<{ bucket: string }>
+
+export function Provider({ bucket, children }: ProviderProps) {
   const s3 = AWS.S3.use()
   const data = useData(fetchBucketPreferences, { s3, bucket })
 
-  return data.case({
+  const preferences = data.case({
     Ok: R.identity,
     Err: () => defaultPreferences,
     _: () => null,
   })
+  return <Ctx.Provider value={preferences}>{children}</Ctx.Provider>
 }
+
+export const useBucketPreferences = () => React.useContext(Ctx)
