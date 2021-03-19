@@ -1,24 +1,25 @@
 import * as React from 'react'
 import { Link } from 'react-router-dom'
-import * as RC from 'recompose'
 import * as M from '@material-ui/core'
 
 import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as RT from 'utils/reactTools'
 import * as bucketPreferences from 'utils/bucketPreferences'
 
-const NavTab = RT.composeComponent(
-  'Bucket.Layout.Tab',
-  M.withStyles((t) => ({
-    root: {
-      minHeight: t.spacing(8),
-      minWidth: 120,
-    },
-  })),
-  RC.withProps({ component: Link }),
-  M.Tab,
-)
+const useStyles = M.makeStyles((t) => ({
+  root: {
+    minHeight: t.spacing(8),
+    minWidth: 120,
+  },
+}))
+
+type NavTabProps = React.ComponentProps<typeof M.Tab> & React.ComponentProps<typeof Link>
+
+function NavTab(props: NavTabProps) {
+  const classes = useStyles()
+
+  return <M.Tab className={classes.root} component={Link} {...props} />
+}
 
 interface BucketNavProps {
   bucket: string
