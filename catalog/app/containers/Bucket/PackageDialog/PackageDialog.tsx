@@ -179,7 +179,7 @@ export function useNameExistence(bucket: string) {
   return React.useMemo(() => ({ validate, inc }), [validate, inc])
 }
 
-function mkMetaValidator(schema: object | null) {
+export function mkMetaValidator(schema: object | null) {
   // TODO: move schema validation to utils/validators
   //       but don't forget that validation depends on library.
   //       Maybe we should split validators to files at first
