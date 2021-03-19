@@ -9,6 +9,7 @@ import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import search from 'utils/search'
+import mkStorage from 'utils/storage'
 import useEditableValue from 'utils/useEditableValue'
 
 function Browse({ bucket }) {
@@ -279,6 +280,11 @@ function Search({ bucket, query, page, mode, retry }) {
 
   const handleModeChange = React.useCallback(
     (newMode) => {
+      if (newMode === 'objects' || newMode === 'packages') {
+        storage.set('searchMode', newMode)
+      } else {
+        storage.remove('searchMode')
+      }
       history.push(urls.bucketSearch(bucket, { q: query, mode: newMode }))
     },
     [history, urls, bucket, query],
@@ -332,6 +338,9 @@ function Search({ bucket, query, page, mode, retry }) {
   )
 }
 
+// Possible values are undefined, 'objects', 'packages'
+const storage = mkStorage({ searchMode: 'SEARCH_MODE' })
+
 export default function BucketSearch({
   match: {
     params: { bucket },
@@ -342,6 +351,21 @@ export default function BucketSearch({
   const { q: query = '', p, mode, ...params } = parseSearch(l.search)
   const page = p && parseInt(p, 10)
   const retry = (params.retry && parseInt(params.retry, 10)) || undefined
+
+  const { urls } = NamedRoutes.use()
+  const history = useHistory()
+  React.useEffect(() => {
+    if (mode) return
+
+    const searchMode = storage.load()?.searchMode
+    switch (searchMode) {
+      case 'objects':
+      case 'packages':
+        history.replace(urls.bucketSearch(bucket, { q: query, mode: searchMode }))
+      // no default
+    }
+  }, [bucket, history, mode, query, urls])
+
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
       {cfg ? (
