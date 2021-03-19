@@ -218,8 +218,28 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   throw new Error('Stats unavailable')
 }
 
+// key is array of keys: string[]
+const ensureObjectIsPresentInCollection = async ({ s3, bucket, key }) => {
+  if (!key.length) return null
+
+  const path = R.last(key)
+  const fileExists = await ensureObjectIsPresent({
+    s3,
+    bucket,
+    key: path,
+  })
+
+  return (
+    fileExists ||
+    (await ensureObjectIsPresentInCollection({ s3, bucket, key: R.init(key) }))
+  )
+}
+
 const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
-  const versionExists = await ensureObjectIsPresent({
+  const isPresent = Array.isArray(path)
+    ? ensureObjectIsPresentInCollection
+    : ensureObjectIsPresent
+  const versionExists = await isPresent({
     s3,
     bucket,
     key: path,
@@ -234,14 +254,17 @@ const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
   return s3
     .getObject({
       Bucket: bucket,
-      Key: path,
+      Key: versionExists.key,
       VersionId: version,
     })
     .promise()
 }
 
 const fetchFileLatest = async ({ s3, bucket, path }) => {
-  const fileExists = await ensureObjectIsPresent({
+  const isPresent = Array.isArray(path)
+    ? ensureObjectIsPresentInCollection
+    : ensureObjectIsPresent
+  const fileExists = await isPresent({
     s3,
     bucket,
     key: path,
@@ -253,12 +276,12 @@ const fetchFileLatest = async ({ s3, bucket, path }) => {
   const versions = await objectVersions({
     s3,
     bucket,
-    path,
+    path: fileExists.key,
   })
-  const { id } = R.find(R.prop('isLatest'), versions)
-  const version = id === 'null' ? undefined : id
+  const latest = R.find(R.prop('isLatest'), versions)
+  const version = latest && latest.id !== 'null' ? latest.id : undefined
 
-  return fetchFileVersioned({ s3, bucket, path, version })
+  return fetchFileVersioned({ s3, bucket, path: fileExists.key, version })
 }
 
 export const fetchFile = R.ifElse(R.prop('version'), fetchFileVersioned, fetchFileLatest)
@@ -283,7 +306,10 @@ export const metadataSchema = async ({ s3, schemaUrl }) => {
   return null
 }
 
-const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
+const WORKFLOWS_CONFIG_PATH = [
+  '.quilt/workflows/config.yml',
+  '.quilt/workflows/config.yaml',
+]
 
 export const workflowsList = async ({ s3, bucket }) => {
   try {
