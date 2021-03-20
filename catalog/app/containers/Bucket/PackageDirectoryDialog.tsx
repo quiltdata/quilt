@@ -98,7 +98,7 @@ const useStyles = M.makeStyles((t) => ({
 interface DialogFormProps {
   bucket: string
   close: () => void
-  files: { key: string; isDir: boolean; size: number }[]
+  files: { key: string; isDir?: boolean; size?: number }[]
   path: string
   responseError: $TSFixMe
   schema: object
@@ -455,10 +455,10 @@ function DialogLoading({ bucket, path, onCancel }: DialogLoadingProps) {
 interface PackageDirectoryDialogProps {
   bucket: string
   path: string
-  files: { key: string; isDir: boolean; size: number }[]
+  files: { key: string; isDir?: boolean; size?: number }[]
   open: boolean
-  successor: workflows.Successor
-  onClose: () => void
+  successor: workflows.Successor | null
+  onClose?: () => void
   onExited: (param: { pushed: null | { name: string; hash: string } }) => void
 }
 

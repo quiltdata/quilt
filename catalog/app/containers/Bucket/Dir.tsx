@@ -3,7 +3,7 @@ import { basename } from 'path'
 import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
-import { useHistory } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
@@ -25,9 +25,34 @@ import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
 
+interface RouteMap {
+  bucketDir: [bucket: string, path?: string, prefix?: string]
+  bucketFile: [bucket: string, path: string, version?: string]
+}
+
+type Urls = NamedRoutes.Urls<RouteMap>
+
+interface ListingFile {
+  bucket: string
+  key: string
+  modified: Date
+  size: number
+  etag: string
+  archived: boolean
+}
+
+interface ListingResponse {
+  dirs: string[]
+  files: ListingFile[]
+  truncated: boolean
+  bucket: string
+  path: string
+  prefix: string
+}
+
 const getCrumbs = R.compose(
   R.intersperse(Crumb.Sep(<>&nbsp;/ </>)),
-  ({ bucket, path, urls }) =>
+  ({ bucket, path, urls }: { bucket: string; path: string; urls: Urls }) =>
     [{ label: bucket, path: '' }, ...getBreadCrumbs(path)].map(
       ({ label, path: segPath }) =>
         Crumb.Segment({
@@ -37,14 +62,14 @@ const getCrumbs = R.compose(
     ),
 )
 
-const formatListing = ({ urls }, r) => {
+const formatListing = ({ urls }: { urls: Urls }, r: ListingResponse) => {
   const dirs = r.dirs.map((name) => ({
-    type: 'dir',
+    type: 'dir' as const,
     name: ensureNoSlash(withoutPrefix(r.path, name)),
     to: urls.bucketDir(r.bucket, name),
   }))
   const files = r.files.map(({ key, size, modified, archived }) => ({
-    type: 'file',
+    type: 'file' as const,
     name: withoutPrefix(r.path, key),
     to: urls.bucketFile(r.bucket, key),
     size,
@@ -55,7 +80,7 @@ const formatListing = ({ urls }, r) => {
     ...(r.path !== '' && !r.prefix
       ? [
           {
-            type: 'dir',
+            type: 'dir' as const,
             name: '..',
             to: urls.bucketDir(r.bucket, up(r.path)),
           },
@@ -76,16 +101,21 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface DirParams {
+  bucket: string
+  path?: string
+}
+
 export default function Dir({
   match: {
     params: { bucket, path: encodedPath = '' },
   },
   location: l,
-}) {
+}: RRDom.RouteComponentProps<DirParams>) {
   const classes = useStyles()
-  const { urls } = NamedRoutes.use()
+  const { urls } = NamedRoutes.use<RouteMap>()
   const { noDownload } = Config.use()
-  const history = useHistory()
+  const history = RRDom.useHistory()
   const s3 = AWS.S3.use()
   const { prefix } = parseSearch(l.search)
   const path = decode(encodedPath)
@@ -169,8 +199,8 @@ export default function Dir({
       {data.case({
         Err: displayError(),
         Init: () => null,
-        _: (x) => {
-          const res = AsyncResult.case(
+        _: (x: $TSFixMe) => {
+          const res: ListingResponse | null = AsyncResult.case(
             {
               Ok: R.identity,
               Pending: AsyncResult.case({
@@ -217,6 +247,7 @@ export default function Dir({
                   />
                 }
               />
+              {/* @ts-expect-error */}
               <Summary files={res.files} />
             </>
           )
