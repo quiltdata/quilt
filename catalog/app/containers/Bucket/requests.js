@@ -219,13 +219,14 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
 }
 
 // key is array of keys: string[]
-const ensureObjectIsPresentInCollection = async ({ s3, bucket, keys }) => {
+const ensureObjectIsPresentInCollection = async ({ s3, bucket, keys, version }) => {
   if (!keys.length) return null
 
   const fileExists = await ensureObjectIsPresent({
     s3,
     bucket,
     key: R.head(keys),
+    version,
   })
 
   return (
