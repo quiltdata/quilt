@@ -2,50 +2,75 @@ import Ajv from 'ajv'
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 
-export const isSchemaArray = (optSchema) => R.prop('type', optSchema) === 'array'
+type CompoundCondition = 'anyOf' | 'oneOf' | 'not' | 'allOf'
 
-export const isSchemaObject = (optSchema) => R.prop('type', optSchema) === 'object'
+export type JsonSchema = Partial<
+  {
+    $ref: string
+    const: string
+    dateformat: string
+    default: any
+    enum: $TSFixMe[]
+    format: string
+    items: JsonSchema
+    properties: Record<string, JsonSchema>
+    type: string | string[] | JsonSchema[]
+  } & Record<CompoundCondition, JsonSchema[]>
+>
 
-const isSchemaString = (optSchema) => R.prop('type', optSchema) === 'string'
+export const isSchemaArray = (optSchema: JsonSchema) =>
+  R.prop('type', optSchema) === 'array'
 
-const isSchemaNumber = (optSchema) => R.prop('type', optSchema) === 'number'
+export const isSchemaObject = (optSchema: JsonSchema) =>
+  R.prop('type', optSchema) === 'object'
 
-const isSchemaInteger = (optSchema) => R.prop('type', optSchema) === 'integer'
+const isSchemaString = (optSchema: JsonSchema) => R.prop('type', optSchema) === 'string'
 
-export const isSchemaBoolean = (optSchema) => R.prop('type', optSchema) === 'boolean'
+const isSchemaNumber = (optSchema: JsonSchema) => R.prop('type', optSchema) === 'number'
 
-const isSchemaNull = (optSchema) => R.prop('type', optSchema) === 'null'
+const isSchemaInteger = (optSchema: JsonSchema) => R.prop('type', optSchema) === 'integer'
 
-export const isSchemaEnum = (optSchema) => !!R.prop('enum', optSchema)
+export const isSchemaBoolean = (optSchema: JsonSchema) =>
+  R.prop('type', optSchema) === 'boolean'
 
-export const isSchemaOneOf = (optSchema) => !!R.prop('oneOf', optSchema)
+const isSchemaNull = (optSchema: JsonSchema) => R.prop('type', optSchema) === 'null'
 
-export const isSchemaAnyOf = (optSchema) => !!R.prop('anyOf', optSchema)
+export const isSchemaEnum = (optSchema: JsonSchema) => !!R.prop('enum', optSchema)
 
-export const isSchemaAllOf = (optSchema) => !!R.prop('allOf', optSchema)
+export const isSchemaOneOf = (optSchema: JsonSchema) => !!R.prop('oneOf', optSchema)
 
-const isSchemaConst = (optSchema) => !!R.prop('const', optSchema)
+export const isSchemaAnyOf = (optSchema: JsonSchema) => !!R.prop('anyOf', optSchema)
 
-function isSchemaCompound(optSchema) {
+export const isSchemaAllOf = (optSchema: JsonSchema) => !!R.prop('allOf', optSchema)
+
+const isSchemaConst = (optSchema: JsonSchema) => !!R.prop('const', optSchema)
+
+function isSchemaCompound(optSchema: JsonSchema) {
   if (!optSchema) return false
-  return ['anyOf', 'oneOf', 'not', 'allOf'].some((key) => optSchema[key])
+  return ['anyOf', 'oneOf', 'not', 'allOf'].some(
+    (key) => optSchema[key as 'anyOf' | 'oneOf' | 'not' | 'allOf'],
+  )
 }
 
-const isSchemaReference = (optSchema) => !!R.prop('$ref', optSchema)
+const isSchemaReference = (optSchema: JsonSchema) => !!R.prop('$ref', optSchema)
 
 export const isNestedType = R.either(isSchemaArray, isSchemaObject)
 
-function compoundTypeToHumanString(optSchema, condition, divider) {
+function compoundTypeToHumanString(
+  optSchema: JsonSchema,
+  condition: CompoundCondition,
+  divider: string,
+): string {
   if (!Array.isArray(R.prop(condition, optSchema))) return ''
 
-  return optSchema[condition]
+  return (optSchema[condition] as JsonSchema[])
     .map(schemaTypeToHumanString)
     .filter((v) => v !== 'undefined') // NOTE: sic, see default case of `schemaTypeToHumanString`
     .join(divider)
 }
 
-export function schemaTypeToHumanString(optSchema) {
-  return R.cond([
+export function schemaTypeToHumanString(optSchema: JsonSchema) {
+  return R.cond<JsonSchema, string>([
     [isSchemaEnum, () => 'enum'],
     [isSchemaConst, () => 'const'],
     [isSchemaBoolean, () => 'boolean'],
@@ -53,8 +78,11 @@ export function schemaTypeToHumanString(optSchema) {
     // NOTE: enum and const can be string too,
     //       that's why they are first
     [
-      R.prop('type'),
-      () => (Array.isArray(optSchema.type) ? optSchema.type.join('|') : optSchema.type),
+      R.propOr('', 'type'),
+      () =>
+        Array.isArray(optSchema.type)
+          ? optSchema.type.join('|')
+          : (optSchema.type as string),
     ],
     [isSchemaAnyOf, () => compoundTypeToHumanString(optSchema, 'anyOf', '|')],
     [isSchemaOneOf, () => compoundTypeToHumanString(optSchema, 'oneOf', '&')],
@@ -65,22 +93,26 @@ export function schemaTypeToHumanString(optSchema) {
   ])(optSchema)
 }
 
-function doesTypeMatchCompoundSchema(value, optSchema, condition) {
+function doesTypeMatchCompoundSchema(
+  value: any,
+  optSchema: JsonSchema,
+  condition: CompoundCondition,
+): boolean {
   if (!Array.isArray(R.prop(condition, optSchema))) return false
 
-  return optSchema[condition]
+  return (optSchema[condition] as JsonSchema[])
     .filter(R.has('type'))
     .some((subSchema) => doesTypeMatchSchema(value, subSchema))
 }
 
-export function doesTypeMatchSchema(value, optSchema) {
-  return R.cond([
+export function doesTypeMatchSchema(value: any, optSchema: JsonSchema): boolean {
+  return R.cond<JsonSchema, boolean>([
     [isSchemaEnum, () => R.includes(value, R.propOr([], 'enum', optSchema))],
     [
       (s) => Array.isArray(R.prop('type', s)),
       () =>
-        optSchema.type.some((subSchema) =>
-          doesTypeMatchSchema(value, { type: subSchema }),
+        (optSchema.type as JsonSchema[]).some((subSchema) =>
+          doesTypeMatchSchema(value, subSchema),
         ),
     ],
     [isSchemaAnyOf, () => doesTypeMatchCompoundSchema(value, optSchema, 'anyOf')],
@@ -99,7 +131,7 @@ export function doesTypeMatchSchema(value, optSchema) {
 
 export const EMPTY_SCHEMA = {}
 
-export function makeSchemaValidator(optSchema) {
+export function makeSchemaValidator(optSchema?: JsonSchema) {
   const schema = optSchema || EMPTY_SCHEMA
 
   const ajv = new Ajv({ useDefaults: true, schemaId: 'auto' })
@@ -107,7 +139,7 @@ export function makeSchemaValidator(optSchema) {
   try {
     const validate = ajv.compile(schema)
 
-    return (obj) => {
+    return (obj: any) => {
       validate(R.clone(obj))
       // TODO: add custom errors
       return validate.errors || []
@@ -118,19 +150,21 @@ export function makeSchemaValidator(optSchema) {
   }
 }
 
-export function scan(optValue, optSchema) {
+export function scan(
+  optValue: Record<string, any>,
+  optSchema?: JsonSchema,
+): Record<string, any> {
   if (!optSchema) return optValue
 
   if (!optSchema?.properties) return optValue
 
-  const keys = Object.keys(optSchema.properties)
-  return keys.reduce((memo, key) => {
+  return Object.keys(optSchema.properties).reduce((memo, key) => {
     const valueItem = optValue === undefined ? undefined : optValue[key]
 
     // don't touch user's primitive value
     if (valueItem && !R.is(Object, valueItem)) return memo
 
-    const schemaItem = optSchema.properties[key]
+    const schemaItem = R.propOr({}, key, optSchema.properties) as JsonSchema
 
     if (schemaItem.default !== undefined) return R.assoc(key, schemaItem.default, memo)
 
@@ -155,6 +189,6 @@ export function scan(optValue, optSchema) {
   }, optValue)
 }
 
-export function makeSchemaDefaultsSetter(optSchema) {
-  return (obj) => scan(obj, optSchema)
+export function makeSchemaDefaultsSetter(optSchema?: JsonSchema) {
+  return (obj: any) => scan(obj, optSchema)
 }
