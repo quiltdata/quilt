@@ -150,7 +150,7 @@ export function makeSchemaValidator(optSchema?: JsonSchema) {
   }
 }
 
-export function scan(
+function scanSchemaAndPrefillValues(
   callback: (v?: any, s?: JsonSchema) => any,
   optValue: Record<string, any>,
   optSchema?: JsonSchema,
@@ -168,12 +168,16 @@ export function scan(
     const schemaItem = R.propOr({}, key, optSchema.properties) as JsonSchema
 
     if (schemaItem.properties)
-      return R.assoc(key, scan(callback, valueItem, schemaItem), memo)
+      return R.assoc(
+        key,
+        scanSchemaAndPrefillValues(callback, valueItem, schemaItem),
+        memo,
+      )
 
     if (schemaItem.items && Array.isArray(valueItem))
       return R.assoc(
         key,
-        valueItem.map((v) => scan(callback, v, schemaItem.items)),
+        valueItem.map((v) => scanSchemaAndPrefillValues(callback, v, schemaItem.items)),
         memo,
       )
 
@@ -201,5 +205,5 @@ export function getDefaultValue(optSchema?: JsonSchema): any {
 }
 
 export function makeSchemaDefaultsSetter(optSchema?: JsonSchema) {
-  return (obj: any) => scan(getDefaultValue, obj, optSchema)
+  return (obj: any) => scanSchemaAndPrefillValues(getDefaultValue, obj, optSchema)
 }
