@@ -311,7 +311,7 @@ const WORKFLOWS_CONFIG_PATH = [
   '.quilt/workflows/config.yaml',
 ]
 
-export const workflowsList = async ({ s3, bucket }) => {
+export const workflowsConfig = async ({ s3, bucket }) => {
   try {
     const response = await fetchFile({ s3, bucket, path: WORKFLOWS_CONFIG_PATH })
     return workflows.parse(response.Body.toString('utf-8'))

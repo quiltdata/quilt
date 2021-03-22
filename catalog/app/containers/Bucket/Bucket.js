@@ -1,7 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link, Route, Switch, matchPath } from 'react-router-dom'
-import * as RC from 'recompose'
+import { Route, Switch, matchPath } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -9,8 +8,10 @@ import Placeholder from 'components/Placeholder'
 import { ThrowNotFound } from 'containers/NotFoundPage'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as RT from 'utils/reactTools'
 
+import BucketNav from './BucketNav'
 import { displayError } from './errors'
 
 const mkLazy = (load) =>
@@ -55,18 +56,6 @@ const getBucketSection = (paths) =>
     ),
   )
 
-const NavTab = RT.composeComponent(
-  'Bucket.Layout.Tab',
-  M.withStyles((t) => ({
-    root: {
-      minHeight: t.spacing(8),
-      minWidth: 120,
-    },
-  })),
-  RC.withProps({ component: Link }),
-  M.Tab,
-)
-
 const useStyles = M.makeStyles((t) => ({
   appBar: {
     backgroundColor: t.palette.common.white,
@@ -75,7 +64,6 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 function BucketLayout({ bucket, section = false, children }) {
-  const { urls } = NamedRoutes.use()
   const classes = useStyles()
   const bucketExistenceData = useBucketExistence(bucket)
   return (
@@ -83,23 +71,7 @@ function BucketLayout({ bucket, section = false, children }) {
       pre={
         <>
           <M.AppBar position="static" className={classes.appBar}>
-            <M.Tabs value={section} centered>
-              <NavTab
-                label="Overview"
-                value="overview"
-                to={urls.bucketOverview(bucket)}
-              />
-              <NavTab label="Files" value="tree" to={urls.bucketDir(bucket)} />
-              <NavTab
-                label="Packages"
-                value="packages"
-                to={urls.bucketPackageList(bucket)}
-              />
-              <NavTab label="Queries" value="queries" to={urls.bucketQueries(bucket)} />
-              {section === 'search' && (
-                <NavTab label="Search" value="search" to={urls.bucketSearch(bucket)} />
-              )}
-            </M.Tabs>
+            <BucketNav bucket={bucket} section={section} />
           </M.AppBar>
           <M.Container maxWidth="lg">
             {bucketExistenceData.case({
@@ -122,19 +94,21 @@ export default function Bucket({
 }) {
   const { paths } = NamedRoutes.use()
   return (
-    <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
-      <Switch>
-        <Route path={paths.bucketFile} component={File} exact strict />
-        <Route path={paths.bucketDir} component={Dir} exact />
-        <Route path={paths.bucketOverview} component={Overview} exact />
-        <Route path={paths.bucketSearch} component={Search} exact />
-        <Route path={paths.bucketPackageList} component={PackageList} exact />
-        <Route path={paths.bucketPackageDetail} component={PackageTree} exact />
-        <Route path={paths.bucketPackageTree} component={PackageTree} exact />
-        <Route path={paths.bucketPackageRevisions} component={PackageRevisions} exact />
-        <Route path={paths.bucketQueries} component={Queries} exact />
-        <Route component={ThrowNotFound} />
-      </Switch>
-    </BucketLayout>
+    <BucketPreferences.Provider bucket={bucket}>
+      <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
+        <Switch>
+          <Route path={paths.bucketFile} component={File} exact strict />
+          <Route path={paths.bucketDir} component={Dir} exact />
+          <Route path={paths.bucketOverview} component={Overview} exact />
+          <Route path={paths.bucketSearch} component={Search} exact />
+          <Route path={paths.bucketPackageList} component={PackageList} exact />
+          <Route path={paths.bucketPackageDetail} component={PackageTree} exact />
+          <Route path={paths.bucketPackageTree} component={PackageTree} exact />
+          <Route path={paths.bucketPackageRevisions} component={PackageRevisions} exact />
+          <Route path={paths.bucketQueries} component={Queries} exact />
+          <Route component={ThrowNotFound} />
+        </Switch>
+      </BucketLayout>
+    </BucketPreferences.Provider>
   )
 }

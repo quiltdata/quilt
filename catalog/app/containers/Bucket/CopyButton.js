@@ -42,7 +42,7 @@ const MenuItem = React.forwardRef(function MenuItem({ item, onClick }, ref) {
 
 function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
   const s3 = AWS.S3.use()
-  const data = useData(requests.workflowsList, { s3, bucket })
+  const data = useData(requests.workflowsConfig, { s3, bucket })
 
   return (
     <M.Menu anchorEl={anchorEl} onClose={onClose} open={open}>

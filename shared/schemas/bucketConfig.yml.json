@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://quiltdata.com/bucket/config/1",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": "1"
+    },
+    "ui": {
+      "type": "object",
+      "properties": {
+        "nav": {
+          "type": "object",
+          "properties": {
+            "files": {
+              "default": true,
+              "description": "Hides Files tab",
+              "type": "boolean"
+            },
+            "packages": {
+              "default": true,
+              "description": "Hides Packages tab",
+              "type": "boolean"
+            },
+            "queries": {
+              "default": true,
+              "description": "Hides Queries tab",
+              "type": "boolean"
+            }
+          }
+        },
+        "actions": {
+          "type": "object",
+          "properties": {
+            "createPackage": {
+              "default": true,
+              "description": "Hides buttons triggering Create Package dialog, both creating package from scratch and from directory",
+              "type": "boolean"
+            },
+            "revisePackage": {
+              "default": true,
+              "description": "Hides button triggering Revise Package dialog",
+              "type": "boolean"
+            },
+            "copyPackage": {
+              "default": true,
+              "description": "Hides button triggering Push to Bucket dialog",
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}
