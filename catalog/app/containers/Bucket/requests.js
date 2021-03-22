@@ -219,28 +219,27 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
 }
 
 // key is array of keys: string[]
-const ensureObjectIsPresentInCollection = async ({ s3, bucket, key }) => {
-  if (!key.length) return null
+const ensureObjectIsPresentInCollection = async ({ s3, bucket, keys }) => {
+  if (!keys.length) return null
 
-  const path = R.head(key)
   const fileExists = await ensureObjectIsPresent({
     s3,
     bucket,
-    key: path,
+    key: R.head(keys),
   })
 
   return (
     fileExists ||
-    (await ensureObjectIsPresentInCollection({ s3, bucket, key: R.tail(key) }))
+    (await ensureObjectIsPresentInCollection({ s3, bucket, keys: R.tail(keys) }))
   )
 }
 
 const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
-  const paths = Array.isArray(path) ? path : [path]
+  const keys = Array.isArray(path) ? path : [path]
   const versionExists = await ensureObjectIsPresentInCollection({
     s3,
     bucket,
-    key: paths,
+    keys,
     version,
   })
   if (!versionExists) {
@@ -259,11 +258,11 @@ const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
 }
 
 const fetchFileLatest = async ({ s3, bucket, path }) => {
-  const paths = Array.isArray(path) ? path : [path]
+  const keys = Array.isArray(path) ? path : [path]
   const fileExists = await ensureObjectIsPresentInCollection({
     s3,
     bucket,
-    key: paths,
+    keys,
   })
   if (!fileExists) {
     throw new errors.FileNotFound(`${path} for ${bucket} does not exist`)
