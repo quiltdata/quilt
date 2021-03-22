@@ -221,16 +221,17 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
 const ensureObjectIsPresentInCollection = async ({ s3, bucket, keys, version }) => {
   if (!keys.length) return null
 
+  const [key, ...keysTail] = keys
   const fileExists = await ensureObjectIsPresent({
     s3,
     bucket,
-    key: R.head(keys),
+    key,
     version,
   })
 
   return (
     fileExists ||
-    (await ensureObjectIsPresentInCollection({ s3, bucket, keys: R.tail(keys) }))
+    (await ensureObjectIsPresentInCollection({ s3, bucket, keys: keysTail }))
   )
 }
 
