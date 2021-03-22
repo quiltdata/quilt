@@ -33,6 +33,17 @@ export class FileNotFound extends BucketError {}
 
 export class VersionNotFound extends BucketError {}
 
+export class BucketPreferencesInvalid extends BucketError {
+  static displayName = 'BucketPreferencesInvalid'
+
+  constructor(props) {
+    super(
+      props.errors.map(({ dataPath, message }) => `${dataPath} ${message}`).join(', '),
+      props,
+    )
+  }
+}
+
 export class WorkflowsConfigInvalid extends BucketError {
   static displayName = 'WorkflowsConfigInvalid'
 

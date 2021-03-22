@@ -403,7 +403,7 @@ export default function PackageDirectoryDialog({
   const [submitting, setSubmitting] = React.useState(false)
 
   const workflowsData = Data.use(
-    requests.workflowsList,
+    requests.workflowsConfig,
     { s3, bucket: successor ? successor.slug : '' },
     { noAutoFetch: !successor || !open },
   )

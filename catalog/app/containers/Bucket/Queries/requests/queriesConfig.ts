@@ -1,3 +1,5 @@
+import * as R from 'ramda'
+
 import * as errors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 import * as AWS from 'utils/AWS'
@@ -27,10 +29,14 @@ interface QueriesConfigArgs {
   s3: $TSFixMe
 }
 
-function parseQueriesList(result: ConfigResponse | null) {
-  if (!result || !result.queries) return []
+function isValidConfig(data: unknown): boolean {
+  return R.is(Object, data) && R.is(Object, (data as { queries: unknown }).queries)
+}
 
-  return Object.entries(result.queries).map(([key, query]) => ({
+function parseQueriesList(result: unknown) {
+  if (!isValidConfig(result)) return []
+
+  return Object.entries((result as ConfigResponse).queries).map(([key, query]) => ({
     ...query,
     body: null,
     key,
