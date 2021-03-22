@@ -236,13 +236,11 @@ const ensureObjectIsPresentInCollection = async ({ s3, bucket, key }) => {
 }
 
 const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
-  const isPresent = Array.isArray(path)
-    ? ensureObjectIsPresentInCollection
-    : ensureObjectIsPresent
-  const versionExists = await isPresent({
+  const paths = Array.isArray(path) ? path : [path]
+  const versionExists = await ensureObjectIsPresentInCollection({
     s3,
     bucket,
-    key: path,
+    key: paths,
     version,
   })
   if (!versionExists) {
@@ -261,13 +259,11 @@ const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
 }
 
 const fetchFileLatest = async ({ s3, bucket, path }) => {
-  const isPresent = Array.isArray(path)
-    ? ensureObjectIsPresentInCollection
-    : ensureObjectIsPresent
-  const fileExists = await isPresent({
+  const paths = Array.isArray(path) ? path : [path]
+  const fileExists = await ensureObjectIsPresentInCollection({
     s3,
     bucket,
-    key: path,
+    key: paths,
   })
   if (!fileExists) {
     throw new errors.FileNotFound(`${path} for ${bucket} does not exist`)
