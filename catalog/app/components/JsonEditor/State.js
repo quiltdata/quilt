@@ -1,3 +1,4 @@
+import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -141,8 +142,17 @@ function calcReactId(valuePath, value) {
 
 function getDefaultValue(jsonDictItem) {
   if (!jsonDictItem || !jsonDictItem.valueSchema) return EMPTY_VALUE
-  if (jsonDictItem.valueSchema.default === undefined) return EMPTY_VALUE
-  return jsonDictItem.valueSchema.default
+
+  const schema = jsonDictItem.valueSchema
+  try {
+    if (schema.format === 'date' && schema.dateformat)
+      return dateFns.format(new Date(), schema.dateformat)
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(error)
+  }
+  if (schema.default !== undefined) return schema.default
+  return EMPTY_VALUE
 }
 
 function getJsonDictItem(jsonDict, obj, parentPath, key, sortOrder) {

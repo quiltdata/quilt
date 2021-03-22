@@ -1,4 +1,5 @@
 import Ajv from 'ajv'
+import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 
 export const isSchemaArray = (optSchema) => R.prop('type', optSchema) === 'array'
@@ -117,20 +118,43 @@ export function makeSchemaValidator(optSchema) {
   }
 }
 
-export function makeSchemaDefaultsSetter(optSchema) {
-  const schema = optSchema || EMPTY_SCHEMA
+export function scan(optValue, optSchema) {
+  if (!optSchema) return optValue
 
-  const ajv = new Ajv({ useDefaults: true, schemaId: 'auto' })
+  if (!optSchema?.properties) return optValue
 
-  try {
-    const validate = ajv.compile(schema)
+  const keys = Object.keys(optSchema.properties)
+  return keys.reduce((memo, key) => {
+    const valueItem = optValue === undefined ? undefined : optValue[key]
 
-    return (obj) => {
-      const clonedObj = R.clone(obj)
-      validate(clonedObj)
-      return clonedObj
+    // don't touch user's primitive value
+    if (valueItem && !R.is(Object, valueItem)) return memo
+
+    const schemaItem = optSchema.properties[key]
+
+    if (schemaItem.default !== undefined) return R.assoc(key, schemaItem.default, memo)
+
+    try {
+      if (schemaItem.format === 'date' && schemaItem.dateformat)
+        return R.assoc(key, dateFns.format(new Date(), schemaItem.dateformat), memo)
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error)
     }
-  } catch (e) {
-    return R.identity
-  }
+
+    if (schemaItem.properties) return R.assoc(key, scan(valueItem, schemaItem), memo)
+
+    if (schemaItem.items && Array.isArray(valueItem))
+      return R.assoc(
+        key,
+        valueItem.map((v) => scan(v, schemaItem.items)),
+        memo,
+      )
+
+    return memo
+  }, optValue)
+}
+
+export function makeSchemaDefaultsSetter(optSchema) {
+  return (obj) => scan(obj, optSchema)
 }

@@ -1,4 +1,4 @@
-import { makeSchemaDefaultsSetter, makeSchemaValidator } from './json-schema'
+import { makeSchemaDefaultsSetter, makeSchemaValidator, scan } from './json-schema'
 
 import * as booleansNulls from './mocks/booleans-nulls'
 import * as compound from './mocks/compound'
@@ -286,6 +286,103 @@ describe('utils/json-schema', () => {
           },
         ],
       })
+    })
+  })
+
+  describe('scan', () => {
+    it('should return the same value if no schema', () => {
+      const obj = { a: 1 }
+      expect(scan(obj)).toBe(obj)
+    })
+
+    it('should return the same value if no properties schema', () => {
+      const obj = { a: 1 }
+      const schema = { type: 'array', items: { type: 'number' } }
+      expect(scan(obj, schema)).toBe(obj)
+    })
+
+    it('should return value with defaults', () => {
+      const obj = { a: { b: 1 } }
+      const schema = {
+        type: 'object',
+        properties: {
+          a: {
+            type: 'object',
+            properties: {
+              b: { type: 'string', default: 'User set it' },
+              c: { type: 'number', default: 123 },
+              d: {
+                type: 'object',
+                properties: {
+                  e: {
+                    type: 'object',
+                    properties: {
+                      f: { type: 'number', default: 456 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          g: { type: 'number', default: 789 },
+        },
+      }
+      expect(scan(obj, schema)).toMatchObject({
+        a: {
+          b: 1,
+          c: 123,
+          d: {
+            e: {
+              f: 456,
+            },
+          },
+        },
+        g: 789,
+      })
+    })
+
+    it('should return value with prepopulated date', () => {
+      jest.useFakeTimers('modern')
+      jest.setSystemTime(new Date(2020, 0, 30))
+
+      const obj = { a: { b: 1 } }
+      const schema = {
+        type: 'object',
+        properties: {
+          a: {
+            type: 'object',
+            properties: {
+              b: { type: 'string', format: 'date', dateformat: 'yyyy-MM-dd' },
+              c: { type: 'string', format: 'date', dateformat: 'yyyy-MM-dd' },
+              d: {
+                type: 'object',
+                properties: {
+                  e: {
+                    type: 'object',
+                    properties: {
+                      f: { type: 'string', format: 'date', dateformat: 'yyyy-MM-dd' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          g: { type: 'string', format: 'date', dateformat: 'yyyy-MM-dd' },
+        },
+      }
+      expect(scan(obj, schema)).toMatchObject({
+        a: {
+          b: 1,
+          c: '2020-01-30',
+          d: {
+            e: {
+              f: '2020-01-30',
+            },
+          },
+        },
+        g: '2020-01-30',
+      })
+      jest.useRealTimers()
     })
   })
 })
