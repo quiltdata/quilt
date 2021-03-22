@@ -218,7 +218,6 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   throw new Error('Stats unavailable')
 }
 
-// key is array of keys: string[]
 const ensureObjectIsPresentInCollection = async ({ s3, bucket, keys, version }) => {
   if (!keys.length) return null
 
