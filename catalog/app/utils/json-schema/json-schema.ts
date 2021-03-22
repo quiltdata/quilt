@@ -151,6 +151,7 @@ export function makeSchemaValidator(optSchema?: JsonSchema) {
 }
 
 export function scan(
+  callback: (v?: any, s?: JsonSchema) => any,
   optValue: Record<string, any>,
   optSchema?: JsonSchema,
 ): Record<string, any> {
@@ -166,29 +167,39 @@ export function scan(
 
     const schemaItem = R.propOr({}, key, optSchema.properties) as JsonSchema
 
-    if (schemaItem.default !== undefined) return R.assoc(key, schemaItem.default, memo)
-
-    try {
-      if (schemaItem.format === 'date' && schemaItem.dateformat)
-        return R.assoc(key, dateFns.format(new Date(), schemaItem.dateformat), memo)
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(error)
-    }
-
-    if (schemaItem.properties) return R.assoc(key, scan(valueItem, schemaItem), memo)
+    if (schemaItem.properties)
+      return R.assoc(key, scan(callback, valueItem, schemaItem), memo)
 
     if (schemaItem.items && Array.isArray(valueItem))
       return R.assoc(
         key,
-        valueItem.map((v) => scan(v, schemaItem.items)),
+        valueItem.map((v) => scan(callback, v, schemaItem.items)),
         memo,
       )
+
+    const preDefinedValue = callback(schemaItem)
+    if (preDefinedValue) return R.assoc(key, preDefinedValue, memo)
 
     return memo
   }, optValue)
 }
 
+export function getDefaultValue(optSchema?: JsonSchema): any {
+  if (!optSchema) return undefined
+
+  if (optSchema.default !== undefined) return optSchema.default
+
+  try {
+    if (optSchema.format === 'date' && optSchema.dateformat)
+      return dateFns.format(new Date(), optSchema.dateformat)
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(error)
+  }
+
+  return undefined
+}
+
 export function makeSchemaDefaultsSetter(optSchema?: JsonSchema) {
-  return (obj: any) => scan(obj, optSchema)
+  return (obj: any) => scan(getDefaultValue, obj, optSchema)
 }

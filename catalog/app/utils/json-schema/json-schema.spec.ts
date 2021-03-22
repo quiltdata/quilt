@@ -1,4 +1,4 @@
-import { makeSchemaDefaultsSetter, makeSchemaValidator, scan } from './json-schema'
+import { makeSchemaDefaultsSetter, makeSchemaValidator } from './json-schema'
 
 import * as booleansNulls from './mocks/booleans-nulls'
 import * as compound from './mocks/compound'
@@ -271,12 +271,6 @@ describe('utils/json-schema', () => {
       })
     })
 
-    it('should ignore default value from Schema, when value set', () => {
-      expect(setDefaults({ a: 123 })).toMatchObject({
-        a: 123,
-      })
-    })
-
     it('should set default value from Schema, when nested value set', () => {
       expect(setDefaults({ optList: [{}] })).toMatchObject({
         optList: [
@@ -287,18 +281,16 @@ describe('utils/json-schema', () => {
         ],
       })
     })
-  })
 
-  describe('scan', () => {
     it('should return the same value if no schema', () => {
       const obj = { a: 1 }
-      expect(scan(obj)).toBe(obj)
+      expect(makeSchemaDefaultsSetter()(obj)).toBe(obj)
     })
 
     it('should return the same value if no properties schema', () => {
       const obj = { a: 1 }
       const schema = { type: 'array', items: { type: 'number' } }
-      expect(scan(obj, schema)).toBe(obj)
+      expect(makeSchemaDefaultsSetter(schema)(obj)).toBe(obj)
     })
 
     it('should return value with defaults', () => {
@@ -327,7 +319,7 @@ describe('utils/json-schema', () => {
           g: { type: 'number', default: 789 },
         },
       }
-      expect(scan(obj, schema)).toMatchObject({
+      expect(makeSchemaDefaultsSetter(schema)(obj)).toMatchObject({
         a: {
           b: 1,
           c: 123,
@@ -370,7 +362,7 @@ describe('utils/json-schema', () => {
           g: { type: 'string', format: 'date', dateformat: 'yyyy-MM-dd' },
         },
       }
-      expect(scan(obj, schema)).toMatchObject({
+      expect(makeSchemaDefaultsSetter(schema)(obj)).toMatchObject({
         a: {
           b: 1,
           c: '2020-01-30',
