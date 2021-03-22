@@ -65,7 +65,10 @@ function parse(bucketPreferencesYaml: string): BucketPreferences {
   }
 }
 
-const BUCKET_PREFERENCES_PATH = '.quilt/catalog/config.yml'
+const BUCKET_PREFERENCES_PATH = [
+  '.quilt/catalog/config.yaml',
+  '.quilt/catalog/config.yml',
+]
 
 const fetchBucketPreferences = async ({ s3, bucket }: { s3: any; bucket: string }) => {
   try {
