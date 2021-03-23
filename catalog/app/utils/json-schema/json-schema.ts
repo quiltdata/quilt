@@ -102,9 +102,11 @@ export function schemaTypeToHumanString(optSchema?: JsonSchema) {
 
 function doesTypeMatchCompoundSchema(
   value: any,
-  optSchema: JsonSchema,
   condition: CompoundCondition,
+  optSchema?: JsonSchema,
 ): boolean {
+  if (!optSchema) return true
+
   if (!Array.isArray(prop(condition, optSchema))) return false
 
   return (optSchema[condition] as JsonSchema[])
@@ -112,7 +114,10 @@ function doesTypeMatchCompoundSchema(
     .some((subSchema) => doesTypeMatchSchema(value, subSchema))
 }
 
-export function doesTypeMatchSchema(value: any, optSchema: JsonSchema): boolean {
+// Purpose is to find mismatch explicitly
+// TODO: rename and redesign function to avoid "if no schema -> return true aka 'type matches schema'"
+export function doesTypeMatchSchema(value: any, optSchema?: JsonSchema): boolean {
+  if (!optSchema) return true
   return R.cond<JsonSchema, boolean>([
     [isSchemaEnum, () => R.includes(value, R.propOr([], 'enum', optSchema))],
     [
@@ -122,9 +127,9 @@ export function doesTypeMatchSchema(value: any, optSchema: JsonSchema): boolean 
           doesTypeMatchSchema(value, subSchema),
         ),
     ],
-    [isSchemaAnyOf, () => doesTypeMatchCompoundSchema(value, optSchema, 'anyOf')],
-    [isSchemaOneOf, () => doesTypeMatchCompoundSchema(value, optSchema, 'oneOf')],
-    [isSchemaAllOf, () => doesTypeMatchCompoundSchema(value, optSchema, 'allOf')],
+    [isSchemaAnyOf, () => doesTypeMatchCompoundSchema(value, 'anyOf', optSchema)],
+    [isSchemaOneOf, () => doesTypeMatchCompoundSchema(value, 'oneOf', optSchema)],
+    [isSchemaAllOf, () => doesTypeMatchCompoundSchema(value, 'allOf', optSchema)],
     [isSchemaArray, () => Array.isArray(value)],
     [isSchemaObject, () => R.is(Object, value)],
     [isSchemaString, () => R.is(String, value)],
