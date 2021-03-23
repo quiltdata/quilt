@@ -218,11 +218,29 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   throw new Error('Stats unavailable')
 }
 
-const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
-  const versionExists = await ensureObjectIsPresent({
+const ensureObjectIsPresentInCollection = async ({ s3, bucket, keys, version }) => {
+  if (!keys.length) return null
+
+  const [key, ...keysTail] = keys
+  const fileExists = await ensureObjectIsPresent({
     s3,
     bucket,
-    key: path,
+    key,
+    version,
+  })
+
+  return (
+    fileExists ||
+    (await ensureObjectIsPresentInCollection({ s3, bucket, keys: keysTail }))
+  )
+}
+
+const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
+  const keys = Array.isArray(path) ? path : [path]
+  const versionExists = await ensureObjectIsPresentInCollection({
+    s3,
+    bucket,
+    keys,
     version,
   })
   if (!versionExists) {
@@ -234,17 +252,18 @@ const fetchFileVersioned = async ({ s3, bucket, path, version }) => {
   return s3
     .getObject({
       Bucket: bucket,
-      Key: path,
+      Key: versionExists.key,
       VersionId: version,
     })
     .promise()
 }
 
 const fetchFileLatest = async ({ s3, bucket, path }) => {
-  const fileExists = await ensureObjectIsPresent({
+  const keys = Array.isArray(path) ? path : [path]
+  const fileExists = await ensureObjectIsPresentInCollection({
     s3,
     bucket,
-    key: path,
+    keys,
   })
   if (!fileExists) {
     throw new errors.FileNotFound(`${path} for ${bucket} does not exist`)
@@ -253,12 +272,12 @@ const fetchFileLatest = async ({ s3, bucket, path }) => {
   const versions = await objectVersions({
     s3,
     bucket,
-    path,
+    path: fileExists.key,
   })
-  const { id } = R.find(R.prop('isLatest'), versions)
-  const version = id === 'null' ? undefined : id
+  const latest = R.find(R.prop('isLatest'), versions)
+  const version = latest && latest.id !== 'null' ? latest.id : undefined
 
-  return fetchFileVersioned({ s3, bucket, path, version })
+  return fetchFileVersioned({ s3, bucket, path: fileExists.key, version })
 }
 
 export const fetchFile = R.ifElse(R.prop('version'), fetchFileVersioned, fetchFileLatest)
@@ -284,6 +303,11 @@ export const metadataSchema = async ({ s3, schemaUrl }) => {
 }
 
 const WORKFLOWS_CONFIG_PATH = '.quilt/workflows/config.yml'
+// TODO: enable this when backend is ready
+// const WORKFLOWS_CONFIG_PATH = [
+//   '.quilt/workflows/config.yaml',
+//   '.quilt/workflows/config.yml',
+// ]
 
 export const workflowsConfig = async ({ s3, bucket }) => {
   try {
