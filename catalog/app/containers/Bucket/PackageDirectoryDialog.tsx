@@ -29,34 +29,53 @@ interface ApiRequest {
   }): Promise<O>
 }
 
-function requestPackageCreate(
-  req: ApiRequest,
-  params: {
-    commitMessage: string
-    name: string
-    meta: object
-    sourceBucket: string
-    path: string
-    schema: object
-    targetBucket: string
-    workflow: workflows.Workflow
-  },
-) {
-  return req<{ top_hash: string }>({
-    endpoint: '/packages/from-folder',
-    method: 'POST',
-    body: {
-      message: params.commitMessage,
-      meta: PD.getMetaValue(params.meta, params.schema),
-      path: params.path,
-      dst: {
-        registry: `s3://${params.targetBucket}`,
-        name: params.name,
-      },
-      registry: `s3://${params.sourceBucket}`,
-      workflow: PD.getWorkflowApiParam(params.workflow.slug),
-    },
-  })
+interface Entry {
+  logical_key: string
+  physical_key: string
+  is_dir: boolean
+}
+
+function usePackageCreateRequest() {
+  const req: ApiRequest = APIConnector.use()
+  return React.useCallback(
+    (params: {
+      commitMessage: string
+      name: string
+      meta: object
+      sourceBucket: string
+      schema: object
+      targetBucket: string
+      workflow: workflows.Workflow
+      entries: Entry[]
+    }) =>
+      req<{ top_hash: string }>({
+        endpoint: '/packages/from-folder',
+        method: 'POST',
+        body: {
+          message: params.commitMessage,
+          meta: PD.getMetaValue(params.meta, params.schema),
+          entries: params.entries,
+          dst: {
+            registry: `s3://${params.targetBucket}`,
+            name: params.name,
+          },
+          registry: `s3://${params.sourceBucket}`,
+          workflow: PD.getWorkflowApiParam(params.workflow.slug),
+        },
+      }),
+    [req],
+  )
+}
+
+const prepareEntries = (entries: PD.FilesSelectorState, path: string) => {
+  const selected = entries.filter(R.propEq('selected', true))
+  if (selected.length === entries.length)
+    return [{ logical_key: '.', physical_key: path, is_dir: true }]
+  return selected.map(({ type, name }) => ({
+    logical_key: name,
+    physical_key: path + name,
+    is_dir: type === 'dir',
+  }))
 }
 
 interface DialogTitleProps {
@@ -97,9 +116,10 @@ const useStyles = M.makeStyles((t) => ({
 
 interface DialogFormProps {
   bucket: string
-  close: () => void
-  files: { key: string; isDir?: boolean; size?: number }[]
   path: string
+  dirs: string[]
+  files: { key: string; size: number }[]
+  close: () => void
   responseError: $TSFixMe
   schema: object
   schemaLoading: boolean
@@ -114,9 +134,10 @@ interface DialogFormProps {
 
 function DialogForm({
   bucket,
-  close,
-  files,
   path,
+  dirs,
+  files,
+  close,
   responseError,
   schema,
   schemaLoading,
@@ -134,35 +155,31 @@ function DialogForm({
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
 
-  const req = APIConnector.use()
+  const req = usePackageCreateRequest()
 
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   const onSubmit = React.useCallback(
     async ({
-      commitMessage,
-      name,
-      meta,
-      workflow,
+      files: filesValue,
+      ...values
     }: {
       commitMessage: string
       name: string
       meta: object
       workflow: workflows.Workflow
+      files: PD.FilesSelectorState
       // eslint-disable-next-line consistent-return
     }) => {
       try {
-        const res = await requestPackageCreate(req, {
-          commitMessage,
-          meta,
-          name,
-          path,
+        const res = await req({
+          ...values,
+          entries: prepareEntries(filesValue, path),
           schema,
           sourceBucket: bucket,
           targetBucket: successor.slug,
-          workflow,
         })
-        setSuccess({ name, hash: res.top_hash })
+        setSuccess({ name: values.name, hash: res.top_hash })
       } catch (e) {
         // eslint-disable-next-line no-console
         console.log('error creating manifest', e)
@@ -172,22 +189,21 @@ function DialogForm({
     [bucket, successor, req, setSuccess, schema, path],
   )
 
-  const initialFiles: PD.FilesState = React.useMemo(
-    () => ({
-      existing: files.reduce(
-        (memo, file) => ({
-          [basename(file.key)]: {
-            isDir: file.isDir,
-            size: file.size,
-          },
-          ...memo,
-        }),
-        {},
-      ),
-      added: {},
-      deleted: {},
-    }),
-    [files],
+  const initialFiles: PD.FilesSelectorState = React.useMemo(
+    () => [
+      ...dirs.map((dir) => ({
+        type: 'dir' as const,
+        name: basename(dir),
+        selected: true,
+      })),
+      ...files.map((file) => ({
+        type: 'file' as const,
+        name: basename(file.key),
+        size: file.size,
+        selected: true,
+      })),
+    ],
+    [dirs, files],
   )
 
   const onSubmitWrapped = async (...args: Parameters<typeof onSubmit>) => {
@@ -361,17 +377,15 @@ function DialogForm({
                   <RF.Field
                     className={classes.files}
                     // @ts-expect-error
-                    component={PD.FilesInput}
+                    component={PD.FilesSelector}
                     name="files"
-                    totalProgress={{}}
-                    validate={validators.nonEmpty as FF.FieldValidator<PD.FilesState>}
+                    // TODO: validate that at least one entry is selected
+                    // validate={validators.nonEmpty as FF.FieldValidator<PD.FilesState>}
                     validateFields={['files']}
                     errors={{
                       nonEmpty: 'Add files to create a package',
                     }}
-                    disabled
-                    title="Files and directories below will be packaged"
-                    onFilesAction={R.T}
+                    title="Select files and directories to package"
                     isEqual={R.equals}
                     initialValue={initialFiles}
                   />
@@ -455,7 +469,8 @@ function DialogLoading({ bucket, path, onCancel }: DialogLoadingProps) {
 interface PackageDirectoryDialogProps {
   bucket: string
   path: string
-  files: { key: string; isDir?: boolean; size?: number }[]
+  dirs: string[]
+  files: { key: string; size: number }[]
   open: boolean
   successor: workflows.Successor | null
   onClose?: () => void
@@ -464,11 +479,12 @@ interface PackageDirectoryDialogProps {
 
 export default function PackageDirectoryDialog({
   bucket,
+  path,
+  dirs,
   files,
   onClose,
   onExited,
   open,
-  path,
   successor,
 }: PackageDirectoryDialogProps) {
   const s3 = AWS.S3.use()
@@ -547,9 +563,10 @@ export default function PackageDirectoryDialog({
                       {...schemaProps}
                       {...{
                         bucket,
-                        close: handleClose,
-                        files,
                         path,
+                        dirs,
+                        files,
+                        close: handleClose,
                         setSubmitting,
                         setSuccess,
                         setWorkflow,

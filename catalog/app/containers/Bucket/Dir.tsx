@@ -225,10 +225,8 @@ export default function Dir({
               <PackageDirectoryDialog
                 bucket={bucket}
                 path={path}
-                files={[
-                  ...res.dirs.map((dir) => ({ key: dir, isDir: true })),
-                  ...res.files,
-                ]}
+                files={res.files}
+                dirs={res.dirs}
                 open={!!successor}
                 successor={successor}
                 onExited={onPackageDirectoryDialogExited}
