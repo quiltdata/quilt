@@ -227,6 +227,7 @@ export default function Dir({
                 path={path}
                 files={res.files}
                 dirs={res.dirs}
+                truncated={res.truncated}
                 open={!!successor}
                 successor={successor}
                 onExited={onPackageDirectoryDialogExited}

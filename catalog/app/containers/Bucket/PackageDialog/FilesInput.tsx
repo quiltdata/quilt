@@ -245,6 +245,11 @@ export const validateHashingComplete = (state: FilesState) => {
   return undefined
 }
 
+export const validateNonEmptySelection = (state: FilesSelectorState) => {
+  if (state.every(R.propEq('selected', false))) return 'emptySelection'
+  return undefined
+}
+
 const useEntryIconStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
@@ -615,6 +620,8 @@ const useHeaderTitleStyles = M.makeStyles((t) => ({
     ...t.typography.body1,
     alignItems: 'center',
     display: 'flex',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
   },
   regular: {},
   disabled: {
@@ -793,6 +800,7 @@ const useContentsStyles = M.makeStyles((t) => ({
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
+    minHeight: 80,
     outline: 'none',
     overflow: 'hidden',
   },
@@ -1254,7 +1262,7 @@ interface FilesSelectorProps {
   }
   className?: string
   disabled?: boolean
-  // errors?: Record<string, React.ReactNode>
+  errors?: Record<string, React.ReactNode>
   meta: {
     submitting: boolean
     submitSucceeded: boolean
@@ -1264,24 +1272,22 @@ interface FilesSelectorProps {
     initial: FilesSelectorState
   }
   title: React.ReactNode
+  truncated?: boolean
 }
 
 export function FilesSelector({
   input: { value, onChange },
   className,
   disabled = false,
-  // errors = {},
-  // truncated = false, ??
+  errors = {},
   meta,
   title,
+  truncated = false,
 }: FilesSelectorProps) {
   const classes = useFilesSelectorStyles()
 
   const submitting = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
-
-  // TODO: warn on 1k+ keys aka truncated
-  const warn = false
 
   const selected = React.useMemo(
     () => value.reduce((m, i) => (i.selected ? m + 1 : m), 0),
@@ -1302,7 +1308,6 @@ export function FilesSelector({
     [onChange, value],
   )
 
-  // TODO: display errors? do we expect any?
   return (
     <Root className={className}>
       <Header>
@@ -1312,16 +1317,19 @@ export function FilesSelector({
               ? 'disabled'
               : error // eslint-disable-line no-nested-ternary
               ? 'error'
-              : warn
+              : truncated
               ? 'warn'
               : undefined
           }
         >
           {title}
-          {warn && (
-            <M.Icon style={{ marginLeft: 6 }} fontSize="small">
-              error_outline
-            </M.Icon>
+          {truncated && (
+            // TODO: adjust copy
+            <M.Tooltip title="Only the first 1000 items are shown, but the folder contains more">
+              <M.Icon style={{ marginLeft: 6 }} fontSize="small">
+                error_outline
+              </M.Icon>
+            </M.Tooltip>
           )}
         </HeaderTitle>
         <M.Box flexGrow={1} />
@@ -1342,34 +1350,52 @@ export function FilesSelector({
       </Header>
 
       <ContentsContainer>
-        <Contents error={!!error} warn={warn}>
-          <FilesContainer error={!!error} warn={warn} noBorder>
-            {value.length
-              ? value.map(({ type, name, selected: sel, size }) =>
-                  type === 'dir' ? (
-                    <Dir
-                      key={`dir:${name}`}
-                      name={name}
-                      action={<M.Checkbox className={classes.checkbox} checked={sel} />}
-                      onClick={handleItemClick}
-                      data-name={name}
-                    />
-                  ) : (
-                    <File
-                      key={`file:${name}`}
-                      name={name}
-                      size={size}
-                      action={<M.Checkbox className={classes.checkbox} checked={sel} />}
-                      onClick={handleItemClick}
-                      data-name={name}
-                    />
-                  ),
-                )
-              : 'TODO EMPTY DIR'}
-          </FilesContainer>
+        <Contents error={!!error} warn={truncated}>
+          {value.length ? (
+            <FilesContainer noBorder>
+              {value.map(({ type, name, selected: sel, size }) =>
+                type === 'dir' ? (
+                  <Dir
+                    key={`dir:${name}`}
+                    name={name}
+                    action={<M.Checkbox className={classes.checkbox} checked={sel} />}
+                    onClick={handleItemClick}
+                    data-name={name}
+                  />
+                ) : (
+                  <File
+                    key={`file:${name}`}
+                    name={name}
+                    size={size}
+                    action={<M.Checkbox className={classes.checkbox} checked={sel} />}
+                    onClick={handleItemClick}
+                    data-name={name}
+                  />
+                ),
+              )}
+            </FilesContainer>
+          ) : (
+            // TODO: adjust copy
+            <M.Box
+              display="flex"
+              flexGrow={1}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <M.Typography align="center" color={error ? 'error' : undefined}>
+                Current directory is empty
+              </M.Typography>
+            </M.Box>
+          )}
           {submitting && <Lock progress={PROGRESS_EMPTY} />}
         </Contents>
       </ContentsContainer>
+
+      {!!error && (
+        <M.FormHelperText error margin="dense">
+          {errors[error] || error}
+        </M.FormHelperText>
+      )}
     </Root>
   )
 }

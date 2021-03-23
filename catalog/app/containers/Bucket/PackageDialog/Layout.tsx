@@ -2,6 +2,7 @@ import * as M from '@material-ui/core'
 import * as React from 'react'
 import cx from 'classnames'
 
+// TODO: use grid
 const useContainerStyles = M.makeStyles({
   root: {
     display: 'flex',
@@ -16,19 +17,22 @@ export function Container({ children }: React.PropsWithChildren<{}>) {
   return <div className={classes.root}>{children}</div>
 }
 
+const GAP = 3
+
 const useColumnStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     flexBasis: '100%',
     flexDirection: 'column',
     flexGrow: 0,
-    padding: t.spacing(0, 0, 3),
     overflowY: 'auto',
+    [t.breakpoints.down('xs')]: {
+      paddingBottom: t.spacing(3),
+    },
     [t.breakpoints.up('sm')]: {
       height: '100%',
       flexBasis: '50%',
-      padding: t.spacing(0, 3, 0, 0),
-      maxWidth: 'calc(50% - 16px)',
+      maxWidth: `calc(50% - ${t.spacing(GAP / 2)}px)`,
     },
   },
 }))
@@ -38,22 +42,20 @@ export function Column({
   className,
 }: React.PropsWithChildren<{ className?: string }>) {
   const classes = useColumnStyles()
-
   return <div className={cx(classes.root, className)}>{children}</div>
 }
 
-export const LeftColumn = Column
+export const RightColumn = Column
 
-const useRightColumnStyles = M.makeStyles((t) => ({
+const useLeftColumnStyles = M.makeStyles((t) => ({
   root: {
     [t.breakpoints.up('sm')]: {
-      padding: t.spacing(0, 0, 3),
+      marginRight: t.spacing(GAP),
     },
   },
 }))
 
-export function RightColumn({ children }: React.PropsWithChildren<{}>) {
-  const classes = useRightColumnStyles()
-
-  return <Column className={classes.root}>{children}</Column>
+export function LeftColumn(props: React.PropsWithChildren<{}>) {
+  const classes = useLeftColumnStyles()
+  return <Column className={classes.root} {...props} />
 }

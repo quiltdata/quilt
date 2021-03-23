@@ -31,7 +31,7 @@ interface ApiRequest {
 
 interface Entry {
   logical_key: string
-  physical_key: string
+  path: string
   is_dir: boolean
 }
 
@@ -70,10 +70,10 @@ function usePackageCreateRequest() {
 const prepareEntries = (entries: PD.FilesSelectorState, path: string) => {
   const selected = entries.filter(R.propEq('selected', true))
   if (selected.length === entries.length)
-    return [{ logical_key: '.', physical_key: path, is_dir: true }]
+    return [{ logical_key: '.', path, is_dir: true }]
   return selected.map(({ type, name }) => ({
     logical_key: name,
-    physical_key: path + name,
+    path: path + name,
     is_dir: type === 'dir',
   }))
 }
@@ -117,6 +117,7 @@ const useStyles = M.makeStyles((t) => ({
 interface DialogFormProps {
   bucket: string
   path: string
+  truncated?: boolean
   dirs: string[]
   files: { key: string; size: number }[]
   close: () => void
@@ -135,6 +136,7 @@ interface DialogFormProps {
 function DialogForm({
   bucket,
   path,
+  truncated,
   dirs,
   files,
   close,
@@ -379,15 +381,17 @@ function DialogForm({
                     // @ts-expect-error
                     component={PD.FilesSelector}
                     name="files"
-                    // TODO: validate that at least one entry is selected
-                    // validate={validators.nonEmpty as FF.FieldValidator<PD.FilesState>}
+                    validate={
+                      PD.validateNonEmptySelection as FF.FieldValidator<PD.FilesSelectorState>
+                    }
                     validateFields={['files']}
                     errors={{
-                      nonEmpty: 'Add files to create a package',
+                      emptySelection: 'Select something to create a package',
                     }}
                     title="Select files and directories to package"
                     isEqual={R.equals}
                     initialValue={initialFiles}
+                    truncated={truncated}
                   />
                 </PD.RightColumn>
               </PD.Container>
@@ -469,6 +473,7 @@ function DialogLoading({ bucket, path, onCancel }: DialogLoadingProps) {
 interface PackageDirectoryDialogProps {
   bucket: string
   path: string
+  truncated?: boolean
   dirs: string[]
   files: { key: string; size: number }[]
   open: boolean
@@ -480,6 +485,7 @@ interface PackageDirectoryDialogProps {
 export default function PackageDirectoryDialog({
   bucket,
   path,
+  truncated,
   dirs,
   files,
   onClose,
@@ -564,6 +570,7 @@ export default function PackageDirectoryDialog({
                       {...{
                         bucket,
                         path,
+                        truncated,
                         dirs,
                         files,
                         close: handleClose,
