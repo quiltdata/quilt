@@ -10,7 +10,7 @@ entrypoints==0.3
 fcsparser==0.2.1
 idna==2.8
 ipython-genutils==0.2.0
-Jinja2==2.10.1
+Jinja2==2.11.3
 jsonschema==3.2.0
 jupyter-core==4.4.0
 MarkupSafe==1.1.1
