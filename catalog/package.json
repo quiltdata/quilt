@@ -53,7 +53,7 @@
   },
   "dependencies": {
     "@material-ui/core": "^4.11.3",
-    "@material-ui/data-grid": "^4.0.0-alpha.22",
+    "@material-ui/data-grid": "^4.0.0-alpha.23",
     "@material-ui/lab": "^4.0.0-alpha.57",
     "@material-ui/styles": "^4.11.3",
     "@material-ui/system": "^4.11.3",
