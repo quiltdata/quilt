@@ -13,6 +13,7 @@
 ## CLI
 
 ## Catalog, Lambdas
+* [Added] Prepopulate today date for metadata ([#2121](https://github.com/quiltdata/quilt/pull/2121))
 * [Changed] New DataGrid-based file listing UI with arbitrary sorting and filtering ([#2097](https://github.com/quiltdata/quilt/pull/2097))
 
 # 3.4.0 - 2021-03-15
