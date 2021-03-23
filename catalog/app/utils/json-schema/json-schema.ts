@@ -18,41 +18,47 @@ export type JsonSchema = Partial<
   } & Record<CompoundCondition, JsonSchema[]>
 >
 
-export const isSchemaArray = (optSchema: JsonSchema) =>
-  R.prop('type', optSchema) === 'array'
+// NOTE: can't use R.prop directly, because R.prop type doesn't allow undefined
+const prop = (
+  property: keyof JsonSchema,
+  optSchema?: JsonSchema,
+): JsonSchema[keyof JsonSchema] => (optSchema ? R.prop(property, optSchema) : undefined)
 
-export const isSchemaObject = (optSchema: JsonSchema) =>
-  R.prop('type', optSchema) === 'object'
+export const isSchemaArray = (optSchema?: JsonSchema) =>
+  prop('type', optSchema) === 'array'
 
-const isSchemaString = (optSchema: JsonSchema) => R.prop('type', optSchema) === 'string'
+export const isSchemaObject = (optSchema?: JsonSchema) =>
+  prop('type', optSchema) === 'object'
 
-const isSchemaNumber = (optSchema: JsonSchema) => R.prop('type', optSchema) === 'number'
+const isSchemaString = (optSchema?: JsonSchema) => prop('type', optSchema) === 'string'
 
-const isSchemaInteger = (optSchema: JsonSchema) => R.prop('type', optSchema) === 'integer'
+const isSchemaNumber = (optSchema?: JsonSchema) => prop('type', optSchema) === 'number'
 
-export const isSchemaBoolean = (optSchema: JsonSchema) =>
-  R.prop('type', optSchema) === 'boolean'
+const isSchemaInteger = (optSchema?: JsonSchema) => prop('type', optSchema) === 'integer'
 
-const isSchemaNull = (optSchema: JsonSchema) => R.prop('type', optSchema) === 'null'
+export const isSchemaBoolean = (optSchema?: JsonSchema) =>
+  prop('type', optSchema) === 'boolean'
 
-export const isSchemaEnum = (optSchema: JsonSchema) => !!R.prop('enum', optSchema)
+const isSchemaNull = (optSchema?: JsonSchema) => prop('type', optSchema) === 'null'
 
-export const isSchemaOneOf = (optSchema: JsonSchema) => !!R.prop('oneOf', optSchema)
+export const isSchemaEnum = (optSchema?: JsonSchema) => !!prop('enum', optSchema)
 
-export const isSchemaAnyOf = (optSchema: JsonSchema) => !!R.prop('anyOf', optSchema)
+export const isSchemaOneOf = (optSchema?: JsonSchema) => !!prop('oneOf', optSchema)
 
-export const isSchemaAllOf = (optSchema: JsonSchema) => !!R.prop('allOf', optSchema)
+export const isSchemaAnyOf = (optSchema?: JsonSchema) => !!prop('anyOf', optSchema)
 
-const isSchemaConst = (optSchema: JsonSchema) => !!R.prop('const', optSchema)
+export const isSchemaAllOf = (optSchema?: JsonSchema) => !!prop('allOf', optSchema)
 
-function isSchemaCompound(optSchema: JsonSchema) {
+const isSchemaConst = (optSchema?: JsonSchema) => !!prop('const', optSchema)
+
+function isSchemaCompound(optSchema?: JsonSchema) {
   if (!optSchema) return false
   return ['anyOf', 'oneOf', 'not', 'allOf'].some(
     (key) => optSchema[key as 'anyOf' | 'oneOf' | 'not' | 'allOf'],
   )
 }
 
-const isSchemaReference = (optSchema: JsonSchema) => !!R.prop('$ref', optSchema)
+const isSchemaReference = (optSchema: JsonSchema) => !!prop('$ref', optSchema)
 
 export const isNestedType = R.either(isSchemaArray, isSchemaObject)
 
@@ -61,7 +67,7 @@ function compoundTypeToHumanString(
   condition: CompoundCondition,
   divider: string,
 ): string {
-  if (!Array.isArray(R.prop(condition, optSchema))) return ''
+  if (!Array.isArray(prop(condition, optSchema))) return ''
 
   return (optSchema[condition] as JsonSchema[])
     .map(schemaTypeToHumanString)
@@ -98,7 +104,7 @@ function doesTypeMatchCompoundSchema(
   optSchema: JsonSchema,
   condition: CompoundCondition,
 ): boolean {
-  if (!Array.isArray(R.prop(condition, optSchema))) return false
+  if (!Array.isArray(prop(condition, optSchema))) return false
 
   return (optSchema[condition] as JsonSchema[])
     .filter(R.has('type'))
@@ -109,7 +115,7 @@ export function doesTypeMatchSchema(value: any, optSchema: JsonSchema): boolean 
   return R.cond<JsonSchema, boolean>([
     [isSchemaEnum, () => R.includes(value, R.propOr([], 'enum', optSchema))],
     [
-      (s) => Array.isArray(R.prop('type', s)),
+      (s) => Array.isArray(prop('type', s)),
       () =>
         (optSchema.type as JsonSchema[]).some((subSchema) =>
           doesTypeMatchSchema(value, subSchema),
