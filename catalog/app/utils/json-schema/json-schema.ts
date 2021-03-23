@@ -75,7 +75,8 @@ function compoundTypeToHumanString(
     .join(divider)
 }
 
-export function schemaTypeToHumanString(optSchema: JsonSchema) {
+export function schemaTypeToHumanString(optSchema?: JsonSchema) {
+  if (!optSchema) return ''
   return R.cond<JsonSchema, string>([
     [isSchemaEnum, () => 'enum'],
     [isSchemaConst, () => 'const'],
