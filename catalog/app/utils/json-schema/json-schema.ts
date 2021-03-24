@@ -152,17 +152,20 @@ export function makeSchemaValidator(optSchema?: JsonSchema) {
   }
 }
 
+// TODO: make general purpose function like reduce,
+//       do "prefill Value" at callback,
+//       and use it for iterating Schema in JsonEditor/State
 function scanSchemaAndPrefillValues(
-  callback: (s?: JsonSchema) => any,
-  optValue: Record<string, any>,
+  getValue: (s?: JsonSchema) => any,
+  value: Record<string, any>,
   optSchema?: JsonSchema,
 ): Record<string, any> {
-  if (!optSchema) return optValue
+  if (!optSchema) return value
 
-  if (!optSchema?.properties) return optValue
+  if (!optSchema?.properties) return value
 
   return Object.keys(optSchema.properties).reduce((memo, key) => {
-    const valueItem = optValue === undefined ? undefined : optValue[key]
+    const valueItem = value === undefined ? undefined : value[key]
 
     // don't touch user's primitive value
     if (valueItem && !R.is(Object, valueItem)) return memo
@@ -172,22 +175,22 @@ function scanSchemaAndPrefillValues(
     if (schemaItem.properties)
       return R.assoc(
         key,
-        scanSchemaAndPrefillValues(callback, valueItem, schemaItem),
+        scanSchemaAndPrefillValues(getValue, valueItem, schemaItem),
         memo,
       )
 
     if (schemaItem.items && Array.isArray(valueItem))
       return R.assoc(
         key,
-        valueItem.map((v) => scanSchemaAndPrefillValues(callback, v, schemaItem.items)),
+        valueItem.map((v) => scanSchemaAndPrefillValues(getValue, v, schemaItem.items)),
         memo,
       )
 
-    const preDefinedValue = callback(schemaItem)
+    const preDefinedValue = getValue(schemaItem)
     if (preDefinedValue) return R.assoc(key, preDefinedValue, memo)
 
     return memo
-  }, optValue)
+  }, value)
 }
 
 export function getDefaultValue(optSchema?: JsonSchema): any {
