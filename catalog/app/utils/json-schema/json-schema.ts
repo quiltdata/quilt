@@ -60,8 +60,7 @@ function compoundTypeToHumanString(
 ): string {
   if (!isSchemaCompound(optSchema)) return ''
 
-  return (optSchema[condition] as JsonSchema[])
-    .map(schemaTypeToHumanString)
+  return optSchema[condition]!.map(schemaTypeToHumanString)
     .filter((v) => v !== 'undefined') // NOTE: sic, see default case of `schemaTypeToHumanString`
     .join(divider)
 }
@@ -100,9 +99,9 @@ function doesTypeMatchCompoundSchema(
 
   if (!isSchemaCompound(optSchema)) return false
 
-  return (optSchema[condition] as JsonSchema[])
-    .filter(R.has('type'))
-    .some((subSchema) => doesTypeMatchSchema(value, subSchema))
+  return optSchema[condition]!.filter(R.has('type')).some((subSchema) =>
+    doesTypeMatchSchema(value, subSchema),
+  )
 }
 
 // Purpose is to find mismatch explicitly
