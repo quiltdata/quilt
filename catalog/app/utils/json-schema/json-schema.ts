@@ -153,7 +153,7 @@ export function makeSchemaValidator(optSchema?: JsonSchema) {
 }
 
 function scanSchemaAndPrefillValues(
-  callback: (v?: any, s?: JsonSchema) => any,
+  callback: (s?: JsonSchema) => any,
   optValue: Record<string, any>,
   optSchema?: JsonSchema,
 ): Record<string, any> {
