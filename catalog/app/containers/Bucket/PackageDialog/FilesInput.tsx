@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone, FileWithPath } from 'react-dropzone'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 
 import useDragging from 'utils/dragging'
 import { readableBytes } from 'utils/string'
@@ -73,9 +74,6 @@ export interface ExistingFile {
   meta: {}
   physicalKey: string
   size: number
-  // XXX: this was added as an ad hoc workaround to display directories in PackageDirectoryDialog.
-  // We should consider changing this design, bc it breaks the consistency of the model.
-  isDir?: boolean
 }
 
 export interface FilesState {
@@ -147,20 +145,17 @@ interface DispatchFilesAction {
   (action: FilesAction): void
 }
 
-type FilesEntryType = 'deleted' | 'modified' | 'unchanged' | 'hashing' | 'added'
+type FilesEntryState = 'deleted' | 'modified' | 'unchanged' | 'hashing' | 'added'
 
 const FilesEntryTag = 'app/containers/Bucket/PackageDialog/FilesInput:FilesEntry' as const
 
 const FilesEntry = tagged.create(FilesEntryTag, {
   Dir: (v: {
-    disabled?: boolean
     name: string
-    type: FilesEntryType
-    contentIsUnknown?: boolean
-    children: tagged.Instance<typeof FilesEntryTag>[]
+    state: FilesEntryState
+    childEntries: tagged.Instance<typeof FilesEntryTag>[]
   }) => v,
-  File: (v: { disabled?: boolean; name: string; type: FilesEntryType; size: number }) =>
-    v,
+  File: (v: { name: string; state: FilesEntryState; size: number }) => v,
 })
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -168,16 +163,16 @@ type FilesEntry = tagged.InstanceOf<typeof FilesEntry>
 type FilesEntryDir = ReturnType<typeof FilesEntry.Dir>
 
 const insertIntoDir = (path: string[], file: FilesEntry, dir: FilesEntryDir) => {
-  const { name, children } = FilesEntry.Dir.unbox(dir)
-  const newChildren = insertIntoTree(path, file, children)
-  const type = newChildren
-    .map(FilesEntry.match({ Dir: R.prop('type'), File: R.prop('type') }))
-    .reduce((acc, entryType) => {
-      if (entryType === 'hashing' || acc === 'hashing') return 'hashing'
-      if (acc === entryType) return acc
+  const { name, childEntries } = FilesEntry.Dir.unbox(dir)
+  const newChildren = insertIntoTree(path, file, childEntries)
+  const state = newChildren
+    .map(FilesEntry.match({ Dir: R.prop('state'), File: R.prop('state') }))
+    .reduce((acc, entryState) => {
+      if (entryState === 'hashing' || acc === 'hashing') return 'hashing'
+      if (acc === entryState) return acc
       return 'modified'
     })
-  return FilesEntry.Dir({ name, type, children: newChildren })
+  return FilesEntry.Dir({ name, state, childEntries: newChildren })
 }
 
 const insertIntoTree = (path: string[] = [], file: FilesEntry, entries: FilesEntry[]) => {
@@ -185,8 +180,8 @@ const insertIntoTree = (path: string[] = [], file: FilesEntry, entries: FilesEnt
   let restEntries = entries
   if (path.length) {
     const [current, ...rest] = path
-    const type = FilesEntry.match({ File: (f) => f.type, Dir: (d) => d.type }, file)
-    let baseDir = FilesEntry.Dir({ name: current, type, children: [] })
+    const state = FilesEntry.match({ File: (f) => f.state, Dir: (d) => d.state }, file)
+    let baseDir = FilesEntry.Dir({ name: current, state, childEntries: [] })
     const existingDir = entries.find(
       FilesEntry.match({
         File: () => false,
@@ -207,55 +202,56 @@ const insertIntoTree = (path: string[] = [], file: FilesEntry, entries: FilesEnt
 }
 
 interface IntermediateEntry {
-  type: FilesEntryType
+  state: FilesEntryState
   path: string
   size: number
-  isDir?: boolean
 }
 
 const computeEntries = ({ added, deleted, existing }: FilesState) => {
-  // TODO: use hash.{value,ready} props to descriminate unchanged | added | hashing
-  const existingEntries = Object.entries(existing).map(
-    ([path, { isDir, size, hash }]) => {
-      if (path in deleted) {
-        return { type: 'deleted' as const, path, size }
-      }
-      if (path in added) {
-        const a = added[path]
-        // eslint-disable-next-line no-nested-ternary
-        const type = !a.hash.ready
-          ? ('hashing' as const)
-          : a.hash.value === hash
-          ? ('unchanged' as const)
-          : ('modified' as const)
-        return { type, path, size: a.size }
-      }
-      if (isDir) {
-        return { type: 'unchanged' as const, path, size, isDir }
-      }
-      return { type: 'unchanged' as const, path, size }
-    },
-  )
+  const existingEntries = Object.entries(existing).map(([path, { size, hash }]) => {
+    if (path in deleted) {
+      return { state: 'deleted' as const, path, size }
+    }
+    if (path in added) {
+      const a = added[path]
+      // eslint-disable-next-line no-nested-ternary
+      const state = !a.hash.ready
+        ? ('hashing' as const)
+        : a.hash.value === hash
+        ? ('unchanged' as const)
+        : ('modified' as const)
+      return { state, path, size: a.size }
+    }
+    return { state: 'unchanged' as const, path, size }
+  })
   const addedEntries = Object.entries(added).reduce((acc, [path, { size }]) => {
     if (path in existing) return acc
-    return acc.concat({ type: 'added', path, size })
+    return acc.concat({ state: 'added', path, size })
   }, [] as IntermediateEntry[])
   const entries: IntermediateEntry[] = [...existingEntries, ...addedEntries]
   return entries.reduce((children, { path, ...rest }) => {
     const parts = path.split('/')
     const prefixPath = R.init(parts).map((p) => `${p}/`)
     const name = R.last(parts)!
-    const file = rest.isDir
-      ? FilesEntry.Dir({ name, contentIsUnknown: true, children: [], ...rest })
-      : FilesEntry.File({ name, ...rest })
+    const file = FilesEntry.File({ name, ...rest })
     return insertIntoTree(prefixPath, file, children)
   }, [] as FilesEntry[])
 }
 
+export const HASHING = 'hashing'
+export const HASHING_ERROR = 'hashingError'
+
 export const validateHashingComplete = (state: FilesState) => {
   const files = Object.values(state.added)
-  if (files.some((f) => f.hash.ready && !f.hash.value)) return 'hashingError'
-  if (files.some((f) => !f.hash.ready)) return 'hashing'
+  if (files.some((f) => f.hash.ready && !f.hash.value)) return HASHING_ERROR
+  if (files.some((f) => !f.hash.ready)) return HASHING
+  return undefined
+}
+
+export const EMPTY_SELECTION = 'emptySelection'
+
+export const validateNonEmptySelection = (state: FilesSelectorState) => {
+  if (state.every(R.propEq('selected', false))) return EMPTY_SELECTION
   return undefined
 }
 
@@ -293,7 +289,7 @@ const useEntryIconStyles = M.makeStyles((t) => ({
   },
 }))
 
-type EntryIconProps = React.PropsWithChildren<{ state: FilesEntryType }>
+type EntryIconProps = React.PropsWithChildren<{ state: FilesEntryState }>
 
 function EntryIcon({ state, children }: EntryIconProps) {
   const classes = useEntryIconStyles()
@@ -328,10 +324,17 @@ const useFileStyles = M.makeStyles((t) => ({
   hashing: {},
   deleted: {},
   unchanged: {},
+  interactive: {},
   root: {
+    alignItems: 'center',
     color: COLORS.default,
     cursor: 'default',
+    display: 'flex',
+    opacity: 0.7,
     outline: 'none',
+    '&:hover': {
+      opacity: 1,
+    },
     '&$added': {
       color: COLORS.added,
     },
@@ -344,21 +347,17 @@ const useFileStyles = M.makeStyles((t) => ({
     '&$deleted': {
       color: COLORS.deleted,
     },
+    '&$interactive': {
+      cursor: 'pointer',
+    },
   },
-  disabled: {
-    color: t.palette.text.disabled,
-    cursor: 'not-allowed',
-  },
-  contents: {
+  inner: {
     alignItems: 'center',
     display: 'flex',
-    opacity: 0.7,
-    '$root:hover > &': {
-      opacity: 1,
-    },
-    '$disabled &': {
-      opacity: 1,
-    },
+    flexGrow: 1,
+  },
+  faint: {
+    opacity: 0.5,
   },
   name: {
     ...t.typography.body2,
@@ -375,78 +374,50 @@ const useFileStyles = M.makeStyles((t) => ({
   },
 }))
 
-type FileProps = tagged.ValueOf<typeof FilesEntry.File> & {
-  prefix?: string
-  dispatch: DispatchFilesAction
+interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
+  name: string
+  state?: FilesEntryState
+  size?: number
+  action?: React.ReactNode
+  interactive?: boolean
+  faint?: boolean
 }
 
-function File({ disabled, name, type, size, prefix, dispatch }: FileProps) {
+function File({
+  name,
+  state = 'unchanged',
+  size,
+  action,
+  interactive = false,
+  faint = false,
+  className,
+  ...props
+}: FileProps) {
   const classes = useFileStyles()
 
-  const path = (prefix || '') + name
-
-  const handle = React.useCallback(
-    (cons: tagged.ConstructorOf<typeof FilesAction>) => (e: React.MouseEvent) => {
-      e.stopPropagation()
-      dispatch(cons(path))
-    },
-    [dispatch, path],
-  )
-
-  const action = React.useMemo(
-    () =>
-      ({
-        added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.Revert) },
-        modified: {
-          hint: 'Revert',
-          icon: 'undo',
-          handler: handle(FilesAction.Revert),
-        },
-        hashing: {
-          hint: 'Revert',
-          icon: 'undo',
-          handler: handle(FilesAction.Revert),
-        },
-        deleted: {
-          hint: 'Restore',
-          icon: 'undo',
-          handler: handle(FilesAction.Revert),
-        },
-        unchanged: { hint: 'Delete', icon: 'clear', handler: handle(FilesAction.Delete) },
-      }[type]),
-    [type, handle],
-  )
-
-  const onClick = React.useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-  }, [])
-
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
     <div
-      className={cx(classes.root, classes[type], { [classes.disabled]: disabled })}
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
+      className={cx(
+        className,
+        classes.root,
+        classes[state],
+        interactive && classes.interactive,
+      )}
+      {...props}
     >
-      <div className={classes.contents}>
-        <EntryIcon state={type}>insert_drive_file</EntryIcon>
+      <div className={cx(classes.inner, faint && classes.faint)}>
+        <EntryIcon state={state}>insert_drive_file</EntryIcon>
         <div className={classes.name} title={name}>
           {name}
         </div>
-        <div className={classes.size}>{readableBytes(size)}</div>
-        {!disabled && (
-          <M.IconButton onClick={action.handler} title={action.hint} size="small">
-            <M.Icon fontSize="inherit">{action.icon}</M.Icon>
-          </M.IconButton>
-        )}
+        {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
+      {action}
     </div>
   )
 }
 
 const useDirStyles = M.makeStyles((t) => ({
-  // TODO: support non-diff mode (for package creation)
   added: {},
   modified: {},
   hashing: {},
@@ -457,9 +428,6 @@ const useDirStyles = M.makeStyles((t) => ({
     cursor: 'pointer',
     outline: 'none',
     position: 'relative',
-  },
-  disabled: {
-    cursor: 'not-allowed',
   },
   head: {
     alignItems: 'center',
@@ -482,10 +450,14 @@ const useDirStyles = M.makeStyles((t) => ({
     '$deleted > &': {
       color: COLORS.deleted,
     },
-    '$disabled &': {
-      color: t.palette.text.disabled,
-      opacity: 1,
-    },
+  },
+  headInner: {
+    alignItems: 'center',
+    display: 'flex',
+    flexGrow: 1,
+  },
+  faint: {
+    opacity: 0.5,
   },
   name: {
     ...t.typography.body2,
@@ -536,220 +508,179 @@ const useDirStyles = M.makeStyles((t) => ({
   },
 }))
 
-type DirProps = tagged.ValueOf<typeof FilesEntry.Dir> & {
-  prefix?: string
-  dispatch: DispatchFilesAction
+interface DirProps extends React.HTMLAttributes<HTMLDivElement> {
+  name: string
+  state?: FilesEntryState
+  active?: boolean
+  empty?: boolean
+  expanded?: boolean
+  faint?: boolean
+  onChangeExpanded?: (expanded: boolean) => void
+  action?: React.ReactNode
+  onHeadClick?: React.MouseEventHandler<HTMLDivElement>
 }
 
-function Dir({
-  contentIsUnknown,
-  disabled,
-  name,
-  type,
-  children,
-  prefix,
-  dispatch,
-}: DirProps) {
+const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
+  {
+    name,
+    state = 'unchanged',
+    active = false,
+    empty = false,
+    expanded = false,
+    faint = false,
+    action,
+    className,
+    onHeadClick,
+    children,
+    ...props
+  },
+  ref,
+) {
   const classes = useDirStyles()
-  // TODO: move state out?
-  const [expanded, setExpanded] = React.useState(true)
-
-  const toggleExpanded = React.useCallback(
-    (e) => {
-      e.stopPropagation()
-      if (disabled) return
-      setExpanded((x) => !x)
-    },
-    [disabled, setExpanded],
-  )
-
-  const onClick = React.useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-  }, [])
-
-  const path = (prefix || '') + name
-
-  const onDrop = React.useCallback(
-    (files: FileWithPath[]) => {
-      dispatch(FilesAction.Add({ prefix: path, files }))
-    },
-    [dispatch, path],
-  )
-
-  const { getRootProps, isDragActive } = useDropzone({
-    onDrop,
-    noDragEventsBubbling: true,
-  })
-
-  const handle = React.useCallback(
-    (cons: tagged.ConstructorOf<typeof FilesAction>) => (e: React.MouseEvent) => {
-      e.stopPropagation()
-      dispatch(cons(path))
-    },
-    [dispatch, path],
-  )
-
-  const action = React.useMemo(
-    () =>
-      ({
-        added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.RevertDir) },
-        modified: {
-          hint: 'Revert',
-          icon: 'undo',
-          handler: handle(FilesAction.RevertDir),
-        },
-        hashing: {
-          hint: 'Revert',
-          icon: 'undo',
-          handler: handle(FilesAction.RevertDir),
-        },
-        deleted: {
-          hint: 'Restore',
-          icon: 'undo',
-          handler: handle(FilesAction.RevertDir),
-        },
-        unchanged: {
-          hint: 'Delete',
-          icon: 'clear',
-          handler: handle(FilesAction.DeleteDir),
-        },
-      }[type]),
-    [type, handle],
-  )
 
   return (
     <div
-      {...getRootProps({
-        className: cx(classes.root, classes[type], {
-          [classes.active]: isDragActive,
-          [classes.disabled]: disabled,
-        }),
-        onClick,
+      className={cx(className, classes.root, classes[state], {
+        [classes.active]: active,
       })}
+      ref={ref}
+      {...props}
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
-      <div onClick={toggleExpanded} className={classes.head} role="button" tabIndex={0}>
-        <EntryIcon state={type}>{expanded ? 'folder_open' : 'folder'}</EntryIcon>
-        <div className={classes.name}>{name}</div>
-        {!disabled && (
-          <M.IconButton onClick={action.handler} title={action.hint} size="small">
-            <M.Icon fontSize="inherit">{action.icon}</M.Icon>
-          </M.IconButton>
-        )}
-        {!contentIsUnknown && (
+      <div onClick={onHeadClick} className={classes.head} role="button" tabIndex={0}>
+        <div className={cx(classes.headInner, faint && classes.faint)}>
+          <EntryIcon state={state}>{expanded ? 'folder_open' : 'folder'}</EntryIcon>
+          <div className={classes.name}>{name}</div>
+        </div>
+        {action}
+        {(!!children || empty) && (
           <>
             <div className={classes.bar} />
-            {!children.length && (
-              <div className={classes.empty}>{'<EMPTY DIRECTORY>'}</div>
-            )}
+            {empty && <div className={classes.empty}>{'<EMPTY DIRECTORY>'}</div>}
           </>
         )}
       </div>
-      {!contentIsUnknown && (
+      {(!!children || empty) && (
         <M.Collapse in={expanded}>
           <div className={classes.body}>
-            {children.length ? (
-              children.map(
-                FilesEntry.match({
-                  Dir: (ps) => (
-                    <Dir {...ps} key={ps.name} prefix={path} dispatch={dispatch} />
-                  ),
-                  File: (ps) => (
-                    <File {...ps} key={ps.name} prefix={path} dispatch={dispatch} />
-                  ),
-                }),
-              )
-            ) : (
-              <div className={classes.emptyDummy} />
-            )}
+            {children || <div className={classes.emptyDummy} />}
           </div>
         </M.Collapse>
       )}
     </div>
   )
+})
+
+const useDropzoneMessageStyles = M.makeStyles((t) => ({
+  root: {
+    ...t.typography.body2,
+    alignItems: 'center',
+    background: t.palette.action.hover,
+    cursor: 'pointer',
+    display: 'flex',
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: t.spacing(6, 0),
+    textAlign: 'center',
+  },
+  error: {
+    color: t.palette.error.main,
+  },
+  warning: {
+    color: t.palette.warning.dark,
+  },
+}))
+
+interface DropzoneMessageProps {
+  error: React.ReactNode
+  warn: boolean
 }
 
-const useStyles = M.makeStyles((t) => ({
+function DropzoneMessage({ error, warn }: DropzoneMessageProps) {
+  const classes = useDropzoneMessageStyles()
+
+  const label = React.useMemo(() => {
+    if (error) return error
+    if (warn)
+      return (
+        <>
+          Total size of new files exceeds recommended maximum of{' '}
+          {readableBytes(PD.MAX_SIZE)}
+        </>
+      )
+    return 'Drop files here or click to browse'
+  }, [error, warn])
+
+  return (
+    <div
+      className={cx(classes.root, {
+        [classes.error]: error,
+        [classes.warning]: !error && warn,
+      })}
+    >
+      <span>{label}</span>
+    </div>
+  )
+}
+
+const useRootStyles = M.makeStyles({
   root: {
     display: 'flex',
     flexDirection: 'column',
   },
-  header: {
+})
+
+function Root({ className, ...props }: React.PropsWithChildren<{ className?: string }>) {
+  const classes = useRootStyles()
+  return <div className={cx(classes.root, className)} {...props} />
+}
+
+const useHeaderStyles = M.makeStyles({
+  root: {
     display: 'flex',
     height: 24,
   },
-  headerFiles: {
+})
+
+function Header(props: React.PropsWithChildren<{}>) {
+  const classes = useHeaderStyles()
+  return <div className={classes.root} {...props} />
+}
+
+const useHeaderTitleStyles = M.makeStyles((t) => ({
+  root: {
     ...t.typography.body1,
     alignItems: 'center',
     display: 'flex',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
   },
-  headerFilesDisabled: {
+  regular: {},
+  disabled: {
     color: t.palette.text.secondary,
   },
-  headerFilesError: {
+  error: {
     color: t.palette.error.main,
   },
-  headerFilesWarn: {
+  warn: {
     color: t.palette.warning.dark,
   },
-  headerFilesAdded: {
-    color: t.palette.success.main,
-    marginLeft: t.spacing(1),
-  },
-  headerFilesDeleted: {
-    color: t.palette.error.main,
-    marginLeft: t.spacing(1),
-  },
-  headerFilesHashing: {
-    marginLeft: t.spacing(1),
-  },
-  dropzoneContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    flexGrow: 1,
-    marginTop: t.spacing(2),
-    overflowY: 'auto',
-    position: 'relative',
-  },
-  dropzone: {
-    border: `1px solid ${t.palette.action.disabled}`,
-    borderRadius: t.shape.borderRadius,
-    cursor: 'pointer',
-    display: 'flex',
-    flexDirection: 'column',
-    flexGrow: 1,
-    outline: 'none',
-    overflow: 'hidden',
-  },
-  dropzoneErr: {
-    borderColor: t.palette.error.main,
-  },
-  dropzoneWarn: {
-    borderColor: t.palette.warning.dark,
-  },
-  active: {
-    background: t.palette.action.selected,
-  },
-  draggable: {
-    outline: `2px dashed ${t.palette.primary.main}`,
-    outlineOffset: '-2px',
-  },
-  filesContainer: {
-    direction: 'rtl', // show the scrollbar on the left
-    borderBottom: `1px solid ${t.palette.action.disabled}`,
-    overflowX: 'hidden',
-    overflowY: 'auto',
-  },
-  filesContainerErr: {
-    borderColor: t.palette.error.main,
-  },
-  filesContainerWarn: {
-    borderColor: t.palette.warning.dark,
-  },
-  filesContainerInner: {
-    direction: 'ltr',
-  },
-  lock: {
+}))
+
+type HeaderTitleState = 'disabled' | 'error' | 'warn' | 'regular'
+
+function HeaderTitle({
+  state = 'regular',
+  ...props
+}: React.PropsWithChildren<{ state?: HeaderTitleState }>) {
+  const classes = useHeaderTitleStyles()
+  return <div className={cx(classes.root, classes[state])} {...props} />
+}
+
+const PROGRESS_EMPTY = { total: 0, loaded: 0, percent: 0 }
+
+const useLockStyles = M.makeStyles((t) => ({
+  root: {
     alignItems: 'center',
     background: 'rgba(255,255,255,0.9)',
     border: `1px solid ${t.palette.action.disabled}`,
@@ -786,64 +717,348 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const useDropdownMessageStyles = M.makeStyles((t) => ({
-  root: {
-    ...t.typography.body2,
-    alignItems: 'center',
-    background: t.palette.action.hover,
-    cursor: 'pointer',
-    display: 'flex',
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: t.spacing(6, 0),
-    textAlign: 'center',
-  },
-  disabled: {
-    padding: 0,
-    cursor: 'not-allowed',
-  },
-  error: {
-    color: t.palette.error.main,
-  },
-  warning: {
-    color: t.palette.warning.dark,
-  },
-}))
-
-interface DropzoneMessageProps {
-  error: React.ReactNode
-  warn: boolean
-  disabled: boolean
-}
-
-function DropzoneMessage({ error, warn, disabled }: DropzoneMessageProps) {
-  const classes = useDropdownMessageStyles()
-
-  const label = React.useMemo(() => {
-    if (error) return error
-    if (warn)
-      return (
-        <>
-          Total size of new files exceeds recommended maximum of{' '}
-          {readableBytes(PD.MAX_SIZE)}
-        </>
-      )
-    if (disabled) return ''
-    return 'Drop files here or click to browse'
-  }, [error, warn, disabled])
-
+function Lock({
+  progress,
+}: {
+  progress?: {
+    total: number
+    loaded: number
+    percent: number
+  }
+}) {
+  const classes = useLockStyles()
   return (
-    <div
-      className={cx(classes.root, {
-        [classes.disabled]: disabled,
-        [classes.error]: error,
-        [classes.warning]: !error && warn,
-      })}
-    >
-      <span>{label}</span>
+    <div className={classes.root}>
+      {!!progress && (
+        <>
+          <div className={classes.progressContainer}>
+            <M.CircularProgress
+              size={80}
+              value={progress.total ? progress.percent : undefined}
+              variant={progress.total ? 'determinate' : 'indeterminate'}
+            />
+            {!!progress.total && (
+              <div className={classes.progressPercent}>{progress.percent}%</div>
+            )}
+          </div>
+          {!!progress.total && (
+            <div className={classes.progressSize}>
+              {readableBytes(progress.loaded)}
+              {' / '}
+              {readableBytes(progress.total)}
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
+
+const useFilesContainerStyles = M.makeStyles((t) => ({
+  root: {
+    direction: 'rtl', // show the scrollbar on the left
+    overflowX: 'hidden',
+    overflowY: 'auto',
+  },
+  border: {
+    borderBottom: `1px solid ${t.palette.action.disabled}`,
+  },
+  err: {
+    borderColor: t.palette.error.main,
+  },
+  warn: {
+    borderColor: t.palette.warning.dark,
+  },
+  inner: {
+    direction: 'ltr',
+  },
+}))
+
+type FilesContainerProps = React.PropsWithChildren<{
+  error?: boolean
+  warn?: boolean
+  noBorder?: boolean
+}>
+
+function FilesContainer({ error, warn, noBorder, children }: FilesContainerProps) {
+  const classes = useFilesContainerStyles()
+  return (
+    <div
+      className={cx(
+        classes.root,
+        !noBorder && classes.border,
+        error && classes.err,
+        !error && warn && classes.warn,
+      )}
+    >
+      <div className={classes.inner}>{children}</div>
+    </div>
+  )
+}
+
+const useContentsContainerStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    marginTop: t.spacing(2),
+    overflowY: 'auto',
+    position: 'relative',
+  },
+  outlined: {
+    outline: `2px dashed ${t.palette.primary.main}`,
+    outlineOffset: '-2px',
+  },
+}))
+
+type ContentsContainerProps = {
+  outlined?: boolean
+} & React.HTMLAttributes<HTMLDivElement>
+
+function ContentsContainer({ outlined, className, ...props }: ContentsContainerProps) {
+  const classes = useContentsContainerStyles()
+  return (
+    <div
+      className={cx(className, classes.root, outlined && classes.outlined)}
+      {...props}
+    />
+  )
+}
+
+const useContentsStyles = M.makeStyles((t) => ({
+  root: {
+    border: `1px solid ${t.palette.action.disabled}`,
+    borderRadius: t.shape.borderRadius,
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    minHeight: 80,
+    outline: 'none',
+    overflow: 'hidden',
+  },
+  interactive: {
+    cursor: 'pointer',
+  },
+  active: {
+    background: t.palette.action.selected,
+  },
+  err: {
+    borderColor: t.palette.error.main,
+  },
+  warn: {
+    borderColor: t.palette.warning.dark,
+  },
+}))
+
+interface ContentsProps extends React.HTMLAttributes<HTMLDivElement> {
+  interactive?: boolean
+  active?: boolean
+  error?: boolean
+  warn?: boolean
+}
+
+const Contents = React.forwardRef<HTMLDivElement, ContentsProps>(function Contents(
+  { interactive, active, error, warn, className, ...props },
+  ref,
+) {
+  const classes = useContentsStyles()
+  return (
+    <div
+      className={cx(
+        className,
+        classes.root,
+        interactive && classes.interactive,
+        active && classes.active,
+        error && classes.err,
+        !error && warn && classes.warn,
+      )}
+      ref={ref}
+      {...props}
+    />
+  )
+})
+
+type FileUploadProps = tagged.ValueOf<typeof FilesEntry.File> & {
+  prefix?: string
+  dispatch: DispatchFilesAction
+}
+
+function FileUpload({ name, state, size, prefix, dispatch }: FileUploadProps) {
+  const path = (prefix || '') + name
+
+  const handle = React.useCallback(
+    (cons: tagged.ConstructorOf<typeof FilesAction>) => (e: React.MouseEvent) => {
+      // stop click from propagating to the root element and triggering its handler
+      e.stopPropagation()
+      dispatch(cons(path))
+    },
+    [dispatch, path],
+  )
+
+  const action = React.useMemo(
+    () =>
+      ({
+        added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.Revert) },
+        modified: {
+          hint: 'Revert',
+          icon: 'undo',
+          handler: handle(FilesAction.Revert),
+        },
+        hashing: {
+          hint: 'Revert',
+          icon: 'undo',
+          handler: handle(FilesAction.Revert),
+        },
+        deleted: {
+          hint: 'Restore',
+          icon: 'undo',
+          handler: handle(FilesAction.Revert),
+        },
+        unchanged: { hint: 'Delete', icon: 'clear', handler: handle(FilesAction.Delete) },
+      }[state]),
+    [state, handle],
+  )
+
+  const onClick = React.useCallback((e: React.MouseEvent) => {
+    // stop click from propagating to parent elements and triggering their handlers
+    e.stopPropagation()
+  }, [])
+
+  return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
+    <File
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      state={state}
+      name={name}
+      size={size}
+      action={
+        <M.IconButton onClick={action.handler} title={action.hint} size="small">
+          <M.Icon fontSize="inherit">{action.icon}</M.Icon>
+        </M.IconButton>
+      }
+    />
+  )
+}
+
+type DirUploadProps = tagged.ValueOf<typeof FilesEntry.Dir> & {
+  prefix?: string
+  dispatch: DispatchFilesAction
+}
+
+function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadProps) {
+  const [expanded, setExpanded] = React.useState(true)
+
+  const toggleExpanded = React.useCallback(
+    (e) => {
+      // stop click from propagating to the root element and triggering its handler
+      e.stopPropagation()
+      setExpanded((x) => !x)
+    },
+    [setExpanded],
+  )
+
+  const onClick = React.useCallback((e: React.MouseEvent) => {
+    // stop click from propagating to parent elements and triggering their handlers
+    e.stopPropagation()
+  }, [])
+
+  const path = (prefix || '') + name
+
+  const onDrop = React.useCallback(
+    (files: FileWithPath[]) => {
+      dispatch(FilesAction.Add({ prefix: path, files }))
+    },
+    [dispatch, path],
+  )
+
+  const { getRootProps, isDragActive } = useDropzone({
+    onDrop,
+    noDragEventsBubbling: true,
+    noClick: true,
+  })
+
+  const handle = React.useCallback(
+    (cons: tagged.ConstructorOf<typeof FilesAction>) => (e: React.MouseEvent) => {
+      // stop click from propagating to the root element and triggering its handler
+      e.stopPropagation()
+      dispatch(cons(path))
+    },
+    [dispatch, path],
+  )
+
+  const action = React.useMemo(
+    () =>
+      ({
+        added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.RevertDir) },
+        modified: {
+          hint: 'Revert',
+          icon: 'undo',
+          handler: handle(FilesAction.RevertDir),
+        },
+        hashing: {
+          hint: 'Revert',
+          icon: 'undo',
+          handler: handle(FilesAction.RevertDir),
+        },
+        deleted: {
+          hint: 'Restore',
+          icon: 'undo',
+          handler: handle(FilesAction.RevertDir),
+        },
+        unchanged: {
+          hint: 'Delete',
+          icon: 'clear',
+          handler: handle(FilesAction.DeleteDir),
+        },
+      }[state]),
+    [state, handle],
+  )
+
+  return (
+    <Dir
+      {...getRootProps({ onClick })}
+      active={isDragActive}
+      onHeadClick={toggleExpanded}
+      expanded={expanded}
+      name={name}
+      state={state}
+      action={
+        <M.IconButton onClick={action.handler} title={action.hint} size="small">
+          <M.Icon fontSize="inherit">{action.icon}</M.Icon>
+        </M.IconButton>
+      }
+      empty={!childEntries.length}
+    >
+      {!!childEntries.length &&
+        childEntries.map(
+          FilesEntry.match({
+            Dir: (ps) => (
+              <DirUpload {...ps} key={ps.name} prefix={path} dispatch={dispatch} />
+            ),
+            File: (ps) => (
+              <FileUpload {...ps} key={ps.name} prefix={path} dispatch={dispatch} />
+            ),
+          }),
+        )}
+    </Dir>
+  )
+}
+
+const useFilesInputStyles = M.makeStyles((t) => ({
+  added: {
+    color: t.palette.success.main,
+    marginLeft: t.spacing(1),
+  },
+  deleted: {
+    color: t.palette.error.main,
+    marginLeft: t.spacing(1),
+  },
+  hashing: {
+    marginLeft: t.spacing(1),
+  },
+}))
 
 interface FilesInputProps {
   input: {
@@ -884,7 +1099,7 @@ export function FilesInput({
   title,
   totalProgress,
 }: FilesInputProps) {
-  const classes = useStyles()
+  const classes = useFilesInputStyles()
 
   const pRef = React.useRef<Promise<any>>()
   const scheduleUpdate = (waitFor: Promise<any>[]) => {
@@ -965,29 +1180,28 @@ export function FilesInput({
   const warn = stats.added.size > PD.MAX_SIZE
 
   return (
-    <div className={cx(classes.root, className)}>
-      <div className={classes.header}>
-        <div
-          className={cx(
-            classes.headerFiles,
+    <Root className={className}>
+      <Header>
+        <HeaderTitle
+          state={
             submitting || disabled // eslint-disable-line no-nested-ternary
-              ? classes.headerFilesDisabled
+              ? 'disabled'
               : error // eslint-disable-line no-nested-ternary
-              ? classes.headerFilesError
+              ? 'error'
               : warn
-              ? classes.headerFilesWarn
-              : undefined,
-          )}
+              ? 'warn'
+              : undefined
+          }
         >
           {title}
           {!!stats.added.count && (
-            <span className={classes.headerFilesAdded}>
+            <span className={classes.added}>
               {' +'}
               {stats.added.count} ({readableBytes(stats.added.size)})
             </span>
           )}
           {!!stats.deleted.count && (
-            <span className={classes.headerFilesDeleted}>
+            <span className={classes.deleted}>
               {' -'}
               {stats.deleted.count} ({readableBytes(stats.deleted.size)})
             </span>
@@ -999,12 +1213,12 @@ export function FilesInput({
           )}
           {stats.hashing && (
             <M.CircularProgress
-              className={classes.headerFilesHashing}
+              className={classes.hashing}
               size={16}
               title="Hashing files"
             />
           )}
-        </div>
+        </HeaderTitle>
         <M.Box flexGrow={1} />
         {meta.dirty && (
           <M.Button
@@ -1016,88 +1230,210 @@ export function FilesInput({
             Undo changes
           </M.Button>
         )}
-      </div>
+      </Header>
 
-      <div
-        className={cx(classes.dropzoneContainer, {
-          [classes.draggable]: isDragging && !disabled,
-        })}
-      >
-        <div
-          {...getRootProps({
-            className: cx(
-              classes.dropzone,
-              isDragActive && !ref.current.disabled && classes.active,
-              !!error && classes.dropzoneErr,
-              !error && warn && classes.dropzoneWarn,
-            ),
-          })}
+      <ContentsContainer outlined={isDragging && !ref.current.disabled}>
+        <Contents
+          {...getRootProps()}
+          interactive
+          active={isDragActive && !ref.current.disabled}
+          error={!!error}
+          warn={warn}
         >
           <input {...getInputProps()} />
 
           {!!computedEntries.length && (
-            <div
-              className={cx(
-                classes.filesContainer,
-                !!error && classes.filesContainerErr,
-                !error && warn && classes.filesContainerWarn,
+            <FilesContainer error={!!error} warn={warn}>
+              {computedEntries.map(
+                FilesEntry.match({
+                  Dir: (ps) => (
+                    <DirUpload {...ps} key={`dir:${ps.name}`} dispatch={dispatch} />
+                  ),
+                  File: (ps) => (
+                    <FileUpload {...ps} key={`file:${ps.name}`} dispatch={dispatch} />
+                  ),
+                }),
               )}
-            >
-              <div className={classes.filesContainerInner}>
-                {computedEntries.map(
-                  FilesEntry.match({
-                    Dir: (ps) => (
-                      <Dir
-                        {...ps}
-                        key={`dir:${ps.name}`}
-                        dispatch={dispatch}
-                        disabled={disabled}
-                      />
-                    ),
-                    File: (ps) => (
-                      <File
-                        {...ps}
-                        key={`file:${ps.name}`}
-                        dispatch={dispatch}
-                        disabled={disabled}
-                      />
-                    ),
-                  }),
-                )}
-              </div>
-            </div>
+            </FilesContainer>
           )}
 
-          <DropzoneMessage
-            error={error && (errors[error] || error)}
-            warn={warn}
-            disabled={disabled}
-          />
-        </div>
-        {submitting && (
-          <div className={classes.lock}>
-            <div className={classes.progressContainer}>
-              <M.CircularProgress
-                size={80}
-                value={totalProgress.total ? totalProgress.percent : undefined}
-                variant={totalProgress.total ? 'determinate' : 'indeterminate'}
-              />
-              {!!totalProgress.total && (
-                <div className={classes.progressPercent}>{totalProgress.percent}%</div>
-              )}
-            </div>
-            {!!totalProgress.total && (
-              <div className={classes.progressSize}>
-                {readableBytes(totalProgress.loaded)}
-                {' / '}
-                {readableBytes(totalProgress.total)}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+          <DropzoneMessage error={error && (errors[error] || error)} warn={warn} />
+        </Contents>
+        {submitting && <Lock progress={totalProgress} />}
+      </ContentsContainer>
+    </Root>
   )
 }
 
-export default FilesInput
+const useFilesSelectorStyles = M.makeStyles((t) => ({
+  checkbox: {
+    color: `${t.palette.action.active} !important`,
+    padding: 3,
+    '&:hover': {
+      backgroundColor: `${fade(
+        t.palette.action.active,
+        t.palette.action.hoverOpacity,
+      )} !important`,
+    },
+    '& svg': {
+      fontSize: '18px',
+    },
+  },
+}))
+
+interface FilesSelectorEntry {
+  type: 'dir' | 'file'
+  name: string
+  selected: boolean
+  size?: number
+}
+
+export type FilesSelectorState = FilesSelectorEntry[]
+
+interface FilesSelectorProps {
+  input: {
+    value: FilesSelectorState
+    onChange: (value: FilesSelectorState) => void
+  }
+  className?: string
+  disabled?: boolean
+  errors?: Record<string, React.ReactNode>
+  meta: {
+    submitting: boolean
+    submitSucceeded: boolean
+    submitFailed: boolean
+    dirty: boolean
+    error?: string
+    initial: FilesSelectorState
+  }
+  title: React.ReactNode
+  truncated?: boolean
+}
+
+export function FilesSelector({
+  input: { value, onChange },
+  className,
+  disabled = false,
+  errors = {},
+  meta,
+  title,
+  truncated = false,
+}: FilesSelectorProps) {
+  const classes = useFilesSelectorStyles()
+
+  const submitting = meta.submitting || meta.submitSucceeded
+  const error = meta.submitFailed && meta.error
+
+  const selected = React.useMemo(
+    () => value.reduce((m, i) => (i.selected ? m + 1 : m), 0),
+    [value],
+  )
+
+  const toggleAll = React.useCallback(() => {
+    onChange(value.map(R.assoc('selected', selected < value.length)))
+  }, [onChange, value, selected])
+
+  const handleItemClick = React.useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      e.stopPropagation()
+      const idx = value.findIndex(R.propEq('name', e.currentTarget.dataset.name!))
+      if (idx < 0) return
+      onChange(R.adjust(idx, R.evolve({ selected: R.not }), value))
+    },
+    [onChange, value],
+  )
+
+  return (
+    <Root className={className}>
+      <Header>
+        <HeaderTitle
+          state={
+            submitting || disabled // eslint-disable-line no-nested-ternary
+              ? 'disabled'
+              : error // eslint-disable-line no-nested-ternary
+              ? 'error'
+              : truncated
+              ? 'warn'
+              : undefined
+          }
+        >
+          {title}
+          {truncated && (
+            // TODO: adjust copy
+            <M.Tooltip title="Only the first 1000 items are shown, but the folder contains more">
+              <M.Icon style={{ marginLeft: 6 }} fontSize="small">
+                error_outline
+              </M.Icon>
+            </M.Tooltip>
+          )}
+        </HeaderTitle>
+        <M.Box flexGrow={1} />
+        {value.length > 0 && (
+          <M.Button
+            onClick={toggleAll}
+            disabled={disabled || submitting}
+            size="small"
+            endIcon={
+              <M.Icon fontSize="small">
+                {selected < value.length ? 'check_box' : 'check_box_outline_blank'}
+              </M.Icon>
+            }
+          >
+            Select {selected < value.length ? 'all' : 'none'}
+          </M.Button>
+        )}
+      </Header>
+
+      <ContentsContainer>
+        <Contents error={!!error} warn={truncated}>
+          {value.length ? (
+            <FilesContainer noBorder>
+              {value.map(({ type, name, selected: sel, size }) =>
+                type === 'dir' ? (
+                  <Dir
+                    key={`dir:${name}`}
+                    name={name}
+                    action={<M.Checkbox className={classes.checkbox} checked={sel} />}
+                    onClick={handleItemClick}
+                    data-name={name}
+                    faint={!sel}
+                  />
+                ) : (
+                  <File
+                    key={`file:${name}`}
+                    name={name}
+                    size={size}
+                    action={<M.Checkbox className={classes.checkbox} checked={sel} />}
+                    onClick={handleItemClick}
+                    data-name={name}
+                    faint={!sel}
+                    interactive
+                  />
+                ),
+              )}
+            </FilesContainer>
+          ) : (
+            // TODO: adjust copy
+            <M.Box
+              display="flex"
+              flexGrow={1}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <M.Typography align="center" color={error ? 'error' : undefined}>
+                Current directory is empty
+              </M.Typography>
+            </M.Box>
+          )}
+          {submitting && <Lock progress={PROGRESS_EMPTY} />}
+        </Contents>
+      </ContentsContainer>
+
+      {!!error && (
+        <M.FormHelperText error margin="dense">
+          {errors[error] || error}
+        </M.FormHelperText>
+      )}
+    </Root>
+  )
+}
