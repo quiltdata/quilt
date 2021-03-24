@@ -238,15 +238,20 @@ const computeEntries = ({ added, deleted, existing }: FilesState) => {
   }, [] as FilesEntry[])
 }
 
+export const HASHING = 'hashing'
+export const HASHING_ERROR = 'hashingError'
+
 export const validateHashingComplete = (state: FilesState) => {
   const files = Object.values(state.added)
-  if (files.some((f) => f.hash.ready && !f.hash.value)) return 'hashingError'
-  if (files.some((f) => !f.hash.ready)) return 'hashing'
+  if (files.some((f) => f.hash.ready && !f.hash.value)) return HASHING_ERROR
+  if (files.some((f) => !f.hash.ready)) return HASHING
   return undefined
 }
 
+export const EMPTY_SELECTION = 'emptySelection'
+
 export const validateNonEmptySelection = (state: FilesSelectorState) => {
-  if (state.every(R.propEq('selected', false))) return 'emptySelection'
+  if (state.every(R.propEq('selected', false))) return EMPTY_SELECTION
   return undefined
 }
 
@@ -319,10 +324,17 @@ const useFileStyles = M.makeStyles((t) => ({
   hashing: {},
   deleted: {},
   unchanged: {},
+  interactive: {},
   root: {
+    alignItems: 'center',
     color: COLORS.default,
     cursor: 'default',
+    display: 'flex',
+    opacity: 0.7,
     outline: 'none',
+    '&:hover': {
+      opacity: 1,
+    },
     '&$added': {
       color: COLORS.added,
     },
@@ -335,14 +347,17 @@ const useFileStyles = M.makeStyles((t) => ({
     '&$deleted': {
       color: COLORS.deleted,
     },
+    '&$interactive': {
+      cursor: 'pointer',
+    },
   },
-  contents: {
+  inner: {
     alignItems: 'center',
     display: 'flex',
-    opacity: 0.7,
-    '$root:hover > &': {
-      opacity: 1,
-    },
+    flexGrow: 1,
+  },
+  faint: {
+    opacity: 0.5,
   },
   name: {
     ...t.typography.body2,
@@ -359,37 +374,45 @@ const useFileStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface FileOwnProps {
+interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string
   state?: FilesEntryState
   size?: number
   action?: React.ReactNode
+  interactive?: boolean
+  faint?: boolean
 }
-
-type FileProps = FileOwnProps &
-  Omit<React.HTMLAttributes<HTMLDivElement>, keyof FileOwnProps>
 
 function File({
   name,
   state = 'unchanged',
   size,
   action,
+  interactive = false,
+  faint = false,
   className,
   ...props
 }: FileProps) {
   const classes = useFileStyles()
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
-    <div className={cx(classes.root, classes[state], className)} {...props}>
-      <div className={classes.contents}>
+    <div
+      className={cx(
+        className,
+        classes.root,
+        classes[state],
+        interactive && classes.interactive,
+      )}
+      {...props}
+    >
+      <div className={cx(classes.inner, faint && classes.faint)}>
         <EntryIcon state={state}>insert_drive_file</EntryIcon>
         <div className={classes.name} title={name}>
           {name}
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
-        {action}
       </div>
+      {action}
     </div>
   )
 }
@@ -427,6 +450,14 @@ const useDirStyles = M.makeStyles((t) => ({
     '$deleted > &': {
       color: COLORS.deleted,
     },
+  },
+  headInner: {
+    alignItems: 'center',
+    display: 'flex',
+    flexGrow: 1,
+  },
+  faint: {
+    opacity: 0.5,
   },
   name: {
     ...t.typography.body2,
@@ -477,19 +508,17 @@ const useDirStyles = M.makeStyles((t) => ({
   },
 }))
 
-type DirOwnProps = React.PropsWithChildren<{
+interface DirProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string
   state?: FilesEntryState
   active?: boolean
   empty?: boolean
   expanded?: boolean
+  faint?: boolean
   onChangeExpanded?: (expanded: boolean) => void
   action?: React.ReactNode
   onHeadClick?: React.MouseEventHandler<HTMLDivElement>
-}>
-
-type DirProps = DirOwnProps &
-  Omit<React.HTMLAttributes<HTMLDivElement>, keyof DirOwnProps>
+}
 
 const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
   {
@@ -498,6 +527,7 @@ const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
     active = false,
     empty = false,
     expanded = false,
+    faint = false,
     action,
     className,
     onHeadClick,
@@ -518,8 +548,10 @@ const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
       <div onClick={onHeadClick} className={classes.head} role="button" tabIndex={0}>
-        <EntryIcon state={state}>{expanded ? 'folder_open' : 'folder'}</EntryIcon>
-        <div className={classes.name}>{name}</div>
+        <div className={cx(classes.headInner, faint && classes.faint)}>
+          <EntryIcon state={state}>{expanded ? 'folder_open' : 'folder'}</EntryIcon>
+          <div className={classes.name}>{name}</div>
+        </div>
         {action}
         {(!!children || empty) && (
           <>
@@ -818,21 +850,17 @@ const useContentsStyles = M.makeStyles((t) => ({
   },
 }))
 
-type ContentsProps = {
+interface ContentsProps extends React.HTMLAttributes<HTMLDivElement> {
   interactive?: boolean
   active?: boolean
   error?: boolean
   warn?: boolean
-} & React.HTMLAttributes<HTMLDivElement>
+}
 
-function Contents({
-  interactive,
-  active,
-  error,
-  warn,
-  className,
-  ...props
-}: ContentsProps) {
+const Contents = React.forwardRef<HTMLDivElement, ContentsProps>(function Contents(
+  { interactive, active, error, warn, className, ...props },
+  ref,
+) {
   const classes = useContentsStyles()
   return (
     <div
@@ -844,10 +872,11 @@ function Contents({
         error && classes.err,
         !error && warn && classes.warn,
       )}
+      ref={ref}
       {...props}
     />
   )
-}
+})
 
 type FileUploadProps = tagged.ValueOf<typeof FilesEntry.File> & {
   prefix?: string
@@ -859,6 +888,7 @@ function FileUpload({ name, state, size, prefix, dispatch }: FileUploadProps) {
 
   const handle = React.useCallback(
     (cons: tagged.ConstructorOf<typeof FilesAction>) => (e: React.MouseEvent) => {
+      // stop click from propagating to the root element and triggering its handler
       e.stopPropagation()
       dispatch(cons(path))
     },
@@ -890,6 +920,7 @@ function FileUpload({ name, state, size, prefix, dispatch }: FileUploadProps) {
   )
 
   const onClick = React.useCallback((e: React.MouseEvent) => {
+    // stop click from propagating to parent elements and triggering their handlers
     e.stopPropagation()
   }, [])
 
@@ -921,6 +952,7 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
 
   const toggleExpanded = React.useCallback(
     (e) => {
+      // stop click from propagating to the root element and triggering its handler
       e.stopPropagation()
       setExpanded((x) => !x)
     },
@@ -928,6 +960,7 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
   )
 
   const onClick = React.useCallback((e: React.MouseEvent) => {
+    // stop click from propagating to parent elements and triggering their handlers
     e.stopPropagation()
   }, [])
 
@@ -943,10 +976,12 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
   const { getRootProps, isDragActive } = useDropzone({
     onDrop,
     noDragEventsBubbling: true,
+    noClick: true,
   })
 
   const handle = React.useCallback(
     (cons: tagged.ConstructorOf<typeof FilesAction>) => (e: React.MouseEvent) => {
+      // stop click from propagating to the root element and triggering its handler
       e.stopPropagation()
       dispatch(cons(path))
     },
@@ -1361,6 +1396,7 @@ export function FilesSelector({
                     action={<M.Checkbox className={classes.checkbox} checked={sel} />}
                     onClick={handleItemClick}
                     data-name={name}
+                    faint={!sel}
                   />
                 ) : (
                   <File
@@ -1370,6 +1406,8 @@ export function FilesSelector({
                     action={<M.Checkbox className={classes.checkbox} checked={sel} />}
                     onClick={handleItemClick}
                     data-name={name}
+                    faint={!sel}
+                    interactive
                   />
                 ),
               )}

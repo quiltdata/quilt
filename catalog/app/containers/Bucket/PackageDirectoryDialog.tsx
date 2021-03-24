@@ -386,7 +386,7 @@ function DialogForm({
                     }
                     validateFields={['files']}
                     errors={{
-                      emptySelection: 'Select something to create a package',
+                      [PD.EMPTY_SELECTION]: 'Select something to create a package',
                     }}
                     title="Select files and directories to package"
                     isEqual={R.equals}

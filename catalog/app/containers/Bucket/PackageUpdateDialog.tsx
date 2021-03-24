@@ -461,8 +461,8 @@ function DialogForm({
                     validateFields={['files']}
                     errors={{
                       nonEmpty: 'Add files to create a package',
-                      hashing: 'Please wait while we hash the files',
-                      hashingError:
+                      [PD.HASHING]: 'Please wait while we hash the files',
+                      [PD.HASHING_ERROR]:
                         'Error hashing files, probably some of them are too large. Please try again or contact support.',
                     }}
                     totalProgress={totalProgress}
