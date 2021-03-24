@@ -18,12 +18,6 @@ export type JsonSchema = Partial<
   } & Record<CompoundCondition, JsonSchema[]>
 >
 
-// NOTE: can't use R.prop directly, because R.prop type doesn't allow undefined
-const prop = (
-  property: keyof JsonSchema,
-  optSchema?: JsonSchema,
-): JsonSchema[keyof JsonSchema] => (optSchema ? R.prop(property, optSchema) : undefined)
-
 export const isSchemaArray = (optSchema?: JsonSchema) => optSchema?.type === 'array'
 
 export const isSchemaObject = (optSchema?: JsonSchema) => optSchema?.type === 'object'
@@ -64,7 +58,7 @@ function compoundTypeToHumanString(
   condition: CompoundCondition,
   divider: string,
 ): string {
-  if (!Array.isArray(prop(condition, optSchema))) return ''
+  if (!isSchemaCompound(optSchema)) return ''
 
   return (optSchema[condition] as JsonSchema[])
     .map(schemaTypeToHumanString)
@@ -104,7 +98,7 @@ function doesTypeMatchCompoundSchema(
 ): boolean {
   if (!optSchema) return true
 
-  if (!Array.isArray(prop(condition, optSchema))) return false
+  if (!isSchemaCompound(optSchema)) return false
 
   return (optSchema[condition] as JsonSchema[])
     .filter(R.has('type'))
