@@ -24,32 +24,29 @@ const prop = (
   optSchema?: JsonSchema,
 ): JsonSchema[keyof JsonSchema] => (optSchema ? R.prop(property, optSchema) : undefined)
 
-export const isSchemaArray = (optSchema?: JsonSchema) =>
-  prop('type', optSchema) === 'array'
+export const isSchemaArray = (optSchema?: JsonSchema) => optSchema?.type === 'array'
 
-export const isSchemaObject = (optSchema?: JsonSchema) =>
-  prop('type', optSchema) === 'object'
+export const isSchemaObject = (optSchema?: JsonSchema) => optSchema?.type === 'object'
 
-const isSchemaString = (optSchema?: JsonSchema) => prop('type', optSchema) === 'string'
+const isSchemaString = (optSchema?: JsonSchema) => optSchema?.type === 'string'
 
-const isSchemaNumber = (optSchema?: JsonSchema) => prop('type', optSchema) === 'number'
+const isSchemaNumber = (optSchema?: JsonSchema) => optSchema?.type === 'number'
 
-const isSchemaInteger = (optSchema?: JsonSchema) => prop('type', optSchema) === 'integer'
+const isSchemaInteger = (optSchema?: JsonSchema) => optSchema?.type === 'integer'
 
-export const isSchemaBoolean = (optSchema?: JsonSchema) =>
-  prop('type', optSchema) === 'boolean'
+export const isSchemaBoolean = (optSchema?: JsonSchema) => optSchema?.type === 'boolean'
 
-const isSchemaNull = (optSchema?: JsonSchema) => prop('type', optSchema) === 'null'
+const isSchemaNull = (optSchema?: JsonSchema) => optSchema?.type === 'null'
 
-export const isSchemaEnum = (optSchema?: JsonSchema) => !!prop('enum', optSchema)
+export const isSchemaEnum = (optSchema?: JsonSchema) => !!optSchema?.enum
 
-export const isSchemaOneOf = (optSchema?: JsonSchema) => !!prop('oneOf', optSchema)
+export const isSchemaOneOf = (optSchema?: JsonSchema) => !!optSchema?.oneOf
 
-export const isSchemaAnyOf = (optSchema?: JsonSchema) => !!prop('anyOf', optSchema)
+export const isSchemaAnyOf = (optSchema?: JsonSchema) => !!optSchema?.anyOf
 
-export const isSchemaAllOf = (optSchema?: JsonSchema) => !!prop('allOf', optSchema)
+export const isSchemaAllOf = (optSchema?: JsonSchema) => !!optSchema?.allOf
 
-const isSchemaConst = (optSchema?: JsonSchema) => !!prop('const', optSchema)
+const isSchemaConst = (optSchema?: JsonSchema) => !!optSchema?.const
 
 function isSchemaCompound(optSchema?: JsonSchema) {
   if (!optSchema) return false
@@ -58,7 +55,7 @@ function isSchemaCompound(optSchema?: JsonSchema) {
   )
 }
 
-const isSchemaReference = (optSchema: JsonSchema) => !!prop('$ref', optSchema)
+const isSchemaReference = (optSchema: JsonSchema) => !!optSchema?.$ref
 
 export const isNestedType = R.either(isSchemaArray, isSchemaObject)
 
@@ -121,7 +118,7 @@ export function doesTypeMatchSchema(value: any, optSchema?: JsonSchema): boolean
   return R.cond<JsonSchema, boolean>([
     [isSchemaEnum, () => R.includes(value, R.propOr([], 'enum', optSchema))],
     [
-      (s) => Array.isArray(prop('type', s)),
+      (s) => Array.isArray(s?.type),
       () =>
         (optSchema.type as JsonSchema[]).some((subSchema) =>
           doesTypeMatchSchema(value, subSchema),
