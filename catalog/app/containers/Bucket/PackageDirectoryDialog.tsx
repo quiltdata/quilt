@@ -1,4 +1,4 @@
-import { FORM_ERROR } from 'final-form'
+import * as FF from 'final-form'
 import { basename } from 'path'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -15,32 +15,75 @@ import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as validators from 'utils/validators'
+import type * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
-function requestPackageCreate(
-  req,
-  { commitMessage, name, meta, sourceBucket, path, schema, targetBucket, workflow },
-) {
-  return req({
-    endpoint: '/packages/from-folder',
-    method: 'POST',
-    body: {
-      message: commitMessage,
-      meta: PD.getMetaValue(meta, schema),
-      path,
-      dst: {
-        registry: `s3://${targetBucket}`,
-        name,
-      },
-      registry: `s3://${sourceBucket}`,
-      workflow: PD.getWorkflowApiParam(workflow.slug),
-    },
-  })
+// FIXME: this is copypasted from PackageDialog -- next time we need to TSify utils/APIConnector properly
+interface ApiRequest {
+  <O>(opts: {
+    endpoint: string
+    method?: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'HEAD'
+    body?: {}
+  }): Promise<O>
 }
 
-function DialogTitle({ bucket, path }) {
+interface Entry {
+  logical_key: string
+  path: string
+  is_dir: boolean
+}
+
+function usePackageCreateRequest() {
+  const req: ApiRequest = APIConnector.use()
+  return React.useCallback(
+    (params: {
+      commitMessage: string
+      name: string
+      meta: object
+      sourceBucket: string
+      schema: object
+      targetBucket: string
+      workflow: workflows.Workflow
+      entries: Entry[]
+    }) =>
+      req<{ top_hash: string }>({
+        endpoint: '/packages/from-folder',
+        method: 'POST',
+        body: {
+          message: params.commitMessage,
+          meta: PD.getMetaValue(params.meta, params.schema),
+          entries: params.entries,
+          dst: {
+            registry: `s3://${params.targetBucket}`,
+            name: params.name,
+          },
+          registry: `s3://${params.sourceBucket}`,
+          workflow: PD.getWorkflowApiParam(params.workflow.slug),
+        },
+      }),
+    [req],
+  )
+}
+
+const prepareEntries = (entries: PD.FilesSelectorState, path: string) => {
+  const selected = entries.filter(R.propEq('selected', true))
+  if (selected.length === entries.length)
+    return [{ logical_key: '.', path, is_dir: true }]
+  return selected.map(({ type, name }) => ({
+    logical_key: name,
+    path: path + name,
+    is_dir: type === 'dir',
+  }))
+}
+
+interface DialogTitleProps {
+  bucket: string
+  path?: string
+}
+
+function DialogTitle({ bucket, path }: DialogTitleProps) {
   const { urls } = NamedRoutes.use()
 
   const directory = path ? `"${path}"` : 'root'
@@ -71,11 +114,32 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface DialogFormProps {
+  bucket: string
+  path: string
+  truncated?: boolean
+  dirs: string[]
+  files: { key: string; size: number }[]
+  close: () => void
+  responseError: $TSFixMe
+  schema: object
+  schemaLoading: boolean
+  selectedWorkflow: workflows.Workflow
+  setSubmitting: (submitting: boolean) => void
+  setSuccess: (success: { name: string; hash: string }) => void
+  setWorkflow: (workflow: workflows.Workflow) => void
+  successor: workflows.Successor
+  validate: FF.FieldValidator<$TSFixMe>
+  workflowsConfig: workflows.WorkflowsConfig
+}
+
 function DialogForm({
   bucket,
-  close,
-  files,
   path,
+  truncated,
+  dirs,
+  files,
+  close,
   responseError,
   schema,
   schemaLoading,
@@ -86,60 +150,65 @@ function DialogForm({
   successor,
   validate: validateMetaInput,
   workflowsConfig,
-}) {
+}: DialogFormProps) {
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(successor.slug)
-  const [nameWarning, setNameWarning] = React.useState('')
+  const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
 
-  const req = APIConnector.use()
+  const req = usePackageCreateRequest()
 
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   const onSubmit = React.useCallback(
-    // eslint-disable-next-line consistent-return
-    async ({ commitMessage, name, meta, workflow }) => {
+    async ({
+      files: filesValue,
+      ...values
+    }: {
+      commitMessage: string
+      name: string
+      meta: object
+      workflow: workflows.Workflow
+      files: PD.FilesSelectorState
+      // eslint-disable-next-line consistent-return
+    }) => {
       try {
-        const res = await requestPackageCreate(req, {
-          commitMessage,
-          meta,
-          name,
-          path,
+        const res = await req({
+          ...values,
+          entries: prepareEntries(filesValue, path),
           schema,
           sourceBucket: bucket,
           targetBucket: successor.slug,
-          workflow,
         })
-        setSuccess({ name, hash: res.top_hash })
+        setSuccess({ name: values.name, hash: res.top_hash })
       } catch (e) {
         // eslint-disable-next-line no-console
         console.log('error creating manifest', e)
-        return { [FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
+        return { [FF.FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
       }
     },
     [bucket, successor, req, setSuccess, schema, path],
   )
 
-  const initialFiles = React.useMemo(
-    () => ({
-      existing: files.reduce(
-        (memo, file) => ({
-          [basename(file.key)]: {
-            isDir: file.isDir,
-            size: file.size,
-          },
-          ...memo,
-        }),
-        {},
-      ),
-      added: {},
-      deleted: {},
-    }),
-    [files],
+  const initialFiles: PD.FilesSelectorState = React.useMemo(
+    () => [
+      ...dirs.map((dir) => ({
+        type: 'dir' as const,
+        name: basename(dir),
+        selected: true,
+      })),
+      ...files.map((file) => ({
+        type: 'file' as const,
+        name: basename(file.key),
+        size: file.size,
+        selected: true,
+      })),
+    ],
+    [dirs, files],
   )
 
-  const onSubmitWrapped = async (...args) => {
+  const onSubmitWrapped = async (...args: Parameters<typeof onSubmit>) => {
     setSubmitting(true)
     try {
       return await onSubmit(...args)
@@ -152,7 +221,7 @@ function DialogForm({
     async (name) => {
       const fullName = `${successor.slug}/${name}`
 
-      let warning = ''
+      let warning: React.ReactNode = ''
 
       const nameExists = await nameExistence.validate(name)
       if (nameExists) {
@@ -176,12 +245,12 @@ function DialogForm({
     [nameWarning, nameExistence, successor],
   )
 
-  const [editorElement, setEditorElement] = React.useState()
+  const [editorElement, setEditorElement] = React.useState<HTMLElement | null>(null)
 
   const onFormChange = React.useCallback(
     async ({ values }) => {
       if (document.body.contains(editorElement)) {
-        setMetaHeight(editorElement.clientHeight)
+        setMetaHeight(editorElement!.clientHeight)
       }
 
       handleNameChange(values.name)
@@ -191,7 +260,7 @@ function DialogForm({
 
   React.useEffect(() => {
     if (document.body.contains(editorElement)) {
-      setMetaHeight(editorElement.clientHeight)
+      setMetaHeight(editorElement!.clientHeight)
     }
   }, [editorElement, setMetaHeight])
 
@@ -202,13 +271,11 @@ function DialogForm({
     <RF.Form
       onSubmit={onSubmitWrapped}
       subscription={{
-        handleSubmit: true,
         submitting: true,
         submitFailed: true,
         error: true,
         submitError: true,
         hasValidationErrors: true,
-        form: true,
       }}
     >
       {({
@@ -234,7 +301,7 @@ function DialogForm({
               <RF.FormSpy
                 subscription={{ modified: true, values: true }}
                 onChange={({ modified, values }) => {
-                  if (modified.workflow && values.workflow !== selectedWorkflow) {
+                  if (modified?.workflow && values.workflow !== selectedWorkflow) {
                     setWorkflow(values.workflow)
                   }
                 }}
@@ -265,7 +332,7 @@ function DialogForm({
                   <RF.Field
                     component={PD.CommitMessageInput}
                     name="commitMessage"
-                    validate={validators.required}
+                    validate={validators.required as FF.FieldValidator<string>}
                     validateFields={['commitMessage']}
                     errors={{
                       required: 'Enter a commit message',
@@ -298,7 +365,9 @@ function DialogForm({
                     name="workflow"
                     workflowsConfig={workflowsConfig}
                     initialValue={selectedWorkflow}
-                    validate={validators.required}
+                    validate={
+                      validators.required as FF.FieldValidator<workflows.Workflow>
+                    }
                     validateFields={['meta', 'workflow']}
                     errors={{
                       required: 'Workflow is required for this bucket.',
@@ -309,19 +378,20 @@ function DialogForm({
                 <PD.RightColumn>
                   <RF.Field
                     className={classes.files}
-                    component={PD.FilesInput}
+                    // @ts-expect-error
+                    component={PD.FilesSelector}
                     name="files"
-                    totalProgress={{}}
-                    validate={validators.nonEmpty}
+                    validate={
+                      PD.validateNonEmptySelection as FF.FieldValidator<PD.FilesSelectorState>
+                    }
                     validateFields={['files']}
                     errors={{
-                      nonEmpty: 'Add files to create a package',
+                      [PD.EMPTY_SELECTION]: 'Select something to create a package',
                     }}
-                    disabled
-                    title="Files and directories below will be packaged"
-                    onFilesAction={R.T}
+                    title="Select files and directories to package"
                     isEqual={R.equals}
                     initialValue={initialFiles}
+                    truncated={truncated}
                   />
                 </PD.RightColumn>
               </PD.Container>
@@ -366,7 +436,14 @@ function DialogForm({
   )
 }
 
-function DialogError({ bucket, error, path, onCancel }) {
+interface DialogErrorProps {
+  bucket: string
+  path: string
+  error: $TSFixMe
+  onCancel: () => void
+}
+
+function DialogError({ bucket, error, path, onCancel }: DialogErrorProps) {
   return (
     <PD.DialogError
       error={error}
@@ -377,7 +454,13 @@ function DialogError({ bucket, error, path, onCancel }) {
   )
 }
 
-function DialogLoading({ bucket, path, onCancel }) {
+interface DialogLoadingProps {
+  bucket: string
+  path: string
+  onCancel: () => void
+}
+
+function DialogLoading({ bucket, path, onCancel }: DialogLoadingProps) {
   return (
     <PD.DialogLoading
       skeletonElement={<PD.FormSkeleton />}
@@ -387,19 +470,35 @@ function DialogLoading({ bucket, path, onCancel }) {
   )
 }
 
+interface PackageDirectoryDialogProps {
+  bucket: string
+  path: string
+  truncated?: boolean
+  dirs: string[]
+  files: { key: string; size: number }[]
+  open: boolean
+  successor: workflows.Successor | null
+  onClose?: () => void
+  onExited: (param: { pushed: null | { name: string; hash: string } }) => void
+}
+
 export default function PackageDirectoryDialog({
   bucket,
+  path,
+  truncated,
+  dirs,
   files,
   onClose,
   onExited,
   open,
-  path,
   successor,
-}) {
+}: PackageDirectoryDialogProps) {
   const s3 = AWS.S3.use()
 
-  const [workflow, setWorkflow] = React.useState(null)
-  const [success, setSuccess] = React.useState(null)
+  const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
+  const [success, setSuccess] = React.useState<{ name: string; hash: string } | null>(
+    null,
+  )
   const [submitting, setSubmitting] = React.useState(false)
 
   const workflowsData = Data.use(
@@ -446,7 +545,7 @@ export default function PackageDirectoryDialog({
         />
       ) : (
         workflowsData.case({
-          Err: (e) =>
+          Err: (e: Error) =>
             successor && (
               <DialogError
                 bucket={successor.slug}
@@ -455,18 +554,26 @@ export default function PackageDirectoryDialog({
                 error={e}
               />
             ),
-          Ok: (workflowsConfig) =>
+          Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
             successor && (
               <PD.SchemaFetcher workflow={workflow} workflowsConfig={workflowsConfig}>
                 {AsyncResult.case({
-                  Ok: (schemaProps) => (
+                  Ok: (schemaProps: {
+                    responseError: $TSFixMe
+                    schema: object
+                    schemaLoading: boolean
+                    selectedWorkflow: workflows.Workflow
+                    validate: FF.FieldValidator<$TSFixMe>
+                  }) => (
                     <DialogForm
                       {...schemaProps}
                       {...{
                         bucket,
-                        close: handleClose,
-                        files,
                         path,
+                        truncated,
+                        dirs,
+                        files,
+                        close: handleClose,
                         setSubmitting,
                         setSuccess,
                         setWorkflow,

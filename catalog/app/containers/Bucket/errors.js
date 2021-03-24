@@ -11,7 +11,6 @@ import { docs } from 'constants/urls'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import { BaseError } from 'utils/error'
-import * as RT from 'utils/reactTools'
 
 export class BucketError extends BaseError {}
 
@@ -85,24 +84,23 @@ const WhenAuth = connect(
 
 const whenAuth = (cases) => (...args) => <WhenAuth {...{ cases, args }} />
 
-const SignIn = RT.composeComponent('Bucket.errors.SignIn', () => (
-  <NamedRoutes.Inject>
-    {({ urls }) => (
-      <Route>
-        {({ location: l }) => (
-          <Button
-            component={Link}
-            to={urls.signIn(l.pathname + l.search + l.hash)}
-            variant="contained"
-            color="primary"
-          >
-            Sign In
-          </Button>
-        )}
-      </Route>
-    )}
-  </NamedRoutes.Inject>
-))
+function SignIn() {
+  const { urls } = NamedRoutes.use()
+  return (
+    <Route>
+      {({ location: l }) => (
+        <Button
+          component={Link}
+          to={urls.signIn(l.pathname + l.search + l.hash)}
+          variant="contained"
+          color="primary"
+        >
+          Sign In
+        </Button>
+      )}
+    </Route>
+  )
+}
 
 const defaultHandlers = [
   [

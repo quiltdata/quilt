@@ -5,8 +5,13 @@ import * as M from '@material-ui/core'
 
 import Delay from 'utils/Delay'
 
-export default function SubmitSpinner({ children, value }) {
-  const hasValue = R.is(Number, value) && value < 100
+interface SubmitSpinnerProps {
+  children: React.ReactNode
+  value?: number
+}
+
+export default function SubmitSpinner({ children, value }: SubmitSpinnerProps) {
+  const hasValue = R.is(Number, value) && value! < 100
 
   return (
     <Delay ms={200} alwaysRender>
@@ -16,7 +21,7 @@ export default function SubmitSpinner({ children, value }) {
             <M.CircularProgress
               size={24}
               variant={hasValue ? 'determinate' : 'indeterminate'}
-              value={hasValue ? value * 0.9 : undefined}
+              value={hasValue ? value! * 0.9 : undefined}
             />
 
             <M.Box pl={1} />
