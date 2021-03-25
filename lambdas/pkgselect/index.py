@@ -67,7 +67,7 @@ def file_list_to_folder(df: pd.DataFrame, limit: int, offset: int) -> dict:
         )
         folder.reset_index(inplace=True)  # move the logical_key from the index to column[0]
         folder.rename(columns={0: 'logical_key'}, inplace=True)  # name the new column
-        
+
         # Sort to ensure consistent paging
         folder.sort_values(by=['logical_key'], inplace=True)
 
