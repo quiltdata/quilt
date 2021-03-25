@@ -36,6 +36,19 @@ class TestDecorator(TestCase):
             'isBase64Encoded': True,
         }
 
+    @classmethod
+    def _get_expected_cors_headers(cls, request_headers):
+        return {
+            'Content-Type': 'text/plain',
+            'access-control-allow-origin': '*',
+            'access-control-allow-methods': 'OPTIONS,HEAD,GET,POST',
+            'access-control-allow-headers': request_headers,
+            'access-control-expose-headers': '*, Authorization, X-Quilt-Info',
+            # Returning this as `int` works when lambda is integrated with API Gateway REST API,
+            # but fails with 502 when it's integrated with ELB. Returning as `str` works for both.
+            'access-control-max-age': '86400',
+        }
+
     def test_api_get(self):
         """Test a GET request with a query string"""
         @api()
@@ -108,14 +121,7 @@ class TestDecorator(TestCase):
 
         assert resp['statusCode'] == 200
         assert resp['body'] == 'foo'
-        assert resp['headers'] == {
-            'Content-Type': 'text/plain',
-            'access-control-allow-origin': '*',
-            'access-control-allow-methods': 'OPTIONS,HEAD,GET,POST',
-            'access-control-allow-headers': 'X-Quilt-Info',
-            'access-control-expose-headers': '*, Authorization, X-Quilt-Info',
-            'access-control-max-age': 86400
-        }
+        assert resp['headers'] == self._get_expected_cors_headers('X-Quilt-Info')
 
         # Request with a bad origin.
         resp = handler(self._make_get(
@@ -154,14 +160,7 @@ class TestDecorator(TestCase):
 
         assert resp['statusCode'] == 500
         assert resp['body'] == 'Fail!'
-        assert resp['headers'] == {
-            'Content-Type': 'text/plain',
-            'access-control-allow-origin': '*',
-            'access-control-allow-methods': 'OPTIONS,HEAD,GET,POST',
-            'access-control-allow-headers': '',
-            'access-control-expose-headers': '*, Authorization, X-Quilt-Info',
-            'access-control-max-age': 86400
-        }
+        assert resp['headers'] == self._get_expected_cors_headers('')
 
     def test_validator(self):
         """Test errors from the schema validator"""
