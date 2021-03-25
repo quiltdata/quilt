@@ -70,7 +70,7 @@ def file_list_to_folder(df: pd.DataFrame, limit: int, offset: int) -> dict:
 
         # Limit response to first 1000 folders and files
         folder = folder.iloc[offset:offset+limit]
-        
+
         # Do not return physical_key for prefixes
         prefixes = folder[folder.logical_key.str.contains('/')].drop(
             ['physical_key'],
