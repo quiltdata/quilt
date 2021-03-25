@@ -317,7 +317,7 @@ class TestPackageSelect(TestCase):
             f"f{i:03d}.csv" for i in range(1000)
         ]
         s3response_paging = self.make_manifest_query(paging_logical_keys)
-        
+
         mock_s3 = boto3.client('s3')
         with patch.object(
             mock_s3,
