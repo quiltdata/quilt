@@ -271,12 +271,6 @@ describe('utils/json-schema', () => {
       })
     })
 
-    it('should ignore default value from Schema, when value set', () => {
-      expect(setDefaults({ a: 123 })).toMatchObject({
-        a: 123,
-      })
-    })
-
     it('should set default value from Schema, when nested value set', () => {
       expect(setDefaults({ optList: [{}] })).toMatchObject({
         optList: [
@@ -286,6 +280,101 @@ describe('utils/json-schema', () => {
           },
         ],
       })
+    })
+
+    it('should return the same value if no schema', () => {
+      const obj = { a: 1 }
+      expect(makeSchemaDefaultsSetter()(obj)).toBe(obj)
+    })
+
+    it('should return the same value if no properties schema', () => {
+      const obj = { a: 1 }
+      const schema = { type: 'array', items: { type: 'number' } }
+      expect(makeSchemaDefaultsSetter(schema)(obj)).toBe(obj)
+    })
+
+    it('should return value with defaults', () => {
+      const obj = { a: { b: 1 } }
+      const schema = {
+        type: 'object',
+        properties: {
+          a: {
+            type: 'object',
+            properties: {
+              b: { type: 'string', default: 'User set it' },
+              c: { type: 'number', default: 123 },
+              d: {
+                type: 'object',
+                properties: {
+                  e: {
+                    type: 'object',
+                    properties: {
+                      f: { type: 'number', default: 456 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          g: { type: 'number', default: 789 },
+        },
+      }
+      expect(makeSchemaDefaultsSetter(schema)(obj)).toMatchObject({
+        a: {
+          b: 1,
+          c: 123,
+          d: {
+            e: {
+              f: 456,
+            },
+          },
+        },
+        g: 789,
+      })
+    })
+
+    it('should return value with prepopulated date', () => {
+      jest.useFakeTimers('modern')
+      jest.setSystemTime(new Date(2020, 0, 30))
+
+      const obj = { a: { b: 1 } }
+      const schema = {
+        type: 'object',
+        properties: {
+          a: {
+            type: 'object',
+            properties: {
+              b: { type: 'string', format: 'date', dateformat: 'yyyy-MM-dd' },
+              c: { type: 'string', format: 'date', dateformat: 'yyyy-MM-dd' },
+              d: {
+                type: 'object',
+                properties: {
+                  e: {
+                    type: 'object',
+                    properties: {
+                      f: { type: 'string', format: 'date', dateformat: 'yyyy-MM-dd' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          g: { type: 'string', format: 'date', dateformat: 'yyyy-MM-dd' },
+        },
+      }
+      expect(makeSchemaDefaultsSetter(schema)(obj)).toMatchObject({
+        a: {
+          b: 1,
+          c: '2020-01-30',
+          d: {
+            e: {
+              f: '2020-01-30',
+            },
+          },
+        },
+        g: '2020-01-30',
+      })
+      jest.useRealTimers()
     })
   })
 })
