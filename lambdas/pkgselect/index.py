@@ -67,8 +67,12 @@ def file_list_to_folder(df: pd.DataFrame, limit: int, offset: int) -> dict:
         )
         folder.reset_index(inplace=True)  # move the logical_key from the index to column[0]
         folder.rename(columns={0: 'logical_key'}, inplace=True)  # name the new column
+        
+        # Sort to ensure consistent paging
+        folder.sort_values(by=['logical_key'], inplace=True)
 
-        # Limit response to first 1000 folders and files
+        # Page response (folders and files) based on limit & offset
+        total_results = len(folder.index)
         folder = folder.iloc[offset:offset+limit]
 
         # Do not return physical_key for prefixes
@@ -77,6 +81,7 @@ def file_list_to_folder(df: pd.DataFrame, limit: int, offset: int) -> dict:
             axis=1
         ).to_dict(orient='records')
         objects = folder[~folder.logical_key.str.contains('/')].to_dict(orient='records')
+        returned_results = len(prefixes) + len(objects)
     except AttributeError as err:
         # Pandas will raise an attribute error if the DataFrame has
         # no rows with a non-null logical_key. We expect that case if
@@ -89,6 +94,8 @@ def file_list_to_folder(df: pd.DataFrame, limit: int, offset: int) -> dict:
         objects = []
 
     return dict(
+        total=total_results,
+        returned=returned_results,
         prefixes=prefixes,
         objects=objects
     )
