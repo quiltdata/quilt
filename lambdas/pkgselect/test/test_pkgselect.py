@@ -151,11 +151,37 @@ class TestPackageSelect(TestCase):
         df = pd.read_json(buffer_s3response(self.s3response), lines=True)
         assert isinstance(df, pd.DataFrame)
 
-        folder = file_list_to_folder(df)
+        folder = file_list_to_folder(df, 1000, 0)
         assert len(folder['prefixes']) == 1
         assert len(folder['objects']) == 1
         assert folder['objects'][0]['logical_key'] == 'foo.csv'
         assert folder['prefixes'][0]['logical_key'] == 'bar/'
+
+    def test_limit(self):
+        """
+        Test that the S3 Select response is parsed
+        into the correct top-level folder view.
+        """
+        df = pd.read_json(buffer_s3response(self.s3response), lines=True)
+        assert isinstance(df, pd.DataFrame)
+
+        folder = file_list_to_folder(df, 1, 0)
+        assert len(folder['prefixes']) == 1
+        assert len(folder['objects']) == 0
+        assert folder['prefixes'][0]['logical_key'] == 'bar/'
+
+    def test_offset(self):
+        """
+        Test that the S3 Select response is parsed
+        into the correct top-level folder view.
+        """
+        df = pd.read_json(buffer_s3response(self.s3response), lines=True)
+        assert isinstance(df, pd.DataFrame)
+
+        folder = file_list_to_folder(df, 1000, 1)
+        assert len(folder['prefixes']) == 0
+        assert len(folder['objects']) == 1
+        assert folder['objects'][0]['logical_key'] == 'foo.csv'
 
     def test_browse_subfolder(self):
         """
@@ -174,7 +200,7 @@ class TestPackageSelect(TestCase):
             keys=['logical_key', 'size', 'physical_key']
         )
 
-        folder = file_list_to_folder(s3_df)
+        folder = file_list_to_folder(s3_df, 1000, 0)
         assert len(folder['prefixes']) == 1
         assert len(folder['objects']) == 2
         object_keys = [obj['logical_key'] for obj in folder['objects']]
@@ -198,7 +224,7 @@ class TestPackageSelect(TestCase):
             axis=1,
             keys=['logical_key', 'size', 'physical_key']
         )
-        folder = file_list_to_folder(s3_df)
+        folder = file_list_to_folder(s3_df, 1000, 0)
         assert "objects" in folder
         assert "prefixes" in folder
         assert not folder['prefixes']
