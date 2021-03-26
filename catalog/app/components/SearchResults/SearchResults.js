@@ -3,9 +3,9 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
-import { fade } from '@material-ui/core/styles'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
+import JsonDisplay from 'components/JsonDisplay'
 import Pagination from 'components/Pagination2'
 import * as Preview from 'components/Preview'
 import { Section, Heading } from 'components/ResponsiveSection'
@@ -358,17 +358,30 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
 
 const useMetaStyles = M.makeStyles((t) => ({
   box: {
-    background: M.colors.lightBlue[50],
-    border: `1px solid ${M.colors.lightBlue[400]}`,
+    border: `1px solid ${t.palette.grey[300]}`,
     borderRadius: t.shape.borderRadius,
-    marginBottom: 0,
-    marginTop: t.spacing(1),
     maxHeight: t.spacing(30),
+    marginTop: t.spacing(1),
     minHeight: t.spacing(15),
-    opacity: 0.7,
-    overflow: 'hidden',
-    padding: t.spacing(1),
+    padding: t.spacing(2),
     position: 'relative',
+
+    '& img': {
+      marginLeft: 'auto',
+      marginRight: 'auto',
+    },
+
+    // workarounds to speed-up notebook preview rendering:
+    '&:not($expanded)': {
+      // hide overflow only when not expanded, using this while expanded
+      // slows down the page in chrome
+      overflow: 'hidden',
+
+      // only show 2 first cells unless expanded
+      '& .ipynb-preview .cell:nth-child(n+3)': {
+        display: 'none',
+      },
+    },
   },
   expanded: {
     maxHeight: 'none',
@@ -376,10 +389,10 @@ const useMetaStyles = M.makeStyles((t) => ({
   fade: {
     alignItems: 'flex-end',
     background: `linear-gradient(to top,
-      ${fade(M.colors.lightBlue[50], 1)},
-      ${fade(M.colors.lightBlue[50], 0.9)},
-      ${fade(M.colors.lightBlue[50], 0.1)},
-      ${fade(M.colors.lightBlue[50], 0.1)}
+      rgba(255, 255, 255, 1),
+      rgba(255, 255, 255, 0.9),
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.1)
     )`,
     bottom: 0,
     display: 'flex',
@@ -404,7 +417,7 @@ function Meta({ meta }) {
     <SmallerSection>
       <SectionHeading>Metadata</SectionHeading>
       <pre className={cx(classes.box, { [classes.expanded]: expanded })}>
-        {JSON.stringify(meta, null, 2)}
+        <JsonDisplay defaultExpanded={1} value={meta} />
         {!expanded && (
           <div className={classes.fade}>
             <M.Button variant="outlined" onClick={expand}>
