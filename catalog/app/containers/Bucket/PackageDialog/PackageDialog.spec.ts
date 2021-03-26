@@ -38,19 +38,19 @@ describe('containers/Bucket/PackageDialog/PackageDialog', () => {
 
   describe('mkMetaValidator', () => {
     test('should return no error when no metadata', () => {
-      expect(PD.mkMetaValidator(null)(null)).toBeUndefined()
+      expect(PD.mkMetaValidator()(null)).toBeUndefined()
     })
 
     test('should return error when metadata is not an object', () => {
       // TODO: remove this test when all references will be in typescript
       // @ts-expect-error
-      expect(PD.mkMetaValidator(null)(123)).toMatchObject({
+      expect(PD.mkMetaValidator()(123)).toMatchObject({
         message: 'Metadata must be a valid JSON object',
       })
     })
 
     test('should return no error when no Schema and metadata is object', () => {
-      expect(PD.mkMetaValidator(null)({ any: 'thing' })).toBeUndefined()
+      expect(PD.mkMetaValidator()({ any: 'thing' })).toBeUndefined()
     })
 
     test("should return error when metadata isn't compliant with Schema", () => {

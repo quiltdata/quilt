@@ -14,6 +14,17 @@
 * [Working with the Catalog](Walkthrough/Working with the Catalog.md)
 * [Working with a Bucket](Walkthrough/Working with a Bucket.md)
 
+### API Reference
+
+* [quilt3](API Reference/api.md)
+* [quilt3.Package](API Reference/Package.md)
+* [quilt3.Bucket](API Reference/Bucket.md)
+* [CLI, environment](API Reference/cli.md)
+
+### Catalog
+
+* [Metadata for teams](Catalog/Metadata.md)
+
 ### Advanced Usage
 
 * [Filtering a Package](Advanced Features/Filtering a Package.md)
@@ -25,12 +36,6 @@
 * [Enterprise install](Technical Reference.md)
 * [S3 Events, EventBridge](EventBridge.md)
 
-### API Reference
-
-* [quilt3](API Reference/api.md)
-* [quilt3.Package](API Reference/Package.md)
-* [quilt3.Bucket](API Reference/Bucket.md)
-* [CLI, environment](API Reference/cli.md)
 
 ### More
 

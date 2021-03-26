@@ -18,7 +18,11 @@ import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import useDragging from 'utils/dragging'
-import { makeSchemaDefaultsSetter, makeSchemaValidator } from 'utils/json-schema'
+import {
+  JsonSchema,
+  makeSchemaDefaultsSetter,
+  makeSchemaValidator,
+} from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
@@ -100,8 +104,6 @@ const readTextFile = (file: File): Promise<string> =>
     reader.readAsText(file)
   })
 
-type JsonSchema = $TSFixMe
-
 const readFile = (file: File, schema?: JsonSchema): Promise<string | {}> => {
   const mimeType = mime.extension(file.type)
   if (mimeType && /ods|odt|csv|xlsx|xls/.test(mimeType))
@@ -182,7 +184,7 @@ export function useNameExistence(bucket: string) {
   return React.useMemo(() => ({ validate, inc }), [validate, inc])
 }
 
-export function mkMetaValidator(schema: object | null) {
+export function mkMetaValidator(schema?: JsonSchema) {
   // TODO: move schema validation to utils/validators
   //       but don't forget that validation depends on library.
   //       Maybe we should split validators to files at first
@@ -205,7 +207,7 @@ export function mkMetaValidator(schema: object | null) {
   }
 }
 
-export const getMetaValue = (value: unknown, optSchema: unknown) =>
+export const getMetaValue = (value: unknown, optSchema: JsonSchema) =>
   value
     ? pipeThru(value || {})(
         makeSchemaDefaultsSetter(optSchema),
@@ -690,7 +692,7 @@ export function SchemaFetcher({
           AsyncResult.Ok({
             ...defaultProps,
             responseError,
-            validate: mkMetaValidator(null),
+            validate: mkMetaValidator(),
           }),
         _: () => AsyncResult.Ok({ ...defaultProps, schemaLoading: true }),
       }),

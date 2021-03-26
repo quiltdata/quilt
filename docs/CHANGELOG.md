@@ -13,9 +13,12 @@
 ## CLI
 
 ## Catalog, Lambdas
+* [Added] Prepopulate today date for metadata ([#2121](https://github.com/quiltdata/quilt/pull/2121))
+* [Added] Limit and offset parameters in pkgselect lambda ([#2124](https://github.com/quiltdata/quilt/pull/2124))
 * [Changed] New DataGrid-based file listing UI with arbitrary sorting and filtering ([#2097](https://github.com/quiltdata/quilt/pull/2097))
 * [Changed] Item selection in folder-to-package dialog ([#2122](https://github.com/quiltdata/quilt/pull/2122))
-* [Added] Limit and offset parameters in pkgselect lambda ([#2124](https://github.com/quiltdata/quilt/pull/2124))
+* [Changed] Don't preview .tif (but keep .tiff), preview .results as plain text ([#2128](https://github.com/quiltdata/quilt/pull/2128))
+* [Changed] Sort packages by modification time by default ([#2126](https://github.com/quiltdata/quilt/pull/2126))
 
 # 3.4.0 - 2021-03-15
 ## Python API
