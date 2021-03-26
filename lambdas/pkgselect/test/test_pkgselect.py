@@ -57,6 +57,20 @@ class TestPackageSelect(TestCase):
             ]
         }
 
+    def make_manifest_query(self, logical_keys):
+        entries = []
+        for key in logical_keys:
+            entry = dict(
+                logical_key=key,
+                physical_key=f"{key}?versionid=1234",
+                size=100
+            )
+            entries.append(json.dumps(entry))
+        jsonl = "\n".join(entries)
+        streambytes = jsonl.encode()
+
+        return self.make_s3response(streambytes)
+
     def setUp(self):
         """
         Mocks to tests calls to S3 Select
@@ -69,17 +83,6 @@ class TestPackageSelect(TestCase):
             "bar/baz/file3.txt",
             "bar/baz/file4.txt"
         ]
-        entries = []
-        for key in logical_keys:
-            entry = dict(
-                logical_key=key,
-                physical_key=f"{key}?versionid=1234",
-                size=100
-            )
-            entries.append(json.dumps(entry))
-        jsonl = "\n".join(entries)
-        print(jsonl)
-        streambytes = jsonl.encode()
 
         manifest_row = dict(
             logical_key="bar/file1.txt",
@@ -89,13 +92,14 @@ class TestPackageSelect(TestCase):
             meta={}
         )
         detailbytes = json.dumps(manifest_row).encode()
-        self.s3response = self.make_s3response(streambytes)
+
+        self.s3response = self.make_manifest_query(logical_keys)
         self.s3response_detail = self.make_s3response(detailbytes)
         self.s3response_incomplete = {
             'Payload': [
                 {
                     'Records': {
-                        'Payload': streambytes
+                        'Payload': self.s3response['Payload'][0]['Records']['Payload']
                     }
                 },
                 {
@@ -151,11 +155,37 @@ class TestPackageSelect(TestCase):
         df = pd.read_json(buffer_s3response(self.s3response), lines=True)
         assert isinstance(df, pd.DataFrame)
 
-        folder = file_list_to_folder(df)
+        folder = file_list_to_folder(df, 1000, 0)
         assert len(folder['prefixes']) == 1
         assert len(folder['objects']) == 1
         assert folder['objects'][0]['logical_key'] == 'foo.csv'
         assert folder['prefixes'][0]['logical_key'] == 'bar/'
+
+    def test_limit(self):
+        """
+        Test that the S3 Select response is parsed
+        into the correct top-level folder view.
+        """
+        df = pd.read_json(buffer_s3response(self.s3response), lines=True)
+        assert isinstance(df, pd.DataFrame)
+
+        folder = file_list_to_folder(df, 1, 0)
+        assert len(folder['prefixes']) == 1
+        assert len(folder['objects']) == 0
+        assert folder['prefixes'][0]['logical_key'] == 'bar/'
+
+    def test_offset(self):
+        """
+        Test that the S3 Select response is parsed
+        into the correct top-level folder view.
+        """
+        df = pd.read_json(buffer_s3response(self.s3response), lines=True)
+        assert isinstance(df, pd.DataFrame)
+
+        folder = file_list_to_folder(df, 1000, 1)
+        assert len(folder['prefixes']) == 0
+        assert len(folder['objects']) == 1
+        assert folder['objects'][0]['logical_key'] == 'foo.csv'
 
     def test_browse_subfolder(self):
         """
@@ -174,7 +204,7 @@ class TestPackageSelect(TestCase):
             keys=['logical_key', 'size', 'physical_key']
         )
 
-        folder = file_list_to_folder(s3_df)
+        folder = file_list_to_folder(s3_df, 1000, 0)
         assert len(folder['prefixes']) == 1
         assert len(folder['objects']) == 2
         object_keys = [obj['logical_key'] for obj in folder['objects']]
@@ -198,7 +228,7 @@ class TestPackageSelect(TestCase):
             axis=1,
             keys=['logical_key', 'size', 'physical_key']
         )
-        folder = file_list_to_folder(s3_df)
+        folder = file_list_to_folder(s3_df, 1000, 0)
         assert "objects" in folder
         assert "prefixes" in folder
         assert not folder['prefixes']
@@ -253,6 +283,62 @@ class TestPackageSelect(TestCase):
             assert len(folder['objects']) == 1
             assert folder['objects'][0]['logical_key'] == 'foo.csv'
             assert folder['prefixes'][0]['logical_key'] == 'bar/'
+
+    def test_folder_view_paging(self):
+        """
+        End-to-end test (top-level folder view with a limit & offset)
+        """
+        bucket = "bucket"
+        key = ".quilt/packages/manifest_hash"
+        params = dict(
+            bucket=bucket,
+            manifest=key,
+            prefix="paging_test/",
+            limit=10,
+            offset=10,
+            access_key="TESTKEY",
+            secret_key="TESTSECRET",
+            session_token="TESTSESSION"
+        )
+
+        expected_args = {
+            'Bucket': bucket,
+            'Key': key,
+            'Expression': "SELECT SUBSTRING(s.logical_key, 1) AS logical_key FROM s3object s",
+            'ExpressionType': 'SQL',
+            'InputSerialization': {
+                'CompressionType': 'NONE',
+                'JSON': {'Type': 'LINES'}
+                },
+            'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
+        }
+
+        paging_logical_keys = [
+            f"f{i:03d}.csv" for i in range(1000)
+        ]
+        s3response_paging = self.make_manifest_query(paging_logical_keys)
+
+        mock_s3 = boto3.client('s3')
+        with patch.object(
+            mock_s3,
+            'select_object_content',
+            side_effect=[
+                s3response_paging,
+                self.s3response_meta
+            ]
+        ) as client_patch, patch(
+            'boto3.Session.client',
+            return_value=mock_s3
+        ):
+            response = lambda_handler(self._make_event(params), None)
+            print(response)
+            assert response['statusCode'] == 200
+            folder = json.loads(read_body(response))['contents']
+            assert len(folder['prefixes']) == 0
+            assert len(folder['objects']) == 10
+            assert folder['total'] == 1000
+            assert folder['returned'] == 10
+            assert folder['objects'][0]['logical_key'] == 'f010.csv'
 
     def test_detail_view(self):
         """
