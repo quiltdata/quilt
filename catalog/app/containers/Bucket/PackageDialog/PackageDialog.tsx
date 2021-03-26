@@ -743,26 +743,3 @@ export function getUsernamePrefix(username?: string | null) {
   const validParts = name.match(/\w+/g)
   return validParts ? `${validParts.join('')}/` : ''
 }
-
-const usePackageNameWarningStyles = M.makeStyles({
-  root: {
-    marginRight: '4px',
-    verticalAlign: '-5px',
-  },
-})
-
-interface PackageNameWarningProps {
-  exists?: boolean
-}
-
-export const PackageNameWarning = ({ exists }: PackageNameWarningProps) => {
-  const classes = usePackageNameWarningStyles()
-  return (
-    <>
-      <M.Icon className={classes.root} fontSize="small">
-        info_outlined
-      </M.Icon>
-      {exists ? 'Package exists' : 'New package'}
-    </>
-  )
-}
