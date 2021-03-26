@@ -33,8 +33,8 @@ const EXAMPLE_PACKAGE_URL = 'https://docs.quiltdata.com/walkthrough/editing-a-pa
 const PER_PAGE = 30
 
 const SORT_OPTIONS = [
-  { key: 'name', label: 'Name' },
   { key: 'modified', label: 'Updated' },
+  { key: 'name', label: 'Name' },
 ]
 
 const DEFAULT_SORT = SORT_OPTIONS[0]
@@ -350,7 +350,7 @@ export default function PackageList({
     analyticsBucket,
     bucket,
     filter,
-    sort,
+    sort: computedSort.key,
     perPage: PER_PAGE,
     page,
     today,

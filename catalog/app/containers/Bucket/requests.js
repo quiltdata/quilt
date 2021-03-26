@@ -858,7 +858,7 @@ export const listPackages = withErrorHandling(
     analyticsBucket,
     bucket,
     filter,
-    sort = 'name', // name | modified
+    sort, // name | modified
     perPage = 30,
     page = 1,
     today,
