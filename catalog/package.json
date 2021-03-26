@@ -134,7 +134,7 @@
     "@types/fontfaceobserver": "^0.0.6",
     "@types/history": "^4.7.8",
     "@types/invariant": "^2.2.34",
-    "@types/jest": "^26.0.20",
+    "@types/jest": "^26.0.22",
     "@types/js-yaml": "^4.0.0",
     "@types/lodash": "^4.14.168",
     "@types/mime-types": "^2.1.0",
