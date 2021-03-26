@@ -65,7 +65,7 @@ const usePrefixFilterStyles = M.makeStyles((t) => ({
   root: {
     fontSize: 14,
     height: 20,
-    lineHeight: 20,
+    lineHeight: '20px',
     padding: 0,
   },
   btn: {
