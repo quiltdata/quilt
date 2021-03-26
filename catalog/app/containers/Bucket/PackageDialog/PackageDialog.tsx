@@ -410,8 +410,14 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     position: 'relative',
   },
   draggable: {
+    bottom: '1px',
+    left: 0,
     outline: `2px dashed ${t.palette.primary.main}`,
     outlineOffset: '-2px',
+    position: 'absolute',
+    right: 0,
+    top: '1px',
+    zIndex: 1,
   },
   editor: {
     overflowY: 'auto',
@@ -573,6 +579,8 @@ export const MetaInput = React.forwardRef(function MetaInput(
       </div>
 
       <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
+        {isDragging && <div className={classes.draggable} />}
+
         {mode === 'kv' ? (
           <JsonEditor
             // @ts-expect-error
@@ -582,7 +590,6 @@ export const MetaInput = React.forwardRef(function MetaInput(
             onChange={onJsonEditor}
             schema={schema}
             key={jsonEditorKey}
-            tableClassName={cx({ [classes.draggable]: isDragging })}
             ref={ref}
           />
         ) : (
