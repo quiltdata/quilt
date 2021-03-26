@@ -355,6 +355,7 @@ const useFileStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
     flexGrow: 1,
+    overflow: 'hidden',
   },
   faint: {
     opacity: 0.5,
@@ -455,6 +456,7 @@ const useDirStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
     flexGrow: 1,
+    overflow: 'hidden',
   },
   faint: {
     opacity: 0.5,
