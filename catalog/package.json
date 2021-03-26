@@ -123,7 +123,7 @@
     "use-debounce": "^3.4.3",
     "uuid": "^3.4.0",
     "vega": "^5.20.0",
-    "vega-embed": "^6.15.2",
+    "vega-embed": "^6.17.0",
     "vega-lite": "^4.17.0",
     "warning": "^4.0.3",
     "xlsx": "^0.16.9"
