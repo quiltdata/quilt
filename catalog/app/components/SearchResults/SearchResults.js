@@ -299,23 +299,26 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ contents }) {
+function PreviewBox({ heading, contents }) {
   const classes = usePreviewBoxStyles()
   const [expanded, setExpanded] = React.useState(false)
   const expand = React.useCallback(() => {
     setExpanded(true)
   }, [setExpanded])
   return (
-    <div className={cx(classes.root, { [classes.expanded]: expanded })}>
-      {contents}
-      {!expanded && (
-        <div className={classes.fade}>
-          <M.Button variant="outlined" onClick={expand}>
-            Expand
-          </M.Button>
-        </div>
-      )}
-    </div>
+    <SmallerSection>
+      {heading}
+      <div className={cx(classes.root, { [classes.expanded]: expanded })}>
+        {contents}
+        {!expanded && (
+          <div className={classes.fade}>
+            <M.Button variant="outlined" onClick={expand}>
+              Expand
+            </M.Button>
+          </div>
+        )}
+      </div>
+    </SmallerSection>
   )
 }
 
@@ -353,80 +356,17 @@ function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
         }),
     })
 
-  return <SmallerSection>{withData(Preview.display({ renderContents }))}</SmallerSection>
+  return withData(Preview.display({ renderContents }))
 }
 
-const useMetaStyles = M.makeStyles((t) => ({
-  box: {
-    border: `1px solid ${t.palette.grey[300]}`,
-    borderRadius: t.shape.borderRadius,
-    maxHeight: t.spacing(30),
-    marginTop: t.spacing(1),
-    minHeight: t.spacing(15),
-    padding: t.spacing(2),
-    position: 'relative',
-
-    '& img': {
-      marginLeft: 'auto',
-      marginRight: 'auto',
-    },
-
-    // workarounds to speed-up notebook preview rendering:
-    '&:not($expanded)': {
-      // hide overflow only when not expanded, using this while expanded
-      // slows down the page in chrome
-      overflow: 'hidden',
-
-      // only show 2 first cells unless expanded
-      '& .ipynb-preview .cell:nth-child(n+3)': {
-        display: 'none',
-      },
-    },
-  },
-  expanded: {
-    maxHeight: 'none',
-  },
-  fade: {
-    alignItems: 'flex-end',
-    background: `linear-gradient(to top,
-      rgba(255, 255, 255, 1),
-      rgba(255, 255, 255, 0.9),
-      rgba(255, 255, 255, 0.1),
-      rgba(255, 255, 255, 0.1)
-    )`,
-    bottom: 0,
-    display: 'flex',
-    height: '100%',
-    justifyContent: 'center',
-    left: 0,
-    padding: t.spacing(1),
-    position: 'absolute',
-    width: '100%',
-    zIndex: 1,
-  },
-}))
-
 function Meta({ meta }) {
-  const classes = useMetaStyles()
-  const [expanded, setExpanded] = React.useState(false)
-  const expand = React.useCallback(() => {
-    setExpanded(true)
-  }, [setExpanded])
   if (!meta || R.isEmpty(meta)) return null
+
   return (
-    <SmallerSection>
-      <SectionHeading>Metadata</SectionHeading>
-      <pre className={cx(classes.box, { [classes.expanded]: expanded })}>
-        <JsonDisplay defaultExpanded={1} value={meta} />
-        {!expanded && (
-          <div className={classes.fade}>
-            <M.Button variant="outlined" onClick={expand}>
-              Expand
-            </M.Button>
-          </div>
-        )}
-      </pre>
-    </SmallerSection>
+    <PreviewBox
+      heading={<SectionHeading>Metadata</SectionHeading>}
+      contents={<JsonDisplay defaultExpanded={1} value={meta} />}
+    />
   )
 }
 
