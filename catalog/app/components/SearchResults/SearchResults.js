@@ -299,7 +299,7 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewBox({ heading, contents }) {
+function PreviewBox({ children, title }) {
   const classes = usePreviewBoxStyles()
   const [expanded, setExpanded] = React.useState(false)
   const expand = React.useCallback(() => {
@@ -307,9 +307,11 @@ function PreviewBox({ heading, contents }) {
   }, [setExpanded])
   return (
     <SmallerSection>
-      {heading}
+      {title && <SectionHeading>{title}</SectionHeading>}
+
       <div className={cx(classes.root, { [classes.expanded]: expanded })}>
-        {contents}
+        {children}
+
         {!expanded && (
           <div className={classes.fade}>
             <M.Button variant="outlined" onClick={expand}>
@@ -322,7 +324,7 @@ function PreviewBox({ heading, contents }) {
   )
 }
 
-const renderContents = (contents) => <PreviewBox {...{ contents }} />
+const renderContents = (children) => <PreviewBox {...{ children }} />
 
 function PreviewDisplay({ handle, bucketExistenceData, versionExistenceData }) {
   const withData = (callback) =>
@@ -363,10 +365,9 @@ function Meta({ meta }) {
   if (!meta || R.isEmpty(meta)) return null
 
   return (
-    <PreviewBox
-      heading={<SectionHeading>Metadata</SectionHeading>}
-      contents={<JsonDisplay defaultExpanded={1} value={meta} />}
-    />
+    <PreviewBox title="Metadata">
+      <JsonDisplay defaultExpanded={1} value={meta} />
+    </PreviewBox>
   )
 }
 
