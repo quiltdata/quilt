@@ -16,6 +16,7 @@
 * [Added] Prepopulate today date for metadata ([#2121](https://github.com/quiltdata/quilt/pull/2121))
 * [Changed] New DataGrid-based file listing UI with arbitrary sorting and filtering ([#2097](https://github.com/quiltdata/quilt/pull/2097))
 * [Changed] Item selection in folder-to-package dialog ([#2122](https://github.com/quiltdata/quilt/pull/2122))
+* [Changed] Don't preview .tif (but keep .tiff), preview .results as plain text ([#2128](https://github.com/quiltdata/quilt/pull/2128))
 
 # 3.4.0 - 2021-03-15
 ## Python API

@@ -22,7 +22,6 @@ export const SUPPORTED_EXTENSIONS = [
   '.webp',
   '.bmp',
   '.tiff',
-  '.tif',
 ]
 
 const SIZES = {
