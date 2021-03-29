@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import { docs } from 'constants/urls'
+import * as workflows from 'utils/workflows'
 
 const useStyles = M.makeStyles((t) => ({
   crop: {
@@ -37,12 +38,29 @@ export default function SelectWorkflow({
       size="small"
       error={!!error}
     >
-      <M.InputLabel id="schema-select">Metadata quality workflow</M.InputLabel>
+      <M.InputLabel id="schema-select" shrink>
+        Metadata quality workflow
+      </M.InputLabel>
       <M.Select
         labelId="schema-select"
-        value={value ? value.slug.toString() : ''}
+        value={value ? value.slug.toString() : workflows.notSelected.toString()}
         label="Metadata quality workflow"
       >
+        <M.MenuItem
+          key={workflows.notSelected.toString()}
+          value={workflows.notSelected.toString()}
+          disabled
+          dense
+        >
+          <M.ListItemText
+            classes={{
+              primary: classes.crop,
+              secondary: classes.crop,
+            }}
+            primary="None"
+          />
+        </M.MenuItem>
+
         {items.map((option) => (
           <M.MenuItem
             key={option.slug.toString()}
