@@ -1377,7 +1377,11 @@ export function FilesSelector({
             size="small"
             endIcon={
               <M.Icon fontSize="small">
-                {selected < value.length ? 'check_box' : 'check_box_outline_blank'}
+                {selected === value.length // eslint-disable-line no-nested-ternary
+                  ? 'check_box'
+                  : !selected
+                  ? 'check_box_outline_blank'
+                  : 'indeterminate_check_box_icon'}
               </M.Icon>
             }
           >
