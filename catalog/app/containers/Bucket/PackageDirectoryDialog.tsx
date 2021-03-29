@@ -196,13 +196,13 @@ function DialogForm({
       ...dirs.map((dir) => ({
         type: 'dir' as const,
         name: basename(dir),
-        selected: true,
+        selected: false,
       })),
       ...files.map((file) => ({
         type: 'file' as const,
         name: basename(file.key),
         size: file.size,
-        selected: true,
+        selected: false,
       })),
     ],
     [dirs, files],
