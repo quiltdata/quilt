@@ -351,11 +351,11 @@ export const defaultWorkflowFromConfig = (cfg?: workflows.WorkflowsConfig) =>
   cfg && cfg.workflows.find((item) => item.isDefault)
 
 export const getWorkflowApiParam = R.cond([
-  [R.equals(workflows.notAvaliable), R.always(undefined)],
+  [R.equals(workflows.notAvailable), R.always(undefined)],
   [R.equals(workflows.notSelected), R.always(null)],
   [R.T, R.identity],
 ]) as (
-  slug: typeof workflows.notAvaliable | typeof workflows.notSelected | string,
+  slug: typeof workflows.notAvailable | typeof workflows.notSelected | string,
 ) => string | null | undefined
 
 const useMetaInputStyles = M.makeStyles((t) => ({
