@@ -39,12 +39,11 @@ export default function SelectWorkflow({
       error={!!error}
     >
       <M.InputLabel id="schema-select" shrink>
-        Metadata quality workflow
+        Workflow
       </M.InputLabel>
       <M.Select
         labelId="schema-select"
         value={value ? value.slug.toString() : workflows.notSelected.toString()}
-        label="Metadata quality workflow"
       >
         <M.MenuItem
           key={workflows.notSelected.toString()}
