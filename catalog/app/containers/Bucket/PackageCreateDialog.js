@@ -637,6 +637,18 @@ function PackageCreateDialog({
                   </M.Typography>
 
                   <RF.Field
+                    component={PD.WorkflowInput}
+                    name="workflow"
+                    workflowsConfig={workflowsConfig}
+                    initialValue={selectedWorkflow}
+                    validate={validators.required}
+                    validateFields={['meta', 'workflow']}
+                    errors={{
+                      required: 'Workflow is required for this bucket.',
+                    }}
+                  />
+
+                  <RF.Field
                     component={PD.PackageNameInput}
                     initialValue={usernamePrefix}
                     name="name"
@@ -683,18 +695,6 @@ function PackageCreateDialog({
                       ref={setEditorElement}
                     />
                   )}
-
-                  <RF.Field
-                    component={PD.WorkflowInput}
-                    name="workflow"
-                    workflowsConfig={workflowsConfig}
-                    initialValue={selectedWorkflow}
-                    validate={validators.required}
-                    validateFields={['meta', 'workflow']}
-                    errors={{
-                      required: 'Workflow is required for this bucket.',
-                    }}
-                  />
                 </PD.LeftColumn>
 
                 <PD.RightColumn>

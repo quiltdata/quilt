@@ -47,7 +47,7 @@ export interface Schema {
 
 export interface Workflow {
   name?: string
-  slug: string | typeof notAvaliable | typeof notSelected
+  slug: string | typeof notAvailable | typeof notSelected
   isDefault: boolean
   description?: string
   schema?: Schema
@@ -58,14 +58,14 @@ export interface WorkflowsConfig {
   workflows: Workflow[]
 }
 
-export const notAvaliable = Symbol('not available')
+export const notAvailable = Symbol('not available')
 
 export const notSelected = Symbol('not selected')
 
 function getNoWorkflow(data: WorkflowsYaml, hasConfig: boolean): Workflow {
   return {
     isDefault: !data.default_workflow,
-    slug: hasConfig ? notSelected : notAvaliable,
+    slug: hasConfig ? notSelected : notAvailable,
   }
 }
 
