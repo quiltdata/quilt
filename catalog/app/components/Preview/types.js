@@ -47,6 +47,7 @@ export const PreviewError = tagged([
   'TooLarge', // { handle }
   'Unsupported', // { handle }
   'DoesNotExist', // { handle }
+  'SrcDoesNotExist', // { handle }
   'MalformedJson', // { handle, message }
   'Unexpected', // { handle, retry, originalError: any }
 ])

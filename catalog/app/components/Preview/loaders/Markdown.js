@@ -14,6 +14,7 @@ import useMemoEq from 'utils/useMemoEq'
 import { PreviewData, PreviewError } from '../types'
 import * as utils from './utils'
 
+// TODO: resolve relative paths inside packages?
 function useImgProcessor(handle) {
   const sign = AWS.Signer.useResourceSigner()
   return useMemoEq([sign, handle], () =>

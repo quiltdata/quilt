@@ -14,13 +14,14 @@ import * as Notifications from 'containers/Notifications'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Config from 'utils/Config'
 import Data, { useData } from 'utils/Data'
 import * as LinkedData from 'utils/LinkedData'
+import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
 import Link, { linkStyle } from 'utils/StyledLink'
-import * as BucketPreferences from 'utils/BucketPreferences'
 import copyToClipboard from 'utils/clipboard'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
@@ -389,6 +390,7 @@ function DirDisplay({
         ...s3paths.parseS3Url(o.physicalKey),
         logicalKey: path + o.name,
       }))
+
       return (
         <>
           <PackageCopyDialog
@@ -582,6 +584,37 @@ function FileDisplay({ bucket, name, hash, revision, path, crumbs }) {
   })
 }
 
+function ResolverProvider({ bucket, name, hash, children }) {
+  const s3 = AWS.S3.use()
+  const { apiGatewayEndpoint: endpoint } = Config.use()
+  const credentials = AWS.Credentials.use()
+
+  // XXX: consider optimization: check current level (objects) for quick response
+  // const found = objects.find((o) => o.name === logicalKey)
+  // if (found) return s3paths.parseS3Url(found.physicalKey)
+  // TODO: handle nesting / prefix
+  // TODO: handle file not found
+  const resolveLogicalKey = React.useMemo(
+    () => (logicalKey) =>
+      requests.packageFileDetail({
+        s3,
+        credentials,
+        endpoint,
+        bucket,
+        name,
+        hash,
+        path: logicalKey,
+      }),
+    [s3, credentials, endpoint, bucket, name, hash],
+  )
+
+  return (
+    <LogicalKeyResolver.Provider value={resolveLogicalKey}>
+      {children}
+    </LogicalKeyResolver.Provider>
+  )
+}
+
 const useStyles = M.makeStyles({
   name: {
     wordBreak: 'break-all',
@@ -705,24 +738,27 @@ export default function PackageTree({
       </M.Typography>
 
       {revisionData.case({
-        Ok: ({ hash }) =>
-          isDir ? (
-            <DirDisplay
-              {...{
-                bucket,
-                name,
-                hash,
-                path,
-                revision,
-                crumbs,
-                onRevisionPush,
-                onCrossBucketPush,
-                key: hash,
-              }}
-            />
-          ) : (
-            <FileDisplay {...{ bucket, name, hash, revision, path, crumbs }} />
-          ),
+        Ok: ({ hash }) => (
+          <ResolverProvider {...{ bucket, name, hash }}>
+            {isDir ? (
+              <DirDisplay
+                {...{
+                  bucket,
+                  name,
+                  hash,
+                  path,
+                  revision,
+                  crumbs,
+                  onRevisionPush,
+                  onCrossBucketPush,
+                  key: hash,
+                }}
+              />
+            ) : (
+              <FileDisplay {...{ bucket, name, hash, revision, path, crumbs }} />
+            )}
+          </ResolverProvider>
+        ),
         Err: (e) => {
           if (!(e instanceof errors.BadRevision)) throw e
           return (

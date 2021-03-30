@@ -10,7 +10,8 @@ import * as Preview from 'components/Preview'
 import Thumbnail, { SUPPORTED_EXTENSIONS } from 'components/Thumbnail'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import Data from 'utils/Data'
+import Data, { useData } from 'utils/Data'
+import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import { getBasename, getPrefix, withoutPrefix } from 'utils/s3paths'
@@ -42,7 +43,8 @@ const Header = ({ children }) => (
   <M.CardHeader title={<M.Typography variant="h5">{children}</M.Typography>} />
 )
 
-function HandleResolver({ resolve, handle, children }) {
+function HandleResolver({ handle, children }) {
+  const resolve = LogicalKeyResolver.use()
   if (resolve && handle.logicalKey && !handle.key) {
     return (
       <Data fetch={resolve} params={handle.logicalKey}>
@@ -55,9 +57,9 @@ function HandleResolver({ resolve, handle, children }) {
 
 const renderContents = (contents) => <M.Box mx="auto">{contents}</M.Box>
 
-function SummaryItemFile({ handle, name, mkUrl, resolveLogicalKey }) {
+function SummaryItemFile({ handle, name, mkUrl }) {
   const withData = (callback) => (
-    <HandleResolver resolve={resolveLogicalKey} handle={handle}>
+    <HandleResolver handle={handle}>
       {AsyncResult.case({
         Err: (e, { fetch }) =>
           Preview.PreviewError.Unexpected({ handle, retry: fetch, originalError: e }),
@@ -104,7 +106,7 @@ const useThumbnailsStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Thumbnails({ images, mkUrl, resolveLogicalKey }) {
+function Thumbnails({ images, mkUrl }) {
   const classes = useThumbnailsStyles()
 
   const scrollRef = React.useRef(null)
@@ -126,7 +128,7 @@ function Thumbnails({ images, mkUrl, resolveLogicalKey }) {
       <M.CardContent className={classes.container}>
         {pagination.paginated.map((i) => (
           <Link key={i.logicalKey || i.key} to={mkUrl(i)} className={classes.link}>
-            <HandleResolver resolve={resolveLogicalKey} handle={i}>
+            <HandleResolver handle={i}>
               {AsyncResult.case({
                 _: () => null,
                 Ok: (resolved) => (
@@ -160,20 +162,47 @@ function Thumbnails({ images, mkUrl, resolveLogicalKey }) {
   )
 }
 
-const useStyles = M.makeStyles((t) => ({
+const useSummarizeStyles = M.makeStyles((t) => ({
   progress: {
     marginTop: t.spacing(2),
   },
 }))
+
+function Summarize({ handle, mkUrl }) {
+  const classes = useSummarizeStyles()
+  const s3 = AWS.S3.use()
+  const resolveLogicalKey = LogicalKeyResolver.use()
+  const data = useData(requests.summarize, { s3, handle, resolveLogicalKey })
+  return data.case({
+    Err: (e) => {
+      // eslint-disable-next-line no-console
+      console.warn('Error loading summary')
+      // eslint-disable-next-line no-console
+      console.error(e)
+      return null
+    },
+    _: () => <M.CircularProgress className={classes.progress} />,
+    Ok: R.map((i) => (
+      <SummaryItemFile
+        key={i.key}
+        // TODO: make a reusable function to compute relative s3 paths or smth
+        title={withoutPrefix(
+          getPrefix(handle.logicalKey || handle.key),
+          i.logicalKey || i.key,
+        )}
+        handle={i}
+        mkUrl={mkUrl}
+      />
+    )),
+  })
+}
 
 // files: Array of s3 handles
 export default function BucketSummary({
   files,
   whenEmpty = () => null,
   mkUrl: mkUrlProp,
-  resolveLogicalKey,
 }) {
-  const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const mkUrl = React.useCallback(
     (handle) =>
@@ -192,43 +221,10 @@ export default function BucketSummary({
           title={basename(readme.logicalKey || readme.key)}
           handle={readme}
           mkUrl={mkUrl}
-          resolveLogicalKey={resolveLogicalKey}
         />
       )}
-      {!!images.length && <Thumbnails {...{ images, mkUrl, resolveLogicalKey }} />}
-      {summarize && (
-        <AWS.S3.Inject>
-          {(s3) => (
-            <Data
-              fetch={requests.summarize}
-              params={{ s3, handle: summarize, resolveLogicalKey }}
-            >
-              {AsyncResult.case({
-                Err: (e) => {
-                  // eslint-disable-next-line no-console
-                  console.warn('Error loading summary')
-                  // eslint-disable-next-line no-console
-                  console.error(e)
-                  return null
-                },
-                _: () => <M.CircularProgress className={classes.progress} />,
-                Ok: R.map((i) => (
-                  <SummaryItemFile
-                    key={i.key}
-                    // TODO: make a reusable function to compute relative s3 paths or smth
-                    title={withoutPrefix(
-                      getPrefix(summarize.logicalKey || summarize.key),
-                      i.logicalKey || i.key,
-                    )}
-                    handle={i}
-                    mkUrl={mkUrl}
-                  />
-                )),
-              })}
-            </Data>
-          )}
-        </AWS.S3.Inject>
-      )}
+      {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
+      {summarize && <Summarize handle={summarize} mkUrl={mkUrl} />}
     </>
   )
 }

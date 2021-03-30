@@ -8,6 +8,7 @@ bucket/key/with/path/segments
 ../relative/path
 */
 
+// Summary and Vega are unused
 export const ContextType = tagged(['MDImg', 'MDLink', 'Summary', 'Vega'])
 
 /**
