@@ -27,6 +27,7 @@
 * [Added] Support for callable `dest` parameter in `Package.push()` ([#2095](https://github.com/quiltdata/quilt/pull/2095))
 * [Changed] Removed unused dependency on `packaging` ([#2090](https://github.com/quiltdata/quilt/pull/2090))
 * [Fixed] Possible downloading of truncated manifests ([#1977](https://github.com/quiltdata/quilt/pull/1977))
+* [Fixed] `TypeError` on import when running with `PYTHONOPTIMIZE=2` ([#2102](https://github.com/quiltdata/quilt/pull/2102))
 
 ## Catalog, Lambdas
 * [Added] Support for EventBridge S3 events to es/indexer ([#1987](https://github.com/quiltdata/quilt/pull/1987))
