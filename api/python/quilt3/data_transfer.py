@@ -527,6 +527,8 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
     if not file_list:
         return []
 
+    logger.info('copy files: started')
+
     assert len(file_list) == len(results)
 
     total_size = sum(size for (_, _, size), result in zip(file_list, results) if result is None)
@@ -619,6 +621,8 @@ def _copy_file_list_internal(file_list, results, message, callback, exceptions_t
         finally:
             # Make sure all tasks exit quickly if the main thread exits before they're done.
             stopped = True
+
+    logger.info('copy files: finished')
 
     return results
 
