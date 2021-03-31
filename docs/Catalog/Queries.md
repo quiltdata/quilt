@@ -28,3 +28,5 @@ queries:
     name: Second query
     url: s3://BUCKET/.quilt/queries/query-2.json
 ```
+
+Catalog UI have dropdown to select one of these saved queries. User free to edit query as well.
