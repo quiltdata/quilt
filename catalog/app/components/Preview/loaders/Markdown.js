@@ -9,33 +9,49 @@ import AsyncResult from 'utils/AsyncResult'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Resource from 'utils/Resource'
 import pipeThru from 'utils/pipeThru'
+import { resolveKey } from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewData, PreviewError } from '../types'
 import * as utils from './utils'
 
 // TODO: resolve relative paths inside packages?
+// this will require async processing and remarkable@1 doesnt support that,
+// so we either come up with some workaround or migrate to remarkable@2 or some other markdown renderer
+// (probably the one that will output react instead of html string).
 function useImgProcessor(handle) {
-  const sign = AWS.Signer.useResourceSigner()
+  const sign = AWS.Signer.useS3Signer()
   return useMemoEq([sign, handle], () =>
     R.evolve({
-      src: (src) =>
-        sign({
-          ptr: Resource.parse(src),
-          ctx: { type: Resource.ContextType.MDImg(), handle },
+      src: R.pipe(
+        Resource.parse,
+        Resource.Pointer.case({
+          Web: (url) => url,
+          S3: ({ bucket, key, version }) =>
+            sign({ bucket: bucket || handle.bucket, key, version }),
+          S3Rel: (path) =>
+            sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
+          Path: (path) =>
+            sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
         }),
+      ),
     }),
   )
 }
 
 function useLinkProcessor(handle) {
   const { urls } = NamedRoutes.use()
-  const sign = AWS.Signer.useResourceSigner()
+  const sign = AWS.Signer.useS3Signer()
   return useMemoEq([sign, urls, handle], () =>
     R.evolve({
       href: R.pipe(
         Resource.parse,
         Resource.Pointer.case({
+          Web: (url) => url,
+          S3: ({ bucket, key, version }) =>
+            sign({ bucket: bucket || handle.bucket, key, version }),
+          S3Rel: (path) =>
+            sign({ bucket: handle.bucket, key: resolveKey(handle.key, path) }),
           Path: (p) => {
             const hasSlash = p.endsWith('/')
             const resolved = resolve(dirname(handle.key), p).slice(1)
@@ -44,11 +60,6 @@ function useLinkProcessor(handle) {
               ? urls.bucketDir(handle.bucket, normalized)
               : urls.bucketFile(handle.bucket, normalized)
           },
-          _: (ptr) =>
-            sign({
-              ptr,
-              ctx: { type: Resource.ContextType.MDLink(), handle },
-            }),
         }),
       ),
     }),
