@@ -592,8 +592,6 @@ function ResolverProvider({ bucket, name, hash, children }) {
   // XXX: consider optimization: check current level (objects) for quick response
   // const found = objects.find((o) => o.name === logicalKey)
   // if (found) return s3paths.parseS3Url(found.physicalKey)
-  // TODO: handle nesting / prefix
-  // TODO: handle file not found
   const resolveLogicalKey = React.useMemo(
     () => (logicalKey) =>
       requests.packageFileDetail({
