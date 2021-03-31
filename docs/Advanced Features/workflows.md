@@ -168,7 +168,7 @@ current locations.
 ### Defaults
 You can provide default values using [`default` JSON Schema keyword](https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=default)
 
-Also you can use unstandart keyword `dateformat`. Using in addition with `{ "type": "string", "format": date" }` it allows to pre-populate value with current date. Format of `dateformat` template is based on [Unicode Technical Standard #35](https://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table). For example, `{ "type": "stirng", "format": "date", "dateformat": "yyyy-MM-dd" }` will fill value with "2021-03-31".
+Also you can use unstandart keyword `dateformat`. Using in addition with `{ "type": "string", "format": date" }` it allows to pre-populate value with current date. Format of `dateformat` template is based on [Unicode Technical Standard #35](https://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table). For example, `{ "type": "string", "format": "date", "dateformat": "yyyy-MM-dd" }` will fill value with `"2021-03-31"`.
 
 
 ### Full `config.yml` schema
