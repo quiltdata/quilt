@@ -76,7 +76,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   active: {
     background: t.palette.action.selected,
   },
-  draggable: {
+  outlined: {
     outline: `2px dashed ${t.palette.primary.main}`,
     outlineOffset: '-2px',
   },
@@ -275,7 +275,7 @@ function FilesInput({
               isDragActive && !disabled && classes.active,
               !!error && classes.dropzoneErr,
               !error && warn && classes.dropzoneWarn,
-              isDragging && classes.draggable,
+              isDragging && classes.outlined,
             ),
           })}
         >
