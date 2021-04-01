@@ -77,7 +77,7 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     background: t.palette.action.selected,
   },
   outlined: {
-    outline: `2px dashed ${t.palette.primary.main}`,
+    outline: `2px dashed ${t.palette.primary.light}`,
     outlineOffset: '-2px',
   },
   dropMsg: {

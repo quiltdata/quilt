@@ -412,7 +412,7 @@ const useMetaInputStyles = M.makeStyles((t) => ({
   outlined: {
     bottom: '1px',
     left: 0,
-    outline: `2px dashed ${t.palette.primary.main}`,
+    outline: `2px dashed ${t.palette.primary.light}`,
     outlineOffset: '-2px',
     position: 'absolute',
     right: 0,
