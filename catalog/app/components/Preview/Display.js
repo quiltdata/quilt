@@ -110,6 +110,11 @@ export default function PreviewDisplay({
             heading: 'No Such Object',
             body: 'Object does not exist',
           }),
+        SrcDoesNotExist: ({ path }) =>
+          renderMessage({
+            heading: 'Could Not Resolve Data File',
+            body: `Data file referenced as '${path}' could not be resolved`,
+          }),
         MalformedJson: ({ message }) =>
           renderMessage({
             heading: 'Malformed JSON',

@@ -19,6 +19,7 @@
 * [Changed] Item selection in folder-to-package dialog ([#2122](https://github.com/quiltdata/quilt/pull/2122))
 * [Changed] Don't preview .tif (but keep .tiff), preview .results as plain text ([#2128](https://github.com/quiltdata/quilt/pull/2128))
 * [Changed] Sort packages by modification time by default ([#2126](https://github.com/quiltdata/quilt/pull/2126))
+* [Changed] Resolve logical keys in summaries and vega inside packages ([#2140](https://github.com/quiltdata/quilt/pull/2140))
 
 # 3.4.0 - 2021-03-15
 ## Python API
