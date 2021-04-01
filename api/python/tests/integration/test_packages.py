@@ -1790,6 +1790,20 @@ class PackageTest(QuiltTestCase):
             BytesIO(push_manifest_mock.call_args[0][2])
         )[lk].physical_key == PhysicalKey(dest_bucket, dest_key, version)
 
+    def test_package_dump_file_mode(self):
+        """
+        Package.dump() works with both files opened in binary and text mode.
+        """
+        meta = {'💩': '💩'}
+        pkg = Package().set_meta(meta)
+        for mode in 'bt':
+            with self.subTest(mode=mode):
+                fn = f'test-manifest-{mode}.jsonl'
+                with open(fn, f'w{mode}', **({'encoding': 'utf-8'} if mode == 't' else {})) as f:
+                    pkg.dump(f)
+                with open(fn, encoding='utf-8') as f:
+                    assert Package.load(f).meta == meta
+
 
 class PackageTestV2(PackageTest):
     default_registry_version = 2
