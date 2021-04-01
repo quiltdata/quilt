@@ -409,10 +409,10 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
     position: 'relative',
   },
-  draggable: {
+  outlined: {
     bottom: '1px',
     left: 0,
-    outline: `2px dashed ${t.palette.primary.main}`,
+    outline: `2px dashed ${t.palette.primary.light}`,
     outlineOffset: '-2px',
     position: 'absolute',
     right: 0,
@@ -579,7 +579,7 @@ export const MetaInput = React.forwardRef(function MetaInput(
       </div>
 
       <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
-        {isDragging && <div className={classes.draggable} />}
+        {isDragging && <div className={classes.outlined} />}
 
         {mode === 'kv' ? (
           <JsonEditor
