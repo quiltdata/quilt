@@ -1094,7 +1094,7 @@ class Package:
                 entry_text = 'package metadata' if lk is None else f'entry with logical key {lk!r}'
                 raise QuiltException(
                     f"Size of manifest record for {entry_text} is {encoded_size} bytes, "
-                    f"but it's limited by {MANIFEST_MAX_RECORD_SIZE} bytes. "
+                    f"but must be less than {MANIFEST_MAX_RECORD_SIZE} bytes. "
                     'Quilt recommends less than 1MB of metadata per object, '
                     'and less than 1 MB of package-level metadata. '
                     'This enables S3 select, Athena and downstream services '
