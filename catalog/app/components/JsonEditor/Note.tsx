@@ -9,9 +9,7 @@ import {
   schemaTypeToHumanString,
 } from 'utils/json-schema'
 
-import { COLUMN_IDS, EMPTY_VALUE } from './State'
-
-type JsonValue = $TSFixMe
+import { JsonValue, COLUMN_IDS, EMPTY_VALUE } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   default: {

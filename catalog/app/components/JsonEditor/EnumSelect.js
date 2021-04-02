@@ -4,7 +4,7 @@ import * as M from '@material-ui/core'
 
 import Note from './Note'
 import PreviewValue from './PreviewValue'
-import { EMPTY_VALUE } from './State'
+import { EMPTY_VALUE } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   root: {

@@ -8,7 +8,7 @@ import { isNestedType } from 'utils/json-schema'
 import ButtonExpand from './ButtonExpand'
 import Note from './Note'
 import PreviewValue from './PreviewValue'
-import { COLUMN_IDS, EMPTY_VALUE } from './State'
+import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   root: {

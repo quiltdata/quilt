@@ -4,22 +4,7 @@ import * as React from 'react'
 
 import pipeThru from 'utils/pipeThru'
 
-export const COLUMN_IDS = {
-  KEY: 'key',
-  VALUE: 'value',
-}
-
-export const EMPTY_VALUE = Symbol('empty')
-
-export const stringifyJSON = (obj) => JSON.stringify(obj, null, 2)
-
-export function parseJSON(str) {
-  try {
-    return JSON.parse(str)
-  } catch (e) {
-    return str
-  }
-}
+import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 
 const serializeAddress = (addressPath) => addressPath.join(', ')
 

@@ -2,7 +2,8 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { COLUMN_IDS, EMPTY_VALUE, parseJSON, stringifyJSON } from './State'
+import { COLUMN_IDS, EMPTY_VALUE } from './constants'
+import { parseJSON, stringifyJSON } from './utils'
 
 const useStyles = M.makeStyles((t) => ({
   root: {

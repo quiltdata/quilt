@@ -8,7 +8,8 @@ import { isSchemaEnum } from 'utils/json-schema'
 import EnumSelect from './EnumSelect'
 import Input from './Input'
 import Preview from './Preview'
-import { COLUMN_IDS, parseJSON } from './State'
+import { COLUMN_IDS } from './constants'
+import { parseJSON } from './utils'
 
 const useStyles = M.makeStyles((t) => ({
   root: {

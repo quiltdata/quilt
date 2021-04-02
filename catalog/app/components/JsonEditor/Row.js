@@ -2,7 +2,7 @@ import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { COLUMN_IDS } from './State'
+import { COLUMN_IDS } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   cell: {

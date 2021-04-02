@@ -2,7 +2,8 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { stringifyJSON, EMPTY_VALUE } from './State'
+import { EMPTY_VALUE } from './constants'
+import { stringifyJSON } from './utils'
 
 const useArrayStyles = M.makeStyles((t) => ({
   lbracket: {

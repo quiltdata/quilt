@@ -7,7 +7,8 @@ import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
 import Row from './Row'
-import { COLUMN_IDS, getJsonDictValue } from './State'
+import { getJsonDictValue } from './State'
+import { COLUMN_IDS } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   root: {

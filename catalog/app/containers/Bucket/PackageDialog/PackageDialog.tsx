@@ -10,7 +10,7 @@ import { fade } from '@material-ui/core/styles'
 import * as Lab from '@material-ui/lab'
 
 import JsonEditor from 'components/JsonEditor'
-import { parseJSON, stringifyJSON } from 'components/JsonEditor/State'
+import { parseJSON, stringifyJSON } from 'components/JsonEditor/utils'
 import * as Notifications from 'containers/Notifications'
 import { useData } from 'utils/Data'
 import Delay from 'utils/Delay'

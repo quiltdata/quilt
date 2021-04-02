@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Cell from './Cell'
-import { COLUMN_IDS, EMPTY_VALUE } from './State'
+import { COLUMN_IDS, EMPTY_VALUE } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   inputCell: {
