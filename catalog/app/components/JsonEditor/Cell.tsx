@@ -23,7 +23,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const emptyCellData = {}
+const emptyCellData = {
+  address: [],
+  required: false,
+  sortIndex: -1,
+  type: 'undefined',
+  valueSchema: {},
+}
 
 const cellPlaceholders = {
   [COLUMN_IDS.KEY]: 'Key',
@@ -36,7 +42,7 @@ interface CellProps {
   editing: boolean
   onExpand: (path: string[]) => void
   onRemove: (path: string[]) => void
-  row: Row<RowData>
+  row: Pick<Row<RowData>, 'original' | 'values'>
   updateMyData: (path: string[], id: 'key' | 'value', value: JsonValue) => void
   value: JsonValue
 }

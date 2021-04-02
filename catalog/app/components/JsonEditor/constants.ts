@@ -11,7 +11,7 @@ export interface RowData {
   required: boolean
   sortIndex: number
   type: string | string[]
-  valueSchema: JsonSchema
+  valueSchema?: JsonSchema
 }
 
 export const COLUMN_IDS = {

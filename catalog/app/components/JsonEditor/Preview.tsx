@@ -47,13 +47,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const isExpandable = (value: JsonValue, schema: JsonSchema) =>
+const isExpandable = (value: JsonValue, schema?: JsonSchema) =>
   value === EMPTY_VALUE ? isNestedType(schema) : R.is(Object, value)
 
 const hasDeleteButton = (
   columnId: 'key' | 'value',
   value: JsonValue,
-  schema: JsonSchema,
+  schema?: JsonSchema,
 ) => columnId === COLUMN_IDS.KEY && !schema && value !== EMPTY_VALUE
 
 interface PreviewProps {
