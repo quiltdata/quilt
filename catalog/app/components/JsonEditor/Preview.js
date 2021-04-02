@@ -8,7 +8,7 @@ import { isNestedType } from 'utils/json-schema'
 import ButtonExpand from './ButtonExpand'
 import Note from './Note'
 import PreviewValue from './PreviewValue'
-import { ACTIONS, COLUMN_IDS, EMPTY_VALUE } from './State'
+import { COLUMN_IDS, EMPTY_VALUE } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -60,7 +60,7 @@ export default function Preview({
   columnId,
   data, // NOTE: react-table's row.original
   onExpand,
-  onMenuSelect,
+  onRemove,
   placeholder,
   title,
   value,
@@ -69,11 +69,6 @@ export default function Preview({
 
   const requiredKey = data.required && columnId === COLUMN_IDS.KEY
   const isEmpty = React.useMemo(() => value === EMPTY_VALUE, [value])
-
-  const onRemove = React.useCallback(
-    () => onMenuSelect({ action: ACTIONS.REMOVE_FIELD, title: 'Remove' }),
-    [onMenuSelect],
-  )
 
   return (
     <div className={classes.root}>

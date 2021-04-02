@@ -9,11 +9,6 @@ export const COLUMN_IDS = {
   VALUE: 'value',
 }
 
-export const ACTIONS = {
-  CHANGE_TYPE: 'change_type',
-  REMOVE_FIELD: 'remove_field',
-}
-
 export const EMPTY_VALUE = Symbol('empty')
 
 export const stringifyJSON = (obj) => JSON.stringify(obj, null, 2)
@@ -23,17 +18,6 @@ export function parseJSON(str) {
     return JSON.parse(str)
   } catch (e) {
     return str
-  }
-}
-
-function convertType(value, typeOf) {
-  switch (typeOf) {
-    case 'string':
-      return stringifyJSON(value)
-    case 'number':
-      return Number(value)
-    default:
-      return value
   }
 }
 
@@ -283,28 +267,6 @@ export default function JsonEditorState({ children, jsonObject, schema }) {
     [jsonObject, jsonDict, fieldPath, rootKeys],
   )
 
-  const changeType = React.useCallback(
-    (contextFieldPath, columnId, typeOf) => {
-      const value = R.path(contextFieldPath, jsonObject)
-      return R.assocPath(contextFieldPath, convertType(value, typeOf), jsonObject)
-    },
-    [jsonObject],
-  )
-
-  const makeAction = React.useCallback(
-    (contextFieldPath, actionItem) => {
-      switch (actionItem.action) {
-        case ACTIONS.REMOVE_FIELD:
-          return removeField(contextFieldPath)
-        case ACTIONS.CHANGE_TYPE:
-          return changeType(contextFieldPath, COLUMN_IDS.VALUE, actionItem.title)
-        default:
-          return null
-      }
-    },
-    [changeType, removeField],
-  )
-
   const removeField = React.useCallback(
     (removingFieldPath) => dissocObjValue(removingFieldPath, jsonObject),
     [jsonObject],
@@ -346,9 +308,9 @@ export default function JsonEditorState({ children, jsonObject, schema }) {
     addRow,
     changeValue,
     columns,
-    jsonDict,
     fieldPath,
-    makeAction,
+    jsonDict,
+    removeField,
     setFieldPath,
   })
 }

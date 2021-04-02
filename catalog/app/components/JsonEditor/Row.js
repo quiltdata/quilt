@@ -23,7 +23,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Row({ cells, columnPath, fresh, onExpand, onMenuAction }) {
+export default function Row({ cells, columnPath, fresh, onExpand, onRemove }) {
   const classes = useStyles()
 
   return (
@@ -40,7 +40,7 @@ export default function Row({ cells, columnPath, fresh, onExpand, onMenuAction }
             editing: fresh && cell.column.id === COLUMN_IDS.VALUE,
             columnPath,
             onExpand,
-            onMenuAction,
+            onRemove,
           })}
         </M.TableCell>
       ))}

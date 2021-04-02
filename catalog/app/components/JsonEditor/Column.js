@@ -63,7 +63,7 @@ export default function Column({
   onBreadcrumb,
   onChange,
   onExpand,
-  onMenuAction,
+  onRemove,
 }) {
   const columns = React.useMemo(
     () => [
@@ -125,7 +125,7 @@ export default function Column({
                 fresh: isLastRow && hasNewRow,
                 columnPath,
                 onExpand,
-                onMenuAction,
+                onRemove,
               }
 
               if (row.original && row.original.reactId) {

@@ -33,7 +33,7 @@ export default function Cell({
   columnPath,
   editing: editingInitial,
   onExpand,
-  onMenuAction,
+  onRemove,
   row,
   updateMyData,
   value: initialValue,
@@ -46,13 +46,6 @@ export default function Cell({
 
   const key = row.values[COLUMN_IDS.KEY]
   const fieldPath = React.useMemo(() => columnPath.concat(key), [columnPath, key])
-
-  const onMenuSelect = React.useCallback(
-    (menuItem) => {
-      onMenuAction(fieldPath, menuItem)
-    },
-    [fieldPath, onMenuAction],
-  )
 
   const onChange = React.useCallback(
     (newValue) => {
@@ -138,7 +131,7 @@ export default function Cell({
           data: row.original || emptyCellData,
           onChange,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
-          onMenuSelect,
+          onRemove: React.useCallback(() => onRemove(fieldPath), [fieldPath, onRemove]),
           placeholder: cellPlaceholders[column.id],
           title: isEditable ? 'Click to edit' : '',
           value,

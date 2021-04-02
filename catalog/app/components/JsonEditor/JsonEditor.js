@@ -37,8 +37,8 @@ const JsonEditor = React.forwardRef(function JsonEditor(
     disabled,
     fieldPath,
     jsonDict,
-    makeAction,
     onChange,
+    removeField,
     setFieldPath,
   },
   ref,
@@ -70,7 +70,7 @@ const JsonEditor = React.forwardRef(function JsonEditor(
             onBreadcrumb: setFieldPath,
             onChange: makeStateChange(changeValue),
             onExpand: setFieldPath,
-            onMenuAction: makeStateChange(makeAction),
+            onRemove: makeStateChange(removeField),
           }}
         />
       </div>

@@ -72,7 +72,7 @@ export default function AddRow({ columnPath, onAdd, onExpand }) {
     [setValue],
   )
 
-  const onMenuAction = React.useCallback(() => {}, [])
+  const onRemove = React.useCallback(() => {}, [])
 
   return (
     <M.TableRow>
@@ -82,7 +82,7 @@ export default function AddRow({ columnPath, onAdd, onExpand }) {
             ...emptyKeyProps,
             columnPath,
             onExpand,
-            onMenuAction,
+            onRemove,
             updateMyData: onChangeKey,
           }}
         />
@@ -94,7 +94,7 @@ export default function AddRow({ columnPath, onAdd, onExpand }) {
             ...emptyValueProps,
             columnPath,
             onExpand,
-            onMenuAction,
+            onRemove,
             updateMyData: onChangeValue,
           }}
         />
