@@ -1,3 +1,4 @@
+// TOOD: any JSON or EMPTY_VALUE
 export type JsonValue = $TSFixMe
 
 export const COLUMN_IDS = {
