@@ -1098,7 +1098,7 @@ class Package:
                     'Quilt recommends less than 1MB of metadata per object, '
                     'and less than 1MB of package-level metadata. '
                     'This enables S3 select, Athena and downstream services '
-                    'to work correctly. This limit can be overridden with '
+                    'to work correctly. This limit can be overridden with the '
                     'QUILT_MANIFEST_MAX_RECORD_SIZE environment variable.'
                 )
             return data
