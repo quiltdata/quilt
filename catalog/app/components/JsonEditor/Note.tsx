@@ -3,14 +3,20 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { doesTypeMatchSchema, schemaTypeToHumanString } from 'utils/json-schema'
+import {
+  JsonSchema,
+  doesTypeMatchSchema,
+  schemaTypeToHumanString,
+} from 'utils/json-schema'
 
 import { COLUMN_IDS, EMPTY_VALUE } from './State'
+
+type JsonValue = $TSFixMe
 
 const useStyles = M.makeStyles((t) => ({
   default: {
     color: t.palette.text.secondary,
-    fontFamily: t.typography.monospace.fontFamily,
+    fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
     fontSize: t.typography.caption.fontSize,
   },
   mismatch: {
@@ -21,12 +27,12 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function getTypeAnnotationFromValue(value, schema) {
-  return R.cond([
+function getTypeAnnotationFromValue(value: JsonValue, schema: JsonSchema): string {
+  return R.cond<JsonValue, string>([
     [Array.isArray, () => 'array'],
     [
       R.is(String),
-      () => (R.propOr([], 'enum', schema).includes(value) ? 'enum' : 'string'),
+      () => (schema?.enum && schema.enum.includes(value) ? 'enum' : 'string'),
     ],
     [R.is(Number), () => 'number'],
     [R.is(Boolean), () => 'boolean'],
@@ -36,13 +42,19 @@ function getTypeAnnotationFromValue(value, schema) {
   ])(value)
 }
 
-const getTypeAnnotation = (value, schema) =>
+const getTypeAnnotation = (value: JsonValue, schema: JsonSchema): string =>
   value === EMPTY_VALUE
     ? schemaTypeToHumanString(schema)
     : getTypeAnnotationFromValue(value, schema)
 
-function TypeHelp({ humanReadableSchema, schema }) {
-  if (humanReadableSchema === 'undefined') return 'Key/value is not restricted by schema'
+interface TypeHelpProps {
+  humanReadableSchema: string
+  schema: JsonSchema
+}
+
+function TypeHelp({ humanReadableSchema, schema }: TypeHelpProps) {
+  if (humanReadableSchema === 'undefined')
+    return <>Key/value is not restricted by schema</>
 
   return (
     <div>
@@ -52,7 +64,12 @@ function TypeHelp({ humanReadableSchema, schema }) {
   )
 }
 
-function NoteValue({ schema, value }) {
+interface NoteValueProps {
+  schema: JsonSchema
+  value: JsonValue
+}
+
+function NoteValue({ schema, value }: NoteValueProps) {
   const classes = useStyles()
 
   const humanReadableSchema = schemaTypeToHumanString(schema)
@@ -72,7 +89,13 @@ function NoteValue({ schema, value }) {
   )
 }
 
-export default function Note({ columnId, data, value }) {
+interface NoteProps {
+  columnId: 'key' | 'value'
+  data: $TSFixMe
+  value: JsonValue
+}
+
+export default function Note({ columnId, data, value }: NoteProps) {
   if (columnId === COLUMN_IDS.VALUE) {
     return <NoteValue value={value} schema={data.valueSchema} />
   }
