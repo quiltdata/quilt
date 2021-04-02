@@ -222,7 +222,6 @@ interface FieldProps {
   error?: string
   helperText?: React.ReactNode
   validating?: boolean
-  warning?: string
 }
 
 const useFieldInputStyles = M.makeStyles({
@@ -236,11 +235,9 @@ export function Field({
   error,
   helperText,
   validating,
-  warning,
   ...rest
 }: FieldProps & M.TextFieldProps) {
   const inputClasses = useFieldInputStyles()
-  // FIXME: warning is unused
   const props = {
     InputLabelProps: { shrink: true },
     InputProps: {
