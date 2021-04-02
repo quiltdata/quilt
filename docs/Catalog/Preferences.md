@@ -1,8 +1,12 @@
-## Managing tabs and buttons visibility
+## Showing and hiding features in the Quilt catalog
 
-Administrator is able to hide buttons and navigation tabs from any bucket. Each bucket has its own configuration file at `s3://BUCKET/.quilt/catalog/config.yaml`
+You can use your Quilt bucket's [configuration file](../Advanced%20Features/workflows.md#workflows-basics)
+to show and hide certain tabs
+and buttons in the Quilt catalog. This gives you finer-grained control over how
+users interact with the Quilt catalog.
 
-If no configuration file is provided, than default config is in use:
+If there is no config.yaml, or your config.yaml file does not override the `ui`
+key, then the following defaults are used:
 
 ```
 ui:
@@ -16,11 +20,12 @@ ui:
     revisePackage: True
 ```
 
-### Available properties:
+### Properties
 
-* `ui.nav.files` hides Files tab
-* `ui.nav.packages` hides Packages tab
-* `ui.nav.queries` hides Queries tab
-* `ui.actions.copyPackage`hides buttons triggering Create Package dialog, both creating package from scratch and from directory
-* `ui.actions.createPackage` hides button triggering Revise Package dialog
-* `ui.actions.revisePackage` hides button triggering Push to Bucket dialog
+* `ui.nav.files: False` - hide Files tab
+* `ui.nav.packages: False` - hide Packages tab
+* `ui.nav.queries: False` - hide Queries tab
+* `ui.actions.copyPackage: False` - hide buttons to push packages across buckets
+* `ui.actions.createPackage: False` - hide buttons to create packages via
+drag-and-drop or from folders in S3
+* `ui.actions.revisePackage: False` - hide the button to revise packages
