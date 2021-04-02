@@ -225,6 +225,13 @@ interface FieldProps {
   warning?: string
 }
 
+const useFieldInputStyles = M.makeStyles({
+  root: {
+    // It hides M.CircularProgress (spinning square) overflow
+    overflow: 'hidden',
+  },
+})
+
 export function Field({
   error,
   helperText,
@@ -232,11 +239,13 @@ export function Field({
   warning,
   ...rest
 }: FieldProps & M.TextFieldProps) {
+  const inputClasses = useFieldInputStyles()
   // FIXME: warning is unused
   const props = {
     InputLabelProps: { shrink: true },
     InputProps: {
       endAdornment: validating && <M.CircularProgress size={20} />,
+      classes: inputClasses,
     },
     error: !!error,
     helperText: error || helperText,
