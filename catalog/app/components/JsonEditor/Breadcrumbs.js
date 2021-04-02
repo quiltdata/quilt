@@ -6,10 +6,9 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     border: `1px solid ${t.palette.grey[400]}`,
     borderWidth: '1px 1px 0',
-    display: 'flex',
-    height: t.spacing(4) + 1,
-    padding: t.spacing(0, 1),
     color: t.palette.text.hint,
+    display: 'flex',
+    padding: '5px 8px',
   },
   objectRoot: {
     marginRight: t.spacing(0.5),
