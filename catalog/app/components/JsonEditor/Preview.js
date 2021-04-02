@@ -6,8 +6,7 @@ import * as M from '@material-ui/core'
 import { isNestedType } from 'utils/json-schema'
 
 import ButtonExpand from './ButtonExpand'
-// import ButtonMenu from './ButtonMenu'
-// import Note from './Note'
+import Note from './Note'
 import PreviewValue from './PreviewValue'
 import { ACTIONS, COLUMN_IDS, EMPTY_VALUE } from './State'
 
@@ -60,11 +59,7 @@ const hasClearButton = (columnId, value, schema) =>
 export default function Preview({
   columnId,
   data, // NOTE: react-table's row.original
-  // menu, // FIXME
-  // menuOpened, // FIXME
   onExpand,
-  // onMenu, // FIXME
-  // onMenuClose, // FIXME
   onMenuSelect,
   placeholder,
   title,
@@ -94,6 +89,8 @@ export default function Preview({
           {isEmpty ? placeholder : <PreviewValue value={value} />}
         </span>
       </div>
+
+      <Note {...{ columnId, data, value }} />
 
       {hasDeleteButton(columnId, value, data.valueSchema) && (
         <M.IconButton

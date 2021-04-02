@@ -10,6 +10,8 @@ import { COLUMN_IDS, EMPTY_VALUE } from './State'
 const useStyles = M.makeStyles((t) => ({
   default: {
     color: t.palette.text.secondary,
+    fontFamily: t.typography.monospace.fontFamily,
+    fontSize: t.typography.caption.fontSize,
   },
   mismatch: {
     color: t.palette.error.main,

@@ -2,8 +2,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import ButtonMenu from './ButtonMenu'
-import Note from './Note'
 import { COLUMN_IDS, EMPTY_VALUE, parseJSON, stringifyJSON } from './State'
 
 const useStyles = M.makeStyles((t) => ({
@@ -78,12 +76,7 @@ const willBeNullInJson = (value) => typeof value === 'number' && !Number.isFinit
 export default function Input({
   columnId,
   data,
-  menu,
-  menuOpened,
   onChange,
-  onMenu,
-  onMenuClose,
-  onMenuSelect,
   placeholder,
   value: originalValue,
 }) {
@@ -141,16 +134,6 @@ export default function Input({
     <M.InputBase
       autoFocus
       inputRef={inputRef}
-      endAdornment={
-        <ButtonMenu
-          menu={menu}
-          menuOpened={menuOpened}
-          note={<Note {...{ columnId, data, value }} />}
-          onClick={onMenu}
-          onMenuClose={onMenuClose}
-          onMenuSelect={onMenuSelect}
-        />
-      }
       className={classes.root}
       value={valueStr}
       onChange={onChangeInternal}

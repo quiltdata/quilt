@@ -8,26 +8,7 @@ import { isSchemaEnum } from 'utils/json-schema'
 import EnumSelect from './EnumSelect'
 import Input from './Input'
 import Preview from './Preview'
-import { ACTIONS, COLUMN_IDS, EMPTY_VALUE, parseJSON } from './State'
-
-const emptyMenu = []
-
-const actionsSubmenu = {
-  key: 'actions',
-  options: [
-    {
-      action: ACTIONS.REMOVE_FIELD,
-      title: 'Remove',
-    },
-  ],
-}
-
-function getMenu({ required, value }) {
-  if (required || value === EMPTY_VALUE) {
-    return emptyMenu
-  }
-  return [actionsSubmenu]
-}
+import { COLUMN_IDS, parseJSON } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -62,21 +43,15 @@ export default function Cell({
   const [value, setValue] = React.useState(initialValue)
 
   const [editing, setEditing] = React.useState(editingInitial)
-  const [menuOpened, setMenuOpened] = React.useState(false)
 
   const key = row.values[COLUMN_IDS.KEY]
   const fieldPath = React.useMemo(() => columnPath.concat(key), [columnPath, key])
 
-  const closeMenu = React.useCallback(() => setMenuOpened(false), [setMenuOpened])
-
-  const onMenuOpen = React.useCallback(() => setMenuOpened(true), [setMenuOpened])
-
   const onMenuSelect = React.useCallback(
     (menuItem) => {
-      setMenuOpened(false)
       onMenuAction(fieldPath, menuItem)
     },
-    [fieldPath, onMenuAction, setMenuOpened],
+    [fieldPath, onMenuAction],
   )
 
   const onChange = React.useCallback(
@@ -143,17 +118,6 @@ export default function Cell({
     [editing, isEditable, setEditing],
   )
 
-  const menu = React.useMemo(
-    () =>
-      isKeyCell
-        ? getMenu({
-            required: row.original ? row.original.required : false,
-            value: key,
-          })
-        : emptyMenu,
-    [isKeyCell, key, row],
-  )
-
   const ValueComponent = React.useMemo(() => {
     if (isEnumCell) return EnumSelect
     if (editing) return Input
@@ -172,12 +136,8 @@ export default function Cell({
         {...{
           columnId: column.id,
           data: row.original || emptyCellData,
-          menu,
-          menuOpened,
           onChange,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
-          onMenu: onMenuOpen,
-          onMenuClose: closeMenu,
           onMenuSelect,
           placeholder: cellPlaceholders[column.id],
           title: isEditable ? 'Click to edit' : '',
