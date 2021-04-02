@@ -53,9 +53,6 @@ const isExpandable = (value, schema) =>
 const hasDeleteButton = (columnId, value, schema) =>
   columnId === COLUMN_IDS.KEY && !schema && value !== EMPTY_VALUE
 
-const hasClearButton = (columnId, value, schema) =>
-  columnId === COLUMN_IDS.KEY && schema && value !== EMPTY_VALUE
-
 export default function Preview({
   columnId,
   data, // NOTE: react-table's row.original
@@ -95,17 +92,6 @@ export default function Preview({
           title="Remove"
         >
           <M.Icon fontSize="small">delete</M.Icon>
-        </M.IconButton>
-      )}
-
-      {hasClearButton(columnId, value, data.valueSchema) && (
-        <M.IconButton
-          className={classes.button}
-          onClick={onRemove}
-          size="small"
-          title="Clear"
-        >
-          <M.Icon fontSize="small">clear</M.Icon>
         </M.IconButton>
       )}
     </div>
