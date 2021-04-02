@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useTable } from 'react-table'
+import { useTable, Column as RTColumn, TableOptions as RTTableOptions } from 'react-table'
 import * as M from '@material-ui/core'
 
 import AddArrayItem from './AddArrayItem'
@@ -8,7 +8,7 @@ import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
 import Row from './Row'
 import { getJsonDictValue } from './State'
-import { COLUMN_IDS } from './constants'
+import { COLUMN_IDS, JsonValue, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -24,7 +24,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function getColumnType(columnPath, jsonDict, parent) {
+function getColumnType(
+  columnPath: string[],
+  jsonDict: Record<string, JsonValue>,
+  parent: JsonValue,
+) {
   const columnSchema = getJsonDictValue(columnPath, jsonDict)
   if (columnSchema && !parent) return columnSchema.type
 
@@ -42,7 +46,10 @@ const useEmptyColumnStyles = M.makeStyles((t) => ({
   },
 }))
 
-function EmptyColumn({ columnType }) {
+interface EmptyColumnProps {
+  columnType: 'array' | 'object'
+}
+function EmptyColumn({ columnType }: EmptyColumnProps) {
   const classes = useEmptyColumnStyles()
 
   if (columnType !== 'array') return null
@@ -56,6 +63,24 @@ function EmptyColumn({ columnType }) {
   )
 }
 
+interface ColumnProps {
+  columnPath: string[]
+  data: {
+    items: RowData[]
+    parent: JsonValue
+  }
+  jsonDict: Record<string, JsonValue>
+  onAddRow: (path: string[], key: string | number, value: JsonValue) => void
+  onBreadcrumb: (path: string[]) => void
+  onChange: (path: string[], id: 'key' | 'value', value: JsonValue) => void
+  onExpand: (path: string[]) => void
+  onRemove: (path: string[]) => void
+}
+
+interface TO extends RTTableOptions<RowData> {
+  updateMyData: (path: string[], id: 'key' | 'value', value: JsonValue) => void
+}
+
 export default function Column({
   columnPath,
   data,
@@ -65,16 +90,17 @@ export default function Column({
   onChange,
   onExpand,
   onRemove,
-}) {
+}: ColumnProps) {
   const columns = React.useMemo(
-    () => [
-      {
-        accessor: COLUMN_IDS.KEY,
-      },
-      {
-        accessor: COLUMN_IDS.VALUE,
-      },
-    ],
+    () =>
+      [
+        {
+          accessor: COLUMN_IDS.KEY,
+        },
+        {
+          accessor: COLUMN_IDS.VALUE,
+        },
+      ] as RTColumn<RowData>[],
     [],
   )
 
@@ -82,9 +108,9 @@ export default function Column({
 
   const [hasNewRow, setHasNewRow] = React.useState(false)
   const onChangeInternal = React.useCallback(
-    (...params) => {
+    (path: string[], id: 'key' | 'value', value: JsonValue) => {
       setHasNewRow(false)
-      onChange(...params)
+      onChange(path, id, value)
     },
     [onChange],
   )
@@ -96,15 +122,15 @@ export default function Column({
       Cell,
     },
     updateMyData: onChangeInternal,
-  })
+  } as TO)
   const { getTableProps, getTableBodyProps, rows, prepareRow } = tableInstance
 
   const columnType = getColumnType(columnPath, jsonDict, data.parent)
 
   const onAddRowInternal = React.useCallback(
-    (...params) => {
+    (path: string[], key: string | number, value: JsonValue) => {
       setHasNewRow(true)
-      onAddRow(...params)
+      onAddRow(path, key, value)
     },
     [onAddRow],
   )
@@ -127,6 +153,7 @@ export default function Column({
                 columnPath,
                 onExpand,
                 onRemove,
+                key: '',
               }
 
               if (row.original && row.original.reactId) {

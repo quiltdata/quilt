@@ -34,6 +34,7 @@ const emptyKeyProps = {
       sortIndex: -1,
       type: 'undefined',
       valueSchema: undefined,
+      updateMyData: () => {},
     },
     values: {
       [COLUMN_IDS.KEY]: EMPTY_VALUE,
@@ -54,6 +55,7 @@ const emptyValueProps = {
       sortIndex: -1,
       type: 'undefined',
       valueSchema: undefined,
+      updateMyData: () => {},
     },
     values: {
       [COLUMN_IDS.KEY]: EMPTY_VALUE,

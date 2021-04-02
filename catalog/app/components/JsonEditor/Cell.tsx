@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
-import { Column, Row } from 'react-table'
+import { Column as RTColumn, Row as RTRow } from 'react-table'
 import * as M from '@material-ui/core'
 
 import { isSchemaEnum } from 'utils/json-schema'
@@ -37,12 +37,12 @@ const cellPlaceholders = {
 }
 
 interface CellProps {
-  column: Column<{ id: 'key' | 'value' }>
+  column: RTColumn<{ id: 'key' | 'value' }>
   columnPath: string[]
   editing: boolean
   onExpand: (path: string[]) => void
   onRemove: (path: string[]) => void
-  row: Pick<Row<RowData>, 'original' | 'values'>
+  row: Pick<RTRow<RowData>, 'original' | 'values'>
   updateMyData: (path: string[], id: 'key' | 'value', value: JsonValue) => void
   value: JsonValue
 }
