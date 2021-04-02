@@ -6,10 +6,10 @@ import * as M from '@material-ui/core'
 import { isNestedType } from 'utils/json-schema'
 
 import ButtonExpand from './ButtonExpand'
-import ButtonMenu from './ButtonMenu'
-import Note from './Note'
+// import ButtonMenu from './ButtonMenu'
+// import Note from './Note'
 import PreviewValue from './PreviewValue'
-import { COLUMN_IDS, EMPTY_VALUE } from './State'
+import { ACTIONS, COLUMN_IDS, EMPTY_VALUE } from './State'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -21,6 +21,12 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(0, 1),
     position: 'relative',
     width: '100%',
+  },
+  button: {
+    opacity: 0.3,
+    '&:hover': {
+      opacity: 1,
+    },
   },
   value: {
     flexGrow: 1,
@@ -45,14 +51,20 @@ const useStyles = M.makeStyles((t) => ({
 const isExpandable = (value, schema) =>
   value === EMPTY_VALUE ? isNestedType(schema) : R.is(Object, value)
 
+const hasDeleteButton = (columnId, value, schema) =>
+  columnId === COLUMN_IDS.KEY && !schema && value !== EMPTY_VALUE
+
+const hasClearButton = (columnId, value, schema) =>
+  columnId === COLUMN_IDS.KEY && schema && value !== EMPTY_VALUE
+
 export default function Preview({
   columnId,
   data, // NOTE: react-table's row.original
-  menu,
-  menuOpened,
+  // menu, // FIXME
+  // menuOpened, // FIXME
   onExpand,
-  onMenu,
-  onMenuClose,
+  // onMenu, // FIXME
+  // onMenuClose, // FIXME
   onMenuSelect,
   placeholder,
   title,
@@ -62,6 +74,11 @@ export default function Preview({
 
   const requiredKey = data.required && columnId === COLUMN_IDS.KEY
   const isEmpty = React.useMemo(() => value === EMPTY_VALUE, [value])
+
+  const onRemove = React.useCallback(
+    () => onMenuSelect({ action: ACTIONS.REMOVE_FIELD, title: 'Remove' }),
+    [onMenuSelect],
+  )
 
   return (
     <div className={classes.root}>
@@ -78,15 +95,27 @@ export default function Preview({
         </span>
       </div>
 
-      <ButtonMenu
-        className={classes.menu}
-        menu={menu}
-        menuOpened={menuOpened}
-        note={<Note {...{ columnId, data, value }} />}
-        onClick={onMenu}
-        onMenuClose={onMenuClose}
-        onMenuSelect={onMenuSelect}
-      />
+      {hasDeleteButton(columnId, value, data.valueSchema) && (
+        <M.IconButton
+          className={classes.button}
+          onClick={onRemove}
+          size="small"
+          title="Remove"
+        >
+          <M.Icon fontSize="small">delete</M.Icon>
+        </M.IconButton>
+      )}
+
+      {hasClearButton(columnId, value, data.valueSchema) && (
+        <M.IconButton
+          className={classes.button}
+          onClick={onRemove}
+          size="small"
+          title="Clear"
+        >
+          <M.Icon fontSize="small">clear</M.Icon>
+        </M.IconButton>
+      )}
     </div>
   )
 }
