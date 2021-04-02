@@ -1804,6 +1804,25 @@ class PackageTest(QuiltTestCase):
                 with open(fn, encoding='utf-8') as f:
                     assert Package.load(f).meta == meta
 
+    def test_max_manifest_record_size(self):
+        with open(os.devnull, 'wb') as buf:
+            with mock.patch('quilt3.packages.MANIFEST_MAX_RECORD_SIZE', 1):
+                with pytest.raises(QuiltException) as excinfo:
+                    Package().dump(buf)
+                assert 'Size of manifest record for package metadata' in str(excinfo.value)
+
+            with mock.patch('quilt3.packages.MANIFEST_MAX_RECORD_SIZE', 10_000):
+                with pytest.raises(QuiltException) as excinfo:
+                    Package().set('foo', DATA_DIR / 'foo.txt', {'user_meta': 'x' * 10_000}).dump(buf)
+                assert "Size of manifest record for entry with logical key 'foo'" in str(excinfo.value)
+
+                with pytest.raises(QuiltException) as excinfo:
+                    Package().set_dir('bar', DATA_DIR / 'nested', meta={'user_meta': 'x' * 10_000}).dump(buf)
+                assert "Size of manifest record for entry with logical key 'bar/'" in str(excinfo.value)
+
+                # This would fail if non-ASCII chars were encoded using escape sequences.
+                Package().set_meta({'a': '💩' * 2_000}).dump(buf)
+
 
 class PackageTestV2(PackageTest):
     default_registry_version = 2
