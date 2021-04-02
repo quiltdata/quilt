@@ -3,12 +3,12 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { isNestedType } from 'utils/json-schema'
+import { JsonSchema, isNestedType } from 'utils/json-schema'
 
 import ButtonExpand from './ButtonExpand'
 import Note from './Note'
 import PreviewValue from './PreviewValue'
-import { COLUMN_IDS, EMPTY_VALUE } from './constants'
+import { JsonValue, COLUMN_IDS, EMPTY_VALUE, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -47,21 +47,34 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const isExpandable = (value, schema) =>
+const isExpandable = (value: JsonValue, schema: JsonSchema) =>
   value === EMPTY_VALUE ? isNestedType(schema) : R.is(Object, value)
 
-const hasDeleteButton = (columnId, value, schema) =>
-  columnId === COLUMN_IDS.KEY && !schema && value !== EMPTY_VALUE
+const hasDeleteButton = (
+  columnId: 'key' | 'value',
+  value: JsonValue,
+  schema: JsonSchema,
+) => columnId === COLUMN_IDS.KEY && !schema && value !== EMPTY_VALUE
+
+interface PreviewProps {
+  columnId: 'key' | 'value'
+  data: RowData // NOTE: react-table's row.original
+  onExpand: () => void
+  onRemove: () => void
+  placeholder: string
+  title: string
+  value: JsonValue
+}
 
 export default function Preview({
   columnId,
-  data, // NOTE: react-table's row.original
+  data,
   onExpand,
   onRemove,
   placeholder,
   title,
   value,
-}) {
+}: PreviewProps) {
   const classes = useStyles()
 
   const requiredKey = data.required && columnId === COLUMN_IDS.KEY
@@ -73,7 +86,7 @@ export default function Preview({
 
       <div className={classes.value} title={title}>
         <span
-          className={cx(classes.valueInner, {
+          className={cx({
             [classes.required]: requiredKey,
             [classes.placeholder]: isEmpty,
           })}

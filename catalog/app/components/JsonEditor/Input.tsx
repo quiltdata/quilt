@@ -2,7 +2,9 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { COLUMN_IDS, EMPTY_VALUE } from './constants'
+import { JsonSchema } from 'utils/json-schema'
+
+import { JsonValue, COLUMN_IDS, EMPTY_VALUE, RowData } from './constants'
 import { parseJSON, stringifyJSON } from './utils'
 
 const useStyles = M.makeStyles((t) => ({
@@ -16,7 +18,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function getNormalizedValue(value, optSchema) {
+function getNormalizedValue(value: JsonValue, optSchema?: JsonSchema): JsonValue {
   // TODO: use json-schema#getEmptyValueFromSchema
   if (!optSchema && value === '') return EMPTY_VALUE // FIXME: think more on this
 
@@ -47,7 +49,7 @@ function getNormalizedValue(value, optSchema) {
   return ''
 }
 
-function getNormalizedValueStr(value, optSchema) {
+function getNormalizedValueStr(value: JsonValue, optSchema?: JsonSchema) {
   const normalizedValue = getNormalizedValue(value, optSchema)
 
   // FIXME: think more on this
@@ -61,7 +63,7 @@ function getNormalizedValueStr(value, optSchema) {
   return stringifyJSON(normalizedValue)
 }
 
-function hasBrackets(valueStr) {
+function hasBrackets(valueStr: string) {
   if (valueStr.length < 2) return false
   return [
     ['"', '"'],
@@ -72,7 +74,21 @@ function hasBrackets(valueStr) {
   )
 }
 
-const willBeNullInJson = (value) => typeof value === 'number' && !Number.isFinite(value)
+const willBeNullInJson = (value: JsonValue) =>
+  typeof value === 'number' && !Number.isFinite(value)
+
+interface OnChange {
+  (value: JsonValue): void
+  (value: string): void
+}
+
+interface InputProps {
+  columnId: 'key' | 'value'
+  data: RowData
+  onChange: OnChange
+  placeholder: string
+  value: JsonValue
+}
 
 export default function Input({
   columnId,
@@ -80,7 +96,7 @@ export default function Input({
   onChange,
   placeholder,
   value: originalValue,
-}) {
+}: InputProps) {
   const classes = useStyles()
 
   const [value, setValue] = React.useState(() =>
@@ -90,7 +106,7 @@ export default function Input({
     getNormalizedValueStr(originalValue, data.valueSchema),
   )
 
-  const inputRef = React.useRef()
+  const inputRef = React.useRef<HTMLInputElement | null>(null)
   React.useEffect(() => {
     if (!inputRef.current || !valueStr) return
     if (hasBrackets(valueStr)) {

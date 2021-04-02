@@ -1,6 +1,7 @@
 import cx from 'classnames'
-import * as React from 'react'
 import * as R from 'ramda'
+import * as React from 'react'
+import { Column, Row } from 'react-table'
 import * as M from '@material-ui/core'
 
 import { isSchemaEnum } from 'utils/json-schema'
@@ -8,7 +9,7 @@ import { isSchemaEnum } from 'utils/json-schema'
 import EnumSelect from './EnumSelect'
 import Input from './Input'
 import Preview from './Preview'
-import { COLUMN_IDS } from './constants'
+import { COLUMN_IDS, JsonValue, RowData } from './constants'
 import { parseJSON } from './utils'
 
 const useStyles = M.makeStyles((t) => ({
@@ -29,6 +30,17 @@ const cellPlaceholders = {
   [COLUMN_IDS.VALUE]: 'Value',
 }
 
+interface CellProps {
+  column: Column<{ id: 'key' | 'value' }>
+  columnPath: string[]
+  editing: boolean
+  onExpand: (path: string[]) => void
+  onRemove: (path: string[]) => void
+  row: Row<RowData>
+  updateMyData: (path: string[], id: 'key' | 'value', value: JsonValue) => void
+  value: JsonValue
+}
+
 export default function Cell({
   column,
   columnPath,
@@ -38,7 +50,7 @@ export default function Cell({
   row,
   updateMyData,
   value: initialValue,
-}) {
+}: CellProps) {
   const classes = useStyles()
 
   const [value, setValue] = React.useState(initialValue)
@@ -51,7 +63,7 @@ export default function Cell({
   const onChange = React.useCallback(
     (newValue) => {
       setValue(newValue)
-      updateMyData(fieldPath, column.id, newValue)
+      updateMyData(fieldPath, column.id as 'key' | 'value', newValue)
       setEditing(false)
     },
     [column.id, fieldPath, updateMyData],
@@ -122,18 +134,18 @@ export default function Cell({
     <div
       className={cx(classes.root, { [classes.disabled]: !isEditable })}
       role="textbox"
-      tabIndex={isEditable ? 0 : null}
+      tabIndex={isEditable ? 0 : undefined}
       onDoubleClick={onDoubleClick}
       onKeyPress={onKeyPress}
     >
       <ValueComponent
         {...{
-          columnId: column.id,
+          columnId: column.id as 'key' | 'value',
           data: row.original || emptyCellData,
           onChange,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
           onRemove: React.useCallback(() => onRemove(fieldPath), [fieldPath, onRemove]),
-          placeholder: cellPlaceholders[column.id],
+          placeholder: cellPlaceholders[column.id!],
           title: isEditable ? 'Click to edit' : '',
           value,
         }}
