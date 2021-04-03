@@ -16,11 +16,11 @@ Quilt ElasticSearch queries support the following keys:
 - `_source` — boolean that adds or removes the `_source` field, or a list of fields to return ([learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-request-source-filtering.html))
 - `size` — limits the number of hits ([learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-request.html))
 - `from` — starting offset for pagination ([learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-request.html))
-- `body` — the search query body as a JSON dictionary [learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-request-body.html)
+- `body` — the search query body as a JSON dictionary ([learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-request-body.html))
 
 ### Saved queries
 You can provide pre-canned queries for your users by providing a configuration file 
-at `s3://BUCKET/.quilt/queries/config.yaml`:
+at `s3://YOUR_BUCKET/.quilt/queries/config.yaml`:
 
 ```yaml
 version: "1"
