@@ -81,10 +81,10 @@ def file_list_to_folder(df: pd.DataFrame, limit: int, offset: int) -> dict:
             axis=1
         ).to_dict(orient='records')
         objects = folder[~folder.logical_key.str.contains('/')].to_dict(orient='records')
-        returned_results = len(prefixes) + len(objects)
-    except AttributeError as err:
-        # Pandas will raise an attribute error if the DataFrame has
-        # no rows with a non-null logical_key. We expect that case if
+
+    except (AttributeError, KeyError) as err:
+        # Pandas will raise an AttributeError or KeyError if the DataFrame
+        # has no rows with a non-null logical_key. We expect that case if
         # either: (1) the package is empty (has zero package entries)
         # or, (2) zero package entries match the prefix filter. The
         # choice to allow this to raise the exception instead of
@@ -92,7 +92,9 @@ def file_list_to_folder(df: pd.DataFrame, limit: int, offset: int) -> dict:
         # case where the result set is large.
         prefixes = []
         objects = []
+        total_results = 0
 
+    returned_results = len(prefixes) + len(objects)
     return dict(
         total=total_results,
         returned=returned_results,
