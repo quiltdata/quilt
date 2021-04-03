@@ -1,21 +1,26 @@
-## Make complex searches requests
+## ElasticSearch
 
-User can make complex search requests using Catalog UI. Each bucket has Queries tab with queries editor.
+The objects in S3 buckets connected to Quilt are synchronized to an ElasticSearch
+cluster, which powers Quilt's search features. For custom queries, you can use the
+Queries tab in the Quilt catalog to directly query ElasticSearch cluster.
 
-User can provide search query using Elastic Search 6.7 syntax. Search API syntax allows either request query or reducing, decluttering results. Default query placeholder will give you first look on capabilities of queries:
+Quilt uses ElasticsSearch 6.7
+([docs](https://www.elastic.co/guide/en/elasticsearch/reference/6.7/index.html)).
+
 
 ![](../imgs/catalog-es-queries-default.png)
 
-Available root properties are:
+Quilt ElasticSearch queries support the following keys:
+- `index` — comma-separated list of indexes to search ([learn more](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/search-search.html#search-search-api-path-params))
+- `filter_path` — to reducing response nesting, ([learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/common-options.html#common-options-response-filtering))
+- `_source` — boolean that adds or removes the `_source` field, or a list of fields to return ([learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-request-source-filtering.html))
+- `size` — limits the number of hits ([learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-request.html))
+- `from` — starting offset for pagination ([learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-request.html))
+- `body` — the search query body as a JSON dictionary [learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-request-body.html)
 
-- `index` stands for a comma-separated list of index names to search, [learn more](https://www.elastic.co/guide/en/elasticsearch/reference/7.10/search-search.html#search-search-api-path-params)
-- `filter_path` used for reducing response, [learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/common-options.html#common-options-response-filtering)
-- `_source` boolean that adds or removes `_source` field, or a list of fields to return [learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-request-source-filtering.html)
-- `size` restricts number of hits [learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-request.html)
-- `from` provides start page number for pagination [learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-uri-request.html)
-- `body` is actual search query body [learn more](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/search-request-body.html)
-
-If user have recurring searches, administator is able to save this queries as JSON files. He can store list of saved queries at `s3://BUCKET/.quilt/queries/config.yaml`:
+### Saved queries
+You can provide pre-canned queries for your users by providing a configuration file 
+at `s3://BUCKET/.quilt/queries/config.yaml`:
 
 ```yaml
 version: "1"
@@ -29,4 +34,5 @@ queries:
     url: s3://BUCKET/.quilt/queries/query-2.json
 ```
 
-Catalog UI have dropdown to select one of these saved queries. User free to edit query as well.
+The Quilt catalog displays your saved queries in a drop-down for your users to
+select, edit, and execute.
