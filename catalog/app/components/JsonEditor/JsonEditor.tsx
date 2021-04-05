@@ -3,9 +3,11 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { EMPTY_SCHEMA } from 'utils/json-schema'
+import { EMPTY_SCHEMA, JsonSchema } from 'utils/json-schema'
+
 import Column from './Column'
 import State from './State'
+import { JsonValue, RowData } from './constants'
 
 const useStyles = M.makeStyles({
   disabled: {
@@ -28,7 +30,23 @@ const useStyles = M.makeStyles({
   },
 })
 
-const JsonEditor = React.forwardRef(function JsonEditor(
+interface JsonEditorProps {
+  addRow: (path: string[], key: string | number, value: JsonValue) => void
+  changeValue: (path: string[], id: 'key' | 'value', value: JsonValue) => void
+  className: string
+  columns: {
+    items: RowData[]
+    parent: JsonValue
+  }[]
+  disabled: boolean
+  fieldPath: string[]
+  jsonDict: Record<string, JsonValue>
+  onChange: (value: JsonValue) => void
+  removeField: (path: string[]) => void
+  setFieldPath: (path: string[]) => void
+}
+
+const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function JsonEditor(
   {
     addRow,
     changeValue,
@@ -45,8 +63,12 @@ const JsonEditor = React.forwardRef(function JsonEditor(
 ) {
   const classes = useStyles()
 
+  type CallbackArgs =
+    | [path: string[], key: string | number, value: JsonValue]
+    | [path: string[], key: 'key' | 'value', value: JsonValue | string]
+    | [path: string[]]
   const makeStateChange = React.useCallback(
-    (callback) => (...args) => {
+    (callback) => (...args: CallbackArgs) => {
       const newData = callback(...args)
       if (newData) {
         onChange(newData)
@@ -57,6 +79,8 @@ const JsonEditor = React.forwardRef(function JsonEditor(
 
   const columnData = R.last(columns)
 
+  if (!columnData) throw new Error('No column data')
+
   return (
     <div className={cx({ [classes.disabled]: disabled }, className)}>
       <div className={classes.inner} ref={ref}>
@@ -65,7 +89,7 @@ const JsonEditor = React.forwardRef(function JsonEditor(
             columnPath: fieldPath,
             data: columnData,
             jsonDict,
-            key: fieldPath,
+            key: fieldPath.join(','),
             onAddRow: makeStateChange(addRow),
             onBreadcrumb: setFieldPath,
             onChange: makeStateChange(changeValue),
@@ -78,15 +102,23 @@ const JsonEditor = React.forwardRef(function JsonEditor(
   )
 })
 
+interface JsonEditorWrapperProps {
+  className?: string
+  disabled?: boolean
+  onChange: () => void
+  schema: JsonSchema
+  value: JsonValue
+}
+
 export default React.forwardRef(function JsonEditorWrapper(
-  { className, disabled, onChange, schema: optSchema, value },
+  { className, disabled, onChange, schema: optSchema, value }: JsonEditorWrapperProps,
   ref,
 ) {
   const schema = optSchema || EMPTY_SCHEMA
 
   return (
     <State jsonObject={value} schema={schema}>
-      {(stateProps) => (
+      {(stateProps: any) => (
         <JsonEditor
           {...{
             className,

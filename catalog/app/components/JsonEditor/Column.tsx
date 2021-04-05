@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useTable, Column as RTColumn, TableOptions as RTTableOptions } from 'react-table'
+import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
 import AddArrayItem from './AddArrayItem'
@@ -77,10 +77,6 @@ interface ColumnProps {
   onRemove: (path: string[]) => void
 }
 
-interface TO extends RTTableOptions<RowData> {
-  updateMyData: (path: string[], id: 'key' | 'value', value: JsonValue) => void
-}
-
 export default function Column({
   columnPath,
   data,
@@ -100,7 +96,7 @@ export default function Column({
         {
           accessor: COLUMN_IDS.VALUE,
         },
-      ] as RTColumn<RowData>[],
+      ] as RTable.Column<RowData>[],
     [],
   )
 
@@ -115,14 +111,14 @@ export default function Column({
     [onChange],
   )
 
-  const tableInstance = useTable({
+  const tableInstance = RTable.useTable({
     columns,
     data: data.items,
     defaultColumn: {
       Cell,
     },
     updateMyData: onChangeInternal,
-  } as TO)
+  })
   const { getTableProps, getTableBodyProps, rows, prepareRow } = tableInstance
 
   const columnType = getColumnType(columnPath, jsonDict, data.parent)
@@ -142,7 +138,7 @@ export default function Column({
       <M.TableContainer>
         <M.Table {...getTableProps({ className: classes.table })}>
           <M.TableBody {...getTableBodyProps()}>
-            {rows.map((row, index) => {
+            {rows.map((row, index: number) => {
               const isLastRow = index === rows.length - 1
 
               prepareRow(row)
