@@ -589,7 +589,6 @@ export const MetaInput = React.forwardRef(function MetaInput(
 
         {mode === 'kv' ? (
           <JsonEditor
-            // @ts-expect-error
             className={classes.editor}
             disabled={disabled}
             value={value}

@@ -105,7 +105,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
 interface JsonEditorWrapperProps {
   className?: string
   disabled?: boolean
-  onChange: () => void
+  onChange: (value: JsonValue) => void
   schema: JsonSchema
   value: JsonValue
 }
