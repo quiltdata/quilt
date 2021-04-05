@@ -49,6 +49,7 @@ export const queriesConfig = async ({
 }: QueriesConfigArgs): Promise<Query[] | null> => {
   try {
     const response = await requests.fetchFile({ s3, bucket, path: QUERIES_CONFIG_PATH })
+    // TODO: validate config with JSON Schema
     return parseQueriesList(yaml(response.Body.toString('utf-8')))
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) return []
