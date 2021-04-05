@@ -41,3 +41,20 @@ dataset are shown below.
     "meta": {}
 }
 ```
+
+## Buckets are branches
+
+In Quilt, S3 buckets are analogous to branches in git. Each bucket is a self-contained
+registry for one or more packages. As package data and schemas are refined, you
+can promote a package to a new bucket to signify its increased data quality.
+
+We generally recommend a minimum of three buckets for the data lifecycle:
+* Raw
+* Stage
+* Production
+
+![](imgs/three-bucket-flow.png)
+
+
+See [Quilt workflows](Advanced%20Features/workflows.md) for more on how you can
+control data quality with schemas.

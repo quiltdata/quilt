@@ -4,6 +4,7 @@
 * [Installation](Installation.md)
 * [Quick start](Quickstart.md)
 * [Mental model](MentalModel.md)
+* [Architecture](Architecture.md)
 
 ### Walkthrough
 
