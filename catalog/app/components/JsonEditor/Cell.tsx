@@ -1,5 +1,4 @@
 import cx from 'classnames'
-import * as R from 'ramda'
 import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
@@ -22,14 +21,6 @@ const useStyles = M.makeStyles((t) => ({
     cursor: 'not-allowed',
   },
 }))
-
-const emptyCellData = {
-  address: [],
-  required: false,
-  sortIndex: -1,
-  type: 'undefined',
-  valueSchema: {},
-}
 
 const cellPlaceholders = {
   [COLUMN_IDS.KEY]: 'Key',
@@ -78,13 +69,13 @@ export default function Cell({
   const isKeyCell = column.id === COLUMN_IDS.KEY
   const isValueCell = column.id === COLUMN_IDS.VALUE
 
-  const isEditable = React.useMemo(
-    () => !(isKeyCell && row.original && row.original.valueSchema),
-    [isKeyCell, row.original],
-  )
+  const isEditable = React.useMemo(() => !(isKeyCell && row.original.valueSchema), [
+    isKeyCell,
+    row.original,
+  ])
 
   const isEnumCell = React.useMemo(
-    () => isValueCell && isSchemaEnum(R.path(['original', 'valueSchema'], row)),
+    () => isValueCell && isSchemaEnum(row.original.valueSchema),
     [isValueCell, row],
   )
 
@@ -147,7 +138,7 @@ export default function Cell({
       <ValueComponent
         {...{
           columnId: column.id as 'key' | 'value',
-          data: row.original || emptyCellData,
+          data: row.original,
           onChange,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
           onRemove: React.useCallback(() => onRemove(fieldPath), [fieldPath, onRemove]),

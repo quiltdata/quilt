@@ -152,7 +152,7 @@ export default function Column({
                 key: '',
               }
 
-              if (row.original && row.original.reactId) {
+              if (row.original.reactId) {
                 props.key = row.original.reactId
               }
 

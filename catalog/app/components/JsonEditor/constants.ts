@@ -3,8 +3,6 @@ import { JsonSchema } from 'utils/json-schema'
 // TODO: any JSON or EMPTY_VALUE
 export type JsonValue = $TSFixMe
 
-// NOTE: this is react-table's row.original
-// NOTE: properties types are added on demand, feel free to add if I miss some
 // TODO: make different types for filled and empty rows
 export interface RowData {
   address: string[]
