@@ -33,12 +33,12 @@ const useStyles = M.makeStyles({
 interface JsonEditorProps {
   addRow: (path: string[], key: string | number, value: JsonValue) => void
   changeValue: (path: string[], id: 'key' | 'value', value: JsonValue) => void
-  className: string
+  className?: string
   columns: {
     items: RowData[]
     parent: JsonValue
   }[]
-  disabled: boolean
+  disabled?: boolean
   fieldPath: string[]
   jsonDict: Record<string, JsonValue>
   onChange: (value: JsonValue) => void
@@ -102,6 +102,19 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   )
 })
 
+interface StateRenderProps {
+  addRow: (path: string[], key: string | number, value: JsonValue) => void
+  changeValue: (path: string[], key: 'key' | 'value', value: JsonValue | string) => void
+  columns: {
+    items: RowData[]
+    parent: JsonValue
+  }[]
+  fieldPath: string[]
+  jsonDict: Record<string, JsonValue>
+  removeField: (path: string[]) => void
+  setFieldPath: (path: string[]) => void
+}
+
 interface JsonEditorWrapperProps {
   className?: string
   disabled?: boolean
@@ -110,25 +123,27 @@ interface JsonEditorWrapperProps {
   value: JsonValue
 }
 
-export default React.forwardRef(function JsonEditorWrapper(
-  { className, disabled, onChange, schema: optSchema, value }: JsonEditorWrapperProps,
-  ref,
-) {
-  const schema = optSchema || EMPTY_SCHEMA
+export default React.forwardRef<HTMLDivElement, JsonEditorWrapperProps>(
+  function JsonEditorWrapper(
+    { className, disabled, onChange, schema: optSchema, value },
+    ref,
+  ) {
+    const schema = optSchema || EMPTY_SCHEMA
 
-  return (
-    <State jsonObject={value} schema={schema}>
-      {(stateProps: any) => (
-        <JsonEditor
-          {...{
-            className,
-            disabled,
-            onChange,
-            ref,
-          }}
-          {...stateProps}
-        />
-      )}
-    </State>
-  )
-})
+    return (
+      <State jsonObject={value} schema={schema}>
+        {(stateProps: StateRenderProps) => (
+          <JsonEditor
+            {...{
+              className,
+              disabled,
+              onChange,
+              ref,
+            }}
+            {...stateProps}
+          />
+        )}
+      </State>
+    )
+  },
+)
