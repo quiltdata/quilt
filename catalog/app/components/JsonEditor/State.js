@@ -252,6 +252,8 @@ export default function JsonEditorState({ children, jsonObject, schema }) {
     [jsonObject, jsonDict, fieldPath, rootKeys],
   )
 
+  // TODO: Use `sortIndex: -1` to "remove" fields that cannot be removed,
+  //       like properties from JSON Schema
   const removeField = React.useCallback(
     (removingFieldPath) => dissocObjValue(removingFieldPath, jsonObject),
     [jsonObject],
