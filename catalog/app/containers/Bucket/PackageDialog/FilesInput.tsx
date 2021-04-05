@@ -808,7 +808,7 @@ const useContentsContainerStyles = M.makeStyles((t) => ({
     position: 'relative',
   },
   outlined: {
-    outline: `2px dashed ${t.palette.primary.main}`,
+    outline: `2px dashed ${t.palette.primary.light}`,
     outlineOffset: '-2px',
   },
 }))

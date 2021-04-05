@@ -9,6 +9,7 @@
 
 # unreleased - YYYY-MM-DD
 ## Python API
+* [Added] Size of each manifest record is now limited by 1 MB. This constraint is added to ensure that S3 select, Athena and downstream services work correctly. This limit can be overridden with QUILT_MANIFEST_MAX_RECORD_SIZE environment variable. ([#2114](https://github.com/quiltdata/quilt/pull/2114))
 
 ## CLI
 
@@ -19,6 +20,8 @@
 * [Changed] Item selection in folder-to-package dialog ([#2122](https://github.com/quiltdata/quilt/pull/2122))
 * [Changed] Don't preview .tif (but keep .tiff), preview .results as plain text ([#2128](https://github.com/quiltdata/quilt/pull/2128))
 * [Changed] Sort packages by modification time by default ([#2126](https://github.com/quiltdata/quilt/pull/2126))
+* [Changed] Resolve logical keys in summaries and vega inside packages ([#2140](https://github.com/quiltdata/quilt/pull/2140))
+* [Fixed] `UnicodeDecodeError` in indexer and pkgselect lambdas ([#2123](https://github.com/quiltdata/quilt/pull/2123))
 
 # 3.4.0 - 2021-03-15
 ## Python API
