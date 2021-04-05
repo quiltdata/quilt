@@ -5,62 +5,22 @@ import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
-import { mkSearch } from 'utils/NamedRoutes'
 import * as Resource from 'utils/Resource'
+import mkSearch from 'utils/mkSearch'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import tagged from 'utils/tagged'
 import * as workflows from 'utils/workflows'
 
-import * as errors from './errors'
+import * as errors from '../errors'
+
+import { decodeS3Key } from './utils'
 
 const withErrorHandling = (fn, pairs) => (...args) =>
   fn(...args).catch(errors.catchErrors(pairs))
 
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
-
-const decodeS3Key = R.pipe(R.replace(/\+/g, ' '), decodeURIComponent)
-
-export const bucketListing = ({ s3, bucket, path = '', prefix }) =>
-  s3
-    .listObjectsV2({
-      Bucket: bucket,
-      Delimiter: '/',
-      Prefix: path + (prefix || ''),
-      EncodingType: 'url',
-    })
-    .promise()
-    .then(
-      R.applySpec({
-        dirs: R.pipe(
-          R.prop('CommonPrefixes'),
-          R.map((p) => decodeS3Key(p.Prefix)),
-          R.filter((d) => d !== '/' && d !== '../'),
-          R.uniq,
-        ),
-        files: R.pipe(
-          R.prop('Contents'),
-          R.map(R.evolve({ Key: decodeS3Key })),
-          // filter-out "directory-files" (files that match prefixes)
-          R.filter(({ Key }) => Key !== path && !Key.endsWith('/')),
-          R.map((i) => ({
-            // TODO: expose VersionId?
-            bucket,
-            key: i.Key,
-            modified: i.LastModified,
-            size: i.Size,
-            etag: i.ETag,
-            archived: i.StorageClass === 'GLACIER' || i.StorageClass === 'DEEP_ARCHIVE',
-          })),
-        ),
-        truncated: R.prop('IsTruncated'),
-        bucket: () => bucket,
-        path: () => path,
-        prefix: () => prefix,
-      }),
-    )
-    .catch(errors.catchErrors())
 
 const MAX_BANDS = 10
 
