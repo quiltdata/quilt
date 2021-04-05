@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
-import { Cell as RTCell } from 'react-table'
+import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
 import { COLUMN_IDS, RowData } from './constants'
@@ -25,7 +25,7 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface RowProps {
-  cells: RTCell<RowData>[]
+  cells: RTable.Cell<RowData>[]
   columnPath: string[]
   fresh: boolean
   onExpand: (path: string[]) => void
