@@ -7,7 +7,7 @@ export class BaseError extends Error {
    *
    * @param props - Properties to assign to the created instance.
    */
-  constructor(msg: string, props?: {}) {
+  constructor(msg?: string, props?: {}) {
     super(msg)
     Object.setPrototypeOf(this, new.target.prototype)
     // XXX: do we still need this?
