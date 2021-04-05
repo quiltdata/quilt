@@ -119,7 +119,7 @@
     "remarkable": "^1.7.4",
     "reselect": "^4.0.0",
     "sanitize.css": "^11.0.1",
-    "tslib": "^2.1.0",
+    "tslib": "^2.2.0",
     "use-debounce": "^3.4.3",
     "uuid": "^3.4.0",
     "vega": "^5.20.2",
