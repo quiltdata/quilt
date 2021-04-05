@@ -9,7 +9,7 @@ import {
   schemaTypeToHumanString,
 } from 'utils/json-schema'
 
-import { JsonValue, COLUMN_IDS, EMPTY_VALUE } from './constants'
+import { JsonValue, COLUMN_IDS, EMPTY_VALUE, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   default: {
@@ -25,7 +25,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function getTypeAnnotationFromValue(value: JsonValue, schema: JsonSchema): string {
+function getTypeAnnotationFromValue(value: JsonValue, schema?: JsonSchema): string {
   return R.cond<JsonValue, string>([
     [Array.isArray, () => 'array'],
     [
@@ -40,14 +40,14 @@ function getTypeAnnotationFromValue(value: JsonValue, schema: JsonSchema): strin
   ])(value)
 }
 
-const getTypeAnnotation = (value: JsonValue, schema: JsonSchema): string =>
+const getTypeAnnotation = (value: JsonValue, schema?: JsonSchema): string =>
   value === EMPTY_VALUE
     ? schemaTypeToHumanString(schema)
     : getTypeAnnotationFromValue(value, schema)
 
 interface TypeHelpProps {
   humanReadableSchema: string
-  schema: JsonSchema
+  schema?: JsonSchema
 }
 
 function TypeHelp({ humanReadableSchema, schema }: TypeHelpProps) {
@@ -57,13 +57,13 @@ function TypeHelp({ humanReadableSchema, schema }: TypeHelpProps) {
   return (
     <div>
       Value should be of {humanReadableSchema} type
-      {R.prop('description', schema) && <p>{schema.description}</p>}
+      {!!schema?.description && <p>{schema.description}</p>}
     </div>
   )
 }
 
 interface NoteValueProps {
-  schema: JsonSchema
+  schema?: JsonSchema
   value: JsonValue
 }
 
@@ -89,7 +89,7 @@ function NoteValue({ schema, value }: NoteValueProps) {
 
 interface NoteProps {
   columnId: 'key' | 'value'
-  data: $TSFixMe
+  data: RowData
   value: JsonValue
 }
 
