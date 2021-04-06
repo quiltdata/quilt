@@ -137,7 +137,7 @@ class PackageEntry:
     """
     Represents an entry at a logical key inside a package.
     """
-    __slots__ = ['physical_key', 'size', 'hash', '_meta']
+    __slots__ = ('physical_key', 'size', 'hash', '_meta')
 
     def __init__(self, physical_key, size, hash_obj, meta):
         """
