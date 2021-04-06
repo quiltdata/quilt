@@ -31,8 +31,8 @@ const useStyles = M.makeStyles({
 })
 
 interface JsonEditorProps {
-  addRow: (path: string[], key: string | number, value: JsonValue) => void
-  changeValue: (path: string[], id: 'key' | 'value', value: JsonValue) => void
+  addRow: (path: string[], key: string | number, value: JsonValue) => JsonValue
+  changeValue: (path: string[], id: 'key' | 'value', value: JsonValue) => JsonValue
   className?: string
   columns: {
     items: RowData[]
@@ -41,8 +41,8 @@ interface JsonEditorProps {
   disabled?: boolean
   fieldPath: string[]
   jsonDict: Record<string, JsonValue>
-  onChange: (value: JsonValue) => void
-  removeField: (path: string[]) => void
+  onChange: (value: JsonValue) => JsonValue
+  removeField: (path: string[]) => JsonValue
   setFieldPath: (path: string[]) => void
 }
 
@@ -63,18 +63,28 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
 ) {
   const classes = useStyles()
 
-  type CallbackArgs =
-    | [path: string[], key: string | number, value: JsonValue]
-    | [path: string[], key: 'key' | 'value', value: JsonValue | string]
-    | [path: string[]]
-  const makeStateChange = React.useCallback(
-    (callback) => (...args: CallbackArgs) => {
-      const newData = callback(...args)
-      if (newData) {
-        onChange(newData)
-      }
+  const handleRowAdd = React.useCallback(
+    (path: string[], key: string | number, value: JsonValue) => {
+      const newData = addRow(path, key, value)
+      if (newData) onChange(newData)
     },
-    [onChange],
+    [addRow, onChange],
+  )
+
+  const handleRowRemove = React.useCallback(
+    (path: string[]) => {
+      const newData = removeField(path)
+      if (newData) onChange(newData)
+    },
+    [removeField, onChange],
+  )
+
+  const handleValueChange = React.useCallback(
+    (path: string[], key: 'key' | 'value', value: JsonValue | string) => {
+      const newData = changeValue(path, key, value)
+      if (newData) onChange(newData)
+    },
+    [changeValue, onChange],
   )
 
   const columnData = R.last(columns)
@@ -90,11 +100,11 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
             data: columnData,
             jsonDict,
             key: fieldPath.join(','),
-            onAddRow: makeStateChange(addRow),
+            onAddRow: handleRowAdd,
             onBreadcrumb: setFieldPath,
-            onChange: makeStateChange(changeValue),
+            onChange: handleValueChange,
             onExpand: setFieldPath,
-            onRemove: makeStateChange(removeField),
+            onRemove: handleRowRemove,
           }}
         />
       </div>
@@ -103,15 +113,19 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
 })
 
 interface StateRenderProps {
-  addRow: (path: string[], key: string | number, value: JsonValue) => void
-  changeValue: (path: string[], key: 'key' | 'value', value: JsonValue | string) => void
+  addRow: (path: string[], key: string | number, value: JsonValue) => JsonValue
+  changeValue: (
+    path: string[],
+    key: 'key' | 'value',
+    value: JsonValue | string,
+  ) => JsonValue
   columns: {
     items: RowData[]
     parent: JsonValue
   }[]
   fieldPath: string[]
   jsonDict: Record<string, JsonValue>
-  removeField: (path: string[]) => void
+  removeField: (path: string[]) => JsonValue
   setFieldPath: (path: string[]) => void
 }
 
