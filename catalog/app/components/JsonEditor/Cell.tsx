@@ -1,6 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
-import * as R from 'ramda'
+import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
 import { isSchemaEnum } from 'utils/json-schema'
@@ -8,26 +8,8 @@ import { isSchemaEnum } from 'utils/json-schema'
 import EnumSelect from './EnumSelect'
 import Input from './Input'
 import Preview from './Preview'
-import { ACTIONS, COLUMN_IDS, EMPTY_VALUE, parseJSON } from './State'
-
-const emptyMenu = []
-
-const actionsSubmenu = {
-  key: 'actions',
-  options: [
-    {
-      action: ACTIONS.REMOVE_FIELD,
-      title: 'Remove',
-    },
-  ],
-}
-
-function getMenu({ required, value }) {
-  if (required || value === EMPTY_VALUE) {
-    return emptyMenu
-  }
-  return [actionsSubmenu]
-}
+import { COLUMN_IDS, JsonValue, RowData } from './constants'
+import { parseJSON } from './utils'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -40,11 +22,20 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const emptyCellData = {}
-
 const cellPlaceholders = {
   [COLUMN_IDS.KEY]: 'Key',
   [COLUMN_IDS.VALUE]: 'Value',
+}
+
+interface CellProps {
+  column: RTable.Column<{ id: 'key' | 'value' }>
+  columnPath: string[]
+  editing: boolean
+  onExpand: (path: string[]) => void
+  onRemove: (path: string[]) => void
+  row: Pick<RTable.Row<RowData>, 'original' | 'values'>
+  updateMyData: (path: string[], id: 'key' | 'value', value: JsonValue) => void
+  value: JsonValue
 }
 
 export default function Cell({
@@ -52,37 +43,24 @@ export default function Cell({
   columnPath,
   editing: editingInitial,
   onExpand,
-  onMenuAction,
+  onRemove,
   row,
   updateMyData,
   value: initialValue,
-}) {
+}: CellProps) {
   const classes = useStyles()
 
   const [value, setValue] = React.useState(initialValue)
 
   const [editing, setEditing] = React.useState(editingInitial)
-  const [menuOpened, setMenuOpened] = React.useState(false)
 
   const key = row.values[COLUMN_IDS.KEY]
   const fieldPath = React.useMemo(() => columnPath.concat(key), [columnPath, key])
 
-  const closeMenu = React.useCallback(() => setMenuOpened(false), [setMenuOpened])
-
-  const onMenuOpen = React.useCallback(() => setMenuOpened(true), [setMenuOpened])
-
-  const onMenuSelect = React.useCallback(
-    (menuItem) => {
-      setMenuOpened(false)
-      onMenuAction(fieldPath, menuItem)
-    },
-    [fieldPath, onMenuAction, setMenuOpened],
-  )
-
   const onChange = React.useCallback(
     (newValue) => {
       setValue(newValue)
-      updateMyData(fieldPath, column.id, newValue)
+      updateMyData(fieldPath, column.id as 'key' | 'value', newValue)
       setEditing(false)
     },
     [column.id, fieldPath, updateMyData],
@@ -91,13 +69,13 @@ export default function Cell({
   const isKeyCell = column.id === COLUMN_IDS.KEY
   const isValueCell = column.id === COLUMN_IDS.VALUE
 
-  const isEditable = React.useMemo(
-    () => !(isKeyCell && row.original && row.original.valueSchema),
-    [isKeyCell, row.original],
-  )
+  const isEditable = React.useMemo(() => !(isKeyCell && row.original.valueSchema), [
+    isKeyCell,
+    row.original,
+  ])
 
   const isEnumCell = React.useMemo(
-    () => isValueCell && isSchemaEnum(R.path(['original', 'valueSchema'], row)),
+    () => isValueCell && isSchemaEnum(row.original.valueSchema),
     [isValueCell, row],
   )
 
@@ -143,17 +121,6 @@ export default function Cell({
     [editing, isEditable, setEditing],
   )
 
-  const menu = React.useMemo(
-    () =>
-      isKeyCell
-        ? getMenu({
-            required: row.original ? row.original.required : false,
-            value: key,
-          })
-        : emptyMenu,
-    [isKeyCell, key, row],
-  )
-
   const ValueComponent = React.useMemo(() => {
     if (isEnumCell) return EnumSelect
     if (editing) return Input
@@ -164,22 +131,18 @@ export default function Cell({
     <div
       className={cx(classes.root, { [classes.disabled]: !isEditable })}
       role="textbox"
-      tabIndex={isEditable ? 0 : null}
+      tabIndex={isEditable ? 0 : undefined}
       onDoubleClick={onDoubleClick}
       onKeyPress={onKeyPress}
     >
       <ValueComponent
         {...{
-          columnId: column.id,
-          data: row.original || emptyCellData,
-          menu,
-          menuOpened,
+          columnId: column.id as 'key' | 'value',
+          data: row.original,
           onChange,
           onExpand: React.useCallback(() => onExpand(fieldPath), [fieldPath, onExpand]),
-          onMenu: onMenuOpen,
-          onMenuClose: closeMenu,
-          onMenuSelect,
-          placeholder: cellPlaceholders[column.id],
+          onRemove: React.useCallback(() => onRemove(fieldPath), [fieldPath, onRemove]),
+          placeholder: cellPlaceholders[column.id!],
           title: isEditable ? 'Click to edit' : '',
           value,
         }}
