@@ -117,7 +117,7 @@ class URLParseError(ValueError):
 
 
 class PhysicalKey:
-    __slots__ = ['bucket', 'path', 'version_id']
+    __slots__ = ('bucket', 'path', 'version_id')
 
     def __init__(self, bucket, path, version_id):
         """
