@@ -17,7 +17,7 @@ import * as s3paths from 'utils/s3paths'
 
 import Code from 'containers/Bucket/Code'
 import * as FileView from 'containers/Bucket/FileView'
-import Listing from 'containers/Bucket/Listing'
+import { Listing, PrefixFilter } from 'containers/Bucket/Listing'
 import Summary from 'containers/Bucket/Summary'
 import { displayError } from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
@@ -103,12 +103,33 @@ export default function Dir({
     [bucket, path, dest],
   )
 
+  const [prev, setPrev] = React.useState(null)
+
+  React.useLayoutEffect(() => {
+    // reset accumulated results when path and / or prefix change
+    setPrev(null)
+  }, [path, prefix])
+
   const data = useData(requests.bucketListing, {
     s3,
     bucket,
     path,
     prefix,
+    prev,
   })
+
+  const loadMore = React.useCallback(() => {
+    AsyncResult.case(
+      {
+        Ok: (res) => {
+          // this triggers a re-render and fetching of next page of results
+          if (res.continuationToken) setPrev(res)
+        },
+        _: () => {},
+      },
+      data.result,
+    )
+  }, [data.result, setPrev])
 
   const setPrefix = React.useCallback(
     (newPrefix) => {
@@ -139,17 +160,7 @@ export default function Dir({
         Err: displayError(),
         Init: () => null,
         _: (x) => {
-          const res = AsyncResult.case(
-            {
-              Ok: R.identity,
-              Pending: AsyncResult.case({
-                Ok: R.identity,
-                _: () => null,
-              }),
-              _: () => null,
-            },
-            x,
-          )
+          const res = AsyncResult.getPrevResult(x)
 
           if (!res) return <M.CircularProgress />
 
@@ -162,10 +173,16 @@ export default function Dir({
               <Listing
                 items={items}
                 locked={locked}
+                loadMore={loadMore}
                 truncated={res.truncated}
-                prefix={res.prefix}
-                setPrefix={setPrefix}
-                filterKey={`${res.bucket}/${res.path}`}
+                prefixFilter={res.prefix}
+                toolbarContents={
+                  <PrefixFilter
+                    key={`${res.bucket}/${res.path}`}
+                    prefix={res.prefix}
+                    setPrefix={setPrefix}
+                  />
+                }
               />
               <Summary files={res.files} />
             </>
