@@ -153,7 +153,7 @@
     "circular-dependency-plugin": "^5.2.2",
     "compare-versions": "^3.6.0",
     "compression-webpack-plugin": "^7.1.2",
-    "copy-webpack-plugin": "^8.1.0",
+    "copy-webpack-plugin": "^8.1.1",
     "css-loader": "^5.2.0",
     "eslint": "^7.23.0",
     "eslint-config-airbnb-typescript": "^12.3.1",
