@@ -1,8 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { connect } from 'react-redux'
+import * as redux from 'react-redux'
 import { Route, Link } from 'react-router-dom'
-import { createStructuredSelector } from 'reselect'
 import Button from '@material-ui/core/Button'
 
 import Message from 'components/Message'
@@ -32,21 +31,29 @@ export class FileNotFound extends BucketError {}
 
 export class VersionNotFound extends BucketError {}
 
+export interface BucketPreferencesInvalidProps {
+  errors: { dataPath: string; message: string }[]
+}
+
 export class BucketPreferencesInvalid extends BucketError {
   static displayName = 'BucketPreferencesInvalid'
 
-  constructor(props) {
+  constructor(props: BucketPreferencesInvalidProps) {
     super(
       props.errors.map(({ dataPath, message }) => `${dataPath} ${message}`).join(', '),
       props,
     )
   }
+}
+
+export interface WorkflowsConfigInvalidProps {
+  errors: { dataPath: string; message: string }[]
 }
 
 export class WorkflowsConfigInvalid extends BucketError {
   static displayName = 'WorkflowsConfigInvalid'
 
-  constructor(props) {
+  constructor(props: WorkflowsConfigInvalidProps) {
     super(
       props.errors.map(({ dataPath, message }) => `${dataPath} ${message}`).join(', '),
       props,
@@ -54,10 +61,17 @@ export class WorkflowsConfigInvalid extends BucketError {
   }
 }
 
+export interface ManifestTooLargeProps {
+  bucket: string
+  key: string
+  actualSize: number
+  maxSize: number
+}
+
 export class ManifestTooLarge extends BucketError {
   static displayName = 'ManifestTooLarge'
 
-  constructor(props) {
+  constructor(props: ManifestTooLargeProps) {
     super(
       `Package manifest at s3://${props.bucket}/${props.key} is too large: ${props.actualSize} (max size: ${props.maxSize})`,
       props,
@@ -65,10 +79,16 @@ export class ManifestTooLarge extends BucketError {
   }
 }
 
+export interface BadRevisionProps {
+  bucket: string
+  handle: string
+  revision: string
+}
+
 export class BadRevision extends BucketError {
   static displayName = 'BadRevision'
 
-  constructor(props) {
+  constructor(props: BadRevisionProps) {
     super(
       `Could not resolve revision "${props.revision}" for package "${props.handle}" in s3://${props.bucket}`,
       props,
@@ -76,13 +96,21 @@ export class BadRevision extends BucketError {
   }
 }
 
-const WhenAuth = connect(
-  createStructuredSelector({
-    authenticated: Auth.selectors.authenticated,
-  }),
-)(({ authenticated, cases, args }) => cases[authenticated](...args))
+interface WhenAuthCases {
+  true: () => React.ReactElement
+  false: () => React.ReactElement
+}
 
-const whenAuth = (cases) => (...args) => <WhenAuth {...{ cases, args }} />
+interface WhenAuthProps {
+  cases: WhenAuthCases
+}
+
+function WhenAuth({ cases }: WhenAuthProps) {
+  const authenticated = redux.useSelector(Auth.selectors.authenticated)
+  return cases[`${authenticated}` as 'true' | 'false']()
+}
+
+const whenAuth = (cases: WhenAuthCases) => () => <WhenAuth cases={cases} />
 
 function SignIn() {
   const { urls } = NamedRoutes.use()
@@ -102,7 +130,7 @@ function SignIn() {
   )
 }
 
-const defaultHandlers = [
+const defaultHandlers: ErrorHandler[] = [
   [
     R.is(CORSError),
     () => (
@@ -181,7 +209,9 @@ const defaultHandlers = [
   ],
 ]
 
-export const displayError = (pairs = []) =>
+type ErrorHandler = [(error: unknown) => boolean, (error: unknown) => React.ReactElement]
+
+export const displayError = (pairs: ErrorHandler[] = []) =>
   R.cond([
     ...defaultHandlers,
     ...pairs,
@@ -193,10 +223,12 @@ export const displayError = (pairs = []) =>
     ],
   ])
 
-const startsWithSafe = (prefix) => (str) =>
+const startsWithSafe = (prefix: string) => (str: unknown) =>
   typeof str === 'string' ? str.startsWith(prefix) : false
 
-export const catchErrors = (pairs = []) =>
+type ErrorCatcher = [(error: unknown) => boolean, (error: unknown) => never]
+
+export const catchErrors = (pairs: ErrorCatcher[] = []) =>
   R.cond([
     [
       R.propEq('message', 'Network Failure'),
@@ -260,4 +292,4 @@ export const catchErrors = (pairs = []) =>
         throw e
       },
     ],
-  ])
+  ]) as (reason: unknown) => never
