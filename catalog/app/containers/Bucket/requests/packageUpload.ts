@@ -1,6 +1,13 @@
 import * as R from 'ramda'
+import * as React from 'react'
+
+// createPackageFromScratch
+//              FromPreviousPackage
+//              ByCopying
+//              FromDirectory
 
 import { JsonValue } from 'components/JsonEditor/constants'
+import * as APIConnector from 'utils/APIConnector'
 import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema/json-schema'
 import pipeThru from 'utils/pipeThru'
 import * as workflows from 'utils/workflows'
@@ -26,6 +33,25 @@ interface Response {
 }
 
 type Req = (payload: $TSFixMe) => Promise<Response>
+// FIXME: this is copypasted from PackageDialog -- next time we need to TSify utils/APIConnector properly
+// interface ApiRequest {
+//   <O>(opts: {
+//     endpoint: string
+//     method?: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'HEAD'
+//     body?: {}
+//   }): Promise<O>
+// }
+
+const uploadManifest = (
+  req: Req,
+  endpoint: Endpoint,
+  body: ManifestBody,
+): Promise<Response> =>
+  req({
+    endpoint,
+    method: 'POST',
+    body,
+  })
 
 const getMetaValue = (value: unknown, optSchema: JsonSchema) =>
   value
@@ -69,26 +95,32 @@ interface CreatePackageParams extends BasePackageParams {
   }[]
 }
 
-export function createPackage(
+export const createPackage = (
   req: Req,
   { name, bucket, message, contents, meta, workflow }: CreatePackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
-): Promise<Response> {
-  return req({
-    endpoint: '/packages',
-    method: 'POST',
-    body: {
-      name,
-      registry: `s3://${bucket}`,
-      message,
-      contents,
-      meta: getMetaValue(meta, schema),
-      workflow: getWorkflowApiParam(workflow.slug),
-    },
+): Promise<Response> =>
+  uploadManifest(req, ENDPOINT_BASE, {
+    name,
+    registry: `s3://${bucket}`,
+    message,
+    contents,
+    meta: getMetaValue(meta, schema),
+    workflow: getWorkflowApiParam(workflow.slug),
   })
-}
 
 export const updatePackage = createPackage
+
+export function useCreatePackage() {
+  const req: Req = APIConnector.use()
+  return React.useCallback(
+    (params: CreatePackageParams, schema: JsonSchema) =>
+      createPackage(req, params, schema),
+    [req],
+  )
+}
+
+export const useUpdatePackage = useCreatePackage
 
 // TODO: reuse it from some other place, don't remember where I saw it
 type ManifestHandle = {
@@ -101,27 +133,30 @@ interface CopyPackageParams extends BasePackageParams {
   parent: ManifestHandle
 }
 
-export function copyPackage(
+export const copyPackage = (
   req: Req,
   { bucket, message, meta, name, parent, workflow }: CopyPackageParams,
   schema: JsonSchema,
-) {
-  return req({
-    endpoint: '/packages/promote',
-    method: 'POST',
-    body: {
-      message,
-      meta: getMetaValue(meta, schema),
-      name,
-      parent: {
-        top_hash: parent.revision,
-        registry: `s3://${parent.bucket}`,
-        name: parent.name,
-      },
-      registry: `s3://${bucket}`,
-      workflow: getWorkflowApiParam(workflow.slug),
+) =>
+  uploadManifest(req, ENDPOINT_COPY, {
+    message,
+    meta: getMetaValue(meta, schema),
+    name,
+    parent: {
+      top_hash: parent.revision,
+      registry: `s3://${parent.bucket}`,
+      name: parent.name,
     },
+    registry: `s3://${bucket}`,
+    workflow: getWorkflowApiParam(workflow.slug),
   })
+
+export function useCopyPackage() {
+  const req: Req = APIConnector.use()
+  return React.useCallback(
+    (params: CopyPackageParams, schema: JsonSchema) => copyPackage(req, params, schema),
+    [req],
+  )
 }
 
 interface DirectoryPackageParams extends BasePackageParams {
@@ -133,41 +168,28 @@ interface DirectoryPackageParams extends BasePackageParams {
   }[]
 }
 
-export function directoryPackage(
+export const directoryPackage = (
   req: Req,
   { bucket, message, meta, dst, workflow, entries }: DirectoryPackageParams,
   schema: JsonSchema,
-) {
-  return req({
-    endpoint: '/packages/from-folder',
-    method: 'POST',
-    body: {
-      dst: {
-        registry: `s3://${dst.bucket}`,
-        name: dst.name,
-      },
-      entries,
-      message,
-      meta: getMetaValue(meta, schema),
-      registry: `s3://${bucket}`,
-      workflow: getWorkflowApiParam(workflow.slug),
+) =>
+  uploadManifest(req, ENDPOINT_DIRECTORY, {
+    dst: {
+      registry: `s3://${dst.bucket}`,
+      name: dst.name,
     },
+    entries,
+    message,
+    meta: getMetaValue(meta, schema),
+    registry: `s3://${bucket}`,
+    workflow: getWorkflowApiParam(workflow.slug),
   })
-}
 
-// export function useDirectoryPackage() {
-//   const req: Req = APIConnector.use()
-//   return React.useCallback((params, schema) => directoryPackage(req, params, schema))
-// }
-
-export function uploadManifest(
-  req: Req,
-  endpoint: Endpoint,
-  body: ManifestBody,
-): Promise<Response> {
-  return req({
-    endpoint,
-    method: 'POST',
-    body,
-  })
+export function useDirectoryPackage() {
+  const req: Req = APIConnector.use()
+  return React.useCallback(
+    (params: DirectoryPackageParams, schema: JsonSchema) =>
+      directoryPackage(req, params, schema),
+    [req],
+  )
 }

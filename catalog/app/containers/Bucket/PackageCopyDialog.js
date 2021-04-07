@@ -6,7 +6,6 @@ import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
 import AsyncResult from 'utils/AsyncResult'
-import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -89,13 +88,12 @@ function DialogForm({
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
 
-  const req = APIConnector.use()
+  const copyPackage = requests.useCopyPackage()
 
   // eslint-disable-next-line consistent-return
   const onSubmit = async ({ commitMessage, name, meta, workflow }) => {
     try {
-      const res = await requests.copyPackage(
-        req,
+      const res = await copyPackage(
         {
           bucket: successor.slug,
           message: commitMessage,
@@ -106,7 +104,6 @@ function DialogForm({
             name: initialName,
             bucket,
           },
-          schema,
           workflow,
         },
         schema,

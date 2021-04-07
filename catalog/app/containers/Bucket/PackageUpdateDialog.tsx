@@ -9,7 +9,6 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
-import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
@@ -123,7 +122,6 @@ function DialogForm({
   workflowsConfig,
 }: DialogFormProps) {
   const s3 = AWS.S3.use()
-  const req = APIConnector.use()
   const [uploads, setUploads] = React.useState<Uploads>({})
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
@@ -149,6 +147,8 @@ function DialogForm({
       }),
     [setUploads],
   )
+
+  const updatePackage = requests.useUpdatePackage()
 
   const onSubmit = async ({
     name,
@@ -266,8 +266,7 @@ function DialogForm({
     )
 
     try {
-      const res = await requests.updatePackage(
-        req,
+      const res = await updatePackage(
         {
           name,
           bucket,
