@@ -48,21 +48,22 @@ function usePackageCreateRequest() {
       workflow: workflows.Workflow
       entries: Entry[]
     }) =>
-      req<{ top_hash: string }>({
-        endpoint: '/packages/from-folder',
-        method: 'POST',
-        body: {
-          message: params.commitMessage,
-          meta: PD.getMetaValue(params.meta, params.schema),
-          entries: params.entries,
+      requests.directoryPackage(
+        req,
+        {
           dst: {
-            registry: `s3://${params.targetBucket}`,
+            bucket: params.targetBucket,
             name: params.name,
           },
-          registry: `s3://${params.sourceBucket}`,
-          workflow: PD.getWorkflowApiParam(params.workflow.slug),
+          bucket: params.sourceBucket,
+          entries: params.entries,
+          message: params.commitMessage,
+          meta: params.meta,
+          name: params.name,
+          workflow: params.workflow,
         },
-      }),
+        params.schema,
+      ),
     [req],
   )
 }

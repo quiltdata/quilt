@@ -266,18 +266,18 @@ function DialogForm({
     )
 
     try {
-      const res = await req({
-        endpoint: '/packages',
-        method: 'POST',
-        body: {
+      const res = await requests.updatePackage(
+        req,
+        {
           name,
-          registry: `s3://${bucket}`,
+          bucket,
           message: msg,
           contents,
-          meta: PD.getMetaValue(meta, schema),
-          workflow: PD.getWorkflowApiParam(workflow.slug),
+          meta,
+          workflow,
         },
-      })
+        schema,
+      )
       setSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console

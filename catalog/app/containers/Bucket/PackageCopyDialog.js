@@ -17,38 +17,6 @@ import * as validators from 'utils/validators'
 import * as PD from './PackageDialog'
 import * as requests from './requests'
 
-function requestPackageCopy(
-  req,
-  {
-    commitMessage,
-    hash,
-    initialName,
-    meta,
-    name,
-    schema,
-    sourceBucket,
-    targetBucket,
-    workflow,
-  },
-) {
-  return req({
-    endpoint: '/packages/promote',
-    method: 'POST',
-    body: {
-      message: commitMessage,
-      meta: PD.getMetaValue(meta, schema),
-      name,
-      parent: {
-        top_hash: hash,
-        registry: `s3://${sourceBucket}`,
-        name: initialName,
-      },
-      registry: `s3://${targetBucket}`,
-      workflow: PD.getWorkflowApiParam(workflow.slug),
-    },
-  })
-}
-
 const useFormSkeletonStyles = M.makeStyles((t) => ({
   meta: {
     marginTop: t.spacing(3),
@@ -126,17 +94,23 @@ function DialogForm({
   // eslint-disable-next-line consistent-return
   const onSubmit = async ({ commitMessage, name, meta, workflow }) => {
     try {
-      const res = await requestPackageCopy(req, {
-        commitMessage,
-        hash,
-        initialName,
-        meta,
-        name,
+      const res = await requests.copyPackage(
+        req,
+        {
+          bucket: successor.slug,
+          message: commitMessage,
+          meta,
+          name,
+          parent: {
+            revision: hash,
+            name: initialName,
+            bucket,
+          },
+          schema,
+          workflow,
+        },
         schema,
-        sourceBucket: bucket,
-        targetBucket: successor.slug,
-        workflow,
-      })
+      )
       setSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console

@@ -517,18 +517,18 @@ function PackageCreateDialog({
     )
 
     try {
-      const res = await req({
-        endpoint: '/packages',
-        method: 'POST',
-        body: {
-          name,
-          registry: `s3://${bucket}`,
-          message: msg,
+      const res = await requests.createPackage(
+        req,
+        {
+          bucket,
           contents,
-          meta: PD.getMetaValue(meta, schema),
-          workflow: PD.getWorkflowApiParam(workflow.slug),
+          message: msg,
+          meta,
+          name,
+          workflow,
         },
-      })
+        schema,
+      )
       if (refresh) {
         // wait for ES index to receive the new package data
         await new Promise((resolve) => setTimeout(resolve, PD.ES_LAG))

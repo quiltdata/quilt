@@ -19,7 +19,6 @@ interface WorkflowYaml {
   name: string
   description?: string
   metadata_schema?: string
-  object_schema?: string
   is_message_required?: boolean
 }
 
@@ -97,7 +96,6 @@ function parseWorkflow(
     description: workflow.description,
     isDefault: workflowSlug === data.default_workflow,
     name: workflow.name,
-    objectSchema: workflow.object_schema,
     schema: parseSchema(workflow.metadata_schema, data.schemas),
     slug: workflowSlug,
   }
