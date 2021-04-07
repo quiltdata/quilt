@@ -106,7 +106,7 @@ export default function Dir({
   const [prev, setPrev] = React.useState(null)
 
   React.useLayoutEffect(() => {
-    // reset accumulated results when path and / or prefix change
+    // reset accumulated results when path and/or prefix change
     setPrev(null)
   }, [path, prefix])
 
