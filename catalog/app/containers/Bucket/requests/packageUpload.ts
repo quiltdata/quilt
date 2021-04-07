@@ -1,13 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
-// TODO:
-// createFromScratch: source - null, target - exists
-// update           : source - manifest, target - null
-// copy             : source - manifest, target - exists
-
-// createFromDirectory : source - directory, target - exists
-
 import { JsonValue } from 'components/JsonEditor/constants'
 import * as APIConnector from 'utils/APIConnector'
 import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema/json-schema'
@@ -70,6 +63,49 @@ const ENDPOINT_COPY = '/packages/promote'
 
 type Endpoint = typeof ENDPOINT_BASE | typeof ENDPOINT_DIRECTORY | typeof ENDPOINT_COPY
 
+interface BasePackageParams {
+  message: string
+  meta: JsonValue
+  workflow: workflows.Workflow
+}
+
+interface CreatePackageParams extends BasePackageParams {
+  contents: FileUpload[]
+  target: {
+    bucket: string
+    name: string
+  }
+}
+
+interface UpdatePackageParams extends BasePackageParams {
+  contents: FileUpload[]
+  source: {
+    bucket: string
+    name: string
+  }
+}
+
+// TODO: reuse it from some other place, don't remember where I saw it
+interface ManifestHandleTarget {
+  bucket: string
+  name: string
+}
+
+interface ManifestHandleSource extends ManifestHandleTarget {
+  revision: string
+}
+
+interface CopyPackageParams extends BasePackageParams {
+  source: ManifestHandleSource
+  target: ManifestHandleTarget
+}
+
+interface DirectoryPackageParams extends BasePackageParams {
+  entries: FileEntry[]
+  source: string
+  target: ManifestHandleTarget
+}
+
 interface Response {
   top_hash: string
 }
@@ -113,33 +149,19 @@ const getWorkflowApiParam = R.cond([
   slug: typeof workflows.notAvailable | typeof workflows.notSelected | string,
 ) => string | null | undefined
 
-interface BasePackageParams {
-  bucket: string
-  message: string
-  meta: JsonValue
-  name: string
-  workflow: workflows.Workflow
-}
-
-interface CreatePackageParams extends BasePackageParams {
-  contents: FileUpload[]
-}
-
 export const createPackage = (
   req: ApiRequest,
-  { name, bucket, message, contents, meta, workflow }: CreatePackageParams,
+  { contents, message, meta, target, workflow }: CreatePackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
   uploadManifest(req, ENDPOINT_BASE, {
-    name,
-    registry: `s3://${bucket}`,
+    name: target.name,
+    registry: `s3://${target.bucket}`,
     message,
     contents,
     meta: getMetaValue(meta, schema),
     workflow: getWorkflowApiParam(workflow.slug),
   })
-
-export const updatePackage = createPackage
 
 export function useCreatePackage() {
   const req: ApiRequest = APIConnector.use()
@@ -150,37 +172,44 @@ export function useCreatePackage() {
   )
 }
 
-export const useUpdatePackage = useCreatePackage
+export const updatePackage = (
+  req: ApiRequest,
+  { contents, message, meta, source, workflow }: UpdatePackageParams,
+  schema: JsonSchema, // TODO: should be already inside workflow
+) =>
+  uploadManifest(req, ENDPOINT_BASE, {
+    name: source.name,
+    registry: `s3://${source.bucket}`,
+    message,
+    contents,
+    meta: getMetaValue(meta, schema),
+    workflow: getWorkflowApiParam(workflow.slug),
+  })
 
-// TODO: reuse it from some other place, don't remember where I saw it
-interface ManifestHandle {
-  bucket: string
-  name: string
-}
-
-interface ManifestHandleRevisioned extends ManifestHandle {
-  revision: string
-}
-
-interface CopyPackageParams extends BasePackageParams {
-  parent: ManifestHandleRevisioned
+export function useUpdatePackage() {
+  const req: ApiRequest = APIConnector.use()
+  return React.useCallback(
+    (params: UpdatePackageParams, schema: JsonSchema) =>
+      updatePackage(req, params, schema),
+    [req],
+  )
 }
 
 export const copyPackage = (
   req: ApiRequest,
-  { bucket, message, meta, name, parent, workflow }: CopyPackageParams,
+  { message, meta, source, target, workflow }: CopyPackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
   uploadManifest(req, ENDPOINT_COPY, {
     message,
     meta: getMetaValue(meta, schema),
-    name,
+    name: target.name,
     parent: {
-      top_hash: parent.revision,
-      registry: `s3://${parent.bucket}`,
-      name: parent.name,
+      top_hash: source.revision,
+      registry: `s3://${source.bucket}`,
+      name: source.name,
     },
-    registry: `s3://${bucket}`,
+    registry: `s3://${target.bucket}`,
     workflow: getWorkflowApiParam(workflow.slug),
   })
 
@@ -192,25 +221,20 @@ export function useCopyPackage() {
   )
 }
 
-interface DirectoryPackageParams extends BasePackageParams {
-  dst: ManifestHandle
-  entries: FileEntry[]
-}
-
 export const directoryPackage = (
   req: ApiRequest,
-  { bucket, message, meta, dst, workflow, entries }: DirectoryPackageParams,
+  { message, meta, source, target, workflow, entries }: DirectoryPackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
   uploadManifest(req, ENDPOINT_DIRECTORY, {
     dst: {
-      registry: `s3://${dst.bucket}`,
-      name: dst.name,
+      registry: `s3://${target.bucket}`,
+      name: target.name,
     },
     entries,
     message,
     meta: getMetaValue(meta, schema),
-    registry: `s3://${bucket}`,
+    registry: `s3://${source}`,
     workflow: getWorkflowApiParam(workflow.slug),
   })
 

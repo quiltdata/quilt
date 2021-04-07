@@ -268,11 +268,13 @@ function DialogForm({
     try {
       const res = await updatePackage(
         {
-          name,
-          bucket,
-          message: msg,
           contents,
+          message: msg,
           meta,
+          source: {
+            name,
+            bucket,
+          },
           workflow,
         },
         schema,

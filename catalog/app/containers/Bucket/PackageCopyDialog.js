@@ -95,14 +95,16 @@ function DialogForm({
     try {
       const res = await copyPackage(
         {
-          bucket: successor.slug,
           message: commitMessage,
           meta,
-          name,
-          parent: {
-            revision: hash,
-            name: initialName,
+          source: {
             bucket,
+            name: initialName,
+            revision: hash,
+          },
+          target: {
+            bucket: successor.slug,
+            name,
           },
           workflow,
         },

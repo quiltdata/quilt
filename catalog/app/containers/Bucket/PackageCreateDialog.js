@@ -518,11 +518,13 @@ function PackageCreateDialog({
     try {
       const res = await createPackage(
         {
-          bucket,
           contents,
           message: msg,
           meta,
-          name,
+          target: {
+            bucket,
+            name,
+          },
           workflow,
         },
         schema,

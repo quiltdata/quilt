@@ -130,13 +130,13 @@ function DialogForm({
         const res = await directoryPackage(
           {
             ...values,
-            bucket,
-            dst: {
+            entries: prepareEntries(filesValue, path),
+            message,
+            source: bucket,
+            target: {
               bucket: successor.slug,
               name: values.name,
             },
-            entries: prepareEntries(filesValue, path),
-            message,
           },
           schema,
         )
