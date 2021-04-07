@@ -29,19 +29,19 @@ interface FileUpload {
   size: number
 }
 
-interface ManifestBodyBase {
+interface RequestBodyBase {
   message: string
   meta: JsonValue
   registry: string
   workflow?: string | null
 }
 
-interface ManifestBodyCreate extends ManifestBodyBase {
+interface RequestBodyCreate extends RequestBodyBase {
   contents: FileUpload[]
   name: string
 }
 
-interface ManifestBodyCopy extends ManifestBodyBase {
+interface RequestBodyCopy extends RequestBodyBase {
   name: string
   parent: {
     top_hash: string
@@ -50,7 +50,7 @@ interface ManifestBodyCopy extends ManifestBodyBase {
   }
 }
 
-interface ManifestBodyWrap extends ManifestBodyBase {
+interface RequestBodyWrap extends RequestBodyBase {
   dst: {
     registry: string
     name: string
@@ -58,7 +58,7 @@ interface ManifestBodyWrap extends ManifestBodyBase {
   entries: FileEntry[]
 }
 
-type ManifestBody = ManifestBodyCreate | ManifestBodyWrap | ManifestBodyCopy
+type RequestBody = RequestBodyCreate | RequestBodyWrap | RequestBodyCopy
 
 const ENDPOINT_CREATE = '/packages'
 
@@ -133,7 +133,7 @@ interface ApiRequest {
 const uploadManifest = (
   req: ApiRequest,
   endpoint: Endpoint,
-  body: ManifestBody,
+  body: RequestBody,
 ): Promise<Response> =>
   req({
     endpoint,
