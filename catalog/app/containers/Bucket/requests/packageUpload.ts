@@ -7,6 +7,11 @@ import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema/json-sch
 import pipeThru from 'utils/pipeThru'
 import * as workflows from 'utils/workflows'
 
+// "CREATE package" - creates package from scratch to new target
+// "UPDATE package" - creates package from source (existing manifest) to the same target
+// "COPY package" - creates package from source (existing manifest) to new target
+// "WRAP package" - creates package (wraps directory) from source (bucket + directory) to new target
+
 interface FileEntry {
   is_dir: boolean
   logical_key: string
@@ -45,7 +50,7 @@ interface ManifestBodyCopy extends ManifestBodyBase {
   }
 }
 
-interface ManifestBodyDirectory extends ManifestBodyBase {
+interface ManifestBodyWrap extends ManifestBodyBase {
   dst: {
     registry: string
     name: string
@@ -53,15 +58,31 @@ interface ManifestBodyDirectory extends ManifestBodyBase {
   entries: FileEntry[]
 }
 
-type ManifestBody = ManifestBodyCreate | ManifestBodyDirectory | ManifestBodyCopy
+type ManifestBody = ManifestBodyCreate | ManifestBodyWrap | ManifestBodyCopy
 
-const ENDPOINT_BASE = '/packages'
+const ENDPOINT_CREATE = '/packages'
 
-const ENDPOINT_DIRECTORY = '/packages/from-folder'
+const ENDPOINT_UPDATE = '/packages'
 
 const ENDPOINT_COPY = '/packages/promote'
 
-type Endpoint = typeof ENDPOINT_BASE | typeof ENDPOINT_DIRECTORY | typeof ENDPOINT_COPY
+const ENDPOINT_WRAP = '/packages/from-folder'
+
+type Endpoint =
+  | typeof ENDPOINT_CREATE
+  | typeof ENDPOINT_UPDATE
+  | typeof ENDPOINT_COPY
+  | typeof ENDPOINT_WRAP
+
+// TODO: reuse it from some other place, don't remember where I saw it
+interface ManifestHandleTarget {
+  bucket: string
+  name: string
+}
+
+interface ManifestHandleSource extends ManifestHandleTarget {
+  revision: string
+}
 
 interface BasePackageParams {
   message: string
@@ -85,22 +106,12 @@ interface UpdatePackageParams extends BasePackageParams {
   }
 }
 
-// TODO: reuse it from some other place, don't remember where I saw it
-interface ManifestHandleTarget {
-  bucket: string
-  name: string
-}
-
-interface ManifestHandleSource extends ManifestHandleTarget {
-  revision: string
-}
-
 interface CopyPackageParams extends BasePackageParams {
   source: ManifestHandleSource
   target: ManifestHandleTarget
 }
 
-interface DirectoryPackageParams extends BasePackageParams {
+interface WrapPackageParams extends BasePackageParams {
   entries: FileEntry[]
   source: string
   target: ManifestHandleTarget
@@ -149,12 +160,12 @@ const getWorkflowApiParam = R.cond([
   slug: typeof workflows.notAvailable | typeof workflows.notSelected | string,
 ) => string | null | undefined
 
-export const createPackage = (
+const createPackage = (
   req: ApiRequest,
   { contents, message, meta, target, workflow }: CreatePackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
-  uploadManifest(req, ENDPOINT_BASE, {
+  uploadManifest(req, ENDPOINT_CREATE, {
     name: target.name,
     registry: `s3://${target.bucket}`,
     message,
@@ -172,12 +183,12 @@ export function useCreatePackage() {
   )
 }
 
-export const updatePackage = (
+const updatePackage = (
   req: ApiRequest,
   { contents, message, meta, source, workflow }: UpdatePackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
-  uploadManifest(req, ENDPOINT_BASE, {
+  uploadManifest(req, ENDPOINT_UPDATE, {
     name: source.name,
     registry: `s3://${source.bucket}`,
     message,
@@ -195,7 +206,7 @@ export function useUpdatePackage() {
   )
 }
 
-export const copyPackage = (
+const copyPackage = (
   req: ApiRequest,
   { message, meta, source, target, workflow }: CopyPackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
@@ -221,12 +232,12 @@ export function useCopyPackage() {
   )
 }
 
-export const directoryPackage = (
+const wrapPackage = (
   req: ApiRequest,
-  { message, meta, source, target, workflow, entries }: DirectoryPackageParams,
+  { message, meta, source, target, workflow, entries }: WrapPackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
-  uploadManifest(req, ENDPOINT_DIRECTORY, {
+  uploadManifest(req, ENDPOINT_WRAP, {
     dst: {
       registry: `s3://${target.bucket}`,
       name: target.name,
@@ -238,11 +249,10 @@ export const directoryPackage = (
     workflow: getWorkflowApiParam(workflow.slug),
   })
 
-export function useDirectoryPackage() {
+export function useWrapPackage() {
   const req: ApiRequest = APIConnector.use()
   return React.useCallback(
-    (params: DirectoryPackageParams, schema: JsonSchema) =>
-      directoryPackage(req, params, schema),
+    (params: WrapPackageParams, schema: JsonSchema) => wrapPackage(req, params, schema),
     [req],
   )
 }

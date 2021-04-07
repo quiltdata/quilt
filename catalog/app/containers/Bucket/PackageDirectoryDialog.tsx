@@ -109,7 +109,7 @@ function DialogForm({
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
 
-  const directoryPackage = requests.useDirectoryPackage()
+  const createPackage = requests.useWrapPackage()
 
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
@@ -127,7 +127,7 @@ function DialogForm({
       // eslint-disable-next-line consistent-return
     }) => {
       try {
-        const res = await directoryPackage(
+        const res = await createPackage(
           {
             ...values,
             entries: prepareEntries(filesValue, path),
@@ -147,7 +147,7 @@ function DialogForm({
         return { [FF.FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
       }
     },
-    [bucket, successor, directoryPackage, setSuccess, schema, path],
+    [bucket, successor, createPackage, setSuccess, schema, path],
   )
 
   const initialFiles: PD.FilesSelectorState = React.useMemo(
