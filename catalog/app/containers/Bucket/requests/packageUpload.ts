@@ -32,18 +32,17 @@ interface Response {
   top_hash: string
 }
 
-type Req = (payload: $TSFixMe) => Promise<Response>
 // FIXME: this is copypasted from PackageDialog -- next time we need to TSify utils/APIConnector properly
-// interface ApiRequest {
-//   <O>(opts: {
-//     endpoint: string
-//     method?: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'HEAD'
-//     body?: {}
-//   }): Promise<O>
-// }
+interface ApiRequest {
+  <O>(opts: {
+    endpoint: string
+    method?: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'HEAD'
+    body?: {}
+  }): Promise<O>
+}
 
 const uploadManifest = (
-  req: Req,
+  req: ApiRequest,
   endpoint: Endpoint,
   body: ManifestBody,
 ): Promise<Response> =>
@@ -72,8 +71,6 @@ const getWorkflowApiParam = R.cond([
   slug: typeof workflows.notAvailable | typeof workflows.notSelected | string,
 ) => string | null | undefined
 
-// TODO: add sources and targets
-//       or not
 interface BasePackageParams {
   bucket: string
   message: string
@@ -96,10 +93,10 @@ interface CreatePackageParams extends BasePackageParams {
 }
 
 export const createPackage = (
-  req: Req,
+  req: ApiRequest,
   { name, bucket, message, contents, meta, workflow }: CreatePackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
-): Promise<Response> =>
+) =>
   uploadManifest(req, ENDPOINT_BASE, {
     name,
     registry: `s3://${bucket}`,
@@ -112,7 +109,7 @@ export const createPackage = (
 export const updatePackage = createPackage
 
 export function useCreatePackage() {
-  const req: Req = APIConnector.use()
+  const req: ApiRequest = APIConnector.use()
   return React.useCallback(
     (params: CreatePackageParams, schema: JsonSchema) =>
       createPackage(req, params, schema),
@@ -134,9 +131,9 @@ interface CopyPackageParams extends BasePackageParams {
 }
 
 export const copyPackage = (
-  req: Req,
+  req: ApiRequest,
   { bucket, message, meta, name, parent, workflow }: CopyPackageParams,
-  schema: JsonSchema,
+  schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
   uploadManifest(req, ENDPOINT_COPY, {
     message,
@@ -152,7 +149,7 @@ export const copyPackage = (
   })
 
 export function useCopyPackage() {
-  const req: Req = APIConnector.use()
+  const req: ApiRequest = APIConnector.use()
   return React.useCallback(
     (params: CopyPackageParams, schema: JsonSchema) => copyPackage(req, params, schema),
     [req],
@@ -169,9 +166,9 @@ interface DirectoryPackageParams extends BasePackageParams {
 }
 
 export const directoryPackage = (
-  req: Req,
+  req: ApiRequest,
   { bucket, message, meta, dst, workflow, entries }: DirectoryPackageParams,
-  schema: JsonSchema,
+  schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
   uploadManifest(req, ENDPOINT_DIRECTORY, {
     dst: {
@@ -186,7 +183,7 @@ export const directoryPackage = (
   })
 
 export function useDirectoryPackage() {
-  const req: Req = APIConnector.use()
+  const req: ApiRequest = APIConnector.use()
   return React.useCallback(
     (params: DirectoryPackageParams, schema: JsonSchema) =>
       directoryPackage(req, params, schema),
