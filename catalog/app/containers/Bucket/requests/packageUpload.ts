@@ -8,7 +8,7 @@ import pipeThru from 'utils/pipeThru'
 import * as workflows from 'utils/workflows'
 
 // "CREATE package" - creates package from scratch to new target
-// "UPDATE package" - creates package from source (existing manifest) to the same target
+// "UPDATE package" - creates package from scratch (using existing manifest) to defined target
 // "COPY package" - creates package from source (existing manifest) to new target
 // "WRAP package" - creates package (wraps directory) from source (bucket + directory) to new target
 
@@ -100,7 +100,7 @@ interface CreatePackageParams extends BasePackageParams {
 
 interface UpdatePackageParams extends BasePackageParams {
   contents: FileUpload[]
-  source: {
+  target: {
     bucket: string
     name: string
   }
@@ -185,12 +185,12 @@ export function useCreatePackage() {
 
 const updatePackage = (
   req: ApiRequest,
-  { contents, message, meta, source, workflow }: UpdatePackageParams,
+  { contents, message, meta, target, workflow }: UpdatePackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
   uploadManifest(req, ENDPOINT_UPDATE, {
-    name: source.name,
-    registry: `s3://${source.bucket}`,
+    name: target.name,
+    registry: `s3://${target.bucket}`,
     message,
     contents,
     meta: getMetaValue(meta, schema),

@@ -271,7 +271,7 @@ function DialogForm({
           contents,
           message: msg,
           meta,
-          source: {
+          target: {
             name,
             bucket,
           },
