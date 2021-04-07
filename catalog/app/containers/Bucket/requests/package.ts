@@ -58,21 +58,11 @@ interface RequestBodyWrap extends RequestBodyBase {
   entries: FileEntry[]
 }
 
-type RequestBody = RequestBodyCreate | RequestBodyWrap | RequestBodyCopy
-
 const ENDPOINT_CREATE = '/packages'
-
-const ENDPOINT_UPDATE = '/packages'
 
 const ENDPOINT_COPY = '/packages/promote'
 
 const ENDPOINT_WRAP = '/packages/from-folder'
-
-type Endpoint =
-  | typeof ENDPOINT_CREATE
-  | typeof ENDPOINT_UPDATE
-  | typeof ENDPOINT_COPY
-  | typeof ENDPOINT_WRAP
 
 // TODO: reuse it from some other place, don't remember where I saw it
 interface ManifestHandleTarget {
@@ -130,17 +120,6 @@ interface ApiRequest {
   }): Promise<Output>
 }
 
-const uploadManifest = (
-  req: ApiRequest,
-  endpoint: Endpoint,
-  body: RequestBody,
-): Promise<Response> =>
-  req<Response, RequestBody>({
-    endpoint,
-    method: 'POST',
-    body,
-  })
-
 const getMetaValue = (value: unknown, optSchema: JsonSchema) =>
   value
     ? pipeThru(value || {})(
@@ -160,99 +139,101 @@ const getWorkflowApiParam = R.cond([
   slug: typeof workflows.notAvailable | typeof workflows.notSelected | string,
 ) => string | null | undefined
 
-const createPackage = (
-  req: ApiRequest,
-  { contents, message, meta, target, workflow }: CreatePackageParams,
-  schema: JsonSchema, // TODO: should be already inside workflow
-) =>
-  uploadManifest(req, ENDPOINT_CREATE, {
-    name: target.name,
-    registry: `s3://${target.bucket}`,
-    message,
-    contents,
-    meta: getMetaValue(meta, schema),
-    workflow: getWorkflowApiParam(workflow.slug),
-  })
-
 export function useCreatePackage() {
   const req: ApiRequest = APIConnector.use()
   return React.useCallback(
-    (params: CreatePackageParams, schema: JsonSchema) =>
-      createPackage(req, params, schema),
+    (
+      { contents, message, meta, target, workflow }: CreatePackageParams,
+      schema: JsonSchema, // TODO: should be already inside workflow
+    ) =>
+      req<Response, RequestBodyCreate>({
+        endpoint: ENDPOINT_CREATE,
+        method: 'POST',
+        body: {
+          name: target.name,
+          registry: `s3://${target.bucket}`,
+          message,
+          contents,
+          meta: getMetaValue(meta, schema),
+          workflow: getWorkflowApiParam(workflow.slug),
+        },
+      }),
     [req],
   )
 }
-
-const updatePackage = (
-  req: ApiRequest,
-  { contents, message, meta, target, workflow }: UpdatePackageParams,
-  schema: JsonSchema, // TODO: should be already inside workflow
-) =>
-  uploadManifest(req, ENDPOINT_UPDATE, {
-    name: target.name,
-    registry: `s3://${target.bucket}`,
-    message,
-    contents,
-    meta: getMetaValue(meta, schema),
-    workflow: getWorkflowApiParam(workflow.slug),
-  })
 
 export function useUpdatePackage() {
   const req: ApiRequest = APIConnector.use()
   return React.useCallback(
-    (params: UpdatePackageParams, schema: JsonSchema) =>
-      updatePackage(req, params, schema),
+    (
+      { contents, message, meta, target, workflow }: UpdatePackageParams,
+      schema: JsonSchema, // TODO: should be already inside workflow
+    ) =>
+      req<Response, RequestBodyCreate>({
+        endpoint: ENDPOINT_CREATE,
+        method: 'POST',
+        body: {
+          name: target.name,
+          registry: `s3://${target.bucket}`,
+          message,
+          contents,
+          meta: getMetaValue(meta, schema),
+          workflow: getWorkflowApiParam(workflow.slug),
+        },
+      }),
     [req],
   )
 }
-
-const copyPackage = (
-  req: ApiRequest,
-  { message, meta, source, target, workflow }: CopyPackageParams,
-  schema: JsonSchema, // TODO: should be already inside workflow
-) =>
-  uploadManifest(req, ENDPOINT_COPY, {
-    message,
-    meta: getMetaValue(meta, schema),
-    name: target.name,
-    parent: {
-      top_hash: source.revision,
-      registry: `s3://${source.bucket}`,
-      name: source.name,
-    },
-    registry: `s3://${target.bucket}`,
-    workflow: getWorkflowApiParam(workflow.slug),
-  })
 
 export function useCopyPackage() {
   const req: ApiRequest = APIConnector.use()
   return React.useCallback(
-    (params: CopyPackageParams, schema: JsonSchema) => copyPackage(req, params, schema),
+    (
+      { message, meta, source, target, workflow }: CopyPackageParams,
+      schema: JsonSchema, // TODO: should be already inside workflow
+    ) =>
+      req<Response, RequestBodyCopy>({
+        endpoint: ENDPOINT_COPY,
+        method: 'POST',
+        body: {
+          message,
+          meta: getMetaValue(meta, schema),
+          name: target.name,
+          parent: {
+            top_hash: source.revision,
+            registry: `s3://${source.bucket}`,
+            name: source.name,
+          },
+          registry: `s3://${target.bucket}`,
+          workflow: getWorkflowApiParam(workflow.slug),
+        },
+      }),
     [req],
   )
 }
 
-const wrapPackage = (
-  req: ApiRequest,
-  { message, meta, source, target, workflow, entries }: WrapPackageParams,
-  schema: JsonSchema, // TODO: should be already inside workflow
-) =>
-  uploadManifest(req, ENDPOINT_WRAP, {
-    dst: {
-      registry: `s3://${target.bucket}`,
-      name: target.name,
-    },
-    entries,
-    message,
-    meta: getMetaValue(meta, schema),
-    registry: `s3://${source}`,
-    workflow: getWorkflowApiParam(workflow.slug),
-  })
-
 export function useWrapPackage() {
   const req: ApiRequest = APIConnector.use()
   return React.useCallback(
-    (params: WrapPackageParams, schema: JsonSchema) => wrapPackage(req, params, schema),
+    (
+      { message, meta, source, target, workflow, entries }: WrapPackageParams,
+      schema: JsonSchema, // TODO: should be already inside workflow
+    ) =>
+      req<Response, RequestBodyWrap>({
+        endpoint: ENDPOINT_WRAP,
+        method: 'POST',
+        body: {
+          dst: {
+            registry: `s3://${target.bucket}`,
+            name: target.name,
+          },
+          entries,
+          message,
+          meta: getMetaValue(meta, schema),
+          registry: `s3://${source}`,
+          workflow: getWorkflowApiParam(workflow.slug),
+        },
+      }),
     [req],
   )
 }
