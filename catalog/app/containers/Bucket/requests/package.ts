@@ -123,11 +123,11 @@ interface Response {
 
 // FIXME: this is copypasted from PackageDialog -- next time we need to TSify utils/APIConnector properly
 interface ApiRequest {
-  <O>(opts: {
+  <Output, Body = {}>(opts: {
     endpoint: string
     method?: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'HEAD'
-    body?: {}
-  }): Promise<O>
+    body?: Body
+  }): Promise<Output>
 }
 
 const uploadManifest = (
@@ -135,7 +135,7 @@ const uploadManifest = (
   endpoint: Endpoint,
   body: RequestBody,
 ): Promise<Response> =>
-  req({
+  req<Response, RequestBody>({
     endpoint,
     method: 'POST',
     body,
