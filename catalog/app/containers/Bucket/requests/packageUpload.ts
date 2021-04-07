@@ -1,10 +1,12 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
-// createPackageFromScratch
-//              FromPreviousPackage
-//              ByCopying
-//              FromDirectory
+// TODO:
+// createFromScratch: source - null, target - exists
+// update           : source - manifest, target - null
+// copy             : source - manifest, target - exists
+
+// createFromDirectory : source - directory, target - exists
 
 import { JsonValue } from 'components/JsonEditor/constants'
 import * as APIConnector from 'utils/APIConnector'
@@ -12,13 +14,53 @@ import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema/json-sch
 import pipeThru from 'utils/pipeThru'
 import * as workflows from 'utils/workflows'
 
-interface ManifestBodyBase {}
+interface FileEntry {
+  is_dir: boolean
+  logical_key: string
+  path: string
+}
 
-interface ManifestBodyDirectory {}
+interface FileUpload {
+  hash: string
+  logical_key: string
+  physical_key: {
+    bucket: string
+    key: string
+    version: string
+  }
+  size: number
+}
 
-interface ManifestBodyCopy {}
+interface ManifestBodyBase {
+  message: string
+  meta: JsonValue
+  registry: string
+  workflow?: string | null
+}
 
-type ManifestBody = ManifestBodyBase & ManifestBodyDirectory & ManifestBodyCopy
+interface ManifestBodyCreate extends ManifestBodyBase {
+  contents: FileUpload[]
+  name: string
+}
+
+interface ManifestBodyCopy extends ManifestBodyBase {
+  name: string
+  parent: {
+    top_hash: string
+    registry: string
+    name: string
+  }
+}
+
+interface ManifestBodyDirectory extends ManifestBodyBase {
+  dst: {
+    registry: string
+    name: string
+  }
+  entries: FileEntry[]
+}
+
+type ManifestBody = ManifestBodyCreate | ManifestBodyDirectory | ManifestBodyCopy
 
 const ENDPOINT_BASE = '/packages'
 
@@ -80,16 +122,7 @@ interface BasePackageParams {
 }
 
 interface CreatePackageParams extends BasePackageParams {
-  contents: {
-    logical_key: string
-    physical_key: {
-      bucket: string
-      key: string
-      version: string
-    }
-    size: number
-    hash: string
-  }[]
+  contents: FileUpload[]
 }
 
 export const createPackage = (
@@ -120,14 +153,17 @@ export function useCreatePackage() {
 export const useUpdatePackage = useCreatePackage
 
 // TODO: reuse it from some other place, don't remember where I saw it
-type ManifestHandle = {
+interface ManifestHandle {
   bucket: string
   name: string
-  revision?: string
+}
+
+interface ManifestHandleRevisioned extends ManifestHandle {
+  revision: string
 }
 
 interface CopyPackageParams extends BasePackageParams {
-  parent: ManifestHandle
+  parent: ManifestHandleRevisioned
 }
 
 export const copyPackage = (
@@ -158,11 +194,7 @@ export function useCopyPackage() {
 
 interface DirectoryPackageParams extends BasePackageParams {
   dst: ManifestHandle
-  entries: {
-    is_dir: boolean
-    logical_key: string
-    path: string
-  }[]
+  entries: FileEntry[]
 }
 
 export const directoryPackage = (
