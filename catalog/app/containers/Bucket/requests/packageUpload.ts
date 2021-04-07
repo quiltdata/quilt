@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import { JsonValue } from 'components/JsonEditor/constants'
 import * as APIConnector from 'utils/APIConnector'
-import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema/json-schema'
+import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import * as workflows from 'utils/workflows'
 
