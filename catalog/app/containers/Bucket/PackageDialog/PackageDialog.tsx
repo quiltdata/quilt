@@ -645,6 +645,8 @@ export function SchemaFetcher({
   workflowsConfig,
   children,
 }: SchemaFetcherProps) {
+  // TODO: convert `workflow.schema` to `workflow.schema.url`
+  //       workflow = R.assocPath(['schema', 'body'], schema, workflow.schema)
   const s3 = AWS.S3.use()
 
   const initialWorkflow = React.useMemo(() => {
