@@ -88,14 +88,6 @@ interface CreatePackageParams extends BasePackageParams {
   }
 }
 
-interface UpdatePackageParams extends BasePackageParams {
-  contents: FileUpload[]
-  target: {
-    bucket: string
-    name: string
-  }
-}
-
 interface CopyPackageParams extends BasePackageParams {
   source: ManifestHandleSource
   target: ManifestHandleTarget
@@ -162,28 +154,7 @@ export function useCreatePackage() {
   )
 }
 
-export function useUpdatePackage() {
-  const req: ApiRequest = APIConnector.use()
-  return React.useCallback(
-    (
-      { contents, message, meta, target, workflow }: UpdatePackageParams,
-      schema: JsonSchema, // TODO: should be already inside workflow
-    ) =>
-      req<Response, RequestBodyCreate>({
-        endpoint: ENDPOINT_CREATE,
-        method: 'POST',
-        body: {
-          name: target.name,
-          registry: `s3://${target.bucket}`,
-          message,
-          contents,
-          meta: getMetaValue(meta, schema),
-          workflow: getWorkflowApiParam(workflow.slug),
-        },
-      }),
-    [req],
-  )
-}
+export const useUpdatePackage = useCreatePackage
 
 export function useCopyPackage() {
   const req: ApiRequest = APIConnector.use()
