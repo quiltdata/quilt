@@ -579,6 +579,9 @@ const useFooterStyles = M.makeStyles((t) => ({
     marginLeft: t.spacing(0.5),
   },
   truncationWarning: {
+    alignItems: 'inherit',
+    display: 'inherit',
+
     [t.breakpoints.down('xs')]: {
       display: 'none',
     },
