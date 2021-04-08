@@ -64,7 +64,7 @@ def get_available_memory():
     return virtual_memory().available
 
 
-def make_json_response(status_code, json_object, extra_headers=None):
+def make_json_response(status_code, json_object, extra_headers=None, add_status=False):
     """
     Helper function to serialize a JSON object and add the JSON content type header.
     """
@@ -73,6 +73,8 @@ def make_json_response(status_code, json_object, extra_headers=None):
     }
     if extra_headers is not None:
         headers.update(extra_headers)
+    if add_status:
+        json_object['status'] = status_code
 
     return status_code, json.dumps(json_object), headers
 
@@ -109,16 +111,16 @@ def sql_escape(s):
 def buffer_s3response(s3response):
     """
     Read a streaming response (botocore.eventstream.EventStream) from s3 select
-    into a StringIO buffer
+    into a BytesIO buffer
     """
     logger_ = logging.getLogger(LOGGER_NAME)
-    response = io.StringIO()
+    response = io.BytesIO()
     end_event_received = False
     stats = None
     found_records = False
     for event in s3response['Payload']:
         if 'Records' in event:
-            records = event['Records']['Payload'].decode()
+            records = event['Records']['Payload']
             response.write(records)
             found_records = True
         elif 'Progress' in event:
@@ -141,7 +143,7 @@ def query_manifest_content(
         bucket: str,
         key: str,
         sql_stmt: str
-) -> io.StringIO:
+) -> io.BytesIO:
     """
     Call S3 Select to read only the logical keys from a
     package manifest that match the desired folder path

@@ -808,7 +808,7 @@ const useContentsContainerStyles = M.makeStyles((t) => ({
     position: 'relative',
   },
   outlined: {
-    outline: `2px dashed ${t.palette.primary.main}`,
+    outline: `2px dashed ${t.palette.primary.light}`,
     outlineOffset: '-2px',
   },
 }))
@@ -1377,7 +1377,11 @@ export function FilesSelector({
             size="small"
             endIcon={
               <M.Icon fontSize="small">
-                {selected < value.length ? 'check_box' : 'check_box_outline_blank'}
+                {selected === value.length // eslint-disable-line no-nested-ternary
+                  ? 'check_box'
+                  : !selected
+                  ? 'check_box_outline_blank'
+                  : 'indeterminate_check_box_icon'}
               </M.Icon>
             }
           >

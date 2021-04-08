@@ -6,13 +6,9 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     border: `1px solid ${t.palette.grey[400]}`,
     borderWidth: '1px 1px 0',
-    display: 'flex',
-    height: t.spacing(4) + 1,
-    padding: t.spacing(0, 1),
     color: t.palette.text.hint,
-  },
-  objectRoot: {
-    marginRight: t.spacing(0.5),
+    display: 'flex',
+    padding: '5px 8px',
   },
 }))
 
@@ -23,7 +19,13 @@ const useItemStyles = M.makeStyles({
   },
 })
 
-function BreadcrumbsItem({ index, children, onClick }) {
+interface BreadcrumbsItemProps {
+  index: number
+  children: React.ReactNode
+  onClick: (index: number) => void
+}
+
+function BreadcrumbsItem({ index, children, onClick }: BreadcrumbsItemProps) {
   const classes = useItemStyles()
 
   return (
@@ -41,7 +43,12 @@ function BreadcrumbsDivider() {
   return <M.Icon fontSize="small">chevron_right</M.Icon>
 }
 
-export default function Breadcrumbs({ items, onSelect }) {
+interface BreadcrumbsProps {
+  items: string[]
+  onSelect: (path: string[]) => void
+}
+
+export default function Breadcrumbs({ items, onSelect }: BreadcrumbsProps) {
   const classes = useStyles()
 
   const onBreadcrumb = React.useCallback(
@@ -53,20 +60,14 @@ export default function Breadcrumbs({ items, onSelect }) {
     [items, onSelect],
   )
 
-  const ref = React.useRef()
+  const ref = React.useRef<HTMLElement | null>(null)
   React.useEffect(() => {
-    ref.current.scrollIntoView()
+    ref.current?.scrollIntoView()
   }, [ref])
 
   return (
     <M.Breadcrumbs className={classes.root} ref={ref} separator={<BreadcrumbsDivider />}>
-      <BreadcrumbsItem
-        className={classes.objectRoot}
-        index={0}
-        item="#"
-        color="inherit"
-        onClick={onBreadcrumb}
-      >
+      <BreadcrumbsItem index={0} onClick={onBreadcrumb}>
         <M.Icon fontSize="small">home</M.Icon>
       </BreadcrumbsItem>
 

@@ -4,7 +4,9 @@ import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
+import { useLogicalKeyResolver } from 'utils/LogicalKeyResolver'
 import * as Resource from 'utils/Resource'
+import * as s3paths from 'utils/s3paths'
 
 import * as Text from './Text'
 import { PreviewData, PreviewError } from '../types'
@@ -15,22 +17,58 @@ const SCHEMA_RE = /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/([\w-]+)\/
 
 const map = (fn) => R.ifElse(Array.isArray, R.map(fn), fn)
 
+const traverseUrls = (fn, spec) => R.evolve({ data: map(R.evolve({ url: fn })) }, spec)
+
 function useVegaSpecSigner(handle) {
-  const sign = AWS.Signer.useResourceSigner()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return React.useCallback(
-    R.evolve({
-      data: map(
-        R.evolve({
-          url: (url) =>
-            sign({
-              ptr: Resource.parse(url),
-              ctx: { type: Resource.ContextType.Vega(), handle },
-            }),
+  const sign = AWS.Signer.useS3Signer()
+  const resolveLogicalKey = useLogicalKeyResolver()
+
+  const resolvePath = React.useMemo(
+    () =>
+      resolveLogicalKey && handle.logicalKey
+        ? (path) =>
+            resolveLogicalKey(s3paths.resolveKey(handle.logicalKey, path)).catch((e) => {
+              // eslint-disable-next-line no-console
+              console.warn(
+                `Error resolving data url '${path}' referenced from vega spec at '${handle.logicalKey}'`,
+              )
+              // eslint-disable-next-line no-console
+              console.error(e)
+              throw PreviewError.SrcDoesNotExist({ path })
+            })
+        : (path) => ({
+            bucket: handle.bucket,
+            key: s3paths.resolveKey(handle.key, path),
+          }),
+    [resolveLogicalKey, handle.logicalKey, handle.key, handle.bucket],
+  )
+
+  const processUrl = React.useMemo(
+    () =>
+      R.pipe(
+        Resource.parse,
+        Resource.Pointer.case({
+          Web: async (url) => url,
+          S3: async (h) => sign(h),
+          S3Rel: async (path) => sign(await resolvePath(path)),
+          Path: async (path) => sign(await resolvePath(path)),
         }),
       ),
-    }),
-    [sign, handle],
+    [sign, resolvePath],
+  )
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return React.useCallback(
+    async (spec) => {
+      const promises = []
+      const specWithPlaceholders = traverseUrls((url) => {
+        const len = promises.push(processUrl(url))
+        return len - 1
+      }, spec)
+      const results = await Promise.all(promises)
+      return traverseUrls((idx) => results[idx], specWithPlaceholders)
+    },
+    [processUrl],
   )
 }
 
@@ -45,13 +83,13 @@ const detectSchema = (txt) => {
 function VegaLoader({ handle, gated, children }) {
   const signSpec = useVegaSpecSigner(handle)
   const data = utils.useObjectGetter(handle, { noAutoFetch: gated })
-  const processed = utils.useProcessing(
+  const processed = utils.useAsyncProcessing(
     data.result,
-    (r) => {
+    async (r) => {
       try {
         const contents = r.Body.toString('utf-8')
         const spec = JSON.parse(contents)
-        return PreviewData.Vega({ spec: signSpec(spec) })
+        return PreviewData.Vega({ spec: await signSpec(spec) })
       } catch (e) {
         if (e instanceof SyntaxError) {
           throw PreviewError.MalformedJson({ handle, message: e.message })

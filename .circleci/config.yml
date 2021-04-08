@@ -245,6 +245,7 @@ workflows:
                 - pkgselect
                 - shared
                 - pkgevents
+                - pkgpush
       - test-lambda:
           name: test-lambda-indexer
           path: es/indexer

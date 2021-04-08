@@ -13,7 +13,7 @@ describe('utils/workflows', () => {
       })
 
       it('should return data with special `notAvailable` workflow', () => {
-        expect(config.workflows[0].slug).toBe(workflows.notAvaliable)
+        expect(config.workflows[0].slug).toBe(workflows.notAvailable)
       })
     })
 

@@ -110,12 +110,23 @@ export default function PreviewDisplay({
             heading: 'No Such Object',
             body: 'Object does not exist',
           }),
+        SrcDoesNotExist: ({ path }) =>
+          renderMessage({
+            heading: 'Could Not Resolve Data File',
+            body: `Data file referenced as '${path}' could not be resolved`,
+          }),
         MalformedJson: ({ message }) =>
           renderMessage({
             heading: 'Malformed JSON',
             body: message,
           }),
         Unexpected: ({ retry }) =>
+          renderMessage({
+            heading: 'Unexpected Error',
+            body: 'Something went wrong while loading preview',
+            action: !!retry && renderAction({ label: 'Retry', onClick: retry }),
+          }),
+        __: ({ retry }) =>
           renderMessage({
             heading: 'Unexpected Error',
             body: 'Something went wrong while loading preview',

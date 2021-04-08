@@ -224,6 +224,18 @@ function DialogForm({
               />
 
               <RF.Field
+                component={PD.WorkflowInput}
+                name="workflow"
+                workflowsConfig={workflowsConfig}
+                initialValue={selectedWorkflow}
+                validate={validators.required}
+                validateFields={['meta', 'workflow']}
+                errors={{
+                  required: 'Workflow is required for this bucket.',
+                }}
+              />
+
+              <RF.Field
                 component={PD.PackageNameInput}
                 name="name"
                 validate={validators.composeAsync(
@@ -266,18 +278,6 @@ function DialogForm({
                   initialValue={manifest.meta}
                 />
               )}
-
-              <RF.Field
-                component={PD.WorkflowInput}
-                name="workflow"
-                workflowsConfig={workflowsConfig}
-                initialValue={selectedWorkflow}
-                validate={validators.required}
-                validateFields={['meta', 'workflow']}
-                errors={{
-                  required: 'Workflow is required for this bucket.',
-                }}
-              />
 
               <input type="submit" style={{ display: 'none' }} />
             </form>

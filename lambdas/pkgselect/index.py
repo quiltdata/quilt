@@ -40,6 +40,12 @@ SCHEMA = {
         },
         'logical_key': {
             'type': 'string'
+        },
+        'offset': {
+            'type': 'integer'
+        },
+        'limit': {
+            'type': 'integer'
         }
     },
     'required': ['bucket', 'manifest'],
@@ -47,7 +53,7 @@ SCHEMA = {
 }
 
 
-def file_list_to_folder(df: pd.DataFrame) -> dict:
+def file_list_to_folder(df: pd.DataFrame, limit: int, offset: int) -> dict:
     """
     Post process a set of logical keys to return only the
     top-level folder view (a special case of the s3-select
@@ -61,12 +67,21 @@ def file_list_to_folder(df: pd.DataFrame) -> dict:
         )
         folder.reset_index(inplace=True)  # move the logical_key from the index to column[0]
         folder.rename(columns={0: 'logical_key'}, inplace=True)  # name the new column
+
+        # Sort to ensure consistent paging
+        folder.sort_values(by=['logical_key'], inplace=True)
+
+        # Page response (folders and files) based on limit & offset
+        total_results = len(folder.index)
+        folder = folder.iloc[offset:offset+limit]
+
         # Do not return physical_key for prefixes
         prefixes = folder[folder.logical_key.str.contains('/')].drop(
             ['physical_key'],
             axis=1
         ).to_dict(orient='records')
         objects = folder[~folder.logical_key.str.contains('/')].to_dict(orient='records')
+        returned_results = len(prefixes) + len(objects)
     except AttributeError as err:
         # Pandas will raise an attribute error if the DataFrame has
         # no rows with a non-null logical_key. We expect that case if
@@ -79,6 +94,8 @@ def file_list_to_folder(df: pd.DataFrame) -> dict:
         objects = []
 
     return dict(
+        total=total_results,
+        returned=returned_results,
         prefixes=prefixes,
         objects=objects
     )
@@ -118,6 +135,8 @@ def lambda_handler(request):
     access_key = request.args.get('access_key')
     secret_key = request.args.get('secret_key')
     session_token = request.args.get('session_token')
+    limit = request.args.get('limit', 1000)
+    offset = request.args.get('offset', 0)
     allow_anonymous_access = bool(os.getenv('ALLOW_ANONYMOUS_ACCESS'))
 
     # If credentials are passed in, use them
@@ -208,7 +227,7 @@ def lambda_handler(request):
             )
         else:
             df = pd.DataFrame()
-        response_data = file_list_to_folder(df)
+        response_data = file_list_to_folder(df, limit, offset)
 
         # Fetch package-level or directory-level metadata
         if prefix:

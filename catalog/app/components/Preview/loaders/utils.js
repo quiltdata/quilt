@@ -1,6 +1,7 @@
 import { extname } from 'path'
 
 import * as R from 'ramda'
+import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -201,6 +202,24 @@ export function useProcessing(asyncResult, process, deps = []) {
       asyncResult,
     ),
   )
+}
+
+export function useAsyncProcessing(asyncResult, process, deps = []) {
+  const fn = React.useCallback(
+    async (args) =>
+      AsyncResult.case(
+        {
+          Ok: (value) => process(value).then(AsyncResult.Ok, AsyncResult.Err),
+          _: R.identity,
+        },
+        args.asyncResult,
+      ),
+    [process],
+  )
+  return Data.use(fn, { asyncResult, deps }).case({
+    Ok: R.identity,
+    _: R.identity,
+  })
 }
 
 export function useErrorHandling(result, { handle, retry } = {}) {

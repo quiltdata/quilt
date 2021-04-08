@@ -5,9 +5,7 @@ import * as redux from 'react-redux'
 import * as Auth from 'containers/Auth'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
-import * as Resource from 'utils/Resource'
-import { composeHOC } from 'utils/reactTools'
-import { resolveKey, handleToHttpsUri } from 'utils/s3paths'
+import { handleToHttpsUri } from 'utils/s3paths'
 
 import * as Credentials from './Credentials'
 import * as S3 from './S3'
@@ -96,86 +94,8 @@ export const withDownloadUrl = (handle, callback) => (
   <WithDownloadUrl handle={handle}>{callback}</WithDownloadUrl>
 )
 
-/*
-Resource.Pointer handling / signing:
-
-------------------+------------+-------------------+--------------------------+
-context           | "web" urls | s3:// urls        | paths                    |
-------------------+------------+-------------------+--------------------------+
-MDImg             | as is      | parsed, signed,   | considered an s3 url     |
-                  |            | relative to the   |                          |
-                  |            | containing file   |                          |
-------------------+------------+-------------------+--------------------------+
-MDLink            | as is      | parsed, signed,   | as is (relative to the   |
-                  |            | relative to the   | current web UI URL)      |
-                  |            | containing file   |                          |
-------------------+------------+-------------------+--------------------------+
-Summary           | as is      | parsed, signed,   | considered an s3 url     |
-                  |            | relative to the   |                          |
-                  |            | containing file   |                          |
-------------------+------------+-------------------+--------------------------+
-Spec              | as is      | parsed, signed,   | considered an s3 url     |
-                  |            | relative to the   |                          |
-                  |            | containing file   |                          |
-------------------+------------+-------------------+--------------------------+
-*/
-export function useResourceSigner() {
-  const sign = useS3Signer()
-  return React.useCallback(
-    ({ ctx, ptr }) =>
-      Resource.Pointer.case(
-        {
-          Web: (url) => url,
-          S3: ({ bucket, key, version }) =>
-            sign({
-              bucket: bucket || ctx.handle.bucket,
-              key,
-              version,
-            }),
-          S3Rel: (path) =>
-            sign({
-              bucket: ctx.handle.bucket,
-              key: resolveKey(ctx.handle.key, path),
-            }),
-          Path: (path) =>
-            Resource.ContextType.case(
-              {
-                MDLink: () => path,
-                _: () =>
-                  sign({
-                    bucket: ctx.handle.bucket,
-                    key: resolveKey(ctx.handle.key, path),
-                  }),
-              },
-              ctx.type,
-            ),
-        },
-        ptr,
-      ),
-    [sign],
-  )
-}
-
 export function AWSSignerProvider({ children, urlExpiration = DEFAULT_URL_EXPIRATION }) {
   return <Ctx.Provider value={{ urlExpiration }}>{children}</Ctx.Provider>
 }
 
 export const Provider = AWSSignerProvider
-
-export function useSigner() {
-  return {
-    signRequest: useRequestSigner(),
-    getSignedS3URL: useS3Signer(),
-    signResource: useResourceSigner(),
-  }
-}
-
-export const use = useSigner
-
-export const inject = (prop = 'signer') =>
-  composeHOC('AWS.Signer.inject', (Component) => (props) => {
-    const signer = use()
-    return <Component {...{ ...props, [prop]: signer }} />
-  })
-
-export const Inject = ({ children }) => children(use())

@@ -14,7 +14,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function AddArrayItem({ columnPath, index, onAdd }) {
+interface AddArrayItemProps {
+  columnPath: string[]
+  index: number
+  onAdd: (path: string[], index: number, value: string) => void
+}
+
+export default function AddArrayItem({ columnPath, index, onAdd }: AddArrayItemProps) {
   const classes = useStyles()
 
   const onClick = React.useCallback(() => {

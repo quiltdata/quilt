@@ -354,18 +354,31 @@ function DialogForm({
                 subscription={{ modified: true, values: true }}
                 onChange={onFormChange}
               />
+
+              <RF.FormSpy
+                subscription={{ modified: true, values: true }}
+                onChange={({ modified, values }) => {
+                  if (modified!.workflow) {
+                    setWorkflow(values.workflow)
+                  }
+                }}
+              />
+
               <PD.Container>
                 <PD.LeftColumn>
                   <M.Typography color={submitting ? 'textSecondary' : undefined}>
                     Main
                   </M.Typography>
 
-                  <RF.FormSpy
-                    subscription={{ modified: true, values: true }}
-                    onChange={({ modified, values }) => {
-                      if (modified!.workflow) {
-                        setWorkflow(values.workflow)
-                      }
+                  <RF.Field
+                    component={PD.WorkflowInput}
+                    name="workflow"
+                    workflowsConfig={workflowsConfig}
+                    initialValue={selectedWorkflow}
+                    validate={validators.required as FF.FieldValidator<any>}
+                    validateFields={['meta', 'workflow']}
+                    errors={{
+                      required: 'Workflow is required for this bucket.',
                     }}
                   />
 
@@ -415,18 +428,6 @@ function DialogForm({
                       ref={setEditorElement}
                     />
                   )}
-
-                  <RF.Field
-                    component={PD.WorkflowInput}
-                    name="workflow"
-                    workflowsConfig={workflowsConfig}
-                    initialValue={selectedWorkflow}
-                    validate={validators.required as FF.FieldValidator<any>}
-                    validateFields={['meta', 'workflow']}
-                    errors={{
-                      required: 'Workflow is required for this bucket.',
-                    }}
-                  />
                 </PD.LeftColumn>
 
                 <PD.RightColumn>

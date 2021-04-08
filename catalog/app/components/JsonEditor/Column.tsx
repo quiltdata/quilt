@@ -1,6 +1,5 @@
-import cx from 'classnames'
 import * as React from 'react'
-import { useTable } from 'react-table'
+import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
 import AddArrayItem from './AddArrayItem'
@@ -8,7 +7,8 @@ import AddRow from './AddRow'
 import Breadcrumbs from './Breadcrumbs'
 import Cell from './Cell'
 import Row from './Row'
-import { COLUMN_IDS, getJsonDictValue } from './State'
+import { getJsonDictValue } from './State'
+import { COLUMN_IDS, JsonValue, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -24,7 +24,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-function getColumnType(columnPath, jsonDict, parent) {
+function getColumnType(
+  columnPath: string[],
+  jsonDict: Record<string, JsonValue>,
+  parent: JsonValue,
+) {
   const columnSchema = getJsonDictValue(columnPath, jsonDict)
   if (columnSchema && !parent) return columnSchema.type
 
@@ -42,7 +46,10 @@ const useEmptyColumnStyles = M.makeStyles((t) => ({
   },
 }))
 
-function EmptyColumn({ columnType }) {
+interface EmptyColumnProps {
+  columnType: 'array' | 'object'
+}
+function EmptyColumn({ columnType }: EmptyColumnProps) {
   const classes = useEmptyColumnStyles()
 
   if (columnType !== 'array') return null
@@ -56,6 +63,20 @@ function EmptyColumn({ columnType }) {
   )
 }
 
+interface ColumnProps {
+  columnPath: string[]
+  data: {
+    items: RowData[]
+    parent: JsonValue
+  }
+  jsonDict: Record<string, JsonValue>
+  onAddRow: (path: string[], key: string | number, value: JsonValue) => void
+  onBreadcrumb: (path: string[]) => void
+  onChange: (path: string[], id: 'key' | 'value', value: JsonValue) => void
+  onExpand: (path: string[]) => void
+  onRemove: (path: string[]) => void
+}
+
 export default function Column({
   columnPath,
   data,
@@ -64,18 +85,18 @@ export default function Column({
   onBreadcrumb,
   onChange,
   onExpand,
-  onMenuAction,
-  tableClassName,
-}) {
+  onRemove,
+}: ColumnProps) {
   const columns = React.useMemo(
-    () => [
-      {
-        accessor: COLUMN_IDS.KEY,
-      },
-      {
-        accessor: COLUMN_IDS.VALUE,
-      },
-    ],
+    () =>
+      [
+        {
+          accessor: COLUMN_IDS.KEY,
+        },
+        {
+          accessor: COLUMN_IDS.VALUE,
+        },
+      ] as RTable.Column<RowData>[],
     [],
   )
 
@@ -83,14 +104,14 @@ export default function Column({
 
   const [hasNewRow, setHasNewRow] = React.useState(false)
   const onChangeInternal = React.useCallback(
-    (...params) => {
+    (path: string[], id: 'key' | 'value', value: JsonValue) => {
       setHasNewRow(false)
-      onChange(...params)
+      onChange(path, id, value)
     },
     [onChange],
   )
 
-  const tableInstance = useTable({
+  const tableInstance = RTable.useTable({
     columns,
     data: data.items,
     defaultColumn: {
@@ -103,9 +124,9 @@ export default function Column({
   const columnType = getColumnType(columnPath, jsonDict, data.parent)
 
   const onAddRowInternal = React.useCallback(
-    (...params) => {
+    (path: string[], key: string | number, value: JsonValue) => {
       setHasNewRow(true)
-      onAddRow(...params)
+      onAddRow(path, key, value)
     },
     [onAddRow],
   )
@@ -115,9 +136,9 @@ export default function Column({
       {!!columnPath.length && <Breadcrumbs items={columnPath} onSelect={onBreadcrumb} />}
 
       <M.TableContainer>
-        <M.Table {...getTableProps({ className: cx(classes.table, tableClassName) })}>
+        <M.Table {...getTableProps({ className: classes.table })}>
           <M.TableBody {...getTableBodyProps()}>
-            {rows.map((row, index) => {
+            {rows.map((row, index: number) => {
               const isLastRow = index === rows.length - 1
 
               prepareRow(row)
@@ -127,10 +148,11 @@ export default function Column({
                 fresh: isLastRow && hasNewRow,
                 columnPath,
                 onExpand,
-                onMenuAction,
+                onRemove,
+                key: '',
               }
 
-              if (row.original && row.original.reactId) {
+              if (row.original.reactId) {
                 props.key = row.original.reactId
               }
 

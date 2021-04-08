@@ -9,11 +9,20 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function ButtonExpand({ className, onClick }) {
+interface ButtonExpandProps {
+  className?: string
+  onClick: () => void
+}
+
+export default function ButtonExpand({ className, onClick }: ButtonExpandProps) {
   const classes = useStyles()
 
   return (
-    <M.InputAdornment className={cx(classes.root, className)} onClick={onClick}>
+    <M.InputAdornment
+      className={cx(classes.root, className)}
+      onClick={onClick}
+      position="start"
+    >
       <M.Icon fontSize="small">arrow_right</M.Icon>
     </M.InputAdornment>
   )

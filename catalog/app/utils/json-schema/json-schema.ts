@@ -10,6 +10,7 @@ export type JsonSchema = Partial<
     const: string
     dateformat: string
     default: any
+    description: string
     enum: $TSFixMe[]
     format: string
     items: JsonSchema

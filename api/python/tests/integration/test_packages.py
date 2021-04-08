@@ -933,7 +933,7 @@ class PackageTest(QuiltTestCase):
     def test_top_hash_stable(self):
         """Ensure that top_hash() never changes for a given manifest"""
 
-        top_hash = '20de5433549a4db332a11d8d64b934a82bdea8f144b4aecd901e7d4134f8e733'
+        top_hash = '3426a3f721e41a1d83174c691432a39ff13720426267fc799dccf3583153e850'
         manifest_path = DATA_DIR / 'top_hash_test_manifest.jsonl'
         pkg = Package._from_path(manifest_path)
 
@@ -1789,6 +1789,39 @@ class PackageTest(QuiltTestCase):
         assert Package.load(
             BytesIO(push_manifest_mock.call_args[0][2])
         )[lk].physical_key == PhysicalKey(dest_bucket, dest_key, version)
+
+    def test_package_dump_file_mode(self):
+        """
+        Package.dump() works with both files opened in binary and text mode.
+        """
+        meta = {'💩': '💩'}
+        pkg = Package().set_meta(meta)
+        for mode in 'bt':
+            with self.subTest(mode=mode):
+                fn = f'test-manifest-{mode}.jsonl'
+                with open(fn, f'w{mode}', **({'encoding': 'utf-8'} if mode == 't' else {})) as f:
+                    pkg.dump(f)
+                with open(fn, encoding='utf-8') as f:
+                    assert Package.load(f).meta == meta
+
+    def test_max_manifest_record_size(self):
+        with open(os.devnull, 'wb') as buf:
+            with mock.patch('quilt3.packages.MANIFEST_MAX_RECORD_SIZE', 1):
+                with pytest.raises(QuiltException) as excinfo:
+                    Package().dump(buf)
+                assert 'Size of manifest record for package metadata' in str(excinfo.value)
+
+            with mock.patch('quilt3.packages.MANIFEST_MAX_RECORD_SIZE', 10_000):
+                with pytest.raises(QuiltException) as excinfo:
+                    Package().set('foo', DATA_DIR / 'foo.txt', {'user_meta': 'x' * 10_000}).dump(buf)
+                assert "Size of manifest record for entry with logical key 'foo'" in str(excinfo.value)
+
+                with pytest.raises(QuiltException) as excinfo:
+                    Package().set_dir('bar', DATA_DIR / 'nested', meta={'user_meta': 'x' * 10_000}).dump(buf)
+                assert "Size of manifest record for entry with logical key 'bar/'" in str(excinfo.value)
+
+                # This would fail if non-ASCII chars were encoded using escape sequences.
+                Package().set_meta({'a': '💩' * 2_000}).dump(buf)
 
 
 class PackageTestV2(PackageTest):
