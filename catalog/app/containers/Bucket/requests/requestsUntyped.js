@@ -1080,6 +1080,17 @@ export const loadRevisionHash = ({ s3, bucket, name, id }) =>
       hash: res.Body.toString('utf-8'),
     }))
 
+export const checkPackageExistence = ({ s3, bucket, name }) =>
+  s3
+    .listObjectsV2({ Bucket: bucket, Prefix: getRevisionKeyFromId(name, ''), MaxKeys: 1 })
+    .promise()
+    .then((res) => !!res.KeyCount)
+
+export const ensurePackageExists = ({ s3, bucket, name }) =>
+  checkPackageExistence({ s3, bucket, name }).then((exists) => {
+    if (!exists) throw new errors.NoSuchPackage({ bucket, handle: name })
+  })
+
 const HASH_RE = /^[a-f0-9]{64}$/
 const TIMESTAMP_RE_SRC = '[0-9]{10}'
 const TIMESTAMP_RE = new RegExp(`^${TIMESTAMP_RE_SRC}$`)
@@ -1102,7 +1113,9 @@ export async function resolvePackageRevision({ s3, bucket, name, revision }) {
     }
   } else if (TIMESTAMP_RE.test(revision) || revision === 'latest') {
     try {
-      return loadRevisionHash({ s3, bucket, name, id: revision })
+      // we need to await the result to catch the errors
+      // eslint-disable-next-line @typescript-eslint/return-await
+      return await loadRevisionHash({ s3, bucket, name, id: revision })
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log(

@@ -2,7 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import { Route, Link } from 'react-router-dom'
-import Button from '@material-ui/core/Button'
+import * as M from '@material-ui/core'
 
 import Message from 'components/Message'
 import * as Auth from 'containers/Auth'
@@ -19,7 +19,18 @@ export class CORSError extends BucketError {}
 
 export class NoSuchBucket extends BucketError {}
 
-export class NoSuchPackage extends BucketError {}
+interface NoSuchPackageProps {
+  bucket: string
+  handle: string
+}
+
+export class NoSuchPackage extends BucketError {
+  static displayName = 'NoSuchPackage'
+
+  constructor(props: NoSuchPackageProps) {
+    super(`no package named '${props.handle}' in bucket '${props.bucket}'`, props)
+  }
+}
 
 export class ESNoIndex extends BucketError {}
 
@@ -117,14 +128,14 @@ function SignIn() {
   return (
     <Route>
       {({ location: l }) => (
-        <Button
+        <M.Button
           component={Link}
           to={urls.signIn(l.pathname + l.search + l.hash)}
           variant="contained"
           color="primary"
         >
           Sign In
-        </Button>
+        </M.Button>
       )}
     </Route>
   )
@@ -155,9 +166,11 @@ const defaultHandlers: ErrorHandler[] = [
   ],
   [
     R.is(NoSuchPackage),
-    () => (
+    (e: NoSuchPackage) => (
       <Message headline="No Such Package">
-        The specified package could not be found in this bucket.
+        Package named{' '}
+        <M.Box component="span" fontWeight="fontWeightMedium">{`"${e.handle}"`}</M.Box>{' '}
+        could not be found in this bucket.
       </Message>
     ),
   ],
@@ -209,7 +222,7 @@ const defaultHandlers: ErrorHandler[] = [
   ],
 ]
 
-type ErrorHandler = [(error: unknown) => boolean, (error: unknown) => React.ReactElement]
+type ErrorHandler = [(error: unknown) => boolean, (error: any) => React.ReactElement]
 
 export const displayError = (pairs: ErrorHandler[] = []) =>
   R.cond([
