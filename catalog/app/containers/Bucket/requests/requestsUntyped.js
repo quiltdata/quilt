@@ -1071,7 +1071,7 @@ export const getPackageRevisions = withErrorHandling(
     ),
 )
 
-export const loadRevisionHash = ({ s3, bucket, name, id }) =>
+export const loadRevisionHash = async ({ s3, bucket, name, id }) =>
   s3
     .getObject({ Bucket: bucket, Key: getRevisionKeyFromId(name, id) })
     .promise()
@@ -1113,8 +1113,6 @@ export async function resolvePackageRevision({ s3, bucket, name, revision }) {
     }
   } else if (TIMESTAMP_RE.test(revision) || revision === 'latest') {
     try {
-      // we need to await the result to catch the errors
-      // eslint-disable-next-line @typescript-eslint/return-await
       return await loadRevisionHash({ s3, bucket, name, id: revision })
     } catch (e) {
       // eslint-disable-next-line no-console
