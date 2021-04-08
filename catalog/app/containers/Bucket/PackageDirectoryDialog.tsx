@@ -6,7 +6,6 @@ import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
-import Code from 'components/Code'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
@@ -219,30 +218,14 @@ function DialogForm({
 
   const handleNameChange = React.useCallback(
     async (name) => {
-      const fullName = `${successor.slug}/${name}`
-
-      let warning: React.ReactNode = ''
-
       const nameExists = await nameExistence.validate(name)
-      if (nameExists) {
-        warning = (
-          <>
-            <Code>{fullName}</Code> already exists. Click Push to create a new revision.
-          </>
-        )
-      } else if (name) {
-        warning = (
-          <>
-            <Code>{fullName}</Code> is a new package
-          </>
-        )
-      }
+      const warning = <PD.PackageNameWarning exists={!!nameExists} />
 
       if (warning !== nameWarning) {
         setNameWarning(warning)
       }
     },
-    [nameWarning, nameExistence, successor],
+    [nameWarning, nameExistence],
   )
 
   const [editorElement, setEditorElement] = React.useState<HTMLElement | null>(null)
