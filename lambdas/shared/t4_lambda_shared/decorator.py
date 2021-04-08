@@ -24,7 +24,7 @@ class Request:
         self.event = event
         self.method = event['httpMethod']
         self.path = event['path']
-        self.pathParameters = event['pathParameters']
+        self.pathParameters = event.get('pathParameters')
         self.headers = event['headers'] or {}
         self.args = event['queryStringParameters'] or {}
         if event['isBase64Encoded']:
@@ -82,7 +82,7 @@ def api(cors_origins=()):
                     'access-control-expose-headers': (
                         f"*, Authorization, {QUILT_INFO_HEADER}"
                     ),
-                    'access-control-max-age': 86400
+                    'access-control-max-age': '86400',
                 })
 
             return {
