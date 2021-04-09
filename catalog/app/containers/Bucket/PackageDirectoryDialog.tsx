@@ -7,7 +7,6 @@ import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import * as authSelectors from 'containers/Auth/selectors'
-import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
@@ -18,53 +17,6 @@ import type * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
 import * as requests from './requests'
-
-// FIXME: this is copypasted from PackageDialog -- next time we need to TSify utils/APIConnector properly
-interface ApiRequest {
-  <O>(opts: {
-    endpoint: string
-    method?: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'HEAD'
-    body?: {}
-  }): Promise<O>
-}
-
-interface Entry {
-  logical_key: string
-  path: string
-  is_dir: boolean
-}
-
-function usePackageCreateRequest() {
-  const req: ApiRequest = APIConnector.use()
-  return React.useCallback(
-    (params: {
-      commitMessage: string
-      name: string
-      meta: object
-      sourceBucket: string
-      schema: object
-      targetBucket: string
-      workflow: workflows.Workflow
-      entries: Entry[]
-    }) =>
-      req<{ top_hash: string }>({
-        endpoint: '/packages/from-folder',
-        method: 'POST',
-        body: {
-          message: params.commitMessage,
-          meta: PD.getMetaValue(params.meta, params.schema),
-          entries: params.entries,
-          dst: {
-            registry: `s3://${params.targetBucket}`,
-            name: params.name,
-          },
-          registry: `s3://${params.sourceBucket}`,
-          workflow: PD.getWorkflowApiParam(params.workflow.slug),
-        },
-      }),
-    [req],
-  )
-}
 
 const prepareEntries = (entries: PD.FilesSelectorState, path: string) => {
   const selected = entries.filter(R.propEq('selected', true))
@@ -156,12 +108,13 @@ function DialogForm({
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
 
-  const req = usePackageCreateRequest()
+  const createPackage = requests.useWrapPackage()
 
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   const onSubmit = React.useCallback(
     async ({
+      commitMessage: message,
       files: filesValue,
       ...values
     }: {
@@ -173,13 +126,19 @@ function DialogForm({
       // eslint-disable-next-line consistent-return
     }) => {
       try {
-        const res = await req({
-          ...values,
-          entries: prepareEntries(filesValue, path),
+        const res = await createPackage(
+          {
+            ...values,
+            entries: prepareEntries(filesValue, path),
+            message,
+            source: bucket,
+            target: {
+              bucket: successor.slug,
+              name: values.name,
+            },
+          },
           schema,
-          sourceBucket: bucket,
-          targetBucket: successor.slug,
-        })
+        )
         setSuccess({ name: values.name, hash: res.top_hash })
       } catch (e) {
         // eslint-disable-next-line no-console
@@ -187,7 +146,7 @@ function DialogForm({
         return { [FF.FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
       }
     },
-    [bucket, successor, req, setSuccess, schema, path],
+    [bucket, successor, createPackage, setSuccess, schema, path],
   )
 
   const initialFiles: PD.FilesSelectorState = React.useMemo(

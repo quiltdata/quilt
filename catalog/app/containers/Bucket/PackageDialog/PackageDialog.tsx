@@ -18,12 +18,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import useDragging from 'utils/dragging'
-import {
-  JsonSchema,
-  makeSchemaDefaultsSetter,
-  makeSchemaValidator,
-} from 'utils/json-schema'
-import pipeThru from 'utils/pipeThru'
+import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
 import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
 import * as workflows from 'utils/workflows'
@@ -207,17 +202,6 @@ export function mkMetaValidator(schema?: JsonSchema) {
   }
 }
 
-export const getMetaValue = (value: unknown, optSchema: JsonSchema) =>
-  value
-    ? pipeThru(value || {})(
-        makeSchemaDefaultsSetter(optSchema),
-        R.toPairs,
-        R.filter(([k]) => !!k.trim()),
-        R.fromPairs,
-        R.when(R.isEmpty, () => undefined),
-      )
-    : undefined
-
 interface FieldProps {
   error?: string
   helperText?: React.ReactNode
@@ -355,14 +339,6 @@ export function WorkflowInput({
 
 export const defaultWorkflowFromConfig = (cfg?: workflows.WorkflowsConfig) =>
   cfg && cfg.workflows.find((item) => item.isDefault)
-
-export const getWorkflowApiParam = R.cond([
-  [R.equals(workflows.notAvailable), R.always(undefined)],
-  [R.equals(workflows.notSelected), R.always(null)],
-  [R.T, R.identity],
-]) as (
-  slug: typeof workflows.notAvailable | typeof workflows.notSelected | string,
-) => string | null | undefined
 
 const useMetaInputStyles = M.makeStyles((t) => ({
   header: {

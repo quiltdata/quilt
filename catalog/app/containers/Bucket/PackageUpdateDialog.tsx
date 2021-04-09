@@ -8,7 +8,6 @@ import * as RF from 'react-final-form'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
@@ -122,7 +121,6 @@ function DialogForm({
   workflowsConfig,
 }: DialogFormProps) {
   const s3 = AWS.S3.use()
-  const req = APIConnector.use()
   const [uploads, setUploads] = React.useState<Uploads>({})
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
@@ -148,6 +146,8 @@ function DialogForm({
       }),
     [setUploads],
   )
+
+  const updatePackage = requests.useUpdatePackage()
 
   const onSubmit = async ({
     name,
@@ -265,18 +265,19 @@ function DialogForm({
     )
 
     try {
-      const res = await req({
-        endpoint: '/packages',
-        method: 'POST',
-        body: {
-          name,
-          registry: `s3://${bucket}`,
-          message: msg,
+      const res = await updatePackage(
+        {
           contents,
-          meta: PD.getMetaValue(meta, schema),
-          workflow: PD.getWorkflowApiParam(workflow.slug),
+          message: msg,
+          meta,
+          target: {
+            name,
+            bucket,
+          },
+          workflow,
         },
-      })
+        schema,
+      )
       setSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console
