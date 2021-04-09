@@ -8,7 +8,6 @@ import * as RF from 'react-final-form'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import Code from 'components/Code'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
@@ -299,41 +298,25 @@ function DialogForm({
 
   const handleNameChange = React.useCallback(
     async (name) => {
-      let warning: React.ReactNode = ''
-
-      if (name !== initialName) {
-        const nameExists = await nameExistence.validate(name)
-        if (nameExists) {
-          warning = (
-            <>
-              <Code>{name}</Code> already exists. Click Push to create a new revision.
-            </>
-          )
-        } else {
-          warning = (
-            <>
-              <Code>{name}</Code> is a new package
-            </>
-          )
-        }
-      }
+      const nameExists = await nameExistence.validate(name)
+      const warning = <PD.PackageNameWarning exists={!!nameExists} />
 
       if (warning !== nameWarning) {
         setNameWarning(warning)
       }
     },
-    [nameWarning, nameExistence, initialName],
+    [nameWarning, nameExistence],
   )
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
 
   const onFormChange = React.useCallback(
-    async ({ modified, values }) => {
+    async ({ values }) => {
       if (editorElement && document.body.contains(editorElement)) {
         setMetaHeight(editorElement.clientHeight)
       }
 
-      if (modified.name) handleNameChange(values.name)
+      handleNameChange(values.name)
     },
     [editorElement, handleNameChange, setMetaHeight],
   )
