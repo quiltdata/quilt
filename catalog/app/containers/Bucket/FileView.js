@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
@@ -39,18 +40,23 @@ const useDownloadButtonStyles = M.makeStyles({
   },
 })
 
-export function DownloadButtonLayout({ label, icon, ...props }) {
+export function DownloadButtonLayout({ className, label, icon, ...props }) {
   const classes = useDownloadButtonStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
   return sm ? (
-    <M.IconButton className={classes.root} edge="end" size="small" {...props}>
+    <M.IconButton
+      className={cx(classes.root, className)}
+      edge="end"
+      size="small"
+      {...props}
+    >
       <M.Icon>{icon}</M.Icon>
     </M.IconButton>
   ) : (
     <M.Button
-      className={classes.root}
+      className={cx(classes.root, className)}
       variant="outlined"
       size="small"
       startIcon={<M.Icon>{icon}</M.Icon>}
@@ -61,15 +67,55 @@ export function DownloadButtonLayout({ label, icon, ...props }) {
   )
 }
 
-export function DownloadButton({ handle }) {
+export function DownloadButton({ className, handle }) {
   return AWS.Signer.withDownloadUrl(handle, (url) => (
     <DownloadButtonLayout
+      className={className}
       href={url}
       download
       label="Download file"
       icon="arrow_downward"
     />
   ))
+}
+
+export function ViewWithVoilaButtonLayout({ ...props }) {
+  const classes = useDownloadButtonStyles()
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+
+  const [opened, setOpened] = React.useState(false)
+
+  return (
+    <>
+      {sm ? (
+        <M.IconButton
+          className={classes.root}
+          edge="end"
+          size="small"
+          onClick={() => setOpened(true)}
+          {...props}
+        >
+          <M.Icon>visibility</M.Icon>
+        </M.IconButton>
+      ) : (
+        <M.Button
+          className={classes.root}
+          variant="outlined"
+          size="small"
+          onClick={() => setOpened(true)}
+          startIcon={<M.Icon>visibility</M.Icon>}
+          {...props}
+        >
+          View with Voila
+        </M.Button>
+      )}
+      <M.Menu open={opened}>
+        <M.MenuItem>View as Jupyter</M.MenuItem>
+        <M.MenuItem>View with Voila</M.MenuItem>
+      </M.Menu>
+    </>
+  )
 }
 
 export function ZipDownloadForm({ suffix, label, newTab = false }) {

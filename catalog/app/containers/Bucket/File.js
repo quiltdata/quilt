@@ -288,6 +288,15 @@ function CenteredProgress() {
 }
 
 const useStyles = M.makeStyles((t) => ({
+  actions: {
+    marginLeft: 'auto',
+  },
+  at: {
+    color: t.palette.text.secondary,
+  },
+  button: {
+    marginLeft: t.spacing(2),
+  },
   crumbs: {
     ...t.typography.body1,
     maxWidth: '100%',
@@ -305,17 +314,6 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'flex-end',
     display: 'flex',
     marginBottom: t.spacing(2),
-  },
-  at: {
-    color: t.palette.text.secondary,
-  },
-  spacer: {
-    flexGrow: 1,
-  },
-  button: {
-    flexShrink: 0,
-    marginBottom: -3,
-    marginTop: -3,
   },
 }))
 
@@ -417,8 +415,13 @@ export default function File({
             'latest'
           )}
         </div>
-        <div className={classes.spacer} />
-        {downloadable && <FileView.DownloadButton handle={handle} />}
+
+        <div className={classes.actions}>
+          <FileView.ViewWithVoilaButtonLayout className={classes.button} />
+          {downloadable && (
+            <FileView.DownloadButton className={classes.button} handle={handle} />
+          )}
+        </div>
       </div>
       {objExistsData.case({
         _: () => <CenteredProgress />,
