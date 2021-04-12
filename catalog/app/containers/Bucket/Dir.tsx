@@ -33,24 +33,6 @@ interface RouteMap {
 
 type Urls = NamedRoutes.Urls<RouteMap>
 
-interface ListingFile {
-  bucket: string
-  key: string
-  modified: Date
-  size: number
-  etag: string
-  archived: boolean
-}
-
-interface ListingResponse {
-  dirs: string[]
-  files: ListingFile[]
-  truncated: boolean
-  bucket: string
-  path: string
-  prefix: string
-}
-
 const getCrumbs = R.compose(
   R.intersperse(Crumb.Sep(<>&nbsp;/ </>)),
   ({ bucket, path, urls }: { bucket: string; path: string; urls: Urls }) =>
@@ -63,7 +45,7 @@ const getCrumbs = R.compose(
     ),
 )
 
-const formatListing = ({ urls }: { urls: Urls }, r: ListingResponse) => {
+const formatListing = ({ urls }: { urls: Urls }, r: requests.BucketListingResult) => {
   const dirs = r.dirs.map((name) => ({
     type: 'dir' as const,
     name: ensureNoSlash(withoutPrefix(r.path, name)),
@@ -95,7 +77,7 @@ const formatListing = ({ urls }: { urls: Urls }, r: ListingResponse) => {
 }
 
 interface DirContentsProps {
-  response: ListingResponse
+  response: requests.BucketListingResult
   locked: boolean
   bucket: string
   path: string
@@ -277,7 +259,7 @@ export default function Dir({
         Err: displayError(),
         Init: () => null,
         _: (x: $TSFixMe) => {
-          const res: ListingResponse | null = AsyncResult.getPrevResult(x)
+          const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)
           return res ? (
             <DirContents
               response={res}
