@@ -22,6 +22,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface ValueBase {
   toString: () => string
+  valueOf: () => string | number | boolean
 }
 
 interface SelectDropdownProps<Value extends ValueBase> {
@@ -83,7 +84,7 @@ export default function SelectDropdown<Value extends ValueBase>({
           <M.MenuItem
             key={item.toString()}
             onClick={handleSelect(item)}
-            selected={value === item}
+            selected={value.valueOf() === item.valueOf()}
           >
             <M.ListItemText primary={item.toString()} />
           </M.MenuItem>

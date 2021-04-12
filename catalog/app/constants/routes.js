@@ -100,8 +100,8 @@ export const bucketSearch = {
 }
 export const bucketFile = {
   path: '/b/:bucket/tree/:path(.*[^/])',
-  url: (bucket, path, version) =>
-    `/b/${bucket}/tree/${encode(path)}${mkSearch({ version })}`,
+  url: (bucket, path, version, mode) =>
+    `/b/${bucket}/tree/${encode(path)}${mkSearch({ mode, version })}`,
 }
 export const bucketDir = {
   path: '/b/:bucket/tree/:path(.+/)?',

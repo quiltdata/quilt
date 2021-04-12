@@ -5,7 +5,7 @@ import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
 import { FormattedRelative } from 'react-intl'
-import { Link } from 'react-router-dom'
+import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
@@ -28,7 +28,6 @@ import { readableBytes, readableQuantity } from 'utils/string'
 import Code from './Code'
 import * as FileView from './FileView'
 import Section from './Section'
-import { JupyterViewMode } from './constants'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
 
@@ -318,15 +317,21 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+const viewModes = [
+  { key: 'jupyter', toString: () => 'Jupyter', valueOf: () => 'jupyter' },
+  { key: 'voila', toString: () => 'Voila', valueOf: () => 'voila' },
+]
+
 export default function File({
   match: {
     params: { bucket, path: encodedPath },
   },
   location,
 }) {
-  const { version } = parseSearch(location.search)
+  const { version, mode: viewModeSlug = 'jupyter' } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
+  const history = useHistory()
   const { analyticsBucket, noDownload } = Config.use()
   const s3 = AWS.S3.use()
 
@@ -382,7 +387,7 @@ export default function File({
 
   const handle = { bucket, key: path, version }
 
-  const withPreview = (callback) =>
+  const withPreview = (callback, mode) =>
     requests.ObjectExistence.case({
       Exists: (h) => {
         if (h.deleted) {
@@ -391,13 +396,26 @@ export default function File({
         if (h.archived) {
           return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
         }
-        return Preview.load(handle, callback)
+        if (mode.key !== 'voila') return Preview.load(handle, callback)
+
+        // FIXME: make a Voila service request and preview html as iframe
+        //        <iframe src="https://api/voila.html" />
+        return Preview.load(R.assoc('key', `${handle.key}.html`, handle), callback)
       },
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
 
-  const [viewMode, setViewMode] = React.useState(JupyterViewMode.Jupyter)
+  const viewMode = React.useMemo(
+    () => viewModes.find(({ key }) => key === viewModeSlug) || viewModes[0],
+    [viewModeSlug],
+  )
+  const onViewModeChange = React.useCallback(
+    (mode) => {
+      history.push(urls.bucketFile(bucket, encodedPath, version, mode.key))
+    },
+    [history, urls, bucket, encodedPath, version],
+  )
 
   return (
     <FileView.Root>
@@ -422,8 +440,9 @@ export default function File({
         <div className={classes.actions}>
           <FileView.ViewWithVoilaButtonLayout
             className={classes.button}
+            modesList={viewModes}
             mode={viewMode}
-            onChange={setViewMode}
+            onChange={onViewModeChange}
           />
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
@@ -455,7 +474,7 @@ export default function File({
                   Err: (e) => {
                     throw e
                   },
-                  Ok: withPreview(renderPreview),
+                  Ok: withPreview(renderPreview, viewMode),
                 })}
               </Section>
             </>

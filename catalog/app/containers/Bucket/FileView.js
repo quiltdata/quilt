@@ -15,7 +15,6 @@ import pipeThru from 'utils/pipeThru'
 
 // import Code from './Code'
 import Section from './Section'
-import { JupyterViewMode } from './constants'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
 
@@ -81,16 +80,12 @@ export function DownloadButton({ className, handle }) {
   ))
 }
 
-export function ViewWithVoilaButtonLayout({ mode, ...props }) {
+export function ViewWithVoilaButtonLayout({ modesList, mode, ...props }) {
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
   return (
-    <SelectDropdown
-      options={[JupyterViewMode.Jupyter, JupyterViewMode.Voila]}
-      value={mode}
-      {...props}
-    >
+    <SelectDropdown options={modesList} value={mode} {...props}>
       {sm ? <M.Icon>visibility</M.Icon> : 'View as:'}
     </SelectDropdown>
   )
