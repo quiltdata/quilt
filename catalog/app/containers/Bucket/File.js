@@ -396,11 +396,7 @@ export default function File({
         if (h.archived) {
           return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
         }
-        if (mode.key !== 'voila') return Preview.load(handle, callback)
-
-        // FIXME: make a Voila service request and preview html as iframe
-        //        <iframe src="https://api/voila.html" />
-        return Preview.load(R.assoc('key', `${handle.key}.html`, handle), callback)
+        return Preview.load(R.assoc('mode', mode.key, handle), callback)
       },
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
