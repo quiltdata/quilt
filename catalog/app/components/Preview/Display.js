@@ -126,6 +126,12 @@ export default function PreviewDisplay({
             body: 'Something went wrong while loading preview',
             action: !!retry && renderAction({ label: 'Retry', onClick: retry }),
           }),
+        __: ({ retry }) =>
+          renderMessage({
+            heading: 'Unexpected Error',
+            body: 'Something went wrong while loading preview',
+            action: !!retry && renderAction({ label: 'Retry', onClick: retry }),
+          }),
       }),
     }),
   )

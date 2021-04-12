@@ -9,6 +9,7 @@ import * as Lab from '@material-ui/lab'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import * as Intercom from 'components/Intercom'
+import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
 import * as Notifications from 'containers/Notifications'
 import AsyncResult from 'utils/AsyncResult'
@@ -624,21 +625,13 @@ const useStyles = M.makeStyles({
   },
 })
 
-export default function PackageTree({
-  match: {
-    params: { bucket, name, revision = 'latest', path: encodedPath = '' },
-  },
-  location,
-}) {
+function PackageTree({ bucket, name, revision, path, resolvedFrom }) {
   const classes = useStyles()
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
   const bucketCfg = BucketConfig.useCurrentBucketConfig()
 
-  const path = s3paths.decode(encodedPath)
   const isDir = s3paths.isDir(path)
-
-  const { resolvedFrom } = parseSearch(location.search)
 
   const crumbs = React.useMemo(() => {
     const segments = [{ label: 'ROOT', path: '' }, ...s3paths.getBreadCrumbs(path)]
@@ -790,4 +783,21 @@ export default function PackageTree({
       })}
     </FileView.Root>
   )
+}
+
+export default function PackageTreeWrapper({
+  match: {
+    params: { bucket, name, revision = 'latest', path: encodedPath = '' },
+  },
+  location,
+}) {
+  const path = s3paths.decode(encodedPath)
+  const { resolvedFrom } = parseSearch(location.search)
+  const s3 = AWS.S3.use()
+  const packageExists = useData(requests.ensurePackageExists, { s3, bucket, name })
+  return packageExists.case({
+    Ok: () => <PackageTree {...{ bucket, name, revision, path, resolvedFrom }} />,
+    Err: errors.displayError(),
+    _: () => <Placeholder color="text.secondary" />,
+  })
 }

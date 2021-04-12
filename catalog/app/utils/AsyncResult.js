@@ -16,4 +16,10 @@ AsyncResult.props = R.curryN(2, (names, ...args) =>
   ),
 )
 
+AsyncResult.getPrevResult = AsyncResult.case({
+  Ok: R.identity,
+  Pending: (p) => AsyncResult.getPrevResult(p),
+  _: () => null,
+})
+
 export default AsyncResult

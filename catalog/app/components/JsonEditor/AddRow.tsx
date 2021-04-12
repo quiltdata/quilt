@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Cell from './Cell'
-import { COLUMN_IDS, EMPTY_VALUE } from './State'
+import { COLUMN_IDS, EMPTY_VALUE, JsonValue } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   inputCell: {
@@ -28,7 +28,14 @@ const emptyKeyProps = {
     id: COLUMN_IDS.KEY,
   },
   row: {
-    original: {},
+    original: {
+      address: [],
+      required: false,
+      sortIndex: -1,
+      type: 'undefined',
+      valueSchema: undefined,
+      updateMyData: () => {},
+    },
     values: {
       [COLUMN_IDS.KEY]: EMPTY_VALUE,
       [COLUMN_IDS.VALUE]: EMPTY_VALUE,
@@ -42,7 +49,14 @@ const emptyValueProps = {
     id: COLUMN_IDS.VALUE,
   },
   row: {
-    original: {},
+    original: {
+      address: [],
+      required: false,
+      sortIndex: -1,
+      type: 'undefined',
+      valueSchema: undefined,
+      updateMyData: () => {},
+    },
     values: {
       [COLUMN_IDS.KEY]: EMPTY_VALUE,
       [COLUMN_IDS.VALUE]: EMPTY_VALUE,
@@ -51,7 +65,13 @@ const emptyValueProps = {
   value: EMPTY_VALUE,
 }
 
-export default function AddRow({ columnPath, onAdd, onExpand }) {
+interface AddRowProps {
+  columnPath: string[]
+  onAdd: (path: string[], key: string, value: JsonValue) => void
+  onExpand: (path: string[]) => void
+}
+
+export default function AddRow({ columnPath, onAdd, onExpand }: AddRowProps) {
   const classes = useStyles()
 
   const [value, setValue] = React.useState('')
@@ -72,7 +92,7 @@ export default function AddRow({ columnPath, onAdd, onExpand }) {
     [setValue],
   )
 
-  const onMenuAction = React.useCallback(() => {}, [])
+  const onRemove = React.useCallback(() => {}, [])
 
   return (
     <M.TableRow>
@@ -81,8 +101,9 @@ export default function AddRow({ columnPath, onAdd, onExpand }) {
           {...{
             ...emptyKeyProps,
             columnPath,
+            editing: false,
             onExpand,
-            onMenuAction,
+            onRemove,
             updateMyData: onChangeKey,
           }}
         />
@@ -93,8 +114,9 @@ export default function AddRow({ columnPath, onAdd, onExpand }) {
           {...{
             ...emptyValueProps,
             columnPath,
+            editing: false,
             onExpand,
-            onMenuAction,
+            onRemove,
             updateMyData: onChangeValue,
           }}
         />

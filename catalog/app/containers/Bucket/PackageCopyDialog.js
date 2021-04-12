@@ -4,9 +4,7 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
-import Code from 'components/Code'
 import AsyncResult from 'utils/AsyncResult'
-import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -16,38 +14,6 @@ import * as validators from 'utils/validators'
 
 import * as PD from './PackageDialog'
 import * as requests from './requests'
-
-function requestPackageCopy(
-  req,
-  {
-    commitMessage,
-    hash,
-    initialName,
-    meta,
-    name,
-    schema,
-    sourceBucket,
-    targetBucket,
-    workflow,
-  },
-) {
-  return req({
-    endpoint: '/packages/promote',
-    method: 'POST',
-    body: {
-      message: commitMessage,
-      meta: PD.getMetaValue(meta, schema),
-      name,
-      parent: {
-        top_hash: hash,
-        registry: `s3://${sourceBucket}`,
-        name: initialName,
-      },
-      registry: `s3://${targetBucket}`,
-      workflow: PD.getWorkflowApiParam(workflow.slug),
-    },
-  })
-}
 
 const useFormSkeletonStyles = M.makeStyles((t) => ({
   meta: {
@@ -121,22 +87,28 @@ function DialogForm({
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
 
-  const req = APIConnector.use()
+  const copyPackage = requests.useCopyPackage()
 
   // eslint-disable-next-line consistent-return
   const onSubmit = async ({ commitMessage, name, meta, workflow }) => {
     try {
-      const res = await requestPackageCopy(req, {
-        commitMessage,
-        hash,
-        initialName,
-        meta,
-        name,
+      const res = await copyPackage(
+        {
+          message: commitMessage,
+          meta,
+          source: {
+            bucket,
+            name: initialName,
+            revision: hash,
+          },
+          target: {
+            bucket: successor.slug,
+            name,
+          },
+          workflow,
+        },
         schema,
-        sourceBucket: bucket,
-        targetBucket: successor.slug,
-        workflow,
-      })
+      )
       setSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -156,30 +128,14 @@ function DialogForm({
 
   const handleNameChange = React.useCallback(
     async (name) => {
-      const fullName = `${successor.slug}/${name}`
-
-      let warning = ''
-
       const nameExists = await nameExistence.validate(name)
-      if (nameExists) {
-        warning = (
-          <>
-            <Code>{fullName}</Code> already exists. Click Push to create a new revision.
-          </>
-        )
-      } else if (name) {
-        warning = (
-          <>
-            <Code>{fullName}</Code> is a new package
-          </>
-        )
-      }
+      const warning = <PD.PackageNameWarning exists={!!nameExists} />
 
       if (warning !== nameWarning) {
         setNameWarning(warning)
       }
     },
-    [nameWarning, nameExistence, successor],
+    [nameWarning, nameExistence],
   )
 
   const [editorElement, setEditorElement] = React.useState()

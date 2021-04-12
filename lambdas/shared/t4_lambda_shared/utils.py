@@ -64,7 +64,7 @@ def get_available_memory():
     return virtual_memory().available
 
 
-def make_json_response(status_code, json_object, extra_headers=None):
+def make_json_response(status_code, json_object, extra_headers=None, add_status=False):
     """
     Helper function to serialize a JSON object and add the JSON content type header.
     """
@@ -73,6 +73,8 @@ def make_json_response(status_code, json_object, extra_headers=None):
     }
     if extra_headers is not None:
         headers.update(extra_headers)
+    if add_status:
+        json_object['status'] = status_code
 
     return status_code, json.dumps(json_object), headers
 

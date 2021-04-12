@@ -2,7 +2,8 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { stringifyJSON, EMPTY_VALUE } from './State'
+import { JsonValue, EMPTY_VALUE } from './constants'
+import { stringifyJSON } from './utils'
 
 const useArrayStyles = M.makeStyles((t) => ({
   lbracket: {
@@ -26,7 +27,11 @@ const useObjectStyles = M.makeStyles((t) => ({
   },
 }))
 
-function PreviewArray({ value }) {
+interface PreviewArrayProps {
+  value: JsonValue[]
+}
+
+function PreviewArray({ value }: PreviewArrayProps) {
   const classes = useArrayStyles()
 
   const items = React.useMemo(
@@ -53,7 +58,11 @@ function PreviewArray({ value }) {
   )
 }
 
-function PreviewObject({ value }) {
+interface PreviewObjectProps {
+  value: JsonValue
+}
+
+function PreviewObject({ value }: PreviewObjectProps) {
   const classes = useObjectStyles()
 
   const hintText = React.useMemo(() => stringifyJSON(value), [value])
@@ -69,7 +78,11 @@ function PreviewObject({ value }) {
   )
 }
 
-export default function PreviewValue({ value }) {
+interface PreviewValueProps {
+  value: JsonValue
+}
+
+export default function PreviewValue({ value }: PreviewValueProps) {
   if (value === EMPTY_VALUE || value === undefined) return ''
 
   if (Array.isArray(value)) return <PreviewArray value={value} />

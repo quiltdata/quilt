@@ -1,8 +1,9 @@
 import cx from 'classnames'
 import * as React from 'react'
+import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
 
-import { COLUMN_IDS } from './State'
+import { COLUMN_IDS, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   cell: {
@@ -23,7 +24,15 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Row({ cells, columnPath, fresh, onExpand, onMenuAction }) {
+interface RowProps {
+  cells: RTable.Cell<RowData>[]
+  columnPath: string[]
+  fresh: boolean
+  onExpand: (path: string[]) => void
+  onRemove: (path: string[]) => void
+}
+
+export default function Row({ cells, columnPath, fresh, onExpand, onRemove }: RowProps) {
   const classes = useStyles()
 
   return (
@@ -40,7 +49,7 @@ export default function Row({ cells, columnPath, fresh, onExpand, onMenuAction }
             editing: fresh && cell.column.id === COLUMN_IDS.VALUE,
             columnPath,
             onExpand,
-            onMenuAction,
+            onRemove,
           })}
         </M.TableCell>
       ))}

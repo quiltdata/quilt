@@ -416,8 +416,10 @@ __Returns__
 a PackageEntry
 
 ## __slots__
-list() -> new empty list
-list(iterable) -> new list initialized from iterable's items
+tuple() -> empty tuple
+tuple(iterable) -> tuple initialized from iterable's items
+
+If the argument is a tuple, the return value is the same object.
 
 ## physical_keys
 

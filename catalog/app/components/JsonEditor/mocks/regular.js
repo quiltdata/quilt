@@ -1,4 +1,4 @@
-import { EMPTY_VALUE } from '../State'
+import { EMPTY_VALUE } from '../constants'
 
 export const schema = {
   id: 's3://fiskus-sandbox-dev/.quilt/workflows/schema.json',

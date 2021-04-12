@@ -3,13 +3,12 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import { isNestedType } from 'utils/json-schema'
+import { JsonSchema, isNestedType } from 'utils/json-schema'
 
 import ButtonExpand from './ButtonExpand'
-import ButtonMenu from './ButtonMenu'
 import Note from './Note'
 import PreviewValue from './PreviewValue'
-import { COLUMN_IDS, EMPTY_VALUE } from './State'
+import { JsonValue, COLUMN_IDS, EMPTY_VALUE, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -21,6 +20,12 @@ const useStyles = M.makeStyles((t) => ({
     padding: t.spacing(0, 1),
     position: 'relative',
     width: '100%',
+  },
+  button: {
+    opacity: 0.3,
+    '&:hover': {
+      opacity: 1,
+    },
   },
   value: {
     flexGrow: 1,
@@ -42,22 +47,34 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const isExpandable = (value, schema) =>
+const isExpandable = (value: JsonValue, schema?: JsonSchema) =>
   value === EMPTY_VALUE ? isNestedType(schema) : R.is(Object, value)
+
+const hasDeleteButton = (
+  columnId: 'key' | 'value',
+  value: JsonValue,
+  schema?: JsonSchema,
+) => columnId === COLUMN_IDS.KEY && !schema && value !== EMPTY_VALUE
+
+interface PreviewProps {
+  columnId: 'key' | 'value'
+  data: RowData // NOTE: react-table's row.original
+  onExpand: () => void
+  onRemove: () => void
+  placeholder: string
+  title: string
+  value: JsonValue
+}
 
 export default function Preview({
   columnId,
-  data, // NOTE: react-table's row.original
-  menu,
-  menuOpened,
+  data,
   onExpand,
-  onMenu,
-  onMenuClose,
-  onMenuSelect,
+  onRemove,
   placeholder,
   title,
   value,
-}) {
+}: PreviewProps) {
   const classes = useStyles()
 
   const requiredKey = data.required && columnId === COLUMN_IDS.KEY
@@ -69,7 +86,7 @@ export default function Preview({
 
       <div className={classes.value} title={title}>
         <span
-          className={cx(classes.valueInner, {
+          className={cx({
             [classes.required]: requiredKey,
             [classes.placeholder]: isEmpty,
           })}
@@ -78,15 +95,18 @@ export default function Preview({
         </span>
       </div>
 
-      <ButtonMenu
-        className={classes.menu}
-        menu={menu}
-        menuOpened={menuOpened}
-        note={<Note {...{ columnId, data, value }} />}
-        onClick={onMenu}
-        onMenuClose={onMenuClose}
-        onMenuSelect={onMenuSelect}
-      />
+      <Note {...{ columnId, data, value }} />
+
+      {hasDeleteButton(columnId, value, data.valueSchema) && (
+        <M.IconButton
+          className={classes.button}
+          onClick={onRemove}
+          size="small"
+          title="Remove"
+        >
+          <M.Icon fontSize="small">delete</M.Icon>
+        </M.IconButton>
+      )}
     </div>
   )
 }

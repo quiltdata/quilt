@@ -8,8 +8,6 @@ import * as RF from 'react-final-form'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import Code from 'components/Code'
-import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
@@ -123,7 +121,6 @@ function DialogForm({
   workflowsConfig,
 }: DialogFormProps) {
   const s3 = AWS.S3.use()
-  const req = APIConnector.use()
   const [uploads, setUploads] = React.useState<Uploads>({})
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
@@ -149,6 +146,8 @@ function DialogForm({
       }),
     [setUploads],
   )
+
+  const updatePackage = requests.useUpdatePackage()
 
   const onSubmit = async ({
     name,
@@ -266,18 +265,19 @@ function DialogForm({
     )
 
     try {
-      const res = await req({
-        endpoint: '/packages',
-        method: 'POST',
-        body: {
-          name,
-          registry: `s3://${bucket}`,
-          message: msg,
+      const res = await updatePackage(
+        {
           contents,
-          meta: PD.getMetaValue(meta, schema),
-          workflow: PD.getWorkflowApiParam(workflow.slug),
+          message: msg,
+          meta,
+          target: {
+            name,
+            bucket,
+          },
+          workflow,
         },
-      })
+        schema,
+      )
       setSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -298,41 +298,25 @@ function DialogForm({
 
   const handleNameChange = React.useCallback(
     async (name) => {
-      let warning: React.ReactNode = ''
-
-      if (name !== initialName) {
-        const nameExists = await nameExistence.validate(name)
-        if (nameExists) {
-          warning = (
-            <>
-              <Code>{name}</Code> already exists. Click Push to create a new revision.
-            </>
-          )
-        } else {
-          warning = (
-            <>
-              <Code>{name}</Code> is a new package
-            </>
-          )
-        }
-      }
+      const nameExists = await nameExistence.validate(name)
+      const warning = <PD.PackageNameWarning exists={!!nameExists} />
 
       if (warning !== nameWarning) {
         setNameWarning(warning)
       }
     },
-    [nameWarning, nameExistence, initialName],
+    [nameWarning, nameExistence],
   )
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
 
   const onFormChange = React.useCallback(
-    async ({ modified, values }) => {
+    async ({ values }) => {
       if (editorElement && document.body.contains(editorElement)) {
         setMetaHeight(editorElement.clientHeight)
       }
 
-      if (modified.name) handleNameChange(values.name)
+      handleNameChange(values.name)
     },
     [editorElement, handleNameChange, setMetaHeight],
   )

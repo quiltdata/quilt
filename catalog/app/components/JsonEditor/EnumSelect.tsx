@@ -4,7 +4,7 @@ import * as M from '@material-ui/core'
 
 import Note from './Note'
 import PreviewValue from './PreviewValue'
-import { EMPTY_VALUE } from './State'
+import { JsonValue, EMPTY_VALUE, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -13,11 +13,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   icon: {
     right: t.spacing(6),
-  },
-  // TODO: reuse component from ButtonMenu
-  note: {
-    fontFamily: t.typography.monospace.fontFamily,
-    fontSize: t.typography.caption.fontSize,
   },
   placeholder: {
     color: t.palette.text.disabled,
@@ -36,19 +31,37 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function EnumSelect({ columnId, data, placeholder, value, onChange }) {
+interface EnumSelectProps {
+  columnId: 'key' | 'value'
+  data: RowData
+  placeholder: string
+  value: JsonValue
+  onChange: (value: JsonValue) => void
+}
+
+export default function EnumSelect({
+  columnId,
+  data,
+  placeholder,
+  value,
+  onChange,
+}: EnumSelectProps) {
   const classes = useStyles()
+
+  if (!data?.valueSchema?.enum) throw new Error('This is not enum')
 
   const options = React.useMemo(
     () =>
-      data.valueSchema.enum.map((enumItem, index) => ({
+      data.valueSchema!.enum!.map((enumItem: JsonValue, index: number) => ({
         value: R.equals(value, enumItem) ? value : enumItem,
         key: index,
       })),
     [data, value],
   )
 
-  const onChangeInternal = (e) => {
+  const onChangeInternal = (
+    e: React.ChangeEvent<{ name?: string; value: JsonValue }>,
+  ) => {
     if (e.target.value === undefined) {
       onChange(EMPTY_VALUE)
     } else {
@@ -65,15 +78,7 @@ export default function EnumSelect({ columnId, data, placeholder, value, onChang
         classes={{
           icon: classes.icon,
         }}
-        input={
-          <M.InputBase
-            endAdornment={
-              <code className={classes.note}>
-                <Note {...{ columnId, data, value }} />
-              </code>
-            }
-          />
-        }
+        input={<M.InputBase endAdornment={<Note {...{ columnId, data, value }} />} />}
       >
         {options.map((menuItem) => (
           <M.MenuItem key={menuItem.key} value={menuItem.value}>
