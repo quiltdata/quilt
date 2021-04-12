@@ -28,6 +28,7 @@ import { readableBytes, readableQuantity } from 'utils/string'
 import Code from './Code'
 import * as FileView from './FileView'
 import Section from './Section'
+import { JupyterViewMode } from './constants'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
 
@@ -396,6 +397,8 @@ export default function File({
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
 
+  const [viewMode, setViewMode] = React.useState(JupyterViewMode.Jupyter)
+
   return (
     <FileView.Root>
       <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
@@ -417,7 +420,11 @@ export default function File({
         </div>
 
         <div className={classes.actions}>
-          <FileView.ViewWithVoilaButtonLayout className={classes.button} />
+          <FileView.ViewWithVoilaButtonLayout
+            className={classes.button}
+            mode={viewMode}
+            onChange={setViewMode}
+          />
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}

@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 // import Message from 'components/Message'
+import SelectDropdown from 'components/SelectDropdown'
 import * as Auth from 'containers/Auth'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -14,6 +15,7 @@ import pipeThru from 'utils/pipeThru'
 
 // import Code from './Code'
 import Section from './Section'
+import { JupyterViewMode } from './constants'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
 
@@ -79,42 +81,18 @@ export function DownloadButton({ className, handle }) {
   ))
 }
 
-export function ViewWithVoilaButtonLayout({ ...props }) {
-  const classes = useDownloadButtonStyles()
+export function ViewWithVoilaButtonLayout({ mode, ...props }) {
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
-  const [opened, setOpened] = React.useState(false)
-
   return (
-    <>
-      {sm ? (
-        <M.IconButton
-          className={classes.root}
-          edge="end"
-          size="small"
-          onClick={() => setOpened(true)}
-          {...props}
-        >
-          <M.Icon>visibility</M.Icon>
-        </M.IconButton>
-      ) : (
-        <M.Button
-          className={classes.root}
-          variant="outlined"
-          size="small"
-          onClick={() => setOpened(true)}
-          startIcon={<M.Icon>visibility</M.Icon>}
-          {...props}
-        >
-          View with Voila
-        </M.Button>
-      )}
-      <M.Menu open={opened}>
-        <M.MenuItem>View as Jupyter</M.MenuItem>
-        <M.MenuItem>View with Voila</M.MenuItem>
-      </M.Menu>
-    </>
+    <SelectDropdown
+      options={[JupyterViewMode.Jupyter, JupyterViewMode.Voila]}
+      value={mode}
+      {...props}
+    >
+      {sm ? <M.Icon>visibility</M.Icon> : 'View as:'}
+    </SelectDropdown>
   )
 }
 
