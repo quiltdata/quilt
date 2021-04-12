@@ -45,35 +45,38 @@ const getCrumbs = R.compose(
     ),
 )
 
-const formatListing = ({ urls }: { urls: Urls }, r: requests.BucketListingResult) => {
-  const dirs = r.dirs.map((name) => ({
-    type: 'dir' as const,
-    name: ensureNoSlash(withoutPrefix(r.path, name)),
-    to: urls.bucketDir(r.bucket, name),
-  }))
-  const files = r.files.map(({ key, size, modified, archived }) => ({
-    type: 'file' as const,
-    name: withoutPrefix(r.path, key),
-    to: urls.bucketFile(r.bucket, key),
-    size,
-    modified,
-    archived,
-  }))
-  const items = [
-    ...(r.path !== '' && !r.prefix
-      ? [
-          {
-            type: 'dir' as const,
-            name: '..',
-            to: urls.bucketDir(r.bucket, up(r.path)),
-          },
-        ]
-      : []),
-    ...dirs,
-    ...files,
-  ]
-  // filter-out files with same name as one of dirs
-  return R.uniqBy(R.prop('name'), items)
+function useFormattedListing(r: requests.BucketListingResult) {
+  const { urls } = NamedRoutes.use<RouteMap>()
+  return React.useMemo(() => {
+    const dirs = r.dirs.map((name) => ({
+      type: 'dir' as const,
+      name: ensureNoSlash(withoutPrefix(r.path, name)),
+      to: urls.bucketDir(r.bucket, name),
+    }))
+    const files = r.files.map(({ key, size, modified, archived }) => ({
+      type: 'file' as const,
+      name: withoutPrefix(r.path, key),
+      to: urls.bucketFile(r.bucket, key),
+      size,
+      modified,
+      archived,
+    }))
+    const items = [
+      ...(r.path !== '' && !r.prefix
+        ? [
+            {
+              type: 'dir' as const,
+              name: '..',
+              to: urls.bucketDir(r.bucket, up(r.path)),
+            },
+          ]
+        : []),
+      ...dirs,
+      ...files,
+    ]
+    // filter-out files with same name as one of dirs
+    return R.uniqBy(R.prop('name'), items)
+  }, [r, urls])
 }
 
 interface DirContentsProps {
@@ -109,7 +112,7 @@ function DirContents({
     [history, urls, bucket, path],
   )
 
-  const items = React.useMemo(() => formatListing({ urls }, response), [urls, response])
+  const items = useFormattedListing(response)
 
   // TODO: should prefix filtering affect summary?
   return (
