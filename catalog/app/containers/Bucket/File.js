@@ -412,6 +412,7 @@ export default function File({
     },
     [history, urls, bucket, encodedPath, version],
   )
+  const isNotebook = path.endsWith('.ipynb')
 
   return (
     <FileView.Root>
@@ -434,12 +435,14 @@ export default function File({
         </div>
 
         <div className={classes.actions}>
-          <FileView.ViewWithVoilaButtonLayout
-            className={classes.button}
-            modesList={viewModes}
-            mode={viewMode}
-            onChange={onViewModeChange}
-          />
+          {isNotebook && (
+            <FileView.ViewWithVoilaButtonLayout
+              className={classes.button}
+              modesList={viewModes}
+              mode={viewMode}
+              onChange={onViewModeChange}
+            />
+          )}
           {downloadable && (
             <FileView.DownloadButton className={classes.button} handle={handle} />
           )}

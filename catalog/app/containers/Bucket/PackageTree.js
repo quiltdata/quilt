@@ -566,7 +566,6 @@ function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumb
     },
     [bucket, history, name, path, revision, urls],
   )
-
   const isNotebook = path.endsWith('.ipynb')
 
   return data.case({
