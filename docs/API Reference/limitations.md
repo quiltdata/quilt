@@ -21,9 +21,10 @@ API.
 
 ### API
 
-As of this writing, with sufficient client-side memory, you can comfortably scale
-Quilt packages to one million objects with no practical limit on object size, outside
-of S3's 5 TB per object limit.
+As of this writing, with sufficient client-side memory, you can comfortable scale
+Quilt packages to at least one million objects per package, with no practical limit
+on object size (save S3's 5 TB per object limit). A fast network, or better yet an AWS
+compute instance in the same region as your Quilt S3 buckets, is recommended.
 
 ### Metadata
 
