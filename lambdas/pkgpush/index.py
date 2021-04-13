@@ -21,6 +21,9 @@ from t4_lambda_shared.decorator import api
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 AUTH_ENDPOINT = os.environ['AUTH_ENDPOINT']
+TELEMETRY_ENDPOINT = os.environ.get('TELEMETRY_ENDPOINT')
+if TELEMETRY_ENDPOINT:
+    quilt3.telemetry.TELEMETRY_URL = TELEMETRY_ENDPOINT
 
 PROMOTE_PKG_MAX_MANIFEST_SIZE = int(os.environ['PROMOTE_PKG_MAX_MANIFEST_SIZE'])
 PROMOTE_PKG_MAX_PKG_SIZE = int(os.environ['PROMOTE_PKG_MAX_PKG_SIZE'])
