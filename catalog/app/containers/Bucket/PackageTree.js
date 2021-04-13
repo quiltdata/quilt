@@ -3,7 +3,7 @@ import * as dateFns from 'date-fns'
 import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link as RRLink } from 'react-router-dom'
+import { Link as RRLink, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -489,10 +489,23 @@ function DirDisplay({
   })
 }
 
-function FileDisplay({ bucket, name, hash, revision, path, crumbs }) {
+const viewModes = [
+  { key: 'jupyter', toString: () => 'Jupyter', valueOf: () => 'jupyter' },
+  { key: 'voila', toString: () => 'Voila', valueOf: () => 'voila' },
+]
+
+const useFileDisplayStyles = M.makeStyles((t) => ({
+  button: {
+    marginLeft: t.spacing(2),
+  },
+}))
+
+function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumbs }) {
   const s3 = AWS.S3.use()
   const credentials = AWS.Credentials.use()
   const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
+
+  const classes = useFileDisplayStyles()
 
   const data = useData(requests.packageFileDetail, {
     s3,
@@ -530,15 +543,31 @@ function FileDisplay({ bucket, name, hash, revision, path, crumbs }) {
     </>
   )
 
-  const withPreview = ({ archived, deleted, handle }, callback) => {
+  const withPreview = ({ archived, deleted, handle, mode }, callback) => {
     if (deleted) {
       return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
     }
     if (archived) {
       return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
     }
-    return Preview.load(handle, callback)
+    return Preview.load(R.assoc('mode', mode.key, handle), callback)
   }
+
+  const history = useHistory()
+  const { urls } = NamedRoutes.use()
+
+  const viewMode = React.useMemo(
+    () => viewModes.find(({ key }) => key === modeSlug) || viewModes[0],
+    [modeSlug],
+  )
+  const onViewModeChange = React.useCallback(
+    (mode) => {
+      history.push(urls.bucketPackageTree(bucket, name, revision, path, mode.key))
+    },
+    [bucket, history, name, path, revision, urls],
+  )
+
+  const isNotebook = path.endsWith('.ipynb')
 
   return data.case({
     Ok: ({ meta, ...handle }) => (
@@ -557,14 +586,25 @@ function FileDisplay({ bucket, name, hash, revision, path, crumbs }) {
             Exists: ({ archived, deleted }) => (
               <>
                 <TopBar crumbs={crumbs}>
+                  {isNotebook && (
+                    <FileView.ViewWithVoilaButtonLayout
+                      className={classes.button}
+                      modesList={viewModes}
+                      mode={viewMode}
+                      onChange={onViewModeChange}
+                    />
+                  )}
                   {!noDownload && !deleted && !archived && (
-                    <FileView.DownloadButton handle={handle} />
+                    <FileView.DownloadButton className={classes.button} handle={handle} />
                   )}
                 </TopBar>
                 <PkgCode {...{ bucket, name, hash, revision, path }} />
                 <FileView.Meta data={AsyncResult.Ok(meta)} />
                 <Section icon="remove_red_eye" heading="Preview" expandable={false}>
-                  {withPreview({ archived, deleted, handle }, renderPreview)}
+                  {withPreview(
+                    { archived, deleted, handle, mode: viewMode },
+                    renderPreview,
+                  )}
                 </Section>
               </>
             ),
@@ -625,7 +665,7 @@ const useStyles = M.makeStyles({
   },
 })
 
-function PackageTree({ bucket, name, revision, path, resolvedFrom }) {
+function PackageTree({ bucket, mode, name, revision, path, resolvedFrom }) {
   const classes = useStyles()
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
@@ -746,7 +786,7 @@ function PackageTree({ bucket, name, revision, path, resolvedFrom }) {
                 }}
               />
             ) : (
-              <FileDisplay {...{ bucket, name, hash, revision, path, crumbs }} />
+              <FileDisplay {...{ bucket, mode, name, hash, revision, path, crumbs }} />
             )}
           </ResolverProvider>
         ),
@@ -792,11 +832,11 @@ export default function PackageTreeWrapper({
   location,
 }) {
   const path = s3paths.decode(encodedPath)
-  const { resolvedFrom } = parseSearch(location.search)
+  const { resolvedFrom, mode = 'jupyter' } = parseSearch(location.search)
   const s3 = AWS.S3.use()
   const packageExists = useData(requests.ensurePackageExists, { s3, bucket, name })
   return packageExists.case({
-    Ok: () => <PackageTree {...{ bucket, name, revision, path, resolvedFrom }} />,
+    Ok: () => <PackageTree {...{ bucket, mode, name, revision, path, resolvedFrom }} />,
     Err: errors.displayError(),
     _: () => <Placeholder color="text.secondary" />,
   })
