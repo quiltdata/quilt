@@ -1,23 +1,14 @@
-import type { S3 } from 'aws-sdk'
 import * as R from 'ramda'
 import * as React from 'react'
 
 import { JsonValue } from 'components/JsonEditor/constants'
 import * as APIConnector from 'utils/APIConnector'
-import * as AWS from 'utils/AWS'
-import * as s3paths from 'utils/s3paths'
-import {
-  makeSchemaDefaultsSetter,
-  makeSchemaValidator,
-  JsonSchema,
-} from 'utils/json-schema/json-schema'
+import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import * as workflows from 'utils/workflows'
 
-import * as requests from './requestsUntyped'
-
 // "CREATE package" - creates package from scratch to new target
-// "UPDATE package" - creates package from source (existing manifest) to the same target
+// "UPDATE package" - creates package from scratch (using existing manifest) to defined target
 // "COPY package" - creates package from source (existing manifest) to new target
 // "WRAP package" - creates package (wraps directory) from source (bucket + directory) to new target
 
@@ -38,19 +29,19 @@ interface FileUpload {
   size: number
 }
 
-interface ManifestBodyBase {
+interface RequestBodyBase {
   message: string
   meta: JsonValue
   registry: string
   workflow?: string | null
 }
 
-interface ManifestBodyCreate extends ManifestBodyBase {
+interface RequestBodyCreate extends RequestBodyBase {
   contents: FileUpload[]
   name: string
 }
 
-interface ManifestBodyCopy extends ManifestBodyBase {
+interface RequestBodyCopy extends RequestBodyBase {
   name: string
   parent: {
     top_hash: string
@@ -59,7 +50,7 @@ interface ManifestBodyCopy extends ManifestBodyBase {
   }
 }
 
-interface ManifestBodyWrap extends ManifestBodyBase {
+interface RequestBodyWrap extends RequestBodyBase {
   dst: {
     registry: string
     name: string
@@ -67,7 +58,7 @@ interface ManifestBodyWrap extends ManifestBodyBase {
   entries: FileEntry[]
 }
 
-type ManifestBody = ManifestBodyCreate | ManifestBodyWrap | ManifestBodyCopy
+type RequestBody = RequestBodyCreate | RequestBodyWrap | RequestBodyCopy
 
 const ENDPOINT_CREATE = '/packages'
 
@@ -109,7 +100,7 @@ interface CreatePackageParams extends BasePackageParams {
 
 interface UpdatePackageParams extends BasePackageParams {
   contents: FileUpload[]
-  source: {
+  target: {
     bucket: string
     name: string
   }
@@ -132,45 +123,23 @@ interface Response {
 
 // FIXME: this is copypasted from PackageDialog -- next time we need to TSify utils/APIConnector properly
 interface ApiRequest {
-  <O>(opts: {
+  <Output, Body = {}>(opts: {
     endpoint: string
     method?: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'HEAD'
-    body?: {}
-  }): Promise<O>
+    body?: Body
+  }): Promise<Output>
 }
 
-async function loadManifestSchema(s3: S3, url: string): Promise<JsonSchema> {
-  const { bucket, key } = s3paths.parseS3Url(url)
-  const response = await requests.fetchFile({ s3, bucket, path: key })
-  return JSON.parse(response.Body.toString('utf-8'))
-}
-
-async function uploadManifest(
+const uploadManifest = (
   req: ApiRequest,
-  s3: S3,
   endpoint: Endpoint,
-  workflow: workflows.Workflow,
-  body: ManifestBody,
-): Promise<Response> {
-  try {
-    if (workflow.manifestSchema) {
-      const manifestSchema: JsonSchema = await loadManifestSchema(
-        s3,
-        workflow.manifestSchema,
-      )
-      const errors = makeSchemaValidator(manifestSchema)(body)
-      if (errors.length) throw errors[0]
-    }
-
-    return await req({
-      endpoint,
-      method: 'POST',
-      body,
-    })
-  } catch (e) {
-    return Promise.reject(e)
-  }
-}
+  body: RequestBody,
+): Promise<Response> =>
+  req<Response, RequestBody>({
+    endpoint,
+    method: 'POST',
+    body,
+  })
 
 const getMetaValue = (value: unknown, optSchema: JsonSchema) =>
   value
@@ -193,11 +162,10 @@ const getWorkflowApiParam = R.cond([
 
 const createPackage = (
   req: ApiRequest,
-  s3: S3,
   { contents, message, meta, target, workflow }: CreatePackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
-  uploadManifest(req, s3, ENDPOINT_CREATE, workflow, {
+  uploadManifest(req, ENDPOINT_CREATE, {
     name: target.name,
     registry: `s3://${target.bucket}`,
     message,
@@ -208,23 +176,21 @@ const createPackage = (
 
 export function useCreatePackage() {
   const req: ApiRequest = APIConnector.use()
-  const s3 = AWS.S3.use()
   return React.useCallback(
     (params: CreatePackageParams, schema: JsonSchema) =>
-      createPackage(req, s3, params, schema),
-    [req, s3],
+      createPackage(req, params, schema),
+    [req],
   )
 }
 
 const updatePackage = (
   req: ApiRequest,
-  s3: S3,
-  { contents, message, meta, source, workflow }: UpdatePackageParams,
+  { contents, message, meta, target, workflow }: UpdatePackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
-  uploadManifest(req, s3, ENDPOINT_UPDATE, workflow, {
-    name: source.name,
-    registry: `s3://${source.bucket}`,
+  uploadManifest(req, ENDPOINT_UPDATE, {
+    name: target.name,
+    registry: `s3://${target.bucket}`,
     message,
     contents,
     meta: getMetaValue(meta, schema),
@@ -233,21 +199,19 @@ const updatePackage = (
 
 export function useUpdatePackage() {
   const req: ApiRequest = APIConnector.use()
-  const s3 = AWS.S3.use()
   return React.useCallback(
     (params: UpdatePackageParams, schema: JsonSchema) =>
-      updatePackage(req, s3, params, schema),
-    [req, s3],
+      updatePackage(req, params, schema),
+    [req],
   )
 }
 
 const copyPackage = (
   req: ApiRequest,
-  s3: S3,
   { message, meta, source, target, workflow }: CopyPackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
-  uploadManifest(req, s3, ENDPOINT_COPY, workflow, {
+  uploadManifest(req, ENDPOINT_COPY, {
     message,
     meta: getMetaValue(meta, schema),
     name: target.name,
@@ -262,21 +226,18 @@ const copyPackage = (
 
 export function useCopyPackage() {
   const req: ApiRequest = APIConnector.use()
-  const s3 = AWS.S3.use()
   return React.useCallback(
-    (params: CopyPackageParams, schema: JsonSchema) =>
-      copyPackage(req, s3, params, schema),
-    [req, s3],
+    (params: CopyPackageParams, schema: JsonSchema) => copyPackage(req, params, schema),
+    [req],
   )
 }
 
 const wrapPackage = (
   req: ApiRequest,
-  s3: S3,
   { message, meta, source, target, workflow, entries }: WrapPackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
-  uploadManifest(req, s3, ENDPOINT_WRAP, workflow, {
+  uploadManifest(req, ENDPOINT_WRAP, {
     dst: {
       registry: `s3://${target.bucket}`,
       name: target.name,
@@ -290,10 +251,8 @@ const wrapPackage = (
 
 export function useWrapPackage() {
   const req: ApiRequest = APIConnector.use()
-  const s3 = AWS.S3.use()
   return React.useCallback(
-    (params: WrapPackageParams, schema: JsonSchema) =>
-      wrapPackage(req, s3, params, schema),
-    [s3, req],
+    (params: WrapPackageParams, schema: JsonSchema) => wrapPackage(req, params, schema),
+    [req],
   )
 }

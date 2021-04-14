@@ -1,3 +1,3 @@
 export * from './requestsUntyped'
 export * from './bucketListing'
-export * from './packageUpload'
+export * from './package'

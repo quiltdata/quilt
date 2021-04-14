@@ -551,3 +551,55 @@ class TestPackageSelect(TestCase):
             assert folder['objects'][0]['logical_key'] == '1'
             assert folder['objects'][1]['logical_key'] == '2'
             assert folder['objects'][2]['logical_key'] == '3'
+
+    def test_empty_manifest(self):
+        """
+        End-to-end test (folder view without a prefix) for an
+        empty package manifest
+        """
+        bucket = "bucket"
+        key = ".quilt/packages/manifest_hash"
+        params = dict(
+            bucket=bucket,
+            manifest=key,
+            access_key="TESTKEY",
+            secret_key="TESTSECRET",
+            session_token="TESTSESSION"
+        )
+
+        expected_args = {
+            'Bucket': bucket,
+            'Key': key,
+            'Expression': "SELECT SUBSTRING(s.logical_key, 1) AS logical_key FROM s3object s",
+            'ExpressionType': 'SQL',
+            'InputSerialization': {
+                'CompressionType': 'NONE',
+                'JSON': {'Type': 'LINES'}
+                },
+            'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
+        }
+
+        # Empty manifest
+        jsonl = '{"version": "v0", "message": null}'
+        streambytes = jsonl.encode()
+        non_string_s3response = self.make_s3response(streambytes)
+
+        mock_s3 = boto3.client('s3')
+        with patch.object(
+            mock_s3,
+            'select_object_content',
+            side_effect=[
+                non_string_s3response,
+                self.s3response_meta
+            ]
+        ) as client_patch, patch(
+            'boto3.Session.client',
+            return_value=mock_s3
+        ):
+            response = lambda_handler(self._make_event(params), None)
+            print(response)
+            assert response['statusCode'] == 200
+            folder = json.loads(read_body(response))['contents']
+            assert not folder['prefixes']
+            assert not folder['objects']
+            assert folder['total'] == 0
