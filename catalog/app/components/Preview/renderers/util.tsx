@@ -62,11 +62,12 @@ interface MsgAccordionProps {
 
 function MsgAccordion({ title, type, warnings }: MsgAccordionProps) {
   const classes = useMsgAccordionStyles()
+  const warningsCount = warnings.match(/\n/g)?.length
   return (
     <M.Accordion className={classes.root} variant="outlined">
       <M.AccordionSummary expandIcon={<M.Icon>expand_more</M.Icon>}>
         <div className={classes.header}>
-          <M.Chip className={classes.icon} label="17" />
+          {warningsCount && <M.Chip className={classes.icon} label={warningsCount} />}
           {title}
         </div>
       </M.AccordionSummary>
