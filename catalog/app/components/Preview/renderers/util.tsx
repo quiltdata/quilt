@@ -39,6 +39,7 @@ export function Msg({ type = 'info', className, children, ...props }: MsgProps) 
 
 const useMsgAccordionStyles = M.makeStyles((t) => ({
   root: {
+    borderRadius: t.shape.borderRadius,
     marginBottom: t.spacing(2),
   },
   icon: {
