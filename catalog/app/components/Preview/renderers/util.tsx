@@ -23,7 +23,12 @@ const useMsgStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function Msg({ type = 'info', className, children, ...props }) {
+interface MsgProps extends M.BoxProps {
+  type: 'info' | 'warning'
+  className: string
+}
+
+export function Msg({ type = 'info', className, children, ...props }: MsgProps) {
   const classes = useMsgStyles()
   return (
     <M.Box className={cx(classes.root, classes[type], className)} {...props}>
@@ -51,7 +56,14 @@ const useAlertStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Alert({ action, children, className, onClick }) {
+interface AlertProps {
+  action: React.ReactNode
+  children: React.ReactNode
+  className: string
+  onClick: () => void
+}
+
+function Alert({ action, children, className, onClick }: AlertProps) {
   const classes = useAlertStyles()
   return (
     <M.Paper elevation={0} className={cx(classes.root, className)} onClick={onClick}>
@@ -84,7 +96,13 @@ const useMsgAccordionStyles = M.makeStyles((t) => ({
   },
 }))
 
-function MsgAccordion({ title, type, warnings }) {
+interface MsgAccordionProps {
+  title: string
+  type: 'info' | 'warning'
+  warnings: string
+}
+
+function MsgAccordion({ title, type, warnings }: MsgAccordionProps) {
   const classes = useMsgAccordionStyles()
   const [expanded, setExpanded] = React.useState(false)
   return (
@@ -111,7 +129,7 @@ function MsgAccordion({ title, type, warnings }) {
   )
 }
 
-export const renderWarnings = (warnings) => {
+export const renderWarnings = (warnings?: string) => {
   if (!warnings) return null
 
   return (
