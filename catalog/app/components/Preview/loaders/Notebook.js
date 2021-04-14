@@ -6,6 +6,7 @@ import { handleToHttpsUri } from 'utils/s3paths'
 
 import { PreviewData } from '../types'
 import * as utils from './utils'
+import * as Json from './Json'
 
 export const detect = R.pipe(utils.stripCompression, utils.extIs('.ipynb'))
 
@@ -43,9 +44,12 @@ function VoilaLoader({ handle, children }) {
 }
 
 export const Loader = function WrappedNotebookLoader({ handle, children }) {
-  return handle.mode === 'voila' ? (
-    <VoilaLoader {...{ handle, children }} />
-  ) : (
-    <NotebookLoader {...{ handle, children }} />
-  )
+  switch (handle.mode) {
+    case 'voila':
+      return <VoilaLoader {...{ handle, children }} />
+    case 'json':
+      return <Json.Loader {...{ handle, children }} />
+    default:
+      return <NotebookLoader {...{ handle, children }} />
+  }
 }
