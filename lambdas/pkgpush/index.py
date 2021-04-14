@@ -129,7 +129,7 @@ quilt3.data_transfer.S3ClientProvider.get_boto_session = staticmethod(lambda: us
 
 
 def get_user_credentials(token):
-    resp = requests.get(AUTH_ENDPOINT, headers={'Authorization': token})
+    resp = requests.get(AUTH_ENDPOINT, headers={'Authorization': token}, timeout=5)
     creds = resp.json()
     return {
         'aws_access_key_id': creds['AccessKeyId'],
