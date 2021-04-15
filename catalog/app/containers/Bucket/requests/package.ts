@@ -3,9 +3,17 @@ import * as React from 'react'
 
 import { JsonValue } from 'components/JsonEditor/constants'
 import * as APIConnector from 'utils/APIConnector'
+import * as AWS from 'utils/AWS'
 import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema'
+import mkSearch from 'utils/mkSearch'
 import pipeThru from 'utils/pipeThru'
 import * as workflows from 'utils/workflows'
+
+interface AWSCredentials {
+  accessKeyId: string
+  secretAccessKey: string
+  sessionToken: string
+}
 
 // "CREATE package" - creates package from scratch to new target
 // "UPDATE package" - creates package from scratch (using existing manifest) to defined target
@@ -134,9 +142,10 @@ const uploadManifest = (
   req: ApiRequest,
   endpoint: Endpoint,
   body: RequestBody,
+  query?: Record<string, string | number | boolean>,
 ): Promise<Response> =>
   req<Response, RequestBody>({
-    endpoint,
+    endpoint: `${endpoint}${query ? mkSearch(query) : ''}`,
     method: 'POST',
     body,
   })
@@ -208,51 +217,75 @@ export function useUpdatePackage() {
 
 const copyPackage = (
   req: ApiRequest,
+  credentials: AWSCredentials,
   { message, meta, source, target, workflow }: CopyPackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
-  uploadManifest(req, ENDPOINT_COPY, {
-    message,
-    meta: getMetaValue(meta, schema),
-    name: target.name,
-    parent: {
-      top_hash: source.revision,
-      registry: `s3://${source.bucket}`,
-      name: source.name,
+  uploadManifest(
+    req,
+    ENDPOINT_COPY,
+    {
+      message,
+      meta: getMetaValue(meta, schema),
+      name: target.name,
+      parent: {
+        top_hash: source.revision,
+        registry: `s3://${source.bucket}`,
+        name: source.name,
+      },
+      registry: `s3://${target.bucket}`,
+      workflow: getWorkflowApiParam(workflow.slug),
     },
-    registry: `s3://${target.bucket}`,
-    workflow: getWorkflowApiParam(workflow.slug),
-  })
+    {
+      access_key: credentials.accessKeyId,
+      secret_key: credentials.secretAccessKey,
+      session_token: credentials.sessionToken,
+    },
+  )
 
 export function useCopyPackage() {
+  const credentials = AWS.Credentials.use()
   const req: ApiRequest = APIConnector.use()
   return React.useCallback(
-    (params: CopyPackageParams, schema: JsonSchema) => copyPackage(req, params, schema),
-    [req],
+    (params: CopyPackageParams, schema: JsonSchema) =>
+      copyPackage(req, credentials, params, schema),
+    [credentials, req],
   )
 }
 
-const wrapPackage = (
+const wrapPackage = async (
   req: ApiRequest,
+  credentials: AWSCredentials,
   { message, meta, source, target, workflow, entries }: WrapPackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
-  uploadManifest(req, ENDPOINT_WRAP, {
-    dst: {
-      registry: `s3://${target.bucket}`,
-      name: target.name,
+  uploadManifest(
+    req,
+    ENDPOINT_WRAP,
+    {
+      dst: {
+        registry: `s3://${target.bucket}`,
+        name: target.name,
+      },
+      entries,
+      message,
+      meta: getMetaValue(meta, schema),
+      registry: `s3://${source}`,
+      workflow: getWorkflowApiParam(workflow.slug),
     },
-    entries,
-    message,
-    meta: getMetaValue(meta, schema),
-    registry: `s3://${source}`,
-    workflow: getWorkflowApiParam(workflow.slug),
-  })
+    {
+      access_key: credentials.accessKeyId,
+      secret_key: credentials.secretAccessKey,
+      session_token: credentials.sessionToken,
+    },
+  )
 
 export function useWrapPackage() {
+  const credentials = AWS.Credentials.use()
   const req: ApiRequest = APIConnector.use()
   return React.useCallback(
-    (params: WrapPackageParams, schema: JsonSchema) => wrapPackage(req, params, schema),
-    [req],
+    (params: WrapPackageParams, schema: JsonSchema) =>
+      wrapPackage(req, credentials, params, schema),
+    [credentials, req],
   )
 }
