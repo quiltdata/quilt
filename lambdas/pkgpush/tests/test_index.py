@@ -19,6 +19,11 @@ from t4_lambda_shared.decorator import Request
 
 
 class PackagePromoteTestBase(unittest.TestCase):
+    credentials = {
+        'access_key': mock.sentinel.TEST_ACCESS_KEY,
+        'secret_key': mock.sentinel.TEST_SECRET_KEY,
+        'session_token': mock.sentinel.TEST_SESSION_TOKEN,
+    }
     handler = staticmethod(index.promote_package)
     parent_bucket = 'parent-bucket'
     src_registry = f's3://{parent_bucket}'
@@ -102,7 +107,6 @@ class PackagePromoteTestBase(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.headers = {
-            'authorization': mock.sentinel.AUTH_TOKEN,
             'content-type': 'application/json',
         }
         self.s3_stubber = Stubber(boto3.client('s3'))
@@ -140,23 +144,23 @@ class PackagePromoteTestBase(unittest.TestCase):
             yield
 
     @classmethod
-    def _make_event(cls, body, headers=None):
+    def _make_event(cls, body, credentials):
         return {
             'httpMethod': 'POST',
             'path': '/foo',
             'pathParameters': {},
-            'queryStringParameters': None,
-            'headers': headers or None,
+            'queryStringParameters': credentials,
+            'headers': None,
             'body': body,
             'isBase64Encoded': False,
         }
 
-    def make_request_base(self, params, *, headers):
+    def make_request_base(self, params, *, credentials):
         # This is a function before it get wrapped with @api decorator.
         # FIXME: find a cleaner way for this.
         response = self.handler.__wrapped__(
             Request(
-                self._make_event(json.dumps(params), headers=headers),
+                self._make_event(json.dumps(params), credentials=credentials),
             )
         )
         status, body, headers = response
@@ -166,20 +170,14 @@ class PackagePromoteTestBase(unittest.TestCase):
     @mock.patch('time.time', mock.MagicMock(return_value=mock_timestamp))
     def make_request(self, *args, headers=None, **kwargs):
         self.get_user_boto_session_mock.reset_mock()
-        get_user_credentials_patcher = mock.patch(
-            'index.get_user_credentials',
-            return_value={
-                'aws_access_key_id': mock.sentinel.USER_ACCESS_KEY,
-                'aws_secret_access_key': mock.sentinel.USER_SECRET_ACCESS_KEY,
-                'aws_session_token': mock.sentinel.USER_SESSION_TOKEN,
-            }
-        )
-        with get_user_credentials_patcher as get_user_credentials_mock, \
-             mock.patch('quilt3.telemetry.reset_session_id') as reset_session_id_mock:
-            response = self.make_request_base(*args, headers=headers or self.headers, **kwargs)
+        with mock.patch('quilt3.telemetry.reset_session_id') as reset_session_id_mock:
+            response = self.make_request_base(*args, credentials=self.credentials, **kwargs)
 
-        get_user_credentials_mock.assert_called_once_with(mock.sentinel.AUTH_TOKEN)
-        self.get_user_boto_session_mock.assert_called_once_with(**get_user_credentials_mock.return_value)
+        self.get_user_boto_session_mock.assert_called_once_with(
+            aws_access_key_id=mock.sentinel.TEST_ACCESS_KEY,
+            aws_secret_access_key=mock.sentinel.TEST_SECRET_KEY,
+            aws_session_token=mock.sentinel.TEST_SESSION_TOKEN,
+        )
         reset_session_id_mock.assert_called_once_with()
 
         return response
@@ -327,8 +325,11 @@ class PackagePromoteTest(PackagePromoteTestBase):
                     )
 
     def test_no_auth(self):
-        resp = self.make_request_base({}, headers={})
-        assert (resp.status_code, resp.data) == (HTTPStatus.UNAUTHORIZED, b'')
+        resp = self.make_request_base({}, credentials={})
+        assert (resp.status_code, resp.data) == (
+            HTTPStatus.BAD_REQUEST,
+            b'{"message": "access_key, secret_key, session_token are required."}'
+        )
 
     @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
     def test_dst_is_not_successor(self):
