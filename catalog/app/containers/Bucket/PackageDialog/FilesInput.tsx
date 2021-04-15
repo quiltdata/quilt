@@ -6,11 +6,13 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import useDragging from 'utils/dragging'
+import { handleToS3Url, withoutPrefix } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
 
 import * as PD from './PackageDialog'
+import * as S3FilePicker from './S3FilePicker'
 
 const COLORS = {
   default: M.colors.grey[900],
@@ -57,6 +59,11 @@ export const FilesAction = tagged.create(
       ...v,
       files: v.files.map(computeHash),
     }),
+    AddFromS3: (v: {
+      files: S3FilePicker.S3File[]
+      basePrefix: string
+      prefix?: string
+    }) => v,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
     Revert: (path: string) => path,
@@ -77,7 +84,7 @@ export interface ExistingFile {
 }
 
 export interface FilesState {
-  added: Record<string, FileWithPath & FileWithHash>
+  added: Record<string, (FileWithPath & FileWithHash) | S3FilePicker.S3File>
   deleted: Record<string, true>
   existing: Record<string, ExistingFile>
   // XXX: workaround used to re-trigger validation and dependent computations
@@ -104,6 +111,17 @@ const handleFilesAction = FilesAction.match<
   Add: ({ files, prefix }) => (state) =>
     files.reduce((acc, file) => {
       const path = (prefix || '') + PD.getNormalizedPath(file)
+      return R.evolve(
+        {
+          added: R.assoc(path, file),
+          deleted: R.dissoc(path),
+        },
+        acc,
+      ) as FilesState
+    }, state),
+  AddFromS3: ({ files, basePrefix, prefix }) => (state) =>
+    files.reduce((acc, file) => {
+      const path = (prefix || '') + withoutPrefix(basePrefix, file.key)
       return R.evolve(
         {
           added: R.assoc(path, file),
@@ -147,6 +165,8 @@ interface DispatchFilesAction {
 
 type FilesEntryState = 'deleted' | 'modified' | 'unchanged' | 'hashing' | 'added'
 
+type FilesEntryType = 's3' | 'local'
+
 const FilesEntryTag = 'app/containers/Bucket/PackageDialog/FilesInput:FilesEntry' as const
 
 const FilesEntry = tagged.create(FilesEntryTag, {
@@ -155,7 +175,12 @@ const FilesEntry = tagged.create(FilesEntryTag, {
     state: FilesEntryState
     childEntries: tagged.Instance<typeof FilesEntryTag>[]
   }) => v,
-  File: (v: { name: string; state: FilesEntryState; size: number }) => v,
+  File: (v: {
+    name: string
+    state: FilesEntryState
+    type: FilesEntryType
+    size: number
+  }) => v,
 })
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -203,30 +228,45 @@ const insertIntoTree = (path: string[] = [], file: FilesEntry, entries: FilesEnt
 
 interface IntermediateEntry {
   state: FilesEntryState
+  type: FilesEntryType
   path: string
   size: number
 }
 
 const computeEntries = ({ added, deleted, existing }: FilesState) => {
-  const existingEntries = Object.entries(existing).map(([path, { size, hash }]) => {
-    if (path in deleted) {
-      return { state: 'deleted' as const, path, size }
-    }
-    if (path in added) {
-      const a = added[path]
-      // eslint-disable-next-line no-nested-ternary
-      const state = !a.hash.ready
-        ? ('hashing' as const)
-        : a.hash.value === hash
-        ? ('unchanged' as const)
-        : ('modified' as const)
-      return { state, path, size: a.size }
-    }
-    return { state: 'unchanged' as const, path, size }
-  })
-  const addedEntries = Object.entries(added).reduce((acc, [path, { size }]) => {
+  const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
+    ([path, { size, hash, physicalKey }]) => {
+      if (path in deleted) {
+        return { state: 'deleted' as const, type: 'local' as const, path, size }
+      }
+      if (path in added) {
+        const a = added[path]
+        let state: FilesEntryState
+        let type: FilesEntryType
+        if (S3FilePicker.isS3File(a)) {
+          type = 's3' as const
+          state =
+            physicalKey === handleToS3Url(a)
+              ? ('unchanged' as const)
+              : ('modified' as const)
+        } else {
+          type = 'local' as const
+          // eslint-disable-next-line no-nested-ternary
+          state = !a.hash.ready
+            ? ('hashing' as const)
+            : a.hash.value === hash
+            ? ('unchanged' as const)
+            : ('modified' as const)
+        }
+        return { state, type, path, size: a.size }
+      }
+      return { state: 'unchanged' as const, type: 'local' as const, path, size }
+    },
+  )
+  const addedEntries = Object.entries(added).reduce((acc, [path, f]) => {
     if (path in existing) return acc
-    return acc.concat({ state: 'added', path, size })
+    const type = S3FilePicker.isS3File(f) ? ('s3' as const) : ('local' as const)
+    return acc.concat({ state: 'added', type, path, size: f.size })
   }, [] as IntermediateEntry[])
   const entries: IntermediateEntry[] = [...existingEntries, ...addedEntries]
   return entries.reduce((children, { path, ...rest }) => {
@@ -242,7 +282,9 @@ export const HASHING = 'hashing'
 export const HASHING_ERROR = 'hashingError'
 
 export const validateHashingComplete = (state: FilesState) => {
-  const files = Object.values(state.added)
+  const files = Object.values(state.added).filter(
+    (f) => !S3FilePicker.isS3File(f),
+  ) as FileWithHash[]
   if (files.some((f) => f.hash.ready && !f.hash.value)) return HASHING_ERROR
   if (files.some((f) => !f.hash.ready)) return HASHING
   return undefined
@@ -1089,6 +1131,7 @@ interface FilesInputProps {
     loaded: number
     percent: number
   }
+  bucket: string
 }
 
 export function FilesInput({
@@ -1100,6 +1143,7 @@ export function FilesInput({
   onFilesAction,
   title,
   totalProgress,
+  bucket,
 }: FilesInputProps) {
   const classes = useFilesInputStyles()
 
@@ -1138,7 +1182,10 @@ export function FilesInput({
     // XXX: maybe observe value and trigger this when it changes,
     // regardless of the source of change (e.g. new value supplied directly via the prop)
     const waitFor = Object.values(newValue.added).reduce(
-      (acc, f) => (f.hash.ready ? acc : acc.concat(f.hash.promise.catch(() => {}))),
+      (acc, f) =>
+        S3FilePicker.isS3File(f) || f.hash.ready
+          ? acc
+          : acc.concat(f.hash.promise.catch(() => {})),
       [] as Promise<any>[],
     )
     cur.scheduleUpdate(waitFor)
@@ -1167,7 +1214,12 @@ export function FilesInput({
     added: Object.entries(added).reduce(
       (acc, [path, f]) => {
         const e = existing[path]
-        if (e && (!f.hash.ready || f.hash.value === e.hash)) return acc
+        if (e) {
+          const unchanged = S3FilePicker.isS3File(f)
+            ? e.physicalKey === handleToS3Url(f)
+            : !f.hash.ready || f.hash.value === e.hash
+          if (unchanged) return acc
+        }
         return R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
       },
       { count: 0, size: 0 },
@@ -1176,13 +1228,34 @@ export function FilesInput({
       (acc, path) => R.evolve({ count: R.inc, size: R.add(existing[path].size) }, acc),
       { count: 0, size: 0 },
     ),
-    hashing: Object.values(added).reduce((acc, f) => acc || !f.hash.ready, false),
+    hashing: Object.values(added).reduce(
+      (acc, f) => acc || (!S3FilePicker.isS3File(f) && !f.hash.ready),
+      false,
+    ),
   }))
 
   const warn = stats.added.size > PD.MAX_SIZE
 
+  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(true)
+
+  const closeS3FilePicker = React.useCallback(
+    (reason: S3FilePicker.CloseReason) => {
+      if (!!reason && typeof reason === 'object') {
+        dispatch(FilesAction.AddFromS3({ files: reason.files, basePrefix: reason.path }))
+      }
+      setS3FilePickerOpen(false)
+    },
+    [dispatch, setS3FilePickerOpen],
+  )
+
   return (
     <Root className={className}>
+      <M.Button onClick={() => setS3FilePickerOpen(true)}>Add files from S3</M.Button>
+      <S3FilePicker.Dialog
+        bucket={bucket}
+        open={s3FilePickerOpen}
+        onClose={closeS3FilePicker}
+      />
       <Header>
         <HeaderTitle
           state={

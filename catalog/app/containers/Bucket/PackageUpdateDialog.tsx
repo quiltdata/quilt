@@ -20,6 +20,7 @@ import * as validators from 'utils/validators'
 import type * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
+import { isS3File, S3File } from './PackageDialog/S3FilePicker'
 import * as requests from './requests'
 
 interface Manifest {
@@ -57,6 +58,16 @@ interface Uploads {
     promise: Promise<UploadResult>
     progress?: { total: number; loaded: number }
   }
+}
+
+interface LocalEntry {
+  path: string
+  file: Exclude<PD.FilesState['added'][string], S3File>
+}
+
+interface S3Entry {
+  path: string
+  file: S3File
 }
 
 const getTotalProgress = R.pipe(
@@ -147,7 +158,7 @@ function DialogForm({
     [setUploads],
   )
 
-  const updatePackage = requests.useUpdatePackage()
+  const createPackage = requests.useCreatePackage()
 
   const onSubmit = async ({
     name,
@@ -163,11 +174,17 @@ function DialogForm({
     workflow: workflows.Workflow
     // eslint-disable-next-line consistent-return
   }) => {
-    const addedEntries = Object.entries(files.added).map(([path, file]) => ({
-      path,
-      file,
-    }))
-    const toUpload = addedEntries.filter(({ path, file }) => {
+    const addedS3Entries = [] as S3Entry[]
+    const addedLocalEntries = [] as LocalEntry[]
+    Object.entries(files.added).forEach(([path, file]) => {
+      if (isS3File(file)) {
+        addedS3Entries.push({ path, file })
+      } else {
+        addedLocalEntries.push({ path, file })
+      }
+    })
+
+    const toUpload = addedLocalEntries.filter(({ path, file }) => {
       const e = files.existing[path]
       return !e || e.hash !== file.hash.value
     })
@@ -227,8 +244,9 @@ function DialogForm({
       string,
       { physicalKey: string; size: number; hash: string; meta: unknown },
     ]
+
     const newEntries = pipeThru(toUpload, uploaded)(
-      R.zipWith<typeof toUpload[number], UploadResult, Zipped>((f, r) => {
+      R.zipWith<LocalEntry, UploadResult, Zipped>((f, r) => {
         invariant(f.file.hash.value, 'File must have a hash')
         return [
           f.path,
@@ -264,10 +282,17 @@ function DialogForm({
       R.sortBy(R.prop('logical_key')),
     )
 
+    const entries = addedS3Entries.map(({ path, file }) => ({
+      logical_key: path,
+      path: file.key,
+      is_dir: false,
+    }))
+
     try {
-      const res = await updatePackage(
+      const res = await createPackage(
         {
           contents,
+          entries,
           message: msg,
           meta,
           target: {
@@ -455,6 +480,7 @@ function DialogForm({
                     onFilesAction={onFilesAction}
                     isEqual={R.equals}
                     initialValue={initialFiles}
+                    bucket={bucket}
                   />
                 </PD.RightColumn>
               </PD.Container>

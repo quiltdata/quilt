@@ -717,6 +717,16 @@ function FilteredOverlay() {
   )
 }
 
+export type CellProps = React.PropsWithChildren<{
+  item: Item
+  title?: string
+  className?: string
+}>
+
+function Cell({ item, ...props }: CellProps) {
+  return <Link to={item.to} {...props} />
+}
+
 function compareBy<T, V extends R.Ord>(a: T, b: T, getValue: (arg: T) => V) {
   const va = getValue(a)
   const vb = getValue(b)
@@ -774,6 +784,9 @@ const useStyles = M.makeStyles((t) => ({
       background: fade(t.palette.background.paper, 0.5),
       zIndex: 1,
     },
+    '& .MuiDataGrid-checkboxInput': {
+      // TODO: smaller, align icons
+    },
     '& .MuiDataGrid-cell': {
       border: 'none',
       padding: 0,
@@ -801,11 +814,11 @@ const useStyles = M.makeStyles((t) => ({
         pointerEvents: 'none',
       },
       // "Size" column
-      '&:nth-child(2)': {
+      '&:nth-last-child(2)': {
         justifyContent: 'flex-end',
       },
       // "Last modified" column
-      '&:nth-child(3)': {
+      '&:last-child': {
         justifyContent: 'flex-end',
         '& .MuiDataGrid-colCellTitleContainer': {
           order: 1,
@@ -858,6 +871,9 @@ interface ListingProps {
   prefixFilter?: string
   toolbarContents?: React.ReactNode
   loadMore?: () => void
+  CellComponent?: React.ComponentType<CellProps>
+  selection?: DG.GridRowId[]
+  onSelectionChange?: (newSelection: DG.GridRowId[]) => void
 }
 
 export function Listing({
@@ -867,6 +883,9 @@ export function Listing({
   toolbarContents,
   prefixFilter,
   loadMore,
+  CellComponent = Cell,
+  selection,
+  onSelectionChange,
 }: ListingProps) {
   const classes = useStyles()
 
@@ -879,6 +898,7 @@ export function Listing({
     [setFilteredToZero],
   )
 
+  // disableClickEventBubbling: true?
   const columns: DG.GridColumns = React.useMemo(
     () => [
       {
@@ -904,20 +924,20 @@ export function Listing({
         renderCell: (params: DG.GridCellParams) => {
           const i = (params.row as unknown) as Item
           return (
-            <Link
-              to={i.to}
+            <CellComponent
+              item={i}
+              title={i.archived ? 'Object archived' : undefined}
               className={cx(
                 classes.link,
                 classes.linkFlex,
                 i.archived && classes.archived,
               )}
-              title={i.archived ? 'Object archived' : undefined}
             >
               <M.Icon className={classes.icon}>
                 {i.type === 'file' ? 'insert_drive_file' : 'folder_open'}
               </M.Icon>
               {i.name || EMPTY}
-            </Link>
+            </CellComponent>
           )
         },
       },
@@ -938,13 +958,13 @@ export function Listing({
         renderCell: (params: DG.GridCellParams) => {
           const i = (params.row as unknown) as Item
           return (
-            <Link
-              to={i.to}
+            <CellComponent
+              item={i}
               className={cx(classes.link, i.archived && classes.archived)}
               title={i.archived ? 'Object archived' : undefined}
             >
               {i.size == null ? <>&nbsp;</> : readableBytes(i.size)}
-            </Link>
+            </CellComponent>
           )
         },
       },
@@ -957,18 +977,18 @@ export function Listing({
         renderCell: (params: DG.GridCellParams) => {
           const i = (params.row as unknown) as Item
           return (
-            <Link
-              to={i.to}
+            <CellComponent
+              item={i}
               className={cx(classes.link, i.archived && classes.archived)}
               title={i.archived ? 'Object archived' : undefined}
             >
               {i.modified == null ? <>&nbsp;</> : i.modified.toLocaleString()}
-            </Link>
+            </CellComponent>
           )
         },
       },
     ],
-    [classes],
+    [classes, CellComponent],
   )
 
   const noRowsLabel = `No files / directories${
@@ -977,6 +997,13 @@ export function Listing({
 
   // abuse loading overlay to show warning when all the items are filtered-out
   const LoadingOverlay = !locked && filteredToZero ? FilteredOverlay : undefined
+
+  const handleSelectionModelChange = React.useCallback(
+    (newSelection: DG.GridSelectionModelChangeParams) => {
+      if (onSelectionChange) onSelectionChange(newSelection.selectionModel)
+    },
+    [onSelectionChange],
+  )
 
   // TODO: control page, pageSize, filtering and sorting via props
   return (
@@ -1001,6 +1028,7 @@ export function Listing({
         loading={locked || filteredToZero}
         headerHeight={36}
         rowHeight={36}
+        // TODO: re-enable?
         disableSelectionOnClick
         disableColumnSelector
         disableColumnResize
@@ -1008,6 +1036,10 @@ export function Listing({
         disableMultipleSelection
         disableMultipleColumnsSorting
         localeText={{ noRowsLabel, ...localeText }}
+        // selection-related props
+        checkboxSelection={!!onSelectionChange}
+        selectionModel={selection}
+        onSelectionModelChange={handleSelectionModelChange}
       />
     </M.Paper>
   )
