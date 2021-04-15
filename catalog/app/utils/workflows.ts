@@ -97,7 +97,7 @@ function parseWorkflow(
   return {
     description: workflow.description,
     isDefault: workflowSlug === data.default_workflow,
-    manifestSchema: workflow.object_schema,
+    manifestSchema: data.schemas?.[workflow.object_schema || '']?.url,
     name: workflow.name,
     schema: parseSchema(workflow.metadata_schema, data.schemas),
     slug: workflowSlug,
