@@ -13,6 +13,7 @@ interface AWSCredentials {
   accessKeyId: string
   secretAccessKey: string
   sessionToken: string
+  getPromise: () => Promise<void>
 }
 
 // "CREATE package" - creates package from scratch to new target
@@ -215,12 +216,15 @@ export function useUpdatePackage() {
   )
 }
 
-const copyPackage = (
+const copyPackage = async (
   req: ApiRequest,
   credentials: AWSCredentials,
   { message, meta, source, target, workflow }: CopyPackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
-) =>
+) => {
+  // refresh credentials and load if they are not loaded
+  await credentials.getPromise()
+
   uploadManifest(
     req,
     ENDPOINT_COPY,
@@ -242,6 +246,7 @@ const copyPackage = (
       session_token: credentials.sessionToken,
     },
   )
+}
 
 export function useCopyPackage() {
   const credentials = AWS.Credentials.use()
@@ -258,8 +263,11 @@ const wrapPackage = async (
   credentials: AWSCredentials,
   { message, meta, source, target, workflow, entries }: WrapPackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
-) =>
-  uploadManifest(
+) => {
+  // refresh credentials and load if they are not loaded
+  await credentials.getPromise()
+
+  return uploadManifest(
     req,
     ENDPOINT_WRAP,
     {
@@ -279,6 +287,7 @@ const wrapPackage = async (
       session_token: credentials.sessionToken,
     },
   )
+}
 
 export function useWrapPackage() {
   const credentials = AWS.Credentials.use()
