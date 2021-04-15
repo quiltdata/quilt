@@ -16,7 +16,7 @@ import quilt3
 from quilt3.backends import get_package_registry
 from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.util import PhysicalKey
-from t4_lambda_shared.decorator import api
+from t4_lambda_shared.decorator import ELBRequest, api
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 PROMOTE_PKG_MAX_MANIFEST_SIZE = int(os.environ['PROMOTE_PKG_MAX_MANIFEST_SIZE'])
@@ -294,7 +294,7 @@ def _push_pkg_to_successor(data, *, get_src, get_dst, get_name, get_pkg, pkg_max
         raise ApiException(HTTPStatus.FORBIDDEN, e.message)
 
 
-@api(cors_origins=get_default_origins())
+@api(cors_origins=get_default_origins(), request_class=ELBRequest)
 @api_exception_handler
 @auth
 @json_api(PACKAGE_PROMOTE_SCHEMA)
@@ -336,7 +336,7 @@ def promote_package(request):
     )
 
 
-@api(cors_origins=get_default_origins())
+@api(cors_origins=get_default_origins(), request_class=ELBRequest)
 @api_exception_handler
 @auth
 @json_api(PKG_FROM_FOLDER_SCHEMA)
