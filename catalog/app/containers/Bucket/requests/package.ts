@@ -225,7 +225,7 @@ const copyPackage = async (
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
 
-  uploadManifest(
+  return uploadManifest(
     req,
     ENDPOINT_COPY,
     {
