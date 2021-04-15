@@ -5,7 +5,11 @@ import * as React from 'react'
 import { JsonValue } from 'components/JsonEditor/constants'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
-import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema'
+import {
+  makeSchemaDefaultsSetter,
+  makeSchemaValidator,
+  JsonSchema,
+} from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import * as workflows from 'utils/workflows'
@@ -168,7 +172,12 @@ const uploadManifest = async (
       s3,
       schemaUrl: workflow.manifestSchema,
     })
-    const validationErrors = makeSchemaDefaultsSetter(manifestSchema)(body)
+    const validationErrors = makeSchemaValidator(manifestSchema)({
+      contents: (body as RequestBodyWrap).entries || (body as RequestBodyCreate).contents,
+      message: body.message,
+      meta: body.meta,
+      workflow: body.workflow,
+    })
     if (validationErrors.length) throw validationErrors[0]
   }
   return req<Response, RequestBody>({
