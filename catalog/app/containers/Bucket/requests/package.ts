@@ -8,7 +8,6 @@ import pipeThru from 'utils/pipeThru'
 import * as workflows from 'utils/workflows'
 
 // "CREATE package" - creates package from scratch to new target
-// "UPDATE package" - creates package from scratch (using existing manifest) to defined target
 // "COPY package" - creates package from source (existing manifest) to new target
 // "WRAP package" - creates package (wraps directory) from source (bucket + directory) to new target
 
@@ -38,6 +37,7 @@ interface RequestBodyBase {
 
 interface RequestBodyCreate extends RequestBodyBase {
   contents: FileUpload[]
+  entries?: FileEntry[]
   name: string
 }
 
@@ -58,21 +58,11 @@ interface RequestBodyWrap extends RequestBodyBase {
   entries: FileEntry[]
 }
 
-type RequestBody = RequestBodyCreate | RequestBodyWrap | RequestBodyCopy
-
 const ENDPOINT_CREATE = '/packages'
-
-const ENDPOINT_UPDATE = '/packages'
 
 const ENDPOINT_COPY = '/packages/promote'
 
 const ENDPOINT_WRAP = '/packages/from-folder'
-
-type Endpoint =
-  | typeof ENDPOINT_CREATE
-  | typeof ENDPOINT_UPDATE
-  | typeof ENDPOINT_COPY
-  | typeof ENDPOINT_WRAP
 
 // TODO: reuse it from some other place, don't remember where I saw it
 interface ManifestHandleTarget {
@@ -92,14 +82,7 @@ interface BasePackageParams {
 
 interface CreatePackageParams extends BasePackageParams {
   contents: FileUpload[]
-  target: {
-    bucket: string
-    name: string
-  }
-}
-
-interface UpdatePackageParams extends BasePackageParams {
-  contents: FileUpload[]
+  entries?: FileEntry[]
   target: {
     bucket: string
     name: string
@@ -123,23 +106,36 @@ interface Response {
 
 // FIXME: this is copypasted from PackageDialog -- next time we need to TSify utils/APIConnector properly
 interface ApiRequest {
-  <Output, Body = {}>(opts: {
+  <Output>(opts: {
     endpoint: string
     method?: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'HEAD'
-    body?: Body
+    body?: {}
   }): Promise<Output>
 }
 
-const uploadManifest = (
+interface UploadManifest {
+  (
+    req: ApiRequest,
+    endpoint: typeof ENDPOINT_CREATE,
+    body: RequestBodyCreate,
+  ): Promise<Response>
+  (
+    req: ApiRequest,
+    endpoint: typeof ENDPOINT_COPY,
+    body: RequestBodyCopy,
+  ): Promise<Response>
+  (
+    req: ApiRequest,
+    endpoint: typeof ENDPOINT_WRAP,
+    body: RequestBodyWrap,
+  ): Promise<Response>
+}
+
+const uploadManifest: UploadManifest = (
   req: ApiRequest,
-  endpoint: Endpoint,
-  body: RequestBody,
-): Promise<Response> =>
-  req<Response, RequestBody>({
-    endpoint,
-    method: 'POST',
-    body,
-  })
+  endpoint: string,
+  body: {},
+): Promise<Response> => req<Response>({ endpoint, method: 'POST', body })
 
 const getMetaValue = (value: unknown, optSchema: JsonSchema) =>
   value
@@ -162,7 +158,7 @@ const getWorkflowApiParam = R.cond([
 
 const createPackage = (
   req: ApiRequest,
-  { contents, message, meta, target, workflow }: CreatePackageParams,
+  { contents, entries, message, meta, target, workflow }: CreatePackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
   uploadManifest(req, ENDPOINT_CREATE, {
@@ -170,6 +166,7 @@ const createPackage = (
     registry: `s3://${target.bucket}`,
     message,
     contents,
+    entries,
     meta: getMetaValue(meta, schema),
     workflow: getWorkflowApiParam(workflow.slug),
   })
@@ -183,28 +180,8 @@ export function useCreatePackage() {
   )
 }
 
-const updatePackage = (
-  req: ApiRequest,
-  { contents, message, meta, target, workflow }: UpdatePackageParams,
-  schema: JsonSchema, // TODO: should be already inside workflow
-) =>
-  uploadManifest(req, ENDPOINT_UPDATE, {
-    name: target.name,
-    registry: `s3://${target.bucket}`,
-    message,
-    contents,
-    meta: getMetaValue(meta, schema),
-    workflow: getWorkflowApiParam(workflow.slug),
-  })
-
-export function useUpdatePackage() {
-  const req: ApiRequest = APIConnector.use()
-  return React.useCallback(
-    (params: UpdatePackageParams, schema: JsonSchema) =>
-      updatePackage(req, params, schema),
-    [req],
-  )
-}
+// backwards compatibity, can be removed soon
+export { useCreatePackage as useUpdatePackage }
 
 const copyPackage = (
   req: ApiRequest,
