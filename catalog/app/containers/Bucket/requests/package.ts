@@ -178,7 +178,11 @@ const uploadManifest = async (
       meta: body.meta,
       workflow: body.workflow,
     })
-    if (validationErrors.length) throw validationErrors[0]
+    if (validationErrors.length) {
+      const { dataPath, message } = validationErrors[0]
+      const errorMessage = dataPath ? `"${dataPath}" ${message}` : message
+      throw new Error(errorMessage)
+    }
   }
   return req<Response, RequestBody>({
     endpoint,
