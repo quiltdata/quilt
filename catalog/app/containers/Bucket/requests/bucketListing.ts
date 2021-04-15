@@ -1,11 +1,14 @@
 import type { S3 } from 'aws-sdk'
+import * as React from 'react'
 import * as R from 'ramda'
+
+import * as AWS from 'utils/AWS'
 
 import * as errors from '../errors'
 
 import { decodeS3Key } from './utils'
 
-interface File {
+export interface BucketListingFile {
   bucket: string
   key: string
   modified: Date
@@ -16,7 +19,7 @@ interface File {
 
 export interface BucketListingResult {
   dirs: string[]
-  files: File[]
+  files: BucketListingFile[]
   truncated: boolean
   continuationToken?: string
   bucket: string
@@ -24,25 +27,31 @@ export interface BucketListingResult {
   prefix?: string
 }
 
-interface BucketListingParams {
+interface BucketListingDependencies {
   s3: S3
+}
+
+interface BucketListingParams {
   bucket: string
   path?: string
   prefix?: string
   prev?: BucketListingResult
+  delimiter?: string | false
 }
 
+// TODO: support draining
 export const bucketListing = ({
   s3,
   bucket,
   path = '',
   prefix,
   prev,
-}: BucketListingParams): Promise<BucketListingResult> =>
+  delimiter = '/',
+}: BucketListingParams & BucketListingDependencies): Promise<BucketListingResult> =>
   s3
     .listObjectsV2({
       Bucket: bucket,
-      Delimiter: '/',
+      Delimiter: delimiter === false ? undefined : delimiter,
       Prefix: path + (prefix || ''),
       EncodingType: 'url',
       ContinuationToken: prev ? prev.continuationToken : undefined,
@@ -60,7 +69,6 @@ export const bucketListing = ({
         // filter-out "directory-files" (files that match prefixes)
         .filter(({ Key }: S3.Object) => Key !== path && !Key!.endsWith('/'))
         .map((i: S3.Object) => ({
-          // TODO: expose VersionId?
           bucket,
           key: i.Key!,
           modified: i.LastModified!,
@@ -81,3 +89,11 @@ export const bucketListing = ({
       }
     })
     .catch(errors.catchErrors())
+
+export function useBucketListing() {
+  const s3: S3 = AWS.S3.use()
+  return React.useCallback(
+    (params: BucketListingParams) => bucketListing({ s3, ...params }),
+    [s3],
+  )
+}
