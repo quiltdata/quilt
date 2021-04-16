@@ -2,8 +2,8 @@
 
 You can use your Quilt catalog's configuration file to show and hide certain
 tabs and buttons in the Quilt catalog. This gives you finer-grained control
-over how users interact with the Quilt catalog. You can create configuration
-file in your Quilt S3 bucket at `s3://BUCKET/.quilt/catalog/config.yaml`.
+over how users interact with the Quilt catalog. The catalog config file is per-bucket.
+The file's path is `s3://BUCKET/.quilt/catalog/config.yaml`.
 
 If there is no config.yaml, or your config.yaml file does not override the `ui`
 key, then the following defaults are used:
