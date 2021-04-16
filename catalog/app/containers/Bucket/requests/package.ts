@@ -10,12 +10,20 @@ import {
   makeSchemaValidator,
   JsonSchema,
 } from 'utils/json-schema'
+import mkSearch from 'utils/mkSearch'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import * as workflows from 'utils/workflows'
 
 import * as errors from '../errors'
 import * as requests from './requestsUntyped'
+
+interface AWSCredentials {
+  accessKeyId: string
+  secretAccessKey: string
+  sessionToken: string
+  getPromise: () => Promise<void>
+}
 
 // "CREATE package" - creates package from scratch to new target
 // "UPDATE package" - creates package from scratch (using existing manifest) to defined target
@@ -199,12 +207,13 @@ const uploadManifest = async (
   endpoint: Endpoint,
   workflow: workflows.Workflow,
   body: RequestBody,
+  query?: Record<string, string | number | boolean>,
 ): Promise<Response> => {
   const error = await validateRequestBody(s3, body, workflow.manifestSchema)
   if (error) throw error
 
   return req<Response, RequestBody>({
-    endpoint,
+    endpoint: `${endpoint}${query ? mkSearch(query) : ''}`,
     method: 'POST',
     body,
   })
@@ -279,59 +288,93 @@ export function useUpdatePackage() {
   )
 }
 
-const copyPackage = (
+const copyPackage = async (
   req: ApiRequest,
   s3: S3,
+  credentials: AWSCredentials,
   { message, meta, source, target, workflow }: CopyPackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
-) =>
-  uploadManifest(req, s3, ENDPOINT_COPY, workflow, {
-    message,
-    meta: getMetaValue(meta, schema),
-    name: target.name,
-    parent: {
-      top_hash: source.revision,
-      registry: `s3://${source.bucket}`,
-      name: source.name,
+) => {
+  // refresh credentials and load if they are not loaded
+  await credentials.getPromise()
+
+  return uploadManifest(
+    req,
+    s3,
+    ENDPOINT_COPY,
+    workflow,
+    {
+      message,
+      meta: getMetaValue(meta, schema),
+      name: target.name,
+      parent: {
+        top_hash: source.revision,
+        registry: `s3://${source.bucket}`,
+        name: source.name,
+      },
+      registry: `s3://${target.bucket}`,
+      workflow: getWorkflowApiParam(workflow.slug),
     },
-    registry: `s3://${target.bucket}`,
-    workflow: getWorkflowApiParam(workflow.slug),
-  })
+    {
+      access_key: credentials.accessKeyId,
+      secret_key: credentials.secretAccessKey,
+      session_token: credentials.sessionToken,
+    },
+  )
+}
 
 export function useCopyPackage() {
+  const credentials = AWS.Credentials.use()
   const req: ApiRequest = APIConnector.use()
   const s3 = AWS.S3.use()
   return React.useCallback(
     (params: CopyPackageParams, schema: JsonSchema) =>
-      copyPackage(req, s3, params, schema),
-    [req, s3],
+      copyPackage(req, s3, credentials, params, schema),
+    [credentials, req, s3],
   )
 }
 
-const wrapPackage = (
+const wrapPackage = async (
   req: ApiRequest,
   s3: S3,
+  credentials: AWSCredentials,
   { message, meta, source, target, workflow, entries }: WrapPackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
-) =>
-  uploadManifest(req, s3, ENDPOINT_WRAP, workflow, {
-    dst: {
-      registry: `s3://${target.bucket}`,
-      name: target.name,
+) => {
+  // refresh credentials and load if they are not loaded
+  await credentials.getPromise()
+
+  return uploadManifest(
+    req,
+    s3,
+    ENDPOINT_WRAP,
+    workflow,
+    {
+      dst: {
+        registry: `s3://${target.bucket}`,
+        name: target.name,
+      },
+      entries,
+      message,
+      meta: getMetaValue(meta, schema),
+      registry: `s3://${source}`,
+      workflow: getWorkflowApiParam(workflow.slug),
     },
-    entries,
-    message,
-    meta: getMetaValue(meta, schema),
-    registry: `s3://${source}`,
-    workflow: getWorkflowApiParam(workflow.slug),
-  })
+    {
+      access_key: credentials.accessKeyId,
+      secret_key: credentials.secretAccessKey,
+      session_token: credentials.sessionToken,
+    },
+  )
+}
 
 export function useWrapPackage() {
+  const credentials = AWS.Credentials.use()
   const req: ApiRequest = APIConnector.use()
   const s3 = AWS.S3.use()
   return React.useCallback(
     (params: WrapPackageParams, schema: JsonSchema) =>
-      wrapPackage(req, s3, params, schema),
-    [req, s3],
+      wrapPackage(req, s3, credentials, params, schema),
+    [credentials, req, s3],
   )
 }

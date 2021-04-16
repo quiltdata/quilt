@@ -7,7 +7,6 @@ import traceback
 from http import HTTPStatus
 
 import boto3
-import requests
 from botocore.exceptions import ClientError
 from jsonschema import Draft7Validator
 
@@ -17,10 +16,8 @@ import quilt3
 from quilt3.backends import get_package_registry
 from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.util import PhysicalKey
-from t4_lambda_shared.decorator import api
+from t4_lambda_shared.decorator import ELBRequest, api
 from t4_lambda_shared.utils import get_default_origins, make_json_response
-
-AUTH_ENDPOINT = os.environ['AUTH_ENDPOINT']
 
 PROMOTE_PKG_MAX_MANIFEST_SIZE = int(os.environ['PROMOTE_PKG_MAX_MANIFEST_SIZE'])
 PROMOTE_PKG_MAX_PKG_SIZE = int(os.environ['PROMOTE_PKG_MAX_PKG_SIZE'])
@@ -128,14 +125,22 @@ user_boto_session = None
 quilt3.data_transfer.S3ClientProvider.get_boto_session = staticmethod(lambda: user_boto_session)
 
 
-def get_user_credentials(token):
-    resp = requests.get(AUTH_ENDPOINT, headers={'Authorization': token})
-    creds = resp.json()
-    return {
-        'aws_access_key_id': creds['AccessKeyId'],
-        'aws_secret_access_key': creds['SecretAccessKey'],
-        'aws_session_token': creds['SessionToken'],
+def get_user_credentials(request):
+    attrs_map = (
+        ('access_key', 'aws_access_key_id'),
+        ('secret_key', 'aws_secret_access_key'),
+        ('session_token', 'aws_session_token'),
+    )
+    creds = {
+        dst: request.args.get(src)
+        for src, dst in attrs_map
     }
+    if not all(creds.values()):
+        raise ApiException(
+            HTTPStatus.BAD_REQUEST,
+            f'{", ".join(dict(attrs_map))} are required.'
+        )
+    return creds
 
 
 # Isolated for test-ability.
@@ -155,10 +160,7 @@ def setup_user_boto_session(session):
 def auth(f):
     @functools.wraps(f)
     def wrapper(request):
-        auth_header = request.headers.get('authorization')
-        if not auth_header:
-            return HTTPStatus.UNAUTHORIZED, '', {}
-        with setup_user_boto_session(get_user_boto_session(**get_user_credentials(auth_header))):
+        with setup_user_boto_session(get_user_boto_session(**get_user_credentials(request))):
             return f(request)
     return wrapper
 
@@ -292,7 +294,7 @@ def _push_pkg_to_successor(data, *, get_src, get_dst, get_name, get_pkg, pkg_max
         raise ApiException(HTTPStatus.FORBIDDEN, e.message)
 
 
-@api(cors_origins=get_default_origins())
+@api(cors_origins=get_default_origins(), request_class=ELBRequest)
 @api_exception_handler
 @auth
 @json_api(PACKAGE_PROMOTE_SCHEMA)
@@ -334,7 +336,7 @@ def promote_package(request):
     )
 
 
-@api(cors_origins=get_default_origins())
+@api(cors_origins=get_default_origins(), request_class=ELBRequest)
 @api_exception_handler
 @auth
 @json_api(PKG_FROM_FOLDER_SCHEMA)
