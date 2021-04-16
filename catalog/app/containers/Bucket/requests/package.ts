@@ -160,6 +160,39 @@ interface ApiRequest {
   }): Promise<Output>
 }
 
+interface AjvError {
+  dataPath?: string
+  message: string
+}
+
+function formatErrorMessage(validationErrors: AjvError[]): string {
+  const { dataPath, message } = validationErrors[0]
+  return dataPath ? `"${dataPath}" ${message}` : message
+}
+
+async function validateRequestBody(
+  s3: S3,
+  body: RequestBody,
+  schemaUrl?: string,
+): Promise<Error | undefined> {
+  if (!schemaUrl) return undefined
+
+  const schema = await objectSchema({
+    s3,
+    schemaUrl,
+  })
+  const normalizedBody = {
+    contents: (body as RequestBodyWrap).entries || (body as RequestBodyCreate).contents,
+    message: body.message,
+    meta: body.meta,
+    workflow: body.workflow,
+  }
+  const validationErrors = makeSchemaValidator(schema)(normalizedBody)
+  if (!validationErrors.length) return undefined
+
+  return new Error(formatErrorMessage(validationErrors))
+}
+
 const uploadManifest = async (
   req: ApiRequest,
   s3: S3,
@@ -167,23 +200,9 @@ const uploadManifest = async (
   workflow: workflows.Workflow,
   body: RequestBody,
 ): Promise<Response> => {
-  if (workflow.manifestSchema) {
-    const manifestSchema = await objectSchema({
-      s3,
-      schemaUrl: workflow.manifestSchema,
-    })
-    const validationErrors = makeSchemaValidator(manifestSchema)({
-      contents: (body as RequestBodyWrap).entries || (body as RequestBodyCreate).contents,
-      message: body.message,
-      meta: body.meta,
-      workflow: body.workflow,
-    })
-    if (validationErrors.length) {
-      const { dataPath, message } = validationErrors[0]
-      const errorMessage = dataPath ? `"${dataPath}" ${message}` : message
-      throw new Error(errorMessage)
-    }
-  }
+  const error = await validateRequestBody(s3, body, workflow.manifestSchema)
+  if (error) throw error
+
   return req<Response, RequestBody>({
     endpoint,
     method: 'POST',
