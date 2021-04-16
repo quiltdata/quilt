@@ -249,6 +249,8 @@ workflows:
           name: test-lambda-indexer
           path: es/indexer
       - pypi-release:
+          context:
+            - pypi-release
           requires:
             - test-client
             - test-client-windows
