@@ -201,14 +201,23 @@ async function validateRequestBody(
   return new Error(formatErrorMessage(validationErrors))
 }
 
-const uploadManifest = async (
-  req: ApiRequest,
-  s3: S3,
-  endpoint: Endpoint,
-  workflow: workflows.Workflow,
-  body: RequestBody,
-  query?: Record<string, string | number | boolean>,
-): Promise<Response> => {
+interface UploadManifestArgs {
+  req: ApiRequest
+  s3: S3
+  endpoint: Endpoint
+  workflow: workflows.Workflow
+  body: RequestBody
+  query?: Record<string, string | number | boolean>
+}
+
+const uploadManifest = async ({
+  req,
+  s3,
+  endpoint,
+  workflow,
+  body,
+  query,
+}: UploadManifestArgs): Promise<Response> => {
   const error = await validateRequestBody(s3, body, workflow.manifestSchema)
   if (error) throw error
 
@@ -244,13 +253,19 @@ const createPackage = (
   { contents, message, meta, target, workflow }: CreatePackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
-  uploadManifest(req, s3, ENDPOINT_CREATE, workflow, {
-    name: target.name,
-    registry: `s3://${target.bucket}`,
-    message,
-    contents,
-    meta: getMetaValue(meta, schema),
-    workflow: getWorkflowApiParam(workflow.slug),
+  uploadManifest({
+    req,
+    s3,
+    endpoint: ENDPOINT_CREATE,
+    workflow,
+    body: {
+      name: target.name,
+      registry: `s3://${target.bucket}`,
+      message,
+      contents,
+      meta: getMetaValue(meta, schema),
+      workflow: getWorkflowApiParam(workflow.slug),
+    },
   })
 
 export function useCreatePackage() {
@@ -269,13 +284,19 @@ const updatePackage = (
   { contents, message, meta, target, workflow }: UpdatePackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
 ) =>
-  uploadManifest(req, s3, ENDPOINT_UPDATE, workflow, {
-    name: target.name,
-    registry: `s3://${target.bucket}`,
-    message,
-    contents,
-    meta: getMetaValue(meta, schema),
-    workflow: getWorkflowApiParam(workflow.slug),
+  uploadManifest({
+    req,
+    s3,
+    endpoint: ENDPOINT_UPDATE,
+    workflow,
+    body: {
+      name: target.name,
+      registry: `s3://${target.bucket}`,
+      message,
+      contents,
+      meta: getMetaValue(meta, schema),
+      workflow: getWorkflowApiParam(workflow.slug),
+    },
   })
 
 export function useUpdatePackage() {
@@ -298,12 +319,12 @@ const copyPackage = async (
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
 
-  return uploadManifest(
+  return uploadManifest({
     req,
     s3,
-    ENDPOINT_COPY,
+    endpoint: ENDPOINT_COPY,
     workflow,
-    {
+    body: {
       message,
       meta: getMetaValue(meta, schema),
       name: target.name,
@@ -315,12 +336,12 @@ const copyPackage = async (
       registry: `s3://${target.bucket}`,
       workflow: getWorkflowApiParam(workflow.slug),
     },
-    {
+    query: {
       access_key: credentials.accessKeyId,
       secret_key: credentials.secretAccessKey,
       session_token: credentials.sessionToken,
     },
-  )
+  })
 }
 
 export function useCopyPackage() {
@@ -344,12 +365,12 @@ const wrapPackage = async (
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
 
-  return uploadManifest(
+  return uploadManifest({
     req,
     s3,
-    ENDPOINT_WRAP,
+    endpoint: ENDPOINT_WRAP,
     workflow,
-    {
+    body: {
       dst: {
         registry: `s3://${target.bucket}`,
         name: target.name,
@@ -360,12 +381,12 @@ const wrapPackage = async (
       registry: `s3://${source}`,
       workflow: getWorkflowApiParam(workflow.slug),
     },
-    {
+    query: {
       access_key: credentials.accessKeyId,
       secret_key: credentials.secretAccessKey,
       session_token: credentials.sessionToken,
     },
-  )
+  })
 }
 
 export function useWrapPackage() {
