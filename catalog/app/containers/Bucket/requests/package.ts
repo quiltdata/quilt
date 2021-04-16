@@ -202,27 +202,40 @@ async function validateRequestBody(
 }
 
 interface UploadManifestArgs {
+  body: RequestBody
+  credentials?: AWSCredentials
+  endpoint: Endpoint
   req: ApiRequest
   s3: S3
-  endpoint: Endpoint
   workflow: workflows.Workflow
-  body: RequestBody
-  query?: Record<string, string | number | boolean>
 }
 
 const uploadManifest = async ({
+  body,
+  credentials,
+  endpoint,
   req,
   s3,
-  endpoint,
   workflow,
-  body,
-  query,
 }: UploadManifestArgs): Promise<Response> => {
+  if (credentials) {
+    // refresh credentials and load if they are not loaded
+    await credentials.getPromise()
+  }
+
+  const secureEndpoint = credentials
+    ? `${endpoint}${mkSearch({
+        access_key: credentials.accessKeyId,
+        secret_key: credentials.secretAccessKey,
+        session_token: credentials.sessionToken,
+      })}`
+    : endpoint
+
   const error = await validateRequestBody(s3, body, workflow.manifestSchema)
   if (error) throw error
 
   return req<Response, RequestBody>({
-    endpoint: `${endpoint}${query ? mkSearch(query) : ''}`,
+    endpoint: secureEndpoint,
     method: 'POST',
     body,
   })
@@ -315,14 +328,12 @@ const copyPackage = async (
   credentials: AWSCredentials,
   { message, meta, source, target, workflow }: CopyPackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
-) => {
-  // refresh credentials and load if they are not loaded
-  await credentials.getPromise()
-
-  return uploadManifest({
+) =>
+  uploadManifest({
+    credentials,
+    endpoint: ENDPOINT_COPY,
     req,
     s3,
-    endpoint: ENDPOINT_COPY,
     workflow,
     body: {
       message,
@@ -336,13 +347,7 @@ const copyPackage = async (
       registry: `s3://${target.bucket}`,
       workflow: getWorkflowApiParam(workflow.slug),
     },
-    query: {
-      access_key: credentials.accessKeyId,
-      secret_key: credentials.secretAccessKey,
-      session_token: credentials.sessionToken,
-    },
   })
-}
 
 export function useCopyPackage() {
   const credentials = AWS.Credentials.use()
@@ -361,14 +366,12 @@ const wrapPackage = async (
   credentials: AWSCredentials,
   { message, meta, source, target, workflow, entries }: WrapPackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
-) => {
-  // refresh credentials and load if they are not loaded
-  await credentials.getPromise()
-
-  return uploadManifest({
+) =>
+  uploadManifest({
+    credentials,
+    endpoint: ENDPOINT_WRAP,
     req,
     s3,
-    endpoint: ENDPOINT_WRAP,
     workflow,
     body: {
       dst: {
@@ -381,13 +384,7 @@ const wrapPackage = async (
       registry: `s3://${source}`,
       workflow: getWorkflowApiParam(workflow.slug),
     },
-    query: {
-      access_key: credentials.accessKeyId,
-      secret_key: credentials.secretAccessKey,
-      session_token: credentials.sessionToken,
-    },
   })
-}
 
 export function useWrapPackage() {
   const credentials = AWS.Credentials.use()
