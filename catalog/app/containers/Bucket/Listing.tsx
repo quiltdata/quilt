@@ -871,9 +871,11 @@ interface ListingProps {
   prefixFilter?: string
   toolbarContents?: React.ReactNode
   loadMore?: () => void
-  CellComponent?: React.ComponentType<CellProps>
   selection?: DG.GridRowId[]
   onSelectionChange?: (newSelection: DG.GridRowId[]) => void
+  CellComponent?: React.ComponentType<CellProps>
+  RootComponent?: React.ElementType<{ className: string }>
+  className?: string
 }
 
 export function Listing({
@@ -883,9 +885,11 @@ export function Listing({
   toolbarContents,
   prefixFilter,
   loadMore,
-  CellComponent = Cell,
   selection,
   onSelectionChange,
+  CellComponent = Cell,
+  RootComponent = M.Paper,
+  className,
 }: ListingProps) {
   const classes = useStyles()
 
@@ -1007,7 +1011,7 @@ export function Listing({
 
   // TODO: control page, pageSize, filtering and sorting via props
   return (
-    <M.Paper className={classes.root}>
+    <RootComponent className={cx(classes.root, className)}>
       <DataGrid
         onFilterModelChange={handleFilterModelChange}
         className={cx(classes.grid, locked && classes.locked)}
@@ -1041,7 +1045,7 @@ export function Listing({
         selectionModel={selection}
         onSelectionModelChange={handleSelectionModelChange}
       />
-    </M.Paper>
+    </RootComponent>
   )
 }
 
