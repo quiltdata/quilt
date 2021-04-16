@@ -52,6 +52,10 @@ function computeHash<F extends File>(f: F) {
   return fh
 }
 
+function ensureExhaustive(x: never): never {
+  throw new Error(`Non-exhaustive match: '${x}'`)
+}
+
 export const FilesAction = tagged.create(
   'app/containers/Bucket/PackageDialog/FilesInput:FilesAction' as const,
   {
@@ -879,6 +883,7 @@ const useContentsStyles = M.makeStyles((t) => ({
     minHeight: 80,
     outline: 'none',
     overflow: 'hidden',
+    position: 'relative',
   },
   interactive: {
     cursor: 'pointer',
@@ -930,38 +935,48 @@ type FileUploadProps = tagged.ValueOf<typeof FilesEntry.File> & {
 function FileUpload({ name, state, size, prefix, dispatch }: FileUploadProps) {
   const path = (prefix || '') + name
 
-  const handle = React.useCallback(
-    (cons: tagged.ConstructorOf<typeof FilesAction>) => (e: React.MouseEvent) => {
+  // eslint-disable-next-line consistent-return
+  const action = React.useMemo(() => {
+    const handle = (a: FilesAction) => (e: React.MouseEvent) => {
       // stop click from propagating to the root element and triggering its handler
       e.stopPropagation()
-      dispatch(cons(path))
-    },
-    [dispatch, path],
-  )
-
-  const action = React.useMemo(
-    () =>
-      ({
-        added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.Revert) },
-        modified: {
+      dispatch(a)
+    }
+    switch (state) {
+      case 'added':
+        return {
+          hint: 'Remove',
+          icon: 'clear',
+          handler: handle(FilesAction.Revert(path)),
+        }
+      case 'modified':
+        return {
           hint: 'Revert',
           icon: 'undo',
-          handler: handle(FilesAction.Revert),
-        },
-        hashing: {
+          handler: handle(FilesAction.Revert(path)),
+        }
+      case 'hashing':
+        return {
           hint: 'Revert',
           icon: 'undo',
-          handler: handle(FilesAction.Revert),
-        },
-        deleted: {
+          handler: handle(FilesAction.Revert(path)),
+        }
+      case 'deleted':
+        return {
           hint: 'Restore',
           icon: 'undo',
-          handler: handle(FilesAction.Revert),
-        },
-        unchanged: { hint: 'Delete', icon: 'clear', handler: handle(FilesAction.Delete) },
-      }[state]),
-    [state, handle],
-  )
+          handler: handle(FilesAction.Revert(path)),
+        }
+      case 'unchanged':
+        return {
+          hint: 'Delete',
+          icon: 'clear',
+          handler: handle(FilesAction.Delete(path)),
+        }
+      default:
+        ensureExhaustive(state)
+    }
+  }, [state, dispatch, path])
 
   const onClick = React.useCallback((e: React.MouseEvent) => {
     // stop click from propagating to parent elements and triggering their handlers
@@ -1023,42 +1038,48 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
     noClick: true,
   })
 
-  const handle = React.useCallback(
-    (cons: tagged.ConstructorOf<typeof FilesAction>) => (e: React.MouseEvent) => {
+  // eslint-disable-next-line consistent-return
+  const action = React.useMemo(() => {
+    const handle = (a: FilesAction) => (e: React.MouseEvent) => {
       // stop click from propagating to the root element and triggering its handler
       e.stopPropagation()
-      dispatch(cons(path))
-    },
-    [dispatch, path],
-  )
-
-  const action = React.useMemo(
-    () =>
-      ({
-        added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.RevertDir) },
-        modified: {
+      dispatch(a)
+    }
+    switch (state) {
+      case 'added':
+        return {
+          hint: 'Remove',
+          icon: 'clear',
+          handler: handle(FilesAction.RevertDir(path)),
+        }
+      case 'modified':
+        return {
           hint: 'Revert',
           icon: 'undo',
-          handler: handle(FilesAction.RevertDir),
-        },
-        hashing: {
+          handler: handle(FilesAction.RevertDir(path)),
+        }
+      case 'hashing':
+        return {
           hint: 'Revert',
           icon: 'undo',
-          handler: handle(FilesAction.RevertDir),
-        },
-        deleted: {
+          handler: handle(FilesAction.RevertDir(path)),
+        }
+      case 'deleted':
+        return {
           hint: 'Restore',
           icon: 'undo',
-          handler: handle(FilesAction.RevertDir),
-        },
-        unchanged: {
+          handler: handle(FilesAction.RevertDir(path)),
+        }
+      case 'unchanged':
+        return {
           hint: 'Delete',
           icon: 'clear',
-          handler: handle(FilesAction.DeleteDir),
-        },
-      }[state]),
-    [state, handle],
-  )
+          handler: handle(FilesAction.DeleteDir(path)),
+        }
+      default:
+        ensureExhaustive(state)
+    }
+  }, [state, dispatch, path])
 
   return (
     <Dir
@@ -1101,6 +1122,11 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   },
   hashing: {
     marginLeft: t.spacing(1),
+  },
+  s3Btn: {
+    bottom: t.spacing(1),
+    position: 'absolute',
+    right: t.spacing(1),
   },
 }))
 
@@ -1213,13 +1239,9 @@ export function FilesInput({
   const stats = useMemoEq(value, ({ added, deleted, existing }) => ({
     added: Object.entries(added).reduce(
       (acc, [path, f]) => {
+        if (S3FilePicker.isS3File(f)) return acc // dont count s3 files
         const e = existing[path]
-        if (e) {
-          const unchanged = S3FilePicker.isS3File(f)
-            ? e.physicalKey === handleToS3Url(f)
-            : !f.hash.ready || f.hash.value === e.hash
-          if (unchanged) return acc
-        }
+        if (e && (!f.hash.ready || f.hash.value === e.hash)) return acc
         return R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
       },
       { count: 0, size: 0 },
@@ -1236,7 +1258,7 @@ export function FilesInput({
 
   const warn = stats.added.size > PD.MAX_SIZE
 
-  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(true)
+  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(false)
 
   const closeS3FilePicker = React.useCallback(
     (reason: S3FilePicker.CloseReason) => {
@@ -1248,9 +1270,13 @@ export function FilesInput({
     [dispatch, setS3FilePickerOpen],
   )
 
+  const handleS3Btn = React.useCallback((e: React.MouseEvent) => {
+    e.stopPropagation() // avoid opening OS file picker
+    setS3FilePickerOpen(true)
+  }, [])
+
   return (
     <Root className={className}>
-      <M.Button onClick={() => setS3FilePickerOpen(true)}>Add files from S3</M.Button>
       <S3FilePicker.Dialog
         bucket={bucket}
         open={s3FilePickerOpen}
@@ -1333,6 +1359,15 @@ export function FilesInput({
           )}
 
           <DropzoneMessage error={error && (errors[error] || error)} warn={warn} />
+          <M.Button
+            onClick={handleS3Btn}
+            className={classes.s3Btn}
+            variant="contained"
+            color="secondary"
+            size="small"
+          >
+            Add files from S3
+          </M.Button>
         </Contents>
         {submitting && <Lock progress={totalProgress} />}
       </ContentsContainer>

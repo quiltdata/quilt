@@ -3,10 +3,10 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as DG from '@material-ui/data-grid'
 
-// import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
+import { Crumb, render as renderCrumbs } from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
-import { /* getBreadCrumbs, */ ensureNoSlash, withoutPrefix, up } from 'utils/s3paths'
+import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up } from 'utils/s3paths'
 
 import * as Listing from '../Listing'
 import { displayError } from '../errors'
@@ -27,8 +27,30 @@ export const isS3File = (f: any): f is S3File =>
   (typeof f.version === 'string' || typeof f.version === 'undefined') &&
   typeof f.size === 'number'
 
+const getCrumbs = R.compose(
+  R.intersperse(Crumb.Sep(<>&nbsp;/ </>)),
+  ({ bucket, path }: { bucket: string; path: string }) =>
+    [
+      { label: bucket, path: '' },
+      ...getBreadCrumbs(path),
+    ].map(({ label, path: segPath }) =>
+      Crumb.Segment({ label, to: segPath === path ? undefined : segPath }),
+    ),
+)
+
 type MuiCloseReason = 'backdropClick' | 'escapeKeyDown'
 export type CloseReason = MuiCloseReason | 'cancel' | { path: string; files: S3File[] }
+
+const useStyles = M.makeStyles((t) => ({
+  crumbs: {
+    ...t.typography.body1,
+    marginTop: -t.spacing(1),
+    maxWidth: '100%',
+    overflowWrap: 'break-word',
+    paddingLeft: t.spacing(3),
+    paddingRight: t.spacing(3),
+  },
+}))
 
 interface DialogProps {
   bucket: string
@@ -43,12 +65,22 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
     [onClose],
   )
 
+  const classes = useStyles()
+
   const bucketListing = requests.useBucketListing()
 
   const [path, setPath] = React.useState('') // get relevant initial path?
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
   const [selection, setSelection] = React.useState<DG.GridRowId[]>([])
+
+  const crumbs = React.useMemo(() => getCrumbs({ bucket, path }), [bucket, path])
+
+  const getCrumbLinkProps = ({ to }: { to: string }) => ({
+    onClick: () => {
+      setPath(to)
+    },
+  })
 
   React.useLayoutEffect(() => {
     // reset accumulated results when bucket, path and / or prefix change
@@ -114,44 +146,47 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
     setSelection([])
   }, [])
 
-  // TODO: breadcrumbs
   return (
-    <M.Dialog open={open} onClose={handleClose} onExited={handleExited}>
-      <M.DialogTitle>Add files from s3://{bucket}</M.DialogTitle>
-      <M.DialogContent
-      // classes={dialogContentClasses}
-      >
-        {/*
-        // TODO: breadcrumbs: set prefix on click
-        <div>
-          {renderCrumbs(getCrumbs({ bucket, path, urls }))}
-        </div>
-          */}
-        {data.case({
-          // TODO: customized error display?
-          Err: displayError(),
-          Init: () => null,
-          _: (x: $TSFixMe) => {
-            const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)
-            return res ? (
-              <DirContents
-                response={res}
-                locked={!AsyncResult.Ok.is(x)}
-                bucket={bucket}
-                path={path}
-                setPath={setPath}
-                prefix={prefix}
-                setPrefix={setPrefix}
-                loadMore={loadMore}
-                selection={selection}
-                onSelectionChange={setSelection}
-              />
-            ) : (
+    <M.Dialog
+      open={open}
+      onClose={handleClose}
+      onExited={handleExited}
+      fullWidth
+      maxWidth="lg"
+      // TODO: height?
+      // scroll="body"
+    >
+      <M.DialogTitle>Add files from S3</M.DialogTitle>
+      <div className={classes.crumbs}>
+        {renderCrumbs(crumbs, { getLinkProps: getCrumbLinkProps })}
+      </div>
+      {data.case({
+        // TODO: customized error display?
+        Err: displayError(),
+        Init: () => null,
+        _: (x: $TSFixMe) => {
+          const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)
+          return res ? (
+            <DirContents
+              response={res}
+              locked={!AsyncResult.Ok.is(x)}
+              bucket={bucket}
+              path={path}
+              setPath={setPath}
+              prefix={prefix}
+              setPrefix={setPrefix}
+              loadMore={loadMore}
+              selection={selection}
+              onSelectionChange={setSelection}
+            />
+          ) : (
+            // TODO: skeleton
+            <M.Box px={3}>
               <M.CircularProgress />
-            )
-          },
-        })}
-      </M.DialogContent>
+            </M.Box>
+          )
+        },
+      })}
       <M.DialogActions>
         <M.Button onClick={cancel}>Cancel</M.Button>
         <M.Button
@@ -200,6 +235,16 @@ function useFormattedListing(r: requests.BucketListingResult) {
   }, [r])
 }
 
+const useDirContentsStyles = M.makeStyles((t) => ({
+  root: {
+    borderBottom: `1px solid ${t.palette.divider}`,
+    borderTop: `1px solid ${t.palette.divider}`,
+    marginLeft: t.spacing(2),
+    marginRight: t.spacing(2),
+    marginTop: t.spacing(1),
+  },
+}))
+
 interface DirContentsProps {
   response: requests.BucketListingResult
   locked: boolean
@@ -225,6 +270,7 @@ function DirContents({
   selection,
   onSelectionChange,
 }: DirContentsProps) {
+  const classes = useDirContentsStyles()
   const items = useFormattedListing(response)
 
   React.useLayoutEffect(() => {
@@ -256,9 +302,11 @@ function DirContents({
       loadMore={loadMore}
       truncated={response.truncated}
       prefixFilter={response.prefix}
-      CellComponent={CellComponent}
       selection={selection}
       onSelectionChange={onSelectionChange}
+      CellComponent={CellComponent}
+      RootComponent="div"
+      className={classes.root}
       toolbarContents={
         <Listing.PrefixFilter
           key={`${response.bucket}/${response.path}`}
