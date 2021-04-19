@@ -12,6 +12,8 @@ import * as Listing from '../Listing'
 import { displayError } from '../errors'
 import * as requests from '../requests'
 
+import SubmitSpinner from './SubmitSpinner'
+
 export interface S3File {
   bucket: string
   key: string
@@ -50,6 +52,15 @@ const useStyles = M.makeStyles((t) => ({
     paddingLeft: t.spacing(3),
     paddingRight: t.spacing(3),
   },
+  lock: {
+    background: 'rgba(255,255,255,0.5)',
+    bottom: 52,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 56,
+    zIndex: 1,
+  },
 }))
 
 interface DialogProps {
@@ -59,20 +70,25 @@ interface DialogProps {
 }
 
 export function Dialog({ bucket, open, onClose }: DialogProps) {
-  const cancel = React.useCallback(() => onClose('cancel'), [onClose])
-  const handleClose = React.useCallback(
-    (_e: {}, reason: MuiCloseReason) => onClose(reason),
-    [onClose],
-  )
-
   const classes = useStyles()
 
   const bucketListing = requests.useBucketListing()
 
-  const [path, setPath] = React.useState('') // get relevant initial path?
+  const [path, setPath] = React.useState('') // XXX: get relevant initial path?
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
   const [selection, setSelection] = React.useState<DG.GridRowId[]>([])
+
+  const [locked, setLocked] = React.useState(false)
+
+  const cancel = React.useCallback(() => onClose('cancel'), [onClose])
+
+  const handleClose = React.useCallback(
+    (_e: {}, reason: MuiCloseReason) => {
+      if (!locked) onClose(reason)
+    },
+    [locked, onClose],
+  )
 
   const crumbs = React.useMemo(() => getCrumbs({ bucket, path }), [bucket, path])
 
@@ -105,37 +121,41 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
   const add = React.useCallback(() => {
     data.case({
       Ok: async (r: requests.BucketListingResult) => {
-        const dirsByBasename = R.fromPairs(
-          r.dirs.map((name) => [ensureNoSlash(withoutPrefix(r.path, name)), name]),
-        )
-        const filesByBasename = R.fromPairs(
-          r.files.map((f) => [withoutPrefix(r.path, f.key), f]),
-        )
-        const { dirs, files } = selection.reduce(
-          (acc, id) => {
-            const dir = dirsByBasename[id]
-            if (dir) return { ...acc, dirs: [...acc.dirs, dir] }
-            const file = filesByBasename[id]
-            if (file) return { ...acc, files: [...acc.files, file] }
-            return acc // shouldnt happen
-          },
-          { files: [] as requests.BucketListingFile[], dirs: [] as string[] },
-        )
+        try {
+          setLocked(true)
+          const dirsByBasename = R.fromPairs(
+            r.dirs.map((name) => [ensureNoSlash(withoutPrefix(r.path, name)), name]),
+          )
+          const filesByBasename = R.fromPairs(
+            r.files.map((f) => [withoutPrefix(r.path, f.key), f]),
+          )
+          const { dirs, files } = selection.reduce(
+            (acc, id) => {
+              const dir = dirsByBasename[id]
+              if (dir) return { ...acc, dirs: [...acc.dirs, dir] }
+              const file = filesByBasename[id]
+              if (file) return { ...acc, files: [...acc.files, file] }
+              return acc // shouldnt happen
+            },
+            { files: [] as requests.BucketListingFile[], dirs: [] as string[] },
+          )
 
-        // TODO: limit concurrency?
-        // TODO: drain?
-        // TODO: lock dialog while listing the files
-        const dirsPromises = dirs.map((dir) =>
-          bucketListing({ bucket, path: dir, delimiter: false }),
-        )
+          // TODO: limit concurrency?
+          // TODO: drain?
+          const dirsPromises = dirs.map((dir) =>
+            bucketListing({ bucket, path: dir, delimiter: false }),
+          )
 
-        const dirsChildren = await Promise.all(dirsPromises)
-        const allChildren = dirsChildren.reduce(
-          (acc, res) => acc.concat(res.files),
-          [] as requests.BucketListingFile[],
-        )
+          const dirsChildren = await Promise.all(dirsPromises)
+          const allChildren = dirsChildren.reduce(
+            (acc, res) => acc.concat(res.files),
+            [] as requests.BucketListingFile[],
+          )
 
-        onClose({ files: files.concat(allChildren), path })
+          onClose({ files: files.concat(allChildren), path })
+        } finally {
+          setLocked(false)
+        }
       },
       _: () => {},
     })
@@ -169,10 +189,7 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
             <DirContents
               response={res}
               locked={!AsyncResult.Ok.is(x)}
-              bucket={bucket}
-              path={path}
               setPath={setPath}
-              prefix={prefix}
               setPrefix={setPrefix}
               loadMore={loadMore}
               selection={selection}
@@ -186,13 +203,15 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
           )
         },
       })}
+      {locked && <div className={classes.lock} />}
       <M.DialogActions>
+        {locked && <SubmitSpinner>Adding files</SubmitSpinner>}
         <M.Button onClick={cancel}>Cancel</M.Button>
         <M.Button
           onClick={add}
           variant="contained"
           color="primary"
-          // disabled={submitting || (submitFailed && hasValidationErrors)}
+          disabled={locked || !selection.length}
         >
           Add files
         </M.Button>
@@ -235,10 +254,7 @@ const useDirContentsStyles = M.makeStyles((t) => ({
 interface DirContentsProps {
   response: requests.BucketListingResult
   locked: boolean
-  bucket: string
-  path: string
   setPath: (path: string) => void
-  prefix?: string
   setPrefix: (prefix: string) => void
   loadMore: () => void
   selection: DG.GridRowId[]
@@ -248,10 +264,7 @@ interface DirContentsProps {
 function DirContents({
   response,
   locked,
-  // bucket,
-  // path,
   setPath,
-  // prefix,
   setPrefix,
   loadMore,
   selection,
@@ -269,12 +282,10 @@ function DirContents({
     () =>
       function Cell({ item, ...props }: Listing.CellProps) {
         const onClick = React.useCallback(() => {
-          // console.log('cell click', item)
-          // if dir: set path to item.to
           if (item.type === 'dir') {
             setPath(item.to)
           }
-          // if file: toggle item.to?
+          // TODO: if file: toggle item.to?
         }, [item])
         // eslint-disable-next-line jsx-a11y/interactive-supports-focus, jsx-a11y/click-events-have-key-events
         return <div role="button" onClick={onClick} {...props} />
