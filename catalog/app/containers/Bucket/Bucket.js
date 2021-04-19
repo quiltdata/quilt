@@ -1,17 +1,21 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import * as redux from 'react-redux'
 import { Route, Switch, matchPath } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import Error from 'components/Error'
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
-import { ThrowNotFound } from 'containers/NotFoundPage'
+import * as authSelectors from 'containers/Auth/selectors'
+import { ThrowNotFound, createNotFound } from 'containers/NotFoundPage'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as RT from 'utils/reactTools'
 
 import BucketNav from './BucketNav'
+// import { ThrowNotFound, createNotFound } from './NotFoundPage'
 import { displayError } from './errors'
 
 const mkLazy = (load) =>
@@ -86,6 +90,18 @@ function BucketLayout({ bucket, section = false, children }) {
   )
 }
 
+const CatchNotFound = createNotFound(() => {
+  const username = redux.useSelector(authSelectors.username)
+  const helpText = username
+    ? 'Try to navigate using one of these tabs above'
+    : 'Do you need to log in?'
+  return (
+    <M.Box mt={4}>
+      <Error headline="Nothing here" detail={helpText} />
+    </M.Box>
+  )
+})
+
 export default function Bucket({
   location,
   match: {
@@ -96,18 +112,24 @@ export default function Bucket({
   return (
     <BucketPreferences.Provider bucket={bucket}>
       <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
-        <Switch>
-          <Route path={paths.bucketFile} component={File} exact strict />
-          <Route path={paths.bucketDir} component={Dir} exact />
-          <Route path={paths.bucketOverview} component={Overview} exact />
-          <Route path={paths.bucketSearch} component={Search} exact />
-          <Route path={paths.bucketPackageList} component={PackageList} exact />
-          <Route path={paths.bucketPackageDetail} component={PackageTree} exact />
-          <Route path={paths.bucketPackageTree} component={PackageTree} exact />
-          <Route path={paths.bucketPackageRevisions} component={PackageRevisions} exact />
-          <Route path={paths.bucketQueries} component={Queries} exact />
-          <Route component={ThrowNotFound} />
-        </Switch>
+        <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
+          <Switch>
+            <Route path={paths.bucketFile} component={File} exact strict />
+            <Route path={paths.bucketDir} component={Dir} exact />
+            <Route path={paths.bucketOverview} component={Overview} exact />
+            <Route path={paths.bucketSearch} component={Search} exact />
+            <Route path={paths.bucketPackageList} component={PackageList} exact />
+            <Route path={paths.bucketPackageDetail} component={PackageTree} exact />
+            <Route path={paths.bucketPackageTree} component={PackageTree} exact />
+            <Route
+              path={paths.bucketPackageRevisions}
+              component={PackageRevisions}
+              exact
+            />
+            <Route path={paths.bucketQueries} component={Queries} exact />
+            <Route component={ThrowNotFound} />
+          </Switch>
+        </CatchNotFound>
       </BucketLayout>
     </BucketPreferences.Provider>
   )
