@@ -12,6 +12,7 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import * as RT from 'utils/reactTools'
 
 import BucketNav from './BucketNav'
+import CatchNotFound from './CatchNotFound'
 import { displayError } from './errors'
 
 const mkLazy = (load) =>
@@ -96,18 +97,24 @@ export default function Bucket({
   return (
     <BucketPreferences.Provider bucket={bucket}>
       <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
-        <Switch>
-          <Route path={paths.bucketFile} component={File} exact strict />
-          <Route path={paths.bucketDir} component={Dir} exact />
-          <Route path={paths.bucketOverview} component={Overview} exact />
-          <Route path={paths.bucketSearch} component={Search} exact />
-          <Route path={paths.bucketPackageList} component={PackageList} exact />
-          <Route path={paths.bucketPackageDetail} component={PackageTree} exact />
-          <Route path={paths.bucketPackageTree} component={PackageTree} exact />
-          <Route path={paths.bucketPackageRevisions} component={PackageRevisions} exact />
-          <Route path={paths.bucketQueries} component={Queries} exact />
-          <Route component={ThrowNotFound} />
-        </Switch>
+        <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
+          <Switch>
+            <Route path={paths.bucketFile} component={File} exact strict />
+            <Route path={paths.bucketDir} component={Dir} exact />
+            <Route path={paths.bucketOverview} component={Overview} exact />
+            <Route path={paths.bucketSearch} component={Search} exact />
+            <Route path={paths.bucketPackageList} component={PackageList} exact />
+            <Route path={paths.bucketPackageDetail} component={PackageTree} exact />
+            <Route path={paths.bucketPackageTree} component={PackageTree} exact />
+            <Route
+              path={paths.bucketPackageRevisions}
+              component={PackageRevisions}
+              exact
+            />
+            <Route path={paths.bucketQueries} component={Queries} exact />
+            <Route component={ThrowNotFound} />
+          </Switch>
+        </CatchNotFound>
       </BucketLayout>
     </BucketPreferences.Provider>
   )
