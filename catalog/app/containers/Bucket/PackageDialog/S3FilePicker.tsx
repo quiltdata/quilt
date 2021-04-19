@@ -6,7 +6,7 @@ import * as DG from '@material-ui/data-grid'
 import { Crumb, render as renderCrumbs } from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
-import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up } from 'utils/s3paths'
+import { getBreadCrumbs, ensureNoSlash, withoutPrefix } from 'utils/s3paths'
 
 import * as Listing from '../Listing'
 import { displayError } from '../errors'
@@ -105,7 +105,6 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
   const add = React.useCallback(() => {
     data.case({
       Ok: async (r: requests.BucketListingResult) => {
-        // use path
         const dirsByBasename = R.fromPairs(
           r.dirs.map((name) => [ensureNoSlash(withoutPrefix(r.path, name)), name]),
         )
@@ -217,19 +216,7 @@ function useFormattedListing(r: requests.BucketListingResult) {
       modified,
       archived,
     }))
-    const items = [
-      ...(r.path !== '' && !r.prefix
-        ? [
-            {
-              type: 'dir' as const,
-              name: '..',
-              to: up(r.path),
-            },
-          ]
-        : []),
-      ...dirs,
-      ...files,
-    ]
+    const items = [...dirs, ...files]
     // filter-out files with same name as one of dirs
     return R.uniqBy(R.prop('name'), items)
   }, [r])

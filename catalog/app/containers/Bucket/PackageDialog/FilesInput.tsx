@@ -6,7 +6,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import useDragging from 'utils/dragging'
-import { handleToS3Url, withoutPrefix } from 'utils/s3paths'
+import { withoutPrefix } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
@@ -239,7 +239,7 @@ interface IntermediateEntry {
 
 const computeEntries = ({ added, deleted, existing }: FilesState) => {
   const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
-    ([path, { size, hash, physicalKey }]) => {
+    ([path, { size, hash }]) => {
       if (path in deleted) {
         return { state: 'deleted' as const, type: 'local' as const, path, size }
       }
@@ -249,10 +249,7 @@ const computeEntries = ({ added, deleted, existing }: FilesState) => {
         let type: FilesEntryType
         if (S3FilePicker.isS3File(a)) {
           type = 's3' as const
-          state =
-            physicalKey === handleToS3Url(a)
-              ? ('unchanged' as const)
-              : ('modified' as const)
+          state = 'modified' as const
         } else {
           type = 'local' as const
           // eslint-disable-next-line no-nested-ternary
@@ -311,6 +308,19 @@ const useEntryIconStyles = M.makeStyles((t) => ({
     fontSize: 18,
     padding: 3,
   },
+  overlay: {
+    alignItems: 'center',
+    bottom: 0,
+    color: t.palette.background.paper,
+    display: 'flex',
+    fontFamily: t.typography.fontFamily,
+    fontSize: 8,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
   stateContainer: {
     alignItems: 'center',
     background: 'currentColor',
@@ -335,9 +345,12 @@ const useEntryIconStyles = M.makeStyles((t) => ({
   },
 }))
 
-type EntryIconProps = React.PropsWithChildren<{ state: FilesEntryState }>
+type EntryIconProps = React.PropsWithChildren<{
+  state: FilesEntryState
+  overlay?: React.ReactNode
+}>
 
-function EntryIcon({ state, children }: EntryIconProps) {
+function EntryIcon({ state, overlay, children }: EntryIconProps) {
   const classes = useEntryIconStyles()
   const stateContents =
     state &&
@@ -351,6 +364,7 @@ function EntryIcon({ state, children }: EntryIconProps) {
   return (
     <div className={classes.root}>
       <M.Icon className={classes.icon}>{children}</M.Icon>
+      {!!overlay && <div className={classes.overlay}>{overlay}</div>}
       {!!stateContents && (
         <div className={classes.stateContainer}>
           {stateContents === 'hashing' ? (
@@ -424,6 +438,7 @@ const useFileStyles = M.makeStyles((t) => ({
 interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string
   state?: FilesEntryState
+  type?: FilesEntryType
   size?: number
   action?: React.ReactNode
   interactive?: boolean
@@ -433,6 +448,7 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
 function File({
   name,
   state = 'unchanged',
+  type = 'local',
   size,
   action,
   interactive = false,
@@ -453,7 +469,9 @@ function File({
       {...props}
     >
       <div className={cx(classes.inner, faint && classes.faint)}>
-        <EntryIcon state={state}>insert_drive_file</EntryIcon>
+        <EntryIcon state={state} overlay={type === 's3' ? 'S3' : undefined}>
+          insert_drive_file
+        </EntryIcon>
         <div className={classes.name} title={name}>
           {name}
         </div>
@@ -932,7 +950,7 @@ type FileUploadProps = tagged.ValueOf<typeof FilesEntry.File> & {
   dispatch: DispatchFilesAction
 }
 
-function FileUpload({ name, state, size, prefix, dispatch }: FileUploadProps) {
+function FileUpload({ name, state, type, size, prefix, dispatch }: FileUploadProps) {
   const path = (prefix || '') + name
 
   // eslint-disable-next-line consistent-return
@@ -990,6 +1008,7 @@ function FileUpload({ name, state, size, prefix, dispatch }: FileUploadProps) {
       role="button"
       tabIndex={0}
       state={state}
+      type={type}
       name={name}
       size={size}
       action={
