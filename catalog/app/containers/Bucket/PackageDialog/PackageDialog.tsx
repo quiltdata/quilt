@@ -745,7 +745,7 @@ export const PackageNameWarning = ({ exists }: PackageNameWarningProps) => {
       <M.Icon className={classes.root} fontSize="small">
         info_outlined
       </M.Icon>
-      {exists ? 'Package exists' : 'New package'}
+      {exists ? 'Existing package' : 'New package'}
     </>
   )
 }
