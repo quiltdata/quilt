@@ -32,6 +32,7 @@ function waitForIframe(src) {
     })
     link.src = src
     link.style.display = 'none'
+    link.sandbox = 'allow-scripts allow-same-origin'
 
     document.body.appendChild(link)
 
@@ -51,7 +52,7 @@ async function loadVoila({ endpoint, sign, handle }) {
   const src = `${base}/?url=${url}`
 
   await waitForIframe(src)
-  return PreviewData.IFrame({ src, sandbox: null })
+  return PreviewData.IFrame({ src, sandbox: 'allow-scripts allow-same-origin' })
 }
 
 function VoilaLoader({ handle, children }) {
