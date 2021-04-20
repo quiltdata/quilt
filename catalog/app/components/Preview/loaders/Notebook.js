@@ -56,7 +56,7 @@ async function loadVoila({ endpoint, sign, handle }) {
 
 function VoilaLoader({ handle, children }) {
   const sign = AWS.Signer.useS3Signer()
-  const endpoint = Config.use().binaryApiGatewayEndpoint
+  const endpoint = Config.use().registryUrl
   const data = Data.use(loadVoila, { endpoint, sign, handle })
   return children(utils.useErrorHandling(data.result, { handle, retry: data.fetch }))
 }
