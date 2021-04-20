@@ -1,8 +1,9 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
+import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import { handleToHttpsUri } from 'utils/s3paths'
+import * as Config from 'utils/Config'
 
 import { PreviewData } from '../types'
 import * as utils from './utils'
@@ -24,10 +25,12 @@ function NotebookLoader({ handle, children }) {
 }
 
 function VoilaLoader({ handle, children }) {
-  // FIXME: make a Voila service request and preview html as iframe
-  //        <iframe src="https://api/voila.html" />
-  const voilaHandle = R.assoc('key', `${handle.key}.html`, handle)
-  const src = handleToHttpsUri(voilaHandle)
+  const sign = AWS.Signer.useS3Signer()
+
+  const base = `${Config.useConfig().registryUrl}/voila/voila/render`
+  const url = encodeURIComponent(sign(handle))
+  const src = `${base}/?url=${url}`
+
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
