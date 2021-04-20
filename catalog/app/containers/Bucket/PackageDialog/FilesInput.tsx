@@ -1026,7 +1026,7 @@ type DirUploadProps = tagged.ValueOf<typeof FilesEntry.Dir> & {
 }
 
 function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadProps) {
-  const [expanded, setExpanded] = React.useState(true)
+  const [expanded, setExpanded] = React.useState(false)
 
   const toggleExpanded = React.useCallback(
     (e) => {
@@ -1131,12 +1131,8 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
 }
 
 const useFilesInputStyles = M.makeStyles((t) => ({
-  added: {
-    color: t.palette.success.main,
-    marginLeft: t.spacing(1),
-  },
-  deleted: {
-    color: t.palette.error.main,
+  toUpload: {
+    color: t.palette.text.secondary,
     marginLeft: t.spacing(1),
   },
   hashing: {
@@ -1255,7 +1251,7 @@ export function FilesInput({
 
   const computedEntries = useMemoEq(value, computeEntries)
 
-  const stats = useMemoEq(value, ({ added, deleted, existing }) => ({
+  const stats = useMemoEq(value, ({ added, existing }) => ({
     added: Object.entries(added).reduce(
       (acc, [path, f]) => {
         if (S3FilePicker.isS3File(f)) return acc // dont count s3 files
@@ -1265,16 +1261,13 @@ export function FilesInput({
       },
       { count: 0, size: 0 },
     ),
-    deleted: Object.keys(deleted).reduce(
-      (acc, path) => R.evolve({ count: R.inc, size: R.add(existing[path].size) }, acc),
-      { count: 0, size: 0 },
-    ),
     hashing: Object.values(added).reduce(
       (acc, f) => acc || (!S3FilePicker.isS3File(f) && !f.hash.ready),
       false,
     ),
   }))
 
+  // TODO: warn on reaching limit for s3 files?
   const warn = stats.added.size > PD.MAX_SIZE
 
   const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(false)
@@ -1315,15 +1308,8 @@ export function FilesInput({
         >
           {title}
           {!!stats.added.count && (
-            <span className={classes.added}>
-              {' +'}
-              {stats.added.count} ({readableBytes(stats.added.size)})
-            </span>
-          )}
-          {!!stats.deleted.count && (
-            <span className={classes.deleted}>
-              {' -'}
-              {stats.deleted.count} ({readableBytes(stats.deleted.size)})
+            <span className={classes.toUpload}>
+              ({stats.added.count} files / {readableBytes(stats.added.size)} to upload)
             </span>
           )}
           {warn && (

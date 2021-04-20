@@ -1,4 +1,5 @@
 import cx from 'classnames'
+import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -14,6 +15,8 @@ import { displayError } from '../errors'
 import * as requests from '../requests'
 
 import SubmitSpinner from './SubmitSpinner'
+
+const limit = pLimit(5)
 
 export interface S3File {
   bucket: string
@@ -75,7 +78,7 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
 
   const bucketListing = requests.useBucketListing()
 
-  const [path, setPath] = React.useState('') // XXX: get relevant initial path?
+  const [path, setPath] = React.useState('')
   const [prefix, setPrefix] = React.useState('')
   const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
   const [selection, setSelection] = React.useState<DG.GridRowId[]>([])
@@ -141,10 +144,9 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
             { files: [] as requests.BucketListingFile[], dirs: [] as string[] },
           )
 
-          // TODO: limit concurrency?
           // TODO: drain?
           const dirsPromises = dirs.map((dir) =>
-            bucketListing({ bucket, path: dir, delimiter: false }),
+            limit(bucketListing, { bucket, path: dir, delimiter: false }),
           )
 
           const dirsChildren = await Promise.all(dirsPromises)
@@ -163,6 +165,9 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
   }, [onClose, selection, data, bucket, path, bucketListing])
 
   const handleExited = React.useCallback(() => {
+    setPath('')
+    setPrefix('')
+    setPrev(null)
     setSelection([])
   }, [])
 
@@ -206,7 +211,15 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
       })}
       {locked && <div className={classes.lock} />}
       <M.DialogActions>
-        {locked && <SubmitSpinner>Adding files</SubmitSpinner>}
+        {locked ? (
+          <SubmitSpinner>Adding files</SubmitSpinner>
+        ) : (
+          <M.Box flexGrow={1} display="flex" alignItems="center" pl={2}>
+            <M.Typography variant="body2" color="textSecondary">
+              {selection.length} item{selection.length === 1 ? '' : 's'} selected
+            </M.Typography>
+          </M.Box>
+        )}
         <M.Button onClick={cancel}>Cancel</M.Button>
         <M.Button
           onClick={add}
@@ -287,7 +300,10 @@ function DirContents({
     () =>
       function Cell({ item, className, ...props }: Listing.CellProps) {
         const onClick = React.useCallback(() => {
-          if (item.type === 'dir') setPath(item.to)
+          if (item.type === 'dir') {
+            setPath(item.to)
+            setPrefix('')
+          }
         }, [item])
         return (
           // eslint-disable-next-line jsx-a11y/interactive-supports-focus, jsx-a11y/click-events-have-key-events
@@ -299,7 +315,7 @@ function DirContents({
           />
         )
       },
-    [classes.interactive, setPath],
+    [classes.interactive, setPath, setPrefix],
   )
 
   return (
