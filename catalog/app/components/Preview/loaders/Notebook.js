@@ -35,10 +35,28 @@ function VoilaLoader({ handle, children }) {
 
   React.useEffect(() => {
     const link = document.createElement('iframe')
-    link.addEventListener('load', () => setLoading(false))
+    const loadListener = link.addEventListener('load', () => {
+      setLoading(false)
+    })
     link.src = src
     link.style.display = 'none'
     document.body.appendChild(link)
+
+    let errorListener = null
+    const iframeDocument = link.contentWindow || link.contentDocuent
+    if (iframeDocument) {
+      errorListener = iframeDocument.addEventListener('error', (error) => {
+        // eslint-disable-next-line no-console
+        console.error(error)
+      })
+    }
+
+    return () => {
+      link.removeEventListener('load', loadListener)
+      if (iframeDocument && errorListener)
+        iframeDocument.removeEventListener('error', errorListener)
+      document.body.removeChild(link)
+    }
   }, [src, setLoading])
 
   return children(
