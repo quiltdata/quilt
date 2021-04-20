@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -249,6 +250,9 @@ const useDirContentsStyles = M.makeStyles((t) => ({
     marginRight: t.spacing(2),
     marginTop: t.spacing(1),
   },
+  interactive: {
+    cursor: 'pointer',
+  },
 }))
 
 interface DirContentsProps {
@@ -272,25 +276,30 @@ function DirContents({
 }: DirContentsProps) {
   const classes = useDirContentsStyles()
   const items = useFormattedListing(response)
+  const { bucket, path, prefix, truncated } = response
 
   React.useLayoutEffect(() => {
     // reset selection when bucket, path and / or prefix change
     onSelectionChange([])
-  }, [onSelectionChange, response.bucket, response.path, response.prefix])
+  }, [onSelectionChange, bucket, path, prefix])
 
   const CellComponent = React.useMemo(
     () =>
-      function Cell({ item, ...props }: Listing.CellProps) {
+      function Cell({ item, className, ...props }: Listing.CellProps) {
         const onClick = React.useCallback(() => {
-          if (item.type === 'dir') {
-            setPath(item.to)
-          }
-          // TODO: if file: toggle item.to?
+          if (item.type === 'dir') setPath(item.to)
         }, [item])
-        // eslint-disable-next-line jsx-a11y/interactive-supports-focus, jsx-a11y/click-events-have-key-events
-        return <div role="button" onClick={onClick} {...props} />
+        return (
+          // eslint-disable-next-line jsx-a11y/interactive-supports-focus, jsx-a11y/click-events-have-key-events
+          <div
+            role="button"
+            onClick={onClick}
+            className={cx(item.type === 'dir' && classes.interactive, className)}
+            {...props}
+          />
+        )
       },
-    [setPath],
+    [classes.interactive, setPath],
   )
 
   return (
@@ -298,8 +307,8 @@ function DirContents({
       items={items}
       locked={locked}
       loadMore={loadMore}
-      truncated={response.truncated}
-      prefixFilter={response.prefix}
+      truncated={truncated}
+      prefixFilter={prefix}
       selection={selection}
       onSelectionChange={onSelectionChange}
       CellComponent={CellComponent}
@@ -307,8 +316,8 @@ function DirContents({
       className={classes.root}
       toolbarContents={
         <Listing.PrefixFilter
-          key={`${response.bucket}/${response.path}`}
-          prefix={response.prefix}
+          key={`${bucket}/${path}`}
+          prefix={prefix}
           setPrefix={setPrefix}
         />
       }

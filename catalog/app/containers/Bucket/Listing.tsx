@@ -17,6 +17,9 @@ const TIP_DELAY = 1000
 
 const TOOLBAR_INNER_HEIGHT = 28
 
+// monkey-patch MUI built-in colDef to better align checkboxes
+DG.gridCheckboxSelectionColDef.width = 32
+
 export interface Item {
   type: 'dir' | 'file'
   name: string
@@ -465,6 +468,9 @@ function Toolbar({
 const usePanelStyles = M.makeStyles((t) => ({
   root: {
     zIndex: 1,
+    '& select, & input': {
+      boxSizing: 'content-box',
+    },
   },
   paper: {
     backgroundColor: t.palette.background.paper,
@@ -504,6 +510,7 @@ function Panel({ children, open }: DG.GridPanelProps) {
       anchorEl={anchorEl}
       modifiers={getPopperModifiers()}
       className={classes.root}
+      disablePortal
     >
       <M.ClickAwayListener onClickAway={handleClickAway}>
         <M.Paper className={classes.paper} elevation={8} onKeyDown={handleKeyDown}>
@@ -770,7 +777,7 @@ const COL_MODIFIED_W = 176
 const useStyles = M.makeStyles((t) => ({
   '@global': {
     '.MuiDataGridMenu-root': {
-      zIndex: 1,
+      zIndex: t.zIndex.modal + 1, // show it over modals
     },
   },
   root: {
@@ -785,10 +792,14 @@ const useStyles = M.makeStyles((t) => ({
       zIndex: 1,
     },
     '& .MuiDataGrid-checkboxInput': {
-      // TODO: smaller, align icons
+      padding: '7px !important',
+      '& svg': {
+        fontSize: 18,
+      },
     },
     '& .MuiDataGrid-cell': {
       border: 'none',
+      outline: 'none !important',
       padding: 0,
     },
     '& .MuiDataGrid-colCell': {
@@ -854,6 +865,10 @@ const useStyles = M.makeStyles((t) => ({
   linkFlex: {
     alignItems: 'center',
     display: 'flex',
+  },
+  ellipsis: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
   icon: {
     fontSize: t.typography.body1.fontSize,
@@ -940,7 +955,7 @@ export function Listing({
               <M.Icon className={classes.icon}>
                 {i.type === 'file' ? 'insert_drive_file' : 'folder_open'}
               </M.Icon>
-              {i.name || EMPTY}
+              <span className={classes.ellipsis}>{i.name || EMPTY}</span>
             </CellComponent>
           )
         },
