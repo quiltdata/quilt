@@ -397,15 +397,20 @@ export default function File({
         if (h.archived) {
           return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
         }
-        return Preview.load(R.assoc('mode', mode.key, handle), callback)
+        return mode
+          ? Preview.load(R.assoc('mode', mode.key, handle), callback)
+          : Preview.load(handle, callback)
       },
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
 
+  const isNotebook = path.endsWith('.ipynb')
   const viewMode = React.useMemo(
-    () => viewModes.find(({ key }) => key === viewModeSlug) || viewModes[0],
-    [viewModeSlug],
+    () =>
+      viewModes.find(({ key }) => key === viewModeSlug) ||
+      (isNotebook ? viewModes[0] : null),
+    [isNotebook, viewModeSlug],
   )
   const onViewModeChange = React.useCallback(
     (mode) => {
@@ -413,7 +418,6 @@ export default function File({
     },
     [history, urls, bucket, encodedPath, version],
   )
-  const isNotebook = path.endsWith('.ipynb')
 
   return (
     <FileView.Root>

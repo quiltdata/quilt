@@ -551,15 +551,19 @@ function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumb
     if (archived) {
       return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
     }
-    return Preview.load(R.assoc('mode', mode.key, handle), callback)
+    return mode
+      ? Preview.load(R.assoc('mode', mode.key, handle), callback)
+      : Preview.load(handle, callback)
   }
 
   const history = useHistory()
   const { urls } = NamedRoutes.use()
 
+  const isNotebook = path.endsWith('.ipynb')
   const viewMode = React.useMemo(
-    () => viewModes.find(({ key }) => key === modeSlug) || viewModes[0],
-    [modeSlug],
+    () =>
+      viewModes.find(({ key }) => key === modeSlug) || (isNotebook ? viewModes[0] : null),
+    [isNotebook, modeSlug],
   )
   const onViewModeChange = React.useCallback(
     (mode) => {
@@ -567,7 +571,6 @@ function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumb
     },
     [bucket, history, name, path, revision, urls],
   )
-  const isNotebook = path.endsWith('.ipynb')
 
   return data.case({
     Ok: ({ meta, ...handle }) => (
