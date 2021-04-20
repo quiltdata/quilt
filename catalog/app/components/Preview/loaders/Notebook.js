@@ -51,7 +51,7 @@ async function loadVoila({ endpoint, sign, handle }) {
   const src = `${base}/?url=${url}`
 
   await waitForIframe(src)
-  return PreviewData.IFrame({ src })
+  return PreviewData.IFrame({ src, sandbox: null })
 }
 
 function VoilaLoader({ handle, children }) {
