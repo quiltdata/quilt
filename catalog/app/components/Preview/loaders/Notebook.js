@@ -2,7 +2,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
-import AsyncResult from 'utils/AsyncResult'
+import * as Data from 'utils/Data'
 import * as Config from 'utils/Config'
 
 import { PreviewData } from '../types'
@@ -24,44 +24,41 @@ function NotebookLoader({ handle, children }) {
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
 }
 
-function VoilaLoader({ handle, children }) {
-  const sign = AWS.Signer.useS3Signer()
-
-  const base = `${Config.useConfig().registryUrl}/voila/voila/render`
-  const url = encodeURIComponent(sign(handle))
-  const src = `${base}/?url=${url}`
-
-  const [loading, setLoading] = React.useState(true)
-
-  React.useEffect(() => {
+function waitForIframe(src) {
+  return new Promise((resolve) => {
     const link = document.createElement('iframe')
-    const loadListener = link.addEventListener('load', () => {
-      setLoading(false)
+    link.addEventListener('load', (event) => {
+      resolve(event.target)
     })
     link.src = src
     link.style.display = 'none'
+
     document.body.appendChild(link)
 
-    let errorListener = null
     const iframeDocument = link.contentWindow || link.contentDocuent
     if (iframeDocument) {
-      errorListener = iframeDocument.addEventListener('error', (error) => {
+      iframeDocument.addEventListener('error', (error) => {
         // eslint-disable-next-line no-console
         console.error(error)
       })
     }
+  })
+}
 
-    return () => {
-      link.removeEventListener('load', loadListener)
-      if (iframeDocument && errorListener)
-        iframeDocument.removeEventListener('error', errorListener)
-      document.body.removeChild(link)
-    }
-  }, [src, setLoading])
+async function loadVoila({ endpoint, sign, handle }) {
+  const base = `${endpoint}/voila/voila/render`
+  const url = encodeURIComponent(sign(handle))
+  const src = `${base}/?url=${url}`
 
-  return children(
-    loading ? AsyncResult.Pending() : AsyncResult.Ok(PreviewData.IFrame({ src })),
-  )
+  await waitForIframe(src)
+  return PreviewData.IFrame({ src })
+}
+
+function VoilaLoader({ handle, children }) {
+  const sign = AWS.Signer.useS3Signer()
+  const endpoint = Config.use().binaryApiGatewayEndpoint
+  const data = Data.use(loadVoila, { endpoint, sign, handle })
+  return children(utils.useErrorHandling(data.result, { handle, retry: data.fetch }))
 }
 
 export const Loader = function WrappedNotebookLoader({ handle, children }) {
