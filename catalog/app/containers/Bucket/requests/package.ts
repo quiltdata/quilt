@@ -180,9 +180,6 @@ export function useCreatePackage() {
   )
 }
 
-// backwards compatibity, can be removed soon
-export { useCreatePackage as useUpdatePackage }
-
 const copyPackage = (
   req: ApiRequest,
   { message, meta, source, target, workflow }: CopyPackageParams,

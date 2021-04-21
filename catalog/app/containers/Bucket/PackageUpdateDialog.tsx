@@ -62,7 +62,7 @@ interface Uploads {
 
 interface LocalEntry {
   path: string
-  file: Exclude<PD.FilesState['added'][string], S3File>
+  file: PD.LocalFile
 }
 
 interface S3Entry {

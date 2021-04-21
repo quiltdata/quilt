@@ -87,8 +87,10 @@ export interface ExistingFile {
   size: number
 }
 
+export type LocalFile = FileWithPath & FileWithHash
+
 export interface FilesState {
-  added: Record<string, (FileWithPath & FileWithHash) | S3FilePicker.S3File>
+  added: Record<string, LocalFile | S3FilePicker.S3File>
   deleted: Record<string, true>
   existing: Record<string, ExistingFile>
   // XXX: workaround used to re-trigger validation and dependent computations

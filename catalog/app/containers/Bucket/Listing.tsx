@@ -792,7 +792,7 @@ const useStyles = M.makeStyles((t) => ({
       zIndex: 1,
     },
     '& .MuiDataGrid-checkboxInput': {
-      padding: '7px !important',
+      padding: 7,
       '& svg': {
         fontSize: 18,
       },
@@ -917,7 +917,6 @@ export function Listing({
     [setFilteredToZero],
   )
 
-  // disableClickEventBubbling: true?
   const columns: DG.GridColumns = React.useMemo(
     () => [
       {
