@@ -25,10 +25,30 @@ function NotebookLoader({ handle, children }) {
 }
 
 function waitForIframe(src) {
-  return new Promise((resolve) => {
+  let resolved = false
+  const timeout = 30000
+
+  return new Promise((resolve, reject) => {
+    const handleError = (error) => {
+      document.body.removeChild(link)
+      reject(error)
+    }
+
+    const handleSuccess = () => {
+      resolved = true
+      document.body.removeChild(link)
+      resolve(src)
+    }
+
+    const timerId = setTimeout(() => {
+      if (resolved) return
+      handleError(new Error('Page is loading too long'))
+    }, timeout)
+
     const link = document.createElement('iframe')
-    link.addEventListener('load', (event) => {
-      resolve(event.target)
+    link.addEventListener('load', () => {
+      clearTimeout(timerId)
+      handleSuccess()
     })
     link.src = src
     link.style.display = 'none'
@@ -38,10 +58,7 @@ function waitForIframe(src) {
 
     const iframeDocument = link.contentWindow || link.contentDocuent
     if (iframeDocument) {
-      iframeDocument.addEventListener('error', (error) => {
-        // eslint-disable-next-line no-console
-        console.error(error)
-      })
+      iframeDocument.addEventListener('error', handleError)
     }
   })
 }
