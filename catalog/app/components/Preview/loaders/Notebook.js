@@ -13,7 +13,6 @@ export const detect = R.pipe(utils.stripCompression, utils.extIs('.ipynb'))
 
 function NotebookLoader({ handle, children }) {
   const data = utils.usePreview({ type: 'ipynb', handle })
-
   const processed = utils.useProcessing(data.result, (json) =>
     PreviewData.Notebook({
       preview: json.html,
