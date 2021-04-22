@@ -835,7 +835,7 @@ export default function PackageTreeWrapper({
   location,
 }) {
   const path = s3paths.decode(encodedPath)
-  const { resolvedFrom, mode = 'jupyter' } = parseSearch(location.search)
+  const { resolvedFrom, mode } = parseSearch(location.search)
   const s3 = AWS.S3.use()
   const packageExists = useData(requests.ensurePackageExists, { s3, bucket, name })
   return packageExists.case({

@@ -10,9 +10,9 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
   button: {
+    ...t.typography.body1,
     border: 0,
     textTransform: 'none',
-    ...t.typography.body1,
   },
   label: {
     fontWeight: 600,

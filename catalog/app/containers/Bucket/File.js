@@ -329,7 +329,7 @@ export default function File({
   },
   location,
 }) {
-  const { version, mode: viewModeSlug = 'jupyter' } = parseSearch(location.search)
+  const { version, mode: viewModeSlug } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const history = useHistory()

@@ -23,6 +23,8 @@ function NotebookLoader({ handle, children }) {
   return children(utils.useErrorHandling(processed, { handle, retry: data.fetch }))
 }
 
+const IFRAME_SANDBOX_ATTRIBUTES = 'allow-scripts allow-same-origin'
+
 function waitForIframe(src) {
   let resolved = false
   const timeout = 30000
@@ -51,7 +53,7 @@ function waitForIframe(src) {
     })
     link.src = src
     link.style.display = 'none'
-    link.sandbox = 'allow-scripts allow-same-origin'
+    link.sandbox = IFRAME_SANDBOX_ATTRIBUTES
 
     document.body.appendChild(link)
 
@@ -67,8 +69,9 @@ async function loadVoila({ endpoint, sign, handle }) {
   const url = encodeURIComponent(sign(handle))
   const src = `${base}/?url=${url}`
 
+  // Preload iframe, then insert cached iframe
   await waitForIframe(src)
-  return PreviewData.IFrame({ src, sandbox: 'allow-scripts allow-same-origin' })
+  return PreviewData.IFrame({ src, sandbox: IFRAME_SANDBOX_ATTRIBUTES })
 }
 
 function VoilaLoader({ handle, children }) {
