@@ -25,6 +25,8 @@ PROMOTE_PKG_MAX_FILES = int(os.environ['PROMOTE_PKG_MAX_FILES'])
 PKG_FROM_FOLDER_MAX_PKG_SIZE = int(os.environ['PKG_FROM_FOLDER_MAX_PKG_SIZE'])
 PKG_FROM_FOLDER_MAX_FILES = int(os.environ['PKG_FROM_FOLDER_MAX_FILES'])
 
+SERVICE_BUCKET = os.environ['SERVICE_BUCKET']
+
 PACKAGE_ID_PROPS = {
     'registry': {
         'type': 'string',
@@ -117,6 +119,17 @@ PKG_FROM_FOLDER_SCHEMA = {
         'dst',
     ],
     'additionalProperties': False,
+}
+
+
+PACKAGE_CREATE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        **PACKAGE_ID_PROPS,
+        **PACKAGE_BUILD_META_PROPS,
+    },
+    'required': PACKAGE_ID_PROPS,
+    'additionalProperties': False
 }
 
 
@@ -360,3 +373,102 @@ def package_from_folder(request):
         pkg_max_size=PKG_FROM_FOLDER_MAX_PKG_SIZE,
         pkg_max_files=PKG_FROM_FOLDER_MAX_FILES,
     )
+
+
+@api(cors_origins=get_default_origins(), request_class=ELBRequest)
+@api_exception_handler
+@auth
+@json_api({'type': 'string', 'minLength': 1, 'maxLength': 1024})
+@setup_telemetry
+def create_package(request):
+    version_id = request.data
+
+    with tempfile.NamedTemporaryFile('r', encoding='utf-8') as tmp_file:
+        # download file with user request using lambda's role
+        # FIXME: check file size before fully downloading it.
+        # FIXME: might make sense to extract it to decorator.
+        s3 = boto3.client('s3')
+        with open(tmp_file.name, 'wb') as f:
+            s3.download_fileobj(
+                SERVICE_BUCKET,
+                'user-requests/create-package',
+                f,
+                ExtraArgs={'VersionId': version_id},
+            )
+
+        json_iterator = map(json.JSONDecoder().decode, tmp_file)
+
+        # FIXME: validate with schema.
+        data = next(json_iterator)
+
+        handle = data['name']
+        registry = data['registry']
+
+        try:
+            package_registry = get_registry(registry)
+
+            meta = data.get('meta')
+            message = data.get('message')
+            quilt3.util.validate_package_name(handle)
+            pkg = quilt3.Package()
+            if meta is not None:
+                pkg.set_meta(meta)
+            pkg._validate_with_workflow(
+                registry=package_registry,
+                workflow=data.get('workflow', ...),
+                message=message,
+            )
+
+            size_to_hash = 0
+            files_to_hash = 0
+            for entry in json_iterator:
+                try:
+                    physical_key = PhysicalKey.from_url(entry['physical_key'])
+                except ValueError:
+                    raise ApiException(HTTPStatus.BAD_REQUEST, f"{entry['physical_key']} is not a valid s3 URL.")
+                if physical_key.is_local():
+                    raise ApiException(HTTPStatus.BAD_REQUEST, f"{str(physical_key)} is not in S3.")
+                logical_key = entry['logical_key']
+
+                hash_ = entry.get('hash')
+                obj_size = entry.get('size')
+                meta = entry.get('meta')
+
+                if hash_ and obj_size:
+                    hash_obj = dict(type='SHA256', value=hash_)
+                    pkg.set(
+                        logical_key,
+                        quilt3.packages.PackageEntry(
+                            physical_key,
+                            obj_size,
+                            hash_obj,
+                            meta,
+                        )
+                    )
+                else:
+                    pkg.set(logical_key, str(physical_key), meta)
+                    size_to_hash += pkg[logical_key].size
+                    files_to_hash += 1
+                    # FIXME: raise error if these are beyond our limits.
+
+        except quilt3.util.QuiltException as qe:
+            raise ApiException(HTTPStatus.BAD_REQUEST, qe.message)
+
+    try:
+        top_hash = pkg._build(
+            name=handle,
+            registry=registry,
+            message=message,
+        )
+    except ClientError as boto_error:
+        boto_response = boto_error.response
+        status_code = boto_response['ResponseMetadata']['HTTPStatusCode']
+        message = "{0}: {1}".format(
+            boto_response['Error']['Code'],
+            boto_response['Error']['Message']
+        )
+        raise ApiException(status_code, message)
+
+    return make_json_response(200, {
+        'top_hash': top_hash,
+    })
