@@ -245,7 +245,7 @@ function DialogForm({
       { physicalKey: string; size: number; hash: string; meta: unknown },
     ]
 
-    const newEntries = pipeThru(toUpload, uploaded)(
+    const uploadedEntries = pipeThru(toUpload, uploaded)(
       R.zipWith<LocalEntry, UploadResult, Zipped>((f, r) => {
         invariant(f.file.hash.value, 'File must have a hash')
         return [
@@ -268,9 +268,18 @@ function DialogForm({
       { physicalKey: string; size: number; hash: string; meta: unknown }
     >
 
+    const s3Entries = pipeThru(addedS3Entries)(
+      R.map(({ path, file: { size, ...handle } }: S3Entry) => [
+        path,
+        { physicalKey: s3paths.handleToS3Url(handle), size },
+      ]),
+      R.fromPairs,
+    ) as Record<string, { physicalKey: string; size: number }>
+
     const contents = pipeThru(files.existing)(
       R.omit(Object.keys(files.deleted)),
-      R.mergeLeft(newEntries),
+      R.mergeLeft(uploadedEntries),
+      R.mergeLeft(s3Entries),
       R.toPairs,
       R.map(([path, data]) => ({
         logical_key: path,
@@ -282,17 +291,10 @@ function DialogForm({
       R.sortBy(R.prop('logical_key')),
     )
 
-    const entries = addedS3Entries.map(({ path, file }) => ({
-      logical_key: path,
-      path: file.key,
-      is_dir: false,
-    }))
-
     try {
       const res = await createPackage(
         {
           contents,
-          entries,
           message: msg,
           meta,
           target: {
