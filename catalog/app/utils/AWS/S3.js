@@ -158,9 +158,3 @@ export function useS3() {
 }
 
 export const use = useS3
-
-export function InjectS3({ children }) {
-  return children(useS3())
-}
-
-export const Inject = InjectS3
