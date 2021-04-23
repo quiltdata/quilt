@@ -661,7 +661,7 @@ const useDropzoneMessageStyles = M.makeStyles((t) => ({
 
 interface DropzoneMessageProps {
   error: React.ReactNode
-  warn: boolean
+  warn: { upload: boolean; s3: boolean }
 }
 
 function DropzoneMessage({ error, warn }: DropzoneMessageProps) {
@@ -669,21 +669,32 @@ function DropzoneMessage({ error, warn }: DropzoneMessageProps) {
 
   const label = React.useMemo(() => {
     if (error) return error
-    if (warn)
+    if (warn.upload || warn.s3)
       return (
         <>
-          Total size of new files exceeds recommended maximum of{' '}
-          {readableBytes(PD.MAX_SIZE)}
+          {warn.upload && (
+            <>
+              Total size of local files exceeds recommended maximum of{' '}
+              {readableBytes(PD.MAX_UPLOAD_SIZE)}.
+            </>
+          )}
+          {warn.upload && warn.s3 && <br />}
+          {warn.s3 && (
+            <>
+              Total size of files from S3 exceeds recommended maximum of{' '}
+              {readableBytes(PD.MAX_S3_SIZE)}.
+            </>
+          )}
         </>
       )
     return 'Drop files here or click to browse'
-  }, [error, warn])
+  }, [error, warn.upload, warn.s3])
 
   return (
     <div
       className={cx(classes.root, {
         [classes.error]: error,
-        [classes.warning]: !error && warn,
+        [classes.warning]: !error && (warn.upload || warn.s3),
       })}
     >
       <span>{label}</span>
@@ -1133,17 +1144,18 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
 }
 
 const useFilesInputStyles = M.makeStyles((t) => ({
-  toUpload: {
-    color: t.palette.text.secondary,
-    marginLeft: t.spacing(1),
-  },
   hashing: {
     marginLeft: t.spacing(1),
   },
-  s3Btn: {
-    bottom: t.spacing(1),
-    position: 'absolute',
-    right: t.spacing(1),
+  actions: {
+    display: 'flex',
+    marginTop: t.spacing(1),
+  },
+  action: {
+    flexGrow: 1,
+    '& + &': {
+      marginLeft: t.spacing(1),
+    },
   },
 }))
 
@@ -1249,12 +1261,15 @@ export function FilesInput({
   }, [dispatch])
 
   const isDragging = useDragging()
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ disabled, onDrop })
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+    disabled,
+    onDrop,
+  })
 
   const computedEntries = useMemoEq(value, computeEntries)
 
   const stats = useMemoEq(value, ({ added, existing }) => ({
-    added: Object.entries(added).reduce(
+    upload: Object.entries(added).reduce(
       (acc, [path, f]) => {
         if (S3FilePicker.isS3File(f)) return acc // dont count s3 files
         const e = existing[path]
@@ -1263,14 +1278,23 @@ export function FilesInput({
       },
       { count: 0, size: 0 },
     ),
+    s3: Object.entries(added).reduce(
+      (acc, [, f]) =>
+        S3FilePicker.isS3File(f)
+          ? R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
+          : acc,
+      { count: 0, size: 0 },
+    ),
     hashing: Object.values(added).reduce(
       (acc, f) => acc || (!S3FilePicker.isS3File(f) && !f.hash.ready),
       false,
     ),
   }))
 
-  // TODO: warn on reaching limit for s3 files?
-  const warn = stats.added.size > PD.MAX_SIZE
+  const warn = {
+    upload: stats.upload.size > PD.MAX_UPLOAD_SIZE,
+    s3: stats.s3.size > PD.MAX_UPLOAD_SIZE,
+  }
 
   const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(false)
 
@@ -1284,8 +1308,7 @@ export function FilesInput({
     [dispatch, setS3FilePickerOpen],
   )
 
-  const handleS3Btn = React.useCallback((e: React.MouseEvent) => {
-    e.stopPropagation() // avoid opening OS file picker
+  const handleS3Btn = React.useCallback(() => {
     setS3FilePickerOpen(true)
   }, [])
 
@@ -1303,18 +1326,47 @@ export function FilesInput({
               ? 'disabled'
               : error // eslint-disable-line no-nested-ternary
               ? 'error'
-              : warn
+              : warn.upload || warn.s3
               ? 'warn'
               : undefined
           }
         >
           {title}
-          {!!stats.added.count && (
-            <span className={classes.toUpload}>
-              ({stats.added.count} files / {readableBytes(stats.added.size)} to upload)
-            </span>
+          {(!!stats.upload.count || !!stats.s3.count) && (
+            <M.Box
+              ml={1}
+              color={warn.upload || warn.s3 ? 'warning.dark' : 'text.secondary'}
+              component="span"
+            >
+              (
+              {!!stats.upload.count && (
+                <M.Box
+                  color={warn.upload ? 'warning.dark' : 'text.secondary'}
+                  component="span"
+                >
+                  {readableBytes(stats.upload.size)} to upload
+                </M.Box>
+              )}
+              {!!stats.upload.count && !!stats.s3.count && (
+                <M.Box
+                  color={!warn.upload || !warn.s3 ? 'text.secondary' : undefined}
+                  component="span"
+                >
+                  {', '}
+                </M.Box>
+              )}
+              {!!stats.s3.count && (
+                <M.Box
+                  color={warn.s3 ? 'warning.dark' : 'text.secondary'}
+                  component="span"
+                >
+                  {readableBytes(stats.s3.size)} from S3
+                </M.Box>
+              )}
+              )
+            </M.Box>
           )}
-          {warn && (
+          {(warn.upload || warn.s3) && (
             <M.Icon style={{ marginLeft: 6 }} fontSize="small">
               error_outline
             </M.Icon>
@@ -1346,12 +1398,12 @@ export function FilesInput({
           interactive
           active={isDragActive && !ref.current.disabled}
           error={!!error}
-          warn={warn}
+          warn={warn.upload || warn.s3}
         >
           <input {...getInputProps()} />
 
           {!!computedEntries.length && (
-            <FilesContainer error={!!error} warn={warn}>
+            <FilesContainer error={!!error} warn={warn.upload || warn.s3}>
               {computedEntries.map(
                 FilesEntry.match({
                   Dir: (ps) => (
@@ -1366,18 +1418,29 @@ export function FilesInput({
           )}
 
           <DropzoneMessage error={error && (errors[error] || error)} warn={warn} />
-          <M.Button
-            onClick={handleS3Btn}
-            className={classes.s3Btn}
-            variant="contained"
-            color="secondary"
-            size="small"
-          >
-            Add files from S3
-          </M.Button>
         </Contents>
         {submitting && <Lock progress={totalProgress} />}
       </ContentsContainer>
+      <div className={classes.actions}>
+        <M.Button
+          onClick={open}
+          disabled={submitting || disabled}
+          className={classes.action}
+          variant="outlined"
+          size="small"
+        >
+          Add local files
+        </M.Button>
+        <M.Button
+          onClick={handleS3Btn}
+          disabled={submitting || disabled}
+          className={classes.action}
+          variant="outlined"
+          size="small"
+        >
+          Add files from S3
+        </M.Button>
+      </div>
     </Root>
   )
 }
