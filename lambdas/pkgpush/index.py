@@ -187,6 +187,16 @@ class ApiException(Exception):
         self.status_code = status_code
         self.message = message
 
+    @classmethod
+    def from_botocore_error(cls, boto_error: ClientError):
+        boto_response = boto_error.response
+        status_code = boto_response['ResponseMetadata']['HTTPStatusCode']
+        message = "{0}: {1}".format(
+            boto_response['Error']['Code'],
+            boto_response['Error']['Message']
+        )
+        raise cls(status_code, message)
+
 
 def api_exception_handler(f):
     @functools.wraps(f)
@@ -299,13 +309,7 @@ def _push_pkg_to_successor(data, *, get_src, get_dst, get_name, get_pkg, pkg_max
     except quilt3.util.QuiltException as qe:
         raise ApiException(HTTPStatus.BAD_REQUEST, qe.message)
     except ClientError as boto_error:
-        boto_response = boto_error.response
-        status_code = boto_response['ResponseMetadata']['HTTPStatusCode']
-        message = "{0}: {1}".format(
-            boto_response['Error']['Code'],
-            boto_response['Error']['Message']
-        )
-        raise ApiException(status_code, message)
+        raise ApiException.from_botocore_error(boto_error)
     except quilt3.data_transfer.S3NoValidClientError as e:
         raise ApiException(HTTPStatus.FORBIDDEN, e.message)
 
@@ -454,13 +458,12 @@ def create_package(request):
             meta = entry.get('meta')
 
             if hash_ and obj_size:
-                hash_obj = dict(type='SHA256', value=hash_)
                 pkg.set(
                     logical_key,
                     quilt3.packages.PackageEntry(
                         physical_key,
                         obj_size,
-                        hash_obj,
+                        {'type': 'SHA256', 'value': hash_},
                         meta,
                     )
                 )
@@ -480,13 +483,7 @@ def create_package(request):
             message=message,
         )
     except ClientError as boto_error:
-        boto_response = boto_error.response
-        status_code = boto_response['ResponseMetadata']['HTTPStatusCode']
-        message = "{0}: {1}".format(
-            boto_response['Error']['Code'],
-            boto_response['Error']['Message']
-        )
-        raise ApiException(status_code, message)
+        raise ApiException.from_botocore_error(boto_error)
 
     return make_json_response(200, {
         'top_hash': top_hash,
