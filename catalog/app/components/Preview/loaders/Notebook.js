@@ -43,7 +43,7 @@ function waitForIframe(src) {
 
     const timerId = setTimeout(() => {
       if (resolved) return
-      handleError(new Error('Page is loading too long'))
+      handleError(new Error('Page is taking too long to load'))
     }, timeout)
 
     const link = document.createElement('iframe')
@@ -57,7 +57,7 @@ function waitForIframe(src) {
 
     document.body.appendChild(link)
 
-    const iframeDocument = link.contentWindow || link.contentDocuent
+    const iframeDocument = link.contentWindow || link.contentDocument
     if (iframeDocument) {
       iframeDocument.addEventListener('error', handleError)
     }
