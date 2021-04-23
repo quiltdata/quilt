@@ -71,10 +71,17 @@ async function loadVoila({ src }) {
   return PreviewData.IFrame({ src, sandbox: IFRAME_SANDBOX_ATTRIBUTES })
 }
 
-function VoilaLoader({ handle, children }) {
+const useVoilaUrl = (handle) => {
   const sign = AWS.Signer.useS3Signer()
   const endpoint = Config.use().registryUrl
-  const src = `${endpoint}/voila/voila/render/${mkSearch({ url: sign(handle) })}`
+  return React.useMemo(
+    () => `${endpoint}/voila/voila/render/${mkSearch({ url: sign(handle) })}`,
+    [endpoint, handle, sign],
+  )
+}
+
+function VoilaLoader({ handle, children }) {
+  const src = useVoilaUrl(handle)
   const data = Data.use(loadVoila, { src })
   return children(utils.useErrorHandling(data.result, { handle, retry: data.fetch }))
 }
