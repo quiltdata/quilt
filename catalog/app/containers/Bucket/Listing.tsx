@@ -892,6 +892,7 @@ interface ListingProps {
   CellComponent?: React.ComponentType<CellProps>
   RootComponent?: React.ElementType<{ className: string }>
   className?: string
+  dataGridProps?: Partial<DataGridProps>
 }
 
 export function Listing({
@@ -906,6 +907,7 @@ export function Listing({
   CellComponent = Cell,
   RootComponent = M.Paper,
   className,
+  dataGridProps,
 }: ListingProps) {
   const classes = useStyles()
 
@@ -1084,6 +1086,7 @@ export function Listing({
         checkboxSelection={!!onSelectionChange}
         selectionModel={selection}
         onSelectionModelChange={handleSelectionModelChange}
+        {...dataGridProps}
       />
     </RootComponent>
   )

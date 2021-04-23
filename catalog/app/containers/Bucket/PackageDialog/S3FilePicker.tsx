@@ -48,6 +48,9 @@ type MuiCloseReason = 'backdropClick' | 'escapeKeyDown'
 export type CloseReason = MuiCloseReason | 'cancel' | { path: string; files: S3File[] }
 
 const useStyles = M.makeStyles((t) => ({
+  paper: {
+    height: '100vh',
+  },
   crumbs: {
     ...t.typography.body1,
     marginTop: -t.spacing(1),
@@ -178,8 +181,7 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
       onExited={handleExited}
       fullWidth
       maxWidth="lg"
-      // TODO: height?
-      // scroll="body"
+      classes={{ paper: classes.paper }}
     >
       <M.DialogTitle>Add files from S3</M.DialogTitle>
       <div className={classes.crumbs}>
@@ -203,7 +205,7 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
             />
           ) : (
             // TODO: skeleton
-            <M.Box px={3}>
+            <M.Box px={3} flexGrow={1}>
               <M.CircularProgress />
             </M.Box>
           )
@@ -259,6 +261,7 @@ const useDirContentsStyles = M.makeStyles((t) => ({
   root: {
     borderBottom: `1px solid ${t.palette.divider}`,
     borderTop: `1px solid ${t.palette.divider}`,
+    flexGrow: 1,
     marginLeft: t.spacing(2),
     marginRight: t.spacing(2),
     marginTop: t.spacing(1),
@@ -330,6 +333,7 @@ function DirContents({
       CellComponent={CellComponent}
       RootComponent="div"
       className={classes.root}
+      dataGridProps={{ autoHeight: false }}
       toolbarContents={
         <Listing.PrefixFilter
           key={`${bucket}/${path}`}
