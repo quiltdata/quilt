@@ -17,7 +17,11 @@ from quilt3.backends import get_package_registry
 from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.util import PhysicalKey
 from t4_lambda_shared.decorator import ELBRequest, api
-from t4_lambda_shared.utils import get_default_origins, make_json_response, get_quilt_logger
+from t4_lambda_shared.utils import (
+    get_default_origins,
+    get_quilt_logger,
+    make_json_response,
+)
 
 PROMOTE_PKG_MAX_MANIFEST_SIZE = int(os.environ['PROMOTE_PKG_MAX_MANIFEST_SIZE'])
 PROMOTE_PKG_MAX_PKG_SIZE = int(os.environ['PROMOTE_PKG_MAX_PKG_SIZE'])
@@ -406,8 +410,7 @@ def large_request_handler(request_type):
                     s3.delete_object(SERVICE_BUCKET, user_request_key, version_id)
                 except Exception:
                     logger.exception('error while removing user request file from S3')
-                finally:
-                    return result
+                return result
         return wrapper
     return inner
 
