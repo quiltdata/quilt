@@ -269,12 +269,12 @@ function DialogForm({
     >
 
     const s3Entries = pipeThru(addedS3Entries)(
-      R.map(({ path, file: { size, ...handle } }: S3Entry) => [
+      R.map(({ path, file }: S3Entry) => [
         path,
-        { physicalKey: s3paths.handleToS3Url(handle), size },
+        { physicalKey: s3paths.handleToS3Url(file) },
       ]),
       R.fromPairs,
-    ) as Record<string, { physicalKey: string; size: number }>
+    ) as Record<string, { physicalKey: string }>
 
     const contents = pipeThru(files.existing)(
       R.omit(Object.keys(files.deleted)),
