@@ -36,9 +36,7 @@ interface RequestBodyBase {
   workflow?: string | null
 }
 
-interface RequestBodyCreate {
-  job_id: string
-}
+type RequestBodyCreate = string
 
 interface RequestBodyCopy extends RequestBodyBase {
   name: string
@@ -203,7 +201,7 @@ const mkCreatePackage = ({
   return uploadManifest(
     req,
     ENDPOINT_CREATE,
-    { job_id: (res as any).VersionId as string },
+    JSON.stringify((res as any).VersionId as string),
     {
       access_key: credentials.accessKeyId,
       secret_key: credentials.secretAccessKey,
