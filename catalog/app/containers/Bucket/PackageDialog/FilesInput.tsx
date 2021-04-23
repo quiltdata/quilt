@@ -629,7 +629,7 @@ const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
         )}
       </div>
       {(!!children || empty) && (
-        <M.Collapse in={expanded}>
+        <M.Collapse in={expanded} mountOnEnter unmountOnExit>
           <div className={classes.body}>
             {children || <div className={classes.emptyDummy} />}
           </div>
