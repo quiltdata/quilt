@@ -110,7 +110,7 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
     setPrev(null)
   }, [bucket, path, prefix])
 
-  const data = useData(bucketListing, { bucket, path, prefix, prev })
+  const data = useData(bucketListing, { bucket, path, prefix, prev, drain: true })
 
   const loadMore = React.useCallback(() => {
     AsyncResult.case(
@@ -147,9 +147,8 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
             { files: [] as requests.BucketListingFile[], dirs: [] as string[] },
           )
 
-          // TODO: drain?
           const dirsPromises = dirs.map((dir) =>
-            limit(bucketListing, { bucket, path: dir, delimiter: false }),
+            limit(bucketListing, { bucket, path: dir, delimiter: false, drain: true }),
           )
 
           const dirsChildren = await Promise.all(dirsPromises)
@@ -205,7 +204,7 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
             />
           ) : (
             // TODO: skeleton
-            <M.Box px={3} flexGrow={1}>
+            <M.Box px={3} pt={2} flexGrow={1}>
               <M.CircularProgress />
             </M.Box>
           )
