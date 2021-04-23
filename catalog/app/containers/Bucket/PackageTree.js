@@ -490,9 +490,9 @@ function DirDisplay({
 }
 
 const viewModes = [
-  { key: 'jupyter', toString: () => 'Jupyter', valueOf: () => 'jupyter' },
-  { key: 'voila', toString: () => 'Voila', valueOf: () => 'voila' },
-  { key: 'json', toString: () => 'Json', valueOf: () => 'json' },
+  { key: 'jupyter', label: 'Jupyter' },
+  { key: 'voila', label: 'Voila' },
+  { key: 'json', label: 'JSON' },
 ]
 
 const useFileDisplayStyles = M.makeStyles((t) => ({

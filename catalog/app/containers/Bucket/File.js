@@ -318,9 +318,9 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 const viewModes = [
-  { key: 'jupyter', toString: () => 'Jupyter', valueOf: () => 'jupyter' },
-  { key: 'voila', toString: () => 'Voila', valueOf: () => 'voila' },
-  { key: 'json', toString: () => 'Json', valueOf: () => 'json' },
+  { key: 'jupyter', label: 'Jupyter' },
+  { key: 'voila', label: 'Voila' },
+  { key: 'json', label: 'JSON' },
 ]
 
 export default function File({
