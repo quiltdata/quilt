@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as Config from 'utils/Config'
+import mkSearch from 'utils/mkSearch'
 
 import { PreviewData } from '../types'
 import * as utils from './utils'
@@ -24,10 +25,10 @@ function NotebookLoader({ handle, children }) {
 }
 
 const IFRAME_SANDBOX_ATTRIBUTES = 'allow-scripts allow-same-origin'
+const IFRAME_LOAD_TIMEOUT = 30000
 
 function waitForIframe(src) {
   let resolved = false
-  const timeout = 30000
 
   return new Promise((resolve, reject) => {
     const handleError = (error) => {
@@ -44,7 +45,7 @@ function waitForIframe(src) {
     const timerId = setTimeout(() => {
       if (resolved) return
       handleError(new Error('Page is loading too long'))
-    }, timeout)
+    }, IFRAME_LOAD_TIMEOUT)
 
     const link = document.createElement('iframe')
     link.addEventListener('load', () => {
@@ -64,11 +65,7 @@ function waitForIframe(src) {
   })
 }
 
-async function loadVoila({ endpoint, sign, handle }) {
-  const base = `${endpoint}/voila/voila/render`
-  const url = encodeURIComponent(sign(handle))
-  const src = `${base}/?url=${url}`
-
+async function loadVoila({ src }) {
   // Preload iframe, then insert cached iframe
   await waitForIframe(src)
   return PreviewData.IFrame({ src, sandbox: IFRAME_SANDBOX_ATTRIBUTES })
@@ -77,7 +74,8 @@ async function loadVoila({ endpoint, sign, handle }) {
 function VoilaLoader({ handle, children }) {
   const sign = AWS.Signer.useS3Signer()
   const endpoint = Config.use().registryUrl
-  const data = Data.use(loadVoila, { endpoint, sign, handle })
+  const src = `${endpoint}/voila/voila/render/${mkSearch({ url: sign(handle) })}`
+  const data = Data.use(loadVoila, { src })
   return children(utils.useErrorHandling(data.result, { handle, retry: data.fetch }))
 }
 
