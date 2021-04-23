@@ -17,7 +17,7 @@ from quilt3.backends import get_package_registry
 from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.util import PhysicalKey
 from t4_lambda_shared.decorator import ELBRequest, api
-from t4_lambda_shared.utils import get_default_origins, make_json_response
+from t4_lambda_shared.utils import get_default_origins, make_json_response, get_quilt_logger
 
 PROMOTE_PKG_MAX_MANIFEST_SIZE = int(os.environ['PROMOTE_PKG_MAX_MANIFEST_SIZE'])
 PROMOTE_PKG_MAX_PKG_SIZE = int(os.environ['PROMOTE_PKG_MAX_PKG_SIZE'])
@@ -136,6 +136,9 @@ PACKAGE_CREATE_SCHEMA = {
 # Monkey patch quilt3 S3ClientProvider, so it builds a client using user credentials.
 user_boto_session = None
 quilt3.data_transfer.S3ClientProvider.get_boto_session = staticmethod(lambda: user_boto_session)
+
+
+logger = get_quilt_logger()
 
 
 def get_user_credentials(request):
@@ -375,84 +378,100 @@ def package_from_folder(request):
     )
 
 
+def large_request_handler(request_type):
+    user_request_key = f'user-requests/{request_type}'
+
+    def inner(f):
+        @functools.wraps(f)
+        def wrapper(request):
+            s3 = boto3.client('s3')
+            version_id = request.data
+            # download file with user request using lambda's role
+            # FIXME: check file size before fully downloading it.
+            with tempfile.NamedTemporaryFile('r', encoding='utf-8') as tmp_file:
+                with open(tmp_file.name, 'wb') as fileobj:
+                    s3.download_fileobj(
+                        SERVICE_BUCKET,
+                        user_request_key,
+                        fileobj,
+                        ExtraArgs={'VersionId': version_id},
+                    )
+                request.stream = tmp_file
+                result = f(request)
+                try:
+                    s3.delete_object(SERVICE_BUCKET, user_request_key, version_id)
+                except Exception:
+                    logger.exception('error while removing user request file from S3')
+                finally:
+                    return result
+        return wrapper
+    return inner
+
+
 @api(cors_origins=get_default_origins(), request_class=ELBRequest)
 @api_exception_handler
 @auth
 @json_api({'type': 'string', 'minLength': 1, 'maxLength': 1024})
+@large_request_handler('create-package')
 @setup_telemetry
 def create_package(request):
-    version_id = request.data
+    json_iterator = map(json.JSONDecoder().decode, request.stream)
 
-    with tempfile.NamedTemporaryFile('r', encoding='utf-8') as tmp_file:
-        # download file with user request using lambda's role
-        # FIXME: check file size before fully downloading it.
-        # FIXME: might make sense to extract it to decorator.
-        s3 = boto3.client('s3')
-        with open(tmp_file.name, 'wb') as f:
-            s3.download_fileobj(
-                SERVICE_BUCKET,
-                'user-requests/create-package',
-                f,
-                ExtraArgs={'VersionId': version_id},
-            )
+    # FIXME: validate with schema.
+    data = next(json_iterator)
 
-        json_iterator = map(json.JSONDecoder().decode, tmp_file)
+    handle = data['name']
+    registry = data['registry']
 
-        # FIXME: validate with schema.
-        data = next(json_iterator)
+    try:
+        package_registry = get_registry(registry)
 
-        handle = data['name']
-        registry = data['registry']
+        meta = data.get('meta')
+        message = data.get('message')
+        quilt3.util.validate_package_name(handle)
+        pkg = quilt3.Package()
+        if meta is not None:
+            pkg.set_meta(meta)
+        pkg._validate_with_workflow(
+            registry=package_registry,
+            workflow=data.get('workflow', ...),
+            message=message,
+        )
 
-        try:
-            package_registry = get_registry(registry)
+        size_to_hash = 0
+        files_to_hash = 0
+        for entry in json_iterator:
+            try:
+                physical_key = PhysicalKey.from_url(entry['physical_key'])
+            except ValueError:
+                raise ApiException(HTTPStatus.BAD_REQUEST, f"{entry['physical_key']} is not a valid s3 URL.")
+            if physical_key.is_local():
+                raise ApiException(HTTPStatus.BAD_REQUEST, f"{str(physical_key)} is not in S3.")
+            logical_key = entry['logical_key']
 
-            meta = data.get('meta')
-            message = data.get('message')
-            quilt3.util.validate_package_name(handle)
-            pkg = quilt3.Package()
-            if meta is not None:
-                pkg.set_meta(meta)
-            pkg._validate_with_workflow(
-                registry=package_registry,
-                workflow=data.get('workflow', ...),
-                message=message,
-            )
+            hash_ = entry.get('hash')
+            obj_size = entry.get('size')
+            meta = entry.get('meta')
 
-            size_to_hash = 0
-            files_to_hash = 0
-            for entry in json_iterator:
-                try:
-                    physical_key = PhysicalKey.from_url(entry['physical_key'])
-                except ValueError:
-                    raise ApiException(HTTPStatus.BAD_REQUEST, f"{entry['physical_key']} is not a valid s3 URL.")
-                if physical_key.is_local():
-                    raise ApiException(HTTPStatus.BAD_REQUEST, f"{str(physical_key)} is not in S3.")
-                logical_key = entry['logical_key']
-
-                hash_ = entry.get('hash')
-                obj_size = entry.get('size')
-                meta = entry.get('meta')
-
-                if hash_ and obj_size:
-                    hash_obj = dict(type='SHA256', value=hash_)
-                    pkg.set(
-                        logical_key,
-                        quilt3.packages.PackageEntry(
-                            physical_key,
-                            obj_size,
-                            hash_obj,
-                            meta,
-                        )
+            if hash_ and obj_size:
+                hash_obj = dict(type='SHA256', value=hash_)
+                pkg.set(
+                    logical_key,
+                    quilt3.packages.PackageEntry(
+                        physical_key,
+                        obj_size,
+                        hash_obj,
+                        meta,
                     )
-                else:
-                    pkg.set(logical_key, str(physical_key), meta)
-                    size_to_hash += pkg[logical_key].size
-                    files_to_hash += 1
-                    # FIXME: raise error if these are beyond our limits.
+                )
+            else:
+                pkg.set(logical_key, str(physical_key), meta)
+                size_to_hash += pkg[logical_key].size
+                files_to_hash += 1
+                # FIXME: raise error if these are beyond our limits.
 
-        except quilt3.util.QuiltException as qe:
-            raise ApiException(HTTPStatus.BAD_REQUEST, qe.message)
+    except quilt3.util.QuiltException as qe:
+        raise ApiException(HTTPStatus.BAD_REQUEST, qe.message)
 
     try:
         top_hash = pkg._build(
