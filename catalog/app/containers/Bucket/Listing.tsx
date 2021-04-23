@@ -10,6 +10,7 @@ import * as DG from '@material-ui/data-grid'
 
 import { renderPageRange } from 'components/Pagination2'
 import { readableBytes } from 'utils/string'
+import usePrevious from 'utils/usePrevious'
 
 const EMPTY = <i>{'<EMPTY>'}</i>
 
@@ -268,7 +269,7 @@ function Pagination({ truncated, loadMore }: PaginationProps) {
     </M.Button>
   )
 
-  if (!pages) return null
+  if (!pages) return <M.Box flexGrow={1} />
 
   return (
     <div className={classes.root}>
@@ -917,6 +918,32 @@ export function Listing({
     [setFilteredToZero],
   )
 
+  const [page, setPage] = React.useState(0)
+  const [pageSize, setPageSize] = React.useState(25)
+
+  const handlePageChange = React.useCallback(
+    ({ page: newPage }: DG.GridPageChangeParams) => {
+      setPage(newPage)
+    },
+    [],
+  )
+
+  const handlePageSizeChange = React.useCallback(
+    ({ pageSize: newPageSize }: DG.GridPageChangeParams) => {
+      setPageSize(newPageSize)
+    },
+    [],
+  )
+
+  usePrevious(items, (prevItems?: Item[]) => {
+    if (!prevItems) return
+    const itemsOnPrevPages = page * pageSize
+    // reset page if items on previous pages change
+    if (!R.equals(R.take(itemsOnPrevPages, items), R.take(itemsOnPrevPages, prevItems))) {
+      setPage(0)
+    }
+  })
+
   const columns: DG.GridColumns = React.useMemo(
     () => [
       {
@@ -1039,14 +1066,13 @@ export function Listing({
         }}
         getRowId={(row) => row.name}
         pagination
-        pageSize={25}
-        // page={1}
-        // onPageChange={({ page }) => set page}
-        // onPageSizeChange={({ pageSize }) => set page size}
+        pageSize={pageSize}
+        onPageSizeChange={handlePageSizeChange}
+        page={page}
+        onPageChange={handlePageChange}
         loading={locked || filteredToZero}
         headerHeight={36}
         rowHeight={36}
-        // TODO: re-enable?
         disableSelectionOnClick
         disableColumnSelector
         disableColumnResize
