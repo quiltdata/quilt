@@ -111,7 +111,7 @@
     "react-swipeable-views-utils": "^0.13.9",
     "react-table": "^7.7.0",
     "recompose": "^0.30.0",
-    "redux": "^4.0.5",
+    "redux": "^4.1.0",
     "redux-devtools-extension": "^2.13.9",
     "redux-form": "^8.3.7",
     "redux-immutable": "^4.0.0",
