@@ -1293,7 +1293,7 @@ export function FilesInput({
 
   const warn = {
     upload: stats.upload.size > PD.MAX_UPLOAD_SIZE,
-    s3: stats.s3.size > PD.MAX_UPLOAD_SIZE,
+    s3: stats.s3.size > PD.MAX_S3_SIZE,
   }
 
   const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(false)
