@@ -19,6 +19,7 @@
 * [Added] Limit and offset parameters in pkgselect lambda ([#2124](https://github.com/quiltdata/quilt/pull/2124))
 * [Added] File listing: "load more" button to fetch more entries from S3 ([#2150](https://github.com/quiltdata/quilt/pull/2150))
 * [Added] Lambda for pushing an existing package/creation of package from a S3 folder ([#2147](https://github.com/quiltdata/quilt/pull/2147))
+* [Added] Package manifest validation ([#2174](https://github.com/quiltdata/quilt/pull/2174))
 * [Changed] New DataGrid-based file listing UI with arbitrary sorting and filtering ([#2097](https://github.com/quiltdata/quilt/pull/2097))
 * [Changed] Item selection in folder-to-package dialog ([#2122](https://github.com/quiltdata/quilt/pull/2122))
 * [Changed] Don't preview .tif (but keep .tiff), preview .results as plain text ([#2128](https://github.com/quiltdata/quilt/pull/2128))
