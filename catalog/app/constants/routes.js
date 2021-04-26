@@ -1,7 +1,7 @@
 import { mkSearch } from 'utils/NamedRoutes'
 import { encode } from 'utils/s3paths'
 
-const PACKAGE_PATTERN = '[a-z0-9-_]+/[a-z0-9-_]+'
+const PACKAGE_PATTERN = '[^/]+/[^/]+'
 
 export const home = {
   path: '/',
