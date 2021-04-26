@@ -5,6 +5,7 @@ import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as Config from 'utils/Config'
 import mkSearch from 'utils/mkSearch'
+import useMemoEq from 'utils/useMemoEq'
 
 import { PreviewData } from '../types'
 import * as utils from './utils'
@@ -74,9 +75,9 @@ async function loadVoila({ src }) {
 const useVoilaUrl = (handle) => {
   const sign = AWS.Signer.useS3Signer()
   const endpoint = Config.use().registryUrl
-  return React.useMemo(
-    () => `${endpoint}/voila/voila/render/${mkSearch({ url: sign(handle) })}`,
+  return useMemoEq(
     [endpoint, handle, sign],
+    () => `${endpoint}/voila/voila/render/${mkSearch({ url: sign(handle) })}`,
   )
 }
 
