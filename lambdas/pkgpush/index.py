@@ -18,6 +18,7 @@ from quilt3.backends.s3 import S3PackageRegistryV1
 from quilt3.util import PhysicalKey
 from t4_lambda_shared.decorator import ELBRequest, api
 from t4_lambda_shared.utils import (
+    LAMBDA_TMP_SPACE,
     get_default_origins,
     get_quilt_logger,
     make_json_response,
@@ -137,6 +138,29 @@ PACKAGE_CREATE_SCHEMA = {
 }
 
 
+PACKAGE_CREATE_ENTRY_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'logical_key': {
+            'type': 'string'
+        },
+        'physical_key': {
+            'type': 'string'
+        },
+        'size': {
+            'type': 'integer'
+        },
+        'hash': {
+            'type': 'string'
+        },
+        'meta': {
+            'type': 'object',
+        },
+    },
+    'required': ['logical_key', 'physical_key'],
+}
+
+
 # Monkey patch quilt3 S3ClientProvider, so it builds a client using user credentials.
 user_boto_session = None
 quilt3.data_transfer.S3ClientProvider.get_boto_session = staticmethod(lambda: user_boto_session)
@@ -217,19 +241,26 @@ def api_exception_handler(f):
     return wrapper
 
 
+def get_schema_validator(schema):
+    iter_errors = Draft7Validator(schema).iter_errors
+
+    def validator(data):
+        ex = next(iter_errors(data), None)
+        if ex is not None:
+            raise ApiException(HTTPStatus.BAD_REQUEST, ex.message)
+        return data
+
+    return validator
+
+
 def json_api(schema):
-    @functools.lru_cache(maxsize=None)
-    def get_schema_validator():
-        iter_errors = Draft7Validator(schema).iter_errors
-        return lambda data: next(iter_errors(data), None)
+    validator = get_schema_validator(schema)
 
     def innerdec(f):
         @functools.wraps(f)
         def wrapper(request):
             request.data = json.loads(request.data)
-            ex = get_schema_validator()(request.data)
-            if ex is not None:
-                raise ApiException(HTTPStatus.BAD_REQUEST, ex.message)
+            validator(request.data)
             return f(request)
         return wrapper
     return innerdec
@@ -394,16 +425,22 @@ def large_request_handler(request_type):
         def wrapper(request):
             s3 = boto3.client('s3')
             version_id = request.data
+            size = s3.head_object(Bucket=SERVICE_BUCKET, Key=user_request_key, VersionId=version_id)['ContentLength']
+            if size > LAMBDA_TMP_SPACE:
+                raise ApiException(
+                    HTTPStatus.BAD_REQUEST,
+                    f'Request file size is {size}, '
+                    f'but max supported size is {LAMBDA_TMP_SPACE}.'
+                )
             # download file with user request using lambda's role
-            # FIXME: check file size before fully downloading it.
-            with tempfile.NamedTemporaryFile('r', encoding='utf-8') as tmp_file:
-                with open(tmp_file.name, 'wb') as fileobj:
-                    s3.download_fileobj(
-                        SERVICE_BUCKET,
-                        user_request_key,
-                        fileobj,
-                        ExtraArgs={'VersionId': version_id},
-                    )
+            with tempfile.TemporaryFile() as tmp_file:
+                s3.download_fileobj(
+                    SERVICE_BUCKET,
+                    user_request_key,
+                    tmp_file,
+                    ExtraArgs={'VersionId': version_id},
+                )
+                tmp_file.seek(0)
                 request.stream = tmp_file
                 result = f(request)
                 try:
@@ -422,11 +459,10 @@ def large_request_handler(request_type):
 @large_request_handler('create-package')
 @setup_telemetry
 def create_package(request):
-    json_iterator = map(json.JSONDecoder().decode, request.stream)
+    json_iterator = map(json.JSONDecoder().decode, (line.decode() for line in request.stream))
 
-    # FIXME: validate with schema.
     data = next(json_iterator)
-
+    get_schema_validator(PACKAGE_CREATE_SCHEMA)(data)
     handle = data['name']
     registry = data['registry']
 
@@ -447,7 +483,7 @@ def create_package(request):
 
         size_to_hash = 0
         files_to_hash = 0
-        for entry in json_iterator:
+        for entry in map(get_schema_validator(PACKAGE_CREATE_ENTRY_SCHEMA), json_iterator):
             try:
                 physical_key = PhysicalKey.from_url(entry['physical_key'])
             except ValueError:
@@ -472,9 +508,22 @@ def create_package(request):
                 )
             else:
                 pkg.set(logical_key, str(physical_key), meta)
+
                 size_to_hash += pkg[logical_key].size
+                if size_to_hash > PKG_FROM_FOLDER_MAX_PKG_SIZE:
+                    raise ApiException(
+                        HTTPStatus.BAD_REQUEST,
+                        f"Total size of new S3 files is {size_to_hash}, "
+                        f"but max supported size is {PKG_FROM_FOLDER_MAX_PKG_SIZE}"
+                    )
+
                 files_to_hash += 1
-                # FIXME: raise error if these are beyond our limits.
+                if files_to_hash > PKG_FROM_FOLDER_MAX_FILES:
+                    raise ApiException(
+                        HTTPStatus.BAD_REQUEST,
+                        f"Package has new S3 {files_to_hash} files, "
+                        f"but max supported number is {PKG_FROM_FOLDER_MAX_FILES}"
+                    )
 
     except quilt3.util.QuiltException as qe:
         raise ApiException(HTTPStatus.BAD_REQUEST, qe.message)
