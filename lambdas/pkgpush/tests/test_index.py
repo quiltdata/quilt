@@ -18,6 +18,10 @@ from quilt3.util import PhysicalKey
 from t4_lambda_shared.decorator import Request
 
 
+def hash_data(data):
+    return hashlib.sha256(data).hexdigest()
+
+
 class PackagePromoteTestBase(unittest.TestCase):
     credentials = {
         'access_key': mock.sentinel.TEST_ACCESS_KEY,
@@ -104,6 +108,10 @@ class PackagePromoteTestBase(unittest.TestCase):
             },
         }
 
+    @staticmethod
+    def make_lambda_s3_stubber():
+        return Stubber(index.s3)
+
     def setUp(self):
         super().setUp()
         self.headers = {
@@ -155,23 +163,25 @@ class PackagePromoteTestBase(unittest.TestCase):
             'isBase64Encoded': False,
         }
 
-    def make_request_base(self, params, *, credentials):
+    def make_request_wrapper(self, params, *, credentials, **kwargs):
+        return Request(
+            self._make_event(json.dumps(params), credentials=credentials),
+        )
+
+    def make_request_base(self, data, *, credentials, **kwargs):
         # This is a function before it get wrapped with @api decorator.
         # FIXME: find a cleaner way for this.
-        response = self.handler.__wrapped__(
-            Request(
-                self._make_event(json.dumps(params), credentials=credentials),
-            )
+        status, body, headers = self.handler.__wrapped__(
+            self.make_request_wrapper(data, credentials=credentials, **kwargs)
         )
-        status, body, headers = response
         # Wrap in Flask response to ease migration from/to Flask.
         return Response(body, status, headers)
 
     @mock.patch('time.time', mock.MagicMock(return_value=mock_timestamp))
-    def make_request(self, *args, headers=None, **kwargs):
+    def make_request(self, params, **kwargs):
         self.get_user_boto_session_mock.reset_mock()
         with mock.patch('quilt3.telemetry.reset_session_id') as reset_session_id_mock:
-            response = self.make_request_base(*args, credentials=self.credentials, **kwargs)
+            response = self.make_request_base(params, credentials=self.credentials, **kwargs)
 
         self.get_user_boto_session_mock.assert_called_once_with(
             aws_access_key_id=mock.sentinel.TEST_ACCESS_KEY,
@@ -578,3 +588,358 @@ class PackageFromFolderTest(PackagePromoteTest):
                     'VersionId': entry.physical_key.version_id,
                 },
             )
+
+
+class PackageTestCase(PackagePromoteTestBase):
+    """
+    test Package Create endpoint
+    """
+    handler = staticmethod(index.create_package)
+    path = 'data/sample.csv'
+    version_id = '1234'
+    physical_key = PhysicalKey(
+        bucket=PackagePromoteTestBase.parent_bucket,
+        path=path,
+        version_id=version_id,
+    )
+    user_request_obj_bucket = 'service-bucket'  # Set in conftest.py.
+    user_request_obj_key = 'user-requests/create-package'
+    user_request_obj_version_id = 'test-user-request-version-id'
+    file_data = b'test file data'
+    file_data_size = len(file_data)
+    file_data_hash = hash_data(file_data)
+    meta = {
+        'donut': {
+            'type': 'glazed'
+        }
+    }
+    package_entry = {
+        'logical_key': path,
+        'physical_key': str(physical_key),
+        'size': file_data_size,
+        'hash': file_data_hash,
+    }
+    package_entries = [package_entry]
+
+    def make_request_base(self, data, **kwargs):
+        stream = io.BytesIO(data)
+        with self.make_lambda_s3_stubber() as stubber, \
+             mock.patch.object(stubber.client, 'download_fileobj') as mock_download_fileobj, \
+             mock.patch('tempfile.TemporaryFile', return_value=stream):
+            # Check object size.
+            stubber.add_response(
+                'head_object',
+                service_response={
+                    'ContentLength': len(data),
+                },
+                expected_params={
+                    'Bucket': self.user_request_obj_bucket,
+                    'Key': self.user_request_obj_key,
+                    'VersionId': self.user_request_obj_version_id,
+                }
+            )
+            result = super().make_request_base(self.user_request_obj_version_id, **kwargs)
+            mock_download_fileobj.assert_called_once_with(
+                self.user_request_obj_bucket,
+                self.user_request_obj_key,
+                stream,
+                ExtraArgs={'VersionId': self.user_request_obj_version_id},
+            )
+            stubber.assert_no_pending_responses()
+            return result
+
+    def make_request(self, params, **kwargs):
+        return super().make_request(
+            '\n'.join(map(json.dumps, params)).encode()
+        )
+
+    @contextlib.contextmanager
+    def _mock_package_build(self, entries, message, mock_timestamp, expected_workflow=...):
+        # Use a test package to verify manifest entries
+        test_pkg = Package()
+        test_pkg.set_meta(self.meta)
+
+        # Mock hashing package objects
+        for entry in entries:
+            pkey = PhysicalKey.from_url(entry['physical_key'])
+            hash_obj = {'type': 'SHA256', 'value': entry['hash']}
+            test_entry = PackageEntry(pkey, entry['size'], hash_obj, entry.get('meta'))
+            test_pkg.set(entry['logical_key'], entry=test_entry)
+
+        mocked_workflow_data = 'some-workflow-data'
+        test_pkg._workflow = mocked_workflow_data
+
+        # build the manifest from the test_package
+        test_pkg._set_commit_message(message)
+        manifest = io.BytesIO()
+        test_pkg._dump(manifest)
+        manifest.seek(0)
+
+        self.s3_stubber.add_response(
+            'put_object',
+            service_response={
+                'ResponseMetadata': {'RequestId': 'foo'},
+            },
+            expected_params={
+                'Body': manifest.read(),
+                'Bucket': self.dst_bucket,
+                'Key': f'.quilt/packages/{test_pkg.top_hash}',
+            },
+        )
+        self.s3_stubber.add_response(
+            'put_object',
+            service_response={
+                'ResponseMetadata': {'RequestId': 'foo'},
+            },
+            expected_params={
+                'Body': str.encode(test_pkg.top_hash),
+                'Bucket': self.dst_bucket,
+                'Key': f'.quilt/named_packages/user/atestpackage/{str(int(mock_timestamp))}',
+            },
+        )
+        self.s3_stubber.add_response(
+            'put_object',
+            service_response={
+                'ResponseMetadata': {'RequestId': 'foo'},
+            },
+            expected_params={
+                'Body': str.encode(test_pkg.top_hash),
+                'Bucket': self.dst_bucket,
+                'Key': '.quilt/named_packages/user/atestpackage/latest',
+            },
+        )
+        with mock.patch('quilt3.packages.calculate_sha256', return_value=[]) as calculate_sha256_mock, \
+             mock.patch('quilt3.workflows.validate', return_value=mocked_workflow_data) as workflow_validate_mock:
+            yield
+        calculate_sha256_mock.assert_called_once_with([], [])
+        workflow_validate_mock.assert_called_once_with(
+            registry=get_package_registry(self.dst_registry),
+            workflow=expected_workflow,
+            meta=self.meta,
+            message=message,
+        )
+
+    def test_create_package_browser_hash(self):
+        """
+        Test creating a package with valid inputs including hashes
+        from the browser.
+        """
+        message = 'includes metadata'
+        params = {
+            'name': 'user/atestpackage',
+            'registry': self.dst_registry,
+            'message': message,
+            'meta': self.meta,
+        }
+
+        mock_timestamp = 1600298935.9767091
+        with self._mock_package_build(self.package_entries, message, mock_timestamp), \
+             mock.patch('time.time') as time_mock:
+            time_mock.return_value = mock_timestamp
+            pkg_response = self.make_request([
+                params,
+                *self.package_entries,
+            ])
+            assert pkg_response.status_code == 200
+
+    @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
+    def test_object_level_meta(self):
+        entry1 = {
+            'logical_key': 'obj1',
+            'physical_key': str(self.physical_key),
+            'size': self.file_data_size,
+            'hash': self.file_data_hash,
+            'meta': {
+                'user_meta': {'obj1-user-meta-prop': 'obj1-user-meta-val'},
+            },
+        }
+        entry2 = {
+            **entry1,
+            'logical_key': 'obj2',
+            'meta': {
+                'user_meta': {'obj2-user-meta-prop': 'obj2-user-meta-val'},
+                'non-user-meta': 42,
+            },
+        }
+        entries = [
+            entry1,
+            entry2,
+        ]
+        params = {
+            'name': 'user/atestpackage',
+            'registry': self.dst_registry,
+            'meta': self.meta,
+        }
+
+        mock_timestamp = 1600298935.9767091
+        with self._mock_package_build(entries, None, mock_timestamp), \
+             mock.patch('time.time', return_value=mock_timestamp):
+            pkg_response = self.make_request([
+                params,
+                *entries,
+            ])
+            print('API Response:')
+            print(pkg_response.json)
+            assert pkg_response.status_code == 200
+
+    def test_workflow_param(self):
+        message = 'includes metadata'
+        base_params = {
+            'name': 'user/atestpackage',
+            'registry': self.dst_registry,
+            'message': message,
+            'meta': self.meta,
+        }
+        for params, expected_workflow in (
+            ({**base_params}, ...),
+            ({**base_params, 'workflow': None}, None),
+            ({**base_params, 'workflow': 'some-workflow'}, 'some-workflow'),
+        ):
+            with self.subTest(params=params, expected_workflow=expected_workflow):
+                mock_timestamp = 1600298935.9767091
+                with self._mock_package_build(self.package_entries, message, mock_timestamp, expected_workflow), \
+                     mock.patch('time.time') as time_mock:
+                    time_mock.return_value = mock_timestamp
+                    pkg_response = self.make_request([
+                        params,
+                        *self.package_entries,
+                    ])
+                    print('API Response:')
+                    print(pkg_response.json)
+                    assert pkg_response.status_code == 200
+
+    def test_schema_validation(self):
+        """
+        Test that schema validation fails requests with
+        missing or incorrect parameters.
+        """
+        # Test no name
+        pkg_response = self.make_request([
+            {
+                'registry': self.dst_registry,
+                'message': 'test package',
+            },
+            *self.package_entries,
+        ])
+        assert pkg_response.status_code == 400
+
+        # Test no registry
+        pkg_response = self.make_request([
+            {
+                'name': 'user/atestpackage',
+                'message': 'test package',
+            },
+            *self.package_entries,
+        ])
+        assert pkg_response.status_code == 400
+
+    @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
+    def test_missing_required_entries_properties(self):
+        for prop_name in ('logical_key', 'physical_key'):
+            with self.subTest(prop_name=prop_name):
+                entry = self.package_entry.copy()
+                entry.pop(prop_name)
+                pkg_response = self.make_request([
+                    {
+                        'name': 'user/atestpackage',
+                        'registry': self.dst_registry,
+                        'message': 'test package',
+                    },
+                    entry,
+                ])
+                assert pkg_response.status_code == 400
+                assert pkg_response.get_json()['message'] == f"'{prop_name}' is a required property"
+
+    @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
+    def test_invalid_parameters(self):
+        """
+        Test that validation fails requests with
+        incorrect parameters.
+        """
+        # Test Invalid package name
+        pkg_response = self.make_request([
+            {
+                'name': 'invalid package name',
+                'registry': self.dst_registry,
+                'message': 'test package',
+            },
+            *self.package_entries,
+        ])
+        assert pkg_response.status_code == 400
+
+        # Test non-s3-registry (e.g., use bucket name not url)
+        pkg_response = self.make_request([
+            {
+                'name': 'invalid/registry',
+                'registry': self.dst_bucket,
+                'message': 'test package',
+            },
+            *self.package_entries,
+        ])
+        assert pkg_response.status_code == 400
+        assert pkg_response.json['message'] == f'{self.dst_bucket} is not a valid S3 package registry.'
+
+        # Test entries with file path (not URL)
+        bad_pkey = 'foo/bar.csv'
+        pkg_response = self.make_request([
+            {
+                'name': 'invalid/entries',
+                'registry': self.dst_registry,
+                'message': 'test package',
+            },
+            {
+                'logical_key': self.path,
+                'physical_key': bad_pkey,
+                'size': self.file_data_size,
+                'hash': self.file_data_hash,
+            },
+        ])
+        assert pkg_response.status_code == 400
+        assert pkg_response.json['message'] == f'{bad_pkey} is not a valid s3 URL.'
+
+        # Test entries with a valid local URL
+        local_pkey = 'file:///foo/bar.csv'
+        pkg_response = self.make_request([
+            {
+                'name': 'invalid/entries',
+                'registry': self.dst_registry,
+                'message': 'test package',
+            },
+            {
+                'logical_key': 'foo/bar.csv',
+                'physical_key': local_pkey,
+                'size': self.file_data_size,
+                'hash': self.file_data_hash,
+            },
+        ])
+        assert pkg_response.status_code == 400
+        assert pkg_response.json['message'] == f'{local_pkey} is not in S3.'
+
+    @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
+    def test_build_error(self):
+        """
+        Test handling a boto error during package build
+        """
+        params = {
+            'name': 'user/atestpackage',
+            'registry': self.dst_registry,
+            'message': 'includes metadata',
+            'meta': self.meta,
+        }
+
+        mock_error_code = 'SomeClientError'
+        mock_service_msg = 'Some error details'
+        mock_http_code = 403
+        self.s3_stubber.add_client_error(
+            'put_object',
+            service_error_code=mock_error_code,
+            service_message=mock_service_msg,
+            http_status_code=mock_http_code
+        )
+        pkg_response = self.make_request([
+            params,
+            *self.package_entries,
+        ])
+        assert pkg_response.status_code == mock_http_code
+        assert mock_error_code in pkg_response.json['message']
+        assert mock_service_msg in pkg_response.json['message']

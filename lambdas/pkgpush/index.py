@@ -161,6 +161,9 @@ PACKAGE_CREATE_ENTRY_SCHEMA = {
 }
 
 
+s3 = boto3.client('s3')
+
+
 # Monkey patch quilt3 S3ClientProvider, so it builds a client using user credentials.
 user_boto_session = None
 quilt3.data_transfer.S3ClientProvider.get_boto_session = staticmethod(lambda: user_boto_session)
@@ -423,7 +426,6 @@ def large_request_handler(request_type):
     def inner(f):
         @functools.wraps(f)
         def wrapper(request):
-            s3 = boto3.client('s3')
             version_id = request.data
             size = s3.head_object(Bucket=SERVICE_BUCKET, Key=user_request_key, VersionId=version_id)['ContentLength']
             if size > LAMBDA_TMP_SPACE:
