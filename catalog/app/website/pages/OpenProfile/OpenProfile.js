@@ -8,6 +8,7 @@ import * as authSelectors from 'containers/Auth/selectors'
 
 import Layout from 'website/components/Layout'
 import Contribute from 'website/components/Contribute'
+import * as HtmlMeta from 'website/components/HtmlMeta'
 
 function UserInfo() {
   const username = redux.useSelector(authSelectors.username)
@@ -15,6 +16,7 @@ function UserInfo() {
   const showIntercom = React.useCallback(() => intercom('show'), [intercom])
   return (
     <M.Container maxWidth="lg">
+      <HtmlMeta.OpenProfile />
       <M.Box mt={10} mb={5}>
         <M.Typography variant="h1" color="textPrimary" align="center">
           Welcome to Quilt, <code>{username}</code>

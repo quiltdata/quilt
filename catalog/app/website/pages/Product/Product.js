@@ -9,6 +9,7 @@ import Bar from 'website/components/Bar'
 import Bullet from 'website/components/Bullet'
 import Illustration from 'website/components/Illustration'
 import Layout from 'website/components/Layout'
+import * as HtmlMeta from 'website/components/HtmlMeta'
 
 import artProductDetail from './product-detail.png'
 import artProductDetail2 from './product-detail@2x.png'
@@ -146,6 +147,7 @@ const SectionFeatures = (props) => (
 
 export default () => (
   <Layout>
+    <HtmlMeta.Product />
     <M.Box position="relative">
       <Backlight />
       <Dots />

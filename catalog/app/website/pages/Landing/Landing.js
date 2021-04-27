@@ -6,6 +6,7 @@ import * as LinkedData from 'utils/LinkedData'
 import Dots from 'website/components/Backgrounds/Dots'
 import Layout from 'website/components/Layout'
 import Contribute from 'website/components/Contribute'
+import * as HtmlMeta from 'website/components/HtmlMeta'
 
 import Buckets from './Buckets'
 import CaseStudies from './CaseStudies'
@@ -23,6 +24,7 @@ export default function Landing() {
   const cfg = Config.useConfig()
   return (
     <Layout>
+      <HtmlMeta.Landing />
       <React.Suspense fallback={null}>
         <LinkedData.CatalogData />
       </React.Suspense>

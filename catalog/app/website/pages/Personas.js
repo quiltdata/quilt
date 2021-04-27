@@ -8,6 +8,7 @@ import Bullet from 'website/components/Bullet'
 import Illustration from 'website/components/Illustration'
 import Layout from 'website/components/Layout'
 import * as Personas from 'website/components/Personas'
+import * as HtmlMeta from 'website/components/HtmlMeta'
 
 const Section = (props) => (
   <M.Box
@@ -109,6 +110,7 @@ const Head = (props) => (
 
 export default () => (
   <Layout>
+    <HtmlMeta.Personas />
     <M.Box position="relative">
       <Backlight />
       <Dots />
