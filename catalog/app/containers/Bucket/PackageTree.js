@@ -31,6 +31,7 @@ import usePrevious from 'utils/usePrevious'
 import Code from './Code'
 import CopyButton from './CopyButton'
 import * as FileView from './FileView'
+import * as HtmlMeta from './HtmlMeta'
 import Listing from './Listing'
 import { usePackageUpdateDialog } from './PackageUpdateDialog'
 import PackageCopyDialog from './PackageCopyDialog'
@@ -681,6 +682,7 @@ function PackageTree({ bucket, name, revision, path, resolvedFrom }) {
 
   return (
     <FileView.Root>
+      <HtmlMeta.PackageTree bucket={bucket} name={name} path={path} revision={revision} />
       {!!bucketCfg &&
         revisionData.case({
           Ok: ({ hash, modified }) => (

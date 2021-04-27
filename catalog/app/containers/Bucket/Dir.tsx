@@ -20,6 +20,7 @@ import type * as workflows from 'utils/workflows'
 import Code from './Code'
 import CopyButton from './CopyButton'
 import * as FileView from './FileView'
+import * as HtmlMeta from './HtmlMeta'
 import { Listing, PrefixFilter } from './Listing'
 import PackageDirectoryDialog from './PackageDirectoryDialog'
 import Summary from './Summary'
@@ -250,6 +251,8 @@ export default function Dir({
 
   return (
     <M.Box pt={2} pb={4}>
+      <HtmlMeta.Dir bucket={bucket} path={path} />
+
       <M.Box display="flex" alignItems="flex-start" mb={2}>
         <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
           {renderCrumbs(getCrumbs({ bucket, path, urls }))}

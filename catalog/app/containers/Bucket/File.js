@@ -27,6 +27,7 @@ import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from './Code'
 import * as FileView from './FileView'
+import * as HtmlMeta from './HtmlMeta'
 import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
@@ -400,6 +401,8 @@ export default function File({
 
   return (
     <FileView.Root>
+      <HtmlMeta.File bucket={bucket} path={path} />
+
       <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
         {renderCrumbs(getCrumbs({ bucket, path, urls }))}
       </div>

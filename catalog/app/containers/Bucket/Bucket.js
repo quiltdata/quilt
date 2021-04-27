@@ -13,6 +13,7 @@ import * as RT from 'utils/reactTools'
 
 import BucketNav from './BucketNav'
 import CatchNotFound from './CatchNotFound'
+import * as HtmlMeta from './HtmlMeta'
 import { displayError } from './errors'
 
 const mkLazy = (load) =>
@@ -96,6 +97,7 @@ export default function Bucket({
   const { paths } = NamedRoutes.use()
   return (
     <BucketPreferences.Provider bucket={bucket}>
+      <HtmlMeta.Root bucket={bucket} />
       <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
         <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
           <Switch>

@@ -12,6 +12,8 @@ import search from 'utils/search'
 import mkStorage from 'utils/storage'
 import useEditableValue from 'utils/useEditableValue'
 
+import * as HtmlMeta from './HtmlMeta'
+
 function Browse({ bucket }) {
   const { urls } = NamedRoutes.use()
   return (
@@ -368,6 +370,8 @@ export default function BucketSearch({
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
+      <HtmlMeta.Search bucket={bucket} query={query} />
+
       {cfg ? (
         <Search {...{ bucket, query, page, mode, retry }} />
       ) : (

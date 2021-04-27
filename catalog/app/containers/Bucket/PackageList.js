@@ -23,6 +23,7 @@ import { readableQuantity } from 'utils/string'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
+import * as HtmlMeta from './HtmlMeta'
 import PackageCreateDialog from './PackageCreateDialog'
 import Pagination from './Pagination'
 import { displayError } from './errors'
@@ -394,6 +395,8 @@ export default function PackageList({
 
   return (
     <>
+      <HtmlMeta.PackageList bucket={bucket} />
+
       <PackageCreateDialog
         {...{ bucket, refresh, open: uploadOpen, onClose: closeUpload }}
       />

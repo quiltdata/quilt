@@ -23,6 +23,7 @@ import parseSearch from 'utils/parseSearch'
 import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
+import * as HtmlMeta from './HtmlMeta'
 import { usePackageUpdateDialog } from './PackageUpdateDialog'
 import Pagination from './Pagination'
 import { displayError } from './errors'
@@ -450,6 +451,8 @@ export default function PackageRevisions({
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
+      <HtmlMeta bucket={bucket} name={name} />
+
       {updateDialog.render()}
 
       <M.Box
