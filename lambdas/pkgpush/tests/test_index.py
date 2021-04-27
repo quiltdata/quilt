@@ -169,7 +169,7 @@ class PackagePromoteTestBase(unittest.TestCase):
         )
 
     def make_request_base(self, data, *, credentials, **kwargs):
-        # This is a function before it get wrapped with @api decorator.
+        # This is a function before it gets wrapped with @api decorator.
         # FIXME: find a cleaner way for this.
         status, body, headers = self.handler.__wrapped__(
             self.make_request_wrapper(data, credentials=credentials, **kwargs)
