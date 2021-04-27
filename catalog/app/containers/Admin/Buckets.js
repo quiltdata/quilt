@@ -21,6 +21,7 @@ import { useTracker } from 'utils/tracking'
 import * as validators from 'utils/validators'
 
 import * as Form from './Form'
+import * as HtmlMeta from './HtmlMeta'
 import * as Table from './Table'
 import * as data from './data'
 
@@ -940,6 +941,7 @@ export default function Buckets({ location }) {
   const buckets = Cache.useData(data.BucketsResource, { req })
   return (
     <M.Box mt={2} mb={2}>
+      <HtmlMeta.Buckets />
       <React.Suspense
         fallback={
           <M.Paper>
