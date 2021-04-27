@@ -17,7 +17,7 @@ export interface Query {
   url: string
 }
 
-type QueryResponse = Omit<Query, 'key' | 'body'>
+type QueryResponse = Omit<Query, 'key'>
 
 interface ConfigResponse {
   queries: Record<string, QueryResponse>
@@ -38,7 +38,6 @@ function parseQueriesList(result: unknown) {
 
   return Object.entries((result as ConfigResponse).queries).map(([key, query]) => ({
     ...query,
-    body: null,
     key,
   }))
 }
