@@ -654,7 +654,7 @@ class PackageTestCase(PackagePromoteTestBase):
         )
 
     @contextlib.contextmanager
-    def _mock_package_build(self, entries, message, mock_timestamp, expected_workflow=...):
+    def _mock_package_build(self, entries, message, expected_workflow=...):
         # Use a test package to verify manifest entries
         test_pkg = Package()
         test_pkg.set_meta(self.meta)
@@ -672,7 +672,7 @@ class PackageTestCase(PackagePromoteTestBase):
         # build the manifest from the test_package
         test_pkg._set_commit_message(message)
         manifest = io.BytesIO()
-        test_pkg._dump(manifest)
+        test_pkg.dump(manifest)
         manifest.seek(0)
 
         self.s3_stubber.add_response(
@@ -694,7 +694,7 @@ class PackageTestCase(PackagePromoteTestBase):
             expected_params={
                 'Body': str.encode(test_pkg.top_hash),
                 'Bucket': self.dst_bucket,
-                'Key': f'.quilt/named_packages/user/atestpackage/{str(int(mock_timestamp))}',
+                'Key': f'.quilt/named_packages/user/atestpackage/{str(int(self.mock_timestamp))}',
             },
         )
         self.s3_stubber.add_response(
@@ -732,17 +732,13 @@ class PackageTestCase(PackagePromoteTestBase):
             'meta': self.meta,
         }
 
-        mock_timestamp = 1600298935.9767091
-        with self._mock_package_build(self.package_entries, message, mock_timestamp), \
-             mock.patch('time.time') as time_mock:
-            time_mock.return_value = mock_timestamp
+        with self._mock_package_build(self.package_entries, message):
             pkg_response = self.make_request([
                 params,
                 *self.package_entries,
             ])
             assert pkg_response.status_code == 200
 
-    @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
     def test_object_level_meta(self):
         entry1 = {
             'logical_key': 'obj1',
@@ -771,9 +767,7 @@ class PackageTestCase(PackagePromoteTestBase):
             'meta': self.meta,
         }
 
-        mock_timestamp = 1600298935.9767091
-        with self._mock_package_build(entries, None, mock_timestamp), \
-             mock.patch('time.time', return_value=mock_timestamp):
+        with self._mock_package_build(entries, None):
             pkg_response = self.make_request([
                 params,
                 *entries,
@@ -796,10 +790,7 @@ class PackageTestCase(PackagePromoteTestBase):
             ({**base_params, 'workflow': 'some-workflow'}, 'some-workflow'),
         ):
             with self.subTest(params=params, expected_workflow=expected_workflow):
-                mock_timestamp = 1600298935.9767091
-                with self._mock_package_build(self.package_entries, message, mock_timestamp, expected_workflow), \
-                     mock.patch('time.time') as time_mock:
-                    time_mock.return_value = mock_timestamp
+                with self._mock_package_build(self.package_entries, message, expected_workflow):
                     pkg_response = self.make_request([
                         params,
                         *self.package_entries,
@@ -850,13 +841,7 @@ class PackageTestCase(PackagePromoteTestBase):
                 assert pkg_response.status_code == 400
                 assert pkg_response.get_json()['message'] == f"'{prop_name}' is a required property"
 
-    @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
-    def test_invalid_parameters(self):
-        """
-        Test that validation fails requests with
-        incorrect parameters.
-        """
-        # Test Invalid package name
+    def test_invalid_parameters_pkg_name(self):
         pkg_response = self.make_request([
             {
                 'name': 'invalid package name',
@@ -867,6 +852,7 @@ class PackageTestCase(PackagePromoteTestBase):
         ])
         assert pkg_response.status_code == 400
 
+    def test_invalid_parameters_dst_registry(self):
         # Test non-s3-registry (e.g., use bucket name not url)
         pkg_response = self.make_request([
             {
@@ -879,7 +865,8 @@ class PackageTestCase(PackagePromoteTestBase):
         assert pkg_response.status_code == 400
         assert pkg_response.json['message'] == f'{self.dst_bucket} is not a valid S3 package registry.'
 
-        # Test entries with file path (not URL)
+    @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
+    def test_invalid_entries_non_url_pk(self):
         bad_pkey = 'foo/bar.csv'
         pkg_response = self.make_request([
             {
@@ -888,17 +875,16 @@ class PackageTestCase(PackagePromoteTestBase):
                 'message': 'test package',
             },
             {
-                'logical_key': self.path,
+                **self.package_entry,
                 'physical_key': bad_pkey,
-                'size': self.file_data_size,
-                'hash': self.file_data_hash,
             },
         ])
         assert pkg_response.status_code == 400
         assert pkg_response.json['message'] == f'{bad_pkey} is not a valid s3 URL.'
 
-        # Test entries with a valid local URL
-        local_pkey = 'file:///foo/bar.csv'
+    @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
+    def test_invalid_entries_local_pk(self):
+        bad_pkey = 'file:///foo/bar.csv'
         pkg_response = self.make_request([
             {
                 'name': 'invalid/entries',
@@ -906,17 +892,15 @@ class PackageTestCase(PackagePromoteTestBase):
                 'message': 'test package',
             },
             {
-                'logical_key': 'foo/bar.csv',
-                'physical_key': local_pkey,
-                'size': self.file_data_size,
-                'hash': self.file_data_hash,
+                **self.package_entry,
+                'physical_key': bad_pkey,
             },
         ])
         assert pkg_response.status_code == 400
-        assert pkg_response.json['message'] == f'{local_pkey} is not in S3.'
+        assert pkg_response.json['message'] == f'{bad_pkey} is not in S3.'
 
     @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
-    def test_build_error(self):
+    def test_s3_error(self):
         """
         Test handling a boto error during package build
         """
@@ -934,7 +918,7 @@ class PackageTestCase(PackagePromoteTestBase):
             'put_object',
             service_error_code=mock_error_code,
             service_message=mock_service_msg,
-            http_status_code=mock_http_code
+            http_status_code=mock_http_code,
         )
         pkg_response = self.make_request([
             params,
