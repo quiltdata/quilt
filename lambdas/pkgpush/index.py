@@ -498,7 +498,7 @@ def create_package(request):
             obj_size = entry.get('size')
             meta = entry.get('meta')
 
-            if hash_ and obj_size:
+            if hash_ and obj_size is not None:
                 pkg.set(
                     logical_key,
                     quilt3.packages.PackageEntry(
