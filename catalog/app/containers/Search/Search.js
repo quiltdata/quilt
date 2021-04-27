@@ -5,6 +5,7 @@ import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 import * as SearchResults from 'components/SearchResults'
+import * as HtmlMeta from 'containers/App/HtmlMeta'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Data from 'utils/Data'
@@ -419,6 +420,7 @@ export default function Search({ location: l }) {
     <Layout
       pre={
         <M.Container maxWidth="lg">
+          <HtmlMeta.Search query={q} />
           <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
             <M.Box
               display="flex"
