@@ -608,6 +608,7 @@ class PackageTestCase(PackagePromoteTestBase):
     file_data = b'test file data'
     file_data_size = len(file_data)
     file_data_hash = hash_data(file_data)
+    dst_commit_message = 'test commit message'
     meta = {
         'donut': {
             'type': 'glazed'
@@ -620,6 +621,17 @@ class PackageTestCase(PackagePromoteTestBase):
         'hash': file_data_hash,
     }
     package_entries = [package_entry]
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        cls.params = {
+            'name': cls.dst_pkg_name,
+            'registry': cls.dst_registry,
+            'message': cls.dst_commit_message,
+            'meta': cls.meta,
+        }
 
     def make_request_base(self, data, **kwargs):
         stream = io.BytesIO(data)
@@ -654,7 +666,10 @@ class PackageTestCase(PackagePromoteTestBase):
         )
 
     @contextlib.contextmanager
-    def _mock_package_build(self, entries, message, expected_workflow=...):
+    def _mock_package_build(self, entries, *, message=..., expected_workflow=...):
+        if message is ...:
+            message = self.dst_commit_message
+
         # Use a test package to verify manifest entries
         test_pkg = Package()
         test_pkg.set_meta(self.meta)
@@ -677,9 +692,7 @@ class PackageTestCase(PackagePromoteTestBase):
 
         self.s3_stubber.add_response(
             'put_object',
-            service_response={
-                'ResponseMetadata': {'RequestId': 'foo'},
-            },
+            service_response={},
             expected_params={
                 'Body': manifest.read(),
                 'Bucket': self.dst_bucket,
@@ -688,24 +701,20 @@ class PackageTestCase(PackagePromoteTestBase):
         )
         self.s3_stubber.add_response(
             'put_object',
-            service_response={
-                'ResponseMetadata': {'RequestId': 'foo'},
-            },
+            service_response={},
             expected_params={
                 'Body': str.encode(test_pkg.top_hash),
                 'Bucket': self.dst_bucket,
-                'Key': f'.quilt/named_packages/user/atestpackage/{str(int(self.mock_timestamp))}',
+                'Key': f'.quilt/named_packages/{self.dst_pkg_name}/{str(int(self.mock_timestamp))}',
             },
         )
         self.s3_stubber.add_response(
             'put_object',
-            service_response={
-                'ResponseMetadata': {'RequestId': 'foo'},
-            },
+            service_response={},
             expected_params={
                 'Body': str.encode(test_pkg.top_hash),
                 'Bucket': self.dst_bucket,
-                'Key': '.quilt/named_packages/user/atestpackage/latest',
+                'Key': f'.quilt/named_packages/{self.dst_pkg_name}/latest',
             },
         )
         with mock.patch('quilt3.packages.calculate_sha256', return_value=[]) as calculate_sha256_mock, \
@@ -724,27 +733,17 @@ class PackageTestCase(PackagePromoteTestBase):
         Test creating a package with valid inputs including hashes
         from the browser.
         """
-        message = 'includes metadata'
-        params = {
-            'name': 'user/atestpackage',
-            'registry': self.dst_registry,
-            'message': message,
-            'meta': self.meta,
-        }
-
-        with self._mock_package_build(self.package_entries, message):
+        with self._mock_package_build(self.package_entries):
             pkg_response = self.make_request([
-                params,
+                self.params,
                 *self.package_entries,
             ])
             assert pkg_response.status_code == 200
 
     def test_object_level_meta(self):
         entry1 = {
+            **self.package_entry,
             'logical_key': 'obj1',
-            'physical_key': str(self.physical_key),
-            'size': self.file_data_size,
-            'hash': self.file_data_hash,
             'meta': {
                 'user_meta': {'obj1-user-meta-prop': 'obj1-user-meta-val'},
             },
@@ -761,15 +760,10 @@ class PackageTestCase(PackagePromoteTestBase):
             entry1,
             entry2,
         ]
-        params = {
-            'name': 'user/atestpackage',
-            'registry': self.dst_registry,
-            'meta': self.meta,
-        }
 
-        with self._mock_package_build(entries, None):
+        with self._mock_package_build(entries):
             pkg_response = self.make_request([
-                params,
+                self.params,
                 *entries,
             ])
             print('API Response:')
@@ -777,20 +771,14 @@ class PackageTestCase(PackagePromoteTestBase):
             assert pkg_response.status_code == 200
 
     def test_workflow_param(self):
-        message = 'includes metadata'
-        base_params = {
-            'name': 'user/atestpackage',
-            'registry': self.dst_registry,
-            'message': message,
-            'meta': self.meta,
-        }
+        base_params = self.params
         for params, expected_workflow in (
             ({**base_params}, ...),
             ({**base_params, 'workflow': None}, None),
             ({**base_params, 'workflow': 'some-workflow'}, 'some-workflow'),
         ):
             with self.subTest(params=params, expected_workflow=expected_workflow):
-                with self._mock_package_build(self.package_entries, message, expected_workflow):
+                with self._mock_package_build(self.package_entries, expected_workflow=expected_workflow):
                     pkg_response = self.make_request([
                         params,
                         *self.package_entries,
@@ -799,33 +787,42 @@ class PackageTestCase(PackagePromoteTestBase):
                     print(pkg_response.json)
                     assert pkg_response.status_code == 200
 
-    def test_schema_validation(self):
-        """
-        Test that schema validation fails requests with
-        missing or incorrect parameters.
-        """
-        # Test no name
-        pkg_response = self.make_request([
-            {
-                'registry': self.dst_registry,
-                'message': 'test package',
-            },
-            *self.package_entries,
-        ])
-        assert pkg_response.status_code == 400
+    def test_invalid_parameters(self):
+        def gen_params(**overrides):
+            return {
+                k: overrides.get(k, v)
+                for k, v in self.params.items()
+                if overrides.get(k) is not ...
+            }
 
-        # Test no registry
-        pkg_response = self.make_request([
-            {
-                'name': 'user/atestpackage',
-                'message': 'test package',
-            },
-            *self.package_entries,
-        ])
-        assert pkg_response.status_code == 400
+        for params, expected_msg in (
+            (
+                gen_params(name=...),
+                "'name' is a required property",
+            ),
+            (
+                gen_params(name='invalid package name'),
+                'Invalid package name: invalid package name.',
+            ),
+            (
+                gen_params(registry=...),
+                "'registry' is a required property",
+            ),
+            (
+                gen_params(registry=self.dst_bucket),  # Not URL.
+                f'{self.dst_bucket} is not a valid S3 package registry.',
+            ),
+        ):
+            with self.subTest(params=params):
+                pkg_response = self.make_request([
+                    params,
+                    *self.package_entries,
+                ])
+                assert pkg_response.status_code == 400
+                assert pkg_response.json['message'] == expected_msg
 
     @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
-    def test_missing_required_entries_properties(self):
+    def test_invalid_entries_missing_required_props(self):
         for prop_name in ('logical_key', 'physical_key'):
             with self.subTest(prop_name=prop_name):
                 entry = self.package_entry.copy()
@@ -841,39 +838,11 @@ class PackageTestCase(PackagePromoteTestBase):
                 assert pkg_response.status_code == 400
                 assert pkg_response.get_json()['message'] == f"'{prop_name}' is a required property"
 
-    def test_invalid_parameters_pkg_name(self):
-        pkg_response = self.make_request([
-            {
-                'name': 'invalid package name',
-                'registry': self.dst_registry,
-                'message': 'test package',
-            },
-            *self.package_entries,
-        ])
-        assert pkg_response.status_code == 400
-
-    def test_invalid_parameters_dst_registry(self):
-        # Test non-s3-registry (e.g., use bucket name not url)
-        pkg_response = self.make_request([
-            {
-                'name': 'invalid/registry',
-                'registry': self.dst_bucket,
-                'message': 'test package',
-            },
-            *self.package_entries,
-        ])
-        assert pkg_response.status_code == 400
-        assert pkg_response.json['message'] == f'{self.dst_bucket} is not a valid S3 package registry.'
-
     @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
     def test_invalid_entries_non_url_pk(self):
         bad_pkey = 'foo/bar.csv'
         pkg_response = self.make_request([
-            {
-                'name': 'invalid/entries',
-                'registry': self.dst_registry,
-                'message': 'test package',
-            },
+            self.params,
             {
                 **self.package_entry,
                 'physical_key': bad_pkey,
@@ -886,11 +855,7 @@ class PackageTestCase(PackagePromoteTestBase):
     def test_invalid_entries_local_pk(self):
         bad_pkey = 'file:///foo/bar.csv'
         pkg_response = self.make_request([
-            {
-                'name': 'invalid/entries',
-                'registry': self.dst_registry,
-                'message': 'test package',
-            },
+            self.params,
             {
                 **self.package_entry,
                 'physical_key': bad_pkey,
@@ -904,13 +869,6 @@ class PackageTestCase(PackagePromoteTestBase):
         """
         Test handling a boto error during package build
         """
-        params = {
-            'name': 'user/atestpackage',
-            'registry': self.dst_registry,
-            'message': 'includes metadata',
-            'meta': self.meta,
-        }
-
         mock_error_code = 'SomeClientError'
         mock_service_msg = 'Some error details'
         mock_http_code = 403
@@ -921,7 +879,7 @@ class PackageTestCase(PackagePromoteTestBase):
             http_status_code=mock_http_code,
         )
         pkg_response = self.make_request([
-            params,
+            self.params,
             *self.package_entries,
         ])
         assert pkg_response.status_code == mock_http_code
