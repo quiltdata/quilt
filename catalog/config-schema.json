@@ -86,6 +86,10 @@
       "type": "string",
       "description": "Token used for logging to Sentry."
     },
+    "serviceBucket": {
+      "type": "string",
+      "description": "Utility / service bucket used by Quilt internals."
+    },
     "ssoAuth": {
       "$ref": "#/definitions/AuthMethodConfig",
       "description": "Whether Single Sign-On authentication is enabled for sign in and sign up."
@@ -104,6 +108,7 @@
     "passwordAuth",
     "registryUrl",
     "s3Proxy",
+    "serviceBucket",
     "ssoAuth",
     "ssoProviders"
   ],
