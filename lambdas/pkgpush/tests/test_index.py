@@ -1,4 +1,5 @@
 import contextlib
+import functools
 import hashlib
 import io
 import json
@@ -16,6 +17,13 @@ from quilt3.backends import get_package_registry
 from quilt3.packages import Package, PackageEntry
 from quilt3.util import PhysicalKey
 from t4_lambda_shared.decorator import Request
+
+
+def hash_data(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+calculate_sha256_patcher = functools.partial(mock.patch, 'quilt3.packages.calculate_sha256')
 
 
 class PackagePromoteTestBase(unittest.TestCase):
@@ -104,6 +112,10 @@ class PackagePromoteTestBase(unittest.TestCase):
             },
         }
 
+    @staticmethod
+    def make_lambda_s3_stubber():
+        return Stubber(index.s3)
+
     def setUp(self):
         super().setUp()
         self.headers = {
@@ -155,23 +167,25 @@ class PackagePromoteTestBase(unittest.TestCase):
             'isBase64Encoded': False,
         }
 
-    def make_request_base(self, params, *, credentials):
-        # This is a function before it get wrapped with @api decorator.
-        # FIXME: find a cleaner way for this.
-        response = self.handler.__wrapped__(
-            Request(
-                self._make_event(json.dumps(params), credentials=credentials),
-            )
+    def make_request_wrapper(self, params, *, credentials, **kwargs):
+        return Request(
+            self._make_event(json.dumps(params), credentials=credentials),
         )
-        status, body, headers = response
+
+    def make_request_base(self, data, *, credentials, **kwargs):
+        # This is a function before it gets wrapped with @api decorator.
+        # FIXME: find a cleaner way for this.
+        status, body, headers = self.handler.__wrapped__(
+            self.make_request_wrapper(data, credentials=credentials, **kwargs)
+        )
         # Wrap in Flask response to ease migration from/to Flask.
         return Response(body, status, headers)
 
     @mock.patch('time.time', mock.MagicMock(return_value=mock_timestamp))
-    def make_request(self, *args, headers=None, **kwargs):
+    def make_request(self, params, **kwargs):
         self.get_user_boto_session_mock.reset_mock()
         with mock.patch('quilt3.telemetry.reset_session_id') as reset_session_id_mock:
-            response = self.make_request_base(*args, credentials=self.credentials, **kwargs)
+            response = self.make_request_base(params, credentials=self.credentials, **kwargs)
 
         self.get_user_boto_session_mock.assert_called_once_with(
             aws_access_key_id=mock.sentinel.TEST_ACCESS_KEY,
@@ -578,3 +592,339 @@ class PackageFromFolderTest(PackagePromoteTest):
                     'VersionId': entry.physical_key.version_id,
                 },
             )
+
+
+class PackageCreateTestCaseBase(PackagePromoteTestBase):
+    handler = staticmethod(index.create_package)
+    path = 'data/sample.csv'
+    version_id = '1234'
+    physical_key = PhysicalKey(
+        bucket=PackagePromoteTestBase.parent_bucket,
+        path=path,
+        version_id=version_id,
+    )
+    user_request_obj_bucket = 'service-bucket'  # Set in conftest.py.
+    user_request_obj_key = 'user-requests/create-package'
+    user_request_obj_version_id = 'test-user-request-version-id'
+    file_data = b'test file data'
+    file_data_size = len(file_data)
+    file_data_hash = hash_data(file_data)
+    dst_commit_message = 'test commit message'
+    meta = {
+        'donut': {
+            'type': 'glazed'
+        }
+    }
+    package_entry = {
+        'logical_key': path,
+        'physical_key': str(physical_key),
+        'size': file_data_size,
+        'hash': file_data_hash,
+    }
+    package_entries = [package_entry]
+
+    @staticmethod
+    def make_params_factory(base):
+        def gen_params(**overrides):
+            params = base.copy()
+            for k, v in overrides.items():
+                if v is ...:
+                    params.pop(k)
+                else:
+                    params[k] = v
+            return params
+
+        return gen_params
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        cls.params = {
+            'name': cls.dst_pkg_name,
+            'registry': cls.dst_registry,
+            'message': cls.dst_commit_message,
+            'meta': cls.meta,
+        }
+        cls.gen_params = staticmethod(cls.make_params_factory(cls.params))
+        cls.gen_pkg_entry = staticmethod(cls.make_params_factory(cls.package_entry))
+
+    def make_request_base(self, data, **kwargs):
+        stream = io.BytesIO(data)
+        with self.make_lambda_s3_stubber() as stubber, \
+             mock.patch.object(stubber.client, 'download_fileobj') as mock_download_fileobj, \
+             mock.patch('tempfile.TemporaryFile', return_value=stream):
+            # Check object size.
+            stubber.add_response(
+                'head_object',
+                service_response={
+                    'ContentLength': len(data),
+                },
+                expected_params={
+                    'Bucket': self.user_request_obj_bucket,
+                    'Key': self.user_request_obj_key,
+                    'VersionId': self.user_request_obj_version_id,
+                }
+            )
+            result = super().make_request_base(self.user_request_obj_version_id, **kwargs)
+            mock_download_fileobj.assert_called_once_with(
+                self.user_request_obj_bucket,
+                self.user_request_obj_key,
+                stream,
+                ExtraArgs={'VersionId': self.user_request_obj_version_id},
+            )
+            stubber.assert_no_pending_responses()
+            return result
+
+    def make_request(self, params, **kwargs):
+        return super().make_request(
+            '\n'.join(map(json.dumps, params)).encode()
+        )
+
+    @contextlib.contextmanager
+    def _mock_package_build(self, entries, *, message=..., expected_workflow=...):
+        if message is ...:
+            message = self.dst_commit_message
+
+        # Use a test package to verify manifest entries
+        test_pkg = Package()
+        test_pkg.set_meta(self.meta)
+
+        # Mock hashing package objects
+        for entry in entries:
+            pkey = PhysicalKey.from_url(entry['physical_key'])
+            hash_obj = {'type': 'SHA256', 'value': entry['hash']}
+            test_entry = PackageEntry(pkey, entry['size'], hash_obj, entry.get('meta'))
+            test_pkg.set(entry['logical_key'], entry=test_entry)
+
+        mocked_workflow_data = 'some-workflow-data'
+        test_pkg._workflow = mocked_workflow_data
+
+        # build the manifest from the test_package
+        test_pkg._set_commit_message(message)
+        manifest = io.BytesIO()
+        test_pkg.dump(manifest)
+        manifest.seek(0)
+
+        self.s3_stubber.add_response(
+            'put_object',
+            service_response={},
+            expected_params={
+                'Body': manifest.read(),
+                'Bucket': self.dst_bucket,
+                'Key': f'.quilt/packages/{test_pkg.top_hash}',
+            },
+        )
+        self.s3_stubber.add_response(
+            'put_object',
+            service_response={},
+            expected_params={
+                'Body': str.encode(test_pkg.top_hash),
+                'Bucket': self.dst_bucket,
+                'Key': f'.quilt/named_packages/{self.dst_pkg_name}/{str(int(self.mock_timestamp))}',
+            },
+        )
+        self.s3_stubber.add_response(
+            'put_object',
+            service_response={},
+            expected_params={
+                'Body': str.encode(test_pkg.top_hash),
+                'Bucket': self.dst_bucket,
+                'Key': f'.quilt/named_packages/{self.dst_pkg_name}/latest',
+            },
+        )
+        with mock.patch('quilt3.workflows.validate', return_value=mocked_workflow_data) as workflow_validate_mock:
+            yield
+        workflow_validate_mock.assert_called_once_with(
+            registry=get_package_registry(self.dst_registry),
+            workflow=expected_workflow,
+            meta=self.meta,
+            message=message,
+        )
+
+
+class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
+    def make_request(self, params, **kwargs):
+        with calculate_sha256_patcher(return_value=[]) as calculate_sha256_mock:
+            result = super().make_request(params, **kwargs)
+        if calculate_sha256_mock.called:
+            calculate_sha256_mock.assert_called_once_with([], [])
+        return result
+
+    def test_create_package_browser_hash(self):
+        """
+        Test creating a package with valid inputs including hashes
+        from the browser.
+        """
+        for entry in [
+            self.gen_pkg_entry(),
+            self.gen_pkg_entry(size=0),
+        ]:
+            with self.subTest(entry=entry):
+                with self._mock_package_build([entry]):
+                    pkg_response = self.make_request([
+                        self.params,
+                        entry,
+                    ])
+                    assert pkg_response.status_code == 200
+
+    def test_object_level_meta(self):
+        entry1 = self.gen_pkg_entry(
+            logical_key='obj1',
+            meta={
+                'user_meta': {'obj1-user-meta-prop': 'obj1-user-meta-val'},
+            },
+        )
+        entry2 = self.gen_pkg_entry(
+            logical_key='obj2',
+            meta={
+                'user_meta': {'obj2-user-meta-prop': 'obj2-user-meta-val'},
+                'non-user-meta': 42,
+            },
+        )
+        entries = [
+            entry1,
+            entry2,
+        ]
+
+        with self._mock_package_build(entries):
+            pkg_response = self.make_request([
+                self.params,
+                *entries,
+            ])
+            assert pkg_response.status_code == 200
+
+    def test_workflow_param(self):
+        for params, expected_workflow in (
+            (self.params, ...),
+            (self.gen_params(workflow=None), None),
+            (self.gen_params(workflow='some-workflow'), 'some-workflow'),
+        ):
+            with self.subTest(params=params, expected_workflow=expected_workflow):
+                with self._mock_package_build(self.package_entries, expected_workflow=expected_workflow):
+                    pkg_response = self.make_request([
+                        params,
+                        *self.package_entries,
+                    ])
+                    assert pkg_response.status_code == 200
+
+    def test_invalid_parameters(self):
+        for params, expected_msg in (
+            (
+                self.gen_params(name=...),
+                "'name' is a required property",
+            ),
+            (
+                self.gen_params(name='invalid package name'),
+                'Invalid package name: invalid package name.',
+            ),
+            (
+                self.gen_params(registry=...),
+                "'registry' is a required property",
+            ),
+            (
+                self.gen_params(registry=self.dst_bucket),  # Not URL.
+                f'{self.dst_bucket} is not a valid S3 package registry.',
+            ),
+        ):
+            with self.subTest(params=params):
+                pkg_response = self.make_request([
+                    params,
+                    *self.package_entries,
+                ])
+                assert pkg_response.status_code == 400
+                assert pkg_response.json['message'] == expected_msg
+
+    @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
+    def test_invalid_entries_missing_required_props(self):
+        for prop_name in ('logical_key', 'physical_key'):
+            with self.subTest(prop_name=prop_name):
+                entry = self.gen_pkg_entry(**{prop_name: ...})
+                pkg_response = self.make_request([
+                    {
+                        'name': 'user/atestpackage',
+                        'registry': self.dst_registry,
+                        'message': 'test package',
+                    },
+                    entry,
+                ])
+                assert pkg_response.status_code == 400
+                assert pkg_response.get_json()['message'] == f"'{prop_name}' is a required property"
+
+    @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
+    def test_invalid_entries_non_url_pk(self):
+        bad_pkey = 'foo/bar.csv'
+        pkg_response = self.make_request([
+            self.params,
+            {
+                **self.package_entry,
+                'physical_key': bad_pkey,
+            },
+        ])
+        assert pkg_response.status_code == 400
+        assert pkg_response.json['message'] == f'{bad_pkey} is not a valid s3 URL.'
+
+    @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
+    def test_invalid_entries_local_pk(self):
+        bad_pkey = 'file:///foo/bar.csv'
+        pkg_response = self.make_request([
+            self.params,
+            {
+                **self.package_entry,
+                'physical_key': bad_pkey,
+            },
+        ])
+        assert pkg_response.status_code == 400
+        assert pkg_response.json['message'] == f'{bad_pkey} is not in S3.'
+
+    @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
+    def test_s3_error(self):
+        """
+        Test handling a boto error during package build
+        """
+        mock_error_code = 'SomeClientError'
+        mock_service_msg = 'Some error details'
+        mock_http_code = 403
+        self.s3_stubber.add_client_error(
+            'put_object',
+            service_error_code=mock_error_code,
+            service_message=mock_service_msg,
+            http_status_code=mock_http_code,
+        )
+        pkg_response = self.make_request([
+            self.params,
+            *self.package_entries,
+        ])
+        assert pkg_response.status_code == mock_http_code
+        assert mock_error_code in pkg_response.json['message']
+        assert mock_service_msg in pkg_response.json['message']
+
+
+@mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
+class PackageCreateWithHashingTestCase(PackageCreateTestCaseBase):
+    def test_create_package_no_browser_hash(self):
+        for entry in [
+            self.gen_pkg_entry(hash=...),
+            self.gen_pkg_entry(size=...),
+            self.gen_pkg_entry(hash=..., size=...),
+        ]:
+            with self.subTest(entry=entry):
+                with calculate_sha256_patcher(return_value=[self.file_data_hash]) as mock_calculate_sha256:
+                    self.s3_stubber.add_response(
+                        'head_object',
+                        service_response={
+                            'ContentLength': self.file_data_size,
+                        },
+                        expected_params={
+                            'Bucket': self.physical_key.bucket,
+                            'Key': self.physical_key.path,
+                            'VersionId': self.physical_key.version_id,
+                        },
+                    )
+                    with self._mock_package_build(self.package_entries):
+                        pkg_response = self.make_request([
+                            self.params,
+                            entry,
+                        ])
+                    assert pkg_response.status_code == 200
+                mock_calculate_sha256.assert_called_once_with([self.physical_key], [self.file_data_size])
