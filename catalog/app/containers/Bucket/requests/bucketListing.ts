@@ -1,11 +1,56 @@
 import type { S3 } from 'aws-sdk'
+import * as React from 'react'
 import * as R from 'ramda'
+
+import * as AWS from 'utils/AWS'
 
 import * as errors from '../errors'
 
 import { decodeS3Key } from './utils'
 
-interface File {
+const DEFAULT_DRAIN_REQUESTS = 10
+
+interface DrainObjectListParams {
+  s3: S3
+  bucket: string
+  prefix: string
+  delimiter?: string
+  continuationToken?: string
+  maxRequests: true | number
+}
+
+const drainObjectList = async ({
+  s3,
+  bucket,
+  prefix,
+  delimiter,
+  continuationToken,
+  maxRequests,
+}: DrainObjectListParams) => {
+  let reqNo = 0
+  let Contents: S3.Object[] = []
+  let CommonPrefixes: S3.CommonPrefixList = []
+  let ContinuationToken: string | undefined
+  while (true) {
+    // eslint-disable-next-line no-await-in-loop
+    const r = await s3
+      .listObjectsV2({
+        Bucket: bucket,
+        Delimiter: delimiter,
+        Prefix: prefix,
+        ContinuationToken: ContinuationToken || continuationToken,
+        EncodingType: 'url',
+      })
+      .promise()
+    Contents = Contents.concat(r.Contents || [])
+    CommonPrefixes = CommonPrefixes.concat(r.CommonPrefixes || [])
+    reqNo += 1
+    if (!r.IsTruncated || reqNo >= maxRequests) return { ...r, Contents, CommonPrefixes }
+    ContinuationToken = r.NextContinuationToken
+  }
+}
+
+export interface BucketListingFile {
   bucket: string
   key: string
   modified: Date
@@ -16,7 +61,7 @@ interface File {
 
 export interface BucketListingResult {
   dirs: string[]
-  files: File[]
+  files: BucketListingFile[]
   truncated: boolean
   continuationToken?: string
   bucket: string
@@ -24,30 +69,36 @@ export interface BucketListingResult {
   prefix?: string
 }
 
-interface BucketListingParams {
+interface BucketListingDependencies {
   s3: S3
+}
+
+interface BucketListingParams {
   bucket: string
   path?: string
   prefix?: string
   prev?: BucketListingResult
+  delimiter?: string | false
+  drain?: true | number
 }
 
-export const bucketListing = ({
+export const bucketListing = async ({
   s3,
   bucket,
   path = '',
   prefix,
   prev,
-}: BucketListingParams): Promise<BucketListingResult> =>
-  s3
-    .listObjectsV2({
-      Bucket: bucket,
-      Delimiter: '/',
-      Prefix: path + (prefix || ''),
-      EncodingType: 'url',
-      ContinuationToken: prev ? prev.continuationToken : undefined,
-    })
-    .promise()
+  delimiter = '/',
+  drain = 0,
+}: BucketListingParams & BucketListingDependencies): Promise<BucketListingResult> =>
+  drainObjectList({
+    s3,
+    bucket,
+    prefix: path + (prefix || ''),
+    delimiter: delimiter === false ? undefined : delimiter,
+    continuationToken: prev ? prev.continuationToken : undefined,
+    maxRequests: drain === true ? DEFAULT_DRAIN_REQUESTS : drain,
+  })
     .then((res) => {
       let dirs = (res.CommonPrefixes || [])
         .map((p) => decodeS3Key(p.Prefix!))
@@ -60,7 +111,6 @@ export const bucketListing = ({
         // filter-out "directory-files" (files that match prefixes)
         .filter(({ Key }: S3.Object) => Key !== path && !Key!.endsWith('/'))
         .map((i: S3.Object) => ({
-          // TODO: expose VersionId?
           bucket,
           key: i.Key!,
           modified: i.LastModified!,
@@ -81,3 +131,11 @@ export const bucketListing = ({
       }
     })
     .catch(errors.catchErrors())
+
+export function useBucketListing() {
+  const s3: S3 = AWS.S3.use()
+  return React.useCallback(
+    (params: BucketListingParams) => bucketListing({ s3, ...params }),
+    [s3],
+  )
+}

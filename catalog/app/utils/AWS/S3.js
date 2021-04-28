@@ -52,6 +52,7 @@ function useSmartS3() {
             // (not sure if there are any such operations that can be used from the browser)
             !bucket ||
             (cfg.analyticsBucket && cfg.analyticsBucket === bucket) ||
+            (cfg.serviceBucket && cfg.serviceBucket === bucket) ||
             (cfg.mode !== 'OPEN' && isInStack(bucket))
           ) {
             return 'signed'
@@ -157,9 +158,3 @@ export function useS3() {
 }
 
 export const use = useS3
-
-export function InjectS3({ children }) {
-  return children(useS3())
-}
-
-export const Inject = InjectS3
