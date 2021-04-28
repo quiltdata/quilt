@@ -29,7 +29,7 @@ export const Provider = function AthenaProvider({
 
 export const useAthena = () => {
   Credentials.use().suspend()
-  React.useContext(AthenaContext)()
+  return React.useContext(AthenaContext)()
 }
 
 export const use = useAthena
