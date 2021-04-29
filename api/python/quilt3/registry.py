@@ -14,8 +14,8 @@ from flask_cors import CORS, cross_origin
 from flask_json import as_json
 
 # delete below
-from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
-from elasticsearch import Elasticsearch, RequestsHttpConnection
+#from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
+#from elasticsearch import Elasticsearch, RequestsHttpConnection
 
 from t4_lambda_shared.utils import (
     PACKAGE_INDEX_SUFFIX,
@@ -99,9 +99,8 @@ SUMMARIZE_KEY = 'quilt_summarize.json'
 @as_json
 def search():
     """
-    Calls through to ES for now
+    Implementation for package listing
     """
-    print("CALLED SEARCH!!!")
     print(request.args)
 
     action = request.args.get('action')
@@ -137,119 +136,78 @@ def search():
     size = user_size
     terminate_after = None
 
-    es_host = os.environ['ES_HOST']
-    region = os.environ['AWS_REGION']
-    index_overrides = os.getenv('INDEX_OVERRIDES', '')
-
-    auth = BotoAWSRequestsAuth(
-        aws_host=es_host,
-        aws_region=region,
-        aws_service='es'
-    )
-
-    es_client = Elasticsearch(
-        hosts=[{'host': es_host, 'port': 443}],
-        http_auth=auth,
-        use_ssl=True,
-        verify_certs=True,
-        connection_class=RequestsHttpConnection,
-        timeout=MAX_QUERY_DURATION,
-    )
-
-    to_search = f"{user_indexes},{index_overrides}" if index_overrides else user_indexes
-    # result = es_client.search(
-    #     index=to_search,
-    #     body=body,
-    #     _source=_source,
-    #     size=size,
-    #     from_=user_from,
-    #     filter_path=filter_path,
-    #     # try turning this off to consider all documents
-    #     terminate_after=terminate_after,
-    # )
-    # print("RESULT:")
-    # print(result)
-
     assert user_body
-    if not user_body:
-        return result
-    else:
-        body_dict = json.loads(user_body)
-        print("BODY:")
-        print(body_dict)
-        if 'packages' in body_dict['aggs']:
-            # totals
-            total_rev_count = 0
-            last_key = ""
-            package_summary = dict()
+    assert user_indexes
+    body_dict = json.loads(user_body)
 
-            # List packages in Python
-            bucket = f"s3://{to_search.rstrip('_packages')}"
-            print(f"BUCKET={bucket}")
-            pkg_reg = get_package_registry(bucket)
-            print(pkg_reg)
-            for package, ts, hash in pkg_reg.list_all_package_pointers():
-                print(package)
-                last_key = package
-                total_rev_count += 1
+    if 'packages' in body_dict['aggs']:
+        # totals
+        total_rev_count = 0
+        last_key = ""
+        package_summary = dict()
 
-                if package not in package_summary:
-                    package_summary[package] = (1, ts)                    
-                else:
-                    rev_count, min_ts = package_summary[package]
-                    rev_count += 1
-                    min_ts = min(ts, min_ts) if min_ts else ts
-                    package_summary[package] = (rev_count, min_ts)
+        # List packages in Python
+        bucket = f"s3://{user_indexes.rstrip('_packages')}"
+        pkg_reg = get_package_registry(bucket)
+        print(pkg_reg)
+        for package, ts, hash in pkg_reg.list_all_package_pointers():
+            print(package)
+            last_key = package
+            total_rev_count += 1
 
-            buckets = []
-            for package, summary in package_summary.items():
-                rev_count, min_ts = summary
-                rev_summary = dict(
-                    key=dict(handle=package),
-                    doc_count=rev_count,
-                    modified=dict(value=min_ts, value_as_string=str(min_ts))
-                )
-                buckets.append(rev_summary)
-                total_rev_count += rev_count
-            return {
-                "took": 1,
-                "timed_out": False,
-                "hits": {
-                    "total": total_rev_count,
-                    "max_score": 0,
-                    "hits": []
-                },
-                "aggregations": {
-                    "packages": {
-                        "after_key": {
-                            "handle": last_key
-                        },
-                        "buckets": buckets   
-                    }
+            if package not in package_summary:
+                package_summary[package] = (1, ts)                    
+            else:
+                rev_count, min_ts = package_summary[package]
+                rev_count += 1
+                min_ts = min(ts, min_ts) if min_ts else ts
+                package_summary[package] = (rev_count, min_ts)
+
+        buckets = []
+        for package, summary in package_summary.items():
+            rev_count, min_ts = summary
+            rev_summary = dict(
+                key=dict(handle=package),
+                doc_count=rev_count,
+                modified=dict(value=min_ts, value_as_string=str(min_ts))
+            )
+            buckets.append(rev_summary)
+            total_rev_count += rev_count
+        return {
+            "took": 1,
+            "timed_out": False,
+            "hits": {
+                "total": total_rev_count,
+                "max_score": 0,
+                "hits": []
+            },
+            "aggregations": {
+                "packages": {
+                    "after_key": {
+                        "handle": last_key
+                    },
+                    "buckets": buckets   
                 }
             }
-            #return result
-        else:
-            # totals
-            pkg_count = 0
-            # List packages in Python
-            bucket = f"s3://{to_search.rstrip('_packages')}"
-            print(f"BUCKET={bucket}")
-            pkg_reg = get_package_registry(bucket)
-            print(pkg_reg)
-            for package in pkg_reg.list_packages():
-                print(package)
-                pkg_count += 1
+        }
+    else:
+        # totals
+        pkg_count = 0
+        # List packages in Python
+        bucket = f"s3://{user_indexes.rstrip('_packages')}"
+        pkg_reg = get_package_registry(bucket)
+        for package in pkg_reg.list_packages():
+            print(package)
+            pkg_count += 1
 
-            print("RESULT FROM PYTHON")
-            return {
-                'python': True,
-                'took': 1,
-                'timed_out': False,
-                '_shards': {'total': 1, 'successful': 1, 'skipped': 0, 'failed': 0},
-                'hits': {'total': 156, 'max_score': 0.0, 'hits': []},
-                'aggregations': {'total': {'value': pkg_count}}
-            }
+        return {
+            'python': True,
+            'took': 1,
+            'timed_out': False,
+            '_shards': {'total': 1, 'successful': 1, 'skipped': 0, 'failed': 0},
+            'hits': {'total': 156, 'max_score': 0.0, 'hits': []},
+            'aggregations': {'total': {'value': pkg_count}}
+        }
 
 
 if __name__ == '__main__':
