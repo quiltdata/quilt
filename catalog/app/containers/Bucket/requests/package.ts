@@ -1,9 +1,11 @@
+import type { S3 } from 'aws-sdk'
 import * as R from 'ramda'
 import * as React from 'react'
 
 import { JsonValue } from 'components/JsonEditor/constants'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
+import * as Config from 'utils/Config'
 import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
 import pipeThru from 'utils/pipeThru'
@@ -17,7 +19,6 @@ interface AWSCredentials {
 }
 
 // "CREATE package" - creates package from scratch to new target
-// "UPDATE package" - creates package from scratch (using existing manifest) to defined target
 // "COPY package" - creates package from source (existing manifest) to new target
 // "WRAP package" - creates package (wraps directory) from source (bucket + directory) to new target
 
@@ -28,14 +29,11 @@ interface FileEntry {
 }
 
 interface FileUpload {
-  hash: string
   logical_key: string
-  physical_key: {
-    bucket: string
-    key: string
-    version: string
-  }
-  size: number
+  physical_key: string
+  hash?: string
+  size?: number
+  meta?: {}
 }
 
 interface RequestBodyBase {
@@ -45,10 +43,7 @@ interface RequestBodyBase {
   workflow?: string | null
 }
 
-interface RequestBodyCreate extends RequestBodyBase {
-  contents: FileUpload[]
-  name: string
-}
+type RequestBodyCreate = string
 
 interface RequestBodyCopy extends RequestBodyBase {
   name: string
@@ -67,21 +62,13 @@ interface RequestBodyWrap extends RequestBodyBase {
   entries: FileEntry[]
 }
 
-type RequestBody = RequestBodyCreate | RequestBodyWrap | RequestBodyCopy
-
 const ENDPOINT_CREATE = '/packages'
-
-const ENDPOINT_UPDATE = '/packages'
 
 const ENDPOINT_COPY = '/packages/promote'
 
 const ENDPOINT_WRAP = '/packages/from-folder'
 
-type Endpoint =
-  | typeof ENDPOINT_CREATE
-  | typeof ENDPOINT_UPDATE
-  | typeof ENDPOINT_COPY
-  | typeof ENDPOINT_WRAP
+const CREATE_PACKAGE_PAYLOAD_KEY = 'user-requests/create-package'
 
 // TODO: reuse it from some other place, don't remember where I saw it
 interface ManifestHandleTarget {
@@ -107,14 +94,6 @@ interface CreatePackageParams extends BasePackageParams {
   }
 }
 
-interface UpdatePackageParams extends BasePackageParams {
-  contents: FileUpload[]
-  target: {
-    bucket: string
-    name: string
-  }
-}
-
 interface CopyPackageParams extends BasePackageParams {
   source: ManifestHandleSource
   target: ManifestHandleTarget
@@ -132,20 +111,53 @@ interface Response {
 
 // FIXME: this is copypasted from PackageDialog -- next time we need to TSify utils/APIConnector properly
 interface ApiRequest {
-  <Output, Body = {}>(opts: {
+  <Output>(opts: {
     endpoint: string
     method?: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'HEAD'
-    body?: Body
+    body?: {}
   }): Promise<Output>
 }
 
-const uploadManifest = (
+interface CredentialsQuery {
+  access_key: string
+  secret_key: string
+  session_token: string
+}
+
+const getCredentialsQuery = (credentials: AWSCredentials): CredentialsQuery => ({
+  access_key: credentials.accessKeyId,
+  secret_key: credentials.secretAccessKey,
+  session_token: credentials.sessionToken,
+})
+
+interface UploadManifest {
+  (
+    req: ApiRequest,
+    endpoint: typeof ENDPOINT_CREATE,
+    body: RequestBodyCreate,
+    query: CredentialsQuery,
+  ): Promise<Response>
+  (
+    req: ApiRequest,
+    endpoint: typeof ENDPOINT_COPY,
+    body: RequestBodyCopy,
+    query: CredentialsQuery,
+  ): Promise<Response>
+  (
+    req: ApiRequest,
+    endpoint: typeof ENDPOINT_WRAP,
+    body: RequestBodyWrap,
+    query: CredentialsQuery,
+  ): Promise<Response>
+}
+
+const uploadManifest: UploadManifest = (
   req: ApiRequest,
-  endpoint: Endpoint,
-  body: RequestBody,
-  query?: Record<string, string | number | boolean>,
+  endpoint: string,
+  body: {},
+  query?: {},
 ): Promise<Response> =>
-  req<Response, RequestBody>({
+  req<Response>({
     endpoint: `${endpoint}${query ? mkSearch(query) : ''}`,
     method: 'POST',
     body,
@@ -170,50 +182,56 @@ const getWorkflowApiParam = R.cond([
   slug: typeof workflows.notAvailable | typeof workflows.notSelected | string,
 ) => string | null | undefined
 
-const createPackage = (
-  req: ApiRequest,
+interface CreatePackageDependencies {
+  s3: S3
+  credentials: AWSCredentials
+  req: ApiRequest
+  serviceBucket: string
+}
+
+const mkCreatePackage = ({
+  s3,
+  credentials,
+  req,
+  serviceBucket,
+}: CreatePackageDependencies) => async (
   { contents, message, meta, target, workflow }: CreatePackageParams,
   schema: JsonSchema, // TODO: should be already inside workflow
-) =>
-  uploadManifest(req, ENDPOINT_CREATE, {
+) => {
+  await credentials.getPromise()
+  const header = {
     name: target.name,
     registry: `s3://${target.bucket}`,
     message,
-    contents,
     meta: getMetaValue(meta, schema),
     workflow: getWorkflowApiParam(workflow.slug),
+  }
+  const payload = [header, ...contents].map((x) => JSON.stringify(x)).join('\n')
+  const upload = s3.upload({
+    Bucket: serviceBucket,
+    Key: CREATE_PACKAGE_PAYLOAD_KEY,
+    Body: payload,
   })
-
-export function useCreatePackage() {
-  const req: ApiRequest = APIConnector.use()
-  return React.useCallback(
-    (params: CreatePackageParams, schema: JsonSchema) =>
-      createPackage(req, params, schema),
-    [req],
+  const res = await upload.promise()
+  return uploadManifest(
+    req,
+    ENDPOINT_CREATE,
+    JSON.stringify((res as any).VersionId as string),
+    getCredentialsQuery(credentials),
   )
 }
 
-const updatePackage = (
-  req: ApiRequest,
-  { contents, message, meta, target, workflow }: UpdatePackageParams,
-  schema: JsonSchema, // TODO: should be already inside workflow
-) =>
-  uploadManifest(req, ENDPOINT_UPDATE, {
-    name: target.name,
-    registry: `s3://${target.bucket}`,
-    message,
-    contents,
-    meta: getMetaValue(meta, schema),
-    workflow: getWorkflowApiParam(workflow.slug),
-  })
-
-export function useUpdatePackage() {
+export function useCreatePackage() {
   const req: ApiRequest = APIConnector.use()
-  return React.useCallback(
-    (params: UpdatePackageParams, schema: JsonSchema) =>
-      updatePackage(req, params, schema),
-    [req],
-  )
+  const { serviceBucket } = Config.use()
+  const credentials = AWS.Credentials.use()
+  const s3 = AWS.S3.use()
+  return React.useMemo(() => mkCreatePackage({ s3, credentials, req, serviceBucket }), [
+    s3,
+    credentials,
+    req,
+    serviceBucket,
+  ])
 }
 
 const copyPackage = async (
@@ -240,11 +258,7 @@ const copyPackage = async (
       registry: `s3://${target.bucket}`,
       workflow: getWorkflowApiParam(workflow.slug),
     },
-    {
-      access_key: credentials.accessKeyId,
-      secret_key: credentials.secretAccessKey,
-      session_token: credentials.sessionToken,
-    },
+    getCredentialsQuery(credentials),
   )
 }
 
@@ -281,11 +295,7 @@ const wrapPackage = async (
       registry: `s3://${source}`,
       workflow: getWorkflowApiParam(workflow.slug),
     },
-    {
-      access_key: credentials.accessKeyId,
-      secret_key: credentials.secretAccessKey,
-      session_token: credentials.sessionToken,
-    },
+    getCredentialsQuery(credentials),
   )
 }
 

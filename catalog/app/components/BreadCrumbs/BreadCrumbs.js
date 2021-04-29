@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import * as React from 'react'
 
 import Link from 'utils/StyledLink'
@@ -10,13 +11,15 @@ export const Crumb = tagged([
   'Sep', // value
 ])
 
-export const Segment = ({ label, to }) =>
-  to ? <Link to={to}>{label || EMPTY}</Link> : label || EMPTY
+export const Segment = ({ label, to, getLinkProps = R.identity }) =>
+  to != null ? <Link {...getLinkProps({ to })}>{label || EMPTY}</Link> : label || EMPTY
 
-export const render = (items) =>
+export const render = (items, { getLinkProps = undefined } = {}) =>
   items.map(
     Crumb.case({
-      Segment: (s, i) => <Segment key={`${i}:${s.label}`} {...s} />,
+      Segment: (s, i) => (
+        <Segment key={`${i}:${s.label}`} getLinkProps={getLinkProps} {...s} />
+      ),
       Sep: (s, i) => <React.Fragment key={`__sep${i}`}>{s}</React.Fragment>,
     }),
   )

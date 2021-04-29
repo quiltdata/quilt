@@ -6,11 +6,13 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import useDragging from 'utils/dragging'
+import { withoutPrefix } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
 
 import * as PD from './PackageDialog'
+import * as S3FilePicker from './S3FilePicker'
 
 const COLORS = {
   default: M.colors.grey[900],
@@ -50,6 +52,10 @@ function computeHash<F extends File>(f: F) {
   return fh
 }
 
+function ensureExhaustive(x: never): never {
+  throw new Error(`Non-exhaustive match: '${x}'`)
+}
+
 export const FilesAction = tagged.create(
   'app/containers/Bucket/PackageDialog/FilesInput:FilesAction' as const,
   {
@@ -57,6 +63,11 @@ export const FilesAction = tagged.create(
       ...v,
       files: v.files.map(computeHash),
     }),
+    AddFromS3: (v: {
+      files: S3FilePicker.S3File[]
+      basePrefix: string
+      prefix?: string
+    }) => v,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
     Revert: (path: string) => path,
@@ -76,8 +87,10 @@ export interface ExistingFile {
   size: number
 }
 
+export type LocalFile = FileWithPath & FileWithHash
+
 export interface FilesState {
-  added: Record<string, FileWithPath & FileWithHash>
+  added: Record<string, LocalFile | S3FilePicker.S3File>
   deleted: Record<string, true>
   existing: Record<string, ExistingFile>
   // XXX: workaround used to re-trigger validation and dependent computations
@@ -104,6 +117,17 @@ const handleFilesAction = FilesAction.match<
   Add: ({ files, prefix }) => (state) =>
     files.reduce((acc, file) => {
       const path = (prefix || '') + PD.getNormalizedPath(file)
+      return R.evolve(
+        {
+          added: R.assoc(path, file),
+          deleted: R.dissoc(path),
+        },
+        acc,
+      ) as FilesState
+    }, state),
+  AddFromS3: ({ files, basePrefix, prefix }) => (state) =>
+    files.reduce((acc, file) => {
+      const path = (prefix || '') + withoutPrefix(basePrefix, file.key)
       return R.evolve(
         {
           added: R.assoc(path, file),
@@ -147,6 +171,8 @@ interface DispatchFilesAction {
 
 type FilesEntryState = 'deleted' | 'modified' | 'unchanged' | 'hashing' | 'added'
 
+type FilesEntryType = 's3' | 'local'
+
 const FilesEntryTag = 'app/containers/Bucket/PackageDialog/FilesInput:FilesEntry' as const
 
 const FilesEntry = tagged.create(FilesEntryTag, {
@@ -155,7 +181,12 @@ const FilesEntry = tagged.create(FilesEntryTag, {
     state: FilesEntryState
     childEntries: tagged.Instance<typeof FilesEntryTag>[]
   }) => v,
-  File: (v: { name: string; state: FilesEntryState; size: number }) => v,
+  File: (v: {
+    name: string
+    state: FilesEntryState
+    type: FilesEntryType
+    size: number
+  }) => v,
 })
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -203,30 +234,42 @@ const insertIntoTree = (path: string[] = [], file: FilesEntry, entries: FilesEnt
 
 interface IntermediateEntry {
   state: FilesEntryState
+  type: FilesEntryType
   path: string
   size: number
 }
 
 const computeEntries = ({ added, deleted, existing }: FilesState) => {
-  const existingEntries = Object.entries(existing).map(([path, { size, hash }]) => {
-    if (path in deleted) {
-      return { state: 'deleted' as const, path, size }
-    }
-    if (path in added) {
-      const a = added[path]
-      // eslint-disable-next-line no-nested-ternary
-      const state = !a.hash.ready
-        ? ('hashing' as const)
-        : a.hash.value === hash
-        ? ('unchanged' as const)
-        : ('modified' as const)
-      return { state, path, size: a.size }
-    }
-    return { state: 'unchanged' as const, path, size }
-  })
-  const addedEntries = Object.entries(added).reduce((acc, [path, { size }]) => {
+  const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
+    ([path, { size, hash }]) => {
+      if (path in deleted) {
+        return { state: 'deleted' as const, type: 'local' as const, path, size }
+      }
+      if (path in added) {
+        const a = added[path]
+        let state: FilesEntryState
+        let type: FilesEntryType
+        if (S3FilePicker.isS3File(a)) {
+          type = 's3' as const
+          state = 'modified' as const
+        } else {
+          type = 'local' as const
+          // eslint-disable-next-line no-nested-ternary
+          state = !a.hash.ready
+            ? ('hashing' as const)
+            : a.hash.value === hash
+            ? ('unchanged' as const)
+            : ('modified' as const)
+        }
+        return { state, type, path, size: a.size }
+      }
+      return { state: 'unchanged' as const, type: 'local' as const, path, size }
+    },
+  )
+  const addedEntries = Object.entries(added).reduce((acc, [path, f]) => {
     if (path in existing) return acc
-    return acc.concat({ state: 'added', path, size })
+    const type = S3FilePicker.isS3File(f) ? ('s3' as const) : ('local' as const)
+    return acc.concat({ state: 'added', type, path, size: f.size })
   }, [] as IntermediateEntry[])
   const entries: IntermediateEntry[] = [...existingEntries, ...addedEntries]
   return entries.reduce((children, { path, ...rest }) => {
@@ -242,7 +285,9 @@ export const HASHING = 'hashing'
 export const HASHING_ERROR = 'hashingError'
 
 export const validateHashingComplete = (state: FilesState) => {
-  const files = Object.values(state.added)
+  const files = Object.values(state.added).filter(
+    (f) => !S3FilePicker.isS3File(f),
+  ) as FileWithHash[]
   if (files.some((f) => f.hash.ready && !f.hash.value)) return HASHING_ERROR
   if (files.some((f) => !f.hash.ready)) return HASHING
   return undefined
@@ -264,6 +309,19 @@ const useEntryIconStyles = M.makeStyles((t) => ({
     display: 'block',
     fontSize: 18,
     padding: 3,
+  },
+  overlay: {
+    alignItems: 'center',
+    bottom: 0,
+    color: t.palette.background.paper,
+    display: 'flex',
+    fontFamily: t.typography.fontFamily,
+    fontSize: 8,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   stateContainer: {
     alignItems: 'center',
@@ -289,9 +347,12 @@ const useEntryIconStyles = M.makeStyles((t) => ({
   },
 }))
 
-type EntryIconProps = React.PropsWithChildren<{ state: FilesEntryState }>
+type EntryIconProps = React.PropsWithChildren<{
+  state: FilesEntryState
+  overlay?: React.ReactNode
+}>
 
-function EntryIcon({ state, children }: EntryIconProps) {
+function EntryIcon({ state, overlay, children }: EntryIconProps) {
   const classes = useEntryIconStyles()
   const stateContents =
     state &&
@@ -305,6 +366,7 @@ function EntryIcon({ state, children }: EntryIconProps) {
   return (
     <div className={classes.root}>
       <M.Icon className={classes.icon}>{children}</M.Icon>
+      {!!overlay && <div className={classes.overlay}>{overlay}</div>}
       {!!stateContents && (
         <div className={classes.stateContainer}>
           {stateContents === 'hashing' ? (
@@ -378,6 +440,7 @@ const useFileStyles = M.makeStyles((t) => ({
 interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   name: string
   state?: FilesEntryState
+  type?: FilesEntryType
   size?: number
   action?: React.ReactNode
   interactive?: boolean
@@ -387,6 +450,7 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
 function File({
   name,
   state = 'unchanged',
+  type = 'local',
   size,
   action,
   interactive = false,
@@ -407,7 +471,9 @@ function File({
       {...props}
     >
       <div className={cx(classes.inner, faint && classes.faint)}>
-        <EntryIcon state={state}>insert_drive_file</EntryIcon>
+        <EntryIcon state={state} overlay={type === 's3' ? 'S3' : undefined}>
+          insert_drive_file
+        </EntryIcon>
         <div className={classes.name} title={name}>
           {name}
         </div>
@@ -563,7 +629,7 @@ const Dir = React.forwardRef<HTMLDivElement, DirProps>(function Dir(
         )}
       </div>
       {(!!children || empty) && (
-        <M.Collapse in={expanded}>
+        <M.Collapse in={expanded} mountOnEnter unmountOnExit>
           <div className={classes.body}>
             {children || <div className={classes.emptyDummy} />}
           </div>
@@ -595,7 +661,7 @@ const useDropzoneMessageStyles = M.makeStyles((t) => ({
 
 interface DropzoneMessageProps {
   error: React.ReactNode
-  warn: boolean
+  warn: { upload: boolean; s3: boolean }
 }
 
 function DropzoneMessage({ error, warn }: DropzoneMessageProps) {
@@ -603,21 +669,32 @@ function DropzoneMessage({ error, warn }: DropzoneMessageProps) {
 
   const label = React.useMemo(() => {
     if (error) return error
-    if (warn)
+    if (warn.upload || warn.s3)
       return (
         <>
-          Total size of new files exceeds recommended maximum of{' '}
-          {readableBytes(PD.MAX_SIZE)}
+          {warn.upload && (
+            <>
+              Total size of local files exceeds recommended maximum of{' '}
+              {readableBytes(PD.MAX_UPLOAD_SIZE)}.
+            </>
+          )}
+          {warn.upload && warn.s3 && <br />}
+          {warn.s3 && (
+            <>
+              Total size of files from S3 exceeds recommended maximum of{' '}
+              {readableBytes(PD.MAX_S3_SIZE)}.
+            </>
+          )}
         </>
       )
     return 'Drop files here or click to browse'
-  }, [error, warn])
+  }, [error, warn.upload, warn.s3])
 
   return (
     <div
       className={cx(classes.root, {
         [classes.error]: error,
-        [classes.warning]: !error && warn,
+        [classes.warning]: !error && (warn.upload || warn.s3),
       })}
     >
       <span>{label}</span>
@@ -837,6 +914,7 @@ const useContentsStyles = M.makeStyles((t) => ({
     minHeight: 80,
     outline: 'none',
     overflow: 'hidden',
+    position: 'relative',
   },
   interactive: {
     cursor: 'pointer',
@@ -885,41 +963,51 @@ type FileUploadProps = tagged.ValueOf<typeof FilesEntry.File> & {
   dispatch: DispatchFilesAction
 }
 
-function FileUpload({ name, state, size, prefix, dispatch }: FileUploadProps) {
+function FileUpload({ name, state, type, size, prefix, dispatch }: FileUploadProps) {
   const path = (prefix || '') + name
 
-  const handle = React.useCallback(
-    (cons: tagged.ConstructorOf<typeof FilesAction>) => (e: React.MouseEvent) => {
+  // eslint-disable-next-line consistent-return
+  const action = React.useMemo(() => {
+    const handle = (a: FilesAction) => (e: React.MouseEvent) => {
       // stop click from propagating to the root element and triggering its handler
       e.stopPropagation()
-      dispatch(cons(path))
-    },
-    [dispatch, path],
-  )
-
-  const action = React.useMemo(
-    () =>
-      ({
-        added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.Revert) },
-        modified: {
+      dispatch(a)
+    }
+    switch (state) {
+      case 'added':
+        return {
+          hint: 'Remove',
+          icon: 'clear',
+          handler: handle(FilesAction.Revert(path)),
+        }
+      case 'modified':
+        return {
           hint: 'Revert',
           icon: 'undo',
-          handler: handle(FilesAction.Revert),
-        },
-        hashing: {
+          handler: handle(FilesAction.Revert(path)),
+        }
+      case 'hashing':
+        return {
           hint: 'Revert',
           icon: 'undo',
-          handler: handle(FilesAction.Revert),
-        },
-        deleted: {
+          handler: handle(FilesAction.Revert(path)),
+        }
+      case 'deleted':
+        return {
           hint: 'Restore',
           icon: 'undo',
-          handler: handle(FilesAction.Revert),
-        },
-        unchanged: { hint: 'Delete', icon: 'clear', handler: handle(FilesAction.Delete) },
-      }[state]),
-    [state, handle],
-  )
+          handler: handle(FilesAction.Revert(path)),
+        }
+      case 'unchanged':
+        return {
+          hint: 'Delete',
+          icon: 'clear',
+          handler: handle(FilesAction.Delete(path)),
+        }
+      default:
+        ensureExhaustive(state)
+    }
+  }, [state, dispatch, path])
 
   const onClick = React.useCallback((e: React.MouseEvent) => {
     // stop click from propagating to parent elements and triggering their handlers
@@ -933,6 +1021,7 @@ function FileUpload({ name, state, size, prefix, dispatch }: FileUploadProps) {
       role="button"
       tabIndex={0}
       state={state}
+      type={type}
       name={name}
       size={size}
       action={
@@ -950,7 +1039,7 @@ type DirUploadProps = tagged.ValueOf<typeof FilesEntry.Dir> & {
 }
 
 function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadProps) {
-  const [expanded, setExpanded] = React.useState(true)
+  const [expanded, setExpanded] = React.useState(false)
 
   const toggleExpanded = React.useCallback(
     (e) => {
@@ -981,42 +1070,48 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
     noClick: true,
   })
 
-  const handle = React.useCallback(
-    (cons: tagged.ConstructorOf<typeof FilesAction>) => (e: React.MouseEvent) => {
+  // eslint-disable-next-line consistent-return
+  const action = React.useMemo(() => {
+    const handle = (a: FilesAction) => (e: React.MouseEvent) => {
       // stop click from propagating to the root element and triggering its handler
       e.stopPropagation()
-      dispatch(cons(path))
-    },
-    [dispatch, path],
-  )
-
-  const action = React.useMemo(
-    () =>
-      ({
-        added: { hint: 'Remove', icon: 'clear', handler: handle(FilesAction.RevertDir) },
-        modified: {
+      dispatch(a)
+    }
+    switch (state) {
+      case 'added':
+        return {
+          hint: 'Remove',
+          icon: 'clear',
+          handler: handle(FilesAction.RevertDir(path)),
+        }
+      case 'modified':
+        return {
           hint: 'Revert',
           icon: 'undo',
-          handler: handle(FilesAction.RevertDir),
-        },
-        hashing: {
+          handler: handle(FilesAction.RevertDir(path)),
+        }
+      case 'hashing':
+        return {
           hint: 'Revert',
           icon: 'undo',
-          handler: handle(FilesAction.RevertDir),
-        },
-        deleted: {
+          handler: handle(FilesAction.RevertDir(path)),
+        }
+      case 'deleted':
+        return {
           hint: 'Restore',
           icon: 'undo',
-          handler: handle(FilesAction.RevertDir),
-        },
-        unchanged: {
+          handler: handle(FilesAction.RevertDir(path)),
+        }
+      case 'unchanged':
+        return {
           hint: 'Delete',
           icon: 'clear',
-          handler: handle(FilesAction.DeleteDir),
-        },
-      }[state]),
-    [state, handle],
-  )
+          handler: handle(FilesAction.DeleteDir(path)),
+        }
+      default:
+        ensureExhaustive(state)
+    }
+  }, [state, dispatch, path])
 
   return (
     <Dir
@@ -1049,16 +1144,18 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
 }
 
 const useFilesInputStyles = M.makeStyles((t) => ({
-  added: {
-    color: t.palette.success.main,
-    marginLeft: t.spacing(1),
-  },
-  deleted: {
-    color: t.palette.error.main,
-    marginLeft: t.spacing(1),
-  },
   hashing: {
     marginLeft: t.spacing(1),
+  },
+  actions: {
+    display: 'flex',
+    marginTop: t.spacing(1),
+  },
+  action: {
+    flexGrow: 1,
+    '& + &': {
+      marginLeft: t.spacing(1),
+    },
   },
 }))
 
@@ -1089,6 +1186,7 @@ interface FilesInputProps {
     loaded: number
     percent: number
   }
+  bucket: string
 }
 
 export function FilesInput({
@@ -1100,6 +1198,7 @@ export function FilesInput({
   onFilesAction,
   title,
   totalProgress,
+  bucket,
 }: FilesInputProps) {
   const classes = useFilesInputStyles()
 
@@ -1138,7 +1237,10 @@ export function FilesInput({
     // XXX: maybe observe value and trigger this when it changes,
     // regardless of the source of change (e.g. new value supplied directly via the prop)
     const waitFor = Object.values(newValue.added).reduce(
-      (acc, f) => (f.hash.ready ? acc : acc.concat(f.hash.promise.catch(() => {}))),
+      (acc, f) =>
+        S3FilePicker.isS3File(f) || f.hash.ready
+          ? acc
+          : acc.concat(f.hash.promise.catch(() => {})),
       [] as Promise<any>[],
     )
     cur.scheduleUpdate(waitFor)
@@ -1159,30 +1261,64 @@ export function FilesInput({
   }, [dispatch])
 
   const isDragging = useDragging()
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ disabled, onDrop })
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+    disabled,
+    onDrop,
+  })
 
   const computedEntries = useMemoEq(value, computeEntries)
 
-  const stats = useMemoEq(value, ({ added, deleted, existing }) => ({
-    added: Object.entries(added).reduce(
+  const stats = useMemoEq(value, ({ added, existing }) => ({
+    upload: Object.entries(added).reduce(
       (acc, [path, f]) => {
+        if (S3FilePicker.isS3File(f)) return acc // dont count s3 files
         const e = existing[path]
         if (e && (!f.hash.ready || f.hash.value === e.hash)) return acc
         return R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
       },
       { count: 0, size: 0 },
     ),
-    deleted: Object.keys(deleted).reduce(
-      (acc, path) => R.evolve({ count: R.inc, size: R.add(existing[path].size) }, acc),
+    s3: Object.entries(added).reduce(
+      (acc, [, f]) =>
+        S3FilePicker.isS3File(f)
+          ? R.evolve({ count: R.inc, size: R.add(f.size) }, acc)
+          : acc,
       { count: 0, size: 0 },
     ),
-    hashing: Object.values(added).reduce((acc, f) => acc || !f.hash.ready, false),
+    hashing: Object.values(added).reduce(
+      (acc, f) => acc || (!S3FilePicker.isS3File(f) && !f.hash.ready),
+      false,
+    ),
   }))
 
-  const warn = stats.added.size > PD.MAX_SIZE
+  const warn = {
+    upload: stats.upload.size > PD.MAX_UPLOAD_SIZE,
+    s3: stats.s3.size > PD.MAX_S3_SIZE,
+  }
+
+  const [s3FilePickerOpen, setS3FilePickerOpen] = React.useState(false)
+
+  const closeS3FilePicker = React.useCallback(
+    (reason: S3FilePicker.CloseReason) => {
+      if (!!reason && typeof reason === 'object') {
+        dispatch(FilesAction.AddFromS3({ files: reason.files, basePrefix: reason.path }))
+      }
+      setS3FilePickerOpen(false)
+    },
+    [dispatch, setS3FilePickerOpen],
+  )
+
+  const handleS3Btn = React.useCallback(() => {
+    setS3FilePickerOpen(true)
+  }, [])
 
   return (
     <Root className={className}>
+      <S3FilePicker.Dialog
+        bucket={bucket}
+        open={s3FilePickerOpen}
+        onClose={closeS3FilePicker}
+      />
       <Header>
         <HeaderTitle
           state={
@@ -1190,25 +1326,47 @@ export function FilesInput({
               ? 'disabled'
               : error // eslint-disable-line no-nested-ternary
               ? 'error'
-              : warn
+              : warn.upload || warn.s3
               ? 'warn'
               : undefined
           }
         >
           {title}
-          {!!stats.added.count && (
-            <span className={classes.added}>
-              {' +'}
-              {stats.added.count} ({readableBytes(stats.added.size)})
-            </span>
+          {(!!stats.upload.count || !!stats.s3.count) && (
+            <M.Box
+              ml={1}
+              color={warn.upload || warn.s3 ? 'warning.dark' : 'text.secondary'}
+              component="span"
+            >
+              (
+              {!!stats.upload.count && (
+                <M.Box
+                  color={warn.upload ? 'warning.dark' : 'text.secondary'}
+                  component="span"
+                >
+                  {readableBytes(stats.upload.size)} to upload
+                </M.Box>
+              )}
+              {!!stats.upload.count && !!stats.s3.count && (
+                <M.Box
+                  color={!warn.upload || !warn.s3 ? 'text.secondary' : undefined}
+                  component="span"
+                >
+                  {', '}
+                </M.Box>
+              )}
+              {!!stats.s3.count && (
+                <M.Box
+                  color={warn.s3 ? 'warning.dark' : 'text.secondary'}
+                  component="span"
+                >
+                  {readableBytes(stats.s3.size)} from S3
+                </M.Box>
+              )}
+              )
+            </M.Box>
           )}
-          {!!stats.deleted.count && (
-            <span className={classes.deleted}>
-              {' -'}
-              {stats.deleted.count} ({readableBytes(stats.deleted.size)})
-            </span>
-          )}
-          {warn && (
+          {(warn.upload || warn.s3) && (
             <M.Icon style={{ marginLeft: 6 }} fontSize="small">
               error_outline
             </M.Icon>
@@ -1240,12 +1398,12 @@ export function FilesInput({
           interactive
           active={isDragActive && !ref.current.disabled}
           error={!!error}
-          warn={warn}
+          warn={warn.upload || warn.s3}
         >
           <input {...getInputProps()} />
 
           {!!computedEntries.length && (
-            <FilesContainer error={!!error} warn={warn}>
+            <FilesContainer error={!!error} warn={warn.upload || warn.s3}>
               {computedEntries.map(
                 FilesEntry.match({
                   Dir: (ps) => (
@@ -1263,6 +1421,26 @@ export function FilesInput({
         </Contents>
         {submitting && <Lock progress={totalProgress} />}
       </ContentsContainer>
+      <div className={classes.actions}>
+        <M.Button
+          onClick={open}
+          disabled={submitting || disabled}
+          className={classes.action}
+          variant="outlined"
+          size="small"
+        >
+          Add local files
+        </M.Button>
+        <M.Button
+          onClick={handleS3Btn}
+          disabled={submitting || disabled}
+          className={classes.action}
+          variant="outlined"
+          size="small"
+        >
+          Add files from S3
+        </M.Button>
+      </div>
     </Root>
   )
 }

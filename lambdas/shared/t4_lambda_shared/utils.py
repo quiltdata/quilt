@@ -15,6 +15,8 @@ POINTER_PREFIX_V1 = ".quilt/named_packages/"
 
 PACKAGE_INDEX_SUFFIX = "_packages"
 
+LAMBDA_TMP_SPACE = 512 * 2 ** 20
+
 
 def separated_env_to_iter(
         env_var: str,
