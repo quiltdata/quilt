@@ -157,18 +157,18 @@ def search():
     )
 
     to_search = f"{user_indexes},{index_overrides}" if index_overrides else user_indexes
-    result = es_client.search(
-        index=to_search,
-        body=body,
-        _source=_source,
-        size=size,
-        from_=user_from,
-        filter_path=filter_path,
-        # try turning this off to consider all documents
-        terminate_after=terminate_after,
-    )
-    print("RESULT:")
-    print(result)
+    # result = es_client.search(
+    #     index=to_search,
+    #     body=body,
+    #     _source=_source,
+    #     size=size,
+    #     from_=user_from,
+    #     filter_path=filter_path,
+    #     # try turning this off to consider all documents
+    #     terminate_after=terminate_after,
+    # )
+    # print("RESULT:")
+    # print(result)
 
     assert user_body
     if not user_body:
@@ -179,30 +179,36 @@ def search():
         print(body_dict)
         if 'packages' in body_dict['aggs']:
             # totals
-            pkg_count = 0
             total_rev_count = 0
             last_key = ""
-            buckets = []
+            package_summary = dict()
+
             # List packages in Python
             bucket = f"s3://{to_search.rstrip('_packages')}"
             print(f"BUCKET={bucket}")
             pkg_reg = get_package_registry(bucket)
             print(pkg_reg)
-            for package in pkg_reg.list_packages():
+            for package, ts, hash in pkg_reg.list_all_package_pointers():
                 print(package)
-                pkg_count += 1
                 last_key = package
-                rev_count = 0
-                min_ts = None
-                for ts, hash in pkg_reg.list_package_pointers(pkg_name=package):
+                total_rev_count += 1
+
+                if package not in package_summary:
+                    package_summary[package] = (1, ts)                    
+                else:
+                    rev_count, min_ts = package_summary[package]
                     rev_count += 1
                     min_ts = min(ts, min_ts) if min_ts else ts
+                    package_summary[package] = (rev_count, min_ts)
+
+            buckets = []
+            for package, summary in package_summary.items():
+                rev_count, min_ts = summary
                 rev_summary = dict(
                     key=dict(handle=package),
                     doc_count=rev_count,
                     modified=dict(value=min_ts, value_as_string=str(min_ts))
                 )
-                print(rev_summary)
                 buckets.append(rev_summary)
                 total_rev_count += rev_count
             return {
