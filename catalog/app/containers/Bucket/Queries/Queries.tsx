@@ -200,6 +200,19 @@ export default function Queries({
   const classes = useStyles()
 
   const [tab, setTab] = React.useState(0)
+  const [transitioning, setTransitioning] = React.useState(false)
+
+  const onTab = (event: React.ChangeEvent<{}>, newTab: number) => {
+    setTransitioning(true)
+    setTab(newTab)
+  }
+
+  const onAnimationEnd = () => {
+    // Wait till `unmountOnExit` ends
+    setTimeout(() => {
+      setTransitioning(false)
+    }, 300)
+  }
 
   return (
     <QueriesState bucket={bucket}>
@@ -219,73 +232,87 @@ export default function Queries({
           <M.Tabs
             className={classes.tabs}
             orientation="vertical"
-            onChange={(event, newTab) => setTab(newTab)}
+            onChange={onTab}
             value={tab}
           >
             <M.Tab label="ElasticSearch" />
             <M.Tab label="Athena SQL" />
           </M.Tabs>
-          <div className={classes.panel} hidden={tab !== 0}>
-            <M.Typography variant="h6">ElasticSearch queries</M.Typography>
+          <M.Fade
+            in={tab === 0 && !transitioning}
+            mountOnEnter
+            unmountOnExit
+            onExit={onAnimationEnd}
+          >
+            <div className={classes.panel}>
+              <M.Typography variant="h6">ElasticSearch queries</M.Typography>
 
-            <QuerySelect
-              className={classes.select}
-              queries={queries}
-              onChange={handleQueryMetaChange}
-              value={customQueryBody ? null : queryMeta}
-            />
+              <QuerySelect
+                className={classes.select}
+                queries={queries}
+                onChange={handleQueryMetaChange}
+                value={customQueryBody ? null : queryMeta}
+              />
 
-            {queryData.case({
-              Init: () => (
-                <Form
-                  disabled={isButtonDisabled(
-                    customQueryBody,
-                    resultsData,
-                    queryBodyError,
-                  )}
-                  onChange={handleQueryBodyChange}
-                  onError={handleError}
-                  onSubmit={handleSubmit}
-                  value={customQueryBody || QUERY_PLACEHOLDER}
-                />
-              ),
-              Ok: (queryBody: requests.ElasticSearchQuery) => (
-                <Form
-                  disabled={isButtonDisabled(
-                    customQueryBody || queryBody,
-                    resultsData,
-                    queryBodyError,
-                  )}
-                  onChange={handleQueryBodyChange}
-                  onError={handleError}
-                  onSubmit={handleSubmit}
-                  value={customQueryBody || queryBody || QUERY_PLACEHOLDER}
-                />
-              ),
-              Err: (error: Error) => (
-                <Lab.Alert severity="error">{error.message}</Lab.Alert>
-              ),
-              Pending: () => <M.CircularProgress size={96} />,
-            })}
+              {queryData.case({
+                Init: () => (
+                  <Form
+                    disabled={isButtonDisabled(
+                      customQueryBody,
+                      resultsData,
+                      queryBodyError,
+                    )}
+                    onChange={handleQueryBodyChange}
+                    onError={handleError}
+                    onSubmit={handleSubmit}
+                    value={customQueryBody || QUERY_PLACEHOLDER}
+                  />
+                ),
+                Ok: (queryBody: requests.ElasticSearchQuery) => (
+                  <Form
+                    disabled={isButtonDisabled(
+                      customQueryBody || queryBody,
+                      resultsData,
+                      queryBodyError,
+                    )}
+                    onChange={handleQueryBodyChange}
+                    onError={handleError}
+                    onSubmit={handleSubmit}
+                    value={customQueryBody || queryBody || QUERY_PLACEHOLDER}
+                  />
+                ),
+                Err: (error: Error) => (
+                  <Lab.Alert severity="error">{error.message}</Lab.Alert>
+                ),
+                Pending: () => <M.CircularProgress size={96} />,
+              })}
 
-            {resultsData.case({
-              Init: () => null,
-              Ok: (results: requests.ElasticSearchResults) => (
-                <QueryResult results={results} />
-              ),
-              Err: (error: Error) => (
-                <Lab.Alert severity="error">{error.message}</Lab.Alert>
-              ),
-              _: () => (
-                <M.Box pt={5} textAlign="center">
-                  <M.CircularProgress size={96} />
-                </M.Box>
-              ),
-            })}
-          </div>
-          <div className={classes.panel} hidden={tab !== 1}>
-            <M.Typography variant="h6">Athena SQL</M.Typography>
-          </div>
+              {resultsData.case({
+                Init: () => null,
+                Ok: (results: requests.ElasticSearchResults) => (
+                  <QueryResult results={results} />
+                ),
+                Err: (error: Error) => (
+                  <Lab.Alert severity="error">{error.message}</Lab.Alert>
+                ),
+                _: () => (
+                  <M.Box pt={5} textAlign="center">
+                    <M.CircularProgress size={96} />
+                  </M.Box>
+                ),
+              })}
+            </div>
+          </M.Fade>
+          <M.Fade
+            in={tab === 1 && !transitioning}
+            mountOnEnter
+            unmountOnExit
+            onExit={onAnimationEnd}
+          >
+            <div className={classes.panel}>
+              <M.Typography variant="h6">Athena SQL</M.Typography>
+            </div>
+          </M.Fade>
         </M.Container>
       )}
     </QueriesState>
