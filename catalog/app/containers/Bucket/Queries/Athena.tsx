@@ -2,8 +2,9 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import QuerySelect from './QuerySelect'
 import AthenaQueryViewer from './AthenaQueryViewer'
+import QueryResult from './QueryResult'
+import QuerySelect from './QuerySelect'
 import * as requests from './requests'
 
 const useStyles = M.makeStyles((t) => ({
@@ -57,6 +58,18 @@ function Form({ disabled, value, onChange, onSubmit }: FormProps) {
   )
 }
 
+interface SearchResultsFetcherProps {
+  children: (
+    props: requests.AsyncData<requests.AthenaSearchResults>,
+  ) => React.ReactElement
+  queryBody: string
+}
+
+function SearchResultsFetcher({ children, queryBody }: SearchResultsFetcherProps) {
+  const resultsData = requests.useAthenaSearch(queryBody)
+  return children(resultsData)
+}
+
 interface QueriesStatePropsRenderProps {
   customQueryBody: string | null
   handleQueryBodyChange: (q: string | null) => void
@@ -64,6 +77,7 @@ interface QueriesStatePropsRenderProps {
   handleSubmit: (q: string) => () => void
   queries: requests.AthenaQuery[]
   queryMeta: requests.AthenaQuery | null
+  resultsData: requests.AsyncData<requests.AthenaSearchResults>
 }
 
 interface QueriesStateProps {
@@ -102,15 +116,21 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
   const data = requests.useNamedQueries(bucket)
 
   return data.case({
-    Ok: (queries: requests.AthenaQuery[]) =>
-      children({
-        customQueryBody,
-        handleQueryMetaChange,
-        handleSubmit,
-        queries,
-        queryMeta: queryMeta || queries[0],
-        handleQueryBodyChange: setCustomQueryBody,
-      }),
+    Ok: (queries: requests.AthenaQuery[]) => (
+      <SearchResultsFetcher queryBody={queryRequest || ''}>
+        {(resultsData) =>
+          children({
+            customQueryBody,
+            handleQueryBodyChange: setCustomQueryBody,
+            handleQueryMetaChange,
+            handleSubmit,
+            queries,
+            queryMeta: queryMeta || queries[0],
+            resultsData,
+          })
+        }
+      </SearchResultsFetcher>
+    ),
     Err: (requestError: Error) => (
       <div className={classes.container}>
         <Lab.Alert severity="error">{requestError.message}</Lab.Alert>
@@ -147,6 +167,7 @@ export default function Athena({ bucket, className }: AthenaProps) {
         handleSubmit,
         queries,
         queryMeta,
+        resultsData,
       }) => (
         <div className={className}>
           <M.Typography variant="h6">Athena SQL {bucket}</M.Typography>
@@ -164,6 +185,21 @@ export default function Athena({ bucket, className }: AthenaProps) {
             onSubmit={handleSubmit}
             value={customQueryBody || queryMeta?.body || ''}
           />
+
+          {resultsData.case({
+            Init: () => null,
+            Ok: (results: requests.ElasticSearchResults) => (
+              <QueryResult results={results} />
+            ),
+            Err: (error: Error) => (
+              <Lab.Alert severity="error">{error.message}</Lab.Alert>
+            ),
+            _: () => (
+              <M.Box pt={5} textAlign="center">
+                <M.CircularProgress size={96} />
+              </M.Box>
+            ),
+          })}
         </div>
       )}
     </QueriesState>

@@ -28,6 +28,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   tabs: {
     borderRight: `1px solid ${t.palette.divider}`,
+    minWidth: '200px',
   },
   viewer: {
     margin: t.spacing(3, 0),

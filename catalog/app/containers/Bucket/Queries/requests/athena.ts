@@ -52,3 +52,24 @@ export function useNamedQueries(bucket: string): AsyncData<AthenaQuery[]> {
   const athena = AWS.Athena.use()
   return useData(namedQueries, { athena, bucket })
 }
+
+export type AthenaSearchResults = object | null
+
+interface SearchArgs {
+  query: string
+}
+
+async function search({ query }: SearchArgs): Promise<AthenaSearchResults> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        query,
+        body: 'It works!',
+      })
+    }, 1000)
+  })
+}
+
+export function useAthenaSearch(query: string): AsyncData<AthenaSearchResults> {
+  return useData(search, { query }, { noAutoFetch: !query })
+}
