@@ -58,7 +58,12 @@ function Form({ disabled, value, onChange, onSubmit }: FormProps) {
 }
 
 interface QueriesStatePropsRenderProps {
+  customQueryBody: string | null
+  handleQueryBodyChange: (q: string | null) => void
+  handleQueryMetaChange: (q: requests.Query | requests.AthenaQuery | null) => void
+  handleSubmit: (q: string) => () => void
   queries: requests.AthenaQuery[]
+  queryMeta: requests.AthenaQuery | null
 }
 
 interface QueriesStateProps {
@@ -68,11 +73,43 @@ interface QueriesStateProps {
 
 function QueriesState({ bucket, children }: QueriesStateProps) {
   const classes = useStyles()
+
+  // Info about query: name, url, etc.
+  const [queryMeta, setQueryMeta] = React.useState<requests.AthenaQuery | null>(null)
+
+  // Custom query content, not associated with queryMeta
+  const [customQueryBody, setCustomQueryBody] = React.useState<string | null>(null)
+
+  const handleQueryMetaChange = React.useCallback(
+    (query) => {
+      setQueryMeta(query as requests.AthenaQuery | null)
+      setCustomQueryBody(null)
+    },
+    [setQueryMeta, setCustomQueryBody],
+  )
+
+  // Query content requested to Elastic Search
+  const [queryRequest, setQueryRequest] = React.useState<string | null>(null)
+
+  const handleSubmit = React.useMemo(
+    () => (body: string) => () => setQueryRequest(body),
+    [setQueryRequest],
+  )
+
+  // eslint-disable-next-line no-console
+  console.log({ queryRequest })
+
   const data = requests.useNamedQueries(bucket)
+
   return data.case({
     Ok: (queries: requests.AthenaQuery[]) =>
       children({
+        customQueryBody,
+        handleQueryMetaChange,
+        handleSubmit,
         queries,
+        queryMeta: queryMeta || queries[0],
+        handleQueryBodyChange: setCustomQueryBody,
       }),
     Err: (requestError: Error) => (
       <div className={classes.container}>
@@ -101,36 +138,16 @@ interface AthenaProps {
 export default function Athena({ bucket, className }: AthenaProps) {
   const classes = useStyles()
 
-  // Info about query: name, url, etc.
-  const [queryMeta, setQueryMeta] = React.useState<requests.AthenaQuery | null>(null)
-
-  // Custom query content, not associated with queryMeta
-  const [customQueryBody, setCustomQueryBody] = React.useState<string | null>(null)
-
-  const handleQueryMetaChange = React.useCallback(
-    (query) => {
-      setQueryMeta(query as requests.AthenaQuery | null)
-      setCustomQueryBody(null)
-    },
-    [setQueryMeta, setCustomQueryBody],
-  )
-
-  // Query content requested to Elastic Search
-  const [queryRequest, setQueryRequest] = React.useState<requests.ElasticSearchQuery>(
-    null,
-  )
-
-  // eslint-disable-next-line no-console
-  console.log({ queryRequest })
-
-  const handleSubmit = React.useMemo(
-    () => (body: string) => () => setQueryRequest(body),
-    [setQueryRequest],
-  )
-
   return (
     <QueriesState bucket={bucket}>
-      {({ queries }) => (
+      {({
+        customQueryBody,
+        handleQueryBodyChange,
+        handleQueryMetaChange,
+        handleSubmit,
+        queries,
+        queryMeta,
+      }) => (
         <div className={className}>
           <M.Typography variant="h6">Athena SQL {bucket}</M.Typography>
 
@@ -143,7 +160,7 @@ export default function Athena({ bucket, className }: AthenaProps) {
 
           <Form
             disabled={false}
-            onChange={setCustomQueryBody}
+            onChange={handleQueryBodyChange}
             onSubmit={handleSubmit}
             value={customQueryBody || queryMeta?.body || ''}
           />
