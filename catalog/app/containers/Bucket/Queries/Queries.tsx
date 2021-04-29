@@ -14,6 +14,7 @@ const useStyles = M.makeStyles((t) => ({
     margin: t.spacing(2, 0),
   },
   container: {
+    display: 'flex',
     padding: t.spacing(3),
   },
   inner: {
@@ -22,8 +23,15 @@ const useStyles = M.makeStyles((t) => ({
   form: {
     margin: t.spacing(0, 0, 4),
   },
+  panel: {
+    flexGrow: 1,
+    padding: t.spacing(1, 3),
+  },
   select: {
     margin: t.spacing(3, 0),
+  },
+  tabs: {
+    borderRight: `1px solid ${t.palette.divider}`,
   },
   viewer: {
     margin: t.spacing(3, 0),
@@ -191,6 +199,8 @@ export default function Queries({
 }: RouteComponentProps<{ bucket: string }>) {
   const classes = useStyles()
 
+  const [tab, setTab] = React.useState(0)
+
   return (
     <QueriesState bucket={bucket}>
       {({
@@ -206,58 +216,76 @@ export default function Queries({
         resultsData,
       }) => (
         <M.Container className={classes.container} maxWidth="lg">
-          <M.Typography variant="h6">ElasticSearch queries</M.Typography>
+          <M.Tabs
+            className={classes.tabs}
+            orientation="vertical"
+            onChange={(event, newTab) => setTab(newTab)}
+            value={tab}
+          >
+            <M.Tab label="ElasticSearch" />
+            <M.Tab label="Athena SQL" />
+          </M.Tabs>
+          <div className={classes.panel} hidden={tab !== 0}>
+            <M.Typography variant="h6">ElasticSearch queries</M.Typography>
 
-          <QuerySelect
-            className={classes.select}
-            queries={queries}
-            onChange={handleQueryMetaChange}
-            value={customQueryBody ? null : queryMeta}
-          />
+            <QuerySelect
+              className={classes.select}
+              queries={queries}
+              onChange={handleQueryMetaChange}
+              value={customQueryBody ? null : queryMeta}
+            />
 
-          {queryData.case({
-            Init: () => (
-              <Form
-                disabled={isButtonDisabled(customQueryBody, resultsData, queryBodyError)}
-                onChange={handleQueryBodyChange}
-                onError={handleError}
-                onSubmit={handleSubmit}
-                value={customQueryBody || QUERY_PLACEHOLDER}
-              />
-            ),
-            Ok: (queryBody: requests.ElasticSearchQuery) => (
-              <Form
-                disabled={isButtonDisabled(
-                  customQueryBody || queryBody,
-                  resultsData,
-                  queryBodyError,
-                )}
-                onChange={handleQueryBodyChange}
-                onError={handleError}
-                onSubmit={handleSubmit}
-                value={customQueryBody || queryBody || QUERY_PLACEHOLDER}
-              />
-            ),
-            Err: (error: Error) => (
-              <Lab.Alert severity="error">{error.message}</Lab.Alert>
-            ),
-            Pending: () => <M.CircularProgress size={96} />,
-          })}
+            {queryData.case({
+              Init: () => (
+                <Form
+                  disabled={isButtonDisabled(
+                    customQueryBody,
+                    resultsData,
+                    queryBodyError,
+                  )}
+                  onChange={handleQueryBodyChange}
+                  onError={handleError}
+                  onSubmit={handleSubmit}
+                  value={customQueryBody || QUERY_PLACEHOLDER}
+                />
+              ),
+              Ok: (queryBody: requests.ElasticSearchQuery) => (
+                <Form
+                  disabled={isButtonDisabled(
+                    customQueryBody || queryBody,
+                    resultsData,
+                    queryBodyError,
+                  )}
+                  onChange={handleQueryBodyChange}
+                  onError={handleError}
+                  onSubmit={handleSubmit}
+                  value={customQueryBody || queryBody || QUERY_PLACEHOLDER}
+                />
+              ),
+              Err: (error: Error) => (
+                <Lab.Alert severity="error">{error.message}</Lab.Alert>
+              ),
+              Pending: () => <M.CircularProgress size={96} />,
+            })}
 
-          {resultsData.case({
-            Init: () => null,
-            Ok: (results: requests.ElasticSearchResults) => (
-              <QueryResult results={results} />
-            ),
-            Err: (error: Error) => (
-              <Lab.Alert severity="error">{error.message}</Lab.Alert>
-            ),
-            _: () => (
-              <M.Box pt={5} textAlign="center">
-                <M.CircularProgress size={96} />
-              </M.Box>
-            ),
-          })}
+            {resultsData.case({
+              Init: () => null,
+              Ok: (results: requests.ElasticSearchResults) => (
+                <QueryResult results={results} />
+              ),
+              Err: (error: Error) => (
+                <Lab.Alert severity="error">{error.message}</Lab.Alert>
+              ),
+              _: () => (
+                <M.Box pt={5} textAlign="center">
+                  <M.CircularProgress size={96} />
+                </M.Box>
+              ),
+            })}
+          </div>
+          <div className={classes.panel} hidden={tab !== 1}>
+            <M.Typography variant="h6">Athena SQL</M.Typography>
+          </div>
         </M.Container>
       )}
     </QueriesState>
