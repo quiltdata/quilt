@@ -22,15 +22,8 @@ const useStyles = M.makeStyles((t) => ({
   form: {
     margin: t.spacing(0, 0, 4),
   },
-  panel: {
-    flexGrow: 1,
-    padding: t.spacing(1, 3),
-  },
   select: {
     margin: t.spacing(3, 0),
-  },
-  tabs: {
-    borderRight: `1px solid ${t.palette.divider}`,
   },
   viewer: {
     margin: t.spacing(3, 0),
@@ -191,12 +184,12 @@ const isButtonDisabled = (
   error: Error | null,
 ): boolean => !!error || !queryContent || !!resultsData.case({ Pending: R.T, _: R.F })
 
-interface QueriesProps {
+interface ElastiSearchProps {
   bucket: string
   className: string
 }
 
-export default function Queries({ bucket, className }: QueriesProps) {
+export default function ElastiSearch({ bucket, className }: ElastiSearchProps) {
   const classes = useStyles()
 
   return (

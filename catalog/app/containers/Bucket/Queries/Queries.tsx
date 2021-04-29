@@ -3,6 +3,7 @@ import { RouteComponentProps } from 'react-router'
 import * as M from '@material-ui/core'
 
 import ElasticSearch from './ElasticSearch'
+import Athena from './Athena'
 
 const useStyles = M.makeStyles((t) => ({
   actions: {
@@ -80,9 +81,7 @@ export default function Queries({
         unmountOnExit
         onExit={onAnimationEnd}
       >
-        <div className={classes.panel}>
-          <M.Typography variant="h6">Athena SQL</M.Typography>
-        </div>
+        <Athena bucket={bucket} className={classes.panel} />
       </M.Fade>
     </M.Container>
   )
