@@ -57,7 +57,7 @@ interface QueriesStatePropsRenderProps {
   error: Error | null
   handleError: (error: Error | null) => void
   handleQueryBodyChange: (q: requests.ElasticSearchQuery | null) => void
-  handleQueryMetaChange: (q: requests.Query | null) => void
+  handleQueryMetaChange: (q: requests.Query | requests.AthenaQuery | null) => void
   handleSubmit: (q: requests.ElasticSearchQuery) => () => void
   queries: requests.Query[]
   queryData: requests.AsyncData<requests.ElasticSearchQuery>
@@ -96,10 +96,13 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
     [setQueryRequest],
   )
 
-  const handleQueryMetaChange = React.useCallback((q: requests.Query | null) => {
-    setQueryMeta(q)
-    setCustomQueryBody(null)
-  }, [])
+  const handleQueryMetaChange = React.useCallback(
+    (q: requests.AthenaQuery | requests.Query | null) => {
+      setQueryMeta(q as requests.Query | null)
+      setCustomQueryBody(null)
+    },
+    [],
+  )
 
   return config.case({
     Ok: (queries: requests.Query[]) => (
@@ -125,14 +128,14 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
       </QueryFetcher>
     ),
     Err: (requestError: Error) => (
-      <M.Container className={classes.container} maxWidth="lg">
+      <div className={classes.container}>
         <Lab.Alert severity="error">{requestError.message}</Lab.Alert>
-      </M.Container>
+      </div>
     ),
     _: () => (
-      <M.Container className={classes.container} maxWidth="lg">
+      <div className={classes.container}>
         <M.CircularProgress size={48} />
-      </M.Container>
+      </div>
     ),
   })
 }

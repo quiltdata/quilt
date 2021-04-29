@@ -8,9 +8,9 @@ import * as requests from './requests'
 
 interface QuerySelectProps {
   className: string
-  queries: requests.Query[]
-  onChange: (value: requests.Query | null) => void
-  value: requests.Query | null
+  queries: (requests.Query | requests.AthenaQuery)[]
+  onChange: (value: requests.Query | requests.AthenaQuery | null) => void
+  value: requests.Query | requests.AthenaQuery | null
 }
 
 const useStyles = M.makeStyles((t) => ({

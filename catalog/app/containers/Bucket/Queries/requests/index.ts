@@ -1,3 +1,5 @@
+export * from './athena'
+
 export * from './queriesConfig'
 
 export * from './query'
