@@ -4,6 +4,7 @@ Microservice that provides temporary user credentials to the catalog
 
 from datetime import timedelta
 
+import json
 import os
 import boto3
 import requests
@@ -21,6 +22,8 @@ from t4_lambda_shared.utils import (
     get_default_origins,
     make_json_response,
 )
+
+from .backends import get_package_registry
 
 app = Flask(__name__)  # pylint: disable=invalid-name
 app.config['JSON_USE_ENCODE_METHODS'] = True
@@ -166,9 +169,81 @@ def search():
     )
     print("RESULT:")
     print(result)
-    
-    return result
 
+    assert user_body
+    if not user_body:
+        return result
+    else:
+        body_dict = json.loads(user_body)
+        print("BODY:")
+        print(body_dict)
+        if 'packages' in body_dict['aggs']:
+            # totals
+            pkg_count = 0
+            total_rev_count = 0
+            last_key = ""
+            buckets = []
+            # List packages in Python
+            bucket = f"s3://{to_search.rstrip('_packages')}"
+            print(f"BUCKET={bucket}")
+            pkg_reg = get_package_registry(bucket)
+            print(pkg_reg)
+            for package in pkg_reg.list_packages():
+                print(package)
+                pkg_count += 1
+                last_key = package
+                rev_count = 0
+                min_ts = None
+                for ts, hash in pkg_reg.list_package_pointers(pkg_name=package):
+                    rev_count += 1
+                    min_ts = min(ts, min_ts) if min_ts else ts
+                rev_summary = dict(
+                    key=dict(handle=package),
+                    doc_count=rev_count,
+                    modified=dict(value=min_ts, value_as_string=str(min_ts))
+                )
+                print(rev_summary)
+                buckets.append(rev_summary)
+                total_rev_count += rev_count
+            return {
+                "took": 1,
+                "timed_out": False,
+                "hits": {
+                    "total": total_rev_count,
+                    "max_score": 0,
+                    "hits": []
+                },
+                "aggregations": {
+                    "packages": {
+                        "after_key": {
+                            "handle": last_key
+                        },
+                        "buckets": buckets   
+                    }
+                }
+            }
+            #return result
+        else:
+            # totals
+            pkg_count = 0
+            # List packages in Python
+            bucket = f"s3://{to_search.rstrip('_packages')}"
+            print(f"BUCKET={bucket}")
+            pkg_reg = get_package_registry(bucket)
+            print(pkg_reg)
+            for package in pkg_reg.list_packages():
+                print(package)
+                pkg_count += 1
+
+            print("RESULT FROM PYTHON")
+            return {
+                'python': True,
+                'took': 1,
+                'timed_out': False,
+                '_shards': {'total': 1, 'successful': 1, 'skipped': 0, 'failed': 0},
+                'hits': {'total': 156, 'max_score': 0.0, 'hits': []},
+                'aggregations': {'total': {'value': pkg_count}}
+            }
 
 
 if __name__ == '__main__':
