@@ -63,10 +63,15 @@ interface SearchResultsFetcherProps {
     props: requests.AsyncData<requests.AthenaSearchResults>,
   ) => React.ReactElement
   queryBody: string
+  workgroup: string
 }
 
-function SearchResultsFetcher({ children, queryBody }: SearchResultsFetcherProps) {
-  const resultsData = requests.useAthenaSearch(queryBody)
+function SearchResultsFetcher({
+  children,
+  queryBody,
+  workgroup,
+}: SearchResultsFetcherProps) {
+  const resultsData = requests.useAthenaSearch(workgroup, queryBody)
   return children(resultsData)
 }
 
@@ -117,7 +122,7 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
 
   return data.case({
     Ok: (queries: requests.AthenaQuery[]) => (
-      <SearchResultsFetcher queryBody={queryRequest || ''}>
+      <SearchResultsFetcher queryBody={queryRequest || ''} workgroup="fiskus-test">
         {(resultsData) =>
           children({
             customQueryBody,

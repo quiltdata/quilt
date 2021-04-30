@@ -1,6 +1,5 @@
 import Athena from 'aws-sdk/clients/athena'
 
-import * as errors from 'containers/Bucket/errors'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 
@@ -21,8 +20,8 @@ export const namedQueries = async ({
   athena,
 }: NamedQueriesArgs): Promise<AthenaQuery[] | null> => {
   try {
-    const workgroupsData = await athena?.listWorkGroups().promise()
-    const workgroup = workgroupsData?.WorkGroups?.[0].Name
+    const workgroups = await fetchWorkgroups({ athena })
+    const workgroup = workgroups[0].name
 
     const queryIdsData = await athena
       ?.listNamedQueries({ WorkGroup: workgroup })
@@ -38,8 +37,6 @@ export const namedQueries = async ({
       name: query.Name,
     }))
   } catch (e) {
-    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) return []
-
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
     // eslint-disable-next-line no-console
@@ -56,20 +53,81 @@ export function useNamedQueries(bucket: string): AsyncData<AthenaQuery[]> {
 export type AthenaSearchResults = object | null
 
 interface SearchArgs {
-  query: string
+  athena: Athena
+  queryBody: string
+  workgroup: string
 }
 
-async function search({ query }: SearchArgs): Promise<AthenaSearchResults> {
+async function search({
+  athena,
+  queryBody,
+  workgroup,
+}: SearchArgs): Promise<AthenaSearchResults> {
+  try {
+    const { QueryExecutionId } = await athena
+      .startQueryExecution({
+        QueryString: queryBody,
+        ResultConfiguration: {
+          EncryptionConfiguration: {
+            EncryptionOption: 'SSE_S3',
+          },
+          // OutputLocation: 's3://fiskus-sandbox-dev/fiskus/sandbox/'
+        },
+        WorkGroup: workgroup,
+      })
+      .promise()
+    if (!QueryExecutionId) throw new Error('No execution id')
+    const results = await athena.getQueryResults({ QueryExecutionId })
+    return results
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.log('Unable to fetch')
+    // eslint-disable-next-line no-console
+    console.error(e)
+    throw e
+  }
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({
-        query,
+        queryBody,
         body: 'It works!',
       })
     }, 1000)
   })
 }
 
-export function useAthenaSearch(query: string): AsyncData<AthenaSearchResults> {
-  return useData(search, { query }, { noAutoFetch: !query })
+export function useAthenaSearch(
+  workgroup: string,
+  queryBody: string,
+): AsyncData<AthenaSearchResults> {
+  const athena = AWS.Athena.use()
+  return useData(search, { athena, queryBody, workgroup }, { noAutoFetch: !queryBody })
+}
+
+interface WorkgroupsArgs {
+  athena: Athena
+}
+
+async function fetchWorkgroups({
+  athena,
+}: WorkgroupsArgs): Promise<AthenaWorkgroupsResults> {
+  try {
+    const workgroupsData = await athena.listWorkGroups().promise()
+    return (workgroupsData.WorkGroups || []).map(({ Name }) => ({
+      name: Name || 'Unknown',
+    }))
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.log('Unable to fetch')
+    // eslint-disable-next-line no-console
+    console.error(e)
+    throw e
+  }
+}
+
+export type AthenaWorkgroupsResults = { name: string }[]
+
+export function useAthenaWorkgroups(): AsyncData<AthenaWorkgroupsResults> {
+  const athena = AWS.Athena.use()
+  return useData(fetchWorkgroups, { athena })
 }
