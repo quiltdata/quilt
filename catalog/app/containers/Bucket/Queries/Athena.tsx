@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -149,11 +150,11 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
   })
 }
 
-// const isButtonDisabled = (
-//   queryContent: string,
-//   resultsData: requests.AsyncData<requests.ElasticSearchResults>,
-//   error: Error | null,
-// ): boolean => !!error || !queryContent || !!resultsData.case({ Pending: R.T, _: R.F })
+const isButtonDisabled = (
+  queryContent: string,
+  resultsData: requests.AsyncData<requests.ElasticSearchResults>,
+  error: Error | null,
+): boolean => !!error || !queryContent || !!resultsData.case({ Pending: R.T, _: R.F })
 
 interface AthenaProps {
   bucket: string
@@ -185,7 +186,11 @@ export default function Athena({ bucket, className }: AthenaProps) {
           />
 
           <Form
-            disabled={false}
+            disabled={isButtonDisabled(
+              customQueryBody || queryMeta?.body || '',
+              resultsData,
+              null,
+            )}
             onChange={handleQueryBodyChange}
             onSubmit={handleSubmit}
             value={customQueryBody || queryMeta?.body || ''}
@@ -193,7 +198,7 @@ export default function Athena({ bucket, className }: AthenaProps) {
 
           {resultsData.case({
             Init: () => null,
-            Ok: (results: requests.ElasticSearchResults) => (
+            Ok: (results: requests.AthenaSearchResults) => (
               <QueryResult results={results} />
             ),
             Err: (error: Error) => (
