@@ -92,7 +92,7 @@ export default function Queries({
         unmountOnExit
         onExit={onAnimationEnd}
       >
-        <Athena bucket={bucket} className={classes.panel} />
+        <Athena className={classes.panel} />
       </M.Fade>
     </M.Container>
   )

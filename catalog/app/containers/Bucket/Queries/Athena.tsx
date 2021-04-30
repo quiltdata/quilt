@@ -6,6 +6,7 @@ import * as Lab from '@material-ui/lab'
 import AthenaQueryViewer from './AthenaQueryViewer'
 import QueryResult from './QueryResult'
 import QuerySelect from './QuerySelect'
+import WorkgroupSelect from './WorkgroupSelect'
 import * as requests from './requests'
 
 const useStyles = M.makeStyles((t) => ({
@@ -76,22 +77,34 @@ function SearchResultsFetcher({
   return children(resultsData)
 }
 
+interface QueriesFetcherProps {
+  children: (props: requests.AsyncData<requests.AthenaQuery[]>) => React.ReactElement
+  workgroup: string
+}
+
+function QueriesFetcher({ children, workgroup }: QueriesFetcherProps) {
+  const queries = requests.useNamedQueries(workgroup)
+  return children(queries)
+}
+
 interface QueriesStatePropsRenderProps {
   customQueryBody: string | null
+  handleWorkgroupChange: (w: requests.Workgroup | null) => void
   handleQueryBodyChange: (q: string | null) => void
   handleQueryMetaChange: (q: requests.Query | requests.AthenaQuery | null) => void
   handleSubmit: (q: string) => () => void
-  queries: requests.AthenaQuery[]
+  queriesData: requests.AsyncData<requests.AthenaQuery[]>
   queryMeta: requests.AthenaQuery | null
   resultsData: requests.AsyncData<requests.AthenaSearchResults>
+  workgroup: requests.Workgroup | null
+  workgroups: requests.Workgroup[]
 }
 
 interface QueriesStateProps {
-  bucket: string
   children: (props: QueriesStatePropsRenderProps) => React.ReactElement
 }
 
-function QueriesState({ bucket, children }: QueriesStateProps) {
+function QueriesState({ children }: QueriesStateProps) {
   const classes = useStyles()
 
   // Info about query: name, url, etc.
@@ -116,26 +129,38 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
     [setQueryRequest],
   )
 
-  // eslint-disable-next-line no-console
-  console.log({ queryRequest })
+  const workgroupsData = requests.useAthenaWorkgroups()
 
-  const data = requests.useNamedQueries(bucket)
+  const [workgroup, setWorkgroup] = React.useState<requests.Workgroup | null>(null)
+  const handleWorkgroupChange = React.useCallback(
+    (w) => {
+      setWorkgroup(w)
+    },
+    [setWorkgroup],
+  )
 
-  return data.case({
-    Ok: (queries: requests.AthenaQuery[]) => (
-      <SearchResultsFetcher queryBody={queryRequest || ''} workgroup="fiskus-test">
-        {(resultsData) =>
-          children({
-            customQueryBody,
-            handleQueryBodyChange: setCustomQueryBody,
-            handleQueryMetaChange,
-            handleSubmit,
-            queries,
-            queryMeta: queryMeta || queries[0],
-            resultsData,
-          })
-        }
-      </SearchResultsFetcher>
+  return workgroupsData.case({
+    Ok: (workgroups) => (
+      <QueriesFetcher workgroup={workgroup?.name || workgroups?.[0].name || ''}>
+        {(queriesData) => (
+          <SearchResultsFetcher queryBody={queryRequest || ''} workgroup="fiskus-test">
+            {(resultsData) =>
+              children({
+                customQueryBody,
+                handleWorkgroupChange,
+                handleQueryBodyChange: setCustomQueryBody,
+                handleQueryMetaChange,
+                handleSubmit,
+                queriesData,
+                queryMeta,
+                resultsData,
+                workgroup,
+                workgroups,
+              })
+            }
+          </SearchResultsFetcher>
+        )}
+      </QueriesFetcher>
     ),
     Err: (requestError: Error) => (
       <div className={classes.container}>
@@ -157,33 +182,53 @@ const isButtonDisabled = (
 ): boolean => !!error || !queryContent || !!resultsData.case({ Pending: R.T, _: R.F })
 
 interface AthenaProps {
-  bucket: string
   className: string
 }
 
-export default function Athena({ bucket, className }: AthenaProps) {
+export default function Athena({ className }: AthenaProps) {
   const classes = useStyles()
 
   return (
-    <QueriesState bucket={bucket}>
+    <QueriesState>
       {({
         customQueryBody,
         handleQueryBodyChange,
         handleQueryMetaChange,
         handleSubmit,
-        queries,
+        handleWorkgroupChange,
+        queriesData,
         queryMeta,
         resultsData,
+        workgroup,
+        workgroups,
       }) => (
         <div className={className}>
-          <M.Typography variant="h6">Athena SQL {bucket}</M.Typography>
-
-          <QuerySelect
+          <M.Typography variant="h6">Athena SQL</M.Typography>
+          <WorkgroupSelect
             className={classes.select}
-            queries={queries}
-            onChange={handleQueryMetaChange}
-            value={customQueryBody ? null : queryMeta}
+            workgroups={workgroups}
+            onChange={handleWorkgroupChange}
+            value={workgroup}
           />
+
+          {queriesData.case({
+            Ok: (queries) => (
+              <QuerySelect
+                className={classes.select}
+                queries={queries}
+                onChange={handleQueryMetaChange}
+                value={customQueryBody ? null : queryMeta}
+              />
+            ),
+            Err: (error: Error) => (
+              <Lab.Alert severity="error">{error.message}</Lab.Alert>
+            ),
+            _: () => (
+              <M.Box pt={5} textAlign="center">
+                <M.CircularProgress size={96} />
+              </M.Box>
+            ),
+          })}
 
           <Form
             disabled={isButtonDisabled(

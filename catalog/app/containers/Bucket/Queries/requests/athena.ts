@@ -7,6 +7,7 @@ import { AsyncData } from './requests'
 
 interface NamedQueriesArgs {
   athena: Athena
+  workgroup: string
 }
 
 export interface AthenaQuery {
@@ -18,10 +19,11 @@ export interface AthenaQuery {
 
 export const namedQueries = async ({
   athena,
+  workgroup,
 }: NamedQueriesArgs): Promise<AthenaQuery[] | null> => {
   try {
-    const workgroups = await fetchWorkgroups({ athena })
-    const workgroup = workgroups[0].name
+    // const workgroups = await fetchWorkgroups({ athena })
+    // const workgroup = workgroups[0].name
 
     const queryIdsData = await athena
       ?.listNamedQueries({ WorkGroup: workgroup })
@@ -45,9 +47,9 @@ export const namedQueries = async ({
   }
 }
 
-export function useNamedQueries(bucket: string): AsyncData<AthenaQuery[]> {
+export function useNamedQueries(workgroup: string): AsyncData<AthenaQuery[]> {
   const athena = AWS.Athena.use()
-  return useData(namedQueries, { athena, bucket })
+  return useData(namedQueries, { athena, workgroup })
 }
 
 export type AthenaSearchResults = object | null
@@ -114,6 +116,7 @@ async function fetchWorkgroups({
   try {
     const workgroupsData = await athena.listWorkGroups().promise()
     return (workgroupsData.WorkGroups || []).map(({ Name }) => ({
+      key: Name || 'Unknown', // for consistency
       name: Name || 'Unknown',
     }))
   } catch (e) {
@@ -125,7 +128,12 @@ async function fetchWorkgroups({
   }
 }
 
-export type AthenaWorkgroupsResults = { name: string }[]
+export interface Workgroup {
+  key: string // for consistency
+  name: string
+}
+
+export type AthenaWorkgroupsResults = Workgroup[]
 
 export function useAthenaWorkgroups(): AsyncData<AthenaWorkgroupsResults> {
   const athena = AWS.Athena.use()
