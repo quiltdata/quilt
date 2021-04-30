@@ -29,6 +29,7 @@ export default function SelectWorkflow({
   const classes = useStyles()
 
   const noChoice = items.length === 1
+  const showDisabledNoneOption = !items.find(({ slug }) => slug === workflows.notSelected)
 
   return (
     <M.FormControl
@@ -45,20 +46,22 @@ export default function SelectWorkflow({
         labelId="schema-select"
         value={value ? value.slug.toString() : workflows.notSelected.toString()}
       >
-        <M.MenuItem
-          key={workflows.notSelected.toString()}
-          value={workflows.notSelected.toString()}
-          disabled
-          dense
-        >
-          <M.ListItemText
-            classes={{
-              primary: classes.crop,
-              secondary: classes.crop,
-            }}
-            primary="None"
-          />
-        </M.MenuItem>
+        {showDisabledNoneOption && (
+          <M.MenuItem
+            key={workflows.notSelected.toString()}
+            value={workflows.notSelected.toString()}
+            disabled
+            dense
+          >
+            <M.ListItemText
+              classes={{
+                primary: classes.crop,
+                secondary: classes.crop,
+              }}
+              primary="None"
+            />
+          </M.MenuItem>
+        )}
 
         {items.map((option) => (
           <M.MenuItem
