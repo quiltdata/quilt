@@ -26,6 +26,9 @@ const useStyles = M.makeStyles((t) => ({
   select: {
     margin: t.spacing(3, 0),
   },
+  tabWrapper: {
+    alignItems: 'flex-start',
+  },
   tabs: {
     borderRight: `1px solid ${t.palette.divider}`,
     minWidth: '200px',
@@ -57,6 +60,13 @@ export default function Queries({
     }, 300)
   }
 
+  const tabClasses = React.useMemo(
+    () => ({
+      wrapper: classes.tabWrapper,
+    }),
+    [classes],
+  )
+
   return (
     <M.Container className={classes.container} maxWidth="lg">
       <M.Tabs
@@ -65,8 +75,8 @@ export default function Queries({
         onChange={onTab}
         value={tab}
       >
-        <M.Tab label="ElasticSearch" />
-        <M.Tab label="Athena SQL" />
+        <M.Tab label="ElasticSearch" classes={tabClasses} />
+        <M.Tab label="Athena SQL" classes={tabClasses} />
       </M.Tabs>
       <M.Fade
         in={tab === 0 && !transitioning}
