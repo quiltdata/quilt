@@ -4,6 +4,7 @@
 * [Installation](Installation.md)
 * [Quick start](Quickstart.md)
 * [Mental model](MentalModel.md)
+* [Architecture](Architecture.md)
 
 ### Walkthrough
 
@@ -20,6 +21,7 @@
 * [quilt3.Package](API Reference/Package.md)
 * [quilt3.Bucket](API Reference/Bucket.md)
 * [CLI, environment](API Reference/cli.md)
+* [Known limitations](API%20Reference/limitations.md)
 
 ### Catalog
 

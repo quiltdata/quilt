@@ -15,6 +15,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
+import type * as workflows from 'utils/workflows'
 
 import Code from './Code'
 import CopyButton from './CopyButton'
@@ -32,24 +33,6 @@ interface RouteMap {
 
 type Urls = NamedRoutes.Urls<RouteMap>
 
-interface ListingFile {
-  bucket: string
-  key: string
-  modified: Date
-  size: number
-  etag: string
-  archived: boolean
-}
-
-interface ListingResponse {
-  dirs: string[]
-  files: ListingFile[]
-  truncated: boolean
-  bucket: string
-  path: string
-  prefix: string
-}
-
 const getCrumbs = R.compose(
   R.intersperse(Crumb.Sep(<>&nbsp;/ </>)),
   ({ bucket, path, urls }: { bucket: string; path: string; urls: Urls }) =>
@@ -62,35 +45,106 @@ const getCrumbs = R.compose(
     ),
 )
 
-const formatListing = ({ urls }: { urls: Urls }, r: ListingResponse) => {
-  const dirs = r.dirs.map((name) => ({
-    type: 'dir' as const,
-    name: ensureNoSlash(withoutPrefix(r.path, name)),
-    to: urls.bucketDir(r.bucket, name),
-  }))
-  const files = r.files.map(({ key, size, modified, archived }) => ({
-    type: 'file' as const,
-    name: withoutPrefix(r.path, key),
-    to: urls.bucketFile(r.bucket, key),
-    size,
-    modified,
-    archived,
-  }))
-  const items = [
-    ...(r.path !== '' && !r.prefix
-      ? [
-          {
-            type: 'dir' as const,
-            name: '..',
-            to: urls.bucketDir(r.bucket, up(r.path)),
-          },
-        ]
-      : []),
-    ...dirs,
-    ...files,
-  ]
-  // filter-out files with same name as one of dirs
-  return R.uniqBy(R.prop('name'), items)
+function useFormattedListing(r: requests.BucketListingResult) {
+  const { urls } = NamedRoutes.use<RouteMap>()
+  return React.useMemo(() => {
+    const dirs = r.dirs.map((name) => ({
+      type: 'dir' as const,
+      name: ensureNoSlash(withoutPrefix(r.path, name)),
+      to: urls.bucketDir(r.bucket, name),
+    }))
+    const files = r.files.map(({ key, size, modified, archived }) => ({
+      type: 'file' as const,
+      name: withoutPrefix(r.path, key),
+      to: urls.bucketFile(r.bucket, key),
+      size,
+      modified,
+      archived,
+    }))
+    const items = [
+      ...(r.path !== '' && !r.prefix
+        ? [
+            {
+              type: 'dir' as const,
+              name: '..',
+              to: urls.bucketDir(r.bucket, up(r.path)),
+            },
+          ]
+        : []),
+      ...dirs,
+      ...files,
+    ]
+    // filter-out files with same name as one of dirs
+    return R.uniqBy(R.prop('name'), items)
+  }, [r, urls])
+}
+
+interface DirContentsProps {
+  response: requests.BucketListingResult
+  locked: boolean
+  bucket: string
+  path: string
+  successor: workflows.Successor | null
+  setSuccessor: (successor: workflows.Successor | null) => void
+  loadMore?: () => void
+}
+
+function DirContents({
+  response,
+  locked,
+  bucket,
+  path,
+  successor,
+  setSuccessor,
+  loadMore,
+}: DirContentsProps) {
+  const history = RRDom.useHistory()
+  const { urls } = NamedRoutes.use<RouteMap>()
+
+  const onPackageDirectoryDialogExited = React.useCallback(() => {
+    setSuccessor(null)
+  }, [setSuccessor])
+
+  const setPrefix = React.useCallback(
+    (newPrefix) => {
+      history.push(urls.bucketDir(bucket, path, newPrefix))
+    },
+    [history, urls, bucket, path],
+  )
+
+  const items = useFormattedListing(response)
+
+  // TODO: should prefix filtering affect summary?
+  return (
+    <>
+      <PackageDirectoryDialog
+        bucket={bucket}
+        path={path}
+        files={response.files}
+        dirs={response.dirs}
+        truncated={response.truncated}
+        open={!!successor}
+        successor={successor}
+        onExited={onPackageDirectoryDialogExited}
+      />
+
+      <Listing
+        items={items}
+        locked={locked}
+        loadMore={loadMore}
+        truncated={response.truncated}
+        prefixFilter={response.prefix}
+        toolbarContents={
+          <PrefixFilter
+            key={`${response.bucket}/${response.path}`}
+            prefix={response.prefix}
+            setPrefix={setPrefix}
+          />
+        }
+      />
+      <Summary files={response.files} mkUrl={null} />
+    </>
+  )
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -115,8 +169,8 @@ export default function Dir({
   const classes = useStyles()
   const { urls } = NamedRoutes.use<RouteMap>()
   const { noDownload } = Config.use()
-  const history = RRDom.useHistory()
   const s3 = AWS.S3.use()
+  const preferences = BucketPreferences.use()
   const { prefix } = parseSearch(l.search)
   const path = decode(encodedPath)
   const dest = path ? basename(path) : bucket
@@ -149,27 +203,35 @@ export default function Dir({
     [bucket, path, dest],
   )
 
-  const [successor, setSuccessor] = React.useState(null)
+  const [successor, setSuccessor] = React.useState<workflows.Successor | null>(null)
 
-  const onPackageDirectoryDialogExited = React.useCallback(() => {
-    setSuccessor(null)
-  }, [setSuccessor])
+  const [prev, setPrev] = React.useState<requests.BucketListingResult | null>(null)
+
+  React.useLayoutEffect(() => {
+    // reset accumulated results when path and / or prefix change
+    setPrev(null)
+  }, [path, prefix])
 
   const data = useData(requests.bucketListing, {
     s3,
     bucket,
     path,
     prefix,
+    prev,
   })
 
-  const setPrefix = React.useCallback(
-    (newPrefix) => {
-      history.push(urls.bucketDir(bucket, path, newPrefix))
-    },
-    [history, urls, bucket, path],
-  )
-
-  const preferences = BucketPreferences.use()
+  const loadMore = React.useCallback(() => {
+    AsyncResult.case(
+      {
+        Ok: (res: requests.BucketListingResult) => {
+          // this triggers a re-render and fetching of next page of results
+          if (res.continuationToken) setPrev(res)
+        },
+        _: () => {},
+      },
+      data.result,
+    )
+  }, [data.result])
 
   return (
     <M.Box pt={2} pb={4}>
@@ -200,55 +262,19 @@ export default function Dir({
         Err: displayError(),
         Init: () => null,
         _: (x: $TSFixMe) => {
-          const res: ListingResponse | null = AsyncResult.case(
-            {
-              Ok: R.identity,
-              Pending: AsyncResult.case({
-                Ok: R.identity,
-                _: () => null,
-              }),
-              _: () => null,
-            },
-            x,
-          )
-
-          if (!res) return <M.CircularProgress />
-
-          // TODO: memoize
-          const items = formatListing({ urls }, res)
-
-          const locked = !AsyncResult.Ok.is(x)
-
-          // TODO: should prefix filtering affect summary?
-          return (
-            <>
-              <PackageDirectoryDialog
-                bucket={bucket}
-                path={path}
-                files={res.files}
-                dirs={res.dirs}
-                truncated={res.truncated}
-                open={!!successor}
-                successor={successor}
-                onExited={onPackageDirectoryDialogExited}
-              />
-
-              <Listing
-                items={items}
-                locked={locked}
-                truncated={res.truncated}
-                prefixFilter={res.prefix}
-                toolbarContents={
-                  <PrefixFilter
-                    key={`${res.bucket}/${res.path}`}
-                    prefix={res.prefix}
-                    setPrefix={setPrefix}
-                  />
-                }
-              />
-              {/* @ts-expect-error */}
-              <Summary files={res.files} />
-            </>
+          const res: requests.BucketListingResult | null = AsyncResult.getPrevResult(x)
+          return res ? (
+            <DirContents
+              response={res}
+              locked={!AsyncResult.Ok.is(x)}
+              bucket={bucket}
+              path={path}
+              successor={successor}
+              setSuccessor={setSuccessor}
+              loadMore={loadMore}
+            />
+          ) : (
+            <M.CircularProgress />
           )
         },
       })}

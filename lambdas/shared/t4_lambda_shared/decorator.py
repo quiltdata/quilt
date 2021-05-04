@@ -4,6 +4,7 @@ Decorators for using lambdas in API Gateway
 
 import gzip
 import traceback
+import urllib.parse
 from base64 import b64decode, b64encode
 from functools import wraps
 
@@ -24,7 +25,7 @@ class Request:
         self.event = event
         self.method = event['httpMethod']
         self.path = event['path']
-        self.pathParameters = event['pathParameters']
+        self.pathParameters = event.get('pathParameters')
         self.headers = event['headers'] or {}
         self.args = event['queryStringParameters'] or {}
         if event['isBase64Encoded']:
@@ -33,11 +34,25 @@ class Request:
             self.data = event['body']
 
 
-def api(cors_origins=()):
+class ELBRequest(Request):
+    def __init__(self, event):
+        super().__init__(event)
+        # ELB pass queryStringParameters escaped.
+        self.args = dict(
+            urllib.parse.parse_qsl(
+                '&'.join(
+                    f'{k}={v}'
+                    for k, v in self.args.items()
+                )
+            )
+        )
+
+
+def api(cors_origins=(), *, request_class=Request):
     def innerdec(f):
         @wraps(f)
         def wrapper(event, _):
-            request = Request(event)
+            request = request_class(event)
             if request.method == 'OPTIONS':
                 status = 200
                 response_headers = {}
@@ -82,7 +97,7 @@ def api(cors_origins=()):
                     'access-control-expose-headers': (
                         f"*, Authorization, {QUILT_INFO_HEADER}"
                     ),
-                    'access-control-max-age': 86400
+                    'access-control-max-age': '86400',
                 })
 
             return {

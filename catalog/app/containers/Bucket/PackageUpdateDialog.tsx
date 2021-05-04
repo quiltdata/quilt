@@ -8,8 +8,6 @@ import * as RF from 'react-final-form'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import Code from 'components/Code'
-import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
@@ -22,6 +20,7 @@ import * as validators from 'utils/validators'
 import type * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
+import { isS3File, S3File } from './PackageDialog/S3FilePicker'
 import * as requests from './requests'
 
 interface Manifest {
@@ -59,6 +58,16 @@ interface Uploads {
     promise: Promise<UploadResult>
     progress?: { total: number; loaded: number }
   }
+}
+
+interface LocalEntry {
+  path: string
+  file: PD.LocalFile
+}
+
+interface S3Entry {
+  path: string
+  file: S3File
 }
 
 const getTotalProgress = R.pipe(
@@ -123,7 +132,6 @@ function DialogForm({
   workflowsConfig,
 }: DialogFormProps) {
   const s3 = AWS.S3.use()
-  const req = APIConnector.use()
   const [uploads, setUploads] = React.useState<Uploads>({})
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
@@ -150,6 +158,8 @@ function DialogForm({
     [setUploads],
   )
 
+  const createPackage = requests.useCreatePackage()
+
   const onSubmit = async ({
     name,
     msg,
@@ -164,11 +174,17 @@ function DialogForm({
     workflow: workflows.Workflow
     // eslint-disable-next-line consistent-return
   }) => {
-    const addedEntries = Object.entries(files.added).map(([path, file]) => ({
-      path,
-      file,
-    }))
-    const toUpload = addedEntries.filter(({ path, file }) => {
+    const addedS3Entries = [] as S3Entry[]
+    const addedLocalEntries = [] as LocalEntry[]
+    Object.entries(files.added).forEach(([path, file]) => {
+      if (isS3File(file)) {
+        addedS3Entries.push({ path, file })
+      } else {
+        addedLocalEntries.push({ path, file })
+      }
+    })
+
+    const toUpload = addedLocalEntries.filter(({ path, file }) => {
       const e = files.existing[path]
       return !e || e.hash !== file.hash.value
     })
@@ -228,8 +244,9 @@ function DialogForm({
       string,
       { physicalKey: string; size: number; hash: string; meta: unknown },
     ]
-    const newEntries = pipeThru(toUpload, uploaded)(
-      R.zipWith<typeof toUpload[number], UploadResult, Zipped>((f, r) => {
+
+    const uploadedEntries = pipeThru(toUpload, uploaded)(
+      R.zipWith<LocalEntry, UploadResult, Zipped>((f, r) => {
         invariant(f.file.hash.value, 'File must have a hash')
         return [
           f.path,
@@ -251,9 +268,18 @@ function DialogForm({
       { physicalKey: string; size: number; hash: string; meta: unknown }
     >
 
+    const s3Entries = pipeThru(addedS3Entries)(
+      R.map(({ path, file }: S3Entry) => [
+        path,
+        { physicalKey: s3paths.handleToS3Url(file) },
+      ]),
+      R.fromPairs,
+    ) as Record<string, { physicalKey: string }>
+
     const contents = pipeThru(files.existing)(
       R.omit(Object.keys(files.deleted)),
-      R.mergeLeft(newEntries),
+      R.mergeLeft(uploadedEntries),
+      R.mergeLeft(s3Entries),
       R.toPairs,
       R.map(([path, data]) => ({
         logical_key: path,
@@ -266,18 +292,19 @@ function DialogForm({
     )
 
     try {
-      const res = await req({
-        endpoint: '/packages',
-        method: 'POST',
-        body: {
-          name,
-          registry: `s3://${bucket}`,
-          message: msg,
+      const res = await createPackage(
+        {
           contents,
-          meta: PD.getMetaValue(meta, schema),
-          workflow: PD.getWorkflowApiParam(workflow.slug),
+          message: msg,
+          meta,
+          target: {
+            name,
+            bucket,
+          },
+          workflow,
         },
-      })
+        schema,
+      )
       setSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -298,41 +325,25 @@ function DialogForm({
 
   const handleNameChange = React.useCallback(
     async (name) => {
-      let warning: React.ReactNode = ''
-
-      if (name !== initialName) {
-        const nameExists = await nameExistence.validate(name)
-        if (nameExists) {
-          warning = (
-            <>
-              <Code>{name}</Code> already exists. Click Push to create a new revision.
-            </>
-          )
-        } else {
-          warning = (
-            <>
-              <Code>{name}</Code> is a new package
-            </>
-          )
-        }
-      }
+      const nameExists = await nameExistence.validate(name)
+      const warning = <PD.PackageNameWarning exists={!!nameExists} />
 
       if (warning !== nameWarning) {
         setNameWarning(warning)
       }
     },
-    [nameWarning, nameExistence, initialName],
+    [nameWarning, nameExistence],
   )
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
 
   const onFormChange = React.useCallback(
-    async ({ modified, values }) => {
+    async ({ values }) => {
       if (editorElement && document.body.contains(editorElement)) {
         setMetaHeight(editorElement.clientHeight)
       }
 
-      if (modified.name) handleNameChange(values.name)
+      handleNameChange(values.name)
     },
     [editorElement, handleNameChange, setMetaHeight],
   )
@@ -371,18 +382,31 @@ function DialogForm({
                 subscription={{ modified: true, values: true }}
                 onChange={onFormChange}
               />
+
+              <RF.FormSpy
+                subscription={{ modified: true, values: true }}
+                onChange={({ modified, values }) => {
+                  if (modified!.workflow) {
+                    setWorkflow(values.workflow)
+                  }
+                }}
+              />
+
               <PD.Container>
                 <PD.LeftColumn>
                   <M.Typography color={submitting ? 'textSecondary' : undefined}>
                     Main
                   </M.Typography>
 
-                  <RF.FormSpy
-                    subscription={{ modified: true, values: true }}
-                    onChange={({ modified, values }) => {
-                      if (modified!.workflow) {
-                        setWorkflow(values.workflow)
-                      }
+                  <RF.Field
+                    component={PD.WorkflowInput}
+                    name="workflow"
+                    workflowsConfig={workflowsConfig}
+                    initialValue={selectedWorkflow}
+                    validate={validators.required as FF.FieldValidator<any>}
+                    validateFields={['meta', 'workflow']}
+                    errors={{
+                      required: 'Workflow is required for this bucket.',
                     }}
                   />
 
@@ -432,18 +456,6 @@ function DialogForm({
                       ref={setEditorElement}
                     />
                   )}
-
-                  <RF.Field
-                    component={PD.WorkflowInput}
-                    name="workflow"
-                    workflowsConfig={workflowsConfig}
-                    initialValue={selectedWorkflow}
-                    validate={validators.required as FF.FieldValidator<any>}
-                    validateFields={['meta', 'workflow']}
-                    errors={{
-                      required: 'Workflow is required for this bucket.',
-                    }}
-                  />
                 </PD.LeftColumn>
 
                 <PD.RightColumn>
@@ -470,6 +482,7 @@ function DialogForm({
                     onFilesAction={onFilesAction}
                     isEqual={R.equals}
                     initialValue={initialFiles}
+                    bucket={bucket}
                   />
                 </PD.RightColumn>
               </PD.Container>

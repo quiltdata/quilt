@@ -10,10 +10,16 @@ import * as DG from '@material-ui/data-grid'
 
 import { renderPageRange } from 'components/Pagination2'
 import { readableBytes } from 'utils/string'
+import usePrevious from 'utils/usePrevious'
 
 const EMPTY = <i>{'<EMPTY>'}</i>
 
 const TIP_DELAY = 1000
+
+const TOOLBAR_INNER_HEIGHT = 28
+
+// monkey-patch MUI built-in colDef to better align checkboxes
+DG.gridCheckboxSelectionColDef.width = 32
 
 export interface Item {
   type: 'dir' | 'file'
@@ -63,9 +69,14 @@ function WrappedAutosizeInput({ className, ...props }: WrappedAutosizeInputProps
 
 const usePrefixFilterStyles = M.makeStyles((t) => ({
   root: {
+    height: TOOLBAR_INNER_HEIGHT,
+    position: 'relative',
+    zIndex: 1, // to be rendered above the lock
+  },
+  input: {
     fontSize: 14,
     height: 20,
-    lineHeight: 20,
+    lineHeight: '20px',
     padding: 0,
   },
   btn: {
@@ -138,7 +149,7 @@ export function PrefixFilter({ prefix = '', setPrefix }: PrefixFilterProps) {
       onChange={handleChange}
       onKeyDown={handleKeyDown}
       placeholder="Filter current directory by prefix"
-      classes={{ input: classes.root }}
+      classes={{ root: classes.root, input: classes.input }}
       inputComponent={WrappedAutosizeInput}
       inputRef={inputRef}
       startAdornment={<M.Icon className={classes.searchIcon}>search</M.Icon>}
@@ -177,6 +188,8 @@ const usePaginationStyles = M.makeStyles((t) => ({
   root: {
     alignItems: 'center',
     display: 'flex',
+    flexGrow: 1,
+    height: TOOLBAR_INNER_HEIGHT,
   },
   select: {
     alignItems: 'center',
@@ -188,14 +201,11 @@ const usePaginationStyles = M.makeStyles((t) => ({
   },
   input: {
     fontSize: 'inherit',
+    marginRight: t.spacing(0.5),
 
-    // TODO: xs?
-    [t.breakpoints.down('sm')]: {
+    [t.breakpoints.down('xs')]: {
       display: 'none',
     },
-  },
-  actions: {
-    marginLeft: t.spacing(0.5),
   },
   button: {
     color: t.palette.action.active,
@@ -209,7 +219,12 @@ const usePaginationStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Pagination() {
+interface PaginationProps {
+  truncated?: boolean
+  loadMore?: () => void
+}
+
+function Pagination({ truncated, loadMore }: PaginationProps) {
   const classes = usePaginationStyles()
 
   const apiRef = React.useContext(DG.GridApiContext)
@@ -254,10 +269,11 @@ function Pagination() {
     </M.Button>
   )
 
-  if (!pages) return null
+  if (!pages) return <M.Box flexGrow={1} />
 
   return (
     <div className={classes.root}>
+      <M.Box flexGrow={1} />
       {rowsPerPageOptions.length > 1 && (
         <M.Select
           classes={{ select: classes.select }}
@@ -272,23 +288,27 @@ function Pagination() {
           ))}
         </M.Select>
       )}
-      <div className={classes.actions}>
-        <M.IconButton
+      <M.IconButton size="small" disabled={page === 1} onClick={() => setPage(page - 1)}>
+        <M.Icon fontSize="small">chevron_left</M.Icon>
+      </M.IconButton>
+      {renderPageRange({ page, pages, renderPage, renderGap, max: 10 })}
+      {truncated && !!loadMore && (
+        <M.Button
           size="small"
-          disabled={page === 1}
-          onClick={() => setPage(page - 1)}
+          className={classes.button}
+          onClick={loadMore}
+          title="Load more"
         >
-          <M.Icon fontSize="small">chevron_left</M.Icon>
-        </M.IconButton>
-        {renderPageRange({ page, pages, renderPage, renderGap, max: 10 })}
-        <M.IconButton
-          size="small"
-          disabled={page === pages}
-          onClick={() => setPage(page + 1)}
-        >
-          <M.Icon fontSize="small">chevron_right</M.Icon>
-        </M.IconButton>
-      </div>
+          &hellip;
+        </M.Button>
+      )}
+      <M.IconButton
+        size="small"
+        disabled={page === pages}
+        onClick={() => setPage(page + 1)}
+      >
+        <M.Icon fontSize="small">chevron_right</M.Icon>
+      </M.IconButton>
     </div>
   )
 }
@@ -366,32 +386,54 @@ const useToolbarStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     borderBottom: `1px solid ${t.palette.divider}`,
     display: 'flex',
-    height: 36,
-    padding: t.spacing(0, 1),
+    flexWrap: 'wrap',
+    padding: t.spacing(0.5, 1),
+    position: 'relative',
   },
   icon: {
     fontSize: t.typography.body1.fontSize,
     marginRight: t.spacing(0.5),
   },
   truncated: {
+    ...t.typography.body2,
     alignItems: 'center',
     color: t.palette.text.secondary,
     display: 'flex',
+    height: TOOLBAR_INNER_HEIGHT,
     marginLeft: t.spacing(1),
   },
-  spacer: {
-    flexGrow: 1,
+  lock: {
+    background: fade(t.palette.background.paper, 0.5),
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  loadMore: {
+    font: 'inherit',
+  },
+  progress: {
+    marginLeft: t.spacing(0.5),
   },
 }))
 
 interface ToolbarOwnProps {
   children?: React.ReactNode
   truncated?: boolean
+  locked?: boolean
+  loadMore?: () => void
 }
 
 type ToolbarProps = ToolbarOwnProps & DG.GridBaseComponentProps
 
-function Toolbar({ truncated = false, rows, children }: ToolbarProps) {
+function Toolbar({
+  truncated = false,
+  locked = false,
+  loadMore,
+  rows,
+  children,
+}: ToolbarProps) {
   const classes = useToolbarStyles()
   const items = (rows as unknown) as Item[]
   return (
@@ -401,11 +443,25 @@ function Toolbar({ truncated = false, rows, children }: ToolbarProps) {
         <div className={classes.truncated}>
           <M.Icon className={classes.icon}>warning</M.Icon>
           Showing first {items.length} objects
+          {!!loadMore && (
+            <>
+              <> &rarr;&nbsp;</>
+              <M.Link
+                onClick={loadMore}
+                className={classes.loadMore}
+                component="button"
+                underline="always"
+              >
+                load more
+              </M.Link>
+              {locked && <M.CircularProgress size={16} className={classes.progress} />}
+            </>
+          )}
         </div>
       )}
-      <div className={classes.spacer} />
-      <Pagination />
+      <Pagination truncated={truncated} loadMore={loadMore} />
       <FilterToolbarButton />
+      {locked && <div className={classes.lock} />}
     </div>
   )
 }
@@ -413,6 +469,9 @@ function Toolbar({ truncated = false, rows, children }: ToolbarProps) {
 const usePanelStyles = M.makeStyles((t) => ({
   root: {
     zIndex: 1,
+    '& select, & input': {
+      boxSizing: 'content-box',
+    },
   },
   paper: {
     backgroundColor: t.palette.background.paper,
@@ -452,6 +511,7 @@ function Panel({ children, open }: DG.GridPanelProps) {
       anchorEl={anchorEl}
       modifiers={getPopperModifiers()}
       className={classes.root}
+      disablePortal
     >
       <M.ClickAwayListener onClickAway={handleClickAway}>
         <M.Paper className={classes.paper} elevation={8} onKeyDown={handleKeyDown}>
@@ -497,8 +557,18 @@ const useFooterStyles = M.makeStyles((t) => ({
     color: t.palette.text.secondary,
     display: 'flex',
     height: 36,
+    position: 'relative',
+  },
+  lock: {
+    background: fade(t.palette.background.paper, 0.5),
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   group: {
+    ...t.typography.body2,
     alignItems: 'center',
     display: 'flex',
 
@@ -509,6 +579,20 @@ const useFooterStyles = M.makeStyles((t) => ({
   icon: {
     fontSize: t.typography.body1.fontSize,
     marginRight: t.spacing(0.5),
+  },
+  loadMore: {
+    font: 'inherit',
+  },
+  progress: {
+    marginLeft: t.spacing(0.5),
+  },
+  truncationWarning: {
+    alignItems: 'inherit',
+    display: 'inherit',
+
+    [t.breakpoints.down('xs')]: {
+      display: 'none',
+    },
   },
   cellFirst: {
     alignItems: 'center',
@@ -531,11 +615,19 @@ const useFooterStyles = M.makeStyles((t) => ({
 
 interface FooterOwnProps {
   truncated?: boolean
+  locked?: boolean
+  loadMore?: () => void
 }
 
 type FooterProps = FooterOwnProps & DG.GridBaseComponentProps
 
-function Footer({ truncated = false, rows, state }: FooterProps) {
+function Footer({
+  truncated = false,
+  locked = false,
+  loadMore,
+  rows,
+  state,
+}: FooterProps) {
   const classes = useFooterStyles()
 
   const apiRef = React.useContext(DG.GridApiContext)
@@ -588,7 +680,25 @@ function Footer({ truncated = false, rows, state }: FooterProps) {
           // TODO: show tooltip with detailed description?
           <div className={classes.group}>
             <M.Icon className={classes.icon}>warning</M.Icon>
-            Showing first {items.length} objects
+            <span className={classes.truncationWarning}>
+              Showing first {items.length} objects
+              {!!loadMore && (
+                <>
+                  <> &rarr;&nbsp;</>
+                  <M.Link
+                    onClick={loadMore}
+                    className={classes.loadMore}
+                    component="button"
+                    underline="always"
+                  >
+                    load more
+                  </M.Link>
+                  {locked && (
+                    <M.CircularProgress size={16} className={classes.progress} />
+                  )}
+                </>
+              )}
+            </span>
           </div>
         )}
       </div>
@@ -600,6 +710,7 @@ function Footer({ truncated = false, rows, state }: FooterProps) {
       <div className={classes.cellLast}>
         {modified && `${truncated ? '~' : ''}${modified.toLocaleString()}`}
       </div>
+      {locked && <div className={classes.lock} />}
     </div>
   )
 }
@@ -612,6 +723,16 @@ function FilteredOverlay() {
       </M.Tooltip>
     </DG.GridOverlay>
   )
+}
+
+export type CellProps = React.PropsWithChildren<{
+  item: Item
+  title?: string
+  className?: string
+}>
+
+function Cell({ item, ...props }: CellProps) {
+  return <Link to={item.to} {...props} />
 }
 
 function compareBy<T, V extends R.Ord>(a: T, b: T, getValue: (arg: T) => V) {
@@ -657,7 +778,7 @@ const COL_MODIFIED_W = 176
 const useStyles = M.makeStyles((t) => ({
   '@global': {
     '.MuiDataGridMenu-root': {
-      zIndex: 1,
+      zIndex: t.zIndex.modal + 1, // show it over modals
     },
   },
   root: {
@@ -671,8 +792,15 @@ const useStyles = M.makeStyles((t) => ({
       background: fade(t.palette.background.paper, 0.5),
       zIndex: 1,
     },
+    '& .MuiDataGrid-checkboxInput': {
+      padding: 7,
+      '& svg': {
+        fontSize: 18,
+      },
+    },
     '& .MuiDataGrid-cell': {
       border: 'none',
+      outline: 'none !important',
       padding: 0,
     },
     '& .MuiDataGrid-colCell': {
@@ -698,11 +826,11 @@ const useStyles = M.makeStyles((t) => ({
         pointerEvents: 'none',
       },
       // "Size" column
-      '&:nth-child(2)': {
+      '&:nth-last-child(2)': {
         justifyContent: 'flex-end',
       },
       // "Last modified" column
-      '&:nth-child(3)': {
+      '&:last-child': {
         justifyContent: 'flex-end',
         '& .MuiDataGrid-colCellTitleContainer': {
           order: 1,
@@ -716,6 +844,21 @@ const useStyles = M.makeStyles((t) => ({
       },
     },
   },
+  locked: {
+    '& .MuiDataGrid-columnsContainer': {
+      position: 'absolute',
+
+      '&::after': {
+        background: fade(t.palette.background.paper, 0.5),
+        bottom: 0,
+        content: '""',
+        left: 0,
+        position: 'absolute',
+        right: 0,
+        top: 0,
+      },
+    },
+  },
   link: {
     padding: t.spacing(0, 1),
     width: '100%',
@@ -723,6 +866,10 @@ const useStyles = M.makeStyles((t) => ({
   linkFlex: {
     alignItems: 'center',
     display: 'flex',
+  },
+  ellipsis: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
   icon: {
     fontSize: t.typography.body1.fontSize,
@@ -739,6 +886,13 @@ interface ListingProps {
   locked?: boolean
   prefixFilter?: string
   toolbarContents?: React.ReactNode
+  loadMore?: () => void
+  selection?: DG.GridRowId[]
+  onSelectionChange?: (newSelection: DG.GridRowId[]) => void
+  CellComponent?: React.ComponentType<CellProps>
+  RootComponent?: React.ElementType<{ className: string }>
+  className?: string
+  dataGridProps?: Partial<DataGridProps>
 }
 
 export function Listing({
@@ -747,6 +901,13 @@ export function Listing({
   locked = false,
   toolbarContents,
   prefixFilter,
+  loadMore,
+  selection,
+  onSelectionChange,
+  CellComponent = Cell,
+  RootComponent = M.Paper,
+  className,
+  dataGridProps,
 }: ListingProps) {
   const classes = useStyles()
 
@@ -758,6 +919,32 @@ export function Listing({
     },
     [setFilteredToZero],
   )
+
+  const [page, setPage] = React.useState(0)
+  const [pageSize, setPageSize] = React.useState(25)
+
+  const handlePageChange = React.useCallback(
+    ({ page: newPage }: DG.GridPageChangeParams) => {
+      setPage(newPage)
+    },
+    [],
+  )
+
+  const handlePageSizeChange = React.useCallback(
+    ({ pageSize: newPageSize }: DG.GridPageChangeParams) => {
+      setPageSize(newPageSize)
+    },
+    [],
+  )
+
+  usePrevious(items, (prevItems?: Item[]) => {
+    if (!prevItems) return
+    const itemsOnPrevPages = page * pageSize
+    // reset page if items on previous pages change
+    if (!R.equals(R.take(itemsOnPrevPages, items), R.take(itemsOnPrevPages, prevItems))) {
+      setPage(0)
+    }
+  })
 
   const columns: DG.GridColumns = React.useMemo(
     () => [
@@ -784,20 +971,20 @@ export function Listing({
         renderCell: (params: DG.GridCellParams) => {
           const i = (params.row as unknown) as Item
           return (
-            <Link
-              to={i.to}
+            <CellComponent
+              item={i}
+              title={i.archived ? 'Object archived' : undefined}
               className={cx(
                 classes.link,
                 classes.linkFlex,
                 i.archived && classes.archived,
               )}
-              title={i.archived ? 'Object archived' : undefined}
             >
               <M.Icon className={classes.icon}>
                 {i.type === 'file' ? 'insert_drive_file' : 'folder_open'}
               </M.Icon>
-              {i.name || EMPTY}
-            </Link>
+              <span className={classes.ellipsis}>{i.name || EMPTY}</span>
+            </CellComponent>
           )
         },
       },
@@ -818,13 +1005,13 @@ export function Listing({
         renderCell: (params: DG.GridCellParams) => {
           const i = (params.row as unknown) as Item
           return (
-            <Link
-              to={i.to}
+            <CellComponent
+              item={i}
               className={cx(classes.link, i.archived && classes.archived)}
               title={i.archived ? 'Object archived' : undefined}
             >
               {i.size == null ? <>&nbsp;</> : readableBytes(i.size)}
-            </Link>
+            </CellComponent>
           )
         },
       },
@@ -837,18 +1024,18 @@ export function Listing({
         renderCell: (params: DG.GridCellParams) => {
           const i = (params.row as unknown) as Item
           return (
-            <Link
-              to={i.to}
+            <CellComponent
+              item={i}
               className={cx(classes.link, i.archived && classes.archived)}
               title={i.archived ? 'Object archived' : undefined}
             >
               {i.modified == null ? <>&nbsp;</> : i.modified.toLocaleString()}
-            </Link>
+            </CellComponent>
           )
         },
       },
     ],
-    [classes],
+    [classes, CellComponent],
   )
 
   const noRowsLabel = `No files / directories${
@@ -858,26 +1045,33 @@ export function Listing({
   // abuse loading overlay to show warning when all the items are filtered-out
   const LoadingOverlay = !locked && filteredToZero ? FilteredOverlay : undefined
 
+  const handleSelectionModelChange = React.useCallback(
+    (newSelection: DG.GridSelectionModelChangeParams) => {
+      if (onSelectionChange) onSelectionChange(newSelection.selectionModel)
+    },
+    [onSelectionChange],
+  )
+
   // TODO: control page, pageSize, filtering and sorting via props
   return (
-    <M.Paper className={classes.root}>
+    <RootComponent className={cx(classes.root, className)}>
       <DataGrid
         onFilterModelChange={handleFilterModelChange}
-        className={classes.grid}
+        className={cx(classes.grid, locked && classes.locked)}
         rows={items}
         columns={columns}
         autoHeight
         components={{ Toolbar, Footer, Panel, ColumnMenu, LoadingOverlay }}
         componentsProps={{
-          toolbar: { truncated, children: toolbarContents },
-          footer: { truncated },
+          toolbar: { truncated, locked, loadMore, children: toolbarContents },
+          footer: { truncated, locked, loadMore },
         }}
         getRowId={(row) => row.name}
         pagination
-        pageSize={25}
-        // page={1}
-        // onPageChange={({ page }) => set page}
-        // onPageSizeChange={({ pageSize }) => set page size}
+        pageSize={pageSize}
+        onPageSizeChange={handlePageSizeChange}
+        page={page}
+        onPageChange={handlePageChange}
         loading={locked || filteredToZero}
         headerHeight={36}
         rowHeight={36}
@@ -888,8 +1082,13 @@ export function Listing({
         disableMultipleSelection
         disableMultipleColumnsSorting
         localeText={{ noRowsLabel, ...localeText }}
+        // selection-related props
+        checkboxSelection={!!onSelectionChange}
+        selectionModel={selection}
+        onSelectionModelChange={handleSelectionModelChange}
+        {...dataGridProps}
       />
-    </M.Paper>
+    </RootComponent>
   )
 }
 

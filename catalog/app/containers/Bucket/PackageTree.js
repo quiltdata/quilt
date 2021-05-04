@@ -9,18 +9,20 @@ import * as Lab from '@material-ui/lab'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import * as Intercom from 'components/Intercom'
+import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
 import * as Notifications from 'containers/Notifications'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Config from 'utils/Config'
 import Data, { useData } from 'utils/Data'
 import * as LinkedData from 'utils/LinkedData'
+import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
 import Link, { linkStyle } from 'utils/StyledLink'
-import * as BucketPreferences from 'utils/BucketPreferences'
 import copyToClipboard from 'utils/clipboard'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
@@ -389,6 +391,7 @@ function DirDisplay({
         ...s3paths.parseS3Url(o.physicalKey),
         logicalKey: path + o.name,
       }))
+
       return (
         <>
           <PackageCopyDialog
@@ -582,6 +585,35 @@ function FileDisplay({ bucket, name, hash, revision, path, crumbs }) {
   })
 }
 
+function ResolverProvider({ bucket, name, hash, children }) {
+  const s3 = AWS.S3.use()
+  const { apiGatewayEndpoint: endpoint } = Config.use()
+  const credentials = AWS.Credentials.use()
+
+  // XXX: consider optimization: check current level (objects) for quick response
+  // const found = objects.find((o) => o.name === logicalKey)
+  // if (found) return s3paths.parseS3Url(found.physicalKey)
+  const resolveLogicalKey = React.useMemo(
+    () => (logicalKey) =>
+      requests.packageFileDetail({
+        s3,
+        credentials,
+        endpoint,
+        bucket,
+        name,
+        hash,
+        path: logicalKey,
+      }),
+    [s3, credentials, endpoint, bucket, name, hash],
+  )
+
+  return (
+    <LogicalKeyResolver.Provider value={resolveLogicalKey}>
+      {children}
+    </LogicalKeyResolver.Provider>
+  )
+}
+
 const useStyles = M.makeStyles({
   name: {
     wordBreak: 'break-all',
@@ -593,21 +625,13 @@ const useStyles = M.makeStyles({
   },
 })
 
-export default function PackageTree({
-  match: {
-    params: { bucket, name, revision = 'latest', path: encodedPath = '' },
-  },
-  location,
-}) {
+function PackageTree({ bucket, name, revision, path, resolvedFrom }) {
   const classes = useStyles()
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
   const bucketCfg = BucketConfig.useCurrentBucketConfig()
 
-  const path = s3paths.decode(encodedPath)
   const isDir = s3paths.isDir(path)
-
-  const { resolvedFrom } = parseSearch(location.search)
 
   const crumbs = React.useMemo(() => {
     const segments = [{ label: 'ROOT', path: '' }, ...s3paths.getBreadCrumbs(path)]
@@ -705,24 +729,27 @@ export default function PackageTree({
       </M.Typography>
 
       {revisionData.case({
-        Ok: ({ hash }) =>
-          isDir ? (
-            <DirDisplay
-              {...{
-                bucket,
-                name,
-                hash,
-                path,
-                revision,
-                crumbs,
-                onRevisionPush,
-                onCrossBucketPush,
-                key: hash,
-              }}
-            />
-          ) : (
-            <FileDisplay {...{ bucket, name, hash, revision, path, crumbs }} />
-          ),
+        Ok: ({ hash }) => (
+          <ResolverProvider {...{ bucket, name, hash }}>
+            {isDir ? (
+              <DirDisplay
+                {...{
+                  bucket,
+                  name,
+                  hash,
+                  path,
+                  revision,
+                  crumbs,
+                  onRevisionPush,
+                  onCrossBucketPush,
+                  key: hash,
+                }}
+              />
+            ) : (
+              <FileDisplay {...{ bucket, name, hash, revision, path, crumbs }} />
+            )}
+          </ResolverProvider>
+        ),
         Err: (e) => {
           if (!(e instanceof errors.BadRevision)) throw e
           return (
@@ -756,4 +783,21 @@ export default function PackageTree({
       })}
     </FileView.Root>
   )
+}
+
+export default function PackageTreeWrapper({
+  match: {
+    params: { bucket, name, revision = 'latest', path: encodedPath = '' },
+  },
+  location,
+}) {
+  const path = s3paths.decode(encodedPath)
+  const { resolvedFrom } = parseSearch(location.search)
+  const s3 = AWS.S3.use()
+  const packageExists = useData(requests.ensurePackageExists, { s3, bucket, name })
+  return packageExists.case({
+    Ok: () => <PackageTree {...{ bucket, name, revision, path, resolvedFrom }} />,
+    Err: errors.displayError(),
+    _: () => <Placeholder color="text.secondary" />,
+  })
 }

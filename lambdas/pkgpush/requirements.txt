@@ -1,0 +1,1 @@
+https://github.com/quiltdata/quilt/archive/989b0223952a821cef978d6ee902af9ed5d23b10.tar.gz#egg=quilt3&subdirectory=api/python

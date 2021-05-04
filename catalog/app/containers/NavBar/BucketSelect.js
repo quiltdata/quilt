@@ -31,7 +31,7 @@ const useNavInputStyles = M.makeStyles((t) => ({
     fontWeight: t.typography.button.fontWeight,
     height: 18,
     letterSpacing: t.typography.button.letterSpacing,
-    lineHeight: 18,
+    lineHeight: '18px',
     maxWidth: 200,
     paddingBottom: 7,
     paddingTop: 7,

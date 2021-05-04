@@ -34,14 +34,19 @@ class TestUtils(TestCase):
         for key in logical_keys:
             jsonl += "{\"logical_key\": \"%s\"}\n" % key
         streambytes = jsonl.encode()
+        records_unicode = '{"logical_key": "💩"}\n'.encode()
+        records_unicode = (records_unicode[:-4], records_unicode[-4:])
 
         self.s3response = {
             'Payload': [
-                {
-                    'Records': {
-                        'Payload': streambytes
+                *[
+                    {
+                        'Records': {
+                            'Payload': payload
+                        }
                     }
-                },
+                    for payload in (streambytes, *records_unicode)
+                ],
                 {
                     'Progress': {
                         'Details': {

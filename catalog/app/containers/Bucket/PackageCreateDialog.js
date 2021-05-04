@@ -9,10 +9,8 @@ import { Link } from 'react-router-dom'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
-import Code from 'components/Code'
 import * as authSelectors from 'containers/Auth/selectors'
 import AsyncResult from 'utils/AsyncResult'
-import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -76,8 +74,8 @@ const useFilesInputStyles = M.makeStyles((t) => ({
   active: {
     background: t.palette.action.selected,
   },
-  draggable: {
-    outline: `2px dashed ${t.palette.primary.main}`,
+  outlined: {
+    outline: `2px dashed ${t.palette.primary.light}`,
     outlineOffset: '-2px',
   },
   dropMsg: {
@@ -186,13 +184,15 @@ function FilesInput({
     value,
   ])
 
-  const warn = totalSize > PD.MAX_SIZE
+  const warn = totalSize > PD.MAX_UPLOAD_SIZE
 
   // eslint-disable-next-line no-nested-ternary
   const label = error ? (
     errors[error] || error
   ) : warn ? (
-    <>Total file size exceeds recommended maximum of {readableBytes(PD.MAX_SIZE)}</>
+    <>
+      Total file size exceeds recommended maximum of {readableBytes(PD.MAX_UPLOAD_SIZE)}
+    </>
   ) : (
     'Drop files here or click to browse'
   )
@@ -275,7 +275,7 @@ function FilesInput({
               isDragActive && !disabled && classes.active,
               !!error && classes.dropzoneErr,
               !error && warn && classes.dropzoneWarn,
-              isDragging && classes.draggable,
+              isDragging && classes.outlined,
             ),
           })}
         >
@@ -401,25 +401,6 @@ const getTotalProgress = R.pipe(
   }),
 )
 
-const useNameExistsWarningStyles = M.makeStyles({
-  root: {
-    marginRight: '4px',
-    verticalAlign: '-5px',
-  },
-})
-
-const NameExistsWarning = ({ name }) => {
-  const classes = useNameExistsWarningStyles()
-  return (
-    <>
-      <M.Icon className={classes.root} fontSize="small">
-        error_outline
-      </M.Icon>
-      <Code>{name}</Code> already exists. Click Push to create a new revision.
-    </>
-  )
-}
-
 function PackageCreateDialog({
   bucket,
   close,
@@ -435,7 +416,6 @@ function PackageCreateDialog({
   workflowsConfig,
 }) {
   const s3 = AWS.S3.use()
-  const req = APIConnector.use()
   const [uploads, setUploads] = React.useState({})
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
@@ -445,6 +425,7 @@ function PackageCreateDialog({
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
 
   const totalProgress = getTotalProgress(uploads)
+  const createPackage = requests.useCreatePackage()
 
   // eslint-disable-next-line consistent-return
   const onSubmit = async ({ name, msg, files, meta, workflow }) => {
@@ -517,18 +498,19 @@ function PackageCreateDialog({
     )
 
     try {
-      const res = await req({
-        endpoint: '/packages',
-        method: 'POST',
-        body: {
-          name,
-          registry: `s3://${bucket}`,
-          message: msg,
+      const res = await createPackage(
+        {
           contents,
-          meta: PD.getMetaValue(meta, schema),
-          workflow: PD.getWorkflowApiParam(workflow.slug),
+          message: msg,
+          meta,
+          target: {
+            bucket,
+            name,
+          },
+          workflow,
         },
-      })
+        schema,
+      )
       if (refresh) {
         // wait for ES index to receive the new package data
         await new Promise((resolve) => setTimeout(resolve, PD.ES_LAG))
@@ -545,12 +527,8 @@ function PackageCreateDialog({
 
   const handleNameChange = React.useCallback(
     async (name) => {
-      let warning = ''
-
       const nameExists = await nameExistence.validate(name)
-      if (nameExists) {
-        warning = <NameExistsWarning name={name} />
-      }
+      const warning = <PD.PackageNameWarning exists={!!nameExists} />
 
       if (warning !== nameWarning) {
         setNameWarning(warning)
@@ -570,21 +548,28 @@ function PackageCreateDialog({
 
   const [editorElement, setEditorElement] = React.useState()
 
+  const resizeObserver = React.useMemo(
+    () =>
+      new window.ResizeObserver((entries) => {
+        const { height } = entries[0]?.contentRect
+        setMetaHeight(height)
+      }),
+    [setMetaHeight],
+  )
+
   const onFormChange = React.useCallback(
     ({ dirtyFields, values }) => {
-      if (document.body.contains(editorElement)) {
-        setMetaHeight(editorElement.clientHeight)
-      }
       if (dirtyFields.name) handleNameChange(values.name)
     },
-    [editorElement, handleNameChange, setMetaHeight],
+    [handleNameChange],
   )
 
   React.useEffect(() => {
-    if (document.body.contains(editorElement)) {
-      setMetaHeight(editorElement.clientHeight)
+    if (editorElement) resizeObserver.observe(editorElement)
+    return () => {
+      if (editorElement) resizeObserver.unobserve(editorElement)
     }
-  }, [editorElement, setMetaHeight])
+  }, [editorElement, resizeObserver])
 
   const username = redux.useSelector(authSelectors.username)
   const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
@@ -637,6 +622,18 @@ function PackageCreateDialog({
                   </M.Typography>
 
                   <RF.Field
+                    component={PD.WorkflowInput}
+                    name="workflow"
+                    workflowsConfig={workflowsConfig}
+                    initialValue={selectedWorkflow}
+                    validate={validators.required}
+                    validateFields={['meta', 'workflow']}
+                    errors={{
+                      required: 'Workflow is required for this bucket.',
+                    }}
+                  />
+
+                  <RF.Field
                     component={PD.PackageNameInput}
                     initialValue={usernamePrefix}
                     name="name"
@@ -683,18 +680,6 @@ function PackageCreateDialog({
                       ref={setEditorElement}
                     />
                   )}
-
-                  <RF.Field
-                    component={PD.WorkflowInput}
-                    name="workflow"
-                    workflowsConfig={workflowsConfig}
-                    initialValue={selectedWorkflow}
-                    validate={validators.required}
-                    validateFields={['meta', 'workflow']}
-                    errors={{
-                      required: 'Workflow is required for this bucket.',
-                    }}
-                  />
                 </PD.LeftColumn>
 
                 <PD.RightColumn>

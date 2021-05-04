@@ -1,0 +1,25 @@
+coverage:
+  status:
+    project:
+      default:
+        paths:
+          - '!**/tests/'
+          - '!**/test/'
+        informational: true
+    patch:
+      default: false
+
+flag_management:
+  default_rules:
+    statuses:
+      - name_prefix: 'auto-'
+        type: project
+      - name_prefix: 'auto-'
+        type: patch
+  individual_flags:
+    # Looks like these are left from testing codecov flags,
+    # but it's not clear why they are still appear, ignore them.
+    - name: 'msys'
+      statuses: []
+    - name: 'linux-gnu'
+      statuses: []

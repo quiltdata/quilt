@@ -10,7 +10,7 @@ import { fade } from '@material-ui/core/styles'
 import * as Lab from '@material-ui/lab'
 
 import JsonEditor from 'components/JsonEditor'
-import { parseJSON, stringifyJSON } from 'components/JsonEditor/State'
+import { parseJSON, stringifyJSON } from 'components/JsonEditor/utils'
 import * as Notifications from 'containers/Notifications'
 import { useData } from 'utils/Data'
 import Delay from 'utils/Delay'
@@ -18,12 +18,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import useDragging from 'utils/dragging'
-import {
-  JsonSchema,
-  makeSchemaDefaultsSetter,
-  makeSchemaValidator,
-} from 'utils/json-schema'
-import pipeThru from 'utils/pipeThru'
+import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
 import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
 import * as workflows from 'utils/workflows'
@@ -32,7 +27,8 @@ import * as requests from '../requests'
 import MetaInputErrorHelper from './MetaInputErrorHelper'
 import SelectWorkflow from './SelectWorkflow'
 
-export const MAX_SIZE = 1000 * 1000 * 1000 // 1GB
+export const MAX_UPLOAD_SIZE = 1000 * 1000 * 1000 // 1GB
+export const MAX_S3_SIZE = 10 * 1000 * 1000 * 1000 // 10GB
 export const ES_LAG = 3 * 1000
 export const MAX_META_FILE_SIZE = 10 * 1000 * 1000 // 10MB
 
@@ -207,36 +203,31 @@ export function mkMetaValidator(schema?: JsonSchema) {
   }
 }
 
-export const getMetaValue = (value: unknown, optSchema: JsonSchema) =>
-  value
-    ? pipeThru(value || {})(
-        makeSchemaDefaultsSetter(optSchema),
-        R.toPairs,
-        R.filter(([k]) => !!k.trim()),
-        R.fromPairs,
-        R.when(R.isEmpty, () => undefined),
-      )
-    : undefined
-
 interface FieldProps {
   error?: string
   helperText?: React.ReactNode
   validating?: boolean
-  warning?: string
 }
+
+const useFieldInputStyles = M.makeStyles({
+  root: {
+    // It hides M.CircularProgress (spinning square) overflow
+    overflow: 'hidden',
+  },
+})
 
 export function Field({
   error,
   helperText,
   validating,
-  warning,
   ...rest
 }: FieldProps & M.TextFieldProps) {
-  // FIXME: warning is unused
+  const inputClasses = useFieldInputStyles()
   const props = {
     InputLabelProps: { shrink: true },
     InputProps: {
       endAdornment: validating && <M.CircularProgress size={20} />,
+      classes: inputClasses,
     },
     error: !!error,
     helperText: error || helperText,
@@ -313,7 +304,7 @@ export function CommitMessageInput({
 
 const useWorkflowInputStyles = M.makeStyles((t) => ({
   root: {
-    marginTop: t.spacing(3),
+    marginTop: t.spacing(2),
   },
 }))
 
@@ -349,14 +340,6 @@ export function WorkflowInput({
 
 export const defaultWorkflowFromConfig = (cfg?: workflows.WorkflowsConfig) =>
   cfg && cfg.workflows.find((item) => item.isDefault)
-
-export const getWorkflowApiParam = R.cond([
-  [R.equals(workflows.notAvaliable), R.always(undefined)],
-  [R.equals(workflows.notSelected), R.always(null)],
-  [R.T, R.identity],
-]) as (
-  slug: typeof workflows.notAvaliable | typeof workflows.notSelected | string,
-) => string | null | undefined
 
 const useMetaInputStyles = M.makeStyles((t) => ({
   header: {
@@ -409,9 +392,15 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
     position: 'relative',
   },
-  draggable: {
-    outline: `2px dashed ${t.palette.primary.main}`,
+  outlined: {
+    bottom: '1px',
+    left: 0,
+    outline: `2px dashed ${t.palette.primary.light}`,
     outlineOffset: '-2px',
+    position: 'absolute',
+    right: 0,
+    top: '1px',
+    zIndex: 1,
   },
   editor: {
     overflowY: 'auto',
@@ -464,177 +453,179 @@ interface MetaInputProps {
 type Mode = 'kv' | 'json'
 
 // TODO: warn on duplicate keys
-export const MetaInput = React.forwardRef(function MetaInput(
-  { className, schemaError, input: { value, onChange }, meta, schema }: MetaInputProps,
-  ref,
-) {
-  const classes = useMetaInputStyles()
-  const error = schemaError || ((meta.modified || meta.submitFailed) && meta.error)
-  const disabled = meta.submitting || meta.submitSucceeded
-  const [mode, setMode] = React.useState<Mode>('kv')
+export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
+  function MetaInput(
+    { className, schemaError, input: { value, onChange }, meta, schema },
+    ref,
+  ) {
+    const classes = useMetaInputStyles()
+    const error = schemaError || ((meta.modified || meta.submitFailed) && meta.error)
+    const disabled = meta.submitting || meta.submitSucceeded
+    const [mode, setMode] = React.useState<Mode>('kv')
 
-  const [textValue, setTextValue] = React.useState(() => stringifyJSON(value))
+    const [textValue, setTextValue] = React.useState(() => stringifyJSON(value))
 
-  const changeText = React.useCallback(
-    (text) => {
-      if (disabled) return
-      setTextValue(text)
-      onChange(parseJSON(text))
-    },
-    [disabled, onChange],
-  )
+    const changeText = React.useCallback(
+      (text) => {
+        if (disabled) return
+        setTextValue(text)
+        onChange(parseJSON(text))
+      },
+      [disabled, onChange],
+    )
 
-  const handleModeChange = (e: unknown, m: Mode) => {
-    if (!m) return
-    setMode(m)
-  }
+    const handleModeChange = (e: unknown, m: Mode) => {
+      if (!m) return
+      setMode(m)
+    }
 
-  const handleTextChange = (e: React.ChangeEvent<{ value: string }>) => {
-    changeText(e.target.value)
-  }
+    const handleTextChange = (e: React.ChangeEvent<{ value: string }>) => {
+      changeText(e.target.value)
+    }
 
-  const onJsonEditor = React.useCallback(
-    (json: {}) => {
-      setTextValue(stringifyJSON(json))
-      onChange(json)
-    },
-    [onChange],
-  )
+    const onJsonEditor = React.useCallback(
+      (json: {}) => {
+        setTextValue(stringifyJSON(json))
+        onChange(json)
+      },
+      [onChange],
+    )
 
-  const { push: notify } = Notifications.use()
-  const [locked, setLocked] = React.useState(false)
+    const { push: notify } = Notifications.use()
+    const [locked, setLocked] = React.useState(false)
 
-  // used to force json editor re-initialization
-  const [jsonEditorKey, setJsonEditorKey] = React.useState(1)
+    // used to force json editor re-initialization
+    const [jsonEditorKey, setJsonEditorKey] = React.useState(1)
 
-  const onDrop = React.useCallback(
-    ([file]) => {
-      if (file.size > MAX_META_FILE_SIZE) {
-        notify(
-          <>
-            File too large ({readableBytes(file.size)}), must be under{' '}
-            {readableBytes(MAX_META_FILE_SIZE)}.
-          </>,
-        )
-        return
-      }
-      setLocked(true)
-      readFile(file, schema)
-        .then((contents: string | {}) => {
-          if (R.is(Object, contents)) {
-            onJsonEditor(contents)
-          } else {
-            try {
-              JSON.parse(contents as string)
-            } catch (e) {
-              notify('The file does not contain valid JSON')
+    const onDrop = React.useCallback(
+      ([file]) => {
+        if (file.size > MAX_META_FILE_SIZE) {
+          notify(
+            <>
+              File too large ({readableBytes(file.size)}), must be under{' '}
+              {readableBytes(MAX_META_FILE_SIZE)}.
+            </>,
+          )
+          return
+        }
+        setLocked(true)
+        readFile(file, schema)
+          .then((contents: string | {}) => {
+            if (R.is(Object, contents)) {
+              onJsonEditor(contents)
+            } else {
+              try {
+                JSON.parse(contents as string)
+              } catch (e) {
+                notify('The file does not contain valid JSON')
+              }
+              changeText(contents)
             }
-            changeText(contents)
-          }
-          // force json editor to re-initialize
-          setJsonEditorKey(R.inc)
-        })
-        .catch((e) => {
-          if (e.message === 'abort') return
-          // eslint-disable-next-line no-console
-          console.log('Error reading file')
-          // eslint-disable-next-line no-console
-          console.error(e)
-          notify("Couldn't read that file")
-        })
-        .finally(() => {
-          setLocked(false)
-        })
-    },
-    [schema, setLocked, changeText, onJsonEditor, setJsonEditorKey, notify],
-  )
+            // force json editor to re-initialize
+            setJsonEditorKey(R.inc)
+          })
+          .catch((e) => {
+            if (e.message === 'abort') return
+            // eslint-disable-next-line no-console
+            console.log('Error reading file')
+            // eslint-disable-next-line no-console
+            console.error(e)
+            notify("Couldn't read that file")
+          })
+          .finally(() => {
+            setLocked(false)
+          })
+      },
+      [schema, setLocked, changeText, onJsonEditor, setJsonEditorKey, notify],
+    )
 
-  const isDragging = useDragging()
+    const isDragging = useDragging()
 
-  const { getRootProps, isDragActive } = useDropzone({ onDrop })
+    const { getRootProps, isDragActive } = useDropzone({ onDrop })
 
-  return (
-    <div className={className}>
-      <div className={classes.header}>
-        {/* eslint-disable-next-line no-nested-ternary */}
-        <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
-          Metadata
-        </M.Typography>
+    return (
+      <div className={className}>
+        <div className={classes.header}>
+          {/* eslint-disable-next-line no-nested-ternary */}
+          <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
+            Metadata
+          </M.Typography>
 
-        <M.Box flexGrow={1} />
-        <Lab.ToggleButtonGroup value={mode} exclusive onChange={handleModeChange}>
-          <Lab.ToggleButton value="kv" className={classes.btn} disabled={disabled}>
-            Key : Value
-          </Lab.ToggleButton>
-          <Lab.ToggleButton value="json" className={classes.btn} disabled={disabled}>
-            JSON
-          </Lab.ToggleButton>
-        </Lab.ToggleButtonGroup>
-      </div>
+          <M.Box flexGrow={1} />
+          <Lab.ToggleButtonGroup value={mode} exclusive onChange={handleModeChange}>
+            <Lab.ToggleButton value="kv" className={classes.btn} disabled={disabled}>
+              Key : Value
+            </Lab.ToggleButton>
+            <Lab.ToggleButton value="json" className={classes.btn} disabled={disabled}>
+              JSON
+            </Lab.ToggleButton>
+          </Lab.ToggleButtonGroup>
+        </div>
 
-      <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
-        {mode === 'kv' ? (
-          <JsonEditor
-            // @ts-expect-error
-            className={classes.editor}
-            disabled={disabled}
-            value={value}
-            onChange={onJsonEditor}
-            schema={schema}
-            key={jsonEditorKey}
-            tableClassName={cx({ [classes.draggable]: isDragging })}
-            ref={ref}
-          />
-        ) : (
-          <M.TextField
-            variant="outlined"
-            size="small"
-            value={textValue}
-            onChange={handleTextChange}
-            error={!!error}
-            fullWidth
-            multiline
-            placeholder="Enter JSON metadata if necessary"
-            rowsMax={10}
-            InputProps={{ classes: { input: classes.jsonInput } }}
-            disabled={disabled}
-          />
-        )}
+        <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
+          {isDragging && <div className={classes.outlined} />}
 
-        <MetaInputErrorHelper className={classes.errors} error={error} />
+          {mode === 'kv' ? (
+            <JsonEditor
+              className={classes.editor}
+              disabled={disabled}
+              value={value}
+              onChange={onJsonEditor}
+              schema={schema}
+              key={jsonEditorKey}
+              ref={ref}
+            />
+          ) : (
+            <M.TextField
+              variant="outlined"
+              size="small"
+              value={textValue}
+              onChange={handleTextChange}
+              error={!!error}
+              fullWidth
+              multiline
+              placeholder="Enter JSON metadata if necessary"
+              rowsMax={10}
+              InputProps={{ classes: { input: classes.jsonInput } }}
+              disabled={disabled}
+            />
+          )}
 
-        {locked && (
-          <div className={classes.overlay}>
-            <Delay ms={500} alwaysRender>
-              {(ready) => (
-                <M.Fade in={ready}>
-                  <div className={classes.overlayContents}>
-                    <M.CircularProgress size={20} className={classes.overlayProgress} />
-                    <div className={classes.overlayText}>Reading file contents</div>
-                  </div>
-                </M.Fade>
-              )}
-            </Delay>
-          </div>
-        )}
+          <MetaInputErrorHelper className={classes.errors} error={error} />
 
-        {isDragging && (
-          <div
-            className={cx(classes.overlay, classes.overlayDraggable, {
-              [classes.overlayDragActive]: isDragActive,
-            })}
-          >
-            <div className={classes.overlayContents}>
-              <div className={classes.overlayText}>
-                Drop metadata file (XLSX, CSV, JSON)
+          {locked && (
+            <div className={classes.overlay}>
+              <Delay ms={500} alwaysRender>
+                {(ready) => (
+                  <M.Fade in={ready}>
+                    <div className={classes.overlayContents}>
+                      <M.CircularProgress size={20} className={classes.overlayProgress} />
+                      <div className={classes.overlayText}>Reading file contents</div>
+                    </div>
+                  </M.Fade>
+                )}
+              </Delay>
+            </div>
+          )}
+
+          {isDragging && (
+            <div
+              className={cx(classes.overlay, classes.overlayDraggable, {
+                [classes.overlayDragActive]: isDragActive,
+              })}
+            >
+              <div className={classes.overlayContents}>
+                <div className={classes.overlayText}>
+                  Drop metadata file (XLSX, CSV, JSON)
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
-  )
-})
+    )
+  },
+)
 
 type Result = $TSFixMe
 
@@ -735,4 +726,27 @@ export function getUsernamePrefix(username?: string | null) {
   // see PACKAGE_NAME_FORMAT at quilt3/util.py
   const validParts = name.match(/\w+/g)
   return validParts ? `${validParts.join('')}/` : ''
+}
+
+const usePackageNameWarningStyles = M.makeStyles({
+  root: {
+    marginRight: '4px',
+    verticalAlign: '-5px',
+  },
+})
+
+interface PackageNameWarningProps {
+  exists?: boolean
+}
+
+export const PackageNameWarning = ({ exists }: PackageNameWarningProps) => {
+  const classes = usePackageNameWarningStyles()
+  return (
+    <>
+      <M.Icon className={classes.root} fontSize="small">
+        info_outlined
+      </M.Icon>
+      {exists ? 'Existing package' : 'New package'}
+    </>
+  )
 }

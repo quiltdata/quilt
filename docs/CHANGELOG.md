@@ -9,15 +9,26 @@
 
 # unreleased - YYYY-MM-DD
 ## Python API
+* [Added] Size of each manifest record is now limited by 1 MB. This constraint is added to ensure that S3 select, Athena and downstream services work correctly. This limit can be overridden with `QUILT_MANIFEST_MAX_RECORD_SIZE` environment variable. ([#2114](https://github.com/quiltdata/quilt/pull/2114))
+* [Changed] Decrease size of `Package` in-memory representation ([#1943](https://github.com/quiltdata/quilt/pull/1943))
 
 ## CLI
 
 ## Catalog, Lambdas
 * [Added] Prepopulate today date for metadata ([#2121](https://github.com/quiltdata/quilt/pull/2121))
+* [Added] Limit and offset parameters in pkgselect lambda ([#2124](https://github.com/quiltdata/quilt/pull/2124))
+* [Added] File listing: "load more" button to fetch more entries from S3 ([#2150](https://github.com/quiltdata/quilt/pull/2150))
+* [Added] Ability to add files from S3 while revising a package ([#2171](https://github.com/quiltdata/quilt/pull/2171))
+* [Added] Lambdas for pushing an existing package/creation of package ([#2147](https://github.com/quiltdata/quilt/pull/2147), [#2180](https://github.com/quiltdata/quilt/pull/2180))
 * [Changed] New DataGrid-based file listing UI with arbitrary sorting and filtering ([#2097](https://github.com/quiltdata/quilt/pull/2097))
 * [Changed] Item selection in folder-to-package dialog ([#2122](https://github.com/quiltdata/quilt/pull/2122))
 * [Changed] Don't preview .tif (but keep .tiff), preview .results as plain text ([#2128](https://github.com/quiltdata/quilt/pull/2128))
 * [Changed] Sort packages by modification time by default ([#2126](https://github.com/quiltdata/quilt/pull/2126))
+* [Changed] Resolve logical keys in summaries and vega inside packages ([#2140](https://github.com/quiltdata/quilt/pull/2140))
+* [Changed] Embed: load polyfills, bring back prefix filtering, load more ([#2153](https://github.com/quiltdata/quilt/pull/2153))
+* [Fixed] `UnicodeDecodeError` in indexer and pkgselect lambdas ([#2123](https://github.com/quiltdata/quilt/pull/2123))
+* [Fixed] Catch and display package-related errors properly ("no such package" and "bad revision") ([#2160](https://github.com/quiltdata/quilt/pull/2160))
+* [Fixed] Crashing `pkgselect` lambda's folder view on an empty manifest ([#2147](https://github.com/quiltdata/quilt/pull/2147))
 
 # 3.4.0 - 2021-03-15
 ## Python API
@@ -26,6 +37,7 @@
 * [Added] Support for callable `dest` parameter in `Package.push()` ([#2095](https://github.com/quiltdata/quilt/pull/2095))
 * [Changed] Removed unused dependency on `packaging` ([#2090](https://github.com/quiltdata/quilt/pull/2090))
 * [Fixed] Possible downloading of truncated manifests ([#1977](https://github.com/quiltdata/quilt/pull/1977))
+* [Fixed] `TypeError` on import when running with `PYTHONOPTIMIZE=2` ([#2102](https://github.com/quiltdata/quilt/pull/2102))
 
 ## Catalog, Lambdas
 * [Added] Support for EventBridge S3 events to es/indexer ([#1987](https://github.com/quiltdata/quilt/pull/1987))
