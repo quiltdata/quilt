@@ -53,6 +53,30 @@ export function useNamedQueries(workgroup: string): AsyncData<AthenaQuery[]> {
   return useData(namedQueries, { athena, workgroup }, { noAutoFetch: !workgroup })
 }
 
+async function waitForQueryStatus(
+  athena: Athena,
+  QueryExecutionId: string,
+): Promise<boolean> {
+  const statusData = await athena.getQueryExecution({ QueryExecutionId }).promise()
+  const status = statusData?.QueryExecution?.Status?.State
+  if (status === 'FAILED' || status === 'CANCELLED') {
+    throw new Error(status)
+  }
+
+  if (status === 'SUCCEEDED') {
+    return true
+  }
+
+  return waitForQueryStatus(athena, QueryExecutionId)
+}
+
+async function getQueryResults(athena: Athena, QueryExecutionId: string) {
+  await waitForQueryStatus(athena, QueryExecutionId)
+
+  const results = await athena.getQueryResults({ QueryExecutionId }).promise()
+  return results
+}
+
 export type AthenaSearchResults = object | null
 
 interface SearchArgs {
@@ -80,7 +104,7 @@ async function search({
       })
       .promise()
     if (!QueryExecutionId) throw new Error('No execution id')
-    const results = await athena.getQueryResults({ QueryExecutionId }).promise()
+    const results = await getQueryResults(athena, QueryExecutionId)
     return results
   } catch (e) {
     // eslint-disable-next-line no-console
