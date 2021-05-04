@@ -8,14 +8,17 @@ interface MetaTitleProps {
 }
 
 function MetaTitle({ bucket, subtitle }: MetaTitleProps) {
+  const baseTitle = 'Quilt is a versioned data portal for AWS'
   return (
     <Helmet>
       {subtitle ? (
         <title>
-          {subtitle} • {bucket} • Quilt
+          {subtitle} • {bucket} • {baseTitle}
         </title>
       ) : (
-        <title>{bucket} • Quilt</title>
+        <title>
+          {bucket} • {baseTitle}
+        </title>
       )}
     </Helmet>
   )
