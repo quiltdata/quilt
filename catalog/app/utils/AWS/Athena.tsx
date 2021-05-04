@@ -9,7 +9,7 @@ import * as Config from './Config'
 import * as Credentials from './Credentials'
 
 const getRegion: (input: string) => string = R.pipe(
-  R.match(/\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com$/),
+  R.match(/\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com/),
   R.nth(1),
   R.defaultTo('us-east-1'),
 )

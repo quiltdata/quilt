@@ -143,7 +143,10 @@ function QueriesState({ children }: QueriesStateProps) {
     Ok: (workgroups) => (
       <QueriesFetcher workgroup={workgroup?.name || workgroups?.[0].name || ''}>
         {(queriesData) => (
-          <SearchResultsFetcher queryBody={queryRequest || ''} workgroup="fiskus-test">
+          <SearchResultsFetcher
+            queryBody={queryRequest || ''}
+            workgroup={workgroup?.name || workgroups?.[0].name || ''}
+          >
             {(resultsData) =>
               children({
                 customQueryBody,

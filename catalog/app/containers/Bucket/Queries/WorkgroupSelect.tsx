@@ -45,7 +45,7 @@ export default function WorkgroupSelect({
   return (
     <div className={className}>
       <M.Typography className={classes.header} variant="body1">
-        Select query
+        Select workgroup
       </M.Typography>
       <M.Paper>
         <M.FormControl className={classes.selectWrapper}>
