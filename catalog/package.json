@@ -129,7 +129,6 @@
     "xlsx": "^0.16.9"
   },
   "devDependencies": {
-    "@types/classnames": "^2.3.0",
     "@types/dedent": "^0.7.0",
     "@types/fontfaceobserver": "^0.0.6",
     "@types/history": "^4.7.8",
