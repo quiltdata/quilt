@@ -18,11 +18,19 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+// interface UiOptions {
+//   key: string
+//   label: string
+//   description?: string
+//   workflow?: workflows.Workflow
+// }
+
 export function getOptions(items) {
-  const options = items.map((item) => ({
-    key: item.slug.toString(),
-    label: item.name || 'None',
-    description: item.description,
+  const options = items.map((workflow) => ({
+    key: workflow.slug.toString(),
+    label: workflow.name || 'None',
+    description: workflow.description,
+    workflow,
   }))
 
   const showDisabledNoneOption = !items.find(({ slug }) => slug === workflows.notSelected)
@@ -30,12 +38,20 @@ export function getOptions(items) {
     options.unshift({
       key: workflows.notSelected.toString(),
       label: 'None',
-      disabled: true,
     })
   }
 
   return options
 }
+
+// interface SelectWorkflowProps {
+//   className: string
+//   disabled?: boolean
+//   error: Error
+//   items: workflows.Workflow[]
+//   onChange: (w: workflows.Workflow) => void
+//   value: workflows.Workflow
+// }
 
 export default function SelectWorkflow({
   className,
@@ -69,7 +85,8 @@ export default function SelectWorkflow({
           <M.MenuItem
             key={option.key}
             value={option.key}
-            onClick={() => !disabled && onChange(option)}
+            onClick={() => !!option.workflow && onChange(option.workflow)}
+            disabled={!option.workflow}
             dense
           >
             <M.ListItemText
@@ -77,7 +94,7 @@ export default function SelectWorkflow({
                 primary: classes.crop,
                 secondary: classes.crop,
               }}
-              primary={option.name}
+              primary={option.label}
               secondary={option.description}
             />
           </M.MenuItem>
