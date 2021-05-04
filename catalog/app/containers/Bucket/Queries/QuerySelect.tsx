@@ -59,7 +59,7 @@ export default function QuerySelect({
             </M.MenuItem>
             {queries.map((query) => (
               <M.MenuItem key={query.key} value={query.key}>
-                {query.name}
+                <M.ListItemText primary={query.name} secondary={query.description} />
               </M.MenuItem>
             ))}
           </M.Select>
