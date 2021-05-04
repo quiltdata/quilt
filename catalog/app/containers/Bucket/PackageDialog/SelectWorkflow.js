@@ -18,6 +18,25 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+export function getOptions(items) {
+  const options = items.map((item) => ({
+    key: item.slug.toString(),
+    label: item.name || 'None',
+    description: item.description,
+  }))
+
+  const showDisabledNoneOption = !items.find(({ slug }) => slug === workflows.notSelected)
+  if (showDisabledNoneOption) {
+    options.unshift({
+      key: workflows.notSelected.toString(),
+      label: 'None',
+      disabled: true,
+    })
+  }
+
+  return options
+}
+
 export default function SelectWorkflow({
   className,
   disabled,
@@ -29,7 +48,7 @@ export default function SelectWorkflow({
   const classes = useStyles()
 
   const noChoice = items.length === 1
-  const showDisabledNoneOption = !items.find(({ slug }) => slug === workflows.notSelected)
+  const options = React.useMemo(() => getOptions(items), [items])
 
   return (
     <M.FormControl
@@ -46,11 +65,11 @@ export default function SelectWorkflow({
         labelId="schema-select"
         value={value ? value.slug.toString() : workflows.notSelected.toString()}
       >
-        {showDisabledNoneOption && (
+        {options.map((option) => (
           <M.MenuItem
-            key={workflows.notSelected.toString()}
-            value={workflows.notSelected.toString()}
-            disabled
+            key={option.key}
+            value={option.key}
+            onClick={() => !disabled && onChange(option)}
             dense
           >
             <M.ListItemText
@@ -58,24 +77,7 @@ export default function SelectWorkflow({
                 primary: classes.crop,
                 secondary: classes.crop,
               }}
-              primary="None"
-            />
-          </M.MenuItem>
-        )}
-
-        {items.map((option) => (
-          <M.MenuItem
-            key={option.slug.toString()}
-            value={option.slug.toString()}
-            onClick={() => onChange(option)}
-            dense
-          >
-            <M.ListItemText
-              classes={{
-                primary: classes.crop,
-                secondary: classes.crop,
-              }}
-              primary={option.name || 'None'}
+              primary={option.name}
               secondary={option.description}
             />
           </M.MenuItem>
