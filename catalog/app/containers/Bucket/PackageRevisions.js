@@ -451,7 +451,7 @@ export default function PackageRevisions({
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-      <HtmlMeta bucket={bucket} name={name} />
+      <HtmlMeta.PackageRevisions bucket={bucket} name={name} />
 
       {updateDialog.render()}
 

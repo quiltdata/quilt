@@ -57,7 +57,7 @@ interface RevisionsProps extends BaseProps {
   name: string
 }
 
-export function Revisions({ bucket, name }: RevisionsProps) {
+export function PackageRevisions({ bucket, name }: RevisionsProps) {
   return <MetaTitle bucket={bucket} subtitle={name} />
 }
 
