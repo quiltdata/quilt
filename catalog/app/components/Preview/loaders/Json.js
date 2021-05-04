@@ -107,7 +107,7 @@ function VegaLoader({ handle, gated, children }) {
   return children(result)
 }
 
-const hl = (lang) => (contents) => hljs.highlight(lang, contents).value
+const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 
 function JsonLoader({ gated, handle, children }) {
   const { result, fetch } = utils.usePreview({

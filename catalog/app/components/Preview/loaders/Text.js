@@ -55,7 +55,7 @@ export const detect = R.pipe(findLang, Boolean)
 
 const getLang = R.pipe(findLang, ([lang] = []) => lang)
 
-const hl = (lang) => (contents) => hljs.highlight(lang, contents).value
+const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 
 export const Loader = function TextLoader({ handle, forceLang, children }) {
   const { result, fetch } = utils.usePreview({

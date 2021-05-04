@@ -12,7 +12,7 @@ import Section from './Section'
 function highlight(lang, str) {
   if (lang && hljs.getLanguage(lang)) {
     try {
-      const { value } = hljs.highlight(lang, str)
+      const { value } = hljs.highlight(str, { language: lang })
       // eslint-disable-next-line react/no-danger
       return <span dangerouslySetInnerHTML={{ __html: value }} />
     } catch (err) {
