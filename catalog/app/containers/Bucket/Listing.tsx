@@ -10,12 +10,16 @@ import * as DG from '@material-ui/data-grid'
 
 import { renderPageRange } from 'components/Pagination2'
 import { readableBytes } from 'utils/string'
+import usePrevious from 'utils/usePrevious'
 
 const EMPTY = <i>{'<EMPTY>'}</i>
 
 const TIP_DELAY = 1000
 
 const TOOLBAR_INNER_HEIGHT = 28
+
+// monkey-patch MUI built-in colDef to better align checkboxes
+DG.gridCheckboxSelectionColDef.width = 32
 
 export interface Item {
   type: 'dir' | 'file'
@@ -265,7 +269,7 @@ function Pagination({ truncated, loadMore }: PaginationProps) {
     </M.Button>
   )
 
-  if (!pages) return null
+  if (!pages) return <M.Box flexGrow={1} />
 
   return (
     <div className={classes.root}>
@@ -465,6 +469,9 @@ function Toolbar({
 const usePanelStyles = M.makeStyles((t) => ({
   root: {
     zIndex: 1,
+    '& select, & input': {
+      boxSizing: 'content-box',
+    },
   },
   paper: {
     backgroundColor: t.palette.background.paper,
@@ -504,6 +511,7 @@ function Panel({ children, open }: DG.GridPanelProps) {
       anchorEl={anchorEl}
       modifiers={getPopperModifiers()}
       className={classes.root}
+      disablePortal
     >
       <M.ClickAwayListener onClickAway={handleClickAway}>
         <M.Paper className={classes.paper} elevation={8} onKeyDown={handleKeyDown}>
@@ -717,6 +725,16 @@ function FilteredOverlay() {
   )
 }
 
+export type CellProps = React.PropsWithChildren<{
+  item: Item
+  title?: string
+  className?: string
+}>
+
+function Cell({ item, ...props }: CellProps) {
+  return <Link to={item.to} {...props} />
+}
+
 function compareBy<T, V extends R.Ord>(a: T, b: T, getValue: (arg: T) => V) {
   const va = getValue(a)
   const vb = getValue(b)
@@ -760,7 +778,7 @@ const COL_MODIFIED_W = 176
 const useStyles = M.makeStyles((t) => ({
   '@global': {
     '.MuiDataGridMenu-root': {
-      zIndex: 1,
+      zIndex: t.zIndex.modal + 1, // show it over modals
     },
   },
   root: {
@@ -774,8 +792,15 @@ const useStyles = M.makeStyles((t) => ({
       background: fade(t.palette.background.paper, 0.5),
       zIndex: 1,
     },
+    '& .MuiDataGrid-checkboxInput': {
+      padding: 7,
+      '& svg': {
+        fontSize: 18,
+      },
+    },
     '& .MuiDataGrid-cell': {
       border: 'none',
+      outline: 'none !important',
       padding: 0,
     },
     '& .MuiDataGrid-colCell': {
@@ -801,11 +826,11 @@ const useStyles = M.makeStyles((t) => ({
         pointerEvents: 'none',
       },
       // "Size" column
-      '&:nth-child(2)': {
+      '&:nth-last-child(2)': {
         justifyContent: 'flex-end',
       },
       // "Last modified" column
-      '&:nth-child(3)': {
+      '&:last-child': {
         justifyContent: 'flex-end',
         '& .MuiDataGrid-colCellTitleContainer': {
           order: 1,
@@ -842,6 +867,10 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
   },
+  ellipsis: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
   icon: {
     fontSize: t.typography.body1.fontSize,
     marginRight: t.spacing(0.5),
@@ -858,6 +887,12 @@ interface ListingProps {
   prefixFilter?: string
   toolbarContents?: React.ReactNode
   loadMore?: () => void
+  selection?: DG.GridRowId[]
+  onSelectionChange?: (newSelection: DG.GridRowId[]) => void
+  CellComponent?: React.ComponentType<CellProps>
+  RootComponent?: React.ElementType<{ className: string }>
+  className?: string
+  dataGridProps?: Partial<DataGridProps>
 }
 
 export function Listing({
@@ -867,6 +902,12 @@ export function Listing({
   toolbarContents,
   prefixFilter,
   loadMore,
+  selection,
+  onSelectionChange,
+  CellComponent = Cell,
+  RootComponent = M.Paper,
+  className,
+  dataGridProps,
 }: ListingProps) {
   const classes = useStyles()
 
@@ -878,6 +919,32 @@ export function Listing({
     },
     [setFilteredToZero],
   )
+
+  const [page, setPage] = React.useState(0)
+  const [pageSize, setPageSize] = React.useState(25)
+
+  const handlePageChange = React.useCallback(
+    ({ page: newPage }: DG.GridPageChangeParams) => {
+      setPage(newPage)
+    },
+    [],
+  )
+
+  const handlePageSizeChange = React.useCallback(
+    ({ pageSize: newPageSize }: DG.GridPageChangeParams) => {
+      setPageSize(newPageSize)
+    },
+    [],
+  )
+
+  usePrevious(items, (prevItems?: Item[]) => {
+    if (!prevItems) return
+    const itemsOnPrevPages = page * pageSize
+    // reset page if items on previous pages change
+    if (!R.equals(R.take(itemsOnPrevPages, items), R.take(itemsOnPrevPages, prevItems))) {
+      setPage(0)
+    }
+  })
 
   const columns: DG.GridColumns = React.useMemo(
     () => [
@@ -904,20 +971,20 @@ export function Listing({
         renderCell: (params: DG.GridCellParams) => {
           const i = (params.row as unknown) as Item
           return (
-            <Link
-              to={i.to}
+            <CellComponent
+              item={i}
+              title={i.archived ? 'Object archived' : undefined}
               className={cx(
                 classes.link,
                 classes.linkFlex,
                 i.archived && classes.archived,
               )}
-              title={i.archived ? 'Object archived' : undefined}
             >
               <M.Icon className={classes.icon}>
                 {i.type === 'file' ? 'insert_drive_file' : 'folder_open'}
               </M.Icon>
-              {i.name || EMPTY}
-            </Link>
+              <span className={classes.ellipsis}>{i.name || EMPTY}</span>
+            </CellComponent>
           )
         },
       },
@@ -938,13 +1005,13 @@ export function Listing({
         renderCell: (params: DG.GridCellParams) => {
           const i = (params.row as unknown) as Item
           return (
-            <Link
-              to={i.to}
+            <CellComponent
+              item={i}
               className={cx(classes.link, i.archived && classes.archived)}
               title={i.archived ? 'Object archived' : undefined}
             >
               {i.size == null ? <>&nbsp;</> : readableBytes(i.size)}
-            </Link>
+            </CellComponent>
           )
         },
       },
@@ -957,18 +1024,18 @@ export function Listing({
         renderCell: (params: DG.GridCellParams) => {
           const i = (params.row as unknown) as Item
           return (
-            <Link
-              to={i.to}
+            <CellComponent
+              item={i}
               className={cx(classes.link, i.archived && classes.archived)}
               title={i.archived ? 'Object archived' : undefined}
             >
               {i.modified == null ? <>&nbsp;</> : i.modified.toLocaleString()}
-            </Link>
+            </CellComponent>
           )
         },
       },
     ],
-    [classes],
+    [classes, CellComponent],
   )
 
   const noRowsLabel = `No files / directories${
@@ -978,9 +1045,16 @@ export function Listing({
   // abuse loading overlay to show warning when all the items are filtered-out
   const LoadingOverlay = !locked && filteredToZero ? FilteredOverlay : undefined
 
+  const handleSelectionModelChange = React.useCallback(
+    (newSelection: DG.GridSelectionModelChangeParams) => {
+      if (onSelectionChange) onSelectionChange(newSelection.selectionModel)
+    },
+    [onSelectionChange],
+  )
+
   // TODO: control page, pageSize, filtering and sorting via props
   return (
-    <M.Paper className={classes.root}>
+    <RootComponent className={cx(classes.root, className)}>
       <DataGrid
         onFilterModelChange={handleFilterModelChange}
         className={cx(classes.grid, locked && classes.locked)}
@@ -994,10 +1068,10 @@ export function Listing({
         }}
         getRowId={(row) => row.name}
         pagination
-        pageSize={25}
-        // page={1}
-        // onPageChange={({ page }) => set page}
-        // onPageSizeChange={({ pageSize }) => set page size}
+        pageSize={pageSize}
+        onPageSizeChange={handlePageSizeChange}
+        page={page}
+        onPageChange={handlePageChange}
         loading={locked || filteredToZero}
         headerHeight={36}
         rowHeight={36}
@@ -1008,8 +1082,13 @@ export function Listing({
         disableMultipleSelection
         disableMultipleColumnsSorting
         localeText={{ noRowsLabel, ...localeText }}
+        // selection-related props
+        checkboxSelection={!!onSelectionChange}
+        selectionModel={selection}
+        onSelectionModelChange={handleSelectionModelChange}
+        {...dataGridProps}
       />
-    </M.Paper>
+    </RootComponent>
   )
 }
 
