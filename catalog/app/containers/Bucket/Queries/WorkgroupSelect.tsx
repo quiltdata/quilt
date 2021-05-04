@@ -56,9 +56,6 @@ export default function WorkgroupSelect({
             onChange={handleChange}
             value={value ? value.key : 'none'}
           >
-            <M.MenuItem disabled value="none">
-              Custom
-            </M.MenuItem>
             {workgroups.map((query) => (
               <M.MenuItem key={query.key} value={query.key}>
                 {query.name}

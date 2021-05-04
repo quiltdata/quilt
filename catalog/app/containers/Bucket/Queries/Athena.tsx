@@ -157,7 +157,7 @@ function QueriesState({ children }: QueriesStateProps) {
                 queriesData,
                 queryMeta,
                 resultsData,
-                workgroup,
+                workgroup: workgroup || workgroups?.[0],
                 workgroups,
               })
             }

@@ -28,9 +28,10 @@ export const namedQueries = async ({
     const queryIdsData = await athena
       ?.listNamedQueries({ WorkGroup: workgroup })
       .promise()
+    if (!queryIdsData.NamedQueryIds || !queryIdsData.NamedQueryIds.length) return []
 
     const queriesData = await athena
-      ?.batchGetNamedQuery({ NamedQueryIds: queryIdsData.NamedQueryIds || [] })
+      ?.batchGetNamedQuery({ NamedQueryIds: queryIdsData.NamedQueryIds })
       .promise()
     return (queriesData.NamedQueries || []).map((query) => ({
       body: query.QueryString,
@@ -49,7 +50,7 @@ export const namedQueries = async ({
 
 export function useNamedQueries(workgroup: string): AsyncData<AthenaQuery[]> {
   const athena = AWS.Athena.use()
-  return useData(namedQueries, { athena, workgroup })
+  return useData(namedQueries, { athena, workgroup }, { noAutoFetch: !workgroup })
 }
 
 export type AthenaSearchResults = object | null
@@ -79,7 +80,7 @@ async function search({
       })
       .promise()
     if (!QueryExecutionId) throw new Error('No execution id')
-    const results = await athena.getQueryResults({ QueryExecutionId })
+    const results = await athena.getQueryResults({ QueryExecutionId }).promise()
     return results
   } catch (e) {
     // eslint-disable-next-line no-console
