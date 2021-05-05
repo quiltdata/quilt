@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import MetaTitle from 'utils/MetaTitle'
+
 import Backlight from 'website/components/Backgrounds/Backlight1'
 import Dots from 'website/components/Backgrounds/Dots'
 import Bar from 'website/components/Bar'
@@ -8,7 +10,6 @@ import Bullet from 'website/components/Bullet'
 import Illustration from 'website/components/Illustration'
 import Layout from 'website/components/Layout'
 import * as Personas from 'website/components/Personas'
-import * as HtmlMeta from 'website/components/HtmlMeta'
 
 const Section = (props) => (
   <M.Box
@@ -110,7 +111,7 @@ const Head = (props) => (
 
 export default () => (
   <Layout>
-    <HtmlMeta.Personas />
+    <MetaTitle>Personas</MetaTitle>
     <M.Box position="relative">
       <Backlight />
       <Dots />

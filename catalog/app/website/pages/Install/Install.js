@@ -1,7 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as HtmlMeta from 'website/components/HtmlMeta'
+import MetaTitle from 'utils/MetaTitle'
+
 import * as Intercom from 'components/Intercom'
 import Layout from 'website/components/Layout'
 
@@ -106,7 +107,7 @@ function InstallContents() {
 export default function Install() {
   return (
     <Layout>
-      <HtmlMeta.Install />
+      <MetaTitle>Install</MetaTitle>
       <InstallContents />
     </Layout>
   )

@@ -2,12 +2,13 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import { styled } from '@material-ui/styles'
 
+import MetaTitle from 'utils/MetaTitle'
+
 import Backlight1 from 'website/components/Backgrounds/Backlight1'
 import Backlight4 from 'website/components/Backgrounds/Backlight4'
 import Dots from 'website/components/Backgrounds/Dots'
 import Bar from 'website/components/Bar'
 import Layout from 'website/components/Layout'
-import * as HtmlMeta from 'website/components/HtmlMeta'
 
 import headAneeshKarve from './team-aneesh-karve.jpg'
 import headBenGolub from './team-ben-golub.png'
@@ -233,7 +234,7 @@ const Advisors = (props) => (
 
 export default () => (
   <Layout>
-    <HtmlMeta.About />
+    <MetaTitle>About</MetaTitle>
     <Team mb={5} />
     <Advisors mb={15} />
   </Layout>

@@ -1,10 +1,10 @@
 import * as React from 'react'
 
 import * as LinkedData from 'utils/LinkedData'
+import MetaTitle from 'utils/MetaTitle'
 
 import Layout from 'website/components/Layout'
 import Contribute from 'website/components/Contribute'
-import * as HtmlMeta from 'website/components/HtmlMeta'
 import Videos from 'website/components/Videos'
 
 import Buckets from './Buckets'
@@ -15,7 +15,7 @@ import QuiltIsDifferent from './QuiltIsDifferent'
 export default function OpenLanding() {
   return (
     <Layout>
-      <HtmlMeta.OpenLanding />
+      <MetaTitle />
       <React.Suspense fallback={null}>
         <LinkedData.CatalogData />
       </React.Suspense>
