@@ -341,6 +341,13 @@ export function WorkflowInput({
 export const defaultWorkflowFromConfig = (cfg?: workflows.WorkflowsConfig) =>
   cfg && cfg.workflows.find((item) => item.isDefault)
 
+export const useWorkflowValidator = (workflowsConfig?: workflows.WorkflowsConfig) => (
+  workflow: workflows.Workflow,
+) =>
+  workflowsConfig?.isWorkflowRequired && workflow.slug === workflows.notSelected
+    ? 'required'
+    : undefined
+
 const useMetaInputStyles = M.makeStyles((t) => ({
   header: {
     alignItems: 'center',

@@ -47,11 +47,15 @@ describe('utils/workflows', () => {
       const config = workflows.parse(data)
 
       it('should return workflows list', () => {
-        expect(config.workflows).toHaveLength(1)
+        expect(config.workflows).toHaveLength(2)
+      })
+
+      it('should return None workflow as disabled', () => {
+        expect(config.workflows[0].isDisabled).toBe(true)
       })
 
       it('should return workflow with exact key/slug', () => {
-        expect(config.workflows[0].slug).toBe('workflow_1')
+        expect(config.workflows[1].slug).toBe('workflow_1')
       })
     })
 
@@ -88,11 +92,15 @@ describe('utils/workflows', () => {
       const config = workflows.parse(data)
 
       it('should return one workflow', () => {
-        expect(config.workflows).toHaveLength(1)
+        expect(config.workflows).toHaveLength(2)
+      })
+
+      it('should return None workflow as disabled', () => {
+        expect(config.workflows[0].isDisabled).toBe(true)
       })
 
       it('should return workflow with exact key/slug from config', () => {
-        expect(config.workflows[0].slug).toBe('workflow_1')
+        expect(config.workflows[1].slug).toBe('workflow_1')
       })
     })
 
@@ -115,8 +123,8 @@ describe('utils/workflows', () => {
       const config = workflows.parse(data)
 
       it('should return workflow with matched url', () => {
-        expect(config.workflows[0].schema!.url).toBe('https://foo')
-        expect(config.workflows[1].schema!.url).toBe('https://bar')
+        expect(config.workflows[1].schema!.url).toBe('https://foo')
+        expect(config.workflows[2].schema!.url).toBe('https://bar')
       })
     })
 
@@ -136,6 +144,7 @@ describe('utils/workflows', () => {
 
       it("should return workflows' list, one of which is default", () => {
         expect(config.workflows).toMatchObject([
+          { isDefault: false },
           { isDefault: false },
           { isDefault: true },
           { isDefault: false },
