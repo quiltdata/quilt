@@ -17,6 +17,7 @@ import Delay from 'utils/Delay'
 import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
+import * as Sentry from 'utils/Sentry'
 import useDragging from 'utils/dragging'
 import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
 import * as spreadsheets from 'utils/spreadsheets'
@@ -342,9 +343,10 @@ export const defaultWorkflowFromConfig = (cfg?: workflows.WorkflowsConfig) =>
   cfg && cfg.workflows.find((item) => item.isDefault)
 
 export const useWorkflowValidator = (workflowsConfig?: workflows.WorkflowsConfig) => (
-  workflow: workflows.Workflow,
+  workflow?: workflows.Workflow,
 ) =>
-  workflowsConfig?.isWorkflowRequired && workflow.slug === workflows.notSelected
+  workflowsConfig?.isWorkflowRequired &&
+  (!workflow || workflow.slug === workflows.notSelected)
     ? 'required'
     : undefined
 
@@ -654,6 +656,7 @@ export function SchemaFetcher({
   children,
 }: SchemaFetcherProps) {
   const s3 = AWS.S3.use()
+  const sentry = Sentry.use()
 
   const initialWorkflow = React.useMemo(() => {
     const slug = manifest && manifest.workflow && manifest.workflow.id
@@ -666,6 +669,13 @@ export function SchemaFetcher({
   }, [manifest, workflowsConfig])
 
   const selectedWorkflow = workflow || initialWorkflow
+
+  if (!selectedWorkflow) {
+    const error = new Error(`"default_workflow" or "workflow.id" don't exist`)
+    sentry('captureException', error)
+    // eslint-disable-next-line no-console
+    console.error(error)
+  }
 
   const schemaUrl = R.pathOr('', ['schema', 'url'], selectedWorkflow)
   const data = useData(requests.metadataSchema, { s3, schemaUrl })
