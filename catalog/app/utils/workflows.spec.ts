@@ -47,6 +47,10 @@ describe('utils/workflows', () => {
       `
       const config = workflows.parse(data)
 
+      it('should require workflow', () => {
+        expect(config.isWorkflowRequired).toBe(true)
+      })
+
       it('should return workflows list', () => {
         expect(config.workflows).toHaveLength(2)
       })
@@ -71,6 +75,10 @@ describe('utils/workflows', () => {
       `
       const config = workflows.parse(data)
 
+      it('should not require workflow', () => {
+        expect(config.isWorkflowRequired).toBe(false)
+      })
+
       it('should return two workflows', () => {
         expect(config.workflows).toHaveLength(2)
       })
@@ -93,6 +101,10 @@ describe('utils/workflows', () => {
             name: Workflow №1
       `
       const config = workflows.parse(data)
+
+      it('should require workflow', () => {
+        expect(config.isWorkflowRequired).toBe(true)
+      })
 
       it('should return one workflow', () => {
         expect(config.workflows).toHaveLength(2)
