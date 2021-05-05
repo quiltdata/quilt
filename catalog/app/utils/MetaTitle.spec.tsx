@@ -1,49 +1,48 @@
 import * as React from 'react'
+import { Helmet } from 'react-helmet'
 import renderer from 'react-test-renderer'
 
-import * as MetaTitle from './MetaTitle'
+import MetaTitle, { getTitle } from './MetaTitle'
+
+Helmet.canUseDOM = false
 
 describe('utils/HtmlMeta', () => {
   describe('HtmlMeta', () => {
     it('should render base title', () => {
-      const tree = renderer.create(<MetaTitle.HtmlMetaTitle />).toJSON()
-      expect(tree).toMatchSnapshot()
+      renderer.create(<MetaTitle />)
+      expect(Helmet.peek().title?.toString()).toBe(
+        `<title data-react-helmet="true">Quilt is a versioned data portal for AWS</title>`,
+      )
     })
 
     it('should render base title plus prefix title when prefix is string', () => {
-      const tree = renderer
-        .create(<MetaTitle.HtmlMetaTitle>Specific title</MetaTitle.HtmlMetaTitle>)
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      renderer.create(<MetaTitle>Specific title</MetaTitle>)
+      expect(Helmet.peek().title?.toString()).toBe(
+        `<title data-react-helmet="true">Specific title • Quilt is a versioned data portal for AWS</title>`,
+      )
     })
 
     it('should render plus divided prefix titles when prefix is array of strings', () => {
-      const tree = renderer
-        .create(
-          <MetaTitle.HtmlMetaTitle>
-            {['Specific title #1', 'Specific title #2']}
-          </MetaTitle.HtmlMetaTitle>,
-        )
-        .toJSON()
-      expect(tree).toMatchSnapshot()
+      renderer.create(<MetaTitle>{['Specific title #1', 'Specific title #2']}</MetaTitle>)
+      expect(Helmet.peek().title?.toString()).toBe(
+        `<title data-react-helmet="true">Specific title #1 • Specific title #2 • Quilt is a versioned data portal for AWS</title>`,
+      )
     })
   })
 
   describe('getTitle', () => {
     it('returns base when no arguments', () => {
-      expect(MetaTitle.getTitle('Base title')).toBe('Base title')
+      expect(getTitle('Base title')).toBe('Base title')
     })
 
     it('returns base plus prefix when prefix is string', () => {
-      expect(MetaTitle.getTitle('Base title', 'Specific title')).toBe(
-        'Specific title • Base title',
-      )
+      expect(getTitle('Base title', 'Specific title')).toBe('Specific title • Base title')
     })
 
     it('returns base plus divided prefix when prefix is array of strings', () => {
-      expect(
-        MetaTitle.getTitle('Base title', ['Specific title #1', 'Specific title #2']),
-      ).toBe('Specific title #1 • Specific title #2 • Base title')
+      expect(getTitle('Base title', ['Specific title #1', 'Specific title #2'])).toBe(
+        'Specific title #1 • Specific title #2 • Base title',
+      )
     })
   })
 })

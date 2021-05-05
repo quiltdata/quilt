@@ -10,7 +10,7 @@ interface MetaTitleProps {
   base?: string
 }
 
-export function getTitleSegments(base: string, children?: string | string[]) {
+function getTitleSegments(base: string, children?: string | string[]) {
   if (!children) return [base]
 
   if (Array.isArray(children)) return [...children, base]
@@ -22,14 +22,11 @@ export function getTitle(base: string, children?: string | string[]) {
   return getTitleSegments(base, children).join(DIVIDER)
 }
 
-export function HtmlMetaTitle({ children, base = BASE }: MetaTitleProps) {
-  return <title>{getTitle(base, children)}</title>
-}
-
-export default function MetaTitle({ children, base }: MetaTitleProps) {
+export default function MetaTitle({ children, base = BASE }: MetaTitleProps) {
+  const titleStr = React.useMemo(() => getTitle(base, children), [base, children])
   return (
     <Helmet>
-      <HtmlMetaTitle base={base}>{children}</HtmlMetaTitle>
+      <title>{titleStr}</title>
     </Helmet>
   )
 }
