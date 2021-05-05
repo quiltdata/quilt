@@ -14,6 +14,7 @@ import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
+import HtmlMeta from 'utils/HtmlMeta'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import * as Cache from 'utils/ResourceCache'
@@ -21,7 +22,6 @@ import { useTracker } from 'utils/tracking'
 import * as validators from 'utils/validators'
 
 import * as Form from './Form'
-import * as HtmlMeta from './HtmlMeta'
 import * as Table from './Table'
 import * as data from './data'
 
@@ -941,7 +941,7 @@ export default function Buckets({ location }) {
   const buckets = Cache.useData(data.BucketsResource, { req })
   return (
     <M.Box mt={2} mb={2}>
-      <HtmlMeta.Buckets />
+      <HtmlMeta>{['Buckets', 'Admin']}</HtmlMeta>
       <React.Suspense
         fallback={
           <M.Paper>
