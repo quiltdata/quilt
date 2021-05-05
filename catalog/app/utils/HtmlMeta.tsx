@@ -22,10 +22,14 @@ export function getTitle(base: string, children?: string | string[]) {
   return getTitleSegments(base, children).join(DIVIDER)
 }
 
-export default function MetaTitle({ children, base = BASE }: MetaTitleProps) {
+export function Meta({ children, base = BASE }: MetaTitleProps) {
+  return <title>{getTitle(base, children)}</title>
+}
+
+export default function MetaTitle({ children, base }: MetaTitleProps) {
   return (
     <Helmet>
-      <title>{getTitle(base, children)}</title>
+      <Meta base={base}>{children}</Meta>
     </Helmet>
   )
 }
