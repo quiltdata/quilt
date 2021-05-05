@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as APIConnector from 'utils/APIConnector'
-import HtmlMeta from 'utils/HtmlMeta'
+import MetaTitle from 'utils/MetaTitle'
 import * as Cache from 'utils/ResourceCache'
 
 import Roles from './Roles'
@@ -15,7 +15,7 @@ export default function UsersAndRoles() {
   const roles = Cache.useData(data.RolesResource, { req })
   return (
     <>
-      <HtmlMeta>{['Users and Roles', 'Admin']}</HtmlMeta>
+      <MetaTitle>{['Users and Roles', 'Admin']}</MetaTitle>
       <M.Box mt={2}>
         <Users users={users} roles={roles} />
       </M.Box>
