@@ -13,6 +13,7 @@ describe('utils/workflows', () => {
       })
 
       it('should return data with special `notAvailable` workflow', () => {
+        expect(config.workflows[0].isDisabled).toBe(true)
         expect(config.workflows[0].slug).toBe(workflows.notAvailable)
       })
     })
@@ -50,7 +51,8 @@ describe('utils/workflows', () => {
         expect(config.workflows).toHaveLength(2)
       })
 
-      it('should return None workflow as disabled', () => {
+      it('should return `notSelected` workflow as disabled', () => {
+        expect(config.workflows[0].slug).toBe(workflows.notSelected)
         expect(config.workflows[0].isDisabled).toBe(true)
       })
 
@@ -75,6 +77,7 @@ describe('utils/workflows', () => {
 
       it('should return first workflow as special `notSelected` workflow', () => {
         expect(config.workflows[0].slug).toBe(workflows.notSelected)
+        expect(config.workflows[0].isDisabled).toBe(false)
       })
 
       it('should return workflow with exact key/slug from config', () => {
@@ -95,7 +98,8 @@ describe('utils/workflows', () => {
         expect(config.workflows).toHaveLength(2)
       })
 
-      it('should return None workflow as disabled', () => {
+      it('should return `notSelected` workflow as disabled', () => {
+        expect(config.workflows[0].slug).toBe(workflows.notSelected)
         expect(config.workflows[0].isDisabled).toBe(true)
       })
 
