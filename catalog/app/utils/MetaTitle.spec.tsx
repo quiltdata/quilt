@@ -4,10 +4,16 @@ import renderer from 'react-test-renderer'
 
 import MetaTitle, { getTitle } from './MetaTitle'
 
-Helmet.canUseDOM = false
-
 describe('utils/HtmlMeta', () => {
   describe('HtmlMeta', () => {
+    beforeAll(() => {
+      Helmet.canUseDOM = false
+    })
+
+    afterAll(() => {
+      Helmet.canUseDOM = true
+    })
+
     it('should render base title', () => {
       renderer.create(<MetaTitle />)
       expect(Helmet.peek().title?.toString()).toBe(
