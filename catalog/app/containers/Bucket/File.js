@@ -17,6 +17,7 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import { linkStyle } from 'utils/StyledLink'
@@ -27,7 +28,6 @@ import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from './Code'
 import * as FileView from './FileView'
-import * as HtmlMeta from './HtmlMeta'
 import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
@@ -401,7 +401,7 @@ export default function File({
 
   return (
     <FileView.Root>
-      <HtmlMeta.File bucket={bucket} path={path} />
+      <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
 
       <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
         {renderCrumbs(getCrumbs({ bucket, path, urls }))}

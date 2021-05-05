@@ -20,6 +20,7 @@ import * as Config from 'utils/Config'
 import Data, { useData } from 'utils/Data'
 import * as LinkedData from 'utils/LinkedData'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
 import Link, { linkStyle } from 'utils/StyledLink'
@@ -31,7 +32,6 @@ import usePrevious from 'utils/usePrevious'
 import Code from './Code'
 import CopyButton from './CopyButton'
 import * as FileView from './FileView'
-import * as HtmlMeta from './HtmlMeta'
 import Listing from './Listing'
 import { usePackageUpdateDialog } from './PackageUpdateDialog'
 import PackageCopyDialog from './PackageCopyDialog'
@@ -682,7 +682,7 @@ function PackageTree({ bucket, name, revision, path, resolvedFrom }) {
 
   return (
     <FileView.Root>
-      <HtmlMeta.PackageTree bucket={bucket} name={name} path={path} revision={revision} />
+      <MetaTitle>{[`${name}@${R.take(10, revision)}/${path}`, bucket]}</MetaTitle>
       {!!bucketCfg &&
         revisionData.case({
           Ok: ({ hash, modified }) => (

@@ -15,6 +15,7 @@ import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 // import * as LinkedData from 'utils/LinkedData'
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import StyledLink from 'utils/StyledLink'
@@ -23,7 +24,6 @@ import parseSearch from 'utils/parseSearch'
 import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
-import * as HtmlMeta from './HtmlMeta'
 import { usePackageUpdateDialog } from './PackageUpdateDialog'
 import Pagination from './Pagination'
 import { displayError } from './errors'
@@ -451,7 +451,7 @@ export default function PackageRevisions({
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-      <HtmlMeta.PackageRevisions bucket={bucket} name={name} />
+      <MetaTitle>{[name, bucket]}</MetaTitle>
 
       {updateDialog.render()}
 

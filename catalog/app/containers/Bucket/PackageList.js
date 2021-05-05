@@ -14,6 +14,7 @@ import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 // import * as LinkedData from 'utils/LinkedData'
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as SVG from 'utils/SVG'
@@ -23,7 +24,6 @@ import { readableQuantity } from 'utils/string'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
-import * as HtmlMeta from './HtmlMeta'
 import PackageCreateDialog from './PackageCreateDialog'
 import Pagination from './Pagination'
 import { displayError } from './errors'
@@ -395,7 +395,7 @@ export default function PackageList({
 
   return (
     <>
-      <HtmlMeta.PackageList bucket={bucket} />
+      <MetaTitle>{['Package list', bucket]}</MetaTitle>
 
       <PackageCreateDialog
         {...{ bucket, refresh, open: uploadOpen, onClose: closeUpload }}

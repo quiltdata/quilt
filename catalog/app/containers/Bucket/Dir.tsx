@@ -11,6 +11,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
@@ -20,7 +21,6 @@ import type * as workflows from 'utils/workflows'
 import Code from './Code'
 import CopyButton from './CopyButton'
 import * as FileView from './FileView'
-import * as HtmlMeta from './HtmlMeta'
 import { Listing, PrefixFilter } from './Listing'
 import PackageDirectoryDialog from './PackageDirectoryDialog'
 import Summary from './Summary'
@@ -236,7 +236,7 @@ export default function Dir({
 
   return (
     <M.Box pt={2} pb={4}>
-      <HtmlMeta.Dir bucket={bucket} path={path} />
+      <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
 
       <M.Box display="flex" alignItems="flex-start" mb={2}>
         <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
