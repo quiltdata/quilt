@@ -5,5 +5,4 @@ styles from Jupyter and pygments.
 
 `ipynb.less` file has all the necessary imports.
 
-To generate `ipynb.css` (which is atomatically put under `/static` dir) just
-run `make`.
+To generate `ipynb.css` (which is automatically put into `/app` dir) just run `make`.
