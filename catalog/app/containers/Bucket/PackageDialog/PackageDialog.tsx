@@ -671,7 +671,7 @@ export function SchemaFetcher({
   const selectedWorkflow = workflow || initialWorkflow
 
   if (!selectedWorkflow) {
-    const error = new Error(`"default_workflow" or "workflow.id" don't exist`)
+    const error = new Error(`"default_workflow" or "workflow.id" doesn't exist`)
     sentry('captureException', error)
     // eslint-disable-next-line no-console
     console.error(error)
