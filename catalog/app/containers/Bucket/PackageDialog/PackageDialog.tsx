@@ -342,13 +342,16 @@ export function WorkflowInput({
 export const defaultWorkflowFromConfig = (cfg?: workflows.WorkflowsConfig) =>
   cfg && cfg.workflows.find((item) => item.isDefault)
 
-export const useWorkflowValidator = (workflowsConfig?: workflows.WorkflowsConfig) => (
-  workflow?: workflows.Workflow,
-) =>
-  workflowsConfig?.isWorkflowRequired &&
-  (!workflow || workflow.slug === workflows.notSelected)
-    ? 'required'
-    : undefined
+export function useWorkflowValidator(workflowsConfig?: workflows.WorkflowsConfig) {
+  return React.useMemo(
+    () => (workflow?: workflows.Workflow) => {
+      if (!workflowsConfig?.isWorkflowRequired) return undefined
+      if (workflow && workflow.slug !== workflows.notSelected) return undefined
+      return 'required'
+    },
+    [workflowsConfig?.isWorkflowRequired],
+  )
+}
 
 const useMetaInputStyles = M.makeStyles((t) => ({
   header: {
