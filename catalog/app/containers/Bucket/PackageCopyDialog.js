@@ -86,6 +86,7 @@ function DialogForm({
   const [nameWarning, setNameWarning] = React.useState('')
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
+  const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
   const copyPackage = requests.useCopyPackage()
 
@@ -201,7 +202,7 @@ function DialogForm({
                 name="workflow"
                 workflowsConfig={workflowsConfig}
                 initialValue={selectedWorkflow}
-                validate={validators.required}
+                validate={validateWorkflow}
                 validateFields={['meta', 'workflow']}
                 errors={{
                   required: 'Workflow is required for this bucket.',

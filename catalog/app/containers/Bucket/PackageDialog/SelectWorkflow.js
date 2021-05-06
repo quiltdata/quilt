@@ -45,26 +45,12 @@ export default function SelectWorkflow({
         labelId="schema-select"
         value={value ? value.slug.toString() : workflows.notSelected.toString()}
       >
-        <M.MenuItem
-          key={workflows.notSelected.toString()}
-          value={workflows.notSelected.toString()}
-          disabled
-          dense
-        >
-          <M.ListItemText
-            classes={{
-              primary: classes.crop,
-              secondary: classes.crop,
-            }}
-            primary="None"
-          />
-        </M.MenuItem>
-
-        {items.map((option) => (
+        {items.map((workflow) => (
           <M.MenuItem
-            key={option.slug.toString()}
-            value={option.slug.toString()}
-            onClick={() => onChange(option)}
+            key={workflow.slug.toString()}
+            value={workflow.slug.toString()}
+            onClick={() => !workflow.isDisabled && onChange(workflow)}
+            disabled={workflow.isDisabled}
             dense
           >
             <M.ListItemText
@@ -72,8 +58,8 @@ export default function SelectWorkflow({
                 primary: classes.crop,
                 secondary: classes.crop,
               }}
-              primary={option.name || 'None'}
-              secondary={option.description}
+              primary={workflow.name || 'None'}
+              secondary={workflow.description}
             />
           </M.MenuItem>
         ))}

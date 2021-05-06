@@ -423,6 +423,7 @@ function PackageCreateDialog({
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
+  const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
   const totalProgress = getTotalProgress(uploads)
   const createPackage = requests.useCreatePackage()
@@ -626,7 +627,7 @@ function PackageCreateDialog({
                     name="workflow"
                     workflowsConfig={workflowsConfig}
                     initialValue={selectedWorkflow}
-                    validate={validators.required}
+                    validate={validateWorkflow}
                     validateFields={['meta', 'workflow']}
                     errors={{
                       required: 'Workflow is required for this bucket.',

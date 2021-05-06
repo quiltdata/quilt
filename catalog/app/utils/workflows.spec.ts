@@ -13,6 +13,7 @@ describe('utils/workflows', () => {
       })
 
       it('should return data with special `notAvailable` workflow', () => {
+        expect(config.workflows[0].isDisabled).toBe(true)
         expect(config.workflows[0].slug).toBe(workflows.notAvailable)
       })
     })
@@ -46,12 +47,21 @@ describe('utils/workflows', () => {
       `
       const config = workflows.parse(data)
 
+      it('should require workflow', () => {
+        expect(config.isWorkflowRequired).toBe(true)
+      })
+
       it('should return workflows list', () => {
-        expect(config.workflows).toHaveLength(1)
+        expect(config.workflows).toHaveLength(2)
+      })
+
+      it('should return `notSelected` workflow as disabled', () => {
+        expect(config.workflows[0].slug).toBe(workflows.notSelected)
+        expect(config.workflows[0].isDisabled).toBe(true)
       })
 
       it('should return workflow with exact key/slug', () => {
-        expect(config.workflows[0].slug).toBe('workflow_1')
+        expect(config.workflows[1].slug).toBe('workflow_1')
       })
     })
 
@@ -65,12 +75,17 @@ describe('utils/workflows', () => {
       `
       const config = workflows.parse(data)
 
+      it('should not require workflow', () => {
+        expect(config.isWorkflowRequired).toBe(false)
+      })
+
       it('should return two workflows', () => {
         expect(config.workflows).toHaveLength(2)
       })
 
       it('should return first workflow as special `notSelected` workflow', () => {
         expect(config.workflows[0].slug).toBe(workflows.notSelected)
+        expect(config.workflows[0].isDisabled).toBe(false)
       })
 
       it('should return workflow with exact key/slug from config', () => {
@@ -87,12 +102,21 @@ describe('utils/workflows', () => {
       `
       const config = workflows.parse(data)
 
+      it('should require workflow', () => {
+        expect(config.isWorkflowRequired).toBe(true)
+      })
+
       it('should return one workflow', () => {
-        expect(config.workflows).toHaveLength(1)
+        expect(config.workflows).toHaveLength(2)
+      })
+
+      it('should return `notSelected` workflow as disabled', () => {
+        expect(config.workflows[0].slug).toBe(workflows.notSelected)
+        expect(config.workflows[0].isDisabled).toBe(true)
       })
 
       it('should return workflow with exact key/slug from config', () => {
-        expect(config.workflows[0].slug).toBe('workflow_1')
+        expect(config.workflows[1].slug).toBe('workflow_1')
       })
     })
 
@@ -115,8 +139,8 @@ describe('utils/workflows', () => {
       const config = workflows.parse(data)
 
       it('should return workflow with matched url', () => {
-        expect(config.workflows[0].schema!.url).toBe('https://foo')
-        expect(config.workflows[1].schema!.url).toBe('https://bar')
+        expect(config.workflows[1].schema!.url).toBe('https://foo')
+        expect(config.workflows[2].schema!.url).toBe('https://bar')
       })
     })
 
@@ -136,6 +160,7 @@ describe('utils/workflows', () => {
 
       it("should return workflows' list, one of which is default", () => {
         expect(config.workflows).toMatchObject([
+          { isDefault: false },
           { isDefault: false },
           { isDefault: true },
           { isDefault: false },
