@@ -93,7 +93,15 @@ exports[`containers/Bucket/Queries/QuerySelect should render with selected value
           role="button"
           tabIndex={0}
         >
-          name2
+          <div
+            className="MuiListItemText-root"
+          >
+            <span
+              className="MuiTypography-root MuiListItemText-primary MuiTypography-body1 MuiTypography-displayBlock"
+            >
+              name2
+            </span>
+          </div>
         </div>
         <input
           aria-hidden={true}
