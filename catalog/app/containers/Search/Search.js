@@ -8,6 +8,7 @@ import * as SearchResults from 'components/SearchResults'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Data from 'utils/Data'
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import search from 'utils/search'
@@ -419,6 +420,7 @@ export default function Search({ location: l }) {
     <Layout
       pre={
         <M.Container maxWidth="lg">
+          <MetaTitle>{q || 'Search'}</MetaTitle>
           <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
             <M.Box
               display="flex"

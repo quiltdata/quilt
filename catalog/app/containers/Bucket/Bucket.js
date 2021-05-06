@@ -9,6 +9,7 @@ import { ThrowNotFound } from 'containers/NotFoundPage'
 import { useBucketExistence } from 'utils/BucketCache'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import MetaTitle from 'utils/MetaTitle'
 import * as RT from 'utils/reactTools'
 
 import BucketNav from './BucketNav'
@@ -96,6 +97,7 @@ export default function Bucket({
   const { paths } = NamedRoutes.use()
   return (
     <BucketPreferences.Provider bucket={bucket}>
+      <MetaTitle>{bucket}</MetaTitle>
       <BucketLayout bucket={bucket} section={getBucketSection(paths)(location.pathname)}>
         <CatchNotFound id={`${location.pathname}${location.search}${location.hash}`}>
           <Switch>
