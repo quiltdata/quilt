@@ -398,7 +398,7 @@ export default function PackageList({
   // set sort query param to previously selected
   const sortPackagesBy = storage.load()?.sortPackagesBy
   React.useEffect(() => {
-    if (sortPackagesBy === sort) return
+    if (sort || sort === sortPackagesBy) return
     switch (sortPackagesBy) {
       case 'modified':
       case 'name':
