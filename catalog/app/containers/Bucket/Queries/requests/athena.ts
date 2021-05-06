@@ -184,6 +184,8 @@ async function fetchQueryExecutions({
       .promise()
     return (executionsData.QueryExecutions || []).map((queryExecution) => ({
       catalog: queryExecution?.QueryExecutionContext?.Catalog,
+      completed: queryExecution?.Status?.CompletionDateTime,
+      created: queryExecution?.Status?.SubmissionDateTime,
       db: queryExecution?.QueryExecutionContext?.Database,
       id: queryExecution?.QueryExecutionId,
       outputBucket: queryExecution?.ResultConfiguration?.OutputLocation,
@@ -201,12 +203,13 @@ async function fetchQueryExecutions({
 
 export interface QueryExecution {
   catalog?: string
+  completed?: Date
+  created?: Date
   db?: string
   id?: string
   outputBucket?: string
   query?: string
-  // status?: 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
-  status?: string
+  status?: string // 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
 }
 
 type AthenaQueryExecutionsResults = QueryExecution[]
