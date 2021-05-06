@@ -418,24 +418,22 @@ const useToolbarStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ToolbarOwnProps {
+interface ToolbarProps {
   children?: React.ReactNode
   truncated?: boolean
   locked?: boolean
   loadMore?: () => void
+  items: Item[]
 }
-
-type ToolbarProps = ToolbarOwnProps & DG.GridBaseComponentProps
 
 function Toolbar({
   truncated = false,
   locked = false,
   loadMore,
-  rows,
+  items,
   children,
 }: ToolbarProps) {
   const classes = useToolbarStyles()
-  const items = (rows as unknown) as Item[]
   return (
     <div className={classes.root}>
       {children}
@@ -468,7 +466,7 @@ function Toolbar({
 
 const usePanelStyles = M.makeStyles((t) => ({
   root: {
-    zIndex: 1,
+    zIndex: 2,
     '& select, & input': {
       boxSizing: 'content-box',
     },
@@ -613,27 +611,20 @@ const useFooterStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface FooterOwnProps {
+interface FooterProps {
   truncated?: boolean
   locked?: boolean
   loadMore?: () => void
+  items: Item[]
 }
 
-type FooterProps = FooterOwnProps & DG.GridBaseComponentProps
-
-function Footer({
-  truncated = false,
-  locked = false,
-  loadMore,
-  rows,
-  state,
-}: FooterProps) {
+function Footer({ truncated = false, locked = false, loadMore, items }: FooterProps) {
+  const { state } = DG.useGridSlotComponentProps()
   const classes = useFooterStyles()
 
   const apiRef = React.useContext(DG.GridApiContext)
   const filterCount = DG.useGridSelector(apiRef, DG.filterGridItemsCounterSelector)
 
-  const items = (rows as unknown) as Item[]
   const stats = React.useMemo(() => computeStats(items), [items])
 
   const filteredStats = React.useMemo(() => {
@@ -915,7 +906,7 @@ export function Listing({
 
   const handleFilterModelChange = React.useCallback(
     (params: DG.GridFilterModelParams) => {
-      setFilteredToZero(!!params.rows.length && !params.visibleRows.length)
+      setFilteredToZero(!!params.rows.size && !params.visibleRows.size)
     },
     [setFilteredToZero],
   )
@@ -957,8 +948,8 @@ export function Listing({
         sortComparator: (
           _v1: unknown,
           _v2: unknown,
-          p1: DG.GridCellParams,
-          p2: DG.GridCellParams,
+          p1: DG.GridSortCellParams,
+          p2: DG.GridSortCellParams,
         ) => {
           // we only support one-column sorting, so assuming the first sortItem is the one we need
           const [{ sort }] = (p1.api as DG.GridApi).state.sorting.sortModel
@@ -1063,8 +1054,8 @@ export function Listing({
         autoHeight
         components={{ Toolbar, Footer, Panel, ColumnMenu, LoadingOverlay }}
         componentsProps={{
-          toolbar: { truncated, locked, loadMore, children: toolbarContents },
-          footer: { truncated, locked, loadMore },
+          toolbar: { truncated, locked, loadMore, items, children: toolbarContents },
+          footer: { truncated, locked, loadMore, items },
         }}
         getRowId={(row) => row.name}
         pagination
