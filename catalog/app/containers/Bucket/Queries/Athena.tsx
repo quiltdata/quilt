@@ -1,10 +1,10 @@
-import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 import AthenaQueryViewer from './AthenaQueryViewer'
+import ExecutionsViewer from './ExecutionsViewer'
 import QueryResult from './QueryResult'
 import QuerySelect from './QuerySelect'
 import WorkgroupSelect from './WorkgroupSelect'
@@ -251,33 +251,7 @@ export default function Athena() {
           />
 
           {executionsData.case({
-            Ok: (executions) => (
-              <M.TableContainer component={M.Paper}>
-                <M.Table size="small">
-                  <M.TableBody>
-                    {executions.map((queryExecution) => (
-                      <M.TableRow>
-                        <M.TableCell>{queryExecution.id}</M.TableCell>
-                        <M.TableCell>
-                          {queryExecution.query?.substring(0, 30)}
-                        </M.TableCell>
-                        <M.TableCell>{queryExecution.status}</M.TableCell>
-                        <M.TableCell>
-                          {queryExecution.created
-                            ? dateFns.format(queryExecution.created, 'MMM do, HH:mm:ss')
-                            : null}
-                        </M.TableCell>
-                        <M.TableCell>
-                          {queryExecution.completed
-                            ? dateFns.format(queryExecution.completed, 'MMM do, HH:mm:ss')
-                            : null}
-                        </M.TableCell>
-                      </M.TableRow>
-                    ))}
-                  </M.TableBody>
-                </M.Table>
-              </M.TableContainer>
-            ),
+            Ok: (executions) => <ExecutionsViewer executions={executions} />,
             Err: (error: Error) => (
               <Lab.Alert severity="error">{error.message}</Lab.Alert>
             ),
