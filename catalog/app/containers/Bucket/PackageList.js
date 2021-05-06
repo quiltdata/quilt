@@ -395,7 +395,7 @@ export default function PackageList({
 
   return (
     <>
-      <MetaTitle>{['Package list', bucket]}</MetaTitle>
+      <MetaTitle>{['Packages', bucket]}</MetaTitle>
 
       <PackageCreateDialog
         {...{ bucket, refresh, open: uploadOpen, onClose: closeUpload }}
