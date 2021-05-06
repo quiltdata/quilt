@@ -19,6 +19,7 @@ import StyledLink from 'utils/StyledLink'
 import * as SVG from 'utils/SVG'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
+import mkStorage from 'utils/storage'
 import { readableQuantity } from 'utils/string'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
@@ -38,6 +39,9 @@ const SORT_OPTIONS = [
 ]
 
 const DEFAULT_SORT = SORT_OPTIONS[0]
+
+// Possible values are 'modified', 'name'
+const storage = mkStorage({ sortPackagesBy: 'SORT_PACKAGES_BY' })
 
 const getSort = (key) => (key && SORT_OPTIONS.find((o) => o.key === key)) || DEFAULT_SORT
 
@@ -236,6 +240,14 @@ function SortDropdown({ value, options, makeSortUrl }) {
     setAnchor(null)
   }, [setAnchor])
 
+  const handleClick = React.useCallback(
+    (key) => {
+      storage.set('sortPackagesBy', key)
+      close()
+    },
+    [close],
+  )
+
   const selected = getSort(value)
 
   return (
@@ -256,7 +268,7 @@ function SortDropdown({ value, options, makeSortUrl }) {
       <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
         {options.map((o) => (
           <M.MenuItem
-            onClick={close}
+            onClick={() => handleClick(o.key)}
             component={Link}
             to={makeSortUrl(o.key)}
             key={o.key}
@@ -382,6 +394,18 @@ export default function PackageList({
       )
     }
   }, [history, urls, bucket, sort, filtering.value, computedFilter])
+
+  // set sort query param to previously selected
+  const sortPackagesBy = storage.load()?.sortPackagesBy
+  React.useEffect(() => {
+    if (sort || sort === sortPackagesBy) return
+    switch (sortPackagesBy) {
+      case 'modified':
+      case 'name':
+        history.replace(makeSortUrl(sortPackagesBy))
+      // no default
+    }
+  }, [history, makeSortUrl, sort, sortPackagesBy])
 
   // scroll to top on page change
   usePrevious(computedPage, (prev) => {

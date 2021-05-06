@@ -354,17 +354,17 @@ export default function BucketSearch({
 
   const { urls } = NamedRoutes.use()
   const history = useHistory()
+  const searchMode = storage.load()?.searchMode
   React.useEffect(() => {
-    if (mode) return
+    if (mode || mode === searchMode) return
 
-    const searchMode = storage.load()?.searchMode
     switch (searchMode) {
       case 'objects':
       case 'packages':
         history.replace(urls.bucketSearch(bucket, { q: query, mode: searchMode }))
       // no default
     }
-  }, [bucket, history, mode, query, urls])
+  }, [bucket, history, mode, query, urls, searchMode])
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
