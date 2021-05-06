@@ -135,6 +135,16 @@ export const bucketQueries = {
   url: (bucket) => `/b/${bucket}/queries`,
 }
 
+export const bucketESQueries = {
+  path: '/b/:bucket/queries/es',
+  url: (bucket) => `/b/${bucket}/queries/es`,
+}
+
+export const bucketAthenaQueries = {
+  path: '/b/:bucket/queries/athena',
+  url: (bucket) => `/b/${bucket}/queries/athena`,
+}
+
 // legacy stuff
 export const legacyPackages = {
   path: `/package/:path+`,

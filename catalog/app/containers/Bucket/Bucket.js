@@ -111,7 +111,7 @@ export default function Bucket({
               component={PackageRevisions}
               exact
             />
-            <Route path={paths.bucketQueries} component={Queries} exact />
+            <Route path={paths.bucketQueries} component={Queries} />
             <Route component={ThrowNotFound} />
           </Switch>
         </CatchNotFound>

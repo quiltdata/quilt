@@ -1,6 +1,9 @@
 import * as React from 'react'
 import { RouteComponentProps } from 'react-router'
+import { Link, Redirect, Route, Switch, matchPath } from 'react-router-dom'
 import * as M from '@material-ui/core'
+
+import * as NamedRoutes from 'utils/NamedRoutes'
 
 import ElasticSearch from './ElasticSearch'
 import Athena from './Athena'
@@ -38,26 +41,35 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+type NavTabProps = React.ComponentProps<typeof M.Tab> & React.ComponentProps<typeof Link>
+
+function NavTab(props: NavTabProps) {
+  return <M.Tab component={Link} {...props} />
+}
+
+enum Section {
+  ATHENA,
+  ES,
+}
+
 export default function Queries({
+  location,
   match: {
     params: { bucket },
   },
 }: RouteComponentProps<{ bucket: string }>) {
   const classes = useStyles()
 
-  const [tab, setTab] = React.useState(0)
-  const [transitioning, setTransitioning] = React.useState(false)
+  const { paths, urls } = NamedRoutes.use()
 
-  const onTab = (event: React.ChangeEvent<{}>, newTab: number) => {
-    setTransitioning(true)
+  const [tab, setTab] = React.useState(() => {
+    if (matchPath(location.pathname, urls.bucketAthenaQueries(bucket)))
+      return Section.ATHENA
+    return Section.ES
+  })
+
+  const onTab = (event: React.ChangeEvent<{}>, newTab: Section) => {
     setTab(newTab)
-  }
-
-  const onAnimationEnd = () => {
-    // Wait till `unmountOnExit` ends
-    setTimeout(() => {
-      setTransitioning(false)
-    }, 300)
   }
 
   const tabClasses = React.useMemo(
@@ -75,26 +87,27 @@ export default function Queries({
         onChange={onTab}
         value={tab}
       >
-        <M.Tab label="ElasticSearch" classes={tabClasses} />
-        <M.Tab label="Athena SQL" classes={tabClasses} />
+        <NavTab
+          label="ElasticSearch"
+          value={Section.ES}
+          classes={tabClasses}
+          to={urls.bucketESQueries(bucket)}
+        />
+        <NavTab
+          label="Athena SQL"
+          value={Section.ATHENA}
+          classes={tabClasses}
+          to={urls.bucketAthenaQueries(bucket)}
+        />
       </M.Tabs>
       <div className={classes.panel}>
-        <M.Fade
-          in={tab === 0 && !transitioning}
-          mountOnEnter
-          unmountOnExit
-          onExit={onAnimationEnd}
-        >
-          <ElasticSearch bucket={bucket} />
-        </M.Fade>
-        <M.Fade
-          in={tab === 1 && !transitioning}
-          mountOnEnter
-          unmountOnExit
-          onExit={onAnimationEnd}
-        >
-          <Athena />
-        </M.Fade>
+        <Switch>
+          <Route path={paths.bucketESQueries} component={ElasticSearch} exact />
+          <Route path={paths.bucketAthenaQueries} component={Athena} exact />
+          <Route>
+            <Redirect to={urls.bucketESQueries(bucket)} />
+          </Route>
+        </Switch>
       </div>
     </M.Container>
   )
