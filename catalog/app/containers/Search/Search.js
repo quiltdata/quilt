@@ -401,10 +401,10 @@ export default function Search({ location: l }) {
     { noAutoFetch: !q },
   )
 
+  const searchMode = storage.load()?.searchMode
   React.useEffect(() => {
-    if (mode) return
+    if (mode || mode === searchMode) return
 
-    const searchMode = storage.load()?.searchMode
     switch (searchMode) {
       case 'objects':
       case 'packages':
@@ -413,7 +413,7 @@ export default function Search({ location: l }) {
         )
       // no default
     }
-  }, [buckets, history, mode, q, urls])
+  }, [buckets, history, mode, q, urls, searchMode])
 
   return (
     <Layout
