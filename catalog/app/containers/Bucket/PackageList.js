@@ -393,15 +393,19 @@ export default function PackageList({
         urls.bucketPackageList(bucket, { filter: filtering.value || undefined, sort }),
       )
     }
+  }, [history, urls, bucket, sort, filtering.value, computedFilter])
 
-    const sortPackagesBy = storage.load()?.sortPackagesBy
+  // set sort query param to previously selected
+  const sortPackagesBy = storage.load()?.sortPackagesBy
+  React.useEffect(() => {
+    if (sortPackagesBy === sort) return
     switch (sortPackagesBy) {
       case 'modified':
       case 'name':
         history.replace(makeSortUrl(sortPackagesBy))
       // no default
     }
-  }, [history, urls, bucket, sort, filtering.value, computedFilter, makeSortUrl])
+  }, [history, makeSortUrl, sort, sortPackagesBy])
 
   // scroll to top on page change
   usePrevious(computedPage, (prev) => {
