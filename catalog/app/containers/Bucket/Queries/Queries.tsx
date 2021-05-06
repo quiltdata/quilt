@@ -78,22 +78,24 @@ export default function Queries({
         <M.Tab label="ElasticSearch" classes={tabClasses} />
         <M.Tab label="Athena SQL" classes={tabClasses} />
       </M.Tabs>
-      <M.Fade
-        in={tab === 0 && !transitioning}
-        mountOnEnter
-        unmountOnExit
-        onExit={onAnimationEnd}
-      >
-        <ElasticSearch bucket={bucket} className={classes.panel} />
-      </M.Fade>
-      <M.Fade
-        in={tab === 1 && !transitioning}
-        mountOnEnter
-        unmountOnExit
-        onExit={onAnimationEnd}
-      >
-        <Athena className={classes.panel} />
-      </M.Fade>
+      <div className={classes.panel}>
+        <M.Fade
+          in={tab === 0 && !transitioning}
+          mountOnEnter
+          unmountOnExit
+          onExit={onAnimationEnd}
+        >
+          <ElasticSearch bucket={bucket} />
+        </M.Fade>
+        <M.Fade
+          in={tab === 1 && !transitioning}
+          mountOnEnter
+          unmountOnExit
+          onExit={onAnimationEnd}
+        >
+          <Athena />
+        </M.Fade>
+      </div>
     </M.Container>
   )
 }

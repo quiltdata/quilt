@@ -189,10 +189,9 @@ const isButtonDisabled = (
 
 interface ElastiSearchProps {
   bucket: string
-  className: string
 }
 
-export default function ElastiSearch({ bucket, className }: ElastiSearchProps) {
+export default function ElastiSearch({ bucket }: ElastiSearchProps) {
   const classes = useStyles()
 
   return (
@@ -209,7 +208,7 @@ export default function ElastiSearch({ bucket, className }: ElastiSearchProps) {
         queryMeta,
         resultsData,
       }) => (
-        <div className={className}>
+        <div>
           <M.Typography variant="h6">ElasticSearch queries</M.Typography>
 
           <QuerySelect

@@ -184,11 +184,7 @@ const isButtonDisabled = (
   error: Error | null,
 ): boolean => !!error || !queryContent || !!resultsData.case({ Pending: R.T, _: R.F })
 
-interface AthenaProps {
-  className: string
-}
-
-export default function Athena({ className }: AthenaProps) {
+export default function Athena() {
   const classes = useStyles()
 
   return (
@@ -205,7 +201,7 @@ export default function Athena({ className }: AthenaProps) {
         workgroup,
         workgroups,
       }) => (
-        <div className={className}>
+        <div>
           <M.Typography variant="h6">Athena SQL</M.Typography>
           <WorkgroupSelect
             className={classes.select}
