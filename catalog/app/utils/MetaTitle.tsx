@@ -23,10 +23,9 @@ export function getTitle(base: string, children?: string | string[]) {
 }
 
 export default function MetaTitle({ children, base = BASE }: MetaTitleProps) {
-  const titleStr = React.useMemo(() => getTitle(base, children), [base, children])
   return (
     <Helmet>
-      <title>{titleStr}</title>
+      <title>{getTitle(base, children)}</title>
     </Helmet>
   )
 }
