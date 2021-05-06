@@ -77,22 +77,29 @@ function SearchResultsFetcher({
   return children(resultsData)
 }
 
+interface QueriesFetcherRenderProps {
+  executionsData: requests.AsyncData<requests.QueryExecution[]>
+  queriesData: requests.AsyncData<requests.AthenaQuery[]>
+}
+
 interface QueriesFetcherProps {
-  children: (props: requests.AsyncData<requests.AthenaQuery[]>) => React.ReactElement
+  children: (props: QueriesFetcherRenderProps) => React.ReactElement
   workgroup: string
 }
 
 function QueriesFetcher({ children, workgroup }: QueriesFetcherProps) {
-  const queries = requests.useNamedQueries(workgroup)
-  return children(queries)
+  const queriesData = requests.useNamedQueries(workgroup)
+  const executionsData = requests.useQueryExecutions(workgroup)
+  return children({ queriesData, executionsData })
 }
 
-interface QueriesStatePropsRenderProps {
+interface QueriesStateRenderProps {
   customQueryBody: string | null
-  handleWorkgroupChange: (w: requests.Workgroup | null) => void
+  executionsData: requests.AsyncData<requests.QueryExecution[]>
   handleQueryBodyChange: (q: string | null) => void
   handleQueryMetaChange: (q: requests.Query | requests.AthenaQuery | null) => void
   handleSubmit: (q: string) => () => void
+  handleWorkgroupChange: (w: requests.Workgroup | null) => void
   queriesData: requests.AsyncData<requests.AthenaQuery[]>
   queryMeta: requests.AthenaQuery | null
   resultsData: requests.AsyncData<requests.AthenaSearchResults>
@@ -101,7 +108,7 @@ interface QueriesStatePropsRenderProps {
 }
 
 interface QueriesStateProps {
-  children: (props: QueriesStatePropsRenderProps) => React.ReactElement
+  children: (props: QueriesStateRenderProps) => React.ReactElement
 }
 
 function QueriesState({ children }: QueriesStateProps) {
@@ -142,7 +149,7 @@ function QueriesState({ children }: QueriesStateProps) {
   return workgroupsData.case({
     Ok: (workgroups) => (
       <QueriesFetcher workgroup={workgroup?.name || workgroups?.[0].name || ''}>
-        {(queriesData) => (
+        {({ queriesData, executionsData }) => (
           <SearchResultsFetcher
             queryBody={queryRequest || ''}
             workgroup={workgroup?.name || workgroups?.[0].name || ''}
@@ -150,10 +157,11 @@ function QueriesState({ children }: QueriesStateProps) {
             {(resultsData) =>
               children({
                 customQueryBody,
-                handleWorkgroupChange,
+                executionsData,
                 handleQueryBodyChange: setCustomQueryBody,
                 handleQueryMetaChange,
                 handleSubmit,
+                handleWorkgroupChange,
                 queriesData,
                 queryMeta,
                 resultsData,
@@ -191,6 +199,7 @@ export default function Athena() {
     <QueriesState>
       {({
         customQueryBody,
+        executionsData,
         handleQueryBodyChange,
         handleQueryMetaChange,
         handleSubmit,
@@ -239,6 +248,30 @@ export default function Athena() {
             onSubmit={handleSubmit}
             value={customQueryBody || queryMeta?.body || ''}
           />
+
+          {executionsData.case({
+            Ok: (executions) => (
+              <M.TableContainer component={M.Paper}>
+                <M.Table size="small">
+                  {executions.map((queryExecution) => (
+                    <M.TableRow>
+                      <M.TableCell>{queryExecution.id}</M.TableCell>
+                      <M.TableCell>{queryExecution.query?.substring(0, 30)}</M.TableCell>
+                      <M.TableCell>{queryExecution.status}</M.TableCell>
+                    </M.TableRow>
+                  ))}
+                </M.Table>
+              </M.TableContainer>
+            ),
+            Err: (error: Error) => (
+              <Lab.Alert severity="error">{error.message}</Lab.Alert>
+            ),
+            _: () => (
+              <M.Box pt={5} textAlign="center">
+                <M.CircularProgress size={96} />
+              </M.Box>
+            ),
+          })}
 
           {resultsData.case({
             Init: () => null,

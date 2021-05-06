@@ -22,9 +22,6 @@ export const namedQueries = async ({
   workgroup,
 }: NamedQueriesArgs): Promise<AthenaQuery[] | null> => {
   try {
-    // const workgroups = await fetchWorkgroups({ athena })
-    // const workgroup = workgroups[0].name
-
     const queryIdsData = await athena
       ?.listNamedQueries({ WorkGroup: workgroup })
       .promise()
@@ -163,4 +160,60 @@ export type AthenaWorkgroupsResults = Workgroup[]
 export function useAthenaWorkgroups(): AsyncData<AthenaWorkgroupsResults> {
   const athena = AWS.Athena.use()
   return useData(fetchWorkgroups, { athena })
+}
+
+interface QueryExecutionsArgs {
+  athena: Athena
+  workgroup: string
+}
+
+async function fetchQueryExecutions({
+  athena,
+  workgroup,
+}: QueryExecutionsArgs): Promise<AthenaQueryExecutionsResults> {
+  try {
+    const executionIdsData = await athena
+      .listQueryExecutions({ WorkGroup: workgroup })
+      .promise()
+
+    if (!executionIdsData.QueryExecutionIds || !executionIdsData.QueryExecutionIds.length)
+      return []
+
+    const executionsData = await athena
+      ?.batchGetQueryExecution({ QueryExecutionIds: executionIdsData.QueryExecutionIds })
+      .promise()
+    return (executionsData.QueryExecutions || []).map((queryExecution) => ({
+      catalog: queryExecution?.QueryExecutionContext?.Catalog,
+      db: queryExecution?.QueryExecutionContext?.Database,
+      id: queryExecution?.QueryExecutionId,
+      outputBucket: queryExecution?.ResultConfiguration?.OutputLocation,
+      query: queryExecution?.Query,
+      status: queryExecution?.Status?.State,
+    }))
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.log('Unable to fetch')
+    // eslint-disable-next-line no-console
+    console.error(e)
+    throw e
+  }
+}
+
+export interface QueryExecution {
+  catalog?: string
+  db?: string
+  id?: string
+  outputBucket?: string
+  query?: string
+  // status?: 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
+  status?: string
+}
+
+type AthenaQueryExecutionsResults = QueryExecution[]
+
+export function useQueryExecutions(
+  workgroup: string,
+): AsyncData<AthenaQueryExecutionsResults> {
+  const athena = AWS.Athena.use()
+  return useData(fetchQueryExecutions, { athena, workgroup })
 }
