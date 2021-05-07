@@ -100,8 +100,8 @@ export const bucketSearch = {
 }
 export const bucketFile = {
   path: '/b/:bucket/tree/:path(.*[^/])',
-  url: (bucket, path, version) =>
-    `/b/${bucket}/tree/${encode(path)}${mkSearch({ version })}`,
+  url: (bucket, path, version, mode) =>
+    `/b/${bucket}/tree/${encode(path)}${mkSearch({ mode, version })}`,
 }
 export const bucketDir = {
   path: '/b/:bucket/tree/:path(.+/)?',
@@ -119,9 +119,11 @@ export const bucketPackageDetail = {
 }
 export const bucketPackageTree = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
-  url: (bucket, name, revision, path = '') =>
+  url: (bucket, name, revision, path = '', mode) =>
     path || (revision && revision !== 'latest')
-      ? `/b/${bucket}/packages/${name}/tree/${revision || 'latest'}/${encode(path)}`
+      ? `/b/${bucket}/packages/${name}/tree/${revision || 'latest'}/${encode(
+          path,
+        )}${mkSearch({ mode })}`
       : bucketPackageDetail.url(bucket, name),
 }
 export const bucketPackageRevisions = {
