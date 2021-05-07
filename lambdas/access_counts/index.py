@@ -2,7 +2,7 @@
 Lambda function that runs Athena queries over CloudTrail logs and .quilt/named_packages/
 and creates summaries of object and package access events.
 """
-
+import concurrent.futures
 import os
 import textwrap
 import time
@@ -31,6 +31,7 @@ LAST_UPDATE_KEY = f'{OBJECT_ACCESS_LOG_DIR}.last_updated_ts.txt'
 
 # Athena does not allow us to write more than 100 partitions at once.
 MAX_OPEN_PARTITIONS = 100
+GLUE_MAX_BATCH_CREATE_PARTITIONS = 100
 
 DROP_CLOUDTRAIL = """DROP TABLE IF EXISTS cloudtrail"""
 DROP_OBJECT_ACCESS_LOG = """DROP TABLE IF EXISTS object_access_log"""
@@ -115,10 +116,6 @@ CREATE_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
     OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
     LOCATION 's3://{sql_escape(QUERY_RESULT_BUCKET)}/{sql_escape(OBJECT_ACCESS_LOG_DIR)}/'
     TBLPROPERTIES ('parquet.compression'='SNAPPY')
-""")
-
-REPAIR_OBJECT_ACCESS_LOG = textwrap.dedent("""
-    MSCK REPAIR TABLE object_access_log
 """)
 
 INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent("""\
@@ -275,6 +272,7 @@ EXTS_ACCESS_COUNTS = textwrap.dedent("""\
 
 athena = boto3.client('athena')
 s3 = boto3.client('s3')
+glue = boto3.client('glue')
 
 
 def start_query(query_string):
@@ -366,6 +364,55 @@ def delete_dir(bucket, prefix):
             raise Exception(f"Failed to delete dir: bucket={bucket!r}, prefix={prefix!r}")
 
 
+def load_access_logs_partitions():
+    """
+    Load object access log partitions, after the object access log table is created.
+    """
+    prefix = f'{OBJECT_ACCESS_LOG_DIR}/date='
+
+    def create_partitions(locations):
+        return glue.batch_create_partition(
+            DatabaseName=ATHENA_DATABASE,
+            TableName='object_access_log',
+            PartitionInputList=[
+                {
+                    'Values': [location[len(prefix):-1]],
+                    'StorageDescriptor': {
+                        'Columns': [
+                            {'Name': 'eventname', 'Type': 'string'},
+                            {'Name': 'bucket', 'Type': 'string'},
+                            {'Name': 'key', 'Type': 'string'},
+                        ],
+                        'Location': f's3://{QUERY_RESULT_BUCKET}/{location}',
+                        'InputFormat': 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat',
+                        'OutputFormat': 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat',
+                        'SerdeInfo': {
+                            'SerializationLibrary': 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe',
+                        },
+                    },
+                }
+                for location in locations
+            ],
+        )
+
+    with concurrent.futures.ThreadPoolExecutor(10) as pool:
+        for resp in s3.get_paginator('list_objects_v2').paginate(
+            Bucket=QUERY_RESULT_BUCKET,
+            Prefix=prefix,
+            Delimiter='/',
+        ):
+            common_prefixes = resp.get('CommonPrefixes')
+            if common_prefixes is None:
+                continue
+            common_prefixes = [obj['Prefix'] for obj in common_prefixes]
+            futures = [
+                pool.submit(create_partitions, common_prefixes[i:i + GLUE_MAX_BATCH_CREATE_PARTITIONS])
+                for i in range(0, len(common_prefixes), GLUE_MAX_BATCH_CREATE_PARTITIONS)
+            ]
+            for f in concurrent.futures.as_completed(futures):
+                f.result()
+
+
 def now():
     """Only exists for unit testing, cause patching datetime.utcnow() is pretty much impossible."""
     return datetime.now(timezone.utc)
@@ -418,8 +465,7 @@ def handler(event, context):
     # Create new Athena tables.
     run_multiple_queries([create_cloudtrail_query, CREATE_OBJECT_ACCESS_LOG, CREATE_PACKAGE_HASHES])
 
-    # Load object access log partitions, after the object access log table is created.
-    run_multiple_queries([REPAIR_OBJECT_ACCESS_LOG])
+    load_access_logs_partitions()
 
     # Delete the old timestamp: if the INSERT query or put_object fail, make sure we regenerate everything next time,
     # instead of ending up with duplicate logs.
