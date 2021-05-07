@@ -128,10 +128,14 @@ export function create<TypeTag, VConsMap extends Record<any, ValueConstructor<an
     return args.length ? exec(...(args as [Inst, ...Extra])) : exec
   }
 
-  // TODO: mapCase
-  // TODO: reducer
+  const reducer = <State>(cases: MatchCases<(s: State) => State>) => (
+    state: State,
+    next: Inst,
+  ) => match(cases, next)(state)
 
-  const ret = { is, match, case: match, ...constructors }
+  // TODO: mapCase
+
+  const ret = { is, match, reducer, case: match, ...constructors }
   return ret as typeof ret & {
     meta: Meta<TypeTag, ValueMap, typeof constructors>
   }
