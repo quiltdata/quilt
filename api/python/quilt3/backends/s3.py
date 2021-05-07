@@ -32,6 +32,12 @@ class S3PackageRegistryV1(PackageRegistryV1):
             pkg_hash = get_bytes(package_dir.join(path))
             yield path, pkg_hash.decode().strip()
 
+    def list_all_package_pointers(self):
+        for path, _ in list_url(self.pointers_global_dir):
+            pkg = path.rpartition('/')[0]
+            pkg_hash = get_bytes(self.pointers_global_dir.join(path))
+            yield pkg, path, pkg_hash.decode().strip()
+
     def delete_package(self, pkg_name: str):
         delete_url_recursively(self.pointers_dir(pkg_name))
 
