@@ -16,6 +16,7 @@ import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import useDragging from 'utils/dragging'
+import * as packageHandle from 'utils/packageHandle'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
@@ -564,6 +565,33 @@ function PackageCreateDialog({
     [handleNameChange],
   )
 
+  const username = redux.useSelector(authSelectors.username)
+
+  const getDefaultPackageName = React.useCallback(
+    (workflow) =>
+      packageHandle.convert(workflow?.packageHandle, 'packages', {
+        username: PD.getUsernamePrefix(username),
+      }),
+    [username],
+  )
+
+  const [initialValues, setInitialValues] = React.useState({
+    meta: PD.EMPTY_META_VALUE,
+    name: getDefaultPackageName(selectedWorkflow || workflowsConfig),
+    workflow: selectedWorkflow,
+  })
+
+  const onWorkflowChange = React.useCallback(
+    ({ modified, values }) => {
+      setWorkflow(values.workflow)
+
+      if (modified.name) return
+      const defaultPackageName = getDefaultPackageName(values.workflow)
+      setInitialValues(R.assoc('name', defaultPackageName, values))
+    },
+    [getDefaultPackageName, setWorkflow],
+  )
+
   React.useEffect(() => {
     if (editorElement) resizeObserver.observe(editorElement)
     return () => {
@@ -571,26 +599,23 @@ function PackageCreateDialog({
     }
   }, [editorElement, resizeObserver])
 
-  const username = redux.useSelector(authSelectors.username)
-  const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
-
   return (
     <RF.Form
       onSubmit={onSubmitWrapped}
+      initialValues={initialValues}
       subscription={{
-        handleSubmit: true,
-        submitting: true,
-        submitFailed: true,
         error: true,
-        submitError: true,
+        handleSubmit: true,
         hasValidationErrors: true,
-        form: true,
+        initialValues: true,
+        submitError: true,
+        submitFailed: true,
+        submitting: true,
       }}
       validate={PD.useCryptoApiValidation()}
     >
       {({
         error,
-        form,
         handleSubmit,
         hasValidationErrors,
         submitError,
@@ -609,8 +634,8 @@ function PackageCreateDialog({
               <RF.FormSpy
                 subscription={{ modified: true, values: true }}
                 onChange={({ modified, values }) => {
-                  if (modified.workflow && values.workflow !== selectedWorkflow) {
-                    setWorkflow(values.workflow)
+                  if (modified?.workflow && values.workflow !== selectedWorkflow) {
+                    onWorkflowChange({ modified, values })
                   }
                 }}
               />
@@ -625,7 +650,6 @@ function PackageCreateDialog({
                     component={PD.WorkflowInput}
                     name="workflow"
                     workflowsConfig={workflowsConfig}
-                    initialValue={selectedWorkflow}
                     validate={validators.required}
                     validateFields={['meta', 'workflow']}
                     errors={{
@@ -635,7 +659,6 @@ function PackageCreateDialog({
 
                   <RF.Field
                     component={PD.PackageNameInput}
-                    initialValue={usernamePrefix}
                     name="name"
                     validate={validators.composeAsync(
                       validators.required,
@@ -676,7 +699,6 @@ function PackageCreateDialog({
                       validate={validateMetaInput}
                       validateFields={['meta']}
                       isEqual={R.equals}
-                      initialValue={PD.EMPTY_META_VALUE}
                       ref={setEditorElement}
                     />
                   )}

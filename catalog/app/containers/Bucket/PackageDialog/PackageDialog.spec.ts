@@ -8,11 +8,11 @@ describe('containers/Bucket/PackageDialog/PackageDialog', () => {
     })
 
     test('should return itself for usernames', () => {
-      expect(PD.getUsernamePrefix('username_not-an-email')).toBe('username_notanemail/')
+      expect(PD.getUsernamePrefix('username_not-an-email')).toBe('username_notanemail')
     })
 
     test('should return prefix for emails', () => {
-      expect(PD.getUsernamePrefix('username@email.co.uk')).toBe('username/')
+      expect(PD.getUsernamePrefix('username@email.co.uk')).toBe('username')
     })
   })
 
