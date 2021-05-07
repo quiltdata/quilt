@@ -145,6 +145,11 @@ export const bucketAthenaQueries = {
   url: (bucket) => `/b/${bucket}/queries/athena`,
 }
 
+export const bucketAthenaQueryExecution = {
+  path: '/b/:bucket/queries/athena/:queryExecutionId',
+  url: (bucket, queryExecutionId) => `/b/${bucket}/queries/athena/${queryExecutionId}`,
+}
+
 // legacy stuff
 export const legacyPackages = {
   path: `/package/:path+`,

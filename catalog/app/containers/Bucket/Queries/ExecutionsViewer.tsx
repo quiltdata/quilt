@@ -2,6 +2,9 @@ import * as dateFns from 'date-fns'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as NamedRoutes from 'utils/NamedRoutes'
+import Link from 'utils/StyledLink'
+
 import * as requests from './requests'
 
 const useExecutionStyles = M.makeStyles((t) => ({
@@ -21,11 +24,14 @@ const useExecutionStyles = M.makeStyles((t) => ({
 }))
 
 interface ExecutionProps {
+  bucket: string
   queryExecution: requests.QueryExecution
 }
 
-function Execution({ queryExecution }: ExecutionProps) {
+function Execution({ bucket, queryExecution }: ExecutionProps) {
   const classes = useExecutionStyles()
+
+  const { urls } = NamedRoutes.use()
 
   const [expanded, setExpanded] = React.useState(false)
 
@@ -39,6 +45,10 @@ function Execution({ queryExecution }: ExecutionProps) {
           )}`,
     [queryExecution],
   )
+
+  const completed = queryExecution.completed
+    ? dateFns.format(queryExecution.completed, 'MMM do, HH:mm:ss')
+    : null
 
   return (
     <>
@@ -55,9 +65,13 @@ function Execution({ queryExecution }: ExecutionProps) {
             : null}
         </M.TableCell>
         <M.TableCell align="right" className={classes.date}>
-          {queryExecution.completed
-            ? dateFns.format(queryExecution.completed, 'MMM do, HH:mm:ss')
-            : null}
+          {queryExecution.status === 'SUCCEEDED' ? (
+            <Link to={urls.bucketAthenaQueryExecution(bucket, queryExecution.id)}>
+              {completed}
+            </Link>
+          ) : (
+            completed
+          )}
         </M.TableCell>
       </M.TableRow>
       <M.TableRow>
@@ -78,10 +92,11 @@ const useStyles = M.makeStyles({
 })
 
 interface ExecutionsViewerProps {
+  bucket: string
   executions: requests.QueryExecution[]
 }
 
-export default function ExecutionsViewer({ executions }: ExecutionsViewerProps) {
+export default function ExecutionsViewer({ bucket, executions }: ExecutionsViewerProps) {
   const classes = useStyles()
 
   return (
@@ -97,7 +112,11 @@ export default function ExecutionsViewer({ executions }: ExecutionsViewerProps) 
         </M.TableHead>
         <M.TableBody>
           {executions.map((queryExecution) => (
-            <Execution queryExecution={queryExecution} key={queryExecution.id} />
+            <Execution
+              bucket={bucket}
+              queryExecution={queryExecution}
+              key={queryExecution.id}
+            />
           ))}
         </M.TableBody>
       </M.Table>

@@ -1,5 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
+import { RouteComponentProps } from 'react-router'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -193,7 +194,13 @@ const isButtonDisabled = (
   error: Error | null,
 ): boolean => !!error || !queryContent || !!resultsData.case({ Pending: R.T, _: R.F })
 
-export default function Athena() {
+interface AthenaProps extends RouteComponentProps<{ bucket: string }> {}
+
+export default function Athena({
+  match: {
+    params: { bucket },
+  },
+}: AthenaProps) {
   const classes = useStyles()
 
   return (
@@ -251,7 +258,9 @@ export default function Athena() {
           />
 
           {executionsData.case({
-            Ok: (executions) => <ExecutionsViewer executions={executions} />,
+            Ok: (executions) => (
+              <ExecutionsViewer bucket={bucket} executions={executions} />
+            ),
             Err: (error: Error) => (
               <Lab.Alert severity="error">{error.message}</Lab.Alert>
             ),
