@@ -1,16 +1,13 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-// import { docs } from 'constants/urls'
-// import StyledLink from 'utils/StyledLink'
-
 import * as requests from './requests'
 
 interface WorkgroupSelectProps {
   className: string
-  workgroups: requests.Workgroup[]
-  onChange: (value: requests.Workgroup | null) => void
-  value: requests.Workgroup | null
+  workgroups: requests.athena.Workgroup[]
+  onChange: (value: requests.athena.Workgroup | null) => void
+  value: requests.athena.Workgroup | null
 }
 
 const useStyles = M.makeStyles((t) => ({

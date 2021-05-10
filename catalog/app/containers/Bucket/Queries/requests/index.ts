@@ -1,4 +1,4 @@
-export * from './athena'
+export * as athena from './athena'
 
 export * from './queriesConfig'
 

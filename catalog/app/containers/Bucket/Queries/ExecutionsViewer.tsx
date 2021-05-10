@@ -25,7 +25,7 @@ const useExecutionStyles = M.makeStyles((t) => ({
 
 interface ExecutionProps {
   bucket: string
-  queryExecution: requests.QueryExecution
+  queryExecution: requests.athena.QueryExecution
 }
 
 function Execution({ bucket, queryExecution }: ExecutionProps) {
@@ -94,7 +94,7 @@ const useStyles = M.makeStyles({
 interface ExecutionsViewerProps {
   bucket: string
   className?: string
-  executions: requests.QueryExecution[]
+  executions: requests.athena.QueryExecution[]
 }
 
 export default function ExecutionsViewer({

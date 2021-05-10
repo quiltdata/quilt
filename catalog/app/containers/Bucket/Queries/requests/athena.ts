@@ -5,7 +5,7 @@ import { useData } from 'utils/Data'
 
 import { AsyncData } from './requests'
 
-interface NamedQueriesArgs {
+interface QueriesArgs {
   athena: Athena
   workgroup: string
 }
@@ -17,10 +17,12 @@ export interface AthenaQuery {
   name: string
 }
 
-export const namedQueries = async ({
+type QueriesResponse = AthenaQuery[]
+
+async function fetchQueries({
   athena,
   workgroup,
-}: NamedQueriesArgs): Promise<AthenaQuery[] | null> => {
+}: QueriesArgs): Promise<QueriesResponse> {
   try {
     const queryIdsData = await athena
       ?.listNamedQueries({ WorkGroup: workgroup })
@@ -45,99 +47,23 @@ export const namedQueries = async ({
   }
 }
 
-export function useNamedQueries(workgroup: string): AsyncData<AthenaQuery[]> {
+export function useQueries(workgroup: string): AsyncData<QueriesResponse> {
   const athena = AWS.Athena.use()
-  return useData(namedQueries, { athena, workgroup }, { noAutoFetch: !workgroup })
-}
-
-async function waitForQueryStatus(
-  athena: Athena,
-  QueryExecutionId: string,
-): Promise<boolean> {
-  const statusData = await athena.getQueryExecution({ QueryExecutionId }).promise()
-  const status = statusData?.QueryExecution?.Status?.State
-  if (status === 'FAILED' || status === 'CANCELLED') {
-    throw new Error(status)
-  }
-
-  if (status === 'SUCCEEDED') {
-    return true
-  }
-
-  return waitForQueryStatus(athena, QueryExecutionId)
-}
-
-async function getQueryResults({
-  athena,
-  queryExecutionId,
-}: {
-  athena: Athena
-  queryExecutionId: string
-}) {
-  await waitForQueryStatus(athena, queryExecutionId)
-
-  const results = await athena
-    .getQueryResults({ QueryExecutionId: queryExecutionId })
-    .promise()
-  return results
-}
-
-export type AthenaSearchResults = {
-  id: string
-}
-
-interface SearchArgs {
-  athena: Athena
-  queryBody: string
-  workgroup: string
-}
-
-async function search({
-  athena,
-  queryBody,
-  workgroup,
-}: SearchArgs): Promise<AthenaSearchResults> {
-  try {
-    const { QueryExecutionId } = await athena
-      .startQueryExecution({
-        QueryString: queryBody,
-        ResultConfiguration: {
-          EncryptionConfiguration: {
-            EncryptionOption: 'SSE_S3',
-          },
-          // OutputLocation: 's3://fiskus-sandbox-dev/fiskus/sandbox/'
-        },
-        WorkGroup: workgroup,
-      })
-      .promise()
-    if (!QueryExecutionId) throw new Error('No execution id')
-    return {
-      id: QueryExecutionId,
-    }
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('Unable to fetch')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    throw e
-  }
-}
-
-export function useAthenaSearch(
-  workgroup: string,
-  queryBody: string,
-): AsyncData<AthenaSearchResults> {
-  const athena = AWS.Athena.use()
-  return useData(search, { athena, queryBody, workgroup }, { noAutoFetch: !queryBody })
+  return useData(fetchQueries, { athena, workgroup }, { noAutoFetch: !workgroup })
 }
 
 interface WorkgroupsArgs {
   athena: Athena
 }
 
-async function fetchWorkgroups({
-  athena,
-}: WorkgroupsArgs): Promise<AthenaWorkgroupsResults> {
+export interface Workgroup {
+  key: string // for consistency
+  name: string
+}
+
+export type WorkgroupsResponse = Workgroup[]
+
+async function fetchWorkgroups({ athena }: WorkgroupsArgs): Promise<WorkgroupsResponse> {
   try {
     const workgroupsData = await athena.listWorkGroups().promise()
     return (workgroupsData.WorkGroups || []).map(({ Name }) => ({
@@ -153,14 +79,7 @@ async function fetchWorkgroups({
   }
 }
 
-export interface Workgroup {
-  key: string // for consistency
-  name: string
-}
-
-export type AthenaWorkgroupsResults = Workgroup[]
-
-export function useAthenaWorkgroups(): AsyncData<AthenaWorkgroupsResults> {
+export function useWorkgroups(): AsyncData<WorkgroupsResponse> {
   const athena = AWS.Athena.use()
   return useData(fetchWorkgroups, { athena })
 }
@@ -170,10 +89,23 @@ interface QueryExecutionsArgs {
   workgroup: string
 }
 
+export interface QueryExecution {
+  catalog?: string
+  completed?: Date
+  created?: Date
+  db?: string
+  id?: string
+  outputBucket?: string
+  query?: string
+  status?: string // 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
+}
+
+type QueryExecutionsResponse = QueryExecution[]
+
 async function fetchQueryExecutions({
   athena,
   workgroup,
-}: QueryExecutionsArgs): Promise<AthenaQueryExecutionsResults> {
+}: QueryExecutionsArgs): Promise<QueryExecutionsResponse> {
   try {
     const executionIdsData = await athena
       .listQueryExecutions({ WorkGroup: workgroup })
@@ -204,36 +136,103 @@ async function fetchQueryExecutions({
   }
 }
 
-export interface QueryExecution {
-  catalog?: string
-  completed?: Date
-  created?: Date
-  db?: string
-  id?: string
-  outputBucket?: string
-  query?: string
-  status?: string // 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
-}
-
-type AthenaQueryExecutionsResults = QueryExecution[]
-
 export function useQueryExecutions(
   workgroup: string,
-): AsyncData<AthenaQueryExecutionsResults> {
+): AsyncData<QueryExecutionsResponse> {
   const athena = AWS.Athena.use()
   return useData(fetchQueryExecutions, { athena, workgroup })
 }
 
-// TODO: rename *Results to *Response?
-export type AthenaQueryResultsResults = object
+async function waitForQueryStatus(
+  athena: Athena,
+  QueryExecutionId: string,
+): Promise<boolean> {
+  const statusData = await athena.getQueryExecution({ QueryExecutionId }).promise()
+  const status = statusData?.QueryExecution?.Status?.State
+  if (status === 'FAILED' || status === 'CANCELLED') {
+    throw new Error(status)
+  }
+
+  if (status === 'SUCCEEDED') {
+    return true
+  }
+
+  return waitForQueryStatus(athena, QueryExecutionId)
+}
+
+export type QueryResultsResponse = object
+
+async function fetchQueryResults({
+  athena,
+  queryExecutionId,
+}: {
+  athena: Athena
+  queryExecutionId: string
+}): Promise<QueryResultsResponse> {
+  await waitForQueryStatus(athena, queryExecutionId)
+
+  const results = await athena
+    .getQueryResults({ QueryExecutionId: queryExecutionId })
+    .promise()
+  return results
+}
 
 export function useQueryResults(
   queryExecutionId: string | null,
-): AsyncData<AthenaQueryResultsResults> {
+): AsyncData<QueryResultsResponse> {
   const athena = AWS.Athena.use()
   return useData(
-    getQueryResults,
+    fetchQueryResults,
     { athena, queryExecutionId },
     { noAutoFetch: !queryExecutionId },
   )
+}
+
+export interface QueryRunResponse {
+  id: string
+}
+
+interface RunQueryArgs {
+  athena: Athena
+  queryBody: string
+  workgroup: string
+}
+
+async function runQuery({
+  athena,
+  queryBody,
+  workgroup,
+}: RunQueryArgs): Promise<QueryRunResponse> {
+  try {
+    const { QueryExecutionId } = await athena
+      .startQueryExecution({
+        QueryString: queryBody,
+        ResultConfiguration: {
+          EncryptionConfiguration: {
+            EncryptionOption: 'SSE_S3',
+          },
+          // OutputLocation: 's3://fiskus-sandbox-dev/fiskus/sandbox/'
+        },
+        WorkGroup: workgroup,
+      })
+      .promise()
+    if (!QueryExecutionId) throw new Error('No execution id')
+    return {
+      id: QueryExecutionId,
+    }
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.log('Unable to fetch')
+    // eslint-disable-next-line no-console
+    console.error(e)
+    throw e
+  }
+}
+
+export function useQueryRun(
+  workgroup: string,
+  queryBody: string,
+): AsyncData<QueryRunResponse> {
+  const athena = AWS.Athena.use()
+  return useData(runQuery, { athena, queryBody, workgroup }, { noAutoFetch: !queryBody })
 }

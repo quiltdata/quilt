@@ -1,16 +1,13 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-// import { docs } from 'constants/urls'
-// import StyledLink from 'utils/StyledLink'
-
 import * as requests from './requests'
 
 interface QuerySelectProps {
   className: string
-  queries: (requests.Query | requests.AthenaQuery)[]
-  onChange: (value: requests.Query | requests.AthenaQuery | null) => void
-  value: requests.Query | requests.AthenaQuery | null
+  queries: (requests.Query | requests.athena.AthenaQuery)[]
+  onChange: (value: requests.Query | requests.athena.AthenaQuery | null) => void
+  value: requests.Query | requests.athena.AthenaQuery | null
 }
 
 const useStyles = M.makeStyles((t) => ({
