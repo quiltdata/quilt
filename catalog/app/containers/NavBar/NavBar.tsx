@@ -10,6 +10,7 @@ import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as CatalogSettings from 'utils/CatalogSettings'
 import * as Config from 'utils/Config'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -330,7 +331,12 @@ interface LinkDescriptor {
 function useLinks(): LinkDescriptor[] {
   const { paths, urls } = NamedRoutes.use()
   const cfg = Config.useConfig()
+  const settings = CatalogSettings.use()
   return [
+    settings?.customNavLink && {
+      href: settings.customNavLink.url,
+      label: settings.customNavLink.label,
+    },
     cfg.mode !== 'MARKETING' && {
       to: urls.uriResolver(),
       label: 'URI',
