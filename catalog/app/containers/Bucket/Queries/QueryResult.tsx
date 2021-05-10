@@ -19,8 +19,6 @@ interface QueryResultProps {
 export default function QueryResult({ results }: QueryResultProps) {
   const classes = useStyles()
 
-  // TODO: it fetches results by queryExecutionId
-
   return (
     <div>
       <M.Typography variant="body1">Search results</M.Typography>

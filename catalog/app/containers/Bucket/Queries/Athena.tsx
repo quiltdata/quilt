@@ -1,10 +1,12 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Route, Switch, RouteComponentProps } from 'react-router'
+import { RouteComponentProps } from 'react-router'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import * as NamedRoutes from 'utils/NamedRoutes'
+// FIXME: rename Fetcher components
+//        move Alert and spinners to reusable components
+//        show queryBody for queryExecutionId
 
 import AthenaQueryViewer from './AthenaQueryViewer'
 import ExecutionsViewer from './ExecutionsViewer'
@@ -72,7 +74,6 @@ interface SearchResultsFetcherProps {
   workgroup: string
 }
 
-// TODO: it executes query instead of fetches results
 function SearchResultsFetcher({
   children,
   queryBody,
@@ -80,6 +81,19 @@ function SearchResultsFetcher({
 }: SearchResultsFetcherProps) {
   const resultsData = requests.useAthenaSearch(workgroup, queryBody)
   return children(resultsData)
+}
+interface QueryResultsFetcherRenderProps {
+  queryResultsData: requests.AsyncData<requests.AthenaQueryResultsResults>
+}
+
+interface QueryResultsFetcherProps {
+  children: (props: QueryResultsFetcherRenderProps) => React.ReactElement
+  queryExecutionId: string | null
+}
+
+function QueryResultsFetcher({ children, queryExecutionId }: QueryResultsFetcherProps) {
+  const queryResultsData = requests.useQueryResults(queryExecutionId)
+  return children({ queryResultsData })
 }
 
 interface QueriesFetcherRenderProps {
@@ -107,6 +121,7 @@ interface QueriesStateRenderProps {
   handleWorkgroupChange: (w: requests.Workgroup | null) => void
   queriesData: requests.AsyncData<requests.AthenaQuery[]>
   queryMeta: requests.AthenaQuery | null
+  queryResultsData: requests.AsyncData<requests.AthenaQueryResultsResults>
   resultsData: requests.AsyncData<requests.AthenaSearchResults>
   workgroup: requests.Workgroup | null
   workgroups: requests.Workgroup[]
@@ -114,9 +129,10 @@ interface QueriesStateRenderProps {
 
 interface QueriesStateProps {
   children: (props: QueriesStateRenderProps) => React.ReactElement
+  queryExecutionId: string | null
 }
 
-function QueriesState({ children }: QueriesStateProps) {
+function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
   const classes = useStyles()
 
   // Info about query: name, url, etc.
@@ -153,34 +169,39 @@ function QueriesState({ children }: QueriesStateProps) {
 
   return workgroupsData.case({
     Ok: (workgroups) => (
-      <QueriesFetcher workgroup={workgroup?.name || workgroups?.[0].name || ''}>
-        {({ queriesData, executionsData }) => (
-          <SearchResultsFetcher
-            queryBody={queryRequest || ''}
-            workgroup={workgroup?.name || workgroups?.[0].name || ''}
-          >
-            {(resultsData) =>
-              children({
-                customQueryBody,
-                executionsData,
-                handleQueryBodyChange: setCustomQueryBody,
-                handleQueryMetaChange,
-                handleSubmit,
-                handleWorkgroupChange,
-                queriesData,
-                queryMeta,
-                resultsData,
-                workgroup: workgroup || workgroups?.[0],
-                workgroups,
-              })
-            }
-          </SearchResultsFetcher>
+      <QueryResultsFetcher queryExecutionId={queryExecutionId}>
+        {({ queryResultsData }) => (
+          <QueriesFetcher workgroup={workgroup?.name || workgroups?.[0].name || ''}>
+            {({ queriesData, executionsData }) => (
+              <SearchResultsFetcher
+                queryBody={queryRequest || ''}
+                workgroup={workgroup?.name || workgroups?.[0].name || ''}
+              >
+                {(resultsData) =>
+                  children({
+                    customQueryBody,
+                    executionsData,
+                    handleQueryBodyChange: setCustomQueryBody,
+                    handleQueryMetaChange,
+                    handleSubmit,
+                    handleWorkgroupChange,
+                    queriesData,
+                    queryMeta,
+                    queryResultsData,
+                    resultsData,
+                    workgroup: workgroup || workgroups?.[0],
+                    workgroups,
+                  })
+                }
+              </SearchResultsFetcher>
+            )}
+          </QueriesFetcher>
         )}
-      </QueriesFetcher>
+      </QueryResultsFetcher>
     ),
     Err: (requestError: Error) => (
       <div className={classes.container}>
-        <Lab.Alert severity="error">{requestError.message}</Lab.Alert>
+        <Lab.Alert severity="error">Workgroups Data: {requestError.message}</Lab.Alert>
       </div>
     ),
     _: () => (
@@ -191,29 +212,24 @@ function QueriesState({ children }: QueriesStateProps) {
   })
 }
 
-function Results() {
-  return <h1>It works</h1>
-}
-
 const isButtonDisabled = (
   queryContent: string,
   resultsData: requests.AsyncData<requests.ElasticSearchResults>,
   error: Error | null,
 ): boolean => !!error || !queryContent || !!resultsData.case({ Pending: R.T, _: R.F })
 
-interface AthenaProps extends RouteComponentProps<{ bucket: string }> {}
+interface AthenaProps
+  extends RouteComponentProps<{ bucket: string; queryExecutionId?: string }> {}
 
 export default function Athena({
   match: {
-    params: { bucket },
+    params: { bucket, queryExecutionId },
   },
 }: AthenaProps) {
   const classes = useStyles()
 
-  const { paths } = NamedRoutes.use()
-
   return (
-    <QueriesState>
+    <QueriesState queryExecutionId={queryExecutionId || null}>
       {({
         customQueryBody,
         executionsData,
@@ -223,6 +239,7 @@ export default function Athena({
         handleWorkgroupChange,
         queriesData,
         queryMeta,
+        queryResultsData,
         resultsData,
         workgroup,
         workgroups,
@@ -246,7 +263,7 @@ export default function Athena({
               />
             ),
             Err: (error: Error) => (
-              <Lab.Alert severity="error">{error.message}</Lab.Alert>
+              <Lab.Alert severity="error">QueryesData: {error.message}</Lab.Alert>
             ),
             _: () => (
               <M.Box pt={5} textAlign="center">
@@ -271,7 +288,7 @@ export default function Athena({
               <ExecutionsViewer bucket={bucket} executions={executions} />
             ),
             Err: (error: Error) => (
-              <Lab.Alert severity="error">{error.message}</Lab.Alert>
+              <Lab.Alert severity="error">Executions Data:{error.message}</Lab.Alert>
             ),
             _: () => (
               <M.Box pt={5} textAlign="center">
@@ -280,17 +297,13 @@ export default function Athena({
             ),
           })}
 
-          <Switch>
-            <Route path={paths.bucketAthenaQueryExecution} component={Results} exact />
-          </Switch>
-
-          {resultsData.case({
+          {queryResultsData.case({
             Init: () => null,
-            Ok: (results: requests.AthenaSearchResults) => (
-              <QueryResult results={results} />
+            Ok: (queryResults: requests.AthenaQueryResultsResults) => (
+              <QueryResult results={queryResults} />
             ),
             Err: (error: Error) => (
-              <Lab.Alert severity="error">{error.message}</Lab.Alert>
+              <Lab.Alert severity="error">Query Results Data: {error.message}</Lab.Alert>
             ),
             _: () => (
               <M.Box pt={5} textAlign="center">

@@ -67,14 +67,24 @@ async function waitForQueryStatus(
   return waitForQueryStatus(athena, QueryExecutionId)
 }
 
-async function getQueryResults(athena: Athena, QueryExecutionId: string) {
-  await waitForQueryStatus(athena, QueryExecutionId)
+async function getQueryResults({
+  athena,
+  queryExecutionId,
+}: {
+  athena: Athena
+  queryExecutionId: string
+}) {
+  await waitForQueryStatus(athena, queryExecutionId)
 
-  const results = await athena.getQueryResults({ QueryExecutionId }).promise()
+  const results = await athena
+    .getQueryResults({ QueryExecutionId: queryExecutionId })
+    .promise()
   return results
 }
 
-export type AthenaSearchResults = object | null
+export type AthenaSearchResults = {
+  id: string
+}
 
 interface SearchArgs {
   athena: Athena
@@ -101,8 +111,9 @@ async function search({
       })
       .promise()
     if (!QueryExecutionId) throw new Error('No execution id')
-    const results = await getQueryResults(athena, QueryExecutionId)
-    return results
+    return {
+      id: QueryExecutionId,
+    }
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
@@ -110,14 +121,6 @@ async function search({
     console.error(e)
     throw e
   }
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        queryBody,
-        body: 'It works!',
-      })
-    }, 1000)
-  })
 }
 
 export function useAthenaSearch(
@@ -219,4 +222,18 @@ export function useQueryExecutions(
 ): AsyncData<AthenaQueryExecutionsResults> {
   const athena = AWS.Athena.use()
   return useData(fetchQueryExecutions, { athena, workgroup })
+}
+
+// TODO: rename *Results to *Response?
+export type AthenaQueryResultsResults = object
+
+export function useQueryResults(
+  queryExecutionId: string | null,
+): AsyncData<AthenaQueryResultsResults> {
+  const athena = AWS.Athena.use()
+  return useData(
+    getQueryResults,
+    { athena, queryExecutionId },
+    { noAutoFetch: !queryExecutionId },
+  )
 }
