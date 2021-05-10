@@ -146,7 +146,7 @@ export function useQueryExecutions(
 async function waitForQueryStatus(
   athena: Athena,
   QueryExecutionId: string,
-): Promise<boolean> {
+): Promise<Athena.QueryExecution | null> {
   const statusData = await athena.getQueryExecution({ QueryExecutionId }).promise()
   const status = statusData?.QueryExecution?.Status?.State
   if (status === 'FAILED' || status === 'CANCELLED') {
@@ -154,13 +154,16 @@ async function waitForQueryStatus(
   }
 
   if (status === 'SUCCEEDED') {
-    return true
+    return statusData?.QueryExecution || null
   }
 
   return waitForQueryStatus(athena, QueryExecutionId)
 }
 
-export type QueryResultsResponse = object
+export type QueryResultsResponse = {
+  queryExecution: Athena.QueryExecution | null
+  queryResults: object
+}
 
 async function fetchQueryResults({
   athena,
@@ -169,12 +172,15 @@ async function fetchQueryResults({
   athena: Athena
   queryExecutionId: string
 }): Promise<QueryResultsResponse> {
-  await waitForQueryStatus(athena, queryExecutionId)
+  const queryExecution = await waitForQueryStatus(athena, queryExecutionId)
 
-  const results = await athena
+  const queryResults = await athena
     .getQueryResults({ QueryExecutionId: queryExecutionId })
     .promise()
-  return results
+  return {
+    queryExecution,
+    queryResults,
+  }
 }
 
 export function useQueryResults(
