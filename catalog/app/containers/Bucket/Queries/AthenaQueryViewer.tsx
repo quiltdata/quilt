@@ -37,7 +37,7 @@ export default function AthenaQueryViewer({
       <M.Paper className={classes.editor}>
         <AceEditor
           editorProps={{ $blockScrolling: true }}
-          height="300px"
+          height="200px"
           mode="sql"
           onChange={onChange}
           theme="eclipse"

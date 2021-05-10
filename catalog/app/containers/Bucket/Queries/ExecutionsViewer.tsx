@@ -93,14 +93,19 @@ const useStyles = M.makeStyles({
 
 interface ExecutionsViewerProps {
   bucket: string
+  className?: string
   executions: requests.QueryExecution[]
 }
 
-export default function ExecutionsViewer({ bucket, executions }: ExecutionsViewerProps) {
+export default function ExecutionsViewer({
+  bucket,
+  className,
+  executions,
+}: ExecutionsViewerProps) {
   const classes = useStyles()
 
   return (
-    <M.TableContainer component={M.Paper}>
+    <M.TableContainer component={M.Paper} className={className}>
       <M.Table size="small" className={classes.table}>
         <M.TableHead>
           <M.TableRow>
@@ -118,6 +123,20 @@ export default function ExecutionsViewer({ bucket, executions }: ExecutionsViewe
               key={queryExecution.id}
             />
           ))}
+          {!executions.length && (
+            <M.TableRow>
+              <M.TableCell colSpan={4}>
+                <M.Box p={3} textAlign="center">
+                  <M.Typography variant="h6">
+                    No executions for this workgroup
+                  </M.Typography>
+                  <M.Typography>
+                    Select another workgroup or execute some query
+                  </M.Typography>
+                </M.Box>
+              </M.TableCell>
+            </M.TableRow>
+          )}
         </M.TableBody>
       </M.Table>
     </M.TableContainer>

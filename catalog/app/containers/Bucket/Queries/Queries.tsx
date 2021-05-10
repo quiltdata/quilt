@@ -24,6 +24,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   panel: {
     flexGrow: 1,
+    maxWidth: 'calc(100% - 200px)',
     padding: t.spacing(1, 3),
   },
   select: {
@@ -34,7 +35,7 @@ const useStyles = M.makeStyles((t) => ({
   },
   tabs: {
     borderRight: `1px solid ${t.palette.divider}`,
-    minWidth: '200px',
+    width: '200px',
   },
   viewer: {
     margin: t.spacing(3, 0),

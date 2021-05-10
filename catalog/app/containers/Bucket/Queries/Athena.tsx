@@ -4,6 +4,8 @@ import { RouteComponentProps } from 'react-router'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import * as Sentry from 'utils/Sentry'
+
 // FIXME: rename Fetcher components
 //        move Alert and spinners to reusable components
 //        show queryBody for queryExecutionId
@@ -15,16 +17,54 @@ import QuerySelect from './QuerySelect'
 import WorkgroupSelect from './WorkgroupSelect'
 import * as requests from './requests'
 
+interface AlertProps {
+  error: Error
+  title: string
+}
+
+function Alert({ error, title }: AlertProps) {
+  const sentry = Sentry.use()
+  sentry('captureException', error)
+
+  return (
+    <Lab.Alert severity="error">
+      {title}: {error.message}
+    </Lab.Alert>
+  )
+}
+
+function makeAsyncDataErrorHandler(title: string) {
+  return (error: Error) => <Alert error={error} title={title} />
+}
+
+interface SpinnerProps {
+  size?: 'large'
+}
+
+function Spinner({ size }: SpinnerProps) {
+  return (
+    <M.Box pt={5} textAlign="center">
+      <M.CircularProgress size={size === 'large' ? 96 : 48} />
+    </M.Box>
+  )
+}
+
+function makeAsyncDataPendingHandler(size?: 'large') {
+  return () => <Spinner size={size} />
+}
+
 const useStyles = M.makeStyles((t) => ({
   actions: {
     margin: t.spacing(2, 0),
   },
-  container: {
-    display: 'flex',
-    padding: t.spacing(3),
+  executions: {
+    margin: t.spacing(0, 0, 4),
   },
   form: {
     margin: t.spacing(0, 0, 4),
+  },
+  results: {
+    margin: t.spacing(4, 0, 0),
   },
   select: {
     margin: t.spacing(3, 0),
@@ -133,8 +173,6 @@ interface QueriesStateProps {
 }
 
 function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
-  const classes = useStyles()
-
   // Info about query: name, url, etc.
   const [queryMeta, setQueryMeta] = React.useState<requests.AthenaQuery | null>(null)
 
@@ -199,16 +237,8 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
         )}
       </QueryResultsFetcher>
     ),
-    Err: (requestError: Error) => (
-      <div className={classes.container}>
-        <Lab.Alert severity="error">Workgroups Data: {requestError.message}</Lab.Alert>
-      </div>
-    ),
-    _: () => (
-      <div className={classes.container}>
-        <M.CircularProgress size={48} />
-      </div>
-    ),
+    Err: makeAsyncDataErrorHandler('Workgroups Data'),
+    _: makeAsyncDataPendingHandler(),
   })
 }
 
@@ -262,14 +292,8 @@ export default function Athena({
                 value={customQueryBody ? null : queryMeta}
               />
             ),
-            Err: (error: Error) => (
-              <Lab.Alert severity="error">QueryesData: {error.message}</Lab.Alert>
-            ),
-            _: () => (
-              <M.Box pt={5} textAlign="center">
-                <M.CircularProgress size={96} />
-              </M.Box>
-            ),
+            Err: makeAsyncDataErrorHandler('Queries Data'),
+            _: makeAsyncDataPendingHandler('large'),
           })}
 
           <Form
@@ -285,16 +309,14 @@ export default function Athena({
 
           {executionsData.case({
             Ok: (executions) => (
-              <ExecutionsViewer bucket={bucket} executions={executions} />
+              <ExecutionsViewer
+                className={classes.executions}
+                bucket={bucket}
+                executions={executions}
+              />
             ),
-            Err: (error: Error) => (
-              <Lab.Alert severity="error">Executions Data:{error.message}</Lab.Alert>
-            ),
-            _: () => (
-              <M.Box pt={5} textAlign="center">
-                <M.CircularProgress size={96} />
-              </M.Box>
-            ),
+            Err: makeAsyncDataErrorHandler('Executions Data'),
+            _: makeAsyncDataPendingHandler('large'),
           })}
 
           {queryResultsData.case({
@@ -302,14 +324,8 @@ export default function Athena({
             Ok: (queryResults: requests.AthenaQueryResultsResults) => (
               <QueryResult results={queryResults} />
             ),
-            Err: (error: Error) => (
-              <Lab.Alert severity="error">Query Results Data: {error.message}</Lab.Alert>
-            ),
-            _: () => (
-              <M.Box pt={5} textAlign="center">
-                <M.CircularProgress size={96} />
-              </M.Box>
-            ),
+            Err: makeAsyncDataErrorHandler('Query Results Data'),
+            _: makeAsyncDataPendingHandler('large'),
           })}
         </div>
       )}
