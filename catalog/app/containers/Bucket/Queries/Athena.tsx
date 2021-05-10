@@ -1,8 +1,10 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { RouteComponentProps } from 'react-router'
+import { Route, Switch, RouteComponentProps } from 'react-router'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
+
+import * as NamedRoutes from 'utils/NamedRoutes'
 
 import AthenaQueryViewer from './AthenaQueryViewer'
 import ExecutionsViewer from './ExecutionsViewer'
@@ -70,6 +72,7 @@ interface SearchResultsFetcherProps {
   workgroup: string
 }
 
+// TODO: it executes query instead of fetches results
 function SearchResultsFetcher({
   children,
   queryBody,
@@ -188,6 +191,10 @@ function QueriesState({ children }: QueriesStateProps) {
   })
 }
 
+function Results() {
+  return <h1>It works</h1>
+}
+
 const isButtonDisabled = (
   queryContent: string,
   resultsData: requests.AsyncData<requests.ElasticSearchResults>,
@@ -202,6 +209,8 @@ export default function Athena({
   },
 }: AthenaProps) {
   const classes = useStyles()
+
+  const { paths } = NamedRoutes.use()
 
   return (
     <QueriesState>
@@ -270,6 +279,10 @@ export default function Athena({
               </M.Box>
             ),
           })}
+
+          <Switch>
+            <Route path={paths.bucketAthenaQueryExecution} component={Results} exact />
+          </Switch>
 
           {resultsData.case({
             Init: () => null,

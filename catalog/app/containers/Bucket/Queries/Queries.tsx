@@ -104,6 +104,7 @@ export default function Queries({
         <Switch>
           <Route path={paths.bucketESQueries} component={ElasticSearch} exact />
           <Route path={paths.bucketAthenaQueries} component={Athena} exact />
+          <Route path={paths.bucketAthenaQueryExecution} component={Athena} exact />
           <Route>
             <Redirect to={urls.bucketESQueries(bucket)} />
           </Route>
