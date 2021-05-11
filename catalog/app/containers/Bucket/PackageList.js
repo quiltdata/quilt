@@ -14,6 +14,7 @@ import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 // import * as LinkedData from 'utils/LinkedData'
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as SVG from 'utils/SVG'
@@ -394,6 +395,8 @@ export default function PackageList({
 
   return (
     <>
+      <MetaTitle>{['Packages', bucket]}</MetaTitle>
+
       <PackageCreateDialog
         {...{ bucket, refresh, open: uploadOpen, onClose: closeUpload }}
       />

@@ -20,6 +20,7 @@ import * as Config from 'utils/Config'
 import Data, { useData } from 'utils/Data'
 import * as LinkedData from 'utils/LinkedData'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
 import Link, { linkStyle } from 'utils/StyledLink'
@@ -681,6 +682,7 @@ function PackageTree({ bucket, name, revision, path, resolvedFrom }) {
 
   return (
     <FileView.Root>
+      <MetaTitle>{[`${name}@${R.take(10, revision)}/${path}`, bucket]}</MetaTitle>
       {!!bucketCfg &&
         revisionData.case({
           Ok: ({ hash, modified }) => (

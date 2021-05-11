@@ -3,6 +3,7 @@ import { useHistory, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
 
@@ -67,6 +68,8 @@ export default function UriResolver({ match }) {
     <Layout
       pre={
         <M.Container className={classes.container}>
+          <MetaTitle>Resolve a Quilt package URI</MetaTitle>
+
           <M.Typography variant="h4" align="center">
             Resolve a Quilt package URI
           </M.Typography>

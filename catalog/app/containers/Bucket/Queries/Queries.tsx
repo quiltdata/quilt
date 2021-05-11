@@ -4,6 +4,8 @@ import { RouteComponentProps } from 'react-router'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import MetaTitle from 'utils/MetaTitle'
+
 import QueryResult from './QueryResult'
 import QuerySelect from './QuerySelect'
 import QueryViewer from './QueryViewer'
@@ -206,6 +208,8 @@ export default function Queries({
         resultsData,
       }) => (
         <M.Container className={classes.container} maxWidth="lg">
+          <MetaTitle>{['Queries', bucket]}</MetaTitle>
+
           <M.Typography variant="h6">ElasticSearch queries</M.Typography>
 
           <QuerySelect
