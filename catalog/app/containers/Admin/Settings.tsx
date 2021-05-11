@@ -12,16 +12,10 @@ import * as validators from 'utils/validators'
 import * as Form from './Form'
 
 const useNavLinkEditorStyles = M.makeStyles((t) => ({
-  section: {
+  actions: {
     alignItems: 'center',
     display: 'flex',
     marginTop: t.spacing(1),
-  },
-  fields: {
-    display: 'flex',
-    flexDirection: 'column',
-    marginRight: t.spacing(2),
-    overflow: 'hidden',
   },
   field: {
     display: 'flex',
@@ -115,39 +109,41 @@ function NavLinkEditor() {
   return (
     <>
       {settings?.customNavLink ? (
-        <div className={classes.section}>
-          <div className={classes.fields}>
-            <div className={classes.field}>
-              <div className={classes.fieldName}>URL:</div>
-              <div className={classes.fieldValue}>{settings.customNavLink.url}</div>
-            </div>
-            <div className={classes.field}>
-              <div className={classes.fieldName}>Label:</div>
-              <div className={classes.fieldValue}>{settings.customNavLink.label}</div>
-            </div>
+        <>
+          <div className={classes.field}>
+            <div className={classes.fieldName}>URL:</div>
+            <div className={classes.fieldValue}>{settings.customNavLink.url}</div>
           </div>
-          <M.Button
-            variant="outlined"
-            color="primary"
-            size="small"
-            onClick={edit}
-            disabled={removing}
-          >
-            Edit
-          </M.Button>
-          <M.Box pl={1} />
-          <M.Button color="primary" size="small" onClick={remove} disabled={removing}>
-            Remove
-          </M.Button>
-          {removing && <M.CircularProgress size={24} className={classes.progress} />}
-        </div>
+          <div className={classes.field}>
+            <div className={classes.fieldName}>Label:</div>
+            <div className={classes.fieldValue}>{settings.customNavLink.label}</div>
+          </div>
+          <div className={classes.actions}>
+            <M.Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              onClick={edit}
+              disabled={removing}
+            >
+              Edit
+            </M.Button>
+            <M.Box pl={1} />
+            <M.Button color="primary" size="small" onClick={remove} disabled={removing}>
+              Remove
+            </M.Button>
+            {removing && <M.CircularProgress size={24} className={classes.progress} />}
+          </div>
+        </>
       ) : (
-        <div className={classes.section}>
+        <>
           <div className={classes.notConfigured}>Not configured</div>
-          <M.Button variant="outlined" color="primary" size="small" onClick={edit}>
-            Add link
-          </M.Button>
-        </div>
+          <div className={classes.actions}>
+            <M.Button variant="outlined" color="primary" size="small" onClick={edit}>
+              Configure link
+            </M.Button>
+          </div>
+        </>
       )}
       <M.Dialog open={editing} onExited={handleExited} fullWidth>
         <RF.Form onSubmit={onSubmit} key={formKey}>
@@ -235,6 +231,7 @@ const useStyles = M.makeStyles((t) => ({
   sectionHeading: {
     ...t.typography.body1,
     fontWeight: t.typography.fontWeightMedium,
+    marginBottom: t.spacing(1),
   },
 }))
 
