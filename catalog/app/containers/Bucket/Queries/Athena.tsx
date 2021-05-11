@@ -6,8 +6,7 @@ import * as Lab from '@material-ui/lab'
 
 import * as Sentry from 'utils/Sentry'
 
-// FIXME: rename Fetcher components
-//        create Empty components
+// FIXME: create Empty components
 //        IDEMPOTENCY
 
 import * as requests from './requests'
@@ -114,17 +113,17 @@ function Form({ disabled, value, onChange, onSubmit }: FormProps) {
   )
 }
 
-interface QueryExecutorRenderProps {
+interface QueryRunnerRenderProps {
   queryRunData: requests.AsyncData<requests.athena.QueryRunResponse>
 }
 
-interface QueryExecutorProps {
-  children: (props: QueryExecutorRenderProps) => React.ReactElement
+interface QueryRunnerProps {
+  children: (props: QueryRunnerRenderProps) => React.ReactElement
   queryBody: string
   workgroup: string
 }
 
-function QueryExecutor({ children, queryBody, workgroup }: QueryExecutorProps) {
+function QueryRunner({ children, queryBody, workgroup }: QueryRunnerProps) {
   const queryRunData = requests.athena.useQueryRun(workgroup, queryBody)
   return children({ queryRunData })
 }
@@ -229,7 +228,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                 }
               >
                 {({ queriesData, executionsData }) => (
-                  <QueryExecutor
+                  <QueryRunner
                     queryBody={queryRequest || ''}
                     workgroup={workgroup?.name || workgroups?.[0].name || ''}
                   >
@@ -255,7 +254,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                         workgroups,
                       })
                     }
-                  </QueryExecutor>
+                  </QueryRunner>
                 )}
               </QueriesFetcher>
             ), // FIXME: avoid repetition
@@ -269,7 +268,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                 }
               >
                 {({ queriesData, executionsData }) => (
-                  <QueryExecutor
+                  <QueryRunner
                     queryBody={queryRequest || ''}
                     workgroup={workgroup?.name || workgroups?.[0].name || ''}
                   >
@@ -295,7 +294,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                         workgroups,
                       })
                     }
-                  </QueryExecutor>
+                  </QueryRunner>
                 )}
               </QueriesFetcher>
             ),
