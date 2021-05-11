@@ -15,6 +15,7 @@ import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
 // import * as LinkedData from 'utils/LinkedData'
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import StyledLink from 'utils/StyledLink'
@@ -450,6 +451,8 @@ export default function PackageRevisions({
 
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
+      <MetaTitle>{[name, bucket]}</MetaTitle>
+
       {updateDialog.render()}
 
       <M.Box

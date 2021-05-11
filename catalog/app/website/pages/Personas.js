@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import MetaTitle from 'utils/MetaTitle'
+
 import Backlight from 'website/components/Backgrounds/Backlight1'
 import Dots from 'website/components/Backgrounds/Dots'
 import Bar from 'website/components/Bar'
@@ -109,6 +111,7 @@ const Head = (props) => (
 
 export default () => (
   <Layout>
+    <MetaTitle>Personas</MetaTitle>
     <M.Box position="relative">
       <Backlight />
       <Dots />
