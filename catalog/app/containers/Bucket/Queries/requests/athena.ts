@@ -196,6 +196,14 @@ export function useQueryResults(
   )
 }
 
+async function hashQueryBody(queryBody: string, workgroup: string): Promise<string> {
+  const msgUint8 = new TextEncoder().encode(workgroup + queryBody)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+  return hashHex
+}
+
 export interface QueryRunResponse {
   id: string
 }
@@ -212,8 +220,10 @@ async function runQuery({
   workgroup,
 }: RunQueryArgs): Promise<QueryRunResponse> {
   try {
+    const hashDigest = await hashQueryBody(queryBody, workgroup)
     const { QueryExecutionId } = await athena
       .startQueryExecution({
+        ClientRequestToken: hashDigest,
         QueryString: queryBody,
         ResultConfiguration: {
           EncryptionConfiguration: {
