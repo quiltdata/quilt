@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import * as requests from './requests'
 
@@ -11,6 +12,20 @@ export default function AthenaResults({ results }: AthenaResultsProps) {
   const rows = results?.ResultSet?.Rows
   const head = rows?.[0]
   const tail = rows?.slice(1)
+
+  const pageSize = 10
+  const [page, setPage] = React.useState(1)
+
+  const handlePagination = React.useCallback(
+    (event, value) => {
+      setPage(value)
+    },
+    [setPage],
+  )
+
+  if (!tail) return null
+
+  const rowsPaginated = tail.slice(pageSize * page, pageSize * (page + 1))
 
   /* eslint-disable react/no-array-index-key */
 
@@ -26,7 +41,7 @@ export default function AthenaResults({ results }: AthenaResultsProps) {
           </M.TableRow>
         </M.TableHead>
         <M.TableBody>
-          {tail?.map((row, rowIndex) => (
+          {rowsPaginated.map((row, rowIndex) => (
             <M.TableRow key={rowIndex}>
               {row.Data &&
                 row.Data.map((item, itemIndex) => (
@@ -36,6 +51,13 @@ export default function AthenaResults({ results }: AthenaResultsProps) {
           ))}
         </M.TableBody>
       </M.Table>
+
+      <Lab.Pagination
+        count={Math.floor(tail.length / pageSize)}
+        page={page}
+        size="small"
+        onChange={handlePagination}
+      />
     </M.TableContainer>
   )
 }
