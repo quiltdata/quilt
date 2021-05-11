@@ -8,6 +8,7 @@ import * as DG from '@material-ui/data-grid'
 import { Crumb, render as renderCrumbs } from 'components/BreadCrumbs'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
+import { linkStyle } from 'utils/StyledLink'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix } from 'utils/s3paths'
 
 import * as Listing from '../Listing'
@@ -33,16 +34,63 @@ export const isS3File = (f: any): f is S3File =>
   (typeof f.version === 'string' || typeof f.version === 'undefined') &&
   typeof f.size === 'number'
 
-const getCrumbs = R.compose(
-  R.intersperse(Crumb.Sep(<>&nbsp;/ </>)),
-  ({ bucket, path }: { bucket: string; path: string }) =>
-    [
-      { label: bucket, path: '' },
-      ...getBreadCrumbs(path),
-    ].map(({ label, path: segPath }) =>
-      Crumb.Segment({ label, to: segPath === path ? undefined : segPath }),
-    ),
+const getCrumbs = R.compose(R.intersperse(Crumb.Sep(<>&nbsp;/ </>)), (path: string) =>
+  [{ label: 'ROOT', path: '' }, ...getBreadCrumbs(path)].map(({ label, path: segPath }) =>
+    Crumb.Segment({ label, to: segPath === path ? undefined : segPath }),
+  ),
 )
+
+function ExpandMore({ className }: { className?: string }) {
+  return <M.Icon className={className}>expand_more</M.Icon>
+}
+
+const useBucketSelectStyles = M.makeStyles({
+  root: {
+    ...linkStyle,
+    font: 'inherit',
+  },
+  select: {
+    paddingBottom: 0,
+    paddingTop: 0,
+  },
+  icon: {
+    color: 'inherit',
+  },
+})
+
+interface BucketSelectProps {
+  bucket: string
+  buckets: string[]
+  selectBucket: (bucket: string) => void
+}
+
+function BucketSelect({ bucket, buckets, selectBucket }: BucketSelectProps) {
+  const classes = useBucketSelectStyles()
+
+  const handleChange = React.useCallback(
+    (e: React.ChangeEvent<{ value: unknown }>) => {
+      selectBucket(e.target.value as string)
+    },
+    [selectBucket],
+  )
+
+  return (
+    <M.Select
+      value={bucket}
+      onChange={handleChange}
+      input={<M.InputBase />}
+      className={classes.root}
+      classes={{ select: classes.select, icon: classes.icon }}
+      IconComponent={ExpandMore}
+    >
+      {buckets.map((b) => (
+        <M.MenuItem key={b} value={b}>
+          {b}
+        </M.MenuItem>
+      ))}
+    </M.Select>
+  )
+}
 
 type MuiCloseReason = 'backdropClick' | 'escapeKeyDown'
 export type CloseReason = MuiCloseReason | 'cancel' | { path: string; files: S3File[] }
@@ -72,11 +120,13 @@ const useStyles = M.makeStyles((t) => ({
 
 interface DialogProps {
   bucket: string
+  buckets?: string[]
+  selectBucket?: (bucket: string) => void
   open: boolean
   onClose: (reason: CloseReason) => void
 }
 
-export function Dialog({ bucket, open, onClose }: DialogProps) {
+export function Dialog({ bucket, buckets, selectBucket, open, onClose }: DialogProps) {
   const classes = useStyles()
 
   const bucketListing = requests.useBucketListing()
@@ -97,7 +147,7 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
     [locked, onClose],
   )
 
-  const crumbs = React.useMemo(() => getCrumbs({ bucket, path }), [bucket, path])
+  const crumbs = React.useMemo(() => getCrumbs(path), [path])
 
   const getCrumbLinkProps = ({ to }: { to: string }) => ({
     onClick: () => {
@@ -109,6 +159,13 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
     // reset accumulated results when bucket, path and / or prefix change
     setPrev(null)
   }, [bucket, path, prefix])
+
+  React.useLayoutEffect(() => {
+    // reset state when bucket changes
+    setPath('')
+    setPrefix('')
+    setSelection([])
+  }, [bucket])
 
   const data = useData(bucketListing, { bucket, path, prefix, prev, drain: true })
 
@@ -182,7 +239,16 @@ export function Dialog({ bucket, open, onClose }: DialogProps) {
       maxWidth="lg"
       classes={{ paper: classes.paper }}
     >
-      <M.DialogTitle>Add files from S3</M.DialogTitle>
+      <M.DialogTitle disableTypography>
+        <M.Typography component="h2" variant="h6">
+          Add files from s3://
+          {!!buckets && buckets.length > 1 && !!selectBucket ? (
+            <BucketSelect bucket={bucket} buckets={buckets} selectBucket={selectBucket} />
+          ) : (
+            bucket
+          )}
+        </M.Typography>
+      </M.DialogTitle>
       <div className={classes.crumbs}>
         {renderCrumbs(crumbs, { getLinkProps: getCrumbLinkProps })}
       </div>
