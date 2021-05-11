@@ -160,9 +160,11 @@ async function waitForQueryStatus(
   return waitForQueryStatus(athena, QueryExecutionId)
 }
 
+export type QueryResults = Athena.GetQueryResultsOutput
+
 export type QueryResultsResponse = {
   queryExecution: Athena.QueryExecution | null
-  queryResults: object
+  queryResults: Athena.GetQueryResultsOutput
 }
 
 async function fetchQueryResults({

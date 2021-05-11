@@ -10,12 +10,12 @@ import * as Sentry from 'utils/Sentry'
 //        create Empty components
 //        IDEMPOTENCY
 
+import * as requests from './requests'
 import AthenaQueryViewer from './AthenaQueryViewer'
+import AthenaResults from './AthenaResults'
 import ExecutionsViewer from './ExecutionsViewer'
-import QueryResult from './QueryResult'
 import QuerySelect from './QuerySelect'
 import WorkgroupSelect from './WorkgroupSelect'
-import * as requests from './requests'
 
 interface AlertProps {
   error: Error
@@ -395,7 +395,7 @@ export default function Athena({
           {queryResultsData.case({
             Init: () => null,
             Ok: (queryResults: requests.athena.QueryResultsResponse) => (
-              <QueryResult results={queryResults} />
+              <AthenaResults results={queryResults.queryResults} />
             ),
             Err: makeAsyncDataErrorHandler('Query Results Data'),
             _: makeAsyncDataPendingHandler({ size: 'large' }),
