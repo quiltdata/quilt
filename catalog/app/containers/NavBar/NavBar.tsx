@@ -38,15 +38,21 @@ interface ItemProps extends M.MenuItemProps {
 
 // FIXME: doesn't compile with Ref<unknown>
 // const Item = React.forwardRef((props: ItemProps, ref: React.Ref<unknown>) => (
-const Item = React.forwardRef((props: ItemProps, ref: React.Ref<any>) => (
-  <M.MenuItem
-    // @ts-expect-error
-    // eslint-disable-next-line no-nested-ternary
-    component={props.to ? Link : props.href ? 'a' : undefined}
-    ref={ref}
-    {...props}
-  />
-))
+const Item = React.forwardRef(
+  ({ children, ...props }: ItemProps, ref: React.Ref<any>) => (
+    <M.MenuItem
+      // @ts-expect-error
+      // eslint-disable-next-line no-nested-ternary
+      component={props.to ? Link : props.href ? 'a' : undefined}
+      ref={ref}
+      {...props}
+    >
+      <M.Box component="span" textOverflow="ellipsis" overflow="hidden" maxWidth={400}>
+        {children}
+      </M.Box>
+    </M.MenuItem>
+  ),
+)
 
 const selectUser = createStructuredSelector({
   name: authSelectors.username,
@@ -316,6 +322,15 @@ const NavLink = React.forwardRef((props: NavLinkProps, ref: React.Ref<unknown>) 
       mr={2}
       color={isActive ? 'text.disabled' : 'text.secondary'}
       fontSize="body2.fontSize"
+      maxWidth={64}
+      whiteSpace="nowrap"
+      overflow="hidden"
+      textOverflow="ellipsis"
+      title={
+        typeof props.children === 'string' && props.children.length > 10
+          ? props.children
+          : undefined
+      }
       {...props}
       ref={ref}
     />
