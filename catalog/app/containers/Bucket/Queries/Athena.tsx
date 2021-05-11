@@ -7,8 +7,8 @@ import * as Lab from '@material-ui/lab'
 import * as Sentry from 'utils/Sentry'
 
 // FIXME: rename Fetcher components
-//        show queryBody for queryExecutionId
 //        create Empty components
+//        IDEMPOTENCY
 
 import AthenaQueryViewer from './AthenaQueryViewer'
 import ExecutionsViewer from './ExecutionsViewer'
