@@ -11,6 +11,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import parseSearch from 'utils/parseSearch'
@@ -235,6 +236,8 @@ export default function Dir({
 
   return (
     <M.Box pt={2} pb={4}>
+      <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
+
       <M.Box display="flex" alignItems="flex-start" mb={2}>
         <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
           {renderCrumbs(getCrumbs({ bucket, path, urls }))}

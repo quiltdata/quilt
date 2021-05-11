@@ -3,10 +3,11 @@ import { RouteComponentProps } from 'react-router'
 import { Link, Redirect, Route, Switch, matchPath } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
-import ElasticSearch from './ElasticSearch'
 import Athena from './Athena'
+import ElasticSearch from './ElasticSearch'
 
 const useStyles = M.makeStyles((t) => ({
   actions: {
@@ -82,6 +83,8 @@ export default function Queries({
 
   return (
     <M.Container className={classes.container} maxWidth="lg">
+      <MetaTitle>{['Queries', bucket]}</MetaTitle>
+
       <M.Tabs
         className={classes.tabs}
         orientation="vertical"
@@ -101,6 +104,7 @@ export default function Queries({
           to={urls.bucketAthenaQueries(bucket)}
         />
       </M.Tabs>
+
       <div className={classes.panel}>
         <Switch>
           <Route path={paths.bucketESQueries} component={ElasticSearch} exact />
