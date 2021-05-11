@@ -36,6 +36,7 @@ const useNavLinkEditorStyles = M.makeStyles((t) => ({
     ...t.typography.body2,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
   progress: {
     marginLeft: t.spacing(1),
