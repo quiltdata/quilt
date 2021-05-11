@@ -38,19 +38,20 @@ function makeAsyncDataErrorHandler(title: string) {
 }
 
 interface SpinnerProps {
+  padding?: number
   size?: 'large'
 }
 
-function Spinner({ size }: SpinnerProps) {
+function Spinner({ padding, size }: SpinnerProps) {
   return (
-    <M.Box pt={5} textAlign="center">
+    <M.Box pt={padding || 5} textAlign="center">
       <M.CircularProgress size={size === 'large' ? 96 : 48} />
     </M.Box>
   )
 }
 
-function makeAsyncDataPendingHandler(size?: 'large') {
-  return () => <Spinner size={size} />
+function makeAsyncDataPendingHandler({ padding, size }: SpinnerProps = {}) {
+  return () => <Spinner padding={padding} size={size} />
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -67,6 +68,13 @@ const useStyles = M.makeStyles((t) => ({
     margin: t.spacing(4, 0, 0),
   },
   select: {
+    flexBasis: '50%',
+    '& + &': {
+      marginLeft: t.spacing(3),
+    },
+  },
+  selects: {
+    display: 'flex',
     margin: t.spacing(3, 0),
   },
   viewer: {
@@ -335,25 +343,31 @@ export default function Athena({
       }) => (
         <div>
           <M.Typography variant="h6">Athena SQL</M.Typography>
-          <WorkgroupSelect
-            className={classes.select}
-            workgroups={workgroups}
-            onChange={handleWorkgroupChange}
-            value={workgroup}
-          />
 
-          {queriesData.case({
-            Ok: (queries) => (
-              <QuerySelect
-                className={classes.select}
-                queries={queries}
-                onChange={handleQueryMetaChange}
-                value={customQueryBody ? null : queryMeta}
+          <div className={classes.selects}>
+            <div className={classes.select}>
+              <WorkgroupSelect
+                workgroups={workgroups}
+                onChange={handleWorkgroupChange}
+                value={workgroup}
               />
-            ),
-            Err: makeAsyncDataErrorHandler('Queries Data'),
-            _: makeAsyncDataPendingHandler('large'),
-          })}
+            </div>
+
+            <div className={classes.select}>
+              {queriesData.case({
+                Ok: (queries) => (
+                  <QuerySelect
+                    className={classes.select}
+                    queries={queries}
+                    onChange={handleQueryMetaChange}
+                    value={customQueryBody ? null : queryMeta}
+                  />
+                ),
+                Err: makeAsyncDataErrorHandler('Select query'),
+                _: makeAsyncDataPendingHandler({ padding: 2 }),
+              })}
+            </div>
+          </div>
 
           <Form
             disabled={isButtonDisabled(
@@ -375,7 +389,7 @@ export default function Athena({
               />
             ),
             Err: makeAsyncDataErrorHandler('Executions Data'),
-            _: makeAsyncDataPendingHandler('large'),
+            _: makeAsyncDataPendingHandler({ size: 'large' }),
           })}
 
           {queryResultsData.case({
@@ -384,7 +398,7 @@ export default function Athena({
               <QueryResult results={queryResults} />
             ),
             Err: makeAsyncDataErrorHandler('Query Results Data'),
-            _: makeAsyncDataPendingHandler('large'),
+            _: makeAsyncDataPendingHandler({ size: 'large' }),
           })}
         </div>
       )}

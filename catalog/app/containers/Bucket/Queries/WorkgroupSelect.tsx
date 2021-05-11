@@ -4,7 +4,7 @@ import * as M from '@material-ui/core'
 import * as requests from './requests'
 
 interface WorkgroupSelectProps {
-  className: string
+  className?: string
   workgroups: requests.athena.Workgroup[]
   onChange: (value: requests.athena.Workgroup | null) => void
   value: requests.athena.Workgroup | null
