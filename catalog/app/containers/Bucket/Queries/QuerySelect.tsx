@@ -5,8 +5,9 @@ import * as requests from './requests'
 
 interface QuerySelectProps {
   className: string
-  queries: (requests.Query | requests.athena.AthenaQuery)[]
   onChange: (value: requests.Query | requests.athena.AthenaQuery | null) => void
+  onLoadMore?: () => void
+  queries: (requests.Query | requests.athena.AthenaQuery)[]
   value: requests.Query | requests.athena.AthenaQuery | null
 }
 
@@ -22,19 +23,26 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+const LOAD_MORE = 'load-more'
+
 export default function QuerySelect({
   className,
   queries,
   onChange,
+  onLoadMore,
   value,
 }: QuerySelectProps) {
   const classes = useStyles()
 
   const handleChange = React.useCallback(
     (event) => {
-      onChange(queries.find((query) => query.key === event.target.value) || null)
+      if (event.target.value === LOAD_MORE && onLoadMore) {
+        onLoadMore()
+      } else {
+        onChange(queries.find((query) => query.key === event.target.value) || null)
+      }
     },
-    [queries, onChange],
+    [queries, onChange, onLoadMore],
   )
 
   return (
@@ -59,6 +67,11 @@ export default function QuerySelect({
                 <M.ListItemText primary={query.name} secondary={query.description} />
               </M.MenuItem>
             ))}
+            {!!onLoadMore && (
+              <M.MenuItem key={LOAD_MORE} value={LOAD_MORE}>
+                <em>Load more</em>
+              </M.MenuItem>
+            )}
           </M.Select>
         </M.FormControl>
       </M.Paper>

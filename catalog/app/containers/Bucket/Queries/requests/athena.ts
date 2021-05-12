@@ -5,11 +5,6 @@ import { useData } from 'utils/Data'
 
 import { AsyncData } from './requests'
 
-interface QueriesArgs {
-  athena: Athena
-  workgroup: string
-}
-
 export interface AthenaQuery {
   body: string
   description?: string
@@ -17,27 +12,48 @@ export interface AthenaQuery {
   name: string
 }
 
-type QueriesResponse = AthenaQuery[]
+export interface QueriesResponse {
+  list: AthenaQuery[]
+  next?: string
+}
+
+interface QueriesArgs {
+  athena: Athena
+  prev: QueriesResponse | null
+  workgroup: string
+}
 
 async function fetchQueries({
   athena,
+  prev,
   workgroup,
 }: QueriesArgs): Promise<QueriesResponse> {
   try {
-    const queryIdsData = await athena
-      ?.listNamedQueries({ WorkGroup: workgroup })
+    const queryIdsOutput = await athena
+      ?.listNamedQueries({ MaxResults: 2, WorkGroup: workgroup, NextToken: prev?.next })
       .promise()
-    if (!queryIdsData.NamedQueryIds || !queryIdsData.NamedQueryIds.length) return []
+    if (!queryIdsOutput.NamedQueryIds || !queryIdsOutput.NamedQueryIds.length)
+      return {
+        list: prev?.list || [],
+        next: queryIdsOutput.NextToken,
+      }
 
-    const queriesData = await athena
-      ?.batchGetNamedQuery({ NamedQueryIds: queryIdsData.NamedQueryIds })
+    const queriesOutput = await athena
+      ?.batchGetNamedQuery({
+        NamedQueryIds: queryIdsOutput.NamedQueryIds,
+      })
       .promise()
-    return (queriesData.NamedQueries || []).map((query) => ({
+    const parsed = (queriesOutput.NamedQueries || []).map((query) => ({
       body: query.QueryString,
       description: query.Description,
       key: query.NamedQueryId!,
       name: query.Name,
     }))
+    const list = (prev?.list || []).concat(parsed)
+    return {
+      list,
+      next: queryIdsOutput.NextToken,
+    }
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
@@ -47,9 +63,12 @@ async function fetchQueries({
   }
 }
 
-export function useQueries(workgroup: string): AsyncData<QueriesResponse> {
+export function useQueries(
+  workgroup: string,
+  prev: QueriesResponse | null,
+): AsyncData<QueriesResponse> {
   const athena = AWS.Athena.use()
-  return useData(fetchQueries, { athena, workgroup }, { noAutoFetch: !workgroup })
+  return useData(fetchQueries, { athena, prev, workgroup }, { noAutoFetch: !workgroup })
 }
 
 export interface Workgroup {
@@ -74,17 +93,16 @@ async function fetchWorkgroups({
 }: WorkgroupsArgs): Promise<WorkgroupsResponse> {
   try {
     const workgroupsOutput = await athena
-      .listWorkGroups({ MaxResults: 2, NextToken: prev?.next })
+      .listWorkGroups({ NextToken: prev?.next })
       .promise()
-    const parsedList = (prev?.list || []).concat(
-      (workgroupsOutput.WorkGroups || []).map(({ Name }) => ({
-        key: Name || 'Unknown', // for consistency
-        name: Name || 'Unknown',
-      })),
-    )
+    const parsed = (workgroupsOutput.WorkGroups || []).map(({ Name }) => ({
+      key: Name || 'Unknown', // for consistency
+      name: Name || 'Unknown',
+    }))
+    const list = (prev?.list || []).concat(parsed)
     return {
-      defaultWorkgroup: parsedList[0],
-      list: parsedList,
+      defaultWorkgroup: list[0], // TODO: get default from config
+      list,
       next: workgroupsOutput.NextToken,
     }
   } catch (e) {
