@@ -99,7 +99,7 @@ function UserDropdown() {
         <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
           {user.isAdmin && (
             <Item to={urls.admin()} onClick={close} selected={isAdmin} divider>
-              <M.Icon fontSize="small">security</M.Icon>&nbsp;Users and buckets
+              <M.Icon fontSize="small">security</M.Icon>&nbsp;Admin settings
             </Item>
           )}
           {cfg.mode === 'OPEN' && (
@@ -181,7 +181,7 @@ function AuthHamburger({ authenticated, waiting, error }: AuthHamburgerProps) {
             <Item key="admin" to={urls.admin()} onClick={ham.close} selected={isAdmin}>
               <M.Box component="span" pr={2} />
               <M.Icon fontSize="small">security</M.Icon>
-              &nbsp;Users and buckets
+              &nbsp;Admin settings
             </Item>
           ),
           cfg.mode === 'OPEN' && (
