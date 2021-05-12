@@ -52,24 +52,41 @@ export function useQueries(workgroup: string): AsyncData<QueriesResponse> {
   return useData(fetchQueries, { athena, workgroup }, { noAutoFetch: !workgroup })
 }
 
-interface WorkgroupsArgs {
-  athena: Athena
-}
-
 export interface Workgroup {
   key: string // for consistency
   name: string
 }
 
-export type WorkgroupsResponse = Workgroup[]
+export type WorkgroupsResponse = {
+  defaultWorkgroup: Workgroup
+  list: Workgroup[]
+  next?: string
+}
 
-async function fetchWorkgroups({ athena }: WorkgroupsArgs): Promise<WorkgroupsResponse> {
+interface WorkgroupsArgs {
+  athena: Athena
+  prev: WorkgroupsResponse | null
+}
+
+async function fetchWorkgroups({
+  athena,
+  prev,
+}: WorkgroupsArgs): Promise<WorkgroupsResponse> {
   try {
-    const workgroupsData = await athena.listWorkGroups().promise()
-    return (workgroupsData.WorkGroups || []).map(({ Name }) => ({
-      key: Name || 'Unknown', // for consistency
-      name: Name || 'Unknown',
-    }))
+    const workgroupsOutput = await athena
+      .listWorkGroups({ MaxResults: 2, NextToken: prev?.next })
+      .promise()
+    const parsedList = (prev?.list || []).concat(
+      (workgroupsOutput.WorkGroups || []).map(({ Name }) => ({
+        key: Name || 'Unknown', // for consistency
+        name: Name || 'Unknown',
+      })),
+    )
+    return {
+      defaultWorkgroup: parsedList[0],
+      list: parsedList,
+      next: workgroupsOutput.NextToken,
+    }
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
@@ -79,9 +96,11 @@ async function fetchWorkgroups({ athena }: WorkgroupsArgs): Promise<WorkgroupsRe
   }
 }
 
-export function useWorkgroups(): AsyncData<WorkgroupsResponse> {
+export function useWorkgroups(
+  prev: WorkgroupsResponse | null,
+): AsyncData<WorkgroupsResponse> {
   const athena = AWS.Athena.use()
-  return useData(fetchWorkgroups, { athena })
+  return useData(fetchWorkgroups, { athena, prev })
 }
 
 interface QueryExecutionsArgs {

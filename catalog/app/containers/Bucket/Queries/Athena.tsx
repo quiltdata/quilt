@@ -6,9 +6,6 @@ import * as Lab from '@material-ui/lab'
 
 import * as Sentry from 'utils/Sentry'
 
-// FIXME: create Empty components
-//        IDEMPOTENCY
-
 import * as requests from './requests'
 import AthenaQueryViewer from './AthenaQueryViewer'
 import AthenaResults from './AthenaResults'
@@ -164,12 +161,13 @@ interface QueriesStateRenderProps {
   handleQueryMetaChange: (q: requests.Query | requests.athena.AthenaQuery | null) => void
   handleSubmit: (q: string) => () => void
   handleWorkgroupChange: (w: requests.athena.Workgroup | null) => void
+  handleWorkgroupsLoadMore: (w: requests.athena.WorkgroupsResponse) => void
   queriesData: requests.AsyncData<requests.athena.AthenaQuery[]>
   queryMeta: requests.athena.AthenaQuery | null
   queryResultsData: requests.AsyncData<requests.athena.QueryResultsResponse>
   queryRunData: requests.AsyncData<requests.athena.QueryRunResponse>
   workgroup: requests.athena.Workgroup | null
-  workgroups: requests.athena.Workgroup[]
+  workgroups: requests.athena.WorkgroupsResponse
 }
 
 interface QueriesStateProps {
@@ -202,7 +200,11 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
     [setQueryRequest],
   )
 
-  const workgroupsData = requests.athena.useWorkgroups()
+  const [
+    workgroupsPrev,
+    setWorkgroupsPrev,
+  ] = React.useState<requests.athena.WorkgroupsResponse | null>(null)
+  const workgroupsData = requests.athena.useWorkgroups(workgroupsPrev)
 
   const [workgroup, setWorkgroup] = React.useState<requests.athena.Workgroup | null>(null)
   const handleWorkgroupChange = React.useCallback(
@@ -211,6 +213,10 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
     },
     [setWorkgroup],
   )
+
+  const handleWorkgroupsLoadMore = (workgroups: requests.athena.WorkgroupsResponse) => {
+    setWorkgroupsPrev(workgroups)
+  }
 
   return workgroupsData.case({
     Ok: (workgroups) => (
@@ -223,14 +229,14 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                 workgroup={
                   workgroup?.name ||
                   queryExecution?.WorkGroup ||
-                  workgroups?.[0].name ||
+                  workgroups?.list?.[0].name ||
                   ''
                 }
               >
                 {({ queriesData, executionsData }) => (
                   <QueryRunner
                     queryBody={queryRequest || ''}
-                    workgroup={workgroup?.name || workgroups?.[0].name || ''}
+                    workgroup={workgroup?.name || workgroups?.list?.[0].name || ''}
                   >
                     {({ queryRunData }) =>
                       children({
@@ -240,6 +246,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                         handleQueryMetaChange,
                         handleSubmit,
                         handleWorkgroupChange,
+                        handleWorkgroupsLoadMore,
                         queriesData,
                         queryMeta,
                         queryResultsData,
@@ -250,7 +257,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                             key: queryExecution?.WorkGroup,
                             name: queryExecution?.WorkGroup,
                           }) ||
-                          workgroups?.[0],
+                          workgroups?.defaultWorkgroup,
                         workgroups,
                       })
                     }
@@ -263,14 +270,16 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                 workgroup={
                   workgroup?.name ||
                   queryExecution?.WorkGroup ||
-                  workgroups?.[0].name ||
+                  workgroups?.list?.[0].name ||
                   ''
                 }
               >
                 {({ queriesData, executionsData }) => (
                   <QueryRunner
                     queryBody={queryRequest || ''}
-                    workgroup={workgroup?.name || workgroups?.[0].name || ''}
+                    workgroup={
+                      workgroup?.name || workgroups?.defaultWorkgroup?.name || ''
+                    }
                   >
                     {({ queryRunData }) =>
                       children({
@@ -280,6 +289,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                         handleQueryMetaChange,
                         handleSubmit,
                         handleWorkgroupChange,
+                        handleWorkgroupsLoadMore,
                         queriesData,
                         queryMeta,
                         queryResultsData,
@@ -290,7 +300,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                             key: queryExecution?.WorkGroup,
                             name: queryExecution?.WorkGroup,
                           }) ||
-                          workgroups?.[0],
+                          workgroups?.defaultWorkgroup,
                         workgroups,
                       })
                     }
@@ -333,6 +343,7 @@ export default function Athena({
         handleQueryMetaChange,
         handleSubmit,
         handleWorkgroupChange,
+        handleWorkgroupsLoadMore,
         queriesData,
         queryMeta,
         queryResultsData,
@@ -348,6 +359,7 @@ export default function Athena({
               <WorkgroupSelect
                 workgroups={workgroups}
                 onChange={handleWorkgroupChange}
+                onLoadMore={handleWorkgroupsLoadMore}
                 value={workgroup}
               />
             </div>

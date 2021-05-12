@@ -5,9 +5,10 @@ import * as requests from './requests'
 
 interface WorkgroupSelectProps {
   className?: string
-  workgroups: requests.athena.Workgroup[]
   onChange: (value: requests.athena.Workgroup | null) => void
+  onLoadMore: (workgroups: requests.athena.WorkgroupsResponse) => void
   value: requests.athena.Workgroup | null
+  workgroups: requests.athena.WorkgroupsResponse
 }
 
 const useStyles = M.makeStyles((t) => ({
@@ -22,21 +23,29 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+const LOAD_MORE = 'load-more'
+
 export default function WorkgroupSelect({
   className,
   workgroups,
   onChange,
+  onLoadMore,
   value,
 }: WorkgroupSelectProps) {
   const classes = useStyles()
 
   const handleChange = React.useCallback(
     (event) => {
-      onChange(
-        workgroups.find((workgroup) => workgroup.key === event.target.value) || null,
-      )
+      if (event.target.value === LOAD_MORE) {
+        onLoadMore(workgroups)
+      } else {
+        onChange(
+          workgroups.list.find((workgroup) => workgroup.key === event.target.value) ||
+            null,
+        )
+      }
     },
-    [workgroups, onChange],
+    [workgroups, onChange, onLoadMore],
   )
 
   return (
@@ -48,21 +57,26 @@ export default function WorkgroupSelect({
         <M.FormControl className={classes.selectWrapper}>
           <M.Select
             classes={{ root: classes.select }}
-            disabled={!workgroups.length}
+            disabled={!workgroups.list.length}
             labelId="query-select"
             onChange={handleChange}
             value={value ? value.key : 'none'}
           >
-            {workgroups.map((query) => (
+            {workgroups.list.map((query) => (
               <M.MenuItem key={query.key} value={query.key}>
                 {query.name}
               </M.MenuItem>
             ))}
+            {workgroups.next && (
+              <M.MenuItem key={LOAD_MORE} value={LOAD_MORE}>
+                <em>Load more</em>
+              </M.MenuItem>
+            )}
           </M.Select>
         </M.FormControl>
       </M.Paper>
       <M.FormHelperText>
-        {!workgroups.length && 'There are no workgroups. '}
+        {!workgroups.list.length && 'There are no workgroups. '}
       </M.FormHelperText>
     </div>
   )
