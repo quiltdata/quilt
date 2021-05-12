@@ -26,7 +26,10 @@ export const Provider = function SentryProvider({ children }) {
 export const Loader = function SentryLoader({ children, userSelector }) {
   const { promise: cfgP } = Config.useConfig({ suspend: false })
   const { sentry, sentryRef } = React.useContext(Ctx)
-  const user = redux.useSelector(userSelector)
+  const user = redux.useSelector(
+    userSelector,
+    (l, r) => l.username === r.username && l.email === r.email,
+  )
   const userRef = React.useRef(user)
 
   React.useEffect(() => {
