@@ -10,6 +10,7 @@ import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as CatalogSettings from 'utils/CatalogSettings'
 import * as Config from 'utils/Config'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -37,15 +38,21 @@ interface ItemProps extends M.MenuItemProps {
 
 // FIXME: doesn't compile with Ref<unknown>
 // const Item = React.forwardRef((props: ItemProps, ref: React.Ref<unknown>) => (
-const Item = React.forwardRef((props: ItemProps, ref: React.Ref<any>) => (
-  <M.MenuItem
-    // @ts-expect-error
-    // eslint-disable-next-line no-nested-ternary
-    component={props.to ? Link : props.href ? 'a' : undefined}
-    ref={ref}
-    {...props}
-  />
-))
+const Item = React.forwardRef(
+  ({ children, ...props }: ItemProps, ref: React.Ref<any>) => (
+    <M.MenuItem
+      // @ts-expect-error
+      // eslint-disable-next-line no-nested-ternary
+      component={props.to ? Link : props.href ? 'a' : undefined}
+      ref={ref}
+      {...props}
+    >
+      <M.Box component="span" textOverflow="ellipsis" overflow="hidden" maxWidth={400}>
+        {children}
+      </M.Box>
+    </M.MenuItem>
+  ),
+)
 
 const selectUser = createStructuredSelector({
   name: authSelectors.username,
@@ -92,7 +99,7 @@ function UserDropdown() {
         <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
           {user.isAdmin && (
             <Item to={urls.admin()} onClick={close} selected={isAdmin} divider>
-              <M.Icon fontSize="small">security</M.Icon>&nbsp;Users and buckets
+              <M.Icon fontSize="small">security</M.Icon>&nbsp;Admin settings
             </Item>
           )}
           {cfg.mode === 'OPEN' && (
@@ -174,7 +181,7 @@ function AuthHamburger({ authenticated, waiting, error }: AuthHamburgerProps) {
             <Item key="admin" to={urls.admin()} onClick={ham.close} selected={isAdmin}>
               <M.Box component="span" pr={2} />
               <M.Icon fontSize="small">security</M.Icon>
-              &nbsp;Users and buckets
+              &nbsp;Admin settings
             </Item>
           ),
           cfg.mode === 'OPEN' && (
@@ -315,6 +322,15 @@ const NavLink = React.forwardRef((props: NavLinkProps, ref: React.Ref<unknown>) 
       mr={2}
       color={isActive ? 'text.disabled' : 'text.secondary'}
       fontSize="body2.fontSize"
+      maxWidth={64}
+      whiteSpace="nowrap"
+      overflow="hidden"
+      textOverflow="ellipsis"
+      title={
+        typeof props.children === 'string' && props.children.length > 10
+          ? props.children
+          : undefined
+      }
       {...props}
       ref={ref}
     />
@@ -330,7 +346,12 @@ interface LinkDescriptor {
 function useLinks(): LinkDescriptor[] {
   const { paths, urls } = NamedRoutes.use()
   const cfg = Config.useConfig()
+  const settings = CatalogSettings.use()
   return [
+    settings?.customNavLink && {
+      href: settings.customNavLink.url,
+      label: settings.customNavLink.label,
+    },
     cfg.mode !== 'MARKETING' && {
       to: urls.uriResolver(),
       label: 'URI',
