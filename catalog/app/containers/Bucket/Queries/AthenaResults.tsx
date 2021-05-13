@@ -4,11 +4,23 @@ import * as Lab from '@material-ui/lab'
 
 import * as requests from './requests'
 
+const useStyles = M.makeStyles((t) => ({
+  footer: {
+    display: 'flex',
+    padding: t.spacing(1),
+  },
+  more: {
+    marginLeft: 'auto',
+  },
+}))
+
 interface AthenaResultsProps {
   results: requests.athena.QueryResults
 }
 
 export default function AthenaResults({ results }: AthenaResultsProps) {
+  const classes = useStyles()
+
   const rows = results?.ResultSet?.Rows
   const head = rows?.[0]
   const tail = rows?.slice(1)
@@ -25,7 +37,10 @@ export default function AthenaResults({ results }: AthenaResultsProps) {
 
   if (!tail) return null
 
-  const rowsPaginated = tail.slice(pageSize * page, pageSize * (page + 1))
+  const rowsPaginated = tail.slice(pageSize * (page - 1), pageSize * page)
+  const hasPagination = tail.length > rowsPaginated.length
+
+  const onLoadMore = undefined
 
   /* eslint-disable react/no-array-index-key */
 
@@ -52,12 +67,23 @@ export default function AthenaResults({ results }: AthenaResultsProps) {
         </M.TableBody>
       </M.Table>
 
-      <Lab.Pagination
-        count={Math.floor(tail.length / pageSize)}
-        page={page}
-        size="small"
-        onChange={handlePagination}
-      />
+      {(hasPagination || !!onLoadMore) && (
+        <div className={classes.footer}>
+          {hasPagination && (
+            <Lab.Pagination
+              count={Math.ceil(tail.length / pageSize)}
+              page={page}
+              size="small"
+              onChange={handlePagination}
+            />
+          )}
+          {onLoadMore && (
+            <M.Button className={classes.more} size="small" onClick={onLoadMore}>
+              Load more
+            </M.Button>
+          )}
+        </div>
+      )}
     </M.TableContainer>
   )
 }

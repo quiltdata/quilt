@@ -94,9 +94,6 @@ const useStyles = M.makeStyles((t) => ({
   more: {
     marginLeft: 'auto',
   },
-  pagination: {
-    padding: t.spacing(1),
-  },
   table: {
     tableLayout: 'fixed',
   },
@@ -170,7 +167,6 @@ export default function ExecutionsViewer({
         <div className={classes.footer}>
           {hasPagination && (
             <Lab.Pagination
-              className={classes.pagination}
               count={Math.ceil(executions.length / pageSize)}
               page={page}
               size="small"
