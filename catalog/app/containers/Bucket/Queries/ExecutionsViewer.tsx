@@ -102,6 +102,9 @@ const useStyles = M.makeStyles((t) => ({
       textAlign: 'right',
     },
   },
+  header: {
+    margin: t.spacing(0, 0, 1),
+  },
   footer: {
     display: 'flex',
     padding: t.spacing(1),
@@ -143,58 +146,64 @@ export default function ExecutionsViewer({
   const hasPagination = executions.length > rowsPaginated.length
 
   return (
-    <M.TableContainer component={M.Paper} className={className}>
-      <M.Table size="small" className={classes.table}>
-        <M.TableHead>
-          <M.TableRow>
-            <M.TableCell className={classes.cell}>Query</M.TableCell>
-            <M.TableCell className={classes.cell}>Status</M.TableCell>
-            <M.TableCell className={classes.cell}>Date created</M.TableCell>
-            <M.TableCell className={classes.cell}>Date completed</M.TableCell>
-          </M.TableRow>
-        </M.TableHead>
-        <M.TableBody>
-          {rowsPaginated.map((queryExecution) => (
-            <Execution
-              bucket={bucket}
-              queryExecution={queryExecution}
-              key={queryExecution.id}
-            />
-          ))}
-          {!executions.length && (
-            <M.TableRow>
-              <M.TableCell colSpan={4}>
-                <M.Box p={3} textAlign="center">
-                  <M.Typography variant="h6">
-                    No executions for this workgroup
-                  </M.Typography>
-                  <M.Typography>
-                    Select another workgroup or execute some query
-                  </M.Typography>
-                </M.Box>
-              </M.TableCell>
-            </M.TableRow>
-          )}
-        </M.TableBody>
-      </M.Table>
+    <div className={className}>
+      <M.Typography className={classes.header} variant="body1">
+        History of Query Executions
+      </M.Typography>
 
-      {(hasPagination || !!onLoadMore) && (
-        <div className={classes.footer}>
-          {hasPagination && (
-            <Lab.Pagination
-              count={Math.ceil(executions.length / pageSize)}
-              page={page}
-              size="small"
-              onChange={handlePagination}
-            />
-          )}
-          {onLoadMore && (
-            <M.Button className={classes.more} size="small" onClick={onLoadMore}>
-              Load more
-            </M.Button>
-          )}
-        </div>
-      )}
-    </M.TableContainer>
+      <M.TableContainer component={M.Paper}>
+        <M.Table size="small" className={classes.table}>
+          <M.TableHead>
+            <M.TableRow>
+              <M.TableCell className={classes.cell}>Query</M.TableCell>
+              <M.TableCell className={classes.cell}>Status</M.TableCell>
+              <M.TableCell className={classes.cell}>Date created</M.TableCell>
+              <M.TableCell className={classes.cell}>Date completed</M.TableCell>
+            </M.TableRow>
+          </M.TableHead>
+          <M.TableBody>
+            {rowsPaginated.map((queryExecution) => (
+              <Execution
+                bucket={bucket}
+                queryExecution={queryExecution}
+                key={queryExecution.id}
+              />
+            ))}
+            {!executions.length && (
+              <M.TableRow>
+                <M.TableCell colSpan={4}>
+                  <M.Box p={3} textAlign="center">
+                    <M.Typography variant="h6">
+                      No executions for this workgroup
+                    </M.Typography>
+                    <M.Typography>
+                      Select another workgroup or execute some query
+                    </M.Typography>
+                  </M.Box>
+                </M.TableCell>
+              </M.TableRow>
+            )}
+          </M.TableBody>
+        </M.Table>
+
+        {(hasPagination || !!onLoadMore) && (
+          <div className={classes.footer}>
+            {hasPagination && (
+              <Lab.Pagination
+                count={Math.ceil(executions.length / pageSize)}
+                page={page}
+                size="small"
+                onChange={handlePagination}
+              />
+            )}
+            {onLoadMore && (
+              <M.Button className={classes.more} size="small" onClick={onLoadMore}>
+                Load more
+              </M.Button>
+            )}
+          </div>
+        )}
+      </M.TableContainer>
+    </div>
   )
 }

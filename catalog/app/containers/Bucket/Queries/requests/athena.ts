@@ -223,7 +223,7 @@ export interface QueryResultsResponse {
 interface QueryResultsArgs {
   athena: Athena
   queryExecutionId: string
-  prev?: QueryResultsResponse
+  prev: QueryResultsResponse | null
 }
 
 async function fetchQueryResults({
@@ -250,11 +250,12 @@ async function fetchQueryResults({
 
 export function useQueryResults(
   queryExecutionId: string | null,
+  prev: QueryResultsResponse | null,
 ): AsyncData<QueryResultsResponse> {
   const athena = AWS.Athena.use()
   return useData(
     fetchQueryResults,
-    { athena, queryExecutionId },
+    { athena, prev, queryExecutionId },
     { noAutoFetch: !queryExecutionId },
   )
 }
