@@ -250,116 +250,71 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
         workgroupsData.case({
           Ok: (workgroups) => (
             <QueryResultsFetcher queryExecutionId={queryExecutionId}>
-              {({ queryResultsData, handleQueryResultsLoadMore }) =>
-                queryResultsData.case({
-                  Pending: makeAsyncDataPendingHandler(),
-                  _: ({ queryExecution }) => (
-                    <QueriesFetcher
-                      workgroup={
-                        workgroup?.name ||
-                        queryExecution?.WorkGroup ||
-                        workgroups?.defaultWorkgroup.name ||
-                        ''
-                      }
-                    >
-                      {({
-                        queriesData,
-                        executionsData,
-                        handleQueriesLoadMore,
-                        handleExecutionsLoadMore,
-                      }) => (
-                        <QueryRunner
-                          queryBody={queryRequest || ''}
-                          workgroup={
-                            workgroup?.name || workgroups?.defaultWorkgroup.name || ''
-                          }
-                        >
-                          {({ queryRunData }) =>
-                            children({
-                              customQueryBody:
-                                customQueryBody || queryExecution?.Query || null,
-                              executionsData,
-                              handleExecutionsLoadMore,
-                              handleQueriesLoadMore,
-                              handleQueryBodyChange: setCustomQueryBody,
-                              handleQueryMetaChange,
-                              handleQueryResultsLoadMore,
-                              handleSubmit,
-                              handleWorkgroupChange,
-                              handleWorkgroupsLoadMore,
-                              queriesData,
-                              queryMeta,
-                              queryResultsData,
-                              queryRunData,
-                              workgroup:
-                                workgroup ||
-                                (queryExecution?.WorkGroup && {
-                                  key: queryExecution?.WorkGroup,
-                                  name: queryExecution?.WorkGroup,
-                                }) ||
-                                workgroups?.defaultWorkgroup,
-                              workgroups,
-                            })
-                          }
-                        </QueryRunner>
-                      )}
-                    </QueriesFetcher>
-                  ), // FIXME: avoid repetition
-                  Ok: ({ queryExecution }) => (
-                    <QueriesFetcher
-                      workgroup={
-                        workgroup?.name ||
-                        queryExecution?.WorkGroup ||
-                        workgroups?.list?.[0].name ||
-                        ''
-                      }
-                    >
-                      {({
-                        queriesData,
-                        executionsData,
-                        handleQueriesLoadMore,
-                        handleExecutionsLoadMore,
-                      }) => (
-                        <QueryRunner
-                          queryBody={queryRequest || ''}
-                          workgroup={
-                            workgroup?.name || workgroups?.defaultWorkgroup?.name || ''
-                          }
-                        >
-                          {({ queryRunData }) =>
-                            children({
-                              customQueryBody:
-                                customQueryBody || queryExecution?.Query || null,
-                              executionsData,
-                              handleExecutionsLoadMore,
-                              handleQueriesLoadMore,
-                              handleQueryBodyChange: setCustomQueryBody,
-                              handleQueryMetaChange,
-                              handleQueryResultsLoadMore,
-                              handleSubmit,
-                              handleWorkgroupChange,
-                              handleWorkgroupsLoadMore,
-                              queriesData,
-                              queryMeta,
-                              queryResultsData,
-                              queryRunData,
-                              workgroup:
-                                workgroup ||
-                                (queryExecution?.WorkGroup && {
-                                  key: queryExecution?.WorkGroup,
-                                  name: queryExecution?.WorkGroup,
-                                }) ||
-                                workgroups?.defaultWorkgroup,
-                              workgroups,
-                            })
-                          }
-                        </QueryRunner>
-                      )}
-                    </QueriesFetcher>
-                  ),
-                  Err: makeAsyncDataErrorHandler('Query Results'),
+              {({ queryResultsData, handleQueryResultsLoadMore }) => {
+                const queryExecution = (queryResultsData as requests.AsyncData<
+                  requests.athena.QueryResultsResponse,
+                  requests.athena.QueryExecutionAlias | null | 'pending'
+                >).case({
+                  _: () => null,
+                  Pending: () => 'pending',
+                  Ok: ({ queryExecution: qE }) => qE,
                 })
-              }
+                // TODO: (@nl_0) use case({ __: }) or something like this
+                if (queryExecution === 'pending') return makeAsyncDataPendingHandler()()
+
+                return (
+                  <QueriesFetcher
+                    workgroup={
+                      workgroup?.name ||
+                      queryExecution?.WorkGroup ||
+                      workgroups?.defaultWorkgroup.name ||
+                      ''
+                    }
+                  >
+                    {({
+                      queriesData,
+                      executionsData,
+                      handleQueriesLoadMore,
+                      handleExecutionsLoadMore,
+                    }) => (
+                      <QueryRunner
+                        queryBody={queryRequest || ''}
+                        workgroup={
+                          workgroup?.name || workgroups?.defaultWorkgroup.name || ''
+                        }
+                      >
+                        {({ queryRunData }) =>
+                          children({
+                            customQueryBody:
+                              customQueryBody || queryExecution?.Query || null,
+                            executionsData,
+                            handleExecutionsLoadMore,
+                            handleQueriesLoadMore,
+                            handleQueryBodyChange: setCustomQueryBody,
+                            handleQueryMetaChange,
+                            handleQueryResultsLoadMore,
+                            handleSubmit,
+                            handleWorkgroupChange,
+                            handleWorkgroupsLoadMore,
+                            queriesData,
+                            queryMeta,
+                            queryResultsData,
+                            queryRunData,
+                            workgroup:
+                              workgroup ||
+                              (queryExecution?.WorkGroup && {
+                                key: queryExecution?.WorkGroup,
+                                name: queryExecution?.WorkGroup,
+                              }) ||
+                              workgroups?.defaultWorkgroup,
+                            workgroups,
+                          })
+                        }
+                      </QueryRunner>
+                    )}
+                  </QueriesFetcher>
+                )
+              }}
             </QueryResultsFetcher>
           ),
           Err: makeAsyncDataErrorHandler('Workgroups Data'),

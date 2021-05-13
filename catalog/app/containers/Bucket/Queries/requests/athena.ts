@@ -121,6 +121,17 @@ export function useWorkgroups(
   return useData(fetchWorkgroups, { athena, prev })
 }
 
+export interface QueryExecution {
+  catalog?: string
+  completed?: Date
+  created?: Date
+  db?: string
+  id?: string
+  outputBucket?: string
+  query?: string
+  status?: string // 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
+}
+
 export interface QueryExecutionsResponse {
   list: QueryExecution[]
   next?: string
@@ -132,16 +143,9 @@ interface QueryExecutionsArgs {
   workgroup: string
 }
 
-export interface QueryExecution {
-  catalog?: string
-  completed?: Date
-  created?: Date
-  db?: string
-  id?: string
-  outputBucket?: string
-  query?: string
-  status?: string // 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
-}
+// function parseQueryExecution() {
+
+// }
 
 async function fetchQueryExecutions({
   athena,
@@ -212,12 +216,14 @@ async function waitForQueryStatus(
   return waitForQueryStatus(athena, QueryExecutionId)
 }
 
+export type QueryExecutionAlias = Athena.QueryExecution
+
 export type QueryResults = Athena.GetQueryResultsOutput
 
 export interface QueryResultsResponse {
   list: Athena.RowList
   next?: string
-  queryExecution: Athena.QueryExecution | null
+  queryExecution: QueryExecutionAlias | null
 }
 
 interface QueryResultsArgs {
