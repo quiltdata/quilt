@@ -37,7 +37,7 @@ const PLANS = [
     perMonth: true,
     features: [
       'Unlimited data',
-      'Unlimited users',
+      'Up to 10 users',
       'Three S3 buckets',
       '30-day free trial',
     ],
@@ -60,9 +60,10 @@ const PLANS = [
     features: [
       'Unlimited data',
       'Unlimited users',
-      'Priority support',
-      'Custom features',
-      'Education and instruction',
+      'Up to hundreds of S3 buckets',
+      'Single Sign-on (SSO)',
+      'Custom development',
+      'Personalized training',
     ],
     cta: ({ talk, className }) => (
       <Btn
