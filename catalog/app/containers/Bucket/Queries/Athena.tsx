@@ -253,7 +253,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
               {({ queryResultsData, handleQueryResultsLoadMore }) => {
                 const queryExecution = (queryResultsData as requests.AsyncData<
                   requests.athena.QueryResultsResponse,
-                  requests.athena.QueryExecutionAlias | null | 'pending'
+                  requests.athena.QueryExecution | null | 'pending'
                 >).case({
                   _: () => null,
                   Pending: () => 'pending',
@@ -266,7 +266,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                   <QueriesFetcher
                     workgroup={
                       workgroup?.name ||
-                      queryExecution?.WorkGroup ||
+                      queryExecution?.workgroup ||
                       workgroups?.defaultWorkgroup.name ||
                       ''
                     }
@@ -286,7 +286,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                         {({ queryRunData }) =>
                           children({
                             customQueryBody:
-                              customQueryBody || queryExecution?.Query || null,
+                              customQueryBody || queryExecution?.query || null,
                             executionsData,
                             handleExecutionsLoadMore,
                             handleQueriesLoadMore,
@@ -302,9 +302,9 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                             queryRunData,
                             workgroup:
                               workgroup ||
-                              (queryExecution?.WorkGroup && {
-                                key: queryExecution?.WorkGroup,
-                                name: queryExecution?.WorkGroup,
+                              (queryExecution?.workgroup && {
+                                key: queryExecution?.workgroup,
+                                name: queryExecution?.workgroup,
                               }) ||
                               workgroups?.defaultWorkgroup,
                             workgroups,

@@ -130,6 +130,7 @@ export interface QueryExecution {
   outputBucket?: string
   query?: string
   status?: string // 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
+  workgroup?: Athena.WorkGroupName
 }
 
 export interface QueryExecutionsResponse {
@@ -143,9 +144,19 @@ interface QueryExecutionsArgs {
   workgroup: string
 }
 
-// function parseQueryExecution() {
-
-// }
+function parseQueryExecution(queryExecution: Athena.QueryExecution): QueryExecution {
+  return {
+    catalog: queryExecution?.QueryExecutionContext?.Catalog,
+    completed: queryExecution?.Status?.CompletionDateTime,
+    created: queryExecution?.Status?.SubmissionDateTime,
+    db: queryExecution?.QueryExecutionContext?.Database,
+    id: queryExecution?.QueryExecutionId,
+    outputBucket: queryExecution?.ResultConfiguration?.OutputLocation,
+    query: queryExecution?.Query,
+    status: queryExecution?.Status?.State,
+    workgroup: queryExecution?.WorkGroup,
+  }
+}
 
 async function fetchQueryExecutions({
   athena,
@@ -167,16 +178,7 @@ async function fetchQueryExecutions({
     const executionsOutput = await athena
       ?.batchGetQueryExecution({ QueryExecutionIds: ids })
       .promise()
-    const parsed = (executionsOutput.QueryExecutions || []).map((queryExecution) => ({
-      catalog: queryExecution?.QueryExecutionContext?.Catalog,
-      completed: queryExecution?.Status?.CompletionDateTime,
-      created: queryExecution?.Status?.SubmissionDateTime,
-      db: queryExecution?.QueryExecutionContext?.Database,
-      id: queryExecution?.QueryExecutionId,
-      outputBucket: queryExecution?.ResultConfiguration?.OutputLocation,
-      query: queryExecution?.Query,
-      status: queryExecution?.Status?.State,
-    }))
+    const parsed = (executionsOutput.QueryExecutions || []).map(parseQueryExecution)
     const list = (prev?.list || []).concat(parsed)
     return {
       list,
@@ -216,14 +218,12 @@ async function waitForQueryStatus(
   return waitForQueryStatus(athena, QueryExecutionId)
 }
 
-export type QueryExecutionAlias = Athena.QueryExecution
-
 export type QueryResults = Athena.GetQueryResultsOutput
 
 export interface QueryResultsResponse {
   list: Athena.RowList
   next?: string
-  queryExecution: QueryExecutionAlias | null
+  queryExecution: QueryExecution | null
 }
 
 interface QueryResultsArgs {
@@ -250,7 +250,7 @@ async function fetchQueryResults({
   return {
     list,
     next: queryResultsOutput.NextToken,
-    queryExecution,
+    queryExecution: queryExecution ? parseQueryExecution(queryExecution) : null,
   }
 }
 
