@@ -441,7 +441,7 @@ export default function Athena({
           {queryResultsData.case({
             Init: () => null,
             Ok: (queryResults: requests.athena.QueryResultsResponse) => (
-              <AthenaResults results={queryResults.queryResults} />
+              <AthenaResults results={queryResults.list} />
             ),
             Err: makeAsyncDataErrorHandler('Query Results Data'),
             _: makeAsyncDataPendingHandler({ size: 'large' }),

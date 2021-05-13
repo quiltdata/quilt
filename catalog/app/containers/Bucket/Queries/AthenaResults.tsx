@@ -1,10 +1,14 @@
+import Athena from 'aws-sdk/clients/athena'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import * as requests from './requests'
-
 const useStyles = M.makeStyles((t) => ({
+  cell: {
+    '& + &': {
+      textAlign: 'right',
+    },
+  },
   footer: {
     display: 'flex',
     padding: t.spacing(1),
@@ -15,15 +19,14 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface AthenaResultsProps {
-  results: requests.athena.QueryResults
+  results: Athena.RowList
 }
 
 export default function AthenaResults({ results }: AthenaResultsProps) {
   const classes = useStyles()
 
-  const rows = results?.ResultSet?.Rows
-  const head = rows?.[0]
-  const tail = rows?.slice(1)
+  const head = results[0]
+  const tail = results.slice(1)
 
   const pageSize = 10
   const [page, setPage] = React.useState(1)
@@ -51,7 +54,9 @@ export default function AthenaResults({ results }: AthenaResultsProps) {
           <M.TableRow>
             {head?.Data &&
               head.Data.map((item, index) => (
-                <M.TableCell key={index}>{item.VarCharValue}</M.TableCell>
+                <M.TableCell className={classes.cell} key={index}>
+                  {item.VarCharValue}
+                </M.TableCell>
               ))}
           </M.TableRow>
         </M.TableHead>
@@ -60,7 +65,9 @@ export default function AthenaResults({ results }: AthenaResultsProps) {
             <M.TableRow key={rowIndex}>
               {row.Data &&
                 row.Data.map((item, itemIndex) => (
-                  <M.TableCell key={itemIndex}>{item.VarCharValue}</M.TableCell>
+                  <M.TableCell className={classes.cell} key={itemIndex}>
+                    {item.VarCharValue}
+                  </M.TableCell>
                 ))}
             </M.TableRow>
           ))}

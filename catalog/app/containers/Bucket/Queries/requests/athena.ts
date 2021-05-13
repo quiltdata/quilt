@@ -215,25 +215,36 @@ async function waitForQueryStatus(
 export type QueryResults = Athena.GetQueryResultsOutput
 
 export interface QueryResultsResponse {
+  list: Athena.RowList
+  next?: string
   queryExecution: Athena.QueryExecution | null
-  queryResults: Athena.GetQueryResultsOutput
+}
+
+interface QueryResultsArgs {
+  athena: Athena
+  queryExecutionId: string
+  prev?: QueryResultsResponse
 }
 
 async function fetchQueryResults({
   athena,
   queryExecutionId,
-}: {
-  athena: Athena
-  queryExecutionId: string
-}): Promise<QueryResultsResponse> {
+  prev,
+}: QueryResultsArgs): Promise<QueryResultsResponse> {
   const queryExecution = await waitForQueryStatus(athena, queryExecutionId)
 
-  const queryResults = await athena
-    .getQueryResults({ QueryExecutionId: queryExecutionId })
+  const queryResultsOutput = await athena
+    .getQueryResults({
+      QueryExecutionId: queryExecutionId,
+      NextToken: prev?.next,
+    })
     .promise()
+  const parsed = queryResultsOutput.ResultSet?.Rows || []
+  const list = (prev?.list || []).concat(parsed)
   return {
+    list,
+    next: queryResultsOutput.NextToken,
     queryExecution,
-    queryResults,
   }
 }
 

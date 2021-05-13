@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as dateFns from 'date-fns'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -11,6 +12,13 @@ import * as requests from './requests'
 const useExecutionStyles = M.makeStyles((t) => ({
   date: {
     whiteSpace: 'nowrap',
+  },
+  cell: {
+    width: '40%',
+    '& + &': {
+      width: 'auto',
+      textAlign: 'right',
+    },
   },
   expandedCell: {
     paddingBottom: 0,
@@ -54,18 +62,18 @@ function Execution({ bucket, queryExecution }: ExecutionProps) {
   return (
     <>
       <M.TableRow>
-        <M.TableCell style={{ width: '50%' }} onClick={onToggle}>
+        <M.TableCell className={classes.cell} onClick={onToggle}>
           {trimmedQuery}
         </M.TableCell>
-        <M.TableCell align="right">
+        <M.TableCell className={classes.cell}>
           <abbr title={queryExecution.id}>{queryExecution.status}</abbr>
         </M.TableCell>
-        <M.TableCell align="right" className={classes.date}>
+        <M.TableCell className={cx(classes.cell, classes.date)}>
           {queryExecution.created
             ? dateFns.format(queryExecution.created, 'MMM do, HH:mm:ss')
             : null}
         </M.TableCell>
-        <M.TableCell align="right" className={classes.date}>
+        <M.TableCell className={cx(classes.cell, classes.date)}>
           {queryExecution.status === 'SUCCEEDED' ? (
             <Link to={urls.bucketAthenaQueryExecution(bucket, queryExecution.id)}>
               {completed}
@@ -87,6 +95,13 @@ function Execution({ bucket, queryExecution }: ExecutionProps) {
 }
 
 const useStyles = M.makeStyles((t) => ({
+  cell: {
+    width: '40%',
+    '& + &': {
+      width: 'auto',
+      textAlign: 'right',
+    },
+  },
   footer: {
     display: 'flex',
     padding: t.spacing(1),
@@ -132,10 +147,10 @@ export default function ExecutionsViewer({
       <M.Table size="small" className={classes.table}>
         <M.TableHead>
           <M.TableRow>
-            <M.TableCell style={{ width: '50%' }}>Query</M.TableCell>
-            <M.TableCell align="right">Status</M.TableCell>
-            <M.TableCell align="right">Date created</M.TableCell>
-            <M.TableCell align="right">Date completed</M.TableCell>
+            <M.TableCell className={classes.cell}>Query</M.TableCell>
+            <M.TableCell className={classes.cell}>Status</M.TableCell>
+            <M.TableCell className={classes.cell}>Date created</M.TableCell>
+            <M.TableCell className={classes.cell}>Date completed</M.TableCell>
           </M.TableRow>
         </M.TableHead>
         <M.TableBody>
