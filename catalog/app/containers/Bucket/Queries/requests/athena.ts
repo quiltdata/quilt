@@ -30,7 +30,7 @@ async function fetchQueries({
 }: QueriesArgs): Promise<QueriesResponse> {
   try {
     const queryIdsOutput = await athena
-      ?.listNamedQueries({ MaxResults: 2, WorkGroup: workgroup, NextToken: prev?.next })
+      ?.listNamedQueries({ WorkGroup: workgroup, NextToken: prev?.next })
       .promise()
     if (!queryIdsOutput.NamedQueryIds || !queryIdsOutput.NamedQueryIds.length)
       return {
@@ -76,7 +76,7 @@ export interface Workgroup {
   name: string
 }
 
-export type WorkgroupsResponse = {
+export interface WorkgroupsResponse {
   defaultWorkgroup: Workgroup
   list: Workgroup[]
   next?: string
@@ -121,8 +121,14 @@ export function useWorkgroups(
   return useData(fetchWorkgroups, { athena, prev })
 }
 
+export interface QueryExecutionsResponse {
+  list: QueryExecution[]
+  next?: string
+}
+
 interface QueryExecutionsArgs {
   athena: Athena
+  prev: QueryExecutionsResponse | null
   workgroup: string
 }
 
@@ -137,24 +143,27 @@ export interface QueryExecution {
   status?: string // 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
 }
 
-type QueryExecutionsResponse = QueryExecution[]
-
 async function fetchQueryExecutions({
   athena,
+  prev,
   workgroup,
 }: QueryExecutionsArgs): Promise<QueryExecutionsResponse> {
   try {
-    const executionIdsData = await athena
-      .listQueryExecutions({ WorkGroup: workgroup })
+    const executionIdsOutput = await athena
+      .listQueryExecutions({ WorkGroup: workgroup, NextToken: prev?.next })
       .promise()
 
-    if (!executionIdsData.QueryExecutionIds || !executionIdsData.QueryExecutionIds.length)
-      return []
+    const ids = executionIdsOutput.QueryExecutionIds
+    if (!ids || !ids.length)
+      return {
+        list: [],
+        next: executionIdsOutput.NextToken,
+      }
 
-    const executionsData = await athena
-      ?.batchGetQueryExecution({ QueryExecutionIds: executionIdsData.QueryExecutionIds })
+    const executionsOutput = await athena
+      ?.batchGetQueryExecution({ QueryExecutionIds: ids })
       .promise()
-    return (executionsData.QueryExecutions || []).map((queryExecution) => ({
+    const parsed = (executionsOutput.QueryExecutions || []).map((queryExecution) => ({
       catalog: queryExecution?.QueryExecutionContext?.Catalog,
       completed: queryExecution?.Status?.CompletionDateTime,
       created: queryExecution?.Status?.SubmissionDateTime,
@@ -164,6 +173,11 @@ async function fetchQueryExecutions({
       query: queryExecution?.Query,
       status: queryExecution?.Status?.State,
     }))
+    const list = (prev?.list || []).concat(parsed)
+    return {
+      list,
+      next: executionIdsOutput.NextToken,
+    }
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
@@ -175,9 +189,10 @@ async function fetchQueryExecutions({
 
 export function useQueryExecutions(
   workgroup: string,
+  prev: QueryExecutionsResponse | null,
 ): AsyncData<QueryExecutionsResponse> {
   const athena = AWS.Athena.use()
-  return useData(fetchQueryExecutions, { athena, workgroup })
+  return useData(fetchQueryExecutions, { athena, prev, workgroup })
 }
 
 async function waitForQueryStatus(
@@ -199,7 +214,7 @@ async function waitForQueryStatus(
 
 export type QueryResults = Athena.GetQueryResultsOutput
 
-export type QueryResultsResponse = {
+export interface QueryResultsResponse {
   queryExecution: Athena.QueryExecution | null
   queryResults: Athena.GetQueryResultsOutput
 }

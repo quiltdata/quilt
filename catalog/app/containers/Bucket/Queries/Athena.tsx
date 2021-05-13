@@ -139,9 +139,10 @@ function QueryResultsFetcher({ children, queryExecutionId }: QueryResultsFetcher
 }
 
 interface QueriesFetcherRenderProps {
-  executionsData: requests.AsyncData<requests.athena.QueryExecution[]>
-  queriesData: requests.AsyncData<requests.athena.QueriesResponse>
+  executionsData: requests.AsyncData<requests.athena.QueryExecutionsResponse>
+  handleExecutionsLoadMore: (prev: requests.athena.QueryExecutionsResponse) => void
   handleQueriesLoadMore: (prev: requests.athena.QueriesResponse) => void
+  queriesData: requests.AsyncData<requests.athena.QueriesResponse>
 }
 
 interface QueriesFetcherProps {
@@ -150,15 +151,28 @@ interface QueriesFetcherProps {
 }
 
 function QueriesFetcher({ children, workgroup }: QueriesFetcherProps) {
-  const [prev, setPrev] = React.useState<requests.athena.QueriesResponse | null>(null)
-  const queriesData = requests.athena.useQueries(workgroup, prev)
-  const executionsData = requests.athena.useQueryExecutions(workgroup)
-  return children({ queriesData, executionsData, handleQueriesLoadMore: setPrev })
+  const [
+    prevQueries,
+    setPrevQueries,
+  ] = React.useState<requests.athena.QueriesResponse | null>(null)
+  const [
+    prevExecutions,
+    setPrevExecutions,
+  ] = React.useState<requests.athena.QueryExecutionsResponse | null>(null)
+  const queriesData = requests.athena.useQueries(workgroup, prevQueries)
+  const executionsData = requests.athena.useQueryExecutions(workgroup, prevExecutions)
+  return children({
+    executionsData,
+    handleExecutionsLoadMore: setPrevExecutions,
+    handleQueriesLoadMore: setPrevQueries,
+    queriesData,
+  })
 }
 
 interface QueriesStateRenderProps {
   customQueryBody: string | null
-  executionsData: requests.AsyncData<requests.athena.QueryExecution[]>
+  executionsData: requests.AsyncData<requests.athena.QueryExecutionsResponse>
+  handleExecutionsLoadMore: (prev: requests.athena.QueryExecutionsResponse) => void
   handleQueriesLoadMore: (prev: requests.athena.QueriesResponse) => void
   handleQueryBodyChange: (q: string | null) => void
   handleQueryMetaChange: (q: requests.Query | requests.athena.AthenaQuery | null) => void
@@ -232,7 +246,12 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                   ''
                 }
               >
-                {({ queriesData, executionsData, handleQueriesLoadMore }) => (
+                {({
+                  queriesData,
+                  executionsData,
+                  handleQueriesLoadMore,
+                  handleExecutionsLoadMore,
+                }) => (
                   <QueryRunner
                     queryBody={queryRequest || ''}
                     workgroup={workgroup?.name || workgroups?.defaultWorkgroup.name || ''}
@@ -241,6 +260,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                       children({
                         customQueryBody: customQueryBody || queryExecution?.Query || null,
                         executionsData,
+                        handleExecutionsLoadMore,
                         handleQueriesLoadMore,
                         handleQueryBodyChange: setCustomQueryBody,
                         handleQueryMetaChange,
@@ -274,7 +294,12 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                   ''
                 }
               >
-                {({ queriesData, executionsData, handleQueriesLoadMore }) => (
+                {({
+                  queriesData,
+                  executionsData,
+                  handleQueriesLoadMore,
+                  handleExecutionsLoadMore,
+                }) => (
                   <QueryRunner
                     queryBody={queryRequest || ''}
                     workgroup={
@@ -285,6 +310,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                       children({
                         customQueryBody: customQueryBody || queryExecution?.Query || null,
                         executionsData,
+                        handleExecutionsLoadMore,
                         handleQueriesLoadMore,
                         handleQueryBodyChange: setCustomQueryBody,
                         handleQueryMetaChange,
@@ -340,12 +366,13 @@ export default function Athena({
       {({
         customQueryBody,
         executionsData,
+        handleExecutionsLoadMore,
+        handleQueriesLoadMore,
         handleQueryBodyChange,
         handleQueryMetaChange,
         handleSubmit,
         handleWorkgroupChange,
         handleWorkgroupsLoadMore,
-        handleQueriesLoadMore,
         queriesData,
         queryMeta,
         queryResultsData,
@@ -401,7 +428,10 @@ export default function Athena({
               <ExecutionsViewer
                 className={classes.executions}
                 bucket={bucket}
-                executions={executions}
+                executions={executions.list}
+                onLoadMore={
+                  executions.next ? () => handleExecutionsLoadMore(executions) : undefined
+                }
               />
             ),
             Err: makeAsyncDataErrorHandler('Executions Data'),

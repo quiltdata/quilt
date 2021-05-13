@@ -1,6 +1,7 @@
 import * as dateFns from 'date-fns'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
@@ -85,24 +86,49 @@ function Execution({ bucket, queryExecution }: ExecutionProps) {
   )
 }
 
-const useStyles = M.makeStyles({
+const useStyles = M.makeStyles((t) => ({
+  footer: {
+    display: 'flex',
+    padding: t.spacing(1),
+  },
+  more: {
+    marginLeft: 'auto',
+  },
+  pagination: {
+    padding: t.spacing(1),
+  },
   table: {
     tableLayout: 'fixed',
   },
-})
+}))
 
 interface ExecutionsViewerProps {
   bucket: string
   className?: string
   executions: requests.athena.QueryExecution[]
+  onLoadMore?: () => void
 }
 
 export default function ExecutionsViewer({
   bucket,
   className,
   executions,
+  onLoadMore,
 }: ExecutionsViewerProps) {
   const classes = useStyles()
+
+  const pageSize = 10
+  const [page, setPage] = React.useState(1)
+
+  const handlePagination = React.useCallback(
+    (event, value) => {
+      setPage(value)
+    },
+    [setPage],
+  )
+
+  const rowsPaginated = executions.slice(pageSize * (page - 1), pageSize * page)
+  const hasPagination = executions.length > rowsPaginated.length
 
   return (
     <M.TableContainer component={M.Paper} className={className}>
@@ -116,7 +142,7 @@ export default function ExecutionsViewer({
           </M.TableRow>
         </M.TableHead>
         <M.TableBody>
-          {executions.map((queryExecution) => (
+          {rowsPaginated.map((queryExecution) => (
             <Execution
               bucket={bucket}
               queryExecution={queryExecution}
@@ -139,6 +165,25 @@ export default function ExecutionsViewer({
           )}
         </M.TableBody>
       </M.Table>
+
+      {(hasPagination || !!onLoadMore) && (
+        <div className={classes.footer}>
+          {hasPagination && (
+            <Lab.Pagination
+              className={classes.pagination}
+              count={Math.ceil(executions.length / pageSize)}
+              page={page}
+              size="small"
+              onChange={handlePagination}
+            />
+          )}
+          {onLoadMore && (
+            <M.Button className={classes.more} size="small" onClick={onLoadMore}>
+              Load more
+            </M.Button>
+          )}
+        </div>
+      )}
     </M.TableContainer>
   )
 }
