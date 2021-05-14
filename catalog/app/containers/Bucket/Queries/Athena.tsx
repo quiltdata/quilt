@@ -1,9 +1,11 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import { RouteComponentProps } from 'react-router'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 
 import * as requests from './requests'
@@ -57,9 +59,6 @@ const useStyles = M.makeStyles((t) => ({
   emptySelect: {
     margin: t.spacing(4, 0, 0),
   },
-  executions: {
-    margin: t.spacing(0, 0, 4),
-  },
   form: {
     margin: t.spacing(0, 0, 4),
   },
@@ -70,8 +69,9 @@ const useStyles = M.makeStyles((t) => ({
     margin: t.spacing(0, 0, 1),
   },
   select: {
-    flexBasis: '50%',
+    flexBasis: '40%',
     '& + &': {
+      flexBasis: '60%',
       marginLeft: t.spacing(3),
     },
   },
@@ -244,12 +244,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
   )
 
   const [workgroup, setWorkgroup] = React.useState<requests.athena.Workgroup | null>(null)
-  const handleWorkgroupChange = React.useCallback(
-    (w) => {
-      setWorkgroup(w)
-    },
-    [setWorkgroup],
-  )
+  const handleWorkgroupChange = React.useCallback((w) => setWorkgroup(w), [setWorkgroup])
   return (
     <WorkgroupsFetcher>
       {({ handleWorkgroupsLoadMore, workgroupsData }) =>
@@ -347,6 +342,8 @@ export default function Athena({
 }: AthenaProps) {
   const classes = useStyles()
 
+  const { urls } = NamedRoutes.use()
+
   return (
     <QueriesState queryExecutionId={queryExecutionId || null}>
       {({
@@ -372,7 +369,7 @@ export default function Athena({
 
           <div className={classes.selects}>
             <div className={classes.select}>
-              <M.Typography className={classes.sectionHeader} variant="body1">
+              <M.Typography className={classes.sectionHeader}>
                 Select workgroup
               </M.Typography>
 
@@ -430,20 +427,31 @@ export default function Athena({
 
           {executionsData.case({
             Ok: (executions) => (
-              <div className={classes.executions}>
-                <M.Typography className={classes.sectionHeader} variant="body1">
-                  History of Query Executions
-                </M.Typography>
+              <div>
+                {queryExecutionId ? (
+                  <M.Breadcrumbs className={classes.sectionHeader}>
+                    <Link to={urls.bucketAthenaQueries(bucket)}>Query Executions</Link>
+                    <M.Typography variant="body1" color="textPrimary">
+                      Results for {queryExecutionId}
+                    </M.Typography>
+                  </M.Breadcrumbs>
+                ) : (
+                  <M.Typography className={classes.sectionHeader} color="textPrimary">
+                    Query Executions
+                  </M.Typography>
+                )}
 
-                <ExecutionsViewer
-                  bucket={bucket}
-                  executions={executions.list}
-                  onLoadMore={
-                    executions.next
-                      ? () => handleExecutionsLoadMore(executions)
-                      : undefined
-                  }
-                />
+                {!queryExecutionId && (
+                  <ExecutionsViewer
+                    bucket={bucket}
+                    executions={executions.list}
+                    onLoadMore={
+                      executions.next
+                        ? () => handleExecutionsLoadMore(executions)
+                        : undefined
+                    }
+                  />
+                )}
               </div>
             ),
             Err: makeAsyncDataErrorHandler('Executions Data'),
@@ -453,19 +461,14 @@ export default function Athena({
           {queryResultsData.case({
             Init: () => null,
             Ok: (queryResults: requests.athena.QueryResultsResponse) => (
-              <div>
-                <M.Typography className={classes.sectionHeader} variant="body1">
-                  Query Results
-                </M.Typography>
-                <AthenaResults
-                  results={queryResults.list}
-                  onLoadMore={
-                    queryResults.next
-                      ? () => handleQueryResultsLoadMore(queryResults)
-                      : undefined
-                  }
-                />
-              </div>
+              <AthenaResults
+                results={queryResults.list}
+                onLoadMore={
+                  queryResults.next
+                    ? () => handleQueryResultsLoadMore(queryResults)
+                    : undefined
+                }
+              />
             ),
             Err: makeAsyncDataErrorHandler('Query Results Data'),
             _: makeAsyncDataPendingHandler({ size: 'large' }),

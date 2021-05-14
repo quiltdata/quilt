@@ -23,6 +23,15 @@ interface QueriesArgs {
   workgroup: string
 }
 
+function parseNamedQuery(query: Athena.NamedQuery): AthenaQuery {
+  return {
+    body: query.QueryString,
+    description: query.Description,
+    key: query.NamedQueryId!,
+    name: query.Name,
+  }
+}
+
 async function fetchQueries({
   athena,
   prev,
@@ -43,12 +52,7 @@ async function fetchQueries({
         NamedQueryIds: queryIdsOutput.NamedQueryIds,
       })
       .promise()
-    const parsed = (queriesOutput.NamedQueries || []).map((query) => ({
-      body: query.QueryString,
-      description: query.Description,
-      key: query.NamedQueryId!,
-      name: query.Name,
-    }))
+    const parsed = (queriesOutput.NamedQueries || []).map(parseNamedQuery)
     const list = (prev?.list || []).concat(parsed)
     return {
       list,
