@@ -254,14 +254,11 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
               {({ queryResultsData, handleQueryResultsLoadMore }) => {
                 const queryExecution = (queryResultsData as requests.AsyncData<
                   requests.athena.QueryResultsResponse,
-                  requests.athena.QueryExecution | null | 'pending'
+                  requests.athena.QueryExecution | null
                 >).case({
                   _: () => null,
-                  Pending: () => 'pending',
                   Ok: ({ queryExecution: qE }) => qE,
                 })
-                // TODO: (@nl_0) use case({ __: }) or something like this
-                if (queryExecution === 'pending') return makeAsyncDataPendingHandler()()
 
                 return (
                   <QueriesFetcher
@@ -286,8 +283,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                       >
                         {({ queryRunData }) =>
                           children({
-                            customQueryBody:
-                              customQueryBody || queryExecution?.query || null,
+                            customQueryBody,
                             executionsData,
                             handleExecutionsLoadMore,
                             handleQueriesLoadMore,
@@ -414,16 +410,34 @@ export default function Athena({
             </div>
           </div>
 
-          <Form
-            disabled={isButtonDisabled(
-              customQueryBody || queryMeta?.body || '',
-              queryRunData,
-              null,
-            )}
-            onChange={handleQueryBodyChange}
-            onSubmit={handleSubmit}
-            value={customQueryBody || queryMeta?.body || ''}
-          />
+          {queryResultsData.case({
+            _: ({
+              value: queryResults,
+            }: {
+              value: requests.athena.QueryResultsResponse
+            }) => (
+              <Form
+                disabled={isButtonDisabled(
+                  customQueryBody ||
+                    queryResults?.queryExecution?.query ||
+                    queryMeta?.body ||
+                    '',
+                  queryRunData,
+                  null,
+                )}
+                onChange={handleQueryBodyChange}
+                onSubmit={handleSubmit}
+                value={
+                  customQueryBody ||
+                  queryResults?.queryExecution?.query ||
+                  queryMeta?.body ||
+                  ''
+                }
+              />
+            ),
+            Err: makeAsyncDataErrorHandler('Query Body'),
+            Pending: makeAsyncDataPendingHandler({ size: 'large' }),
+          })}
 
           {executionsData.case({
             Ok: (executions) => (
