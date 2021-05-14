@@ -198,7 +198,11 @@ export function useQueryExecutions(
   prev: QueryExecutionsResponse | null,
 ): AsyncData<QueryExecutionsResponse> {
   const athena = AWS.Athena.use()
-  return useData(fetchQueryExecutions, { athena, prev, workgroup })
+  return useData(
+    fetchQueryExecutions,
+    { athena, prev, workgroup },
+    { noAutoFetch: !workgroup },
+  )
 }
 
 async function waitForQueryStatus(

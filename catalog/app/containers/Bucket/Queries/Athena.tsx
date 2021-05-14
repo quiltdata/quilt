@@ -111,23 +111,6 @@ function makeAsyncDataErrorHandler(title: string) {
   return (error: Error) => <Alert error={error} title={title} />
 }
 
-interface SpinnerProps {
-  padding?: number
-  size?: 'large'
-}
-
-function Spinner({ padding, size }: SpinnerProps) {
-  return (
-    <M.Box pt={padding || 5} textAlign="center">
-      <M.CircularProgress size={size === 'large' ? 96 : 48} />
-    </M.Box>
-  )
-}
-
-function makeAsyncDataPendingHandler({ padding, size }: SpinnerProps = {}) {
-  return () => <Spinner padding={padding} size={size} />
-}
-
 const useStyles = M.makeStyles((t) => ({
   emptySelect: {
     margin: t.spacing(4, 0, 0),
@@ -289,7 +272,7 @@ interface QueriesStateRenderProps {
   queryResultsData: requests.AsyncData<requests.athena.QueryResultsResponse>
   queryRunData: requests.AsyncData<requests.athena.QueryRunResponse>
   workgroup: requests.athena.Workgroup | null
-  workgroups: requests.athena.WorkgroupsResponse
+  workgroupsData: requests.AsyncData<requests.athena.WorkgroupsResponse>
 }
 
 interface QueriesStateProps {
@@ -328,7 +311,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
     <WorkgroupsFetcher>
       {({ handleWorkgroupsLoadMore, workgroupsData }) =>
         workgroupsData.case({
-          Ok: (workgroups) => (
+          _: ({ value: workgroups }) => (
             <QueryResultsFetcher queryExecutionId={queryExecutionId}>
               {({ queryResultsData, handleQueryResultsLoadMore }) => {
                 const queryExecution = (queryResultsData as requests.AsyncData<
@@ -374,11 +357,11 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                             queryMeta,
                             queryResultsData,
                             queryRunData,
+                            workgroupsData,
                             workgroup:
                               workgroup ||
                               queryExecution?.workgroup ||
                               workgroups?.defaultWorkgroup,
-                            workgroups,
                           })
                         }
                       </QueryRunner>
@@ -388,8 +371,6 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
               }}
             </QueryResultsFetcher>
           ),
-          Err: makeAsyncDataErrorHandler('Workgroups Data'),
-          _: makeAsyncDataPendingHandler(),
         })
       }
     </WorkgroupsFetcher>
@@ -398,9 +379,9 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
 
 const isButtonDisabled = (
   queryContent: string,
-  resultsData: requests.AsyncData<requests.ElasticSearchResults>, // FIXME
+  queryRunData: requests.AsyncData<requests.athena.QueryRunResponse>,
   error: Error | null,
-): boolean => !!error || !queryContent || !!resultsData.case({ Pending: R.T, _: R.F })
+): boolean => !!error || !queryContent || !!queryRunData.case({ Pending: R.T, _: R.F })
 
 interface AthenaProps
   extends RouteComponentProps<{ bucket: string; queryExecutionId?: string }> {}
@@ -431,28 +412,36 @@ export default function Athena({
         queryMeta,
         queryResultsData,
         queryRunData,
+        workgroupsData,
         workgroup,
-        workgroups,
       }) => (
         <div>
           <M.Typography variant="h6">Athena SQL</M.Typography>
 
           <div className={classes.selects}>
             <div className={classes.select}>
-              <M.Typography className={classes.sectionHeader}>
-                Select workgroup
-              </M.Typography>
+              {workgroupsData.case({
+                Ok: (workgroups) => (
+                  <>
+                    <M.Typography className={classes.sectionHeader}>
+                      Select workgroup
+                    </M.Typography>
 
-              {workgroups.list.length ? (
-                <WorkgroupSelect
-                  workgroups={workgroups}
-                  onChange={handleWorkgroupChange}
-                  onLoadMore={handleWorkgroupsLoadMore}
-                  value={workgroup}
-                />
-              ) : (
-                <M.FormHelperText>There are no workgroups.</M.FormHelperText>
-              )}
+                    {workgroups.list.length ? (
+                      <WorkgroupSelect
+                        workgroups={workgroups}
+                        onChange={handleWorkgroupChange}
+                        onLoadMore={handleWorkgroupsLoadMore}
+                        value={workgroup}
+                      />
+                    ) : (
+                      <M.FormHelperText>There are no workgroups.</M.FormHelperText>
+                    )}
+                  </>
+                ),
+                Err: makeAsyncDataErrorHandler('Workgroups Data'),
+                _: () => <QuerySelectSkeleton />,
+              })}
             </div>
 
             <div className={classes.select}>
@@ -490,26 +479,30 @@ export default function Athena({
                 value: queryResults,
               }: {
                 value: requests.athena.QueryResultsResponse
-              }) => (
-                <Form
-                  disabled={isButtonDisabled(
-                    customQueryBody ||
+              }) => {
+                const areQueriesLoaded = queriesData.case({ Ok: R.T, _: R.F })
+                if (!areQueriesLoaded) return <FormSkeleton />
+                return (
+                  <Form
+                    disabled={isButtonDisabled(
+                      customQueryBody ||
+                        queryResults?.queryExecution?.query ||
+                        queryMeta?.body ||
+                        '',
+                      queryRunData,
+                      null,
+                    )}
+                    onChange={handleQueryBodyChange}
+                    onSubmit={handleSubmit}
+                    value={
+                      customQueryBody ||
                       queryResults?.queryExecution?.query ||
                       queryMeta?.body ||
-                      '',
-                    queryRunData,
-                    null,
-                  )}
-                  onChange={handleQueryBodyChange}
-                  onSubmit={handleSubmit}
-                  value={
-                    customQueryBody ||
-                    queryResults?.queryExecution?.query ||
-                    queryMeta?.body ||
-                    ''
-                  }
-                />
-              ),
+                      ''
+                    }
+                  />
+                )
+              },
               Err: makeAsyncDataErrorHandler('Query Body'),
               Pending: () => <FormSkeleton />,
             })}
