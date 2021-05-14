@@ -16,13 +16,20 @@ export type ActionPreferences = Record<
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 
-type UiPreferences = {
+interface UiPreferences {
   actions: ActionPreferences
   nav: NavPreferences
+  sourceBuckets: string[]
+}
+
+interface UiPreferencesYaml {
+  actions?: ActionPreferences
+  nav?: NavPreferences
+  sourceBuckets?: Record<string, null>
 }
 
 interface BucketPreferencesYaml {
-  ui?: Partial<UiPreferences>
+  ui?: UiPreferencesYaml
 }
 
 interface BucketPreferences {
@@ -41,6 +48,7 @@ const defaultPreferences: BucketPreferences = {
       packages: true,
       queries: true,
     },
+    sourceBuckets: [],
   },
 }
 
@@ -50,6 +58,10 @@ function validate(data: unknown): asserts data is BucketPreferencesYaml {
   const errors = bucketPreferencesValidator(data)
   if (errors.length) throw new bucketErrors.BucketPreferencesInvalid({ errors })
 }
+
+const S3_PREFIX = 's3://'
+const normalizeBucketName = (input: string) =>
+  input.startsWith(S3_PREFIX) ? input.slice(S3_PREFIX.length) : input
 
 function parse(bucketPreferencesYaml: string): BucketPreferences {
   const data = yaml(bucketPreferencesYaml)
@@ -61,6 +73,7 @@ function parse(bucketPreferencesYaml: string): BucketPreferences {
     ui: {
       actions: R.mergeRight(defaultPreferences.ui.actions, data?.ui?.actions || {}),
       nav: R.mergeRight(defaultPreferences.ui.nav, data?.ui?.nav || {}),
+      sourceBuckets: Object.keys(data?.ui?.sourceBuckets || {}).map(normalizeBucketName),
     },
   }
 }
@@ -101,6 +114,7 @@ export function Provider({ bucket, children }: ProviderProps) {
   const s3 = AWS.S3.use()
   const data = useData(fetchBucketPreferences, { s3, bucket })
 
+  // XXX: consider returning AsyncResult or using Suspense
   const preferences = data.case({
     Ok: R.identity,
     Err: () => defaultPreferences,
