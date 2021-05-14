@@ -31,6 +31,11 @@ function QuerySelectSkeleton() {
 }
 
 const useFormSkeletonStyles = M.makeStyles((t) => ({
+  button: {
+    marginTop: t.spacing(2),
+    height: t.spacing(4),
+    width: t.spacing(14),
+  },
   canvas: {
     flexGrow: 1,
     height: t.spacing(27),
@@ -39,6 +44,10 @@ const useFormSkeletonStyles = M.makeStyles((t) => ({
   editor: {
     display: 'flex',
     marginTop: t.spacing(1),
+  },
+  helper: {
+    marginTop: t.spacing(1),
+    height: t.spacing(2),
   },
   numbers: {
     height: t.spacing(27),
@@ -59,6 +68,30 @@ function FormSkeleton() {
         <Skeleton className={classes.numbers} animate />
         <Skeleton className={classes.canvas} animate />
       </div>
+      <Skeleton className={classes.helper} animate />
+      <Skeleton className={classes.button} animate />
+    </>
+  )
+}
+
+function ExecutionsSkeleton() {
+  return (
+    <>
+      <Skeleton height={36} animate />
+      {R.range(0, 4).map((key) => (
+        <Skeleton key={key} height={36} mt={1} animate />
+      ))}
+    </>
+  )
+}
+
+function AthenaResultsSkeleton() {
+  return (
+    <>
+      <Skeleton height={36} animate />
+      {R.range(0, 10).map((key) => (
+        <Skeleton key={key} height={36} mt={1} animate />
+      ))}
     </>
   )
 }
@@ -126,7 +159,7 @@ const useFormStyles = M.makeStyles((t) => ({
     margin: t.spacing(2, 0),
   },
   viewer: {
-    margin: t.spacing(3, 0),
+    margin: t.spacing(3, 0, 0),
   },
 }))
 
@@ -487,23 +520,23 @@ export default function Athena({
             })}
           </div>
 
-          {executionsData.case({
-            Ok: (executions) => (
-              <div>
-                {queryExecutionId ? (
-                  <M.Breadcrumbs className={classes.sectionHeader}>
-                    <Link to={urls.bucketAthenaQueries(bucket)}>Query Executions</Link>
-                    <M.Typography variant="body1" color="textPrimary">
-                      Results for {queryExecutionId}
-                    </M.Typography>
-                  </M.Breadcrumbs>
-                ) : (
-                  <M.Typography className={classes.sectionHeader} color="textPrimary">
-                    Query Executions
-                  </M.Typography>
-                )}
+          <div>
+            {queryExecutionId ? (
+              <M.Breadcrumbs className={classes.sectionHeader}>
+                <Link to={urls.bucketAthenaQueries(bucket)}>Query Executions</Link>
+                <M.Typography color="textPrimary">
+                  Results for {queryExecutionId}
+                </M.Typography>
+              </M.Breadcrumbs>
+            ) : (
+              <M.Typography className={classes.sectionHeader} color="textPrimary">
+                Query Executions
+              </M.Typography>
+            )}
 
-                {!queryExecutionId && (
+            {!queryExecutionId &&
+              executionsData.case({
+                Ok: (executions) => (
                   <ExecutionsViewer
                     bucket={bucket}
                     executions={executions.list}
@@ -513,12 +546,11 @@ export default function Athena({
                         : undefined
                     }
                   />
-                )}
-              </div>
-            ),
-            Err: makeAsyncDataErrorHandler('Executions Data'),
-            _: makeAsyncDataPendingHandler({ size: 'large' }),
-          })}
+                ),
+                Err: makeAsyncDataErrorHandler('Executions Data'),
+                _: () => <ExecutionsSkeleton />,
+              })}
+          </div>
 
           {queryResultsData.case({
             Init: () => null,
@@ -533,7 +565,7 @@ export default function Athena({
               />
             ),
             Err: makeAsyncDataErrorHandler('Query Results Data'),
-            _: makeAsyncDataPendingHandler({ size: 'large' }),
+            _: () => <AthenaResultsSkeleton />,
           })}
         </div>
       )}
