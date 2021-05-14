@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import * as dateFns from 'date-fns'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -142,8 +143,19 @@ export default function ExecutionsViewer({
     [setPage],
   )
 
-  const rowsPaginated = executions.slice(pageSize * (page - 1), pageSize * page)
-  const hasPagination = executions.length > rowsPaginated.length
+  const rowsSorted = React.useMemo(
+    () =>
+      R.sort(
+        (a: requests.athena.QueryExecution, b: requests.athena.QueryExecution) =>
+          b?.completed && a?.completed
+            ? b.completed.valueOf() - a.completed.valueOf()
+            : -1,
+        executions,
+      ),
+    [executions],
+  )
+  const rowsPaginated = rowsSorted.slice(pageSize * (page - 1), pageSize * page)
+  const hasPagination = rowsSorted.length > rowsPaginated.length
 
   return (
     <div className={className}>
