@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import { RouteComponentProps } from 'react-router'
-import { Link } from 'react-router-dom'
+import { Link, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -416,6 +416,11 @@ export default function Athena({
         workgroup,
       }) => (
         <div>
+          {queryRunData.case({
+            Ok: ({ id }) => <Redirect to={urls.bucketAthenaQueryExecution(bucket, id)} />,
+            _: () => null,
+          })}
+
           <M.Typography variant="h6">Athena SQL</M.Typography>
 
           <div className={classes.selects}>
