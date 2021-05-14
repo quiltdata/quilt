@@ -48,6 +48,20 @@
               "type": "boolean"
             }
           }
+        },
+        "sourceBuckets": {
+          "type": "object",
+          "description": "Buckets usable as sources for adding objects from while editing a package via web UI.",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "examples": [
+            {
+              "s3://bucket1": {},
+              "s3://bucket2": {},
+              "bucket3": {}
+            }
+          ]
         }
       }
     }
