@@ -35,8 +35,7 @@ export default function WorkgroupSelect({
         onLoadMore(workgroups)
       } else {
         onChange(
-          workgroups.list.find((workgroup) => workgroup.key === event.target.value) ||
-            null,
+          workgroups.list.find((workgroup) => workgroup === event.target.value) || null,
         )
       }
     },
@@ -51,11 +50,11 @@ export default function WorkgroupSelect({
           disabled={!workgroups.list.length}
           labelId="query-select"
           onChange={handleChange}
-          value={value ? value.key : 'none'}
+          value={value || 'none'}
         >
-          {workgroups.list.map((query) => (
-            <M.MenuItem key={query.key} value={query.key}>
-              {query.name}
+          {workgroups.list.map((name) => (
+            <M.MenuItem key={name} value={name}>
+              {name}
             </M.MenuItem>
           ))}
           {workgroups.next && (

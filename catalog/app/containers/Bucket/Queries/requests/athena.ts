@@ -75,10 +75,7 @@ export function useQueries(
   return useData(fetchQueries, { athena, prev, workgroup }, { noAutoFetch: !workgroup })
 }
 
-export interface Workgroup {
-  key: string // for consistency
-  name: string
-}
+export type Workgroup = string
 
 export interface WorkgroupsResponse {
   defaultWorkgroup: Workgroup
@@ -99,10 +96,9 @@ async function fetchWorkgroups({
     const workgroupsOutput = await athena
       .listWorkGroups({ NextToken: prev?.next })
       .promise()
-    const parsed = (workgroupsOutput.WorkGroups || []).map(({ Name }) => ({
-      key: Name || 'Unknown', // for consistency
-      name: Name || 'Unknown',
-    }))
+    const parsed = (workgroupsOutput.WorkGroups || []).map(
+      ({ Name }) => Name || 'Unknown',
+    )
     const list = (prev?.list || []).concat(parsed)
     return {
       defaultWorkgroup: list[0], // TODO: get default from config

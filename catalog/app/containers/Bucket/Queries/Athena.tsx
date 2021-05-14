@@ -342,9 +342,9 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                 return (
                   <QueriesFetcher
                     workgroup={
-                      workgroup?.name ||
+                      workgroup ||
                       queryExecution?.workgroup ||
-                      workgroups?.defaultWorkgroup.name ||
+                      workgroups?.defaultWorkgroup ||
                       ''
                     }
                   >
@@ -356,9 +356,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                     }) => (
                       <QueryRunner
                         queryBody={queryRequest || ''}
-                        workgroup={
-                          workgroup?.name || workgroups?.defaultWorkgroup.name || ''
-                        }
+                        workgroup={workgroup || workgroups?.defaultWorkgroup || ''}
                       >
                         {({ queryRunData }) =>
                           children({
@@ -378,10 +376,7 @@ function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
                             queryRunData,
                             workgroup:
                               workgroup ||
-                              (queryExecution?.workgroup && {
-                                key: queryExecution?.workgroup,
-                                name: queryExecution?.workgroup,
-                              }) ||
+                              queryExecution?.workgroup ||
                               workgroups?.defaultWorkgroup,
                             workgroups,
                           })
