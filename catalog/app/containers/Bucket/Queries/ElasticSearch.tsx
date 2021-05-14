@@ -23,6 +23,9 @@ const useStyles = M.makeStyles((t) => ({
   form: {
     margin: t.spacing(0, 0, 4),
   },
+  sectionHeader: {
+    margin: t.spacing(0, 0, 1),
+  },
   select: {
     margin: t.spacing(3, 0),
   },
@@ -214,12 +217,16 @@ export default function ElastiSearch({
         <div>
           <M.Typography variant="h6">ElasticSearch queries</M.Typography>
 
-          <QuerySelect
-            className={classes.select}
-            queries={queries}
-            onChange={handleQueryMetaChange}
-            value={customQueryBody ? null : queryMeta}
-          />
+          <div className={classes.select}>
+            <M.Typography className={classes.sectionHeader} variant="body1">
+              Select query
+            </M.Typography>
+            <QuerySelect
+              queries={queries}
+              onChange={handleQueryMetaChange}
+              value={customQueryBody ? null : queryMeta}
+            />
+          </div>
 
           {queryData.case({
             Init: () => (

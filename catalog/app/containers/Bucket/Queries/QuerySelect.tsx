@@ -4,7 +4,6 @@ import * as M from '@material-ui/core'
 import * as requests from './requests'
 
 interface QuerySelectProps {
-  className: string
   onChange: (value: requests.Query | requests.athena.AthenaQuery | null) => void
   onLoadMore?: () => void
   queries: (requests.Query | requests.athena.AthenaQuery)[]
@@ -26,7 +25,6 @@ const useStyles = M.makeStyles((t) => ({
 const LOAD_MORE = 'load-more'
 
 export default function QuerySelect({
-  className,
   queries,
   onChange,
   onLoadMore,
@@ -46,42 +44,30 @@ export default function QuerySelect({
   )
 
   return (
-    <div className={className}>
-      <M.Typography className={classes.header} variant="body1">
-        Select query
-      </M.Typography>
-      <M.Paper>
-        <M.FormControl className={classes.selectWrapper}>
-          <M.Select
-            classes={{ root: classes.select }}
-            disabled={!queries.length}
-            labelId="query-select"
-            onChange={handleChange}
-            value={value ? value.key : 'none'}
-          >
-            <M.MenuItem disabled value="none">
-              Custom
+    <M.Paper>
+      <M.FormControl className={classes.selectWrapper}>
+        <M.Select
+          classes={{ root: classes.select }}
+          disabled={!queries.length}
+          labelId="query-select"
+          onChange={handleChange}
+          value={value ? value.key : 'none'}
+        >
+          <M.MenuItem disabled value="none">
+            Custom
+          </M.MenuItem>
+          {queries.map((query) => (
+            <M.MenuItem key={query.key} value={query.key}>
+              <M.ListItemText primary={query.name} secondary={query.description} />
             </M.MenuItem>
-            {queries.map((query) => (
-              <M.MenuItem key={query.key} value={query.key}>
-                <M.ListItemText primary={query.name} secondary={query.description} />
-              </M.MenuItem>
-            ))}
-            {!!onLoadMore && (
-              <M.MenuItem key={LOAD_MORE} value={LOAD_MORE}>
-                <em>Load more</em>
-              </M.MenuItem>
-            )}
-          </M.Select>
-        </M.FormControl>
-      </M.Paper>
-      <M.FormHelperText>
-        {!queries.length && 'There are no saved queries. '}
-        {/* <StyledLink href={`${docs}/advanced-usage/queries`} target="_blank">
-          Refer to documentation
-        </StyledLink>{' '}
-        to edit or save new queries. */}
-      </M.FormHelperText>
-    </div>
+          ))}
+          {!!onLoadMore && (
+            <M.MenuItem key={LOAD_MORE} value={LOAD_MORE}>
+              <em>Load more</em>
+            </M.MenuItem>
+          )}
+        </M.Select>
+      </M.FormControl>
+    </M.Paper>
   )
 }

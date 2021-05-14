@@ -54,6 +54,9 @@ const useStyles = M.makeStyles((t) => ({
   actions: {
     margin: t.spacing(2, 0),
   },
+  emptySelect: {
+    margin: t.spacing(4, 0, 0),
+  },
   executions: {
     margin: t.spacing(0, 0, 4),
   },
@@ -62,6 +65,9 @@ const useStyles = M.makeStyles((t) => ({
   },
   results: {
     margin: t.spacing(4, 0, 0),
+  },
+  sectionHeader: {
+    margin: t.spacing(0, 0, 1),
   },
   select: {
     flexBasis: '50%',
@@ -366,27 +372,45 @@ export default function Athena({
 
           <div className={classes.selects}>
             <div className={classes.select}>
-              <WorkgroupSelect
-                workgroups={workgroups}
-                onChange={handleWorkgroupChange}
-                onLoadMore={handleWorkgroupsLoadMore}
-                value={workgroup}
-              />
+              <M.Typography className={classes.sectionHeader} variant="body1">
+                Select workgroup
+              </M.Typography>
+
+              {workgroups.list.length ? (
+                <WorkgroupSelect
+                  workgroups={workgroups}
+                  onChange={handleWorkgroupChange}
+                  onLoadMore={handleWorkgroupsLoadMore}
+                  value={workgroup}
+                />
+              ) : (
+                <M.FormHelperText>There are no workgroups.</M.FormHelperText>
+              )}
             </div>
 
             <div className={classes.select}>
               {queriesData.case({
-                Ok: (queries) => (
-                  <QuerySelect
-                    className={classes.select}
-                    queries={queries.list}
-                    onChange={handleQueryMetaChange}
-                    value={customQueryBody ? null : queryMeta}
-                    onLoadMore={
-                      queries.next ? () => handleQueriesLoadMore(queries) : undefined
-                    }
-                  />
-                ),
+                Ok: (queries) =>
+                  queries.list.length ? (
+                    <>
+                      <M.Typography className={classes.sectionHeader} variant="body1">
+                        Select query
+                      </M.Typography>
+
+                      <QuerySelect
+                        queries={queries.list}
+                        onChange={handleQueryMetaChange}
+                        value={customQueryBody ? null : queryMeta}
+                        onLoadMore={
+                          queries.next ? () => handleQueriesLoadMore(queries) : undefined
+                        }
+                      />
+                    </>
+                  ) : (
+                    <M.Typography className={classes.emptySelect} variant="body1">
+                      There are no saved queries.
+                    </M.Typography>
+                  ),
                 Err: makeAsyncDataErrorHandler('Select query'),
                 _: makeAsyncDataPendingHandler({ padding: 2 }),
               })}
@@ -406,14 +430,21 @@ export default function Athena({
 
           {executionsData.case({
             Ok: (executions) => (
-              <ExecutionsViewer
-                className={classes.executions}
-                bucket={bucket}
-                executions={executions.list}
-                onLoadMore={
-                  executions.next ? () => handleExecutionsLoadMore(executions) : undefined
-                }
-              />
+              <div className={classes.executions}>
+                <M.Typography className={classes.sectionHeader} variant="body1">
+                  History of Query Executions
+                </M.Typography>
+
+                <ExecutionsViewer
+                  bucket={bucket}
+                  executions={executions.list}
+                  onLoadMore={
+                    executions.next
+                      ? () => handleExecutionsLoadMore(executions)
+                      : undefined
+                  }
+                />
+              </div>
             ),
             Err: makeAsyncDataErrorHandler('Executions Data'),
             _: makeAsyncDataPendingHandler({ size: 'large' }),
@@ -422,14 +453,19 @@ export default function Athena({
           {queryResultsData.case({
             Init: () => null,
             Ok: (queryResults: requests.athena.QueryResultsResponse) => (
-              <AthenaResults
-                results={queryResults.list}
-                onLoadMore={
-                  queryResults.next
-                    ? () => handleQueryResultsLoadMore(queryResults)
-                    : undefined
-                }
-              />
+              <div>
+                <M.Typography className={classes.sectionHeader} variant="body1">
+                  Query Results
+                </M.Typography>
+                <AthenaResults
+                  results={queryResults.list}
+                  onLoadMore={
+                    queryResults.next
+                      ? () => handleQueryResultsLoadMore(queryResults)
+                      : undefined
+                  }
+                />
+              </div>
             ),
             Err: makeAsyncDataErrorHandler('Query Results Data'),
             _: makeAsyncDataPendingHandler({ size: 'large' }),
