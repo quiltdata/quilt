@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 
@@ -18,6 +19,48 @@ import WorkgroupSelect from './WorkgroupSelect'
 interface AlertProps {
   error: Error
   title: string
+}
+
+function QuerySelectSkeleton() {
+  return (
+    <>
+      <Skeleton height={24} width={128} animate />
+      <Skeleton height={36} mt={1} animate />
+    </>
+  )
+}
+
+const useFormSkeletonStyles = M.makeStyles((t) => ({
+  canvas: {
+    flexGrow: 1,
+    height: t.spacing(27),
+    marginLeft: t.spacing(1),
+  },
+  editor: {
+    display: 'flex',
+    marginTop: t.spacing(1),
+  },
+  numbers: {
+    height: t.spacing(27),
+    width: t.spacing(5),
+  },
+  title: {
+    height: t.spacing(3),
+    width: t.spacing(16),
+  },
+}))
+
+function FormSkeleton() {
+  const classes = useFormSkeletonStyles()
+  return (
+    <>
+      <Skeleton className={classes.title} animate />
+      <div className={classes.editor}>
+        <Skeleton className={classes.numbers} animate />
+        <Skeleton className={classes.canvas} animate />
+      </div>
+    </>
+  )
 }
 
 function Alert({ error, title }: AlertProps) {
@@ -53,9 +96,6 @@ function makeAsyncDataPendingHandler({ padding, size }: SpinnerProps = {}) {
 }
 
 const useStyles = M.makeStyles((t) => ({
-  actions: {
-    margin: t.spacing(2, 0),
-  },
   emptySelect: {
     margin: t.spacing(4, 0, 0),
   },
@@ -79,6 +119,12 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     margin: t.spacing(3, 0),
   },
+}))
+
+const useFormStyles = M.makeStyles((t) => ({
+  actions: {
+    margin: t.spacing(2, 0),
+  },
   viewer: {
     margin: t.spacing(3, 0),
   },
@@ -92,10 +138,10 @@ interface FormProps {
 }
 
 function Form({ disabled, value, onChange, onSubmit }: FormProps) {
-  const classes = useStyles()
+  const classes = useFormStyles()
 
   return (
-    <div className={classes.form}>
+    <div>
       <AthenaQueryViewer
         className={classes.viewer}
         onChange={onChange}
@@ -405,39 +451,41 @@ export default function Athena({
                     </M.Typography>
                   ),
                 Err: makeAsyncDataErrorHandler('Select query'),
-                _: makeAsyncDataPendingHandler({ padding: 2 }),
+                _: () => <QuerySelectSkeleton />,
               })}
             </div>
           </div>
 
-          {queryResultsData.case({
-            _: ({
-              value: queryResults,
-            }: {
-              value: requests.athena.QueryResultsResponse
-            }) => (
-              <Form
-                disabled={isButtonDisabled(
-                  customQueryBody ||
+          <div className={classes.form}>
+            {queryResultsData.case({
+              _: ({
+                value: queryResults,
+              }: {
+                value: requests.athena.QueryResultsResponse
+              }) => (
+                <Form
+                  disabled={isButtonDisabled(
+                    customQueryBody ||
+                      queryResults?.queryExecution?.query ||
+                      queryMeta?.body ||
+                      '',
+                    queryRunData,
+                    null,
+                  )}
+                  onChange={handleQueryBodyChange}
+                  onSubmit={handleSubmit}
+                  value={
+                    customQueryBody ||
                     queryResults?.queryExecution?.query ||
                     queryMeta?.body ||
-                    '',
-                  queryRunData,
-                  null,
-                )}
-                onChange={handleQueryBodyChange}
-                onSubmit={handleSubmit}
-                value={
-                  customQueryBody ||
-                  queryResults?.queryExecution?.query ||
-                  queryMeta?.body ||
-                  ''
-                }
-              />
-            ),
-            Err: makeAsyncDataErrorHandler('Query Body'),
-            Pending: makeAsyncDataPendingHandler({ size: 'large' }),
-          })}
+                    ''
+                  }
+                />
+              ),
+              Err: makeAsyncDataErrorHandler('Query Body'),
+              Pending: () => <FormSkeleton />,
+            })}
+          </div>
 
           {executionsData.case({
             Ok: (executions) => (
