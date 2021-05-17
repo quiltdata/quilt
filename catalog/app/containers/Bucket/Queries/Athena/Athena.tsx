@@ -5,6 +5,7 @@ import { Link, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import Code from 'components/Code'
 import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
@@ -521,7 +522,7 @@ export default function Athena({
               <M.Breadcrumbs className={classes.sectionHeader}>
                 <Link to={urls.bucketAthenaQueries(bucket)}>Query Executions</Link>
                 <M.Typography color="textPrimary">
-                  Results for {queryExecutionId}
+                  Results for <Code>{queryExecutionId}</Code>
                 </M.Typography>
               </M.Breadcrumbs>
             ) : (
