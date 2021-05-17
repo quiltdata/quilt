@@ -21,7 +21,7 @@ interface AlertProps {
   title: string
 }
 
-function QuerySelectSkeleton() {
+function SelectSkeleton() {
   return (
     <>
       <Skeleton height={24} width={128} animate />
@@ -32,8 +32,8 @@ function QuerySelectSkeleton() {
 
 const useFormSkeletonStyles = M.makeStyles((t) => ({
   button: {
-    marginTop: t.spacing(2),
     height: t.spacing(4),
+    marginTop: t.spacing(2),
     width: t.spacing(14),
   },
   canvas: {
@@ -46,8 +46,8 @@ const useFormSkeletonStyles = M.makeStyles((t) => ({
     marginTop: t.spacing(1),
   },
   helper: {
-    marginTop: t.spacing(1),
     height: t.spacing(2),
+    marginTop: t.spacing(1),
   },
   numbers: {
     height: t.spacing(27),
@@ -445,7 +445,7 @@ export default function Athena({
                   </>
                 ),
                 Err: makeAsyncDataErrorHandler('Workgroups Data'),
-                _: () => <QuerySelectSkeleton />,
+                _: () => <SelectSkeleton />,
               })}
             </div>
 
@@ -473,7 +473,7 @@ export default function Athena({
                     </M.Typography>
                   ),
                 Err: makeAsyncDataErrorHandler('Select query'),
-                _: () => <QuerySelectSkeleton />,
+                _: () => <SelectSkeleton />,
               })}
             </div>
           </div>
