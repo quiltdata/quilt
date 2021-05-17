@@ -46,7 +46,7 @@ const sections = {
     { path: 'bucketFile', exact: true, strict: true },
     { path: 'bucketDir', exact: true },
   ],
-  queries: { path: 'bucketQueries', exact: true },
+  queries: { path: 'bucketQueries' },
   search: { path: 'bucketSearch', exact: true },
 }
 
