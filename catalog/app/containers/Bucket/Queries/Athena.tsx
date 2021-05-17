@@ -74,22 +74,15 @@ function FormSkeleton() {
   )
 }
 
-function ExecutionsSkeleton() {
-  return (
-    <>
-      <Skeleton height={36} animate />
-      {R.range(0, 4).map((key) => (
-        <Skeleton key={key} height={36} mt={1} animate />
-      ))}
-    </>
-  )
+interface TableSkeletonProps {
+  size: number
 }
 
-function AthenaResultsSkeleton() {
+function TableSkeleton({ size }: TableSkeletonProps) {
   return (
     <>
       <Skeleton height={36} animate />
-      {R.range(0, 10).map((key) => (
+      {R.range(0, size).map((key) => (
         <Skeleton key={key} height={36} mt={1} animate />
       ))}
     </>
@@ -541,7 +534,7 @@ export default function Athena({
                   />
                 ),
                 Err: makeAsyncDataErrorHandler('Executions Data'),
-                _: () => <ExecutionsSkeleton />,
+                _: () => <TableSkeleton size={4} />,
               })}
           </div>
 
@@ -558,7 +551,7 @@ export default function Athena({
               />
             ),
             Err: makeAsyncDataErrorHandler('Query Results Data'),
-            _: () => <AthenaResultsSkeleton />,
+            _: () => <TableSkeleton size={10} />,
           })}
         </div>
       )}
