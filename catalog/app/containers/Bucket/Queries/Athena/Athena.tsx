@@ -135,6 +135,9 @@ const useFormStyles = M.makeStyles((t) => ({
   actions: {
     margin: t.spacing(2, 0),
   },
+  error: {
+    margin: t.spacing(1, 0, 0),
+  },
   viewer: {
     margin: t.spacing(3, 0, 0),
   },
@@ -142,17 +145,24 @@ const useFormStyles = M.makeStyles((t) => ({
 
 interface FormProps {
   disabled: boolean
+  error?: Error
   onChange: (value: string) => void
   onSubmit: (value: string) => () => void
   value: string | null
 }
 
-function Form({ disabled, value, onChange, onSubmit }: FormProps) {
+function Form({ disabled, error, value, onChange, onSubmit }: FormProps) {
   const classes = useFormStyles()
 
   return (
     <div>
       <QueryEditor className={classes.viewer} onChange={onChange} query={value || ''} />
+
+      {error && (
+        <Lab.Alert className={classes.error} severity="error">
+          {error.message}
+        </Lab.Alert>
+      )}
 
       <div className={classes.actions}>
         <M.Button
@@ -503,6 +513,10 @@ export default function Athena({
                     )}
                     onChange={handleQueryBodyChange}
                     onSubmit={handleSubmit}
+                    error={(queryRunData as $TSFixMe).case({
+                      Err: R.identity,
+                      _: () => undefined,
+                    })}
                     value={
                       customQueryBody ||
                       queryResults?.queryExecution?.query ||
