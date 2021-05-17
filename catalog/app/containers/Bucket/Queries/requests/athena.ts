@@ -223,8 +223,6 @@ async function waitForQueryStatus(
   return waitForQueryStatus(athena, QueryExecutionId)
 }
 
-export type QueryResults = Athena.GetQueryResultsOutput
-
 export interface QueryResultsResponse {
   list: Athena.RowList
   next?: string
