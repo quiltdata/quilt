@@ -5,6 +5,7 @@ import { useData } from 'utils/Data'
 
 import { AsyncData } from './requests'
 
+// TODO: rename to requests.athena.Query
 export interface AthenaQuery {
   body: string
   description?: string
@@ -303,7 +304,6 @@ async function runQuery({
           EncryptionConfiguration: {
             EncryptionOption: 'SSE_S3',
           },
-          // OutputLocation: 's3://fiskus-sandbox-dev/fiskus/sandbox/'
         },
         WorkGroup: workgroup,
       })
