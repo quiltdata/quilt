@@ -95,6 +95,15 @@ function Execution({ bucket, queryExecution }: ExecutionProps) {
   )
 }
 
+function Empty() {
+  return (
+    <M.Box p={3} textAlign="center">
+      <M.Typography variant="h6">No executions for this workgroup</M.Typography>
+      <M.Typography>Select another workgroup or execute some query</M.Typography>
+    </M.Box>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   cell: {
     width: '40%',
@@ -173,14 +182,7 @@ export default function History({ bucket, executions, onLoadMore }: HistoryProps
           {!executions.length && (
             <M.TableRow>
               <M.TableCell colSpan={4}>
-                <M.Box p={3} textAlign="center">
-                  <M.Typography variant="h6">
-                    No executions for this workgroup
-                  </M.Typography>
-                  <M.Typography>
-                    Select another workgroup or execute some query
-                  </M.Typography>
-                </M.Box>
+                <Empty />
               </M.TableCell>
             </M.TableRow>
           )}

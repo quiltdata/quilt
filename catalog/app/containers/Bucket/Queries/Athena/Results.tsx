@@ -26,6 +26,19 @@ interface ResultsProps {
   onLoadMore?: () => void
 }
 
+function Empty() {
+  return (
+    <M.Paper>
+      <M.Box p={3} textAlign="center">
+        <M.Typography variant="h6">No executions for this query</M.Typography>
+        <M.Typography>
+          Select another query execution or execute another query
+        </M.Typography>
+      </M.Box>
+    </M.Paper>
+  )
+}
+
 export default function Results({ results, onLoadMore }: ResultsProps) {
   const classes = useStyles()
 
@@ -42,7 +55,7 @@ export default function Results({ results, onLoadMore }: ResultsProps) {
     [setPage],
   )
 
-  if (!tail) return null
+  if (!tail.length) return <Empty />
 
   const rowsPaginated = tail.slice(pageSize * (page - 1), pageSize * page)
   const hasPagination = tail.length > rowsPaginated.length
