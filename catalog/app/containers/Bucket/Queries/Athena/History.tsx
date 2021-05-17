@@ -17,8 +17,8 @@ const useExecutionStyles = M.makeStyles((t) => ({
   cell: {
     width: '40%',
     '& + &': {
-      width: 'auto',
       textAlign: 'right',
+      width: 'auto',
     },
   },
   expandedCell: {
@@ -118,17 +118,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ExecutionsViewerProps {
+interface HistoryProps {
   bucket: string
   executions: requests.athena.QueryExecution[]
   onLoadMore?: () => void
 }
 
-export default function ExecutionsViewer({
-  bucket,
-  executions,
-  onLoadMore,
-}: ExecutionsViewerProps) {
+export default function History({ bucket, executions, onLoadMore }: HistoryProps) {
   const classes = useStyles()
 
   const pageSize = 10

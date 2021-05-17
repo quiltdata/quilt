@@ -7,6 +7,8 @@ import 'ace-builds/src-noconflict/theme-eclipse'
 
 import StyledLink from 'utils/StyledLink'
 
+const ATHENA_REF = 'https://aws.amazon.com/athena/'
+
 const useStyles = M.makeStyles((t) => ({
   editor: {
     padding: t.spacing(1),
@@ -16,17 +18,13 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface AthenaQueryViewerProps {
+interface QueryEditorProps {
   className: string
   onChange: (value: string) => void
   query: string
 }
 
-export default function AthenaQueryViewer({
-  className,
-  query,
-  onChange,
-}: AthenaQueryViewerProps) {
+export default function QueryEditor({ className, query, onChange }: QueryEditorProps) {
   const classes = useStyles()
 
   return (
@@ -47,7 +45,7 @@ export default function AthenaQueryViewer({
       </M.Paper>
       <M.FormHelperText>
         Quilt uses AWS Athena SQL.
-        <StyledLink href="https://aws.amazon.com/athena/" target="_blank">
+        <StyledLink href={ATHENA_REF} target="_blank">
           Learn more
         </StyledLink>
         .

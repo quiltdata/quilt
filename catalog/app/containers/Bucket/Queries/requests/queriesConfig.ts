@@ -10,6 +10,7 @@ import { AsyncData } from './requests'
 
 const QUERIES_CONFIG_PATH = '.quilt/queries/config.yaml'
 
+// TODO: rename to requests.es.Query
 export interface Query {
   description?: string
   key: string

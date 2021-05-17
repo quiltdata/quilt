@@ -4,9 +4,6 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 const useStyles = M.makeStyles((t) => ({
-  header: {
-    margin: t.spacing(0, 0, 1),
-  },
   cell: {
     '& + &': {
       textAlign: 'right',
@@ -16,17 +13,20 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     padding: t.spacing(1),
   },
+  header: {
+    margin: t.spacing(0, 0, 1),
+  },
   more: {
     marginLeft: 'auto',
   },
 }))
 
-interface AthenaResultsProps {
+interface ResultsProps {
   results: Athena.RowList
   onLoadMore?: () => void
 }
 
-export default function AthenaResults({ results, onLoadMore }: AthenaResultsProps) {
+export default function Results({ results, onLoadMore }: ResultsProps) {
   const classes = useStyles()
 
   const head = results[0]
@@ -65,7 +65,7 @@ export default function AthenaResults({ results, onLoadMore }: AthenaResultsProp
         <M.TableBody>
           {rowsPaginated.map((row, rowIndex) => (
             <M.TableRow key={rowIndex}>
-              {row.Data &&
+              {!!row.Data &&
                 row.Data.map((item, itemIndex) => (
                   <M.TableCell className={classes.cell} key={itemIndex}>
                     {item.VarCharValue}
