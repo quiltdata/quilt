@@ -245,7 +245,7 @@ function WorkgroupsFetcher({ children }: WorkgroupsFetcherProps) {
   return children({ handleWorkgroupsLoadMore: setPrev, workgroupsData })
 }
 
-interface QueriesStateRenderProps {
+interface StateRenderProps {
   customQueryBody: string | null
   executionsData: requests.AsyncData<requests.athena.QueryExecutionsResponse>
   handleExecutionsLoadMore: (prev: requests.athena.QueryExecutionsResponse) => void
@@ -264,12 +264,12 @@ interface QueriesStateRenderProps {
   workgroupsData: requests.AsyncData<requests.athena.WorkgroupsResponse>
 }
 
-interface QueriesStateProps {
-  children: (props: QueriesStateRenderProps) => React.ReactElement
+interface StateProps {
+  children: (props: StateRenderProps) => React.ReactElement
   queryExecutionId: string | null
 }
 
-function QueriesState({ children, queryExecutionId }: QueriesStateProps) {
+function State({ children, queryExecutionId }: StateProps) {
   // Info about query: name, url, etc.
   const [queryMeta, setQueryMeta] = React.useState<requests.athena.AthenaQuery | null>(
     null,
@@ -385,7 +385,7 @@ export default function Athena({
   const { urls } = NamedRoutes.use()
 
   return (
-    <QueriesState queryExecutionId={queryExecutionId || null}>
+    <State queryExecutionId={queryExecutionId || null}>
       {({
         customQueryBody,
         executionsData,
@@ -551,6 +551,6 @@ export default function Athena({
           })}
         </div>
       )}
-    </QueriesState>
+    </State>
   )
 }
