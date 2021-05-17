@@ -30,7 +30,7 @@ function Empty() {
   return (
     <M.Paper>
       <M.Box p={3} textAlign="center">
-        <M.Typography variant="h6">No executions for this query</M.Typography>
+        <M.Typography variant="h6">No results for this query</M.Typography>
         <M.Typography>
           Select another query execution or execute another query
         </M.Typography>
