@@ -12,7 +12,6 @@ import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import search from 'utils/search'
-import mkStorage from 'utils/storage'
 import useEditableValue from 'utils/useEditableValue'
 
 function Results({ buckets, data, query, page, scrollRef, makePageUrl, retryUrl }) {
@@ -327,9 +326,6 @@ const useSearchStyles = M.makeStyles((t) => ({
   },
 }))
 
-// Possible values are undefined, 'objects', 'packages'
-const storage = mkStorage({ searchMode: 'SEARCH_MODE' })
-
 export default function Search({ location: l }) {
   const classes = useSearchStyles()
 
@@ -364,11 +360,6 @@ export default function Search({ location: l }) {
 
   const handleModeChange = React.useCallback(
     (newMode) => {
-      if (newMode === 'objects' || newMode === 'packages') {
-        storage.set('searchMode', newMode)
-      } else {
-        storage.remove('searchMode')
-      }
       history.push(
         urls.search({ q, buckets: buckets.join(',') || undefined, mode: newMode }),
       )
@@ -401,20 +392,6 @@ export default function Search({ location: l }) {
     { req, buckets, mode, query: q, retry },
     { noAutoFetch: !q },
   )
-
-  const searchMode = storage.load()?.searchMode
-  React.useEffect(() => {
-    if (mode || mode === searchMode) return
-
-    switch (searchMode) {
-      case 'objects':
-      case 'packages':
-        history.replace(
-          urls.search({ q, buckets: buckets.join(',') || undefined, mode: searchMode }),
-        )
-      // no default
-    }
-  }, [buckets, history, mode, q, urls, searchMode])
 
   return (
     <Layout
