@@ -2,6 +2,7 @@ import * as React from 'react'
 
 import * as Config from 'utils/Config'
 import * as LinkedData from 'utils/LinkedData'
+import MetaTitle from 'utils/MetaTitle'
 
 import Dots from 'website/components/Backgrounds/Dots'
 import Layout from 'website/components/Layout'
@@ -23,6 +24,7 @@ export default function Landing() {
   const cfg = Config.useConfig()
   return (
     <Layout>
+      <MetaTitle />
       <React.Suspense fallback={null}>
         <LinkedData.CatalogData />
       </React.Suspense>

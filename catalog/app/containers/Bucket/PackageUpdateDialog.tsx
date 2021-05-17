@@ -10,6 +10,7 @@ import * as M from '@material-ui/core'
 
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
@@ -114,6 +115,7 @@ interface DialogFormProps {
   setWorkflow: (workflow: workflows.Workflow) => void
   validate: FF.FieldValidator<any>
   workflowsConfig: workflows.WorkflowsConfig
+  sourceBuckets: string[]
 }
 
 function DialogForm({
@@ -130,6 +132,7 @@ function DialogForm({
   setWorkflow,
   validate: validateMetaInput,
   workflowsConfig,
+  sourceBuckets,
 }: DialogFormProps) {
   const s3 = AWS.S3.use()
   const [uploads, setUploads] = React.useState<Uploads>({})
@@ -139,6 +142,14 @@ function DialogForm({
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
+  const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
+
+  const buckets = React.useMemo(() => R.uniq([bucket, ...sourceBuckets]), [
+    bucket,
+    sourceBuckets,
+  ])
+
+  const [selectedBucket, selectBucket] = React.useState(buckets[0])
 
   const initialFiles: PD.FilesState = React.useMemo(
     () => ({ existing: manifest.entries, added: {}, deleted: {} }),
@@ -403,7 +414,7 @@ function DialogForm({
                     name="workflow"
                     workflowsConfig={workflowsConfig}
                     initialValue={selectedWorkflow}
-                    validate={validators.required as FF.FieldValidator<any>}
+                    validate={validateWorkflow}
                     validateFields={['meta', 'workflow']}
                     errors={{
                       required: 'Workflow is required for this bucket.',
@@ -482,7 +493,9 @@ function DialogForm({
                     onFilesAction={onFilesAction}
                     isEqual={R.equals}
                     initialValue={initialFiles}
-                    bucket={bucket}
+                    bucket={selectedBucket}
+                    buckets={buckets}
+                    selectBucket={selectBucket}
                   />
                 </PD.RightColumn>
               </PD.Container>
@@ -634,7 +647,11 @@ const DialogState = tagged.create(
     Closed: () => {},
     Loading: () => {},
     Error: (e: Error) => e,
-    Form: (v: { manifest: Manifest; workflowsConfig: workflows.WorkflowsConfig }) => v,
+    Form: (v: {
+      manifest: Manifest
+      workflowsConfig: workflows.WorkflowsConfig
+      sourceBuckets: string[]
+    }) => v,
     Success: (v: { name: string; hash: string }) => v,
   },
 )
@@ -673,6 +690,8 @@ export function usePackageUpdateDialog({
     { noAutoFetch: !wasOpened },
   )
   const workflowsData = Data.use(requests.workflowsConfig, { s3, bucket })
+  // XXX: use AsyncResult
+  const preferences = BucketPreferences.use()
 
   const open = React.useCallback(() => {
     setOpen(true)
@@ -705,14 +724,21 @@ export function usePackageUpdateDialog({
     return workflowsData.case({
       Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
         manifestData.case({
-          Ok: (manifest: Manifest) => DialogState.Form({ manifest, workflowsConfig }),
+          Ok: (manifest: Manifest) =>
+            preferences
+              ? DialogState.Form({
+                  manifest,
+                  workflowsConfig,
+                  sourceBuckets: preferences.ui.sourceBuckets,
+                })
+              : DialogState.Loading(),
           Err: DialogState.Error,
           _: DialogState.Loading,
         }),
       Err: DialogState.Error,
       _: DialogState.Loading,
     })
-  }, [exited, success, workflowsData, manifestData])
+  }, [exited, success, workflowsData, manifestData, preferences])
 
   const render = React.useCallback(
     () => (
@@ -730,7 +756,7 @@ export function usePackageUpdateDialog({
             Closed: () => null,
             Loading: () => <DialogPlaceholder close={close} />,
             Error: (e) => <DialogError close={close} error={e} />,
-            Form: ({ manifest, workflowsConfig }) => (
+            Form: ({ manifest, workflowsConfig, sourceBuckets }) => (
               <PD.SchemaFetcher
                 manifest={manifest}
                 workflowsConfig={workflowsConfig}
@@ -747,6 +773,7 @@ export function usePackageUpdateDialog({
                         setSuccess,
                         setWorkflow,
                         workflowsConfig,
+                        sourceBuckets,
                         manifest,
                         name,
                       }}

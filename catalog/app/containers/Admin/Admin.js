@@ -14,6 +14,7 @@ const mkLazy = (load) =>
 
 const UsersAndRoles = mkLazy(() => import('./UsersAndRoles'))
 const Buckets = mkLazy(() => import('./Buckets'))
+const Settings = mkLazy(() => import('./Settings'))
 
 const match = (cases) => (pathname) => {
   // eslint-disable-next-line no-restricted-syntax
@@ -29,6 +30,7 @@ const match = (cases) => (pathname) => {
 const sections = {
   users: { path: 'adminUsers', exact: true },
   buckets: { path: 'adminBuckets', exact: true },
+  settings: { path: 'adminSettings', exact: true },
 }
 
 const getAdminSection = (paths) =>
@@ -69,6 +71,7 @@ function AdminLayout({ section = false, children }) {
             <M.Tabs value={section} centered>
               <NavTab label="Users and roles" value="users" to={urls.adminUsers()} />
               <NavTab label="Buckets" value="buckets" to={urls.adminBuckets()} />
+              <NavTab label="Settings" value="settings" to={urls.adminSettings()} />
             </M.Tabs>
           </M.AppBar>
           <M.Container maxWidth="lg">{children}</M.Container>
@@ -85,6 +88,7 @@ export default function Admin({ location }) {
       <RR.Switch>
         <RR.Route path={paths.adminUsers} component={UsersAndRoles} exact strict />
         <RR.Route path={paths.adminBuckets} component={Buckets} exact />
+        <RR.Route path={paths.adminSettings} component={Settings} exact />
         <RR.Route component={ThrowNotFound} />
       </RR.Switch>
     </AdminLayout>

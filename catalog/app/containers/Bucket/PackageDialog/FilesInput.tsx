@@ -1187,6 +1187,8 @@ interface FilesInputProps {
     percent: number
   }
   bucket: string
+  buckets?: string[]
+  selectBucket?: (bucket: string) => void
 }
 
 export function FilesInput({
@@ -1199,6 +1201,8 @@ export function FilesInput({
   title,
   totalProgress,
   bucket,
+  buckets,
+  selectBucket,
 }: FilesInputProps) {
   const classes = useFilesInputStyles()
 
@@ -1316,6 +1320,8 @@ export function FilesInput({
     <Root className={className}>
       <S3FilePicker.Dialog
         bucket={bucket}
+        buckets={buckets}
+        selectBucket={selectBucket}
         open={s3FilePickerOpen}
         onClose={closeS3FilePicker}
       />

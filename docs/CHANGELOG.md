@@ -21,6 +21,8 @@
 * [Added] Voila Notebooks format support ([#2163](https://github.com/quiltdata/quilt/pull/2163))
 * [Added] Ability to add files from S3 while revising a package ([#2171](https://github.com/quiltdata/quilt/pull/2171))
 * [Added] Lambdas for pushing an existing package/creation of package ([#2147](https://github.com/quiltdata/quilt/pull/2147), [#2180](https://github.com/quiltdata/quilt/pull/2180))
+* [Added] Custom navbar link configurable via admin UI ([#2192](https://github.com/quiltdata/quilt/pull/2192))
+* [Added] Adding S3 objects to packages from configurable source buckets while revising ([#2193](https://github.com/quiltdata/quilt/pull/2193))
 * [Changed] New DataGrid-based file listing UI with arbitrary sorting and filtering ([#2097](https://github.com/quiltdata/quilt/pull/2097))
 * [Changed] Item selection in folder-to-package dialog ([#2122](https://github.com/quiltdata/quilt/pull/2122))
 * [Changed] Don't preview .tif (but keep .tiff), preview .results as plain text ([#2128](https://github.com/quiltdata/quilt/pull/2128))

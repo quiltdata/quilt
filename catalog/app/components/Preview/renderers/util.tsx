@@ -84,11 +84,5 @@ function MsgAccordion({ title, type, warnings }: MsgAccordionProps) {
 export const renderWarnings = (warnings?: string) => {
   if (!warnings) return null
 
-  return (
-    <MsgAccordion
-      title="Preview encountered parsing errors"
-      type="warning"
-      warnings={warnings}
-    />
-  )
+  return <MsgAccordion title="Parsing errors" type="warning" warnings={warnings} />
 }

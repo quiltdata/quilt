@@ -17,6 +17,7 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
 import { useData } from 'utils/Data'
+import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import { linkStyle } from 'utils/StyledLink'
@@ -421,6 +422,8 @@ export default function File({
 
   return (
     <FileView.Root>
+      <MetaTitle>{[path || 'Files', bucket]}</MetaTitle>
+
       <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
         {renderCrumbs(getCrumbs({ bucket, path, urls }))}
       </div>

@@ -153,3 +153,7 @@ export const adminBuckets = {
   path: '/admin/buckets',
   url: (bucket) => `/admin/buckets${mkSearch({ bucket })}`,
 }
+export const adminSettings = {
+  path: '/admin/settings',
+  url: () => '/admin/settings',
+}

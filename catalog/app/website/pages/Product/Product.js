@@ -1,6 +1,8 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import MetaTitle from 'utils/MetaTitle'
+
 import Backlight from 'website/components/Backgrounds/Backlight1'
 import Dots from 'website/components/Backgrounds/Dots'
 import Overlay1 from 'website/components/Backgrounds/Overlay1'
@@ -146,6 +148,7 @@ const SectionFeatures = (props) => (
 
 export default () => (
   <Layout>
+    <MetaTitle>Product</MetaTitle>
     <M.Box position="relative">
       <Backlight />
       <Dots />
