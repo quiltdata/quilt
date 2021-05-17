@@ -8,7 +8,7 @@ import * as Lab from '@material-ui/lab'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
 
-import * as requests from './requests'
+import * as requests from '../requests'
 
 const useExecutionStyles = M.makeStyles((t) => ({
   date: {

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as requests from './requests'
+import * as requests from '../requests'
 
 interface WorkgroupSelectProps {
   onChange: (value: requests.athena.Workgroup | null) => void

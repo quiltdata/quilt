@@ -9,11 +9,11 @@ import Skeleton from 'components/Skeleton'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 
-import * as requests from './requests'
-import AthenaQueryViewer from './AthenaQueryViewer'
-import AthenaResults from './AthenaResults'
-import ExecutionsViewer from './ExecutionsViewer'
-import QuerySelect from './QuerySelect'
+import * as requests from '../requests'
+import QueryEditor from './QueryEditor'
+import Results from './Results'
+import History from './History'
+import QuerySelect from '../QuerySelect'
 import WorkgroupSelect from './WorkgroupSelect'
 
 interface AlertProps {
@@ -151,11 +151,7 @@ function Form({ disabled, value, onChange, onSubmit }: FormProps) {
 
   return (
     <div>
-      <AthenaQueryViewer
-        className={classes.viewer}
-        onChange={onChange}
-        query={value || ''}
-      />
+      <QueryEditor className={classes.viewer} onChange={onChange} query={value || ''} />
 
       <div className={classes.actions}>
         <M.Button
@@ -523,7 +519,7 @@ export default function Athena({
             {!queryExecutionId &&
               executionsData.case({
                 Ok: (executions) => (
-                  <ExecutionsViewer
+                  <History
                     bucket={bucket}
                     executions={executions.list}
                     onLoadMore={
@@ -541,7 +537,7 @@ export default function Athena({
           {queryResultsData.case({
             Init: () => null,
             Ok: (queryResults: requests.athena.QueryResultsResponse) => (
-              <AthenaResults
+              <Results
                 results={queryResults.list}
                 onLoadMore={
                   queryResults.next
