@@ -245,6 +245,20 @@ function WorkgroupsFetcher({ children }: WorkgroupsFetcherProps) {
   return children({ handleWorkgroupsLoadMore: setPrev, workgroupsData })
 }
 
+// TODO:
+//   refactor data using these principles:
+//   there is list of items (workgroups, queries, executions, results), user can loadMore items of this list
+//   also some lists has selected one item (workgroup, queries), user can change selected item
+//   Something like this:
+//     {
+//       [T namespace]: {
+//         list: T[]
+//         selected?: T,
+//         change: (value: T) => void
+//         loadMore: (prev: T[]) => void
+//       }
+//     }
+
 interface StateRenderProps {
   customQueryBody: string | null
   executionsData: requests.AsyncData<requests.athena.QueryExecutionsResponse>
