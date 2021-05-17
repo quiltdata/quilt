@@ -564,6 +564,7 @@ export default function Athena({
           </div>
 
           {queryResultsData.case({
+            // FIXME: if no results but execution is succeed, show history row
             Init: () => null,
             Ok: (queryResults: requests.athena.QueryResultsResponse) => (
               <Results
