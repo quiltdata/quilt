@@ -270,7 +270,8 @@ export function useQueryResults(
 }
 
 async function hashQueryBody(queryBody: string, workgroup: string): Promise<string> {
-  const msgUint8 = new TextEncoder().encode(workgroup + queryBody)
+  const normalizedStr = (workgroup + queryBody).trim().replace(/\s+/g, ' ')
+  const msgUint8 = new TextEncoder().encode(normalizedStr)
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
