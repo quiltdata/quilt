@@ -21,7 +21,10 @@ const useExecutionStyles = M.makeStyles((t) => ({
       width: 'auto',
     },
   },
-  expandedCell: {
+  collapsedCell: {
+    borderBottom: 0,
+  },
+  expandingCell: {
     paddingBottom: 0,
     paddingTop: 0,
   },
@@ -89,7 +92,10 @@ function Execution({ bucket, queryExecution }: ExecutionProps) {
         </M.TableCell>
       </M.TableRow>
       <M.TableRow>
-        <M.TableCell colSpan={4} className={classes.expandedCell}>
+        <M.TableCell
+          colSpan={4}
+          className={cx(classes.expandingCell, { [classes.collapsedCell]: !expanded })}
+        >
           <M.Collapse in={expanded}>
             <pre className={classes.expandedQuery}>{queryExecution.query}</pre>
           </M.Collapse>

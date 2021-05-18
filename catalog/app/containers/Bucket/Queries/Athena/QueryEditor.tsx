@@ -44,7 +44,7 @@ export default function QueryEditor({ className, query, onChange }: QueryEditorP
         />
       </M.Paper>
       <M.FormHelperText>
-        Quilt uses AWS Athena SQL.
+        Quilt uses AWS Athena SQL.{' '}
         <StyledLink href={ATHENA_REF} target="_blank">
           Learn more
         </StyledLink>
