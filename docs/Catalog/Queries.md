@@ -36,3 +36,10 @@ queries:
 
 The Quilt catalog displays your saved queries in a drop-down for your users to
 select, edit, and execute.
+
+## Athena
+
+1. Need to set up workgroup and location according to https://docs.aws.amazon.com/athena/latest/ug/getting-started.html
+2. Create database with query editor and click "Run query"
+3. It's viable to SELECT and SHOW data on already existing databases and tables only
+3. a) Actually you can create table with `CREATE EXTERNAL TABLE database_name.table_name ()`
