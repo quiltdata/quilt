@@ -564,18 +564,29 @@ export default function Athena({
           </div>
 
           {queryResultsData.case({
-            // FIXME: if no results but execution is succeed, show history row
             Init: () => null,
-            Ok: (queryResults: requests.athena.QueryResultsResponse) => (
-              <Results
-                results={queryResults.list}
-                onLoadMore={
-                  queryResults.next
-                    ? () => handleQueryResultsLoadMore(queryResults)
-                    : undefined
-                }
-              />
-            ),
+            Ok: (queryResults: requests.athena.QueryResultsResponse) => {
+              if (queryResults.list.length) {
+                return (
+                  <Results
+                    results={queryResults.list}
+                    onLoadMore={
+                      queryResults.next
+                        ? () => handleQueryResultsLoadMore(queryResults)
+                        : undefined
+                    }
+                  />
+                )
+              }
+              if (queryResults.queryExecution) {
+                return (
+                  <History bucket={bucket} executions={[queryResults.queryExecution!]} />
+                )
+              }
+              return makeAsyncDataErrorHandler('Query Results Data')(
+                new Error('Fetching results was failed'),
+              )
+            },
             Err: makeAsyncDataErrorHandler('Query Results Data'),
             _: () => <TableSkeleton size={10} />,
           })}
