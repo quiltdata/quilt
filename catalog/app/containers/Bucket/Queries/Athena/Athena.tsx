@@ -92,7 +92,10 @@ function TableSkeleton({ size }: TableSkeletonProps) {
 
 function Alert({ error, title }: AlertProps) {
   const sentry = Sentry.use()
-  sentry('captureException', error)
+
+  React.useEffect(() => {
+    sentry('captureException', error)
+  }, [error, sentry])
 
   return (
     <Lab.Alert severity="error">
@@ -154,6 +157,8 @@ interface FormProps {
 function Form({ disabled, error, value, onChange, onSubmit }: FormProps) {
   const classes = useFormStyles()
 
+  const handleSubmit = React.useMemo(() => onSubmit(value || ''), [onSubmit, value])
+
   return (
     <div>
       <QueryEditor className={classes.viewer} onChange={onChange} query={value || ''} />
@@ -169,7 +174,7 @@ function Form({ disabled, error, value, onChange, onSubmit }: FormProps) {
           variant="contained"
           color="primary"
           disabled={disabled}
-          onClick={onSubmit(value || '')}
+          onClick={handleSubmit}
         >
           Run query
         </M.Button>
@@ -429,7 +434,7 @@ export default function Athena({
         workgroupsData,
         workgroup,
       }) => (
-        <div>
+        <>
           {queryRunData.case({
             Ok: ({ id }) => <Redirect to={urls.bucketAthenaQueryExecution(bucket, id)} />,
             _: () => null,
@@ -590,7 +595,7 @@ export default function Athena({
             Err: makeAsyncDataErrorHandler('Query Results Data'),
             _: () => <TableSkeleton size={10} />,
           })}
-        </div>
+        </>
       )}
     </State>
   )
