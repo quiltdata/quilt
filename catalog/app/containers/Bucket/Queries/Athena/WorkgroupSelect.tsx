@@ -48,7 +48,6 @@ export default function WorkgroupSelect({
         <M.Select
           classes={{ root: classes.select }}
           disabled={!workgroups.list.length}
-          labelId="query-select"
           onChange={handleChange}
           value={value || 'none'}
         >

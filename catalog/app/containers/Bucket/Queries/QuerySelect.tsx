@@ -49,7 +49,6 @@ export default function QuerySelect({
         <M.Select
           classes={{ root: classes.select }}
           disabled={!queries.length}
-          labelId="query-select"
           onChange={handleChange}
           value={value ? value.key : 'none'}
         >

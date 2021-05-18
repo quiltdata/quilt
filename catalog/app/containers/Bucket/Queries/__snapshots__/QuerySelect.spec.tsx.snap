@@ -14,7 +14,6 @@ exports[`containers/Bucket/Queries/QuerySelect should render 1`] = `
       <div
         aria-disabled="true"
         aria-haspopup="listbox"
-        aria-labelledby="query-select"
         className="MuiSelect-root makeStyles-select-3 MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input Mui-disabled Mui-disabled Mui-disabled"
         onBlur={[Function]}
         onFocus={[Function]}
@@ -62,7 +61,6 @@ exports[`containers/Bucket/Queries/QuerySelect should render with selected value
     >
       <div
         aria-haspopup="listbox"
-        aria-labelledby="query-select"
         className="MuiSelect-root makeStyles-select-3 MuiSelect-select MuiSelect-selectMenu MuiInputBase-input MuiInput-input"
         onBlur={[Function]}
         onFocus={[Function]}
