@@ -39,11 +39,8 @@ function Empty() {
   )
 }
 
-export default function Results({ results, onLoadMore }: ResultsProps) {
+export default function Results({ results: [head, ...tail], onLoadMore }: ResultsProps) {
   const classes = useStyles()
-
-  const head = results[0]
-  const tail = results.slice(1)
 
   const pageSize = 10
   const [page, setPage] = React.useState(1)
@@ -67,23 +64,21 @@ export default function Results({ results, onLoadMore }: ResultsProps) {
       <M.Table size="small">
         <M.TableHead>
           <M.TableRow>
-            {head?.Data &&
-              head.Data.map((item, index) => (
-                <M.TableCell className={classes.cell} key={index}>
-                  {item.VarCharValue}
-                </M.TableCell>
-              ))}
+            {head?.Data?.map((item, index) => (
+              <M.TableCell className={classes.cell} key={index}>
+                {item.VarCharValue}
+              </M.TableCell>
+            ))}
           </M.TableRow>
         </M.TableHead>
         <M.TableBody>
           {rowsPaginated.map((row, rowIndex) => (
             <M.TableRow key={rowIndex}>
-              {!!row.Data &&
-                row.Data.map((item, itemIndex) => (
-                  <M.TableCell className={classes.cell} key={itemIndex}>
-                    {item.VarCharValue}
-                  </M.TableCell>
-                ))}
+              {row?.Data?.map((item, itemIndex) => (
+                <M.TableCell className={classes.cell} key={itemIndex}>
+                  {item.VarCharValue}
+                </M.TableCell>
+              ))}
             </M.TableRow>
           ))}
         </M.TableBody>

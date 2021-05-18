@@ -56,9 +56,13 @@ function Execution({ bucket, queryExecution }: ExecutionProps) {
     [queryExecution.query],
   )
 
-  const completed = queryExecution.completed
-    ? dateFns.format(queryExecution.completed, 'MMM do, HH:mm:ss')
-    : null
+  const completed = React.useMemo(
+    () =>
+      queryExecution.completed
+        ? dateFns.format(queryExecution.completed, 'MMM do, HH:mm:ss')
+        : null,
+    [queryExecution.completed],
+  )
 
   return (
     <>
