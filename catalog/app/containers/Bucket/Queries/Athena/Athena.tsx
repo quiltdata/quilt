@@ -584,7 +584,7 @@ export default function Athena({
                 )
               }
               return makeAsyncDataErrorHandler('Query Results Data')(
-                new Error('Fetching results was failed'),
+                new Error("Couldn't fetch query results"),
               )
             },
             Err: makeAsyncDataErrorHandler('Query Results Data'),

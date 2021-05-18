@@ -53,7 +53,7 @@ function Execution({ bucket, queryExecution }: ExecutionProps) {
         : `${queryExecution.query?.substring(0, 30)} … ${queryExecution.query?.substr(
             -20,
           )}`,
-    [queryExecution],
+    [queryExecution.query],
   )
 
   const completed = queryExecution.completed
