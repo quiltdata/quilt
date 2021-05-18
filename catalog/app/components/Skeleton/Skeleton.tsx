@@ -32,7 +32,6 @@ const useStyles = M.makeStyles((t) => ({
 
 interface SkeletonProps extends M.BoxProps {
   animate?: boolean
-  className?: string
 }
 
 export default React.forwardRef(function Skeleton(
