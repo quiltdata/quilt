@@ -26,7 +26,7 @@ function SelectSkeleton() {
   return (
     <>
       <Skeleton height={24} width={128} animate />
-      <Skeleton height={36} mt={1} animate />
+      <Skeleton height={48} mt={1} animate />
     </>
   )
 }
@@ -110,7 +110,7 @@ function makeAsyncDataErrorHandler(title: string) {
 
 const useStyles = M.makeStyles((t) => ({
   emptySelect: {
-    margin: t.spacing(4, 0, 0),
+    margin: t.spacing(5.5, 0, 0),
   },
   form: {
     margin: t.spacing(0, 0, 4),
