@@ -17,7 +17,6 @@ const useExecutionStyles = M.makeStyles((t) => ({
   cell: {
     width: '40%',
     '& + &': {
-      textAlign: 'right',
       width: 'auto',
     },
   },
@@ -119,7 +118,6 @@ const useStyles = M.makeStyles((t) => ({
     width: '40%',
     '& + &': {
       width: 'auto',
-      textAlign: 'right',
     },
   },
   header: {

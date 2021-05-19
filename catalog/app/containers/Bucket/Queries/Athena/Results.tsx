@@ -4,11 +4,6 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
 const useStyles = M.makeStyles((t) => ({
-  cell: {
-    '& + &': {
-      textAlign: 'right',
-    },
-  },
   footer: {
     display: 'flex',
     padding: t.spacing(1),
@@ -65,9 +60,7 @@ export default function Results({ results: [head, ...tail], onLoadMore }: Result
         <M.TableHead>
           <M.TableRow>
             {head?.Data?.map((item, index) => (
-              <M.TableCell className={classes.cell} key={index}>
-                {item.VarCharValue}
-              </M.TableCell>
+              <M.TableCell key={index}>{item.VarCharValue}</M.TableCell>
             ))}
           </M.TableRow>
         </M.TableHead>
@@ -75,9 +68,7 @@ export default function Results({ results: [head, ...tail], onLoadMore }: Result
           {rowsPaginated.map((row, rowIndex) => (
             <M.TableRow key={rowIndex}>
               {row?.Data?.map((item, itemIndex) => (
-                <M.TableCell className={classes.cell} key={itemIndex}>
-                  {item.VarCharValue}
-                </M.TableCell>
+                <M.TableCell key={itemIndex}>{item.VarCharValue}</M.TableCell>
               ))}
             </M.TableRow>
           ))}
