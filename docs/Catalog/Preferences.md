@@ -19,8 +19,8 @@ ui:
     createPackage: True
     revisePackage: True
   sourceBuckets:
-    BUCKET_1: {}
-    BUCKET_2: {}
+    s3://BUCKET_1: {}
+    s3://BUCKET_2: {}
 ```
 
 ### Properties
