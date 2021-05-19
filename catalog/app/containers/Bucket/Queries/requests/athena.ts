@@ -2,6 +2,7 @@ import Athena from 'aws-sdk/clients/athena'
 
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
+import wait from 'utils/wait'
 
 import { AsyncData } from './requests'
 
@@ -219,6 +220,8 @@ async function waitForQueryStatus(
   if (status === 'SUCCEEDED') {
     return statusData?.QueryExecution || null
   }
+
+  await wait(1000)
 
   return waitForQueryStatus(athena, QueryExecutionId)
 }
