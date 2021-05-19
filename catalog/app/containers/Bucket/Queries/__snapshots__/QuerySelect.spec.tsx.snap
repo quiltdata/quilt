@@ -22,7 +22,15 @@ exports[`containers/Bucket/Queries/QuerySelect should render 1`] = `
         role="button"
         tabIndex={null}
       >
-        Custom
+        <div
+          className="MuiListItemText-root"
+        >
+          <span
+            className="MuiTypography-root MuiListItemText-primary MuiTypography-body1 MuiTypography-displayBlock"
+          >
+            Custom
+          </span>
+        </div>
       </div>
       <input
         aria-hidden={true}
