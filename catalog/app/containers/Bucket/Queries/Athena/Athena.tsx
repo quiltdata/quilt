@@ -326,7 +326,13 @@ function State({ children, queryExecutionId }: StateProps) {
   )
 
   const [workgroup, setWorkgroup] = React.useState<requests.athena.Workgroup | null>(null)
-  const handleWorkgroupChange = React.useCallback((w) => setWorkgroup(w), [setWorkgroup])
+  const handleWorkgroupChange = React.useCallback(
+    (w) => {
+      setWorkgroup(w)
+      setQueryMeta(null)
+    },
+    [setQueryMeta, setWorkgroup],
+  )
   return (
     <WorkgroupsFetcher>
       {({ handleWorkgroupsLoadMore, workgroupsData }) =>
