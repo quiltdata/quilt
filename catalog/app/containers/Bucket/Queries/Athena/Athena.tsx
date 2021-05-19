@@ -358,7 +358,7 @@ function State({ children, queryExecutionId }: StateProps) {
                   ''
 
                 return (
-                  <QueriesFetcher workgroup={selectedWorkgroup}>
+                  <QueriesFetcher workgroup={selectedWorkgroup} key={queryExecutionId}>
                     {({
                       queriesData,
                       executionsData,
