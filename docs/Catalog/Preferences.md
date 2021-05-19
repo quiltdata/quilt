@@ -18,6 +18,9 @@ ui:
     copyPackage: True
     createPackage: True
     revisePackage: True
+  sourceBuckets:
+    BUCKET_1: {}
+    BUCKET_2: {}
 ```
 
 ### Properties
@@ -29,3 +32,4 @@ ui:
 * `ui.actions.createPackage: False` - hide buttons to create packages via
 drag-and-drop or from folders in S3
 * `ui.actions.revisePackage: False` - hide the button to revise packages
+* `ui.actions.sourceBuckets` - a list of S3 bucket names that map to an empty object
