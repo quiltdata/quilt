@@ -317,13 +317,17 @@ function State({ children, queryExecutionId }: StateProps) {
     [setQueryMeta, setCustomQueryBody],
   )
 
-  // Query content requested to Elastic Search
+  // Query content requested to Athena
   const [queryRequest, setQueryRequest] = React.useState<string | null>(null)
 
   const handleSubmit = React.useMemo(
     () => (body: string) => () => setQueryRequest(body),
     [setQueryRequest],
   )
+
+  React.useEffect(() => {
+    setQueryRequest(null)
+  }, [queryExecutionId])
 
   const [workgroup, setWorkgroup] = React.useState<requests.athena.Workgroup | null>(null)
   const handleWorkgroupChange = React.useCallback(
@@ -347,16 +351,14 @@ function State({ children, queryExecutionId }: StateProps) {
                   _: () => null,
                   Ok: ({ queryExecution: qE }) => qE,
                 })
+                const selectedWorkgroup =
+                  workgroup ||
+                  queryExecution?.workgroup ||
+                  workgroups?.defaultWorkgroup ||
+                  ''
 
                 return (
-                  <QueriesFetcher
-                    workgroup={
-                      workgroup ||
-                      queryExecution?.workgroup ||
-                      workgroups?.defaultWorkgroup ||
-                      ''
-                    }
-                  >
+                  <QueriesFetcher workgroup={selectedWorkgroup}>
                     {({
                       queriesData,
                       executionsData,
@@ -365,7 +367,7 @@ function State({ children, queryExecutionId }: StateProps) {
                     }) => (
                       <QueryRunner
                         queryBody={queryRequest || ''}
-                        workgroup={workgroup || workgroups?.defaultWorkgroup || ''}
+                        workgroup={selectedWorkgroup}
                       >
                         {({ queryRunData }) =>
                           children({
@@ -384,10 +386,7 @@ function State({ children, queryExecutionId }: StateProps) {
                             queryResultsData,
                             queryRunData,
                             workgroupsData,
-                            workgroup:
-                              workgroup ||
-                              queryExecution?.workgroup ||
-                              workgroups?.defaultWorkgroup,
+                            workgroup: selectedWorkgroup,
                           })
                         }
                       </QueryRunner>
