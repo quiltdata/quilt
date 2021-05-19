@@ -126,6 +126,7 @@ const useStyles = M.makeStyles((t) => ({
     '& + &': {
       flexBasis: '60%',
       marginLeft: t.spacing(3),
+      marginBottom: t.spacing(-3), // counterpart for Select's optional description
     },
   },
   selects: {

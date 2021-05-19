@@ -53,12 +53,14 @@ export default function WorkgroupSelect({
         >
           {workgroups.list.map((name) => (
             <M.MenuItem key={name} value={name}>
-              {name}
+              <M.ListItemText>{name}</M.ListItemText>
             </M.MenuItem>
           ))}
           {workgroups.next && (
             <M.MenuItem key={LOAD_MORE} value={LOAD_MORE}>
-              <em>Load more</em>
+              <M.ListItemText>
+                <em>Load more</em>
+              </M.ListItemText>
             </M.MenuItem>
           )}
         </M.Select>

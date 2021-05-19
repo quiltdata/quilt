@@ -53,7 +53,7 @@ export default function QuerySelect({
           value={value ? value.key : 'none'}
         >
           <M.MenuItem disabled value="none">
-            Custom
+            <M.ListItemText>Custom</M.ListItemText>
           </M.MenuItem>
           {queries.map((query) => (
             <M.MenuItem key={query.key} value={query.key}>
@@ -62,7 +62,9 @@ export default function QuerySelect({
           ))}
           {!!onLoadMore && (
             <M.MenuItem key={LOAD_MORE} value={LOAD_MORE}>
-              <em>Load more</em>
+              <M.ListItemText>
+                <em>Load more</em>
+              </M.ListItemText>
             </M.MenuItem>
           )}
         </M.Select>
