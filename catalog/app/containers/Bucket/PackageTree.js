@@ -390,30 +390,37 @@ function DirDisplay({
 
   const preferences = BucketPreferences.use()
 
-  const [deletionLoading, setDeletionLoading] = React.useState(false)
-  const [deletionOpened, setDeletionOpened] = React.useState(false)
-  const [deletionError, setDeletionError] = React.useState()
+  const [deletionState, setDeletionState] = React.useState({
+    error: null,
+    loading: false,
+    opened: false,
+  })
+
   const onDeletionStart = React.useCallback(() => {
-    setDeletionLoading(true)
-  }, [setDeletionLoading])
-  const onDeletionEnd = React.useCallback(
-    (error) => {
-      setDeletionLoading(false)
-      if (error) {
-        setDeletionError(error)
-      } else {
-        setDeletionOpened(false)
-      }
-    },
-    [setDeletionError, setDeletionOpened],
-  )
+    setDeletionState(R.assoc('loading', true))
+  }, [])
+  const onDeletionEnd = React.useCallback((error) => {
+    setDeletionState(R.assoc('loading', false))
+    if (error) {
+      setDeletionState(R.assoc('error', error))
+    } else {
+      setDeletionState(R.assoc('opened', false))
+    }
+  }, [])
+  const onPackageRemoveDialogOpen = React.useCallback(() => {
+    setDeletionState(R.assoc('opened', true))
+  }, [])
   const onPackageRemoveDialogClose = React.useCallback(() => {
-    setDeletionError(undefined)
-    setDeletionOpened(false)
-  }, [setDeletionOpened])
+    setDeletionState(
+      R.mergeLeft({
+        error: null,
+        opened: false,
+      }),
+    )
+  }, [])
   const removeRevision = useRemoveRevision(onDeletionStart, onDeletionEnd)
 
-  const isDeletable = true
+  const isDeletable = true // FIXME: set real condition or remove this variable
 
   return data.case({
     Ok: ({ objects, prefixes, meta }) => {
@@ -456,15 +463,15 @@ function DirDisplay({
           />
 
           <PackageRemoveDialog
-            error={deletionError}
-            open={deletionOpened}
+            error={deletionState.error}
+            open={deletionState.opened}
             packageHandle={{
               bucket,
               revision,
               name,
             }}
             onClose={onPackageRemoveDialogClose}
-            loading={deletionLoading}
+            loading={deletionState.loading}
             onRemove={removeRevision}
           />
 
@@ -502,7 +509,7 @@ function DirDisplay({
             {isDeletable && (
               <RemoveButton
                 className={classes.button}
-                onClick={() => setDeletionOpened(true)}
+                onClick={onPackageRemoveDialogOpen}
               >
                 Delete revision
               </RemoveButton>
