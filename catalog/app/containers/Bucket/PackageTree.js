@@ -31,15 +31,27 @@ import usePrevious from 'utils/usePrevious'
 
 import Code from './Code'
 import CopyButton from './CopyButton'
+import RemoveButton from './RemoveButton'
 import * as FileView from './FileView'
 import Listing from './Listing'
 import { usePackageUpdateDialog } from './PackageUpdateDialog'
 import PackageCopyDialog from './PackageCopyDialog'
+import PackageRemoveDialog from './PackageRemoveDialog'
 import Section from './Section'
 import Summary from './Summary'
 import * as errors from './errors'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
+
+function useRemoveRevision(callback) {
+  return React.useCallback(
+    ({ bucket, name, revision }) => {
+      // FIXME: remove package's revision
+      setTimeout(() => callback({ bucket, name, revision }), 1000)
+    },
+    [callback],
+  )
+}
 
 function useRevisionsData({ bucket, name }) {
   const req = AWS.APIGateway.use()
@@ -364,6 +376,14 @@ function DirDisplay({
 
   const preferences = BucketPreferences.use()
 
+  const [removeOpened, setRemoveOpened] = React.useState(false)
+  const onRemove = React.useCallback(() => {
+    setRemoveOpened(false)
+  }, [setRemoveOpened])
+  const removeRevision = useRemoveRevision(onRemove)
+
+  const isDeletable = true
+
   return data.case({
     Ok: ({ objects, prefixes, meta }) => {
       const up =
@@ -404,6 +424,17 @@ function DirDisplay({
             onExited={onPackageCopyDialogExited}
           />
 
+          <PackageRemoveDialog
+            open={removeOpened}
+            packageHandle={{
+              bucket,
+              revision,
+              name,
+            }}
+            onClose={() => setRemoveOpened(false)}
+            onRemove={removeRevision}
+          />
+
           {updateDialog.render()}
 
           <TopBar crumbs={crumbs}>
@@ -418,11 +449,13 @@ function DirDisplay({
                 Revise package
               </M.Button>
             )}
-            <M.Box ml={1} />
             {preferences?.ui?.actions?.copyPackage && (
-              <CopyButton bucket={bucket} onChange={setSuccessor}>
-                Push to bucket
-              </CopyButton>
+              <>
+                <M.Box ml={1} />
+                <CopyButton bucket={bucket} onChange={setSuccessor}>
+                  Push to bucket
+                </CopyButton>
+              </>
             )}
             {!noDownload && (
               <>
@@ -431,6 +464,14 @@ function DirDisplay({
                   label="Download package"
                   suffix={`package/${bucket}/${name}/${hash}`}
                 />
+              </>
+            )}
+            {isDeletable && (
+              <>
+                <M.Box ml={1} />
+                <RemoveButton onClick={() => setRemoveOpened(true)}>
+                  Delete revision
+                </RemoveButton>
               </>
             )}
           </TopBar>
