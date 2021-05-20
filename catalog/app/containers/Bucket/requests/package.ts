@@ -76,6 +76,7 @@ interface ManifestHandleTarget {
   name: string
 }
 
+// TODO: use app/utils/packageHandle#PackageHandle
 interface ManifestHandleSource extends ManifestHandleTarget {
   revision: string
 }
@@ -97,6 +98,10 @@ interface CreatePackageParams extends BasePackageParams {
 interface CopyPackageParams extends BasePackageParams {
   source: ManifestHandleSource
   target: ManifestHandleTarget
+}
+
+interface DeleteRevisionParams {
+  source: ManifestHandleSource
 }
 
 interface WrapPackageParams extends BasePackageParams {
@@ -270,6 +275,24 @@ export function useCopyPackage() {
       copyPackage(req, credentials, params, schema),
     [credentials, req],
   )
+}
+
+const deleteRevision = async ({ source }: DeleteRevisionParams) =>
+  new Promise((resolve, reject) => {
+    // FIXME: perform real deletion
+    setTimeout(
+      () =>
+        reject(
+          new Error(
+            `Deletion failed for ${source.bucket}/${source.name}@{source.revision}`,
+          ),
+        ),
+      1000,
+    )
+  })
+
+export function useDeleteRevision() {
+  return React.useCallback((params: DeleteRevisionParams) => deleteRevision(params), [])
 }
 
 const wrapPackage = async (

@@ -43,20 +43,6 @@ import * as errors from './errors'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
 
-function useDeleteRevision(onStart, onEnd) {
-  return React.useCallback(
-    ({ bucket, name, revision }) => {
-      onStart()
-      // FIXME: remove package's revision
-      setTimeout(
-        () => onEnd(new Error(`${bucket}, ${name}, ${R.take(10, revision)}`)),
-        1000,
-      )
-    },
-    [onStart, onEnd],
-  )
-}
-
 function useRevisionsData({ bucket, name }) {
   const req = AWS.APIGateway.use()
   return useData(requests.getPackageRevisions, { req, bucket, name, perPage: 5 })
@@ -396,17 +382,7 @@ function DirDisplay({
     opened: false,
   })
 
-  const onDeletionStart = React.useCallback(() => {
-    setDeletionState(R.assoc('loading', true))
-  }, [])
-  const onDeletionEnd = React.useCallback((error) => {
-    setDeletionState(R.assoc('loading', false))
-    if (error) {
-      setDeletionState(R.assoc('error', error))
-    } else {
-      setDeletionState(R.assoc('opened', false))
-    }
-  }, [])
+  const deleteRevision = requests.useDeleteRevision()
   const onPackageDeleteDialogOpen = React.useCallback(() => {
     setDeletionState(R.assoc('opened', true))
   }, [])
@@ -418,7 +394,18 @@ function DirDisplay({
       }),
     )
   }, [])
-  const deleteRevision = useDeleteRevision(onDeletionStart, onDeletionEnd)
+  const handlePackageDeletion = React.useCallback(async () => {
+    setDeletionState(R.assoc('loading', true))
+
+    try {
+      await deleteRevision({ bucket, name, revision })
+      setDeletionState(R.assoc('opened', false))
+    } catch (error) {
+      setDeletionState(R.assoc('error', error))
+    }
+
+    setDeletionState(R.assoc('loading', false))
+  }, [bucket, name, revision, deleteRevision, setDeletionState])
 
   const isDeletable = true // FIXME: set real condition or remove this variable
 
@@ -472,7 +459,7 @@ function DirDisplay({
             }}
             onClose={onPackageDeleteDialogClose}
             loading={deletionState.loading}
-            onDelete={deleteRevision}
+            onDelete={handlePackageDeletion}
           />
 
           {updateDialog.render()}
