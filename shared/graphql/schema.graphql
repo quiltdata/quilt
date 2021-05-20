@@ -1,0 +1,86 @@
+type WorkflowsConfig {
+}
+
+type Bucket {
+  name: String!
+  stats: BucketStats
+  workflows: WorkflowsConfig
+  # summary
+  # readmes
+  # images
+  packages: BucketPackages
+}
+
+# summarize
+
+# prefix
+
+type Package {
+  revisions: PackageRevisions
+}
+
+type PackageRevisions {
+  count: Number!
+  resolve(input: String!): PackageRevision
+  list(page = 1, perPage = 10): [PackageRevision!]!
+}
+
+type PackageRevisionStats {
+  files: Number!
+  bytes: Number!
+}
+
+type PackageRevision {
+  # pointer
+  hash: String!
+  modified: Date!
+  stats: PackageRevisionStats
+  message: String
+  metadata: JSONObject
+  # workflow
+  entries: PackageRevisionEntries!
+}
+
+type PackageRevisionEntries {
+  # paginate
+  # browse
+}
+
+type PackageEntry {
+  logicalKey: String! # return S3Object?
+  physicalKey: String!
+  metadata: JSONObject
+  size: Number!
+  hash: String!
+}
+
+type BucketPackages {
+  # count
+  list(
+    filter,
+    sort, // name | modified
+    perPage = 30,
+    page = 1,
+  ): [Package!]!
+}
+
+type S3Object {
+  versions
+  metadata
+}
+
+# s3 object version
+
+# config
+
+type Query {
+  bucket(name: String!): Bucket!
+}
+
+type Mutation {
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}
