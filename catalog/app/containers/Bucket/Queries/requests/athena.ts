@@ -216,14 +216,14 @@ async function waitForQueryStatus(
   while (status === 'QUEUED' || status === 'RUNNING') {
     // NOTE: await is used to intetionally pause loop and make requests in series
     // eslint-disable-next-line no-await-in-loop
-    await wait(1000)
-    // eslint-disable-next-line no-await-in-loop
     const statusData = await athena.getQueryExecution({ QueryExecutionId }).promise()
     status = statusData?.QueryExecution?.Status?.State
     queryExecution = statusData?.QueryExecution || null
-  }
-  if (status === 'SUCCEEDED') {
-    return queryExecution
+    if (status === 'SUCCEEDED') {
+      return queryExecution
+    }
+    // eslint-disable-next-line no-await-in-loop
+    await wait(1000)
   }
   throw new Error(status)
 }
