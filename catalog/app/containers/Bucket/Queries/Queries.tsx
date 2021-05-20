@@ -14,8 +14,10 @@ const useStyles = M.makeStyles((t) => ({
     margin: t.spacing(2, 0),
   },
   container: {
-    display: 'flex',
-    padding: t.spacing(3),
+    [t.breakpoints.up('sm')]: {
+      display: 'flex',
+      padding: t.spacing(3),
+    },
   },
   inner: {
     margin: t.spacing(2, 0, 0),
@@ -25,8 +27,11 @@ const useStyles = M.makeStyles((t) => ({
   },
   panel: {
     flexGrow: 1,
-    maxWidth: 'calc(100% - 200px)',
-    padding: t.spacing(1, 3),
+    padding: t.spacing(2, 0),
+    [t.breakpoints.up('sm')]: {
+      padding: t.spacing(1, 3),
+      maxWidth: 'calc(100% - 200px)',
+    },
   },
   select: {
     margin: t.spacing(3, 0),
@@ -35,8 +40,13 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'flex-start',
   },
   tabs: {
-    borderRight: `1px solid ${t.palette.divider}`,
-    width: t.spacing(20),
+    [t.breakpoints.down('sm')]: {
+      borderBottom: `1px solid ${t.palette.divider}`,
+    },
+    [t.breakpoints.up('sm')]: {
+      borderRight: `1px solid ${t.palette.divider}`,
+      width: t.spacing(20),
+    },
   },
   viewer: {
     margin: t.spacing(3, 0),
@@ -81,15 +91,19 @@ export default function Queries({
     [classes],
   )
 
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+
   return (
-    <M.Container className={classes.container} maxWidth="lg">
+    <div className={classes.container}>
       <MetaTitle>{['Queries', bucket]}</MetaTitle>
 
       <M.Tabs
         className={classes.tabs}
-        orientation="vertical"
+        orientation={sm ? 'horizontal' : 'vertical'}
         onChange={onTab}
         value={tab}
+        centered={sm}
       >
         <NavTab
           label="ElasticSearch"
@@ -115,6 +129,6 @@ export default function Queries({
           </Route>
         </Switch>
       </div>
-    </M.Container>
+    </div>
   )
 }
