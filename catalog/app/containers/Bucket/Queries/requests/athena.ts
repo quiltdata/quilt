@@ -211,19 +211,21 @@ async function waitForQueryStatus(
   athena: Athena,
   QueryExecutionId: string,
 ): Promise<Athena.QueryExecution | null> {
-  const statusData = await athena.getQueryExecution({ QueryExecutionId }).promise()
-  const status = statusData?.QueryExecution?.Status?.State
-  if (status === 'FAILED' || status === 'CANCELLED') {
-    throw new Error(status)
+  let status: string | undefined = 'QUEUED'
+  let queryExecution = null
+  while (status === 'QUEUED' || status === 'RUNNING') {
+    // NOTE: await is used to intetionally pause loop and make requests in series
+    // eslint-disable-next-line no-await-in-loop
+    await wait(1000)
+    // eslint-disable-next-line no-await-in-loop
+    const statusData = await athena.getQueryExecution({ QueryExecutionId }).promise()
+    status = statusData?.QueryExecution?.Status?.State
+    queryExecution = statusData?.QueryExecution || null
   }
-
   if (status === 'SUCCEEDED') {
-    return statusData?.QueryExecution || null
+    return queryExecution
   }
-
-  await wait(1000)
-
-  return waitForQueryStatus(athena, QueryExecutionId)
+  throw new Error(status)
 }
 
 export interface QueryResultsResponse {
