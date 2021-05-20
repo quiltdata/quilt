@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -10,17 +11,22 @@ const useButtonStyles = M.makeStyles({
 
 interface RemoveButtonProps {
   children: React.ReactNode
+  className?: string
   onClick: () => void
 }
 
-export default function RemoveButton({ children, onClick }: RemoveButtonProps) {
+export default function RemoveButton({
+  children,
+  className,
+  onClick,
+}: RemoveButtonProps) {
   const classes = useButtonStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
   const props = {
     'aria-haspopup': 'true' as 'true',
-    className: classes.root,
+    className: cx(classes.root, className),
     onClick,
     size: 'small' as 'small',
   }

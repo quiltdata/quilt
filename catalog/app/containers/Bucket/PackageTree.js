@@ -316,6 +316,15 @@ function TopBar({ crumbs, children }) {
   )
 }
 
+const useDirDisplayStyles = M.makeStyles((t) => ({
+  button: {
+    flexShrink: 0,
+    marginBottom: '-3px',
+    marginLeft: t.spacing(1),
+    marginTop: '-3px',
+  },
+}))
+
 function DirDisplay({
   bucket,
   name,
@@ -331,6 +340,7 @@ function DirDisplay({
   const credentials = AWS.Credentials.use()
   const { urls } = NamedRoutes.use()
   const intercom = Intercom.use()
+  const classes = useDirDisplayStyles()
 
   const showIntercom = React.useMemo(
     () => (intercom.dummy ? null : () => intercom('show')),
@@ -440,6 +450,7 @@ function DirDisplay({
           <TopBar crumbs={crumbs}>
             {preferences?.ui?.actions?.revisePackage && (
               <M.Button
+                className={classes.button}
                 variant="contained"
                 color="primary"
                 size="small"
@@ -450,29 +461,28 @@ function DirDisplay({
               </M.Button>
             )}
             {preferences?.ui?.actions?.copyPackage && (
-              <>
-                <M.Box ml={1} />
-                <CopyButton bucket={bucket} onChange={setSuccessor}>
-                  Push to bucket
-                </CopyButton>
-              </>
+              <CopyButton
+                className={classes.button}
+                bucket={bucket}
+                onChange={setSuccessor}
+              >
+                Push to bucket
+              </CopyButton>
             )}
             {!noDownload && (
-              <>
-                <M.Box ml={1} />
-                <FileView.ZipDownloadForm
-                  label="Download package"
-                  suffix={`package/${bucket}/${name}/${hash}`}
-                />
-              </>
+              <FileView.ZipDownloadForm
+                className={classes.button}
+                label="Download package"
+                suffix={`package/${bucket}/${name}/${hash}`}
+              />
             )}
             {isDeletable && (
-              <>
-                <M.Box ml={1} />
-                <RemoveButton onClick={() => setRemoveOpened(true)}>
-                  Delete revision
-                </RemoveButton>
-              </>
+              <RemoveButton
+                className={classes.button}
+                onClick={() => setRemoveOpened(true)}
+              >
+                Delete revision
+              </RemoveButton>
             )}
           </TopBar>
           <PkgCode {...{ bucket, name, hash, revision, path }} />
