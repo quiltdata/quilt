@@ -284,7 +284,10 @@ const deleteRevision = async ({ source }: DeleteRevisionParams) =>
       () =>
         reject(
           new Error(
-            `Deletion failed for ${source.bucket}/${source.name}@{source.revision}`,
+            `Deletion failed for ${source.bucket}/${source.name}@${R.take(
+              10,
+              source.revision,
+            )}`,
           ),
         ),
       1000,

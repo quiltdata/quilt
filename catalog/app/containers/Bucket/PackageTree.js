@@ -381,7 +381,6 @@ function DirDisplay({
     loading: false,
     opened: false,
   })
-
   const deleteRevision = requests.useDeleteRevision()
   const onPackageDeleteDialogOpen = React.useCallback(() => {
     setDeletionState(R.assoc('opened', true))
@@ -398,7 +397,7 @@ function DirDisplay({
     setDeletionState(R.assoc('loading', true))
 
     try {
-      await deleteRevision({ bucket, name, revision })
+      await deleteRevision({ source: { bucket, name, revision } })
       setDeletionState(R.assoc('opened', false))
     } catch (error) {
       setDeletionState(R.assoc('error', error))
