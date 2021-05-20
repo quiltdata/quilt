@@ -31,12 +31,12 @@ import usePrevious from 'utils/usePrevious'
 
 import Code from './Code'
 import CopyButton from './CopyButton'
-import RemoveButton from './RemoveButton'
+import DeleteButton from './DeleteButton'
 import * as FileView from './FileView'
 import Listing from './Listing'
 import { usePackageUpdateDialog } from './PackageUpdateDialog'
 import PackageCopyDialog from './PackageCopyDialog'
-import PackageRemoveDialog from './PackageRemoveDialog'
+import PackageDeleteDialog from './PackageDeleteDialog'
 import Section from './Section'
 import Summary from './Summary'
 import * as errors from './errors'
@@ -407,10 +407,10 @@ function DirDisplay({
       setDeletionState(R.assoc('opened', false))
     }
   }, [])
-  const onPackageRemoveDialogOpen = React.useCallback(() => {
+  const onPackageDeleteDialogOpen = React.useCallback(() => {
     setDeletionState(R.assoc('opened', true))
   }, [])
-  const onPackageRemoveDialogClose = React.useCallback(() => {
+  const onPackageDeleteDialogClose = React.useCallback(() => {
     setDeletionState(
       R.mergeLeft({
         error: null,
@@ -418,7 +418,7 @@ function DirDisplay({
       }),
     )
   }, [])
-  const removeRevision = useRemoveRevision(onDeletionStart, onDeletionEnd)
+  const deleteRevision = useRemoveRevision(onDeletionStart, onDeletionEnd)
 
   const isDeletable = true // FIXME: set real condition or remove this variable
 
@@ -462,7 +462,7 @@ function DirDisplay({
             onExited={onPackageCopyDialogExited}
           />
 
-          <PackageRemoveDialog
+          <PackageDeleteDialog
             error={deletionState.error}
             open={deletionState.opened}
             packageHandle={{
@@ -470,9 +470,9 @@ function DirDisplay({
               revision,
               name,
             }}
-            onClose={onPackageRemoveDialogClose}
+            onClose={onPackageDeleteDialogClose}
             loading={deletionState.loading}
-            onRemove={removeRevision}
+            onRemove={deleteRevision}
           />
 
           {updateDialog.render()}
@@ -507,12 +507,12 @@ function DirDisplay({
               />
             )}
             {isDeletable && (
-              <RemoveButton
+              <DeleteButton
                 className={classes.button}
-                onClick={onPackageRemoveDialogOpen}
+                onClick={onPackageDeleteDialogOpen}
               >
                 Delete revision
-              </RemoveButton>
+              </DeleteButton>
             )}
           </TopBar>
           <PkgCode {...{ bucket, name, hash, revision, path }} />

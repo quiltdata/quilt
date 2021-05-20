@@ -9,17 +9,17 @@ const useButtonStyles = M.makeStyles({
   },
 })
 
-interface RemoveButtonProps {
+interface DeleteButtonProps {
   children: React.ReactNode
   className?: string
   onClick: () => void
 }
 
-export default function RemoveButton({
+export default function DeleteButton({
   children,
   className,
   onClick,
-}: RemoveButtonProps) {
+}: DeleteButtonProps) {
   const classes = useButtonStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))

@@ -27,7 +27,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface PackageRemoveDialogProps {
+interface PackageDeleteDialogProps {
   error?: Error
   loading: boolean
   onClose: () => void
@@ -36,14 +36,14 @@ interface PackageRemoveDialogProps {
   packageHandle: packageHandleUtils.PackageHandle
 }
 
-export default function PackageRemoveDialog({
+export default function PackageDeleteDialog({
   error,
   loading,
   onClose,
   onRemove,
   open,
   packageHandle,
-}: PackageRemoveDialogProps) {
+}: PackageDeleteDialogProps) {
   const classes = useStyles()
 
   const handleRemove = React.useCallback(() => {
