@@ -43,13 +43,17 @@ import * as errors from './errors'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
 
-function useRemoveRevision(callback) {
+function useRemoveRevision(onStart, onEnd) {
   return React.useCallback(
     ({ bucket, name, revision }) => {
+      onStart()
       // FIXME: remove package's revision
-      setTimeout(() => callback({ bucket, name, revision }), 1000)
+      setTimeout(
+        () => onEnd(new Error(`${bucket}, ${name}, ${R.take(10, revision)}`)),
+        1000,
+      )
     },
-    [callback],
+    [onStart, onEnd],
   )
 }
 
@@ -386,11 +390,28 @@ function DirDisplay({
 
   const preferences = BucketPreferences.use()
 
-  const [removeOpened, setRemoveOpened] = React.useState(false)
-  const onRemove = React.useCallback(() => {
-    setRemoveOpened(false)
-  }, [setRemoveOpened])
-  const removeRevision = useRemoveRevision(onRemove)
+  const [deletionLoading, setDeletionLoading] = React.useState(false)
+  const [deletionOpened, setDeletionOpened] = React.useState(false)
+  const [deletionError, setDeletionError] = React.useState()
+  const onDeletionStart = React.useCallback(() => {
+    setDeletionLoading(true)
+  }, [setDeletionLoading])
+  const onDeletionEnd = React.useCallback(
+    (error) => {
+      setDeletionLoading(false)
+      if (error) {
+        setDeletionError(error)
+      } else {
+        setDeletionOpened(false)
+      }
+    },
+    [setDeletionError, setDeletionOpened],
+  )
+  const onPackageRemoveDialogClose = React.useCallback(() => {
+    setDeletionError(undefined)
+    setDeletionOpened(false)
+  }, [setDeletionOpened])
+  const removeRevision = useRemoveRevision(onDeletionStart, onDeletionEnd)
 
   const isDeletable = true
 
@@ -435,13 +456,15 @@ function DirDisplay({
           />
 
           <PackageRemoveDialog
-            open={removeOpened}
+            error={deletionError}
+            open={deletionOpened}
             packageHandle={{
               bucket,
               revision,
               name,
             }}
-            onClose={() => setRemoveOpened(false)}
+            onClose={onPackageRemoveDialogClose}
+            loading={deletionLoading}
             onRemove={removeRevision}
           />
 
@@ -479,7 +502,7 @@ function DirDisplay({
             {isDeletable && (
               <RemoveButton
                 className={classes.button}
-                onClick={() => setRemoveOpened(true)}
+                onClick={() => setDeletionOpened(true)}
               >
                 Delete revision
               </RemoveButton>

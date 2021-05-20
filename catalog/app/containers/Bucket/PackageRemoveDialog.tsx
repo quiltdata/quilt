@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import Code from 'components/Code'
 import * as packageHandleUtils from 'utils/packageHandle'
@@ -27,6 +28,8 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface PackageRemoveDialogProps {
+  error?: Error
+  loading: boolean
   onClose: () => void
   onRemove: (handle: packageHandleUtils.PackageHandle) => void
   open: boolean
@@ -34,22 +37,22 @@ interface PackageRemoveDialogProps {
 }
 
 export default function PackageRemoveDialog({
-  open,
-  packageHandle,
+  error,
+  loading,
   onClose,
   onRemove,
+  open,
+  packageHandle,
 }: PackageRemoveDialogProps) {
   const classes = useStyles()
-  const [removing, setRemoving] = React.useState(false)
 
   const handleRemove = React.useCallback(() => {
-    setRemoving(true)
     onRemove(packageHandle)
   }, [packageHandle, onRemove])
 
   const handleClose = React.useCallback(() => {
-    if (!removing) onClose()
-  }, [removing, onClose])
+    if (!loading) onClose()
+  }, [loading, onClose])
 
   return (
     <M.Dialog
@@ -68,16 +71,20 @@ export default function PackageRemoveDialog({
         <M.DialogContentText>
           This action is non-reversible! Are you sure?
         </M.DialogContentText>
+
+        {error && <Lab.Alert severity="error">{error.message}</Lab.Alert>}
       </M.DialogContent>
+
       <M.DialogActions>
-        <M.Button onClick={handleClose} color="primary" autoFocus disabled={removing}>
+        <M.Button onClick={handleClose} color="primary" autoFocus disabled={loading}>
           Cancel
         </M.Button>
-        <M.Button onClick={handleRemove} color="primary" disabled={removing}>
+        <M.Button onClick={handleRemove} color="primary" disabled={loading}>
           Yes, delete
         </M.Button>
       </M.DialogActions>
-      {removing && (
+
+      {loading && (
         <div className={classes.lock}>
           <div className={classes.progressContainer}>
             <M.CircularProgress size={80} variant="indeterminate" />
