@@ -57,8 +57,15 @@ interface TabsProps {
 
 function Tabs({ bucket, preferences, section = false }: TabsProps) {
   const { urls } = NamedRoutes.use()
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
   return (
-    <M.Tabs value={section} centered>
+    <M.Tabs
+      value={section}
+      centered
+      variant={sm ? 'scrollable' : 'standard'}
+      scrollButtons="auto"
+    >
       <NavTab label="Overview" value="overview" to={urls.bucketOverview(bucket)} />
       {preferences.files && (
         <NavTab label="Files" value="tree" to={urls.bucketDir(bucket)} />
