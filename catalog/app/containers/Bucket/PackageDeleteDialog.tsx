@@ -31,7 +31,7 @@ interface PackageDeleteDialogProps {
   error?: Error
   loading: boolean
   onClose: () => void
-  onRemove: (handle: packageHandleUtils.PackageHandle) => void
+  onDelete: (handle: packageHandleUtils.PackageHandle) => void
   open: boolean
   packageHandle: packageHandleUtils.PackageHandle
 }
@@ -40,17 +40,17 @@ export default function PackageDeleteDialog({
   error,
   loading,
   onClose,
-  onRemove,
+  onDelete,
   open,
   packageHandle,
 }: PackageDeleteDialogProps) {
   const classes = useStyles()
 
-  const handleRemove = React.useCallback(() => {
-    onRemove(packageHandle)
-  }, [packageHandle, onRemove])
+  const onConfirm = React.useCallback(() => {
+    onDelete(packageHandle)
+  }, [packageHandle, onDelete])
 
-  const handleClose = React.useCallback(() => {
+  const onCancel = React.useCallback(() => {
     if (!loading) onClose()
   }, [loading, onClose])
 
@@ -59,7 +59,7 @@ export default function PackageDeleteDialog({
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
       open={open}
-      onClose={handleClose}
+      onClose={onCancel}
     >
       <M.DialogTitle id="alert-dialog-title">Confirm deletion</M.DialogTitle>
       <M.DialogContent id="alert-dialog-description">
@@ -76,10 +76,10 @@ export default function PackageDeleteDialog({
       </M.DialogContent>
 
       <M.DialogActions>
-        <M.Button onClick={handleClose} color="primary" autoFocus disabled={loading}>
+        <M.Button onClick={onCancel} color="primary" autoFocus disabled={loading}>
           Cancel
         </M.Button>
-        <M.Button onClick={handleRemove} color="primary" disabled={loading}>
+        <M.Button onClick={onConfirm} color="primary" disabled={loading}>
           Yes, delete
         </M.Button>
       </M.DialogActions>

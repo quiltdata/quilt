@@ -43,7 +43,7 @@ import * as errors from './errors'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
 
-function useRemoveRevision(onStart, onEnd) {
+function useDeleteRevision(onStart, onEnd) {
   return React.useCallback(
     ({ bucket, name, revision }) => {
       onStart()
@@ -418,7 +418,7 @@ function DirDisplay({
       }),
     )
   }, [])
-  const deleteRevision = useRemoveRevision(onDeletionStart, onDeletionEnd)
+  const deleteRevision = useDeleteRevision(onDeletionStart, onDeletionEnd)
 
   const isDeletable = true // FIXME: set real condition or remove this variable
 
@@ -472,7 +472,7 @@ function DirDisplay({
             }}
             onClose={onPackageDeleteDialogClose}
             loading={deletionState.loading}
-            onRemove={deleteRevision}
+            onDelete={deleteRevision}
           />
 
           {updateDialog.render()}
