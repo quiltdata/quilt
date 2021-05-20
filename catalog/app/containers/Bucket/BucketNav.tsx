@@ -62,7 +62,7 @@ function Tabs({ bucket, preferences, section = false }: TabsProps) {
   return (
     <M.Tabs
       value={section}
-      centered
+      centered={!sm}
       variant={sm ? 'scrollable' : 'standard'}
       scrollButtons="auto"
     >
