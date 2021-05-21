@@ -31,7 +31,7 @@ import usePrevious from 'utils/usePrevious'
 
 import Code from './Code'
 import CopyButton from './CopyButton'
-import DeleteButton from './DeleteButton'
+import RevisionMenu from './RevisionMenu'
 import * as FileView from './FileView'
 import Listing from './Listing'
 import { usePackageUpdateDialog } from './PackageUpdateDialog'
@@ -406,8 +406,6 @@ function DirDisplay({
     setDeletionState(R.assoc('loading', false))
   }, [bucket, name, revision, deleteRevision, setDeletionState])
 
-  const isDeletable = true // FIXME: set real condition or remove this variable
-
   return data.case({
     Ok: ({ objects, prefixes, meta }) => {
       const up =
@@ -492,14 +490,10 @@ function DirDisplay({
                 suffix={`package/${bucket}/${name}/${hash}`}
               />
             )}
-            {isDeletable && (
-              <DeleteButton
-                className={classes.button}
-                onClick={onPackageDeleteDialogOpen}
-              >
-                Delete revision
-              </DeleteButton>
-            )}
+            <RevisionMenu
+              className={classes.button}
+              onDelete={onPackageDeleteDialogOpen}
+            />
           </TopBar>
           <PkgCode {...{ bucket, name, hash, revision, path }} />
           <FileView.Meta data={AsyncResult.Ok(meta)} />
