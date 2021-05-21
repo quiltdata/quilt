@@ -147,7 +147,7 @@ const getCredentialsQuery = (credentials: AWSCredentials): CredentialsQuery => (
   session_token: credentials.sessionToken,
 })
 
-interface UploadManifest {
+interface BackendRequest {
   (
     req: ApiRequest,
     endpoint: typeof ENDPOINT_CREATE,
@@ -174,7 +174,7 @@ interface UploadManifest {
   ): Promise<Response>
 }
 
-const uploadManifest: UploadManifest = (
+const makeBackendRequest: BackendRequest = (
   req: ApiRequest,
   endpoint: string,
   body: {},
@@ -236,7 +236,7 @@ const mkCreatePackage = ({
     Body: payload,
   })
   const res = await upload.promise()
-  return uploadManifest(
+  return makeBackendRequest(
     req,
     ENDPOINT_CREATE,
     JSON.stringify((res as any).VersionId as string),
@@ -266,7 +266,7 @@ const copyPackage = async (
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
 
-  return uploadManifest(
+  return makeBackendRequest(
     req,
     ENDPOINT_COPY,
     {
@@ -306,7 +306,7 @@ const deleteRevision = async (
   // FIXME: perform real deletion
   const isBackendReady = false
   if (isBackendReady) {
-    return uploadManifest(
+    return makeBackendRequest(
       req,
       ENDPOINT_DELETE,
       {
@@ -352,7 +352,7 @@ const wrapPackage = async (
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
 
-  return uploadManifest(
+  return makeBackendRequest(
     req,
     ENDPOINT_WRAP,
     {
