@@ -13,7 +13,6 @@ import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
 import pipeThru from 'utils/pipeThru'
 
-// import Code from './Code'
 import Section from './Section'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
