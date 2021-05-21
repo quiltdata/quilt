@@ -33,14 +33,14 @@ export default function useViewModes(registryUrl: string, path: string): ViewMod
       const isNotebook = path.endsWith('.ipynb')
       if (isNotebook) {
         setViewModes(R.concat([JUPYTER_MODE, JSON_MODE]))
-      }
-      const isVoilaSupported = await pingVoilaService(registryUrl)
-      if (isVoilaSupported) {
-        setViewModes(R.append(VOILA_MODE))
-      } else {
-        // eslint-disable-next-line no-console
-        console.debug('Voila is not supported by current stack')
-        // TODO: add link to documentation
+        const isVoilaSupported = await pingVoilaService(registryUrl)
+        if (isVoilaSupported) {
+          setViewModes(R.append(VOILA_MODE))
+        } else {
+          // eslint-disable-next-line no-console
+          console.debug('Voila is not supported by current stack')
+          // TODO: add link to documentation
+        }
       }
     }
     fillViewModes()
