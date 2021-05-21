@@ -29,6 +29,10 @@ function fetchNotOk(): Promise<Response> {
 
 describe('containers/Bucket/viewModes', () => {
   describe('useVoilaService', () => {
+    afterEach(() => {
+      mocked(global.fetch).mockClear()
+    })
+
     it('returns empty list when no modes', () => {
       const { result } = renderHook(() =>
         useViewModes('https://registry.example', 'test.md'),
@@ -36,36 +40,30 @@ describe('containers/Bucket/viewModes', () => {
       expect(result.current).toMatchObject([])
     })
 
-    describe('useVoilaService, no Voila service', () => {
-      afterEach(() => {
-        mocked(global.fetch).mockClear()
-      })
+    it('returns Notebooks modes for .ipynb when no Voila service', async () => {
+      mocked(global.fetch).mockImplementation(fetchNotOk)
 
-      it('returns Notebooks modes for .ipynb when no Voila service', async () => {
-        mocked(global.fetch).mockImplementation(fetchNotOk)
+      const { result } = renderHook(() =>
+        useViewModes('https://registry.example', 'test.ipynb'),
+      )
+      expect(result.current).toMatchObject([
+        { key: 'json', label: 'JSON' },
+        { key: 'jupyter', label: 'Jupyter' },
+      ])
+    })
 
-        const { result } = renderHook(() =>
-          useViewModes('https://registry.example', 'test.ipynb'),
-        )
-        expect(result.current).toMatchObject([
-          { key: 'json', label: 'JSON' },
-          { key: 'jupyter', label: 'Jupyter' },
-        ])
-      })
+    it('returns Notebooks modes for .ipynb with Voila mode', async () => {
+      mocked(global.fetch).mockImplementation(fetchOk)
 
-      it('returns Notebooks modes for .ipynb with Voila mode', async () => {
-        mocked(global.fetch).mockImplementation(fetchOk)
-
-        const { result, waitForNextUpdate } = renderHook(() =>
-          useViewModes('https://registry.example', 'test.ipynb'),
-        )
-        await waitForNextUpdate()
-        expect(result.current).toMatchObject([
-          { key: 'json', label: 'JSON' },
-          { key: 'jupyter', label: 'Jupyter' },
-          { key: 'voila', label: 'Voila' },
-        ])
-      })
+      const { result, waitForNextUpdate } = renderHook(() =>
+        useViewModes('https://registry.example', 'test.ipynb'),
+      )
+      await waitForNextUpdate()
+      expect(result.current).toMatchObject([
+        { key: 'json', label: 'JSON' },
+        { key: 'jupyter', label: 'Jupyter' },
+        { key: 'voila', label: 'Voila' },
+      ])
     })
   })
 })
