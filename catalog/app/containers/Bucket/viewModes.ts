@@ -1,20 +1,20 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
-import * as Config from 'utils/Config'
+import global from 'utils/global'
 
 const VOILA_PING_URL = (registryUrl: string) => `${registryUrl}/voila/`
 
 async function pingVoilaService(registryUrl: string): Promise<boolean> {
   try {
-    const result = await window.fetch(VOILA_PING_URL(registryUrl))
+    const result = await global.fetch(VOILA_PING_URL(registryUrl))
     return result.ok
   } catch (error) {
     return false
   }
 }
 
-interface ViewMode {
+export interface ViewMode {
   key: string
   label: string
 }
@@ -25,10 +25,8 @@ const JUPYTER_MODE = { key: 'jupyter', label: 'Jupyter' }
 
 const VOILA_MODE = { key: 'voila', label: 'Voila' }
 
-export default function useViewModes(path: string): ViewMode[] {
+export default function useViewModes(registryUrl: string, path: string): ViewMode[] {
   const [viewModes, setViewModes] = React.useState<ViewMode[]>([])
-
-  const { registryUrl } = Config.use()
 
   React.useEffect(() => {
     async function fillViewModes() {
@@ -36,7 +34,7 @@ export default function useViewModes(path: string): ViewMode[] {
       if (isNotebook) {
         setViewModes(R.concat([JSON_MODE, JUPYTER_MODE]))
       }
-      const isVoilaSupported = pingVoilaService(registryUrl)
+      const isVoilaSupported = await pingVoilaService(registryUrl)
       if (isVoilaSupported) {
         setViewModes(R.append(VOILA_MODE))
       } else {

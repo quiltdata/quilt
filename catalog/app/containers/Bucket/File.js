@@ -401,7 +401,8 @@ export default function File({
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
 
-  const viewModes = useViewModes(path)
+  const { registryUrl } = Config.use()
+  const viewModes = useViewModes(registryUrl, path)
   const viewMode = React.useMemo(
     () => viewModes.find(({ key }) => key === viewModeSlug) || viewModes[0] || null,
     [viewModes, viewModeSlug],

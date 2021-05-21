@@ -555,7 +555,8 @@ function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumb
   const history = useHistory()
   const { urls } = NamedRoutes.use()
 
-  const viewModes = useViewModes(path)
+  const { registryUrl } = Config.use()
+  const viewModes = useViewModes(registryUrl, path)
   const viewMode = React.useMemo(
     () => viewModes.find(({ key }) => key === modeSlug) || viewModes[0] || null,
     [viewModes, modeSlug],
