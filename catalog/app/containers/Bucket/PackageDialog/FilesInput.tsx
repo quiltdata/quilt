@@ -1444,7 +1444,7 @@ export function FilesInput({
           variant="outlined"
           size="small"
         >
-          Add files from S3
+          Add files from bucket
         </M.Button>
       </div>
     </Root>
