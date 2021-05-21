@@ -31,6 +31,7 @@ import * as FileView from './FileView'
 import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
+import useViewModes from './viewModes'
 
 const getCrumbs = ({ bucket, path, urls }) =>
   R.chain(
@@ -318,12 +319,6 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-const viewModes = [
-  { key: 'jupyter', label: 'Jupyter' },
-  { key: 'voila', label: 'Voila' },
-  { key: 'json', label: 'JSON' },
-]
-
 export default function File({
   match: {
     params: { bucket, path: encodedPath },
@@ -406,12 +401,10 @@ export default function File({
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
 
-  const isNotebook = path.endsWith('.ipynb')
+  const viewModes = useViewModes(path)
   const viewMode = React.useMemo(
-    () =>
-      viewModes.find(({ key }) => key === viewModeSlug) ||
-      (isNotebook ? viewModes[0] : null),
-    [isNotebook, viewModeSlug],
+    () => viewModes.find(({ key }) => key === viewModeSlug) || viewModes[0] || null,
+    [viewModes, viewModeSlug],
   )
   const onViewModeChange = React.useCallback(
     (mode) => {
@@ -443,7 +436,7 @@ export default function File({
         </div>
 
         <div className={classes.actions}>
-          {isNotebook && (
+          {!!viewModes.length && (
             <FileView.ViewWithVoilaButtonLayout
               className={classes.button}
               modesList={viewModes}

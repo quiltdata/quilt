@@ -40,6 +40,7 @@ import Summary from './Summary'
 import * as errors from './errors'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
+import useViewModes from './viewModes'
 
 function useRevisionsData({ bucket, name }) {
   const req = AWS.APIGateway.use()
@@ -490,12 +491,6 @@ function DirDisplay({
   })
 }
 
-const viewModes = [
-  { key: 'jupyter', label: 'Jupyter' },
-  { key: 'voila', label: 'Voila' },
-  { key: 'json', label: 'JSON' },
-]
-
 const useFileDisplayStyles = M.makeStyles((t) => ({
   button: {
     marginLeft: t.spacing(2),
@@ -560,11 +555,10 @@ function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumb
   const history = useHistory()
   const { urls } = NamedRoutes.use()
 
-  const isNotebook = path.endsWith('.ipynb')
+  const viewModes = useViewModes(path)
   const viewMode = React.useMemo(
-    () =>
-      viewModes.find(({ key }) => key === modeSlug) || (isNotebook ? viewModes[0] : null),
-    [isNotebook, modeSlug],
+    () => viewModes.find(({ key }) => key === modeSlug) || viewModes[0] || null,
+    [viewModes, modeSlug],
   )
   const onViewModeChange = React.useCallback(
     (mode) => {
@@ -590,7 +584,7 @@ function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumb
             Exists: ({ archived, deleted }) => (
               <>
                 <TopBar crumbs={crumbs}>
-                  {isNotebook && (
+                  {!!viewModes.length && (
                     <FileView.ViewWithVoilaButtonLayout
                       className={classes.button}
                       modesList={viewModes}
