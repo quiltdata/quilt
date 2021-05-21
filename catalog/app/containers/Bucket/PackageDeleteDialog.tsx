@@ -64,12 +64,13 @@ export default function PackageDeleteDialog({
       <M.DialogTitle id="alert-dialog-title">Confirm deletion</M.DialogTitle>
       <M.DialogContent id="alert-dialog-description">
         <M.DialogContentText>
-          You are about to delete{' '}
+          You are about to delete link to{' '}
           <Code>{packageHandleUtils.shortenRevision(packageHandle.revision)}</Code>{' '}
-          revison of <Code>{packageHandle.name}</Code> package.
+          revison of <Code>{packageHandle.name}</Code> package. The data will persist.
         </M.DialogContentText>
         <M.DialogContentText>
-          This action is non-reversible! Are you sure?
+          This action is non-reversible! You will lost a reference to the revision. Are
+          you sure?
         </M.DialogContentText>
 
         {error && <Lab.Alert severity="error">{error.message}</Lab.Alert>}
