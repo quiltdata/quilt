@@ -62,9 +62,17 @@ interface RequestBodyWrap extends RequestBodyBase {
   entries: FileEntry[]
 }
 
+interface RequestBodyDelete {
+  top_hash: string
+  registry: string
+  name: string
+}
+
 const ENDPOINT_CREATE = '/packages'
 
 const ENDPOINT_COPY = '/packages/promote'
+
+const ENDPOINT_DELETE = '/packages/delete'
 
 const ENDPOINT_WRAP = '/packages/from-folder'
 
@@ -150,6 +158,12 @@ interface UploadManifest {
     req: ApiRequest,
     endpoint: typeof ENDPOINT_COPY,
     body: RequestBodyCopy,
+    query: CredentialsQuery,
+  ): Promise<Response>
+  (
+    req: ApiRequest,
+    endpoint: typeof ENDPOINT_DELETE,
+    body: RequestBodyDelete,
     query: CredentialsQuery,
   ): Promise<Response>
   (
@@ -281,9 +295,30 @@ export function useCopyPackage() {
   )
 }
 
-const deleteRevision = async ({ source }: DeleteRevisionParams) =>
-  new Promise((resolve, reject) => {
-    // FIXME: perform real deletion
+const deleteRevision = async (
+  req: ApiRequest,
+  credentials: AWSCredentials,
+  { source }: DeleteRevisionParams,
+) => {
+  // refresh credentials and load if they are not loaded
+  await credentials.getPromise()
+
+  // FIXME: perform real deletion
+  const isBackendReady = false
+  if (isBackendReady) {
+    return uploadManifest(
+      req,
+      ENDPOINT_DELETE,
+      {
+        name: source.name,
+        registry: `s3://${source.bucket}`,
+        top_hash: source.hash,
+      },
+      getCredentialsQuery(credentials),
+    )
+  }
+
+  return new Promise((resolve, reject) => {
     setTimeout(
       () =>
         reject(
@@ -297,9 +332,15 @@ const deleteRevision = async ({ source }: DeleteRevisionParams) =>
       1000,
     )
   })
+}
 
 export function useDeleteRevision() {
-  return React.useCallback((params: DeleteRevisionParams) => deleteRevision(params), [])
+  const credentials = AWS.Credentials.use()
+  const req: ApiRequest = APIConnector.use()
+  return React.useCallback(
+    (params: DeleteRevisionParams) => deleteRevision(req, credentials, params),
+    [credentials, req],
+  )
 }
 
 const wrapPackage = async (
