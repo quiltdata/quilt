@@ -81,6 +81,10 @@ interface ManifestHandleSource extends ManifestHandleTarget {
   revision: string
 }
 
+interface PackageHandleSource extends ManifestHandleTarget {
+  hash: string
+}
+
 interface BasePackageParams {
   message: string
   meta: JsonValue
@@ -101,7 +105,7 @@ interface CopyPackageParams extends BasePackageParams {
 }
 
 interface DeleteRevisionParams {
-  source: ManifestHandleSource
+  source: PackageHandleSource
 }
 
 interface WrapPackageParams extends BasePackageParams {
@@ -286,7 +290,7 @@ const deleteRevision = async ({ source }: DeleteRevisionParams) =>
           new Error(
             `Deletion failed for ${source.bucket}/${source.name}@${R.take(
               10,
-              source.revision,
+              source.hash,
             )}`,
           ),
         ),

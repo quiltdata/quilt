@@ -397,14 +397,14 @@ function DirDisplay({
     setDeletionState(R.assoc('loading', true))
 
     try {
-      await deleteRevision({ source: { bucket, name, revision } })
+      await deleteRevision({ source: { bucket, name, hash } })
       setDeletionState(R.assoc('opened', false))
     } catch (error) {
       setDeletionState(R.assoc('error', error))
     }
 
     setDeletionState(R.assoc('loading', false))
-  }, [bucket, name, revision, deleteRevision, setDeletionState])
+  }, [bucket, hash, name, deleteRevision, setDeletionState])
 
   return data.case({
     Ok: ({ objects, prefixes, meta }) => {
@@ -451,7 +451,7 @@ function DirDisplay({
             open={deletionState.opened}
             packageHandle={{
               bucket,
-              revision,
+              hash,
               name,
             }}
             onClose={onPackageDeleteDialogClose}
