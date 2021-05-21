@@ -32,7 +32,7 @@ export default function useViewModes(registryUrl: string, path: string): ViewMod
     async function fillViewModes() {
       const isNotebook = path.endsWith('.ipynb')
       if (isNotebook) {
-        setViewModes(R.concat([JSON_MODE, JUPYTER_MODE]))
+        setViewModes(R.concat([JUPYTER_MODE, JSON_MODE]))
       }
       const isVoilaSupported = await pingVoilaService(registryUrl)
       if (isVoilaSupported) {
