@@ -28,7 +28,7 @@ function fetchNotOk(): Promise<Response> {
 }
 
 describe('containers/Bucket/viewModes', () => {
-  describe('useVoilaService', () => {
+  describe('useViewModes', () => {
     afterEach(() => {
       mocked(global.fetch).mockClear()
     })
