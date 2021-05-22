@@ -5,7 +5,7 @@ import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
 import { FormattedRelative } from 'react-intl'
-import { Link } from 'react-router-dom'
+import { Link, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
@@ -31,6 +31,7 @@ import * as FileView from './FileView'
 import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
+import useViewModes from './viewModes'
 
 const getCrumbs = ({ bucket, path, urls }) =>
   R.chain(
@@ -289,6 +290,15 @@ function CenteredProgress() {
 }
 
 const useStyles = M.makeStyles((t) => ({
+  actions: {
+    marginLeft: 'auto',
+  },
+  at: {
+    color: t.palette.text.secondary,
+  },
+  button: {
+    marginLeft: t.spacing(2),
+  },
   crumbs: {
     ...t.typography.body1,
     maxWidth: '100%',
@@ -307,17 +317,6 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     marginBottom: t.spacing(2),
   },
-  at: {
-    color: t.palette.text.secondary,
-  },
-  spacer: {
-    flexGrow: 1,
-  },
-  button: {
-    flexShrink: 0,
-    marginBottom: -3,
-    marginTop: -3,
-  },
 }))
 
 export default function File({
@@ -326,9 +325,10 @@ export default function File({
   },
   location,
 }) {
-  const { version } = parseSearch(location.search)
+  const { version, mode: viewModeSlug } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
+  const history = useHistory()
   const { analyticsBucket, noDownload } = Config.use()
   const s3 = AWS.S3.use()
 
@@ -384,7 +384,7 @@ export default function File({
 
   const handle = { bucket, key: path, version }
 
-  const withPreview = (callback) =>
+  const withPreview = (callback, mode) =>
     requests.ObjectExistence.case({
       Exists: (h) => {
         if (h.deleted) {
@@ -393,11 +393,26 @@ export default function File({
         if (h.archived) {
           return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
         }
-        return Preview.load(handle, callback)
+        return mode
+          ? Preview.load(R.assoc('mode', mode.key, handle), callback)
+          : Preview.load(handle, callback)
       },
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
+
+  const { registryUrl } = Config.use()
+  const viewModes = useViewModes(registryUrl, path)
+  const viewMode = React.useMemo(
+    () => viewModes.find(({ key }) => key === viewModeSlug) || viewModes[0] || null,
+    [viewModes, viewModeSlug],
+  )
+  const onViewModeChange = React.useCallback(
+    (mode) => {
+      history.push(urls.bucketFile(bucket, encodedPath, version, mode.key))
+    },
+    [history, urls, bucket, encodedPath, version],
+  )
 
   return (
     <FileView.Root>
@@ -420,8 +435,20 @@ export default function File({
             'latest'
           )}
         </div>
-        <div className={classes.spacer} />
-        {downloadable && <FileView.DownloadButton handle={handle} />}
+
+        <div className={classes.actions}>
+          {!!viewModes.length && (
+            <FileView.ViewWithVoilaButtonLayout
+              className={classes.button}
+              modesList={viewModes}
+              mode={viewMode}
+              onChange={onViewModeChange}
+            />
+          )}
+          {downloadable && (
+            <FileView.DownloadButton className={classes.button} handle={handle} />
+          )}
+        </div>
       </div>
       {objExistsData.case({
         _: () => <CenteredProgress />,
@@ -448,7 +475,7 @@ export default function File({
                   Err: (e) => {
                     throw e
                   },
-                  Ok: withPreview(renderPreview),
+                  Ok: withPreview(renderPreview, viewMode),
                 })}
               </Section>
             </>
