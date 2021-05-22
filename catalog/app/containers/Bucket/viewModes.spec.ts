@@ -47,8 +47,8 @@ describe('containers/Bucket/viewModes', () => {
         useViewModes('https://registry.example', 'test.ipynb'),
       )
       expect(result.current).toMatchObject([
-        { key: 'json', label: 'JSON' },
         { key: 'jupyter', label: 'Jupyter' },
+        { key: 'json', label: 'JSON' },
       ])
     })
 
@@ -60,8 +60,8 @@ describe('containers/Bucket/viewModes', () => {
       )
       await waitForNextUpdate()
       expect(result.current).toMatchObject([
-        { key: 'json', label: 'JSON' },
         { key: 'jupyter', label: 'Jupyter' },
+        { key: 'json', label: 'JSON' },
         { key: 'voila', label: 'Voila' },
       ])
     })
