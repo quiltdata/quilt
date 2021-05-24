@@ -131,6 +131,7 @@
     "xlsx": "^0.16.9"
   },
   "devDependencies": {
+    "@testing-library/react-hooks": "^6.0.0",
     "@types/dedent": "^0.7.0",
     "@types/fontfaceobserver": "^0.0.6",
     "@types/history": "^4.7.8",
