@@ -213,7 +213,7 @@ async function waitForQueryStatus(
 ): Promise<Athena.QueryExecution | null> {
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    // NOTE: await is used to intetionally pause loop and make requests in series
+    // NOTE: await is used to intentionally pause loop and make requests in series
     // eslint-disable-next-line no-await-in-loop
     const statusData = await athena.getQueryExecution({ QueryExecutionId }).promise()
     const status = statusData?.QueryExecution?.Status?.State
