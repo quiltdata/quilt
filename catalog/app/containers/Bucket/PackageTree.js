@@ -329,6 +329,7 @@ function DirDisplay({
   const s3 = AWS.S3.use()
   const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
   const credentials = AWS.Credentials.use()
+  const history = useHistory()
   const { urls } = NamedRoutes.use()
   const intercom = Intercom.use()
   const classes = useDirDisplayStyles()
@@ -377,6 +378,9 @@ function DirDisplay({
 
   const preferences = BucketPreferences.use()
 
+  const redirectToPackagesList = React.useCallback(() => {
+    history.push(urls.bucketPackageList(bucket))
+  }, [bucket, history, urls])
   const [deletionState, setDeletionState] = React.useState({
     error: null,
     loading: false,
@@ -399,13 +403,12 @@ function DirDisplay({
 
     try {
       await deleteRevision({ source: { bucket, name, hash } })
-      setDeletionState(R.assoc('opened', false))
+      setDeletionState(R.mergeLeft({ opened: false, loading: false }))
+      redirectToPackagesList()
     } catch (error) {
-      setDeletionState(R.assoc('error', error))
+      setDeletionState(R.mergeLeft({ error, loading: false }))
     }
-
-    setDeletionState(R.assoc('loading', false))
-  }, [bucket, hash, name, deleteRevision, setDeletionState])
+  }, [bucket, hash, name, deleteRevision, redirectToPackagesList, setDeletionState])
 
   return data.case({
     Ok: ({ objects, prefixes, meta }) => {
