@@ -6,13 +6,13 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 // import Message from 'components/Message'
+import SelectDropdown from 'components/SelectDropdown'
 import * as Auth from 'containers/Auth'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
 import pipeThru from 'utils/pipeThru'
 
-// import Code from './Code'
 import Section from './Section'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
@@ -67,15 +67,34 @@ export function DownloadButtonLayout({ className, label, icon, ...props }) {
   )
 }
 
-export function DownloadButton({ handle }) {
+export function DownloadButton({ className, handle }) {
   return AWS.Signer.withDownloadUrl(handle, (url) => (
     <DownloadButtonLayout
+      className={className}
       href={url}
       download
       label="Download file"
       icon="arrow_downward"
     />
   ))
+}
+
+const viewModeToSelectOption = ({ key, label }) => ({
+  key,
+  toString: () => label,
+  valueOf: () => key,
+})
+
+export function ViewWithVoilaButtonLayout({ modesList, mode, ...props }) {
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const options = React.useMemo(() => modesList.map(viewModeToSelectOption), [modesList])
+  const value = React.useMemo(() => viewModeToSelectOption(mode), [mode])
+  return (
+    <SelectDropdown options={options} value={value} {...props}>
+      {sm ? <M.Icon>visibility</M.Icon> : 'View as:'}
+    </SelectDropdown>
+  )
 }
 
 export function ZipDownloadForm({ className, suffix, label, newTab = false }) {
