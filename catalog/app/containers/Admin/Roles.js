@@ -2,16 +2,6 @@ import { FORM_ERROR } from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import Button from '@material-ui/core/Button'
-import DialogActions from '@material-ui/core/DialogActions'
-import DialogContent from '@material-ui/core/DialogContent'
-import DialogTitle from '@material-ui/core/DialogTitle'
-import Icon from '@material-ui/core/Icon'
-import Paper from '@material-ui/core/Paper'
-import MuiTable from '@material-ui/core/Table'
-import TableBody from '@material-ui/core/TableBody'
-import TableCell from '@material-ui/core/TableCell'
-import TableRow from '@material-ui/core/TableRow'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
@@ -31,7 +21,7 @@ const useMonoStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Mono({ children }: React.PropsWithChildren<{}>) {
+function Mono({ children }) {
   const classes = useMonoStyles()
   return <span className={classes.root}>{children}</span>
 }
@@ -117,8 +107,8 @@ function Create({ close }) {
     <RF.Form onSubmit={onSubmit}>
       {({ form, handleSubmit, submitting, submitFailed, error, invalid }) => (
         <>
-          <DialogTitle>Create a role</DialogTitle>
-          <DialogContent>
+          <M.DialogTitle>Create a role</M.DialogTitle>
+          <M.DialogContent>
             <form onSubmit={handleSubmit}>
               <RF.Field
                 component={Form.Field}
@@ -154,19 +144,23 @@ function Create({ close }) {
               )}
               <input type="submit" style={{ display: 'none' }} />
             </form>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => close('cancel')} color="primary" disabled={submitting}>
+          </M.DialogContent>
+          <M.DialogActions>
+            <M.Button
+              onClick={() => close('cancel')}
+              color="primary"
+              disabled={submitting}
+            >
               Cancel
-            </Button>
-            <Button
+            </M.Button>
+            <M.Button
               onClick={handleSubmit}
               color="primary"
               disabled={submitting || (submitFailed && invalid)}
             >
               Create
-            </Button>
-          </DialogActions>
+            </M.Button>
+          </M.DialogActions>
         </>
       )}
     </RF.Form>
@@ -211,19 +205,19 @@ function Delete({ role, close }) {
 
   return (
     <>
-      <DialogTitle>Delete a role</DialogTitle>
-      <DialogContent>
+      <M.DialogTitle>Delete a role</M.DialogTitle>
+      <M.DialogContent>
         You are about to delete the &quot;{role.name}&quot; role. This operation is
         irreversible.
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => close('cancel')} color="primary">
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={() => close('cancel')} color="primary">
           Cancel
-        </Button>
-        <Button onClick={doDelete} color="primary">
+        </M.Button>
+        <M.Button onClick={doDelete} color="primary">
           Delete
-        </Button>
-      </DialogActions>
+        </M.Button>
+      </M.DialogActions>
     </>
   )
 }
@@ -277,8 +271,8 @@ function Edit({ role, close }) {
     <RF.Form onSubmit={onSubmit} initialValues={R.pick(['name', 'arn'], role)}>
       {({ form, handleSubmit, submitting, submitFailed, error, invalid }) => (
         <>
-          <DialogTitle>Edit the &quot;{role.name}&quot; role</DialogTitle>
-          <DialogContent>
+          <M.DialogTitle>Edit the &quot;{role.name}&quot; role</M.DialogTitle>
+          <M.DialogContent>
             <form onSubmit={handleSubmit}>
               <RF.Field
                 component={Form.Field}
@@ -314,19 +308,23 @@ function Edit({ role, close }) {
               )}
               <input type="submit" style={{ display: 'none' }} />
             </form>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => close('cancel')} color="primary" disabled={submitting}>
+          </M.DialogContent>
+          <M.DialogActions>
+            <M.Button
+              onClick={() => close('cancel')}
+              color="primary"
+              disabled={submitting}
+            >
               Cancel
-            </Button>
-            <Button
+            </M.Button>
+            <M.Button
               onClick={handleSubmit}
               color="primary"
               disabled={submitting || (submitFailed && invalid)}
             >
               Save
-            </Button>
-          </DialogActions>
+            </M.Button>
+          </M.DialogActions>
         </>
       )}
     </RF.Form>
@@ -346,7 +344,7 @@ export default function Roles({ roles }) {
   const toolbarActions = [
     {
       title: 'Create',
-      icon: <Icon>add</Icon>,
+      icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
         dialogs.open(({ close }) => <Create {...{ close }} />)
       }, [dialogs.open]), // eslint-disable-line react-hooks/exhaustive-deps
@@ -356,14 +354,14 @@ export default function Roles({ roles }) {
   const inlineActions = (role) => [
     {
       title: 'Delete',
-      icon: <Icon>delete</Icon>,
+      icon: <M.Icon>delete</M.Icon>,
       fn: () => {
         dialogs.open(({ close }) => <Delete {...{ role, close }} />)
       },
     },
     {
       title: 'Edit',
-      icon: <Icon>edit</Icon>,
+      icon: <M.Icon>edit</M.Icon>,
       fn: () => {
         dialogs.open(({ close }) => (
           <Edit
@@ -379,35 +377,35 @@ export default function Roles({ roles }) {
   return (
     <React.Suspense
       fallback={
-        <Paper>
+        <M.Paper>
           <Table.Toolbar heading="Roles" />
           <Table.Progress />
-        </Paper>
+        </M.Paper>
       }
     >
-      <Paper>
+      <M.Paper>
         {dialogs.render()}
         <Table.Toolbar heading="Roles" actions={toolbarActions} />
         <Table.Wrapper>
-          <MuiTable>
+          <M.Table>
             <Table.Head columns={columns} ordering={ordering} withInlineActions />
-            <TableBody>
+            <M.TableBody>
               {ordering.ordered.map((i) => (
-                <TableRow hover key={i.id}>
+                <M.TableRow hover key={i.id}>
                   {columns.map((col) => (
-                    <TableCell key={col.id} {...col.props}>
+                    <M.TableCell key={col.id} {...col.props}>
                       {(col.getDisplay || R.identity)(col.getValue(i))}
-                    </TableCell>
+                    </M.TableCell>
                   ))}
-                  <TableCell align="right" padding="none">
+                  <M.TableCell align="right" padding="none">
                     <Table.InlineActions actions={inlineActions(i)} />
-                  </TableCell>
-                </TableRow>
+                  </M.TableCell>
+                </M.TableRow>
               ))}
-            </TableBody>
-          </MuiTable>
+            </M.TableBody>
+          </M.Table>
         </Table.Wrapper>
-      </Paper>
+      </M.Paper>
     </React.Suspense>
   )
 }
