@@ -68,15 +68,6 @@ function BucketPermissionEdit({ onChange, permissions, value }: BucketPermission
   )
 }
 
-interface BucketPermissionsProps {
-  className: string
-  input: {
-    onChange: (value: BucketsPermissionsData) => void
-    value: BucketsPermissionsData
-  }
-  onAdvanced: () => void
-}
-
 const useStyles = M.makeStyles((t) => ({
   caption: {
     color: t.palette.text.secondary,
@@ -97,13 +88,20 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+interface BucketPermissionsProps {
+  className: string
+  input: {
+    onChange: (value: BucketsPermissionsData) => void
+    value: BucketsPermissionsData
+  }
+  onAdvanced: () => void
+}
+
 export default function BucketPermissions({
   className,
-  input,
+  input: { value, onChange },
   onAdvanced,
 }: BucketPermissionsProps) {
-  const { value, onChange } = input
-
   const classes = useStyles()
 
   const handleChange = React.useMemo(
