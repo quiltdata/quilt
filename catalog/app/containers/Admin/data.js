@@ -2,12 +2,7 @@ import * as R from 'ramda'
 
 import * as Cache from 'utils/ResourceCache'
 
-export const RolesResource = Cache.createResource({
-  name: 'Admin.data.roles',
-  fetch: ({ req }) => req({ endpoint: '/roles' }).then(R.prop('results')),
-  key: () => null,
-})
-
+// TODO: remove after migrating this data to gql
 export const UsersResource = Cache.createResource({
   name: 'Admin.data.users',
   fetch: ({ req }) =>
