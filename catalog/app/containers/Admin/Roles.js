@@ -1,8 +1,6 @@
-import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RC from 'recompose'
-import * as RF from 'redux-form/es/immutable'
+import * as RF from 'react-final-form'
 import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
 import DialogContent from '@material-ui/core/DialogContent'
@@ -20,10 +18,9 @@ import * as APIConnector from 'utils/APIConnector'
 import * as Dialogs from 'utils/Dialogs'
 import * as Cache from 'utils/ResourceCache'
 import StyledLink from 'utils/StyledLink'
-import * as RT from 'utils/reactTools'
 import * as validators from 'utils/validators'
 
-import * as Form from './Form'
+import * as Form from './RFForm'
 import * as Table from './Table'
 import * as data from './data'
 
@@ -67,313 +64,296 @@ const columns = [
   },
 ]
 
-const Create = RT.composeComponent(
-  'Admin.Roles.Create',
-  RC.setPropTypes({
-    close: PT.func.isRequired,
-  }),
-  ({ close }) => {
-    const req = APIConnector.use()
-    const cache = Cache.use()
-    const { push } = Notifications.use()
-    const onSubmit = React.useCallback(
-      (values) =>
-        req({
-          endpoint: '/roles',
-          method: 'POST',
-          body: JSON.stringify(values),
-        })
-          .then((res) => {
-            cache.patchOk(data.RolesResource, null, R.append(res))
-            push(`Role "${res.name}" created`)
-            close()
-          })
-          .catch((e) => {
-            if (APIConnector.HTTPError.is(e, 409, 'Role name already exists')) {
-              throw new RF.SubmissionError({ name: 'taken' })
-            }
-            if (APIConnector.HTTPError.is(e, 400, 'Invalid name for role')) {
-              throw new RF.SubmissionError({ name: 'invalid' })
-            }
-            // eslint-disable-next-line no-console
-            console.error('Error creating role')
-            // eslint-disable-next-line no-console
-            console.dir(e)
-            throw new RF.SubmissionError({ _error: 'unexpected' })
-          }),
-      [req, cache, push, close],
-    )
-
-    return (
-      <Form.ReduxForm form="Admin.Roles.Create" onSubmit={onSubmit}>
-        {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
-          <>
-            <DialogTitle>Create a role</DialogTitle>
-            <DialogContent>
-              <form onSubmit={handleSubmit}>
-                <RF.Field
-                  component={Form.Field}
-                  name="name"
-                  validate={[validators.required]}
-                  placeholder="Name"
-                  fullWidth
-                  margin="normal"
-                  errors={{
-                    required: 'Enter a role name',
-                    taken: 'Role with this name already exists',
-                    invalid: 'Invalid name for role',
-                  }}
-                />
-                <RF.Field
-                  component={Form.Field}
-                  name="arn"
-                  validate={[validators.required]}
-                  placeholder="ARN"
-                  fullWidth
-                  margin="normal"
-                  errors={{
-                    required: 'Enter an ARN',
-                  }}
-                />
-                {submitFailed && (
-                  <Form.FormError
-                    error={error}
-                    errors={{
-                      unexpected: 'Something went wrong',
-                    }}
-                  />
-                )}
-                <input type="submit" style={{ display: 'none' }} />
-              </form>
-            </DialogContent>
-            <DialogActions>
-              <Button
-                onClick={() => close('cancel')}
-                color="primary"
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                color="primary"
-                disabled={submitting || (submitFailed && invalid)}
-              >
-                Create
-              </Button>
-            </DialogActions>
-          </>
-        )}
-      </Form.ReduxForm>
-    )
-  },
-)
-
-const Delete = RT.composeComponent(
-  'Admin.Roles.Delete',
-  RC.setPropTypes({
-    role: PT.object.isRequired,
-    close: PT.func.isRequired,
-  }),
-  ({ role, close }) => {
-    const req = APIConnector.use()
-    const cache = Cache.use()
-    const { push } = Notifications.use()
-    const doDelete = React.useCallback(() => {
-      close()
-      req({ endpoint: `/roles/${role.id}`, method: 'DELETE' })
-        .then(() => {
-          push(`Role "${role.name}" deleted`)
+function Create({ close }) {
+  const req = APIConnector.use()
+  const cache = Cache.use()
+  const { push } = Notifications.use()
+  const onSubmit = React.useCallback(
+    (values) =>
+      req({
+        endpoint: '/roles',
+        method: 'POST',
+        body: JSON.stringify(values),
+      })
+        .then((res) => {
+          cache.patchOk(data.RolesResource, null, R.append(res))
+          push(`Role "${res.name}" created`)
+          close()
         })
         .catch((e) => {
-          // ignore if role was not found
-          if (APIConnector.HTTPError.is(e, 404, 'Role not found')) return
-          // put the role back into cache if it hasnt been deleted properly
-          cache.patchOk(data.RolesResource, null, R.append(role))
-          push(`Error deleting role "${role.name}"`)
+          if (APIConnector.HTTPError.is(e, 409, 'Role name already exists')) {
+            return {
+              [RF.FORM_ERROR]: 'taken',
+            }
+          }
+          if (APIConnector.HTTPError.is(e, 400, 'Invalid name for role')) {
+            return {
+              [RF.FORM_ERROR]: 'invalid',
+            }
+          }
           // eslint-disable-next-line no-console
-          console.error('Error deleting role')
+          console.error('Error creating role')
           // eslint-disable-next-line no-console
           console.dir(e)
-        })
-      // optimistically remove the role from cache
-      cache.patchOk(data.RolesResource, null, R.reject(R.propEq('id', role.id)))
-    }, [role, close, req, cache, push])
+          return {
+            [RF.FORM_ERROR]: 'unexpected',
+          }
+        }),
+    [req, cache, push, close],
+  )
 
-    return (
-      <>
-        <DialogTitle>Delete a role</DialogTitle>
-        <DialogContent>
-          You are about to delete the &quot;{role.name}&quot; role. This operation is
-          irreversible.
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => close('cancel')} color="primary">
-            Cancel
-          </Button>
-          <Button onClick={doDelete} color="primary">
-            Delete
-          </Button>
-        </DialogActions>
-      </>
-    )
-  },
-)
-
-const Edit = RT.composeComponent(
-  'Admin.Roles.Edit',
-  RC.setPropTypes({
-    role: PT.object.isRequired,
-    close: PT.func.isRequired,
-  }),
-  ({ role, close }) => {
-    const req = APIConnector.use()
-    const cache = Cache.use()
-    const onSubmit = React.useCallback(
-      (values) =>
-        req({
-          endpoint: `/roles/${role.id}`,
-          method: 'PUT',
-          body: JSON.stringify(values),
-        })
-          .then((res) => {
-            cache.patchOk(
-              data.RolesResource,
-              null,
-              R.map((r) => (r.id === role.id ? res : r)),
-            )
-            close()
-          })
-          .catch((e) => {
-            if (APIConnector.HTTPError.is(e, 409, 'Role name already exists')) {
-              throw new RF.SubmissionError({ name: 'taken' })
-            }
-            if (APIConnector.HTTPError.is(e, 400, 'Invalid name for role')) {
-              throw new RF.SubmissionError({ name: 'invalid' })
-            }
-            // eslint-disable-next-line no-console
-            console.error('Error updating role')
-            // eslint-disable-next-line no-console
-            console.dir(e)
-            throw new RF.SubmissionError({ _error: 'unexpected' })
-          }),
-      [req, cache, close, role.id],
-    )
-
-    return (
-      <Form.ReduxForm
-        form={`Admin.Roles.Edit(${role.id})`}
-        onSubmit={onSubmit}
-        initialValues={R.pick(['name', 'arn'], role)}
-      >
-        {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
-          <>
-            <DialogTitle>Edit the &quot;{role.name}&quot; role</DialogTitle>
-            <DialogContent>
-              <form onSubmit={handleSubmit}>
-                <RF.Field
-                  component={Form.Field}
-                  name="name"
-                  validate={[validators.required]}
-                  placeholder="Name"
-                  fullWidth
-                  margin="normal"
+  return (
+    <RF.Form onSubmit={onSubmit}>
+      {({ form, handleSubmit, submitting, submitFailed, error, invalid }) => (
+        <>
+          <DialogTitle>Create a role</DialogTitle>
+          <DialogContent>
+            <form onSubmit={handleSubmit}>
+              <RF.Field
+                component={Form.Field}
+                name="name"
+                validate={validators.required}
+                placeholder="Name"
+                fullWidth
+                margin="normal"
+                errors={{
+                  required: 'Enter a role name',
+                  taken: 'Role with this name already exists',
+                  invalid: 'Invalid name for role',
+                }}
+              />
+              <RF.Field
+                component={Form.Field}
+                name="arn"
+                validate={validators.required}
+                placeholder="ARN"
+                fullWidth
+                margin="normal"
+                errors={{
+                  required: 'Enter an ARN',
+                }}
+              />
+              {submitFailed && (
+                <Form.FormError
+                  error={error}
                   errors={{
-                    required: 'Enter a role name',
-                    taken: 'Role with this name already exists',
-                    invalid: 'Invalid name for role',
+                    unexpected: 'Something went wrong',
                   }}
                 />
-                <RF.Field
-                  component={Form.Field}
-                  name="arn"
-                  validate={[validators.required]}
-                  placeholder="ARN"
-                  fullWidth
-                  margin="normal"
+              )}
+              <input type="submit" style={{ display: 'none' }} />
+            </form>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => close('cancel')} color="primary" disabled={submitting}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              color="primary"
+              disabled={submitting || (submitFailed && invalid)}
+            >
+              Create
+            </Button>
+          </DialogActions>
+        </>
+      )}
+    </RF.Form>
+  )
+}
+
+function Delete({ role, close }) {
+  const req = APIConnector.use()
+  const cache = Cache.use()
+  const { push } = Notifications.use()
+  const doDelete = React.useCallback(() => {
+    close()
+    req({ endpoint: `/roles/${role.id}`, method: 'DELETE' })
+      .then(() => {
+        push(`Role "${role.name}" deleted`)
+      })
+      .catch((e) => {
+        // ignore if role was not found
+        if (APIConnector.HTTPError.is(e, 404, 'Role not found')) return
+        // put the role back into cache if it hasnt been deleted properly
+        cache.patchOk(data.RolesResource, null, R.append(role))
+        push(`Error deleting role "${role.name}"`)
+        // eslint-disable-next-line no-console
+        console.error('Error deleting role')
+        // eslint-disable-next-line no-console
+        console.dir(e)
+      })
+    // optimistically remove the role from cache
+    cache.patchOk(data.RolesResource, null, R.reject(R.propEq('id', role.id)))
+  }, [role, close, req, cache, push])
+
+  return (
+    <>
+      <DialogTitle>Delete a role</DialogTitle>
+      <DialogContent>
+        You are about to delete the &quot;{role.name}&quot; role. This operation is
+        irreversible.
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => close('cancel')} color="primary">
+          Cancel
+        </Button>
+        <Button onClick={doDelete} color="primary">
+          Delete
+        </Button>
+      </DialogActions>
+    </>
+  )
+}
+
+function Edit({ role, close }) {
+  const req = APIConnector.use()
+  const cache = Cache.use()
+  const onSubmit = React.useCallback(
+    (values) =>
+      req({
+        endpoint: `/roles/${role.id}`,
+        method: 'PUT',
+        body: JSON.stringify(values),
+      })
+        .then((res) => {
+          cache.patchOk(
+            data.RolesResource,
+            null,
+            R.map((r) => (r.id === role.id ? res : r)),
+          )
+          close()
+        })
+        .catch((e) => {
+          if (APIConnector.HTTPError.is(e, 409, 'Role name already exists')) {
+            return {
+              [RF.FORM_ERROR]: 'taken',
+            }
+          }
+          if (APIConnector.HTTPError.is(e, 400, 'Invalid name for role')) {
+            return {
+              [RF.FORM_ERROR]: 'invalid',
+            }
+          }
+          // eslint-disable-next-line no-console
+          console.error('Error updating role')
+          // eslint-disable-next-line no-console
+          console.dir(e)
+          return {
+            [RF.FORM_ERROR]: 'unexpected',
+          }
+        }),
+    [req, cache, close, role.id],
+  )
+
+  return (
+    <RF.Form onSubmit={onSubmit} initialValues={R.pick(['name', 'arn'], role)}>
+      {({ form, handleSubmit, submitting, submitFailed, error, invalid }) => (
+        <>
+          <DialogTitle>Edit the &quot;{role.name}&quot; role</DialogTitle>
+          <DialogContent>
+            <form onSubmit={handleSubmit}>
+              <RF.Field
+                component={Form.Field}
+                name="name"
+                validate={validators.required}
+                placeholder="Name"
+                fullWidth
+                margin="normal"
+                errors={{
+                  required: 'Enter a role name',
+                  taken: 'Role with this name already exists',
+                  invalid: 'Invalid name for role',
+                }}
+              />
+              <RF.Field
+                component={Form.Field}
+                name="arn"
+                validate={validators.required}
+                placeholder="ARN"
+                fullWidth
+                margin="normal"
+                errors={{
+                  required: 'Enter an ARN',
+                }}
+              />
+              {submitFailed && (
+                <Form.FormError
+                  error={error}
                   errors={{
-                    required: 'Enter an ARN',
+                    unexpected: 'Something went wrong',
                   }}
                 />
-                {submitFailed && (
-                  <Form.FormError
-                    error={error}
-                    errors={{
-                      unexpected: 'Something went wrong',
-                    }}
-                  />
-                )}
-                <input type="submit" style={{ display: 'none' }} />
-              </form>
-            </DialogContent>
-            <DialogActions>
-              <Button
-                onClick={() => close('cancel')}
-                color="primary"
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                color="primary"
-                disabled={submitting || (submitFailed && invalid)}
-              >
-                Save
-              </Button>
-            </DialogActions>
-          </>
-        )}
-      </Form.ReduxForm>
-    )
-  },
-)
+              )}
+              <input type="submit" style={{ display: 'none' }} />
+            </form>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => close('cancel')} color="primary" disabled={submitting}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              color="primary"
+              disabled={submitting || (submitFailed && invalid)}
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </>
+      )}
+    </RF.Form>
+  )
+}
 
-export default RT.composeComponent(
-  'Admin.Roles',
-  RC.setPropTypes({
-    roles: PT.object.isRequired,
-  }),
-  RT.withSuspense(() => (
-    <Paper>
-      <Table.Toolbar heading="Roles" />
-      <Table.Progress />
-    </Paper>
-  )),
-  ({ roles }) => {
-    const rows = Cache.suspend(roles)
+export default function Roles({ roles }) {
+  const rows = Cache.suspend(roles)
 
-    const ordering = Table.useOrdering({ rows, column: columns[0] })
-    const dialogs = Dialogs.use()
+  const ordering = Table.useOrdering({ rows, column: columns[0] })
+  const dialogs = Dialogs.use()
 
-    const toolbarActions = [
-      {
-        title: 'Create',
-        icon: <Icon>add</Icon>,
-        fn: React.useCallback(() => {
-          dialogs.open(({ close }) => <Create {...{ close }} />)
-        }, [dialogs.open]), // eslint-disable-line react-hooks/exhaustive-deps
+  const toolbarActions = [
+    {
+      title: 'Create',
+      icon: <Icon>add</Icon>,
+      fn: React.useCallback(() => {
+        dialogs.open(({ close }) => <Create {...{ close }} />)
+      }, [dialogs.open]), // eslint-disable-line react-hooks/exhaustive-deps
+    },
+  ]
+
+  const inlineActions = (role) => [
+    {
+      title: 'Delete',
+      icon: <Icon>delete</Icon>,
+      fn: () => {
+        dialogs.open(({ close }) => <Delete {...{ role, close }} />)
       },
-    ]
-
-    const inlineActions = (role) => [
-      {
-        title: 'Delete',
-        icon: <Icon>delete</Icon>,
-        fn: () => {
-          dialogs.open(({ close }) => <Delete {...{ role, close }} />)
-        },
+    },
+    {
+      title: 'Edit',
+      icon: <Icon>edit</Icon>,
+      fn: () => {
+        dialogs.open(({ close }) => (
+          <Edit
+            {...{
+              role,
+              close,
+            }}
+          />
+        ))
       },
-      {
-        title: 'Edit',
-        icon: <Icon>edit</Icon>,
-        fn: () => {
-          dialogs.open(({ close }) => <Edit {...{ role, close }} />)
-        },
-      },
-    ]
-
-    return (
+    },
+  ]
+  return (
+    <React.Suspense
+      fallback={
+        <Paper>
+          <Table.Toolbar heading="Roles" />
+          <Table.Progress />
+        </Paper>
+      }
+    >
       <Paper>
         {dialogs.render()}
         <Table.Toolbar heading="Roles" actions={toolbarActions} />
@@ -397,6 +377,6 @@ export default RT.composeComponent(
           </MuiTable>
         </Table.Wrapper>
       </Paper>
-    )
-  },
-)
+    </React.Suspense>
+  )
+}
