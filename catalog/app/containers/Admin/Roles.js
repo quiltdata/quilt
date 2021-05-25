@@ -1,3 +1,4 @@
+import { FORM_ERROR } from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
@@ -11,7 +12,7 @@ import MuiTable from '@material-ui/core/Table'
 import TableBody from '@material-ui/core/TableBody'
 import TableCell from '@material-ui/core/TableCell'
 import TableRow from '@material-ui/core/TableRow'
-import { withStyles } from '@material-ui/styles'
+import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
 import * as APIConnector from 'utils/APIConnector'
@@ -24,11 +25,16 @@ import * as Form from './RFForm'
 import * as Table from './Table'
 import * as data from './data'
 
-const Mono = withStyles((t) => ({
+const useMonoStyles = M.makeStyles((t) => ({
   root: {
     fontFamily: t.typography.monospace.fontFamily,
   },
-}))(({ classes, children }) => <span className={classes.root}>{children}</span>)
+}))
+
+function Mono({ children }: React.PropsWithChildren<{}>) {
+  const classes = useMonoStyles()
+  return <span className={classes.root}>{children}</span>
+}
 
 const getARNLink = (arn) => {
   try {
@@ -64,41 +70,46 @@ const columns = [
   },
 ]
 
+// interface CreateProps {
+//   close: (reason?: string) => void
+// }
+
 function Create({ close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
   const { push } = Notifications.use()
   const onSubmit = React.useCallback(
-    (values) =>
-      req({
-        endpoint: '/roles',
-        method: 'POST',
-        body: JSON.stringify(values),
-      })
-        .then((res) => {
-          cache.patchOk(data.RolesResource, null, R.append(res))
-          push(`Role "${res.name}" created`)
-          close()
+    async (values) => {
+      try {
+        const res = req({
+          endpoint: '/roles',
+          method: 'POST',
+          body: JSON.stringify(values),
         })
-        .catch((e) => {
-          if (APIConnector.HTTPError.is(e, 409, 'Role name already exists')) {
-            return {
-              [RF.FORM_ERROR]: 'taken',
-            }
-          }
-          if (APIConnector.HTTPError.is(e, 400, 'Invalid name for role')) {
-            return {
-              [RF.FORM_ERROR]: 'invalid',
-            }
-          }
-          // eslint-disable-next-line no-console
-          console.error('Error creating role')
-          // eslint-disable-next-line no-console
-          console.dir(e)
+        cache.patchOk(data.RolesResource, null, R.append(res))
+        push(`Role "${res.name}" created`)
+        close()
+        return undefined
+      } catch (error) {
+        if (APIConnector.HTTPError.is(error, 409, 'Role name already exists')) {
           return {
-            [RF.FORM_ERROR]: 'unexpected',
+            [FORM_ERROR]: 'taken',
           }
-        }),
+        }
+        if (APIConnector.HTTPError.is(error, 400, 'Invalid name for role')) {
+          return {
+            [FORM_ERROR]: 'invalid',
+          }
+        }
+        // eslint-disable-next-line no-console
+        console.error('Error creating role')
+        // eslint-disable-next-line no-console
+        console.dir(error)
+        return {
+          [FORM_ERROR]: 'unexpected',
+        }
+      }
+    },
     [req, cache, push, close],
   )
 
@@ -162,6 +173,17 @@ function Create({ close }) {
   )
 }
 
+// interface Role {
+//   arn: string
+//   id: string
+//   name: string
+// }
+
+// interface DeleteProps {
+//   role: Role
+//   close: (reason?: string) => void
+// }
+
 function Delete({ role, close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
@@ -206,6 +228,11 @@ function Delete({ role, close }) {
   )
 }
 
+// interface EditProps {
+//   role: Role
+//   close: (reason?: string) => void
+// }
+
 function Edit({ role, close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
@@ -227,12 +254,12 @@ function Edit({ role, close }) {
         .catch((e) => {
           if (APIConnector.HTTPError.is(e, 409, 'Role name already exists')) {
             return {
-              [RF.FORM_ERROR]: 'taken',
+              [FORM_ERROR]: 'taken',
             }
           }
           if (APIConnector.HTTPError.is(e, 400, 'Invalid name for role')) {
             return {
-              [RF.FORM_ERROR]: 'invalid',
+              [FORM_ERROR]: 'invalid',
             }
           }
           // eslint-disable-next-line no-console
@@ -240,7 +267,7 @@ function Edit({ role, close }) {
           // eslint-disable-next-line no-console
           console.dir(e)
           return {
-            [RF.FORM_ERROR]: 'unexpected',
+            [FORM_ERROR]: 'unexpected',
           }
         }),
     [req, cache, close, role.id],
@@ -305,6 +332,10 @@ function Edit({ role, close }) {
     </RF.Form>
   )
 }
+
+// interface RolesProps {
+//   roles: { result: { value: Roles[] } }
+// }
 
 export default function Roles({ roles }) {
   const rows = Cache.suspend(roles)
