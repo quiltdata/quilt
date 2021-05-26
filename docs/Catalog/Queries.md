@@ -44,5 +44,7 @@ select, edit, and execute.
 3. To create a table you need to set database using SQL query: `CREATE EXTERNAL TABLE database_name.table_name ()`
 4. You can choose a named query (saved at Amazon Athena Query Editor) or create a new one from scratch.
 5. After clicking "Run query" and some time passed you would be able to see results
+![](../imgs/athena-ui.png)
 6. Queries are idempotent, so querying the same query will return the same results shortly
 7. You can see all queries executions in the History table, click on a date to see results
+![](../imgs/athena-history.png)
