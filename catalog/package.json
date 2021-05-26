@@ -81,6 +81,7 @@
     "invariant": "^2.2.4",
     "ip": "^1.1.5",
     "js-yaml": "^4.1.0",
+    "jsoneditor": "^9.4.1",
     "jsoneditor-react": "^3.1.1",
     "katex": "^0.13.5",
     "lodash": "^4.17.21",
