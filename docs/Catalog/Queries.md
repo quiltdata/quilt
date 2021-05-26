@@ -41,5 +41,5 @@ select, edit, and execute.
 
 1. Need to set up workgroup and location according to https://docs.aws.amazon.com/athena/latest/ug/getting-started.html
 2. Create database with query editor and click "Run query"
-3. It's viable to SELECT and SHOW data on already existing databases and tables only
-3. a) Actually you can create table with `CREATE EXTERNAL TABLE database_name.table_name ()`
+3. To create a table you need to set database using SQL query: `CREATE EXTERNAL TABLE database_name.table_name ()`
+4. Write any query
