@@ -4,16 +4,7 @@ import * as M from '@material-ui/core'
 
 import StyledLink from 'utils/StyledLink'
 
-type Permission = 'ReadWrite' | 'Read' | 'None'
-
-interface BucketPermissionData {
-  bucket: string
-  permission: Permission
-}
-
-interface BucketsPermissionsData {
-  permissions: BucketPermissionData[]
-}
+import * as requests from './requests'
 
 const useBucketPermissionStyles = M.makeStyles((t) => ({
   bucket: {
@@ -35,9 +26,9 @@ const useBucketPermissionStyles = M.makeStyles((t) => ({
 }))
 
 interface BucketPermissionProps {
-  onChange: (value: BucketPermissionData) => void
-  permissions: Permission[]
-  value: BucketPermissionData
+  onChange: (value: requests.BucketPermissionData) => void
+  permissions: requests.Permission[]
+  value: requests.BucketPermissionData
 }
 
 function BucketPermissionEdit({ onChange, permissions, value }: BucketPermissionProps) {
@@ -91,8 +82,8 @@ const useStyles = M.makeStyles((t) => ({
 interface BucketPermissionsProps {
   className: string
   input: {
-    onChange: (value: BucketsPermissionsData) => void
-    value: BucketsPermissionsData
+    onChange: (value: requests.BucketsPermissionsData) => void
+    value: requests.BucketsPermissionsData
   }
   onAdvanced: () => void
 }
@@ -105,7 +96,7 @@ export default function BucketPermissions({
   const classes = useStyles()
 
   const handleChange = React.useMemo(
-    () => (index: number) => (bucketPermission: BucketPermissionData) => {
+    () => (index: number) => (bucketPermission: requests.BucketPermissionData) => {
       onChange(
         R.assoc(
           'permissions',

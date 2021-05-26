@@ -16,6 +16,23 @@ import BucketsPermissions from './BucketsPermissions'
 import * as Form from './RFForm'
 import * as Table from './Table'
 import * as data from './data'
+import * as requests from './requests'
+
+function parseError(error) {
+  if (APIConnector.HTTPError.is(error, 409, 'Role name already exists')) {
+    return {
+      [FORM_ERROR]: 'taken',
+    }
+  }
+  if (APIConnector.HTTPError.is(error, 400, 'Invalid name for role')) {
+    return {
+      [FORM_ERROR]: 'invalid',
+    }
+  }
+  return {
+    [FORM_ERROR]: 'unexpected',
+  }
+}
 
 const useMonoStyles = M.makeStyles((t) => ({
   root: {
@@ -79,32 +96,12 @@ function Create({ close }) {
   const onSubmit = React.useCallback(
     async (values) => {
       try {
-        const res = req({
-          endpoint: '/roles',
-          method: 'POST',
-          body: JSON.stringify(values),
-        })
+        const res = await requests.createRole(req, values)
         cache.patchOk(data.RolesResource, null, R.append(res))
         push(`Role "${res.name}" created`)
         close()
       } catch (error) {
-        if (APIConnector.HTTPError.is(error, 409, 'Role name already exists')) {
-          return {
-            [FORM_ERROR]: 'taken',
-          }
-        }
-        if (APIConnector.HTTPError.is(error, 400, 'Invalid name for role')) {
-          return {
-            [FORM_ERROR]: 'invalid',
-          }
-        }
-        // eslint-disable-next-line no-console
-        console.error('Error creating role')
-        // eslint-disable-next-line no-console
-        console.dir(error)
-        return {
-          [FORM_ERROR]: 'unexpected',
-        }
+        return parseError(error)
       }
       return undefined
     },
@@ -232,7 +229,7 @@ function Delete({ role, close }) {
   const doDelete = React.useCallback(async () => {
     close()
     try {
-      await req({ endpoint: `/roles/${role.id}`, method: 'DELETE' })
+      await requests.deleteRole(req, role)
       push(`Role "${role.name}" deleted`)
     } catch (error) {
       // ignore if role was not found
@@ -240,10 +237,6 @@ function Delete({ role, close }) {
       // put the role back into cache if it hasnt been deleted properly
       cache.patchOk(data.RolesResource, null, R.append(role))
       push(`Error deleting role "${role.name}"`)
-      // eslint-disable-next-line no-console
-      console.error('Error deleting role')
-      // eslint-disable-next-line no-console
-      console.dir(error)
     }
     // optimistically remove the role from cache
     cache.patchOk(data.RolesResource, null, R.reject(R.propEq('id', role.id)))
@@ -279,11 +272,7 @@ function Edit({ role, close }) {
   const onSubmit = React.useCallback(
     async (values) => {
       try {
-        const res = await req({
-          endpoint: `/roles/${role.id}`,
-          method: 'PUT',
-          body: JSON.stringify(values),
-        })
+        const res = await requests.updateRole(req, role, values)
         cache.patchOk(
           data.RolesResource,
           null,
@@ -291,27 +280,11 @@ function Edit({ role, close }) {
         )
         close()
       } catch (error) {
-        if (APIConnector.HTTPError.is(error, 409, 'Role name already exists')) {
-          return {
-            [FORM_ERROR]: 'taken',
-          }
-        }
-        if (APIConnector.HTTPError.is(error, 400, 'Invalid name for role')) {
-          return {
-            [FORM_ERROR]: 'invalid',
-          }
-        }
-        // eslint-disable-next-line no-console
-        console.error('Error updating role')
-        // eslint-disable-next-line no-console
-        console.dir(error)
-        return {
-          [FORM_ERROR]: 'unexpected',
-        }
+        parseError(error)
       }
       return undefined
     },
-    [req, cache, close, role.id],
+    [req, cache, close, role],
   )
 
   const classes = useStyles()
