@@ -51,7 +51,7 @@ export default function ArnInput({
 
   return (
     <div className={className}>
-      <M.Typography variant="subtitle2">ARN</M.Typography>
+      <M.Typography variant="h6">ARN</M.Typography>
       <p className={classes.captionWrapper}>
         <M.Typography className={classes.caption} variant="caption">
           Manage access using per-bucket permissions or{' '}

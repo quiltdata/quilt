@@ -22,6 +22,7 @@ const useBucketPermissionStyles = M.makeStyles((t) => ({
     },
     '&:last-child': {
       paddingRight: 0,
+      width: t.spacing(15),
     },
   },
   bucket: {
@@ -81,6 +82,7 @@ const useStyles = M.makeStyles((t) => ({
     },
     '&:last-child': {
       paddingRight: 0,
+      width: t.spacing(15),
     },
   },
   permissions: {
@@ -119,7 +121,7 @@ export default function BucketPermissions({
 
   return (
     <div className={className}>
-      <M.Typography variant="subtitle2">Bucket access</M.Typography>
+      <M.Typography variant="h6">Bucket access</M.Typography>
       <p className={classes.captionWrapper}>
         <M.Typography className={classes.caption} variant="caption">
           Manage access using per-bucket permissions or{' '}
