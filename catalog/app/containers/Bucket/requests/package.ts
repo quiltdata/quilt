@@ -72,7 +72,7 @@ const ENDPOINT_CREATE = '/packages'
 
 const ENDPOINT_COPY = '/packages/promote'
 
-const ENDPOINT_DELETE = '/packages/delete'
+const ENDPOINT_DELETE = '/packages/delete-revision'
 
 const ENDPOINT_WRAP = '/packages/from-folder'
 
@@ -303,20 +303,16 @@ const deleteRevision = async (
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
 
-  // FIXME: perform real deletion
-  const isBackendReady = false
-  if (isBackendReady) {
-    return makeBackendRequest(
-      req,
-      ENDPOINT_DELETE,
-      {
-        name: source.name,
-        registry: `s3://${source.bucket}`,
-        top_hash: source.hash,
-      },
-      getCredentialsQuery(credentials),
-    )
-  }
+  return makeBackendRequest(
+    req,
+    ENDPOINT_DELETE,
+    {
+      name: source.name,
+      registry: `s3://${source.bucket}`,
+      top_hash: source.hash,
+    },
+    getCredentialsQuery(credentials),
+  )
 
   return new Promise((resolve, reject) => {
     setTimeout(
