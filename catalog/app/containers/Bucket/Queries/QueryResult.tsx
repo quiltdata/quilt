@@ -8,6 +8,7 @@ import * as requests from './requests'
 const useStyles = M.makeStyles((t) => ({
   content: {
     margin: t.spacing(1, 0, 0),
+    maxWidth: '100%',
     padding: t.spacing(3, 4, 4),
   },
 }))
