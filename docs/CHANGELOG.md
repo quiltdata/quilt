@@ -18,6 +18,7 @@
 * [Added] Prepopulate today date for metadata ([#2121](https://github.com/quiltdata/quilt/pull/2121))
 * [Added] Limit and offset parameters in pkgselect lambda ([#2124](https://github.com/quiltdata/quilt/pull/2124))
 * [Added] File listing: "load more" button to fetch more entries from S3 ([#2150](https://github.com/quiltdata/quilt/pull/2150))
+* [Added] Voila Notebooks format support ([#2163](https://github.com/quiltdata/quilt/pull/2163))
 * [Added] Ability to add files from S3 while revising a package ([#2171](https://github.com/quiltdata/quilt/pull/2171))
 * [Added] Lambdas for pushing an existing package/creation of package ([#2147](https://github.com/quiltdata/quilt/pull/2147), [#2180](https://github.com/quiltdata/quilt/pull/2180))
 * [Added] Custom navbar link configurable via admin UI ([#2192](https://github.com/quiltdata/quilt/pull/2192))

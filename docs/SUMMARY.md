@@ -26,6 +26,7 @@
 ### Catalog
 
 * [Metadata for teams](Catalog/Metadata.md)
+* [Configuration](Catalog/Preferences.md)
 
 ### Advanced Usage
 
