@@ -6,11 +6,13 @@ import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
 import * as APIConnector from 'utils/APIConnector'
+import * as BucketConfig from 'utils/BucketConfig'
 import * as Dialogs from 'utils/Dialogs'
 import * as Cache from 'utils/ResourceCache'
 import StyledLink from 'utils/StyledLink'
 import * as validators from 'utils/validators'
 
+import BucketsPermissions from './BucketsPermissions'
 import * as Form from './RFForm'
 import * as Table from './Table'
 import * as data from './data'
@@ -60,6 +62,12 @@ const columns = [
   },
 ]
 
+const useStyles = M.makeStyles((t) => ({
+  panel: {
+    marginTop: t.spacing(2),
+  },
+}))
+
 // interface CreateProps {
 //   close: (reason?: string) => void
 // }
@@ -103,11 +111,30 @@ function Create({ close }) {
     [req, cache, push, close],
   )
 
+  const classes = useStyles()
+  const buckets = BucketConfig.useBucketConfigs()
+
+  const initialPermissions = React.useMemo(
+    () => ({
+      permissions: buckets
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(({ name }) => ({
+          bucket: `s3://${name}`,
+          permission: 'None',
+        })),
+    }),
+    [buckets],
+  )
+
+  const [isAdvanced, setAdvanced] = React.useState(false)
+
   return (
-    <RF.Form onSubmit={onSubmit}>
+    <RF.Form onSubmit={onSubmit} initialValues={{ permissions: initialPermissions }}>
       {({ form, handleSubmit, submitting, submitFailed, error, invalid }) => (
         <>
-          <M.DialogTitle>Create a role</M.DialogTitle>
+          <M.DialogTitle disableTypography>
+            <M.Typography variant="h5">Create a role</M.Typography>
+          </M.DialogTitle>
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
               <RF.Field
@@ -130,10 +157,30 @@ function Create({ close }) {
                 placeholder="ARN"
                 fullWidth
                 margin="normal"
+                disabled={!isAdvanced}
                 errors={{
                   required: 'Enter an ARN',
                 }}
               />
+
+              <M.FormControlLabel
+                label="Use ARN"
+                control={<M.Checkbox checked={isAdvanced} />}
+                onChange={() => setAdvanced(!isAdvanced)}
+              />
+
+              <M.Collapse in={!isAdvanced}>
+                <RF.Field
+                  className={classes.panel}
+                  component={BucketsPermissions}
+                  name="permissions"
+                  fullWidth
+                  margin="normal"
+                  errors={{}}
+                  onAdvanced={() => setAdvanced(true)}
+                />
+              </M.Collapse>
+
               {submitFailed && (
                 <Form.FormError
                   error={error}
@@ -267,8 +314,32 @@ function Edit({ role, close }) {
     [req, cache, close, role.id],
   )
 
+  const classes = useStyles()
+  const buckets = BucketConfig.useBucketConfigs()
+
+  const initialPermissions = React.useMemo(
+    () => ({
+      permissions: buckets
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(({ name }) => ({
+          bucket: `s3://${name}`,
+          permission: 'None',
+        })),
+    }),
+    [buckets],
+  )
+
+  const [isAdvanced, setAdvanced] = React.useState(false)
+
   return (
-    <RF.Form onSubmit={onSubmit} initialValues={R.pick(['name', 'arn'], role)}>
+    <RF.Form
+      onSubmit={onSubmit}
+      initialValues={R.assoc(
+        'permissions',
+        initialPermissions,
+        R.pick(['name', 'arn'], role),
+      )}
+    >
       {({ form, handleSubmit, submitting, submitFailed, error, invalid }) => (
         <>
           <M.DialogTitle>Edit the &quot;{role.name}&quot; role</M.DialogTitle>
@@ -294,10 +365,30 @@ function Edit({ role, close }) {
                 placeholder="ARN"
                 fullWidth
                 margin="normal"
+                disabled={!isAdvanced}
                 errors={{
                   required: 'Enter an ARN',
                 }}
               />
+
+              <M.FormControlLabel
+                label="Use ARN"
+                control={<M.Checkbox checked={isAdvanced} />}
+                onChange={() => setAdvanced(!isAdvanced)}
+              />
+
+              <M.Collapse in={!isAdvanced}>
+                <RF.Field
+                  className={classes.panel}
+                  component={BucketsPermissions}
+                  name="permissions"
+                  fullWidth
+                  margin="normal"
+                  errors={{}}
+                  onAdvanced={() => setAdvanced(true)}
+                />
+              </M.Collapse>
+
               {submitFailed && (
                 <Form.FormError
                   error={error}
@@ -384,7 +475,7 @@ export default function Roles({ roles }) {
       }
     >
       <M.Paper>
-        {dialogs.render()}
+        {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
         <Table.Toolbar heading="Roles" actions={toolbarActions} />
         <Table.Wrapper>
           <M.Table>
