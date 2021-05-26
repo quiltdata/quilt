@@ -147,6 +147,7 @@ const render = (messages: MessagesByLocale) => {
       ],
       AWS.Credentials.Provider,
       AWS.Config.Provider,
+      AWS.Athena.Provider,
       AWS.S3.Provider,
       Notifications.WithNotifications,
       ErrorBoundary,

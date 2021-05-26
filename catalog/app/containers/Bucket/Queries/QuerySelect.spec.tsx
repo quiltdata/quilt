@@ -6,7 +6,7 @@ import QuerySelect from './QuerySelect'
 describe('containers/Bucket/Queries/QuerySelect', () => {
   it('should render', () => {
     const tree = renderer
-      .create(<QuerySelect className="" queries={[]} onChange={() => {}} value={null} />)
+      .create(<QuerySelect queries={[]} onChange={() => {}} value={null} />)
       .toJSON()
     expect(tree).toMatchSnapshot()
   })
@@ -16,14 +16,7 @@ describe('containers/Bucket/Queries/QuerySelect', () => {
       { key: 'key2', name: 'name2', url: 'url2' },
     ]
     const tree = renderer
-      .create(
-        <QuerySelect
-          className="class"
-          queries={queries}
-          onChange={() => {}}
-          value={queries[1]}
-        />,
-      )
+      .create(<QuerySelect queries={queries} onChange={() => {}} value={queries[1]} />)
       .toJSON()
     expect(tree).toMatchSnapshot()
   })

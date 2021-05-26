@@ -46,7 +46,7 @@ const sections = {
     { path: 'bucketFile', exact: true, strict: true },
     { path: 'bucketDir', exact: true },
   ],
-  queries: { path: 'bucketQueries', exact: true },
+  queries: { path: 'bucketQueries' },
   search: { path: 'bucketSearch', exact: true },
 }
 
@@ -113,7 +113,7 @@ export default function Bucket({
               component={PackageRevisions}
               exact
             />
-            <Route path={paths.bucketQueries} component={Queries} exact />
+            <Route path={paths.bucketQueries} component={Queries} />
             <Route component={ThrowNotFound} />
           </Switch>
         </CatchNotFound>
