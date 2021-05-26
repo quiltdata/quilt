@@ -108,7 +108,7 @@ function Create({ close }) {
   const createRole = useCreateRole()
   const onSubmit = React.useCallback(
     async (values) => {
-      const error = createRole(values)
+      const error = await createRole(values)
       if (!error) close()
       return error
     },
@@ -157,7 +157,7 @@ function Create({ close }) {
               <RF.Field
                 component={Form.Field}
                 name="arn"
-                validate={validators.required}
+                validate={(v) => (isAdvanced ? validators.required(v) : undefined)}
                 placeholder="ARN"
                 fullWidth
                 margin="normal"
@@ -180,7 +180,6 @@ function Create({ close }) {
                   name="permissions"
                   fullWidth
                   margin="normal"
-                  errors={{}}
                   onAdvanced={() => setAdvanced(true)}
                 />
               </M.Collapse>
@@ -240,7 +239,7 @@ function useDeleteRole(role) {
 
 function Delete({ role, close }) {
   const deleteRole = useDeleteRole(role)
-  const doDelete = React.useCallback(async () => {
+  const doDelete = React.useCallback(() => {
     close()
     return deleteRole()
   }, [close, deleteRole])
@@ -289,7 +288,7 @@ function Edit({ role, close }) {
   const editRole = useEditRole(role)
   const onSubmit = React.useCallback(
     async (values) => {
-      const error = editRole(values)
+      const error = await editRole(values)
       if (!error) close()
       return error
     },
