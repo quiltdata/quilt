@@ -87,7 +87,6 @@ function Create({ close }) {
         cache.patchOk(data.RolesResource, null, R.append(res))
         push(`Role "${res.name}" created`)
         close()
-        return undefined
       } catch (error) {
         if (APIConnector.HTTPError.is(error, 409, 'Role name already exists')) {
           return {
@@ -107,6 +106,7 @@ function Create({ close }) {
           [FORM_ERROR]: 'unexpected',
         }
       }
+      return undefined
     },
     [req, cache, push, close],
   )
@@ -229,23 +229,22 @@ function Delete({ role, close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
   const { push } = Notifications.use()
-  const doDelete = React.useCallback(() => {
+  const doDelete = React.useCallback(async () => {
     close()
-    req({ endpoint: `/roles/${role.id}`, method: 'DELETE' })
-      .then(() => {
-        push(`Role "${role.name}" deleted`)
-      })
-      .catch((e) => {
-        // ignore if role was not found
-        if (APIConnector.HTTPError.is(e, 404, 'Role not found')) return
-        // put the role back into cache if it hasnt been deleted properly
-        cache.patchOk(data.RolesResource, null, R.append(role))
-        push(`Error deleting role "${role.name}"`)
-        // eslint-disable-next-line no-console
-        console.error('Error deleting role')
-        // eslint-disable-next-line no-console
-        console.dir(e)
-      })
+    try {
+      await req({ endpoint: `/roles/${role.id}`, method: 'DELETE' })
+      push(`Role "${role.name}" deleted`)
+    } catch (error) {
+      // ignore if role was not found
+      if (APIConnector.HTTPError.is(error, 404, 'Role not found')) return
+      // put the role back into cache if it hasnt been deleted properly
+      cache.patchOk(data.RolesResource, null, R.append(role))
+      push(`Error deleting role "${role.name}"`)
+      // eslint-disable-next-line no-console
+      console.error('Error deleting role')
+      // eslint-disable-next-line no-console
+      console.dir(error)
+    }
     // optimistically remove the role from cache
     cache.patchOk(data.RolesResource, null, R.reject(R.propEq('id', role.id)))
   }, [role, close, req, cache, push])
@@ -278,39 +277,40 @@ function Edit({ role, close }) {
   const req = APIConnector.use()
   const cache = Cache.use()
   const onSubmit = React.useCallback(
-    (values) =>
-      req({
-        endpoint: `/roles/${role.id}`,
-        method: 'PUT',
-        body: JSON.stringify(values),
-      })
-        .then((res) => {
-          cache.patchOk(
-            data.RolesResource,
-            null,
-            R.map((r) => (r.id === role.id ? res : r)),
-          )
-          close()
+    async (values) => {
+      try {
+        const res = await req({
+          endpoint: `/roles/${role.id}`,
+          method: 'PUT',
+          body: JSON.stringify(values),
         })
-        .catch((e) => {
-          if (APIConnector.HTTPError.is(e, 409, 'Role name already exists')) {
-            return {
-              [FORM_ERROR]: 'taken',
-            }
-          }
-          if (APIConnector.HTTPError.is(e, 400, 'Invalid name for role')) {
-            return {
-              [FORM_ERROR]: 'invalid',
-            }
-          }
-          // eslint-disable-next-line no-console
-          console.error('Error updating role')
-          // eslint-disable-next-line no-console
-          console.dir(e)
+        cache.patchOk(
+          data.RolesResource,
+          null,
+          R.map((r) => (r.id === role.id ? res : r)),
+        )
+        close()
+      } catch (error) {
+        if (APIConnector.HTTPError.is(error, 409, 'Role name already exists')) {
           return {
-            [FORM_ERROR]: 'unexpected',
+            [FORM_ERROR]: 'taken',
           }
-        }),
+        }
+        if (APIConnector.HTTPError.is(error, 400, 'Invalid name for role')) {
+          return {
+            [FORM_ERROR]: 'invalid',
+          }
+        }
+        // eslint-disable-next-line no-console
+        console.error('Error updating role')
+        // eslint-disable-next-line no-console
+        console.dir(error)
+        return {
+          [FORM_ERROR]: 'unexpected',
+        }
+      }
+      return undefined
+    },
     [req, cache, close, role.id],
   )
 
