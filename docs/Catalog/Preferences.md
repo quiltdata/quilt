@@ -17,6 +17,7 @@ ui:
   actions:
     copyPackage: True
     createPackage: True
+    deleteRevision: True
     revisePackage: True
   sourceBuckets:
     s3://BUCKET_1: {}
@@ -31,6 +32,7 @@ ui:
 * `ui.actions.copyPackage: False` - hide buttons to push packages across buckets
 * `ui.actions.createPackage: False` - hide buttons to create packages via
 drag-and-drop or from folders in S3
+* `ui.actions.deleteRevision: False` - hide buttons to delete package revision
 * `ui.actions.revisePackage: False` - hide the button to revise packages
 * `ui.sourceBuckets` - a dictionary of S3 bucket names that map to an empty object;
 buckets in this list are the ones offered when the user clicks
