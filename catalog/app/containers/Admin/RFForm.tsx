@@ -13,7 +13,7 @@ type FieldProps = M.TextFieldProps & {
   validating?: boolean
 }
 export function Field({ input, meta, errors, helperText, ...rest }: FieldProps) {
-  const error = meta.submitFailed && meta.error
+  const error = meta.submitFailed && (meta.error || meta.submitError)
   const props = {
     error: !!error,
     helperText: error ? errors[error] || error : helperText,

@@ -21,12 +21,12 @@ import * as requests from './requests'
 function parseError(error) {
   if (APIConnector.HTTPError.is(error, 409, 'Role name already exists')) {
     return {
-      [FORM_ERROR]: 'taken',
+      name: 'taken',
     }
   }
   if (APIConnector.HTTPError.is(error, 400, 'Invalid name for role')) {
     return {
-      [FORM_ERROR]: 'invalid',
+      name: 'invalid',
     }
   }
   return {
@@ -134,7 +134,7 @@ function Create({ close }) {
 
   return (
     <RF.Form onSubmit={onSubmit} initialValues={{ permissions: initialPermissions }}>
-      {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
+      {({ handleSubmit, submitting, submitFailed, error, invalid, submitError }) => (
         <>
           <M.DialogTitle disableTypography>
             <M.Typography variant="h5">Create a role</M.Typography>
@@ -186,7 +186,7 @@ function Create({ close }) {
 
               {submitFailed && (
                 <Form.FormError
-                  error={error}
+                  error={error || submitError}
                   errors={{
                     unexpected: 'Something went wrong',
                   }}
@@ -321,7 +321,7 @@ function Edit({ role, close }) {
         R.pick(['name', 'arn'], role),
       )}
     >
-      {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
+      {({ handleSubmit, submitting, submitFailed, error, invalid, submitError }) => (
         <>
           <M.DialogTitle>Edit the &quot;{role.name}&quot; role</M.DialogTitle>
           <M.DialogContent>
@@ -372,7 +372,7 @@ function Edit({ role, close }) {
 
               {submitFailed && (
                 <Form.FormError
-                  error={error}
+                  error={error || submitError}
                   errors={{
                     unexpected: 'Something went wrong',
                   }}
