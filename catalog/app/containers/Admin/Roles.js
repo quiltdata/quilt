@@ -130,7 +130,7 @@ function Create({ close }) {
 
   return (
     <RF.Form onSubmit={onSubmit} initialValues={{ permissions: initialPermissions }}>
-      {({ form, handleSubmit, submitting, submitFailed, error, invalid }) => (
+      {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
         <>
           <M.DialogTitle disableTypography>
             <M.Typography variant="h5">Create a role</M.Typography>
@@ -340,7 +340,7 @@ function Edit({ role, close }) {
         R.pick(['name', 'arn'], role),
       )}
     >
-      {({ form, handleSubmit, submitting, submitFailed, error, invalid }) => (
+      {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
         <>
           <M.DialogTitle>Edit the &quot;{role.name}&quot; role</M.DialogTitle>
           <M.DialogContent>

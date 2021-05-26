@@ -16,23 +16,21 @@ interface BucketsPermissionsData {
 }
 
 const useBucketPermissionStyles = M.makeStyles((t) => ({
-  cell: {
-    '&:first-child': {
-      paddingLeft: 0,
-    },
-    '&:last-child': {
-      paddingRight: 0,
-      width: t.spacing(15),
-    },
-  },
   bucket: {
-    lineHeight: `${t.spacing(6)}px`,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
   button: {
     marginLeft: t.spacing(1),
+  },
+  cell: {
+    minWidth: t.spacing(17.5),
+  },
+  row: {
+    '&:last-child $cell': {
+      borderBottom: 0,
+    },
   },
 }))
 
@@ -52,7 +50,7 @@ function BucketPermissionEdit({ onChange, permissions, value }: BucketPermission
     [value, onChange],
   )
   return (
-    <M.TableRow>
+    <M.TableRow className={classes.row}>
       <M.TableCell className={classes.cell}>
         <M.Typography className={classes.bucket} variant="body1">
           {value.bucket}
@@ -77,16 +75,16 @@ const useStyles = M.makeStyles((t) => ({
     margin: t.spacing(0.5, 0, 0),
   },
   cell: {
-    '&:first-child': {
-      paddingLeft: 0,
-    },
-    '&:last-child': {
-      paddingRight: 0,
-      width: t.spacing(15),
-    },
+    minWidth: t.spacing(17.5),
   },
   permissions: {
     marginTop: t.spacing(1),
+  },
+  scrollable: {
+    border: `1px solid ${t.palette.divider}`,
+    margin: t.spacing(2, 0, 0),
+    maxHeight: '300px',
+    overflow: 'auto',
   },
 }))
 
@@ -129,24 +127,26 @@ export default function BucketPermissions({
         </M.Typography>
       </p>
 
-      <M.Table size="small" className={classes.permissions}>
-        <M.TableHead>
-          <M.TableRow>
-            <M.TableCell className={classes.cell}>Bucket name</M.TableCell>
-            <M.TableCell className={classes.cell}>Permissions</M.TableCell>
-          </M.TableRow>
-        </M.TableHead>
-        <M.TableBody>
-          {value.permissions.map((permission, index) => (
-            <BucketPermissionEdit
-              key={permission.bucket}
-              permissions={['ReadWrite', 'Read', 'None']}
-              value={permission}
-              onChange={handleChange(index)}
-            />
-          ))}
-        </M.TableBody>
-      </M.Table>
+      <M.TableContainer className={classes.scrollable}>
+        <M.Table size="small" className={classes.permissions}>
+          <M.TableHead>
+            <M.TableRow>
+              <M.TableCell className={classes.cell}>Bucket name</M.TableCell>
+              <M.TableCell className={classes.cell}>Permissions</M.TableCell>
+            </M.TableRow>
+          </M.TableHead>
+          <M.TableBody>
+            {value.permissions.map((permission, index) => (
+              <BucketPermissionEdit
+                key={permission.bucket}
+                permissions={['ReadWrite', 'Read', 'None']}
+                value={permission}
+                onChange={handleChange(index)}
+              />
+            ))}
+          </M.TableBody>
+        </M.Table>
+      </M.TableContainer>
     </div>
   )
 }
