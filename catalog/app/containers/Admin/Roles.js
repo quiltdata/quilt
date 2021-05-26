@@ -85,27 +85,34 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-// interface CreateProps {
-//   close: (reason?: string) => void
-// }
-
-function Create({ close }) {
+function useCreateRole() {
   const req = APIConnector.use()
   const cache = Cache.use()
   const { push } = Notifications.use()
-  const onSubmit = React.useCallback(
+  return React.useCallback(
     async (values) => {
       try {
         const res = await requests.createRole(req, values)
         cache.patchOk(data.RolesResource, null, R.append(res))
         push(`Role "${res.name}" created`)
-        close()
       } catch (error) {
         return parseError(error)
       }
       return undefined
     },
-    [req, cache, push, close],
+    [req, cache, push],
+  )
+}
+
+function Create({ close }) {
+  const createRole = useCreateRole()
+  const onSubmit = React.useCallback(
+    async (values) => {
+      const error = createRole(values)
+      if (!error) close()
+      return error
+    },
+    [close, createRole],
   )
 
   const classes = useStyles()
@@ -211,23 +218,13 @@ function Create({ close }) {
   )
 }
 
-// interface Role {
-//   arn: string
-//   id: string
-//   name: string
-// }
-
-// interface DeleteProps {
-//   role: Role
-//   close: (reason?: string) => void
-// }
-
-function Delete({ role, close }) {
+function useDeleteRole(role) {
   const req = APIConnector.use()
   const cache = Cache.use()
   const { push } = Notifications.use()
-  const doDelete = React.useCallback(async () => {
-    close()
+  return React.useCallback(async () => {
+    // optimistically remove the role from cache
+    cache.patchOk(data.RolesResource, null, R.reject(R.propEq('id', role.id)))
     try {
       await requests.deleteRole(req, role)
       push(`Role "${role.name}" deleted`)
@@ -238,9 +235,15 @@ function Delete({ role, close }) {
       cache.patchOk(data.RolesResource, null, R.append(role))
       push(`Error deleting role "${role.name}"`)
     }
-    // optimistically remove the role from cache
-    cache.patchOk(data.RolesResource, null, R.reject(R.propEq('id', role.id)))
-  }, [role, close, req, cache, push])
+  }, [role, req, cache, push])
+}
+
+function Delete({ role, close }) {
+  const deleteRole = useDeleteRole(role)
+  const doDelete = React.useCallback(async () => {
+    close()
+    return deleteRole()
+  }, [close, deleteRole])
 
   return (
     <>
@@ -261,15 +264,10 @@ function Delete({ role, close }) {
   )
 }
 
-// interface EditProps {
-//   role: Role
-//   close: (reason?: string) => void
-// }
-
-function Edit({ role, close }) {
+function useEditRole(role) {
   const req = APIConnector.use()
   const cache = Cache.use()
-  const onSubmit = React.useCallback(
+  return React.useCallback(
     async (values) => {
       try {
         const res = await requests.updateRole(req, role, values)
@@ -278,13 +276,24 @@ function Edit({ role, close }) {
           null,
           R.map((r) => (r.id === role.id ? res : r)),
         )
-        close()
       } catch (error) {
         parseError(error)
       }
       return undefined
     },
-    [req, cache, close, role],
+    [req, cache, role],
+  )
+}
+
+function Edit({ role, close }) {
+  const editRole = useEditRole(role)
+  const onSubmit = React.useCallback(
+    async (values) => {
+      const error = editRole(values)
+      if (!error) close()
+      return error
+    },
+    [close, editRole],
   )
 
   const classes = useStyles()
@@ -394,10 +403,6 @@ function Edit({ role, close }) {
     </RF.Form>
   )
 }
-
-// interface RolesProps {
-//   roles: { result: { value: Roles[] } }
-// }
 
 export default function Roles({ roles }) {
   const rows = Cache.suspend(roles)
