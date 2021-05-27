@@ -7,8 +7,10 @@ import * as Lab from '@material-ui/lab'
 
 import Code from 'components/Code'
 import Skeleton from 'components/Skeleton'
+// import * as urls from 'constants/urls' // TODO: uncomment on docs deploy
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
+// import StyledLink from 'utils/StyledLink' // TODO: uncomment on docs deploy
 
 import * as requests from '../requests'
 import QueryEditor from './QueryEditor'
@@ -395,6 +397,18 @@ function State({ children, queryExecutionId }: StateProps) {
                 )
               }}
             </QueryResultsFetcher>
+          ),
+          Err: (error) => (
+            <>
+              <Alert title={error.name} error={error} />
+              {/* <M.Typography> // TODO: uncomment on docs deploy
+                Check{' '}
+                <StyledLink href={`${urls.docs}/catalog/queries#athena`}>
+                  Athena Queries docs
+                </StyledLink>{' '}
+                on correct usage
+              </M.Typography> */}
+            </>
           ),
         })
       }
