@@ -371,11 +371,10 @@ function State({ children, queryExecutionId }: StateProps) {
     <WorkgroupsFetcher>
       {({ handleWorkgroupsLoadMore, workgroupsData }) =>
         workgroupsData.case({
-          _: (workgroupsDataResult) => {
-            const workgroups = workgroupsDataResult.value
-            return AsyncResult.Init.is(workgroupsDataResult) ||
-              AsyncResult.Pending.is(workgroupsDataResult) ||
-              workgroups?.list?.length ? (
+          _: (workgroupsDataResult) =>
+            AsyncResult.Init.is(workgroupsDataResult) ||
+            AsyncResult.Pending.is(workgroupsDataResult) ||
+            workgroupsDataResult.value?.list?.length ? (
               <QueryResultsFetcher queryExecutionId={queryExecutionId}>
                 {({ queryResultsData, handleQueryResultsLoadMore }) => {
                   const queryExecution = (queryResultsData as requests.AsyncData<
@@ -388,7 +387,7 @@ function State({ children, queryExecutionId }: StateProps) {
                   const selectedWorkgroup =
                     workgroup ||
                     queryExecution?.workgroup ||
-                    workgroups?.defaultWorkgroup ||
+                    workgroupsDataResult.value?.defaultWorkgroup ||
                     ''
 
                   return (
@@ -431,8 +430,7 @@ function State({ children, queryExecutionId }: StateProps) {
               </QueryResultsFetcher>
             ) : (
               <WorkgroupsEmpty />
-            )
-          },
+            ),
           Err: (error) => <WorkgroupsEmpty error={error} />,
         })
       }
