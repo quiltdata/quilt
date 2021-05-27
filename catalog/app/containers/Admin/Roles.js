@@ -80,6 +80,23 @@ const columns = [
 ]
 
 const useStyles = M.makeStyles((t) => ({
+  content: {
+    position: 'relative',
+  },
+  lock: {
+    alignItems: 'center',
+    background: 'rgba(255,255,255,0.9)',
+    bottom: 0,
+    cursor: 'not-allowed',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 1, // above Select and Checkbox
+  },
   panel: {
     marginTop: t.spacing(2),
   },
@@ -139,7 +156,12 @@ function Create({ close }) {
           <M.DialogTitle disableTypography>
             <M.Typography variant="h5">Create a role</M.Typography>
           </M.DialogTitle>
-          <M.DialogContent>
+          <M.DialogContent className={classes.content}>
+            {submitting && (
+              <div className={classes.lock}>
+                <M.CircularProgress size={80} />
+              </div>
+            )}
             <form onSubmit={handleSubmit}>
               <RF.Field
                 component={Form.Field}
@@ -325,7 +347,12 @@ function Edit({ role, close }) {
       {({ handleSubmit, submitting, submitFailed, error, invalid, submitError }) => (
         <>
           <M.DialogTitle>Edit the &quot;{role.name}&quot; role</M.DialogTitle>
-          <M.DialogContent>
+          <M.DialogContent className={classes.content}>
+            {submitting && (
+              <div className={classes.lock}>
+                <M.CircularProgress size={80} />
+              </div>
+            )}
             <form onSubmit={handleSubmit}>
               <RF.Field
                 component={Form.Field}
