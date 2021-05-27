@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
+import * as Intercom from 'components/Intercom'
 import * as authSelectors from 'containers/Auth/selectors'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -752,6 +753,8 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
     setWorkflow(null)
     onClose()
   }, [submitting, success, onClose])
+
+  Intercom.usePauseVisibilityWhen(open)
 
   return (
     <M.Dialog

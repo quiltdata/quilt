@@ -30,8 +30,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface SkeletonProps {
-  className?: string
+interface SkeletonProps extends M.BoxProps {
   animate?: boolean
 }
 
