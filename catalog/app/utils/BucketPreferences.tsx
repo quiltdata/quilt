@@ -10,7 +10,7 @@ import * as bucketErrors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 
 export type ActionPreferences = Record<
-  'copyPackage' | 'createPackage' | 'deleteRevision' | 'revisePackage',
+  'copyPackage' | 'createPackage' | 'revisePackage',
   boolean
 >
 
@@ -41,7 +41,6 @@ const defaultPreferences: BucketPreferences = {
     actions: {
       copyPackage: true,
       createPackage: true,
-      deleteRevision: true,
       revisePackage: true,
     },
     nav: {
