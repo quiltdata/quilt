@@ -93,3 +93,22 @@ export function useIntercom() {
 }
 
 export { IntercomProvider as Provider, useIntercom as use }
+
+export function usePauseVisibilityWhen(condition) {
+  const intercom = useIntercom()
+  const [isVisible, setVisible] = React.useState(true)
+  const showIntercom = React.useCallback(
+    (shouldShow) => {
+      if (isVisible === shouldShow) return
+      intercom('update', {
+        hide_default_launcher: !shouldShow,
+      })
+      setVisible(shouldShow)
+    },
+    [intercom, isVisible, setVisible],
+  )
+  React.useEffect(() => {
+    if (condition) showIntercom(false)
+    return () => showIntercom(true)
+  }, [condition, showIntercom])
+}

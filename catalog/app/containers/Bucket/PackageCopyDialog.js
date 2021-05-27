@@ -4,6 +4,7 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+import * as Intercom from 'components/Intercom'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
@@ -404,6 +405,8 @@ export default function PackageCopyDialog({
     if (onClose) onClose()
     setSuccess(null)
   }, [submitting, success, setSuccess, onClose, onExited])
+
+  Intercom.usePauseVisibilityWhen(open)
 
   return (
     <M.Dialog fullWidth onClose={close} onExited={handleExited} open={open} scroll="body">

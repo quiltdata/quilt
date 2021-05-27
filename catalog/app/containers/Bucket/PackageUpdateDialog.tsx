@@ -8,6 +8,7 @@ import * as RF from 'react-final-form'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as Intercom from 'components/Intercom'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -717,6 +718,8 @@ export function usePackageUpdateDialog({
       if (shouldRefreshManifest) refreshManifest()
     }
   }, [setExited, setSuccess, success, onExited, refreshManifest])
+
+  Intercom.usePauseVisibilityWhen(isOpen)
 
   const state = React.useMemo<DialogState>(() => {
     if (exited) return DialogState.Closed()
