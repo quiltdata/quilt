@@ -373,7 +373,8 @@ function State({ children, queryExecutionId }: StateProps) {
         workgroupsData.case({
           _: (workgroupsDataResult) => {
             const workgroups = workgroupsDataResult.value
-            return AsyncResult.Pending.is(workgroupsDataResult) ||
+            return AsyncResult.Init.is(workgroupsDataResult) ||
+              AsyncResult.Pending.is(workgroupsDataResult) ||
               workgroups?.list?.length ? (
               <QueryResultsFetcher queryExecutionId={queryExecutionId}>
                 {({ queryResultsData, handleQueryResultsLoadMore }) => {
