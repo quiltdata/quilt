@@ -168,7 +168,7 @@ function Create({ close }) {
               />
 
               <M.FormControlLabel
-                label="Use ARN"
+                label="Manually set ARN instead of set per-bucket permissions"
                 control={<M.Checkbox checked={isAdvanced} />}
                 onChange={() => setAdvanced(!isAdvanced)}
               />
@@ -298,6 +298,7 @@ function Edit({ role, close }) {
   const classes = useStyles()
   const buckets = BucketConfig.useBucketConfigs()
 
+  // FIXME: get permissions from role
   const initialPermissions = React.useMemo(
     () => ({
       permissions: buckets
@@ -353,7 +354,7 @@ function Edit({ role, close }) {
               />
 
               <M.FormControlLabel
-                label="Use ARN"
+                label="Manually set ARN instead of set per-bucket permissions"
                 control={<M.Checkbox checked={isAdvanced} />}
                 onChange={() => setAdvanced(!isAdvanced)}
               />
