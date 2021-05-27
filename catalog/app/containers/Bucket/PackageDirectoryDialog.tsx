@@ -6,6 +6,7 @@ import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
+import * as Intercom from 'components/Intercom'
 import * as authSelectors from 'containers/Auth/selectors'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -467,6 +468,8 @@ export default function PackageDirectoryDialog({
     if (onClose) onClose()
     setSuccess(null)
   }, [submitting, success, setSuccess, onClose, onExited])
+
+  Intercom.usePauseVisibilityWhen(open)
 
   return (
     <M.Dialog
