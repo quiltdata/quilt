@@ -376,9 +376,6 @@ const isExpired = (tokens, time) => {
  * @param {number} options.latency
  * @param {function} options.storeTokens
  * @param {function} options.storeUser
- * @param {function} options.forgetTokens
- * @param {function} options.forgetUser
- * @param {function} options.onAuthLost
  *
  * @param {Action} action
  */
@@ -414,6 +411,20 @@ function* handleCheck(
     yield put(actions.refresh.resolve(e))
     yield put(actions.authLost(e))
     /* istanbul ignore else */
+    if (reject) yield call(reject, e)
+  }
+}
+
+/**
+ * Handle GET_TOKENS action.
+ *
+ * @param {Action} action
+ */
+function* handleGetTokens({ meta: { resolve, reject } }) {
+  try {
+    const tokens = yield call(getTokens)
+    yield call(resolve, tokens)
+  } catch (e) {
     if (reject) yield call(reject, e)
   }
 }
@@ -519,6 +530,7 @@ export default function* Saga({
     storeTokens,
     storeUser,
   })
+  yield takeEvery(actions.getTokens.type, handleGetTokens)
   yield takeEvery(actions.authLost.type, handleAuthLost, {
     forgetTokens,
     forgetUser,
