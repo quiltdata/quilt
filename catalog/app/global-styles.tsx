@@ -28,9 +28,6 @@ const useGlobalStyles = makeStyles({
       marginBlockEnd: 0,
       marginBlockStart: 0,
     },
-    'body .intercom-lightweight-app-launcher, body .intercom-lightweight-app': {
-      zIndex: 1200,
-    },
   },
 })
 
