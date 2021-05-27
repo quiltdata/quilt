@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
 import * as redux from 'react-redux'
+import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
@@ -17,7 +18,6 @@ import Thumbnail from 'components/Thumbnail'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import Data, { useData } from 'utils/Data'
 import * as LinkedData from 'utils/LinkedData'
@@ -28,6 +28,7 @@ import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 
 import * as requests from './requests'
+import BUCKET_CONFIG_QUERY from './OverviewBucketConfig.generated'
 
 import bg from './Overview-bg.jpg'
 
@@ -1201,15 +1202,19 @@ export default function Overview({
   const s3 = AWS.S3.use()
   const req = AWS.APIGateway.use()
   const { noOverviewImages } = Config.use()
-  const cfg = BucketConfig.useCurrentBucketConfig()
+  const [{ data }] = urql.useQuery({
+    query: BUCKET_CONFIG_QUERY,
+    variables: { bucket },
+  })
+  const cfg = data?.bucketConfig
   const inStack = !!cfg
-  const overviewUrl = cfg && cfg.overviewUrl
-  const description = cfg && cfg.description
+  const overviewUrl = cfg?.overviewUrl
+  const description = cfg?.description
   return (
     <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }} position="relative" zIndex={1}>
-      {!!cfg && (
+      {inStack && (
         <React.Suspense fallback={null}>
-          <LinkedData.BucketData bucket={cfg} />
+          <LinkedData.BucketData bucket={bucket} />
         </React.Suspense>
       )}
       {cfg ? (
