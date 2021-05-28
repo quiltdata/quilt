@@ -7,12 +7,21 @@ import quilt from './quilt.png'
 const HEIGHT_Q = 27
 const HEIGHT_QUILT = 29
 
-export default ({ responsive = false, forcedShort = false, ...props }) => {
+interface LogoProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+  responsive?: boolean
+  forcedShort?: boolean
+}
+
+export default function Logo({
+  responsive = false,
+  forcedShort = false,
+  ...props
+}: LogoProps) {
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const short = forcedShort || (responsive && xs)
   const imgProps = short
     ? { height: HEIGHT_Q, src: q }
     : { height: HEIGHT_QUILT, src: quilt }
-  return <M.Box component="img" alt="Quilt" {...imgProps} {...props} />
+  return <img alt="Quilt" {...imgProps} {...props} />
 }
