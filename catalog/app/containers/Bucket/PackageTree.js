@@ -32,6 +32,7 @@ import Listing from './Listing'
 import PackageLink from './PackageLink'
 import { usePackageUpdateDialog } from './PackageUpdateDialog'
 import PackageCopyDialog from './PackageCopyDialog'
+import RevisionInfo from './RevisionInfo'
 import Section from './Section'
 import Summary from './Summary'
 import * as errors from './errors'
@@ -575,7 +576,16 @@ function PackageTree({ bucket, mode, name, revision, path, resolvedFrom }) {
           </Lab.Alert>
         </M.Box>
       )}
-      <PackageLink {...{ bucket, name, path, revision, revisionListKey, revisionData }} />
+      <M.Typography variant="body1">
+        <PackageLink
+          {...{ bucket, name, path, revision, revisionListKey, revisionData }}
+        />
+        {' @ '}
+        <RevisionInfo
+          {...{ revisionData, revision, bucket, name, path }}
+          key={`revinfo:${revisionListKey}`}
+        />
+      </M.Typography>
       {revisionData.case({
         Ok: ({ hash }) => (
           <ResolverProvider {...{ bucket, name, hash }}>
