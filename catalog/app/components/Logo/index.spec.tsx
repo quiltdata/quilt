@@ -28,6 +28,7 @@ describe('components/Logo', () => {
   })
 
   it('should be short in narrow viewport', () => {
+    // TODO: mock `window.matchMedia` instead of `M.useMediaQuery`
     // NOTE: it means `xs === true`
     mocked(useMediaQuery).mockImplementation(() => true)
     const tree = renderer.create(<Logo responsive />).toJSON()
