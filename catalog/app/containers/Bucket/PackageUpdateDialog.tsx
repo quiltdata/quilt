@@ -145,12 +145,7 @@ function DialogForm({
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
-  const buckets = React.useMemo(() => R.uniq([bucket, ...sourceBuckets]), [
-    bucket,
-    sourceBuckets,
-  ])
-
-  const [selectedBucket, selectBucket] = React.useState(buckets[0])
+  const [selectedBucket, selectBucket] = React.useState(sourceBuckets[0])
 
   const initialFiles: PD.FilesState = React.useMemo(
     () => ({ existing: manifest.entries, added: {}, deleted: {} }),
@@ -495,7 +490,7 @@ function DialogForm({
                     isEqual={R.equals}
                     initialValue={initialFiles}
                     bucket={selectedBucket}
-                    buckets={buckets}
+                    buckets={sourceBuckets}
                     selectBucket={selectBucket}
                   />
                 </PD.RightColumn>

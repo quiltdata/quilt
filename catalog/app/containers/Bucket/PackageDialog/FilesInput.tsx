@@ -3,8 +3,11 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone, FileWithPath } from 'react-dropzone'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 import { fade } from '@material-ui/core/styles'
 
+import * as urls from 'constants/urls'
+import StyledLink from 'utils/StyledLink'
 import useDragging from 'utils/dragging'
 import { withoutPrefix } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
@@ -1143,6 +1146,8 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
   )
 }
 
+const DOCS_URL_SOURCE_BUCKETS = `${urls.docs35}/catalog/preferences#properties`
+
 const useFilesInputStyles = M.makeStyles((t) => ({
   hashing: {
     marginLeft: t.spacing(1),
@@ -1156,6 +1161,9 @@ const useFilesInputStyles = M.makeStyles((t) => ({
     '& + &': {
       marginLeft: t.spacing(1),
     },
+  },
+  warning: {
+    marginLeft: t.spacing(1),
   },
 }))
 
@@ -1316,15 +1324,19 @@ export function FilesInput({
     setS3FilePickerOpen(true)
   }, [])
 
+  const isS3FilePickerEnabled = !!bucket && !!buckets?.length
+
   return (
     <Root className={className}>
-      <S3FilePicker.Dialog
-        bucket={bucket}
-        buckets={buckets}
-        selectBucket={selectBucket}
-        open={s3FilePickerOpen}
-        onClose={closeS3FilePicker}
-      />
+      {isS3FilePickerEnabled && (
+        <S3FilePicker.Dialog
+          bucket={bucket}
+          buckets={buckets}
+          selectBucket={selectBucket}
+          open={s3FilePickerOpen}
+          onClose={closeS3FilePicker}
+        />
+      )}
       <Header>
         <HeaderTitle
           state={
@@ -1437,15 +1449,24 @@ export function FilesInput({
         >
           Add local files
         </M.Button>
-        <M.Button
-          onClick={handleS3Btn}
-          disabled={submitting || disabled}
-          className={classes.action}
-          variant="outlined"
-          size="small"
-        >
-          Add files from bucket
-        </M.Button>
+        {isS3FilePickerEnabled ? (
+          <M.Button
+            onClick={handleS3Btn}
+            disabled={submitting || disabled}
+            className={classes.action}
+            variant="outlined"
+            size="small"
+          >
+            Add files from bucket
+          </M.Button>
+        ) : (
+          <Lab.Alert className={classes.warning} severity="info">
+            To add from S3 bucket{' '}
+            <StyledLink href={DOCS_URL_SOURCE_BUCKETS} target="_blank">
+              see docs
+            </StyledLink>
+          </Lab.Alert>
+        )}
       </div>
     </Root>
   )
