@@ -387,6 +387,9 @@ function* handleCheck(
   { payload: { refetch }, meta: { resolve, reject } },
 ) {
   try {
+    // waiting while all the current requests settle to avoid race conditions
+    yield call(waitTil, selectors.waiting, (w) => !w)
+
     const tokens = yield select(selectors.tokens)
     const time = yield call(timestamp)
     if (!tokens || !isExpired(tokens, time)) {
