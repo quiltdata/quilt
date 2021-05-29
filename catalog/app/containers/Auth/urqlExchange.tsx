@@ -23,10 +23,7 @@ interface AuthContext {
 }
 
 // TODO: dedupe
-const makeHeadersFromTokens = (t?: AuthTokens) =>
-  t && {
-    Authorization: `Bearer ${t.token}`,
-  }
+const makeHeadersFromTokens = (t?: AuthTokens) => t && { Authorization: t.token }
 
 const getFetchOptions = (op: Urql.Operation) =>
   typeof op.context.fetchOptions === 'function'
@@ -67,48 +64,35 @@ export function useAuthExchange() {
     [getTokens],
   )
 
-  return React.useMemo(() => {
-    const ex: Urql.Exchange = ({ forward }) => (ops$) =>
+  const handleResult = React.useCallback(
+    async (r: Urql.OperationResult) => {
+      if (r.error) {
+        const ctx: AuthContext = r.operation.context as any
+
+        const handleInvalidToken =
+          typeof ctx.auth === 'boolean'
+            ? ctx.auth
+            : R.defaultTo(ctx.auth?.handleInvalidToken, true)
+
+        if (handleInvalidToken && r.error.message === '[GraphQL] Token invalid.') {
+          dispatch(actions.authLost(new InvalidToken({ originalError: r.error })))
+          // never resolve on auth error
+          return new Promise<Urql.OperationResult>(() => {})
+        }
+      }
+      return r
+    },
+    [dispatch],
+  )
+
+  return React.useCallback(
+    ({ forward }: Urql.ExchangeInput): Urql.ExchangeIO => (ops$) =>
       W.pipe(
         ops$,
         W.mergeMap((op) => W.fromPromise(transformOp(op))),
         forward,
-      )
-    return ex
-  }, [transformOp])
-}
-
-// this needs to be placed ABOVE the authExchange in the exchanges array,
-// otherwise the auth error will show up here before the auth exchange has a chance to handle it
-export function useAuthErrorExchange() {
-  const dispatch = redux.useDispatch()
-
-  return React.useMemo(
-    () =>
-      Urql.errorExchange({
-        onError: (error, op) => {
-          // console.log('error', { error, op })
-
-          const ctx: AuthContext = op.context as any
-
-          const handleInvalidToken =
-            typeof ctx.auth === 'boolean'
-              ? ctx.auth
-              : R.defaultTo(ctx.auth?.handleInvalidToken, true)
-
-          if (!handleInvalidToken) return
-
-          // TODO: handle our error codes
-          // HTTPError.is(e, 401, 'Token invalid.')
-          const isAuthError = error.graphQLErrors.some(
-            (e) => e.extensions?.code === 'FORBIDDEN',
-          )
-
-          if (!isAuthError) return
-
-          dispatch(actions.authLost(new InvalidToken({ originalError: error })))
-        },
-      }),
-    [dispatch],
+        W.mergeMap((result) => W.fromPromise(handleResult(result))),
+      ),
+    [transformOp, handleResult],
   )
 }

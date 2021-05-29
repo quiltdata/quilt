@@ -3,7 +3,7 @@ import * as Urql from 'urql'
 import * as DevTools from '@urql/devtools'
 import * as GraphCache from '@urql/exchange-graphcache'
 
-import { useAuthExchange, useAuthErrorExchange } from 'containers/Auth/urqlExchange'
+import { useAuthExchange } from 'containers/Auth/urqlExchange'
 import * as Config from 'utils/Config'
 
 const devtools = process.env.NODE_ENV === 'development' ? [DevTools.devtoolsExchange] : []
@@ -12,7 +12,6 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
   const { registryUrl } = Config.use()
   const url = `${registryUrl}/graphql`
 
-  const authErrorExchange = useAuthErrorExchange()
   const authExchange = useAuthExchange()
 
   const client = React.useMemo(
@@ -30,12 +29,11 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
               BucketConfig: () => null,
             },
           }),
-          authErrorExchange,
           authExchange,
           Urql.fetchExchange,
         ],
       }),
-    [url, authErrorExchange, authExchange],
+    [url, authExchange],
   )
   return <Urql.Provider value={client}>{children}</Urql.Provider>
 }
