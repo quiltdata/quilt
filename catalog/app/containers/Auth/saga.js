@@ -428,6 +428,7 @@ function* handleCheck(
 function* handleAuthLost({ forgetTokens, forgetUser, onAuthLost }, { payload: err }) {
   yield fork(forgetTokens)
   yield fork(forgetUser)
+  // TODO: dont call onAuthLost if not signed in / on consectutive dispatches
   yield call(onAuthLost, err)
 }
 
