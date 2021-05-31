@@ -1324,7 +1324,7 @@ export function FilesInput({
     setS3FilePickerOpen(true)
   }, [])
 
-  const isS3FilePickerEnabled = !!bucket && !!buckets?.length
+  const isS3FilePickerEnabled = !!buckets?.length
 
   return (
     <Root className={className}>
