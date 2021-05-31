@@ -21,7 +21,7 @@ export default function PackageLink({ bucket, name }: PackageLinkProps) {
   const [prefix, suffix] = name.split('/')
   return (
     <span className={classes.name}>
-      <Link to={urls.bucketPackageList(bucket, { filter: prefix })}>{prefix}</Link>/
+      <Link to={urls.bucketPackageList(bucket, { filter: `${prefix}/` })}>{prefix}/</Link>
       <Link to={urls.bucketPackageDetail(bucket, name)}>{suffix}</Link>
     </span>
   )
