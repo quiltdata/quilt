@@ -226,7 +226,7 @@ class ApiException(Exception):
             boto_response['Error']['Code'],
             boto_response['Error']['Message']
         )
-        raise cls(status_code, message)
+        return cls(status_code, message)
 
 
 def api_exception_handler(f):
