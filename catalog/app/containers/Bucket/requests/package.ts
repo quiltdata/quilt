@@ -313,21 +313,6 @@ const deleteRevision = async (
     },
     getCredentialsQuery(credentials),
   )
-
-  return new Promise((resolve, reject) => {
-    setTimeout(
-      () =>
-        reject(
-          new Error(
-            `Deletion failed for ${source.bucket}/${source.name}@${R.take(
-              10,
-              source.hash,
-            )}`,
-          ),
-        ),
-      1000,
-    )
-  })
 }
 
 export function useDeleteRevision() {
