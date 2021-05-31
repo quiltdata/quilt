@@ -7,8 +7,11 @@ import * as Lab from '@material-ui/lab'
 
 import Code from 'components/Code'
 import Skeleton from 'components/Skeleton'
+// import * as urls from 'constants/urls' // TODO: uncomment on docs deploy
+import AsyncResult from 'utils/AsyncResult'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
+// import StyledLink from 'utils/StyledLink' // TODO: uncomment on docs deploy
 
 import * as requests from '../requests'
 import QueryEditor from './QueryEditor'
@@ -17,9 +20,30 @@ import History from './History'
 import QuerySelect from '../QuerySelect'
 import WorkgroupSelect from './WorkgroupSelect'
 
-interface AlertProps {
-  error: Error
-  title: string
+interface WorkgroupsEmptyProps {
+  error?: Error
+}
+
+function WorkgroupsEmpty({ error }: WorkgroupsEmptyProps) {
+  return (
+    <>
+      {error ? (
+        <Alert title={error.name} error={error} />
+      ) : (
+        <Lab.Alert severity="info">
+          <Lab.AlertTitle>No workgroups configured</Lab.AlertTitle>
+        </Lab.Alert>
+      )}
+
+      {/* <M.Typography> // TODO: uncomment on docs deploy
+        Check{' '}
+        <StyledLink href={`${urls.docs}/catalog/queries#athena`}>
+          Athena Queries docs
+        </StyledLink>{' '}
+        on correct usage
+      </M.Typography> */}
+    </>
+  )
 }
 
 function SelectSkeleton() {
@@ -90,6 +114,11 @@ function TableSkeleton({ size }: TableSkeletonProps) {
   )
 }
 
+interface AlertProps {
+  error: Error
+  title: string
+}
+
 function Alert({ error, title }: AlertProps) {
   const sentry = Sentry.use()
 
@@ -99,7 +128,8 @@ function Alert({ error, title }: AlertProps) {
 
   return (
     <Lab.Alert severity="error">
-      {title}: {error.message}
+      <Lab.AlertTitle>{title}</Lab.AlertTitle>
+      {error.message}
     </Lab.Alert>
   )
 }
@@ -341,61 +371,67 @@ function State({ children, queryExecutionId }: StateProps) {
     <WorkgroupsFetcher>
       {({ handleWorkgroupsLoadMore, workgroupsData }) =>
         workgroupsData.case({
-          _: ({ value: workgroups }) => (
-            <QueryResultsFetcher queryExecutionId={queryExecutionId}>
-              {({ queryResultsData, handleQueryResultsLoadMore }) => {
-                const queryExecution = (queryResultsData as requests.AsyncData<
-                  requests.athena.QueryResultsResponse,
-                  requests.athena.QueryExecution | null
-                >).case({
-                  _: () => null,
-                  Ok: ({ queryExecution: qE }) => qE,
-                })
-                const selectedWorkgroup =
-                  workgroup ||
-                  queryExecution?.workgroup ||
-                  workgroups?.defaultWorkgroup ||
-                  ''
+          _: (workgroupsDataResult) =>
+            AsyncResult.Init.is(workgroupsDataResult) ||
+            AsyncResult.Pending.is(workgroupsDataResult) ||
+            workgroupsDataResult.value?.list?.length ? (
+              <QueryResultsFetcher queryExecutionId={queryExecutionId}>
+                {({ queryResultsData, handleQueryResultsLoadMore }) => {
+                  const queryExecution = (queryResultsData as requests.AsyncData<
+                    requests.athena.QueryResultsResponse,
+                    requests.athena.QueryExecution | null
+                  >).case({
+                    _: () => null,
+                    Ok: ({ queryExecution: qE }) => qE,
+                  })
+                  const selectedWorkgroup =
+                    workgroup ||
+                    queryExecution?.workgroup ||
+                    workgroupsDataResult.value?.defaultWorkgroup ||
+                    ''
 
-                return (
-                  <QueriesFetcher workgroup={selectedWorkgroup} key={queryExecutionId}>
-                    {({
-                      queriesData,
-                      executionsData,
-                      handleQueriesLoadMore,
-                      handleExecutionsLoadMore,
-                    }) => (
-                      <QueryRunner
-                        queryBody={queryRequest || ''}
-                        workgroup={selectedWorkgroup}
-                      >
-                        {({ queryRunData }) =>
-                          children({
-                            customQueryBody,
-                            executionsData,
-                            handleExecutionsLoadMore,
-                            handleQueriesLoadMore,
-                            handleQueryBodyChange: setCustomQueryBody,
-                            handleQueryMetaChange,
-                            handleQueryResultsLoadMore,
-                            handleSubmit,
-                            handleWorkgroupChange,
-                            handleWorkgroupsLoadMore,
-                            queriesData,
-                            queryMeta,
-                            queryResultsData,
-                            queryRunData,
-                            workgroupsData,
-                            workgroup: selectedWorkgroup,
-                          })
-                        }
-                      </QueryRunner>
-                    )}
-                  </QueriesFetcher>
-                )
-              }}
-            </QueryResultsFetcher>
-          ),
+                  return (
+                    <QueriesFetcher workgroup={selectedWorkgroup} key={queryExecutionId}>
+                      {({
+                        queriesData,
+                        executionsData,
+                        handleQueriesLoadMore,
+                        handleExecutionsLoadMore,
+                      }) => (
+                        <QueryRunner
+                          queryBody={queryRequest || ''}
+                          workgroup={selectedWorkgroup}
+                        >
+                          {({ queryRunData }) =>
+                            children({
+                              customQueryBody,
+                              executionsData,
+                              handleExecutionsLoadMore,
+                              handleQueriesLoadMore,
+                              handleQueryBodyChange: setCustomQueryBody,
+                              handleQueryMetaChange,
+                              handleQueryResultsLoadMore,
+                              handleSubmit,
+                              handleWorkgroupChange,
+                              handleWorkgroupsLoadMore,
+                              queriesData,
+                              queryMeta,
+                              queryResultsData,
+                              queryRunData,
+                              workgroupsData,
+                              workgroup: selectedWorkgroup,
+                            })
+                          }
+                        </QueryRunner>
+                      )}
+                    </QueriesFetcher>
+                  )
+                }}
+              </QueryResultsFetcher>
+            ) : (
+              <WorkgroupsEmpty />
+            ),
+          Err: (error) => <WorkgroupsEmpty error={error} />,
         })
       }
     </WorkgroupsFetcher>
