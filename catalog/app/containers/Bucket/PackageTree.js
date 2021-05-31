@@ -129,6 +129,25 @@ function TopBar({ crumbs, children }) {
   )
 }
 
+function PackageDeleteSuccessDialog({ open, onClose }) {
+  return (
+    <M.Dialog open={open} onClose={onClose}>
+      <M.DialogTitle>Package revision successfuly deleted</M.DialogTitle>
+      <M.DialogContent>
+        <M.DialogContentText>
+          Revision could be still accessible for some time. Typically, it takes seconds
+          but can sometimes take a minute or longer.
+        </M.DialogContentText>
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={onClose} color="primary">
+          Ok
+        </M.Button>
+      </M.DialogActions>
+    </M.Dialog>
+  )
+}
+
 const useDirDisplayStyles = M.makeStyles((t) => ({
   button: {
     flexShrink: 0,
@@ -207,6 +226,7 @@ function DirDisplay({
     error: null,
     loading: false,
     opened: false,
+    succeed: false,
   })
   const deleteRevision = requests.useDeleteRevision()
   const onPackageDeleteDialogOpen = React.useCallback(() => {
@@ -225,12 +245,15 @@ function DirDisplay({
 
     try {
       await deleteRevision({ source: { bucket, name, hash } })
-      setDeletionState(R.mergeLeft({ opened: false, loading: false }))
-      redirectToPackagesList()
+      setDeletionState(R.mergeLeft({ opened: false, loading: false, succeed: true }))
     } catch (error) {
       setDeletionState(R.mergeLeft({ error, loading: false }))
     }
-  }, [bucket, hash, name, deleteRevision, redirectToPackagesList, setDeletionState])
+  }, [bucket, hash, name, deleteRevision, setDeletionState])
+  const handlePackageDeletionAcknowledged = React.useCallback(() => {
+    setDeletionState(R.assoc('succeed', false))
+    redirectToPackagesList()
+  }, [redirectToPackagesList])
 
   return data.case({
     Ok: ({ objects, prefixes, meta }) => {
@@ -283,6 +306,11 @@ function DirDisplay({
             onClose={onPackageDeleteDialogClose}
             loading={deletionState.loading}
             onDelete={handlePackageDeletion}
+          />
+
+          <PackageDeleteSuccessDialog
+            open={deletionState.succeed}
+            onClose={handlePackageDeletionAcknowledged}
           />
 
           {updateDialog.render()}
