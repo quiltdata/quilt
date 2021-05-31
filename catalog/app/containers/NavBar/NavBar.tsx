@@ -21,11 +21,12 @@ import bg from './bg.png'
 import Controls from './Controls'
 
 function LogoLink(props: M.BoxProps) {
+  const cfg = Config.useConfig()
   const { urls } = NamedRoutes.use()
   return (
     // @ts-expect-error Property 'to' does not exist on type 'IntrinsicAttributes & BoxProps & { children?: ReactNode; }'
     <M.Box component={Link} mr={2} to={urls.home()} {...props}>
-      <Logo responsive />
+      <Logo responsive forcedShort={cfg.mode === 'OPEN' || cfg.mode === 'PRODUCT'} />
     </M.Box>
   )
 }
