@@ -16,10 +16,15 @@ export type ActionPreferences = Record<
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 
+export interface SourceBuckets {
+  getDefault: () => string
+  list: string[]
+}
+
 interface UiPreferences {
   actions: ActionPreferences
   nav: NavPreferences
-  sourceBuckets: string[]
+  sourceBuckets: SourceBuckets
 }
 
 interface UiPreferencesYaml {
@@ -49,7 +54,10 @@ const defaultPreferences: BucketPreferences = {
       packages: true,
       queries: true,
     },
-    sourceBuckets: [],
+    sourceBuckets: {
+      getDefault: () => '',
+      list: [],
+    },
   },
 }
 
@@ -64,15 +72,13 @@ const S3_PREFIX = 's3://'
 const normalizeBucketName = (input: string) =>
   input.startsWith(S3_PREFIX) ? input.slice(S3_PREFIX.length) : input
 
-function parseSourceBuckets(ui?: UiPreferencesYaml): string[] {
-  if (!ui?.sourceBuckets) return []
-  return Object.keys(ui?.sourceBuckets)
-    .sort((nameA, nameB) => {
-      if (nameA === ui.defaultSourceBucket) return -1
-      if (nameB === ui.defaultSourceBucket) return 1
-      return 0
-    })
-    .map(normalizeBucketName)
+function parseSourceBuckets(ui?: UiPreferencesYaml): SourceBuckets {
+  const list = Object.keys(ui?.sourceBuckets || {}).map(normalizeBucketName)
+  const defaultSourceBucket = normalizeBucketName(ui?.defaultSourceBucket || '')
+  return {
+    getDefault: () => list.find((name) => name === defaultSourceBucket) || list[0] || '',
+    list,
+  }
 }
 
 function parse(bucketPreferencesYaml: string): BucketPreferences {

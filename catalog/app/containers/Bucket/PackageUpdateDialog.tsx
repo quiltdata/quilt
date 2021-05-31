@@ -116,7 +116,7 @@ interface DialogFormProps {
   setWorkflow: (workflow: workflows.Workflow) => void
   validate: FF.FieldValidator<any>
   workflowsConfig: workflows.WorkflowsConfig
-  sourceBuckets: string[]
+  sourceBuckets: BucketPreferences.SourceBuckets
 }
 
 function DialogForm({
@@ -145,7 +145,7 @@ function DialogForm({
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
-  const [selectedBucket, selectBucket] = React.useState(sourceBuckets[0])
+  const [selectedBucket, selectBucket] = React.useState(sourceBuckets.getDefault)
 
   const initialFiles: PD.FilesState = React.useMemo(
     () => ({ existing: manifest.entries, added: {}, deleted: {} }),
@@ -490,7 +490,7 @@ function DialogForm({
                     isEqual={R.equals}
                     initialValue={initialFiles}
                     bucket={selectedBucket}
-                    buckets={sourceBuckets}
+                    buckets={sourceBuckets.list}
                     selectBucket={selectBucket}
                   />
                 </PD.RightColumn>
@@ -646,7 +646,7 @@ const DialogState = tagged.create(
     Form: (v: {
       manifest: Manifest
       workflowsConfig: workflows.WorkflowsConfig
-      sourceBuckets: string[]
+      sourceBuckets: BucketPreferences.SourceBuckets
     }) => v,
     Success: (v: { name: string; hash: string }) => v,
   },
