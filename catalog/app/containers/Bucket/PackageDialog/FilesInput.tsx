@@ -1146,7 +1146,7 @@ function DirUpload({ name, state, childEntries, prefix, dispatch }: DirUploadPro
   )
 }
 
-const DOCS_URL_SOURCE_BUCKETS = `${urls.docs35}/catalog/preferences#properties`
+const DOCS_URL_SOURCE_BUCKETS = `${urls.docsMaster}/catalog/preferences#properties`
 
 const useFilesInputStyles = M.makeStyles((t) => ({
   hashing: {
