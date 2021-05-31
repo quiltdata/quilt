@@ -24,6 +24,7 @@ interface UiPreferences {
 
 interface UiPreferencesYaml {
   actions?: ActionPreferences
+  defaultSourceBucket?: string
   nav?: NavPreferences
   sourceBuckets?: Record<string, null>
 }
@@ -63,6 +64,17 @@ const S3_PREFIX = 's3://'
 const normalizeBucketName = (input: string) =>
   input.startsWith(S3_PREFIX) ? input.slice(S3_PREFIX.length) : input
 
+function parseSourceBuckets(ui?: UiPreferencesYaml): string[] {
+  if (!ui?.sourceBuckets) return []
+  return Object.keys(ui?.sourceBuckets)
+    .sort((nameA, nameB) => {
+      if (nameA === ui.defaultSourceBucket) return -1
+      if (nameB === ui.defaultSourceBucket) return 1
+      return 0
+    })
+    .map(normalizeBucketName)
+}
+
 function parse(bucketPreferencesYaml: string): BucketPreferences {
   const data = yaml(bucketPreferencesYaml)
   if (!data) return defaultPreferences
@@ -73,7 +85,7 @@ function parse(bucketPreferencesYaml: string): BucketPreferences {
     ui: {
       actions: R.mergeRight(defaultPreferences.ui.actions, data?.ui?.actions || {}),
       nav: R.mergeRight(defaultPreferences.ui.nav, data?.ui?.nav || {}),
-      sourceBuckets: Object.keys(data?.ui?.sourceBuckets || {}).map(normalizeBucketName),
+      sourceBuckets: parseSourceBuckets(data?.ui),
     },
   }
 }
