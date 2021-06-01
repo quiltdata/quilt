@@ -5,7 +5,7 @@ const PACKAGE_PATTERN = '[^/]+/[^/]+'
 
 export const home = {
   path: '/',
-  url: () => '/',
+  url: ({ q } = {}) => `/${mkSearch({ q })}`,
 }
 
 export const install = {

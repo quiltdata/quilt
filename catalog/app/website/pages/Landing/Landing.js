@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as Config from 'utils/Config'
 import * as LinkedData from 'utils/LinkedData'
 import MetaTitle from 'utils/MetaTitle'
+import parseSearch from 'utils/parseSearch'
 
 import Dots from 'website/components/Backgrounds/Dots'
 import Layout from 'website/components/Layout'
@@ -20,8 +21,9 @@ import StickyFooter from './StickyFooter'
 import Testimonials from './Testimonials'
 import UseQuilt from './UseQuilt'
 
-export default function Landing() {
+export default function Landing({ location }) {
   const cfg = Config.useConfig()
+  const { q: query = '' } = parseSearch(location.search)
   return (
     <Layout>
       <MetaTitle />
@@ -29,7 +31,7 @@ export default function Landing() {
         <LinkedData.CatalogData />
       </React.Suspense>
       {cfg.mode !== 'LOCAL' && <Dots />}
-      {cfg.mode === 'PRODUCT' && <Buckets />}
+      {cfg.mode === 'PRODUCT' && <Buckets query={query} />}
       {cfg.mode === 'LOCAL' ? <LocalMode /> : <Showcase />}
       {cfg.mode !== 'LOCAL' && <UseQuilt />}
       {cfg.mode !== 'LOCAL' && <Logos />}
