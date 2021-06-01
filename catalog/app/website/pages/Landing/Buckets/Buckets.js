@@ -111,6 +111,8 @@ export default function Buckets({ query: filter } = { query: '' }) {
   const filtering = useDebouncedInput(filter, 500)
 
   React.useEffect(() => {
+    // TODO: handle route change
+    //       and implement BucketGrid tag as <Link />
     if (filtering.value !== filter) {
       history.push(urls.home({ q: filtering.value }))
     }
