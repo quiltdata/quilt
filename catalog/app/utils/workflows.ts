@@ -34,13 +34,6 @@ export interface Successor {
   copyData: boolean
 }
 
-export interface NavPreferences {
-  files: boolean
-  overview: boolean
-  packages: boolean
-  queries: boolean
-}
-
 export interface Schema {
   url: string
 }

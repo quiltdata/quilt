@@ -32,7 +32,7 @@ ui:
 * `ui.actions.createPackage: False` - hide buttons to create packages via
 drag-and-drop or from folders in S3
 * `ui.actions.revisePackage: False` - hide the button to revise packages
-* `ui.sourceBuckets` - a dictionary of S3 bucket names that map to an empty object;
-buckets in this list are the ones offered when the user clicks
-Revise Package > Add files from Bucket; if the list is empty the Quilt catalog only
-offers the current bucket as a source for files
+* `ui.sourceBuckets` - a dictionary of S3 bucket names that map to an empty object reserved for future enhancements;
+buckets in this dictionary are the ones offered when the user clicks
+Revise Package > Add files from Bucket; if the dictionary is not set or is empty the feature "Add files from Bucket" is disabled
+* `ui.defaultSourceBucket` - source bucket from `ui.sourceBuckets` that is selected by default; if it doesn't match any bucket then it's ignored
