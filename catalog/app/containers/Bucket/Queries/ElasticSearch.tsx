@@ -4,6 +4,7 @@ import { RouteComponentProps } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
+import PackageCreateDialog from '../PackageCreateDialog'
 import QueryResult from './QueryResult'
 import QuerySelect from './QuerySelect'
 import QueryViewer from './QueryViewer'
@@ -149,10 +150,20 @@ interface FormProps {
   onChange: (value: requests.ElasticSearchQuery) => void
   onError: (value: Error | null) => void
   onSubmit: (value: requests.ElasticSearchQuery) => () => void
+  resultsData: requests.AsyncData<requests.ElasticSearchResults>
   value: requests.ElasticSearchQuery
+  onSave: () => void
 }
 
-function Form({ disabled, value, onChange, onError, onSubmit }: FormProps) {
+function Form({
+  disabled,
+  resultsData,
+  value,
+  onChange,
+  onError,
+  onSave,
+  onSubmit,
+}: FormProps) {
   const classes = useStyles()
 
   return (
@@ -172,6 +183,12 @@ function Form({ disabled, value, onChange, onError, onSubmit }: FormProps) {
           onClick={onSubmit(value)}
         >
           Run query
+        </M.Button>
+        <M.Button color="primary" disabled={disabled} onClick={onSave}>
+          {resultsData.case({
+            Ok: () => 'Save query',
+            _: () => 'Run and save query', // FIXME: onSave + onSubmit(value)
+          })}
         </M.Button>
       </div>
     </div>
@@ -199,6 +216,12 @@ export default function ElastiSearch({
   },
 }: ElastiSearchProps) {
   const classes = useStyles()
+
+  const refresh = () => {}
+
+  const [uploadOpen, setUploadOpen] = React.useState(false)
+  const openUpload = () => setUploadOpen(true)
+  const closeUpload = () => setUploadOpen(false)
 
   return (
     <QueriesState bucket={bucket}>
@@ -234,7 +257,9 @@ export default function ElastiSearch({
                 disabled={isButtonDisabled(customQueryBody, resultsData, queryBodyError)}
                 onChange={handleQueryBodyChange}
                 onError={handleError}
+                onSave={openUpload}
                 onSubmit={handleSubmit}
+                resultsData={resultsData}
                 value={customQueryBody || QUERY_PLACEHOLDER}
               />
             ),
@@ -247,7 +272,9 @@ export default function ElastiSearch({
                 )}
                 onChange={handleQueryBodyChange}
                 onError={handleError}
+                onSave={openUpload}
                 onSubmit={handleSubmit}
+                resultsData={resultsData}
                 value={customQueryBody || queryBody || QUERY_PLACEHOLDER}
               />
             ),
@@ -260,7 +287,13 @@ export default function ElastiSearch({
           {resultsData.case({
             Init: () => null,
             Ok: (results: requests.ElasticSearchResults) => (
-              <QueryResult results={results} />
+              <>
+                <PackageCreateDialog
+                  {...{ bucket, refresh, open: uploadOpen, onClose: closeUpload }}
+                />
+
+                <QueryResult results={results} />
+              </>
             ),
             Err: (error: Error) => (
               <Lab.Alert severity="error">{error.message}</Lab.Alert>
