@@ -289,7 +289,13 @@ export default function ElastiSearch({
             Ok: (results: requests.ElasticSearchResults) => (
               <>
                 <PackageCreateDialog
-                  {...{ bucket, refresh, open: uploadOpen, onClose: closeUpload }}
+                  {...{
+                    bucket,
+                    initialMetadata: { results },
+                    refresh,
+                    open: uploadOpen,
+                    onClose: closeUpload,
+                  }}
                 />
 
                 <QueryResult results={results} />

@@ -405,6 +405,7 @@ const getTotalProgress = R.pipe(
 function PackageCreateDialog({
   bucket,
   close,
+  initialMetadata,
   refresh,
   responseError,
   schema,
@@ -678,7 +679,7 @@ function PackageCreateDialog({
                       validate={validateMetaInput}
                       validateFields={['meta']}
                       isEqual={R.equals}
-                      initialValue={PD.EMPTY_META_VALUE}
+                      initialValue={initialMetadata || PD.EMPTY_META_VALUE}
                       ref={setEditorElement}
                     />
                   )}
@@ -739,7 +740,13 @@ function PackageCreateDialog({
   )
 }
 
-export default function PackageCreateDialogWrapper({ bucket, open, onClose, refresh }) {
+export default function PackageCreateDialogWrapper({
+  bucket,
+  initialMetadata,
+  open,
+  onClose,
+  refresh,
+}) {
   const s3 = AWS.S3.use()
   const data = useData(requests.workflowsConfig, { s3, bucket }, { noAutoFetch: !open })
 
@@ -783,6 +790,7 @@ export default function PackageCreateDialogWrapper({ bucket, open, onClose, refr
                     {...{
                       bucket,
                       close,
+                      initialMetadata,
                       setSubmitting,
                       setSuccess,
                       setWorkflow,
