@@ -316,10 +316,12 @@ function DirDisplay({
                 suffix={`package/${bucket}/${name}/${hash}`}
               />
             )}
-            <RevisionMenu
-              className={classes.button}
-              onDelete={onPackageDeleteDialogOpen}
-            />
+            {preferences?.ui?.actions?.deleteRevision && (
+              <RevisionMenu
+                className={classes.button}
+                onDelete={onPackageDeleteDialogOpen}
+              />
+            )}
           </TopBar>
           <PkgCode {...{ bucket, name, hash, revision, path }} />
           <FileView.Meta data={AsyncResult.Ok(meta)} />
