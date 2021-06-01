@@ -318,19 +318,17 @@ function Edit({ role, close }) {
   )
 
   const classes = useStyles()
-  const buckets = BucketConfig.useBucketConfigs()
 
-  // FIXME: get permissions from role
   const initialPermissions = React.useMemo(
     () => ({
-      permissions: buckets
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map(({ name }) => ({
-          bucket: `s3://${name}`,
-          permission: 'None',
-        })),
+      permissions: Object.entries(role.permissions || {})
+        .map(([bucket, permission]) => ({
+          bucket,
+          permission: permission || 'None',
+        }))
+        .sort((a, b) => a.bucket.localeCompare(b.bucket)),
     }),
-    [buckets],
+    [role],
   )
 
   const [isAdvanced, setAdvanced] = React.useState(false)
