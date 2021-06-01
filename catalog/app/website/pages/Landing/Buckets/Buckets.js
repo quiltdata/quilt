@@ -133,11 +133,9 @@ export default function Buckets({ query: filter } = { query: '' }) {
         <M.Box mt={4} />
         <M.TextField
           className={classes.filter}
-          value={filter}
           placeholder="Find a bucket"
           variant="outlined"
           margin="dense"
-          {...filtering.input}
           fullWidth
           InputProps={{
             startAdornment: (
@@ -153,6 +151,7 @@ export default function Buckets({ query: filter } = { query: '' }) {
               </M.InputAdornment>
             ) : undefined,
           }}
+          {...filtering.input}
         />
         {paginated.length || !filter ? (
           <BucketGrid
