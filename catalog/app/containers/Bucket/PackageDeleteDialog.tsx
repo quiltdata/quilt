@@ -69,6 +69,10 @@ export default function PackageDeleteDialog({
           <Code>{packageHandle.name}</Code> package. The data will persist.
         </M.DialogContentText>
         <M.DialogContentText>
+          After deleting revision could be still accessible for some time. Typically, it
+          takes seconds but can sometimes take a minute or longer.
+        </M.DialogContentText>
+        <M.DialogContentText>
           This action is non-reversible! You will lost a reference to the revision. Are
           you sure?
         </M.DialogContentText>
