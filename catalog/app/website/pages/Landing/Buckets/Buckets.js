@@ -112,7 +112,7 @@ export default function Buckets({ query: filter } = { query: '' }) {
 
   React.useEffect(() => {
     if (filtering.value !== filter) {
-      history.replace(urls.home({ q: filtering.value }))
+      history.push(urls.home({ q: filtering.value }))
     }
   }, [history, filtering.value, filter, urls])
 
