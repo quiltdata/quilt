@@ -3,11 +3,14 @@ import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
+import * as Sentry from 'utils/Sentry'
 import { makeSchemaValidator } from 'utils/json-schema'
 import yaml from 'utils/yaml'
 import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 import * as bucketErrors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
+
+type SentryInstance = (command: 'captureMessage', message: string) => void
 
 export type ActionPreferences = Record<
   'copyPackage' | 'createPackage' | 'deleteRevision' | 'revisePackage',
@@ -16,14 +19,20 @@ export type ActionPreferences = Record<
 
 export type NavPreferences = Record<'files' | 'packages' | 'queries', boolean>
 
+export interface SourceBuckets {
+  getDefault: () => string
+  list: string[]
+}
+
 interface UiPreferences {
   actions: ActionPreferences
   nav: NavPreferences
-  sourceBuckets: string[]
+  sourceBuckets: SourceBuckets
 }
 
 interface UiPreferencesYaml {
   actions?: ActionPreferences
+  defaultSourceBucket?: string
   nav?: NavPreferences
   sourceBuckets?: Record<string, null>
 }
@@ -49,7 +58,10 @@ const defaultPreferences: BucketPreferences = {
       packages: true,
       queries: true,
     },
-    sourceBuckets: [],
+    sourceBuckets: {
+      getDefault: () => '',
+      list: [],
+    },
   },
 }
 
@@ -64,7 +76,29 @@ const S3_PREFIX = 's3://'
 const normalizeBucketName = (input: string) =>
   input.startsWith(S3_PREFIX) ? input.slice(S3_PREFIX.length) : input
 
-function parse(bucketPreferencesYaml: string): BucketPreferences {
+function parseSourceBuckets(
+  sentry: SentryInstance,
+  ui?: UiPreferencesYaml,
+): SourceBuckets {
+  const list = Object.keys(ui?.sourceBuckets || {}).map(normalizeBucketName)
+  const defaultSourceBucket = normalizeBucketName(ui?.defaultSourceBucket || '')
+  return {
+    getDefault: () => {
+      if (defaultSourceBucket) {
+        const found = list.find((name) => name === defaultSourceBucket)
+        if (found) return found
+        sentry(
+          'captureMessage',
+          `defaultSourceBucket ${defaultSourceBucket} is incorrect`,
+        )
+      }
+      return list[0] || ''
+    },
+    list,
+  }
+}
+
+function parse(bucketPreferencesYaml: string, sentry: SentryInstance): BucketPreferences {
   const data = yaml(bucketPreferencesYaml)
   if (!data) return defaultPreferences
 
@@ -74,7 +108,7 @@ function parse(bucketPreferencesYaml: string): BucketPreferences {
     ui: {
       actions: R.mergeRight(defaultPreferences.ui.actions, data?.ui?.actions || {}),
       nav: R.mergeRight(defaultPreferences.ui.nav, data?.ui?.nav || {}),
-      sourceBuckets: Object.keys(data?.ui?.sourceBuckets || {}).map(normalizeBucketName),
+      sourceBuckets: parseSourceBuckets(sentry, data?.ui),
     },
   }
 }
@@ -84,14 +118,24 @@ const BUCKET_PREFERENCES_PATH = [
   '.quilt/catalog/config.yml',
 ]
 
-const fetchBucketPreferences = async ({ s3, bucket }: { s3: any; bucket: string }) => {
+interface FetchBucketPreferencesArgs {
+  s3: $TSFixMe
+  bucket: string
+  sentry: SentryInstance
+}
+
+const fetchBucketPreferences = async ({
+  s3,
+  sentry,
+  bucket,
+}: FetchBucketPreferencesArgs) => {
   try {
     const response = await requests.fetchFile({
       s3,
       bucket,
       path: BUCKET_PREFERENCES_PATH,
     })
-    return parse(response.Body.toString('utf-8'))
+    return parse(response.Body.toString('utf-8'), sentry)
   } catch (e) {
     if (
       e instanceof bucketErrors.FileNotFound ||
@@ -112,8 +156,9 @@ const Ctx = React.createContext<BucketPreferences | null>(null)
 type ProviderProps = React.PropsWithChildren<{ bucket: string }>
 
 export function Provider({ bucket, children }: ProviderProps) {
+  const sentry = Sentry.use()
   const s3 = AWS.S3.use()
-  const data = useData(fetchBucketPreferences, { s3, bucket })
+  const data = useData(fetchBucketPreferences, { s3, sentry, bucket })
 
   // XXX: consider returning AsyncResult or using Suspense
   const preferences = data.case({
