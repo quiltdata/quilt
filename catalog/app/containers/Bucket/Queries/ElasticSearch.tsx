@@ -150,9 +150,9 @@ interface FormProps {
   onChange: (value: requests.ElasticSearchQuery) => void
   onError: (value: Error | null) => void
   onSubmit: (value: requests.ElasticSearchQuery) => () => void
+  onSubmitAndSave: (value: requests.ElasticSearchQuery) => void
   resultsData: requests.AsyncData<requests.ElasticSearchResults>
   value: requests.ElasticSearchQuery
-  onSave: () => void
 }
 
 function Form({
@@ -161,8 +161,8 @@ function Form({
   value,
   onChange,
   onError,
-  onSave,
   onSubmit,
+  onSubmitAndSave,
 }: FormProps) {
   const classes = useStyles()
 
@@ -184,12 +184,19 @@ function Form({
         >
           Run query
         </M.Button>
-        <M.Button color="primary" disabled={disabled} onClick={onSave}>
-          {resultsData.case({
-            Ok: () => 'Save query',
-            _: () => 'Run and save query', // FIXME: onSave + onSubmit(value)
-          })}
-        </M.Button>
+        {resultsData.case({
+          Ok: () => <></>,
+          _: () => (
+            <M.Button
+              color="primary"
+              disabled={disabled}
+              onClick={() => onSubmitAndSave(value)}
+              style={{ marginLeft: 0 }}
+            >
+              Run and save query results
+            </M.Button>
+          ),
+        })}
       </div>
     </div>
   )
@@ -257,8 +264,8 @@ export default function ElastiSearch({
                 disabled={isButtonDisabled(customQueryBody, resultsData, queryBodyError)}
                 onChange={handleQueryBodyChange}
                 onError={handleError}
-                onSave={openUpload}
                 onSubmit={handleSubmit}
+                onSubmitAndSave={(q) => handleSubmit(q) && openUpload()}
                 resultsData={resultsData}
                 value={customQueryBody || QUERY_PLACEHOLDER}
               />
@@ -272,8 +279,8 @@ export default function ElastiSearch({
                 )}
                 onChange={handleQueryBodyChange}
                 onError={handleError}
-                onSave={openUpload}
                 onSubmit={handleSubmit}
+                onSubmitAndSave={(q) => handleSubmit(q) && openUpload()}
                 resultsData={resultsData}
                 value={customQueryBody || queryBody || QUERY_PLACEHOLDER}
               />
