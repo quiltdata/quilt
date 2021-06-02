@@ -27,6 +27,7 @@
 
 * [Metadata for teams](Catalog/Metadata.md)
 * [Configuration](Catalog/Preferences.md)
+* [Queries](Catalog/Queries.md)
 
 ### Advanced Usage
 
