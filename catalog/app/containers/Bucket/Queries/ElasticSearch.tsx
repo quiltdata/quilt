@@ -11,9 +11,6 @@ import QueryViewer from './QueryViewer'
 import * as requests from './requests'
 
 const useStyles = M.makeStyles((t) => ({
-  actions: {
-    margin: t.spacing(2, 0),
-  },
   container: {
     display: 'flex',
     padding: t.spacing(3),
@@ -21,16 +18,10 @@ const useStyles = M.makeStyles((t) => ({
   inner: {
     margin: t.spacing(2, 0, 0),
   },
-  form: {
-    margin: t.spacing(0, 0, 4),
-  },
   sectionHeader: {
     margin: t.spacing(0, 0, 1),
   },
   select: {
-    margin: t.spacing(3, 0),
-  },
-  viewer: {
     margin: t.spacing(3, 0),
   },
 }))
@@ -63,7 +54,7 @@ interface QueriesStateRenderProps {
   handleError: (error: Error | null) => void
   handleQueryBodyChange: (q: requests.ElasticSearchQuery | null) => void
   handleQueryMetaChange: (q: requests.Query | requests.athena.AthenaQuery | null) => void
-  handleSubmit: (q: requests.ElasticSearchQuery) => () => void
+  handleSubmit: (q: requests.ElasticSearchQuery, callback?: () => void) => () => void
   queries: requests.Query[]
   queryData: requests.AsyncData<requests.ElasticSearchQuery>
   queryMeta: requests.Query | null
@@ -97,14 +88,23 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
   const [error, setError] = React.useState<Error | null>(null)
 
   const handleSubmit = React.useMemo(
-    () => (body: requests.ElasticSearchQuery) => () => setQueryRequest(body),
+    () => (body: requests.ElasticSearchQuery, callback?: () => void) => () => {
+      setQueryRequest(body)
+      if (callback) callback()
+    },
     [setQueryRequest],
   )
+
+  const handleQueryBodyChange = React.useCallback((queryBody) => {
+    setCustomQueryBody(queryBody)
+    setQueryRequest(null)
+  }, [])
 
   const handleQueryMetaChange = React.useCallback(
     (q: requests.athena.AthenaQuery | requests.Query | null) => {
       setQueryMeta(q as requests.Query | null)
       setCustomQueryBody(null)
+      setQueryRequest(null)
     },
     [],
   )
@@ -119,7 +119,7 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
                 customQueryBody,
                 error,
                 handleError: setError,
-                handleQueryBodyChange: setCustomQueryBody,
+                handleQueryBodyChange,
                 handleQueryMetaChange,
                 handleSubmit,
                 queries,
@@ -145,12 +145,28 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
   })
 }
 
+const useFormStyles = M.makeStyles((t) => ({
+  root: {
+    margin: t.spacing(0, 0, 4),
+  },
+  actions: {
+    margin: t.spacing(2, 0),
+  },
+  save: {
+    margin: t.spacing(0, 0, 0, 1),
+  },
+  viewer: {
+    margin: t.spacing(3, 0),
+  },
+}))
+
 interface FormProps {
   disabled: boolean
   onChange: (value: requests.ElasticSearchQuery) => void
   onError: (value: Error | null) => void
+  onSave: () => void
   onSubmit: (value: requests.ElasticSearchQuery) => () => void
-  onSubmitAndSave: (value: requests.ElasticSearchQuery) => void
+  onSubmitAndSave: (value: requests.ElasticSearchQuery) => () => void
   resultsData: requests.AsyncData<requests.ElasticSearchResults>
   value: requests.ElasticSearchQuery
 }
@@ -161,13 +177,14 @@ function Form({
   value,
   onChange,
   onError,
+  onSave,
   onSubmit,
   onSubmitAndSave,
 }: FormProps) {
-  const classes = useStyles()
+  const classes = useFormStyles()
 
   return (
-    <div className={classes.form}>
+    <div className={classes.root}>
       <QueryViewer
         query={value}
         className={classes.viewer}
@@ -185,15 +202,24 @@ function Form({
           Run query
         </M.Button>
         {resultsData.case({
-          Ok: () => <></>,
-          _: () => (
+          Ok: () => (
             <M.Button
+              className={classes.save}
               color="primary"
               disabled={disabled}
-              onClick={() => onSubmitAndSave(value)}
-              style={{ marginLeft: 0 }}
+              onClick={onSave}
             >
-              Run and save query results
+              Save results
+            </M.Button>
+          ),
+          _: () => (
+            <M.Button
+              className={classes.save}
+              color="primary"
+              disabled={disabled}
+              onClick={onSubmitAndSave(value)}
+            >
+              Run and save
             </M.Button>
           ),
         })}
@@ -264,8 +290,9 @@ export default function ElastiSearch({
                 disabled={isButtonDisabled(customQueryBody, resultsData, queryBodyError)}
                 onChange={handleQueryBodyChange}
                 onError={handleError}
+                onSave={openUpload}
                 onSubmit={handleSubmit}
-                onSubmitAndSave={(q) => handleSubmit(q) && openUpload()}
+                onSubmitAndSave={(q) => handleSubmit(q, openUpload)}
                 resultsData={resultsData}
                 value={customQueryBody || QUERY_PLACEHOLDER}
               />
@@ -279,8 +306,9 @@ export default function ElastiSearch({
                 )}
                 onChange={handleQueryBodyChange}
                 onError={handleError}
+                onSave={openUpload}
                 onSubmit={handleSubmit}
-                onSubmitAndSave={(q) => handleSubmit(q) && openUpload()}
+                onSubmitAndSave={(q) => handleSubmit(q, openUpload)}
                 resultsData={resultsData}
                 value={customQueryBody || queryBody || QUERY_PLACEHOLDER}
               />
