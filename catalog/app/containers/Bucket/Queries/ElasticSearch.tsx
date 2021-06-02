@@ -320,24 +320,20 @@ export default function ElastiSearch({
           })}
 
           {resultsData.case({
-            Ok: (results: requests.ElasticSearchResults) =>
-              queryData.case({
-                Ok: (queryBody: requests.ElasticSearchQuery) => (
-                  <PackageCreateDialog
-                    {...{
-                      bucket,
-                      initialMetadata: {
-                        results,
-                        query: customQueryBody || queryBody || QUERY_PLACEHOLDER,
-                      },
-                      refresh,
-                      open: uploadOpen,
-                      onClose: closeUpload,
-                    }}
-                  />
-                ),
-                _: () => <></>,
-              }),
+            Ok: ({ queryBody, results }: requests.ElasticSearchResults) => (
+              <PackageCreateDialog
+                {...{
+                  bucket,
+                  initialMetadata: {
+                    results,
+                    query: queryBody,
+                  },
+                  refresh,
+                  open: uploadOpen,
+                  onClose: closeUpload,
+                }}
+              />
+            ),
             _: () => <></>,
           })}
 

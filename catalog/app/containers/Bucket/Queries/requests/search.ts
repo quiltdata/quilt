@@ -1,4 +1,3 @@
-import * as errors from 'containers/Bucket/errors'
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 
@@ -10,7 +9,10 @@ interface SearchArgs {
   query: ElasticSearchQuery | string
 }
 
-export type ElasticSearchResults = object | null
+export type ElasticSearchResults = {
+  queryBody: object
+  results: object
+}
 
 type ElasticSearchRequestData = {
   action: 'freeform'
@@ -32,11 +34,12 @@ async function search({ req, query }: SearchArgs): Promise<ElasticSearchResults>
     }
     if (query.size) requestOptions.size = query.size
     if (query.from) requestOptions.from = query.size
-    return req('/search', requestOptions)
+    const results = await req('/search', requestOptions)
+    return {
+      queryBody: query.body,
+      results,
+    }
   } catch (e) {
-    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
-      return null
-
     // eslint-disable-next-line no-console
     console.log('Unable to fetch')
     // eslint-disable-next-line no-console
