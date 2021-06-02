@@ -8,6 +8,8 @@ interface Cases<Data, Output = React.ReactNode> {
   _?: (x: { value: Data }) => Output
 }
 
+// TODO: `Output` first, then `Data`,
+//       because input is already defined when call `data.case((Ok: (Data: defined)))`
 export interface AsyncData<Data, Output = React.ReactElement> {
   case: (cases: Cases<Data>) => Output
   result: $TSFixMe
