@@ -232,6 +232,15 @@ function DirDisplay({
     }
   }, [bucket, hash, name, deleteRevision, redirectToPackagesList, setDeletionState])
 
+  const packageHandle = React.useMemo(
+    () => ({
+      bucket,
+      hash,
+      name,
+    }),
+    [bucket, hash, name],
+  )
+
   return data.case({
     Ok: ({ objects, prefixes, meta }) => {
       const up =
@@ -275,11 +284,7 @@ function DirDisplay({
           <PackageDeleteDialog
             error={deletionState.error}
             open={deletionState.opened}
-            packageHandle={{
-              bucket,
-              hash,
-              name,
-            }}
+            packageHandle={packageHandle}
             onClose={onPackageDeleteDialogClose}
             loading={deletionState.loading}
             onDelete={handlePackageDeletion}
