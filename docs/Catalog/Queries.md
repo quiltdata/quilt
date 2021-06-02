@@ -39,12 +39,21 @@ select, edit, and execute.
 
 ## Athena
 
-1. Need to set up workgroup and location according to https://docs.aws.amazon.com/athena/latest/ug/getting-started.html
-2. Create a database with query editor and click "Run query"
-3. To create a table you need to set database using SQL query: `CREATE EXTERNAL TABLE database_name.table_name ()`
-4. You can choose a named query (saved at Amazon Athena Query Editor) or create a new one from scratch.
-5. After clicking "Run query" and some time passed you would be able to see results
+You can park reusable Athena Queries in the Quilt catalog so that your users can
+run them.
+(We presume that you have already set up you Athena workgroup and tables per
+[AWS's documentation](https://docs.aws.amazon.com/athena/latest/ug/getting-started.html).)
+
+### Configuration
+<!-- Max please add docs on config.yaml format and/or link to Preferences.md -->
+
+### Basics
+"Run query" executes the selected query and waits for the result.
 ![](../imgs/athena-ui.png)
-6. Queries are idempotent, so querying the same query will return the same results shortly
-7. You can see all queries executions in the History table, click on a date to see results
+
+<!-- Max I think we have a bug here. Need to add a rounded timestamp to the hashing
+or else queries will get stale. What if the SQL is the same but 99 rows hav been
+added to the table since the last execution? -->
+
+Queries are idempotent, so running the same query will return identical results.
 ![](../imgs/athena-history.png)
