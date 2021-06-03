@@ -6,6 +6,9 @@ import Code from 'components/Code'
 import * as packageHandleUtils from 'utils/packageHandle'
 
 const useStyles = M.makeStyles((t) => ({
+  danger: {
+    color: t.palette.error.dark,
+  },
   lock: {
     alignItems: 'center',
     background: 'rgba(255,255,255,0.7)',
@@ -80,8 +83,8 @@ export default function PackageDeleteDialog({
         <M.Button onClick={onCancel} color="primary" autoFocus disabled={loading}>
           Cancel
         </M.Button>
-        <M.Button onClick={onConfirm} color="primary" disabled={loading}>
-          Yes, delete
+        <M.Button onClick={onConfirm} className={classes.danger} disabled={loading}>
+          Yes, delete it
         </M.Button>
       </M.DialogActions>
 
