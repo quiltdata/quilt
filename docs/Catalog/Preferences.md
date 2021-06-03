@@ -17,7 +17,7 @@ ui:
   actions:
     copyPackage: True
     createPackage: True
-    deleteRevision: True
+    deleteRevision: False
     revisePackage: True
   sourceBuckets:
     s3://BUCKET_1: {}

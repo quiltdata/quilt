@@ -50,7 +50,7 @@ const defaultPreferences: BucketPreferences = {
     actions: {
       copyPackage: true,
       createPackage: true,
-      deleteRevision: true,
+      deleteRevision: false,
       revisePackage: true,
     },
     nav: {
