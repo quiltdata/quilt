@@ -61,20 +61,16 @@ export default function PackageDeleteDialog({
       open={open}
       onClose={onCancel}
     >
-      <M.DialogTitle id="alert-dialog-title">Confirm deletion</M.DialogTitle>
+      <M.DialogTitle id="alert-dialog-title">
+        Really delete revision{' '}
+        <Code>{packageHandleUtils.shortenRevision(packageHandle.hash)}</Code> of{' '}
+        <Code>{packageHandle.name}</Code>?
+      </M.DialogTitle>
       <M.DialogContent id="alert-dialog-description">
         <M.DialogContentText>
-          You are about to delete link to{' '}
-          <Code>{packageHandleUtils.shortenRevision(packageHandle.hash)}</Code> revison of{' '}
-          <Code>{packageHandle.name}</Code> package. The data will persist.
-        </M.DialogContentText>
-        <M.DialogContentText>
-          After deleting revision could be still accessible for some time. Typically, it
-          takes seconds but can sometimes take a minute or longer.
-        </M.DialogContentText>
-        <M.DialogContentText>
-          This action is non-reversible! You will lost a reference to the revision. Are
-          you sure?
+          This package revision will be lost forever. Package deletion does not delete
+          objects in the package, but it does delete all metadata and all records of the
+          contents of this revision. Are you sure you want to delete it?
         </M.DialogContentText>
 
         {error && <Lab.Alert severity="error">{error.message}</Lab.Alert>}
