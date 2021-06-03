@@ -1,12 +1,13 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
+import { useHistory, Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import Pagination from 'components/Pagination2'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
 import Backlight from 'website/components/Backgrounds/Backlight1'
@@ -60,11 +61,11 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Buckets() {
+export default function Buckets({ query: filter } = { query: '' }) {
   const classes = useStyles()
   const buckets = BucketConfig.useRelevantBucketConfigs()
   const { urls } = NamedRoutes.use()
-  const [filter, setFilter] = React.useState('')
+  const history = useHistory()
   const [page, setPage] = React.useState(1)
   const scrollRef = React.useRef(null)
 
@@ -107,9 +108,19 @@ export default function Buckets() {
     }
   })
 
-  const handleFilterChange = React.useCallback((e) => setFilter(e.target.value), [])
+  const filtering = useDebouncedInput(filter, 500)
 
-  const clearFilter = React.useCallback(() => setFilter(''), [])
+  React.useEffect(() => {
+    // TODO: handle route change
+    //       and implement BucketGrid tag as <Link />
+    if (filtering.value !== filter) {
+      history.push(urls.home({ q: filtering.value }))
+    }
+  }, [history, filtering.value, filter, urls])
+
+  const clearFilter = React.useCallback(() => {
+    filtering.set()
+  }, [filtering])
 
   return (
     <div className={classes.root}>
@@ -122,8 +133,6 @@ export default function Buckets() {
         <M.Box mt={4} />
         <M.TextField
           className={classes.filter}
-          value={filter}
-          onChange={handleFilterChange}
           placeholder="Find a bucket"
           variant="outlined"
           margin="dense"
@@ -142,11 +151,12 @@ export default function Buckets() {
               </M.InputAdornment>
             ) : undefined,
           }}
+          {...filtering.input}
         />
         {paginated.length || !filter ? (
           <BucketGrid
             buckets={paginated}
-            onTagClick={setFilter}
+            onTagClick={filtering.set}
             tagIsMatching={tagIsMatching}
             showAddLink={!filter && buckets.length <= PER_PAGE - 1}
           />
