@@ -27,11 +27,13 @@ import usePrevious from 'utils/usePrevious'
 
 import Code from './Code'
 import CopyButton from './CopyButton'
+import RevisionMenu from './RevisionMenu'
 import * as FileView from './FileView'
 import Listing from './Listing'
 import PackageLink from './PackageLink'
 import { usePackageUpdateDialog } from './PackageUpdateDialog'
 import PackageCopyDialog from './PackageCopyDialog'
+import PackageDeleteDialog from './PackageDeleteDialog'
 import RevisionInfo from './RevisionInfo'
 import Section from './Section'
 import Summary from './Summary'
@@ -127,6 +129,15 @@ function TopBar({ crumbs, children }) {
   )
 }
 
+const useDirDisplayStyles = M.makeStyles((t) => ({
+  button: {
+    flexShrink: 0,
+    marginBottom: '-3px',
+    marginLeft: t.spacing(1),
+    marginTop: '-3px',
+  },
+}))
+
 function DirDisplay({
   bucket,
   name,
@@ -140,8 +151,10 @@ function DirDisplay({
   const s3 = AWS.S3.use()
   const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
   const credentials = AWS.Credentials.use()
+  const history = useHistory()
   const { urls } = NamedRoutes.use()
   const intercom = Intercom.use()
+  const classes = useDirDisplayStyles()
 
   const showIntercom = React.useMemo(
     () => (intercom.dummy ? null : () => intercom('show')),
@@ -187,6 +200,47 @@ function DirDisplay({
 
   const preferences = BucketPreferences.use()
 
+  const redirectToPackagesList = React.useCallback(() => {
+    history.push(urls.bucketPackageList(bucket))
+  }, [bucket, history, urls])
+  const [deletionState, setDeletionState] = React.useState({
+    error: null,
+    loading: false,
+    opened: false,
+  })
+  const deleteRevision = requests.useDeleteRevision()
+  const onPackageDeleteDialogOpen = React.useCallback(() => {
+    setDeletionState(R.assoc('opened', true))
+  }, [])
+  const onPackageDeleteDialogClose = React.useCallback(() => {
+    setDeletionState(
+      R.mergeLeft({
+        error: null,
+        opened: false,
+      }),
+    )
+  }, [])
+  const handlePackageDeletion = React.useCallback(async () => {
+    setDeletionState(R.assoc('loading', true))
+
+    try {
+      await deleteRevision({ source: { bucket, name, hash } })
+      setDeletionState(R.mergeLeft({ opened: false, loading: false }))
+      redirectToPackagesList()
+    } catch (error) {
+      setDeletionState(R.mergeLeft({ error, loading: false }))
+    }
+  }, [bucket, hash, name, deleteRevision, redirectToPackagesList, setDeletionState])
+
+  const packageHandle = React.useMemo(
+    () => ({
+      bucket,
+      hash,
+      name,
+    }),
+    [bucket, hash, name],
+  )
+
   return data.case({
     Ok: ({ objects, prefixes, meta }) => {
       const up =
@@ -227,11 +281,21 @@ function DirDisplay({
             onExited={onPackageCopyDialogExited}
           />
 
+          <PackageDeleteDialog
+            error={deletionState.error}
+            open={deletionState.opened}
+            packageHandle={packageHandle}
+            onClose={onPackageDeleteDialogClose}
+            loading={deletionState.loading}
+            onDelete={handlePackageDeletion}
+          />
+
           {updateDialog.render()}
 
           <TopBar crumbs={crumbs}>
             {preferences?.ui?.actions?.revisePackage && (
               <M.Button
+                className={classes.button}
                 variant="contained"
                 color="primary"
                 size="small"
@@ -241,20 +305,27 @@ function DirDisplay({
                 Revise package
               </M.Button>
             )}
-            <M.Box ml={1} />
             {preferences?.ui?.actions?.copyPackage && (
-              <CopyButton bucket={bucket} onChange={setSuccessor}>
+              <CopyButton
+                className={classes.button}
+                bucket={bucket}
+                onChange={setSuccessor}
+              >
                 Push to bucket
               </CopyButton>
             )}
             {!noDownload && (
-              <>
-                <M.Box ml={1} />
-                <FileView.ZipDownloadForm
-                  label="Download package"
-                  suffix={`package/${bucket}/${name}/${hash}`}
-                />
-              </>
+              <FileView.ZipDownloadForm
+                className={classes.button}
+                label="Download package"
+                suffix={`package/${bucket}/${name}/${hash}`}
+              />
+            )}
+            {preferences?.ui?.actions?.deleteRevision && (
+              <RevisionMenu
+                className={classes.button}
+                onDelete={onPackageDeleteDialogOpen}
+              />
             )}
           </TopBar>
           <PkgCode {...{ bucket, name, hash, revision, path }} />

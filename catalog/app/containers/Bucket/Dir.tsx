@@ -154,6 +154,12 @@ const useStyles = M.makeStyles((t) => ({
     maxWidth: '100%',
     overflowWrap: 'break-word',
   },
+  button: {
+    flexShrink: 0,
+    marginBottom: '-3px',
+    marginLeft: t.spacing(1),
+    marginTop: '-3px',
+  },
 }))
 
 interface DirParams {
@@ -244,18 +250,16 @@ export default function Dir({
         </div>
         <M.Box flexGrow={1} />
         {preferences?.ui?.actions?.createPackage && (
-          <CopyButton bucket={bucket} onChange={setSuccessor}>
+          <CopyButton bucket={bucket} className={classes.button} onChange={setSuccessor}>
             Create package from directory
           </CopyButton>
         )}
         {!noDownload && (
-          <>
-            <M.Box ml={1} />
-            <FileView.ZipDownloadForm
-              suffix={`dir/${bucket}/${path}`}
-              label="Download directory"
-            />
-          </>
+          <FileView.ZipDownloadForm
+            className={classes.button}
+            suffix={`dir/${bucket}/${path}`}
+            label="Download directory"
+          />
         )}
       </M.Box>
 
