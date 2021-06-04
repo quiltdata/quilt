@@ -89,21 +89,13 @@ function SuccessorsSelect({ anchorEl, bucket, open, onChange, onClose }) {
   )
 }
 
-const useButtonStyles = M.makeStyles({
-  root: {
-    flexShrink: 0,
-    margin: '-3px 0',
-  },
-})
-
-function Button({ children, onClick }) {
-  const classes = useButtonStyles()
+function Button({ children, className, onClick }) {
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
   const props = {
     'aria-haspopup': 'true',
-    className: classes.root,
+    className,
     onClick,
     size: 'small',
   }
@@ -119,7 +111,7 @@ function Button({ children, onClick }) {
   )
 }
 
-export default function CopyButton({ bucket, children, onChange }) {
+export default function CopyButton({ bucket, className, children, onChange }) {
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null)
 
   const onButtonClick = React.useCallback(
@@ -139,7 +131,9 @@ export default function CopyButton({ bucket, children, onChange }) {
 
   return (
     <>
-      <Button onClick={onButtonClick}>{children}</Button>
+      <Button className={className} onClick={onButtonClick}>
+        {children}
+      </Button>
 
       <SuccessorsSelect
         anchorEl={menuAnchorEl}
