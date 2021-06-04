@@ -1,86 +1,197 @@
-type WorkflowsConfig {
-}
+# enum Mode {
+#   MARKETING
+#   OPEN
+#   PRODUCT
+#   LOCAL
+# }
 
-type Bucket {
+# enum AuthMethodState {
+#   ENABLED
+#   DISABLED
+#   SIGN_IN_ONLY
+# }
+
+scalar Datetime
+
+scalar Json
+
+# TODO: make it scalar?
+# type SSOProviderConfig {
+#   name: String!
+#   clientId: String!
+#   baseUrl: String
+# }
+#
+# type LinkedDataConfig {
+#   name: String!
+#   description: String
+# }
+#
+# type Config {
+#   "App mode."
+#   mode: Mode!
+#
+#   "Registry your users will use to login and get credentials."
+#   registryUrl: String!
+#   "Proxy server to use to get around S3 buckets with no CORS policies."
+#   s3Proxy: String!
+#   "Endpoint to use for previews and other things."
+#   apiGatewayEndpoint: String!
+#   "Endpoint to use for thumbnails."
+#   binaryApiGatewayEndpoint: String!
+#   "Utility / service bucket used by Quilt internals."
+#   serviceBucket: String!
+#   "Bucket where object analytics data is stored"
+#   analyticsBucket: String
+#
+#   "Calendly.com scheduling link (e.g. https://calendly.com/$username/$event) used for meeting scheduling popup aka Talk To Us."
+#   calendlyLink: String
+#
+#   "Connects orange chat icon to our Intercom. If absent, icon does not show."
+#   intercomAppId: String
+#   "Token for Mixpanel analytics service"
+#   mixpanelToken: String
+#   "Token used for logging to Sentry."
+#   sentryDSN: String
+#
+#   "Requests to /package/$owner/[$package/] will be redirected there (must not end in slash)."
+#   legacyPackagesRedirect: String
+#
+#   "If present, expose structured data (JSON-LD) about the catalog and the datasets it contains"
+#   linkedData: LinkedDataConfig
+#
+#   "If true, hide download buttons in the catalog."
+#   noDownload: Boolean!
+#   "If true, hide the image grid on the bucket overview page."
+#   noOverviewImages: Boolean!
+#
+#   "If true, then all routes will require the user to be signed in."
+#   alwaysRequiresAuth: Boolean!
+#   "Whether Quilt password authentication is enabled for sign in and sign up."
+#   passwordAuth: AuthMethodState!
+#   "Whether Single Sign-On authentication is enabled for sign in and sign up."
+#   ssoAuth: AuthMethodState!
+#   ssoProviders: [SSOProviderConfig!]!
+# }
+
+type BucketConfig {
   name: String!
-  stats: BucketStats
-  workflows: WorkflowsConfig
-  # summary
-  # readmes
-  # images
-  packages: BucketPackages
+  title: String!
+  iconUrl: String # always use default?
+  description: String
+  linkedData: Json # schemaOrg: Json
+  overviewUrl: String
+  tags: [String!]
+  relevanceScore: Int!
+
+  snsNotificationArn: String
+  lastIndexed: Datetime
+  scannerParallelShardsDepth: Int
+  skipMetaDataIndexing: Boolean
+  fileExtensionsToIndex: [String!]
 }
-
-# summarize
-
-# prefix
-
-type Package {
-  revisions: PackageRevisions
-}
-
-type PackageRevisions {
-  count: Number!
-  resolve(input: String!): PackageRevision
-  list(page = 1, perPage = 10): [PackageRevision!]!
-}
-
-type PackageRevisionStats {
-  files: Number!
-  bytes: Number!
-}
-
-type PackageRevision {
-  # pointer
-  hash: String!
-  modified: Date!
-  stats: PackageRevisionStats
-  message: String
-  metadata: JSONObject
-  # workflow
-  entries: PackageRevisionEntries!
-}
-
-type PackageRevisionEntries {
-  # paginate
-  # browse
-}
-
-type PackageEntry {
-  logicalKey: String! # return S3Object?
-  physicalKey: String!
-  metadata: JSONObject
-  size: Number!
-  hash: String!
-}
-
-type BucketPackages {
-  # count
-  list(
-    filter,
-    sort, // name | modified
-    perPage = 30,
-    page = 1,
-  ): [Package!]!
-}
-
-type S3Object {
-  versions
-  metadata
-}
-
-# s3 object version
-
-# config
 
 type Query {
-  bucket(name: String!): Bucket!
+  # config: Config!
+  bucketConfigs: [BucketConfig!]!
+  bucketConfig(name: String!): BucketConfig
 }
+
+input BucketAddInput {
+  name: String!
+  title: String!
+  iconUrl: String
+  description: String
+  linkedData: Json
+  overviewUrl: String
+  tags: [String!]
+  relevanceScore: Int
+  snsNotificationArn: String
+  scannerParallelShardsDepth: Int
+  skipMetaDataIndexing: Boolean
+  fileExtensionsToIndex: [String!]
+  setVersioning: Boolean
+  delayScan: Boolean
+}
+
+input BucketUpdateInput {
+  title: String!
+  iconUrl: String
+  description: String
+  linkedData: Json
+  overviewUrl: String
+  tags: [String!]
+  relevanceScore: Int
+  snsNotificationArn: String
+  scannerParallelShardsDepth: Int
+  skipMetaDataIndexing: Boolean
+  fileExtensionsToIndex: [String!]
+  setVersioning: Boolean
+}
+
+type BucketAddSuccess {
+  bucketConfig: BucketConfig!
+}
+
+type Unauthorized {
+  _: Boolean
+}
+
+type BucketNotFound {
+  _: Boolean
+}
+
+type BucketAlreadyAdded {
+  _: Boolean
+}
+
+type BucketDoesNotExist {
+  _: Boolean
+}
+
+type SnsInvalid {
+  _: Boolean
+}
+
+type SubscriptionError {
+  _: Boolean
+}
+
+type InsufficientPermissions {
+  _: Boolean
+}
+
+union BucketAddResult =
+    BucketAddSuccess
+  | Unauthorized
+  | BucketAlreadyAdded
+  | BucketDoesNotExist
+  | SubscriptionError
+  | InsufficientPermissions
+  | SnsInvalid
+
+type BucketUpdateSuccess {
+  bucketConfig: BucketConfig!
+}
+
+union BucketUpdateResult =
+    BucketUpdateSuccess
+  | Unauthorized
+  | BucketNotFound
+  | SnsInvalid
+  | SubscriptionError
+
+type BucketRemoveSuccess {
+  bucketConfig: BucketConfig!
+}
+
+# "Bucket not found"
+# "Cannot remove bucket while indexing."
+# Unauthorized
+union BucketRemoveResult = BucketRemoveSuccess | Unauthorized
 
 type Mutation {
-}
-
-schema {
-  query: Query
-  mutation: Mutation
+  bucketAdd(input: BucketAddInput!): BucketAddResult!
+  bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!
+  bucketRemove(name: String!): BucketRemoveResult!
 }
