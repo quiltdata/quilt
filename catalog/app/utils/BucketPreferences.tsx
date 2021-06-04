@@ -13,7 +13,7 @@ import * as requests from 'containers/Bucket/requests'
 type SentryInstance = (command: 'captureMessage', message: string) => void
 
 export type ActionPreferences = Record<
-  'copyPackage' | 'createPackage' | 'revisePackage',
+  'copyPackage' | 'createPackage' | 'deleteRevision' | 'revisePackage',
   boolean
 >
 
@@ -50,6 +50,7 @@ const defaultPreferences: BucketPreferences = {
     actions: {
       copyPackage: true,
       createPackage: true,
+      deleteRevision: false,
       revisePackage: true,
     },
     nav: {
