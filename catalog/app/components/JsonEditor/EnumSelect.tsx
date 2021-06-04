@@ -2,7 +2,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
-import Note from './Note'
 import PreviewValue from './PreviewValue'
 import { JsonValue, EMPTY_VALUE, RowData } from './constants'
 import { stringifyJSON } from './utils'
@@ -18,22 +17,17 @@ const useStyles = M.makeStyles((t) => ({
   select: {
     ...t.typography.body2,
     padding: t.spacing(0, 1),
-    width: '100%',
-    zIndex: 1,
-    '&:focus': {
-      outline: `2px solid ${t.palette.primary.light}`,
-    },
+    outline: `2px solid ${t.palette.primary.light}`,
   },
 }))
 
 interface EnumSelectProps {
-  columnId: 'key' | 'value'
   data: RowData
   value: JsonValue
   onChange: (value: JsonValue) => void
 }
 
-export default function EnumSelect({ columnId, data, value, onChange }: EnumSelectProps) {
+export default function EnumSelect({ data, value, onChange }: EnumSelectProps) {
   const classes = useStyles()
 
   if (!data?.valueSchema?.enum) throw new Error('This is not enum')
@@ -52,6 +46,7 @@ export default function EnumSelect({ columnId, data, value, onChange }: EnumSele
           if (typeof option === 'string') return option
           return stringifyJSON(option)
         }}
+        className={classes.select}
         options={options}
         renderOption={(option) => <PreviewValue value={option} />}
         freeSolo
@@ -66,7 +61,6 @@ export default function EnumSelect({ columnId, data, value, onChange }: EnumSele
             InputProps={{
               ...InputProps,
               disableUnderline: true,
-              endAdornment: <Note {...{ columnId, data, value }} />,
             }}
             // eslint-disable-next-line react/jsx-no-duplicate-props
             inputProps={inputProps}
