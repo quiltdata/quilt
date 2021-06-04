@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import * as Urql from 'urql'
+import * as urql from 'urql'
 import * as W from 'wonka'
 
 import defer from 'utils/defer'
@@ -25,7 +25,7 @@ interface AuthContext {
 // TODO: dedupe
 const makeHeadersFromTokens = (t?: AuthTokens) => t && { Authorization: t.token }
 
-const getFetchOptions = (op: Urql.Operation) =>
+const getFetchOptions = (op: urql.Operation) =>
   typeof op.context.fetchOptions === 'function'
     ? op.context.fetchOptions()
     : op.context.fetchOptions || {}
@@ -40,7 +40,7 @@ export function useAuthExchange() {
   }, [dispatch])
 
   const transformOp = React.useCallback(
-    async (op: Urql.Operation) => {
+    async (op: urql.Operation) => {
       const ctx: AuthContext = op.context as any
 
       const tokens =
@@ -53,7 +53,7 @@ export function useAuthExchange() {
 
       const fetchOptions = getFetchOptions(op)
 
-      return Urql.makeOperation(op.kind, op, {
+      return urql.makeOperation(op.kind, op, {
         ...op.context,
         fetchOptions: {
           ...fetchOptions,
@@ -65,7 +65,7 @@ export function useAuthExchange() {
   )
 
   const handleResult = React.useCallback(
-    async (r: Urql.OperationResult) => {
+    async (r: urql.OperationResult) => {
       if (r.error) {
         const ctx: AuthContext = r.operation.context as any
 
@@ -77,7 +77,7 @@ export function useAuthExchange() {
         if (handleInvalidToken && r.error.message === '[GraphQL] Token invalid.') {
           dispatch(actions.authLost(new InvalidToken({ originalError: r.error })))
           // never resolve on auth error
-          return new Promise<Urql.OperationResult>(() => {})
+          return new Promise<urql.OperationResult>(() => {})
         }
       }
       return r
@@ -86,7 +86,7 @@ export function useAuthExchange() {
   )
 
   return React.useCallback(
-    ({ forward }: Urql.ExchangeInput): Urql.ExchangeIO => (ops$) =>
+    ({ forward }: urql.ExchangeInput): urql.ExchangeIO => (ops$) =>
       W.pipe(
         ops$,
         W.mergeMap((op) => W.fromPromise(transformOp(op))),
