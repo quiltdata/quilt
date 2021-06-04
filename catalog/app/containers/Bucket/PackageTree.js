@@ -1,9 +1,7 @@
-import cx from 'classnames'
-import * as dateFns from 'date-fns'
 import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link as RRLink } from 'react-router-dom'
+import { Link as RRLink, useHistory } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -11,7 +9,6 @@ import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/Bre
 import * as Intercom from 'components/Intercom'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
-import * as Notifications from 'containers/Notifications'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
@@ -23,199 +20,27 @@ import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as PackageUri from 'utils/PackageUri'
-import Link, { linkStyle } from 'utils/StyledLink'
-import copyToClipboard from 'utils/clipboard'
+import Link from 'utils/StyledLink'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import usePrevious from 'utils/usePrevious'
 
 import Code from './Code'
 import CopyButton from './CopyButton'
+import RevisionMenu from './RevisionMenu'
 import * as FileView from './FileView'
 import Listing from './Listing'
+import PackageLink from './PackageLink'
 import { usePackageUpdateDialog } from './PackageUpdateDialog'
 import PackageCopyDialog from './PackageCopyDialog'
+import PackageDeleteDialog from './PackageDeleteDialog'
+import RevisionInfo from './RevisionInfo'
 import Section from './Section'
 import Summary from './Summary'
 import * as errors from './errors'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
-
-function useRevisionsData({ bucket, name }) {
-  const req = AWS.APIGateway.use()
-  return useData(requests.getPackageRevisions, { req, bucket, name, perPage: 5 })
-}
-
-const useRevisionInfoStyles = M.makeStyles((t) => ({
-  revision: {
-    ...linkStyle,
-    alignItems: 'center',
-    display: 'inline-flex',
-  },
-  mono: {
-    fontFamily: t.typography.monospace.fontFamily,
-  },
-  line: {
-    whiteSpace: 'nowrap',
-  },
-  secondaryText: {
-    display: 'block',
-    height: 40,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  list: {
-    width: 420,
-  },
-}))
-
-function RevisionInfo({ revisionData, revision, bucket, name, path }) {
-  const { urls } = NamedRoutes.use()
-  const { push } = Notifications.use()
-  const classes = useRevisionInfoStyles()
-
-  const listRef = React.useRef()
-  const [anchor, setAnchor] = React.useState()
-  const [opened, setOpened] = React.useState(false)
-  const open = React.useCallback(() => setOpened(true), [])
-  const close = React.useCallback(() => setOpened(false), [])
-
-  const revisionsData = useRevisionsData({ bucket, name })
-  const data = revisionsData.case({
-    Ok: (revisions) =>
-      revisionData.case({
-        Ok: ({ hash }) =>
-          AsyncResult.Ok(revisions.map((r) => ({ ...r, selected: r.hash === hash }))),
-        Err: () => AsyncResult.Ok(revisions),
-        _: R.identity,
-      }),
-    _: R.identity,
-  })
-
-  const getHttpsUri = (r) =>
-    `${window.origin}${urls.bucketPackageTree(bucket, name, r.hash, path)}`
-
-  const copyHttpsUri = (r, containerRef) => (e) => {
-    e.preventDefault()
-    copyToClipboard(getHttpsUri(r), { container: containerRef && containerRef.current })
-    push('Canonical URI copied to clipboard')
-  }
-
-  return (
-    <>
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-      <span
-        className={classes.revision}
-        onClick={open}
-        ref={setAnchor}
-        title={revision.length > 10 ? revision : undefined}
-      >
-        {R.take(10, revision)} <M.Icon>expand_more</M.Icon>
-      </span>
-
-      {revisionData.case({
-        Ok: (r) => (
-          <M.IconButton
-            size="small"
-            title="Copy package revision's canonical catalog URI to the clipboard"
-            href={getHttpsUri(r)}
-            onClick={copyHttpsUri(r)}
-            style={{ marginTop: -4, marginBottom: -4 }}
-          >
-            <M.Icon>link</M.Icon>
-          </M.IconButton>
-        ),
-        _: () => null,
-      })}
-
-      <M.Popover
-        open={opened && !!anchor}
-        anchorEl={anchor}
-        onClose={close}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <M.List className={classes.list} ref={listRef}>
-          {AsyncResult.case(
-            {
-              Ok: R.ifElse(
-                R.isEmpty,
-                () => (
-                  <M.ListItem>
-                    <M.ListItemText
-                      primary="No revisions found"
-                      secondary="Looks like this package has been deleted"
-                    />
-                  </M.ListItem>
-                ),
-                R.map((r) => (
-                  <M.ListItem
-                    key={r.hash}
-                    button
-                    onClick={close}
-                    selected={r.selected}
-                    component={RRLink}
-                    to={urls.bucketPackageTree(bucket, name, r.hash, path)}
-                  >
-                    <M.ListItemText
-                      primary={dateFns.format(r.modified, 'MMMM do yyyy - h:mma')}
-                      secondary={
-                        <span className={classes.secondaryText}>
-                          <span className={classes.line}>
-                            {r.message || <i>No message</i>}
-                          </span>
-                          <br />
-                          <span className={cx(classes.line, classes.mono)}>{r.hash}</span>
-                        </span>
-                      }
-                    />
-                    <M.ListItemSecondaryAction>
-                      <M.IconButton
-                        title="Copy package revision's canonical catalog URI to the clipboard"
-                        href={getHttpsUri(r)}
-                        onClick={copyHttpsUri(r, listRef)}
-                      >
-                        <M.Icon>link</M.Icon>
-                      </M.IconButton>
-                    </M.ListItemSecondaryAction>
-                  </M.ListItem>
-                )),
-              ),
-              Err: () => (
-                <M.ListItem>
-                  <M.ListItemIcon>
-                    <M.Icon>error</M.Icon>
-                  </M.ListItemIcon>
-                  <M.Typography variant="body1">Error fetching revisions</M.Typography>
-                </M.ListItem>
-              ),
-              _: () => (
-                <M.ListItem>
-                  <M.ListItemIcon>
-                    <M.CircularProgress size={24} />
-                  </M.ListItemIcon>
-                  <M.Typography variant="body1">Fetching revisions</M.Typography>
-                </M.ListItem>
-              ),
-            },
-            data,
-          )}
-          <M.Divider />
-          <M.ListItem
-            button
-            onClick={close}
-            component={RRLink}
-            to={urls.bucketPackageRevisions(bucket, name)}
-          >
-            <M.Box textAlign="center" width="100%">
-              Show all revisions
-            </M.Box>
-          </M.ListItem>
-        </M.List>
-      </M.Popover>
-    </>
-  )
-}
+import useViewModes from './viewModes'
 
 function ExposeLinkedData({ bucketCfg, bucket, name, hash, modified }) {
   const sign = AWS.Signer.useS3Signer()
@@ -304,6 +129,15 @@ function TopBar({ crumbs, children }) {
   )
 }
 
+const useDirDisplayStyles = M.makeStyles((t) => ({
+  button: {
+    flexShrink: 0,
+    marginBottom: '-3px',
+    marginLeft: t.spacing(1),
+    marginTop: '-3px',
+  },
+}))
+
 function DirDisplay({
   bucket,
   name,
@@ -317,8 +151,10 @@ function DirDisplay({
   const s3 = AWS.S3.use()
   const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
   const credentials = AWS.Credentials.use()
+  const history = useHistory()
   const { urls } = NamedRoutes.use()
   const intercom = Intercom.use()
+  const classes = useDirDisplayStyles()
 
   const showIntercom = React.useMemo(
     () => (intercom.dummy ? null : () => intercom('show')),
@@ -364,6 +200,47 @@ function DirDisplay({
 
   const preferences = BucketPreferences.use()
 
+  const redirectToPackagesList = React.useCallback(() => {
+    history.push(urls.bucketPackageList(bucket))
+  }, [bucket, history, urls])
+  const [deletionState, setDeletionState] = React.useState({
+    error: null,
+    loading: false,
+    opened: false,
+  })
+  const deleteRevision = requests.useDeleteRevision()
+  const onPackageDeleteDialogOpen = React.useCallback(() => {
+    setDeletionState(R.assoc('opened', true))
+  }, [])
+  const onPackageDeleteDialogClose = React.useCallback(() => {
+    setDeletionState(
+      R.mergeLeft({
+        error: null,
+        opened: false,
+      }),
+    )
+  }, [])
+  const handlePackageDeletion = React.useCallback(async () => {
+    setDeletionState(R.assoc('loading', true))
+
+    try {
+      await deleteRevision({ source: { bucket, name, hash } })
+      setDeletionState(R.mergeLeft({ opened: false, loading: false }))
+      redirectToPackagesList()
+    } catch (error) {
+      setDeletionState(R.mergeLeft({ error, loading: false }))
+    }
+  }, [bucket, hash, name, deleteRevision, redirectToPackagesList, setDeletionState])
+
+  const packageHandle = React.useMemo(
+    () => ({
+      bucket,
+      hash,
+      name,
+    }),
+    [bucket, hash, name],
+  )
+
   return data.case({
     Ok: ({ objects, prefixes, meta }) => {
       const up =
@@ -404,11 +281,21 @@ function DirDisplay({
             onExited={onPackageCopyDialogExited}
           />
 
+          <PackageDeleteDialog
+            error={deletionState.error}
+            open={deletionState.opened}
+            packageHandle={packageHandle}
+            onClose={onPackageDeleteDialogClose}
+            loading={deletionState.loading}
+            onDelete={handlePackageDeletion}
+          />
+
           {updateDialog.render()}
 
           <TopBar crumbs={crumbs}>
             {preferences?.ui?.actions?.revisePackage && (
               <M.Button
+                className={classes.button}
                 variant="contained"
                 color="primary"
                 size="small"
@@ -418,20 +305,27 @@ function DirDisplay({
                 Revise package
               </M.Button>
             )}
-            <M.Box ml={1} />
             {preferences?.ui?.actions?.copyPackage && (
-              <CopyButton bucket={bucket} onChange={setSuccessor}>
+              <CopyButton
+                className={classes.button}
+                bucket={bucket}
+                onChange={setSuccessor}
+              >
                 Push to bucket
               </CopyButton>
             )}
             {!noDownload && (
-              <>
-                <M.Box ml={1} />
-                <FileView.ZipDownloadForm
-                  label="Download package"
-                  suffix={`package/${bucket}/${name}/${hash}`}
-                />
-              </>
+              <FileView.ZipDownloadForm
+                className={classes.button}
+                label="Download package"
+                suffix={`package/${bucket}/${name}/${hash}`}
+              />
+            )}
+            {preferences?.ui?.actions?.deleteRevision && (
+              <RevisionMenu
+                className={classes.button}
+                onDelete={onPackageDeleteDialogOpen}
+              />
             )}
           </TopBar>
           <PkgCode {...{ bucket, name, hash, revision, path }} />
@@ -490,10 +384,18 @@ function DirDisplay({
   })
 }
 
-function FileDisplay({ bucket, name, hash, revision, path, crumbs }) {
+const useFileDisplayStyles = M.makeStyles((t) => ({
+  button: {
+    marginLeft: t.spacing(2),
+  },
+}))
+
+function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumbs }) {
   const s3 = AWS.S3.use()
   const credentials = AWS.Credentials.use()
   const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
+
+  const classes = useFileDisplayStyles()
 
   const data = useData(requests.packageFileDetail, {
     s3,
@@ -531,15 +433,33 @@ function FileDisplay({ bucket, name, hash, revision, path, crumbs }) {
     </>
   )
 
-  const withPreview = ({ archived, deleted, handle }, callback) => {
+  const withPreview = ({ archived, deleted, handle, mode }, callback) => {
     if (deleted) {
       return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
     }
     if (archived) {
       return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
     }
-    return Preview.load(handle, callback)
+    return mode
+      ? Preview.load(R.assoc('mode', mode.key, handle), callback)
+      : Preview.load(handle, callback)
   }
+
+  const history = useHistory()
+  const { urls } = NamedRoutes.use()
+
+  const { registryUrl } = Config.use()
+  const viewModes = useViewModes(registryUrl, path)
+  const viewMode = React.useMemo(
+    () => viewModes.find(({ key }) => key === modeSlug) || viewModes[0] || null,
+    [viewModes, modeSlug],
+  )
+  const onViewModeChange = React.useCallback(
+    (mode) => {
+      history.push(urls.bucketPackageTree(bucket, name, revision, path, mode.key))
+    },
+    [bucket, history, name, path, revision, urls],
+  )
 
   return data.case({
     Ok: ({ meta, ...handle }) => (
@@ -558,14 +478,25 @@ function FileDisplay({ bucket, name, hash, revision, path, crumbs }) {
             Exists: ({ archived, deleted }) => (
               <>
                 <TopBar crumbs={crumbs}>
+                  {!!viewModes.length && (
+                    <FileView.ViewWithVoilaButtonLayout
+                      className={classes.button}
+                      modesList={viewModes}
+                      mode={viewMode}
+                      onChange={onViewModeChange}
+                    />
+                  )}
                   {!noDownload && !deleted && !archived && (
-                    <FileView.DownloadButton handle={handle} />
+                    <FileView.DownloadButton className={classes.button} handle={handle} />
                   )}
                 </TopBar>
                 <PkgCode {...{ bucket, name, hash, revision, path }} />
                 <FileView.Meta data={AsyncResult.Ok(meta)} />
                 <Section icon="remove_red_eye" heading="Preview" expandable={false}>
-                  {withPreview({ archived, deleted, handle }, renderPreview)}
+                  {withPreview(
+                    { archived, deleted, handle, mode: viewMode },
+                    renderPreview,
+                  )}
                 </Section>
               </>
             ),
@@ -616,9 +547,6 @@ function ResolverProvider({ bucket, name, hash, children }) {
 }
 
 const useStyles = M.makeStyles({
-  name: {
-    wordBreak: 'break-all',
-  },
   alertMsg: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -626,7 +554,7 @@ const useStyles = M.makeStyles({
   },
 })
 
-function PackageTree({ bucket, name, revision, path, resolvedFrom }) {
+function PackageTree({ bucket, mode, name, revision, path, resolvedFrom }) {
   const classes = useStyles()
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
@@ -720,16 +648,15 @@ function PackageTree({ bucket, name, revision, path, resolvedFrom }) {
         </M.Box>
       )}
       <M.Typography variant="body1">
-        <Link to={urls.bucketPackageDetail(bucket, name)} className={classes.name}>
-          {name}
-        </Link>
+        <PackageLink
+          {...{ bucket, name, path, revision, revisionListKey, revisionData }}
+        />
         {' @ '}
         <RevisionInfo
           {...{ revisionData, revision, bucket, name, path }}
           key={`revinfo:${revisionListKey}`}
         />
       </M.Typography>
-
       {revisionData.case({
         Ok: ({ hash }) => (
           <ResolverProvider {...{ bucket, name, hash }}>
@@ -748,7 +675,7 @@ function PackageTree({ bucket, name, revision, path, resolvedFrom }) {
                 }}
               />
             ) : (
-              <FileDisplay {...{ bucket, name, hash, revision, path, crumbs }} />
+              <FileDisplay {...{ bucket, mode, name, hash, revision, path, crumbs }} />
             )}
           </ResolverProvider>
         ),
@@ -794,11 +721,11 @@ export default function PackageTreeWrapper({
   location,
 }) {
   const path = s3paths.decode(encodedPath)
-  const { resolvedFrom } = parseSearch(location.search)
+  const { resolvedFrom, mode } = parseSearch(location.search)
   const s3 = AWS.S3.use()
   const packageExists = useData(requests.ensurePackageExists, { s3, bucket, name })
   return packageExists.case({
-    Ok: () => <PackageTree {...{ bucket, name, revision, path, resolvedFrom }} />,
+    Ok: () => <PackageTree {...{ bucket, mode, name, revision, path, resolvedFrom }} />,
     Err: errors.displayError(),
     _: () => <Placeholder color="text.secondary" />,
   })

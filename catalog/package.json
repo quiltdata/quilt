@@ -60,6 +60,7 @@
     "@rehooks/component-size": "^1.0.3",
     "@sentry/browser": "^5.30.0",
     "@testing-library/react": "^11.2.6",
+    "ace-builds": "^1.4.12",
     "ajv": "^6.12.6",
     "autobind-decorator": "^2.4.0",
     "aws-sdk": "^2.899.0",
@@ -94,6 +95,7 @@
     "prop-types": "^15.7.2",
     "ramda": "^0.26.1",
     "react": "^17.0.2",
+    "react-ace": "^9.4.0",
     "react-dom": "^17.0.2",
     "react-dropzone": "^11.3.2",
     "react-final-form": "^6.5.3",
@@ -129,6 +131,7 @@
     "xlsx": "^0.16.9"
   },
   "devDependencies": {
+    "@testing-library/react-hooks": "^6.0.0",
     "@types/dedent": "^0.7.0",
     "@types/fontfaceobserver": "^0.0.6",
     "@types/history": "^4.7.8",

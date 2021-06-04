@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
@@ -5,13 +6,13 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 // import Message from 'components/Message'
+import SelectDropdown from 'components/SelectDropdown'
 import * as Auth from 'containers/Auth'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
 import pipeThru from 'utils/pipeThru'
 
-// import Code from './Code'
 import Section from './Section'
 
 // TODO: move here everything that's reused btw Bucket/File, Bucket/PackageTree and Embed/File
@@ -39,18 +40,23 @@ const useDownloadButtonStyles = M.makeStyles({
   },
 })
 
-export function DownloadButtonLayout({ label, icon, ...props }) {
+export function DownloadButtonLayout({ className, label, icon, ...props }) {
   const classes = useDownloadButtonStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
 
   return sm ? (
-    <M.IconButton className={classes.root} edge="end" size="small" {...props}>
+    <M.IconButton
+      className={cx(classes.root, className)}
+      edge="end"
+      size="small"
+      {...props}
+    >
       <M.Icon>{icon}</M.Icon>
     </M.IconButton>
   ) : (
     <M.Button
-      className={classes.root}
+      className={cx(classes.root, className)}
       variant="outlined"
       size="small"
       startIcon={<M.Icon>{icon}</M.Icon>}
@@ -61,9 +67,10 @@ export function DownloadButtonLayout({ label, icon, ...props }) {
   )
 }
 
-export function DownloadButton({ handle }) {
+export function DownloadButton({ className, handle }) {
   return AWS.Signer.withDownloadUrl(handle, (url) => (
     <DownloadButtonLayout
+      className={className}
       href={url}
       download
       label="Download file"
@@ -72,7 +79,25 @@ export function DownloadButton({ handle }) {
   ))
 }
 
-export function ZipDownloadForm({ suffix, label, newTab = false }) {
+const viewModeToSelectOption = ({ key, label }) => ({
+  key,
+  toString: () => label,
+  valueOf: () => key,
+})
+
+export function ViewWithVoilaButtonLayout({ modesList, mode, ...props }) {
+  const t = M.useTheme()
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  const options = React.useMemo(() => modesList.map(viewModeToSelectOption), [modesList])
+  const value = React.useMemo(() => viewModeToSelectOption(mode), [mode])
+  return (
+    <SelectDropdown options={options} value={value} {...props}>
+      {sm ? <M.Icon>visibility</M.Icon> : 'View as:'}
+    </SelectDropdown>
+  )
+}
+
+export function ZipDownloadForm({ className, suffix, label, newTab = false }) {
   const { s3Proxy, noDownload } = Config.use()
   const { token } = redux.useSelector(Auth.selectors.tokens) || {}
   if (!token || noDownload) return null
@@ -85,7 +110,12 @@ export function ZipDownloadForm({ suffix, label, newTab = false }) {
       style={{ flexShrink: 0 }}
     >
       <input type="hidden" name="token" value={token} />
-      <DownloadButtonLayout label={label} icon="archive" type="submit" />
+      <DownloadButtonLayout
+        className={className}
+        label={label}
+        icon="archive"
+        type="submit"
+      />
     </form>
   )
 }

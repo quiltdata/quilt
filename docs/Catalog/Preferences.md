@@ -17,7 +17,11 @@ ui:
   actions:
     copyPackage: True
     createPackage: True
+    deleteRevision: False
     revisePackage: True
+  sourceBuckets:
+    s3://BUCKET_1: {}
+    s3://BUCKET_2: {}
 ```
 
 ### Properties
@@ -28,4 +32,9 @@ ui:
 * `ui.actions.copyPackage: False` - hide buttons to push packages across buckets
 * `ui.actions.createPackage: False` - hide buttons to create packages via
 drag-and-drop or from folders in S3
+* `ui.actions.deleteRevision: True` - show buttons to delete package revision
 * `ui.actions.revisePackage: False` - hide the button to revise packages
+* `ui.sourceBuckets` - a dictionary of S3 bucket names that map to an empty object reserved for future enhancements;
+buckets in this dictionary are the ones offered when the user clicks
+Revise Package > Add files from Bucket; if the dictionary is not set or is empty the feature "Add files from Bucket" is disabled
+* `ui.defaultSourceBucket` - source bucket from `ui.sourceBuckets` that is selected by default; if it doesn't match any bucket then it's ignored
