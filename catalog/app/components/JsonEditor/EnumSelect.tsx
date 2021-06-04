@@ -41,19 +41,18 @@ export default function EnumSelect({ data, value, onChange }: EnumSelectProps) {
   return (
     <div className={classes.root}>
       <Lab.Autocomplete
+        className={classes.select}
+        freeSolo
         getOptionLabel={(option) => {
           if (option === EMPTY_VALUE) return ''
           if (typeof option === 'string') return option
           return stringifyJSON(option)
         }}
-        className={classes.select}
-        options={options}
-        renderOption={(option) => <PreviewValue value={option} />}
-        freeSolo
         inputValue={innerValue}
-        onInputChange={(e, newValue) => setInnerValue(newValue)}
-        value={value}
         onChange={(e, newValue) => newValue !== null && onChange(newValue)}
+        onInputChange={(e, newValue) => setInnerValue(newValue)}
+        openOnFocus
+        options={options}
         renderInput={({ InputProps, inputProps, ...rest }) => (
           <M.TextField
             autoFocus
@@ -66,6 +65,8 @@ export default function EnumSelect({ data, value, onChange }: EnumSelectProps) {
             inputProps={inputProps}
           />
         )}
+        renderOption={(option) => <PreviewValue value={option} />}
+        value={value}
       />
     </div>
   )
