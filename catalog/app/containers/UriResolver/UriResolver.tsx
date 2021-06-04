@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { RouteComponentProps } from 'react-router'
 import { useHistory, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
@@ -22,7 +23,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function UriResolver({ match }) {
+export default function UriResolver({ match }: RouteComponentProps<{ uri: string }>) {
   const { urls } = NamedRoutes.use()
   const history = useHistory()
   const classes = useStyles()

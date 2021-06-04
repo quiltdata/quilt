@@ -1,3 +1,5 @@
+Out of the box, Quilt provides support for queries in the ElasticSearch DSL, as well as SQL queries in Athena (details forthcoming).
+
 ## ElasticSearch
 
 The objects in S3 buckets connected to Quilt are synchronized to an ElasticSearch
