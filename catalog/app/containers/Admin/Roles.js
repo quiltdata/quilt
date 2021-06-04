@@ -136,14 +136,13 @@ function Create({ close }) {
   const buckets = BucketConfig.useBucketConfigs()
 
   const initialPermissions = React.useMemo(
-    () => ({
-      permissions: buckets
+    () =>
+      buckets
         .sort((a, b) => a.name.localeCompare(b.name))
         .map(({ name }) => ({
           bucket: `s3://${name}`,
           permission: 'None',
         })),
-    }),
     [buckets],
   )
 
@@ -320,14 +319,7 @@ function Edit({ role, close }) {
   const classes = useStyles()
 
   const initialPermissions = React.useMemo(
-    () => ({
-      permissions: Object.entries(role.permissions || {})
-        .map(([bucket, permission]) => ({
-          bucket,
-          permission: permission || 'None',
-        }))
-        .sort((a, b) => a.bucket.localeCompare(b.bucket)),
-    }),
+    () => requests.convertToFrontendPermissions(role.permissions || {}),
     [role],
   )
 

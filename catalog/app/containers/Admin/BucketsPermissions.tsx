@@ -97,13 +97,7 @@ export default function BucketPermissions({
 
   const handleChange = React.useMemo(
     () => (index: number) => (bucketPermission: requests.BucketPermissionData) => {
-      onChange(
-        R.assoc(
-          'permissions',
-          R.update(index, bucketPermission, value.permissions),
-          value,
-        ),
-      )
+      onChange(R.update(index, bucketPermission, value))
     },
     [value, onChange],
   )
@@ -127,7 +121,7 @@ export default function BucketPermissions({
             </M.TableRow>
           </M.TableHead>
           <M.TableBody>
-            {value.permissions.map((permission, index) => (
+            {value.map((permission, index) => (
               <BucketPermissionEdit
                 key={permission.bucket}
                 permissions={['ReadWrite', 'Read', 'None']}
