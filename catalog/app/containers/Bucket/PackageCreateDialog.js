@@ -406,6 +406,7 @@ function PackageCreateDialog({
   bucket,
   close,
   initialMetadata,
+  initialFiles,
   refresh,
   responseError,
   schema,
@@ -695,6 +696,7 @@ function PackageCreateDialog({
                     errors={{
                       nonEmpty: 'Add files to create a package',
                     }}
+                    initialValue={initialFiles}
                     uploads={uploads}
                     setUploads={setUploads}
                     isEqual={R.equals}
@@ -742,6 +744,7 @@ function PackageCreateDialog({
 
 export default function PackageCreateDialogWrapper({
   bucket,
+  initialFiles,
   initialMetadata,
   open,
   onClose,
@@ -790,6 +793,7 @@ export default function PackageCreateDialogWrapper({
                     {...{
                       bucket,
                       close,
+                      initialFiles,
                       initialMetadata,
                       setSubmitting,
                       setSuccess,

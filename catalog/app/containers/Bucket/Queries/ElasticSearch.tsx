@@ -325,12 +325,24 @@ export default function ElastiSearch({
                 {...{
                   bucket,
                   initialMetadata: {
-                    results,
                     query: queryBody,
                   },
                   refresh,
                   open: uploadOpen,
                   onClose: closeUpload,
+                  initialFiles: [
+                    {
+                      file: new File(
+                        [
+                          new Blob([JSON.stringify(results)], {
+                            type: 'application/json',
+                          }),
+                        ],
+                        'results.json',
+                      ),
+                      path: 'results.json',
+                    },
+                  ],
                 }}
               />
             ),
