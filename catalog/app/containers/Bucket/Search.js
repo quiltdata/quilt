@@ -339,7 +339,7 @@ export default function BucketSearch({
   },
   location: l,
 }) {
-  const cfg = BucketConfig.useCurrentBucketConfig()
+  const isInStack = BucketConfig.useIsInStack()
   const { q: query = '', p, mode, ...params } = parseSearch(l.search)
   const page = p && parseInt(p, 10)
   const retry = (params.retry && parseInt(params.retry, 10)) || undefined
@@ -348,7 +348,7 @@ export default function BucketSearch({
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
       <MetaTitle>{[query || 'Search', bucket]}</MetaTitle>
 
-      {cfg ? (
+      {isInStack(bucket) ? (
         <Search {...{ bucket, query, page, mode, retry }} />
       ) : (
         <M.Typography variant="body1">Search unavailable</M.Typography>

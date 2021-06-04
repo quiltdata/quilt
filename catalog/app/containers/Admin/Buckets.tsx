@@ -1,39 +1,176 @@
 import * as dateFns from 'date-fns'
+import * as FF from 'final-form'
+import * as FP from 'fp-ts'
+import * as IO from 'io-ts'
+import { formatValidationErrors } from 'io-ts-reporters'
+import * as Types from 'io-ts-types'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as redux from 'react-redux'
-import { Redirect, useHistory } from 'react-router-dom'
-import * as RF from 'redux-form/es/immutable'
+import * as RF from 'react-final-form'
+// import * as redux from 'react-redux'
+import * as RRDom from 'react-router-dom'
+import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Pagination from 'components/Pagination'
-import * as AuthSelectors from 'containers/Auth/selectors'
+// import * as AuthSelectors from 'containers/Auth/selectors'
 import * as Notifications from 'containers/Notifications'
+import * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
-import * as BucketConfig from 'utils/BucketConfig'
-import * as Config from 'utils/Config'
+// import * as Config from 'utils/Config'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
+import { BaseError } from 'utils/error'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
-import * as Cache from 'utils/ResourceCache'
 import { useTracker } from 'utils/tracking'
 import * as validators from 'utils/validators'
 
 import * as Form from './Form'
 import * as Table from './Table'
-import * as data from './data'
 
-// default icon as returned by the registry
-const DEFAULT_ICON = 'https://d1zvn9rasera71.cloudfront.net/q-128-square.png'
+// TODO: move reusable helpers out of here
+class ValidationError extends BaseError {
+  constructor(e: IO.Errors) {
+    const formatted = formatValidationErrors(e).join('\n')
+    super(`ValidationError\n${formatted}`)
+  }
+}
+
+function tryDecode<A extends any>(t: IO.Type<A, any, any>, i: unknown) {
+  return FP.function.pipe(
+    t.decode(i),
+    FP.either.fold(
+      (e) => {
+        throw new ValidationError(e)
+      },
+      (a) => a,
+    ),
+  )
+}
+
+function decode<T>(codec: IO.Type<T, any, any>) {
+  return (i: unknown) => tryDecode(codec, i)
+}
+
+const normalizeString = R.trim
+
+// TODO: toNullable combinator
+// function toNullable(codec, isNull) {
+//   // encode as null if isNull(value)
+// }
+
+const SNS_ARN_RE = /^arn:aws(-|\w)*:sns:(-|\w)*:\d*:\S+$/
 
 const DO_NOT_SUBSCRIBE_STR = 'DO_NOT_SUBSCRIBE'
 const DO_NOT_SUBSCRIBE_SYM = Symbol(DO_NOT_SUBSCRIBE_STR)
 
-const SNS_ARN_RE = /^arn:aws(-|\w)*:sns:(-|\w)*:\d*:\S+$/
+type SnsFormValue = string | typeof DO_NOT_SUBSCRIBE_SYM
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+const SnsFormValue = new IO.Type<SnsFormValue>(
+  'SnsFormValue',
+  (i): i is SnsFormValue => i === DO_NOT_SUBSCRIBE_SYM || IO.string.is(i),
+  (u, c) =>
+    u === DO_NOT_SUBSCRIBE_SYM || typeof u === 'string'
+      ? IO.success(u)
+      : IO.failure(u, c),
+  R.identity,
+)
 
-function validateSNS(v) {
+type FormSpec<Obj extends {}> = {
+  [K in keyof Obj]: (formValues: Record<string, unknown>) => Obj[K]
+}
+
+const editFormSpec: FormSpec<Model.BucketUpdateInput> = {
+  title: R.pipe(
+    R.prop('title'),
+    decode(IO.string),
+    normalizeString,
+    decode(Types.NonEmptyString),
+  ),
+  iconUrl: R.pipe(
+    R.prop('iconUrl'),
+    decode(Types.fromNullable(IO.string, '')),
+    normalizeString,
+    (s) => (s ? (s as Types.NonEmptyString) : null),
+  ),
+  description: R.pipe(
+    R.prop('description'),
+    decode(Types.fromNullable(IO.string, '')),
+    normalizeString,
+    (s) => (s ? (s as Types.NonEmptyString) : null),
+  ),
+  relevanceScore: R.pipe(
+    R.prop('relevanceScore'),
+    decode(Types.fromNullable(IO.string, '')),
+    (s) => s || null,
+    decode(Model.nullable(Types.IntFromString)),
+  ),
+  overviewUrl: R.pipe(
+    R.prop('overviewUrl'),
+    decode(Types.fromNullable(IO.string, '')),
+    normalizeString,
+    (s) => (s ? (s as Types.NonEmptyString) : null),
+  ),
+  tags: R.pipe(
+    R.prop('tags'),
+    decode(Types.fromNullable(IO.string, '')),
+    R.split(','),
+    R.map(R.trim),
+    R.reject((t) => !t),
+    R.uniq,
+    (tags) =>
+      tags.length ? (tags as FP.nonEmptyArray.NonEmptyArray<Types.NonEmptyString>) : null,
+  ),
+  linkedData: R.pipe(
+    R.prop('linkedData'),
+    decode(Types.fromNullable(IO.string, '')),
+    (s) => s.trim() || 'null',
+    decode(Types.withFallback(Types.JsonFromString, null)),
+    decode(Types.withFallback(Model.nullable(Model.BucketLinkedData), null)),
+  ),
+  fileExtensionsToIndex: R.pipe(
+    R.prop('fileExtensionsToIndex'),
+    decode(Types.fromNullable(IO.string, '')),
+    R.split(','),
+    R.map(R.trim),
+    R.reject((t) => !t),
+    R.uniq,
+    (exts) =>
+      exts.length ? (exts as FP.nonEmptyArray.NonEmptyArray<Types.NonEmptyString>) : null,
+  ),
+  scannerParallelShardsDepth: R.pipe(
+    R.prop('scannerParallelShardsDepth'),
+    decode(Types.fromNullable(IO.string, '')),
+    (s) => s || null,
+    decode(Model.nullable(Types.IntFromString)),
+  ),
+  snsNotificationArn: R.pipe(R.prop('snsNotificationArn'), decode(SnsFormValue), (v) => {
+    if (v === DO_NOT_SUBSCRIBE_SYM) return DO_NOT_SUBSCRIBE_STR as Types.NonEmptyString
+    const trimmed = v.trim()
+    if (trimmed) return trimmed as Types.NonEmptyString
+    return null
+  }),
+  skipMetaDataIndexing: R.pipe(
+    R.prop('skipMetaDataIndexing'),
+    decode(Types.fromNullable(IO.boolean, false)),
+  ),
+  setVersioning: () => null,
+}
+
+const addFormSpec: FormSpec<Model.BucketAddInput> = {
+  ...editFormSpec,
+  name: R.pipe(
+    R.prop('name'),
+    decode(IO.string),
+    normalizeString,
+    decode(Types.NonEmptyString),
+  ),
+  delayScan: R.pipe(R.prop('delayScan'), decode(Types.fromNullable(IO.boolean, false))),
+}
+
+function validateSns(v: SnsFormValue) {
   if (!v) return undefined
   if (v === DO_NOT_SUBSCRIBE_SYM) return undefined
   return SNS_ARN_RE.test(v) ? undefined : 'invalidArn'
@@ -44,11 +181,14 @@ const snsErrors = {
   topicNotFound: 'No such topic, enter a valid SNS topic ARN or leave blank',
 }
 
-function SNSField({ input: { onChange, value = '' }, meta }) {
+function SnsField({
+  input: { onChange, value = '' },
+  meta,
+}: RF.FieldRenderProps<SnsFormValue>) {
   const error = meta.submitFailed && meta.error
 
   const handleSkipChange = React.useCallback(
-    (e, checked) => {
+    (_e, checked) => {
       onChange(checked ? DO_NOT_SUBSCRIBE_SYM : '')
     },
     [onChange],
@@ -71,7 +211,7 @@ function SNSField({ input: { onChange, value = '' }, meta }) {
       />
       <M.TextField
         error={!!error}
-        helperText={error ? snsErrors[error] || error : undefined}
+        helperText={error ? (snsErrors as $TSFixMe)[error] || error : undefined}
         label="SNS Topic ARN"
         placeholder="Enter ARN (leave blank to auto-fill)"
         fullWidth
@@ -108,33 +248,46 @@ const useBucketFieldsStyles = M.makeStyles((t) => ({
   },
 }))
 
-function BucketFields({ add = false, reindex }) {
+interface BucketFieldsProps {
+  name?: string
+  reindex?: () => void
+}
+
+function BucketFields({ name, reindex }: BucketFieldsProps) {
   const classes = useBucketFieldsStyles()
   return (
     <M.Box>
       <M.Box className={classes.group} mt={-1} pb={2}>
-        <RF.Field
-          component={Form.Field}
-          name="name"
-          label="Name"
-          placeholder="Enter an S3 bucket name"
-          normalize={R.pipe(R.toLower, R.replace(/[^a-z0-9-.]/g, ''), R.take(63))}
-          validate={[validators.required]}
-          errors={{
-            required: 'Enter a bucket name',
-            conflict: 'Bucket already added',
-            noSuchBucket: 'No such bucket',
-          }}
-          fullWidth
-          margin="normal"
-        />
+        {name ? (
+          <M.TextField label="Name" value={name} fullWidth margin="normal" disabled />
+        ) : (
+          <RF.Field
+            component={Form.Field}
+            name="name"
+            label="Name"
+            placeholder="Enter an S3 bucket name"
+            parse={R.pipe(
+              R.toLower,
+              R.replace(/[^a-z0-9-.]/g, ''),
+              R.take(63) as (s: string) => string,
+            )}
+            validate={validators.required as FF.FieldValidator<any>}
+            errors={{
+              required: 'Enter a bucket name',
+              conflict: 'Bucket already added',
+              noSuchBucket: 'No such bucket',
+            }}
+            fullWidth
+            margin="normal"
+          />
+        )}
         <RF.Field
           component={Form.Field}
           name="title"
           label="Title"
           placeholder='e.g. "Production analytics data"'
-          normalize={R.pipe(R.replace(/^\s+/g, ''), R.take(256))}
-          validate={[validators.required]}
+          parse={R.pipe(R.replace(/^\s+/g, ''), R.take(256) as (s: string) => string)}
+          validate={validators.required as FF.FieldValidator<any>}
           errors={{
             required: 'Enter a bucket title',
           }}
@@ -147,7 +300,7 @@ function BucketFields({ add = false, reindex }) {
           label="Icon URL (optional, defaults to Quilt logo)"
           placeholder="e.g. https://some-cdn.com/icon.png"
           helperText="Recommended size: 80x80px"
-          normalize={R.pipe(R.trim, R.take(1024))}
+          parse={R.pipe(R.trim, R.take(1024) as (s: string) => string)}
           fullWidth
           margin="normal"
         />
@@ -155,7 +308,7 @@ function BucketFields({ add = false, reindex }) {
           component={Form.Field}
           name="description"
           label="Description"
-          normalize={R.pipe(R.replace(/^\s+/g, ''), R.take(1024))}
+          parse={R.pipe(R.replace(/^\s+/g, ''), R.take(1024) as (s: string) => string)}
           multiline
           rows={1}
           rowsMax={3}
@@ -179,12 +332,12 @@ function BucketFields({ add = false, reindex }) {
             name="relevanceScore"
             label="Relevance score"
             placeholder="-1 to hide, 0 to sort first, 1 or higher to sort later"
-            normalize={R.pipe(
+            parse={R.pipe(
               R.replace(/[^0-9-]/g, ''),
               R.replace(/(.+)-+$/g, '$1'),
-              R.take(16),
+              R.take(16) as (s: string) => string,
             )}
-            validate={[validators.integer]}
+            validate={validators.integer as FF.FieldValidator<any>}
             errors={{
               integer: 'Enter a valid integer',
             }}
@@ -206,7 +359,7 @@ function BucketFields({ add = false, reindex }) {
             component={Form.Field}
             name="overviewUrl"
             label="Overview URL"
-            normalize={R.trim}
+            parse={R.trim}
             fullWidth
             margin="normal"
           />
@@ -214,7 +367,7 @@ function BucketFields({ add = false, reindex }) {
             component={Form.Field}
             name="linkedData"
             label="Structured data (JSON-LD)"
-            validate={[validators.jsonObject]}
+            validate={validators.jsonObject as FF.FieldValidator<any>}
             errors={{
               jsonObject: 'Must be a valid JSON object',
             }}
@@ -253,18 +406,18 @@ function BucketFields({ add = false, reindex }) {
             component={Form.Field}
             name="scannerParallelShardsDepth"
             label="Scanner parallel shards depth"
-            validate={[validators.integer]}
+            validate={validators.integer as FF.FieldValidator<any>}
             errors={{
               integer: 'Enter a valid integer',
             }}
-            normalize={R.pipe(R.replace(/[^0-9]/g, ''), R.take(16))}
+            parse={R.pipe(R.replace(/[^0-9]/g, ''), R.take(16) as (s: string) => string)}
             fullWidth
             margin="normal"
           />
           <RF.Field
-            component={SNSField}
+            component={SnsField}
             name="snsNotificationArn"
-            validate={validateSNS}
+            validate={validateSns}
           />
           <M.Box mt={2}>
             <RF.Field
@@ -274,7 +427,7 @@ function BucketFields({ add = false, reindex }) {
               label="Skip metadata indexing"
             />
           </M.Box>
-          {add && (
+          {!name && (
             <M.Box mt={1}>
               <RF.Field
                 component={Form.Checkbox}
@@ -290,123 +443,116 @@ function BucketFields({ add = false, reindex }) {
   )
 }
 
-const formToJSON = (values) => {
-  const isMissing = (v) => v == null || v === '' || Number.isNaN(v)
-  const get = (key, onValue = R.identity, onMissing) => {
-    const v = values.get(key)
-    return isMissing(v) ? onMissing : onValue(v)
+// function useAuthSession() {
+//   const cfg = Config.use()
+//   const sessionId = redux.useSelector(AuthSelectors.sessionId)
+//   return cfg.alwaysRequiresAuth && sessionId
+// }
+
+const ADD_MUTATION = `
+  mutation Admin_Buckets_Add($input: BucketAddInput!) {
+    bucketAdd(input: $input) {
+      ... on BucketUpdateSuccess {
+        bucketConfig {
+          name
+          title
+          iconUrl
+          description
+          relevanceScore
+          overviewUrl
+          tags
+          linkedData
+          fileExtensionsToIndex
+          scannerParallelShardsDepth
+          snsNotificationArn
+          skipMetaDataIndexing
+          lastIndexed
+        }
+      }
+    }
   }
-  const json = {
-    name: get('name'),
-    title: get('title', R.trim),
-    icon_url: get('iconUrl', R.identity),
-    description: get('description', R.trim),
-    relevance_score: get('relevanceScore', Number),
-    overview_url: get('overviewUrl'),
-    tags: get(
-      'tags',
-      R.pipe(
-        R.split(','),
-        R.map(R.trim),
-        R.reject((t) => !t),
-        R.uniq,
-      ),
-    ),
-    schema_org: get('linkedData', JSON.parse),
-    file_extensions_to_index: get(
-      'fileExtensionsToIndex',
-      R.pipe(
-        R.split(','),
-        R.map(R.trim),
-        R.reject((t) => !t),
-        R.uniq,
-      ),
-    ),
-    scanner_parallel_shards_depth: get('scannerParallelShardsDepth', Number),
-    sns_notification_arn: get('snsNotificationArn', (v) => {
-      if (v === DO_NOT_SUBSCRIBE_SYM) return DO_NOT_SUBSCRIBE_STR
-      if (typeof v === 'string') return v.trim()
-      return undefined
-    }),
-    skip_meta_data_indexing: get('skipMetaDataIndexing'),
-    delay_scan: get('delayScan'),
-  }
-  return R.reject(isMissing, json)
+`
+
+interface AddData {
+  bucketAdd: Model.BucketAddResult
 }
 
-const toBucketConfig = (b) => ({
-  name: b.name,
-  title: b.title,
-  iconUrl: b.iconUrl || DEFAULT_ICON,
-  description: b.description,
-  overviewUrl: b.overviewUrl,
-  linkedData: b.linkedData,
-  tags: b.tags,
-  relevance: b.relevanceScore,
-})
-
-function useAuthSession() {
-  const cfg = Config.use()
-  const sessionId = redux.useSelector(AuthSelectors.sessionId)
-  return cfg.alwaysRequiresAuth && sessionId
+interface AddVariables {
+  input: Model.BucketAddInput
+}
+interface AddProps {
+  close: (reason?: string) => void
 }
 
-function Add({ close }) {
-  const req = APIConnector.use()
-  const cache = Cache.use()
-  const session = useAuthSession()
+function Add({ close }: AddProps) {
+  // const session = useAuthSession()
   const { push } = Notifications.use()
   const t = useTracker()
+  const [, add] = urql.useMutation<AddData, AddVariables>(ADD_MUTATION)
   const onSubmit = React.useCallback(
     async (values) => {
       try {
-        const res = await req({
-          endpoint: '/admin/buckets',
-          method: 'POST',
-          body: JSON.stringify(formToJSON(values)),
-        })
-        const b = data.bucketFromJSON(res)
-        cache.patchOk(data.BucketsResource, null, R.append(b))
-        cache.patchOk(
-          BucketConfig.BucketsResource,
-          { empty: false, session },
-          R.append(toBucketConfig(b)),
-          true,
-        )
-        push(`Bucket "${b.name}" added`)
-        t.track('WEB', { type: 'admin', action: 'bucket add', bucket: b.name })
-        close()
+        const input = R.applySpec(addFormSpec)(values)
+        const res = await add({ input })
+        if (res.error) throw res.error
+        if (!res.data) throw new Error('No data')
+        const r = tryDecode(Model.BucketAddResult, res.data.bucketAdd)
+        if (Model.BucketAddSuccess.is(r)) {
+          // TODO: handle auth session???
+          // TODO: add newly created bucket to query or just refetch the query
+          push(`Bucket "${r.bucketConfig.name}" added`)
+          t.track('WEB', {
+            type: 'admin',
+            action: 'bucket add',
+            bucket: r.bucketConfig.name,
+          })
+          close()
+          return undefined
+        }
+        if (Model.BucketAlreadyAdded.is(r)) {
+          return { name: 'conflict' }
+        }
+        if (Model.BucketDoesNotExist.is(r)) {
+          return { name: 'noSuchBucket' }
+        }
+        if (Model.SnsInvalid.is(r)) {
+          // shouldnt happen since we're validating it
+          return { snsNotificationArn: 'invalidArn' }
+        }
+        if (Model.SubscriptionError.is(r)) {
+          return { snsNotificationArn: 'topicNotFound' }
+        }
+        // TODO: handle InsufficientPermissions
+        throw new Error(r.__typename)
       } catch (e) {
-        if (APIConnector.HTTPError.is(e, 409, /Bucket already added/)) {
-          throw new RF.SubmissionError({ name: 'conflict' })
-        }
-        if (APIConnector.HTTPError.is(e, 404, /NoSuchBucket/)) {
-          throw new RF.SubmissionError({ name: 'noSuchBucket' })
-        }
-        if (APIConnector.HTTPError.is(e, 401, /404 - NotFound: Topic does not exist/)) {
-          throw new RF.SubmissionError({ snsNotificationArn: 'topicNotFound' })
-        }
         // eslint-disable-next-line no-console
         console.error('Error adding bucket')
         // eslint-disable-next-line no-console
-        console.dir(e)
-        throw new RF.SubmissionError({ _error: 'unexpected' })
+        console.error(e)
+        return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
-    [req, cache, push, close, session, t],
+    [add, push, close, t],
   )
 
   return (
-    <Form.ReduxForm form="Admin.Buckets.Add" onSubmit={onSubmit}>
-      {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
+    <RF.Form onSubmit={onSubmit}>
+      {({
+        handleSubmit,
+        submitting,
+        submitFailed,
+        error,
+        submitError,
+        hasValidationErrors,
+      }) => (
         <>
           <M.DialogTitle>Add a bucket</M.DialogTitle>
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
-              <BucketFields add />
+              <BucketFields />
               {submitFailed && (
                 <Form.FormError
-                  error={error}
+                  error={error || submitError}
                   errors={{
                     unexpected: 'Something went wrong',
                   }}
@@ -435,24 +581,30 @@ function Add({ close }) {
             <M.Button
               onClick={handleSubmit}
               color="primary"
-              disabled={submitting || (submitFailed && invalid)}
+              disabled={submitting || (submitFailed && hasValidationErrors)}
             >
               Add
             </M.Button>
           </M.DialogActions>
         </>
       )}
-    </Form.ReduxForm>
+    </RF.Form>
   )
 }
 
-function Reindex({ bucket, open, close }) {
+interface ReindexProps {
+  bucket: string
+  open: boolean
+  close: () => void
+}
+
+function Reindex({ bucket, open, close }: ReindexProps) {
   const req = APIConnector.use()
 
   const [repair, setRepair] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [submitSucceeded, setSubmitSucceeded] = React.useState(false)
-  const [error, setError] = React.useState(false)
+  const [error, setError] = React.useState<string | false>(false)
 
   const reset = React.useCallback(() => {
     setSubmitting(false)
@@ -461,7 +613,7 @@ function Reindex({ bucket, open, close }) {
     setError(false)
   }, [])
 
-  const handleRepairChange = React.useCallback((e, v) => {
+  const handleRepairChange = React.useCallback((_e, v) => {
     setRepair(v)
   }, [])
 
@@ -470,6 +622,7 @@ function Reindex({ bucket, open, close }) {
     setError(false)
     setSubmitting(true)
     try {
+      // TODO: use graphql mutation
       await req({
         endpoint: `/admin/reindex/${bucket}`,
         method: 'POST',
@@ -568,10 +721,47 @@ function Reindex({ bucket, open, close }) {
   )
 }
 
-function Edit({ bucket, close }) {
-  const req = APIConnector.use()
-  const cache = Cache.use()
-  const session = useAuthSession()
+const UPDATE_MUTATION = `
+  mutation Admin_Buckets_Update($name: String!, $input: BucketUpdateInput!) {
+    bucketUpdate(name: $name, input: $input) {
+      ... on BucketUpdateSuccess {
+        bucketConfig {
+          name
+          title
+          iconUrl
+          description
+          relevanceScore
+          overviewUrl
+          tags
+          linkedData
+          fileExtensionsToIndex
+          scannerParallelShardsDepth
+          snsNotificationArn
+          skipMetaDataIndexing
+          lastIndexed
+        }
+      }
+    }
+  }
+`
+
+interface UpdateData {
+  bucketUpdate: Model.BucketUpdateResult
+}
+
+interface UpdateVariables {
+  name: string
+  input: Model.BucketUpdateInput
+}
+
+interface EditProps {
+  bucket: Model.BucketConfig
+  close: (reason?: string) => void
+}
+
+function Edit({ bucket, close }: EditProps) {
+  // const session = useAuthSession()
+  const [, update] = urql.useMutation<UpdateData, UpdateVariables>(UPDATE_MUTATION)
 
   const [reindexOpen, setReindexOpen] = React.useState(false)
   const openReindex = React.useCallback(() => setReindexOpen(true), [])
@@ -580,72 +770,70 @@ function Edit({ bucket, close }) {
   const onSubmit = React.useCallback(
     async (values) => {
       try {
-        const res = await req({
-          endpoint: `/admin/buckets/${bucket.name}`,
-          method: 'PUT',
-          body: JSON.stringify(formToJSON(values)),
-        })
-        const updated = data.bucketFromJSON(res)
-        cache.patchOk(
-          data.BucketsResource,
-          null,
-          R.map((b) => (b.name === bucket.name ? updated : b)),
-        )
-        cache.patchOk(
-          BucketConfig.BucketsResource,
-          { empty: false, session },
-          R.map((b) => (b.name === bucket.name ? toBucketConfig(updated) : b)),
-          true,
-        )
-        close()
-      } catch (e) {
-        if (APIConnector.HTTPError.is(e, 401, /404 - NotFound: Topic does not exist/)) {
-          throw new RF.SubmissionError({ snsNotificationArn: 'topicNotFound' })
+        const input = R.applySpec(editFormSpec)(values)
+        const res = await update({ name: bucket.name, input })
+        if (res.error) throw res.error
+        if (!res.data) throw new Error('No data')
+        const r = tryDecode(Model.BucketUpdateResult, res.data.bucketUpdate)
+        if (Model.BucketUpdateSuccess.is(r)) {
+          // TODO: handle auth session???
+          close()
+          return undefined
         }
+        if (Model.SnsInvalid.is(r)) {
+          // shouldnt happen since we're validating it
+          return { snsNotificationArn: 'invalidArn' }
+        }
+        if (Model.SubscriptionError.is(r)) {
+          return { snsNotificationArn: 'topicNotFound' }
+        }
+        throw new Error(r.__typename)
+      } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Error updating bucket')
         // eslint-disable-next-line no-console
-        console.dir(e)
-        throw new RF.SubmissionError({ _error: 'unexpected' })
+        console.error(e)
+        return { [FF.FORM_ERROR]: 'unexpected' }
       }
     },
-    [req, cache, close, session, bucket.name],
+    [update, close, bucket.name],
   )
 
   const initialValues = {
-    name: bucket.name,
     title: bucket.title,
-    iconUrl: bucket.iconUrl,
-    description: bucket.description,
-    relevanceScore: bucket.relevanceScore,
-    overviewUrl: bucket.overviewUrl,
+    iconUrl: bucket.iconUrl || '',
+    description: bucket.description || '',
+    relevanceScore: bucket.relevanceScore.toString(),
+    overviewUrl: bucket.overviewUrl || '',
     tags: (bucket.tags || []).join(', '),
-    linkedData: bucket.linkedData ? JSON.stringify(bucket.linkedData) : undefined,
+    linkedData: bucket.linkedData ? JSON.stringify(bucket.linkedData) : '',
     fileExtensionsToIndex: (bucket.fileExtensionsToIndex || []).join(', '),
-    scannerParallelShardsDepth: bucket.scannerParallelShardsDepth,
-    snsNotificationArn:
-      bucket.snsNotificationArn === DO_NOT_SUBSCRIBE_STR
-        ? DO_NOT_SUBSCRIBE_SYM
-        : bucket.snsNotificationArn,
-    skipMetaDataIndexing: bucket.skipMetaDataIndexing,
+    scannerParallelShardsDepth: bucket.scannerParallelShardsDepth?.toString() || '',
+    snsNotificationArn: bucket.snsNotificationArn || DO_NOT_SUBSCRIBE_SYM,
+    skipMetaDataIndexing: bucket.skipMetaDataIndexing ?? false,
   }
 
   return (
-    <Form.ReduxForm
-      form={`Admin.Buckets.Edit(${bucket.name})`}
-      onSubmit={onSubmit}
-      initialValues={initialValues}
-    >
-      {({ handleSubmit, submitting, submitFailed, error, invalid, pristine, reset }) => (
+    <RF.Form onSubmit={onSubmit} initialValues={initialValues}>
+      {({
+        handleSubmit,
+        submitting,
+        submitFailed,
+        error,
+        submitError,
+        hasValidationErrors,
+        pristine,
+        form,
+      }) => (
         <>
           <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
           <M.DialogTitle>Edit the &quot;{bucket.name}&quot; bucket</M.DialogTitle>
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
-              <BucketFields reindex={openReindex} />
+              <BucketFields name={bucket.name} reindex={openReindex} />
               {submitFailed && (
                 <Form.FormError
-                  error={error}
+                  error={error || submitError}
                   errors={{
                     unexpected: 'Something went wrong',
                   }}
@@ -665,7 +853,7 @@ function Edit({ bucket, close }) {
               </Delay>
             )}
             <M.Button
-              onClick={() => reset()}
+              onClick={() => form.reset()}
               color="primary"
               disabled={pristine || submitting}
             >
@@ -681,52 +869,61 @@ function Edit({ bucket, close }) {
             <M.Button
               onClick={handleSubmit}
               color="primary"
-              disabled={pristine || submitting || (submitFailed && invalid)}
+              disabled={pristine || submitting || (submitFailed && hasValidationErrors)}
             >
               Save
             </M.Button>
           </M.DialogActions>
         </>
       )}
-    </Form.ReduxForm>
+    </RF.Form>
   )
 }
 
-function Delete({ bucket, close }) {
-  const req = APIConnector.use()
-  const cache = Cache.use()
-  const session = useAuthSession()
+interface DeleteProps {
+  bucket: Model.BucketConfig
+  close: (reason?: string) => void
+}
+
+function Delete({ bucket, close }: DeleteProps) {
+  // const req = APIConnector.use()
+  // const cache = Cache.use()
+  // const session = useAuthSession()
   const { push } = Notifications.use()
-  const t = useTracker()
+  // const t = useTracker()
   const doDelete = React.useCallback(async () => {
     close()
     try {
       // optimistically remove the bucket from cache
-      cache.patchOk(data.BucketsResource, null, R.reject(R.propEq('name', bucket.name)))
-      cache.patchOk(
-        BucketConfig.BucketsResource,
-        { empty: false, session },
-        R.reject(R.propEq('name', bucket.name)),
-        true,
-      )
-      await req({ endpoint: `/admin/buckets/${bucket.name}`, method: 'DELETE' })
-      t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
+      // TODO: patch graphql cache
+      // cache.patchOk(data.BucketsResource, null, R.reject(R.propEq('name', bucket.name)))
+      // cache.patchOk(
+      //   BucketConfig.BucketsResource,
+      //   { empty: false, session },
+      //   R.reject(R.propEq('name', bucket.name)),
+      //   true,
+      // )
+      // TODO: use graphql mutation
+      // await req({ endpoint: `/admin/buckets/${bucket.name}`, method: 'DELETE' })
+      // t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
+      throw new Error('not implemented')
     } catch (e) {
       // put the bucket back into cache if it hasnt been deleted properly
-      cache.patchOk(data.BucketsResource, null, R.append(bucket))
-      cache.patchOk(
-        BucketConfig.BucketsResource,
-        { empty: false, session },
-        R.append(toBucketConfig(bucket)),
-        true,
-      )
+      // TODO: patch graphql cache
+      // cache.patchOk(data.BucketsResource, null, R.append(bucket))
+      // cache.patchOk(
+      //   BucketConfig.BucketsResource,
+      //   { empty: false, session },
+      //   R.append(toBucketConfig(bucket)),
+      //   true,
+      // )
       push(`Error deleting bucket "${bucket.name}"`)
       // eslint-disable-next-line no-console
       console.error('Error deleting bucket')
       // eslint-disable-next-line no-console
       console.dir(e)
     }
-  }, [bucket, close, req, cache, push, session, t])
+  }, [bucket, close, /* req, */ push /* session, t */])
 
   return (
     <>
@@ -752,7 +949,7 @@ const columns = [
     id: 'name',
     label: 'Name (relevance)',
     getValue: R.prop('name'),
-    getDisplay: (v, b) => (
+    getDisplay: (v: string, b: Model.BucketConfig) => (
       <span>
         <M.Box fontFamily="monospace.fontFamily" component="span">
           {v}
@@ -769,10 +966,11 @@ const columns = [
     sortable: false,
     align: 'center',
     getValue: R.prop('iconUrl'),
-    getDisplay: (v) => (
+    getDisplay: (v: string) => (
       <M.Box
         component="img"
-        src={v || DEFAULT_ICON}
+        // @ts-expect-error
+        src={v || Model.DEFAULT_BUCKET_ICON}
         alt=""
         title={v ? undefined : 'Default icon'}
         height={40}
@@ -787,7 +985,7 @@ const columns = [
     id: 'title',
     label: 'Title',
     getValue: R.prop('title'),
-    getDisplay: (v) => (
+    getDisplay: (v: string) => (
       <M.Box
         component="span"
         maxWidth={240}
@@ -804,7 +1002,7 @@ const columns = [
     id: 'description',
     label: 'Description',
     getValue: R.prop('description'),
-    getDisplay: (v) =>
+    getDisplay: (v: string | undefined) =>
       v ? (
         <M.Box
           component="span"
@@ -826,7 +1024,7 @@ const columns = [
     id: 'lastIndexed',
     label: 'Last indexed',
     getValue: R.prop('lastIndexed'),
-    getDisplay: (v) =>
+    getDisplay: (v: Date | undefined) =>
       v ? (
         <span title={v.toLocaleString()}>
           {dateFns.formatDistanceToNow(v, { addSuffix: true })}
@@ -839,36 +1037,70 @@ const columns = [
   },
 ]
 
-function CRUD({ bucketName, buckets }) {
-  const rows = Cache.suspend(buckets)
+const BUCKET_CONFIGS_QUERY = `
+  query Admin_Buckets_BucketConfigs {
+    bucketConfigs {
+      name
+      title
+      description
+      iconUrl
+      overviewUrl
+      linkedData
+      relevanceScore
+      tags
+      lastIndexed
+      fileExtensionsToIndex
+      scannerParallelShardsDepth
+      skipMetaDataIndexing
+      snsNotificationArn
+    }
+  }
+`
+
+interface BucketConfigsData {
+  bucketConfigs: Model.BucketConfig[]
+}
+
+interface CRUDProps {
+  bucketName?: string
+}
+
+function CRUD({ bucketName }: CRUDProps) {
+  const [{ data }] = urql.useQuery<BucketConfigsData>({
+    query: BUCKET_CONFIGS_QUERY,
+  })
+  const rows = data!.bucketConfigs
   const ordering = Table.useOrdering({ rows, column: columns[0] })
   const pagination = Pagination.use(ordering.ordered, {
+    // @ts-expect-error
     getItemId: R.prop('name'),
   })
   const { open: openDialog, render: renderDialogs } = Dialogs.use()
 
   const { urls } = NamedRoutes.use()
-  const history = useHistory()
+  const history = RRDom.useHistory()
 
   const toolbarActions = [
     {
       title: 'Add bucket',
       icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
+        // @ts-expect-error
         openDialog(({ close }) => <Add {...{ close }} />)
       }, [openDialog]),
     },
   ]
 
-  const edit = (bucket) => () => {
+  const edit = (bucket: Model.BucketConfig) => () => {
     history.push(urls.adminBuckets(bucket.name))
   }
 
-  const inlineActions = (bucket) => [
+  const inlineActions = (bucket: Model.BucketConfig) => [
     {
       title: 'Delete',
       icon: <M.Icon>delete</M.Icon>,
       fn: () => {
+        // @ts-expect-error
         openDialog(({ close }) => <Delete {...{ bucket, close }} />)
       },
     },
@@ -890,7 +1122,7 @@ function CRUD({ bucketName, buckets }) {
 
   if (bucketName && !editingBucket) {
     // Bucket name set in URL, but it was not found in buckets list
-    return <Redirect to={urls.adminBuckets()} />
+    return <RRDom.Redirect to={urls.adminBuckets()} />
   }
 
   return (
@@ -902,11 +1134,13 @@ function CRUD({ bucketName, buckets }) {
       </M.Dialog>
 
       <Table.Toolbar heading="Buckets" actions={toolbarActions} />
+      {/* @ts-expect-error */}
       <Table.Wrapper>
         <M.Table size="small">
+          {/* @ts-expect-error */}
           <Table.Head columns={columns} ordering={ordering} withInlineActions />
           <M.TableBody>
-            {pagination.paginated.map((i) => (
+            {pagination.paginated.map((i: Model.BucketConfig) => (
               <M.TableRow
                 hover
                 key={i.name}
@@ -914,7 +1148,9 @@ function CRUD({ bucketName, buckets }) {
                 style={{ cursor: 'pointer' }}
               >
                 {columns.map((col) => (
+                  // @ts-expect-error
                   <M.TableCell key={col.id} align={col.align} {...col.props}>
+                    {/* @ts-expect-error */}
                     {(col.getDisplay || R.identity)(col.getValue(i), i)}
                   </M.TableCell>
                 ))}
@@ -923,6 +1159,7 @@ function CRUD({ bucketName, buckets }) {
                   padding="none"
                   onClick={(e) => e.stopPropagation()}
                 >
+                  {/* @ts-expect-error */}
                   <Table.InlineActions actions={inlineActions(i)} />
                 </M.TableCell>
               </M.TableRow>
@@ -935,10 +1172,9 @@ function CRUD({ bucketName, buckets }) {
   )
 }
 
-export default function Buckets({ location }) {
+export default function Buckets({ location }: RRDom.RouteComponentProps) {
   const { bucket } = parseSearch(location.search)
-  const req = APIConnector.use()
-  const buckets = Cache.useData(data.BucketsResource, { req })
+  const bucketName = Array.isArray(bucket) ? bucket[0] : bucket
   return (
     <M.Box mt={2} mb={2}>
       <MetaTitle>{['Buckets', 'Admin']}</MetaTitle>
@@ -950,7 +1186,7 @@ export default function Buckets({ location }) {
           </M.Paper>
         }
       >
-        <CRUD bucketName={bucket} buckets={buckets} />
+        <CRUD bucketName={bucketName} />
       </React.Suspense>
     </M.Box>
   )

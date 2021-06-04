@@ -21,7 +21,14 @@ const useCheckboxStyles = M.makeStyles({
   },
 })
 
-export function Checkbox({ input, meta, errors, label, FormControlLabelProps, ...rest }) {
+export function Checkbox({
+  input = {},
+  meta,
+  errors = undefined, // eslint-disable-line @typescript-eslint/no-unused-vars
+  label = undefined,
+  FormControlLabelProps = {},
+  ...rest
+}) {
   const classes = useCheckboxStyles()
   return (
     <M.FormControlLabel
@@ -51,12 +58,11 @@ const useFormErrorStyles = M.makeStyles((t) => ({
 
 export function FormError({ error, errors, ...rest }) {
   const classes = useFormErrorStyles()
+  if (!error) return null
   return (
-    !!error && (
-      <M.Typography color="error" classes={classes} {...rest}>
-        {errors[error] || error}
-      </M.Typography>
-    )
+    <M.Typography color="error" classes={classes} {...rest}>
+      {errors[error] || error}
+    </M.Typography>
   )
 }
 
