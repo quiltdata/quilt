@@ -1,5 +1,5 @@
 import * as React from 'react'
-import * as Urql from 'urql'
+import * as urql from 'urql'
 import * as DevTools from '@urql/devtools'
 import * as GraphCache from '@urql/exchange-graphcache'
 
@@ -16,28 +16,28 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
 
   const client = React.useMemo(
     () =>
-      Urql.createClient({
+      urql.createClient({
         url,
         suspense: true,
         exchanges: [
           ...devtools,
-          Urql.dedupExchange,
+          urql.dedupExchange,
           GraphCache.cacheExchange({
             // schema: TODO: get introspected schema
             keys: {
-              Bucket: (b) => b.name as string,
-              BucketConfig: () => null,
+              BucketConfig: (b) => b.name as string,
             },
           }),
           authExchange,
-          Urql.fetchExchange,
+          urql.fetchExchange,
         ],
       }),
     [url, authExchange],
   )
-  return <Urql.Provider value={client}>{children}</Urql.Provider>
+  return <urql.Provider value={client}>{children}</urql.Provider>
 }
 
+// Possibly useful exchanges:
 // errorExchange: Allows a global callback to be called when any error occurs
 // retryExchange: Allows operations to be retried
 // requestPolicyExchange: Automatically upgrades cache-only and cache-first operations to cache-and-network after a given amount of time.
