@@ -1,8 +1,8 @@
 import * as requests from './requests'
 
 const backendPermissions: requests.BackendPermissionsData = {
-  's3://A': 'READ_WRITE',
   's3://B-B': 'READ',
+  's3://A': 'READ_WRITE',
   's3://Cc': null,
 }
 
