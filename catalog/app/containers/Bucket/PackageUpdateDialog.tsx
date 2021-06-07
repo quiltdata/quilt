@@ -16,6 +16,7 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
+import { JsonSchema } from 'utils/json-schema'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
@@ -109,7 +110,7 @@ interface DialogFormProps {
   manifest: Manifest
   name: string
   responseError: Error
-  schema: $TSFixMe
+  schema: JsonSchema
   schemaLoading: boolean
   selectedWorkflow: workflows.Workflow
   setSubmitting: (submitting: boolean) => void
