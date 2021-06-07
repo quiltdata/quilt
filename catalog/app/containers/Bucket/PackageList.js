@@ -8,6 +8,7 @@ import { fade } from '@material-ui/core/styles'
 
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
+import useProtectedDialog from 'containers/Auth/protectDialog'
 import * as AWS from 'utils/AWS'
 // import AsyncResult from 'utils/AsyncResult'
 // import * as BucketConfig from 'utils/BucketConfig'
@@ -417,11 +418,13 @@ export default function PackageList({
 
   const preferences = BucketPreferences.use()
 
+  const PackageCreateDialogProtected = useProtectedDialog(uploadOpen, PackageCreateDialog)
+
   return (
     <>
       <MetaTitle>{['Packages', bucket]}</MetaTitle>
 
-      <PackageCreateDialog
+      <PackageCreateDialogProtected
         {...{ bucket, refresh, open: uploadOpen, onClose: closeUpload }}
       />
       {totalCountData.case({
