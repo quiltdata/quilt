@@ -62,9 +62,17 @@ interface RequestBodyWrap extends RequestBodyBase {
   entries: FileEntry[]
 }
 
+interface RequestBodyDelete {
+  top_hash: string
+  registry: string
+  name: string
+}
+
 const ENDPOINT_CREATE = '/packages'
 
 const ENDPOINT_COPY = '/packages/promote'
+
+const ENDPOINT_DELETE = '/packages/delete-revision'
 
 const ENDPOINT_WRAP = '/packages/from-folder'
 
@@ -76,8 +84,13 @@ interface ManifestHandleTarget {
   name: string
 }
 
+// TODO: use app/utils/packageHandle#PackageHandle
 interface ManifestHandleSource extends ManifestHandleTarget {
   revision: string
+}
+
+interface PackageHandleSource extends ManifestHandleTarget {
+  hash: string
 }
 
 interface BasePackageParams {
@@ -97,6 +110,10 @@ interface CreatePackageParams extends BasePackageParams {
 interface CopyPackageParams extends BasePackageParams {
   source: ManifestHandleSource
   target: ManifestHandleTarget
+}
+
+interface DeleteRevisionParams {
+  source: PackageHandleSource
 }
 
 interface WrapPackageParams extends BasePackageParams {
@@ -130,7 +147,7 @@ const getCredentialsQuery = (credentials: AWSCredentials): CredentialsQuery => (
   session_token: credentials.sessionToken,
 })
 
-interface UploadManifest {
+interface BackendRequest {
   (
     req: ApiRequest,
     endpoint: typeof ENDPOINT_CREATE,
@@ -145,13 +162,19 @@ interface UploadManifest {
   ): Promise<Response>
   (
     req: ApiRequest,
+    endpoint: typeof ENDPOINT_DELETE,
+    body: RequestBodyDelete,
+    query: CredentialsQuery,
+  ): Promise<Response>
+  (
+    req: ApiRequest,
     endpoint: typeof ENDPOINT_WRAP,
     body: RequestBodyWrap,
     query: CredentialsQuery,
   ): Promise<Response>
 }
 
-const uploadManifest: UploadManifest = (
+const makeBackendRequest: BackendRequest = (
   req: ApiRequest,
   endpoint: string,
   body: {},
@@ -213,7 +236,7 @@ const mkCreatePackage = ({
     Body: payload,
   })
   const res = await upload.promise()
-  return uploadManifest(
+  return makeBackendRequest(
     req,
     ENDPOINT_CREATE,
     JSON.stringify((res as any).VersionId as string),
@@ -243,7 +266,7 @@ const copyPackage = async (
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
 
-  return uploadManifest(
+  return makeBackendRequest(
     req,
     ENDPOINT_COPY,
     {
@@ -272,6 +295,35 @@ export function useCopyPackage() {
   )
 }
 
+const deleteRevision = async (
+  req: ApiRequest,
+  credentials: AWSCredentials,
+  { source }: DeleteRevisionParams,
+) => {
+  // refresh credentials and load if they are not loaded
+  await credentials.getPromise()
+
+  return makeBackendRequest(
+    req,
+    ENDPOINT_DELETE,
+    {
+      name: source.name,
+      registry: `s3://${source.bucket}`,
+      top_hash: source.hash,
+    },
+    getCredentialsQuery(credentials),
+  )
+}
+
+export function useDeleteRevision() {
+  const credentials = AWS.Credentials.use()
+  const req: ApiRequest = APIConnector.use()
+  return React.useCallback(
+    (params: DeleteRevisionParams) => deleteRevision(req, credentials, params),
+    [credentials, req],
+  )
+}
+
 const wrapPackage = async (
   req: ApiRequest,
   credentials: AWSCredentials,
@@ -281,7 +333,7 @@ const wrapPackage = async (
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
 
-  return uploadManifest(
+  return makeBackendRequest(
     req,
     ENDPOINT_WRAP,
     {

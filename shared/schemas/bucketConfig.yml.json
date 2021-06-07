@@ -37,6 +37,11 @@
               "description": "Hides buttons triggering Create Package dialog, both creating package from scratch and from directory",
               "type": "boolean"
             },
+            "deleteRevision": {
+              "default": true,
+              "description": "Hides buttons triggering Delete Package Revision dialog",
+              "type": "boolean"
+            },
             "revisePackage": {
               "default": true,
               "description": "Hides button triggering Revise Package dialog",
