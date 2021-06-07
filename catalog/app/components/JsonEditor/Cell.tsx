@@ -88,11 +88,9 @@ export default function Cell({
     (event) => {
       if (editing) return
 
-      if (!editing) {
-        // Chromium able to send key event to Input created after this key event.
-        // Avoid to send this key event to Input constistently with Firefox
-        event.preventDefault()
-      }
+      // Chromium able to send key event to Input created after this key event.
+      // Avoid to send this key event to Input constistently with Firefox
+      event.preventDefault()
 
       // Do nothing, if it's a key cell provided by schema
       if (!isEditable) return
