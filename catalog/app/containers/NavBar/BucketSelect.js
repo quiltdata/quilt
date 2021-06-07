@@ -117,11 +117,18 @@ function CustomPopper({ style: css, ...props }) {
   )
 }
 
+const useBucketSelectClasses = M.makeStyles({
+  listbox: {
+    maxHeight: '52vh',
+  },
+})
+
 function BucketSelect({ cancel, forwardedRef, ...props }) {
   const currentBucket = BucketConfig.useCurrentBucket()
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
   const dispatch = redux.useDispatch()
   const { urls } = NamedRoutes.use()
+  const classes = useBucketSelectClasses()
 
   const [inputValue, setInputValue] = React.useState('')
   const inputRef = React.useRef()
@@ -137,6 +144,7 @@ function BucketSelect({ cancel, forwardedRef, ...props }) {
       <M.MuiThemeProvider theme={style.appTheme}>
         <Autocomplete
           PopperComponent={CustomPopper}
+          classes={classes}
           freeSolo
           disableClearable
           openOnFocus
