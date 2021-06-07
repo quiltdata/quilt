@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
+import useProtectedDialog from 'containers/Auth/protectDialog'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -738,9 +739,11 @@ export function usePackageUpdateDialog({
     })
   }, [exited, success, workflowsData, manifestData, preferences])
 
+  const DialogProtected = useProtectedDialog<$TSFixMe>(isOpen, DialogWrapper)
+
   const render = React.useCallback(
     () => (
-      <DialogWrapper
+      <DialogProtected
         exited={exited}
         fullWidth
         maxWidth={success ? 'sm' : 'lg'}
@@ -785,9 +788,20 @@ export function usePackageUpdateDialog({
           },
           state,
         )}
-      </DialogWrapper>
+      </DialogProtected>
     ),
-    [bucket, name, isOpen, exited, close, state, success, handleExited, workflow],
+    [
+      bucket,
+      name,
+      isOpen,
+      exited,
+      close,
+      state,
+      success,
+      handleExited,
+      workflow,
+      DialogProtected,
+    ],
   )
 
   return React.useMemo(() => ({ open, close, render }), [open, close, render])
