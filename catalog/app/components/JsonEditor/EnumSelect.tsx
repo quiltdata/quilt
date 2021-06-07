@@ -11,9 +11,6 @@ const useStyles = M.makeStyles((t) => ({
     height: t.spacing(4),
     position: 'relative',
   },
-  icon: {
-    right: t.spacing(6),
-  },
   select: {
     ...t.typography.body2,
     padding: t.spacing(0, 1),
