@@ -9,6 +9,7 @@ import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/Bre
 import * as Intercom from 'components/Intercom'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
+import useProtectedDialog from 'containers/Auth/protectDialog'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
@@ -241,6 +242,12 @@ function DirDisplay({
     [bucket, hash, name],
   )
 
+  const PackageCopyDialogProtected = useProtectedDialog(!!successor, PackageCopyDialog)
+  const PackageDeleteDialogProtected = useProtectedDialog(
+    deletionState.opened,
+    PackageDeleteDialog,
+  )
+
   return data.case({
     Ok: ({ objects, prefixes, meta }) => {
       const up =
@@ -272,7 +279,7 @@ function DirDisplay({
 
       return (
         <>
-          <PackageCopyDialog
+          <PackageCopyDialogProtected
             bucket={bucket}
             hash={hash}
             name={name}
@@ -281,7 +288,7 @@ function DirDisplay({
             onExited={onPackageCopyDialogExited}
           />
 
-          <PackageDeleteDialog
+          <PackageDeleteDialogProtected
             error={deletionState.error}
             open={deletionState.opened}
             packageHandle={packageHandle}
