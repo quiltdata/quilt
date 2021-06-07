@@ -3,7 +3,7 @@ import * as RF from 'redux-form/es/immutable'
 import * as M from '@material-ui/core'
 
 export function Field({ input, meta, errors, helperText, ...rest }) {
-  const error = meta.submitFailed && meta.error
+  const error = meta.submitFailed && (meta.error || meta.submitError)
   const props = {
     error: !!error,
     helperText: error ? errors[error] || error : helperText,

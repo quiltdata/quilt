@@ -146,12 +146,16 @@ const editFormSpec: FormSpec<Model.BucketUpdateInput> = {
     (s) => s || null,
     decode(Model.nullable(Types.IntFromString)),
   ),
-  snsNotificationArn: R.pipe(R.prop('snsNotificationArn'), decode(SnsFormValue), (v) => {
-    if (v === DO_NOT_SUBSCRIBE_SYM) return DO_NOT_SUBSCRIBE_STR as Types.NonEmptyString
-    const trimmed = v.trim()
-    if (trimmed) return trimmed as Types.NonEmptyString
-    return null
-  }),
+  snsNotificationArn: R.pipe(
+    R.prop('snsNotificationArn'),
+    decode(Model.nullable(SnsFormValue)),
+    (v) => {
+      if (v === DO_NOT_SUBSCRIBE_SYM) return DO_NOT_SUBSCRIBE_STR as Types.NonEmptyString
+      const trimmed = v?.trim()
+      if (trimmed) return trimmed as Types.NonEmptyString
+      return null
+    },
+  ),
   skipMetaDataIndexing: R.pipe(
     R.prop('skipMetaDataIndexing'),
     decode(Types.fromNullable(IO.boolean, false)),
@@ -179,13 +183,14 @@ function validateSns(v: SnsFormValue) {
 const snsErrors = {
   invalidArn: 'Enter a valid SNS topic ARN or leave blank',
   topicNotFound: 'No such topic, enter a valid SNS topic ARN or leave blank',
+  configurationError: 'Notification configuration error',
 }
 
 function SnsField({
   input: { onChange, value = '' },
   meta,
 }: RF.FieldRenderProps<SnsFormValue>) {
-  const error = meta.submitFailed && meta.error
+  const error = meta.submitFailed && (meta.error || meta.submitError)
 
   const handleSkipChange = React.useCallback(
     (_e, checked) => {
@@ -452,7 +457,7 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
 const ADD_MUTATION = `
   mutation Admin_Buckets_Add($input: BucketAddInput!) {
     bucketAdd(input: $input) {
-      ... on BucketUpdateSuccess {
+      ... on BucketAddSuccess {
         bucketConfig {
           name
           title
@@ -480,6 +485,7 @@ interface AddData {
 interface AddVariables {
   input: Model.BucketAddInput
 }
+
 interface AddProps {
   close: (reason?: string) => void
 }
@@ -519,10 +525,18 @@ function Add({ close }: AddProps) {
           // shouldnt happen since we're validating it
           return { snsNotificationArn: 'invalidArn' }
         }
-        if (Model.SubscriptionError.is(r)) {
+        if (Model.NotificationTopicNotFound.is(r)) {
           return { snsNotificationArn: 'topicNotFound' }
         }
-        // TODO: handle InsufficientPermissions
+        if (Model.NotificationConfigurationError.is(r)) {
+          return {
+            snsNotificationArn: 'configurationError',
+            [FF.FORM_ERROR]: 'notificationConfigurationError',
+          }
+        }
+        if (Model.InsufficientPermissions.is(r)) {
+          return { [FF.FORM_ERROR]: 'insufficientPermissions' }
+        }
         throw new Error(r.__typename)
       } catch (e) {
         // eslint-disable-next-line no-console
@@ -555,6 +569,8 @@ function Add({ close }: AddProps) {
                   error={error || submitError}
                   errors={{
                     unexpected: 'Something went wrong',
+                    notificationConfigurationError: 'Notification configuration error',
+                    insufficientPermissions: 'Insufficient permissions',
                   }}
                 />
               )}
@@ -784,8 +800,14 @@ function Edit({ bucket, close }: EditProps) {
           // shouldnt happen since we're validating it
           return { snsNotificationArn: 'invalidArn' }
         }
-        if (Model.SubscriptionError.is(r)) {
+        if (Model.NotificationTopicNotFound.is(r)) {
           return { snsNotificationArn: 'topicNotFound' }
+        }
+        if (Model.NotificationConfigurationError.is(r)) {
+          return {
+            snsNotificationArn: 'configurationError',
+            [FF.FORM_ERROR]: 'notificationConfigurationError',
+          }
         }
         throw new Error(r.__typename)
       } catch (e) {
@@ -836,6 +858,7 @@ function Edit({ bucket, close }: EditProps) {
                   error={error || submitError}
                   errors={{
                     unexpected: 'Something went wrong',
+                    notificationConfigurationError: 'Notification configuration error',
                   }}
                 />
               )}
@@ -880,50 +903,54 @@ function Edit({ bucket, close }: EditProps) {
   )
 }
 
+const REMOVE_MUTATION = `
+  mutation Admin_Buckets_Remove($name: String!) {
+    bucketRemove(name: $name) { __typename }
+  }
+`
+
+interface RemoveData {
+  bucketRemove: Model.BucketRemoveResult
+}
+
+interface RemoveVariables {
+  name: string
+}
+
 interface DeleteProps {
   bucket: Model.BucketConfig
   close: (reason?: string) => void
 }
 
 function Delete({ bucket, close }: DeleteProps) {
-  // const req = APIConnector.use()
-  // const cache = Cache.use()
   // const session = useAuthSession()
   const { push } = Notifications.use()
-  // const t = useTracker()
+  const t = useTracker()
+  const [, rm] = urql.useMutation<RemoveData, RemoveVariables>(REMOVE_MUTATION)
   const doDelete = React.useCallback(async () => {
     close()
     try {
-      // optimistically remove the bucket from cache
-      // TODO: patch graphql cache
-      // cache.patchOk(data.BucketsResource, null, R.reject(R.propEq('name', bucket.name)))
-      // cache.patchOk(
-      //   BucketConfig.BucketsResource,
-      //   { empty: false, session },
-      //   R.reject(R.propEq('name', bucket.name)),
-      //   true,
-      // )
-      // TODO: use graphql mutation
-      // await req({ endpoint: `/admin/buckets/${bucket.name}`, method: 'DELETE' })
-      // t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
-      throw new Error('not implemented')
+      const res = await rm({ name: bucket.name })
+      if (res.error) throw res.error
+      if (!res.data) throw new Error('No data')
+      const r = tryDecode(Model.BucketRemoveResult, res.data.bucketRemove)
+      if (Model.BucketRemoveSuccess.is(r)) {
+        t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
+        return
+      }
+      if (Model.IndexingInProgress.is(r)) {
+        push(`Can't delete bucket "${bucket.name}" while it's being indexed`)
+        return
+      }
+      throw new Error(r.__typename)
     } catch (e) {
-      // put the bucket back into cache if it hasnt been deleted properly
-      // TODO: patch graphql cache
-      // cache.patchOk(data.BucketsResource, null, R.append(bucket))
-      // cache.patchOk(
-      //   BucketConfig.BucketsResource,
-      //   { empty: false, session },
-      //   R.append(toBucketConfig(bucket)),
-      //   true,
-      // )
       push(`Error deleting bucket "${bucket.name}"`)
       // eslint-disable-next-line no-console
       console.error('Error deleting bucket')
       // eslint-disable-next-line no-console
-      console.dir(e)
+      console.error(e)
     }
-  }, [bucket, close, /* req, */ push /* session, t */])
+  }, [bucket, close, rm, push, t])
 
   return (
     <>

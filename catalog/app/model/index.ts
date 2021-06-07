@@ -78,12 +78,21 @@ export const SnsInvalid = IO.type({ __typename: IO.literal('SnsInvalid') }, 'Sns
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type SnsInvalid = IO.TypeOf<typeof SnsInvalid>
 
-export const SubscriptionError = IO.type(
-  { __typename: IO.literal('SubscriptionError') },
-  'SubscriptionError',
+export const NotificationConfigurationError = IO.type(
+  { __typename: IO.literal('NotificationConfigurationError') },
+  'NotificationConfigurationError',
 )
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export type SubscriptionError = IO.TypeOf<typeof SubscriptionError>
+export type NotificationConfigurationError = IO.TypeOf<
+  typeof NotificationConfigurationError
+>
+
+export const NotificationTopicNotFound = IO.type(
+  { __typename: IO.literal('NotificationTopicNotFound') },
+  'NotificationTopicNotFound',
+)
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type NotificationTopicNotFound = IO.TypeOf<typeof NotificationTopicNotFound>
 
 export const BucketAlreadyAdded = IO.type(
   { __typename: IO.literal('BucketAlreadyAdded') },
@@ -105,6 +114,13 @@ export const InsufficientPermissions = IO.type(
 )
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type InsufficientPermissions = IO.TypeOf<typeof InsufficientPermissions>
+
+export const IndexingInProgress = IO.type(
+  { __typename: IO.literal('IndexingInProgress') },
+  'IndexingInProgress',
+)
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type IndexingInProgress = IO.TypeOf<typeof IndexingInProgress>
 
 export const BucketAddInput = IO.type(
   {
@@ -138,12 +154,13 @@ export type BucketAddSuccess = IO.TypeOf<typeof BucketAddSuccess>
 export const BucketAddResult = IO.union(
   [
     BucketAddSuccess,
-    Unauthorized,
     BucketAlreadyAdded,
     BucketDoesNotExist,
-    SubscriptionError,
     InsufficientPermissions,
+    NotificationConfigurationError,
+    NotificationTopicNotFound,
     SnsInvalid,
+    Unauthorized,
   ],
   'BucketAddResult',
 )
@@ -178,8 +195,29 @@ export const BucketUpdateSuccess = IO.type(
 export type BucketUpdateSuccess = IO.TypeOf<typeof BucketUpdateSuccess>
 
 export const BucketUpdateResult = IO.union(
-  [BucketUpdateSuccess, Unauthorized, BucketNotFound, SnsInvalid, SubscriptionError],
+  [
+    BucketUpdateSuccess,
+    BucketNotFound,
+    NotificationConfigurationError,
+    NotificationTopicNotFound,
+    SnsInvalid,
+    Unauthorized,
+  ],
   'BucketUpdateResult',
 )
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type BucketUpdateResult = IO.TypeOf<typeof BucketUpdateResult>
+
+export const BucketRemoveSuccess = IO.type(
+  { __typename: IO.literal('BucketRemoveSuccess') },
+  'BucketRemoveSuccess',
+)
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type BucketRemoveSuccess = IO.TypeOf<typeof BucketRemoveSuccess>
+
+export const BucketRemoveResult = IO.union(
+  [BucketRemoveSuccess, Unauthorized, BucketNotFound, IndexingInProgress],
+  'BucketRemoveResult',
+)
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type BucketRemoveResult = IO.TypeOf<typeof BucketRemoveResult>

@@ -153,7 +153,11 @@ type SnsInvalid {
   _: Boolean
 }
 
-type SubscriptionError {
+type NotificationConfigurationError {
+  _: Boolean
+}
+
+type NotificationTopicNotFound {
   _: Boolean
 }
 
@@ -161,14 +165,19 @@ type InsufficientPermissions {
   _: Boolean
 }
 
+type IndexingInProgress {
+  _: Boolean
+}
+
 union BucketAddResult =
     BucketAddSuccess
-  | Unauthorized
   | BucketAlreadyAdded
   | BucketDoesNotExist
-  | SubscriptionError
   | InsufficientPermissions
+  | NotificationConfigurationError
+  | NotificationTopicNotFound
   | SnsInvalid
+  | Unauthorized
 
 type BucketUpdateSuccess {
   bucketConfig: BucketConfig!
@@ -176,19 +185,21 @@ type BucketUpdateSuccess {
 
 union BucketUpdateResult =
     BucketUpdateSuccess
-  | Unauthorized
   | BucketNotFound
+  | NotificationConfigurationError
+  | NotificationTopicNotFound
   | SnsInvalid
-  | SubscriptionError
+  | Unauthorized
 
 type BucketRemoveSuccess {
-  bucketConfig: BucketConfig!
+  _: Boolean
 }
 
-# "Bucket not found"
-# "Cannot remove bucket while indexing."
-# Unauthorized
-union BucketRemoveResult = BucketRemoveSuccess | Unauthorized
+union BucketRemoveResult =
+    BucketRemoveSuccess
+  | Unauthorized
+  | BucketNotFound
+  | IndexingInProgress
 
 type Mutation {
   bucketAdd(input: BucketAddInput!): BucketAddResult!
