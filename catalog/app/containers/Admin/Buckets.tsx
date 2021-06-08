@@ -7,17 +7,14 @@ import * as Types from 'io-ts-types'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-// import * as redux from 'react-redux'
 import * as RRDom from 'react-router-dom'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
 import * as Pagination from 'components/Pagination'
-// import * as AuthSelectors from 'containers/Auth/selectors'
 import * as Notifications from 'containers/Notifications'
 import * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
-// import * as Config from 'utils/Config'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
 import { BaseError } from 'utils/error'
@@ -448,12 +445,6 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
   )
 }
 
-// function useAuthSession() {
-//   const cfg = Config.use()
-//   const sessionId = redux.useSelector(AuthSelectors.sessionId)
-//   return cfg.alwaysRequiresAuth && sessionId
-// }
-
 const ADD_MUTATION = `
   mutation Admin_Buckets_Add($input: BucketAddInput!) {
     bucketAdd(input: $input) {
@@ -491,7 +482,6 @@ interface AddProps {
 }
 
 function Add({ close }: AddProps) {
-  // const session = useAuthSession()
   const { push } = Notifications.use()
   const t = useTracker()
   const [, add] = urql.useMutation<AddData, AddVariables>(ADD_MUTATION)
@@ -504,8 +494,6 @@ function Add({ close }: AddProps) {
         if (!res.data) throw new Error('No data')
         const r = tryDecode(Model.BucketAddResult, res.data.bucketAdd)
         if (Model.BucketAddSuccess.is(r)) {
-          // TODO: handle auth session???
-          // TODO: add newly created bucket to query or just refetch the query
           push(`Bucket "${r.bucketConfig.name}" added`)
           t.track('WEB', {
             type: 'admin',
@@ -776,7 +764,6 @@ interface EditProps {
 }
 
 function Edit({ bucket, close }: EditProps) {
-  // const session = useAuthSession()
   const [, update] = urql.useMutation<UpdateData, UpdateVariables>(UPDATE_MUTATION)
 
   const [reindexOpen, setReindexOpen] = React.useState(false)
@@ -792,7 +779,6 @@ function Edit({ bucket, close }: EditProps) {
         if (!res.data) throw new Error('No data')
         const r = tryDecode(Model.BucketUpdateResult, res.data.bucketUpdate)
         if (Model.BucketUpdateSuccess.is(r)) {
-          // TODO: handle auth session???
           close()
           return undefined
         }
@@ -923,7 +909,6 @@ interface DeleteProps {
 }
 
 function Delete({ bucket, close }: DeleteProps) {
-  // const session = useAuthSession()
   const { push } = Notifications.use()
   const t = useTracker()
   const [, rm] = urql.useMutation<RemoveData, RemoveVariables>(REMOVE_MUTATION)

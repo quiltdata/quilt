@@ -45,10 +45,6 @@ function useBucketConfigs() {
   const cfg = Config.use()
   const authenticated = redux.useSelector(AuthSelectors.authenticated)
   const empty = cfg.mode === 'MARKETING' || (cfg.alwaysRequiresAuth && !authenticated)
-  // const sessionId = redux.useSelector(AuthSelectors.sessionId)
-  // const session = cfg.alwaysRequiresAuth && sessionId
-  // TODO: refetch / invalidate cache on session change
-  // maybe just use session id as a query variable?
 
   const [{ data }] = urql.useQuery<BucketConfigsData>({
     query: BUCKET_CONFIGS_QUERY,
