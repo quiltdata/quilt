@@ -1193,7 +1193,7 @@ function Summary({ req, s3, bucket, inStack, overviewUrl }) {
   })
 }
 
-const BUCKET_CONFIG_QUERY = `
+const BUCKET_CONFIG_QUERY = urql.gql`
   query Bucket_Overview_BucketConfig($bucket: String!) {
     bucketConfig(name: $bucket) {
       name

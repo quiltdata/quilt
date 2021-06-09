@@ -164,7 +164,7 @@ export function CatalogData() {
   return renderJsonLd(ld)
 }
 
-const BUCKET_CONFIG_QUERY = `
+const BUCKET_CONFIG_QUERY = urql.gql`
   query LinkedData_BucketConfig($bucket: String!) {
     bucketConfig(name: $bucket) {
       name

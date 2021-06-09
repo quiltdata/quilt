@@ -445,7 +445,7 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
   )
 }
 
-const ADD_MUTATION = `
+const ADD_MUTATION = urql.gql`
   mutation Admin_Buckets_Add($input: BucketAddInput!) {
     bucketAdd(input: $input) {
       ... on BucketAddSuccess {
@@ -725,7 +725,7 @@ function Reindex({ bucket, open, close }: ReindexProps) {
   )
 }
 
-const UPDATE_MUTATION = `
+const UPDATE_MUTATION = urql.gql`
   mutation Admin_Buckets_Update($name: String!, $input: BucketUpdateInput!) {
     bucketUpdate(name: $name, input: $input) {
       ... on BucketUpdateSuccess {
@@ -889,7 +889,7 @@ function Edit({ bucket, close }: EditProps) {
   )
 }
 
-const REMOVE_MUTATION = `
+const REMOVE_MUTATION = urql.gql`
   mutation Admin_Buckets_Remove($name: String!) {
     bucketRemove(name: $name) { __typename }
   }
@@ -1049,7 +1049,7 @@ const columns = [
   },
 ]
 
-const BUCKET_CONFIGS_QUERY = `
+const BUCKET_CONFIGS_QUERY = urql.gql`
   query Admin_Buckets_BucketConfigs {
     bucketConfigs {
       name
@@ -1078,9 +1078,7 @@ interface CRUDProps {
 }
 
 function CRUD({ bucketName }: CRUDProps) {
-  const [{ data }] = urql.useQuery<BucketConfigsData>({
-    query: BUCKET_CONFIGS_QUERY,
-  })
+  const [{ data }] = urql.useQuery<BucketConfigsData>({ query: BUCKET_CONFIGS_QUERY })
   const rows = data!.bucketConfigs
   const ordering = Table.useOrdering({ rows, column: columns[0] })
   const pagination = Pagination.use(ordering.ordered, {

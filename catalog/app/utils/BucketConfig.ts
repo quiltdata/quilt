@@ -9,7 +9,7 @@ import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { useRoute } from 'utils/router'
 
-const BUCKET_CONFIGS_QUERY = `
+const BUCKET_CONFIGS_QUERY = urql.gql`
   query BucketConfigs {
     bucketConfigs {
       name
