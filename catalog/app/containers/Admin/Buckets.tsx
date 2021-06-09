@@ -2,8 +2,6 @@ import * as dateFns from 'date-fns'
 import * as FF from 'final-form'
 import * as FP from 'fp-ts'
 import * as IO from 'io-ts'
-import { formatValidationErrors } from 'io-ts-reporters'
-import * as Types from 'io-ts-types'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
@@ -17,46 +15,15 @@ import * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
-import { BaseError } from 'utils/error'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import { useTracker } from 'utils/tracking'
+import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
 
 import * as Form from './Form'
 import * as Table from './Table'
-
-// TODO: move reusable helpers out of here
-class ValidationError extends BaseError {
-  constructor(e: IO.Errors) {
-    const formatted = formatValidationErrors(e).join('\n')
-    super(`ValidationError\n${formatted}`)
-  }
-}
-
-function tryDecode<A extends any>(t: IO.Type<A, any, any>, i: unknown) {
-  return FP.function.pipe(
-    t.decode(i),
-    FP.either.fold(
-      (e) => {
-        throw new ValidationError(e)
-      },
-      (a) => a,
-    ),
-  )
-}
-
-function decode<T>(codec: IO.Type<T, any, any>) {
-  return (i: unknown) => tryDecode(codec, i)
-}
-
-const normalizeString = R.trim
-
-// TODO: toNullable combinator
-// function toNullable(codec, isNull) {
-//   // encode as null if isNull(value)
-// }
 
 const SNS_ARN_RE = /^arn:aws(-|\w)*:sns:(-|\w)*:\d*:\S+$/
 
@@ -82,37 +49,37 @@ type FormSpec<Obj extends {}> = {
 const editFormSpec: FormSpec<Model.BucketUpdateInput> = {
   title: R.pipe(
     R.prop('title'),
-    decode(IO.string),
-    normalizeString,
-    decode(Types.NonEmptyString),
+    Types.decode(IO.string),
+    R.trim,
+    Types.decode(Types.NonEmptyString),
   ),
   iconUrl: R.pipe(
     R.prop('iconUrl'),
-    decode(Types.fromNullable(IO.string, '')),
-    normalizeString,
+    Types.decode(Types.fromNullable(IO.string, '')),
+    R.trim,
     (s) => (s ? (s as Types.NonEmptyString) : null),
   ),
   description: R.pipe(
     R.prop('description'),
-    decode(Types.fromNullable(IO.string, '')),
-    normalizeString,
+    Types.decode(Types.fromNullable(IO.string, '')),
+    R.trim,
     (s) => (s ? (s as Types.NonEmptyString) : null),
   ),
   relevanceScore: R.pipe(
     R.prop('relevanceScore'),
-    decode(Types.fromNullable(IO.string, '')),
+    Types.decode(Types.fromNullable(IO.string, '')),
     (s) => s || null,
-    decode(Model.nullable(Types.IntFromString)),
+    Types.decode(Types.nullable(Types.IntFromString)),
   ),
   overviewUrl: R.pipe(
     R.prop('overviewUrl'),
-    decode(Types.fromNullable(IO.string, '')),
-    normalizeString,
+    Types.decode(Types.fromNullable(IO.string, '')),
+    R.trim,
     (s) => (s ? (s as Types.NonEmptyString) : null),
   ),
   tags: R.pipe(
     R.prop('tags'),
-    decode(Types.fromNullable(IO.string, '')),
+    Types.decode(Types.fromNullable(IO.string, '')),
     R.split(','),
     R.map(R.trim),
     R.reject((t) => !t),
@@ -122,14 +89,14 @@ const editFormSpec: FormSpec<Model.BucketUpdateInput> = {
   ),
   linkedData: R.pipe(
     R.prop('linkedData'),
-    decode(Types.fromNullable(IO.string, '')),
+    Types.decode(Types.fromNullable(IO.string, '')),
     (s) => s.trim() || 'null',
-    decode(Types.withFallback(Types.JsonFromString, null)),
-    decode(Types.withFallback(Model.nullable(Model.BucketLinkedData), null)),
+    Types.decode(Types.withFallback(Types.JsonFromString, null)),
+    Types.decode(Types.withFallback(Types.nullable(Model.BucketLinkedData), null)),
   ),
   fileExtensionsToIndex: R.pipe(
     R.prop('fileExtensionsToIndex'),
-    decode(Types.fromNullable(IO.string, '')),
+    Types.decode(Types.fromNullable(IO.string, '')),
     R.split(','),
     R.map(R.trim),
     R.reject((t) => !t),
@@ -139,13 +106,13 @@ const editFormSpec: FormSpec<Model.BucketUpdateInput> = {
   ),
   scannerParallelShardsDepth: R.pipe(
     R.prop('scannerParallelShardsDepth'),
-    decode(Types.fromNullable(IO.string, '')),
+    Types.decode(Types.fromNullable(IO.string, '')),
     (s) => s || null,
-    decode(Model.nullable(Types.IntFromString)),
+    Types.decode(Types.nullable(Types.IntFromString)),
   ),
   snsNotificationArn: R.pipe(
     R.prop('snsNotificationArn'),
-    decode(Model.nullable(SnsFormValue)),
+    Types.decode(Types.nullable(SnsFormValue)),
     (v) => {
       if (v === DO_NOT_SUBSCRIBE_SYM) return DO_NOT_SUBSCRIBE_STR as Types.NonEmptyString
       const trimmed = v?.trim()
@@ -155,7 +122,7 @@ const editFormSpec: FormSpec<Model.BucketUpdateInput> = {
   ),
   skipMetaDataIndexing: R.pipe(
     R.prop('skipMetaDataIndexing'),
-    decode(Types.fromNullable(IO.boolean, false)),
+    Types.decode(Types.fromNullable(IO.boolean, false)),
   ),
   setVersioning: () => null,
 }
@@ -164,11 +131,14 @@ const addFormSpec: FormSpec<Model.BucketAddInput> = {
   ...editFormSpec,
   name: R.pipe(
     R.prop('name'),
-    decode(IO.string),
-    normalizeString,
-    decode(Types.NonEmptyString),
+    Types.decode(IO.string),
+    R.trim,
+    Types.decode(Types.NonEmptyString),
   ),
-  delayScan: R.pipe(R.prop('delayScan'), decode(Types.fromNullable(IO.boolean, false))),
+  delayScan: R.pipe(
+    R.prop('delayScan'),
+    Types.decode(Types.fromNullable(IO.boolean, false)),
+  ),
 }
 
 function validateSns(v: SnsFormValue) {
@@ -492,7 +462,7 @@ function Add({ close }: AddProps) {
         const res = await add({ input })
         if (res.error) throw res.error
         if (!res.data) throw new Error('No data')
-        const r = tryDecode(Model.BucketAddResult, res.data.bucketAdd)
+        const r = Types.decode(Model.BucketAddResult)(res.data.bucketAdd)
         if (Model.BucketAddSuccess.is(r)) {
           push(`Bucket "${r.bucketConfig.name}" added`)
           t.track('WEB', {
@@ -777,7 +747,7 @@ function Edit({ bucket, close }: EditProps) {
         const res = await update({ name: bucket.name, input })
         if (res.error) throw res.error
         if (!res.data) throw new Error('No data')
-        const r = tryDecode(Model.BucketUpdateResult, res.data.bucketUpdate)
+        const r = Types.decode(Model.BucketUpdateResult)(res.data.bucketUpdate)
         if (Model.BucketUpdateSuccess.is(r)) {
           close()
           return undefined
@@ -918,7 +888,7 @@ function Delete({ bucket, close }: DeleteProps) {
       const res = await rm({ name: bucket.name })
       if (res.error) throw res.error
       if (!res.data) throw new Error('No data')
-      const r = tryDecode(Model.BucketRemoveResult, res.data.bucketRemove)
+      const r = Types.decode(Model.BucketRemoveResult)(res.data.bucketRemove)
       if (Model.BucketRemoveSuccess.is(r)) {
         t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
         return
