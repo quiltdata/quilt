@@ -3,7 +3,6 @@ import functools
 import hashlib
 import io
 import json
-import os
 import unittest
 from http import HTTPStatus
 from unittest import mock
@@ -85,9 +84,6 @@ class PackagePromoteTestBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-
-        auth_endpoint_patcher = mock.patch.dict(os.environ, {'AUTH_ENDPOINT': 'https://example.com/auth/endpoint'})
-        auth_endpoint_patcher.start()
 
         pkg = Package()
         pkg._set_commit_message(cls.parent_commit_message)
