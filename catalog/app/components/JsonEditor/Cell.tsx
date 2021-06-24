@@ -86,11 +86,11 @@ export default function Cell({
 
   const onKeyPress = React.useCallback(
     (event) => {
-      if (!editing) {
-        // Chromium able to send key event to Input created after this key event.
-        // Avoid to send this key event to Input constistently with Firefox
-        event.preventDefault()
-      }
+      if (editing) return
+
+      // Chromium able to send key event to Input created after this key event.
+      // Avoid to send this key event to Input constistently with Firefox
+      event.preventDefault()
 
       // Do nothing, if it's a key cell provided by schema
       if (!isEditable) return
@@ -122,7 +122,7 @@ export default function Cell({
   )
 
   const ValueComponent = React.useMemo(() => {
-    if (isEnumCell) return EnumSelect
+    if (editing && isEnumCell) return EnumSelect
     if (editing) return Input
     return Preview
   }, [editing, isEnumCell])

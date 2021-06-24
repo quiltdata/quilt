@@ -6,7 +6,6 @@ def pytest_configure(config):
         AWS_ACCESS_KEY_ID='foo',
         AWS_SECRET_ACCESS_KEY='bar',
         AWS_DEFAULT_REGION='us-east-1',
-        AUTH_ENDPOINT='https://example-com/auth/endpoint',
         SERVICE_BUCKET='service-bucket',
         **dict.fromkeys(
             (
