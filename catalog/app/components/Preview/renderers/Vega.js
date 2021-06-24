@@ -29,7 +29,7 @@ class Vega extends React.Component {
   }
 
   embed() {
-    if (this.state.el) embed(this.state.el, this.props.spec, { actions: true })
+    if (this.state.el) embed(this.state.el, this.props.spec, { actions: false })
   }
 
   render() {

@@ -73,7 +73,7 @@ function useVegaSpecSigner(handle) {
   )
 }
 
-export const detectVegaSchema = (txt) => {
+const detectSchema = (txt) => {
   const m = txt.match(SCHEMA_RE)
   if (!m) return false
   const [, library, version] = m
@@ -155,7 +155,7 @@ export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
 export const Loader = function GatedJsonLoader({ handle, children }) {
   return utils.useFirstBytes({ bytes: BYTES_TO_SCAN, handle }).case({
     Ok: ({ firstBytes, contentLength }) =>
-      detectVegaSchema(firstBytes) && handle.mode !== 'json' ? (
+      detectSchema(firstBytes) && handle.mode !== 'json' ? (
         <VegaLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />
       ) : (
         <JsonLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />
