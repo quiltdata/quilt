@@ -16,6 +16,7 @@ export const actions = createActions(
   'SIGN_OUT',
   'SIGN_OUT_RESULT',
   'CHECK',
+  'GET_TOKENS',
   'REFRESH',
   'REFRESH_RESULT',
   'AUTH_LOST',

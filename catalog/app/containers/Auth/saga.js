@@ -376,9 +376,6 @@ const isExpired = (tokens, time) => {
  * @param {number} options.latency
  * @param {function} options.storeTokens
  * @param {function} options.storeUser
- * @param {function} options.forgetTokens
- * @param {function} options.forgetUser
- * @param {function} options.onAuthLost
  *
  * @param {Action} action
  */
@@ -387,6 +384,9 @@ function* handleCheck(
   { payload: { refetch }, meta: { resolve, reject } },
 ) {
   try {
+    // waiting while all the current requests settle to avoid race conditions
+    yield call(waitTil, selectors.waiting, (w) => !w)
+
     const tokens = yield select(selectors.tokens)
     const time = yield call(timestamp)
     if (!tokens || !isExpired(tokens, time)) {
@@ -416,6 +416,27 @@ function* handleCheck(
 }
 
 /**
+ * Handle GET_TOKENS action.
+ *
+ * @param {Action} action
+ */
+function* handleGetTokens({ meta: { resolve, reject } }) {
+  try {
+    const tokens = yield call(getTokens)
+    yield call(resolve, tokens)
+  } catch (e) {
+    if (reject) {
+      yield call(reject, e)
+    } else {
+      // eslint-disable-next-line no-console
+      console.error('handleGetTokens: unhandled error:')
+      // eslint-disable-next-line no-console
+      console.error(e)
+    }
+  }
+}
+
+/**
  * Handle AUTH_LOST action.
  *
  * @param {Object} options
@@ -425,6 +446,7 @@ function* handleCheck(
 function* handleAuthLost({ forgetTokens, forgetUser, onAuthLost }, { payload: err }) {
   yield fork(forgetTokens)
   yield fork(forgetUser)
+  // TODO: dont call onAuthLost if not signed in / on consectutive dispatches
   yield call(onAuthLost, err)
 }
 
@@ -515,6 +537,7 @@ export default function* Saga({
     storeTokens,
     storeUser,
   })
+  yield takeEvery(actions.getTokens.type, handleGetTokens)
   yield takeEvery(actions.authLost.type, handleAuthLost, {
     forgetTokens,
     forgetUser,
