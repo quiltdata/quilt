@@ -38,7 +38,8 @@
     "test:clean": "rimraf ./coverage",
     "test:only": "cross-env NODE_ENV=test jest --runInBand",
     "test:watch": "npm run test:only -- --watch",
-    "prettify": "prettier --write"
+    "prettify": "prettier --write",
+    "gql:generate": "graphql-codegen"
   },
   "lint-staged": {
     "app/**/*.[jt]s?(x)": [
@@ -132,6 +133,7 @@
     "sanitize.css": "^11.0.1",
     "tslib": "^2.2.0",
     "urql": "^2.0.3",
+    "urql-custom-scalars-exchange": "^0.1.5",
     "use-debounce": "^3.4.3",
     "uuid": "^3.4.0",
     "vega": "^5.20.2",
@@ -142,6 +144,8 @@
     "xlsx": "^0.16.9"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "^1.21.5",
+    "@graphql-codegen/urql-introspection": "^1.3.1",
     "@testing-library/react-hooks": "^6.0.0",
     "@types/dedent": "^0.7.0",
     "@types/fontfaceobserver": "^0.0.6",

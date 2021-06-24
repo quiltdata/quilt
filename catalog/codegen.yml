@@ -1,0 +1,12 @@
+schema: ../shared/graphql/schema.graphql
+hooks:
+  afterAllFileWrite:
+    - prettier --write
+    - eslint --fix
+generates:
+  ./app/introspected-graphql-schema.ts:
+    plugins:
+      - urql-introspection
+    config:
+      useTypeImports: true
+      includeScalars: true
