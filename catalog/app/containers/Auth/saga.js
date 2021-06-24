@@ -425,7 +425,14 @@ function* handleGetTokens({ meta: { resolve, reject } }) {
     const tokens = yield call(getTokens)
     yield call(resolve, tokens)
   } catch (e) {
-    if (reject) yield call(reject, e)
+    if (reject) {
+      yield call(reject, e)
+    } else {
+      // eslint-disable-next-line no-console
+      console.error('handleGetTokens: unhandled error:')
+      // eslint-disable-next-line no-console
+      console.error(e)
+    }
   }
 }
 
