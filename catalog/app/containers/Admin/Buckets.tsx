@@ -25,6 +25,11 @@ import * as validators from 'utils/validators'
 import * as Form from './Form'
 import * as Table from './Table'
 
+// TODO: move into some shared utility module
+function assertNever(x: never): never {
+  throw new Error(`Unexpected value '${x}'. Should have been never.`)
+}
+
 const SNS_ARN_RE = /^arn:aws(-|\w)*:sns:(-|\w)*:\d*:\S+$/
 
 const DO_NOT_SUBSCRIBE_STR = 'DO_NOT_SUBSCRIBE'
@@ -463,39 +468,35 @@ function Add({ close }: AddProps) {
         if (res.error) throw res.error
         if (!res.data) throw new Error('No data')
         const r = Types.decode(Model.BucketAddResult)(res.data.bucketAdd)
-        if (Model.BucketAddSuccess.is(r)) {
-          push(`Bucket "${r.bucketConfig.name}" added`)
-          t.track('WEB', {
-            type: 'admin',
-            action: 'bucket add',
-            bucket: r.bucketConfig.name,
-          })
-          close()
-          return undefined
+        switch (r.__typename) {
+          case 'BucketAddSuccess':
+            push(`Bucket "${r.bucketConfig.name}" added`)
+            t.track('WEB', {
+              type: 'admin',
+              action: 'bucket add',
+              bucket: r.bucketConfig.name,
+            })
+            close()
+            return undefined
+          case 'BucketAlreadyAdded':
+            return { name: 'conflict' }
+          case 'BucketDoesNotExist':
+            return { name: 'noSuchBucket' }
+          case 'SnsInvalid':
+            // shouldnt happen since we're validating it
+            return { snsNotificationArn: 'invalidArn' }
+          case 'NotificationTopicNotFound':
+            return { snsNotificationArn: 'topicNotFound' }
+          case 'NotificationConfigurationError':
+            return {
+              snsNotificationArn: 'configurationError',
+              [FF.FORM_ERROR]: 'notificationConfigurationError',
+            }
+          case 'InsufficientPermissions':
+            return { [FF.FORM_ERROR]: 'insufficientPermissions' }
+          default:
+            return assertNever(r)
         }
-        if (Model.BucketAlreadyAdded.is(r)) {
-          return { name: 'conflict' }
-        }
-        if (Model.BucketDoesNotExist.is(r)) {
-          return { name: 'noSuchBucket' }
-        }
-        if (Model.SnsInvalid.is(r)) {
-          // shouldnt happen since we're validating it
-          return { snsNotificationArn: 'invalidArn' }
-        }
-        if (Model.NotificationTopicNotFound.is(r)) {
-          return { snsNotificationArn: 'topicNotFound' }
-        }
-        if (Model.NotificationConfigurationError.is(r)) {
-          return {
-            snsNotificationArn: 'configurationError',
-            [FF.FORM_ERROR]: 'notificationConfigurationError',
-          }
-        }
-        if (Model.InsufficientPermissions.is(r)) {
-          return { [FF.FORM_ERROR]: 'insufficientPermissions' }
-        }
-        throw new Error(r.__typename)
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Error adding bucket')
@@ -748,24 +749,25 @@ function Edit({ bucket, close }: EditProps) {
         if (res.error) throw res.error
         if (!res.data) throw new Error('No data')
         const r = Types.decode(Model.BucketUpdateResult)(res.data.bucketUpdate)
-        if (Model.BucketUpdateSuccess.is(r)) {
-          close()
-          return undefined
+        switch (r.__typename) {
+          case 'BucketUpdateSuccess':
+            close()
+            return undefined
+          case 'SnsInvalid':
+            // shouldnt happen since we're validating it
+            return { snsNotificationArn: 'invalidArn' }
+          case 'NotificationTopicNotFound':
+            return { snsNotificationArn: 'topicNotFound' }
+          case 'NotificationConfigurationError':
+            return {
+              snsNotificationArn: 'configurationError',
+              [FF.FORM_ERROR]: 'notificationConfigurationError',
+            }
+          case 'BucketNotFound':
+            return { [FF.FORM_ERROR]: 'bucketNotFound' }
+          default:
+            return assertNever(r)
         }
-        if (Model.SnsInvalid.is(r)) {
-          // shouldnt happen since we're validating it
-          return { snsNotificationArn: 'invalidArn' }
-        }
-        if (Model.NotificationTopicNotFound.is(r)) {
-          return { snsNotificationArn: 'topicNotFound' }
-        }
-        if (Model.NotificationConfigurationError.is(r)) {
-          return {
-            snsNotificationArn: 'configurationError',
-            [FF.FORM_ERROR]: 'notificationConfigurationError',
-          }
-        }
-        throw new Error(r.__typename)
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('Error updating bucket')
@@ -815,6 +817,7 @@ function Edit({ bucket, close }: EditProps) {
                   errors={{
                     unexpected: 'Something went wrong',
                     notificationConfigurationError: 'Notification configuration error',
+                    bucketNotFound: 'Bucket not found',
                   }}
                 />
               )}
@@ -889,15 +892,19 @@ function Delete({ bucket, close }: DeleteProps) {
       if (res.error) throw res.error
       if (!res.data) throw new Error('No data')
       const r = Types.decode(Model.BucketRemoveResult)(res.data.bucketRemove)
-      if (Model.BucketRemoveSuccess.is(r)) {
-        t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
-        return
+      switch (r.__typename) {
+        case 'BucketRemoveSuccess':
+          t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
+          return
+        case 'IndexingInProgress':
+          push(`Can't delete bucket "${bucket.name}" while it's being indexed`)
+          return
+        case 'BucketNotFound':
+          push(`Can't delete bucket "${bucket.name}": not found`)
+          return
+        default:
+          assertNever(r)
       }
-      if (Model.IndexingInProgress.is(r)) {
-        push(`Can't delete bucket "${bucket.name}" while it's being indexed`)
-        return
-      }
-      throw new Error(r.__typename)
     } catch (e) {
       push(`Error deleting bucket "${bucket.name}"`)
       // eslint-disable-next-line no-console

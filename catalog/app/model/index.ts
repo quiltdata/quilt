@@ -43,13 +43,6 @@ export const BucketConfig = IO.type(
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type BucketConfig = IO.TypeOf<typeof BucketConfig>
 
-export const Unauthorized = IO.type(
-  { __typename: IO.literal('Unauthorized') },
-  'Unauthorized',
-)
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export type Unauthorized = IO.TypeOf<typeof Unauthorized>
-
 export const BucketNotFound = IO.type(
   { __typename: IO.literal('BucketNotFound') },
   'BucketNotFound',
@@ -128,7 +121,10 @@ export const BucketAddInput = IO.type(
 export type BucketAddInput = IO.TypeOf<typeof BucketAddInput>
 
 export const BucketAddSuccess = IO.type(
-  { bucketConfig: BucketConfig },
+  {
+    __typename: IO.literal('BucketAddSuccess'),
+    bucketConfig: BucketConfig,
+  },
   'BucketAddSuccess',
 )
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -143,7 +139,6 @@ export const BucketAddResult = IO.union(
     NotificationConfigurationError,
     NotificationTopicNotFound,
     SnsInvalid,
-    Unauthorized,
   ],
   'BucketAddResult',
 )
@@ -171,7 +166,10 @@ export const BucketUpdateInput = IO.type(
 export type BucketUpdateInput = IO.TypeOf<typeof BucketUpdateInput>
 
 export const BucketUpdateSuccess = IO.type(
-  { bucketConfig: BucketConfig },
+  {
+    __typename: IO.literal('BucketUpdateSuccess'),
+    bucketConfig: BucketConfig,
+  },
   'BucketUpdateSuccess',
 )
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -184,7 +182,6 @@ export const BucketUpdateResult = IO.union(
     NotificationConfigurationError,
     NotificationTopicNotFound,
     SnsInvalid,
-    Unauthorized,
   ],
   'BucketUpdateResult',
 )
@@ -199,7 +196,7 @@ export const BucketRemoveSuccess = IO.type(
 export type BucketRemoveSuccess = IO.TypeOf<typeof BucketRemoveSuccess>
 
 export const BucketRemoveResult = IO.union(
-  [BucketRemoveSuccess, Unauthorized, BucketNotFound, IndexingInProgress],
+  [BucketRemoveSuccess, BucketNotFound, IndexingInProgress],
   'BucketRemoveResult',
 )
 // eslint-disable-next-line @typescript-eslint/no-redeclare
