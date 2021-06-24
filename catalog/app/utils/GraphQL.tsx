@@ -2,9 +2,11 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as urql from 'urql'
+import customScalarsExchange from 'urql-custom-scalars-exchange'
 import * as DevTools from '@urql/devtools'
 import * as GraphCache from '@urql/exchange-graphcache'
 
+import schema from 'introspected-graphql-schema'
 import * as AuthSelectors from 'containers/Auth/selectors'
 import { useAuthExchange } from 'containers/Auth/urqlExchange'
 import * as Config from 'utils/Config'
@@ -21,10 +23,23 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
 
   const authExchange = useAuthExchange()
 
+  const scalarsExchange = React.useMemo(
+    () =>
+      customScalarsExchange({
+        schema,
+        scalars: {
+          Datetime(value) {
+            return new Date(value)
+          },
+        },
+      }),
+    [],
+  )
+
   const cacheExchange = React.useMemo(
     () =>
       GraphCache.cacheExchange({
-        // schema: TODO: get introspected schema
+        schema,
         keys: {
           BucketConfig: (b) => b.name as string,
         },
@@ -65,12 +80,13 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
         exchanges: [
           ...devtools,
           urql.dedupExchange,
+          scalarsExchange,
           cacheExchange,
           authExchange,
           urql.fetchExchange,
         ],
       }),
-    [url, authExchange, cacheExchange],
+    [url, authExchange, cacheExchange, scalarsExchange],
   )
   return <urql.Provider value={client}>{children}</urql.Provider>
 }
