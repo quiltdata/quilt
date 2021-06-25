@@ -3,6 +3,15 @@ import PT from 'prop-types'
 import * as React from 'react'
 import embed from 'vega-embed'
 
+const VEGA_OPTIONS = {
+  actions: {
+    compiled: false,
+    editor: false,
+    export: true,
+    source: false,
+  },
+}
+
 // TODO: refactor to use hooks
 class Vega extends React.Component {
   static propTypes = {
@@ -29,7 +38,7 @@ class Vega extends React.Component {
   }
 
   embed() {
-    if (this.state.el) embed(this.state.el, this.props.spec, { actions: false })
+    if (this.state.el) embed(this.state.el, this.props.spec, VEGA_OPTIONS)
   }
 
   render() {
