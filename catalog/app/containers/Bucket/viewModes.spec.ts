@@ -27,6 +27,14 @@ function fetchNotOk(): Promise<Response> {
   )
 }
 
+function fetchThrow(): Promise<Response> {
+  return new Promise((resolve, reject) =>
+    setTimeout(() => {
+      reject(new Error('Expected'))
+    }, 100),
+  )
+}
+
 describe('containers/Bucket/viewModes', () => {
   describe('useViewModes', () => {
     afterEach(() => {
@@ -63,6 +71,18 @@ describe('containers/Bucket/viewModes', () => {
         { key: 'jupyter', label: 'Jupyter' },
         { key: 'json', label: 'JSON' },
         { key: 'voila', label: 'Voila' },
+      ])
+    })
+
+    it('returns Notebooks modes for .ipynb when request throws error', async () => {
+      mocked(global.fetch).mockImplementation(fetchThrow)
+
+      const { result } = renderHook(() =>
+        useViewModes('https://registry.example', 'test.ipynb'),
+      )
+      expect(result.current).toMatchObject([
+        { key: 'jupyter', label: 'Jupyter' },
+        { key: 'json', label: 'JSON' },
       ])
     })
   })
