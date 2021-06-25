@@ -55,6 +55,8 @@ export default function useViewModes(
   }, [registryUrl])
 
   const handleJson = React.useCallback(() => {
+    if (!previewResult) return
+
     AsyncResult.case(
       {
         Ok: (jsonResult: $TSFixMe) => {
