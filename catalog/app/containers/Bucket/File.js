@@ -404,7 +404,7 @@ export default function File({
   const [previewResult, setPreviewResult] = React.useState(false)
   const onRender = React.useCallback(
     (result) => {
-      if (previewResult === result) {
+      if (previewResult) {
         return renderPreview(result)
       }
 

@@ -63,12 +63,12 @@ export default function useViewModes(
           Preview.PreviewData.case(
             {
               Vega: (json: any) => {
-                if (isVegaSchema(json?.spec?.$schema)) {
+                if (isVegaSchema(json.spec?.$schema)) {
                   setViewModes([VEGA_MODE, JSON_MODE])
                 }
               },
               Json: (json: any) => {
-                if (isVegaSchema(json?.rendered?.$schema)) {
+                if (isVegaSchema(json.rendered?.$schema)) {
                   setViewModes([VEGA_MODE, JSON_MODE])
                 }
               },

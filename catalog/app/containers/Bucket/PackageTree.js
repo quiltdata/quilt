@@ -448,8 +448,21 @@ function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumb
   const history = useHistory()
   const { urls } = NamedRoutes.use()
 
+  const [previewResult, setPreviewResult] = React.useState(false)
+  const onRender = React.useCallback(
+    (result) => {
+      if (previewResult === result) {
+        return renderPreview(result)
+      }
+
+      setPreviewResult(result)
+      return renderPreview(AsyncResult.Pending())
+    },
+    [previewResult, setPreviewResult],
+  )
+
   const { registryUrl } = Config.use()
-  const viewModes = useViewModes(registryUrl, path)
+  const viewModes = useViewModes(registryUrl, path, previewResult)
   const viewMode = React.useMemo(
     () => viewModes.find(({ key }) => key === modeSlug) || viewModes[0] || null,
     [viewModes, modeSlug],
@@ -493,10 +506,7 @@ function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumb
                 <PkgCode {...{ bucket, name, hash, revision, path }} />
                 <FileView.Meta data={AsyncResult.Ok(meta)} />
                 <Section icon="remove_red_eye" heading="Preview" expandable={false}>
-                  {withPreview(
-                    { archived, deleted, handle, mode: viewMode },
-                    renderPreview,
-                  )}
+                  {withPreview({ archived, deleted, handle, mode: viewMode }, onRender)}
                 </Section>
               </>
             ),
