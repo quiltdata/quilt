@@ -2,7 +2,8 @@ import { extname } from 'path'
 import * as R from 'ramda'
 import * as React from 'react'
 
-import * as Preview from 'components/Preview'
+// NOTE: module imported selectively because Preview's deps break unit-tests
+import { PreviewData } from 'components/Preview/types'
 import AsyncResult from 'utils/AsyncResult'
 import global from 'utils/global'
 
@@ -60,7 +61,7 @@ export default function useViewModes(
     AsyncResult.case(
       {
         Ok: (jsonResult: $TSFixMe) => {
-          Preview.PreviewData.case(
+          PreviewData.case(
             {
               Vega: (json: any) => {
                 if (isVegaSchema(json.spec?.$schema)) {
