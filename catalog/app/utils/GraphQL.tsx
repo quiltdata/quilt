@@ -6,7 +6,7 @@ import customScalarsExchange from 'urql-custom-scalars-exchange'
 import * as DevTools from '@urql/devtools'
 import * as GraphCache from '@urql/exchange-graphcache'
 
-import schema from 'introspected-graphql-schema'
+import schema from 'model/graphql/schema.generated'
 import * as AuthSelectors from 'containers/Auth/selectors'
 import { useAuthExchange } from 'containers/Auth/urqlExchange'
 import * as Config from 'utils/Config'
