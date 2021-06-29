@@ -25,6 +25,12 @@ import * as validators from 'utils/validators'
 import * as Form from './Form'
 import * as Table from './Table'
 
+import BUCKET_CONFIGS_QUERY from './BucketConfigs.generated'
+import ADD_MUTATION from './BucketsAdd.generated'
+import UPDATE_MUTATION from './BucketsUpdate.generated'
+import REMOVE_MUTATION from './BucketsRemove.generated'
+import { BucketConfigSelectionFragment as BucketConfig } from './BucketConfigSelection.generated'
+
 // TODO: move into some shared utility module
 function assertNever(x: never): never {
   throw new Error(`Unexpected value '${x}'. Should have been never.`)
@@ -51,7 +57,7 @@ type FormSpec<Obj extends {}> = {
   [K in keyof Obj]: (formValues: Record<string, unknown>) => Obj[K]
 }
 
-const editFormSpec: FormSpec<Model.BucketUpdateInput> = {
+const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
   title: R.pipe(
     R.prop('title'),
     Types.decode(IO.string),
@@ -97,7 +103,6 @@ const editFormSpec: FormSpec<Model.BucketUpdateInput> = {
     Types.decode(Types.fromNullable(IO.string, '')),
     (s) => s.trim() || 'null',
     Types.decode(Types.withFallback(Types.JsonFromString, null)),
-    Types.decode(Types.withFallback(Types.nullable(Model.BucketLinkedData), null)),
   ),
   fileExtensionsToIndex: R.pipe(
     R.prop('fileExtensionsToIndex'),
@@ -132,7 +137,7 @@ const editFormSpec: FormSpec<Model.BucketUpdateInput> = {
   setVersioning: () => null,
 }
 
-const addFormSpec: FormSpec<Model.BucketAddInput> = {
+const addFormSpec: FormSpec<Model.GQLTypes.BucketAddInput> = {
   ...editFormSpec,
   name: R.pipe(
     R.prop('name'),
@@ -420,38 +425,6 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
   )
 }
 
-const ADD_MUTATION = urql.gql`
-  mutation Admin_Buckets_Add($input: BucketAddInput!) {
-    bucketAdd(input: $input) {
-      ... on BucketAddSuccess {
-        bucketConfig {
-          name
-          title
-          iconUrl
-          description
-          relevanceScore
-          overviewUrl
-          tags
-          linkedData
-          fileExtensionsToIndex
-          scannerParallelShardsDepth
-          snsNotificationArn
-          skipMetaDataIndexing
-          lastIndexed
-        }
-      }
-    }
-  }
-`
-
-interface AddData {
-  bucketAdd: Model.BucketAddResult
-}
-
-interface AddVariables {
-  input: Model.BucketAddInput
-}
-
 interface AddProps {
   close: (reason?: string) => void
 }
@@ -459,7 +432,7 @@ interface AddProps {
 function Add({ close }: AddProps) {
   const { push } = Notifications.use()
   const t = useTracker()
-  const [, add] = urql.useMutation<AddData, AddVariables>(ADD_MUTATION)
+  const [, add] = urql.useMutation(ADD_MUTATION)
   const onSubmit = React.useCallback(
     async (values) => {
       try {
@@ -467,7 +440,7 @@ function Add({ close }: AddProps) {
         const res = await add({ input })
         if (res.error) throw res.error
         if (!res.data) throw new Error('No data')
-        const r = Types.decode(Model.BucketAddResult)(res.data.bucketAdd)
+        const r = res.data.bucketAdd
         switch (r.__typename) {
           case 'BucketAddSuccess':
             push(`Bucket "${r.bucketConfig.name}" added`)
@@ -696,46 +669,13 @@ function Reindex({ bucket, open, close }: ReindexProps) {
   )
 }
 
-const UPDATE_MUTATION = urql.gql`
-  mutation Admin_Buckets_Update($name: String!, $input: BucketUpdateInput!) {
-    bucketUpdate(name: $name, input: $input) {
-      ... on BucketUpdateSuccess {
-        bucketConfig {
-          name
-          title
-          iconUrl
-          description
-          relevanceScore
-          overviewUrl
-          tags
-          linkedData
-          fileExtensionsToIndex
-          scannerParallelShardsDepth
-          snsNotificationArn
-          skipMetaDataIndexing
-          lastIndexed
-        }
-      }
-    }
-  }
-`
-
-interface UpdateData {
-  bucketUpdate: Model.BucketUpdateResult
-}
-
-interface UpdateVariables {
-  name: string
-  input: Model.BucketUpdateInput
-}
-
 interface EditProps {
-  bucket: Model.BucketConfig
+  bucket: BucketConfig
   close: (reason?: string) => void
 }
 
 function Edit({ bucket, close }: EditProps) {
-  const [, update] = urql.useMutation<UpdateData, UpdateVariables>(UPDATE_MUTATION)
+  const [, update] = urql.useMutation(UPDATE_MUTATION)
 
   const [reindexOpen, setReindexOpen] = React.useState(false)
   const openReindex = React.useCallback(() => setReindexOpen(true), [])
@@ -748,7 +688,7 @@ function Edit({ bucket, close }: EditProps) {
         const res = await update({ name: bucket.name, input })
         if (res.error) throw res.error
         if (!res.data) throw new Error('No data')
-        const r = Types.decode(Model.BucketUpdateResult)(res.data.bucketUpdate)
+        const r = res.data.bucketUpdate
         switch (r.__typename) {
           case 'BucketUpdateSuccess':
             close()
@@ -862,36 +802,22 @@ function Edit({ bucket, close }: EditProps) {
   )
 }
 
-const REMOVE_MUTATION = urql.gql`
-  mutation Admin_Buckets_Remove($name: String!) {
-    bucketRemove(name: $name) { __typename }
-  }
-`
-
-interface RemoveData {
-  bucketRemove: Model.BucketRemoveResult
-}
-
-interface RemoveVariables {
-  name: string
-}
-
 interface DeleteProps {
-  bucket: Model.BucketConfig
+  bucket: BucketConfig
   close: (reason?: string) => void
 }
 
 function Delete({ bucket, close }: DeleteProps) {
   const { push } = Notifications.use()
   const t = useTracker()
-  const [, rm] = urql.useMutation<RemoveData, RemoveVariables>(REMOVE_MUTATION)
+  const [, rm] = urql.useMutation(REMOVE_MUTATION)
   const doDelete = React.useCallback(async () => {
     close()
     try {
       const res = await rm({ name: bucket.name })
       if (res.error) throw res.error
       if (!res.data) throw new Error('No data')
-      const r = Types.decode(Model.BucketRemoveResult)(res.data.bucketRemove)
+      const r = res.data.bucketRemove
       switch (r.__typename) {
         case 'BucketRemoveSuccess':
           t.track('WEB', { type: 'admin', action: 'bucket delete', bucket: bucket.name })
@@ -938,7 +864,7 @@ const columns = [
     id: 'name',
     label: 'Name (relevance)',
     getValue: R.prop('name'),
-    getDisplay: (v: string, b: Model.BucketConfig) => (
+    getDisplay: (v: string, b: BucketConfig) => (
       <span>
         <M.Box fontFamily="monospace.fontFamily" component="span">
           {v}
@@ -1026,36 +952,12 @@ const columns = [
   },
 ]
 
-const BUCKET_CONFIGS_QUERY = urql.gql`
-  query Admin_Buckets_BucketConfigs {
-    bucketConfigs {
-      name
-      title
-      description
-      iconUrl
-      overviewUrl
-      linkedData
-      relevanceScore
-      tags
-      lastIndexed
-      fileExtensionsToIndex
-      scannerParallelShardsDepth
-      skipMetaDataIndexing
-      snsNotificationArn
-    }
-  }
-`
-
-interface BucketConfigsData {
-  bucketConfigs: Model.BucketConfig[]
-}
-
 interface CRUDProps {
   bucketName?: string
 }
 
 function CRUD({ bucketName }: CRUDProps) {
-  const [{ data }] = urql.useQuery<BucketConfigsData>({ query: BUCKET_CONFIGS_QUERY })
+  const [{ data }] = urql.useQuery({ query: BUCKET_CONFIGS_QUERY })
   const rows = data!.bucketConfigs
   const ordering = Table.useOrdering({ rows, column: columns[0] })
   const pagination = Pagination.use(ordering.ordered, {
@@ -1078,11 +980,11 @@ function CRUD({ bucketName }: CRUDProps) {
     },
   ]
 
-  const edit = (bucket: Model.BucketConfig) => () => {
+  const edit = (bucket: BucketConfig) => () => {
     history.push(urls.adminBuckets(bucket.name))
   }
 
-  const inlineActions = (bucket: Model.BucketConfig) => [
+  const inlineActions = (bucket: BucketConfig) => [
     {
       title: 'Delete',
       icon: <M.Icon>delete</M.Icon>,
@@ -1127,7 +1029,7 @@ function CRUD({ bucketName }: CRUDProps) {
           {/* @ts-expect-error */}
           <Table.Head columns={columns} ordering={ordering} withInlineActions />
           <M.TableBody>
-            {pagination.paginated.map((i: Model.BucketConfig) => (
+            {pagination.paginated.map((i: BucketConfig) => (
               <M.TableRow
                 hover
                 key={i.name}
