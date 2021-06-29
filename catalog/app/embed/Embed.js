@@ -21,6 +21,7 @@ import * as AWS from 'utils/AWS'
 import * as BucketCache from 'utils/BucketCache'
 import * as Config from 'utils/Config'
 import { createBoundary } from 'utils/ErrorBoundary'
+import { GraphQLProvider } from 'utils/GraphQL'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
 import * as Sentry from 'utils/Sentry'
@@ -281,6 +282,7 @@ function App({ messages, init }) {
     Cache.Provider,
     [Config.Provider, { path: '/config.json' }],
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
+    GraphQLProvider,
     Notifications.Provider,
     [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
     [Auth.Provider, { storage }],
