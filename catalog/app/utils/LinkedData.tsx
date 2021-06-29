@@ -1,11 +1,15 @@
 import * as React from 'react'
 import { Helmet } from 'react-helmet'
 import * as urql from 'urql'
+import type { ResultOf } from '@graphql-typed-document-node/core'
 
-import * as Model from 'model'
 import { useRelevantBucketConfigs } from 'utils/BucketConfig'
 import { useConfig } from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
+
+import BUCKET_CONFIGS_QUERY from './LinkedDataBuckets.generated'
+
+type BucketConfig = Exclude<ResultOf<typeof BUCKET_CONFIGS_QUERY>['bucketConfig'], null>
 
 const catalogRef = (name: string) => ({
   '@type': 'DataCatalog',
@@ -18,7 +22,7 @@ interface BucketDescriptor {
   title: string
   description?: string
   tags?: string[]
-  linkedData?: Model.BucketLinkedData
+  linkedData?: $TSFixMe
 }
 
 interface PackageLinkedData {
@@ -91,7 +95,7 @@ interface MkBucketAnnotationOpts {
 }
 
 function mkBucketAnnotation({ config, catalog, urls }: MkBucketAnnotationOpts) {
-  const ld = config.linkedData
+  const ld = config.linkedData as { [k: string]: any } | undefined
   return {
     '@context': 'https://schema.org/',
     '@type': 'Dataset',
@@ -164,27 +168,6 @@ export function CatalogData() {
   return renderJsonLd(ld)
 }
 
-const BUCKET_CONFIG_QUERY = urql.gql`
-  query LinkedData_BucketConfig($bucket: String!) {
-    bucketConfig(name: $bucket) {
-      name
-      title
-      description
-      tags
-      linkedData
-    }
-  }
-`
-
-type BucketConfig = Pick<
-  Model.BucketConfig,
-  'name' | 'title' | 'description' | 'tags' | 'linkedData'
->
-
-interface BucketConfigData {
-  bucketConfig?: BucketConfig
-}
-
 interface BucketDataProps {
   bucket: string
 }
@@ -192,8 +175,8 @@ interface BucketDataProps {
 export function BucketData({ bucket }: BucketDataProps) {
   const cfg = useConfig()
   const { urls } = NamedRoutes.use<BucketRootRoutes>()
-  const [{ data }] = urql.useQuery<BucketConfigData>({
-    query: BUCKET_CONFIG_QUERY,
+  const [{ data }] = urql.useQuery({
+    query: BUCKET_CONFIGS_QUERY,
     variables: { bucket },
     pause: !cfg.linkedData,
   })
