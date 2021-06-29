@@ -28,6 +28,7 @@ import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 
 import * as requests from './requests'
+import BUCKET_CONFIG_QUERY from './OverviewBucketConfig.generated'
 
 import bg from './Overview-bg.jpg'
 
@@ -1192,16 +1193,6 @@ function Summary({ req, s3, bucket, inStack, overviewUrl }) {
     _: () => null,
   })
 }
-
-const BUCKET_CONFIG_QUERY = urql.gql`
-  query Bucket_Overview_BucketConfig($bucket: String!) {
-    bucketConfig(name: $bucket) {
-      name
-      description
-      overviewUrl
-    }
-  }
-`
 
 export default function Overview({
   match: {
