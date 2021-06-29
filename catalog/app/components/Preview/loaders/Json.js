@@ -14,7 +14,7 @@ import * as utils from './utils'
 
 const MAX_SIZE = 20 * 1024 * 1024
 const SCHEMA_RE = /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/([\w-]+)\/([\w.-]+)\.json"/
-const BYTES_TO_SCAN = 128 * 1024
+const BYTES_TO_SCAN = 64 * 1024
 
 const map = (fn) => R.ifElse(Array.isArray, R.map(fn), fn)
 
