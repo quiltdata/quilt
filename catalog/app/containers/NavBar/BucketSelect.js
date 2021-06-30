@@ -9,6 +9,7 @@ import * as M from '@material-ui/core'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 
 import * as style from 'constants/style'
+import * as Model from 'model'
 import * as BucketConfig from 'utils/BucketConfig'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -96,7 +97,11 @@ function Bucket({ iconUrl, name, title, description }) {
   return (
     <div className={classes.root} title={description}>
       {/* TODO: show text avatar or smth when iconUrl is empty */}
-      <img src={iconUrl} alt={title} className={classes.icon} />
+      <img
+        src={iconUrl || Model.DEFAULT_BUCKET_ICON}
+        alt={title}
+        className={classes.icon}
+      />
       <div className={classes.text}>
         <div className={classes.title}>
           {title} (s3://{name})
@@ -119,6 +124,7 @@ function CustomPopper({ style: css, ...props }) {
 
 function BucketSelect({ cancel, forwardedRef, ...props }) {
   const currentBucket = BucketConfig.useCurrentBucket()
+  // XXX: consider using graphql directly
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
   const dispatch = redux.useDispatch()
   const { urls } = NamedRoutes.use()

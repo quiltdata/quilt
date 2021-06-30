@@ -1,0 +1,9 @@
+# import BucketConfigSelection from "./BucketConfigSelection.graphql"
+
+mutation($input: BucketAddInput!) {
+  bucketAdd(input: $input) {
+    ... on BucketAddSuccess {
+      bucketConfig { ...BucketConfigSelection }
+    }
+  }
+}
