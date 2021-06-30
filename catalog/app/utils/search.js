@@ -167,7 +167,6 @@ export default function useSearch() {
         return { hits, total: result.hits.total }
       } catch (e) {
         if (e instanceof APIConnector.HTTPError) {
-          // TODO: check error types are correct
           const match = e.text.match(/^RequestError\((\d+), '(\w+)', '(.+)'\)$/)
           if (match) {
             const code = match[2]
@@ -183,8 +182,7 @@ export default function useSearch() {
               status: parseInt(match[1], 10) || undefined,
             })
           }
-          // TODO: this wont work probably, bc eror doesnt get wrapped into API Gateway Error
-          if (/^API Gateway error.*ConnectionTimeout/.test(e.message)) {
+          if (e.text && /^ConnectionTimeout/.test(e.text)) {
             throw new SearchError('Timeout')
           }
         }
