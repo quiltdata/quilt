@@ -9,13 +9,10 @@ import * as M from '@material-ui/core'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 
 import * as style from 'constants/style'
+import * as Model from 'model'
 import * as BucketConfig from 'utils/BucketConfig'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
-
-// TODO: dedupe
-// default icon as returned by the registry
-const DEFAULT_ICON = 'https://d1zvn9rasera71.cloudfront.net/q-128-square.png'
 
 const normalizeBucket = R.pipe(
   deburr,
@@ -100,7 +97,11 @@ function Bucket({ iconUrl, name, title, description }) {
   return (
     <div className={classes.root} title={description}>
       {/* TODO: show text avatar or smth when iconUrl is empty */}
-      <img src={iconUrl || DEFAULT_ICON} alt={title} className={classes.icon} />
+      <img
+        src={iconUrl || Model.DEFAULT_BUCKET_ICON}
+        alt={title}
+        className={classes.icon}
+      />
       <div className={classes.text}>
         <div className={classes.title}>
           {title} (s3://{name})
