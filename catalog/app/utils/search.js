@@ -1,7 +1,9 @@
 import * as R from 'ramda'
+import * as React from 'react'
 
-import { HTTPError } from 'utils/APIConnector'
+import * as APIConnector from 'utils/APIConnector'
 import { BaseError } from 'utils/error'
+import mkSearch from 'utils/mkSearch'
 
 export class SearchError extends BaseError {}
 
@@ -106,7 +108,7 @@ const extractData = ({ _score: score, _source: src, _index: idx }) => {
   return extract({ bucket, score, src })
 }
 
-const takeR = (l, r) => r
+const takeR = (_l, r) => r
 
 const mkMerger = (cases) => (key, l, r) => (cases[key] || takeR)(l, r)
 
@@ -128,62 +130,69 @@ const mergeAllHits = R.pipe(
 
 const unescape = (s) => s.replace(/\\n/g, '\n')
 
-export default async function search({
-  req,
-  query,
-  buckets = [],
-  mode = 'all', // all | objects | packages
-  retry,
-}) {
-  // eslint-disable-next-line no-nested-ternary
-  const index = buckets.length
-    ? R.pipe(
-        R.chain((b) => {
-          const idxs = []
-          if (mode === 'objects' || mode === 'all') {
-            idxs.push(b)
-          }
-          if (mode === 'packages' || mode === 'all') {
-            idxs.push(`${b}${PACKAGES_SUFFIX}*`)
-          }
-          return idxs
-        }),
-        R.join(','),
-      )(buckets)
-    : mode === 'objects' // eslint-disable-line no-nested-ternary
-    ? `*,-*${PACKAGES_SUFFIX}`
-    : mode === 'packages'
-    ? `*${PACKAGES_SUFFIX}`
-    : '*'
-  try {
-    const result = await req('/search', { index, action: 'search', query, retry })
-    const hits = mergeAllHits(result.hits.hits)
-    return { hits, total: result.hits.total }
-  } catch (e) {
-    if (e instanceof HTTPError) {
-      const match = e.text.match(/^RequestError\((\d+), '(\w+)', '(.+)'\)$/)
-      if (match) {
-        const code = match[2]
-        const details = unescape(match[3])
+export default function useSearch() {
+  const req = APIConnector.use()
 
-        if (code === 'search_phase_execution_exception') {
-          throw new SearchError('SearchSyntaxError', { details })
+  return React.useCallback(
+    async ({
+      query,
+      buckets = [],
+      mode = 'all', // all | objects | packages
+      retry,
+    }) => {
+      // eslint-disable-next-line no-nested-ternary
+      const index = buckets.length
+        ? R.pipe(
+            R.chain((b) => {
+              const idxs = []
+              if (mode === 'objects' || mode === 'all') {
+                idxs.push(b)
+              }
+              if (mode === 'packages' || mode === 'all') {
+                idxs.push(`${b}${PACKAGES_SUFFIX}*`)
+              }
+              return idxs
+            }),
+            R.join(','),
+          )(buckets)
+        : mode === 'objects' // eslint-disable-line no-nested-ternary
+        ? `*,-*${PACKAGES_SUFFIX}`
+        : mode === 'packages'
+        ? `*${PACKAGES_SUFFIX}`
+        : '*'
+      try {
+        const qs = mkSearch({ index, action: 'search', query, retry })
+        const result = await req(`/search${qs}`)
+        const hits = mergeAllHits(result.hits.hits)
+        return { hits, total: result.hits.total }
+      } catch (e) {
+        if (e instanceof APIConnector.HTTPError) {
+          const match = e.text.match(/^RequestError\((\d+), '(\w+)', '(.+)'\)$/)
+          if (match) {
+            const code = match[2]
+            const details = unescape(match[3])
+
+            if (code === 'search_phase_execution_exception') {
+              throw new SearchError('SearchSyntaxError', { details })
+            }
+
+            throw new SearchError('RequestError', {
+              code,
+              details,
+              status: parseInt(match[1], 10) || undefined,
+            })
+          }
+          if (e.text && /^ConnectionTimeout/.test(e.text)) {
+            throw new SearchError('Timeout')
+          }
         }
-
-        throw new SearchError('RequestError', {
-          code,
-          details,
-          status: parseInt(match[1], 10) || undefined,
-        })
+        // eslint-disable-next-line no-console
+        console.log('Search error:')
+        // eslint-disable-next-line no-console
+        console.error(e)
+        throw new SearchError('Unexpected', { originalError: e })
       }
-      if (/^API Gateway error.*ConnectionTimeout/.test(e.message)) {
-        throw new SearchError('Timeout')
-      }
-    }
-    // eslint-disable-next-line no-console
-    console.log('Search error:')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    throw new SearchError('Unexpected', { originalError: e })
-  }
+    },
+    [req],
+  )
 }
