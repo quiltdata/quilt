@@ -14,8 +14,9 @@ import Data, { useData } from 'utils/Data'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import { getBasename, getPrefix, withoutPrefix } from 'utils/s3paths'
+import { getBasename } from 'utils/s3paths'
 
+import { SummaryEntries } from './Overview'
 import * as requests from './requests'
 
 const README_RE = /^readme\.md$/i
@@ -168,7 +169,7 @@ const useSummarizeStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Summarize({ handle, mkUrl }) {
+function Summarize({ handle }) {
   const classes = useSummarizeStyles()
   const s3 = AWS.S3.use()
   const resolveLogicalKey = LogicalKeyResolver.use()
@@ -182,18 +183,19 @@ function Summarize({ handle, mkUrl }) {
       return null
     },
     _: () => <M.CircularProgress className={classes.progress} />,
-    Ok: R.map((i) => (
-      <SummaryItemFile
-        key={i.key}
-        // TODO: make a reusable function to compute relative s3 paths or smth
-        title={withoutPrefix(
-          getPrefix(handle.logicalKey || handle.key),
-          i.logicalKey || i.key,
-        )}
-        handle={i}
-        mkUrl={mkUrl}
-      />
-    )),
+    Ok: (entries) => <SummaryEntries entries={entries} s3={s3} />,
+    // Ok: R.map((i) => (
+    //   <SummaryItemFile
+    //     key={i.key}
+    //     // TODO: make a reusable function to compute relative s3 paths or smth
+    //     title={withoutPrefix(
+    //       getPrefix(handle.logicalKey || handle.key),
+    //       i.logicalKey || i.key,
+    //     )}
+    //     handle={i}
+    //     mkUrl={mkUrl}
+    //   />
+    // )),
   })
 }
 

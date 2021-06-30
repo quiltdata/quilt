@@ -1232,39 +1232,39 @@ function Row({ file, s3 }) {
   )
 }
 
-function Summary({ req, s3, bucket, inStack, overviewUrl }) {
-  const data = useData(requests.bucketSummary, { req, s3, bucket, inStack, overviewUrl })
+export function SummaryEntries({ entries, s3 }) {
   const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
   const showMore = React.useCallback(() => {
     setShown(R.add(SUMMARY_ENTRIES))
   }, [setShown])
+
+  const shownEntries = R.take(shown, entries)
+  return (
+    <>
+      {shownEntries.map((file) => (
+        <Row
+          key={
+            Array.isArray(file) ? file.map((f) => f.handle.key).join('') : file.handle.key
+          }
+          file={file}
+          s3={s3}
+        />
+      ))}
+      {shown < entries.length && (
+        <M.Box mt={2} display="flex" justifyContent="center">
+          <M.Button variant="contained" color="primary" onClick={showMore}>
+            Show more
+          </M.Button>
+        </M.Box>
+      )}
+    </>
+  )
+}
+
+function Summary({ req, s3, bucket, inStack, overviewUrl }) {
+  const data = useData(requests.bucketSummary, { req, s3, bucket, inStack, overviewUrl })
   return data.case({
-    Ok: (entries) => {
-      // eslint-disable-next-line no-console
-      const shownEntries = R.take(shown, entries)
-      return (
-        <>
-          {shownEntries.map((file) => (
-            <Row
-              key={
-                Array.isArray(file)
-                  ? file.map((f) => f.handle.key).join('')
-                  : file.handle.key
-              }
-              file={file}
-              s3={s3}
-            />
-          ))}
-          {shown < entries.length && (
-            <M.Box mt={2} display="flex" justifyContent="center">
-              <M.Button variant="contained" color="primary" onClick={showMore}>
-                Show more
-              </M.Button>
-            </M.Box>
-          )}
-        </>
-      )
-    },
+    Ok: (entries) => <SummaryEntries entries={entries} s3={s3} />,
     Pending: () => <FilePreviewSkel />,
     _: () => null,
   })
