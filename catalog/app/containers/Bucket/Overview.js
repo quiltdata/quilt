@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
 
+import Markdown from 'components/Markdown'
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
 import * as Pagination from 'components/Pagination'
 import * as Preview from 'components/Preview'
@@ -867,6 +868,9 @@ const useSectionStyles = M.makeStyles((t) => ({
       padding: t.spacing(4),
     },
   },
+  description: {
+    ...t.typography.body1,
+  },
   heading: {
     ...t.typography.h6,
     lineHeight: 1.75,
@@ -880,11 +884,12 @@ const useSectionStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Section({ heading, children, ...props }) {
+function Section({ heading, description, children, ...props }) {
   const classes = useSectionStyles()
   return (
     <M.Paper className={classes.root} {...props}>
       {!!heading && <div className={classes.heading}>{heading}</div>}
+      {!!description && <div className={classes.description}>{description}</div>}
       {children}
     </M.Paper>
   )
@@ -974,7 +979,7 @@ function PreviewBox({ contents, expanded: defaultExpanded = false }) {
   )
 }
 
-function FilePreview({ handle, headingOverride, expanded }) {
+function FilePreview({ description, handle, headingOverride, expanded }) {
   const { urls } = NamedRoutes.use()
 
   const crumbs = React.useMemo(() => {
@@ -1007,7 +1012,7 @@ function FilePreview({ handle, headingOverride, expanded }) {
 
   // TODO: check for glacier and hide items
   return (
-    <Section heading={heading}>
+    <Section description={description} heading={heading}>
       {Preview.load(
         handle,
         Preview.display({
@@ -1019,12 +1024,12 @@ function FilePreview({ handle, headingOverride, expanded }) {
   )
 }
 
-// function EnsureAvailability({ s3, handle, children }) {
-//   return useData(requests.ensureObjectIsPresent, { s3, ...handle }).case({
-//     _: () => null,
-//     Ok: (h) => !!h && children(),
-//   })
-// }
+function EnsureAvailability({ s3, handle, children }) {
+  return useData(requests.ensureObjectIsPresent, { s3, ...handle }).case({
+    _: () => null,
+    Ok: (h) => !!h && children(),
+  })
+}
 
 const HeadingSkel = (props) => (
   <Skeleton borderRadius="borderRadius" width={200} {...props}>
@@ -1160,11 +1165,7 @@ function Imgs({ req, s3, overviewUrl, inStack, bucket }) {
   )
 }
 
-// const SUMMARY_ENTRIES = 7
-
-const isFile = (item) => typeof item === 'string' || !!item.path
-
-const isColumn = (item) => !!item.layout
+const SUMMARY_ENTRIES = 7
 
 const useRowStyles = M.makeStyles({
   row: {
@@ -1178,113 +1179,91 @@ const useRowStyles = M.makeStyles({
   },
 })
 
-function Row({ expanded, item }) {
-  const classes = useRowStyles()
-
-  if (typeof item === 'string')
-    return (
-      <FilePreview
-        expanded={expanded}
-        handle={{ bucket: 'fiskus-sandbox-dev', key: item }}
-      />
-    )
-
-  if (isFile(item))
-    return (
-      <FilePreview
-        expanded={expanded}
-        headingOverride={item.title}
-        handle={{ bucket: 'fiskus-sandbox-dev', key: item.path }}
-      />
-    )
-
-  if (Array.isArray(item)) {
-    const maxRowsNumber = item.reduce((memo, column) => {
-      if (typeof column === 'string') return memo
-      return Math.max(column?.length || 1, column?.layout?.length || 1, memo)
-    }, 1)
-    return (
-      <div className={classes.row}>
-        {item.map((column) => (
-          <Column
-            className={classes.column}
-            data={column}
-            expanded={
-              expanded ||
-              maxRowsNumber >
-                Math.max(
-                  Array.isArray(column) ? column.length : 1,
-                  Array.isArray(column.layout) ? column.layout.length : 1,
-                  1,
-                )
-            }
-          />
-        ))}
-      </div>
-    )
-  }
-
-  if (isColumn(item)) return <Column className={classes.column} data={item} />
-
-  throw new Error('Unexpected')
-}
-
 function getColumnStyles(width) {
   if (R.is(Number, width)) return { flexGrow: width }
   if (typeof width === 'string') return { flexBasis: width }
   return { flexGrow: 1 }
 }
 
-function Column({ className, data, expanded }) {
-  const columnStyles = React.useMemo(() => getColumnStyles(data.width), [data.width])
+function FileHandle({ file, s3 }) {
+  const { urls } = NamedRoutes.use()
+  return (
+    <EnsureAvailability s3={s3} handle={file.handle}>
+      {() => (
+        <FilePreview
+          description={<Markdown data={file.description} />}
+          handle={file.handle}
+          headingOverride={
+            file.title && (
+              <Link
+                to={urls.bucketFile(
+                  file.handle.bucket,
+                  file.handle.key,
+                  file.handle.version,
+                )}
+              >
+                {file.title}
+              </Link>
+            )
+          }
+        />
+      )}
+    </EnsureAvailability>
+  )
+}
 
-  if (!data.layout)
-    return <Column className={className} data={{ layout: data }} expanded={expanded} />
+function Row({ file, s3 }) {
+  const classes = useRowStyles()
+
+  if (!Array.isArray(file)) return <FileHandle file={file} s3={s3} />
 
   return (
-    <div className={className} style={columnStyles}>
-      {typeof data.layout === 'string' ? (
-        <FilePreview
-          handle={{ bucket: 'fiskus-sandbox-dev', key: data.layout }}
-          expanded={expanded}
-        />
-      ) : (
-        data.layout.map((item, index) => (
-          <Row item={item} expanded={index === 0 ? expanded : false} />
-        ))
-      )}
+    <div className={classes.row}>
+      {file.map((f) => (
+        <div
+          className={classes.column}
+          key={`${f.handle.bucket}/${f.handle.key}`}
+          style={getColumnStyles(f.width)}
+        >
+          <FileHandle file={f} s3={s3} />
+        </div>
+      ))}
     </div>
   )
 }
 
 function Summary({ req, s3, bucket, inStack, overviewUrl }) {
   const data = useData(requests.bucketSummary, { req, s3, bucket, inStack, overviewUrl })
-  // const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
-  // const showMore = React.useCallback(() => {
-  //   setShown(R.add(SUMMARY_ENTRIES))
-  // }, [setShown])
+  const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
+  const showMore = React.useCallback(() => {
+    setShown(R.add(SUMMARY_ENTRIES))
+  }, [setShown])
   return data.case({
     Ok: (entries) => {
       // eslint-disable-next-line no-console
-      console.log(entries)
-      // const shownEntries = R.take(shown, entries)
-      // return (
-      //   <>
-      //     {shownEntries.map((h) => (
-      //       <EnsureAvailability key={`${h.bucket}/${h.key}`} s3={s3} handle={h}>
-      //         {() => <FilePreview handle={h} />}
-      //       </EnsureAvailability>
-      //     ))}
-      //     {shown < entries.length && (
-      //       <M.Box mt={2} display="flex" justifyContent="center">
-      //         <M.Button variant="contained" color="primary" onClick={showMore}>
-      //           Show more
-      //         </M.Button>
-      //       </M.Box>
-      //     )}
-      //   </>
-      // )
-      return <Column data={entries} />
+      const shownEntries = R.take(shown, entries)
+      return (
+        <>
+          {shownEntries.map((file) => (
+            <Row
+              key={
+                Array.isArray(file)
+                  ? file.map((f) => f.handle.key).join('')
+                  : file.handle.key
+              }
+              file={file}
+              s3={s3}
+            />
+          ))}
+          {shown < entries.length && (
+            <M.Box mt={2} display="flex" justifyContent="center">
+              <M.Button variant="contained" color="primary" onClick={showMore}>
+                Show more
+              </M.Button>
+            </M.Box>
+          )}
+        </>
+      )
     },
     Pending: () => <FilePreviewSkel />,
     _: () => null,

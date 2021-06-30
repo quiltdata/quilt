@@ -5,7 +5,7 @@ import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
-// import * as Resource from 'utils/Resource'
+import * as Resource from 'utils/Resource'
 import mkSearch from 'utils/mkSearch'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
@@ -583,6 +583,24 @@ export const objectMeta = ({ s3, bucket, path, version }) =>
     .then(R.pipe(R.path(['Metadata', 'helium']), R.when(Boolean, JSON.parse)))
 
 // const isValidManifest = R.both(Array.isArray, R.all(R.is(String)))
+const isValidManifest = R.T
+
+const isFile = (fileHandle) => typeof fileHandle === 'string' || fileHandle.path
+
+function parseFile(resolvePath, fileHandle) {
+  return {
+    ...(typeof fileHandle === 'string' ? null : fileHandle),
+    handle: R.pipe(
+      Resource.parse,
+      Resource.Pointer.case({
+        Web: () => null, // web urls are not supported in this context
+        S3: R.identity,
+        S3Rel: resolvePath,
+        Path: resolvePath,
+      }),
+    )(fileHandle.path || fileHandle),
+  }
+}
 
 export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) => {
   if (!inputHandle) return null
@@ -603,40 +621,32 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
       .promise()
     const json = file.Body.toString('utf-8')
     const manifest = JSON.parse(json)
-    return manifest
-    // if (!isValidManifest(manifest)) {
-    //   throw new Error('Invalid manifest: must be a JSON array of file links')
-    // }
+    if (!isValidManifest(manifest)) {
+      throw new Error('Invalid manifest: must be a JSON array of file links')
+    }
 
-    // const resolvePath = (path) =>
-    //   resolveLogicalKey && handle.logicalKey
-    //     ? resolveLogicalKey(s3paths.resolveKey(handle.logicalKey, path)).catch((e) => {
-    //         // eslint-disable-next-line no-console
-    //         console.warn('Error resolving logical key for summary', { handle, path })
-    //         // eslint-disable-next-line no-console
-    //         console.error(e)
-    //         return null
-    //       })
-    //     : {
-    //         bucket: handle.bucket,
-    //         key: s3paths.resolveKey(handle.key, path),
-    //       }
+    const resolvePath = (path) =>
+      resolveLogicalKey && handle.logicalKey
+        ? resolveLogicalKey(s3paths.resolveKey(handle.logicalKey, path)).catch((e) => {
+            // eslint-disable-next-line no-console
+            console.warn('Error resolving logical key for summary', { handle, path })
+            // eslint-disable-next-line no-console
+            console.error(e)
+            return null
+          })
+        : {
+            bucket: handle.bucket,
+            key: s3paths.resolveKey(handle.key, path),
+          }
 
-    // const handles = await Promise.all(
-    //   manifest.map(
-    //     R.pipe(
-    //       Resource.parse,
-    //       Resource.Pointer.case({
-    //         Web: () => null, // web urls are not supported in this context
-    //         S3: R.identity,
-    //         S3Rel: resolvePath,
-    //         Path: resolvePath,
-    //       }),
-    //     ),
-    //   ),
-    // )
-    // console.log('SUMMARIZE', handles)
-    // return handles.filter((h) => h)
+    const handles = await Promise.all(
+      (manifest.rows || manifest).map((fileHandle) =>
+        isFile(fileHandle)
+          ? parseFile(resolvePath, fileHandle)
+          : fileHandle.map(parseFile.bind(null, resolvePath)),
+      ),
+    )
+    return handles.filter((h) => h)
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Error loading summary:')
