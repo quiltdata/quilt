@@ -63,7 +63,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            pip install pylint 'pycodestyle>=2.6.0a1'
+            pip install 'pylint<2.9' 'pycodestyle>=2.6.0a1'
       - run:
           name: Run pylint
           command: |
