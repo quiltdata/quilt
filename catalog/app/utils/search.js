@@ -161,10 +161,8 @@ export default function useSearch() {
         ? `*${PACKAGES_SUFFIX}`
         : '*'
       try {
-        const result = await req(
-          `/search${mkSearch({ index, action: 'search', query, retry })}`,
-        )
-        console.log('result', result)
+        const qs = mkSearch({ index, action: 'search', query, retry })
+        const result = await req(`/search${qs}`)
         const hits = mergeAllHits(result.hits.hits)
         return { hits, total: result.hits.total }
       } catch (e) {
@@ -185,6 +183,7 @@ export default function useSearch() {
               status: parseInt(match[1], 10) || undefined,
             })
           }
+          // TODO: this wont work probably, bc eror doesnt get wrapped into API Gateway Error
           if (/^API Gateway error.*ConnectionTimeout/.test(e.message)) {
             throw new SearchError('Timeout')
           }

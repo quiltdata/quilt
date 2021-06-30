@@ -167,7 +167,8 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   }
 
   try {
-    return await req('/search', { index: bucket, action: 'stats' }).then(processStats)
+    const qs = mkSearch({ index: bucket, action: 'stats' })
+    return await req(`/search${qs}`).then(processStats)
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Unable to fetch live stats:')
@@ -410,7 +411,8 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
   }
   if (inStack) {
     try {
-      return await req('/search', { action: 'sample', index: bucket }).then(
+      const qs = mkSearch({ action: 'sample', index: bucket })
+      return await req(`/search${qs}`).then(
         R.pipe(
           R.pathOr([], ['aggregations', 'objects', 'buckets']),
           R.map((h) => {
@@ -505,7 +507,8 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
   }
   if (inStack) {
     try {
-      return await req('/search', { action: 'images', index: bucket }).then(
+      const qs = mkSearch({ action: 'images', index: bucket })
+      return await req(`/search${qs}`).then(
         R.pipe(
           R.pathOr([], ['aggregations', 'objects', 'buckets']),
           R.map((h) => {
@@ -799,7 +802,7 @@ export const countPackages = withErrorHandling(async ({ req, bucket, filter }) =
       },
     },
   }
-  const result = await req('/search', {
+  const qs = mkSearch({
     index: `${bucket}_packages`,
     action: 'packages',
     body: JSON.stringify(body),
@@ -808,6 +811,7 @@ export const countPackages = withErrorHandling(async ({ req, bucket, filter }) =
       ',',
     ),
   })
+  const result = await req(`/search${qs}`)
   return result.aggregations.total_handles.value
 })
 
@@ -875,7 +879,7 @@ export const listPackages = withErrorHandling(
         },
       },
     }
-    const packages = await req('/search', {
+    const qs = mkSearch({
       index: `${bucket}_packages`,
       action: 'packages',
       body: JSON.stringify(body),
@@ -888,7 +892,8 @@ export const listPackages = withErrorHandling(
         'aggregations.packages.buckets.modified',
         'aggregations.packages.buckets.revisions',
       ].join(','),
-    }).then(
+    })
+    const packages = await req(`/search${qs}`).then(
       R.pipe(
         R.pathOr([], ['aggregations', 'packages', 'buckets']),
         R.map((b) => ({
@@ -960,27 +965,31 @@ export async function fetchRevisionsAccessCounts({
 }
 
 export const countPackageRevisions = ({ req, bucket, name }) =>
-  req('/search', {
-    index: `${bucket}_packages`,
-    action: 'packages',
-    body: JSON.stringify({
-      query: {
-        bool: {
-          must: [
-            name ? { term: { handle: name } } : { match_all: {} },
-            { regexp: { pointer_file: TIMESTAMP_RE_SRC } },
-          ],
+  req(
+    `/search${mkSearch({
+      index: `${bucket}_packages`,
+      action: 'packages',
+      body: JSON.stringify({
+        query: {
+          bool: {
+            must: [
+              name ? { term: { handle: name } } : { match_all: {} },
+              { regexp: { pointer_file: TIMESTAMP_RE_SRC } },
+            ],
+          },
         },
-      },
-      aggs: {
-        revisions: withCalculatedRevisions(`
+        aggs: {
+          revisions: withCalculatedRevisions(`
           return merged.count((k, v) -> !v.del);
         `),
-      },
-    }),
-    size: 0,
-    filter_path: ['took', 'timed_out', 'hits.total', 'aggregations.revisions'].join(','),
-  })
+        },
+      }),
+      size: 0,
+      filter_path: ['took', 'timed_out', 'hits.total', 'aggregations.revisions'].join(
+        ',',
+      ),
+    })}`,
+  )
     .then(R.path(['aggregations', 'revisions', 'value']))
     .catch(errors.catchErrors())
 
@@ -994,65 +1003,67 @@ function tryParse(s) {
 
 export const getPackageRevisions = withErrorHandling(
   ({ req, bucket, name, page = 1, perPage = 10 }) =>
-    req('/search', {
-      index: `${bucket}_packages`,
-      action: 'packages',
-      size: 0,
-      filter_path: [
-        'took',
-        'timed_out',
-        'hits.total',
-        'aggregations.revisions.buckets.latest.hits.hits._source',
-      ].join(','),
-      body: JSON.stringify({
-        query: {
-          bool: {
-            must: [
-              { term: { handle: name } },
-              { regexp: { pointer_file: TIMESTAMP_RE_SRC } },
-            ],
-          },
-        },
-        aggs: {
-          revisions: {
-            terms: {
-              field: 'key',
-              size: 1000000,
-              order: { _key: 'desc' },
-            },
-            aggs: {
-              not_deleted: NOT_DELETED_METRIC,
-              drop_deleted: {
-                bucket_selector: {
-                  buckets_path: { not_deleted: 'not_deleted.value' },
-                  script: 'params.not_deleted > 0',
-                },
-              },
-              latest: {
-                top_hits: {
-                  size: 1,
-                  sort: { last_modified: 'desc' },
-                  _source: [
-                    'pointer_file',
-                    'comment',
-                    'hash',
-                    'last_modified',
-                    'metadata',
-                    'package_stats',
-                  ],
-                },
-              },
-              sort: {
-                bucket_sort: {
-                  size: perPage,
-                  from: perPage * (page - 1),
-                },
-              },
+    req(
+      `/search${mkSearch({
+        index: `${bucket}_packages`,
+        action: 'packages',
+        size: 0,
+        filter_path: [
+          'took',
+          'timed_out',
+          'hits.total',
+          'aggregations.revisions.buckets.latest.hits.hits._source',
+        ].join(','),
+        body: JSON.stringify({
+          query: {
+            bool: {
+              must: [
+                { term: { handle: name } },
+                { regexp: { pointer_file: TIMESTAMP_RE_SRC } },
+              ],
             },
           },
-        },
-      }),
-    }).then(
+          aggs: {
+            revisions: {
+              terms: {
+                field: 'key',
+                size: 1000000,
+                order: { _key: 'desc' },
+              },
+              aggs: {
+                not_deleted: NOT_DELETED_METRIC,
+                drop_deleted: {
+                  bucket_selector: {
+                    buckets_path: { not_deleted: 'not_deleted.value' },
+                    script: 'params.not_deleted > 0',
+                  },
+                },
+                latest: {
+                  top_hits: {
+                    size: 1,
+                    sort: { last_modified: 'desc' },
+                    _source: [
+                      'pointer_file',
+                      'comment',
+                      'hash',
+                      'last_modified',
+                      'metadata',
+                      'package_stats',
+                    ],
+                  },
+                },
+                sort: {
+                  bucket_sort: {
+                    size: perPage,
+                    from: perPage * (page - 1),
+                  },
+                },
+              },
+            },
+          },
+        }),
+      })}`,
+    ).then(
       R.pipe(
         R.pathOr([], ['aggregations', 'revisions', 'buckets']),
         R.map(({ latest: { hits: { hits: [{ _source: s }] } } }) => ({
