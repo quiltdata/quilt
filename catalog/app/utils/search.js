@@ -1,9 +1,9 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
-import { HTTPError } from 'utils/APIConnector'
-import * as AWS from 'utils/AWS'
+import * as APIConnector from 'utils/APIConnector'
 import { BaseError } from 'utils/error'
+import mkSearch from 'utils/mkSearch'
 
 export class SearchError extends BaseError {}
 
@@ -131,7 +131,7 @@ const mergeAllHits = R.pipe(
 const unescape = (s) => s.replace(/\\n/g, '\n')
 
 export default function useSearch() {
-  const req = AWS.APIGateway.use()
+  const req = APIConnector.use()
 
   return React.useCallback(
     async ({
@@ -161,11 +161,15 @@ export default function useSearch() {
         ? `*${PACKAGES_SUFFIX}`
         : '*'
       try {
-        const result = await req('/search', { index, action: 'search', query, retry })
+        const result = await req(
+          `/search${mkSearch({ index, action: 'search', query, retry })}`,
+        )
+        console.log('result', result)
         const hits = mergeAllHits(result.hits.hits)
         return { hits, total: result.hits.total }
       } catch (e) {
-        if (e instanceof HTTPError) {
+        if (e instanceof APIConnector.HTTPError) {
+          // TODO: check error types are correct
           const match = e.text.match(/^RequestError\((\d+), '(\w+)', '(.+)'\)$/)
           if (match) {
             const code = match[2]
