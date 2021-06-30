@@ -3,7 +3,7 @@ import 'aws-sdk/lib/credentials'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
-import * as Auth from 'containers/Auth'
+import * as authSelectors from 'containers/Auth/selectors'
 import * as APIConnector from 'utils/APIConnector'
 import * as Config from 'utils/Config'
 import useMemoEq from 'utils/useMemoEq'
@@ -60,7 +60,7 @@ function useCredentialsMemo({ local }) {
   return useMemoEq(
     {
       local,
-      auth: redux.useSelector(Auth.selectors.authenticated),
+      auth: redux.useSelector(authSelectors.authenticated),
       reg,
       anon,
       empty,

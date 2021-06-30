@@ -1,0 +1,129 @@
+directive @admin on FIELD_DEFINITION
+
+scalar Datetime
+
+scalar Json
+
+type BucketConfig {
+  name: String!
+  title: String!
+  iconUrl: String
+  description: String
+  linkedData: Json
+  overviewUrl: String
+  tags: [String!]
+  relevanceScore: Int!
+  lastIndexed: Datetime
+  snsNotificationArn: String @admin
+  scannerParallelShardsDepth: Int @admin
+  skipMetaDataIndexing: Boolean @admin
+  fileExtensionsToIndex: [String!] @admin
+}
+
+type Query {
+  bucketConfigs: [BucketConfig!]!
+  bucketConfig(name: String!): BucketConfig
+}
+
+input BucketAddInput {
+  name: String!
+  title: String!
+  iconUrl: String
+  description: String
+  linkedData: Json
+  overviewUrl: String
+  tags: [String!]
+  relevanceScore: Int
+  snsNotificationArn: String
+  scannerParallelShardsDepth: Int
+  skipMetaDataIndexing: Boolean
+  fileExtensionsToIndex: [String!]
+  setVersioning: Boolean
+  delayScan: Boolean
+}
+
+input BucketUpdateInput {
+  title: String!
+  iconUrl: String
+  description: String
+  linkedData: Json
+  overviewUrl: String
+  tags: [String!]
+  relevanceScore: Int
+  snsNotificationArn: String
+  scannerParallelShardsDepth: Int
+  skipMetaDataIndexing: Boolean
+  fileExtensionsToIndex: [String!]
+  setVersioning: Boolean
+}
+
+type BucketAddSuccess {
+  bucketConfig: BucketConfig!
+}
+
+type BucketNotFound {
+  _: Boolean
+}
+
+type BucketAlreadyAdded {
+  _: Boolean
+}
+
+type BucketDoesNotExist {
+  _: Boolean
+}
+
+type SnsInvalid {
+  _: Boolean
+}
+
+type NotificationConfigurationError {
+  _: Boolean
+}
+
+type NotificationTopicNotFound {
+  _: Boolean
+}
+
+type InsufficientPermissions {
+  _: Boolean
+}
+
+type IndexingInProgress {
+  _: Boolean
+}
+
+union BucketAddResult =
+    BucketAddSuccess
+  | BucketAlreadyAdded
+  | BucketDoesNotExist
+  | InsufficientPermissions
+  | NotificationConfigurationError
+  | NotificationTopicNotFound
+  | SnsInvalid
+
+type BucketUpdateSuccess {
+  bucketConfig: BucketConfig!
+}
+
+union BucketUpdateResult =
+    BucketUpdateSuccess
+  | BucketNotFound
+  | NotificationConfigurationError
+  | NotificationTopicNotFound
+  | SnsInvalid
+
+type BucketRemoveSuccess {
+  _: Boolean
+}
+
+union BucketRemoveResult =
+    BucketRemoveSuccess
+  | BucketNotFound
+  | IndexingInProgress
+
+type Mutation {
+  bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
+  bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult! @admin
+  bucketRemove(name: String!): BucketRemoveResult! @admin
+}
