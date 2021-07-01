@@ -19,7 +19,6 @@ type S3 = $TSFixMe
 interface S3Handle {
   bucket: string
   key: string
-  version?: string // FIXME: there is no version?
 }
 
 interface SummarizeFile {
@@ -175,7 +174,7 @@ export function FilePreview({
       children: label,
     }))
     const file = {
-      to: urls.bucketFile(handle.bucket, handle.key, handle.version),
+      to: urls.bucketFile(handle.bucket, handle.key),
       children: R.last(all)?.label,
     }
     return { dirs, file }
@@ -252,10 +251,7 @@ interface TitleCustomProps {
 function TitleCustom({ title, handle }: TitleCustomProps) {
   const { urls } = NamedRoutes.use()
 
-  // FIXME: there is no version
-  return (
-    <Link to={urls.bucketFile(handle.bucket, handle.key, handle.version)}>{title}</Link>
-  )
+  return <Link to={urls.bucketFile(handle.bucket, handle.key)}>{title}</Link>
 }
 
 interface TitleFilenameProps {
@@ -267,10 +263,7 @@ function TitleFilename({ handle }: TitleFilenameProps) {
 
   // TODO: (@nl_0) make a reusable function to compute relative s3 paths or smth
   const title = withoutPrefix(getPrefix(handle.key), handle.key)
-  // FIXME: there is no version
-  return (
-    <Link to={urls.bucketFile(handle.bucket, handle.key, handle.version)}>{title}</Link>
-  )
+  return <Link to={urls.bucketFile(handle.bucket, handle.key)}>{title}</Link>
 }
 
 interface HeadingOverrideProps {
