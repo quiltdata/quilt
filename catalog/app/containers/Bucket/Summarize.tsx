@@ -338,11 +338,7 @@ function Column({ file, nested, s3 }: RowProps) {
   const classes = useRowElementStyles()
   const style = React.useMemo(() => getColumnStyles(file.width), [file])
   return (
-    <div
-      className={classes.column}
-      key={`${file.handle.bucket}/${file.handle.key}`}
-      style={style}
-    >
+    <div className={classes.column} style={style}>
       <FileHandle file={file} nested={nested} s3={s3} />
     </div>
   )
@@ -369,7 +365,12 @@ function Row({ file, nested, s3 }: RowProps) {
   return (
     <div className={classes.row}>
       {file.map((f) => (
-        <Column file={f} nested={nested} s3={s3} />
+        <Column
+          file={f}
+          key={`${f.handle.bucket}/${f.handle.key}`}
+          nested={nested}
+          s3={s3}
+        />
       ))}
     </div>
   )
