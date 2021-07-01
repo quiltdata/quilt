@@ -317,7 +317,7 @@ function getColumnStyles(width?: number | string) {
   return { flexGrow: 1 }
 }
 
-const useRowElementStyles = M.makeStyles({
+const useColumnStyles = M.makeStyles({
   column: {
     '& + &': {
       marginLeft: '16px',
@@ -326,7 +326,7 @@ const useRowElementStyles = M.makeStyles({
 })
 
 function Column({ file, nested, s3 }: RowProps) {
-  const classes = useRowElementStyles()
+  const classes = useColumnStyles()
   const style = React.useMemo(() => getColumnStyles(file.width), [file])
   return (
     <div className={classes.column} style={style}>
@@ -339,6 +339,7 @@ const useRowStyles = M.makeStyles({
   row: {
     display: 'flex',
     justifyContent: 'space-between',
+    overflowX: 'auto',
   },
 })
 
