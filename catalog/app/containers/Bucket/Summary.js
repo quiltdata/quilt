@@ -16,7 +16,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import { getBasename } from 'utils/s3paths'
 
-import { SummaryEntries } from './Overview'
+import { SummaryEntries } from './Summarize'
 import * as requests from './requests'
 
 const README_RE = /^readme\.md$/i
@@ -184,18 +184,6 @@ function Summarize({ handle }) {
     },
     _: () => <M.CircularProgress className={classes.progress} />,
     Ok: (entries) => <SummaryEntries entries={entries} s3={s3} nested />,
-    // Ok: R.map((i) => (
-    //   <SummaryItemFile
-    //     key={i.key}
-    //     // TODO: make a reusable function to compute relative s3 paths or smth
-    //     title={withoutPrefix(
-    //       getPrefix(handle.logicalKey || handle.key),
-    //       i.logicalKey || i.key,
-    //     )}
-    //     handle={i}
-    //     mkUrl={mkUrl}
-    //   />
-    // )),
   })
 }
 

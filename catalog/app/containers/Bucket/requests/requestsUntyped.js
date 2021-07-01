@@ -5,7 +5,9 @@ import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
+import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
 import * as Resource from 'utils/Resource'
+import { makeSchemaValidator } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
@@ -582,10 +584,9 @@ export const objectMeta = ({ s3, bucket, path, version }) =>
     .promise()
     .then(R.pipe(R.path(['Metadata', 'helium']), R.when(Boolean, JSON.parse)))
 
-// const isValidManifest = R.both(Array.isArray, R.all(R.is(String)))
-const isValidManifest = R.T
-
 const isFile = (fileHandle) => typeof fileHandle === 'string' || fileHandle.path
+
+const isValidManifest = makeSchemaValidator(quiltSummarizeSchema)
 
 function parseFile(resolvePath, fileHandle) {
   return {
@@ -621,7 +622,8 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
       .promise()
     const json = file.Body.toString('utf-8')
     const manifest = JSON.parse(json)
-    if (!isValidManifest(manifest)) {
+    const configErrors = isValidManifest(manifest.rows || manifest)
+    if (configErrors.length) {
       throw new Error('Invalid manifest: must be a JSON array of file links')
     }
 

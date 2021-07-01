@@ -8,10 +8,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
 
-import Markdown from 'components/Markdown'
-import { copyWithoutSpaces } from 'components/BreadCrumbs'
 import * as Pagination from 'components/Pagination'
-import * as Preview from 'components/Preview'
 import Skeleton from 'components/Skeleton'
 import StackedAreaChart from 'components/StackedAreaChart'
 import Thumbnail from 'components/Thumbnail'
@@ -25,9 +22,9 @@ import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import Link from 'utils/StyledLink'
-import { getBreadCrumbs, getPrefix, withoutPrefix } from 'utils/s3paths'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 
+import * as Summarize from './Summarize'
 import * as requests from './requests'
 
 import bg from './Overview-bg.jpg'
@@ -855,188 +852,6 @@ function Head({ req, s3, overviewUrl, bucket, description }) {
   )
 }
 
-const useSectionStyles = M.makeStyles((t) => ({
-  root: {
-    position: 'relative',
-    [t.breakpoints.down('xs')]: {
-      borderRadius: 0,
-      padding: (nested) => t.spacing(nested ? 1 : 2),
-      paddingTop: (nested) => t.spacing(nested ? 2 : 3),
-    },
-    [t.breakpoints.up('sm')]: {
-      marginTop: t.spacing(2),
-      padding: (nested) => t.spacing(nested ? 2 : 4),
-    },
-  },
-  description: {
-    ...t.typography.body1,
-  },
-  heading: {
-    ...t.typography.h6,
-    lineHeight: 1.75,
-    marginBottom: t.spacing(1),
-    [t.breakpoints.up('sm')]: {
-      marginBottom: t.spacing(2),
-    },
-    [t.breakpoints.up('md')]: {
-      ...t.typography.h5,
-    },
-  },
-}))
-
-function Section({ heading, description, children, nested, ...props }) {
-  const classes = useSectionStyles(nested)
-  return (
-    <M.Paper className={classes.root} {...props}>
-      {!!heading && <div className={classes.heading}>{heading}</div>}
-      {!!description && <div className={classes.description}>{description}</div>}
-      {children}
-    </M.Paper>
-  )
-}
-
-function ContentSkel({ lines = 15, ...props }) {
-  const widths = React.useMemo(() => R.times(() => 80 + Math.random() * 20, lines), [
-    lines,
-  ])
-  return (
-    <M.Box {...props}>
-      {widths.map((w, i) => (
-        <Skeleton
-          // eslint-disable-next-line react/no-array-index-key
-          key={i}
-          height={16}
-          width={`${w}%`}
-          borderRadius="borderRadius"
-          mt={i ? 1 : 0}
-        />
-      ))}
-    </M.Box>
-  )
-}
-
-const CrumbLink = M.styled(Link)({ wordBreak: 'break-word' })
-
-const usePreviewBoxStyles = M.makeStyles((t) => ({
-  root: {
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    maxHeight: t.spacing(30),
-    minHeight: t.spacing(15),
-    position: 'relative',
-
-    // workarounds to speed-up notebook preview rendering:
-    '&:not($expanded)': {
-      // hide overflow only when not expanded, using this while expanded
-      // slows down the page in chrome
-      overflow: 'hidden',
-
-      // only show 2 first cells unless expanded
-      '& .ipynb-preview .cell:nth-child(n+3)': {
-        display: 'none',
-      },
-    },
-  },
-  expanded: {
-    maxHeight: 'none',
-  },
-  fade: {
-    alignItems: 'flex-end',
-    background: `linear-gradient(to top,
-      rgba(255, 255, 255, 1),
-      rgba(255, 255, 255, 0.9),
-      rgba(255, 255, 255, 0.1),
-      rgba(255, 255, 255, 0.1)
-    )`,
-    bottom: 0,
-    display: 'flex',
-    height: '100%',
-    justifyContent: 'center',
-    left: 0,
-    position: 'absolute',
-    width: '100%',
-    zIndex: 1,
-  },
-}))
-
-function PreviewBox({ contents, expanded: defaultExpanded = false }) {
-  const classes = usePreviewBoxStyles()
-  const [expanded, setExpanded] = React.useState(defaultExpanded)
-  const expand = React.useCallback(() => {
-    setExpanded(true)
-  }, [setExpanded])
-  return (
-    <div className={cx(classes.root, { [classes.expanded]: expanded })}>
-      {contents}
-      {!expanded && (
-        <div className={classes.fade}>
-          <M.Button variant="outlined" onClick={expand}>
-            Expand
-          </M.Button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function FilePreview({ description, handle, headingOverride, expanded, nested }) {
-  const { urls } = NamedRoutes.use()
-
-  const crumbs = React.useMemo(() => {
-    const all = getBreadCrumbs(handle.key)
-    const dirs = R.init(all).map(({ label, path }) => ({
-      to: urls.bucketFile(handle.bucket, path),
-      children: label,
-    }))
-    const file = {
-      to: urls.bucketFile(handle.bucket, handle.key, handle.version),
-      children: R.last(all).label,
-    }
-    return { dirs, file }
-  }, [handle, urls])
-
-  const heading =
-    headingOverride != null ? (
-      headingOverride
-    ) : (
-      <span onCopy={copyWithoutSpaces}>
-        {crumbs.dirs.map((c) => (
-          <React.Fragment key={`crumb:${c.to}`}>
-            <CrumbLink {...c} />
-            &nbsp;/{' '}
-          </React.Fragment>
-        ))}
-        <CrumbLink {...crumbs.file} />
-      </span>
-    )
-
-  // TODO: check for glacier and hide items
-  return (
-    <Section description={description} heading={heading} nested={nested}>
-      {Preview.load(
-        handle,
-        Preview.display({
-          renderContents: (contents) => <PreviewBox {...{ contents, expanded }} />,
-          renderProgress: () => <ContentSkel />,
-        }),
-      )}
-    </Section>
-  )
-}
-
-function EnsureAvailability({ s3, handle, children }) {
-  return useData(requests.ensureObjectIsPresent, { s3, ...handle }).case({
-    _: () => null,
-    Ok: (h) => !!h && children(),
-  })
-}
-
-const HeadingSkel = (props) => (
-  <Skeleton borderRadius="borderRadius" width={200} {...props}>
-    &nbsp;
-  </Skeleton>
-)
-
 const ImageGrid = M.styled(M.Box)(({ theme: t }) => ({
   display: 'grid',
   gridAutoRows: 'max-content',
@@ -1081,7 +896,7 @@ function Thumbnails({ images }) {
   const pagination = Pagination.use(images, { perPage: 25, onChange: scroll })
 
   return (
-    <Section
+    <Summarize.Section
       heading={
         <>
           Images ({pagination.from}&ndash;{Math.min(pagination.to, images.length)} of{' '}
@@ -1106,15 +921,9 @@ function Thumbnails({ images }) {
           <Pagination.Controls {...pagination} />
         </M.Box>
       )}
-    </Section>
+    </Summarize.Section>
   )
 }
-
-const FilePreviewSkel = () => (
-  <Section heading={<HeadingSkel />}>
-    <ContentSkel />
-  </Section>
-)
 
 function Readmes({ s3, overviewUrl, bucket }) {
   return (
@@ -1124,7 +933,7 @@ function Readmes({ s3, overviewUrl, bucket }) {
           (rs.discovered.length > 0 || !!rs.forced) && (
             <>
               {!!rs.forced && (
-                <FilePreview
+                <Summarize.FilePreview
                   key="readme:forced"
                   headingOverride={false}
                   handle={rs.forced}
@@ -1132,11 +941,15 @@ function Readmes({ s3, overviewUrl, bucket }) {
                 />
               )}
               {rs.discovered.map((h) => (
-                <FilePreview key={`readme:${h.bucket}/${h.key}`} handle={h} expanded />
+                <Summarize.FilePreview
+                  key={`readme:${h.bucket}/${h.key}`}
+                  handle={h}
+                  expanded
+                />
               ))}
             </>
           ),
-        _: () => <FilePreviewSkel key="readme:skeleton" />,
+        _: () => <Summarize.FilePreviewSkel key="readme:skeleton" />,
       })}
     </Data>
   )
@@ -1148,7 +961,7 @@ function Imgs({ req, s3, overviewUrl, inStack, bucket }) {
       {AsyncResult.case({
         Ok: (images) => (images.length ? <Thumbnails images={images} /> : null),
         _: () => (
-          <Section key="thumbs:skel" heading={<HeadingSkel />}>
+          <Summarize.Section key="thumbs:skel" heading={<Summarize.HeadingSkel />}>
             <ImageGrid>
               {R.times(
                 (i) => (
@@ -1158,129 +971,18 @@ function Imgs({ req, s3, overviewUrl, inStack, bucket }) {
                 9,
               )}
             </ImageGrid>
-          </Section>
+          </Summarize.Section>
         ),
       })}
     </Data>
   )
 }
 
-const SUMMARY_ENTRIES = 7
-
-const useRowStyles = M.makeStyles({
-  row: {
-    display: 'flex',
-    justifyContent: 'space-between',
-  },
-  column: {
-    '& + &': {
-      marginLeft: '16px',
-    },
-  },
-})
-
-function getColumnStyles(width) {
-  if (R.is(Number, width)) return { flexGrow: width }
-  if (typeof width === 'string') return { flexBasis: width }
-  return { flexGrow: 1 }
-}
-
-function TitleCustom({ title, handle }) {
-  const { urls } = NamedRoutes.use()
-
-  return (
-    <Link to={urls.bucketFile(handle.bucket, handle.key, handle.version)}>{title}</Link>
-  )
-}
-
-function TitleFilename({ handle }) {
-  const { urls } = NamedRoutes.use()
-
-  const title = withoutPrefix(
-    getPrefix(handle.logicalKey || handle.key),
-    handle.logicalKey || handle.key,
-  )
-  return (
-    <Link to={urls.bucketFile(handle.bucket, handle.key, handle.version)}>{title}</Link>
-  )
-}
-
-function HeadingOverride({ file, nested }) {
-  if (file.title) return <TitleCustom handle={file.handle} title={file.title} />
-  if (nested) return <TitleFilename handle={file.handle} />
-  return null
-}
-
-function FileHandle({ file, nested, s3 }) {
-  return (
-    <EnsureAvailability s3={s3} handle={file.handle}>
-      {() => (
-        <FilePreview
-          description={<Markdown data={file.description} />}
-          handle={file.handle}
-          headingOverride={<HeadingOverride file={file} nested={nested} />}
-          nested={nested}
-        />
-      )}
-    </EnsureAvailability>
-  )
-}
-
-function Row({ file, nested, s3 }) {
-  const classes = useRowStyles()
-
-  if (!Array.isArray(file)) return <FileHandle file={file} s3={s3} nested={nested} />
-
-  return (
-    <div className={classes.row}>
-      {file.map((f) => (
-        <div
-          className={classes.column}
-          key={`${f.handle.bucket}/${f.handle.key}`}
-          style={getColumnStyles(f.width)}
-        >
-          <FileHandle file={f} nested={nested} s3={s3} />
-        </div>
-      ))}
-    </div>
-  )
-}
-
-export function SummaryEntries({ entries, nested, s3 }) {
-  const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
-  const showMore = React.useCallback(() => {
-    setShown(R.add(SUMMARY_ENTRIES))
-  }, [setShown])
-
-  const shownEntries = R.take(shown, entries)
-  return (
-    <>
-      {shownEntries.map((file) => (
-        <Row
-          key={
-            Array.isArray(file) ? file.map((f) => f.handle.key).join('') : file.handle.key
-          }
-          file={file}
-          nested={nested}
-          s3={s3}
-        />
-      ))}
-      {shown < entries.length && (
-        <M.Box mt={2} display="flex" justifyContent="center">
-          <M.Button variant="contained" color="primary" onClick={showMore}>
-            Show more
-          </M.Button>
-        </M.Box>
-      )}
-    </>
-  )
-}
-
 function Summary({ req, s3, bucket, inStack, overviewUrl }) {
   const data = useData(requests.bucketSummary, { req, s3, bucket, inStack, overviewUrl })
   return data.case({
-    Ok: (entries) => <SummaryEntries entries={entries} s3={s3} />,
-    Pending: () => <FilePreviewSkel />,
+    Ok: (entries) => <Summarize.SummaryEntries entries={entries} s3={s3} />,
+    Pending: () => <Summarize.FilePreviewSkel />,
     _: () => null,
   })
 }
