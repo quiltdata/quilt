@@ -363,10 +363,17 @@ export const ensureObjectIsPresent = (...args) =>
     }),
   )
 
+function waitFor(timeout) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, timeout)
+  })
+}
+
 export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) => {
   const handle = await ensureObjectIsPresent({ s3, bucket, key: SUMMARIZE_KEY })
   if (handle) {
     try {
+      await waitFor(5000)
       return await summarize({ s3, handle })
     } catch (e) {
       const display = `${handle.bucket}/${handle.key}`
@@ -591,18 +598,21 @@ const isFile = (fileHandle) => typeof fileHandle === 'string' || fileHandle.path
 
 const isValidManifest = makeSchemaValidator(quiltSummarizeSchema)
 
-function parseFile(resolvePath, fileHandle) {
-  return {
-    ...(typeof fileHandle === 'string' ? null : fileHandle),
-    handle: R.pipe(
+async function parseFile(resolvePath, fileHandle) {
+  const handle = await new Promise((resolve, reject) =>
+    R.pipe(
       Resource.parse,
       Resource.Pointer.case({
-        Web: () => null, // web urls are not supported in this context
-        S3: R.identity,
-        S3Rel: resolvePath,
-        Path: resolvePath,
+        Web: () => null,
+        S3: resolve,
+        S3Rel: (path_1) => resolvePath(path_1).then(resolve).catch(reject),
+        Path: (path_3) => resolvePath(path_3).then(resolve).catch(reject),
       }),
     )(fileHandle.path || fileHandle),
+  )
+  return {
+    ...(typeof fileHandle === 'string' ? null : fileHandle),
+    handle,
   }
 }
 
@@ -639,16 +649,16 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
             console.error(e)
             return null
           })
-        : {
+        : Promise.resolve({
             bucket: handle.bucket,
             key: s3paths.resolveKey(handle.key, path),
-          }
+          })
 
     const handles = await Promise.all(
       (manifest.rows || manifest).map((fileHandle) =>
         isFile(fileHandle)
           ? parseFile(resolvePath, fileHandle)
-          : fileHandle.map(parseFile.bind(null, resolvePath)),
+          : Promise.all(fileHandle.map(parseFile.bind(null, resolvePath))),
       ),
     )
     return handles.filter((h) => h)

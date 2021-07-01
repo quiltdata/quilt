@@ -7,7 +7,10 @@ import { copyWithoutSpaces } from 'components/BreadCrumbs'
 import Markdown from 'components/Markdown'
 import * as Preview from 'components/Preview'
 import Skeleton, { SkeletonProps } from 'components/Skeleton'
+import * as APIConnector from 'utils/APIConnector'
+import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
+import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
 import { getBreadCrumbs, getPrefix, withoutPrefix } from 'utils/s3paths'
@@ -403,4 +406,56 @@ export function SummaryEntries({ entries, nested, s3 }: SummaryEntriesProps) {
       )}
     </>
   )
+}
+
+interface SummaryRootProps {
+  s3: S3
+  bucket: string
+  inStack: boolean
+  overviewUrl: string
+}
+
+export function SummaryRoot({ s3, bucket, inStack, overviewUrl }: SummaryRootProps) {
+  const req = APIConnector.use()
+  const data = useData(requests.bucketSummary, { req, s3, bucket, inStack, overviewUrl })
+  return data.case({
+    Err: (e: Error) => {
+      // eslint-disable-next-line no-console
+      console.warn('Error loading summary')
+      // eslint-disable-next-line no-console
+      console.error(e)
+      return null
+    },
+    Ok: (entries: SummarizeFile[]) => <SummaryEntries entries={entries} s3={s3} />,
+    Pending: () => <FilePreviewSkel />,
+    _: () => null,
+  })
+}
+
+interface SummaryNestedProps {
+  handle: {
+    key: string
+    logicalKey: string
+    bucket: string
+    version: string
+    etag: string
+  }
+}
+
+export function SummaryNested({ handle }: SummaryNestedProps) {
+  const s3 = AWS.S3.use()
+  const resolveLogicalKey = LogicalKeyResolver.use()
+  const data = useData(requests.summarize, { s3, handle, resolveLogicalKey })
+  return data.case({
+    Err: (e: Error) => {
+      // eslint-disable-next-line no-console
+      console.warn('Error loading summary')
+      // eslint-disable-next-line no-console
+      console.error(e)
+      return null
+    },
+    Ok: (entries: SummarizeFile[]) => <SummaryEntries entries={entries} s3={s3} nested />,
+    Pending: () => <FilePreviewSkel />,
+    _: () => null,
+  })
 }

@@ -8,16 +8,14 @@ import * as M from '@material-ui/core'
 import * as Pagination from 'components/Pagination'
 import * as Preview from 'components/Preview'
 import Thumbnail, { SUPPORTED_EXTENSIONS } from 'components/Thumbnail'
-import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import Data, { useData } from 'utils/Data'
+import Data from 'utils/Data'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import { getBasename } from 'utils/s3paths'
 
-import { SummaryEntries } from './Summarize'
-import * as requests from './requests'
+import * as Summarize from './Summarize'
 
 const README_RE = /^readme\.md$/i
 const SUMMARIZE_RE = /^quilt_summarize\.json$/i
@@ -163,30 +161,6 @@ function Thumbnails({ images, mkUrl }) {
   )
 }
 
-const useSummarizeStyles = M.makeStyles((t) => ({
-  progress: {
-    marginTop: t.spacing(2),
-  },
-}))
-
-function Summarize({ handle }) {
-  const classes = useSummarizeStyles()
-  const s3 = AWS.S3.use()
-  const resolveLogicalKey = LogicalKeyResolver.use()
-  const data = useData(requests.summarize, { s3, handle, resolveLogicalKey })
-  return data.case({
-    Err: (e) => {
-      // eslint-disable-next-line no-console
-      console.warn('Error loading summary')
-      // eslint-disable-next-line no-console
-      console.error(e)
-      return null
-    },
-    _: () => <M.CircularProgress className={classes.progress} />,
-    Ok: (entries) => <SummaryEntries entries={entries} s3={s3} nested />,
-  })
-}
-
 // files: Array of s3 handles
 export default function BucketSummary({
   files,
@@ -214,7 +188,7 @@ export default function BucketSummary({
         />
       )}
       {!!images.length && <Thumbnails {...{ images, mkUrl }} />}
-      {summarize && <Summarize handle={summarize} mkUrl={mkUrl} />}
+      {summarize && <Summarize.SummaryNested handle={summarize} mkUrl={mkUrl} />}
     </>
   )
 }

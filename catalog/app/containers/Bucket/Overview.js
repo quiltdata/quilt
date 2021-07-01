@@ -982,16 +982,6 @@ function Imgs({ s3, overviewUrl, inStack, bucket }) {
   )
 }
 
-function Summary({ s3, bucket, inStack, overviewUrl }) {
-  const req = APIConnector.use()
-  const data = useData(requests.bucketSummary, { req, s3, bucket, inStack, overviewUrl })
-  return data.case({
-    Ok: (entries) => <Summarize.SummaryEntries entries={entries} s3={s3} />,
-    Pending: () => <Summarize.FilePreviewSkel />,
-    _: () => null,
-  })
-}
-
 export default function Overview({
   match: {
     params: { bucket },
@@ -1028,7 +1018,7 @@ export default function Overview({
       )}
       <Readmes {...{ s3, bucket, overviewUrl }} />
       {!noOverviewImages && <Imgs {...{ s3, bucket, inStack, overviewUrl }} />}
-      <Summary {...{ s3, bucket, inStack, overviewUrl }} />
+      <Summarize.SummaryRoot {...{ s3, bucket, inStack, overviewUrl }} />
     </M.Box>
   )
 }
