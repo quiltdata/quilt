@@ -1016,10 +1016,8 @@ function CRUD({ bucketName }: CRUDProps) {
       </M.Dialog>
 
       <Table.Toolbar heading="Buckets" actions={toolbarActions} />
-      {/* @ts-expect-error */}
       <Table.Wrapper>
         <M.Table size="small">
-          {/* @ts-expect-error */}
           <Table.Head columns={columns} ordering={ordering} withInlineActions />
           <M.TableBody>
             {pagination.paginated.map((i: BucketConfig) => (
@@ -1041,7 +1039,6 @@ function CRUD({ bucketName }: CRUDProps) {
                   padding="none"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {/* @ts-expect-error */}
                   <Table.InlineActions actions={inlineActions(i)} />
                 </M.TableCell>
               </M.TableRow>

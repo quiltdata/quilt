@@ -1,0 +1,3 @@
+query {
+  buckets: bucketConfigs { name }
+}

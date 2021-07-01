@@ -233,6 +233,43 @@ export default ({
             },
             args: [],
           },
+          {
+            name: 'permissions',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'RoleBucketPermission',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'BucketConfigDoesNotExist',
+        fields: [
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -389,6 +426,59 @@ export default ({
       },
       {
         kind: 'OBJECT',
+        name: 'ManagedRole',
+        fields: [
+          {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'permissions',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'RoleBucketPermission',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'ID',
+      },
+      {
+        kind: 'OBJECT',
         name: 'Mutation',
         fields: [
           {
@@ -466,6 +556,144 @@ export default ({
                   ofType: {
                     kind: 'SCALAR',
                     name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'roleCreateManaged',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'RoleCreateResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'input',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'roleCreateUnmanaged',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'RoleCreateResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'input',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'roleUpdateManaged',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'RoleUpdateResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'input',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'roleUpdateUnmanaged',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'RoleUpdateResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'input',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'Any',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'roleDelete',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'RoleDeleteResult',
+                ofType: null,
+              },
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
                     ofType: null,
                   },
                 },
@@ -550,6 +778,326 @@ export default ({
               },
             ],
           },
+          {
+            name: 'roles',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'UNION',
+                    name: 'Role',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'role',
+            type: {
+              kind: 'UNION',
+              name: 'Role',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'id',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'ID',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'Role',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'UnmanagedRole',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'ManagedRole',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleBucketPermission',
+        fields: [
+          {
+            name: 'role',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'Role',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'bucket',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'BucketConfig',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'level',
+            type: {
+              kind: 'SCALAR',
+              name: 'Any',
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'RoleCreateResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'RoleCreateSuccess',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleNameReserved',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleNameExists',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleNameInvalid',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'BucketConfigDoesNotExist',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleCreateSuccess',
+        fields: [
+          {
+            name: 'role',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'Role',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'RoleDeleteResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'RoleDeleteSuccess',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleDoesNotExist',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleNameReserved',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleDeleteSuccess',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleDoesNotExist',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleIsManaged',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleIsUnmanaged',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleNameExists',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleNameInvalid',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleNameReserved',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'RoleUpdateResult',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'RoleUpdateSuccess',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleNameReserved',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleNameExists',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleNameInvalid',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleIsManaged',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleIsUnmanaged',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'BucketConfigDoesNotExist',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'RoleUpdateSuccess',
+        fields: [
+          {
+            name: 'role',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'UNION',
+                name: 'Role',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
         ],
         interfaces: [],
       },
@@ -563,6 +1111,49 @@ export default ({
               kind: 'SCALAR',
               name: 'Boolean',
               ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'UnmanagedRole',
+        fields: [
+          {
+            name: 'id',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'ID',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'arn',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
             },
             args: [],
           },
