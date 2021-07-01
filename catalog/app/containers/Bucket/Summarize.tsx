@@ -77,8 +77,8 @@ export function Section({
   const classes = useSectionStyles(nested)
   return (
     <M.Paper className={classes.root} {...props}>
-      {/* {!!heading && <div className={classes.heading}>{heading}</div>} */}
-      {/* {!!description && <div className={classes.description}>{description}</div>} */}
+      {!!heading && <div className={classes.heading}>{heading}</div>}
+      {!!description && <div className={classes.description}>{description}</div>}
       {children}
     </M.Paper>
   )
@@ -269,12 +269,7 @@ function TitleFilename({ handle }: TitleFilenameProps) {
   return <Link to={urls.bucketFile(handle.bucket, handle.key)}>{title}</Link>
 }
 
-interface HeadingOverrideProps {
-  file: SummarizeFile
-  nested?: boolean
-}
-
-function HeadingOverride({ file, nested }: HeadingOverrideProps) {
+function getHeadingOverride(file: SummarizeFile, nested?: boolean) {
   if (file.title) return <TitleCustom handle={file.handle} title={file.title} />
   if (nested) return <TitleFilename handle={file.handle} />
   return null
@@ -306,7 +301,7 @@ export function FileHandle({ file, nested, s3 }: FileHandleProps) {
         <FilePreview
           description={<Markdown data={file.description} />}
           handle={file.handle}
-          headingOverride={<HeadingOverride file={file} nested={nested} />}
+          headingOverride={getHeadingOverride(file, nested)}
           nested={nested}
         />
       )}
