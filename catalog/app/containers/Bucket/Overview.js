@@ -25,7 +25,7 @@ import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import Link from 'utils/StyledLink'
-import { getBreadCrumbs } from 'utils/s3paths'
+import { getBreadCrumbs, getPrefix, withoutPrefix } from 'utils/s3paths'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 
 import * as requests from './requests'
@@ -1185,37 +1185,50 @@ function getColumnStyles(width) {
   return { flexGrow: 1 }
 }
 
-function FileHandle({ file, s3 }) {
+function TitleCustom({ title, handle }) {
   const { urls } = NamedRoutes.use()
+
+  return (
+    <Link to={urls.bucketFile(handle.bucket, handle.key, handle.version)}>{title}</Link>
+  )
+}
+
+function TitleFilename({ handle }) {
+  const { urls } = NamedRoutes.use()
+
+  const title = withoutPrefix(
+    getPrefix(handle.logicalKey || handle.key),
+    handle.logicalKey || handle.key,
+  )
+  return (
+    <Link to={urls.bucketFile(handle.bucket, handle.key, handle.version)}>{title}</Link>
+  )
+}
+
+function HeadingOverride({ file, nested }) {
+  if (file.title) return <TitleCustom handle={file.handle} title={file.title} />
+  if (nested) return <TitleFilename handle={file.handle} />
+  return null
+}
+
+function FileHandle({ file, nested, s3 }) {
   return (
     <EnsureAvailability s3={s3} handle={file.handle}>
       {() => (
         <FilePreview
           description={<Markdown data={file.description} />}
           handle={file.handle}
-          headingOverride={
-            file.title && (
-              <Link
-                to={urls.bucketFile(
-                  file.handle.bucket,
-                  file.handle.key,
-                  file.handle.version,
-                )}
-              >
-                {file.title}
-              </Link>
-            )
-          }
+          headingOverride={<HeadingOverride file={file} nested={nested} />}
         />
       )}
     </EnsureAvailability>
   )
 }
 
-function Row({ file, s3 }) {
+function Row({ file, nested, s3 }) {
   const classes = useRowStyles()
 
-  if (!Array.isArray(file)) return <FileHandle file={file} s3={s3} />
+  if (!Array.isArray(file)) return <FileHandle file={file} s3={s3} nested={nested} />
 
   return (
     <div className={classes.row}>
@@ -1225,14 +1238,14 @@ function Row({ file, s3 }) {
           key={`${f.handle.bucket}/${f.handle.key}`}
           style={getColumnStyles(f.width)}
         >
-          <FileHandle file={f} s3={s3} />
+          <FileHandle file={f} nested={nested} s3={s3} />
         </div>
       ))}
     </div>
   )
 }
 
-export function SummaryEntries({ entries, s3 }) {
+export function SummaryEntries({ entries, nested, s3 }) {
   const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
   const showMore = React.useCallback(() => {
     setShown(R.add(SUMMARY_ENTRIES))
@@ -1247,6 +1260,7 @@ export function SummaryEntries({ entries, s3 }) {
             Array.isArray(file) ? file.map((f) => f.handle.key).join('') : file.handle.key
           }
           file={file}
+          nested={nested}
           s3={s3}
         />
       ))}

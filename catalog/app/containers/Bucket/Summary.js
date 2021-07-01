@@ -183,7 +183,7 @@ function Summarize({ handle }) {
       return null
     },
     _: () => <M.CircularProgress className={classes.progress} />,
-    Ok: (entries) => <SummaryEntries entries={entries} s3={s3} />,
+    Ok: (entries) => <SummaryEntries entries={entries} s3={s3} nested />,
     // Ok: R.map((i) => (
     //   <SummaryItemFile
     //     key={i.key}
