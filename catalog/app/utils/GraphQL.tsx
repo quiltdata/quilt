@@ -14,6 +14,7 @@ import * as Config from 'utils/Config'
 const devtools = process.env.NODE_ENV === 'development' ? [DevTools.devtoolsExchange] : []
 
 const BUCKET_CONFIGS_QUERY = urql.gql`{ bucketConfigs { name } }`
+const ROLES_QUERY = urql.gql`{ roles { id } }`
 
 export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
   const { registryUrl } = Config.use()
@@ -42,6 +43,7 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
         schema,
         keys: {
           BucketConfig: (b) => b.name as string,
+          RoleBucketPermission: () => null,
         },
         updates: {
           Mutation: {
@@ -63,10 +65,38 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
                 R.evolve({ bucketConfigs: R.reject(R.propEq('name', vars.name)) }),
               )
             },
+            roleCreateManaged: (result, _vars, cache) => {
+              if ((result.roleCreateManaged as any)?.__typename !== 'RoleCreateSuccess')
+                return
+              cache.updateQuery(
+                { query: ROLES_QUERY },
+                // XXX: sort?
+                R.evolve({ roles: R.append((result.roleCreateManaged as any).role) }),
+              )
+            },
+            roleCreateUnmanaged: (result, _vars, cache) => {
+              if ((result.roleCreateUnmanaged as any)?.__typename !== 'RoleCreateSuccess')
+                return
+              cache.updateQuery(
+                { query: ROLES_QUERY },
+                // XXX: sort?
+                R.evolve({ roles: R.append((result.roleCreateUnmanaged as any).role) }),
+              )
+            },
+            roleDelete: (result, vars, cache) => {
+              const typename = (result.roleDelete as any)?.__typename
+              if (typename === 'RoleDeleteSuccess' || typename === 'RoleDoesNotExist') {
+                cache.updateQuery(
+                  { query: ROLES_QUERY },
+                  R.evolve({ roles: R.reject(R.propEq('id', vars.id)) }),
+                )
+              }
+            },
           },
         },
         optimistic: {
           bucketRemove: () => ({ __typename: 'BucketRemoveSuccess' }),
+          roleDelete: () => ({ __typename: 'RoleDeleteSuccess' }),
         },
       }),
     [sessionId], // eslint-disable-line react-hooks/exhaustive-deps

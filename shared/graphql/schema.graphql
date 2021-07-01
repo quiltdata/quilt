@@ -18,11 +18,39 @@ type BucketConfig {
   scannerParallelShardsDepth: Int @admin
   skipMetaDataIndexing: Boolean @admin
   fileExtensionsToIndex: [String!] @admin
+  permissions: [RoleBucketPermission!]! @admin
+}
+
+type UnmanagedRole {
+  id: ID!
+  name: String!
+  arn: String!
+}
+
+type ManagedRole {
+  id: ID!
+  name: String!
+  permissions: [RoleBucketPermission!]!
+}
+
+union Role = UnmanagedRole | ManagedRole
+
+enum BucketPermissionLevel {
+  READ
+  READ_WRITE
+}
+
+type RoleBucketPermission {
+  role: Role!
+  bucket: BucketConfig!
+  level: BucketPermissionLevel
 }
 
 type Query {
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
+  roles: [Role!]! @admin
+  role(id: ID!): Role @admin
 }
 
 input BucketAddInput {
@@ -122,8 +150,87 @@ union BucketRemoveResult =
   | BucketNotFound
   | IndexingInProgress
 
+input PermissionInput {
+  bucket: String!
+  level: BucketPermissionLevel
+}
+
+input UnmanagedRoleInput {
+  name: String!
+  arn: String!
+}
+
+input ManagedRoleInput {
+  name: String!
+  permissions: [PermissionInput!]!
+}
+
+type RoleNameReserved {
+  _: Boolean
+}
+
+type RoleNameExists {
+  _: Boolean
+}
+
+type RoleNameInvalid {
+  _: Boolean
+}
+
+type BucketConfigDoesNotExist {
+  name: String!
+}
+
+type RoleDoesNotExist {
+  _: Boolean
+}
+
+type RoleIsManaged {
+  _: Boolean
+}
+
+type RoleIsUnmanaged {
+  _: Boolean
+}
+
+type RoleCreateSuccess {
+  role: Role!
+}
+
+union RoleCreateResult =
+    RoleCreateSuccess
+  | RoleNameReserved
+  | RoleNameExists
+  | RoleNameInvalid
+  | BucketConfigDoesNotExist
+
+type RoleUpdateSuccess {
+  role: Role!
+}
+
+union RoleUpdateResult =
+    RoleUpdateSuccess
+  | RoleNameReserved
+  | RoleNameExists
+  | RoleNameInvalid
+  | RoleIsManaged
+  | RoleIsUnmanaged
+  | BucketConfigDoesNotExist
+
+type RoleDeleteSuccess {
+  _: Boolean
+}
+
+union RoleDeleteResult = RoleDeleteSuccess | RoleDoesNotExist | RoleNameReserved
+
 type Mutation {
   bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
   bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult! @admin
   bucketRemove(name: String!): BucketRemoveResult! @admin
+
+  roleCreateManaged(input: ManagedRoleInput!): RoleCreateResult! @admin
+  roleCreateUnmanaged(input: UnmanagedRoleInput!): RoleCreateResult! @admin
+  roleUpdateManaged(id: ID!, input: ManagedRoleInput!): RoleUpdateResult! @admin
+  roleUpdateUnmanaged(id: ID!, input: UnmanagedRoleInput!): RoleUpdateResult! @admin
+  roleDelete(id: ID!): RoleDeleteResult! @admin
 }

@@ -14,6 +14,7 @@ import BUCKET_CONFIGS_QUERY from './BucketConfigList.generated'
 function useBucketConfigs() {
   const cfg = Config.use()
   const authenticated = redux.useSelector(AuthSelectors.authenticated)
+  // XXX: consider moving this logic to gql resolver
   const empty = cfg.mode === 'MARKETING' || (cfg.alwaysRequiresAuth && !authenticated)
 
   const [{ data }] = urql.useQuery({ query: BUCKET_CONFIGS_QUERY, pause: empty })
