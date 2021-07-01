@@ -73,7 +73,7 @@ export interface BucketConfig {
 
 export interface BucketConfigDoesNotExist {
   readonly __typename: 'BucketConfigDoesNotExist'
-  readonly _: Maybe<Scalars['Boolean']>
+  readonly name: Scalars['String']
 }
 
 export interface BucketDoesNotExist {
@@ -246,7 +246,7 @@ export interface RoleCreateSuccess {
   readonly role: Role
 }
 
-export type RoleDeleteResult = RoleDeleteSuccess | RoleDoesNotExist
+export type RoleDeleteResult = RoleDeleteSuccess | RoleDoesNotExist | RoleNameReserved
 
 export interface RoleDeleteSuccess {
   readonly __typename: 'RoleDeleteSuccess'

@@ -259,11 +259,14 @@ export default ({
         name: 'BucketConfigDoesNotExist',
         fields: [
           {
-            name: '_',
+            name: 'name',
             type: {
-              kind: 'SCALAR',
-              name: 'Boolean',
-              ofType: null,
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
             },
             args: [],
           },
@@ -926,6 +929,10 @@ export default ({
           {
             kind: 'OBJECT',
             name: 'RoleDoesNotExist',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleNameReserved',
           },
         ],
       },

@@ -178,7 +178,7 @@ type RoleNameInvalid {
 }
 
 type BucketConfigDoesNotExist {
-  _: Boolean
+  name: String!
 }
 
 type RoleDoesNotExist {
@@ -221,7 +221,7 @@ type RoleDeleteSuccess {
   _: Boolean
 }
 
-union RoleDeleteResult = RoleDeleteSuccess | RoleDoesNotExist
+union RoleDeleteResult = RoleDeleteSuccess | RoleDoesNotExist | RoleNameReserved
 
 type Mutation {
   bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
