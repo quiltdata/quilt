@@ -437,6 +437,7 @@ interface SummaryNestedProps {
   }
 }
 
+// FIXME: leverage mkUrl
 export function SummaryNested({ handle }: SummaryNestedProps) {
   const s3 = AWS.S3.use()
   const resolveLogicalKey = LogicalKeyResolver.use()
