@@ -1,7 +1,9 @@
+import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 
 import * as APIConnector from 'utils/APIConnector'
+import * as BucketConfig from 'utils/BucketConfig'
 import { BaseError } from 'utils/error'
 import mkSearch from 'utils/mkSearch'
 
@@ -132,6 +134,10 @@ const unescape = (s) => s.replace(/\\n/g, '\n')
 
 export default function useSearch() {
   const req = APIConnector.use()
+  const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
+  const allBuckets = React.useMemo(() => bucketConfigs.map((b) => b.name), [
+    bucketConfigs,
+  ])
 
   return React.useCallback(
     async ({
@@ -140,26 +146,20 @@ export default function useSearch() {
       mode = 'all', // all | objects | packages
       retry,
     }) => {
-      // eslint-disable-next-line no-nested-ternary
-      const index = buckets.length
-        ? R.pipe(
-            R.chain((b) => {
-              const idxs = []
-              if (mode === 'objects' || mode === 'all') {
-                idxs.push(b)
-              }
-              if (mode === 'packages' || mode === 'all') {
-                idxs.push(`${b}${PACKAGES_SUFFIX}*`)
-              }
-              return idxs
-            }),
-            R.join(','),
-          )(buckets)
-        : mode === 'objects' // eslint-disable-line no-nested-ternary
-        ? `*,-*${PACKAGES_SUFFIX}`
-        : mode === 'packages'
-        ? `*${PACKAGES_SUFFIX}`
-        : '*'
+      const index = FP.function.pipe(
+        buckets.length ? buckets : allBuckets,
+        R.chain((b) => {
+          const idxs = []
+          if (mode === 'objects' || mode === 'all') {
+            idxs.push(b)
+          }
+          if (mode === 'packages' || mode === 'all') {
+            idxs.push(`${b}${PACKAGES_SUFFIX}`)
+          }
+          return idxs
+        }),
+        R.join(','),
+      )
       try {
         const qs = mkSearch({ index, action: 'search', query, retry })
         const result = await req(`/search${qs}`)
@@ -193,6 +193,6 @@ export default function useSearch() {
         throw new SearchError('Unexpected', { originalError: e })
       }
     },
-    [req],
+    [req, allBuckets],
   )
 }
