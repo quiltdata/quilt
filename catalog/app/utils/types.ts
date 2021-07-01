@@ -40,3 +40,35 @@ export const nullable = <C extends IO.Mixed>(
     (u, c) => (u == null ? IO.success(null) : codec.validate(u, c)),
     (a) => a,
   ) as NullableC<C>
+
+// enum implementation taken from https://github.com/gcanti/io-ts/pull/366
+enum Enum {}
+
+export class EnumType<E extends typeof Enum> extends IO.Type<E[keyof E]> {
+  readonly _tag: 'EnumType' = 'EnumType'
+
+  private readonly enum: E
+
+  private readonly enumValues: Set<string | number>
+
+  constructor(e: E, name: string) {
+    super(
+      name,
+      (u): u is E[keyof E] => {
+        if (!this.enumValues.has(u as any)) return false
+        // Don't allow key names from number enum reverse mapping
+        if (typeof (this.enum as any)[u as string] === 'number') return false
+        return true
+      },
+      (u, c) => (this.is(u) ? IO.success(u) : IO.failure(u, c)),
+      IO.identity,
+    )
+    this.enum = e
+    this.enumValues = new Set(Object.values(e))
+  }
+}
+
+export const enumType = <E extends typeof Enum>(e: E, name: string = 'enum') =>
+  new EnumType<E>(e, name)
+
+export { enumType as enum }

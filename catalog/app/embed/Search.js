@@ -2,15 +2,13 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import * as SearchResults from 'components/SearchResults'
-import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
-import search from 'utils/search'
+import useSearch from 'utils/search'
 
 function Results({ bucket, query, page, makePageUrl, retry, retryUrl, scrollRef }) {
-  const req = AWS.APIGateway.use()
-  const data = Data.use(search, { req, buckets: [bucket], mode: 'objects', query, retry })
+  const data = Data.use(useSearch(), { buckets: [bucket], mode: 'objects', query, retry })
   return data.case({
     _: () => (
       <SearchResults.Progress>

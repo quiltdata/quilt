@@ -24,7 +24,6 @@ async function schemaIntrospectionPlugin(schema, documents, config, info) {
 
 const baseTSConfig = {
   avoidOptionals: true,
-  constEnums: true,
   declarationKind: 'interface',
   immutableTypes: true,
   namingConvention: 'keep',
