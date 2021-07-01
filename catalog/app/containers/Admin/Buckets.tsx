@@ -15,8 +15,10 @@ import * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
 import Delay from 'utils/Delay'
 import * as Dialogs from 'utils/Dialogs'
+import type FormSpec from 'utils/FormSpec'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import { useTracker } from 'utils/tracking'
 import * as Types from 'utils/types'
@@ -30,11 +32,6 @@ import ADD_MUTATION from './BucketsAdd.generated'
 import UPDATE_MUTATION from './BucketsUpdate.generated'
 import REMOVE_MUTATION from './BucketsRemove.generated'
 import { BucketConfigSelectionFragment as BucketConfig } from './BucketConfigSelection.generated'
-
-// TODO: move into some shared utility module
-function assertNever(x: never): never {
-  throw new Error(`Unexpected value '${x}'. Should have been never.`)
-}
 
 const SNS_ARN_RE = /^arn:aws(-|\w)*:sns:(-|\w)*:\d*:\S+$/
 
@@ -52,10 +49,6 @@ const SnsFormValue = new IO.Type<SnsFormValue>(
       : IO.failure(u, c),
   R.identity,
 )
-
-type FormSpec<Obj extends {}> = {
-  [K in keyof Obj]: (formValues: Record<string, unknown>) => Obj[K]
-}
 
 const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
   title: R.pipe(
