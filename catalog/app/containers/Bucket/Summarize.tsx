@@ -32,6 +32,8 @@ interface SummarizeFile {
   width?: string | number
 }
 
+type MakeURL = (h: $TSFixMe) => string // TODO: set Route instead of string
+
 const useSectionStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
@@ -247,31 +249,43 @@ export const FilePreviewSkel = () => (
 )
 
 interface TitleCustomProps {
-  title: React.ReactNode
   handle: S3Handle
+  mkUrl?: MakeURL
+  title: React.ReactNode
 }
 
-function TitleCustom({ title, handle }: TitleCustomProps) {
+function TitleCustom({ title, mkUrl, handle }: TitleCustomProps) {
   const { urls } = NamedRoutes.use()
 
-  return <Link to={urls.bucketFile(handle.bucket, handle.key)}>{title}</Link>
+  const route = React.useMemo(
+    () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
+    [handle, mkUrl, urls],
+  )
+
+  return <Link to={route}>{title}</Link>
 }
 
 interface TitleFilenameProps {
   handle: S3Handle
+  mkUrl: MakeURL
 }
 
-function TitleFilename({ handle }: TitleFilenameProps) {
+function TitleFilename({ handle, mkUrl }: TitleFilenameProps) {
   const { urls } = NamedRoutes.use()
 
   // TODO: (@nl_0) make a reusable function to compute relative s3 paths or smth
   const title = withoutPrefix(getPrefix(handle.key), handle.key)
-  return <Link to={urls.bucketFile(handle.bucket, handle.key)}>{title}</Link>
+  const route = React.useMemo(
+    () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
+    [handle, mkUrl, urls],
+  )
+  return <Link to={route}>{title}</Link>
 }
 
-function getHeadingOverride(file: SummarizeFile, nested?: boolean) {
-  if (file.title) return <TitleCustom handle={file.handle} title={file.title} />
-  if (nested) return <TitleFilename handle={file.handle} />
+function getHeadingOverride(file: SummarizeFile, mkUrl?: MakeURL) {
+  if (file.title)
+    return <TitleCustom handle={file.handle} title={file.title} mkUrl={mkUrl} />
+  if (mkUrl) return <TitleFilename handle={file.handle} mkUrl={mkUrl} />
   return null
 }
 
@@ -290,19 +304,19 @@ function EnsureAvailability({ s3, handle, children }: EnsureAvailabilityProps) {
 
 interface FileHandleProps {
   file: SummarizeFile
-  nested?: boolean
+  mkUrl?: MakeURL
   s3: S3
 }
 
-export function FileHandle({ file, nested, s3 }: FileHandleProps) {
+export function FileHandle({ file, mkUrl, s3 }: FileHandleProps) {
   return (
     <EnsureAvailability s3={s3} handle={file.handle}>
       {() => (
         <FilePreview
           description={<Markdown data={file.description} />}
           handle={file.handle}
-          headingOverride={getHeadingOverride(file, nested)}
-          nested={nested}
+          headingOverride={getHeadingOverride(file, mkUrl)}
+          nested={!!mkUrl}
         />
       )}
     </EnsureAvailability>
@@ -325,12 +339,18 @@ const useColumnStyles = M.makeStyles({
   },
 })
 
-function Column({ file, nested, s3 }: RowProps) {
+interface ColumnProps {
+  file: SummarizeFile
+  mkUrl?: MakeURL
+  s3: S3
+}
+
+function Column({ file, mkUrl, s3 }: ColumnProps) {
   const classes = useColumnStyles()
   const style = React.useMemo(() => getColumnStyles(file.width), [file])
   return (
     <div className={classes.column} style={style}>
-      <FileHandle file={file} nested={nested} s3={s3} />
+      <FileHandle file={file} mkUrl={mkUrl} s3={s3} />
     </div>
   )
 }
@@ -345,14 +365,14 @@ const useRowStyles = M.makeStyles({
 
 interface RowProps {
   file: SummarizeFile
-  nested?: boolean
+  mkUrl?: MakeURL
   s3: S3
 }
 
-function Row({ file, nested, s3 }: RowProps) {
+function Row({ file, mkUrl, s3 }: RowProps) {
   const classes = useRowStyles()
 
-  if (!Array.isArray(file)) return <FileHandle file={file} s3={s3} nested={nested} />
+  if (!Array.isArray(file)) return <FileHandle file={file} s3={s3} mkUrl={mkUrl} />
 
   return (
     <div className={classes.row}>
@@ -360,7 +380,7 @@ function Row({ file, nested, s3 }: RowProps) {
         <Column
           file={f}
           key={`${f.handle.bucket}/${f.handle.key}`}
-          nested={nested}
+          mkUrl={mkUrl}
           s3={s3}
         />
       ))}
@@ -370,11 +390,11 @@ function Row({ file, nested, s3 }: RowProps) {
 
 interface SummaryEntriesProps {
   entries: SummarizeFile[]
-  nested?: boolean
+  mkUrl?: MakeURL
   s3: S3
 }
 
-export function SummaryEntries({ entries, nested, s3 }: SummaryEntriesProps) {
+export function SummaryEntries({ entries, mkUrl, s3 }: SummaryEntriesProps) {
   const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
   const showMore = React.useCallback(() => {
     setShown(R.add(SUMMARY_ENTRIES))
@@ -389,7 +409,7 @@ export function SummaryEntries({ entries, nested, s3 }: SummaryEntriesProps) {
             Array.isArray(file) ? file.map((f) => f.handle.key).join('') : file.handle.key
           }
           file={file}
-          nested={nested}
+          mkUrl={mkUrl}
           s3={s3}
         />
       ))}
@@ -429,6 +449,7 @@ export function SummaryRoot({ s3, bucket, inStack, overviewUrl }: SummaryRootPro
 }
 
 interface SummaryNestedProps {
+  mkUrl: MakeURL
   handle: {
     key: string
     logicalKey: string
@@ -438,8 +459,7 @@ interface SummaryNestedProps {
   }
 }
 
-// FIXME: leverage mkUrl
-export function SummaryNested({ handle }: SummaryNestedProps) {
+export function SummaryNested({ handle, mkUrl }: SummaryNestedProps) {
   const s3 = AWS.S3.use()
   const resolveLogicalKey = LogicalKeyResolver.use()
   const data = useData(requests.summarize, { s3, handle, resolveLogicalKey })
@@ -451,7 +471,9 @@ export function SummaryNested({ handle }: SummaryNestedProps) {
       console.error(e)
       return null
     },
-    Ok: (entries: SummarizeFile[]) => <SummaryEntries entries={entries} s3={s3} nested />,
+    Ok: (entries: SummarizeFile[]) => (
+      <SummaryEntries entries={entries} s3={s3} mkUrl={mkUrl} />
+    ),
     Pending: () => <FilePreviewSkel />,
     _: () => null,
   })
