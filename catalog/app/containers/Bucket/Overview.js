@@ -860,12 +860,12 @@ const useSectionStyles = M.makeStyles((t) => ({
     position: 'relative',
     [t.breakpoints.down('xs')]: {
       borderRadius: 0,
-      padding: t.spacing(2),
-      paddingTop: t.spacing(3),
+      padding: (nested) => t.spacing(nested ? 1 : 2),
+      paddingTop: (nested) => t.spacing(nested ? 2 : 3),
     },
     [t.breakpoints.up('sm')]: {
       marginTop: t.spacing(2),
-      padding: t.spacing(4),
+      padding: (nested) => t.spacing(nested ? 2 : 4),
     },
   },
   description: {
@@ -884,8 +884,8 @@ const useSectionStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Section({ heading, description, children, ...props }) {
-  const classes = useSectionStyles()
+function Section({ heading, description, children, nested, ...props }) {
+  const classes = useSectionStyles(nested)
   return (
     <M.Paper className={classes.root} {...props}>
       {!!heading && <div className={classes.heading}>{heading}</div>}
@@ -979,7 +979,7 @@ function PreviewBox({ contents, expanded: defaultExpanded = false }) {
   )
 }
 
-function FilePreview({ description, handle, headingOverride, expanded }) {
+function FilePreview({ description, handle, headingOverride, expanded, nested }) {
   const { urls } = NamedRoutes.use()
 
   const crumbs = React.useMemo(() => {
@@ -1012,7 +1012,7 @@ function FilePreview({ description, handle, headingOverride, expanded }) {
 
   // TODO: check for glacier and hide items
   return (
-    <Section description={description} heading={heading}>
+    <Section description={description} heading={heading} nested={nested}>
       {Preview.load(
         handle,
         Preview.display({
@@ -1219,6 +1219,7 @@ function FileHandle({ file, nested, s3 }) {
           description={<Markdown data={file.description} />}
           handle={file.handle}
           headingOverride={<HeadingOverride file={file} nested={nested} />}
+          nested={nested}
         />
       )}
     </EnsureAvailability>
