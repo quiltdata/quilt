@@ -286,6 +286,9 @@ function Delete({ role, close }: DeleteProps) {
         case 'RoleDeleteSuccess':
         case 'RoleDoesNotExist': // ignore if role was not found
           return
+        case 'RoleNameReserved':
+          push(`Unable to delete reserved role "${role.name}"`)
+          return
         default:
           assertNever(r)
       }
