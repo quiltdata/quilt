@@ -72,13 +72,10 @@ const columns = [
 ]
 
 const useStyles = M.makeStyles((t) => ({
-  content: {
-    position: 'relative',
-  },
   lock: {
     alignItems: 'center',
     background: 'rgba(255,255,255,0.9)',
-    bottom: 0,
+    bottom: 52,
     cursor: 'not-allowed',
     display: 'flex',
     flexDirection: 'column',
@@ -86,7 +83,7 @@ const useStyles = M.makeStyles((t) => ({
     left: 0,
     position: 'absolute',
     right: 0,
-    top: 0,
+    top: 64,
     zIndex: 1, // above Select and Checkbox
   },
   panel: {
@@ -176,12 +173,7 @@ function Create({ close }: CreateProps) {
           <M.DialogTitle disableTypography>
             <M.Typography variant="h5">Create a role</M.Typography>
           </M.DialogTitle>
-          <M.DialogContent className={classes.content}>
-            {submitting && (
-              <div className={classes.lock}>
-                <M.CircularProgress size={80} />
-              </div>
-            )}
+          <M.DialogContent>
             <form onSubmit={handleSubmit}>
               <RF.Field
                 // @ts-expect-error
@@ -260,6 +252,11 @@ function Create({ close }: CreateProps) {
               Create
             </M.Button>
           </M.DialogActions>
+          {submitting && (
+            <div className={classes.lock}>
+              <M.CircularProgress size={80} />
+            </div>
+          )}
         </>
       )}
     </RF.Form>
@@ -444,12 +441,7 @@ function Edit({ role, close }: EditProps) {
           <M.DialogTitle>
             Edit the &quot;{role.name}&quot; role ({managed ? 'managed' : 'unmanaged'})
           </M.DialogTitle>
-          <M.DialogContent className={classes.content}>
-            {submitting && (
-              <div className={classes.lock}>
-                <M.CircularProgress size={80} />
-              </div>
-            )}
+          <M.DialogContent>
             <form onSubmit={handleSubmit}>
               <RF.Field
                 // @ts-expect-error
@@ -517,6 +509,11 @@ function Edit({ role, close }: EditProps) {
               Save
             </M.Button>
           </M.DialogActions>
+          {submitting && (
+            <div className={classes.lock}>
+              <M.CircularProgress size={80} />
+            </div>
+          )}
         </>
       )}
     </RF.Form>
