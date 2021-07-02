@@ -605,8 +605,8 @@ async function parseFile(resolvePath, fileHandle) {
       Resource.Pointer.case({
         Web: () => null,
         S3: resolve,
-        S3Rel: (path_1) => resolvePath(path_1).then(resolve).catch(reject),
-        Path: (path_3) => resolvePath(path_3).then(resolve).catch(reject),
+        S3Rel: (path) => resolvePath(path).then(resolve).catch(reject),
+        Path: (path) => resolvePath(path).then(resolve).catch(reject),
       }),
     )(fileHandle.path || fileHandle),
   )
