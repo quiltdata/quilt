@@ -22,6 +22,9 @@ import * as requests from './requests'
 interface S3Handle {
   bucket: string
   key: string
+  logicalKey?: string
+  size?: number
+  version?: number
 }
 
 interface SummarizeFile {
@@ -32,7 +35,7 @@ interface SummarizeFile {
   width?: string | number
 }
 
-type MakeURL = (h: $TSFixMe) => LocationDescriptor
+type MakeURL = (h: S3Handle) => LocationDescriptor
 
 const useSectionStyles = M.makeStyles((t) => ({
   root: {
