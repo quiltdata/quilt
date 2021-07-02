@@ -635,9 +635,13 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
       .promise()
     const json = file.Body.toString('utf-8')
     const manifest = JSON.parse(json)
-    const configErrors = isValidManifest(manifest.rows || manifest)
+    const configErrors = isValidManifest(manifest)
     if (configErrors.length) {
-      throw new Error('Invalid manifest: must be a JSON array of file links')
+      // eslint-disable-next-line no-console
+      console.error(configErrors[0])
+      throw new Error(
+        'Invalid manifest: must be a JSON array of files or arrays of files',
+      )
     }
 
     const resolvePath = (path) =>
@@ -655,7 +659,7 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
           })
 
     const handles = await Promise.all(
-      (manifest.rows || manifest).map((fileHandle) =>
+      manifest.map((fileHandle) =>
         isFile(fileHandle)
           ? parseFile(resolvePath, fileHandle)
           : Promise.all(fileHandle.map(parseFile.bind(null, resolvePath))),

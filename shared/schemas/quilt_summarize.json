@@ -70,31 +70,11 @@
           }
         }
       ]
-    },
-
-    "root": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/row"
-      }
     }
   },
 
-  "anyOf": [
-    {
-      "type": "object",
-      "properties": {
-        "version": {
-          "description": "Semantic version",
-          "type": "string"
-        },
-        "rows": {
-          "$ref": "#/definitions/root"
-        }
-      }
-    },
-    {
-      "$ref": "#/definitions/root"
-    }
-  ]
+  "type": "array",
+  "items": {
+    "$ref": "#/definitions/row"
+  }
 }
