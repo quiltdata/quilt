@@ -139,6 +139,7 @@ export interface ManagedRole {
   readonly __typename: 'ManagedRole'
   readonly id: Scalars['ID']
   readonly name: Scalars['String']
+  readonly arn: Maybe<Scalars['String']>
   readonly permissions: ReadonlyArray<RoleBucketPermission>
 }
 
@@ -306,7 +307,7 @@ export interface UnmanagedRole {
   readonly __typename: 'UnmanagedRole'
   readonly id: Scalars['ID']
   readonly name: Scalars['String']
-  readonly arn: Scalars['String']
+  readonly arn: Maybe<Scalars['String']>
 }
 
 export interface UnmanagedRoleInput {
