@@ -1,4 +1,5 @@
 import cx from 'classnames'
+import { LocationDescriptor } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -32,7 +33,7 @@ interface SummarizeFile {
   width?: string | number
 }
 
-type MakeURL = (h: $TSFixMe) => string // TODO: set Route instead of string
+type MakeURL = (h: $TSFixMe) => LocationDescriptor
 
 const useSectionStyles = M.makeStyles((t) => ({
   root: {
