@@ -40,9 +40,16 @@ function Mono({ children }: React.PropsWithChildren<{}>) {
   return <span className={classes.root}>{children}</span>
 }
 
+const IAM_HOME = 'https://console.aws.amazon.com/iam/home'
+const ARN_ROLE_RE = /^arn:aws:iam:[^:]*:\d+:role\/(.+)$/
+const ARN_POLICY_RE = /^arn:aws:iam:[^:]*:\d+:policy\/(.+)$/
+
 const getARNLink = (arn: string) => {
-  const [, role] = arn.match(/^arn:aws:iam:[^:]*:\d+:role\/(.+)$/) || []
-  return role ? `https://console.aws.amazon.com/iam/home#/roles/${role}` : undefined
+  const [, role] = arn.match(ARN_ROLE_RE) || []
+  if (role) return `${IAM_HOME}#/roles/${role}`
+  const [, policy] = arn.match(ARN_POLICY_RE) || []
+  if (policy) return `${IAM_HOME}#/policies/${arn}`
+  return undefined
 }
 
 const columns = [
@@ -53,11 +60,17 @@ const columns = [
     props: { component: 'th', scope: 'row' },
   },
   {
+    id: 'managed',
+    label: 'Managed',
+    getValue: (r: Role) => r.__typename === 'ManagedRole',
+    getDisplay: (value: boolean) => (value ? 'Yes' : 'No'),
+  },
+  {
     id: 'arn',
     label: 'ARN',
-    getValue: (r: Role) => (r.__typename === 'UnmanagedRole' ? r.arn : null),
+    getValue: R.prop('arn'),
     getDisplay: (v: string | null) => {
-      if (!v) return 'N/A (Managed Role)'
+      if (!v) return 'None'
       const link = getARNLink(v)
       const mono = <Mono>{v}</Mono>
       return link ? (
@@ -180,7 +193,8 @@ function Create({ close }: CreateProps) {
                 component={Form.Field}
                 name="name"
                 validate={validators.required as FF.FieldValidator<any>}
-                placeholder="Name"
+                placeholder="Enter role name"
+                label="Name"
                 fullWidth
                 margin="normal"
                 errors={{
@@ -203,7 +217,8 @@ function Create({ close }: CreateProps) {
                   component={Form.Field}
                   name="arn"
                   validate={(v) => (managed ? undefined : validators.required(v))}
-                  placeholder="ARN"
+                  placeholder="Enter role ARN"
+                  label="ARN"
                   fullWidth
                   margin="normal"
                   disabled={managed}
@@ -448,7 +463,8 @@ function Edit({ role, close }: EditProps) {
                 component={Form.Field}
                 name="name"
                 validate={validators.required as FF.FieldValidator<any>}
-                placeholder="Name"
+                placeholder="Enter role name"
+                label="Name"
                 fullWidth
                 margin="normal"
                 errors={{
@@ -459,21 +475,31 @@ function Edit({ role, close }: EditProps) {
                 }}
               />
               {managed ? (
-                <RF.Field
-                  className={classes.panel}
-                  // @ts-expect-error
-                  component={BucketsPermissions}
-                  name="permissions"
-                  fullWidth
-                  margin="normal"
-                />
+                <>
+                  <M.TextField
+                    value={role.arn}
+                    label="ARN"
+                    fullWidth
+                    margin="normal"
+                    disabled
+                  />
+                  <RF.Field
+                    className={classes.panel}
+                    // @ts-expect-error
+                    component={BucketsPermissions}
+                    name="permissions"
+                    fullWidth
+                    margin="normal"
+                  />
+                </>
               ) : (
                 <RF.Field
                   // @ts-expect-error
                   component={Form.Field}
                   name="arn"
                   validate={validators.required as FF.FieldValidator<any>}
-                  placeholder="ARN"
+                  placeholder="Enter role ARN"
+                  label="ARN"
                   fullWidth
                   margin="normal"
                   errors={{
@@ -586,6 +612,7 @@ export default function Roles() {
                   {columns.map((col) => (
                     // @ts-expect-error
                     <M.TableCell key={col.id} {...col.props}>
+                      {/* @ts-expect-error */}
                       {(col.getDisplay || R.identity)(col.getValue(i))}
                     </M.TableCell>
                   ))}
