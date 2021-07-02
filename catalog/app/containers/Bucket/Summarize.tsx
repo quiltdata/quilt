@@ -37,17 +37,30 @@ interface SummarizeFile {
 
 type MakeURL = (h: S3Handle) => LocationDescriptor
 
+enum FileThemes {
+  Root = 'root',
+  Nested = 'nested',
+}
+const FileThemeContext = React.createContext(FileThemes.Root)
+
+interface SectionStylesProps {
+  ft: string
+}
+
 const useSectionStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
     [t.breakpoints.down('xs')]: {
       borderRadius: 0,
-      padding: (nested) => t.spacing(nested ? 1 : 2),
-      paddingTop: (nested) => t.spacing(nested ? 2 : 3),
+      padding: ({ ft }: SectionStylesProps) =>
+        t.spacing(ft === FileThemes.Nested ? 1 : 2),
+      paddingTop: ({ ft }: SectionStylesProps) =>
+        t.spacing(ft === FileThemes.Nested ? 2 : 3),
     },
     [t.breakpoints.up('sm')]: {
       marginTop: t.spacing(2),
-      padding: (nested) => t.spacing(nested ? 2 : 4),
+      padding: ({ ft }: SectionStylesProps) =>
+        t.spacing(ft === FileThemes.Nested ? 2 : 4),
     },
   },
   description: {
@@ -69,17 +82,11 @@ const useSectionStyles = M.makeStyles((t) => ({
 interface SectionProps extends M.PaperProps {
   description?: React.ReactNode
   heading?: React.ReactNode
-  nested?: boolean
 }
 
-export function Section({
-  heading,
-  description,
-  children,
-  nested,
-  ...props
-}: SectionProps) {
-  const classes = useSectionStyles(nested)
+export function Section({ heading, description, children, ...props }: SectionProps) {
+  const ft = React.useContext(FileThemeContext)
+  const classes = useSectionStyles({ ft })
   return (
     <M.Paper className={classes.root} {...props}>
       {!!heading && <div className={classes.heading}>{heading}</div>}
@@ -163,7 +170,6 @@ interface FilePreviewProps {
   handle: S3Handle
   headingOverride: React.ReactNode
   expanded?: boolean
-  nested?: boolean
 }
 
 export function FilePreview({
@@ -171,7 +177,6 @@ export function FilePreview({
   handle,
   headingOverride,
   expanded,
-  nested,
 }: FilePreviewProps) {
   const { urls } = NamedRoutes.use()
 
@@ -205,7 +210,7 @@ export function FilePreview({
 
   // TODO: check for glacier and hide items
   return (
-    <Section description={description} heading={heading} nested={nested}>
+    <Section description={description} heading={heading}>
       {Preview.load(
         handle,
         Preview.display({
@@ -319,7 +324,6 @@ function FileHandle({ file, mkUrl, s3 }: FileHandleProps) {
           description={<Markdown data={file.description} />}
           handle={file.handle}
           headingOverride={getHeadingOverride(file, mkUrl)}
-          nested={!!mkUrl}
         />
       )}
     </EnsureAvailability>
@@ -437,18 +441,22 @@ interface SummaryRootProps {
 export function SummaryRoot({ s3, bucket, inStack, overviewUrl }: SummaryRootProps) {
   const req = APIConnector.use()
   const data = useData(requests.bucketSummary, { req, s3, bucket, inStack, overviewUrl })
-  return data.case({
-    Err: (e: Error) => {
-      // eslint-disable-next-line no-console
-      console.warn('Error loading summary')
-      // eslint-disable-next-line no-console
-      console.error(e)
-      return null
-    },
-    Ok: (entries: SummarizeFile[]) => <SummaryEntries entries={entries} s3={s3} />,
-    Pending: () => <FilePreviewSkel />,
-    _: () => null,
-  })
+  return (
+    <FileThemeContext.Provider value={FileThemes.Root}>
+      {data.case({
+        Err: (e: Error) => {
+          // eslint-disable-next-line no-console
+          console.warn('Error loading summary')
+          // eslint-disable-next-line no-console
+          console.error(e)
+          return null
+        },
+        Ok: (entries: SummarizeFile[]) => <SummaryEntries entries={entries} s3={s3} />,
+        Pending: () => <FilePreviewSkel />,
+        _: () => null,
+      })}
+    </FileThemeContext.Provider>
+  )
 }
 
 interface SummaryNestedProps {
@@ -466,18 +474,22 @@ export function SummaryNested({ handle, mkUrl }: SummaryNestedProps) {
   const s3 = AWS.S3.use()
   const resolveLogicalKey = LogicalKeyResolver.use()
   const data = useData(requests.summarize, { s3, handle, resolveLogicalKey })
-  return data.case({
-    Err: (e: Error) => {
-      // eslint-disable-next-line no-console
-      console.warn('Error loading summary')
-      // eslint-disable-next-line no-console
-      console.error(e)
-      return null
-    },
-    Ok: (entries: SummarizeFile[]) => (
-      <SummaryEntries entries={entries} s3={s3} mkUrl={mkUrl} />
-    ),
-    Pending: () => <FilePreviewSkel />,
-    _: () => null,
-  })
+  return (
+    <FileThemeContext.Provider value={FileThemes.Nested}>
+      {data.case({
+        Err: (e: Error) => {
+          // eslint-disable-next-line no-console
+          console.warn('Error loading summary')
+          // eslint-disable-next-line no-console
+          console.error(e)
+          return null
+        },
+        Ok: (entries: SummarizeFile[]) => (
+          <SummaryEntries entries={entries} s3={s3} mkUrl={mkUrl} />
+        ),
+        Pending: () => <FilePreviewSkel />,
+        _: () => null,
+      })}
+    </FileThemeContext.Provider>
+  )
 }
