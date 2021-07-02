@@ -11,16 +11,16 @@ import * as data from './data'
 
 export default function UsersAndRoles() {
   const req = APIConnector.use()
+  // TODO: use gql for querying users when implemented
   const users = Cache.useData(data.UsersResource, { req })
-  const roles = Cache.useData(data.RolesResource, { req })
   return (
     <>
       <MetaTitle>{['Users and Roles', 'Admin']}</MetaTitle>
       <M.Box mt={2}>
-        <Users users={users} roles={roles} />
+        <Users users={users} />
       </M.Box>
       <M.Box mt={2} mb={2}>
-        <Roles roles={roles} />
+        <Roles />
       </M.Box>
     </>
   )

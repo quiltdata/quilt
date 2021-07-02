@@ -1,0 +1,6 @@
+query {
+  roles {
+    ... on UnmanagedRole { id, name }
+    ... on ManagedRole { id, name }
+  }
+}

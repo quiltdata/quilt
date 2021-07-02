@@ -24,6 +24,7 @@ import * as routes from 'constants/routes'
 import * as style from 'constants/style'
 import * as AWS from 'utils/AWS'
 import * as APIConnector from 'utils/APIConnector'
+import { GraphQLProvider } from 'utils/GraphQL'
 import { BucketCacheProvider } from 'utils/BucketCache'
 import * as Config from 'utils/Config'
 import { createBoundary } from 'utils/ErrorBoundary'
@@ -122,6 +123,7 @@ const render = (messages: MessagesByLocale) => {
       [Config.Provider, { path: '/config.json' }],
       [React.Suspense, { fallback: <Placeholder /> }],
       [Sentry.Loader, { userSelector: sentryUserSelector }],
+      GraphQLProvider,
       ErrorBoundary,
       RF.Provider,
       Notifications.Provider,

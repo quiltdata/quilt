@@ -20,6 +20,7 @@ const map = (fn) => R.ifElse(Array.isArray, R.map(fn), fn)
 
 const traverseUrls = (fn, spec) => R.evolve({ data: map(R.evolve({ url: fn })) }, spec)
 
+// NOTE: downloads content from urls embeded in `{ data: url-here-becomes-json }`
 function useVegaSpecSigner(handle) {
   const sign = AWS.Signer.useS3Signer()
   const resolveLogicalKey = useLogicalKeyResolver()
@@ -58,7 +59,6 @@ function useVegaSpecSigner(handle) {
     [sign, resolvePath],
   )
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   return React.useCallback(
     async (spec) => {
       const promises = []
