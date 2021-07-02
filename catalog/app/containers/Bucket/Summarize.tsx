@@ -308,7 +308,7 @@ interface FileHandleProps {
   s3: S3
 }
 
-export function FileHandle({ file, mkUrl, s3 }: FileHandleProps) {
+function FileHandle({ file, mkUrl, s3 }: FileHandleProps) {
   return (
     <EnsureAvailability s3={s3} handle={file.handle}>
       {() => (
@@ -394,7 +394,7 @@ interface SummaryEntriesProps {
   s3: S3
 }
 
-export function SummaryEntries({ entries, mkUrl, s3 }: SummaryEntriesProps) {
+function SummaryEntries({ entries, mkUrl, s3 }: SummaryEntriesProps) {
   const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
   const showMore = React.useCallback(() => {
     setShown(R.add(SUMMARY_ENTRIES))
