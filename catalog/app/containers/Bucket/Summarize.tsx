@@ -1,3 +1,4 @@
+import type { S3 } from 'aws-sdk'
 import cx from 'classnames'
 import { LocationDescriptor } from 'history'
 import * as R from 'ramda'
@@ -17,8 +18,6 @@ import Link from 'utils/StyledLink'
 import { getBreadCrumbs, getPrefix, withoutPrefix } from 'utils/s3paths'
 
 import * as requests from './requests'
-
-type S3 = $TSFixMe
 
 interface S3Handle {
   bucket: string
