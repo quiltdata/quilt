@@ -453,6 +453,15 @@ export default ({
             args: [],
           },
           {
+            name: 'arn',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
             name: 'permissions',
             type: {
               kind: 'NON_NULL',
@@ -1148,12 +1157,9 @@ export default ({
           {
             name: 'arn',
             type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'String',
-                ofType: null,
-              },
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
             },
             args: [],
           },
