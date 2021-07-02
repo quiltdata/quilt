@@ -265,12 +265,17 @@ interface TitleCustomProps {
 function TitleCustom({ title, mkUrl, handle }: TitleCustomProps) {
   const { urls } = NamedRoutes.use()
 
+  const filepath = withoutPrefix(getPrefix(handle.key), handle.key)
   const route = React.useMemo(
     () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
     [handle, mkUrl, urls],
   )
 
-  return <Link to={route}>{title}</Link>
+  return (
+    <Link title={filepath} to={route}>
+      {title}
+    </Link>
+  )
 }
 
 interface TitleFilenameProps {
