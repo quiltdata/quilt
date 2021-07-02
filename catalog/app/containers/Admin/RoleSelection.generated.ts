@@ -8,7 +8,7 @@ export type RoleSelection_UnmanagedRole_Fragment = {
 
 export type RoleSelection_ManagedRole_Fragment = {
   readonly __typename: 'ManagedRole'
-} & Pick<Types.ManagedRole, 'id' | 'name'> & {
+} & Pick<Types.ManagedRole, 'id' | 'name' | 'arn'> & {
     readonly permissions: ReadonlyArray<
       { readonly __typename: 'RoleBucketPermission' } & Pick<
         Types.RoleBucketPermission,
@@ -62,6 +62,7 @@ export const RoleSelectionFragmentDoc = ({
               selections: [
                 { kind: 'Field', name: { kind: 'Name', value: 'id' } },
                 { kind: 'Field', name: { kind: 'Name', value: 'name' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'arn' } },
                 {
                   kind: 'Field',
                   name: { kind: 'Name', value: 'permissions' },
