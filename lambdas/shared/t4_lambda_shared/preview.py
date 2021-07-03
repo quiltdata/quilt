@@ -10,6 +10,7 @@ from io import BytesIO
 
 import fcsparser
 import pandas
+from xlrd.biffh import XLRDError
 
 from .utils import get_available_memory
 
@@ -57,6 +58,27 @@ def decompress_stream(chunk_iterator, compression):
             # gzip'ed files can contain arbitrary data after the end of the archive,
             # so we might be done early.
             break
+
+
+def extract_excel(file_, as_html=False):
+    """
+    excel file => data frame => html
+    Args:
+        file_ - file-like object opened in binary mode, pointing to XLS or XLSX
+    Returns:
+        body - html or text version of *first sheet only* in workbook
+        info - metadata
+    """
+    try:
+        first_sheet = pandas.read_excel(file_, sheet_name=0)
+    except XLRDError:
+        first_sheet = pandas.read_excel(file_, sheet_name=0, engine='openpyxl')
+
+    if as_html:
+        html = remove_pandas_footer(first_sheet._repr_html_())  # pylint: disable=protected-access
+        return html, {}
+
+    return first_sheet.to_string(index=False), {}
 
 
 def extract_fcs(file_, as_html=True):
