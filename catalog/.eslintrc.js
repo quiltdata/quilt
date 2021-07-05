@@ -3,8 +3,6 @@ module.exports = {
   extends: [
     'airbnb-typescript',
     'prettier',
-    'prettier/react',
-    'prettier/@typescript-eslint',
   ],
   plugins: ['@typescript-eslint', 'redux-saga', 'react', 'react-hooks', 'jsx-a11y'],
   env: {
