@@ -1,3 +1,6 @@
+/**
+ * @jest-environment jsdom
+ */
 import { mocked } from 'ts-jest/utils'
 import { renderHook } from '@testing-library/react-hooks'
 
