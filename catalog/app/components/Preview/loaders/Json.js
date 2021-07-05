@@ -160,10 +160,9 @@ function useFallbackLoader({ handle, children, noAutoFetch }) {
   const processed = utils.useAsyncProcessing(data.result, async (r) => {
     const contents = r.Body.toString('utf-8')
     const json = JSON.parse(contents)
-    if (detectSchema(contents)) {
-      return PreviewData.Vega({ spec: await signSpec(json) })
-    }
-    return PreviewData.Json({ rendered: json })
+    return detectSchema(contents)
+      ? PreviewData.Vega({ spec: await signSpec(json) })
+      : PreviewData.Json({ rendered: json })
   })
   const handled = utils.useErrorHandling(processed, { handle, retry: data.fetch })
   return children(handled)
