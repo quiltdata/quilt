@@ -154,8 +154,19 @@ function JsonLoader({ gated, handle, children }) {
 export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
 
 function useFallbackLoader({ handle, children, noAutoFetch }) {
+  const [fetchWholeFile, setFetchWholeFile] = React.useState(false)
+  const [gated, setGated] = React.useState(false)
   const signSpec = useVegaSpecSigner(handle)
-  const data = utils.useObjectGetter(handle, { noAutoFetch })
+  const data = utils.useObjectGetter(handle, { noAutoFetch: !fetchWholeFile })
+  const head = utils.useGate(handle, { noAutoFetch })
+
+  utils.useProcessing(head.result, (error) => {
+    if (error) {
+      if (!gated) setGated(!!error)
+    } else if (!fetchWholeFile) {
+      setFetchWholeFile(true)
+    }
+  })
 
   const processed = utils.useAsyncProcessing(data.result, async (r) => {
     const contents = r.Body.toString('utf-8')
@@ -165,7 +176,11 @@ function useFallbackLoader({ handle, children, noAutoFetch }) {
       : PreviewData.Json({ rendered: json })
   })
   const handled = utils.useErrorHandling(processed, { handle, retry: data.fetch })
-  return children(handled)
+  return children(
+    gated && AsyncResult.Init.is(handled)
+      ? AsyncResult.Err(PreviewError.Gated({ handle, load: data.fetch }))
+      : handled,
+  )
 }
 
 export const Loader = function GatedJsonLoader({ handle, children }) {
