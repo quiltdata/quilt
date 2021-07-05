@@ -369,10 +369,12 @@ function Column({ className, file, mkUrl, s3 }: ColumnProps) {
 
 const useRowStyles = M.makeStyles((t) => ({
   row: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
     marginLeft: t.spacing(-2),
+    [t.breakpoints.up('sm')]: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
   },
   column: {
     marginLeft: t.spacing(2),
