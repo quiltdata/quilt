@@ -38,29 +38,37 @@ interface SummarizeFile {
 type MakeURL = (h: S3Handle) => LocationDescriptor
 
 enum FileThemes {
-  Root = 'root',
+  Overview = 'overview',
   Nested = 'nested',
 }
-const FileThemeContext = React.createContext(FileThemes.Root)
-
-interface SectionStylesProps {
-  ft: string
-}
+const FileThemeContext = React.createContext(FileThemes.Overview)
 
 const useSectionStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
     [t.breakpoints.down('xs')]: {
       borderRadius: 0,
-      padding: ({ ft }: SectionStylesProps) =>
-        t.spacing(ft === FileThemes.Nested ? 1 : 2),
-      paddingTop: ({ ft }: SectionStylesProps) =>
-        t.spacing(ft === FileThemes.Nested ? 2 : 3),
     },
     [t.breakpoints.up('sm')]: {
       marginTop: t.spacing(2),
-      padding: ({ ft }: SectionStylesProps) =>
-        t.spacing(ft === FileThemes.Nested ? 2 : 4),
+    },
+  },
+  [FileThemes.Overview]: {
+    [t.breakpoints.down('xs')]: {
+      padding: t.spacing(1),
+      paddingTop: t.spacing(2),
+    },
+    [t.breakpoints.up('sm')]: {
+      padding: t.spacing(2),
+    },
+  },
+  [FileThemes.Nested]: {
+    [t.breakpoints.down('xs')]: {
+      padding: t.spacing(2),
+      paddingTop: t.spacing(3),
+    },
+    [t.breakpoints.up('sm')]: {
+      padding: t.spacing(4),
     },
   },
   description: {
@@ -86,9 +94,9 @@ interface SectionProps extends M.PaperProps {
 
 export function Section({ heading, description, children, ...props }: SectionProps) {
   const ft = React.useContext(FileThemeContext)
-  const classes = useSectionStyles({ ft })
+  const classes = useSectionStyles()
   return (
-    <M.Paper className={classes.root} {...props}>
+    <M.Paper className={cx(classes.root, classes[ft])} {...props}>
       {!!heading && <div className={classes.heading}>{heading}</div>}
       {!!description && <div className={classes.description}>{description}</div>}
       {children}
@@ -447,7 +455,7 @@ export function SummaryRoot({ s3, bucket, inStack, overviewUrl }: SummaryRootPro
   const req = APIConnector.use()
   const data = useData(requests.bucketSummary, { req, s3, bucket, inStack, overviewUrl })
   return (
-    <FileThemeContext.Provider value={FileThemes.Root}>
+    <FileThemeContext.Provider value={FileThemes.Overview}>
       {data.case({
         Err: (e: Error) => {
           // eslint-disable-next-line no-console
