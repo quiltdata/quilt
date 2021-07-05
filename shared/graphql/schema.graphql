@@ -24,12 +24,13 @@ type BucketConfig {
 type UnmanagedRole {
   id: ID!
   name: String!
-  arn: String!
+  arn: String
 }
 
 type ManagedRole {
   id: ID!
   name: String!
+  arn: String
   permissions: [RoleBucketPermission!]!
 }
 
