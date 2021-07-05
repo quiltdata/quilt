@@ -191,7 +191,7 @@ export function FilePreview({
       children: R.last(all)?.label,
     }
     return { dirs, file }
-  }, [handle, urls])
+  }, [handle.bucket, handle.key, urls])
 
   const heading =
     headingOverride != null ? (
@@ -343,13 +343,13 @@ function getColumnStyles(width?: number | string) {
   return { flexGrow: 1 }
 }
 
-const useColumnStyles = M.makeStyles({
+const useColumnStyles = M.makeStyles((t) => ({
   column: {
     '& + &': {
-      marginLeft: '16px',
+      marginLeft: t.spacing(2),
     },
   },
-})
+}))
 
 interface ColumnProps {
   file: SummarizeFile
