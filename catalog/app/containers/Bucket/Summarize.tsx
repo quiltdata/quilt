@@ -55,20 +55,20 @@ const useSectionStyles = M.makeStyles((t) => ({
   },
   [FileThemes.Overview]: {
     [t.breakpoints.down('xs')]: {
-      padding: t.spacing(1),
-      paddingTop: t.spacing(2),
-    },
-    [t.breakpoints.up('sm')]: {
-      padding: t.spacing(2),
-    },
-  },
-  [FileThemes.Nested]: {
-    [t.breakpoints.down('xs')]: {
       padding: t.spacing(2),
       paddingTop: t.spacing(3),
     },
     [t.breakpoints.up('sm')]: {
       padding: t.spacing(4),
+    },
+  },
+  [FileThemes.Nested]: {
+    [t.breakpoints.down('xs')]: {
+      padding: t.spacing(1),
+      paddingTop: t.spacing(2),
+    },
+    [t.breakpoints.up('sm')]: {
+      padding: t.spacing(2),
     },
   },
   description: {
@@ -351,37 +351,33 @@ function getColumnStyles(width?: number | string) {
   return { flexGrow: 1 }
 }
 
-const useColumnStyles = M.makeStyles((t) => ({
-  column: {
-    '& + &': {
-      marginLeft: t.spacing(2),
-    },
-  },
-}))
-
 interface ColumnProps {
+  className: string
   file: SummarizeFile
   mkUrl?: MakeURL
   s3: S3
 }
 
-function Column({ file, mkUrl, s3 }: ColumnProps) {
-  const classes = useColumnStyles()
+function Column({ className, file, mkUrl, s3 }: ColumnProps) {
   const style = React.useMemo(() => getColumnStyles(file.width), [file.width])
   return (
-    <div className={classes.column} style={style}>
+    <div className={className} style={style}>
       <FileHandle file={file} mkUrl={mkUrl} s3={s3} />
     </div>
   )
 }
 
-const useRowStyles = M.makeStyles({
+const useRowStyles = M.makeStyles((t) => ({
   row: {
     display: 'flex',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    overflowX: 'auto',
+    marginLeft: t.spacing(-2),
   },
-})
+  column: {
+    marginLeft: t.spacing(2),
+  },
+}))
 
 interface RowProps {
   file: SummarizeFile
@@ -398,6 +394,7 @@ function Row({ file, mkUrl, s3 }: RowProps) {
     <div className={classes.row}>
       {file.map((f) => (
         <Column
+          className={classes.column}
           file={f}
           key={`${f.handle.bucket}/${f.handle.key}`}
           mkUrl={mkUrl}
