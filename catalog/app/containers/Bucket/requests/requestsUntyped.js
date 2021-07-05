@@ -363,17 +363,10 @@ export const ensureObjectIsPresent = (...args) =>
     }),
   )
 
-function waitFor(timeout) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, timeout)
-  })
-}
-
 export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) => {
   const handle = await ensureObjectIsPresent({ s3, bucket, key: SUMMARIZE_KEY })
   if (handle) {
     try {
-      await waitFor(5000)
       return await summarize({ s3, handle })
     } catch (e) {
       const display = `${handle.bucket}/${handle.key}`
