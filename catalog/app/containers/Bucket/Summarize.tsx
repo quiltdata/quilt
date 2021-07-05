@@ -1,6 +1,6 @@
 import type { S3 } from 'aws-sdk'
 import cx from 'classnames'
-import { LocationDescriptor } from 'history'
+import type { LocationDescriptor } from 'history'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
@@ -359,7 +359,7 @@ interface ColumnProps {
 
 function Column({ file, mkUrl, s3 }: ColumnProps) {
   const classes = useColumnStyles()
-  const style = React.useMemo(() => getColumnStyles(file.width), [file])
+  const style = React.useMemo(() => getColumnStyles(file.width), [file.width])
   return (
     <div className={classes.column} style={style}>
       <FileHandle file={file} mkUrl={mkUrl} s3={s3} />
