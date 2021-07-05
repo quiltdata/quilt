@@ -72,7 +72,7 @@ const useSectionStyles = M.makeStyles((t) => ({
     },
   },
   description: {
-    ...t.typography.body1,
+    ...t.typography.body2,
   },
   heading: {
     ...t.typography.h6,
