@@ -182,7 +182,7 @@ export const Loader = function GatedJsonLoader({ handle, children }) {
 
     Err: (err) => {
       if (!error) {
-        sentry('captureException', error)
+        sentry('captureException', err)
         setError(err)
       }
       return fallbackLoader
