@@ -160,27 +160,30 @@ function useFallbackLoader({ handle, children, noAutoFetch }) {
   const data = utils.useObjectGetter(handle, { noAutoFetch: !fetchWholeFile })
   const head = utils.useGate(handle, { noAutoFetch })
 
-  utils.useProcessing(head.result, (error) => {
+  const headProcessed = utils.useProcessing(head.result, (isLarge) => {
     if (gated) return
-    if (error) {
+    if (isLarge) {
       setGated(true)
     } else if (!fetchWholeFile) {
       setFetchWholeFile(true)
     }
   })
+  const headHandled = utils.useErrorHandling(headProcessed, { handle, retry: head.fetch })
 
-  const processed = utils.useAsyncProcessing(data.result, async (r) => {
+  const dataProcessed = utils.useAsyncProcessing(data.result, async (r) => {
     const contents = r.Body.toString('utf-8')
     const json = JSON.parse(contents)
     return detectSchema(contents)
       ? PreviewData.Vega({ spec: await signSpec(json) })
       : PreviewData.Json({ rendered: json })
   })
-  const handled = utils.useErrorHandling(processed, { handle, retry: data.fetch })
+  const dataHandled = utils.useErrorHandling(dataProcessed, { handle, retry: data.fetch })
+
+  if (AsyncResult.Err.is(headHandled)) return children(headHandled)
   return children(
-    gated && AsyncResult.Init.is(handled)
+    gated && AsyncResult.Init.is(dataHandled)
       ? AsyncResult.Err(PreviewError.Gated({ handle, load: data.fetch }))
-      : handled,
+      : dataHandled,
   )
 }
 
