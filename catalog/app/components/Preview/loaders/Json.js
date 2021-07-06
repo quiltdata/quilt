@@ -161,8 +161,9 @@ function useFallbackLoader({ handle, children, noAutoFetch }) {
   const head = utils.useGate(handle, { noAutoFetch })
 
   utils.useProcessing(head.result, (error) => {
+    if (gated) return
     if (error) {
-      if (!gated) setGated(!!error)
+      setGated(true)
     } else if (!fetchWholeFile) {
       setFetchWholeFile(true)
     }
@@ -194,7 +195,6 @@ export const Loader = function GatedJsonLoader({ handle, children }) {
       ) : (
         <JsonLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />
       ),
-
     Err: (err) => {
       if (!error) {
         sentry('captureException', err)
@@ -202,7 +202,6 @@ export const Loader = function GatedJsonLoader({ handle, children }) {
       }
       return fallbackLoader
     },
-
     _: children,
   })
 }
