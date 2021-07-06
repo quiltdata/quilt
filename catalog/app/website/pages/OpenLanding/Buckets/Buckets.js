@@ -50,6 +50,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Buckets({ query: filter } = { query: '' }) {
   const classes = useStyles()
+  // XXX: consider using graphql directly
   const buckets = BucketConfig.useRelevantBucketConfigs()
   const { urls } = NamedRoutes.use()
   const history = useHistory()

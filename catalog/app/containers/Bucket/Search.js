@@ -3,13 +3,12 @@ import { useHistory, Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as SearchResults from 'components/SearchResults'
-import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Data from 'utils/Data'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
-import search from 'utils/search'
+import useSearch from 'utils/search'
 import useEditableValue from 'utils/useEditableValue'
 
 function Browse({ bucket }) {
@@ -298,10 +297,9 @@ function Search({ bucket, query, page, mode, retry }) {
 
   const retryUrl = urls.bucketSearch(bucket, { q: query, mode, retry: (retry || 0) + 1 })
 
-  const req = AWS.APIGateway.use()
   const data = Data.use(
-    search,
-    { req, buckets: [bucket], mode, query, retry },
+    useSearch(),
+    { buckets: [bucket], mode, query, retry },
     { noAutoFetch: !query },
   )
 
@@ -339,7 +337,7 @@ export default function BucketSearch({
   },
   location: l,
 }) {
-  const cfg = BucketConfig.useCurrentBucketConfig()
+  const isInStack = BucketConfig.useIsInStack()
   const { q: query = '', p, mode, ...params } = parseSearch(l.search)
   const page = p && parseInt(p, 10)
   const retry = (params.retry && parseInt(params.retry, 10)) || undefined
@@ -348,7 +346,7 @@ export default function BucketSearch({
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
       <MetaTitle>{[query || 'Search', bucket]}</MetaTitle>
 
-      {cfg ? (
+      {isInStack(bucket) ? (
         <Search {...{ bucket, query, page, mode, retry }} />
       ) : (
         <M.Typography variant="body1">Search unavailable</M.Typography>

@@ -1,0 +1,12 @@
+query {
+  bucketConfigs {
+    name
+    title
+    iconUrl
+    description
+    linkedData
+    overviewUrl
+    tags
+    relevanceScore
+  }
+}

@@ -6,7 +6,7 @@ import { Link as RRLink } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import * as Notifications from 'containers/Notifications'
-import * as AWS from 'utils/AWS'
+import * as APIConnector from 'utils/APIConnector'
 import AsyncResult from 'utils/AsyncResult'
 import { useData } from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -16,7 +16,7 @@ import copyToClipboard from 'utils/clipboard'
 import * as requests from './requests'
 
 function useRevisionsData({ bucket, name }) {
-  const req = AWS.APIGateway.use()
+  const req = APIConnector.use()
   return useData(requests.getPackageRevisions, { req, bucket, name, perPage: 5 })
 }
 

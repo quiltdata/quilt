@@ -1,0 +1,3 @@
+mutation($id: ID!) {
+  roleDelete(id: $id) { __typename }
+}

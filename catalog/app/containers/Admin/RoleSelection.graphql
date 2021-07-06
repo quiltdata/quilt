@@ -1,0 +1,16 @@
+fragment RoleSelection on Role {
+  ... on UnmanagedRole {
+    id
+    name
+    arn
+  }
+  ... on ManagedRole {
+    id
+    name
+    arn
+    permissions {
+      bucket { name }
+      level
+    }
+  }
+}

@@ -11,11 +11,10 @@ import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
-import * as BucketConfig from 'utils/BucketConfig'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Config from 'utils/Config'
 import Data, { useData } from 'utils/Data'
-import * as LinkedData from 'utils/LinkedData'
+// import * as LinkedData from 'utils/LinkedData'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -42,6 +41,7 @@ import renderPreview from './renderPreview'
 import * as requests from './requests'
 import useViewModes from './viewModes'
 
+/*
 function ExposeLinkedData({ bucketCfg, bucket, name, hash, modified }) {
   const sign = AWS.Signer.useS3Signer()
   const { apiGatewayEndpoint: endpoint } = Config.use()
@@ -63,6 +63,7 @@ function ExposeLinkedData({ bucketCfg, bucket, name, hash, modified }) {
     ),
   })
 }
+*/
 
 function PkgCode({ bucket, name, hash, revision, path }) {
   const nameWithPath = JSON.stringify(s3paths.ensureNoSlash(`${name}/${path}`))
@@ -568,7 +569,13 @@ function PackageTree({ bucket, mode, name, revision, path, resolvedFrom }) {
   const classes = useStyles()
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
-  const bucketCfg = BucketConfig.useCurrentBucketConfig()
+
+  // TODO: use urql to get bucket config
+  // const [{ data }] = urql.useQuery({
+  //   ..
+  // })
+  //
+  // const bucketCfg = data?.bucket.config
 
   const isDir = s3paths.isDir(path)
 
@@ -621,6 +628,7 @@ function PackageTree({ bucket, mode, name, revision, path, resolvedFrom }) {
   return (
     <FileView.Root>
       <MetaTitle>{[`${name}@${R.take(10, revision)}/${path}`, bucket]}</MetaTitle>
+      {/* TODO: bring back linked data after re-implementing it using graphql
       {!!bucketCfg &&
         revisionData.case({
           Ok: ({ hash, modified }) => (
@@ -628,6 +636,7 @@ function PackageTree({ bucket, mode, name, revision, path, resolvedFrom }) {
           ),
           _: () => null,
         })}
+      */}
       {!!resolvedFrom && (
         <M.Box mb={2}>
           <Lab.Alert

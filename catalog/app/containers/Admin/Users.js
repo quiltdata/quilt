@@ -5,6 +5,7 @@ import * as React from 'react'
 import { FormattedRelative } from 'react-intl'
 import * as RC from 'recompose'
 import * as RF from 'redux-form/es/immutable'
+import * as urql from 'urql'
 import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
 import DialogContent from '@material-ui/core/DialogContent'
@@ -31,6 +32,8 @@ import * as validators from 'utils/validators'
 import * as Form from './Form'
 import * as Table from './Table'
 import * as data from './data'
+
+import ROLES_QUERY from './UsersRoles.generated'
 
 const Mono = withStyles((t) => ({
   root: {
@@ -497,7 +500,6 @@ export default RT.composeComponent(
   'Admin.Users',
   RC.setPropTypes({
     users: PT.object.isRequired,
-    roles: PT.object.isRequired,
   }),
   RT.withSuspense(() => (
     <Paper>
@@ -505,9 +507,13 @@ export default RT.composeComponent(
       <Table.Progress />
     </Paper>
   )),
-  ({ users, roles: rolesP }) => {
+  ({ users }) => {
     const rows = Cache.suspend(users)
-    const roles = Cache.suspend(rolesP)
+    const [
+      {
+        data: { roles },
+      },
+    ] = urql.useQuery({ query: ROLES_QUERY })
 
     const req = APIConnector.use()
     const cache = Cache.use()

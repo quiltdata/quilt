@@ -122,7 +122,7 @@ export function Toolbar({ heading, selected = 0, actions = [], selectedActions =
 
 export function Head({
   columns,
-  selection: sel,
+  selection: sel = undefined,
   ordering: ord,
   withInlineActions = false,
 }) {
@@ -174,7 +174,7 @@ const useWrapperStyles = M.makeStyles({
   },
 })
 
-export function Wrapper({ className, ...props }) {
+export function Wrapper({ className = undefined, ...props }) {
   const classes = useWrapperStyles()
   return <div className={cx(classes.root, className)} {...props} />
 }
@@ -192,7 +192,7 @@ const useInlineActionsStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function InlineActions({ actions = [], children, ...props }) {
+export function InlineActions({ actions = [], children = undefined, ...props }) {
   const classes = useInlineActionsStyles()
   return (
     <div className={classes.root} {...props}>
