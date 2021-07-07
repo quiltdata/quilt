@@ -76,6 +76,7 @@ from tenacity import (
 from t4_lambda_shared.preview import (
     ELASTIC_LIMIT_BYTES,
     ELASTIC_LIMIT_LINES,
+    extract_excel,
     extract_fcs,
     extract_parquet,
     get_bytes,
@@ -456,6 +457,21 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
             # if this is not an HTML/catalog preview
             columns = ','.join(list(info['schema']['names']))
             content = trim_to_bytes(f"{columns}\n{body}", ELASTIC_LIMIT_BYTES)
+        elif inferred_ext in (".xls", ".xlsx"):
+            obj = retry_s3(
+                "get",
+                bucket,
+                key,
+                size,
+                etag=etag,
+                s3_client=s3_client,
+                version_id=version_id
+            )
+            body, _ = extract_excel(get_bytes(obj["Body"], compression), as_html=False)
+            content = trim_to_bytes(
+                body,
+                ELASTIC_LIMIT_BYTES
+            )
         else:
             content = get_plain_text(
                 bucket,
