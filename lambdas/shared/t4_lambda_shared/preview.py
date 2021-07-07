@@ -75,7 +75,7 @@ def extract_excel(file_, as_html=True):
         first_sheet = pandas.read_excel(file_, sheet_name=0, engine='openpyxl')
 
     if as_html:
-        html = remove_pandas_footer(first_sheet._repr_html_())  # pylint: disable=protected-access
+        html = remove_pandas_footer(first_sheet.to_html(notebook=True))
         return html, {}
 
     return first_sheet.to_string(index=False), {}
