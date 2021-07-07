@@ -402,6 +402,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
               R.descend(R.prop('lastModified')),
             ]),
             R.take(SAMPLE_SIZE),
+            R.map(R.objOf('handle')),
           ),
         )
     } catch (e) {
@@ -423,6 +424,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
             return { bucket, key: s.key, version: s.version_id }
           }),
           R.take(SAMPLE_SIZE),
+          R.map(R.objOf('handle')),
         ),
       )
     } catch (e) {
@@ -454,6 +456,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
           ),
           sampleSize(SAMPLE_SIZE),
           R.map(({ Key: key }) => ({ key, bucket })),
+          R.map(R.objOf('handle')),
         ),
       )
   } catch (e) {
