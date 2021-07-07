@@ -132,7 +132,7 @@ def lambda_handler(request):
                 separator
             )
         elif input_type == 'excel':
-            html, info = extract_excel(get_bytes(content_iter, compression), as_html=True)
+            html, info = extract_excel(get_bytes(content_iter, compression))
         elif input_type == 'fcs':
             html, info = extract_fcs(get_bytes(content_iter, compression))
         elif input_type == 'ipynb':

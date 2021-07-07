@@ -7,6 +7,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 import pyarrow.parquet as pq
+from py_w3c.validators.html.validator import HTMLValidator
 
 from t4_lambda_shared.preview import (
     extract_excel,
@@ -17,6 +18,13 @@ from t4_lambda_shared.preview import (
 )
 
 BASE_DIR = pathlib.Path(__file__).parent / 'data'
+ACCEPTABLE_ERROR_MESSAGES = [
+    'Start tag seen without seeing a doctype first. Expected “<!DOCTYPE html>”.',
+    'Element “head” is missing a required instance of child element “title”.',
+    'Element “style” not allowed as child of element “div” in this context. '
+    '(Suppressing further errors from this subtree.)',
+    'The “border” attribute on the “table” element is obsolete. Use CSS instead.',
+]
 
 
 def iterate_chunks(file_obj, chunk_size=4096):
@@ -67,8 +75,10 @@ class TestPreview(TestCase):
         test_files = {
             "Revised.Haplogroups.1000G.20140205.xlsx": {
                 "contents": [
-                    "Continent Population",
-                    "ID Macrohaplogroup",
+                    "Continent",
+                    "Population",
+                    "ID",
+                    "Macrohaplogroup",
                     "Haplogroup",
                     "Informative SNPs",
                     "NA19239",
@@ -84,11 +94,26 @@ class TestPreview(TestCase):
                 ]
             }
         }
+        vld = HTMLValidator()
         for file in test_files:
             in_file = os.path.join(BASE_DIR, "excel", file)
             with open(in_file, mode="rb") as excel:
-                body, _ = extract_excel(excel)
-                assert all(c in body for c in test_files[file]["contents"])
+                for html in [False, True]:
+                    body, _ = extract_excel(excel, as_html=html)
+                    # print(body)
+                    tags = ['<div>', '<tbody>', '<th>', '<td>', '<tr>']
+                    if html:
+                        vld.validate_fragment(body)
+                        assert all(t in body for t in tags)
+                        serious_errors = [
+                            e for e in vld.errors
+                            if e["message"] not in ACCEPTABLE_ERROR_MESSAGES
+                        ]
+                        assert not serious_errors
+                        print(vld.warnings)
+                    else:
+                        assert not any(t in body for t in tags)
+                    assert all(c in body for c in test_files[file]["contents"])
 
     def test_fcs(self):
         """test FCS parsing"""

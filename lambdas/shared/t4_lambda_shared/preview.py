@@ -60,7 +60,7 @@ def decompress_stream(chunk_iterator, compression):
             break
 
 
-def extract_excel(file_, as_html=False):
+def extract_excel(file_, as_html=True):
     """
     excel file => data frame => html
     Args:
