@@ -101,7 +101,7 @@ const parseRange = (range) => {
 }
 
 const getContentLength = async ({ s3, handle }) => {
-  const req = await s3.headObject({
+  const req = s3.headObject({
     Bucket: handle.bucket,
     Key: handle.key,
     VersionId: handle.version,
