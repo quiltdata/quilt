@@ -100,14 +100,25 @@ const parseRange = (range) => {
   return Number(m[1])
 }
 
+const getContentLength = async ({ s3, handle }) => {
+  const req = s3.headObject({
+    Bucket: handle.bucket,
+    Key: handle.key,
+    VersionId: handle.version,
+  })
+  const head = await req.promise()
+  return head.ContentLength
+}
+
 const getFirstBytes = async ({ s3, bytes, handle }) => {
   try {
+    const fileSize = await getContentLength({ s3, handle })
     const res = await s3
       .getObject({
         Bucket: handle.bucket,
         Key: handle.key,
         VersionId: handle.version,
-        Range: `bytes=0-${bytes}`,
+        Range: `bytes=0-${Math.min(bytes, fileSize)}`,
       })
       .promise()
     const firstBytes = res.Body.toString('utf-8')
