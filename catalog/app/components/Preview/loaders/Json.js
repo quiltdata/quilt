@@ -6,7 +6,6 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import { useLogicalKeyResolver } from 'utils/LogicalKeyResolver'
 import * as Resource from 'utils/Resource'
-import * as Sentry from 'utils/Sentry'
 import * as s3paths from 'utils/s3paths'
 
 import * as Text from './Text'
@@ -153,44 +152,7 @@ function JsonLoader({ gated, handle, children }) {
 
 export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
 
-function useFallbackLoader({ handle, children, noAutoFetch }) {
-  const [fetchWholeFile, setFetchWholeFile] = React.useState(false)
-  const [gated, setGated] = React.useState(false)
-  const signSpec = useVegaSpecSigner(handle)
-  const data = utils.useObjectGetter(handle, { noAutoFetch: !fetchWholeFile })
-  const head = utils.useGate(handle, { noAutoFetch })
-
-  const headProcessed = utils.useProcessing(head.result, (isLarge) => {
-    if (gated) return
-    if (isLarge) {
-      setGated(true)
-    } else if (!fetchWholeFile) {
-      setFetchWholeFile(true)
-    }
-  })
-  const headHandled = utils.useErrorHandling(headProcessed, { handle, retry: head.fetch })
-
-  const dataProcessed = utils.useAsyncProcessing(data.result, async (r) => {
-    const contents = r.Body.toString('utf-8')
-    const json = JSON.parse(contents)
-    return detectSchema(contents)
-      ? PreviewData.Vega({ spec: await signSpec(json) })
-      : PreviewData.Json({ rendered: json })
-  })
-  const dataHandled = utils.useErrorHandling(dataProcessed, { handle, retry: data.fetch })
-
-  if (AsyncResult.Err.is(headHandled)) return children(headHandled)
-  return children(
-    gated && AsyncResult.Init.is(dataHandled)
-      ? AsyncResult.Err(PreviewError.Gated({ handle, load: data.fetch }))
-      : dataHandled,
-  )
-}
-
 export const Loader = function GatedJsonLoader({ handle, children }) {
-  const [error, setError] = React.useState(null)
-  const fallbackLoader = useFallbackLoader({ handle, children, noAutoFetch: !error })
-  const sentry = Sentry.use()
   return utils.useFirstBytes({ bytes: BYTES_TO_SCAN, handle }).case({
     Ok: ({ firstBytes, contentLength }) =>
       detectSchema(firstBytes) ? (
@@ -198,13 +160,6 @@ export const Loader = function GatedJsonLoader({ handle, children }) {
       ) : (
         <JsonLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />
       ),
-    Err: (err) => {
-      if (!error) {
-        sentry('captureException', err)
-        setError(err)
-      }
-      return fallbackLoader
-    },
     _: children,
   })
 }
