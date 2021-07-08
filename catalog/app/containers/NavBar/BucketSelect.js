@@ -1,6 +1,6 @@
 import { push } from 'connected-react-router/esm/immutable'
 import deburr from 'lodash/deburr'
-import matchSorter from 'match-sorter'
+import { matchSorter } from 'match-sorter'
 import * as R from 'ramda'
 import * as React from 'react'
 import AutosizeInput from 'react-input-autosize'
