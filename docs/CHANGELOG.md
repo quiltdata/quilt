@@ -25,6 +25,8 @@
 * [Added] Adding S3 objects to packages from configurable source buckets while revising ([#2193](https://github.com/quiltdata/quilt/pull/2193))
 * [Added] Add Athena SQL queries initial viewer and runner ([#2197](https://github.com/quiltdata/quilt/pull/2197))
 * [Added] Managing per-bucket permissions via admin UI ([#2228](https://github.com/quiltdata/quilt/pull/2228))
+* [Added] Deep search indexing for Excel ([#2247](https://github.com/quiltdata/quilt/pull/2247))
+* [Added] Deep search indexing for PDF ([#2256](https://github.com/quiltdata/quilt/pull/2256))
 * [Changed] New DataGrid-based file listing UI with arbitrary sorting and filtering ([#2097](https://github.com/quiltdata/quilt/pull/2097))
 * [Changed] Item selection in folder-to-package dialog ([#2122](https://github.com/quiltdata/quilt/pull/2122))
 * [Changed] Don't preview .tif (but keep .tiff), preview .results as plain text ([#2128](https://github.com/quiltdata/quilt/pull/2128))
