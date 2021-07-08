@@ -6,8 +6,5 @@ export default function useProtectedDialog<T = {}>(
   open: boolean,
   Comp: React.ComponentType<T>,
 ) {
-  return React.useMemo(() => (open ? requireAuth()(Comp as $TSFixMe) : Comp), [
-    open,
-    Comp,
-  ])
+  return React.useMemo(() => (open ? requireAuth<T>()(Comp) : Comp), [open, Comp])
 }
