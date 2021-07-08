@@ -460,6 +460,20 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
             # if this is not an HTML/catalog preview
             columns = ','.join(list(info['schema']['names']))
             content = trim_to_bytes(f"{columns}\n{body}", ELASTIC_LIMIT_BYTES)
+        elif inferred_ext == ".pdf":
+            obj = retry_s3(
+                "get",
+                bucket,
+                key,
+                size,
+                etag=etag,
+                s3_client=s3_client,
+                version_id=version_id
+            )
+            content = trim_to_bytes(
+                extract_pdf(get_bytes(obj["Body"], compression)),
+                ELASTIC_LIMIT_BYTES
+            )
         elif inferred_ext in (".xls", ".xlsx"):
             obj = retry_s3(
                 "get",
