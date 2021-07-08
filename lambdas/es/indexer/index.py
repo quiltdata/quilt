@@ -66,6 +66,7 @@ from document_queue import (
     DocumentQueue,
 )
 from jsonschema import ValidationError, draft7_format_checker, validate
+from pdfminer.high_level import extract_text as extract_pdf_text
 from tenacity import (
     retry,
     retry_if_exception,
@@ -157,6 +158,8 @@ EVENT_SCHEMA = {
     'required': ['s3', 'eventName'],
     'additionalProperties': True
 }
+# Max number of PDF pages to extract because it can be slow
+MAX_PDF_PAGES = 100
 # 10 MB, see https://amzn.to/2xJpngN
 NB_VERSION = 4  # default notebook version for nbformat
 # currently only affects .parquet, TODO: extend to other extensions
@@ -484,6 +487,22 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
             )
 
     return content
+
+
+def extract_pdf(file_):
+    """Get plain text form PDF for searchability.
+    Args:
+        file_ - file-like object opened in binary mode, pointing to XLS or XLSX
+    Returns:
+        pdf text as a string
+
+    Warning:
+        This function can be slow. The 8-page test PDF takes ~10 sec to turn into a string.
+    """
+    txt = extract_pdf_text(file_, maxpages=MAX_PDF_PAGES)
+    # crunch down space; extract_text inserts multiple spaces
+    # between words, literal newlines, etc.
+    return re.sub(r"\s+", " ", txt)
 
 
 def extract_text(notebook_str):

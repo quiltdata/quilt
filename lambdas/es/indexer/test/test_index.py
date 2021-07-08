@@ -922,6 +922,26 @@ class TestIndex(TestCase):
             expected_es_calls=1
         )
 
+    def test_extract_pdf(self):
+        """test pdf extraction to text"""
+        with open(BASE_DIR / "MUMmer.pdf", "rb") as pdf:
+            txt = index.extract_pdf(pdf)
+            phrases = [
+                "Alignment of whole genomes",
+                "When the genome sequence of two closely related organisms",
+                # 2 lines as one string
+                "; the result is a very detailed and inclusive base-to-base mapping "
+                "between the two sequences.",
+                # 4 lines as one string
+                "Although our alignment does not contain all the details generated "
+                "and displayed by the combination of methods used in Ansari-Lari "
+                "et al., the overall alignment of the two sequences is easily "
+                "apparent from the output of our program.",
+                "under Grant no. R01-AI40125-01.",
+            ]
+            assert all(p in txt for p in phrases)
+
+
     @patch.object(index, 'extract_parquet')
     def test_index_c000(self, extract_mock):
         """ensure files with special extensions get treated as parquet"""
