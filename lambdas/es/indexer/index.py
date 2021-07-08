@@ -397,12 +397,16 @@ def select_package_stats(s3_client, bucket, manifest_key) -> str:
 
 def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
     """get the byte contents of a file if it's a target for deep indexing"""
+    logger_ = get_quilt_logger()
+
     if ext.endswith('.gz'):
         compression = 'gz'
         ext = ext[:-len('.gz')]
     else:
         compression = None
-
+    logger_.debug(
+        "Entering maybe_get_contents (could run out of mem.) %s %s %s" % (bucket, key, ext)
+    )
     content = ""
     inferred_ext = infer_extensions(key, ext)
     if inferred_ext in CONTENT_INDEX_EXTS:
