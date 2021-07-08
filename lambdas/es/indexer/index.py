@@ -405,7 +405,7 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
     else:
         compression = None
     logger_.debug(
-        "Entering maybe_get_contents (could run out of mem.) %s %s %s" % (bucket, key, ext)
+        "Entering maybe_get_contents (could run out of mem.) %s %s %s", bucket, key, version_id
     )
     content = ""
     inferred_ext = infer_extensions(key, ext)
