@@ -17,8 +17,9 @@ MarkupSafe==1.1.1
 mistune==0.8.4
 nbconvert==5.5.0
 nbformat==4.4.0
-numpy==1.17.1
-pandas==1.1.1
+numpy==1.19.5
+openpyxl==3.0.7
+pandas==1.1.5
 pandocfilters==1.4.2
 psutil==5.7.0
 pyarrow==0.17.1
@@ -32,4 +33,4 @@ testpath==0.4.2
 traitlets==4.3.2
 urllib3==1.25.8
 webencodings==0.5.1
-xlrd==1.2.0
+xlrd==2.0.1
