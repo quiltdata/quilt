@@ -8,6 +8,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RC from 'recompose'
 import * as Remarkable from 'remarkable'
+import { linkify } from 'remarkable/linkify'
 import { withStyles } from '@material-ui/styles'
 
 import { linkStyle } from 'utils/StyledLink'
@@ -186,9 +187,8 @@ export const getRenderer = memoize(({ images, processImg, processLink }) => {
   const md = new Remarkable.Remarkable('full', {
     highlight,
     html: true,
-    linkify: true,
     typographer: true,
-  })
+  }).use(linkify)
   md.use(linkHandler({ process: processLink }))
   md.use(imageHandler({ disable: !images, process: processImg }))
   const purify = createDOMPurify(window)
