@@ -740,7 +740,7 @@ export function usePackageUpdateDialog({
     })
   }, [exited, success, workflowsData, manifestData, preferences])
 
-  const DialogProtected = useProtectedDialog<$TSFixMe>(isOpen, DialogWrapper)
+  const DialogProtected = useProtectedDialog(isOpen, DialogWrapper)
 
   const render = React.useCallback(
     () => (
