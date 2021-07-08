@@ -941,7 +941,6 @@ class TestIndex(TestCase):
             ]
             assert all(p in txt for p in phrases)
 
-
     @patch.object(index, 'extract_parquet')
     def test_index_c000(self, extract_mock):
         """ensure files with special extensions get treated as parquet"""
