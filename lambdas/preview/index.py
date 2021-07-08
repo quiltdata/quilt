@@ -17,6 +17,7 @@ from t4_lambda_shared.preview import (
     CATALOG_LIMIT_BYTES,
     CATALOG_LIMIT_LINES,
     TRUNCATED,
+    extract_excel,
     extract_fcs,
     extract_parquet,
     get_bytes,
@@ -199,20 +200,6 @@ def extract_csv(head, separator):
         'note': TRUNCATED,
         'warnings': warnings_.getvalue()
     }
-
-
-def extract_excel(file_):
-    """
-    excel file => data frame => html
-    Args:
-        file_ - file-like object opened in binary mode, pointing to XLS or XLSX
-    Returns:
-        html - html version of *first sheet only* in workbook
-        info - metadata
-    """
-    first_sheet = pandas.read_excel(file_, sheet_name=0)
-    html = remove_pandas_footer(first_sheet._repr_html_())  # pylint: disable=protected-access
-    return html, {}
 
 
 def extract_ipynb(file_, exclude_output: bool):
