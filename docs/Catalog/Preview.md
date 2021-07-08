@@ -13,10 +13,9 @@ Quilt can display any plaintext file format, including the following.
 * Biological file formats (.bed, .cef, .gff, .fasta, .fastq, .sam, .pdbqt, .vcf, etc.)
 * Text files (.csv, .md, .readme, .tsv, .txt, etc.)
 
-
 ## Binary and special file format previews
 * Excel (.xls, .xlsx)
-* FlowJo (.fcs)
+* FCS Flow Cytometry files (.fcs)
 * Images (.gif, .jpg, .png, .tif, .tiff, etc.)
 * .ipynb (Jupyter and Voila dashboards)
 * .parquet
