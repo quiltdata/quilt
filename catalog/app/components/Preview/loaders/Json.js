@@ -14,11 +14,13 @@ import * as utils from './utils'
 
 const MAX_SIZE = 20 * 1024 * 1024
 const SCHEMA_RE = /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/([\w-]+)\/([\w.-]+)\.json"/
+const BYTES_TO_SCAN = 128 * 1024
 
 const map = (fn) => R.ifElse(Array.isArray, R.map(fn), fn)
 
 const traverseUrls = (fn, spec) => R.evolve({ data: map(R.evolve({ url: fn })) }, spec)
 
+// NOTE: downloads content from urls embeded in `{ data: url-here-becomes-json }`
 function useVegaSpecSigner(handle) {
   const sign = AWS.Signer.useS3Signer()
   const resolveLogicalKey = useLogicalKeyResolver()
@@ -57,7 +59,6 @@ function useVegaSpecSigner(handle) {
     [sign, resolvePath],
   )
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   return React.useCallback(
     async (spec) => {
       const promises = []
@@ -152,7 +153,7 @@ function JsonLoader({ gated, handle, children }) {
 export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
 
 export const Loader = function GatedJsonLoader({ handle, children }) {
-  return utils.useFirstBytes({ bytes: 256, handle }).case({
+  return utils.useFirstBytes({ bytes: BYTES_TO_SCAN, handle }).case({
     Ok: ({ firstBytes, contentLength }) =>
       detectSchema(firstBytes) ? (
         <VegaLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />

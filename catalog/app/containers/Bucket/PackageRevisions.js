@@ -11,6 +11,7 @@ import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import * as APIConnector from 'utils/APIConnector'
 // import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
@@ -370,12 +371,12 @@ function Revision({ bucket, name, hash, stats, message, modified, metadata, coun
 }
 
 function useRevisionCountData({ bucket, name, key }) {
-  const req = AWS.APIGateway.use()
+  const req = APIConnector.use()
   return Data.use(requests.countPackageRevisions, { req, bucket, name, key })
 }
 
 function useRevisionsData({ bucket, name, page, perPage, key }) {
-  const req = AWS.APIGateway.use()
+  const req = APIConnector.use()
   return Data.use(requests.getPackageRevisions, { req, bucket, name, page, perPage, key })
 }
 

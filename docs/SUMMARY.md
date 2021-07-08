@@ -25,9 +25,10 @@
 
 ### Catalog
 
-* [Metadata for teams](Catalog/Metadata.md)
 * [Configuration](Catalog/Preferences.md)
-* [Queries](Catalog/Queries.md)
+* [Preview](Catalog/Preview.md)
+* [Search & query](Catalog/SearchQuery.md)
+* [Metadata for teams](Catalog/Metadata.md)
 
 ### Advanced Usage
 

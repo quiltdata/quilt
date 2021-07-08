@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { Link as RRLink } from 'react-router-dom'
 import * as redux from 'react-redux'
+import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
@@ -15,9 +16,9 @@ import Skeleton from 'components/Skeleton'
 import StackedAreaChart from 'components/StackedAreaChart'
 import Thumbnail from 'components/Thumbnail'
 import * as authSelectors from 'containers/Auth/selectors'
+import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
-import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import Data, { useData } from 'utils/Data'
 import * as LinkedData from 'utils/LinkedData'
@@ -28,6 +29,7 @@ import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 
 import * as requests from './requests'
+import BUCKET_CONFIG_QUERY from './OverviewBucketConfig.generated'
 
 import bg from './Overview-bg.jpg'
 
@@ -762,8 +764,9 @@ const useHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Head({ req, s3, overviewUrl, bucket, description }) {
+function Head({ s3, overviewUrl, bucket, description }) {
   const classes = useHeadStyles()
+  const req = APIConnector.use()
   const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
   const colorPool = useConst(() => mkKeyedPool(COLOR_MAP))
   const statsData = useData(requests.bucketStats, { req, s3, bucket, overviewUrl })
@@ -1137,7 +1140,8 @@ function Readmes({ s3, overviewUrl, bucket }) {
   )
 }
 
-function Imgs({ req, s3, overviewUrl, inStack, bucket }) {
+function Imgs({ s3, overviewUrl, inStack, bucket }) {
+  const req = APIConnector.use()
   return (
     <Data fetch={requests.bucketImgs} params={{ req, s3, overviewUrl, inStack, bucket }}>
       {AsyncResult.case({
@@ -1162,7 +1166,8 @@ function Imgs({ req, s3, overviewUrl, inStack, bucket }) {
 
 const SUMMARY_ENTRIES = 7
 
-function Summary({ req, s3, bucket, inStack, overviewUrl }) {
+function Summary({ s3, bucket, inStack, overviewUrl }) {
+  const req = APIConnector.use()
   const data = useData(requests.bucketSummary, { req, s3, bucket, inStack, overviewUrl })
   const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
   const showMore = React.useCallback(() => {
@@ -1199,21 +1204,24 @@ export default function Overview({
   },
 }) {
   const s3 = AWS.S3.use()
-  const req = AWS.APIGateway.use()
   const { noOverviewImages } = Config.use()
-  const cfg = BucketConfig.useCurrentBucketConfig()
+  const [{ data }] = urql.useQuery({
+    query: BUCKET_CONFIG_QUERY,
+    variables: { bucket },
+  })
+  const cfg = data?.bucketConfig
   const inStack = !!cfg
-  const overviewUrl = cfg && cfg.overviewUrl
-  const description = cfg && cfg.description
+  const overviewUrl = cfg?.overviewUrl
+  const description = cfg?.description
   return (
     <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }} position="relative" zIndex={1}>
-      {!!cfg && (
+      {inStack && (
         <React.Suspense fallback={null}>
-          <LinkedData.BucketData bucket={cfg} />
+          <LinkedData.BucketData bucket={bucket} />
         </React.Suspense>
       )}
       {cfg ? (
-        <Head {...{ req, s3, bucket, overviewUrl, description }} />
+        <Head {...{ s3, bucket, overviewUrl, description }} />
       ) : (
         <M.Box
           pt={2}
@@ -1225,8 +1233,8 @@ export default function Overview({
         </M.Box>
       )}
       <Readmes {...{ s3, bucket, overviewUrl }} />
-      {!noOverviewImages && <Imgs {...{ req, s3, bucket, inStack, overviewUrl }} />}
-      <Summary {...{ req, s3, bucket, inStack, overviewUrl }} />
+      {!noOverviewImages && <Imgs {...{ s3, bucket, inStack, overviewUrl }} />}
+      <Summary {...{ s3, bucket, inStack, overviewUrl }} />
     </M.Box>
   )
 }

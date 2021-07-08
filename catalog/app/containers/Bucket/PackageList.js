@@ -10,6 +10,7 @@ import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
 import useProtectedDialog from 'containers/Auth/protectDialog'
 import * as AWS from 'utils/AWS'
+import * as APIConnector from 'utils/APIConnector'
 // import AsyncResult from 'utils/AsyncResult'
 // import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
@@ -320,7 +321,7 @@ export default function PackageList({
 }) {
   const history = useHistory()
   const s3 = AWS.S3.use()
-  const req = AWS.APIGateway.use()
+  const req = APIConnector.use()
   // const sign = AWS.Signer.useS3Signer()
   // const { analyticsBucket, apiGatewayEndpoint: endpoint } = Config.useConfig()
   const { analyticsBucket } = Config.useConfig()

@@ -31,6 +31,7 @@ const drainObjectList = async ({
   let Contents: S3.Object[] = []
   let CommonPrefixes: S3.CommonPrefixList = []
   let ContinuationToken: string | undefined
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     // eslint-disable-next-line no-await-in-loop
     const r = await s3

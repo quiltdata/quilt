@@ -18,6 +18,8 @@ const REDUX_KEY = 'app/ResourceCache'
 
 const Ctx = React.createContext()
 
+const RELEASE_TIME = 5000
+
 // Resource<I, O> = {
 //   name: string,
 //   id: string,
@@ -33,6 +35,7 @@ const Ctx = React.createContext()
 //     Ok: O
 //   }),
 //   claimed: number,
+//   releasedAt: Date?
 // }
 // State = Map<string, Map<I, Entry<O>>>
 
@@ -49,7 +52,8 @@ const Action = tagged([
   'Response', // { resource, input: any, result: Result }
   'Patch', // { resource, input: any, update: fn, silent: bool }
   'Claim', // { resource, input: any }
-  'Release', // { resource, input: any }
+  'Release', // { resource, input: any, releasedAt: Date }
+  'CleanUp', // { time: Date }
 ])
 
 const keyFor = (resource, input) => [resource.id, I.fromJS(resource.key(input))]
@@ -91,14 +95,20 @@ const reducer = reduxTools.withInitialState(
         if (!entry) throw new Error('Claim: entry does not exist')
         return { ...entry, claimed: entry.claimed + 1 }
       }),
-    Release: ({ resource, input }) => (s) => {
-      const key = keyFor(resource, input)
-      const entry = s.getIn(key)
-      if (!entry) throw new Error('Release: entry does not exist')
-      return entry.claimed <= 1
-        ? s.removeIn(key)
-        : s.updateIn(key, R.evolve({ claimed: R.dec }))
-    },
+    Release: ({ resource, input, releasedAt }) => (s) =>
+      s.updateIn(keyFor(resource, input), (entry) => {
+        if (!entry) throw new Error('Release: entry does not exist')
+        return { ...entry, claimed: entry.claimed - 1, releasedAt }
+      }),
+    CleanUp: ({ time }) => (s) =>
+      s.map((r) =>
+        r.filter(
+          (entry) =>
+            entry.claimed >= 1 ||
+            !entry.releasedAt ||
+            time - entry.releasedAt < RELEASE_TIME,
+        ),
+      ),
     __: () => R.identity,
   }),
 )
@@ -118,8 +128,16 @@ function* handleInit({ resource, input, resolver }) {
   }
 }
 
+function* cleanup() {
+  while (true) {
+    yield effects.delay(RELEASE_TIME)
+    yield effects.put(Action.CleanUp({ time: new Date() }))
+  }
+}
+
 function* saga() {
   yield sagaTools.takeEveryTagged(Action.Init, handleInit)
+  yield effects.fork(cleanup)
 }
 
 export const suspend = ({ promise, result }) =>
@@ -189,7 +207,8 @@ export const Provider = function ResourceCacheProvider({ children }) {
 
   const release = React.useCallback(
     (resource, input) => {
-      store.dispatch(Action.Release({ resource, input }))
+      const releasedAt = new Date()
+      store.dispatch(Action.Release({ resource, input, releasedAt }))
     },
     [store],
   )

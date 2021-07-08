@@ -1,4 +1,5 @@
 import cx from 'classnames'
+// TODO: use history instead
 import { push } from 'connected-react-router/esm/immutable'
 import * as React from 'react'
 import * as redux from 'react-redux'
@@ -274,7 +275,7 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
 }
 
 function BucketSearch({ bucket, onFocus, onBlur, disabled, ...props }) {
-  const cfg = BucketConfig.useCurrentBucketConfig()
+  const isInStack = BucketConfig.useIsInStack()
   const { paths, urls } = NamedRoutes.use()
   const { location: l, match } = useRoute(paths.bucketSearch)
   const query = (match && parse(l.search).q) || ''
@@ -282,7 +283,7 @@ function BucketSearch({ bucket, onFocus, onBlur, disabled, ...props }) {
     urls,
     bucket,
   ])
-  return cfg && !disabled ? (
+  return isInStack(bucket) && !disabled ? (
     <State {...{ query, makeUrl, onFocus, onBlur }}>
       {(state) => <SearchBox {...{ bucket, ...state, ...props }} />}
     </State>

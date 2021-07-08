@@ -130,6 +130,17 @@ export const check = actionCreator(
 )
 
 /**
+ * Create a GET_TOKENS action.
+ *
+ * @param {{ resolve: function, reject: function }} resolver
+ *
+ * @returns {Action}
+ */
+export const getTokens = actionCreator(actions.GET_TOKENS, (resolver) => ({
+  meta: { ...resolver },
+}))
+
+/**
  * Create a REFRESH action.
  *
  * @returns {Action}

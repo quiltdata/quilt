@@ -24,15 +24,22 @@
 * [Added] Custom navbar link configurable via admin UI ([#2192](https://github.com/quiltdata/quilt/pull/2192))
 * [Added] Adding S3 objects to packages from configurable source buckets while revising ([#2193](https://github.com/quiltdata/quilt/pull/2193))
 * [Added] Add Athena SQL queries initial viewer and runner ([#2197](https://github.com/quiltdata/quilt/pull/2197))
+* [Added] Managing per-bucket permissions via admin UI ([#2228](https://github.com/quiltdata/quilt/pull/2228))
+* [Added] Deep search indexing for Excel ([#2247](https://github.com/quiltdata/quilt/pull/2247))
+* [Added] Deep search indexing for PDF ([#2256](https://github.com/quiltdata/quilt/pull/2256))
 * [Changed] New DataGrid-based file listing UI with arbitrary sorting and filtering ([#2097](https://github.com/quiltdata/quilt/pull/2097))
 * [Changed] Item selection in folder-to-package dialog ([#2122](https://github.com/quiltdata/quilt/pull/2122))
 * [Changed] Don't preview .tif (but keep .tiff), preview .results as plain text ([#2128](https://github.com/quiltdata/quilt/pull/2128))
 * [Changed] Sort packages by modification time by default ([#2126](https://github.com/quiltdata/quilt/pull/2126))
 * [Changed] Resolve logical keys in summaries and vega inside packages ([#2140](https://github.com/quiltdata/quilt/pull/2140))
 * [Changed] Embed: load polyfills, bring back prefix filtering, load more ([#2153](https://github.com/quiltdata/quilt/pull/2153))
+* [Changed] Scan more bytes (first 128 KiB) when trying to detect if a JSON file is a Vega visualization ([#2229](https://github.com/quiltdata/quilt/pull/2229))
+* [Changed] Use GraphQL for fetching and editing buckets ([#2240](https://github.com/quiltdata/quilt/pull/2240))
+* [Changed] Use registry for search requests ([#2242](https://github.com/quiltdata/quilt/pull/2242))
 * [Fixed] `UnicodeDecodeError` in indexer and pkgselect lambdas ([#2123](https://github.com/quiltdata/quilt/pull/2123))
 * [Fixed] Catch and display package-related errors properly ("no such package" and "bad revision") ([#2160](https://github.com/quiltdata/quilt/pull/2160))
 * [Fixed] Crashing `pkgselect` lambda's folder view on an empty manifest ([#2147](https://github.com/quiltdata/quilt/pull/2147))
+* [Fixed] Infinite spinner on logout ([#2232](https://github.com/quiltdata/quilt/pull/2232))
 
 # 3.4.0 - 2021-03-15
 ## Python API

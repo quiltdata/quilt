@@ -66,6 +66,7 @@ from document_queue import (
     DocumentQueue,
 )
 from jsonschema import ValidationError, draft7_format_checker, validate
+from pdfminer.high_level import extract_text as extract_pdf_text
 from tenacity import (
     retry,
     retry_if_exception,
@@ -76,6 +77,7 @@ from tenacity import (
 from t4_lambda_shared.preview import (
     ELASTIC_LIMIT_BYTES,
     ELASTIC_LIMIT_LINES,
+    extract_excel,
     extract_fcs,
     extract_parquet,
     get_bytes,
@@ -156,6 +158,8 @@ EVENT_SCHEMA = {
     'required': ['s3', 'eventName'],
     'additionalProperties': True
 }
+# Max number of PDF pages to extract because it can be slow
+MAX_PDF_PAGES = 100
 # 10 MB, see https://amzn.to/2xJpngN
 NB_VERSION = 4  # default notebook version for nbformat
 # currently only affects .parquet, TODO: extend to other extensions
@@ -393,12 +397,16 @@ def select_package_stats(s3_client, bucket, manifest_key) -> str:
 
 def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
     """get the byte contents of a file if it's a target for deep indexing"""
+    logger_ = get_quilt_logger()
+
     if ext.endswith('.gz'):
         compression = 'gz'
         ext = ext[:-len('.gz')]
     else:
         compression = None
-
+    logger_.debug(
+        "Entering maybe_get_contents (could run out of mem.) %s %s %s", bucket, key, version_id
+    )
     content = ""
     inferred_ext = infer_extensions(key, ext)
     if inferred_ext in CONTENT_INDEX_EXTS:
@@ -456,6 +464,35 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
             # if this is not an HTML/catalog preview
             columns = ','.join(list(info['schema']['names']))
             content = trim_to_bytes(f"{columns}\n{body}", ELASTIC_LIMIT_BYTES)
+        elif inferred_ext == ".pdf":
+            obj = retry_s3(
+                "get",
+                bucket,
+                key,
+                size,
+                etag=etag,
+                s3_client=s3_client,
+                version_id=version_id
+            )
+            content = trim_to_bytes(
+                extract_pdf(get_bytes(obj["Body"], compression)),
+                ELASTIC_LIMIT_BYTES
+            )
+        elif inferred_ext in (".xls", ".xlsx"):
+            obj = retry_s3(
+                "get",
+                bucket,
+                key,
+                size,
+                etag=etag,
+                s3_client=s3_client,
+                version_id=version_id
+            )
+            body, _ = extract_excel(get_bytes(obj["Body"], compression), as_html=False)
+            content = trim_to_bytes(
+                body,
+                ELASTIC_LIMIT_BYTES
+            )
         else:
             content = get_plain_text(
                 bucket,
@@ -468,6 +505,22 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
             )
 
     return content
+
+
+def extract_pdf(file_):
+    """Get plain text form PDF for searchability.
+    Args:
+        file_ - file-like object opened in binary mode, pointing to XLS or XLSX
+    Returns:
+        pdf text as a string
+
+    Warning:
+        This function can be slow. The 8-page test PDF takes ~10 sec to turn into a string.
+    """
+    txt = extract_pdf_text(file_, maxpages=MAX_PDF_PAGES)
+    # crunch down space; extract_text inserts multiple spaces
+    # between words, literal newlines, etc.
+    return re.sub(r"\s+", " ", txt)
 
 
 def extract_text(notebook_str):

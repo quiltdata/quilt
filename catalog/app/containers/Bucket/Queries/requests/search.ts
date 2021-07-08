@@ -1,6 +1,7 @@
 import * as errors from 'containers/Bucket/errors'
-import * as AWS from 'utils/AWS'
+import * as APIConnector from 'utils/APIConnector'
 import { useData } from 'utils/Data'
+import mkSearch from 'utils/mkSearch'
 
 import { ElasticSearchQuery } from './query'
 import { AsyncData } from './requests'
@@ -32,7 +33,8 @@ async function search({ req, query }: SearchArgs): Promise<ElasticSearchResults>
     }
     if (query.size) requestOptions.size = query.size
     if (query.from) requestOptions.from = query.size
-    return req('/search', requestOptions)
+    const qs = mkSearch(requestOptions)
+    return req(`/search${qs}`)
   } catch (e) {
     if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound)
       return null
@@ -48,6 +50,6 @@ async function search({ req, query }: SearchArgs): Promise<ElasticSearchResults>
 export function useSearch(
   query: ElasticSearchQuery | string,
 ): AsyncData<ElasticSearchResults> {
-  const req = AWS.APIGateway.use()
+  const req = APIConnector.use()
   return useData(search, { req, query }, { noAutoFetch: !query })
 }

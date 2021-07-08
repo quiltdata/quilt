@@ -139,6 +139,7 @@ export default function Search() {
   const dispatch = redux.useDispatch()
   const { urls } = NamedRoutes.use()
 
+  // XXX: consider using graphql directly
   const bucketCount = BucketConfig.useRelevantBucketConfigs().length
 
   const [value, change] = React.useState('')
