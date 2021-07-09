@@ -271,6 +271,10 @@ function DirDisplay({
         logicalKey: path + o.name,
       }))
 
+      const downloadPath = path
+        ? `package/${bucket}/${name}/${hash}/${path}`
+        : `package/${bucket}/${name}/${hash}`
+
       return (
         <>
           <PackageCopyDialog
@@ -318,8 +322,8 @@ function DirDisplay({
             {!noDownload && (
               <FileView.ZipDownloadForm
                 className={classes.button}
-                label="Download package"
-                suffix={`package/${bucket}/${name}/${hash}`}
+                label={path ? 'Download directory' : 'Download package'}
+                suffix={downloadPath}
               />
             )}
             {preferences?.ui?.actions?.deleteRevision && (
