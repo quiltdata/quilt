@@ -36,6 +36,7 @@ export const RoleSelectionFragmentDoc = ({
       selectionSet: {
         kind: 'SelectionSet',
         selections: [
+          { kind: 'Field', name: { kind: 'Name', value: '__typename' } },
           {
             kind: 'InlineFragment',
             typeCondition: {
