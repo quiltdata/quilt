@@ -812,7 +812,7 @@ export const countPackages = withErrorHandling(async ({ req, bucket, filter }) =
     ),
   })
   const result = await req(`/search${qs}`)
-  return result.aggregations.total_handles.value
+  return result.aggregations?.total_handles?.value ?? 0
 })
 
 export const listPackages = withErrorHandling(
