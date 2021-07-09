@@ -845,6 +845,22 @@ export default ({
       },
       {
         kind: 'OBJECT',
+        name: 'RoleAssigned',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
         name: 'RoleBucketPermission',
         fields: [
           {
@@ -942,6 +958,10 @@ export default ({
           {
             kind: 'OBJECT',
             name: 'RoleNameReserved',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'RoleAssigned',
           },
         ],
       },

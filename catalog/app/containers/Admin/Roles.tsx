@@ -301,6 +301,11 @@ function Delete({ role, close }: DeleteProps) {
         case 'RoleNameReserved':
           push(`Unable to delete reserved role "${role.name}"`)
           return
+        case 'RoleAssigned':
+          push(
+            `Unable to delete role "${role.name}" assigned to some user(s). Unassign this role from everyone and try again.`,
+          )
+          return
         default:
           assertNever(r)
       }
