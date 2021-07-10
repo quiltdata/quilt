@@ -11,7 +11,6 @@ import * as Notifications from 'containers/Notifications'
 import * as Model from 'model'
 import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
-import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
@@ -60,27 +59,17 @@ const columns = [
     props: { component: 'th', scope: 'row' },
   },
   {
-    id: 'managed',
-    label: 'Managed',
-    getValue: (r: Role) => r.__typename === 'ManagedRole',
-    getDisplay: (value: boolean) => (value ? 'Yes' : 'No'),
-  },
-  {
-    id: 'arn',
-    label: 'ARN',
-    getValue: R.prop('arn'),
-    getDisplay: (v: string | null) => {
-      if (!v) return 'None'
-      const link = getARNLink(v)
-      const mono = <Mono>{v}</Mono>
-      return link ? (
-        <StyledLink href={link} target="_blank">
-          {mono}
-        </StyledLink>
+    id: 'type',
+    label: 'Type',
+    getValue: (r: Role) => r.__typename,
+    getDisplay: (_value: any, r: Role) =>
+      r.__typename === 'ManagedRole' ? (
+        <>Managed: access to {r.permissions.filter((p) => !!p.level).length} buckets</>
       ) : (
-        mono
-      )
-    },
+        <>
+          Unmanaged: <Mono>{r.arn}</Mono>
+        </>
+      ),
   },
 ]
 
@@ -574,6 +563,13 @@ export default function Roles() {
   ]
 
   const inlineActions = (role: Role) => [
+    role.arn
+      ? {
+          title: 'Open IAM',
+          icon: <M.Icon>link</M.Icon>,
+          href: getARNLink(role.arn),
+        }
+      : null,
     {
       title: 'Delete',
       icon: <M.Icon>delete</M.Icon>,
@@ -617,8 +613,7 @@ export default function Roles() {
                   {columns.map((col) => (
                     // @ts-expect-error
                     <M.TableCell key={col.id} {...col.props}>
-                      {/* @ts-expect-error */}
-                      {(col.getDisplay || R.identity)(col.getValue(i))}
+                      {(col.getDisplay || R.identity)(col.getValue(i), i)}
                     </M.TableCell>
                   ))}
                   <M.TableCell align="right" padding="none">
