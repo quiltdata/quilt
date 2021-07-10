@@ -190,7 +190,15 @@ function Create({ close }: CreateProps) {
                   required: 'Enter a role name',
                   reserved: 'This is a reserved name, please use another',
                   taken: 'Role with this name already exists',
-                  invalid: 'Invalid name for role',
+                  invalid: (
+                    <>
+                      Enter a{' '}
+                      <abbr title="Must start with a letter and contain only alphanumeric characters and underscores thereafter">
+                        valid
+                      </abbr>{' '}
+                      role name
+                    </>
+                  ),
                 }}
               />
 
