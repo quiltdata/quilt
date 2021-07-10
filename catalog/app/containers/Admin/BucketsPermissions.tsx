@@ -50,7 +50,7 @@ function BucketPermissionEdit({ bucket, value, onChange }: BucketPermissionProps
           {bucket}
         </M.Typography>
       </M.TableCell>
-      <M.TableCell className={classes.cell}>
+      <M.TableCell className={classes.cell} align="right">
         <M.Select native value={levelStr} onChange={handleChange}>
           {Model.BucketPermissionLevelStrings.map((permission) => (
             <option key={permission}>{permission}</option>
@@ -71,14 +71,10 @@ const useStyles = M.makeStyles((t) => ({
   cell: {
     minWidth: t.spacing(17.5),
   },
-  permissions: {
+  container: {
+    borderBottom: `1px solid ${t.palette.divider}`,
     marginTop: t.spacing(1),
-  },
-  scrollable: {
-    border: `1px solid ${t.palette.divider}`,
-    margin: t.spacing(2, 0, 0),
-    maxHeight: '300px',
-    overflow: 'auto',
+    maxHeight: 'calc(100vh - 500px)',
   },
 }))
 
@@ -118,12 +114,14 @@ export default function BucketPermissions({
         </p>
       )}
 
-      <M.TableContainer className={classes.scrollable}>
-        <M.Table size="small" className={classes.permissions}>
+      <M.TableContainer className={classes.container}>
+        <M.Table stickyHeader size="small">
           <M.TableHead>
             <M.TableRow>
               <M.TableCell className={classes.cell}>Bucket name</M.TableCell>
-              <M.TableCell className={classes.cell}>Permissions</M.TableCell>
+              <M.TableCell className={classes.cell} align="right">
+                Permissions
+              </M.TableCell>
             </M.TableRow>
           </M.TableHead>
           <M.TableBody>
