@@ -50,7 +50,7 @@ function BucketPermissionEdit({ bucket, value, onChange }: BucketPermissionProps
           {bucket}
         </M.Typography>
       </M.TableCell>
-      <M.TableCell className={classes.cell}>
+      <M.TableCell className={classes.cell} align="right">
         <M.Select native value={levelStr} onChange={handleChange}>
           {Model.BucketPermissionLevelStrings.map((permission) => (
             <option key={permission}>{permission}</option>
@@ -62,6 +62,13 @@ function BucketPermissionEdit({ bucket, value, onChange }: BucketPermissionProps
 }
 
 const useStyles = M.makeStyles((t) => ({
+  heading: {
+    alignItems: 'center',
+    display: 'flex',
+  },
+  icon: {
+    marginLeft: t.spacing(0.5),
+  },
   caption: {
     color: t.palette.text.secondary,
   },
@@ -71,14 +78,10 @@ const useStyles = M.makeStyles((t) => ({
   cell: {
     minWidth: t.spacing(17.5),
   },
-  permissions: {
+  container: {
+    borderBottom: `1px solid ${t.palette.divider}`,
     marginTop: t.spacing(1),
-  },
-  scrollable: {
-    border: `1px solid ${t.palette.divider}`,
-    margin: t.spacing(2, 0, 0),
-    maxHeight: '300px',
-    overflow: 'auto',
+    maxHeight: 'calc(100vh - 500px)',
   },
 }))
 
@@ -108,7 +111,23 @@ export default function BucketPermissions({
 
   return (
     <div className={className}>
-      <M.Typography variant="h6">Bucket access</M.Typography>
+      <div className={classes.heading}>
+        <M.Typography variant="h6">Bucket access</M.Typography>
+        <M.Tooltip
+          arrow
+          title={
+            <>
+              Admin users can see all the buckets, but can only access the contents of the
+              buckets according to their assigned role. Regular users can only see the
+              buckets configured in their assigned role.
+            </>
+          }
+        >
+          <M.Icon fontSize="small" color="disabled" className={classes.icon}>
+            info_outlined
+          </M.Icon>
+        </M.Tooltip>
+      </div>
       {!!onAdvanced && (
         <p className={classes.captionWrapper}>
           <M.Typography className={classes.caption} variant="caption">
@@ -118,12 +137,14 @@ export default function BucketPermissions({
         </p>
       )}
 
-      <M.TableContainer className={classes.scrollable}>
-        <M.Table size="small" className={classes.permissions}>
+      <M.TableContainer className={classes.container}>
+        <M.Table stickyHeader size="small">
           <M.TableHead>
             <M.TableRow>
               <M.TableCell className={classes.cell}>Bucket name</M.TableCell>
-              <M.TableCell className={classes.cell}>Permissions</M.TableCell>
+              <M.TableCell className={classes.cell} align="right">
+                Permissions
+              </M.TableCell>
             </M.TableRow>
           </M.TableHead>
           <M.TableBody>
