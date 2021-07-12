@@ -62,6 +62,13 @@ function BucketPermissionEdit({ bucket, value, onChange }: BucketPermissionProps
 }
 
 const useStyles = M.makeStyles((t) => ({
+  heading: {
+    alignItems: 'center',
+    display: 'flex',
+  },
+  icon: {
+    marginLeft: t.spacing(0.5),
+  },
   caption: {
     color: t.palette.text.secondary,
   },
@@ -104,7 +111,23 @@ export default function BucketPermissions({
 
   return (
     <div className={className}>
-      <M.Typography variant="h6">Bucket access</M.Typography>
+      <div className={classes.heading}>
+        <M.Typography variant="h6">Bucket access</M.Typography>
+        <M.Tooltip
+          arrow
+          title={
+            <>
+              Admin users can see all the buckets, but can only access the contents of the
+              buckets according to their assigned role. Regular users can only see the
+              buckets configured in their assigned role.
+            </>
+          }
+        >
+          <M.Icon fontSize="small" color="disabled" className={classes.icon}>
+            info_outlined
+          </M.Icon>
+        </M.Tooltip>
+      </div>
       {!!onAdvanced && (
         <p className={classes.captionWrapper}>
           <M.Typography className={classes.caption} variant="caption">
