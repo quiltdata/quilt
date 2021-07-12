@@ -322,7 +322,7 @@ function DirDisplay({
             {!noDownload && (
               <FileView.ZipDownloadForm
                 className={classes.button}
-                label={path ? 'Download directory' : 'Download package'}
+                label={path ? 'Download sub-package' : 'Download package'}
                 suffix={downloadPath}
               />
             )}
