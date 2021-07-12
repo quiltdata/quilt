@@ -67,16 +67,10 @@ Colocating data with context in this way is a simple way of making your data pro
 > * Objects linked to in `quilt_summarize.json` are always previewed as of the latest version, even if you are browsing an old version of a package.
 > * Object titles and image thumbnails link to the file view, even if you are in the package view.
 
-## Access control
+## Admin UI
 
-The Quilt catalog includes an admin panel. This is used to control user authorization to your catalog.
+The Quilt catalog includes an admin panel that allows you to manage users and buckets in your stack and to customize your Quilt catalog.
+See [Admin UI docs](../Catalog/Admin.md) for details.
 
-![](../imgs/catalog_admin_panel.png)
-
-You can create and delete, activate and deactivate, admin and de-admin, and assign and de-assign [IAM roles](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html) to users on this page.
-
-The admin page is only accessible to catalog admins. Only admins may create other admins, and the catalog enforces a constraint that there must always be at least one admin account on the catalog (a default one is created as part of the catalog standup process).
-
-You may invite new users to collaborate on your QUILT bucket via email, again from the admin interface.
 
 **[To learn more, check out the public demo catalog](https://open.quiltdata.com/b/quilt-example)**.

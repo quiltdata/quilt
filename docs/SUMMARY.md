@@ -29,6 +29,7 @@
 * [Preview](Catalog/Preview.md)
 * [Search & query](Catalog/SearchQuery.md)
 * [Metadata for teams](Catalog/Metadata.md)
+* [Admin UI](Catalog/Admin.md)
 
 ### Advanced Usage
 
