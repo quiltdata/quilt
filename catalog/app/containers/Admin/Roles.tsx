@@ -574,7 +574,7 @@ export default function Roles() {
     role.arn
       ? {
           title: 'Open IAM',
-          icon: <M.Icon>link</M.Icon>,
+          icon: <M.Icon>launch</M.Icon>,
           href: getARNLink(role.arn),
         }
       : null,
