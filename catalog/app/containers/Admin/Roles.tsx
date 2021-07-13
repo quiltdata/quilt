@@ -86,7 +86,14 @@ const useStyles = M.makeStyles((t) => ({
     position: 'absolute',
     right: 0,
     top: 64,
-    zIndex: 1, // above Select and Checkbox
+    zIndex: 3, // above Select, Checkbox and sticky table header
+  },
+  title: {
+    '&>*': {
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    },
   },
   panel: {
     marginTop: t.spacing(2),
@@ -443,6 +450,8 @@ function Edit({ role, close }: EditProps) {
     [role],
   )
 
+  const title = `Edit the "${role.name}" role (${managed ? 'managed' : 'unmanaged'})`
+
   return (
     <RF.Form onSubmit={onSubmit} initialValues={initialValues}>
       {({
@@ -455,8 +464,8 @@ function Edit({ role, close }: EditProps) {
         submitError,
       }) => (
         <>
-          <M.DialogTitle>
-            Edit the &quot;{role.name}&quot; role ({managed ? 'managed' : 'unmanaged'})
+          <M.DialogTitle className={classes.title} title={title}>
+            {title}
           </M.DialogTitle>
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
