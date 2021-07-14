@@ -24,9 +24,12 @@ CONTENT_INDEX_EXTS = separated_env_to_iter("CONTENT_INDEX_EXTS") or {
     ".json",
     ".md",
     ".parquet",
+    ".pdf",
     ".rmd",
     ".tsv",
-    ".txt"
+    ".txt",
+    ".xls",
+    ".xlsx",
 }
 
 EVENT_PREFIX = {
