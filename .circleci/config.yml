@@ -146,7 +146,7 @@ jobs:
       - setup-venv
       - run:
           name: install deps
-          command: pip install api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@quilt
+          command: pip install api/python[catalog] nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@quilt
       - run:
           name: generate docs
           command: cd gendocs && python build.py

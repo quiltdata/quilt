@@ -8,7 +8,6 @@ import subprocess
 import sys
 import time
 
-import dns.resolver
 import requests
 
 from . import Package
@@ -101,6 +100,8 @@ def _launch_local_s3proxy():
     Launches an s3 proxy (via docker)
     on localhost:5002
     """
+    import dns.resolver
+
     dns_resolver = dns.resolver.Resolver()
     command = ["docker", "run", "--rm"]
 
@@ -149,7 +150,17 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
 
     If detailed_help=True, display detailed information about the `quilt3 catalog` command and then exit
     """
-    from .registry import app  # Delay importing it cause it's expensive.
+    try:
+        from .registry import app  # Delay importing it cause it's expensive.
+    except ModuleNotFoundError as e:
+        if e.name not in (
+            'flask',
+            'flask_cors',
+            'flask_json',
+        ):
+            raise
+        print('Running `quilt3 catalog` requires you to install quilt3[catalog]')
+        return
 
     if detailed_help:
         print(catalog_cmd_detailed_help)
