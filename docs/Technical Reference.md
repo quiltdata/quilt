@@ -1,11 +1,12 @@
 # Run Quilt in Your AWS Account
-
-Quilt is a versioned data portal for AWS.
+Quilt is a Data Hub for AWS.
 A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
 Each instance consists of a password-protected web catalog on your domain,
 backend services, a secure server to manage user identities, and a Python API.
 
-## Installation Instructions
+[Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
+
+## Help and Advice
 
 We encourage users to contact us before deploying Quilt.
 We will make sure that you have the latest version of Quilt,
@@ -20,7 +21,13 @@ connect with other users
 
 * [Email Quilt](mailto://contact@quiltdata.io)
 
-## Before you install Quilt
+## Requirements and Prerequisites
+
+### Time Required
+
+Installing Quilt takes approximately 45-90 minutes to bring up all services and components.
+
+### Before you install Quilt
 
 You will need the following:
 
@@ -30,6 +37,9 @@ You will need the following:
 Service Catalog).
 The `AdministratorAccess` policy is sufficient. (Quilt creates and manages a
 VPC, containers, S3 buckets, a database, and more.)
+
+Reference: [Controlling access with AWS Identity and Access Management](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html)
+
 If you wish to create a service role for the installation, visit
 `IAM > Roles > Create Role > AWS service > CloudFormation` in the AWS console.
 The following service role is equivalent to `AdministratorAccess`:
@@ -80,7 +90,7 @@ of `ObjectRemoved:DeleteMarkerCreated`.
 1. Available **CloudTrail Trails** in the region where you wish to host your stack
 ([learn more](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)).
 
-1. An active subscription to Quilt Business on AWS Marketplace. Click `Continue to Subscribe` on the [Quilt Business Listing](https://aws.amazon.com/marketplace/pp/B07QF1VXFQ) to subscribe then return to this page for installation instructions. **The CloudFormation template and instructions on AWS Marketplace are infrequently updated and may be missing critical bugfixes.**
+1. A license key or an active subscription to Quilt Business on AWS Marketplace. Click `Continue to Subscribe` on the [Quilt Business Listing](https://aws.amazon.com/marketplace/pp/B07QF1VXFQ) to subscribe then return to this page for installation instructions. **The CloudFormation template and instructions on AWS Marketplace are infrequently updated and may be missing critical bugfixes.**
 
 ### AWS Marketplace
 
@@ -179,6 +189,20 @@ need a licensed CloudFormation template from Quilt.
 
 Your previous settings should carry over.
 
+## Security
+
+All customer data and metadata in Quilt is stored in S3. It may also be cached in Elasticsearch Service (show in red in the diagram below). No other services in the Quilt stack store customer data.
+
+![](imgs/aws-diagram-customer-data.png)
+
+We recommend using [S3 encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryption.html) and [Elasticsearch Service encryption at rest](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html) to provide maximum protection.
+
+## Disaster Recovery
+
+TODO:
+restart Quilt and re-add buckets.
+Bucket replication (in multiple regions)
+[S3 Replication](https://aws.amazon.com/s3/features/replication/)
 ## Advanced configuration
 
 The default Quilt settings are adequate for most use cases. The following section
