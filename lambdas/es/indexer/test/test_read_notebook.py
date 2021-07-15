@@ -29,16 +29,16 @@ def test_extract_text():
     """
     parent = os.path.dirname(__file__)
     basedir = os.path.join(parent, 'data')
-    for name in NB_RAISES:
+    for name, expected_exc in NB_RAISES.items():
         path = os.path.join(basedir, name)
         with open(path) as notebook:
             contents = notebook.read()
-            with pytest.raises(NB_RAISES[name]):
+            with pytest.raises(expected_exc):
                 extract_text(contents)
 
-    for name in NB_EXTRACTS:
+    for name, expected_extracted in NB_EXTRACTS.items():
         path = os.path.join(basedir, name)
         with open(path) as notebook:
             contents = notebook.read()
             extracted = extract_text(contents)
-            assert extracted == NB_EXTRACTS[name]
+            assert extracted == expected_extracted
