@@ -1,10 +1,6 @@
 # Run Quilt in Your AWS Account
 Quilt is a Data Hub for AWS.
 A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
-Each instance consists of a password-protected web catalog on your domain,
-backend services, a secure server to manage user identities, and a Python API.
-
-[Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
 
 ## Help and Advice
 
@@ -20,6 +16,50 @@ to guide you through the installation
 connect with other users
 
 * [Email Quilt](mailto://contact@quiltdata.io)
+
+## Architecture
+Each instance consists of a password-protected web catalog on your domain,
+backend services, a secure server to manage user identities, and a Python API.
+
+[Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
+
+### Network Architecture
+TODO: Add network diagram
+
+### Sizing
+The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
+
+#### Elasticsearch Service Configuration
+By default, Quilt configures an Elasticsearch cluster with 3 master nodes and 2 data nodes. Please contact the Quilt support team before adjusting the size and configuration of your cluster to avoid disruption.
+
+### Cost
+The cost of running your Quilt stack varies with data volumes and use, but typically runs between $625 and $700 per month using the default configuration. See the table below for a cost breakdown based on AWS pricing in the `us-east-1` region.
+
+| Service  | Cost |
+| ------------- | ------------- |
+| Elasticsearch Service | $516.83 |
+| RDS  | $75.56 |
+| ECS (Fargate) | $26.64 |
+| Lambda | Variable |
+| CloudTrail | Variable |
+| Athena | Variable |
+| **Total:** | **$619.03 + Variable Costs** |
+
+
+### Health and Monitoring
+To check the status of your Quilt stack after bring-up or update, check the stack health in the CloudFormation console.
+
+#### Elasticsearch Cluster
+If you notice slow or incomplete search results, check the status of the Quilt Elasticsearch cluster. To find the Quilt search cluster from CloudFormation, click on the Quilt stack, then "Resources." Click on the "Search" resource.
+
+If your cluster status is not "Green" (healthy), please contact Quilt support. Causes of unhealthy search clusters include:
+* Running out of storage space
+* High index rates (e.g., caused by adding or updating very large numbers of files in S3)
+
+### Updates
+Major releases will be posted to AWS Marketplace. Minor releases will be announced via email and Slack. Please be sure to join the [Quilt mailing list](http://eepurl.com/bOyxRz) and/or [Slack Channel](https://slack.quiltdata.com/).
+
+To update your Quilt stack, apply the latest CloudFormation template in the CloudFormation console.
 
 ## Requirements and Prerequisites
 
@@ -203,6 +243,7 @@ TODO:
 restart Quilt and re-add buckets.
 Bucket replication (in multiple regions)
 [S3 Replication](https://aws.amazon.com/s3/features/replication/)
+
 ## Advanced configuration
 
 The default Quilt settings are adequate for most use cases. The following section
@@ -296,7 +337,7 @@ Use current template > Next > Specify stack details), set the following paramete
 
 ### Preparing an AWS Role for use with Quilt
 
-These instructions document how to set up an existing role for use with Quilt. If the role you want to use doesn't exist yet, create it now.
+These instructions document how to set up an existing role for use with Quilt. If the role you want to use doesn't exist yet, create it now. For guidance creating IAM roles, see: [IAM best practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html), and the [Principle of Least Privilege](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege) 
 
 Go to your Quilt stack in CloudFormation. Go to `Outputs`, then find `RegistryRoleARN` and copy its value. It should look something like this: `arn:aws:iam::000000000000:role/stackname-ecsTaskExecutionRole`.
 
