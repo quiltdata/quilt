@@ -23,9 +23,6 @@ backend services, a secure server to manage user identities, and a Python API.
 
 [Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
 
-### Network Architecture
-TODO: Add network diagram
-
 ### Sizing
 The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
 
