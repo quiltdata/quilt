@@ -9,9 +9,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
 
-import { copyWithoutSpaces } from 'components/BreadCrumbs'
 import * as Pagination from 'components/Pagination'
-import * as Preview from 'components/Preview'
 import Skeleton from 'components/Skeleton'
 import StackedAreaChart from 'components/StackedAreaChart'
 import Thumbnail from 'components/Thumbnail'
@@ -25,9 +23,9 @@ import * as LinkedData from 'utils/LinkedData'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import Link from 'utils/StyledLink'
-import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes, readableQuantity, formatQuantity } from 'utils/string'
 
+import * as Summarize from './Summarize'
 import * as requests from './requests'
 import BUCKET_CONFIG_QUERY from './OverviewBucketConfig.generated'
 
@@ -857,184 +855,6 @@ function Head({ s3, overviewUrl, bucket, description }) {
   )
 }
 
-const useSectionStyles = M.makeStyles((t) => ({
-  root: {
-    position: 'relative',
-    [t.breakpoints.down('xs')]: {
-      borderRadius: 0,
-      padding: t.spacing(2),
-      paddingTop: t.spacing(3),
-    },
-    [t.breakpoints.up('sm')]: {
-      marginTop: t.spacing(2),
-      padding: t.spacing(4),
-    },
-  },
-  heading: {
-    ...t.typography.h6,
-    lineHeight: 1.75,
-    marginBottom: t.spacing(1),
-    [t.breakpoints.up('sm')]: {
-      marginBottom: t.spacing(2),
-    },
-    [t.breakpoints.up('md')]: {
-      ...t.typography.h5,
-    },
-  },
-}))
-
-function Section({ heading, children, ...props }) {
-  const classes = useSectionStyles()
-  return (
-    <M.Paper className={classes.root} {...props}>
-      {!!heading && <div className={classes.heading}>{heading}</div>}
-      {children}
-    </M.Paper>
-  )
-}
-
-function ContentSkel({ lines = 15, ...props }) {
-  const widths = React.useMemo(() => R.times(() => 80 + Math.random() * 20, lines), [
-    lines,
-  ])
-  return (
-    <M.Box {...props}>
-      {widths.map((w, i) => (
-        <Skeleton
-          // eslint-disable-next-line react/no-array-index-key
-          key={i}
-          height={16}
-          width={`${w}%`}
-          borderRadius="borderRadius"
-          mt={i ? 1 : 0}
-        />
-      ))}
-    </M.Box>
-  )
-}
-
-const CrumbLink = M.styled(Link)({ wordBreak: 'break-word' })
-
-const usePreviewBoxStyles = M.makeStyles((t) => ({
-  root: {
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    maxHeight: t.spacing(30),
-    minHeight: t.spacing(15),
-    position: 'relative',
-
-    // workarounds to speed-up notebook preview rendering:
-    '&:not($expanded)': {
-      // hide overflow only when not expanded, using this while expanded
-      // slows down the page in chrome
-      overflow: 'hidden',
-
-      // only show 2 first cells unless expanded
-      '& .ipynb-preview .cell:nth-child(n+3)': {
-        display: 'none',
-      },
-    },
-  },
-  expanded: {
-    maxHeight: 'none',
-  },
-  fade: {
-    alignItems: 'flex-end',
-    background: `linear-gradient(to top,
-      rgba(255, 255, 255, 1),
-      rgba(255, 255, 255, 0.9),
-      rgba(255, 255, 255, 0.1),
-      rgba(255, 255, 255, 0.1)
-    )`,
-    bottom: 0,
-    display: 'flex',
-    height: '100%',
-    justifyContent: 'center',
-    left: 0,
-    position: 'absolute',
-    width: '100%',
-    zIndex: 1,
-  },
-}))
-
-function PreviewBox({ contents, expanded: defaultExpanded = false }) {
-  const classes = usePreviewBoxStyles()
-  const [expanded, setExpanded] = React.useState(defaultExpanded)
-  const expand = React.useCallback(() => {
-    setExpanded(true)
-  }, [setExpanded])
-  return (
-    <div className={cx(classes.root, { [classes.expanded]: expanded })}>
-      {contents}
-      {!expanded && (
-        <div className={classes.fade}>
-          <M.Button variant="outlined" onClick={expand}>
-            Expand
-          </M.Button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function FilePreview({ handle, headingOverride, expanded }) {
-  const { urls } = NamedRoutes.use()
-
-  const crumbs = React.useMemo(() => {
-    const all = getBreadCrumbs(handle.key)
-    const dirs = R.init(all).map(({ label, path }) => ({
-      to: urls.bucketFile(handle.bucket, path),
-      children: label,
-    }))
-    const file = {
-      to: urls.bucketFile(handle.bucket, handle.key, handle.version),
-      children: R.last(all).label,
-    }
-    return { dirs, file }
-  }, [handle, urls])
-
-  const heading =
-    headingOverride != null ? (
-      headingOverride
-    ) : (
-      <span onCopy={copyWithoutSpaces}>
-        {crumbs.dirs.map((c) => (
-          <React.Fragment key={`crumb:${c.to}`}>
-            <CrumbLink {...c} />
-            &nbsp;/{' '}
-          </React.Fragment>
-        ))}
-        <CrumbLink {...crumbs.file} />
-      </span>
-    )
-
-  // TODO: check for glacier and hide items
-  return (
-    <Section heading={heading}>
-      {Preview.load(
-        handle,
-        Preview.display({
-          renderContents: (contents) => <PreviewBox {...{ contents, expanded }} />,
-          renderProgress: () => <ContentSkel />,
-        }),
-      )}
-    </Section>
-  )
-}
-
-function EnsureAvailability({ s3, handle, children }) {
-  return useData(requests.ensureObjectIsPresent, { s3, ...handle }).case({
-    _: () => null,
-    Ok: (h) => !!h && children(),
-  })
-}
-
-const HeadingSkel = (props) => (
-  <Skeleton borderRadius="borderRadius" width={200} {...props}>
-    &nbsp;
-  </Skeleton>
-)
-
 const ImageGrid = M.styled(M.Box)(({ theme: t }) => ({
   display: 'grid',
   gridAutoRows: 'max-content',
@@ -1079,7 +899,7 @@ function Thumbnails({ images }) {
   const pagination = Pagination.use(images, { perPage: 25, onChange: scroll })
 
   return (
-    <Section
+    <Summarize.Section
       heading={
         <>
           Images ({pagination.from}&ndash;{Math.min(pagination.to, images.length)} of{' '}
@@ -1104,15 +924,9 @@ function Thumbnails({ images }) {
           <Pagination.Controls {...pagination} />
         </M.Box>
       )}
-    </Section>
+    </Summarize.Section>
   )
 }
-
-const FilePreviewSkel = () => (
-  <Section heading={<HeadingSkel />}>
-    <ContentSkel />
-  </Section>
-)
 
 function Readmes({ s3, overviewUrl, bucket }) {
   return (
@@ -1122,7 +936,7 @@ function Readmes({ s3, overviewUrl, bucket }) {
           (rs.discovered.length > 0 || !!rs.forced) && (
             <>
               {!!rs.forced && (
-                <FilePreview
+                <Summarize.FilePreview
                   key="readme:forced"
                   headingOverride={false}
                   handle={rs.forced}
@@ -1130,11 +944,15 @@ function Readmes({ s3, overviewUrl, bucket }) {
                 />
               )}
               {rs.discovered.map((h) => (
-                <FilePreview key={`readme:${h.bucket}/${h.key}`} handle={h} expanded />
+                <Summarize.FilePreview
+                  key={`readme:${h.bucket}/${h.key}`}
+                  handle={h}
+                  expanded
+                />
               ))}
             </>
           ),
-        _: () => <FilePreviewSkel key="readme:skeleton" />,
+        _: () => <Summarize.FilePreviewSkel key="readme:skeleton" />,
       })}
     </Data>
   )
@@ -1147,7 +965,7 @@ function Imgs({ s3, overviewUrl, inStack, bucket }) {
       {AsyncResult.case({
         Ok: (images) => (images.length ? <Thumbnails images={images} /> : null),
         _: () => (
-          <Section key="thumbs:skel" heading={<HeadingSkel />}>
+          <Summarize.Section key="thumbs:skel" heading={<Summarize.HeadingSkel />}>
             <ImageGrid>
               {R.times(
                 (i) => (
@@ -1157,45 +975,11 @@ function Imgs({ s3, overviewUrl, inStack, bucket }) {
                 9,
               )}
             </ImageGrid>
-          </Section>
+          </Summarize.Section>
         ),
       })}
     </Data>
   )
-}
-
-const SUMMARY_ENTRIES = 7
-
-function Summary({ s3, bucket, inStack, overviewUrl }) {
-  const req = APIConnector.use()
-  const data = useData(requests.bucketSummary, { req, s3, bucket, inStack, overviewUrl })
-  const [shown, setShown] = React.useState(SUMMARY_ENTRIES)
-  const showMore = React.useCallback(() => {
-    setShown(R.add(SUMMARY_ENTRIES))
-  }, [setShown])
-  return data.case({
-    Ok: (entries) => {
-      const shownEntries = R.take(shown, entries)
-      return (
-        <>
-          {shownEntries.map((h) => (
-            <EnsureAvailability key={`${h.bucket}/${h.key}`} s3={s3} handle={h}>
-              {() => <FilePreview handle={h} />}
-            </EnsureAvailability>
-          ))}
-          {shown < entries.length && (
-            <M.Box mt={2} display="flex" justifyContent="center">
-              <M.Button variant="contained" color="primary" onClick={showMore}>
-                Show more
-              </M.Button>
-            </M.Box>
-          )}
-        </>
-      )
-    },
-    Pending: () => <FilePreviewSkel />,
-    _: () => null,
-  })
 }
 
 export default function Overview({
@@ -1234,7 +1018,7 @@ export default function Overview({
       )}
       <Readmes {...{ s3, bucket, overviewUrl }} />
       {!noOverviewImages && <Imgs {...{ s3, bucket, inStack, overviewUrl }} />}
-      <Summary {...{ s3, bucket, inStack, overviewUrl }} />
+      <Summarize.SummaryRoot {...{ s3, bucket, inStack, overviewUrl }} />
     </M.Box>
   )
 }
