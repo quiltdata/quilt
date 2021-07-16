@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as effects from 'redux-saga/effects'
-import uuid from 'uuid'
+import * as uuid from 'uuid'
 
 import AsyncResult from 'utils/AsyncResult'
 import { useReducer } from 'utils/ReducerInjector'
@@ -42,7 +42,7 @@ const RELEASE_TIME = 5000
 export const createResource = ({ name, fetch, key = R.identity }) => ({
   name,
   fetch,
-  id: uuid(),
+  id: uuid.v4(),
   key,
 })
 
@@ -190,7 +190,7 @@ export const Provider = function ResourceCacheProvider({ children }) {
             Ok: R.pipe(updateOk, AsyncResult.Ok),
             _: R.identity,
           }),
-          promise: R.then(updateOk),
+          promise: R.andThen(updateOk),
         }),
       )
       return patch(resource, input, update, silent)
