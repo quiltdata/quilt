@@ -28,17 +28,6 @@ import ROLE_UPDATE_UNMANAGED_MUTATION from './RolesUpdateUnmanaged.generated'
 import ROLE_DELETE_MUTATION from './RolesDelete.generated'
 import { RoleSelectionFragment as Role } from './RoleSelection.generated'
 
-const useMonoStyles = M.makeStyles((t) => ({
-  root: {
-    fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
-  },
-}))
-
-function Mono({ children }: React.PropsWithChildren<{}>) {
-  const classes = useMonoStyles()
-  return <span className={classes.root}>{children}</span>
-}
-
 const IAM_HOME = 'https://console.aws.amazon.com/iam/home'
 const ARN_ROLE_RE = /^arn:aws:iam:[^:]*:\d+:role\/(.+)$/
 const ARN_POLICY_RE = /^arn:aws:iam:[^:]*:\d+:policy\/(.+)$/
@@ -59,17 +48,19 @@ const columns = [
     props: { component: 'th', scope: 'row' },
   },
   {
-    id: 'type',
-    label: 'Type',
-    getValue: (r: Role) => r.__typename,
-    getDisplay: (_value: any, r: Role) =>
-      r.__typename === 'ManagedRole' ? (
-        <>Managed: access to {r.permissions.filter((p) => !!p.level).length} buckets</>
-      ) : (
-        <>
-          Unmanaged: <Mono>{r.arn}</Mono>
-        </>
-      ),
+    id: 'managed',
+    label: 'Managed',
+    getValue: (r: Role) => r.__typename === 'ManagedRole',
+    getDisplay: (value: boolean) => (value ? 'Yes' : 'No'),
+  },
+  {
+    id: 'buckets',
+    label: 'Buckets',
+    getValue: (r: Role) =>
+      r.__typename === 'ManagedRole'
+        ? r.permissions.filter((p) => !!p.level).length
+        : null,
+    getDisplay: (buckets: number | null) => (buckets == null ? 'N/A' : buckets),
   },
 ]
 
@@ -630,7 +621,8 @@ export default function Roles() {
                   {columns.map((col) => (
                     // @ts-expect-error
                     <M.TableCell key={col.id} {...col.props}>
-                      {(col.getDisplay || R.identity)(col.getValue(i), i)}
+                      {/* @ts-expect-error */}
+                      {(col.getDisplay || R.identity)(col.getValue(i))}
                     </M.TableCell>
                   ))}
                   <M.TableCell align="right" padding="none">
