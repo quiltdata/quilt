@@ -45,7 +45,6 @@ The cost of running your Quilt stack varies with data volumes and use, but typic
 | Athena | Variable |
 | **Total:** | **$619.03 + Variable Costs** |
 
-
 ### Health and Monitoring
 To check the status of your Quilt stack after bring-up or update, check the stack health in the CloudFormation console.
 
@@ -56,10 +55,8 @@ If your cluster status is not "Green" (healthy), please contact Quilt support. C
 * Running out of storage space
 * High index rates (e.g., caused by adding or updating very large numbers of files in S3)
 
-### Updates
-Major releases will be posted to AWS Marketplace. Minor releases will be announced via email and Slack. Please be sure to join the [Quilt mailing list](http://eepurl.com/bOyxRz) and/or [Slack Channel](https://slack.quiltdata.com/).
-
-To update your Quilt stack, apply the latest CloudFormation template in the CloudFormation console.
+### Service Limits
+This deployment does not require an increase in limits for your AWS Account.
 
 ## Requirements and Prerequisites
 
@@ -215,10 +212,11 @@ your CloudFormation stack.
 1. Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
 
-## Upgrade
+## Routine Maintainance and Upgrades
 
-Once you have a Quilt stack running, you can upgrade it as follows. You will
-need a licensed CloudFormation template from Quilt.
+Major releases will be posted to AWS Marketplace. Minor releases will be announced via email and Slack. Please be sure to join the [Quilt mailing list](http://eepurl.com/bOyxRz) and/or [Slack Channel](https://slack.quiltdata.com/).
+
+To update your Quilt stack, apply the latest CloudFormation template in the CloudFormation console as follows.
 
 1. Navigate to AWS Console > CloudFormation > Stacks
 1. Select your Quilt stack
@@ -236,13 +234,6 @@ All customer data and metadata in Quilt is stored in S3. It may also be cached i
 ![](imgs/aws-diagram-customer-data.png)
 
 We recommend using [S3 encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryption.html) and [Elasticsearch Service encryption at rest](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html) to provide maximum protection.
-
-## Disaster Recovery
-
-TODO:
-restart Quilt and re-add buckets.
-Bucket replication (in multiple regions)
-[S3 Replication](https://aws.amazon.com/s3/features/replication/)
 
 ## Advanced configuration
 
@@ -383,3 +374,49 @@ Note the comma after the object. Your trust relationship should now look somethi
 ```
 
 You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt3.admin.create_role`).
+
+## Backup and Recovery
+
+All data and metadata in Quilt is stored in S3. S3 data is automatically backed up (replicated across multiple available zones). To protect against accidental deletion or overwriting of data, we strongly recommend enabling object versioning for all S3 buckets connected to Quilt.
+
+No data will be lost if a Quilt stack goes down. The Quilt search indexes will be automatically rebuilt when buckets are added to a new stack.
+
+### Region Failure
+To protect against data loss in the event of a region failure, enable
+[S3 Bucket Replication](https://aws.amazon.com/s3/features/replication/) on all S3 buckets.
+
+## Emergency Maintainance
+See [Troubleshooting](Troubleshooting.md)
+
+## Support
+Support is available to all Quilt customers by:
+* online chat (in the Quilt catalog)
+* email to [support@quiltdata.io](mailto://support@quiltdata.io)
+* [Slack](https://slack.quiltdata.com/)
+
+Quilt guarantees response to support issues according to the following SLAs for Quilt Business and Quilt Enterprise customers.
+
+### Quilt Business
+|  | Initial Response | Temporary Resolution |
+| ---- | ---- | ----- |
+| Priority 1 | 1 business day | 3 business days |
+| Priority 2 | 2 business days | 5 business days |
+| Priority 3 | 3 business days | N/A |
+
+### Quilt Enterprise
+|  | Initial Response | Temporary Resolution |
+| ---- | ---- | ----- |
+| Priority 1 | 4 business hours | 1 business day |
+| Priority 2 | 1 business day | 2 business days |
+| Priority 3 | 1 business days | N/A |
+
+1.	“Business Day” means Monday through Friday (PST), excluding holidays observed by Quilt Data.
+
+1.	“Business Hours” means 8:00 a.m. to 7:00 p.m. (PST) on Business Days.
+
+1.	“Priority 1” means a critical problem with the Software in which the Software inoperable;
+1.	“Priority 2” means a problem with the Software in which the Software is severely limited or degraded, major functions are not performing properly, and the situation is causing a significant impact to Customer’s operations or productivity;
+
+1.	“Priority 3” means a minor or cosmetic problem with the Software in which any of the following occur: the problem is an irritant, affects nonessential functions, or has minimal impact to business operations; the problem is localized or has isolated impact; the problem is an operational nuisance; the problem results in documentation errors; or the problem is any other problem that is not a Priority 1 or a Priority 2, but is otherwise a failure of the Software to conform to the Documentation or Specifications;
+
+1.	“Temporary Resolution” means a temporary fix or patch that has been implemented and incorporated into the Software by Quilt Data to restore Software functionality.
