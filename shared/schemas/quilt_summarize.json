@@ -1,0 +1,80 @@
+{
+  "definitions": {
+    "fileShortcut": {
+      "type": "string",
+      "description": "Path relative to quilt_summarize.json",
+      "example": "file1.json"
+    },
+
+    "fileExtended": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "$ref": "#/definitions/fileShortcut"
+        },
+        "description": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["json", "jupyter", "vega", "voila"]
+          }
+        },
+        "width": {
+          "$ref": "#/definitions/width"
+        }
+      },
+      "required": ["path"]
+    },
+
+    "file": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/fileShortcut"
+        },
+        {
+          "$ref": "#/definitions/fileExtended"
+        }
+      ]
+    },
+
+    "width": {
+      "anyOf": [
+        {
+          "description": "Ratio number for flex-based width",
+          "example": 1.5,
+          "type": "number"
+        },
+        {
+          "description": "Width in pixels or percents",
+          "example": "100px",
+          "type": "string"
+        }
+      ]
+    },
+
+    "row": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/file"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/file"
+          }
+        }
+      ]
+    }
+  },
+
+  "type": "array",
+  "items": {
+    "$ref": "#/definitions/row"
+  }
+}

@@ -1232,8 +1232,7 @@ class PackageTest(QuiltTestCase):
         p_copy = pkg.filter(lambda lk, entry: lk == 'a/', include_directories=True)
         assert list(p_copy) == []
 
-        p_copy = pkg.filter(lambda lk, entry: lk == 'a/' or lk == 'a/df',
-                            include_directories=True)
+        p_copy = pkg.filter(lambda lk, entry: lk in ('a/', 'a/df'), include_directories=True)
         assert list(p_copy) == ['a'] and list(p_copy['a']) == ['df']
 
     @pytest.mark.usefixtures('clear_data_modules_cache')

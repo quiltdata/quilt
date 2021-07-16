@@ -5,7 +5,9 @@ import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
+import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
 import * as Resource from 'utils/Resource'
+import { makeSchemaValidator } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
@@ -400,6 +402,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
               R.descend(R.prop('lastModified')),
             ]),
             R.take(SAMPLE_SIZE),
+            R.map(R.objOf('handle')),
           ),
         )
     } catch (e) {
@@ -421,6 +424,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
             return { bucket, key: s.key, version: s.version_id }
           }),
           R.take(SAMPLE_SIZE),
+          R.map(R.objOf('handle')),
         ),
       )
     } catch (e) {
@@ -452,6 +456,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
           ),
           sampleSize(SAMPLE_SIZE),
           R.map(({ Key: key }) => ({ key, bucket })),
+          R.map(R.objOf('handle')),
         ),
       )
   } catch (e) {
@@ -585,7 +590,27 @@ export const objectMeta = ({ s3, bucket, path, version }) =>
     .promise()
     .then(R.pipe(R.path(['Metadata', 'helium']), R.when(Boolean, JSON.parse)))
 
-const isValidManifest = R.both(Array.isArray, R.all(R.is(String)))
+const isFile = (fileHandle) => typeof fileHandle === 'string' || fileHandle.path
+
+const isValidManifest = makeSchemaValidator(quiltSummarizeSchema)
+
+async function parseFile(resolvePath, fileHandle) {
+  const handle = await new Promise((resolve, reject) =>
+    R.pipe(
+      Resource.parse,
+      Resource.Pointer.case({
+        Web: () => null,
+        S3: resolve,
+        S3Rel: (path) => resolvePath(path).then(resolve).catch(reject),
+        Path: (path) => resolvePath(path).then(resolve).catch(reject),
+      }),
+    )(fileHandle.path || fileHandle),
+  )
+  return {
+    ...(typeof fileHandle === 'string' ? null : fileHandle),
+    handle,
+  }
+}
 
 export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) => {
   if (!inputHandle) return null
@@ -606,8 +631,13 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
       .promise()
     const json = file.Body.toString('utf-8')
     const manifest = JSON.parse(json)
-    if (!isValidManifest(manifest)) {
-      throw new Error('Invalid manifest: must be a JSON array of file links')
+    const configErrors = isValidManifest(manifest)
+    if (configErrors.length) {
+      // eslint-disable-next-line no-console
+      console.error(configErrors[0])
+      throw new Error(
+        'Invalid manifest: must be a JSON array of files or arrays of files',
+      )
     }
 
     const resolvePath = (path) =>
@@ -619,22 +649,16 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
             console.error(e)
             return null
           })
-        : {
+        : Promise.resolve({
             bucket: handle.bucket,
             key: s3paths.resolveKey(handle.key, path),
-          }
+          })
 
     const handles = await Promise.all(
-      manifest.map(
-        R.pipe(
-          Resource.parse,
-          Resource.Pointer.case({
-            Web: () => null, // web urls are not supported in this context
-            S3: R.identity,
-            S3Rel: resolvePath,
-            Path: resolvePath,
-          }),
-        ),
+      manifest.map((fileHandle) =>
+        isFile(fileHandle)
+          ? parseFile(resolvePath, fileHandle)
+          : Promise.all(fileHandle.map(parseFile.bind(null, resolvePath))),
       ),
     )
     return handles.filter((h) => h)
@@ -812,7 +836,7 @@ export const countPackages = withErrorHandling(async ({ req, bucket, filter }) =
     ),
   })
   const result = await req(`/search${qs}`)
-  return result.aggregations.total_handles.value
+  return result.aggregations?.total_handles?.value ?? 0
 })
 
 export const listPackages = withErrorHandling(

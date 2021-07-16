@@ -228,6 +228,11 @@ export interface QueryroleArgs {
 
 export type Role = UnmanagedRole | ManagedRole
 
+export interface RoleAssigned {
+  readonly __typename: 'RoleAssigned'
+  readonly _: Maybe<Scalars['Boolean']>
+}
+
 export interface RoleBucketPermission {
   readonly __typename: 'RoleBucketPermission'
   readonly role: Role
@@ -247,7 +252,11 @@ export interface RoleCreateSuccess {
   readonly role: Role
 }
 
-export type RoleDeleteResult = RoleDeleteSuccess | RoleDoesNotExist | RoleNameReserved
+export type RoleDeleteResult =
+  | RoleDeleteSuccess
+  | RoleDoesNotExist
+  | RoleNameReserved
+  | RoleAssigned
 
 export interface RoleDeleteSuccess {
   readonly __typename: 'RoleDeleteSuccess'

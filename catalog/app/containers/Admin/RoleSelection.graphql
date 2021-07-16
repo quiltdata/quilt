@@ -1,4 +1,5 @@
 fragment RoleSelection on Role {
+  __typename
   ... on UnmanagedRole {
     id
     name

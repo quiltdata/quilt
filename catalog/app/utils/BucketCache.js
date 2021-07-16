@@ -1,4 +1,3 @@
-import S3 from 'aws-sdk/clients/s3'
 import * as R from 'ramda'
 import * as React from 'react'
 
@@ -14,25 +13,24 @@ export function BucketCacheProvider({ children }) {
 }
 
 function bucketExists({ s3, bucket, cache }) {
-  if (S3.prototype.bucketRegionCache[bucket]) return Promise.resolve()
-  if (cache && cache[bucket]) return Promise.resolve()
-  return s3
-    .headBucket({ Bucket: bucket })
-    .promise()
-    .then(() => {
-      // eslint-disable-next-line no-param-reassign
-      if (cache) cache[bucket] = true
-    })
-    .catch(
-      errors.catchErrors([
-        [
-          R.propEq('code', 'NotFound'),
-          () => {
-            throw new errors.NoSuchBucket()
-          },
-        ],
-      ]),
-    )
+  if (!cache[bucket]) {
+    // eslint-disable-next-line no-param-reassign
+    cache[bucket] = s3
+      .headBucket({ Bucket: bucket })
+      .promise()
+      .then(() => undefined)
+      .catch(
+        errors.catchErrors([
+          [
+            R.propEq('code', 'NotFound'),
+            () => {
+              throw new errors.NoSuchBucket()
+            },
+          ],
+        ]),
+      )
+  }
+  return cache[bucket]
 }
 
 export function useBucketExistence(bucket) {

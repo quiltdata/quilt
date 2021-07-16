@@ -11,6 +11,7 @@ export type containers_Admin_RolesDeleteMutation = { readonly __typename: 'Mutat
     | { readonly __typename: 'RoleDeleteSuccess' }
     | { readonly __typename: 'RoleDoesNotExist' }
     | { readonly __typename: 'RoleNameReserved' }
+    | { readonly __typename: 'RoleAssigned' }
 }
 
 export const containers_Admin_RolesDeleteDocument = ({

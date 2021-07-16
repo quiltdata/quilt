@@ -222,7 +222,11 @@ type RoleDeleteSuccess {
   _: Boolean
 }
 
-union RoleDeleteResult = RoleDeleteSuccess | RoleDoesNotExist | RoleNameReserved
+type RoleAssigned {
+  _: Boolean
+}
+
+union RoleDeleteResult = RoleDeleteSuccess | RoleDoesNotExist | RoleNameReserved | RoleAssigned
 
 type Mutation {
   bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
