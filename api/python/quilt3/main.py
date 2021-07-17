@@ -88,9 +88,9 @@ def _launch_local_catalog():
                CATALOG_MODE="LOCAL",
                SSO_AUTH="DISABLED",
                PASSWORD_AUTH="ENABLED",
-               API_GATEWAY="http://localhost:5000",
-               BINARY_API_GATEWAY=open_config["binaryApiGatewayEndpoint"])
-               #BINARY_API_GATEWAY="http://localhost:5000",)
+               API_GATEWAY="http://localhost:5000/prod",
+               #BINARY_API_GATEWAY=open_config["binaryApiGatewayEndpoint"])
+               BINARY_API_GATEWAY="http://localhost:5000/prod",)
     for var in [f"{key}={value}" for key, value in env.items()]:
         command += ["-e", var]
     command += ["-p", "3000:80", "quiltdata/catalog"]
