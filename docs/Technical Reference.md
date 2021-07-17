@@ -61,6 +61,9 @@ This deployment does not require an increase in limits for your AWS Account.
 
 Installing Quilt takes approximately 45-90 minutes to bring up all services and components.
 
+### Knowledge Requirements
+Running Quilt requires working knowledge of [AWS CloudFormation](https://aws.amazon.com/cloudformation/), [AWS S3](https://aws.amazon.com/s3/) and [Elasticsearch Service](https://aws.amazon.com/elasticsearch-service/).
+
 ### Before you install Quilt
 
 You will need the following:
