@@ -48,10 +48,17 @@ const columns = [
     props: { component: 'th', scope: 'row' },
   },
   {
-    id: 'managed',
-    label: 'Managed',
+    id: 'source',
+    label: 'Source',
     getValue: (r: Role) => r.__typename === 'ManagedRole',
-    getDisplay: (value: boolean) => (value ? 'Yes' : 'No'),
+    getDisplay: (value: boolean) =>
+      value ? (
+        <abbr title="This IAM role is created and managed by Quilt">Quilt</abbr>
+      ) : (
+        <abbr title="This IAM role is provided and managed by you or another administrator">
+          Custom
+        </abbr>
+      ),
   },
   {
     id: 'buckets',
@@ -441,7 +448,21 @@ function Edit({ role, close }: EditProps) {
     [role],
   )
 
-  const title = `Edit the "${role.name}" role (${managed ? 'managed' : 'unmanaged'})`
+  const title = (
+    <>
+      Edit{' '}
+      {managed ? (
+        <abbr title="This IAM role is created and managed by Quilt">Quilt</abbr>
+      ) : (
+        <abbr title="This IAM role is provided and managed by you or another administrator">
+          custom
+        </abbr>
+      )}{' '}
+      role &quot;{role.name}&quot;
+    </>
+  )
+
+  const titleStr = `Edit ${managed ? 'Quilt' : 'custom'} role "${role.name}"`
 
   return (
     <RF.Form onSubmit={onSubmit} initialValues={initialValues}>
@@ -455,7 +476,7 @@ function Edit({ role, close }: EditProps) {
         submitError,
       }) => (
         <>
-          <M.DialogTitle className={classes.title} title={title}>
+          <M.DialogTitle className={classes.title} title={titleStr}>
             {title}
           </M.DialogTitle>
           <M.DialogContent>
@@ -573,7 +594,7 @@ export default function Roles() {
   const inlineActions = (role: Role) => [
     role.arn
       ? {
-          title: 'Open IAM',
+          title: 'Open AWS Console',
           icon: <M.Icon>launch</M.Icon>,
           href: getARNLink(role.arn),
         }
