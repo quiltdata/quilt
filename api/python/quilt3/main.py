@@ -227,10 +227,10 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
         return 1
 
 
-def cmd_push(name, dir, registry, dest, message, meta):
+def cmd_push(name, dir, registry, dest, message, meta, workflow):
     pkg = Package()
     pkg.set_dir('.', dir, meta=meta)
-    pkg.push(name, registry=registry, dest=dest, message=message)
+    pkg.push(name, registry=registry, dest=dest, message=message, workflow=workflow)
 
 
 def create_parser():
@@ -443,6 +443,15 @@ def create_parser():
             Format: A json string with keys in double quotes '{"key": "value"}'
             """,
         type=parse_arg_json,
+    )
+    optional_args.add_argument(
+        "--workflow",
+        help="""
+            Workflow ID or empty string to skip workflow validation.
+            If not specified, the default workflow will be used.
+            """,
+        default=...,
+        type=lambda v: None if v == '' else v
     )
     push_p.set_defaults(func=cmd_push)
 
