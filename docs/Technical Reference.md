@@ -410,7 +410,7 @@ Quilt guarantees response to support issues according to the following SLAs for 
 | Priority 2 | 1 business day | 2 business days |
 | Priority 3 | 1 business days | N/A |
 
-1.	“Business Day” means Monday through Friday (PST), excluding holidays observed by Quilt Data.
+1.	*Business Day* means Monday through Friday (PST), excluding holidays observed by Quilt Data.
 
 1.	“Business Hours” means 8:00 a.m. to 7:00 p.m. (PST) on Business Days.
 
