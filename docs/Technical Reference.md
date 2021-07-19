@@ -214,7 +214,7 @@ in Outputs and log in with your administrator password to invite users.
 
 ## Routine Maintainance and Upgrades
 
-Major releases will be posted to AWS Marketplace. Minor releases will be announced via email and Slack. Please be sure to join the [Quilt mailing list](http://eepurl.com/bOyxRz) and/or [Slack Channel](https://slack.quiltdata.com/).
+Major releases will be posted to AWS Marketplace. Minor releases will be announced via email and Slack. Join the [Quilt mailing list](http://eepurl.com/bOyxRz) or [Slack Channel](https://slack.quiltdata.com/) for updates.
 
 To update your Quilt stack, apply the latest CloudFormation template in the CloudFormation console as follows.
 
