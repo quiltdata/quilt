@@ -410,13 +410,21 @@ Quilt guarantees response to support issues according to the following SLAs for 
 | Priority 2 | 1 business day | 2 business days |
 | Priority 3 | 1 business days | N/A |
 
-1.	*Business Day* means Monday through Friday (PST), excluding holidays observed by Quilt Data.
-
-1.	“Business Hours” means 8:00 a.m. to 7:00 p.m. (PST) on Business Days.
-
-1.	“Priority 1” means a critical problem with the Software in which the Software inoperable;
-1.	“Priority 2” means a problem with the Software in which the Software is severely limited or degraded, major functions are not performing properly, and the situation is causing a significant impact to Customer’s operations or productivity;
-
-1.	“Priority 3” means a minor or cosmetic problem with the Software in which any of the following occur: the problem is an irritant, affects nonessential functions, or has minimal impact to business operations; the problem is localized or has isolated impact; the problem is an operational nuisance; the problem results in documentation errors; or the problem is any other problem that is not a Priority 1 or a Priority 2, but is otherwise a failure of the Software to conform to the Documentation or Specifications;
-
-1.	“Temporary Resolution” means a temporary fix or patch that has been implemented and incorporated into the Software by Quilt Data to restore Software functionality.
+### Definitions
+*	*Business Day* means Monday through Friday (PST), excluding holidays observed by Quilt Data.
+*	*Business Hours* means 8:00 a.m. to 7:00 p.m. (PST) on Business Days.
+*	*Priority 1* means a critical problem with the Software in which the Software
+inoperable;
+*	*Priority 2* means a problem with the Software in which the Software is
+severely limited or degraded, major functions are not performing properly, and
+the situation is causing a significant impact to Customer’s operations or
+productivity;
+*	*Priority 3* means a minor or cosmetic problem with the Software in which any of the following occur: the problem is an irritant, affects nonessential
+functions, or has minimal impact to business operations; the problem is
+localized or has isolated impact; the problem is an operational nuisance; the
+problem results in documentation errors; or the problem is any other problem
+that is not a Priority 1 or a Priority 2, but is otherwise a failure of the
+Software to conform to the Documentation or Specifications;
+* *Temporary Resolution* means a temporary fix or patch that has been
+implemented and incorporated into the Software by Quilt Data to restore
+Software functionality.
