@@ -93,7 +93,7 @@ def _launch_local_catalog():
     for var in [f"{key}={value}" for key, value in env.items()]:
         command += ["-e", var]
     command += ["-p", "3000:80", "quiltdata/catalog"]
-    subprocess.Popen(command)
+    subprocess.run(command, check=True)
 
 
 def _launch_local_s3proxy():
@@ -115,7 +115,7 @@ def _launch_local_s3proxy():
         command += ["--dns", nameservers[0]]
 
     command += ["-p", "5002:80", "quiltdata/s3proxy"]
-    subprocess.Popen(command)
+    subprocess.run(command, check=True)
 
 
 catalog_cmd_detailed_help = """
