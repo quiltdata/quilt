@@ -30,7 +30,7 @@ The Quilt CloudFormation template will automatically configure appropriate insta
 By default, Quilt configures an Elasticsearch cluster with 3 master nodes and 2 data nodes. Please contact the Quilt support team before adjusting the size and configuration of your cluster to avoid disruption.
 
 ### Cost
-The cost of running your Quilt stack varies with data volumes and use, but typically runs between $625 and $700 per month using the default configuration. See the table below for a cost breakdown based on AWS pricing in the `us-east-1` region.
+The infrastructure costs of running a Quilt stack vary with usage. Baseline infrastructure costs start at $620 and go up from there. See below for a breakdown of baseline costs for `us-east-1` at 744 hours per month.
 
 | Service  | Cost |
 | ------------- | ------------- |
