@@ -95,30 +95,6 @@ def _launch_local_catalog():
     subprocess.run(command, check=True)
 
 
-def _launch_local_s3proxy():
-    """"
-    Launches an s3 proxy (via docker)
-    on localhost:5002
-    """
-    import dns.resolver
-
-    dns_resolver = dns.resolver.Resolver()
-    command = ["docker", "run", "--rm"]
-
-    # Workaround for a Docker-for-Mac bug in which the container
-    # ends up with a different DNS server than the host.
-    # Workaround #2: use only IPv4 addresses.
-    # Note: leaving this code in though it isn't called so that it
-    # can be reintroduced once Docker-for-Mac DNS works reliably.
-    # TODO: switch back to this local s3proxy or remove this function
-    if sys.platform == 'darwin':
-        nameservers = [ip for ip in dns_resolver.nameservers if ip.count('.') == 3]
-        command += ["--dns", nameservers[0]]
-
-    command += ["-p", "5002:80", "quiltdata/s3proxy"]
-    subprocess.run(command, check=True)
-
-
 catalog_cmd_detailed_help = """
 Run the Quilt catalog on your machine (requires Docker). Running
 `quilt3 catalog` launches a webserver on your local machine using
