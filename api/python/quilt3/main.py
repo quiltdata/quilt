@@ -135,7 +135,7 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
             'flask_json',
         ):
             raise
-        print('Running `quilt3 catalog` requires you to install quilt3[catalog]')
+        print('To run `quilt3 catalog` install `quilt3[catalog]`')
         return
 
     if detailed_help:
