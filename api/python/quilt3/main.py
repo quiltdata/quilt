@@ -24,6 +24,13 @@ from .util import (
 )
 
 
+def parse_arg_json(value):
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        raise argparse.ArgumentTypeError(f'{value!r} is not a valid json string.')
+
+
 def cmd_config(catalog_url, **kwargs):
     """
     Configure quilt3 to a Quilt stack
@@ -222,11 +229,6 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
 
 def cmd_push(name, dir, registry, dest, message, meta):
     pkg = Package()
-    if meta:
-        try:
-            meta = json.loads(meta)
-        except ValueError:
-            raise QuiltException(f'{meta!r} is not a valid json string.')
     pkg.set_dir('.', dir, meta=meta)
     pkg.push(name, registry=registry, dest=dest, message=message)
 
@@ -440,7 +442,7 @@ def create_parser():
             Sets package-level metadata.
             Format: A json string with keys in double quotes '{"key": "value"}'
             """,
-        type=str,
+        type=parse_arg_json,
     )
     push_p.set_defaults(func=cmd_push)
 
