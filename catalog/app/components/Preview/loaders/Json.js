@@ -155,7 +155,7 @@ export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
 export const Loader = function GatedJsonLoader({ handle, children }) {
   return utils.useFirstBytes({ bytes: BYTES_TO_SCAN, handle }).case({
     Ok: ({ firstBytes, contentLength }) =>
-      detectSchema(firstBytes) ? (
+      detectSchema(firstBytes) && handle.mode !== 'json' ? (
         <VegaLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />
       ) : (
         <JsonLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />

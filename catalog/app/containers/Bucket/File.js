@@ -401,8 +401,20 @@ export default function File({
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
 
+  const [previewResult, setPreviewResult] = React.useState(false)
+  const onRender = React.useCallback(
+    (result) => {
+      if (AsyncResult.Ok.is(result) && !previewResult) {
+        setPreviewResult(result)
+        return renderPreview(AsyncResult.Pending())
+      }
+      return renderPreview(result)
+    },
+    [previewResult, setPreviewResult],
+  )
+
   const { registryUrl } = Config.use()
-  const viewModes = useViewModes(registryUrl, path)
+  const viewModes = useViewModes(registryUrl, path, previewResult)
   const viewMode = React.useMemo(
     () => viewModes.find(({ key }) => key === viewModeSlug) || viewModes[0] || null,
     [viewModes, viewModeSlug],
@@ -475,7 +487,7 @@ export default function File({
                   Err: (e) => {
                     throw e
                   },
-                  Ok: withPreview(renderPreview, viewMode),
+                  Ok: withPreview(onRender, viewMode),
                 })}
               </Section>
             </>
