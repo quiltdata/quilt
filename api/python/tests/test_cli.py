@@ -48,23 +48,15 @@ class QuiltCLITestCase(CommandLineTestCase):
 
 
 @pytest.mark.parametrize(
-    'meta_arg, meta_data, expected_set_dir_count, expected_push_count, expected_meta, expected_stderr',
+    'meta_data, expected_meta',
     [
-        (None, None, 1, 1, None, ''),
-        ('--meta', '{invalid: meta}', 0, 0, {}, 'is not a valid json string'),
-        ('--meta', "{'single': 'quotation'}", 0, 0, {}, 'is not a valid json string'),
-        ('--meta', '{"test": "meta", }', 0, 0, {}, 'is not a valid json string'),
-        ('--meta', '{"test": "meta"}', 1, 1, {"test": "meta"}, ''),
+        (None, None),
+        ('{"test": "meta"}', {"test": "meta"}),
     ]
 )
 def test_push_with_meta_data(
-    meta_arg,
     meta_data,
-    expected_set_dir_count,
-    expected_push_count,
     expected_meta,
-    expected_stderr,
-    capsys
 ):
     name = 'test/name'
     pkg = quilt3.Package()
@@ -76,20 +68,46 @@ def test_push_with_meta_data(
 
         with mock.patch('quilt3.Package.__new__', return_value=pkg) as mocked_package_class,\
              mock.patch.object(pkg, 'set_dir', wraps=pkg.set_dir) as mocked_set_dir, \
-             mock.patch.object(pkg, 'push') as mocked_push:
+             mock.patch.object(pkg, 'push') as mocked_push, \
+             mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
 
             # '--registry' defaults to configured remote registry hence optional.
-            if meta_arg:
-                main.main(('push', '--dir', tmp_dir, name, meta_arg, meta_data))
+            if meta_data:
+                main.main(('push', '--dir', tmp_dir, name, '--meta', meta_data))
+                mocked_parse_json_arg.assert_called_once_with(meta_data)
             else:
                 main.main(('push', '--dir', tmp_dir, name))
+                mocked_parse_json_arg.assert_not_called()
             mocked_package_class.assert_called_once_with(quilt3.Package)
-            assert mocked_set_dir.call_count == expected_set_dir_count
-            assert mocked_push.call_count == expected_push_count
+            mocked_set_dir.assert_called_once_with('.', tmp_dir, meta=expected_meta)
+            mocked_push.assert_called_once_with(name, dest=None, message=None, registry=None)
             assert pkg.meta == expected_meta
-            # check for expected stderr exception message
-            captured = capsys.readouterr()
-            assert expected_stderr in captured.err
+
+
+@pytest.mark.parametrize(
+    'meta_data',
+    [
+        '{invalid: meta}',
+        "{'single': 'quotation'}",
+        '{"test": "meta", }',
+    ]
+)
+def test_push_with_meta_data_error(
+    meta_data,
+    capsys
+):
+    name = 'test/name'
+
+    with mock.patch('quilt3.Package.__new__') as mocked_package_class,\
+         mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
+
+        with pytest.raises(SystemExit):
+            main.main(('push', '--dir', '.', name, '--meta', meta_data))
+        # check for expected stderr exception message
+        captured = capsys.readouterr()
+        assert 'is not a valid json string' in captured.err
+        mocked_parse_json_arg.assert_called_once_with(meta_data)
+        mocked_package_class.assert_not_called()
 
 
 def test_list_packages(capsys):

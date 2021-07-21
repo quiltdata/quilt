@@ -1,11 +1,8 @@
 # Run Quilt in Your AWS Account
-
-Quilt is a versioned data portal for AWS.
+Quilt is a Data Hub for AWS.
 A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
-Each instance consists of a password-protected web catalog on your domain,
-backend services, a secure server to manage user identities, and a Python API.
 
-## Installation Instructions
+## Help and Advice
 
 We encourage users to contact us before deploying Quilt.
 We will make sure that you have the latest version of Quilt,
@@ -20,7 +17,54 @@ connect with other users
 
 * [Email Quilt](mailto://contact@quiltdata.io)
 
-## Before you install Quilt
+## Architecture
+Each instance consists of a password-protected web catalog on your domain,
+backend services, a secure server to manage user identities, and a Python API.
+
+[Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
+
+### Sizing
+The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
+
+#### Elasticsearch Service Configuration
+By default, Quilt configures an Elasticsearch cluster with 3 master nodes and 2 data nodes. Please contact the Quilt support team before adjusting the size and configuration of your cluster to avoid disruption.
+
+### Cost
+The infrastructure costs of running a Quilt stack vary with usage. Baseline infrastructure costs start at $620 and go up from there. See below for a breakdown of baseline costs for `us-east-1` at 744 hours per month.
+
+| Service  | Cost |
+| ------------- | ------------- |
+| Elasticsearch Service | $516.83 |
+| RDS  | $75.56 |
+| ECS (Fargate) | $26.64 |
+| Lambda | Variable |
+| CloudTrail | Variable |
+| Athena | Variable |
+| **Total:** | **$619.03 + Variable Costs** |
+
+### Health and Monitoring
+To check the status of your Quilt stack after bring-up or update, check the stack health in the CloudFormation console.
+
+#### Elasticsearch Cluster
+If you notice slow or incomplete search results, check the status of the Quilt Elasticsearch cluster. To find the Quilt search cluster from CloudFormation, click on the Quilt stack, then "Resources." Click on the "Search" resource.
+
+If your cluster status is not "Green" (healthy), please contact Quilt support. Causes of unhealthy search clusters include:
+* Running out of storage space
+* High index rates (e.g., caused by adding or updating very large numbers of files in S3)
+
+### Service Limits
+This deployment does not require an increase in limits for your AWS Account.
+
+## Requirements and Prerequisites
+
+### Time Required
+
+Installing Quilt takes approximately 45-90 minutes to bring up all services and components.
+
+### Knowledge Requirements
+Running Quilt requires working knowledge of [AWS CloudFormation](https://aws.amazon.com/cloudformation/), [AWS S3](https://aws.amazon.com/s3/) and [Elasticsearch Service](https://aws.amazon.com/elasticsearch-service/).
+
+### Before you install Quilt
 
 You will need the following:
 
@@ -30,6 +74,9 @@ You will need the following:
 Service Catalog).
 The `AdministratorAccess` policy is sufficient. (Quilt creates and manages a
 VPC, containers, S3 buckets, a database, and more.)
+
+Reference: [Controlling access with AWS Identity and Access Management](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html)
+
 If you wish to create a service role for the installation, visit
 `IAM > Roles > Create Role > AWS service > CloudFormation` in the AWS console.
 The following service role is equivalent to `AdministratorAccess`:
@@ -80,7 +127,7 @@ of `ObjectRemoved:DeleteMarkerCreated`.
 1. Available **CloudTrail Trails** in the region where you wish to host your stack
 ([learn more](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)).
 
-1. An active subscription to Quilt Business on AWS Marketplace. Click `Continue to Subscribe` on the [Quilt Business Listing](https://aws.amazon.com/marketplace/pp/B07QF1VXFQ) to subscribe then return to this page for installation instructions. **The CloudFormation template and instructions on AWS Marketplace are infrequently updated and may be missing critical bugfixes.**
+1. A license key or an active subscription to Quilt Business on AWS Marketplace. Click `Continue to Subscribe` on the [Quilt Business Listing](https://aws.amazon.com/marketplace/pp/B07QF1VXFQ) to subscribe then return to this page for installation instructions. **The CloudFormation template and instructions on AWS Marketplace are infrequently updated and may be missing critical bugfixes.**
 
 ### AWS Marketplace
 
@@ -165,10 +212,11 @@ your CloudFormation stack.
 1. Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
 
-## Upgrade
+## Routine Maintainance and Upgrades
 
-Once you have a Quilt stack running, you can upgrade it as follows. You will
-need a licensed CloudFormation template from Quilt.
+Major releases will be posted to AWS Marketplace. Minor releases will be announced via email and Slack. Join the [Quilt mailing list](http://eepurl.com/bOyxRz) or [Slack Channel](https://slack.quiltdata.com/) for updates.
+
+To update your Quilt stack, apply the latest CloudFormation template in the CloudFormation console as follows.
 
 1. Navigate to AWS Console > CloudFormation > Stacks
 1. Select your Quilt stack
@@ -178,6 +226,14 @@ need a licensed CloudFormation template from Quilt.
 1. Click Next (several times) and proceed to apply the update
 
 Your previous settings should carry over.
+
+## Security
+
+All customer data and metadata in Quilt is stored in S3. It may also be cached in Elasticsearch Service (show in red in the diagram below). No other services in the Quilt stack store customer data.
+
+![](imgs/aws-diagram-customer-data.png)
+
+We recommend using [S3 encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryption.html) and [Elasticsearch Service encryption at rest](https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/encryption-at-rest.html) to provide maximum protection.
 
 ## Advanced configuration
 
@@ -272,7 +328,7 @@ Use current template > Next > Specify stack details), set the following paramete
 
 ### Preparing an AWS Role for use with Quilt
 
-These instructions document how to set up an existing role for use with Quilt. If the role you want to use doesn't exist yet, create it now.
+These instructions document how to set up an existing role for use with Quilt. If the role you want to use doesn't exist yet, create it now. For guidance creating IAM roles, see: [IAM best practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html), and the [Principle of Least Privilege](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#grant-least-privilege) 
 
 Go to your Quilt stack in CloudFormation. Go to `Outputs`, then find `RegistryRoleARN` and copy its value. It should look something like this: `arn:aws:iam::000000000000:role/stackname-ecsTaskExecutionRole`.
 
@@ -318,3 +374,57 @@ Note the comma after the object. Your trust relationship should now look somethi
 ```
 
 You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt3.admin.create_role`).
+
+## Backup and Recovery
+
+All data and metadata in Quilt is stored in S3. S3 data is automatically backed up (replicated across multiple available zones). To protect against accidental deletion or overwriting of data, we strongly recommend enabling object versioning for all S3 buckets connected to Quilt.
+
+No data will be lost if a Quilt stack goes down. The Quilt search indexes will be automatically rebuilt when buckets are added to a new stack.
+
+### Region Failure
+To protect against data loss in the event of a region failure, enable
+[S3 Bucket Replication](https://aws.amazon.com/s3/features/replication/) on all S3 buckets.
+
+## Emergency Maintainance
+See [Troubleshooting](Troubleshooting.md)
+
+## Support
+Support is available to all Quilt customers by:
+* online chat (in the Quilt catalog)
+* email to [support@quiltdata.io](mailto://support@quiltdata.io)
+* [Slack](https://slack.quiltdata.com/)
+
+Quilt guarantees response to support issues according to the following SLAs for Quilt Business and Quilt Enterprise customers.
+
+### Quilt Business
+|  | Initial Response | Temporary Resolution |
+| ---- | ---- | ----- |
+| Priority 1 | 1 business day | 3 business days |
+| Priority 2 | 2 business days | 5 business days |
+| Priority 3 | 3 business days | N/A |
+
+### Quilt Enterprise
+|  | Initial Response | Temporary Resolution |
+| ---- | ---- | ----- |
+| Priority 1 | 4 business hours | 1 business day |
+| Priority 2 | 1 business day | 2 business days |
+| Priority 3 | 1 business days | N/A |
+
+### Definitions
+*	*Business Day* means Monday through Friday (PST), excluding holidays observed by Quilt Data.
+*	*Business Hours* means 8:00 a.m. to 7:00 p.m. (PST) on Business Days.
+*	*Priority 1* means a critical problem with the Software in which the Software
+inoperable;
+*	*Priority 2* means a problem with the Software in which the Software is
+severely limited or degraded, major functions are not performing properly, and
+the situation is causing a significant impact to Customer’s operations or
+productivity;
+*	*Priority 3* means a minor or cosmetic problem with the Software in which any of the following occur: the problem is an irritant, affects nonessential
+functions, or has minimal impact to business operations; the problem is
+localized or has isolated impact; the problem is an operational nuisance; the
+problem results in documentation errors; or the problem is any other problem
+that is not a Priority 1 or a Priority 2, but is otherwise a failure of the
+Software to conform to the Documentation or Specifications;
+* *Temporary Resolution* means a temporary fix or patch that has been
+implemented and incorporated into the Software by Quilt Data to restore
+Software functionality.

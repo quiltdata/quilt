@@ -95,7 +95,7 @@ class TestPreview(TestCase):
             }
         }
         vld = HTMLValidator()
-        for file in test_files:
+        for file, expected_data in test_files.items():
             in_file = os.path.join(BASE_DIR, "excel", file)
             with open(in_file, mode="rb") as excel:
                 for html in [False, True]:
@@ -113,7 +113,7 @@ class TestPreview(TestCase):
                         print(vld.warnings)
                     else:
                         assert not any(t in body for t in tags)
-                    assert all(c in body for c in test_files[file]["contents"])
+                    assert all(c in body for c in expected_data["contents"])
 
     def test_fcs(self):
         """test FCS parsing"""
@@ -132,25 +132,25 @@ class TestPreview(TestCase):
                 'has_warnings': True,
             },
         }
-        for file in test_files:
+        for file, expected_data in test_files.items():
             in_file = os.path.join(BASE_DIR, 'fcs', file)
 
             with open(in_file, mode='rb') as fcs:
                 body, info = extract_fcs(fcs)
                 if body != "":
-                    assert test_files[file]['in_body'] in body
-                    assert not test_files[file].get('has_warnings')
+                    assert expected_data['in_body'] in body
+                    assert not expected_data.get('has_warnings')
                 else:
-                    assert test_files[file]['has_warnings']
+                    assert expected_data['has_warnings']
                     assert info['warnings']
-                assert test_files[file]['in_meta_keys'] in info['metadata'].keys()
-                assert test_files[file]['in_meta_values'] in info['metadata'].values()
+                assert expected_data['in_meta_keys'] in info['metadata'].keys()
+                assert expected_data['in_meta_values'] in info['metadata'].values()
                 # when there's a body, check if columns only works
-                if test_files[file].get('in_body'):
+                if expected_data.get('in_body'):
                     # move to start so we can use the file-like a second time
                     fcs.seek(0)
                     body, info = extract_fcs(fcs, as_html=False)
-                    assert body == test_files[file]['columns_string']
+                    assert body == expected_data['columns_string']
 
     def test_long(self):
         """test a text file with lots of lines"""

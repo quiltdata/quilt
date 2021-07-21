@@ -66,13 +66,20 @@ export function useSelection({ rows, getId = R.unary(I.fromJS) }) {
   return { toggle, toggleAll, clear, isSelected, selected, all: allSelected }
 }
 
-export const renderAction = (a) => (
-  <M.Tooltip title={a.title} key={a.title}>
-    <M.IconButton aria-label={a.title} onClick={a.fn}>
-      {a.icon}
-    </M.IconButton>
-  </M.Tooltip>
-)
+export const renderAction = (a) =>
+  !a ? null : (
+    <M.Tooltip title={a.title} key={a.title}>
+      <M.IconButton
+        aria-label={a.title}
+        onClick={a.fn}
+        href={a.href}
+        component={a.href ? 'a' : undefined}
+        target={a.href ? '_blank' : undefined}
+      >
+        {a.icon}
+      </M.IconButton>
+    </M.Tooltip>
+  )
 
 const useToolbarStyles = M.makeStyles((t) => ({
   root: {
@@ -181,10 +188,11 @@ export function Wrapper({ className = undefined, ...props }) {
 
 const useInlineActionsStyles = M.makeStyles((t) => ({
   root: {
-    opacity: 0,
+    opacity: 0.3,
     paddingRight: t.spacing(1),
     textAlign: 'right',
     transition: 'opacity 100ms',
+    whiteSpace: 'nowrap',
 
     'tr:hover &': {
       opacity: 1,

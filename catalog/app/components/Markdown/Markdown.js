@@ -7,8 +7,8 @@ import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RC from 'recompose'
-import Remarkable from 'remarkable'
-import { replaceEntities, escapeHtml, unescapeMd } from 'remarkable/lib/common/utils'
+import * as Remarkable from 'remarkable'
+import { linkify } from 'remarkable/linkify'
 import { withStyles } from '@material-ui/styles'
 
 import { linkStyle } from 'utils/StyledLink'
@@ -110,7 +110,7 @@ const highlight = (str, lang) => {
   return '' // use external default escaping
 }
 
-const escape = R.pipe(replaceEntities, escapeHtml)
+const escape = R.pipe(Remarkable.utils.replaceEntities, Remarkable.utils.escapeHtml)
 
 /**
  * A Markdown (Remarkable) plugin. Takes a Remarkable instance and adjusts it.
@@ -144,8 +144,8 @@ const imageHandler = ({ disable = false, process = R.identity }) => (md) => {
       return `<span>![${alt}](${src}${title})</span>`
     }
 
-    const src = escapeHtml(t.src)
-    const alt = t.alt ? escape(unescapeMd(t.alt)) : ''
+    const src = Remarkable.utils.escapeHtml(t.src)
+    const alt = t.alt ? escape(Remarkable.utils.unescapeMd(t.alt)) : ''
     const title = t.title ? ` title="${escape(t.title)}"` : ''
     return `<img src="${src}" alt="${alt}"${title} />`
   }
@@ -169,7 +169,7 @@ const linkHandler = ({ nofollow = true, process = R.identity }) => (md) => {
     const t = process(tokens[idx])
     const title = t.title ? ` title="${escape(t.title)}"` : ''
     const rel = nofollow ? ' rel="nofollow"' : ''
-    return `<a href="${escapeHtml(t.href)}"${rel}${title}>`
+    return `<a href="${Remarkable.utils.escapeHtml(t.href)}"${rel}${title}>`
   }
 }
 
@@ -184,12 +184,11 @@ const linkHandler = ({ nofollow = true, process = R.identity }) => (md) => {
  * @returns {Object} Remarakable instance
  */
 export const getRenderer = memoize(({ images, processImg, processLink }) => {
-  const md = new Remarkable('full', {
+  const md = new Remarkable.Remarkable('full', {
     highlight,
     html: true,
-    linkify: true,
     typographer: true,
-  })
+  }).use(linkify)
   md.use(linkHandler({ process: processLink }))
   md.use(imageHandler({ disable: !images, process: processImg }))
   const purify = createDOMPurify(window)

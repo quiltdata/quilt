@@ -11,7 +11,6 @@ import * as Notifications from 'containers/Notifications'
 import * as Model from 'model'
 import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
-import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
 import * as Types from 'utils/types'
 import * as validators from 'utils/validators'
@@ -28,17 +27,6 @@ import ROLE_UPDATE_MANAGED_MUTATION from './RolesUpdateManaged.generated'
 import ROLE_UPDATE_UNMANAGED_MUTATION from './RolesUpdateUnmanaged.generated'
 import ROLE_DELETE_MUTATION from './RolesDelete.generated'
 import { RoleSelectionFragment as Role } from './RoleSelection.generated'
-
-const useMonoStyles = M.makeStyles((t) => ({
-  root: {
-    fontFamily: (t.typography as $TSFixMe).monospace.fontFamily,
-  },
-}))
-
-function Mono({ children }: React.PropsWithChildren<{}>) {
-  const classes = useMonoStyles()
-  return <span className={classes.root}>{children}</span>
-}
 
 const IAM_HOME = 'https://console.aws.amazon.com/iam/home'
 const ARN_ROLE_RE = /^arn:aws:iam:[^:]*:\d+:role\/(.+)$/
@@ -60,27 +48,26 @@ const columns = [
     props: { component: 'th', scope: 'row' },
   },
   {
-    id: 'managed',
-    label: 'Managed',
+    id: 'source',
+    label: 'Source',
     getValue: (r: Role) => r.__typename === 'ManagedRole',
-    getDisplay: (value: boolean) => (value ? 'Yes' : 'No'),
+    getDisplay: (value: boolean) =>
+      value ? (
+        <abbr title="This IAM role is created and managed by Quilt">Quilt</abbr>
+      ) : (
+        <abbr title="This IAM role is provided and managed by you or another administrator">
+          Custom
+        </abbr>
+      ),
   },
   {
-    id: 'arn',
-    label: 'ARN',
-    getValue: R.prop('arn'),
-    getDisplay: (v: string | null) => {
-      if (!v) return 'None'
-      const link = getARNLink(v)
-      const mono = <Mono>{v}</Mono>
-      return link ? (
-        <StyledLink href={link} target="_blank">
-          {mono}
-        </StyledLink>
-      ) : (
-        mono
-      )
-    },
+    id: 'buckets',
+    label: 'Buckets',
+    getValue: (r: Role) =>
+      r.__typename === 'ManagedRole'
+        ? r.permissions.filter((p) => !!p.level).length
+        : null,
+    getDisplay: (buckets: number | null) => (buckets == null ? 'N/A' : buckets),
   },
 ]
 
@@ -97,7 +84,14 @@ const useStyles = M.makeStyles((t) => ({
     position: 'absolute',
     right: 0,
     top: 64,
-    zIndex: 1, // above Select and Checkbox
+    zIndex: 3, // above Select, Checkbox and sticky table header
+  },
+  title: {
+    '&>*': {
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    },
   },
   panel: {
     marginTop: t.spacing(2),
@@ -201,7 +195,15 @@ function Create({ close }: CreateProps) {
                   required: 'Enter a role name',
                   reserved: 'This is a reserved name, please use another',
                   taken: 'Role with this name already exists',
-                  invalid: 'Invalid name for role',
+                  invalid: (
+                    <>
+                      Enter a{' '}
+                      <abbr title="Must start with a letter and contain only alphanumeric characters and underscores thereafter">
+                        valid
+                      </abbr>{' '}
+                      role name
+                    </>
+                  ),
                 }}
               />
 
@@ -300,6 +302,11 @@ function Delete({ role, close }: DeleteProps) {
           return
         case 'RoleNameReserved':
           push(`Unable to delete reserved role "${role.name}"`)
+          return
+        case 'RoleAssigned':
+          push(
+            `Unable to delete role "${role.name}" assigned to some user(s). Unassign this role from everyone and try again.`,
+          )
           return
         default:
           assertNever(r)
@@ -441,6 +448,22 @@ function Edit({ role, close }: EditProps) {
     [role],
   )
 
+  const title = (
+    <>
+      Edit{' '}
+      {managed ? (
+        <abbr title="This IAM role is created and managed by Quilt">Quilt</abbr>
+      ) : (
+        <abbr title="This IAM role is provided and managed by you or another administrator">
+          custom
+        </abbr>
+      )}{' '}
+      role &quot;{role.name}&quot;
+    </>
+  )
+
+  const titleStr = `Edit ${managed ? 'Quilt' : 'custom'} role "${role.name}"`
+
   return (
     <RF.Form onSubmit={onSubmit} initialValues={initialValues}>
       {({
@@ -453,8 +476,8 @@ function Edit({ role, close }: EditProps) {
         submitError,
       }) => (
         <>
-          <M.DialogTitle>
-            Edit the &quot;{role.name}&quot; role ({managed ? 'managed' : 'unmanaged'})
+          <M.DialogTitle className={classes.title} title={titleStr}>
+            {title}
           </M.DialogTitle>
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
@@ -569,6 +592,13 @@ export default function Roles() {
   ]
 
   const inlineActions = (role: Role) => [
+    role.arn
+      ? {
+          title: 'Open AWS Console',
+          icon: <M.Icon>launch</M.Icon>,
+          href: getARNLink(role.arn),
+        }
+      : null,
     {
       title: 'Delete',
       icon: <M.Icon>delete</M.Icon>,
