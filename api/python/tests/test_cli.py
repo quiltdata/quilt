@@ -1,16 +1,16 @@
-import tempfile
-from pathlib import Path
 from unittest import mock
 from unittest.mock import patch
 
 import pytest
 
-import quilt3
 from quilt3 import main
 
 from .utils import QuiltTestCase
 
 create_parser = main.create_parser
+
+
+patch_package_class = mock.patch('quilt3.main.Package', autospec=True)
 
 
 class CommandLineTestCase(QuiltTestCase):
@@ -30,21 +30,15 @@ class QuiltCLITestCase(CommandLineTestCase):
 
     def test_push(self):
         name = 'test/name'
-        pkg = quilt3.Package()
+        dir_path = 'test/dir/path'
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            (Path(tmp_dir) / 'foo').touch()
-            (Path(tmp_dir) / 'bar').mkdir()
-            (Path(tmp_dir) / 'bar' / 'baz')
+        with patch_package_class as mocked_package_class:
+            main.main(('push', '--dir', dir_path, name))
 
-            with mock.patch('quilt3.Package.__new__', return_value=pkg) as mocked_package_class, \
-                 mock.patch.object(pkg, 'set_dir', wraps=pkg.set_dir) as mocked_set_dir, \
-                 mock.patch.object(pkg, 'push') as mocked_push:
-                main.main(('push', '--dir', tmp_dir, name))
-
-                mocked_package_class.assert_called_once_with(quilt3.Package)
-                mocked_set_dir.assert_called_once_with('.', tmp_dir, meta=None)
-                mocked_push.assert_called_once_with(name, registry=None, dest=None, message=None)
+            mocked_package_class.assert_called_once_with()
+            mocked_package = mocked_package_class.return_value
+            mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
+            mocked_package.push.assert_called_once_with(name, registry=None, dest=None, message=None)
 
 
 @pytest.mark.parametrize(
@@ -59,29 +53,22 @@ def test_push_with_meta_data(
     expected_meta,
 ):
     name = 'test/name'
-    pkg = quilt3.Package()
+    dir_path = 'test/dir/path'
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        (Path(tmp_dir) / 'foo').touch()
-        (Path(tmp_dir) / 'bar').mkdir()
-        (Path(tmp_dir) / 'bar' / 'baz')
+    with patch_package_class as mocked_package_class, \
+         mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
 
-        with mock.patch('quilt3.Package.__new__', return_value=pkg) as mocked_package_class,\
-             mock.patch.object(pkg, 'set_dir', wraps=pkg.set_dir) as mocked_set_dir, \
-             mock.patch.object(pkg, 'push') as mocked_push, \
-             mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
-
-            # '--registry' defaults to configured remote registry hence optional.
-            if meta_data:
-                main.main(('push', '--dir', tmp_dir, name, '--meta', meta_data))
-                mocked_parse_json_arg.assert_called_once_with(meta_data)
-            else:
-                main.main(('push', '--dir', tmp_dir, name))
-                mocked_parse_json_arg.assert_not_called()
-            mocked_package_class.assert_called_once_with(quilt3.Package)
-            mocked_set_dir.assert_called_once_with('.', tmp_dir, meta=expected_meta)
-            mocked_push.assert_called_once_with(name, dest=None, message=None, registry=None)
-            assert pkg.meta == expected_meta
+        # '--registry' defaults to configured remote registry hence optional.
+        if meta_data:
+            main.main(('push', '--dir', dir_path, name, '--meta', meta_data))
+            mocked_parse_json_arg.assert_called_once_with(meta_data)
+        else:
+            main.main(('push', '--dir', dir_path, name))
+            mocked_parse_json_arg.assert_not_called()
+        mocked_package_class.assert_called_once_with()
+        mocked_package = mocked_package_class.return_value
+        mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=expected_meta)
+        mocked_package.push.assert_called_once_with(name, dest=None, message=None, registry=None)
 
 
 @pytest.mark.parametrize(
@@ -98,7 +85,7 @@ def test_push_with_meta_data_error(
 ):
     name = 'test/name'
 
-    with mock.patch('quilt3.Package.__new__') as mocked_package_class,\
+    with patch_package_class as mocked_package_class, \
          mock.patch('quilt3.main.parse_arg_json', wraps=main.parse_arg_json) as mocked_parse_json_arg:
 
         with pytest.raises(SystemExit):
