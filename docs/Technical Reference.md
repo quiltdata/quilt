@@ -385,6 +385,12 @@ No data will be lost if a Quilt stack goes down. The Quilt search indexes will b
 To protect against data loss in the event of a region failure, enable
 [S3 Bucket Replication](https://aws.amazon.com/s3/features/replication/) on all S3 buckets.
 
+The time to restore varies with storage needs, but a <2-hour recovery time objective (RTO) and <15 minute recovery point objective (RPO) are generally possible.
+
+To restore Quilt in your backup region:
+1. Create a new Quilt stack from the same CloudFormation template in the backup region.
+1. Connect the replica buckets (in the backup region) to your Quilt stack. In the Quilt catalog, select "Users and Buckets"->"Buckets" and enter the bucket information.
+
 ## Emergency Maintainance
 See [Troubleshooting](Troubleshooting.md)
 
