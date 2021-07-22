@@ -21,7 +21,16 @@ connect with other users
 Each instance consists of a password-protected web catalog on your domain,
 backend services, a secure server to manage user identities, and a Python API.
 
-[Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
+![Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
+
+### Network
+![](imgs/aws-diagram-network.png)
+* ECS services (e.g., Catalog, Identity Server) run in two availability zones
+with separate private subnets.
+* Amazon RDS (Postgres) stores stack configuration settings only. It is
+deployed in a multi-AZ configuration for high availability.
+* Security groups and NACLs restrict access to the greatest degree possible, by
+only allowing necessary traffic.
 
 ### Sizing
 The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
