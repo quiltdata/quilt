@@ -21,7 +21,16 @@ connect with other users
 Each instance consists of a password-protected web catalog on your domain,
 backend services, a secure server to manage user identities, and a Python API.
 
-[Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
+![Architecture Diagram](https://quilt-web-public.s3.amazonaws.com/quilt-aws-diagram.png)
+
+### Network
+![](imgs/aws-diagram-network.png)
+* ECS services (e.g., Catalog, Identity Server) run in two availability zones
+with separate private subnets.
+* Amazon RDS (Postgres) stores stack configuration settings only. It is
+deployed in a multi-AZ configuration for high availability.
+* Security groups and NACLs restrict access to the greatest degree possible, by
+only allowing necessary traffic.
 
 ### Sizing
 The Quilt CloudFormation template will automatically configure appropriate instance sizes for RDS, ECS (Fargate), Lambda and Elasticsearch Service. Some users may choose to adjust the size and configuration of their Elasticsearch cluster. All other services should use the default settings.
@@ -384,6 +393,12 @@ No data will be lost if a Quilt stack goes down. The Quilt search indexes will b
 ### Region Failure
 To protect against data loss in the event of a region failure, enable
 [S3 Bucket Replication](https://aws.amazon.com/s3/features/replication/) on all S3 buckets.
+
+The time to restore varies with storage needs, but a <2-hour recovery time objective (RTO) and <15 minute recovery point objective (RPO) are generally possible.
+
+To restore Quilt in your backup region:
+1. Create a new Quilt stack from the same CloudFormation template in the backup region.
+1. Connect the replica buckets (in the backup region) to your Quilt stack. In the Quilt catalog, select "Users and Buckets"->"Buckets" and enter the bucket information.
 
 ## Emergency Maintainance
 See [Troubleshooting](Troubleshooting.md)
