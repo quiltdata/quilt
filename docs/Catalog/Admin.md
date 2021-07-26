@@ -1,31 +1,41 @@
-The Quilt catalog includes an admin panel that allows you to manage users and buckets in your stack and to customize your Quilt catalog.
-You can access it via a dropdown menu opened by clicking your username in the navbar.
+The Quilt catalog includes an admin panel that allows you to manage
+users and buckets in Quilt, as well as customize the Quilt catalog. You can access
+the panel via a dropdown menu under username in the navbar.
 
 ![](../imgs/admin-dropdown.png)
 
-The admin page is only accessible to catalog admins.
-Only admins may create other admins, and the catalog enforces a constraint that
-there must always be at least one admin account on the catalog
-(a default one is created as part of the catalog standup process).
+The admin page is only accessible to designated administrators. The first admin
+is set during the CloudFormation installation. Subsequent admins may be designated
+through the panel. Only admins may create other admins. 
+
+Quilt requires at least one admin account per stack.
 
 
 ## Users and roles
 
-This section provides comprehensive access control management.
+This section provides comprehensive access control management for the follwing
+functions:
+* Create/Delete user
+* De/activate user
+* De/admin user
+* Assign roles to users
 
 ![](../imgs/admin-users-roles.png)
 
-You can create and delete, activate and deactivate, admin and de-admin, and assign and de-assign roles to users on this page.
+You may invite new users to your Quilt stack by clicking the + button, upper right.
 
-You may invite new users to your Quilt stack via email.
-
-You can create custom roles with configurable per-bucket permissions.
+You may create custom roles for different groups of users. With the exception of
+administrators, users of managed roles are only aware of the buckets that they
+are permitted to read. All other stack buckets are invisible to users of managed
+roles.
 
 ![](../imgs/admin-users-roles-create-managed.png)
 
 ## Buckets
 
-In this section you can connect and disconnect buckets to / from your Quilt stack and configure bucket settings.
+Here you can add or remove buckets from Quilt and configure bucket indexing and
+display settings. 
+<!--TODO explain sub sections of bucket editro !-->
 
 ![](../imgs/admin-buckets.png)
 
@@ -34,6 +44,10 @@ In this section you can connect and disconnect buckets to / from your Quilt stac
 
 ## Settings
 
-This section allows you to customize your Quilt catalog.
+This section allows you to customize your Quilt catalog, including custom links
+in the navbar.
 
 ![](../imgs/admin-settings.png)
+
+## Further settings
+See [Prefences](Preferences.md) for further control over the catalog user interface.
