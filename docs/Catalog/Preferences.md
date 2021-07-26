@@ -1,6 +1,6 @@
-## Showing and hiding features in the Quilt catalog
+## Show and hide features in the Quilt catalog
 
-You can use your Quilt catalog's configuration file to show and hide certain
+You can use your Quilt catalog's configuration file to show or hide certain
 tabs and buttons in the Quilt catalog. This gives you finer-grained control
 over how users interact with the Quilt catalog. The catalog config file is per-bucket.
 The file's path is `s3://BUCKET/.quilt/catalog/config.yaml`.
@@ -39,29 +39,30 @@ buckets in this dictionary are the ones offered when the user clicks
 Revise Package > Add files from Bucket; if the dictionary is not set or is empty the feature "Add files from Bucket" is disabled
 * `ui.defaultSourceBucket` - source bucket from `ui.sourceBuckets` that is selected by default; if it doesn't match any bucket then it's ignored
 
-## Customize bucket's overview page
+## Custom overviews for buckets, folders
 
-### TODO: Overview URL
+`quilt_summarize.json` is a configuration file that works in any S3 folder or in
+any Quilt package. `quilt_summarize.json` is a JSON array
+of files that you wish to preview in the catalog.
 
-You can set a list of files to output using `quilt_summarize.json`.
-
-Use array as a list of rows, each row can be one file or list of files (columns). You can set file source as a path relative to `quilt_summarize.json` or as an object containing path (required), title, description, or width.
-
-This is a list of three files one after another:
+The simplest summary is just a list of relative paths to files that you wish to preview:
 
 ```json
-# quilt_summarize.json
+// quilt_summarize.json
 [
   "file1.json",
   "file2.csv",
   "file3.ipynb"
 ]
 ```
+By default each list element renders in its own row.
+<!--TODO screenshot here !-->
 
-This layout contains two rows. First row is a file "file1.json" , and the second has two columns: "file2.csv", 200px width, and "file3.ipynb" with title and description.
+For more sophisticated layouts, you can break a row into columns by providing an
+array instead of a string:
 
 ```json
-# quilt_summarize.json
+// quilt_summarize.json
 [
   "file1.json",
   [{
@@ -74,12 +75,14 @@ This layout contains two rows. First row is a file "file1.json" , and the second
   }]
 ]
 ```
+<!--TODO screenshot here !-->
 
-Any directory can contain `quilt_summarize.json` providing layout to output while browsing this directory.
-
-### File properties
-
+Each element of an array in `quilt_summarize.json` can either be a path string
+or an object with one or more of the following properties:
 - `path` - file path relative to `quilt_summarize.json`
 - `title` - title rendered instead of file path
-- `description` - description leveraging Markdown syntax
+- `description` - description in markdown format
 - `width` - column width either in pixels or ratio (default is ratio `1`)
+
+`quilt_summarize.json` will render in any directory that contains a file of the
+same name, in both bucket view and package view.
