@@ -204,7 +204,7 @@ export function usePreview({ type, handle, query }) {
 }
 
 export function useProcessing(asyncResult, process, deps = []) {
-  return useMemoEq([asyncResult, process, deps], () =>
+  return useMemoEq([asyncResult, deps], () =>
     AsyncResult.case(
       {
         Ok: R.tryCatch(R.pipe(process, AsyncResult.Ok), AsyncResult.Err),
