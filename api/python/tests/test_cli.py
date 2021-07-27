@@ -38,7 +38,7 @@ class QuiltCLITestCase(CommandLineTestCase):
             mocked_package_class.assert_called_once_with()
             mocked_package = mocked_package_class.return_value
             mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
-            mocked_package.push.assert_called_once_with(name, registry=None, dest=None, message=None)
+            mocked_package.push.assert_called_once_with(name, registry=None, dest=None, message=None, workflow=...)
 
 
 @pytest.mark.parametrize(
@@ -68,7 +68,7 @@ def test_push_with_meta_data(
         mocked_package_class.assert_called_once_with()
         mocked_package = mocked_package_class.return_value
         mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=expected_meta)
-        mocked_package.push.assert_called_once_with(name, dest=None, message=None, registry=None)
+        mocked_package.push.assert_called_once_with(name, dest=None, message=None, registry=None, workflow=...)
 
 
 @pytest.mark.parametrize(
@@ -95,6 +95,30 @@ def test_push_with_meta_data_error(
         assert 'is not a valid json string' in captured.err
         mocked_parse_json_arg.assert_called_once_with(meta_data)
         mocked_package_class.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    'workflow_input, expected_workflow',
+    [
+        (None, ...),
+        ('', None),
+        ('test-workflow', 'test-workflow'),
+    ]
+)
+def test_push_workflow(workflow_input, expected_workflow):
+    name = 'test/name'
+    dir_path = 'test/dir/path'
+
+    with patch_package_class as mocked_package_class:
+        workflow_args = () if workflow_input is None else ('--workflow', workflow_input)
+        main.main(('push', '--dir', dir_path, *workflow_args, name))
+
+        mocked_package_class.assert_called_once_with()
+        mocked_package = mocked_package_class.return_value
+        mocked_package.set_dir.assert_called_once_with('.', dir_path, meta=None)
+        mocked_package.push.assert_called_once_with(
+            name, dest=None, message=None, registry=None, workflow=expected_workflow,
+        )
 
 
 def test_list_packages(capsys):
