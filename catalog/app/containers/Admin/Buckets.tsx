@@ -195,7 +195,7 @@ function SnsField({
           value === DO_NOT_SUBSCRIBE_SYM || meta.submitting || meta.submitSucceeded
         }
         onChange={handleArnChange}
-        value={value === DO_NOT_SUBSCRIBE_SYM ? '' : value}
+        value={value === DO_NOT_SUBSCRIBE_SYM ? DO_NOT_SUBSCRIBE_STR : value}
         InputLabelProps={{ shrink: true }}
       />
     </M.Box>
@@ -722,7 +722,10 @@ function Edit({ bucket, close }: EditProps) {
     linkedData: bucket.linkedData ? JSON.stringify(bucket.linkedData) : '',
     fileExtensionsToIndex: (bucket.fileExtensionsToIndex || []).join(', '),
     scannerParallelShardsDepth: bucket.scannerParallelShardsDepth?.toString() || '',
-    snsNotificationArn: bucket.snsNotificationArn || DO_NOT_SUBSCRIBE_SYM,
+    snsNotificationArn:
+      bucket.snsNotificationArn === DO_NOT_SUBSCRIBE_STR
+        ? DO_NOT_SUBSCRIBE_SYM
+        : bucket.snsNotificationArn,
     skipMetaDataIndexing: bucket.skipMetaDataIndexing ?? false,
   }
 
