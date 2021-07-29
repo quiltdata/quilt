@@ -69,6 +69,14 @@ const columns = [
         : null,
     getDisplay: (buckets: number | null) => (buckets == null ? 'N/A' : buckets),
   },
+  {
+    id: 'default',
+    label: 'Default',
+    getValue: (r: Role) => r.isDefault,
+    getDisplay: (value: boolean, onChange: (value: boolean) => void) => (
+      <M.Switch checked={value} onChange={() => onChange(!value)} name="default" />
+    ),
+  },
 ]
 
 const useStyles = M.makeStyles((t) => ({
@@ -569,14 +577,48 @@ function Edit({ role, close }: EditProps) {
   )
 }
 
+const useLockStyles = M.makeStyles({
+  root: {
+    alignItems: 'center',
+    background: 'rgba(255, 255, 255, 0.9)',
+    bottom: 0,
+    cursor: 'not-allowed',
+    display: 'flex',
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+})
+
+function Lock() {
+  const classes = useLockStyles()
+  return (
+    <div className={classes.root}>
+      <M.CircularProgress size={96} />
+    </div>
+  )
+}
+
+const useRolesStyles = M.makeStyles({
+  root: {
+    position: 'relative',
+  },
+})
+
 // XXX: move to dialogs module
 interface DialogsOpenProps {
   close: (reason?: string) => void
 }
 
 export default function Roles() {
+  const classes = useRolesStyles()
   const [{ data }] = urql.useQuery({ query: ROLES_QUERY })
-  const rows = data!.roles
+  const rows = data!.roles.map((r) => ({
+    ...r,
+    isDefault: r.name === 'ReadQuiltBucket',
+  }))
 
   const ordering = Table.useOrdering({ rows, column: columns[0] })
   const dialogs = Dialogs.use()
@@ -621,6 +663,23 @@ export default function Roles() {
       },
     },
   ]
+
+  const [locked, setLocked] = React.useState(false)
+
+  const onChange = React.useCallback(
+    (columnId: string, role: Role, ...args: any[]) => {
+      if (columnId !== 'default') return
+      const value = args[0]
+      setLocked(true)
+      setTimeout(() => {
+        setLocked(false)
+      }, 5000)
+      // eslint-disable-next-line no-console
+      console.log(role, value)
+    },
+    [setLocked],
+  )
+
   return (
     <React.Suspense
       fallback={
@@ -630,7 +689,7 @@ export default function Roles() {
         </M.Paper>
       }
     >
-      <M.Paper>
+      <M.Paper className={classes.root}>
         {dialogs.render({ fullWidth: true, maxWidth: 'sm' })}
         <Table.Toolbar heading="Roles" actions={toolbarActions} />
         <Table.Wrapper>
@@ -642,8 +701,11 @@ export default function Roles() {
                   {columns.map((col) => (
                     // @ts-expect-error
                     <M.TableCell key={col.id} {...col.props}>
-                      {/* @ts-expect-error */}
-                      {(col.getDisplay || R.identity)(col.getValue(i))}
+                      {(col.getDisplay || R.identity)(
+                        // @ts-expect-error
+                        col.getValue(i),
+                        onChange.bind(null, col.id, i),
+                      )}
                     </M.TableCell>
                   ))}
                   <M.TableCell align="right" padding="none">
@@ -654,6 +716,7 @@ export default function Roles() {
             </M.TableBody>
           </M.Table>
         </Table.Wrapper>
+        {locked && <Lock />}
       </M.Paper>
     </React.Suspense>
   )

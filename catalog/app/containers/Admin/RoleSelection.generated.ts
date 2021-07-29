@@ -4,11 +4,11 @@ import * as Types from '../../model/graphql/types.generated'
 
 export type RoleSelection_UnmanagedRole_Fragment = {
   readonly __typename: 'UnmanagedRole'
-} & Pick<Types.UnmanagedRole, 'id' | 'name' | 'arn'>
+} & Pick<Types.UnmanagedRole, 'id' | 'name' | 'arn' | 'isDefault'>
 
 export type RoleSelection_ManagedRole_Fragment = {
   readonly __typename: 'ManagedRole'
-} & Pick<Types.ManagedRole, 'id' | 'name' | 'arn'> & {
+} & Pick<Types.ManagedRole, 'id' | 'name' | 'arn' | 'isDefault'> & {
     readonly permissions: ReadonlyArray<
       { readonly __typename: 'RoleBucketPermission' } & Pick<
         Types.RoleBucketPermission,
