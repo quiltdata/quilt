@@ -195,7 +195,7 @@ function SnsField({
           value === DO_NOT_SUBSCRIBE_SYM || meta.submitting || meta.submitSucceeded
         }
         onChange={handleArnChange}
-        value={value === DO_NOT_SUBSCRIBE_SYM ? DO_NOT_SUBSCRIBE_STR : value}
+        value={value === DO_NOT_SUBSCRIBE_SYM ? '' : value}
         InputLabelProps={{ shrink: true }}
       />
     </M.Box>
