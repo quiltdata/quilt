@@ -41,6 +41,7 @@
 * [Changed] Use registry for search requests ([#2242](https://github.com/quiltdata/quilt/pull/2242))
 * [Changed] Enhance `quilt_summarize.json` format, support title, description and multi-column layout ([#2245](https://github.com/quiltdata/quilt/pull/2245))
 * [Changed] PDF preview: don't count pages ([#2276](https://github.com/quiltdata/quilt/pull/2276))
+* [Changed] Default bucket icon changed from Quilt logo to more neutral ([#2287](https://github.com/quiltdata/quilt/pull/2287))
 * [Fixed] `UnicodeDecodeError` in indexer and pkgselect lambdas ([#2123](https://github.com/quiltdata/quilt/pull/2123))
 * [Fixed] Catch and display package-related errors properly ("no such package" and "bad revision") ([#2160](https://github.com/quiltdata/quilt/pull/2160))
 * [Fixed] Crashing `pkgselect` lambda's folder view on an empty manifest ([#2147](https://github.com/quiltdata/quilt/pull/2147))
