@@ -5,14 +5,9 @@ import * as M from '@material-ui/core'
 import bucketIcon from './bucket.svg'
 
 const useStyles = M.makeStyles((t) => ({
-  stub: {
+  root: {
     height: t.spacing(4),
     width: t.spacing(4),
-    margin: t.spacing(0, 0.5),
-  },
-  custom: {
-    height: t.spacing(5),
-    width: t.spacing(5),
   },
 }))
 
@@ -40,8 +35,8 @@ export default function BucketIcon({
   const classes = useStyles()
 
   const className = src
-    ? cx(classes.stub, optClasses?.stub, optClassName)
-    : cx(classes.custom, optClasses?.custom, optClassName)
+    ? cx(classes.root, optClasses?.custom, optClassName)
+    : cx(classes.root, optClasses?.stub, optClassName)
 
-  return <img alt={alt} className={className} src={bucketIcon} {...props} />
+  return <img alt={alt} className={className} src={src || bucketIcon} {...props} />
 }

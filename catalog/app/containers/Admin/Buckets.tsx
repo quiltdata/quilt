@@ -853,14 +853,11 @@ function Delete({ bucket, close }: DeleteProps) {
   )
 }
 
-const useCustomBucketIconStyles = M.makeStyles((t) => ({
-  custom: {
-    margin: t.spacing(-0.25, 0),
-  },
+const useCustomBucketIconStyles = M.makeStyles({
   stub: {
     opacity: 0.7,
   },
-}))
+})
 
 interface CustomBucketIconProps {
   src: string
