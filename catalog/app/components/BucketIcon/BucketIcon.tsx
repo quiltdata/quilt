@@ -23,7 +23,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface BucketIconProps
+interface BucketIconStubProps
   extends React.DetailedHTMLProps<
     React.ImgHTMLAttributes<HTMLImageElement>,
     HTMLImageElement
@@ -33,12 +33,12 @@ interface BucketIconProps
   size?: 'small' | 'medium' | 'large'
 }
 
-export default function BucketIcon({
+function BucketIconStub({
   alt,
   className,
   size = 'medium',
   ...props
-}: BucketIconProps) {
+}: BucketIconStubProps) {
   const classes = useStyles()
 
   const sizeClass = {
@@ -55,4 +55,34 @@ export default function BucketIcon({
       {...props}
     />
   )
+}
+
+interface BucketIconProps extends BucketIconStubProps {
+  classes?: {
+    custom?: string
+    stub?: string
+  }
+  src: string
+}
+
+export default function BucketIcon({
+  alt,
+  className,
+  classes,
+  size,
+  src,
+  ...props
+}: BucketIconProps) {
+  if (!src) {
+    return (
+      <BucketIconStub
+        alt={alt}
+        className={cx(className, classes?.stub)}
+        size={size}
+        {...props}
+      />
+    )
+  }
+
+  return <img className={cx(className, classes?.custom)} src={src} alt="" />
 }

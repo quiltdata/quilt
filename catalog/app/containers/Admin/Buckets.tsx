@@ -9,6 +9,7 @@ import * as RRDom from 'react-router-dom'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
+import BucketIcon from 'components/BucketIcon'
 import * as Pagination from 'components/Pagination'
 import * as Notifications from 'containers/Notifications'
 import * as Model from 'model'
@@ -272,7 +273,7 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
         <RF.Field
           component={Form.Field}
           name="iconUrl"
-          label="Icon URL (optional, defaults to Quilt logo)"
+          label="Icon URL (optional)"
           placeholder="e.g. https://some-cdn.com/icon.png"
           helperText="Recommended size: 80x80px"
           parse={R.pipe(R.trim, R.take(1024) as (s: string) => string)}
@@ -852,6 +853,29 @@ function Delete({ bucket, close }: DeleteProps) {
   )
 }
 
+const useCustomBucketIconStyles = M.makeStyles((t) => ({
+  custom: {
+    height: t.spacing(4),
+    width: t.spacing(4),
+    margin: t.spacing(-0.25, 0),
+  },
+  stub: {
+    opacity: 0.7,
+  },
+}))
+
+interface CustomBucketIconProps {
+  src: string
+}
+
+function CustomBucketIcon({ src }: CustomBucketIconProps) {
+  const classes = useCustomBucketIconStyles()
+
+  return (
+    <BucketIcon alt="" src={src} classes={classes} size="small" title="Default icon" />
+  )
+}
+
 const columns = [
   {
     id: 'name',
@@ -874,20 +898,7 @@ const columns = [
     sortable: false,
     align: 'center',
     getValue: R.prop('iconUrl'),
-    getDisplay: (v: string) => (
-      <M.Box
-        component="img"
-        // @ts-expect-error
-        src={v || Model.DEFAULT_BUCKET_ICON}
-        alt=""
-        title={v ? undefined : 'Default icon'}
-        height={40}
-        width={40}
-        mt={-0.25}
-        mb={-0.25}
-        style={{ opacity: v ? undefined : 0.7 }}
-      />
-    ),
+    getDisplay: (v: string) => <CustomBucketIcon src={v} />,
   },
   {
     id: 'title',
