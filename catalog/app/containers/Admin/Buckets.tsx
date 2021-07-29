@@ -855,8 +855,6 @@ function Delete({ bucket, close }: DeleteProps) {
 
 const useCustomBucketIconStyles = M.makeStyles((t) => ({
   custom: {
-    height: t.spacing(4),
-    width: t.spacing(4),
     margin: t.spacing(-0.25, 0),
   },
   stub: {
@@ -871,9 +869,7 @@ interface CustomBucketIconProps {
 function CustomBucketIcon({ src }: CustomBucketIconProps) {
   const classes = useCustomBucketIconStyles()
 
-  return (
-    <BucketIcon alt="" src={src} classes={classes} size="small" title="Default icon" />
-  )
+  return <BucketIcon alt="" classes={classes} src={src} title="Default icon" />
 }
 
 const columns = [

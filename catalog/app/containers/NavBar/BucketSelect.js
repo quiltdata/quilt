@@ -69,13 +69,6 @@ const useBucketStyles = M.makeStyles((t) => ({
   icon: {
     flexShrink: 0,
   },
-  iconCustom: {
-    height: 40,
-    width: 40,
-  },
-  iconStub: {
-    margin: t.spacing(0, 0.5),
-  },
   text: {
     display: 'flex',
     flexDirection: 'column',
@@ -102,16 +95,7 @@ function Bucket({ iconUrl, name, title, description }) {
   const classes = useBucketStyles()
   return (
     <div className={classes.root} title={description}>
-      <BucketIcon
-        src={iconUrl}
-        className={classes.icon}
-        classes={{
-          custom: classes.iconCustom,
-          stub: classes.iconStub,
-        }}
-        alt={title}
-        size="small"
-      />
+      <BucketIcon alt={title} className={classes.icon} src={iconUrl} />
       <div className={classes.text}>
         <div className={classes.title}>
           {title} (s3://{name})

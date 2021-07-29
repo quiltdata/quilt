@@ -5,59 +5,24 @@ import * as M from '@material-ui/core'
 import bucketIcon from './bucket.svg'
 
 const useStyles = M.makeStyles((t) => ({
-  root: {
-    flexShrink: 0,
-  },
-  sizeSmall: {
+  stub: {
     height: t.spacing(4),
     width: t.spacing(4),
+    margin: t.spacing(0, 0.5),
   },
-  sizeMedium: {
+  custom: {
     height: t.spacing(5),
     width: t.spacing(5),
   },
-  sizeLarge: {
-    // NOTE: it isn't used now, adjust to your needs
-    height: t.spacing(6),
-    width: t.spacing(6),
-  },
 }))
 
-interface BucketIconStubProps
+interface BucketIconProps
   extends React.DetailedHTMLProps<
     React.ImgHTMLAttributes<HTMLImageElement>,
     HTMLImageElement
   > {
-  className?: string
   alt: string
-  size?: 'small' | 'medium' | 'large'
-}
-
-function BucketIconStub({
-  alt,
-  className,
-  size = 'medium',
-  ...props
-}: BucketIconStubProps) {
-  const classes = useStyles()
-
-  const sizeClass = {
-    small: classes.sizeSmall,
-    medium: classes.sizeMedium,
-    large: classes.sizeLarge,
-  }[size]
-
-  return (
-    <img
-      alt={alt}
-      src={bucketIcon}
-      className={cx(classes.root, sizeClass, className)}
-      {...props}
-    />
-  )
-}
-
-interface BucketIconProps extends BucketIconStubProps {
+  className?: string
   classes?: {
     custom?: string
     stub?: string
@@ -67,22 +32,16 @@ interface BucketIconProps extends BucketIconStubProps {
 
 export default function BucketIcon({
   alt,
-  className,
-  classes,
-  size,
+  className: optClassName,
+  classes: optClasses,
   src,
   ...props
 }: BucketIconProps) {
-  if (!src) {
-    return (
-      <BucketIconStub
-        alt={alt}
-        className={cx(className, classes?.stub)}
-        size={size}
-        {...props}
-      />
-    )
-  }
+  const classes = useStyles()
 
-  return <img className={cx(className, classes?.custom)} src={src} alt="" />
+  const className = src
+    ? cx(classes.stub, optClasses?.stub, optClassName)
+    : cx(classes.custom, optClasses?.custom, optClassName)
+
+  return <img alt={alt} className={className} src={bucketIcon} {...props} />
 }
