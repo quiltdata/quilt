@@ -8,8 +8,8 @@ import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 
+import BucketIcon from 'components/BucketIcon'
 import * as style from 'constants/style'
-import * as Model from 'model'
 import * as BucketConfig from 'utils/BucketConfig'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -64,11 +64,10 @@ const useBucketStyles = M.makeStyles((t) => ({
   root: {
     display: 'flex',
     maxWidth: '100%',
+    alignItems: 'center',
   },
   icon: {
     flexShrink: 0,
-    height: 40,
-    width: 40,
   },
   text: {
     display: 'flex',
@@ -96,12 +95,7 @@ function Bucket({ iconUrl, name, title, description }) {
   const classes = useBucketStyles()
   return (
     <div className={classes.root} title={description}>
-      {/* TODO: show text avatar or smth when iconUrl is empty */}
-      <img
-        src={iconUrl || Model.DEFAULT_BUCKET_ICON}
-        alt={title}
-        className={classes.icon}
-      />
+      <BucketIcon alt={title} className={classes.icon} src={iconUrl} />
       <div className={classes.text}>
         <div className={classes.title}>
           {title} (s3://{name})
