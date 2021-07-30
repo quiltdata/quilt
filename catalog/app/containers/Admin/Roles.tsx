@@ -300,6 +300,7 @@ function Delete({ role, close }: DeleteProps) {
   const doDelete = React.useCallback(async () => {
     close()
     try {
+      if (role.isDefault) throw new Error('You can not delete default role')
       const res = await deleteRole({ id: role.id })
       if (res.error) throw res.error
       if (!res.data) throw new Error('No data')
@@ -326,20 +327,27 @@ function Delete({ role, close }: DeleteProps) {
       // eslint-disable-next-line no-console
       console.error(e)
     }
-  }, [close, push, deleteRole, role.id, role.name])
+  }, [close, push, deleteRole, role.id, role.isDefault, role.name])
 
   return (
     <>
       <M.DialogTitle>Delete a role</M.DialogTitle>
-      <M.DialogContent>
-        You are about to delete the &quot;{role.name}&quot; role. This operation is
-        irreversible.
-      </M.DialogContent>
+      {role.isDefault ? (
+        <M.DialogContent>
+          &quot;{role.name}&quot; is default role. Please, assign another role to be
+          default and then you&apos;ll be able to delete this one.
+        </M.DialogContent>
+      ) : (
+        <M.DialogContent>
+          You are about to delete the &quot;{role.name}&quot; role. This operation is
+          irreversible.
+        </M.DialogContent>
+      )}
       <M.DialogActions>
         <M.Button onClick={() => close('cancel')} color="primary">
           Cancel
         </M.Button>
-        <M.Button onClick={doDelete} color="primary">
+        <M.Button onClick={doDelete} color="primary" disabled={role.isDefault}>
           Delete
         </M.Button>
       </M.DialogActions>
