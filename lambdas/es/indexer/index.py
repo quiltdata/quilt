@@ -839,7 +839,7 @@ def retry_s3(
     }
     if operation == 'get' and size and limit:
         # can only request range if file is not empty
-        arguments['Range'] = f"bytes=0-{min(size, limit)}"
+        arguments['Range'] = f"bytes=0-{min(size, limit) - 1}"
     if version_id:
         arguments['VersionId'] = version_id
     elif etag:
