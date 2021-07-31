@@ -2,12 +2,13 @@ import * as React from 'react'
 import * as RF from 'redux-form/es/immutable'
 import * as M from '@material-ui/core'
 
-export function Field({ input, meta, errors, helperText, ...rest }) {
+export function Field({ input, meta, errors, helperText, InputLabelProps, ...rest }) {
   const error = meta.submitFailed && (meta.error || meta.submitError)
   const props = {
     error: !!error,
     helperText: error ? errors[error] || error : helperText,
     disabled: meta.submitting || meta.submitSucceeded,
+    InputLabelProps: { shrink: true, ...InputLabelProps },
     ...input,
     ...rest,
   }
@@ -16,8 +17,8 @@ export function Field({ input, meta, errors, helperText, ...rest }) {
 
 const useCheckboxStyles = M.makeStyles({
   root: {
-    paddingBottom: 0,
-    paddingTop: 0,
+    marginBottom: -9,
+    marginTop: -9,
   },
 })
 
