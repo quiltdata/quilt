@@ -19,6 +19,7 @@ import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as Sentry from 'utils/Sentry'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import { useTracker } from 'utils/tracking'
@@ -98,16 +99,31 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
     (s) => s.trim() || 'null',
     Types.decode(Types.withFallback(Types.JsonFromString, null)),
   ),
-  fileExtensionsToIndex: R.pipe(
-    R.prop('fileExtensionsToIndex'),
-    Types.decode(Types.fromNullable(IO.string, '')),
-    R.split(','),
-    R.map(R.trim),
-    R.reject((t) => !t),
-    R.uniq,
-    (exts) =>
-      exts.length ? (exts as FP.nonEmptyArray.NonEmptyArray<Types.NonEmptyString>) : null,
-  ),
+  fileExtensionsToIndex: (values) =>
+    !values.enableDeepIndexing
+      ? []
+      : FP.function.pipe(
+          values.fileExtensionsToIndex,
+          Types.decode(Types.fromNullable(IO.string, '')),
+          R.split(','),
+          R.map(R.trim),
+          R.reject((t) => !t),
+          R.uniq,
+          R.sortBy(R.identity),
+          (exts) =>
+            exts.length
+              ? (exts as FP.nonEmptyArray.NonEmptyArray<Types.NonEmptyString>)
+              : null,
+        ),
+  indexContentBytes: (values) =>
+    !values.enableDeepIndexing
+      ? 0
+      : FP.function.pipe(
+          values.indexContentBytes,
+          Types.decode(Types.fromNullable(IO.string, '')),
+          R.trim,
+          R.ifElse(R.equals(''), R.always(null), Types.decode(Types.IntFromString)),
+        ),
   scannerParallelShardsDepth: R.pipe(
     R.prop('scannerParallelShardsDepth'),
     Types.decode(Types.fromNullable(IO.string, '')),
@@ -203,6 +219,55 @@ function SnsField({
   )
 }
 
+const useHintStyles = M.makeStyles((t) => ({
+  icon: {
+    cursor: 'pointer',
+    fontSize: t.typography.pxToRem(18),
+    marginLeft: 4,
+    marginTop: -1,
+    opacity: 0.5,
+    position: 'absolute',
+    '&:hover': {
+      opacity: 1,
+    },
+  },
+  tooltip: {
+    '& ul': {
+      marginBottom: 0,
+      marginTop: t.spacing(0.5),
+      paddingLeft: t.spacing(2),
+    },
+  },
+}))
+
+interface HintProps {
+  children: M.TooltipProps['title']
+}
+
+function Hint({ children }: HintProps) {
+  const classes = useHintStyles()
+  return (
+    <M.Tooltip arrow title={children} classes={{ tooltip: classes.tooltip }}>
+      <M.Icon fontSize="small" className={classes.icon}>
+        help
+      </M.Icon>
+    </M.Tooltip>
+  )
+}
+
+// TODO: get these from the backend
+const defaultFileExtensionsToIndex = ['.txt', '.md', '.csv']
+const defaultIndexContentBytes = 512 * 1024
+const minIndexContentBytes = 128
+const maxIndexContentBytes = 1024 * 1024 // 1 MiB
+
+const integerInRange = (min: number, max: number) => (v: string | null | undefined) => {
+  if (!v) return undefined
+  const n = Number(v)
+  if (!Number.isInteger(n) || n < min || n > max) return 'integerInRange'
+  return undefined
+}
+
 const useBucketFieldsStyles = M.makeStyles((t) => ({
   group: {
     '& > *:first-child': {
@@ -222,6 +287,16 @@ const useBucketFieldsStyles = M.makeStyles((t) => ({
   panelSummaryContent: {
     margin: `${t.spacing(1)}px 0 !important`,
   },
+  warning: {
+    color: t.palette.warning.dark,
+    marginBottom: 0,
+    marginTop: t.spacing(1),
+  },
+  warningIcon: {
+    fontSize: t.typography.pxToRem(14),
+    marginRight: t.spacing(1),
+    verticalAlign: -3,
+  },
 }))
 
 interface BucketFieldsProps {
@@ -231,6 +306,8 @@ interface BucketFieldsProps {
 
 function BucketFields({ name, reindex }: BucketFieldsProps) {
   const classes = useBucketFieldsStyles()
+  // TODO: get this from the model and / or form state
+  const reindexingRequired = true
   return (
     <M.Box>
       <M.Box className={classes.group} mt={-1} pb={2}>
@@ -283,7 +360,8 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
         <RF.Field
           component={Form.Field}
           name="description"
-          label="Description"
+          label="Description (optional)"
+          placeholder="Enter description if required"
           parse={R.pipe(R.replace(/^\s+/g, ''), R.take(1024) as (s: string) => string)}
           multiline
           rows={1}
@@ -367,17 +445,87 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
         </M.AccordionSummary>
         <M.Box className={classes.group} pt={1}>
           {!!reindex && (
-            <M.Button variant="outlined" fullWidth onClick={reindex}>
+            <M.Button
+              variant="outlined"
+              fullWidth
+              onClick={reindex}
+              color={reindexingRequired ? 'secondary' : undefined}
+            >
               Re-index and repair
             </M.Button>
           )}
-          <RF.Field
-            component={Form.Field}
-            name="fileExtensionsToIndex"
-            label="File extensions to index (comma-separated)"
-            fullWidth
-            margin="normal"
-          />
+
+          <M.Box pt={2.5}>
+            <RF.Field
+              component={Form.Checkbox}
+              type="checkbox"
+              name="enableDeepIndexing"
+              label="Enable deep indexing"
+            />
+          </M.Box>
+
+          {reindexingRequired && (
+            <M.Typography variant="caption" paragraph className={classes.warning}>
+              <M.Icon className={classes.warningIcon}>error</M.Icon>
+              Re-indexing required for new settings to take effect
+            </M.Typography>
+          )}
+
+          <RF.FormSpy subscription={{ values: true }}>
+            {({ values }) => {
+              if (!values.enableDeepIndexing) return null
+              return (
+                <>
+                  <RF.Field
+                    component={Form.Field}
+                    name="fileExtensionsToIndex"
+                    label={
+                      <>
+                        File extensions to deep index (comma-separated)
+                        <Hint>
+                          Default extensions:
+                          <ul>
+                            {defaultFileExtensionsToIndex.map((ext) => (
+                              <li key={ext}>{ext}</li>
+                            ))}
+                          </ul>
+                        </Hint>
+                      </>
+                    }
+                    placeholder='e.g. ".txt, .md"'
+                    fullWidth
+                    margin="normal"
+                    multiline
+                    rows={1}
+                    maxRows={3}
+                  />
+                  <RF.Field
+                    component={Form.Field}
+                    name="indexContentBytes"
+                    label={
+                      <>
+                        Deep index content bytes
+                        <Hint>Defaults to {defaultIndexContentBytes}</Hint>
+                      </>
+                    }
+                    placeholder='e.g. "1024"'
+                    parse={R.replace(/[^0-9]/g, '')}
+                    validate={integerInRange(minIndexContentBytes, maxIndexContentBytes)}
+                    errors={{
+                      integerInRange: (
+                        <>
+                          Enter an integer from {minIndexContentBytes} to{' '}
+                          {maxIndexContentBytes}
+                        </>
+                      ),
+                    }}
+                    fullWidth
+                    margin="normal"
+                  />
+                </>
+              )
+            }}
+          </RF.FormSpy>
           <RF.Field
             component={Form.Field}
             name="scannerParallelShardsDepth"
@@ -721,7 +869,10 @@ function Edit({ bucket, close }: EditProps) {
     overviewUrl: bucket.overviewUrl || '',
     tags: (bucket.tags || []).join(', '),
     linkedData: bucket.linkedData ? JSON.stringify(bucket.linkedData) : '',
+    enableDeepIndexing:
+      !R.equals(bucket.fileExtensionsToIndex, []) && bucket.indexContentBytes !== 0,
     fileExtensionsToIndex: (bucket.fileExtensionsToIndex || []).join(', '),
+    indexContentBytes: bucket.indexContentBytes,
     scannerParallelShardsDepth: bucket.scannerParallelShardsDepth?.toString() || '',
     snsNotificationArn:
       bucket.snsNotificationArn === DO_NOT_SUBSCRIBE_STR
@@ -957,7 +1108,14 @@ interface CRUDProps {
 }
 
 function CRUD({ bucketName }: CRUDProps) {
-  const [{ data }] = urql.useQuery({ query: BUCKET_CONFIGS_QUERY })
+  const [{ error, data }] = urql.useQuery({ query: BUCKET_CONFIGS_QUERY })
+  if (!data && error) throw error
+
+  const sentry = Sentry.use()
+  React.useEffect(() => {
+    if (data && error) sentry('captureException', error)
+  }, [error, data, sentry])
+
   const rows = data!.bucketConfigs
   const ordering = Table.useOrdering({ rows, column: columns[0] })
   const pagination = Pagination.use(ordering.ordered, {
