@@ -30,6 +30,7 @@ export interface BucketAddInput {
   readonly scannerParallelShardsDepth: Maybe<Scalars['Int']>
   readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
+  readonly indexContentBytes: Maybe<Scalars['Int']>
   readonly setVersioning: Maybe<Scalars['Boolean']>
   readonly delayScan: Maybe<Scalars['Boolean']>
 }
@@ -68,6 +69,7 @@ export interface BucketConfig {
   readonly scannerParallelShardsDepth: Maybe<Scalars['Int']>
   readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
+  readonly indexContentBytes: Maybe<Scalars['Int']>
   readonly permissions: ReadonlyArray<RoleBucketPermission>
 }
 
@@ -110,6 +112,7 @@ export interface BucketUpdateInput {
   readonly scannerParallelShardsDepth: Maybe<Scalars['Int']>
   readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
+  readonly indexContentBytes: Maybe<Scalars['Int']>
   readonly setVersioning: Maybe<Scalars['Boolean']>
 }
 

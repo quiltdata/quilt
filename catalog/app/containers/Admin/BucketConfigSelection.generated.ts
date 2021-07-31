@@ -15,6 +15,7 @@ export type BucketConfigSelectionFragment = {
   | 'tags'
   | 'linkedData'
   | 'fileExtensionsToIndex'
+  | 'indexContentBytes'
   | 'scannerParallelShardsDepth'
   | 'snsNotificationArn'
   | 'skipMetaDataIndexing'
@@ -40,6 +41,7 @@ export const BucketConfigSelectionFragmentDoc = ({
           { kind: 'Field', name: { kind: 'Name', value: 'tags' } },
           { kind: 'Field', name: { kind: 'Name', value: 'linkedData' } },
           { kind: 'Field', name: { kind: 'Name', value: 'fileExtensionsToIndex' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'indexContentBytes' } },
           { kind: 'Field', name: { kind: 'Name', value: 'scannerParallelShardsDepth' } },
           { kind: 'Field', name: { kind: 'Name', value: 'snsNotificationArn' } },
           { kind: 'Field', name: { kind: 'Name', value: 'skipMetaDataIndexing' } },

@@ -18,6 +18,7 @@ type BucketConfig {
   scannerParallelShardsDepth: Int @admin
   skipMetaDataIndexing: Boolean @admin
   fileExtensionsToIndex: [String!] @admin
+  indexContentBytes: Int @admin
   permissions: [RoleBucketPermission!]! @admin
 }
 
@@ -67,6 +68,7 @@ input BucketAddInput {
   scannerParallelShardsDepth: Int
   skipMetaDataIndexing: Boolean
   fileExtensionsToIndex: [String!]
+  indexContentBytes: Int
   setVersioning: Boolean
   delayScan: Boolean
 }
@@ -83,6 +85,7 @@ input BucketUpdateInput {
   scannerParallelShardsDepth: Int
   skipMetaDataIndexing: Boolean
   fileExtensionsToIndex: [String!]
+  indexContentBytes: Int
   setVersioning: Boolean
 }
 

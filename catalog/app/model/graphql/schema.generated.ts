@@ -234,6 +234,15 @@ export default ({
             args: [],
           },
           {
+            name: 'indexContentBytes',
+            type: {
+              kind: 'SCALAR',
+              name: 'Int',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
             name: 'permissions',
             type: {
               kind: 'NON_NULL',
