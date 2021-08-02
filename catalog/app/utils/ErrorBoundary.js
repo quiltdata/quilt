@@ -1,4 +1,3 @@
-import { boundMethod } from 'autobind-decorator'
 import PT from 'prop-types'
 import * as React from 'react'
 import * as RC from 'recompose'
@@ -17,6 +16,7 @@ export const createBoundary = (handle, name = 'ErrorBoundary') =>
     constructor(props) {
       super(props)
       this.state = { handled: null }
+      this.boundReset = this.reset.bind(this)
     }
 
     componentDidUpdate({ id: oldId }) {
@@ -24,8 +24,7 @@ export const createBoundary = (handle, name = 'ErrorBoundary') =>
     }
 
     componentDidCatch(error, info) {
-      const { reset } = this
-      const handled = handle(this.props, { reset })(error, info)
+      const handled = handle(this.props, { reset: this.boundReset })(error, info)
       if (handled && handled !== error) {
         this.setState({ handled })
       } else {
@@ -33,7 +32,6 @@ export const createBoundary = (handle, name = 'ErrorBoundary') =>
       }
     }
 
-    @boundMethod
     reset() {
       this.setState({ handled: null })
     }

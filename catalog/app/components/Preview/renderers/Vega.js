@@ -1,4 +1,3 @@
-import { boundMethod } from 'autobind-decorator'
 import PT from 'prop-types'
 import * as React from 'react'
 import embed from 'vega-embed'
@@ -22,6 +21,7 @@ class Vega extends React.Component {
   constructor() {
     super()
     this.state = { el: null }
+    this.boundSetEl = this.setEl.bind(this)
   }
 
   componentDidMount() {
@@ -32,7 +32,6 @@ class Vega extends React.Component {
     if (prevState.el !== this.state.el || prevProps.spec !== this.props.spec) this.embed()
   }
 
-  @boundMethod
   setEl(el) {
     this.setState({ el })
   }
@@ -43,7 +42,7 @@ class Vega extends React.Component {
 
   render() {
     const { spec, ...props } = this.props
-    return <div ref={this.setEl} {...props} />
+    return <div ref={this.boundSetEl} {...props} />
   }
 }
 
