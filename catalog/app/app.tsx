@@ -4,6 +4,7 @@
 // Import all the third party stuff
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
+import { useLocation } from 'react-router-dom'
 import { createBrowserHistory as createHistory } from 'history'
 import * as M from '@material-ui/core'
 
@@ -34,7 +35,7 @@ import * as Cache from 'utils/ResourceCache'
 import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
 import fontLoader from 'utils/fontLoader'
-import { nest, composeComponent } from 'utils/reactTools'
+import { nest } from 'utils/reactTools'
 import RouterProvider, { LOCATION_CHANGE, selectLocation } from 'utils/router'
 import mkStorage from 'utils/storage'
 import * as Tracking from 'utils/tracking'
@@ -54,18 +55,39 @@ fontLoader('Roboto', 'Roboto Mono').then(() => {
   document.body.classList.add('fontLoaded')
 })
 
-const ErrorBoundary = composeComponent(
-  'ErrorBoundary',
-  Sentry.inject(),
-  createBoundary(
-    ({ sentry }: { sentry: $TSFixMe }) => (error: $TSFixMe, info: $TSFixMe) => {
-      sentry('captureException', error, info)
-      return (
-        <Layout bare>
-          <Error headline="Unexpected Error" detail="Something went wrong" />
-        </Layout>
-      )
-    },
+interface ErrorBoundaryPlaceholderProps {
+  error: Error
+  info: any
+  reset: () => void
+}
+
+function ErrorBoundaryPlaceholder({ error, info, reset }: ErrorBoundaryPlaceholderProps) {
+  const location = useLocation()
+  const errorShown = React.useRef(false)
+  React.useEffect(() => {
+    if (!errorShown.current) {
+      errorShown.current = true
+      return
+    }
+    errorShown.current = false
+    reset()
+  }, [location.pathname, reset])
+
+  const sentry = Sentry.use()
+  React.useEffect(() => {
+    sentry('captureException', error, info)
+  }, [error, info, sentry])
+
+  return (
+    <Layout bare>
+      <Error headline="Unexpected Error" detail="Something went wrong" />
+    </Layout>
+  )
+}
+
+const ErrorBoundary = createBoundary(
+  (_: unknown, { reset }: { reset: () => void }) => (error: $TSFixMe, info: $TSFixMe) => (
+    <ErrorBoundaryPlaceholder error={error} info={info} reset={reset} />
   ),
 )
 
