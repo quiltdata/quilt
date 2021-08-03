@@ -8,6 +8,7 @@ import * as RF from 'react-final-form'
 import * as RRDom from 'react-router-dom'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import BucketIcon from 'components/BucketIcon'
 import * as Pagination from 'components/Pagination'
@@ -105,6 +106,7 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
       : FP.function.pipe(
           values.fileExtensionsToIndex,
           Types.decode(Types.fromNullable(IO.string, '')),
+          R.replace(/['"]/g, ''),
           R.split(','),
           R.map(R.trim),
           R.reject((t) => !t),
@@ -221,12 +223,11 @@ function SnsField({
 
 const useHintStyles = M.makeStyles((t) => ({
   icon: {
-    cursor: 'pointer',
-    fontSize: t.typography.pxToRem(18),
-    marginLeft: 4,
+    fontSize: '1.125em',
+    marginLeft: t.spacing(0.5),
     marginTop: -1,
     opacity: 0.5,
-    position: 'absolute',
+    verticalAlign: -4,
     '&:hover': {
       opacity: 1,
     },
@@ -258,7 +259,7 @@ function Hint({ children }: HintProps) {
 // TODO: get these from the backend
 const defaultFileExtensionsToIndex = ['.txt', '.md', '.csv']
 const defaultIndexContentBytes = 512 * 1024
-const minIndexContentBytes = 128
+const minIndexContentBytes = 1
 const maxIndexContentBytes = 1024 * 1024 // 1 MiB
 
 const integerInRange = (min: number, max: number) => (v: string | null | undefined) => {
@@ -288,31 +289,33 @@ const useBucketFieldsStyles = M.makeStyles((t) => ({
     margin: `${t.spacing(1)}px 0 !important`,
   },
   warning: {
-    color: t.palette.warning.dark,
-    marginBottom: 0,
-    marginTop: t.spacing(1),
+    background: t.palette.warning.main,
+    marginBottom: t.spacing(1),
+    marginTop: t.spacing(2),
   },
   warningIcon: {
-    fontSize: t.typography.pxToRem(14),
-    marginRight: t.spacing(1),
-    verticalAlign: -3,
+    color: t.palette.warning.dark,
   },
 }))
 
 interface BucketFieldsProps {
-  name?: string
+  bucket?: BucketConfig
   reindex?: () => void
 }
 
-function BucketFields({ name, reindex }: BucketFieldsProps) {
+function BucketFields({ bucket, reindex }: BucketFieldsProps) {
   const classes = useBucketFieldsStyles()
-  // TODO: get this from the model and / or form state
-  const reindexingRequired = true
   return (
     <M.Box>
       <M.Box className={classes.group} mt={-1} pb={2}>
-        {name ? (
-          <M.TextField label="Name" value={name} fullWidth margin="normal" disabled />
+        {bucket ? (
+          <M.TextField
+            label="Name"
+            value={bucket.name}
+            fullWidth
+            margin="normal"
+            disabled
+          />
         ) : (
           <RF.Field
             component={Form.Field}
@@ -445,12 +448,7 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
         </M.AccordionSummary>
         <M.Box className={classes.group} pt={1}>
           {!!reindex && (
-            <M.Button
-              variant="outlined"
-              fullWidth
-              onClick={reindex}
-              color={reindexingRequired ? 'secondary' : undefined}
-            >
+            <M.Button variant="outlined" fullWidth onClick={reindex}>
               Re-index and repair
             </M.Button>
           )}
@@ -460,16 +458,58 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
               component={Form.Checkbox}
               type="checkbox"
               name="enableDeepIndexing"
-              label="Enable deep indexing"
+              label={
+                <>
+                  Enable deep indexing
+                  <Hint>Deep indexing help text TBD @akarve pls halp!</Hint>
+                </>
+              }
             />
           </M.Box>
 
-          {reindexingRequired && (
-            <M.Typography variant="caption" paragraph className={classes.warning}>
-              <M.Icon className={classes.warningIcon}>error</M.Icon>
-              Re-indexing required for new settings to take effect
-            </M.Typography>
-          )}
+          <RF.FormSpy subscription={{ modified: true, values: true }}>
+            {({ modified, values }) => {
+              // don't need this while adding a bucket
+              if (!bucket) return null
+              if (
+                !modified?.enableDeepIndexing &&
+                !modified?.fileExtensionsToIndex &&
+                !modified?.indexContentBytes
+              )
+                return null
+              try {
+                if (
+                  R.equals(
+                    bucket.fileExtensionsToIndex,
+                    editFormSpec.fileExtensionsToIndex(values),
+                  ) &&
+                  R.equals(
+                    bucket.indexContentBytes,
+                    editFormSpec.indexContentBytes(values),
+                  )
+                )
+                  return null
+              } catch {
+                return null
+              }
+
+              return (
+                <Lab.Alert
+                  className={classes.warning}
+                  icon={
+                    <M.Icon fontSize="inherit" className={classes.warningIcon}>
+                      error
+                    </M.Icon>
+                  }
+                  severity="warning"
+                >
+                  New deep indexing settings will only affect newly indexed files. You can
+                  re-index the whole bucket with these settings by pressing{' '}
+                  <strong>&quot;Re-index and repair&quot;</strong> button above.
+                </Lab.Alert>
+              )
+            }}
+          </RF.FormSpy>
 
           <RF.FormSpy subscription={{ values: true }}>
             {({ values }) => {
@@ -492,7 +532,7 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
                         </Hint>
                       </>
                     }
-                    placeholder='e.g. ".txt, .md"'
+                    placeholder='e.g. ".txt, .md", leave blank to use default settings'
                     fullWidth
                     margin="normal"
                     multiline
@@ -508,7 +548,7 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
                         <Hint>Defaults to {defaultIndexContentBytes}</Hint>
                       </>
                     }
-                    placeholder='e.g. "1024"'
+                    placeholder='e.g. "1024", leave blank to use default settings'
                     parse={R.replace(/[^0-9]/g, '')}
                     validate={integerInRange(minIndexContentBytes, maxIndexContentBytes)}
                     errors={{
@@ -530,6 +570,7 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
             component={Form.Field}
             name="scannerParallelShardsDepth"
             label="Scanner parallel shards depth"
+            placeholder="Leave blank to use default settings"
             validate={validators.integer as FF.FieldValidator<any>}
             errors={{
               integer: 'Enter a valid integer',
@@ -551,7 +592,7 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
               label="Skip metadata indexing"
             />
           </M.Box>
-          {!name && (
+          {!bucket && (
             <M.Box mt={1}>
               <RF.Field
                 component={Form.Checkbox}
@@ -898,7 +939,7 @@ function Edit({ bucket, close }: EditProps) {
           <M.DialogTitle>Edit the &quot;{bucket.name}&quot; bucket</M.DialogTitle>
           <M.DialogContent>
             <form onSubmit={handleSubmit}>
-              <BucketFields name={bucket.name} reindex={openReindex} />
+              <BucketFields bucket={bucket} reindex={openReindex} />
               {submitFailed && (
                 <Form.FormError
                   error={error || submitError}
