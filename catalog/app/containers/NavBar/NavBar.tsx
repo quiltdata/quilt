@@ -20,14 +20,20 @@ import bg from './bg.png'
 
 import Controls from './Controls'
 
-function LogoLink(props: M.BoxProps) {
+const useLogoLinkStyles = M.makeStyles((t) => ({
+  root: {
+    margin: t.spacing(2),
+  },
+}))
+
+function LogoLink() {
+  const classes = useLogoLinkStyles()
   const cfg = Config.useConfig()
   const { urls } = NamedRoutes.use()
   return (
-    // @ts-expect-error Property 'to' does not exist on type 'IntrinsicAttributes & BoxProps & { children?: ReactNode; }'
-    <M.Box component={Link} mr={2} to={urls.home()} {...props}>
+    <Link className={classes.root} to={urls.home()}>
       <Logo responsive forcedShort={cfg.mode === 'OPEN' || cfg.mode === 'PRODUCT'} />
-    </M.Box>
+    </Link>
   )
 }
 
