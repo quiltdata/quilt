@@ -711,7 +711,7 @@ class TestIndex(TestCase):
                 else:
                     expected = {
                         **expected_params,
-                        'Range': 'bytes=0-100'
+                        'Range': 'bytes=0-99'
                     }
                 self.s3_stubber.add_response(
                     method='get_object',
@@ -1171,7 +1171,7 @@ class TestIndex(TestCase):
                 "Bucket": "test-bucket",
                 "Key": pointer_key,
                 "VersionId": OBJECT_RESPONSE["VersionId"],
-                'Range': "bytes=0-64"
+                'Range': "bytes=0-63"
             }
         )
 
@@ -1401,7 +1401,7 @@ class TestIndex(TestCase):
                     'Bucket': 'test-bucket',
                     'Key': 'foo.unique1',
                     'IfMatch': 'etag',
-                    'Range': 'bytes=0-123',
+                    'Range': 'bytes=0-122',
                 }
             )
             self.s3_stubber.add_response(
@@ -1415,7 +1415,7 @@ class TestIndex(TestCase):
                     'Bucket': 'test-bucket',
                     'Key': 'foo.unique2',
                     'IfMatch': 'etag',
-                    'Range': 'bytes=0-123',
+                    'Range': 'bytes=0-122',
                 }
             )
             # only these two file types should be indexed
@@ -1820,7 +1820,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt',
                 'IfMatch': 'etag',
-                'Range': 'bytes=0-123',
+                'Range': 'bytes=0-122',
             }
         )
 
@@ -1847,7 +1847,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt',
                 'IfMatch': 'etag',
-                'Range': 'bytes=0-123',
+                'Range': 'bytes=0-122',
             }
         )
 
@@ -1865,7 +1865,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt.gz',
                 'IfMatch': 'etag',
-                'Range': 'bytes=0-123',
+                'Range': 'bytes=0-122',
             }
         )
 
