@@ -2,7 +2,6 @@
 Shared helper functions for generating previews for the preview lambda and the ES indexer.
 """
 import math
-import os
 import re
 import tempfile
 import zlib
@@ -21,10 +20,6 @@ AVG_PARQUET_CELL_BYTES = 100  # a heuristic to avoid flooding memory
 # by pandas or by exclude_output='true'
 CATALOG_LIMIT_BYTES = 1024*1024
 CATALOG_LIMIT_LINES = 512  # must be positive int
-# number of bytes we take from each document before sending to elastic-search
-# DOC_LIMIT_BYTES is the legacy variable name; leave as-is for now; requires
-# change to CloudFormation templates to use the new name
-ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_LIMIT_LINES = 100_000
 MAX_PREVIEW_ROWS = 1_000
 READ_CHUNK = 1024
@@ -134,7 +129,7 @@ def extract_fcs(file_, as_html=True):
     return body, info
 
 
-def extract_parquet(file_, as_html=True, skip_rows=False):
+def extract_parquet(file_, as_html=True, skip_rows=False, *, max_bytes: int):
     """
     parse and extract key metadata from parquet files
 
@@ -197,7 +192,7 @@ def extract_parquet(file_, as_html=True, skip_rows=False):
                 encoded = column.encode()
                 # +1 for \t
                 encoded_size = len(encoded) + 1
-                if (size + encoded_size) < ELASTIC_LIMIT_BYTES:
+                if (size + encoded_size) < max_bytes:
                     buffer.append(encoded)
                     buffer.append(b"\t")
                     size += encoded_size
