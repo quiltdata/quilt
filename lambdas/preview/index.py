@@ -40,6 +40,8 @@ FILE_EXTENSIONS = ["csv", "excel", "fcs", "ipynb", "parquet", "vcf"]
 TEXT_TYPES = ["bed", "txt"]
 FILE_EXTENSIONS.extend(TEXT_TYPES)
 
+EXTRACT_PARQUET_MAX_BYTES = 10_000
+
 SCHEMA = {
     'type': 'object',
     'properties': {
@@ -138,7 +140,8 @@ def lambda_handler(request):
         elif input_type == 'ipynb':
             html, info = extract_ipynb(get_bytes(content_iter, compression), exclude_output)
         elif input_type == 'parquet':
-            html, info = extract_parquet(get_bytes(content_iter, compression))
+            # TODO: shouldn't we pass max_bytes variable as max_bytes parameter?
+            html, info = extract_parquet(get_bytes(content_iter, compression), max_bytes=EXTRACT_PARQUET_MAX_BYTES)
         elif input_type == 'vcf':
             html, info = extract_vcf(
                 get_preview_lines(content_iter, compression, line_count, max_bytes)

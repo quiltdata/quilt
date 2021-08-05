@@ -17,6 +17,7 @@ from t4_lambda_shared.preview import (
     get_preview_lines,
 )
 
+TEST_EXTRACT_PARQUET_MAX_BYTES = 10_000
 BASE_DIR = pathlib.Path(__file__).parent / 'data'
 ACCEPTABLE_ERROR_MESSAGES = [
     'Start tag seen without seeing a doctype first. Expected “<!DOCTYPE html>”.',
@@ -41,7 +42,7 @@ class TestPreview(TestCase):
         with patch('t4_lambda_shared.preview.get_available_memory') as mem_mock:
             mem_mock.return_value = 1
             with open(file, mode='rb') as parquet:
-                body, info = extract_parquet(parquet)
+                body, info = extract_parquet(parquet, max_bytes=TEST_EXTRACT_PARQUET_MAX_BYTES)
                 assert all(bracket in body for bracket in ('<', '>'))
                 assert body.count('<') == body.count('>'), \
                     'expected matching HTML tags'
@@ -49,16 +50,16 @@ class TestPreview(TestCase):
                 assert 'skipped rows' in info['warnings']
 
         with open(file, mode='rb') as parquet:
-            body, info = extract_parquet(parquet, as_html=True)
+            body, info = extract_parquet(parquet, as_html=True, max_bytes=TEST_EXTRACT_PARQUET_MAX_BYTES)
             assert cell_value in body, 'missing expected HTML cell'
 
         with open(file, mode='rb') as parquet:
-            body, info = extract_parquet(parquet, skip_rows=True)
+            body, info = extract_parquet(parquet, skip_rows=True, max_bytes=TEST_EXTRACT_PARQUET_MAX_BYTES)
             assert 'skipped rows' in info['warnings']
             assert cell_value not in body, 'only expected columns'
 
         with open(file, mode='rb') as parquet:
-            body, info = extract_parquet(parquet, as_html=False)
+            body, info = extract_parquet(parquet, as_html=False, max_bytes=TEST_EXTRACT_PARQUET_MAX_BYTES)
             assert all(bracket not in body for bracket in ('<', '>')), \
                 'did not expect HTML'
             parquet_file = pq.ParquetFile(file)

@@ -11,23 +11,19 @@ from aws_requests_auth.aws_auth import AWSRequestsAuth
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 
-from t4_lambda_shared.preview import ELASTIC_LIMIT_BYTES
 from t4_lambda_shared.utils import (
     PACKAGE_INDEX_SUFFIX,
     get_quilt_logger,
     separated_env_to_iter,
 )
 
-CONTENT_INDEX_EXTS = separated_env_to_iter("CONTENT_INDEX_EXTS") or {
-    ".csv",
-    ".ipynb",
-    ".json",
-    ".md",
-    ".parquet",
-    ".rmd",
-    ".tsv",
-    ".txt"
-}
+# number of bytes we take from each document before sending to elastic-search
+# DOC_LIMIT_BYTES is the legacy variable name; leave as-is for now; requires
+# change to CloudFormation templates to use the new name
+assert 'DOC_LIMIT_BYTES' in os.environ
+ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES'))
+assert 'CONTENT_INDEX_EXTS' in os.environ
+CONTENT_INDEX_EXTS = separated_env_to_iter("CONTENT_INDEX_EXTS")
 
 EVENT_PREFIX = {
     "Created": "ObjectCreated:",

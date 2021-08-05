@@ -48,6 +48,7 @@ See docs/EventBridge.md for more
 
 import datetime
 import json
+import os
 import pathlib
 import re
 from os.path import split
@@ -60,6 +61,7 @@ import nbformat
 from dateutil.tz import tzutc
 from document_queue import (
     CONTENT_INDEX_EXTS,
+    ELASTIC_LIMIT_BYTES,
     EVENT_PREFIX,
     MAX_RETRY,
     DocTypes,
@@ -75,7 +77,6 @@ from tenacity import (
 )
 
 from t4_lambda_shared.preview import (
-    ELASTIC_LIMIT_BYTES,
     ELASTIC_LIMIT_LINES,
     extract_excel,
     extract_fcs,
@@ -163,6 +164,7 @@ MAX_PDF_PAGES = 100
 # 10 MB, see https://amzn.to/2xJpngN
 NB_VERSION = 4  # default notebook version for nbformat
 # currently only affects .parquet, TODO: extend to other extensions
+assert 'SKIP_ROWS_EXTS' in os.environ
 SKIP_ROWS_EXTS = separated_env_to_iter('SKIP_ROWS_EXTS')
 SELECT_PACKAGE_META = "SELECT * from S3Object o WHERE o.version IS NOT MISSING LIMIT 1"
 # No WHERE clause needed for aggregations since S3 Select skips missing fields for aggs
@@ -458,7 +460,8 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
             body, info = extract_parquet(
                 get_bytes(obj["Body"], compression),
                 as_html=False,
-                skip_rows=(inferred_ext in SKIP_ROWS_EXTS)
+                skip_rows=(inferred_ext in SKIP_ROWS_EXTS),
+                max_bytes=ELASTIC_LIMIT_BYTES,
             )
             # be smart and just send column names to ES (instead of bloated full schema)
             # if this is not an HTML/catalog preview
