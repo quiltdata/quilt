@@ -140,6 +140,7 @@ def lambda_handler(request):
         elif input_type == 'ipynb':
             html, info = extract_ipynb(get_bytes(content_iter, compression), exclude_output)
         elif input_type == 'parquet':
+            # TODO: shouldn't we pass max_bytes variable as max_bytes parameter?
             html, info = extract_parquet(get_bytes(content_iter, compression), max_bytes=EXTRACT_PARQUET_MAX_BYTES)
         elif input_type == 'vcf':
             html, info = extract_vcf(
