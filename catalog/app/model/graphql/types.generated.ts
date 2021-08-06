@@ -128,6 +128,19 @@ export interface BucketUpdateSuccess {
   readonly bucketConfig: BucketConfig
 }
 
+export interface Config {
+  readonly __typename: 'Config'
+  readonly contentIndexingSettings: ContentIndexingSettings
+}
+
+export interface ContentIndexingSettings {
+  readonly __typename: 'ContentIndexingSettings'
+  readonly extensions: ReadonlyArray<Scalars['String']>
+  readonly bytesDefault: Scalars['Int']
+  readonly bytesMin: Scalars['Int']
+  readonly bytesMax: Scalars['Int']
+}
+
 export interface IndexingInProgress {
   readonly __typename: 'IndexingInProgress'
   readonly _: Maybe<Scalars['Boolean']>
@@ -215,6 +228,7 @@ export interface PermissionInput {
 
 export interface Query {
   readonly __typename: 'Query'
+  readonly config: Config
   readonly bucketConfigs: ReadonlyArray<BucketConfig>
   readonly bucketConfig: Maybe<BucketConfig>
   readonly roles: ReadonlyArray<Role>

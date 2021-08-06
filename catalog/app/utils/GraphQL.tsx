@@ -43,6 +43,8 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
         schema,
         keys: {
           BucketConfig: (b) => b.name as string,
+          Config: () => null,
+          ContentIndexingSettings: () => null,
           RoleBucketPermission: () => null,
         },
         updates: {

@@ -394,6 +394,86 @@ export default ({
         interfaces: [],
       },
       {
+        kind: 'OBJECT',
+        name: 'Config',
+        fields: [
+          {
+            name: 'contentIndexingSettings',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'ContentIndexingSettings',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'ContentIndexingSettings',
+        fields: [
+          {
+            name: 'extensions',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'bytesDefault',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'bytesMin',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'bytesMax',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
         kind: 'SCALAR',
         name: 'Datetime',
       },
@@ -757,6 +837,18 @@ export default ({
         kind: 'OBJECT',
         name: 'Query',
         fields: [
+          {
+            name: 'config',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'Config',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
           {
             name: 'bucketConfigs',
             type: {

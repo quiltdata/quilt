@@ -4,6 +4,17 @@ scalar Datetime
 
 scalar Json
 
+type ContentIndexingSettings {
+  extensions: [String!]!
+  bytesDefault: Int!
+  bytesMin: Int!
+  bytesMax: Int!
+}
+
+type Config {
+  contentIndexingSettings: ContentIndexingSettings! @admin
+}
+
 type BucketConfig {
   name: String!
   title: String!
@@ -49,6 +60,7 @@ type RoleBucketPermission {
 }
 
 type Query {
+  config: Config!
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
   roles: [Role!]! @admin
