@@ -12,6 +12,7 @@ import * as Lab from '@material-ui/lab'
 
 import BucketIcon from 'components/BucketIcon'
 import * as Pagination from 'components/Pagination'
+import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
@@ -35,6 +36,7 @@ import ADD_MUTATION from './BucketsAdd.generated'
 import UPDATE_MUTATION from './BucketsUpdate.generated'
 import REMOVE_MUTATION from './BucketsRemove.generated'
 import { BucketConfigSelectionFragment as BucketConfig } from './BucketConfigSelection.generated'
+import CONTENT_INDEXING_SETTINGS_QUERY from './ContentIndexingSettings.generated'
 
 const SNS_ARN_RE = /^arn:aws(-|\w)*:sns:(-|\w)*:\d*:\S+$/
 
@@ -256,12 +258,6 @@ function Hint({ children }: HintProps) {
   )
 }
 
-// TODO: get these from the backend
-const defaultFileExtensionsToIndex = ['.txt', '.md', '.csv']
-const defaultIndexContentBytes = 512 * 1024
-const minIndexContentBytes = 1
-const maxIndexContentBytes = 1024 * 1024 // 1 MiB
-
 const integerInRange = (min: number, max: number) => (v: string | null | undefined) => {
   if (!v) return undefined
   const n = Number(v)
@@ -305,6 +301,17 @@ interface BucketFieldsProps {
 
 function BucketFields({ bucket, reindex }: BucketFieldsProps) {
   const classes = useBucketFieldsStyles()
+
+  const [{ error, data }] = urql.useQuery({ query: CONTENT_INDEXING_SETTINGS_QUERY })
+  if (!data && error) throw error
+
+  const sentry = Sentry.use()
+  React.useEffect(() => {
+    if (data && error) sentry('captureException', error)
+  }, [error, data, sentry])
+
+  const settings = data!.config.contentIndexingSettings
+
   return (
     <M.Box>
       <M.Box className={classes.group} mt={-1} pb={2}>
@@ -448,24 +455,24 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
         </M.AccordionSummary>
         <M.Box className={classes.group} pt={1}>
           {!!reindex && (
-            <M.Button variant="outlined" fullWidth onClick={reindex}>
-              Re-index and repair
-            </M.Button>
+            <M.Box pb={2.5}>
+              <M.Button variant="outlined" fullWidth onClick={reindex}>
+                Re-index and repair
+              </M.Button>
+            </M.Box>
           )}
 
-          <M.Box pt={2.5}>
-            <RF.Field
-              component={Form.Checkbox}
-              type="checkbox"
-              name="enableDeepIndexing"
-              label={
-                <>
-                  Enable deep indexing
-                  <Hint>Deep indexing help text TBD @akarve pls halp!</Hint>
-                </>
-              }
-            />
-          </M.Box>
+          <RF.Field
+            component={Form.Checkbox}
+            type="checkbox"
+            name="enableDeepIndexing"
+            label={
+              <>
+                Enable deep indexing
+                <Hint>Deep indexing help text TBD @akarve pls halp!</Hint>
+              </>
+            }
+          />
 
           <RF.FormSpy subscription={{ modified: true, values: true }}>
             {({ modified, values }) => {
@@ -525,7 +532,7 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
                         <Hint>
                           Default extensions:
                           <ul>
-                            {defaultFileExtensionsToIndex.map((ext) => (
+                            {settings.extensions.map((ext) => (
                               <li key={ext}>{ext}</li>
                             ))}
                           </ul>
@@ -537,25 +544,24 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
                     margin="normal"
                     multiline
                     rows={1}
-                    maxRows={3}
+                    rowsMax={3}
                   />
                   <RF.Field
                     component={Form.Field}
                     name="indexContentBytes"
                     label={
                       <>
-                        Deep index content bytes
-                        <Hint>Defaults to {defaultIndexContentBytes}</Hint>
+                        Content bytes to deep index
+                        <Hint>Defaults to {settings.bytesDefault}</Hint>
                       </>
                     }
                     placeholder='e.g. "1024", leave blank to use default settings'
                     parse={R.replace(/[^0-9]/g, '')}
-                    validate={integerInRange(minIndexContentBytes, maxIndexContentBytes)}
+                    validate={integerInRange(settings.bytesMin, settings.bytesMax)}
                     errors={{
                       integerInRange: (
                         <>
-                          Enter an integer from {minIndexContentBytes} to{' '}
-                          {maxIndexContentBytes}
+                          Enter an integer from {settings.bytesMin} to {settings.bytesMax}
                         </>
                       ),
                     }}
@@ -605,6 +611,19 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
         </M.Box>
       </M.Accordion>
     </M.Box>
+  )
+}
+
+function BucketFieldsPlaceholder() {
+  return (
+    <>
+      {R.times(
+        (i) => (
+          <Skeleton key={i} height={48} mt={i ? 3 : 0} />
+        ),
+        5,
+      )}
+    </>
   )
 }
 
@@ -665,7 +684,7 @@ function Add({ close }: AddProps) {
   )
 
   return (
-    <RF.Form onSubmit={onSubmit}>
+    <RF.Form onSubmit={onSubmit} initialValues={{ enableDeepIndexing: true }}>
       {({
         handleSubmit,
         submitting,
@@ -677,20 +696,22 @@ function Add({ close }: AddProps) {
         <>
           <M.DialogTitle>Add a bucket</M.DialogTitle>
           <M.DialogContent>
-            <form onSubmit={handleSubmit}>
-              <BucketFields />
-              {submitFailed && (
-                <Form.FormError
-                  error={error || submitError}
-                  errors={{
-                    unexpected: 'Something went wrong',
-                    notificationConfigurationError: 'Notification configuration error',
-                    insufficientPermissions: 'Insufficient permissions',
-                  }}
-                />
-              )}
-              <input type="submit" style={{ display: 'none' }} />
-            </form>
+            <React.Suspense fallback={<BucketFieldsPlaceholder />}>
+              <form onSubmit={handleSubmit}>
+                <BucketFields />
+                {submitFailed && (
+                  <Form.FormError
+                    error={error || submitError}
+                    errors={{
+                      unexpected: 'Something went wrong',
+                      notificationConfigurationError: 'Notification configuration error',
+                      insufficientPermissions: 'Insufficient permissions',
+                    }}
+                  />
+                )}
+                <input type="submit" style={{ display: 'none' }} />
+              </form>
+            </React.Suspense>
           </M.DialogContent>
           <M.DialogActions>
             {submitting && (
@@ -938,20 +959,22 @@ function Edit({ bucket, close }: EditProps) {
           <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
           <M.DialogTitle>Edit the &quot;{bucket.name}&quot; bucket</M.DialogTitle>
           <M.DialogContent>
-            <form onSubmit={handleSubmit}>
-              <BucketFields bucket={bucket} reindex={openReindex} />
-              {submitFailed && (
-                <Form.FormError
-                  error={error || submitError}
-                  errors={{
-                    unexpected: 'Something went wrong',
-                    notificationConfigurationError: 'Notification configuration error',
-                    bucketNotFound: 'Bucket not found',
-                  }}
-                />
-              )}
-              <input type="submit" style={{ display: 'none' }} />
-            </form>
+            <React.Suspense fallback={<BucketFieldsPlaceholder />}>
+              <form onSubmit={handleSubmit}>
+                <BucketFields bucket={bucket} reindex={openReindex} />
+                {submitFailed && (
+                  <Form.FormError
+                    error={error || submitError}
+                    errors={{
+                      unexpected: 'Something went wrong',
+                      notificationConfigurationError: 'Notification configuration error',
+                      bucketNotFound: 'Bucket not found',
+                    }}
+                  />
+                )}
+                <input type="submit" style={{ display: 'none' }} />
+              </form>
+            </React.Suspense>
           </M.DialogContent>
           <M.DialogActions>
             {submitting && (
