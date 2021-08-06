@@ -1,6 +1,7 @@
 import { join as pathJoin } from 'path'
 
 import * as dateFns from 'date-fns'
+import * as FP from 'fp-ts'
 import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
@@ -41,7 +42,7 @@ export const bucketAccessCounts = async ({
   )
 
   try {
-    return await s3Select({
+    const result = await s3Select({
       s3,
       Bucket: analyticsBucket,
       Key: `${ACCESS_COUNTS_PREFIX}/Exts.csv`,
@@ -56,65 +57,65 @@ export const bucketAccessCounts = async ({
           AllowQuotedRecordDelimiter: true,
         },
       },
-    }).then(
-      R.pipe(
-        R.map((r) => {
-          const recordedCounts = JSON.parse(r.counts)
-          const { counts, total } = dates.reduce(
-            (acc, date) => {
-              const value = recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0
-              const sum = acc.total + value
-              return {
-                total: sum,
-                counts: acc.counts.concat({ date, value, sum }),
-              }
-            },
-            { total: 0, counts: [] },
-          )
-          return { ext: r.ext && `.${r.ext}`, total, counts }
-        }),
-        R.filter((i) => i.total),
-        R.sort(R.descend(R.prop('total'))),
-        R.applySpec({
-          byExt: R.identity,
-          byExtCollapsed: (bands) => {
-            if (bands.length <= MAX_BANDS) return bands
-            const [other, rest] = R.partition((b) => b.ext === '', bands)
-            const [toKeep, toMerge] = R.splitAt(MAX_BANDS - 1, rest)
-            const merged = [...other, ...toMerge].reduce((acc, band) => ({
-              ext: '',
-              total: acc.total + band.total,
-              counts: R.zipWith(
-                (a, b) => ({
-                  date: a.date,
-                  value: a.value + b.value,
-                  sum: a.sum + b.sum,
-                }),
-                acc.counts,
-                band.counts,
-              ),
-            }))
-            return R.sort(R.descend(R.prop('total')), toKeep.concat(merged))
+    })
+    return FP.function.pipe(
+      result,
+      R.map((r) => {
+        const recordedCounts = JSON.parse(r.counts)
+        const { counts, total } = dates.reduce(
+          (acc, date) => {
+            const value = recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0
+            const sum = acc.total + value
+            return {
+              total: sum,
+              counts: acc.counts.concat({ date, value, sum }),
+            }
           },
-          combined: {
-            total: R.reduce((sum, { total }) => sum + total, 0),
-            counts: R.pipe(
-              R.pluck('counts'),
-              R.transpose,
-              R.map(
-                R.reduce(
-                  (acc, { date, value, sum }) => ({
-                    date,
-                    value: acc.value + value,
-                    sum: acc.sum + sum,
-                  }),
-                  { value: 0, sum: 0 },
-                ),
+          { total: 0, counts: [] },
+        )
+        return { ext: r.ext && `.${r.ext}`, total, counts }
+      }),
+      R.filter((i) => i.total),
+      R.sort(R.descend(R.prop('total'))),
+      R.applySpec({
+        byExt: R.identity,
+        byExtCollapsed: (bands) => {
+          if (bands.length <= MAX_BANDS) return bands
+          const [other, rest] = R.partition((b) => b.ext === '', bands)
+          const [toKeep, toMerge] = R.splitAt(MAX_BANDS - 1, rest)
+          const merged = [...other, ...toMerge].reduce((acc, band) => ({
+            ext: '',
+            total: acc.total + band.total,
+            counts: R.zipWith(
+              (a, b) => ({
+                date: a.date,
+                value: a.value + b.value,
+                sum: a.sum + b.sum,
+              }),
+              acc.counts,
+              band.counts,
+            ),
+          }))
+          return R.sort(R.descend(R.prop('total')), toKeep.concat(merged))
+        },
+        combined: {
+          total: R.reduce((sum, { total }) => sum + total, 0),
+          counts: R.pipe(
+            R.pluck('counts'),
+            R.transpose,
+            R.map(
+              R.reduce(
+                (acc, { date, value, sum }) => ({
+                  date,
+                  value: acc.value + value,
+                  sum: acc.sum + sum,
+                }),
+                { value: 0, sum: 0 },
               ),
             ),
-          },
-        }),
-      ),
+          ),
+        },
+      }),
     )
   } catch (e) {
     // eslint-disable-next-line no-console
@@ -170,7 +171,8 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
 
   try {
     const qs = mkSearch({ index: bucket, action: 'stats' })
-    return await req(`/search${qs}`).then(processStats)
+    const result = await req(`/search${qs}`)
+    return processStats(result)
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Unable to fetch live stats:')
@@ -415,17 +417,17 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
   if (inStack) {
     try {
       const qs = mkSearch({ action: 'sample', index: bucket })
-      return await req(`/search${qs}`).then(
-        R.pipe(
-          R.pathOr([], ['aggregations', 'objects', 'buckets']),
-          R.map((h) => {
-            // eslint-disable-next-line no-underscore-dangle
-            const s = h.latest.hits.hits[0]._source
-            return { bucket, key: s.key, version: s.version_id }
-          }),
-          R.take(SAMPLE_SIZE),
-          R.map(R.objOf('handle')),
-        ),
+      const result = await req(`/search${qs}`)
+      return FP.function.pipe(
+        result,
+        R.pathOr([], ['aggregations', 'objects', 'buckets']),
+        R.map((h) => {
+          // eslint-disable-next-line no-underscore-dangle
+          const s = h.latest.hits.hits[0]._source
+          return { bucket, key: s.key, version: s.version_id }
+        }),
+        R.take(SAMPLE_SIZE),
+        R.map(R.objOf('handle')),
       )
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -435,30 +437,29 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
     }
   }
   try {
-    return await s3
+    const result = await s3
       .listObjectsV2({ Bucket: bucket, EncodingType: 'url' })
       .promise()
-      .then(
-        R.pipe(
-          R.path(['Contents']),
-          R.map(R.evolve({ Key: decodeS3Key })),
-          R.filter(
-            R.propSatisfies(
-              R.allPass([
-                R.complement(R.startsWith('.quilt/')),
-                R.complement(R.startsWith('/')),
-                R.complement(R.endsWith(SUMMARIZE_KEY)),
-                R.complement(R.includes(R.__, README_KEYS)),
-                R.anyPass(SAMPLE_EXTS.map(R.unary(R.endsWith))),
-              ]),
-              'Key',
-            ),
-          ),
-          sampleSize(SAMPLE_SIZE),
-          R.map(({ Key: key }) => ({ key, bucket })),
-          R.map(R.objOf('handle')),
+    return FP.function.pipe(
+      result,
+      R.path(['Contents']),
+      R.map(R.evolve({ Key: decodeS3Key })),
+      R.filter(
+        R.propSatisfies(
+          R.allPass([
+            R.complement(R.startsWith('.quilt/')),
+            R.complement(R.startsWith('/')),
+            R.complement(R.endsWith(SUMMARIZE_KEY)),
+            R.complement(R.includes(R.__, README_KEYS)),
+            R.anyPass(SAMPLE_EXTS.map(R.unary(R.endsWith))),
+          ]),
+          'Key',
         ),
-      )
+      ),
+      sampleSize(SAMPLE_SIZE),
+      R.map(({ Key: key }) => ({ key, bucket })),
+      R.map(R.objOf('handle')),
+    )
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Unable to fetch summary from S3 listing:')
@@ -513,16 +514,16 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
   if (inStack) {
     try {
       const qs = mkSearch({ action: 'images', index: bucket })
-      return await req(`/search${qs}`).then(
-        R.pipe(
-          R.pathOr([], ['aggregations', 'objects', 'buckets']),
-          R.map((h) => {
-            // eslint-disable-next-line no-underscore-dangle
-            const s = h.latest.hits.hits[0]._source
-            return { bucket, key: s.key, version: s.version_id }
-          }),
-          R.take(MAX_IMGS),
-        ),
+      const result = await req(`/search${qs}`)
+      return FP.function.pipe(
+        result,
+        R.pathOr([], ['aggregations', 'objects', 'buckets']),
+        R.map((h) => {
+          // eslint-disable-next-line no-underscore-dangle
+          const s = h.latest.hits.hits[0]._source
+          return { bucket, key: s.key, version: s.version_id }
+        }),
+        R.take(MAX_IMGS),
       )
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -532,24 +533,23 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
     }
   }
   try {
-    return await s3
+    const result = await s3
       .listObjectsV2({ Bucket: bucket, EncodingType: 'url' })
       .promise()
-      .then(
-        R.pipe(
-          R.path(['Contents']),
-          R.map(R.evolve({ Key: decodeS3Key })),
-          R.filter(
-            (i) =>
-              i.StorageClass !== 'GLACIER' &&
-              i.StorageClass !== 'DEEP_ARCHIVE' &&
-              !i.Key.startsWith('/') &&
-              IMG_EXTS.some((e) => i.Key.toLowerCase().endsWith(e)),
-          ),
-          sampleSize(MAX_IMGS),
-          R.map(({ Key: key }) => ({ key, bucket })),
-        ),
-      )
+    return FP.function.pipe(
+      result,
+      R.path(['Contents']),
+      R.map(R.evolve({ Key: decodeS3Key })),
+      R.filter(
+        (i) =>
+          i.StorageClass !== 'GLACIER' &&
+          i.StorageClass !== 'DEEP_ARCHIVE' &&
+          !i.Key.startsWith('/') &&
+          IMG_EXTS.some((e) => i.Key.toLowerCase().endsWith(e)),
+      ),
+      sampleSize(MAX_IMGS),
+      R.map(({ Key: key }) => ({ key, bucket })),
+    )
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Unable to fetch images sample from S3 listing:')
