@@ -42,7 +42,7 @@ export const bucketAccessCounts = async ({
   )
 
   try {
-    const res = await s3Select({
+    const result = await s3Select({
       s3,
       Bucket: analyticsBucket,
       Key: `${ACCESS_COUNTS_PREFIX}/Exts.csv`,
@@ -59,7 +59,7 @@ export const bucketAccessCounts = async ({
       },
     })
     return FP.function.pipe(
-      res,
+      result,
       R.map((r) => {
         const recordedCounts = JSON.parse(r.counts)
         const { counts, total } = dates.reduce(
@@ -417,9 +417,9 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
   if (inStack) {
     try {
       const qs = mkSearch({ action: 'sample', index: bucket })
-      const res = await req(`/search${qs}`)
+      const result = await req(`/search${qs}`)
       return FP.function.pipe(
-        res,
+        result,
         R.pathOr([], ['aggregations', 'objects', 'buckets']),
         R.map((h) => {
           // eslint-disable-next-line no-underscore-dangle
@@ -437,9 +437,11 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
     }
   }
   try {
-    const res = await s3.listObjectsV2({ Bucket: bucket, EncodingType: 'url' }).promise()
+    const result = await s3
+      .listObjectsV2({ Bucket: bucket, EncodingType: 'url' })
+      .promise()
     return FP.function.pipe(
-      res,
+      result,
       R.path(['Contents']),
       R.map(R.evolve({ Key: decodeS3Key })),
       R.filter(
@@ -512,9 +514,9 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
   if (inStack) {
     try {
       const qs = mkSearch({ action: 'images', index: bucket })
-      const res = await req(`/search${qs}`)
+      const result = await req(`/search${qs}`)
       return FP.function.pipe(
-        res,
+        result,
         R.pathOr([], ['aggregations', 'objects', 'buckets']),
         R.map((h) => {
           // eslint-disable-next-line no-underscore-dangle
@@ -531,9 +533,11 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
     }
   }
   try {
-    const res = await s3.listObjectsV2({ Bucket: bucket, EncodingType: 'url' }).promise()
+    const result = await s3
+      .listObjectsV2({ Bucket: bucket, EncodingType: 'url' })
+      .promise()
     return FP.function.pipe(
-      res,
+      result,
       R.path(['Contents']),
       R.map(R.evolve({ Key: decodeS3Key })),
       R.filter(
