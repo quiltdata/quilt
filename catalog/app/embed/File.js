@@ -4,7 +4,7 @@ import * as dateFns from 'date-fns'
 import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedRelative } from 'react-intl'
+import { FormattedRelativeTime } from 'react-intl'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
@@ -114,7 +114,11 @@ function VersionInfo({ bucket, path, version }) {
                   <M.ListItemText
                     primary={
                       <span>
-                        <FormattedRelative value={v.lastModified} />
+                        <FormattedRelativeTime
+                          numeric="auto"
+                          value={(v.lastModified - Date.now()) / 1000}
+                          updateIntervalInSeconds={1}
+                        />
                         {v.isLatest && ' (latest)'}
                         {' | '}
                         {v.size != null ? readableBytes(v.size) : 'Delete Marker'}

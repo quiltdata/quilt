@@ -1,7 +1,7 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedRelative, FormattedPlural } from 'react-intl'
+import { FormattedRelativeTime, FormattedPlural } from 'react-intl'
 import { useHistory, Link, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
@@ -197,7 +197,15 @@ function Package({ name, modified, revisions, bucket, views }) {
         <M.Box mr={2} component="span" />
         <span className={classes.updated}>
           {xs ? 'Upd. ' : 'Updated '}
-          {modified ? <FormattedRelative value={modified} /> : '[unknown: see console]'}
+          {modified ? (
+            <FormattedRelativeTime
+              numeric="auto"
+              value={(modified - Date.now()) / 1000}
+              updateIntervalInSeconds={1}
+            />
+          ) : (
+            '[unknown: see console]'
+          )}
         </span>
       </M.Box>
       {!!views && <Counts {...views} />}

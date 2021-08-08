@@ -7,12 +7,7 @@
  *   script `extract-intl`, and must use CommonJS module syntax
  *   You CANNOT use import/export in this file.
  */
-const { addLocaleData } = require('react-intl')
-const enLocaleData = require('react-intl/locale-data/en')
-
 const enTranslationMessages = require('./translations/en.json')
-
-addLocaleData(enLocaleData)
 
 const DEFAULT_LOCALE = 'en'
 exports.DEFAULT_LOCALE = DEFAULT_LOCALE

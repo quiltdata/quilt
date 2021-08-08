@@ -2,7 +2,7 @@ import cx from 'classnames'
 import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedRelative } from 'react-intl'
+import { FormattedRelativeTime } from 'react-intl'
 import * as RC from 'recompose'
 import * as RF from 'redux-form/es/immutable'
 import * as urql from 'urql'
@@ -629,13 +629,27 @@ export default RT.composeComponent(
           id: 'dateJoined',
           label: 'Date joined',
           getValue: R.prop('dateJoined'),
-          getDisplay: (v) => <FormattedRelative value={v} />,
+          getDisplay: (v) => (
+            // TODO: use date-fns
+            <FormattedRelativeTime
+              numeric="auto"
+              unit="second"
+              value={(v - Date.now()) / 1000}
+            />
+          ),
         },
         {
           id: 'lastLogin',
           label: 'Last login',
           getValue: R.prop('lastLogin'),
-          getDisplay: (v) => <FormattedRelative value={v} />,
+          getDisplay: (v) => (
+            <FormattedRelativeTime
+              numeric="auto"
+              unit="second"
+              value={(v - Date.now()) / 1000}
+              updateIntervalInSeconds={1}
+            />
+          ),
         },
         {
           id: 'isAdmin',

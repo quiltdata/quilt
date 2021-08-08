@@ -19,7 +19,9 @@ import { makeSelectLocale } from './selectors'
 const IntlContext = React.createContext({})
 
 const IntlContextProvider = injectIntl(({ intl, children }) => (
-  <IntlContext.Provider value={intl}>{children}</IntlContext.Provider>
+  <IntlContext.Provider numeric="auto" value={intl}>
+    {children}
+  </IntlContext.Provider>
 ))
 
 export function useIntl() {
