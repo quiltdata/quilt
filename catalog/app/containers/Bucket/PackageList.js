@@ -1,7 +1,6 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedPlural } from 'react-intl'
 import { useHistory, Link, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
@@ -22,6 +21,7 @@ import * as SVG from 'utils/SVG'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as dateUtils from 'utils/date'
 import parseSearch from 'utils/parseSearch'
+import * as plural from 'utils/plural'
 import mkStorage from 'utils/storage'
 import { readableQuantity } from 'utils/string'
 import useDebouncedInput from 'utils/useDebouncedInput'
@@ -181,6 +181,16 @@ function Package({ name, modified, revisions, bucket, views }) {
   const sinceModified = React.useMemo(() => dateUtils.formatRelative(modified), [
     modified,
   ])
+  const revisionsStr = React.useMemo(
+    () =>
+      xs
+        ? `${revisions} Rev.`
+        : plural.format(revisions, {
+            one: (n) => `${n} Revision`,
+            other: (n) => `${n} Revisions`,
+          }),
+    [revisions, xs],
+  )
   return (
     <M.Paper className={classes.root}>
       <div className={classes.handleContainer}>
@@ -190,14 +200,7 @@ function Package({ name, modified, revisions, bucket, views }) {
         </Link>
       </div>
       <M.Box pl={2} pb={2} pt={1}>
-        <span className={classes.revisions}>
-          {revisions}{' '}
-          {xs ? (
-            'Rev.'
-          ) : (
-            <FormattedPlural one="Revision" other="Revisions" value={revisions} />
-          )}
-        </span>
+        <span className={classes.revisions}>{revisionsStr}</span>
         <M.Box mr={2} component="span" />
         <span className={classes.updated} title={modified ? modified.toString() : null}>
           {xs ? 'Upd. ' : 'Updated '}

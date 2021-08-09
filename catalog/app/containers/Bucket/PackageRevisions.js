@@ -1,7 +1,6 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedPlural } from 'react-intl'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
@@ -22,6 +21,7 @@ import * as SVG from 'utils/SVG'
 import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
 import parseSearch from 'utils/parseSearch'
+import * as plural from 'utils/plural'
 import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
@@ -297,6 +297,16 @@ function Revision({ bucket, name, hash, stats, message, modified, metadata, coun
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const dateFmt = xs ? 'MMM d yyyy - h:mmaaaaa' : 'MMMM do yyyy - h:mma'
+
+  const filesNumberStr = React.useMemo(
+    () =>
+      plural.format(stats.files, {
+        one: R.always('file'),
+        other: R.always('files'),
+      }),
+    [stats.files],
+  )
+
   return (
     <RevisionLayout
       link={
@@ -338,7 +348,7 @@ function Revision({ bucket, name, hash, stats, message, modified, metadata, coun
           <M.Typography component="span" variant="body2">
             {readableQuantity(stats.files)}
             &nbsp;
-            <FormattedPlural value={stats.files} one="file" other="files" />
+            {filesNumberStr}
           </M.Typography>
         </>
       }
