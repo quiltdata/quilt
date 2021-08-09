@@ -39,6 +39,8 @@ export type BucketAddResult =
   | BucketAddSuccess
   | BucketAlreadyAdded
   | BucketDoesNotExist
+  | BucketFileExtensionsToIndexInvalid
+  | BucketIndexContentBytesInvalid
   | InsufficientPermissions
   | NotificationConfigurationError
   | NotificationTopicNotFound
@@ -83,6 +85,16 @@ export interface BucketDoesNotExist {
   readonly _: Maybe<Scalars['Boolean']>
 }
 
+export interface BucketFileExtensionsToIndexInvalid {
+  readonly __typename: 'BucketFileExtensionsToIndexInvalid'
+  readonly _: Maybe<Scalars['Boolean']>
+}
+
+export interface BucketIndexContentBytesInvalid {
+  readonly __typename: 'BucketIndexContentBytesInvalid'
+  readonly _: Maybe<Scalars['Boolean']>
+}
+
 export interface BucketNotFound {
   readonly __typename: 'BucketNotFound'
   readonly _: Maybe<Scalars['Boolean']>
@@ -118,6 +130,8 @@ export interface BucketUpdateInput {
 
 export type BucketUpdateResult =
   | BucketUpdateSuccess
+  | BucketFileExtensionsToIndexInvalid
+  | BucketIndexContentBytesInvalid
   | BucketNotFound
   | NotificationConfigurationError
   | NotificationTopicNotFound

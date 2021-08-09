@@ -117,6 +117,14 @@ type BucketDoesNotExist {
   _: Boolean
 }
 
+type BucketFileExtensionsToIndexInvalid {
+  _: Boolean
+}
+
+type BucketIndexContentBytesInvalid {
+  _: Boolean
+}
+
 type SnsInvalid {
   _: Boolean
 }
@@ -141,6 +149,8 @@ union BucketAddResult =
     BucketAddSuccess
   | BucketAlreadyAdded
   | BucketDoesNotExist
+  | BucketFileExtensionsToIndexInvalid
+  | BucketIndexContentBytesInvalid
   | InsufficientPermissions
   | NotificationConfigurationError
   | NotificationTopicNotFound
@@ -152,6 +162,8 @@ type BucketUpdateSuccess {
 
 union BucketUpdateResult =
     BucketUpdateSuccess
+  | BucketFileExtensionsToIndexInvalid
+  | BucketIndexContentBytesInvalid
   | BucketNotFound
   | NotificationConfigurationError
   | NotificationTopicNotFound

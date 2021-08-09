@@ -40,6 +40,14 @@ export default ({
           },
           {
             kind: 'OBJECT',
+            name: 'BucketFileExtensionsToIndexInvalid',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'BucketIndexContentBytesInvalid',
+          },
+          {
+            kind: 'OBJECT',
             name: 'InsufficientPermissions',
           },
           {
@@ -300,6 +308,38 @@ export default ({
       },
       {
         kind: 'OBJECT',
+        name: 'BucketFileExtensionsToIndexInvalid',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'BucketIndexContentBytesInvalid',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
         name: 'BucketNotFound',
         fields: [
           {
@@ -355,6 +395,14 @@ export default ({
           {
             kind: 'OBJECT',
             name: 'BucketUpdateSuccess',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'BucketFileExtensionsToIndexInvalid',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'BucketIndexContentBytesInvalid',
           },
           {
             kind: 'OBJECT',
