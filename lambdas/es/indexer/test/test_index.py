@@ -31,7 +31,7 @@ from t4_lambda_shared.utils import (
     separated_env_to_iter,
 )
 
-from .. import index
+from .. import document_queue, index
 
 BASE_DIR = Path(__file__).parent / 'data'
 
@@ -1389,7 +1389,7 @@ class TestIndex(TestCase):
 
     def test_extension_overrides(self):
         """ensure that only the file extensions in override are indexed"""
-        with patch(__name__ + '.index.CONTENT_INDEX_EXTS', {'.unique1', '.unique2'}):
+        with patch(__name__ + '.index.get_content_index_extensions', return_value={'.unique1', '.unique2'}):
             self.s3_stubber.add_response(
                 method='get_object',
                 service_response={
@@ -1726,8 +1726,8 @@ class TestIndex(TestCase):
         assert self._get_contents('foo.exe', '.exe') == ""
         assert self._get_contents('foo.exe.gz', '.exe.gz') == ""
 
-    @patch.object(index, 'ELASTIC_LIMIT_BYTES', 100)
-    def test_get_contents(self):
+    @patch(__name__ + '.index.get_content_index_bytes', return_value=100)
+    def test_get_contents(self, mocked_get_content_index_bytes):
         parquet = (BASE_DIR / 'onlycolumns-c000').read_bytes()
         # mock up the responses
         size = len(parquet)
@@ -1749,7 +1749,7 @@ class TestIndex(TestCase):
             version_id='abcde',
         )
         # test return val
-        assert len(contents.encode()) == index.ELASTIC_LIMIT_BYTES, \
+        assert len(contents.encode()) == mocked_get_content_index_bytes.return_value, \
             'contents return more data than expected'
         # we know from ELASTIC_LIMIT_BYTES=1000 that column_k is the last one
         present, _, absent = ascii_lowercase.partition('l')
@@ -1781,7 +1781,7 @@ class TestIndex(TestCase):
         assert contents == ""
 
     @pytest.mark.extended
-    @patch.object(index, 'ELASTIC_LIMIT_BYTES', 64_000)
+    @patch('document_queue.ELASTIC_LIMIT_BYTES', 64_000)
     def test_get_contents_extended(self):
         directory = (BASE_DIR / 'extended')
         files = directory.glob('**/*-c000')
@@ -1805,7 +1805,7 @@ class TestIndex(TestCase):
                 size=size,
                 version_id='abcde',
             )
-            assert len(contents.encode()) <= index.ELASTIC_LIMIT_BYTES, \
+            assert len(contents.encode()) <= 64_000, \
                 'contents return more data than expected'
 
     def test_get_plain_text(self):
@@ -1927,7 +1927,7 @@ class TestIndex(TestCase):
 
         contents = self._get_contents('foo.parquet', '.parquet')
         size = len(contents.encode('utf-8', 'ignore'))
-        assert size <= index.ELASTIC_LIMIT_BYTES
+        assert size <= document_queue.ELASTIC_LIMIT_BYTES
         # spot check for contents
         assert "This is not even worth the money." in contents
         assert "As for results; I felt relief almost immediately." in contents
