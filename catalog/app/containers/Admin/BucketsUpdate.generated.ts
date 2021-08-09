@@ -21,6 +21,8 @@ export type containers_Admin_BucketsUpdateMutation = {
           readonly __typename: 'BucketConfig'
         } & BucketConfigSelectionFragment
       })
+    | { readonly __typename: 'BucketFileExtensionsToIndexInvalid' }
+    | { readonly __typename: 'BucketIndexContentBytesInvalid' }
     | { readonly __typename: 'BucketNotFound' }
     | { readonly __typename: 'NotificationConfigurationError' }
     | { readonly __typename: 'NotificationTopicNotFound' }

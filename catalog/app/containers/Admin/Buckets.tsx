@@ -8,9 +8,11 @@ import * as RF from 'react-final-form'
 import * as RRDom from 'react-router-dom'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
+import * as Lab from '@material-ui/lab'
 
 import BucketIcon from 'components/BucketIcon'
 import * as Pagination from 'components/Pagination'
+import Skeleton from 'components/Skeleton'
 import * as Notifications from 'containers/Notifications'
 import * as Model from 'model'
 import * as APIConnector from 'utils/APIConnector'
@@ -19,6 +21,7 @@ import * as Dialogs from 'utils/Dialogs'
 import type FormSpec from 'utils/FormSpec'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as Sentry from 'utils/Sentry'
 import assertNever from 'utils/assertNever'
 import parseSearch from 'utils/parseSearch'
 import { useTracker } from 'utils/tracking'
@@ -33,6 +36,7 @@ import ADD_MUTATION from './BucketsAdd.generated'
 import UPDATE_MUTATION from './BucketsUpdate.generated'
 import REMOVE_MUTATION from './BucketsRemove.generated'
 import { BucketConfigSelectionFragment as BucketConfig } from './BucketConfigSelection.generated'
+import CONTENT_INDEXING_SETTINGS_QUERY from './ContentIndexingSettings.generated'
 
 const SNS_ARN_RE = /^arn:aws(-|\w)*:sns:(-|\w)*:\d*:\S+$/
 
@@ -50,6 +54,31 @@ const SnsFormValue = new IO.Type<SnsFormValue>(
       : IO.failure(u, c),
   R.identity,
 )
+
+const normalizeExtensions = FP.function.flow(
+  Types.decode(Types.fromNullable(IO.string, '')),
+  R.replace(/['"]/g, ''),
+  R.split(','),
+  R.map(R.pipe(R.trim, R.toLower)),
+  R.reject((t) => !t),
+  R.uniq,
+  R.sortBy(R.identity),
+  (exts) =>
+    exts.length ? (exts as FP.nonEmptyArray.NonEmptyArray<Types.NonEmptyString>) : null,
+)
+
+const EXT_RE = /\.[0-9a-z_]+/
+
+const validateExtensions = FP.function.flow(normalizeExtensions, (exts) =>
+  exts && !exts.every(R.test(EXT_RE)) ? 'validExtensions' : undefined,
+)
+
+const integerInRange = (min: number, max: number) => (v: string | null | undefined) => {
+  if (!v) return undefined
+  const n = Number(v)
+  if (!Number.isInteger(n) || n < min || n > max) return 'integerInRange'
+  return undefined
+}
 
 const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
   title: R.pipe(
@@ -98,16 +127,19 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
     (s) => s.trim() || 'null',
     Types.decode(Types.withFallback(Types.JsonFromString, null)),
   ),
-  fileExtensionsToIndex: R.pipe(
-    R.prop('fileExtensionsToIndex'),
-    Types.decode(Types.fromNullable(IO.string, '')),
-    R.split(','),
-    R.map(R.trim),
-    R.reject((t) => !t),
-    R.uniq,
-    (exts) =>
-      exts.length ? (exts as FP.nonEmptyArray.NonEmptyArray<Types.NonEmptyString>) : null,
-  ),
+  fileExtensionsToIndex: (values) =>
+    !values.enableDeepIndexing
+      ? []
+      : FP.function.pipe(values.fileExtensionsToIndex, normalizeExtensions),
+  indexContentBytes: (values) =>
+    !values.enableDeepIndexing
+      ? 0
+      : FP.function.pipe(
+          values.indexContentBytes,
+          Types.decode(Types.fromNullable(IO.string, '')),
+          R.trim,
+          R.ifElse(R.equals(''), R.always(null), Types.decode(Types.IntFromString)),
+        ),
   scannerParallelShardsDepth: R.pipe(
     R.prop('scannerParallelShardsDepth'),
     Types.decode(Types.fromNullable(IO.string, '')),
@@ -203,6 +235,41 @@ function SnsField({
   )
 }
 
+const useHintStyles = M.makeStyles((t) => ({
+  icon: {
+    fontSize: '1.125em',
+    marginLeft: t.spacing(0.5),
+    marginTop: -1,
+    opacity: 0.5,
+    verticalAlign: -4,
+    '&:hover': {
+      opacity: 1,
+    },
+  },
+  tooltip: {
+    '& ul': {
+      marginBottom: 0,
+      marginTop: t.spacing(0.5),
+      paddingLeft: t.spacing(2),
+    },
+  },
+}))
+
+interface HintProps {
+  children: M.TooltipProps['title']
+}
+
+function Hint({ children }: HintProps) {
+  const classes = useHintStyles()
+  return (
+    <M.Tooltip arrow title={children} classes={{ tooltip: classes.tooltip }}>
+      <M.Icon fontSize="small" className={classes.icon}>
+        help
+      </M.Icon>
+    </M.Tooltip>
+  )
+}
+
 const useBucketFieldsStyles = M.makeStyles((t) => ({
   group: {
     '& > *:first-child': {
@@ -222,20 +289,45 @@ const useBucketFieldsStyles = M.makeStyles((t) => ({
   panelSummaryContent: {
     margin: `${t.spacing(1)}px 0 !important`,
   },
+  warning: {
+    background: t.palette.warning.main,
+    marginBottom: t.spacing(1),
+    marginTop: t.spacing(2),
+  },
+  warningIcon: {
+    color: t.palette.warning.dark,
+  },
 }))
 
 interface BucketFieldsProps {
-  name?: string
+  bucket?: BucketConfig
   reindex?: () => void
 }
 
-function BucketFields({ name, reindex }: BucketFieldsProps) {
+function BucketFields({ bucket, reindex }: BucketFieldsProps) {
   const classes = useBucketFieldsStyles()
+
+  const [{ error, data }] = urql.useQuery({ query: CONTENT_INDEXING_SETTINGS_QUERY })
+  if (!data && error) throw error
+
+  const sentry = Sentry.use()
+  React.useEffect(() => {
+    if (data && error) sentry('captureException', error)
+  }, [error, data, sentry])
+
+  const settings = data!.config.contentIndexingSettings
+
   return (
     <M.Box>
       <M.Box className={classes.group} mt={-1} pb={2}>
-        {name ? (
-          <M.TextField label="Name" value={name} fullWidth margin="normal" disabled />
+        {bucket ? (
+          <M.TextField
+            label="Name"
+            value={bucket.name}
+            fullWidth
+            margin="normal"
+            disabled
+          />
         ) : (
           <RF.Field
             component={Form.Field}
@@ -283,7 +375,8 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
         <RF.Field
           component={Form.Field}
           name="description"
-          label="Description"
+          label="Description (optional)"
+          placeholder="Enter description if required"
           parse={R.pipe(R.replace(/^\s+/g, ''), R.take(1024) as (s: string) => string)}
           multiline
           rows={1}
@@ -367,21 +460,145 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
         </M.AccordionSummary>
         <M.Box className={classes.group} pt={1}>
           {!!reindex && (
-            <M.Button variant="outlined" fullWidth onClick={reindex}>
-              Re-index and repair
-            </M.Button>
+            <M.Box pb={2.5}>
+              <M.Button variant="outlined" fullWidth onClick={reindex}>
+                Re-index and repair
+              </M.Button>
+            </M.Box>
           )}
+
           <RF.Field
-            component={Form.Field}
-            name="fileExtensionsToIndex"
-            label="File extensions to index (comma-separated)"
-            fullWidth
-            margin="normal"
+            component={Form.Checkbox}
+            type="checkbox"
+            name="enableDeepIndexing"
+            label={
+              <>
+                Enable deep indexing
+                <Hint>
+                  Deep indexing adds the <em>contents</em> of an object to your search
+                  index, while shallow indexing only covers object metadata. Deep indexing
+                  may require more disk in ElasticSearch. Enable deep indexing when you
+                  want your users to find files by their contents.
+                </Hint>
+              </>
+            }
           />
+
+          <RF.FormSpy subscription={{ modified: true, values: true }}>
+            {({ modified, values }) => {
+              // don't need this while adding a bucket
+              if (!bucket) return null
+              if (
+                !modified?.enableDeepIndexing &&
+                !modified?.fileExtensionsToIndex &&
+                !modified?.indexContentBytes
+              )
+                return null
+              try {
+                if (
+                  R.equals(
+                    bucket.fileExtensionsToIndex,
+                    editFormSpec.fileExtensionsToIndex(values),
+                  ) &&
+                  R.equals(
+                    bucket.indexContentBytes,
+                    editFormSpec.indexContentBytes(values),
+                  )
+                )
+                  return null
+              } catch {
+                return null
+              }
+
+              return (
+                <Lab.Alert
+                  className={classes.warning}
+                  icon={
+                    <M.Icon fontSize="inherit" className={classes.warningIcon}>
+                      error
+                    </M.Icon>
+                  }
+                  severity="warning"
+                >
+                  Changing these settings affects files that are indexed after the change.
+                  If you wish to deep index existing files, click{' '}
+                  <strong>&quot;Re-index and repair&quot;</strong>.
+                </Lab.Alert>
+              )
+            }}
+          </RF.FormSpy>
+
+          <RF.FormSpy subscription={{ values: true }}>
+            {({ values }) => {
+              if (!values.enableDeepIndexing) return null
+              return (
+                <>
+                  <RF.Field
+                    component={Form.Field}
+                    name="fileExtensionsToIndex"
+                    label={
+                      <>
+                        File extensions to deep index (comma-separated)
+                        <Hint>
+                          Default extensions:
+                          <ul>
+                            {settings.extensions.map((ext) => (
+                              <li key={ext}>{ext}</li>
+                            ))}
+                          </ul>
+                        </Hint>
+                      </>
+                    }
+                    placeholder='e.g. ".txt, .md", leave blank to use default settings'
+                    validate={validateExtensions}
+                    errors={{
+                      validExtensions: (
+                        <>
+                          Enter a comma-separated list of{' '}
+                          <abbr title="Must start with the dot and contain only alphanumeric characters thereafter">
+                            valid
+                          </abbr>{' '}
+                          file extensions
+                        </>
+                      ),
+                    }}
+                    fullWidth
+                    margin="normal"
+                    multiline
+                    rows={1}
+                    rowsMax={3}
+                  />
+                  <RF.Field
+                    component={Form.Field}
+                    name="indexContentBytes"
+                    label={
+                      <>
+                        Content bytes to deep index
+                        <Hint>Defaults to {settings.bytesDefault}</Hint>
+                      </>
+                    }
+                    placeholder='e.g. "1024", leave blank to use default settings'
+                    parse={R.replace(/[^0-9]/g, '')}
+                    validate={integerInRange(settings.bytesMin, settings.bytesMax)}
+                    errors={{
+                      integerInRange: (
+                        <>
+                          Enter an integer from {settings.bytesMin} to {settings.bytesMax}
+                        </>
+                      ),
+                    }}
+                    fullWidth
+                    margin="normal"
+                  />
+                </>
+              )
+            }}
+          </RF.FormSpy>
           <RF.Field
             component={Form.Field}
             name="scannerParallelShardsDepth"
             label="Scanner parallel shards depth"
+            placeholder="Leave blank to use default settings"
             validate={validators.integer as FF.FieldValidator<any>}
             errors={{
               integer: 'Enter a valid integer',
@@ -403,7 +620,7 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
               label="Skip metadata indexing"
             />
           </M.Box>
-          {!name && (
+          {!bucket && (
             <M.Box mt={1}>
               <RF.Field
                 component={Form.Checkbox}
@@ -416,6 +633,19 @@ function BucketFields({ name, reindex }: BucketFieldsProps) {
         </M.Box>
       </M.Accordion>
     </M.Box>
+  )
+}
+
+function BucketFieldsPlaceholder() {
+  return (
+    <>
+      {R.times(
+        (i) => (
+          <Skeleton key={i} height={48} mt={i ? 3 : 0} />
+        ),
+        5,
+      )}
+    </>
   )
 }
 
@@ -461,6 +691,12 @@ function Add({ close }: AddProps) {
             }
           case 'InsufficientPermissions':
             return { [FF.FORM_ERROR]: 'insufficientPermissions' }
+          case 'BucketIndexContentBytesInvalid':
+            // shouldnt happen since we valide input
+            return { indexContentBytes: 'integerInRange' }
+          case 'BucketFileExtensionsToIndexInvalid':
+            // shouldnt happen since we valide input
+            return { fileExtensionsToIndex: 'validExtensions' }
           default:
             return assertNever(r)
         }
@@ -476,7 +712,7 @@ function Add({ close }: AddProps) {
   )
 
   return (
-    <RF.Form onSubmit={onSubmit}>
+    <RF.Form onSubmit={onSubmit} initialValues={{ enableDeepIndexing: true }}>
       {({
         handleSubmit,
         submitting,
@@ -488,20 +724,22 @@ function Add({ close }: AddProps) {
         <>
           <M.DialogTitle>Add a bucket</M.DialogTitle>
           <M.DialogContent>
-            <form onSubmit={handleSubmit}>
-              <BucketFields />
-              {submitFailed && (
-                <Form.FormError
-                  error={error || submitError}
-                  errors={{
-                    unexpected: 'Something went wrong',
-                    notificationConfigurationError: 'Notification configuration error',
-                    insufficientPermissions: 'Insufficient permissions',
-                  }}
-                />
-              )}
-              <input type="submit" style={{ display: 'none' }} />
-            </form>
+            <React.Suspense fallback={<BucketFieldsPlaceholder />}>
+              <form onSubmit={handleSubmit}>
+                <BucketFields />
+                {submitFailed && (
+                  <Form.FormError
+                    error={error || submitError}
+                    errors={{
+                      unexpected: 'Something went wrong',
+                      notificationConfigurationError: 'Notification configuration error',
+                      insufficientPermissions: 'Insufficient permissions',
+                    }}
+                  />
+                )}
+                <input type="submit" style={{ display: 'none' }} />
+              </form>
+            </React.Suspense>
           </M.DialogContent>
           <M.DialogActions>
             {submitting && (
@@ -699,6 +937,12 @@ function Edit({ bucket, close }: EditProps) {
             }
           case 'BucketNotFound':
             return { [FF.FORM_ERROR]: 'bucketNotFound' }
+          case 'BucketIndexContentBytesInvalid':
+            // shouldnt happen since we valide input
+            return { indexContentBytes: 'integerInRange' }
+          case 'BucketFileExtensionsToIndexInvalid':
+            // shouldnt happen since we valide input
+            return { fileExtensionsToIndex: 'validExtensions' }
           default:
             return assertNever(r)
         }
@@ -721,7 +965,10 @@ function Edit({ bucket, close }: EditProps) {
     overviewUrl: bucket.overviewUrl || '',
     tags: (bucket.tags || []).join(', '),
     linkedData: bucket.linkedData ? JSON.stringify(bucket.linkedData) : '',
+    enableDeepIndexing:
+      !R.equals(bucket.fileExtensionsToIndex, []) && bucket.indexContentBytes !== 0,
     fileExtensionsToIndex: (bucket.fileExtensionsToIndex || []).join(', '),
+    indexContentBytes: bucket.indexContentBytes,
     scannerParallelShardsDepth: bucket.scannerParallelShardsDepth?.toString() || '',
     snsNotificationArn:
       bucket.snsNotificationArn === DO_NOT_SUBSCRIBE_STR
@@ -746,20 +993,22 @@ function Edit({ bucket, close }: EditProps) {
           <Reindex bucket={bucket.name} open={reindexOpen} close={closeReindex} />
           <M.DialogTitle>Edit the &quot;{bucket.name}&quot; bucket</M.DialogTitle>
           <M.DialogContent>
-            <form onSubmit={handleSubmit}>
-              <BucketFields name={bucket.name} reindex={openReindex} />
-              {submitFailed && (
-                <Form.FormError
-                  error={error || submitError}
-                  errors={{
-                    unexpected: 'Something went wrong',
-                    notificationConfigurationError: 'Notification configuration error',
-                    bucketNotFound: 'Bucket not found',
-                  }}
-                />
-              )}
-              <input type="submit" style={{ display: 'none' }} />
-            </form>
+            <React.Suspense fallback={<BucketFieldsPlaceholder />}>
+              <form onSubmit={handleSubmit}>
+                <BucketFields bucket={bucket} reindex={openReindex} />
+                {submitFailed && (
+                  <Form.FormError
+                    error={error || submitError}
+                    errors={{
+                      unexpected: 'Something went wrong',
+                      notificationConfigurationError: 'Notification configuration error',
+                      bucketNotFound: 'Bucket not found',
+                    }}
+                  />
+                )}
+                <input type="submit" style={{ display: 'none' }} />
+              </form>
+            </React.Suspense>
           </M.DialogContent>
           <M.DialogActions>
             {submitting && (
@@ -957,7 +1206,14 @@ interface CRUDProps {
 }
 
 function CRUD({ bucketName }: CRUDProps) {
-  const [{ data }] = urql.useQuery({ query: BUCKET_CONFIGS_QUERY })
+  const [{ error, data }] = urql.useQuery({ query: BUCKET_CONFIGS_QUERY })
+  if (!data && error) throw error
+
+  const sentry = Sentry.use()
+  React.useEffect(() => {
+    if (data && error) sentry('captureException', error)
+  }, [error, data, sentry])
+
   const rows = data!.bucketConfigs
   const ordering = Table.useOrdering({ rows, column: columns[0] })
   const pagination = Pagination.use(ordering.ordered, {

@@ -20,6 +20,8 @@ export type containers_Admin_BucketsAddMutation = { readonly __typename: 'Mutati
       })
     | { readonly __typename: 'BucketAlreadyAdded' }
     | { readonly __typename: 'BucketDoesNotExist' }
+    | { readonly __typename: 'BucketFileExtensionsToIndexInvalid' }
+    | { readonly __typename: 'BucketIndexContentBytesInvalid' }
     | { readonly __typename: 'InsufficientPermissions' }
     | { readonly __typename: 'NotificationConfigurationError' }
     | { readonly __typename: 'NotificationTopicNotFound' }

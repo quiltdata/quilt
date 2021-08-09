@@ -1,0 +1,10 @@
+query {
+  config {
+    contentIndexingSettings {
+      extensions
+      bytesDefault
+      bytesMin
+      bytesMax
+    }
+  }
+}
