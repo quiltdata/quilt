@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
-import { useIntl } from 'containers/LanguageProvider'
 import * as Notifications from 'containers/Notifications'
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -14,7 +13,6 @@ import defer from 'utils/defer'
 
 import * as actions from './actions'
 import * as errors from './errors'
-import msg from './messages'
 
 import oktaLogo from './okta-logo.svg'
 
@@ -29,7 +27,6 @@ export default function SSOOkta({ mutex, next, ...props }) {
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
-  const { formatMessage } = useIntl()
   const { push: notify } = Notifications.use()
   const { urls } = NamedRoutes.use()
 
@@ -52,9 +49,11 @@ export default function SSOOkta({ mutex, next, ...props }) {
             // dont release mutex on redirect
             return
           }
-          notify(formatMessage(msg.ssoOktaNotFound))
+          notify(
+            'No Quilt user linked to this Okta account. Notify your Quilt administrator.',
+          )
         } else {
-          notify(formatMessage(msg.ssoOktaErrorUnexpected))
+          notify('Unable to sign in with Okta. Try again later or contact support.')
           sentry('captureException', e)
         }
         mutex.release(MUTEX_REQUEST)
@@ -62,26 +61,16 @@ export default function SSOOkta({ mutex, next, ...props }) {
     } catch (e) {
       if (e instanceof Okta.OktaError) {
         if (e.code !== 'popup_closed_by_user') {
-          notify(formatMessage(msg.ssoOktaError, { details: e.details }))
+          notify(`Unable to sign in with Okta. ${e.details}`)
           sentry('captureException', e)
         }
       } else {
-        notify(formatMessage(msg.ssoOktaErrorUnexpected))
+        notify('Unable to sign in with Okta. Try again later or contact support.')
         sentry('captureException', e)
       }
       mutex.release(MUTEX_POPUP)
     }
-  }, [
-    authenticate,
-    dispatch,
-    mutex,
-    sentry,
-    notify,
-    cfg.ssoAuth,
-    formatMessage,
-    next,
-    urls,
-  ])
+  }, [authenticate, dispatch, mutex, sentry, notify, cfg.ssoAuth, next, urls])
 
   return (
     <M.Button

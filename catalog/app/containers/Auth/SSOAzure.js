@@ -4,7 +4,6 @@ import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
-import { useIntl } from 'containers/LanguageProvider'
 import * as Notifications from 'containers/Notifications'
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -14,7 +13,6 @@ import defer from 'utils/defer'
 
 import * as actions from './actions'
 import * as errors from './errors'
-import msg from './messages'
 
 import microsoftLogo from './microsoft-logo.svg'
 
@@ -32,7 +30,6 @@ export default function SSOAzure({ mutex, next, ...props }) {
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
-  const intl = useIntl()
   const { push: notify } = Notifications.use()
   const { urls } = NamedRoutes.use()
 
@@ -55,9 +52,11 @@ export default function SSOAzure({ mutex, next, ...props }) {
             // dont release mutex on redirect
             return
           }
-          notify(intl.formatMessage(msg.ssoAzureNotFound))
+          notify(
+            'No Quilt user linked to this Microsoft account. Notify your Quilt administrator.',
+          )
         } else {
-          notify(intl.formatMessage(msg.ssoAzureErrorUnexpected))
+          notify('Unable to sign in with Microsoft. Try again later or contact support.')
           sentry('captureException', e)
         }
         mutex.release(MUTEX_REQUEST)
@@ -65,11 +64,11 @@ export default function SSOAzure({ mutex, next, ...props }) {
     } catch (e) {
       if (e instanceof Azure.AzureError) {
         if (e.code !== 'popup_closed_by_user') {
-          notify(intl.formatMessage(msg.ssoAzureError, { details: e.details }))
+          notify(`Unable to sign in with Microsoft. ${e.details}`)
           sentry('captureException', e)
         }
       } else {
-        notify(intl.formatMessage(msg.ssoAzureErrorUnexpected))
+        notify('Unable to sign in with Microsoft. Try again later or contact support.')
         sentry('captureException', e)
       }
       mutex.release(MUTEX_POPUP)
@@ -79,7 +78,6 @@ export default function SSOAzure({ mutex, next, ...props }) {
     authenticate,
     cfg.ssoAuth,
     dispatch,
-    intl.formatMessage,
     mutex.claim,
     mutex.release,
     next,
