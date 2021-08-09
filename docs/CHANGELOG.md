@@ -30,6 +30,7 @@
 * [Added] Deep search indexing for PDF ([#2256](https://github.com/quiltdata/quilt/pull/2256))
 * [Added] Add Vega/JSON view switcher for Vega files ([#2236](https://github.com/quiltdata/quilt/pull/2236))
 * [Added] Subpackage download ([#2258](https://github.com/quiltdata/quilt/pull/2258))
+* [Added] Per-bucket deep indexing settings ([#2290](https://github.com/quiltdata/quilt/pull/2290))
 * [Changed] New DataGrid-based file listing UI with arbitrary sorting and filtering ([#2097](https://github.com/quiltdata/quilt/pull/2097))
 * [Changed] Item selection in folder-to-package dialog ([#2122](https://github.com/quiltdata/quilt/pull/2122))
 * [Changed] Don't preview .tif (but keep .tiff), preview .results as plain text ([#2128](https://github.com/quiltdata/quilt/pull/2128))
