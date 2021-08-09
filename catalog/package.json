@@ -53,7 +53,6 @@
     }
   },
   "dependencies": {
-    "@formatjs/intl-relativetimeformat": "^9.2.1",
     "@material-ui/core": "^4.11.4",
     "@material-ui/data-grid": "^4.0.0-alpha.27",
     "@material-ui/lab": "^4.0.0-alpha.58",
@@ -112,7 +111,6 @@
     "react-google-login": "^5.2.2",
     "react-helmet": "^6.1.0",
     "react-input-autosize": "^3.0.0",
-    "react-intl": "^5.20.7",
     "react-multi-carousel": "^2.6.2",
     "react-redux": "^7.2.4",
     "react-router-dom": "^5.2.0",
