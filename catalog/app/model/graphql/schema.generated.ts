@@ -40,6 +40,14 @@ export default ({
           },
           {
             kind: 'OBJECT',
+            name: 'BucketFileExtensionsToIndexInvalid',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'BucketIndexContentBytesInvalid',
+          },
+          {
+            kind: 'OBJECT',
             name: 'InsufficientPermissions',
           },
           {
@@ -234,6 +242,15 @@ export default ({
             args: [],
           },
           {
+            name: 'indexContentBytes',
+            type: {
+              kind: 'SCALAR',
+              name: 'Int',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
             name: 'permissions',
             type: {
               kind: 'NON_NULL',
@@ -276,6 +293,38 @@ export default ({
       {
         kind: 'OBJECT',
         name: 'BucketDoesNotExist',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'BucketFileExtensionsToIndexInvalid',
+        fields: [
+          {
+            name: '_',
+            type: {
+              kind: 'SCALAR',
+              name: 'Boolean',
+              ofType: null,
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'BucketIndexContentBytesInvalid',
         fields: [
           {
             name: '_',
@@ -349,6 +398,14 @@ export default ({
           },
           {
             kind: 'OBJECT',
+            name: 'BucketFileExtensionsToIndexInvalid',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'BucketIndexContentBytesInvalid',
+          },
+          {
+            kind: 'OBJECT',
             name: 'BucketNotFound',
           },
           {
@@ -376,6 +433,86 @@ export default ({
               ofType: {
                 kind: 'OBJECT',
                 name: 'BucketConfig',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'Config',
+        fields: [
+          {
+            name: 'contentIndexingSettings',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'ContentIndexingSettings',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'ContentIndexingSettings',
+        fields: [
+          {
+            name: 'extensions',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'bytesDefault',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'bytesMin',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'bytesMax',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
                 ofType: null,
               },
             },
@@ -748,6 +885,18 @@ export default ({
         kind: 'OBJECT',
         name: 'Query',
         fields: [
+          {
+            name: 'config',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'Config',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
           {
             name: 'bucketConfigs',
             type: {
