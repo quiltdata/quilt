@@ -22,7 +22,7 @@ export function formatRelative(date: Date) {
   if (Math.abs(hours) >= 1) return intl.format(Math.round(hours), 'hour')
 
   const minutes = delta / MINUTE
-  if (Math.abs(minutes) > 0) return intl.format(Math.round(minutes), 'minute')
+  if (Math.abs(minutes) >= 1) return intl.format(Math.round(minutes), 'minute')
 
   return intl.format(Math.round(delta / 1000), 'second')
 }
