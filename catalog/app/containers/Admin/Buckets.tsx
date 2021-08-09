@@ -55,6 +55,31 @@ const SnsFormValue = new IO.Type<SnsFormValue>(
   R.identity,
 )
 
+const normalizeExtensions = FP.function.flow(
+  Types.decode(Types.fromNullable(IO.string, '')),
+  R.replace(/['"]/g, ''),
+  R.split(','),
+  R.map(R.trim),
+  R.reject((t) => !t),
+  R.uniq,
+  R.sortBy(R.identity),
+  (exts) =>
+    exts.length ? (exts as FP.nonEmptyArray.NonEmptyArray<Types.NonEmptyString>) : null,
+)
+
+const EXT_RE = /\.[0-9a-zA-Z]+/
+
+const validateExtensions = FP.function.flow(normalizeExtensions, (exts) =>
+  exts && !exts.every(R.test(EXT_RE)) ? 'validExtensions' : undefined,
+)
+
+const integerInRange = (min: number, max: number) => (v: string | null | undefined) => {
+  if (!v) return undefined
+  const n = Number(v)
+  if (!Number.isInteger(n) || n < min || n > max) return 'integerInRange'
+  return undefined
+}
+
 const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
   title: R.pipe(
     R.prop('title'),
@@ -105,20 +130,7 @@ const editFormSpec: FormSpec<Model.GQLTypes.BucketUpdateInput> = {
   fileExtensionsToIndex: (values) =>
     !values.enableDeepIndexing
       ? []
-      : FP.function.pipe(
-          values.fileExtensionsToIndex,
-          Types.decode(Types.fromNullable(IO.string, '')),
-          R.replace(/['"]/g, ''),
-          R.split(','),
-          R.map(R.trim),
-          R.reject((t) => !t),
-          R.uniq,
-          R.sortBy(R.identity),
-          (exts) =>
-            exts.length
-              ? (exts as FP.nonEmptyArray.NonEmptyArray<Types.NonEmptyString>)
-              : null,
-        ),
+      : FP.function.pipe(values.fileExtensionsToIndex, normalizeExtensions),
   indexContentBytes: (values) =>
     !values.enableDeepIndexing
       ? 0
@@ -256,13 +268,6 @@ function Hint({ children }: HintProps) {
       </M.Icon>
     </M.Tooltip>
   )
-}
-
-const integerInRange = (min: number, max: number) => (v: string | null | undefined) => {
-  if (!v) return undefined
-  const n = Number(v)
-  if (!Number.isInteger(n) || n < min || n > max) return 'integerInRange'
-  return undefined
 }
 
 const useBucketFieldsStyles = M.makeStyles((t) => ({
@@ -469,7 +474,12 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
             label={
               <>
                 Enable deep indexing
-                <Hint>Deep indexing help text TBD @akarve pls halp!</Hint>
+                <Hint>
+                  Deep indexing adds the <em>contents</em> of an object to your search
+                  index, while shallow indexing only covers object metadata. Deep indexing
+                  may require more disk in ElasticSearch. Enable deep indexing when you
+                  want your users to find files by their contents.
+                </Hint>
               </>
             }
           />
@@ -510,9 +520,9 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
                   }
                   severity="warning"
                 >
-                  New deep indexing settings will only affect newly indexed files. You can
-                  re-index the whole bucket with these settings by pressing{' '}
-                  <strong>&quot;Re-index and repair&quot;</strong> button above.
+                  Changing these settings affects files that are indexed after the change.
+                  If you wish to deep index existing files, click{' '}
+                  <strong>&quot;Re-index and repair&quot;</strong>.
                 </Lab.Alert>
               )
             }}
@@ -540,6 +550,18 @@ function BucketFields({ bucket, reindex }: BucketFieldsProps) {
                       </>
                     }
                     placeholder='e.g. ".txt, .md", leave blank to use default settings'
+                    validate={validateExtensions}
+                    errors={{
+                      validExtensions: (
+                        <>
+                          Enter a comma-separated list of{' '}
+                          <abbr title="Must start with the dot and contain only alphanumeric characters thereafter">
+                            valid
+                          </abbr>{' '}
+                          file extensions
+                        </>
+                      ),
+                    }}
                     fullWidth
                     margin="normal"
                     multiline
@@ -669,6 +691,12 @@ function Add({ close }: AddProps) {
             }
           case 'InsufficientPermissions':
             return { [FF.FORM_ERROR]: 'insufficientPermissions' }
+          case 'BucketIndexContentBytesInvalid':
+            // shouldnt happen since we valide input
+            return { indexContentBytes: 'integerInRange' }
+          case 'BucketFileExtensionsToIndexInvalid':
+            // shouldnt happen since we valide input
+            return { fileExtensionsToIndex: 'validExtensions' }
           default:
             return assertNever(r)
         }
@@ -909,6 +937,12 @@ function Edit({ bucket, close }: EditProps) {
             }
           case 'BucketNotFound':
             return { [FF.FORM_ERROR]: 'bucketNotFound' }
+          case 'BucketIndexContentBytesInvalid':
+            // shouldnt happen since we valide input
+            return { indexContentBytes: 'integerInRange' }
+          case 'BucketFileExtensionsToIndexInvalid':
+            // shouldnt happen since we valide input
+            return { fileExtensionsToIndex: 'validExtensions' }
           default:
             return assertNever(r)
         }
