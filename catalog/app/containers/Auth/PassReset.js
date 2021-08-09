@@ -1,6 +1,5 @@
 import get from 'lodash/fp/get'
 import React from 'react'
-import { FormattedMessage as FM } from 'react-intl'
 import { branch, renderComponent, withStateHandlers } from 'recompose'
 import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
 
@@ -14,10 +13,9 @@ import * as validators from 'utils/validators'
 
 import { resetPassword } from './actions'
 import * as errors from './errors'
-import msg from './messages'
 import * as Layout from './Layout'
 
-const Container = Layout.mkLayout(<FM {...msg.passResetHeading} />)
+const Container = Layout.mkLayout('Reset Password')
 
 // TODO: what to show if user is authenticated?
 export default composeComponent(
@@ -54,7 +52,7 @@ export default composeComponent(
     renderComponent(() => (
       <Container>
         <Layout.Message>
-          <FM {...msg.passResetSuccess} />
+          You have requested a password reset. Check your email for further instructions.
         </Layout.Message>
       </Container>
     )),
@@ -70,37 +68,30 @@ export default composeComponent(
             name="email"
             validate={[validators.required]}
             disabled={submitting}
-            floatingLabelText={<FM {...msg.passResetEmailLabel} />}
+            floatingLabelText="Email"
             errors={{
-              required: <FM {...msg.passResetEmailRequired} />,
+              required: 'Enter your email',
             }}
           />
           <Layout.Error
             {...{ submitFailed, error }}
             errors={{
-              unexpected: <FM {...msg.passResetErrorUnexpected} />,
-              smtp: <FM {...msg.passResetErrorSMTP} />,
+              unexpected: 'Something went wrong. Try again later.',
+              smtp: 'SMTP error: contact your administrator',
             }}
           />
           <Layout.Actions>
             <Layout.Submit
-              label={<FM {...msg.passResetSubmit} />}
+              label="Reset"
               disabled={submitting || (submitFailed && invalid)}
               busy={submitting}
             />
           </Layout.Actions>
           {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
             <Layout.Hint>
-              <FM
-                {...msg.passResetHintSignUp}
-                values={{
-                  link: (
-                    <Link to={urls.signUp()}>
-                      <FM {...msg.passResetHintSignUpLink} />
-                    </Link>
-                  ),
-                }}
-              />
+              <>
+                Don&apos;t have an account? <Link to={urls.signUp()}>Sign up</Link>
+              </>
             </Layout.Hint>
           )}
         </form>

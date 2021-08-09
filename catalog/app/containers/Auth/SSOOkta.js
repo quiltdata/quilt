@@ -1,7 +1,6 @@
 import { push } from 'connected-react-router/esm/immutable'
 import invariant from 'invariant'
 import * as React from 'react'
-import { FormattedMessage as FM } from 'react-intl'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
@@ -97,7 +96,7 @@ export default function SSOOkta({ mutex, next, ...props }) {
         <M.Box component="img" src={oktaLogo} alt="" height={18} />
       )}
       <M.Box mr={1} />
-      <FM {...msg.ssoOktaUse} />
+      Sign in with Okta
     </M.Button>
   )
 }

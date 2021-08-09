@@ -1,6 +1,5 @@
 import { goBack, push } from 'connected-react-router'
 import * as React from 'react'
-import { FormattedMessage as FM } from 'react-intl'
 import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
 import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
@@ -18,10 +17,9 @@ import validate, * as validators from 'utils/validators'
 import * as Layout from './Layout'
 import * as actions from './actions'
 import * as errors from './errors'
-import msg from './messages'
 import * as selectors from './selectors'
 
-const Container = Layout.mkLayout(<FM {...msg.ssoSignUpHeading} />)
+const Container = Layout.mkLayout('Complete sign-up')
 
 const Form = reduxForm({ form: 'Auth.SSO.SignUp' })(({ children, ...props }) => (
   <form onSubmit={props.handleSubmit}>{children(props)}</form>
@@ -72,7 +70,7 @@ export default ({ location: { search } }) => {
         dispatch(actions.signIn({ provider, token }, result.resolver))
         await result.promise
       } catch (e) {
-        dispatch(notify(<FM {...msg.ssoSignUpSignInError} />))
+        dispatch(notify(`Couldn't sign in automatically`))
         dispatch(push(urls.signIn(next)))
         sentry('captureException', e)
         throw new SubmissionError({ _error: 'unexpected' })
@@ -95,22 +93,18 @@ export default ({ location: { search } }) => {
               name="username"
               validate={[validators.required]}
               disabled={submitting}
-              floatingLabelText={<FM {...msg.signUpUsernameLabel} />}
+              floatingLabelText="Username"
               errors={{
-                required: <FM {...msg.signUpUsernameRequired} />,
+                required: 'Enter a username',
                 taken: (
-                  <FM
-                    {...msg.signUpUsernameTaken}
-                    values={{
-                      link: (
-                        <Layout.FieldErrorLink to={urls.signIn(next)}>
-                          <FM {...msg.signUpSignInHint} />
-                        </Layout.FieldErrorLink>
-                      ),
-                    }}
-                  />
+                  <>
+                    Username taken, try{' '}
+                    <Layout.FieldErrorLink to={urls.signIn(next)}>
+                      signing in
+                    </Layout.FieldErrorLink>
+                  </>
                 ),
-                invalid: <FM {...msg.signUpUsernameInvalid} />,
+                invalid: 'Username invalid',
               }}
             />
             {cfg.passwordAuth === true && (
@@ -121,10 +115,10 @@ export default ({ location: { search } }) => {
                   type="password"
                   validate={[validators.required]}
                   disabled={submitting}
-                  floatingLabelText={<FM {...msg.signUpPassLabel} />}
+                  floatingLabelText="Password"
                   errors={{
-                    required: <FM {...msg.signUpPassRequired} />,
-                    invalid: <FM {...msg.signUpPassInvalid} />,
+                    required: 'Enter a password',
+                    invalid: 'Password must be at least 8 characters long',
                   }}
                 />
                 <Field
@@ -136,10 +130,10 @@ export default ({ location: { search } }) => {
                     validate('check', validators.matchesField('password')),
                   ]}
                   disabled={submitting}
-                  floatingLabelText={<FM {...msg.signUpPassCheckLabel} />}
+                  floatingLabelText="Verify password"
                   errors={{
-                    required: <FM {...msg.signUpPassCheckRequired} />,
-                    check: <FM {...msg.signUpPassCheckMatch} />,
+                    required: 'Enter the password again',
+                    check: 'Passwords must match',
                   }}
                 />
               </>
@@ -147,33 +141,26 @@ export default ({ location: { search } }) => {
             <Layout.Error
               {...{ submitFailed, error }}
               errors={{
-                unexpected: <FM {...msg.signUpErrorUnexpected} />,
-                emailDomain: <FM {...msg.ssoSignUpErrorEmailDomain} />,
-                smtp: <FM {...msg.signUpErrorSMTP} />,
+                unexpected: 'Something went wrong. Try again later.',
+                emailDomain: 'Email domain is not allowed',
+                smtp: 'SMTP error: contact your administrator',
               }}
             />
             <Layout.Actions>
               <M.Button onClick={back} variant="outlined" disabled={submitting}>
-                <FM {...msg.ssoSignUpCancel} />
+                Cancel
               </M.Button>
               <M.Box mr={2} />
               <Layout.Submit
-                label={<FM {...msg.signUpSubmit} />}
+                label="Sign up"
                 disabled={submitting || (submitFailed && invalid)}
                 busy={submitting}
               />
             </Layout.Actions>
             <Layout.Hint>
-              <FM
-                {...msg.signUpHintSignIn}
-                values={{
-                  link: (
-                    <Link to={urls.signIn(next)}>
-                      <FM {...msg.signUpHintSignInLink} />
-                    </Link>
-                  ),
-                }}
-              />
+              <>
+                Already have an account? <Link to={urls.signIn(next)}>Sign in</Link>
+              </>
             </Layout.Hint>
           </>
         )}

@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { FormattedMessage as FM } from 'react-intl'
 import { connect } from 'react-redux'
 import {
   branch,
@@ -18,10 +17,9 @@ import defer from 'utils/defer'
 import { composeComponent } from 'utils/reactTools'
 
 import { getCode } from './actions'
-import msg from './messages'
 import * as Layout from './Layout'
 
-const Container = Layout.mkLayout(<FM {...msg.codeHeading} />)
+const Container = Layout.mkLayout('Code')
 
 const Code = styled('div')({
   overflowWrap: 'break-word',
@@ -58,9 +56,7 @@ export default composeComponent(
     (p) => p.result instanceof Error,
     renderComponent(() => (
       <Container>
-        <Layout.Message>
-          <FM {...msg.codeError} />
-        </Layout.Message>
+        <Layout.Message>Something went wrong. Try again later.</Layout.Message>
       </Container>
     )),
   ),
@@ -71,7 +67,7 @@ export default composeComponent(
         <Code>{result}</Code>
         <Layout.Actions>
           <Button color="primary" variant="contained" onClick={copy}>
-            <FM {...msg.codeCopy} />
+            Copy to clipboard
           </Button>
         </Layout.Actions>
       </Container>
@@ -79,9 +75,7 @@ export default composeComponent(
   ),
   () => (
     <Container>
-      <Working>
-        <FM {...msg.codeWorking} />
-      </Working>
+      <Working>Getting the code</Working>
     </Container>
   ),
 )

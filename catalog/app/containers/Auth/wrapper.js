@@ -1,7 +1,6 @@
 import memoize from 'lodash/memoize'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedMessage as FM } from 'react-intl'
 import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
 import { createStructuredSelector } from 'reselect'
@@ -18,7 +17,6 @@ import { selectLocation } from 'utils/router'
 
 import { check } from './actions'
 import { InvalidToken } from './errors'
-import msg from './messages'
 import * as selectors from './selectors'
 
 const ErrorScreen = () => {
@@ -28,16 +26,16 @@ const ErrorScreen = () => {
   return (
     <Layout>
       <Error
-        headline={<FM {...msg.wrapperFailureHeading} />}
+        headline="Authentication error"
         detail={
           <span>
-            <FM {...msg.wrapperFailureDescription} />
+            Something went wrong. Try again.
             <Button
               variant="contained"
               color="primary"
               style={{ marginLeft: '1em' }}
               onClick={retry}
-              label={<FM {...msg.wrapperFailureRetry} />}
+              label="Retry"
             />
           </span>
         }
@@ -84,11 +82,7 @@ export default ({ authorizedSelector = R.T } = {}) => {
 
       // TODO: use suspense
       if (state.waiting) {
-        return (
-          <Working>
-            <FM {...msg.wrapperWorking} />
-          </Working>
-        )
+        return <Working>Authenticating…</Working>
       }
 
       if (!state.authenticated) {
