@@ -59,7 +59,7 @@ const normalizeExtensions = FP.function.flow(
   Types.decode(Types.fromNullable(IO.string, '')),
   R.replace(/['"]/g, ''),
   R.split(','),
-  R.map(R.trim),
+  R.map(R.pipe(R.trim, R.toLower)),
   R.reject((t) => !t),
   R.uniq,
   R.sortBy(R.identity),
@@ -67,7 +67,7 @@ const normalizeExtensions = FP.function.flow(
     exts.length ? (exts as FP.nonEmptyArray.NonEmptyArray<Types.NonEmptyString>) : null,
 )
 
-const EXT_RE = /\.[0-9a-zA-Z]+/
+const EXT_RE = /\.[0-9a-z_]+/
 
 const validateExtensions = FP.function.flow(normalizeExtensions, (exts) =>
   exts && !exts.every(R.test(EXT_RE)) ? 'validExtensions' : undefined,
