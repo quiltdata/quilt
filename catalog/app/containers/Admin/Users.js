@@ -2,7 +2,6 @@ import cx from 'classnames'
 import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedRelativeTime } from 'react-intl'
 import * as RC from 'recompose'
 import * as RF from 'redux-form/es/immutable'
 import * as urql from 'urql'
@@ -26,6 +25,7 @@ import * as Notifications from 'containers/Notifications'
 import * as APIConnector from 'utils/APIConnector'
 import * as Dialogs from 'utils/Dialogs'
 import * as Cache from 'utils/ResourceCache'
+import * as dateUtils from 'utils/date'
 import * as RT from 'utils/reactTools'
 import * as validators from 'utils/validators'
 
@@ -630,12 +630,7 @@ export default RT.composeComponent(
           label: 'Date joined',
           getValue: R.prop('dateJoined'),
           getDisplay: (v) => (
-            // TODO: use date-fns
-            <FormattedRelativeTime
-              numeric="auto"
-              unit="second"
-              value={(v - Date.now()) / 1000}
-            />
+            <span title={v.toString()}>{dateUtils.formatRelative(v)}</span>
           ),
         },
         {
@@ -643,12 +638,7 @@ export default RT.composeComponent(
           label: 'Last login',
           getValue: R.prop('lastLogin'),
           getDisplay: (v) => (
-            <FormattedRelativeTime
-              numeric="auto"
-              unit="second"
-              value={(v - Date.now()) / 1000}
-              updateIntervalInSeconds={1}
-            />
+            <span title={v.toString()}>{dateUtils.formatRelative(v)}</span>
           ),
         },
         {

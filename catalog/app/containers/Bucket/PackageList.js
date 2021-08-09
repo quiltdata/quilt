@@ -1,7 +1,7 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedRelativeTime, FormattedPlural } from 'react-intl'
+import { FormattedPlural } from 'react-intl'
 import { useHistory, Link, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
@@ -20,6 +20,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as SVG from 'utils/SVG'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as dateUtils from 'utils/date'
 import parseSearch from 'utils/parseSearch'
 import mkStorage from 'utils/storage'
 import { readableQuantity } from 'utils/string'
@@ -177,6 +178,9 @@ function Package({ name, modified, revisions, bucket, views }) {
   const classes = usePackageStyles()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const sinceModified = React.useMemo(() => dateUtils.formatRelative(modified), [
+    modified,
+  ])
   return (
     <M.Paper className={classes.root}>
       <div className={classes.handleContainer}>
@@ -195,17 +199,9 @@ function Package({ name, modified, revisions, bucket, views }) {
           )}
         </span>
         <M.Box mr={2} component="span" />
-        <span className={classes.updated}>
+        <span className={classes.updated} title={modified ? modified.toString() : null}>
           {xs ? 'Upd. ' : 'Updated '}
-          {modified ? (
-            <FormattedRelativeTime
-              numeric="auto"
-              value={(modified - Date.now()) / 1000}
-              updateIntervalInSeconds={1}
-            />
-          ) : (
-            '[unknown: see console]'
-          )}
+          {modified ? sinceModified : '[unknown: see console]'}
         </span>
       </M.Box>
       {!!views && <Counts {...views} />}
