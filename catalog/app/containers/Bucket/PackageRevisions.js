@@ -298,15 +298,6 @@ function Revision({ bucket, name, hash, stats, message, modified, metadata, coun
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const dateFmt = xs ? 'MMM d yyyy - h:mmaaaaa' : 'MMMM do yyyy - h:mma'
 
-  const filesNumberStr = React.useMemo(
-    () =>
-      plural.format(stats.files, {
-        one: R.always('file'),
-        other: R.always('files'),
-      }),
-    [stats.files],
-  )
-
   return (
     <RevisionLayout
       link={
@@ -348,7 +339,7 @@ function Revision({ bucket, name, hash, stats, message, modified, metadata, coun
           <M.Typography component="span" variant="body2">
             {readableQuantity(stats.files)}
             &nbsp;
-            {filesNumberStr}
+            <plural.Plural value={stats.files} one="file" other="files" />
           </M.Typography>
         </>
       }

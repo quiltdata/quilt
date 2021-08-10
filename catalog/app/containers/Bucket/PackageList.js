@@ -181,16 +181,6 @@ function Package({ name, modified, revisions, bucket, views }) {
   const sinceModified = React.useMemo(() => dateUtils.formatRelative(modified), [
     modified,
   ])
-  const revisionsStr = React.useMemo(
-    () =>
-      xs
-        ? `${revisions} Rev.`
-        : plural.format(revisions, {
-            one: (n) => `${n} Revision`,
-            other: (n) => `${n} Revisions`,
-          }),
-    [revisions, xs],
-  )
   return (
     <M.Paper className={classes.root}>
       <div className={classes.handleContainer}>
@@ -200,7 +190,14 @@ function Package({ name, modified, revisions, bucket, views }) {
         </Link>
       </div>
       <M.Box pl={2} pb={2} pt={1}>
-        <span className={classes.revisions}>{revisionsStr}</span>
+        <span className={classes.revisions}>
+          {revisions}{' '}
+          {xs ? (
+            'Rev.'
+          ) : (
+            <plural.Plural value={revisions} one="Revision" other="Revisions" />
+          )}
+        </span>
         <M.Box mr={2} component="span" />
         <span className={classes.updated} title={modified ? modified.toString() : null}>
           {xs ? 'Upd. ' : 'Updated '}
