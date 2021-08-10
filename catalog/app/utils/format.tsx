@@ -34,7 +34,15 @@ interface RelativeProps {
 }
 
 export function Relative({ value }: RelativeProps) {
-  const str = React.useMemo(() => relativify(value), [value])
+  const [t, setT] = React.useState(Date.now())
+
+  React.useEffect(() => {
+    const timerId = window.setInterval(() => setT(Date.now()), 1000)
+    return () => clearInterval(timerId)
+  }, [value])
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const str = React.useMemo(() => relativify(value), [value, t])
   return <>{str}</>
 }
 
