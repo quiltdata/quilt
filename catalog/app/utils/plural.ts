@@ -9,16 +9,14 @@ interface Rules {
 }
 
 function numberToRule(value: number) {
-  if (value === 0) return 'zero'
-  if (value === 1) return 'one'
-  // NOTE: we don't need it yet and, maybe, never
-  // 2,3,4,22,23... return 'few'
-  // 5,6,...11,12... return 'many'
   switch (value) {
     case 0:
       return 'zero'
     case 1:
       return 'one'
+    // NOTE: we don't need it yet and, maybe, never
+    // 2,3,4,22,23... return 'few'
+    // 5,6,...11,12... return 'many'
     default:
       return 'other'
   }
