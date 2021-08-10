@@ -25,7 +25,7 @@ import * as Notifications from 'containers/Notifications'
 import * as APIConnector from 'utils/APIConnector'
 import * as Dialogs from 'utils/Dialogs'
 import * as Cache from 'utils/ResourceCache'
-import * as dateUtils from 'utils/date'
+import * as Format from 'utils/format'
 import * as RT from 'utils/reactTools'
 import * as validators from 'utils/validators'
 
@@ -631,7 +631,7 @@ export default RT.composeComponent(
           getValue: R.prop('dateJoined'),
           getDisplay: (v) => (
             <span title={v.toString()}>
-              <dateUtils.Relative value={v} />
+              <Format.Relative value={v} />
             </span>
           ),
         },
@@ -641,7 +641,7 @@ export default RT.composeComponent(
           getValue: R.prop('lastLogin'),
           getDisplay: (v) => (
             <span title={v.toString()}>
-              <dateUtils.Relative value={v} />
+              <Format.Relative value={v} />
             </span>
           ),
         },

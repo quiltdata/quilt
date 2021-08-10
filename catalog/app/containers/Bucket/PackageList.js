@@ -19,9 +19,8 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as SVG from 'utils/SVG'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import * as dateUtils from 'utils/date'
+import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
-import * as plural from 'utils/plural'
 import mkStorage from 'utils/storage'
 import { readableQuantity } from 'utils/string'
 import useDebouncedInput from 'utils/useDebouncedInput'
@@ -192,13 +191,13 @@ function Package({ name, modified, revisions, bucket, views }) {
           {xs ? (
             'Rev.'
           ) : (
-            <plural.Plural value={revisions} one="Revision" other="Revisions" />
+            <Format.Plural value={revisions} one="Revision" other="Revisions" />
           )}
         </span>
         <M.Box mr={2} component="span" />
         <span className={classes.updated} title={modified ? modified.toString() : null}>
           {xs ? 'Upd. ' : 'Updated '}
-          {modified ? <dateUtils.Relative value={modified} /> : '[unknown: see console]'}
+          {modified ? <Format.Relative value={modified} /> : '[unknown: see console]'}
         </span>
       </M.Box>
       {!!views && <Counts {...views} />}

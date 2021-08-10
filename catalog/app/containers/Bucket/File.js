@@ -21,7 +21,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
-import * as dateUtils from 'utils/date'
+import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import { getBreadCrumbs, up, decode, handleToHttpsUri } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
@@ -121,7 +121,7 @@ function VersionInfo({ bucket, path, version }) {
                   <M.ListItemText
                     primary={
                       <span>
-                        <dateUtils.Relative value={v.lastModified} />
+                        <Format.Relative value={v.lastModified} />
                         {v.isLatest && ' (latest)'}
                         {' | '}
                         {v.size != null ? readableBytes(v.size) : 'Delete Marker'}

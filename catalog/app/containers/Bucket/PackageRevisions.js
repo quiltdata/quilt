@@ -20,8 +20,8 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
+import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
-import * as plural from 'utils/plural'
 import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
@@ -339,7 +339,7 @@ function Revision({ bucket, name, hash, stats, message, modified, metadata, coun
           <M.Typography component="span" variant="body2">
             {readableQuantity(stats.files)}
             &nbsp;
-            <plural.Plural value={stats.files} one="file" other="files" />
+            <Format.Plural value={stats.files} one="file" other="files" />
           </M.Typography>
         </>
       }
