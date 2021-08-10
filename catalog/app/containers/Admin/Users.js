@@ -630,7 +630,9 @@ export default RT.composeComponent(
           label: 'Date joined',
           getValue: R.prop('dateJoined'),
           getDisplay: (v) => (
-            <span title={v.toString()}>{dateUtils.formatRelative(v)}</span>
+            <span title={v.toString()}>
+              <dateUtils.Relative value={v} />
+            </span>
           ),
         },
         {
@@ -638,7 +640,9 @@ export default RT.composeComponent(
           label: 'Last login',
           getValue: R.prop('lastLogin'),
           getDisplay: (v) => (
-            <span title={v.toString()}>{dateUtils.formatRelative(v)}</span>
+            <span title={v.toString()}>
+              <dateUtils.Relative value={v} />
+            </span>
           ),
         },
         {

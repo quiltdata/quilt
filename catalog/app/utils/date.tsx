@@ -1,3 +1,5 @@
+import * as React from 'react'
+
 const MINUTE = 1000 * 60
 const HOUR = MINUTE * 60
 const DAY = HOUR * 24
@@ -25,4 +27,13 @@ export function formatRelative(date: Date) {
   if (Math.abs(minutes) >= 1) return intl.format(Math.round(minutes), 'minute')
 
   return intl.format(Math.round(delta / 1000), 'second')
+}
+
+interface RelativeProps {
+  value: Date
+}
+
+export function Relative({ value }: RelativeProps) {
+  const str = React.useMemo(() => formatRelative(value), [value])
+  return <>{str}</>
 }

@@ -178,9 +178,6 @@ function Package({ name, modified, revisions, bucket, views }) {
   const classes = usePackageStyles()
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
-  const sinceModified = React.useMemo(() => dateUtils.formatRelative(modified), [
-    modified,
-  ])
   return (
     <M.Paper className={classes.root}>
       <div className={classes.handleContainer}>
@@ -201,7 +198,7 @@ function Package({ name, modified, revisions, bucket, views }) {
         <M.Box mr={2} component="span" />
         <span className={classes.updated} title={modified ? modified.toString() : null}>
           {xs ? 'Upd. ' : 'Updated '}
-          {modified ? sinceModified : '[unknown: see console]'}
+          {modified ? <dateUtils.Relative value={modified} /> : '[unknown: see console]'}
         </span>
       </M.Box>
       {!!views && <Counts {...views} />}

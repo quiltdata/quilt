@@ -121,7 +121,7 @@ function VersionInfo({ bucket, path, version }) {
                   <M.ListItemText
                     primary={
                       <span>
-                        {dateUtils.formatRelative(v.lastModified)}
+                        <dateUtils.Relative value={v.lastModified} />
                         {v.isLatest && ' (latest)'}
                         {' | '}
                         {v.size != null ? readableBytes(v.size) : 'Delete Marker'}
