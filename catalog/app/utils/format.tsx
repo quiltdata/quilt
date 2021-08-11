@@ -42,8 +42,7 @@ export function Relative({ value }: RelativeProps) {
   }, [value])
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const str = React.useMemo(() => relativify(value), [value, t])
-  return <>{str}</>
+  return React.useMemo(() => relativify(value), [value, t])
 }
 
 interface Rules {
@@ -81,11 +80,10 @@ interface PluralProps extends Rules {
 }
 
 export function Plural({ value, zero, one, other }: PluralProps) {
-  const str = React.useMemo(() => pluralify(value, { zero, one, other }), [
+  return React.useMemo(() => pluralify(value, { zero, one, other }), [
     value,
     zero,
     one,
     other,
   ])
-  return <>{str}</>
 }
