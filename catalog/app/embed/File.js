@@ -4,7 +4,6 @@ import * as dateFns from 'date-fns'
 import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedRelative } from 'react-intl'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
@@ -21,6 +20,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import { linkStyle } from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
+import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import * as s3paths from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
@@ -114,7 +114,7 @@ function VersionInfo({ bucket, path, version }) {
                   <M.ListItemText
                     primary={
                       <span>
-                        <FormattedRelative value={v.lastModified} />
+                        <Format.Relative value={v.lastModified} />
                         {v.isLatest && ' (latest)'}
                         {' | '}
                         {v.size != null ? readableBytes(v.size) : 'Delete Marker'}

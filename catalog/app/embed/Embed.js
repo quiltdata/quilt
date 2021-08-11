@@ -11,7 +11,6 @@ import * as M from '@material-ui/core'
 import * as Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import * as Auth from 'containers/Auth'
-import LanguageProvider from 'containers/LanguageProvider'
 import { ThrowNotFound, createNotFound } from 'containers/NotFoundPage'
 import * as Notifications from 'containers/Notifications'
 import * as routes from 'constants/embed-routes'
@@ -171,7 +170,7 @@ function useInit() {
   return state
 }
 
-function Init({ messages }) {
+function Init() {
   const [key, setKey] = React.useState(0)
   const init = useInit()
   usePrevious(init, (prev) => {
@@ -185,7 +184,7 @@ function Init({ messages }) {
   }
   return (
     <ErrorBoundary key={key}>
-      <App {...{ key, init, messages }} />
+      <App {...{ key, init }} />
     </ErrorBoundary>
   )
 }
@@ -259,7 +258,7 @@ function useCssFiles(files = []) {
   }, [files])
 }
 
-function App({ messages, init }) {
+function App({ init }) {
   const { urls } = NamedRoutes.use()
   const history = useConstant(() =>
     createHistory({ initialEntries: [urls.bucketDir(init.bucket, init.path)] }),
@@ -277,7 +276,6 @@ function App({ messages, init }) {
     [EmbedConfig.Provider, { config: init }],
     [CustomThemeProvider, { theme: init.theme }],
     [Store.Provider, { history }],
-    [LanguageProvider, { messages }],
     [RouterProvider, { history }],
     Cache.Provider,
     [Config.Provider, { path: '/config.json' }],
@@ -296,7 +294,7 @@ function App({ messages, init }) {
   )
 }
 
-export default function Embed({ messages }) {
+export default function Embed() {
   return RT.nest(
     FinalBoundary,
     [M.MuiThemeProvider, { theme: style.appTheme }],
@@ -305,6 +303,6 @@ export default function Embed({ messages }) {
     ErrorBoundary,
     Sentry.Provider,
     [NamedRoutes.Provider, { routes }],
-    [Init, { messages }],
+    [Init],
   )
 }

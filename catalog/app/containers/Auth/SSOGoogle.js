@@ -2,11 +2,9 @@ import { push } from 'connected-react-router/esm/immutable'
 import invariant from 'invariant'
 import * as React from 'react'
 import GoogleLogin from 'react-google-login'
-import { FormattedMessage as FM } from 'react-intl'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
-import { useIntl } from 'containers/LanguageProvider'
 import * as Notifications from 'containers/Notifications'
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -16,7 +14,6 @@ import defer from 'utils/defer'
 import * as actions from './actions'
 import * as errors from './errors'
 import googleLogo from './google-logo.svg'
-import msg from './messages'
 
 const MUTEX_POPUP = 'sso:google:popup'
 const MUTEX_REQUEST = 'sso:google:request'
@@ -27,7 +24,6 @@ export default function SSOGoogle({ mutex, next, ...props }) {
 
   const sentry = Sentry.use()
   const dispatch = redux.useDispatch()
-  const { formatMessage } = useIntl()
   const { push: notify } = Notifications.use()
   const { urls } = NamedRoutes.use()
   const { claim, release } = mutex
@@ -54,27 +50,29 @@ export default function SSOGoogle({ mutex, next, ...props }) {
             // dont release mutex on redirect
             return
           }
-          notify(formatMessage(msg.ssoGoogleNotFound))
+          notify(
+            'No Quilt user linked to this Google account. Notify your Quilt administrator.',
+          )
         } else {
-          notify(formatMessage(msg.ssoGoogleErrorUnexpected))
+          notify('Unable to sign in with Google. Try again later or contact support.')
           sentry('captureException', e)
         }
         release(MUTEX_REQUEST)
       }
     },
-    [dispatch, claim, release, sentry, notify, formatMessage, cfg.ssoAuth, next, urls],
+    [dispatch, claim, release, sentry, notify, cfg.ssoAuth, next, urls],
   )
 
   const handleFailure = React.useCallback(
     ({ error: code, details }) => {
       if (code !== 'popup_closed_by_user') {
-        notify(formatMessage(msg.ssoGoogleError, { details }))
+        notify(`Unable to sign in with Google. ${e.details}`)
         const e = new errors.SSOError({ provider: 'google', code, details })
         sentry('captureException', e)
       }
       release(MUTEX_POPUP)
     },
-    [release, sentry, formatMessage, notify],
+    [release, sentry, notify],
   )
 
   return (
@@ -97,7 +95,7 @@ export default function SSOGoogle({ mutex, next, ...props }) {
             <M.Box component="img" src={googleLogo} alt="" />
           )}
           <M.Box mr={1} />
-          <FM {...msg.ssoGoogleUse} />
+          Sign in with Google
         </M.Button>
       )}
     />

@@ -3,14 +3,12 @@ import * as React from 'react'
 import * as redux from 'react-redux'
 
 import { push as notify } from 'containers/Notifications/actions'
-import { useIntl } from 'containers/LanguageProvider'
 import { useReducer } from 'utils/ReducerInjector'
 import { useSaga } from 'utils/SagaInjector'
 import { withInitialState } from 'utils/reduxTools'
 import useConstant from 'utils/useConstant'
 
 import { REDUX_KEY } from './constants'
-import msg from './messages'
 import reducer from './reducer'
 import saga from './saga'
 
@@ -38,15 +36,14 @@ const useStorageHandlers = (storage) =>
   )
 
 const useNotificationHandlers = () => {
-  const intl = useIntl()
   const dispatch = redux.useDispatch()
   return React.useMemo(
     () => ({
       onAuthLost: () => {
-        dispatch(notify(intl.formatMessage(msg.notificationAuthLost)))
+        dispatch(notify('Authentication lost. Sign in again.'))
       },
     }),
-    [intl, dispatch],
+    [dispatch],
   )
 }
 

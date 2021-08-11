@@ -7,7 +7,6 @@ import 'sanitize.css' // side-effect: inject global css
 
 import * as Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
-import LanguageProvider from 'containers/LanguageProvider'
 import * as style from 'constants/style'
 import * as Config from 'utils/Config'
 import { createBoundary } from 'utils/ErrorBoundary'
@@ -18,8 +17,6 @@ import * as Store from 'utils/Store'
 import * as RT from 'utils/reactTools'
 
 import WithGlobalStyles from '../global-styles'
-
-import { translationMessages } from '../i18n'
 
 const SRC = '/__embed'
 
@@ -186,7 +183,7 @@ const ErrorBoundary = createBoundary(() => (/* error, info */) => (
   </h1>
 ))
 
-function App({ messages }) {
+function App() {
   return RT.nest(
     ErrorBoundary,
     [M.MuiThemeProvider, { theme: style.appTheme }],
@@ -194,7 +191,6 @@ function App({ messages }) {
     Layout.Root,
     Sentry.Provider,
     Store.Provider,
-    [LanguageProvider, { messages }],
     Cache.Provider,
     [Config.Provider, { path: '/config.json' }],
     [React.Suspense, { fallback: <Placeholder color="text.secondary" /> }],
@@ -202,4 +198,4 @@ function App({ messages }) {
   )
 }
 
-ReactDOM.render(<App messages={translationMessages} />, document.getElementById('app'))
+ReactDOM.render(<App />, document.getElementById('app'))

@@ -1,3 +1,18 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`components/Dropzone/FilesStats should render 1`] = `null`;
+
+exports[`components/Dropzone/FilesStats should render files total size 1`] = `
+<span>
+  : 
+  2
+   (
+  <span>
+    300
+     
+    k
+    B
+  </span>
+  )
+</span>
+`;

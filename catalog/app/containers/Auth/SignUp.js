@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { FormattedMessage as FM } from 'react-intl'
 import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
 import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
@@ -22,10 +21,9 @@ import SSOOkta from './SSOOkta'
 import SSOOneLogin from './SSOOneLogin'
 import { signUp } from './actions'
 import * as errors from './errors'
-import msg from './messages'
 import * as selectors from './selectors'
 
-const Container = Layout.mkLayout(<FM {...msg.signUpHeading} />)
+const Container = Layout.mkLayout('Complete sign-up')
 
 const MUTEX_ID = 'password'
 
@@ -77,22 +75,18 @@ const PasswordSignUp = composeComponent(
           name="username"
           validate={[validators.required]}
           disabled={!!mutex.current || submitting}
-          floatingLabelText={<FM {...msg.signUpUsernameLabel} />}
+          floatingLabelText="Username"
           errors={{
-            required: <FM {...msg.signUpUsernameRequired} />,
+            required: 'Enter a username',
             taken: (
-              <FM
-                {...msg.signUpUsernameTaken}
-                values={{
-                  link: (
-                    <Layout.FieldErrorLink to={urls.signIn(next)}>
-                      <FM {...msg.signUpSignInHint} />
-                    </Layout.FieldErrorLink>
-                  ),
-                }}
-              />
+              <>
+                Username taken, try{' '}
+                <Layout.FieldErrorLink to={urls.signIn(next)}>
+                  signing in
+                </Layout.FieldErrorLink>
+              </>
             ),
-            invalid: <FM {...msg.signUpUsernameInvalid} />,
+            invalid: 'Username invalid',
           }}
         />
         <Field
@@ -100,22 +94,18 @@ const PasswordSignUp = composeComponent(
           name="email"
           validate={[validators.required]}
           disabled={!!mutex.current || submitting}
-          floatingLabelText={<FM {...msg.signUpEmailLabel} />}
+          floatingLabelText="Email"
           errors={{
-            required: <FM {...msg.signUpEmailRequired} />,
+            required: 'Enter your email',
             taken: (
-              <FM
-                {...msg.signUpEmailTaken}
-                values={{
-                  link: (
-                    <Layout.FieldErrorLink to={urls.signIn(next)}>
-                      <FM {...msg.signUpSignInHint} />
-                    </Layout.FieldErrorLink>
-                  ),
-                }}
-              />
+              <>
+                Email taken, try{' '}
+                <Layout.FieldErrorLink to={urls.signIn(next)}>
+                  signing in
+                </Layout.FieldErrorLink>
+              </>
             ),
-            invalid: <FM {...msg.signUpEmailInvalid} />,
+            invalid: 'Enter a valid email address',
           }}
         />
         <Field
@@ -124,10 +114,10 @@ const PasswordSignUp = composeComponent(
           type="password"
           validate={[validators.required]}
           disabled={!!mutex.current || submitting}
-          floatingLabelText={<FM {...msg.signUpPassLabel} />}
+          floatingLabelText="Password"
           errors={{
-            required: <FM {...msg.signUpPassRequired} />,
-            invalid: <FM {...msg.signUpPassInvalid} />,
+            required: 'Enter a password',
+            invalid: 'Password must be at least 8 characters long',
           }}
         />
         <Field
@@ -139,37 +129,30 @@ const PasswordSignUp = composeComponent(
             validate('check', validators.matchesField('password')),
           ]}
           disabled={!!mutex.current || submitting}
-          floatingLabelText={<FM {...msg.signUpPassCheckLabel} />}
+          floatingLabelText="Verify password"
           errors={{
-            required: <FM {...msg.signUpPassCheckRequired} />,
-            check: <FM {...msg.signUpPassCheckMatch} />,
+            required: 'Enter the password again',
+            check: 'Passwords must match',
           }}
         />
         <Layout.Error
           {...{ submitFailed, error }}
           errors={{
-            unexpected: <FM {...msg.signUpErrorUnexpected} />,
-            smtp: <FM {...msg.signUpErrorSMTP} />,
+            unexpected: 'Something went wrong. Try again later.',
+            smtp: 'SMTP error: contact your administrator',
           }}
         />
         <Layout.Actions>
           <Layout.Submit
-            label={<FM {...msg.signUpSubmit} />}
+            label="Sign up"
             disabled={!!mutex.current || submitting || (submitFailed && invalid)}
             busy={submitting}
           />
         </Layout.Actions>
         <Layout.Hint>
-          <FM
-            {...msg.signUpHintSignIn}
-            values={{
-              link: (
-                <Link to={urls.signIn(next)}>
-                  <FM {...msg.signUpHintSignInLink} />
-                </Link>
-              ),
-            }}
-          />
+          <>
+            Already have an account? <Link to={urls.signIn(next)}>Sign in</Link>
+          </>
         </Layout.Hint>
       </form>
     )
@@ -199,7 +182,7 @@ export default ({ location: { search } }) => {
     return (
       <Container>
         <Layout.Message>
-          <FM {...msg.signUpSuccess} />
+          You have signed up for Quilt. Check your email for further instructions.
         </Layout.Message>
       </Container>
     )

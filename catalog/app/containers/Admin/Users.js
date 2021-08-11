@@ -2,7 +2,6 @@ import cx from 'classnames'
 import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedRelative } from 'react-intl'
 import * as RC from 'recompose'
 import * as RF from 'redux-form/es/immutable'
 import * as urql from 'urql'
@@ -26,6 +25,7 @@ import * as Notifications from 'containers/Notifications'
 import * as APIConnector from 'utils/APIConnector'
 import * as Dialogs from 'utils/Dialogs'
 import * as Cache from 'utils/ResourceCache'
+import * as Format from 'utils/format'
 import * as RT from 'utils/reactTools'
 import * as validators from 'utils/validators'
 
@@ -629,13 +629,21 @@ export default RT.composeComponent(
           id: 'dateJoined',
           label: 'Date joined',
           getValue: R.prop('dateJoined'),
-          getDisplay: (v) => <FormattedRelative value={v} />,
+          getDisplay: (v) => (
+            <span title={v.toString()}>
+              <Format.Relative value={v} />
+            </span>
+          ),
         },
         {
           id: 'lastLogin',
           label: 'Last login',
           getValue: R.prop('lastLogin'),
-          getDisplay: (v) => <FormattedRelative value={v} />,
+          getDisplay: (v) => (
+            <span title={v.toString()}>
+              <Format.Relative value={v} />
+            </span>
+          ),
         },
         {
           id: 'isAdmin',

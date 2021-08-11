@@ -18,7 +18,6 @@ import * as Intercom from 'components/Intercom'
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import App from 'containers/App'
-import LanguageProvider from 'containers/LanguageProvider'
 import * as Auth from 'containers/Auth'
 import * as Notifications from 'containers/Notifications'
 import * as routes from 'constants/routes'
@@ -43,9 +42,6 @@ import * as Tracking from 'utils/tracking'
 /* eslint-disable import/no-unresolved, import/extensions */
 import '!file-loader?name=[name].[ext]!./favicon.ico'
 import '!file-loader?name=[name].[ext]!./quilt-og.png'
-/* eslint-enable import/no-unresolved, import/extensions */
-// Import i18n messages
-import { translationMessages, MessagesByLocale } from './i18n'
 // Import CSS reset and Global Styles
 import WithGlobalStyles from './global-styles'
 
@@ -129,7 +125,7 @@ const sentryUserSelector = (state: $TSFixMe) => {
   return u ? { username: u.current_user, email: u.email } : {}
 }
 
-const render = (messages: MessagesByLocale) => {
+const render = () => {
   ReactDOM.render(
     nest(
       [M.MuiThemeProvider as React.ComponentType, { theme: style.appTheme }],
@@ -138,7 +134,6 @@ const render = (messages: MessagesByLocale) => {
       // @ts-expect-error
       Sentry.Provider,
       [Store.Provider, { history }],
-      [LanguageProvider, { messages }],
       [NamedRoutes.Provider, { routes }],
       [RouterProvider, { history }],
       Cache.Provider,
@@ -194,4 +189,4 @@ if (module.hot) {
 }
 */
 
-render(translationMessages)
+render()

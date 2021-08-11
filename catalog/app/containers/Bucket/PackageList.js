@@ -1,7 +1,6 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedRelative, FormattedPlural } from 'react-intl'
 import { useHistory, Link, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
@@ -20,6 +19,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as SVG from 'utils/SVG'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import mkStorage from 'utils/storage'
 import { readableQuantity } from 'utils/string'
@@ -191,13 +191,13 @@ function Package({ name, modified, revisions, bucket, views }) {
           {xs ? (
             'Rev.'
           ) : (
-            <FormattedPlural one="Revision" other="Revisions" value={revisions} />
+            <Format.Plural value={revisions} one="Revision" other="Revisions" />
           )}
         </span>
         <M.Box mr={2} component="span" />
-        <span className={classes.updated}>
+        <span className={classes.updated} title={modified ? modified.toString() : null}>
           {xs ? 'Upd. ' : 'Updated '}
-          {modified ? <FormattedRelative value={modified} /> : '[unknown: see console]'}
+          {modified ? <Format.Relative value={modified} /> : '[unknown: see console]'}
         </span>
       </M.Box>
       {!!views && <Counts {...views} />}
