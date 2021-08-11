@@ -52,8 +52,14 @@ describe('utils/format', () => {
   })
 
   describe('relativify', () => {
-    jest.useFakeTimers('modern')
-    jest.setSystemTime(new Date(2020, 0, 30, 0, 0, 0, 0))
+    beforeEach(() => {
+      jest.useFakeTimers('modern')
+      jest.setSystemTime(new Date(2020, 0, 30, 0, 0, 0, 0))
+    })
+
+    afterEach(() => {
+      jest.useRealTimers()
+    })
 
     it('format seconds', () => {
       expect(Format.relativify(new Date(2020, 0, 29, 23, 59, 58, 0))).toEqual(
@@ -104,6 +110,29 @@ describe('utils/format', () => {
       expect(Format.relativify(new Date(2009, 5, 0, 0, 0, 0, 0))).toEqual('11 years ago')
       expect(Format.relativify(new Date(2009, 10, 0, 0, 0, 0, 0))).toEqual('10 years ago')
       expect(Format.relativify(new Date(2019, 0, 0, 0, 0, 0, 0))).toEqual('last year')
+    })
+  })
+
+  describe('relativify, pure', () => {
+    it('format with provided base date', () => {
+      expect(
+        Format.relativify(
+          new Date(2020, 0, 29, 23, 59, 58, 0),
+          new Date(2020, 0, 30, 0, 0, 0, 0),
+        ),
+      ).toEqual('2 seconds ago')
+      expect(
+        Format.relativify(
+          new Date(2020, 0, 29, 23, 59, 58, 0),
+          new Date(2020, 3, 30, 0, 0, 0, 0),
+        ),
+      ).toEqual('3 months ago')
+      expect(
+        Format.relativify(
+          new Date(2020, 0, 29, 23, 59, 58, 0),
+          new Date(2021, 0, 30, 0, 0, 0, 0),
+        ),
+      ).toEqual('last year')
     })
   })
 })

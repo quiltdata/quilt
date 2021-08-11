@@ -8,8 +8,8 @@ const YEAR = DAY * 365
 
 const intl = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
 
-export function relativify(date: Date) {
-  const delta = date.valueOf() - Date.now()
+export function relativify(date: Date, baseDate?: Date) {
+  const delta = date.valueOf() - (baseDate?.valueOf() || Date.now())
 
   const years = delta / YEAR
   if (Math.abs(years) >= 1) return intl.format(Math.round(years), 'year')
@@ -34,15 +34,14 @@ interface RelativeProps {
 }
 
 export function Relative({ value }: RelativeProps) {
-  const [t, setT] = React.useState(Date.now())
+  const [t, setT] = React.useState(new Date())
 
   React.useEffect(() => {
-    const timerId = window.setInterval(() => setT(Date.now()), 1000)
+    const timerId = window.setInterval(() => setT(new Date()), 1000)
     return () => clearInterval(timerId)
   }, [value])
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return React.useMemo(() => relativify(value), [value, t])
+  return React.useMemo(() => relativify(value, t), [value, t])
 }
 
 interface Rules {
