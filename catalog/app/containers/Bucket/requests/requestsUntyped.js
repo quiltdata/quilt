@@ -1029,6 +1029,7 @@ export const getPackageRevisions = withErrorHandling(
   ({ req, bucket, name, page = 1, perPage = 10 }) =>
     req(
       `/search${mkSearch({
+        nonce: Math.random(),
         index: `${bucket}_packages`,
         action: 'packages',
         size: 0,
