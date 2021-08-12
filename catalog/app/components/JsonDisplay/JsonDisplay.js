@@ -257,10 +257,12 @@ export default function JsonDisplay({
 
   return (
     <M.Box className={cx(className, classes.root)} {...props}>
-      <JsonDisplayInner
-        {...{ name, value, topLevel, defaultExpanded, classes }}
-        showKeysWhenCollapsed={computedKeys}
-      />
+      <React.Suspense fallback={<WaitingJsonRender />}>
+        <JsonDisplayInner
+          {...{ name, value, topLevel, defaultExpanded, classes }}
+          showKeysWhenCollapsed={computedKeys}
+        />
+      </React.Suspense>
     </M.Box>
   )
 }
