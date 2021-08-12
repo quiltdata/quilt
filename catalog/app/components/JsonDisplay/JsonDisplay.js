@@ -46,6 +46,7 @@ const useWaitingJsonRenderStyles = M.makeStyles((t) => ({
     fontSize: t.typography.body2.fontSize,
   },
 }))
+
 const WaitingJsonRender = () => {
   const classes = useWaitingJsonRenderStyles()
   return (
