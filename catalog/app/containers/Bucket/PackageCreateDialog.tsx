@@ -1,5 +1,3 @@
-// import cx from 'classnames'
-import * as FF from 'final-form'
 import * as R from 'ramda'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
@@ -8,7 +6,6 @@ import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import * as authSelectors from 'containers/Auth/selectors'
-import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import { useData } from 'utils/Data'
@@ -18,8 +15,6 @@ import type * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
 import * as requests from './requests'
-
-import * as PUD from './PackageUpdateDialog'
 
 const useDialogSuccessStyles = M.makeStyles({
   content: {
@@ -64,69 +59,6 @@ function DialogSuccess({ bucket, name, hash, close }: DialogSuccessProps) {
   )
 }
 
-interface PackageCreateDialogProps {
-  bucket: string
-  close: () => void
-  refresh: () => void
-  responseError: Error
-  schema: $TSFixMe
-  schemaLoading: boolean
-  selectedWorkflow: workflows.Workflow
-  setSubmitting: (submitting: boolean) => void
-  setSuccess: (success: { name: string; hash: string }) => void
-  setWorkflow: (workflow: workflows.Workflow) => void
-  sourceBuckets: BucketPreferences.SourceBuckets
-  validate: FF.FieldValidator<any>
-  workflowsConfig: workflows.WorkflowsConfig
-}
-
-function PackageCreateDialog({
-  bucket,
-  close,
-  refresh,
-  responseError,
-  schema,
-  schemaLoading,
-  selectedWorkflow,
-  setSubmitting,
-  setSuccess,
-  setWorkflow,
-  sourceBuckets,
-  validate,
-  workflowsConfig,
-}: PackageCreateDialogProps) {
-  const username = redux.useSelector(authSelectors.username)
-  const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
-  // TODO: customize ui:
-  // submit action: Create
-  // dialog header: Create package
-  // files:
-  //   dont treat added files specially
-  //   undo changes -> clear files
-  return (
-    <PUD.DialogForm
-      {...{
-        bucket,
-        close,
-        initial: {
-          name: usernamePrefix,
-        },
-        refresh,
-        responseError,
-        schema,
-        schemaLoading,
-        selectedWorkflow,
-        setSubmitting,
-        setSuccess,
-        setWorkflow,
-        sourceBuckets,
-        validate,
-        workflowsConfig,
-      }}
-    />
-  )
-}
-
 interface PackageCreateDialogWrapperProps {
   bucket: string
   open: boolean
@@ -158,6 +90,15 @@ export default function PackageCreateDialogWrapper({
 
   Intercom.usePauseVisibilityWhen(open)
 
+  const username = redux.useSelector(authSelectors.username)
+  const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
+  // TODO: customize ui:
+  // submit action: Create
+  // dialog header: Create package
+  // files:
+  //   dont visually treat added files
+  //   undo changes -> clear files
+
   return (
     <M.Dialog
       fullWidth
@@ -178,32 +119,32 @@ export default function PackageCreateDialogWrapper({
             />
           ) : (
             <PD.SchemaFetcher workflow={workflow} workflowsConfig={workflowsConfig}>
-              {AsyncResult.case({
-                Ok: (schemaProps: $TSFixMe) =>
-                  preferences ? (
-                    <PackageCreateDialog
-                      {...schemaProps}
-                      {...{
-                        bucket,
-                        close,
-                        setSubmitting,
-                        setSuccess,
-                        setWorkflow,
-                        workflowsConfig,
-                        sourceBuckets: preferences.ui.sourceBuckets,
-
-                        refresh,
-                      }}
-                    />
-                  ) : (
-                    <PD.DialogLoading
-                      skeletonElement={<PD.FormSkeleton />}
-                      title="Create package"
-                      onCancel={close}
-                    />
-                  ),
-                _: R.identity,
-              })}
+              {(schemaProps) =>
+                preferences ? (
+                  <PD.PackageCreationForm
+                    {...schemaProps}
+                    {...{
+                      bucket,
+                      close,
+                      initial: {
+                        name: usernamePrefix,
+                      },
+                      refresh,
+                      setSubmitting,
+                      setSuccess,
+                      setWorkflow,
+                      sourceBuckets: preferences.ui.sourceBuckets,
+                      workflowsConfig,
+                    }}
+                  />
+                ) : (
+                  <PD.DialogLoading
+                    skeletonElement={<PD.FormSkeleton />}
+                    title="Create package"
+                    onCancel={close}
+                  />
+                )
+              }
             </PD.SchemaFetcher>
           ),
         Err: (error: Error) => (

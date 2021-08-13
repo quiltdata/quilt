@@ -21,7 +21,7 @@ export default function DialogLoading({
   const classes = useStyles()
 
   return (
-    <div>
+    <>
       <M.DialogTitle>{title}</M.DialogTitle>
 
       <M.DialogContent className={classes.content}>{skeletonElement}</M.DialogContent>
@@ -32,6 +32,6 @@ export default function DialogLoading({
           Push
         </M.Button>
       </M.DialogActions>
-    </div>
+    </>
   )
 }

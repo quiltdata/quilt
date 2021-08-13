@@ -14,7 +14,6 @@ import { parseJSON, stringifyJSON } from 'components/JsonEditor/utils'
 import * as Notifications from 'containers/Notifications'
 import { useData } from 'utils/Data'
 import Delay from 'utils/Delay'
-import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Sentry from 'utils/Sentry'
@@ -187,8 +186,6 @@ export function mkMetaValidator(schema?: JsonSchema) {
   //       Maybe we should split validators to files at first
   const schemaValidator = makeSchemaValidator(schema)
   return function validateMeta(value: object | null) {
-    const noError = undefined
-
     const jsonObjectErr = value && !R.is(Object, value)
     if (jsonObjectErr) {
       return new Error('Metadata must be a valid JSON object')
@@ -196,13 +193,15 @@ export function mkMetaValidator(schema?: JsonSchema) {
 
     if (schema) {
       const errors = schemaValidator(value || {})
-      if (!errors.length) return noError
-      return errors
+      if (errors.length) return errors
     }
 
-    return noError
+    return undefined
   }
 }
+
+// validate: FF.FieldValidator<$TSFixMe>
+export type MetaValidator = ReturnType<typeof mkMetaValidator>
 
 interface FieldProps {
   error?: string
@@ -459,7 +458,7 @@ interface MetaInputProps {
   schemaError: React.ReactNode
   input: RF.FieldInputProps<{}>
   meta: RF.FieldMetaState<{}>
-  schema: $TSFixMe
+  schema?: JsonSchema
 }
 
 type Mode = 'kv' | 'json'
@@ -639,7 +638,36 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
   },
 )
 
-type Result = $TSFixMe
+export interface SchemaFetcherRenderPropsLoading {
+  responseError: undefined
+  schema: undefined
+  schemaLoading: true
+  selectedWorkflow: workflows.Workflow | undefined
+  validate: MetaValidator
+}
+
+export interface SchemaFetcherRenderPropsSuccess {
+  responseError: undefined
+  schema?: JsonSchema
+  schemaLoading: false
+  selectedWorkflow: workflows.Workflow | undefined
+  validate: MetaValidator
+}
+
+export interface SchemaFetcherRenderPropsError {
+  responseError: Error
+  schema: undefined
+  schemaLoading: false
+  selectedWorkflow: workflows.Workflow | undefined
+  validate: MetaValidator
+}
+
+export type SchemaFetcherRenderProps =
+  | SchemaFetcherRenderPropsLoading
+  | SchemaFetcherRenderPropsSuccess
+  | SchemaFetcherRenderPropsError
+
+const noopValidator: MetaValidator = () => undefined
 
 interface SchemaFetcherProps {
   manifest?: {
@@ -649,7 +677,7 @@ interface SchemaFetcherProps {
   }
   workflow?: workflows.Workflow
   workflowsConfig: workflows.WorkflowsConfig
-  children: (result: Result) => React.ReactElement
+  children: (props: SchemaFetcherRenderProps) => React.ReactElement
 }
 
 export function SchemaFetcher({
@@ -683,31 +711,31 @@ export function SchemaFetcher({
   const schemaUrl = R.pathOr('', ['schema', 'url'], selectedWorkflow)
   const data = useData(requests.metadataSchema, { s3, schemaUrl })
 
-  const defaultProps = React.useMemo(
-    () => ({
-      responseError: null,
-      schema: null,
-      schemaLoading: false,
-      selectedWorkflow,
-      validate: () => undefined,
-    }),
-    [selectedWorkflow],
-  )
-
-  const res = React.useMemo(
+  const res: SchemaFetcherRenderProps = React.useMemo(
     () =>
       data.case({
-        Ok: (schema: {}) =>
-          AsyncResult.Ok({ ...defaultProps, schema, validate: mkMetaValidator(schema) }),
+        Ok: (schema?: JsonSchema) =>
+          ({
+            schema,
+            schemaLoading: false,
+            selectedWorkflow,
+            validate: mkMetaValidator(schema),
+          } as SchemaFetcherRenderPropsSuccess),
         Err: (responseError: Error) =>
-          AsyncResult.Ok({
-            ...defaultProps,
+          ({
             responseError,
+            schemaLoading: false,
+            selectedWorkflow,
             validate: mkMetaValidator(),
-          }),
-        _: () => AsyncResult.Ok({ ...defaultProps, schemaLoading: true }),
+          } as SchemaFetcherRenderPropsError),
+        _: () =>
+          ({
+            schemaLoading: true,
+            selectedWorkflow,
+            validate: noopValidator,
+          } as SchemaFetcherRenderPropsLoading),
       }),
-    [defaultProps, data],
+    [data, selectedWorkflow],
   )
   return children(res)
 }

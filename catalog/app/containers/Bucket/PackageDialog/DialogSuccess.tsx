@@ -33,7 +33,7 @@ export default function DialogSuccess({
   const packageUrl = urls.bucketPackageTree(bucket, name, hash)
 
   return (
-    <div>
+    <>
       <M.DialogTitle>Push complete</M.DialogTitle>
       <M.DialogContent className={classes.content}>
         <M.Typography>
@@ -55,6 +55,6 @@ export default function DialogSuccess({
           Browse package
         </M.Button>
       </M.DialogActions>
-    </div>
+    </>
   )
 }
