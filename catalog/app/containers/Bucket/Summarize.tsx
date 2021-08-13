@@ -15,7 +15,7 @@ import { useData } from 'utils/Data'
 import * as LogicalKeyResolver from 'utils/LogicalKeyResolver'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
-import { getBreadCrumbs, getPrefix, withoutPrefix } from 'utils/s3paths'
+import { getBasename, getBreadCrumbs } from 'utils/s3paths'
 
 import * as requests from './requests'
 
@@ -273,7 +273,7 @@ interface TitleCustomProps {
 function TitleCustom({ title, mkUrl, handle }: TitleCustomProps) {
   const { urls } = NamedRoutes.use()
 
-  const filepath = withoutPrefix(getPrefix(handle.key), handle.key)
+  const filepath = getBasename(handle.logicalKey || handle.key)
   const route = React.useMemo(
     () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
     [handle, mkUrl, urls],
@@ -294,8 +294,7 @@ interface TitleFilenameProps {
 function TitleFilename({ handle, mkUrl }: TitleFilenameProps) {
   const { urls } = NamedRoutes.use()
 
-  // TODO: (@nl_0) make a reusable function to compute relative s3 paths or smth
-  const title = withoutPrefix(getPrefix(handle.key), handle.logicalKey || handle.key)
+  const title = getBasename(handle.logicalKey || handle.key)
   const route = React.useMemo(
     () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
     [handle, mkUrl, urls],
