@@ -44,6 +44,7 @@ const useWaitingJsonRenderStyles = M.makeStyles((t) => ({
     display: 'flex',
     fontFamily: t.typography.monospace.fontFamily,
     fontSize: t.typography.body2.fontSize,
+    marginLeft: t.spacing(2),
   },
 }))
 
@@ -172,7 +173,14 @@ function CompoundEntry({
         )}
       </div>
       {expanded && (
-        <React.Suspense fallback={<WaitingJsonRender />}>
+        <React.Suspense
+          fallback={
+            <>
+              <WaitingJsonRender />
+              {braces[1]}
+            </>
+          }
+        >
           <div className={cx(classes.compoundInner)}>
             {entries.map(([k, v]) => (
               <JsonDisplayInner
@@ -209,7 +217,7 @@ const isPrimitive = R.anyPass([
 function useComponentOnNextTick(Component, props, optTimeout) {
   return useMemoEq([Component, props], () =>
     React.lazy(async () => {
-      await wait(optTimeout || 300)
+      await wait(optTimeout || 0)
       return {
         default: () => <Component {...props} />,
       }
