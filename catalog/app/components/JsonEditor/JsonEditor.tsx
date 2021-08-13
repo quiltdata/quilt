@@ -133,7 +133,7 @@ interface JsonEditorWrapperProps {
   className?: string
   disabled?: boolean
   onChange: (value: JsonValue) => void
-  schema: JsonSchema
+  schema?: JsonSchema
   value: JsonValue
 }
 
