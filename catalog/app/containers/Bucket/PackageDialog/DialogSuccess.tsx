@@ -12,8 +12,20 @@ const useStyles = M.makeStyles({
   },
 })
 
+interface DialogSuccessProps {
+  bucket: string
+  hash: string
+  name: string
+  onClose: () => void
+}
+
 // TODO: use the same API as for DialogError and DialogLoading
-export default function DialogSuccess({ bucket, hash, name, onClose }) {
+export default function DialogSuccess({
+  bucket,
+  hash,
+  name,
+  onClose,
+}: DialogSuccessProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
 

@@ -7,7 +7,17 @@ const useStyles = M.makeStyles({
   },
 })
 
-export default function DialogLoading({ skeletonElement, title, onCancel }) {
+interface DialogLoadingProps {
+  skeletonElement: React.ReactNode
+  title: React.ReactNode
+  onCancel: () => void
+}
+
+export default function DialogLoading({
+  skeletonElement,
+  title,
+  onCancel,
+}: DialogLoadingProps) {
   const classes = useStyles()
 
   return (
