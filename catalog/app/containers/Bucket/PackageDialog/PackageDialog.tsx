@@ -1,7 +1,5 @@
-import type { S3 } from 'aws-sdk'
 import cx from 'classnames'
 import { FORM_ERROR } from 'final-form'
-import * as FP from 'fp-ts'
 import mime from 'mime-types'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -488,7 +486,7 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
       [disabled, onChange],
     )
 
-    const handleModeChange = (e: unknown, m: Mode) => {
+    const handleModeChange = (_e: unknown, m: Mode) => {
       if (!m) return
       setMode(m)
     }
@@ -772,39 +770,3 @@ export const PackageNameWarning = ({ exists }: PackageNameWarningProps) => {
     </>
   )
 }
-
-export interface UploadResult extends S3.ManagedUpload.SendData {
-  VersionId: string
-}
-
-export interface TotalProgress {
-  total: number
-  loaded: number
-  percent: number
-}
-
-export interface Uploads {
-  [path: string]: {
-    file: File
-    upload: S3.ManagedUpload
-    promise: Promise<UploadResult>
-    progress?: { total: number; loaded: number }
-  }
-}
-
-export const computeTotalProgress = (uploads: Uploads): TotalProgress =>
-  FP.function.pipe(
-    uploads,
-    R.values,
-    R.reduce(
-      (acc, { progress: p }) => ({
-        total: acc.total + ((p && p.total) || 0),
-        loaded: acc.loaded + ((p && p.loaded) || 0),
-      }),
-      { total: 0, loaded: 0 },
-    ),
-    (p) => ({
-      ...p,
-      percent: p.total ? Math.floor((p.loaded / p.total) * 100) : 100,
-    }),
-  )

@@ -83,14 +83,14 @@ export const FilesAction = tagged.create(
 export type FilesAction = tagged.InstanceOf<typeof FilesAction>
 
 // XXX: we probably should move this out to a more appropriate place
-export interface ManifestEntry {
+export interface ExistingFile {
   physicalKey: string
   hash: string
   meta: object
   size: number
 }
 
-export interface PartialManifestEntry {
+export interface PartialExistingFile {
   physicalKey: string
   hash?: string
   meta?: object
@@ -102,7 +102,7 @@ export type LocalFile = FileWithPath & FileWithHash
 export interface FilesState {
   added: Record<string, LocalFile | S3FilePicker.S3File>
   deleted: Record<string, true>
-  existing: Record<string, ManifestEntry>
+  existing: Record<string, ExistingFile>
   // XXX: workaround used to re-trigger validation and dependent computations
   // required due to direct mutations of File objects
   counter?: number

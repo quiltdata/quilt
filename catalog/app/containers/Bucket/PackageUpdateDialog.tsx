@@ -1,8 +1,5 @@
-import type { S3 } from 'aws-sdk'
 import * as FF from 'final-form'
 import * as FP from 'fp-ts'
-import invariant from 'invariant'
-import pLimit from 'p-limit'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
@@ -19,6 +16,7 @@ import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
 import * as validators from 'utils/validators'
+import wait from 'utils/wait'
 import type * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
@@ -26,20 +24,12 @@ import { isS3File, S3File } from './PackageDialog/S3FilePicker'
 import * as requests from './requests'
 
 interface Manifest {
-  entries: Record<string, PD.ManifestEntry>
+  entries: Record<string, PD.ExistingFile>
   meta: {}
   workflow?: {
     id?: string
   }
 }
-
-const dissocBy = (fn: (key: string) => boolean) =>
-  R.pipe(
-    // @ts-expect-error
-    R.toPairs,
-    R.filter(([k]) => !fn(k)),
-    R.fromPairs,
-  ) as { <T>(obj: Record<string, T>): Record<string, T> }
 
 // TODO: use tree as the main data model / source of truth?
 
@@ -68,11 +58,16 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+const EMPTY_MANIFEST_ENTRIES: Record<string, PD.ExistingFile> = {}
+
 interface DialogFormProps {
   bucket: string
   close: () => void
-  manifest: Manifest
-  name: string
+  initial?: {
+    manifest?: Manifest
+    name?: string
+  }
+  refresh?: () => void
   responseError: Error
   schema: $TSFixMe
   schemaLoading: boolean
@@ -80,16 +75,16 @@ interface DialogFormProps {
   setSubmitting: (submitting: boolean) => void
   setSuccess: (success: { name: string; hash: string }) => void
   setWorkflow: (workflow: workflows.Workflow) => void
+  sourceBuckets: BucketPreferences.SourceBuckets
   validate: FF.FieldValidator<any>
   workflowsConfig: workflows.WorkflowsConfig
-  sourceBuckets: BucketPreferences.SourceBuckets
 }
 
-function DialogForm({
+export function DialogForm({
   bucket,
   close,
-  manifest,
-  name: initialName,
+  initial,
+  refresh,
   responseError,
   schema,
   schemaLoading,
@@ -97,12 +92,10 @@ function DialogForm({
   setSubmitting,
   setSuccess,
   setWorkflow,
+  sourceBuckets,
   validate: validateMetaInput,
   workflowsConfig,
-  sourceBuckets,
 }: DialogFormProps) {
-  const s3 = AWS.S3.use()
-  const [uploads, setUploads] = React.useState<PD.Uploads>({})
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
@@ -113,22 +106,24 @@ function DialogForm({
 
   const [selectedBucket, selectBucket] = React.useState(sourceBuckets.getDefault)
 
+  const existingEntries = initial?.manifest?.entries ?? EMPTY_MANIFEST_ENTRIES
+
   const initialFiles: PD.FilesState = React.useMemo(
-    () => ({ existing: manifest.entries, added: {}, deleted: {} }),
-    [manifest.entries],
+    () => ({ existing: existingEntries, added: {}, deleted: {} }),
+    [existingEntries],
   )
 
-  const totalProgress = React.useMemo(() => PD.computeTotalProgress(uploads), [uploads])
+  const uploads = PD.useUploads()
 
   const onFilesAction = React.useMemo(
     () =>
       PD.FilesAction.match({
         _: () => {},
-        Revert: (path) => setUploads(R.dissoc(path)),
-        RevertDir: (prefix) => setUploads(dissocBy(R.startsWith(prefix))),
-        Reset: () => setUploads({}),
+        Revert: uploads.remove,
+        RevertDir: uploads.removeByPrefix,
+        Reset: uploads.reset,
       }),
-    [setUploads],
+    [uploads],
   )
 
   const createPackage = requests.useCreatePackage()
@@ -162,77 +157,21 @@ function DialogForm({
       return !e || e.hash !== file.hash.value
     })
 
-    const limit = pLimit(2)
-    let rejected = false
-    const uploadStates = toUpload.map(({ path, file }) => {
-      // reuse state if file hasnt changed
-      const entry = uploads[path]
-      if (entry && entry.file === file) return { ...entry, path }
-
-      const upload: S3.ManagedUpload = s3.upload(
-        {
-          Bucket: bucket,
-          Key: `${name}/${path}`,
-          Body: file,
-        },
-        {
-          queueSize: 2,
-        },
-      )
-      upload.on('httpUploadProgress', ({ loaded }) => {
-        if (rejected) return
-        setUploads(R.assocPath([path, 'progress', 'loaded'], loaded))
-      })
-      const promise = limit(async () => {
-        if (rejected) {
-          setUploads(R.dissoc(path))
-          return
-        }
-        try {
-          // eslint-disable-next-line consistent-return
-          return await upload.promise()
-        } catch (e) {
-          rejected = true
-          setUploads(R.dissoc(path))
-          throw e
-        }
-      }) as Promise<PD.UploadResult>
-      return { path, file, upload, promise, progress: { total: file.size, loaded: 0 } }
-    })
-
-    FP.function.pipe(
-      uploadStates,
-      R.map(({ path, ...rest }) => ({ [path]: rest })),
-      R.mergeAll,
-      setUploads,
-    )
-
-    let uploaded
+    let uploadedEntries
     try {
-      uploaded = await Promise.all(uploadStates.map((x) => x.promise))
+      uploadedEntries = await uploads.upload({
+        files: toUpload,
+        bucket,
+        prefix: name,
+        getMeta: (path) => files.existing[path]?.meta,
+      })
     } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Error uploading files:')
+      // eslint-disable-next-line no-console
+      console.error(e)
       return { [FF.FORM_ERROR]: PD.ERROR_MESSAGES.UPLOAD }
     }
-
-    const uploadedEntries = FP.function.pipe(
-      FP.array.zipWith(toUpload, uploaded, (f, r) => {
-        invariant(f.file.hash.value, 'File must have a hash')
-        return [
-          f.path,
-          {
-            physicalKey: s3paths.handleToS3Url({
-              bucket,
-              key: r.Key,
-              version: r.VersionId,
-            }),
-            size: f.file.size,
-            hash: f.file.hash.value,
-            meta: files.existing[f.path].meta,
-          },
-        ] as R.KeyValuePair<string, PD.ManifestEntry>
-      }),
-      R.fromPairs,
-    )
 
     const s3Entries = FP.function.pipe(
       addedS3Entries,
@@ -240,7 +179,7 @@ function DialogForm({
         ({ path, file }) =>
           [path, { physicalKey: s3paths.handleToS3Url(file) }] as R.KeyValuePair<
             string,
-            PD.PartialManifestEntry
+            PD.PartialExistingFile
           >,
       ),
       R.fromPairs,
@@ -252,7 +191,7 @@ function DialogForm({
       R.mergeLeft(uploadedEntries),
       R.mergeLeft(s3Entries),
       R.toPairs,
-      R.map(([path, data]: [string, PD.PartialManifestEntry]) => ({
+      R.map(([path, data]: [string, PD.PartialExistingFile]) => ({
         logical_key: path,
         physical_key: data.physicalKey,
         size: data.size,
@@ -276,6 +215,11 @@ function DialogForm({
         },
         schema,
       )
+      if (refresh) {
+        // wait for ES index to receive the new package data
+        await wait(PD.ES_LAG)
+        refresh()
+      }
       setSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -308,22 +252,30 @@ function DialogForm({
 
   const [editorElement, setEditorElement] = React.useState<HTMLDivElement | null>(null)
 
+  const resizeObserver = React.useMemo(
+    () =>
+      new window.ResizeObserver((entries) => {
+        const { height } = entries[0]!.contentRect
+        setMetaHeight(height)
+      }),
+    [setMetaHeight],
+  )
   const onFormChange = React.useCallback(
-    async ({ values }) => {
-      if (editorElement && document.body.contains(editorElement)) {
-        setMetaHeight(editorElement.clientHeight)
-      }
-
-      handleNameChange(values.name)
+    async ({ dirtyFields, values }) => {
+      if (dirtyFields?.name) handleNameChange(values.name)
     },
-    [editorElement, handleNameChange, setMetaHeight],
+    [handleNameChange],
   )
 
   React.useEffect(() => {
-    if (editorElement && document.body.contains(editorElement)) {
-      setMetaHeight(editorElement.clientHeight)
+    if (editorElement) resizeObserver.observe(editorElement)
+    return () => {
+      if (editorElement) resizeObserver.unobserve(editorElement)
     }
-  }, [editorElement, setMetaHeight])
+  }, [editorElement, resizeObserver])
+
+  // const username = redux.useSelector(authSelectors.username)
+  // const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
 
   return (
     <RF.Form
@@ -338,19 +290,22 @@ function DialogForm({
       validate={PD.useCryptoApiValidation()}
     >
       {({
-        handleSubmit,
-        submitting,
-        submitFailed,
         error,
-        submitError,
         hasValidationErrors,
+        submitError,
+        submitFailed,
+        submitting,
+        handleSubmit,
       }) => (
         <>
           <M.DialogTitle>Push package revision</M.DialogTitle>
+          {/* TODO: make strings customizable or move differeing parts out to seperate components
+          <M.DialogTitle>Create package</M.DialogTitle>
+          */}
           <M.DialogContent classes={dialogContentClasses}>
             <form className={classes.form} onSubmit={handleSubmit}>
               <RF.FormSpy
-                subscription={{ modified: true, values: true }}
+                subscription={{ dirtyFields: true, values: true }}
                 onChange={onFormChange}
               />
 
@@ -383,6 +338,7 @@ function DialogForm({
 
                   <RF.Field
                     component={PD.PackageNameInput}
+                    initialValue={initial?.name}
                     name="name"
                     validate={validators.composeAsync(
                       validators.required,
@@ -394,7 +350,7 @@ function DialogForm({
                       invalid: 'Invalid package name',
                     }}
                     helperText={nameWarning}
-                    initialValue={initialName}
+                    validating={nameValidator.processing}
                   />
 
                   <RF.Field
@@ -423,7 +379,7 @@ function DialogForm({
                       validate={validateMetaInput}
                       validateFields={['meta']}
                       isEqual={R.equals}
-                      initialValue={manifest.meta || PD.EMPTY_META_VALUE}
+                      initialValue={initial?.manifest?.meta || PD.EMPTY_META_VALUE}
                       ref={setEditorElement}
                     />
                   )}
@@ -431,6 +387,7 @@ function DialogForm({
 
                 <PD.RightColumn>
                   <RF.Field
+                    // TODO: lazy hashing in package creation mode
                     className={classes.files}
                     // @ts-expect-error
                     component={PD.FilesInput}
@@ -448,7 +405,7 @@ function DialogForm({
                       [PD.HASHING_ERROR]:
                         'Error hashing files, probably some of them are too large. Please try again or contact support.',
                     }}
-                    totalProgress={totalProgress}
+                    totalProgress={uploads.progress}
                     title="Files"
                     onFilesAction={onFilesAction}
                     isEqual={R.equals}
@@ -465,8 +422,8 @@ function DialogForm({
           </M.DialogContent>
           <M.DialogActions>
             {submitting && (
-              <PD.SubmitSpinner value={totalProgress.percent}>
-                {totalProgress.percent < 100 ? 'Uploading files' : 'Writing manifest'}
+              <PD.SubmitSpinner value={uploads.progress.percent}>
+                {uploads.progress.percent < 100 ? 'Uploading files' : 'Writing manifest'}
               </PD.SubmitSpinner>
             )}
 
@@ -490,6 +447,7 @@ function DialogForm({
               disabled={submitting || (submitFailed && hasValidationErrors)}
             >
               Push
+              {/* TODO: Create */}
             </M.Button>
           </M.DialogActions>
         </>
@@ -544,14 +502,14 @@ function DialogError({ error, close }: DialogErrorProps) {
 
 interface DialogSuccessProps {
   bucket: string
-  name: string
-  hash: string
   close: () => void
+  hash: string
+  name: string
 }
 
 function DialogSuccess({ bucket, name, hash, close }: DialogSuccessProps) {
-  const classes = useDialogStyles()
   const { urls } = NamedRoutes.use()
+  const classes = useDialogStyles()
   return (
     <>
       <M.DialogTitle>Push complete</M.DialogTitle>
@@ -736,8 +694,7 @@ export function usePackageUpdateDialog({
                         setWorkflow,
                         workflowsConfig,
                         sourceBuckets,
-                        manifest,
-                        name,
+                        initial: { manifest, name },
                       }}
                     />
                   ),
