@@ -196,10 +196,11 @@ export function FilePreview({
     }))
     const file = {
       to: urls.bucketFile(handle.bucket, handle.key),
-      children: R.last(all)?.label,
+      children: handle.logicalKey || R.last(all)?.label,
     }
     return { dirs, file }
-  }, [handle.bucket, handle.key, urls])
+  }, [handle.bucket, handle.logicalKey, handle.key, urls])
+  // console.log({ file: crumbs.file })
 
   const heading =
     headingOverride != null ? (
@@ -295,7 +296,7 @@ function TitleFilename({ handle, mkUrl }: TitleFilenameProps) {
   const { urls } = NamedRoutes.use()
 
   // TODO: (@nl_0) make a reusable function to compute relative s3 paths or smth
-  const title = withoutPrefix(getPrefix(handle.key), handle.key)
+  const title = withoutPrefix(getPrefix(handle.key), handle.logicalkey)
   const route = React.useMemo(
     () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
     [handle, mkUrl, urls],
