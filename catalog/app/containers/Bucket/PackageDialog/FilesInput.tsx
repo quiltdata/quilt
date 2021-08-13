@@ -82,12 +82,19 @@ export const FilesAction = tagged.create(
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export type FilesAction = tagged.InstanceOf<typeof FilesAction>
 
-// XXX: this looks more like a manifest entry, so we probably should move this out to a more appropriate place
-export interface ExistingFile {
-  hash: string
-  meta: {}
+// XXX: we probably should move this out to a more appropriate place
+export interface ManifestEntry {
   physicalKey: string
+  hash: string
+  meta: object
   size: number
+}
+
+export interface PartialManifestEntry {
+  physicalKey: string
+  hash?: string
+  meta?: object
+  size?: number
 }
 
 export type LocalFile = FileWithPath & FileWithHash
@@ -95,7 +102,7 @@ export type LocalFile = FileWithPath & FileWithHash
 export interface FilesState {
   added: Record<string, LocalFile | S3FilePicker.S3File>
   deleted: Record<string, true>
-  existing: Record<string, ExistingFile>
+  existing: Record<string, ManifestEntry>
   // XXX: workaround used to re-trigger validation and dependent computations
   // required due to direct mutations of File objects
   counter?: number

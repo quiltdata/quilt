@@ -1,5 +1,6 @@
 import type { S3 } from 'aws-sdk'
 import * as FF from 'final-form'
+import * as FP from 'fp-ts'
 import invariant from 'invariant'
 import pLimit from 'p-limit'
 import * as R from 'ramda'
@@ -15,7 +16,6 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
-import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
 import * as validators from 'utils/validators'
@@ -26,15 +26,11 @@ import { isS3File, S3File } from './PackageDialog/S3FilePicker'
 import * as requests from './requests'
 
 interface Manifest {
-  entries: Record<string, PD.ExistingFile>
+  entries: Record<string, PD.ManifestEntry>
   meta: {}
   workflow?: {
     id?: string
   }
-}
-
-interface UploadResult extends S3.ManagedUpload.SendData {
-  VersionId: string
 }
 
 const dissocBy = (fn: (key: string) => boolean) =>
@@ -47,21 +43,6 @@ const dissocBy = (fn: (key: string) => boolean) =>
 
 // TODO: use tree as the main data model / source of truth?
 
-interface TotalProgress {
-  total: number
-  loaded: number
-  percent: number
-}
-
-interface Uploads {
-  [path: string]: {
-    file: File
-    upload: S3.ManagedUpload
-    promise: Promise<UploadResult>
-    progress?: { total: number; loaded: number }
-  }
-}
-
 interface LocalEntry {
   path: string
   file: PD.LocalFile
@@ -71,21 +52,6 @@ interface S3Entry {
   path: string
   file: S3File
 }
-
-const getTotalProgress = R.pipe(
-  R.values,
-  R.reduce(
-    (acc, { progress: p }: Uploads[string]) => ({
-      total: acc.total + ((p && p.total) || 0),
-      loaded: acc.loaded + ((p && p.loaded) || 0),
-    }),
-    { total: 0, loaded: 0 },
-  ),
-  (p) => ({
-    ...p,
-    percent: p.total ? Math.floor((p.loaded / p.total) * 100) : 100,
-  }),
-) as (uploads: Uploads) => TotalProgress
 
 const useStyles = M.makeStyles((t) => ({
   files: {
@@ -136,7 +102,7 @@ function DialogForm({
   sourceBuckets,
 }: DialogFormProps) {
   const s3 = AWS.S3.use()
-  const [uploads, setUploads] = React.useState<Uploads>({})
+  const [uploads, setUploads] = React.useState<PD.Uploads>({})
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
@@ -152,7 +118,7 @@ function DialogForm({
     [manifest.entries],
   )
 
-  const totalProgress = React.useMemo(() => getTotalProgress(uploads), [uploads])
+  const totalProgress = React.useMemo(() => PD.computeTotalProgress(uploads), [uploads])
 
   const onFilesAction = React.useMemo(
     () =>
@@ -181,8 +147,8 @@ function DialogForm({
     workflow: workflows.Workflow
     // eslint-disable-next-line consistent-return
   }) => {
-    const addedS3Entries = [] as S3Entry[]
-    const addedLocalEntries = [] as LocalEntry[]
+    const addedS3Entries: S3Entry[] = []
+    const addedLocalEntries: LocalEntry[] = []
     Object.entries(files.added).forEach(([path, file]) => {
       if (isS3File(file)) {
         addedS3Entries.push({ path, file })
@@ -230,11 +196,12 @@ function DialogForm({
           setUploads(R.dissoc(path))
           throw e
         }
-      })
+      }) as Promise<PD.UploadResult>
       return { path, file, upload, promise, progress: { total: file.size, loaded: 0 } }
     })
 
-    pipeThru(uploadStates)(
+    FP.function.pipe(
+      uploadStates,
       R.map(({ path, ...rest }) => ({ [path]: rest })),
       R.mergeAll,
       setUploads,
@@ -247,13 +214,8 @@ function DialogForm({
       return { [FF.FORM_ERROR]: PD.ERROR_MESSAGES.UPLOAD }
     }
 
-    type Zipped = [
-      string,
-      { physicalKey: string; size: number; hash: string; meta: unknown },
-    ]
-
-    const uploadedEntries = pipeThru(toUpload, uploaded)(
-      R.zipWith<LocalEntry, UploadResult, Zipped>((f, r) => {
+    const uploadedEntries = FP.function.pipe(
+      FP.array.zipWith(toUpload, uploaded, (f, r) => {
         invariant(f.file.hash.value, 'File must have a hash')
         return [
           f.path,
@@ -265,30 +227,32 @@ function DialogForm({
             }),
             size: f.file.size,
             hash: f.file.hash.value,
-            meta: R.prop('meta', files.existing[f.path]),
+            meta: files.existing[f.path].meta,
           },
-        ]
+        ] as R.KeyValuePair<string, PD.ManifestEntry>
       }),
       R.fromPairs,
-    ) as Record<
-      string,
-      { physicalKey: string; size: number; hash: string; meta: unknown }
-    >
+    )
 
-    const s3Entries = pipeThru(addedS3Entries)(
-      R.map(({ path, file }: S3Entry) => [
-        path,
-        { physicalKey: s3paths.handleToS3Url(file) },
-      ]),
+    const s3Entries = FP.function.pipe(
+      addedS3Entries,
+      R.map(
+        ({ path, file }) =>
+          [path, { physicalKey: s3paths.handleToS3Url(file) }] as R.KeyValuePair<
+            string,
+            PD.PartialManifestEntry
+          >,
+      ),
       R.fromPairs,
-    ) as Record<string, { physicalKey: string }>
+    )
 
-    const contents = pipeThru(files.existing)(
+    const contents = FP.function.pipe(
+      files.existing,
       R.omit(Object.keys(files.deleted)),
       R.mergeLeft(uploadedEntries),
       R.mergeLeft(s3Entries),
       R.toPairs,
-      R.map(([path, data]) => ({
+      R.map(([path, data]: [string, PD.PartialManifestEntry]) => ({
         logical_key: path,
         physical_key: data.physicalKey,
         size: data.size,
