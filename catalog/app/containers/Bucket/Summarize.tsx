@@ -264,6 +264,18 @@ export const FilePreviewSkel = () => (
   </Section>
 )
 
+function useFilename(handle: S3Handle): string {
+  return getBasename(handle.logicalKey || handle.key)
+}
+
+function useFileRoute(handle: S3Handle, mkUrl?: MakeURL): LocationDescriptor {
+  const { urls } = NamedRoutes.use()
+  return React.useMemo(
+    () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
+    [handle, mkUrl, urls],
+  )
+}
+
 interface TitleCustomProps {
   handle: S3Handle
   mkUrl?: MakeURL
@@ -271,16 +283,11 @@ interface TitleCustomProps {
 }
 
 function TitleCustom({ title, mkUrl, handle }: TitleCustomProps) {
-  const { urls } = NamedRoutes.use()
-
-  const filepath = getBasename(handle.logicalKey || handle.key)
-  const route = React.useMemo(
-    () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
-    [handle, mkUrl, urls],
-  )
+  const filename = useFilename(handle)
+  const route = useFileRoute(handle, mkUrl)
 
   return (
-    <Link title={filepath} to={route}>
+    <Link title={filename} to={route}>
       {title}
     </Link>
   )
@@ -292,14 +299,10 @@ interface TitleFilenameProps {
 }
 
 function TitleFilename({ handle, mkUrl }: TitleFilenameProps) {
-  const { urls } = NamedRoutes.use()
+  const filename = useFilename(handle)
+  const route = useFileRoute(handle, mkUrl)
 
-  const title = getBasename(handle.logicalKey || handle.key)
-  const route = React.useMemo(
-    () => (mkUrl ? mkUrl(handle) : urls.bucketFile(handle.bucket, handle.key)),
-    [handle, mkUrl, urls],
-  )
-  return <Link to={route}>{title}</Link>
+  return <Link to={route}>{filename}</Link>
 }
 
 function getHeadingOverride(file: SummarizeFile, mkUrl?: MakeURL) {
