@@ -2,3 +2,5 @@ build/
 node_modules/
 internals/generators/
 package-lock.json
+*.generated.ts
+app/ipynb.css
