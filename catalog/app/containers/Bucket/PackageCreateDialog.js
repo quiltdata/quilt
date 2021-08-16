@@ -181,9 +181,10 @@ function FilesInput({
   const disabled = meta.submitting || meta.submitSucceeded
   const error = meta.submitFailed && meta.error
 
-  const totalSize = React.useMemo(() => value.reduce((sum, f) => sum + f.file.size, 0), [
-    value,
-  ])
+  const totalSize = React.useMemo(
+    () => value.reduce((sum, f) => sum + f.file.size, 0),
+    [value],
+  )
 
   const warn = totalSize > PD.MAX_UPLOAD_SIZE
 
@@ -215,12 +216,14 @@ function FilesInput({
     [disabled, value, onInputChange],
   )
 
-  const rmFile = ({ path }) => (e) => {
-    e.stopPropagation()
-    if (disabled) return
-    pipeThru(value)(R.reject(R.propEq('path', path)), onInputChange)
-    setUploads(R.dissoc(path))
-  }
+  const rmFile =
+    ({ path }) =>
+    (e) => {
+      e.stopPropagation()
+      if (disabled) return
+      pipeThru(value)(R.reject(R.propEq('path', path)), onInputChange)
+      setUploads(R.dissoc(path))
+    }
 
   const clearFiles = React.useCallback(() => {
     if (disabled) return

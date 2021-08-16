@@ -1,7 +1,11 @@
 # import RoleSelection from "./RoleSelection.graphql"
 
-mutation($input: ManagedRoleInput!) {
+mutation ($input: ManagedRoleInput!) {
   roleCreate: roleCreateManaged(input: $input) {
-    ... on RoleCreateSuccess { role { ...RoleSelection } }
+    ... on RoleCreateSuccess {
+      role {
+        ...RoleSelection
+      }
+    }
   }
 }

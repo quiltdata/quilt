@@ -1,6 +1,12 @@
 query {
   roles {
-    ... on UnmanagedRole { id, name }
-    ... on ManagedRole { id, name }
+    ... on UnmanagedRole {
+      id
+      name
+    }
+    ... on ManagedRole {
+      id
+      name
+    }
   }
 }

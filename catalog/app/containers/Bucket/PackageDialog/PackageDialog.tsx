@@ -56,7 +56,7 @@ export async function hashFile(file: File) {
 function cacheDebounce<I extends [any, ...any[]], O, K extends string | number | symbol>(
   fn: (...args: I) => Promise<O>,
   wait: number,
-  getKey: (...args: I) => K = (R.identity as unknown) as (...args: I) => K,
+  getKey: (...args: I) => K = R.identity as unknown as (...args: I) => K,
 ) {
   type Resolver = (result: Promise<O>) => void
   const cache = {} as Record<K, Promise<O>>

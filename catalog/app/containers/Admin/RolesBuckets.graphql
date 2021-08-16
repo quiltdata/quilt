@@ -1,3 +1,5 @@
 query {
-  buckets: bucketConfigs { name }
+  buckets: bucketConfigs {
+    name
+  }
 }

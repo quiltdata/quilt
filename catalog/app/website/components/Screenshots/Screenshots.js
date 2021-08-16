@@ -75,9 +75,10 @@ export default function Screenshots(props) {
   const maxSlides = slides.length * SLIDE_COUNT_FACTOR
   const nearestZero = Math.floor(index / slides.length) * slides.length
 
-  const goToNearestIndex = React.useCallback((i) => setIndex(nearestZero + i), [
-    nearestZero,
-  ])
+  const goToNearestIndex = React.useCallback(
+    (i) => setIndex(nearestZero + i),
+    [nearestZero],
+  )
 
   const slideRenderer = React.useCallback(
     ({ index: i, key }) => (

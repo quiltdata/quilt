@@ -18,9 +18,9 @@ import * as RC from 'recompose'
  * const res1 = factory({ children: 'sup', cls: 'hey' });
  * const res2 = <Component cls="hey">sup</Component>;
  */
-// @ts-expect-error
-const createFactory = RC.hoistStatics((Component: $TSFixMe) => (props: $TSFixMe) =>
-  React.createElement(Component, props),
+const createFactory = RC.hoistStatics(
+  // @ts-expect-error
+  (Component: $TSFixMe) => (props: $TSFixMe) => React.createElement(Component, props),
 )
 
 /**
@@ -73,15 +73,15 @@ export const composeComponent = (name: string, ...args: $TSFixMe[]) => {
  *   The resulting HOC equivalent to application of all the decorators
  *   and wrapping the displayName with the given name.
  */
-export const composeHOC = (name: string, ...decorators: $TSFixMe[]) => (
-  Component: React.ComponentType,
-) =>
-  RC.compose(
-    RC.setDisplayName(RC.wrapDisplayName(Component, name)),
-    createFactory,
-    ...decorators,
-    // @ts-expect-error
-  )(Component)
+export const composeHOC =
+  (name: string, ...decorators: $TSFixMe[]) =>
+  (Component: React.ComponentType) =>
+    RC.compose(
+      RC.setDisplayName(RC.wrapDisplayName(Component, name)),
+      createFactory,
+      ...decorators,
+      // @ts-expect-error
+    )(Component)
 
 type ComponentWithProps = [React.ComponentType, {} | undefined]
 type ComponentOrComponentWithProps = React.ComponentType | ComponentWithProps
@@ -115,9 +115,10 @@ export const nest = (...components: ComponentOrComponentWithProps[]) =>
  */
 // @ts-expect-error
 export const wrap = (Wrapper, propMapper = R.identity) =>
-  // @ts-expect-error
-  composeHOC(`wrap(${RC.getDisplayName(Wrapper)})`, (Component) => (props) =>
-    nest([Wrapper, propMapper(props)], [Component, props]),
+  composeHOC(
+    `wrap(${RC.getDisplayName(Wrapper)})`,
+    // @ts-expect-error
+    (Component) => (props) => nest([Wrapper, propMapper(props)], [Component, props]),
   )
 
 /**
@@ -152,10 +153,11 @@ export const consume = ({ Consumer }, propMapper) => {
         (value, props) => ({ ...props, [propMapper]: value })
       : propMapper
   // @ts-expect-error
-  return (Component) => (props) => (
-    // @ts-expect-error
-    <Consumer>{(value) => <Component {...mkProps(value, props)} />}</Consumer>
-  )
+  return (Component) => (props) =>
+    (
+      // @ts-expect-error
+      <Consumer>{(value) => <Component {...mkProps(value, props)} />}</Consumer>
+    )
 }
 
 /**

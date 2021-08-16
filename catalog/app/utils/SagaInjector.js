@@ -56,11 +56,14 @@ export const injectSaga = (name, saga, { args = (props) => [props] } = {}) =>
     RT.wrap(Inject, (props) => ({ saga, args: args(props) })),
   )
 
-export const withSaga = (...sagaMWArgs) => (createStore) => (...args) => {
-  const sagaMiddleware = createSagaMiddleware(...sagaMWArgs)
-  const store = applyMiddleware(sagaMiddleware)(createStore)(...args)
-  return {
-    ...store,
-    runSaga: sagaMiddleware.run,
+export const withSaga =
+  (...sagaMWArgs) =>
+  (createStore) =>
+  (...args) => {
+    const sagaMiddleware = createSagaMiddleware(...sagaMWArgs)
+    const store = applyMiddleware(sagaMiddleware)(createStore)(...args)
+    return {
+      ...store,
+      runSaga: sagaMiddleware.run,
+    }
   }
-}

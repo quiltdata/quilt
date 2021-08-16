@@ -259,14 +259,10 @@ interface QueriesFetcherProps {
 }
 
 function QueriesFetcher({ children, workgroup }: QueriesFetcherProps) {
-  const [
-    prevQueries,
-    setPrevQueries,
-  ] = React.useState<requests.athena.QueriesResponse | null>(null)
-  const [
-    prevExecutions,
-    setPrevExecutions,
-  ] = React.useState<requests.athena.QueryExecutionsResponse | null>(null)
+  const [prevQueries, setPrevQueries] =
+    React.useState<requests.athena.QueriesResponse | null>(null)
+  const [prevExecutions, setPrevExecutions] =
+    React.useState<requests.athena.QueryExecutionsResponse | null>(null)
   const queriesData = requests.athena.useQueries(workgroup, prevQueries)
   const executionsData = requests.athena.useQueryExecutions(workgroup, prevExecutions)
   return children({
@@ -377,10 +373,12 @@ function State({ children, queryExecutionId }: StateProps) {
             workgroupsDataResult.value?.list?.length ? (
               <QueryResultsFetcher queryExecutionId={queryExecutionId}>
                 {({ queryResultsData, handleQueryResultsLoadMore }) => {
-                  const queryExecution = (queryResultsData as requests.AsyncData<
-                    requests.athena.QueryResultsResponse,
-                    requests.athena.QueryExecution | null
-                  >).case({
+                  const queryExecution = (
+                    queryResultsData as requests.AsyncData<
+                      requests.athena.QueryResultsResponse,
+                      requests.athena.QueryExecution | null
+                    >
+                  ).case({
                     _: () => null,
                     Ok: ({ queryExecution: qE }) => qE,
                   })
