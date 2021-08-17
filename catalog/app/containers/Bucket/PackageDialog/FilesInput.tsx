@@ -8,6 +8,7 @@ import { fade } from '@material-ui/core/styles'
 
 import * as urls from 'constants/urls'
 import StyledLink from 'utils/StyledLink'
+import dissocBy from 'utils/dissocBy'
 import useDragging from 'utils/dragging'
 import { withoutPrefix } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
@@ -108,20 +109,8 @@ export interface FilesState {
   counter?: number
 }
 
-interface FilesStateTransformer {
-  (state: FilesState): FilesState
-}
-
-const dissocBy = (fn: (key: string) => boolean) =>
-  R.pipe(
-    // @ts-expect-error
-    R.toPairs,
-    R.filter(([k]) => !fn(k)),
-    R.fromPairs,
-  ) as { <T>(obj: Record<string, T>): Record<string, T> }
-
 const handleFilesAction = FilesAction.match<
-  FilesStateTransformer,
+  (state: FilesState) => FilesState,
   [{ initial: FilesState }]
 >({
   Add: ({ files, prefix }) => (state) =>
@@ -133,7 +122,7 @@ const handleFilesAction = FilesAction.match<
           deleted: R.dissoc(path),
         },
         acc,
-      ) as FilesState
+      )
     }, state),
   AddFromS3: ({ files, basePrefix, prefix }) => (state) =>
     files.reduce((acc, file) => {
@@ -144,13 +133,13 @@ const handleFilesAction = FilesAction.match<
           deleted: R.dissoc(path),
         },
         acc,
-      ) as FilesState
+      )
     }, state),
   Delete: (path) =>
     R.evolve({
       added: R.dissoc(path),
-      deleted: R.assoc(path, true),
-    }) as FilesStateTransformer,
+      deleted: R.assoc(path, true as const),
+    }),
   // add all descendants from existing to deleted
   DeleteDir: (prefix) => ({ existing, added, deleted, ...rest }) => ({
     existing,
@@ -164,14 +153,13 @@ const handleFilesAction = FilesAction.match<
     ),
     ...rest,
   }),
-  Revert: (path) =>
-    R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }) as FilesStateTransformer,
+  Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
   // remove all descendants from added and deleted
   RevertDir: (prefix) =>
     R.evolve({
       added: dissocBy(R.startsWith(prefix)),
       deleted: dissocBy(R.startsWith(prefix)),
-    }) as FilesStateTransformer,
+    }),
   Reset: (_, { initial }) => () => initial,
 })
 

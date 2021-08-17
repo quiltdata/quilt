@@ -6,6 +6,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
+import dissocBy from 'utils/dissocBy'
 import * as s3paths from 'utils/s3paths'
 import useMemoEq from 'utils/useMemoEq'
 
@@ -46,14 +47,6 @@ export const computeTotalProgress = (uploads: UploadsState): UploadTotalProgress
       percent: p.total ? Math.floor((p.loaded / p.total) * 100) : 100,
     }),
   )
-
-const dissocBy = (fn: (key: string) => boolean) =>
-  R.pipe(
-    // @ts-expect-error
-    R.toPairs,
-    R.filter(([k]) => !fn(k)),
-    R.fromPairs,
-  ) as { <T>(obj: Record<string, T>): Record<string, T> }
 
 export function useUploads() {
   const s3 = AWS.S3.use()
