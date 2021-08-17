@@ -9,7 +9,6 @@ import * as BucketPreferences from 'utils/BucketPreferences'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
 import * as validators from 'utils/validators'
-import wait from 'utils/wait'
 import type * as workflows from 'utils/workflows'
 
 import * as FI from './FilesInput'
@@ -70,19 +69,23 @@ interface PackageCreationFormProps {
     manifest?: Manifest
     name?: string
   }
-  refresh?: () => void
   setSubmitting: (submitting: boolean) => void
   setSuccess: (success: PackageCreationSuccess) => void
   setWorkflow: (workflow: workflows.Workflow) => void
   sourceBuckets: BucketPreferences.SourceBuckets
   workflowsConfig: workflows.WorkflowsConfig
+  delayHashing?: boolean
+  disableStateDisplay?: boolean
+  ui?: {
+    title?: React.ReactNode
+    submit?: React.ReactNode
+  }
 }
 
 export function PackageCreationForm({
   bucket,
   close,
   initial,
-  refresh,
   responseError,
   schema,
   schemaLoading,
@@ -93,6 +96,9 @@ export function PackageCreationForm({
   sourceBuckets,
   validate: validateMetaInput,
   workflowsConfig,
+  delayHashing = false,
+  disableStateDisplay = false,
+  ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(bucket)
@@ -213,11 +219,6 @@ export function PackageCreationForm({
         },
         schema,
       )
-      if (refresh) {
-        // wait for ES index to receive the new package data
-        await wait(PD.ES_LAG)
-        refresh()
-      }
       setSuccess({ name, hash: res.top_hash })
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -272,6 +273,14 @@ export function PackageCreationForm({
     }
   }, [editorElement, resizeObserver])
 
+  const validateFiles = React.useMemo(
+    () =>
+      delayHashing
+        ? validators.nonEmpty
+        : validators.composeAsync(validators.nonEmpty, FI.validateHashingComplete),
+    [delayHashing],
+  )
+
   return (
     <RF.Form
       onSubmit={onSubmitWrapped}
@@ -293,10 +302,7 @@ export function PackageCreationForm({
         handleSubmit,
       }) => (
         <>
-          <M.DialogTitle>Push package revision</M.DialogTitle>
-          {/* TODO: make strings customizable or move differeing parts out to seperate components
-          <M.DialogTitle>Create package</M.DialogTitle>
-          */}
+          <M.DialogTitle>{ui.title || 'Create package'}</M.DialogTitle>
           <M.DialogContent classes={dialogContentClasses}>
             <form className={classes.form} onSubmit={handleSubmit}>
               <RF.FormSpy
@@ -379,17 +385,11 @@ export function PackageCreationForm({
 
                 <Layout.RightColumn>
                   <RF.Field
-                    // TODO: lazy hashing in package creation mode
                     className={classes.files}
                     // @ts-expect-error
                     component={FI.FilesInput}
                     name="files"
-                    validate={
-                      validators.composeAsync(
-                        validators.nonEmpty,
-                        FI.validateHashingComplete,
-                      ) as FF.FieldValidator<$TSFixMe>
-                    }
+                    validate={validateFiles as FF.FieldValidator<$TSFixMe>}
                     validateFields={['files']}
                     errors={{
                       nonEmpty: 'Add files to create a package',
@@ -405,6 +405,8 @@ export function PackageCreationForm({
                     bucket={selectedBucket}
                     buckets={sourceBuckets.list}
                     selectBucket={selectBucket}
+                    delayHashing={delayHashing}
+                    disableStateDisplay={disableStateDisplay}
                   />
                 </Layout.RightColumn>
               </Layout.Container>
@@ -438,8 +440,7 @@ export function PackageCreationForm({
               color="primary"
               disabled={submitting || (submitFailed && hasValidationErrors)}
             >
-              Push
-              {/* TODO: Create */}
+              {ui.submit || 'Create'}
             </M.Button>
           </M.DialogActions>
         </>
@@ -455,7 +456,7 @@ export const PackageCreationDialogState = tagged.create(
     Loading: () => {},
     Error: (e: Error) => e,
     Form: (v: {
-      manifest: Manifest
+      manifest?: Manifest
       workflowsConfig: workflows.WorkflowsConfig
       sourceBuckets: BucketPreferences.SourceBuckets
     }) => v,

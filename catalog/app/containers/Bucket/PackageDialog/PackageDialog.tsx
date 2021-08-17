@@ -29,7 +29,6 @@ import SelectWorkflow from './SelectWorkflow'
 
 export const MAX_UPLOAD_SIZE = 1000 * 1000 * 1000 // 1GB
 export const MAX_S3_SIZE = 10 * 1000 * 1000 * 1000 // 10GB
-export const ES_LAG = 3 * 1000
 export const MAX_META_FILE_SIZE = 10 * 1000 * 1000 // 10MB
 
 export const ERROR_MESSAGES = {
@@ -797,4 +796,26 @@ export const PackageNameWarning = ({ exists }: PackageNameWarningProps) => {
       {exists ? 'Existing package' : 'New package'}
     </>
   )
+}
+
+interface DialogWrapperProps {
+  exited: boolean
+}
+
+export function DialogWrapper({
+  exited,
+  ...props
+}: DialogWrapperProps & React.ComponentProps<typeof M.Dialog>) {
+  const refProps = { exited, onExited: props.onExited }
+  const ref = React.useRef<typeof refProps>()
+  ref.current = refProps
+  React.useEffect(
+    () => () => {
+      // call onExited on unmount if it has not been called yet
+      if (!ref.current!.exited && ref.current!.onExited)
+        (ref.current!.onExited as () => void)()
+    },
+    [],
+  )
+  return <M.Dialog {...props} />
 }

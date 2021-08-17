@@ -95,33 +95,11 @@ function DialogSuccess({ bucket, name, hash, close }: DialogSuccessProps) {
   )
 }
 
-interface DialogWrapperProps {
-  exited: boolean
-}
-
-function DialogWrapper({
-  exited,
-  ...props
-}: DialogWrapperProps & React.ComponentProps<typeof M.Dialog>) {
-  const refProps = { exited, onExited: props.onExited }
-  const ref = React.useRef<typeof refProps>()
-  ref.current = refProps
-  React.useEffect(
-    () => () => {
-      // call onExited on unmount if it has not been called yet
-      if (!ref.current!.exited && ref.current!.onExited)
-        (ref.current!.onExited as () => void)()
-    },
-    [],
-  )
-  return <M.Dialog {...props} />
-}
-
 interface UsePackageUpdateDialogProps {
   bucket: string
   name: string
   hash: string
-  onExited: (result: { pushed: false | { name: string; hash: string } }) => boolean
+  onExited: (result: { pushed: false | PD.PackageCreationSuccess }) => boolean
 }
 
 export function usePackageUpdateDialog({
@@ -135,21 +113,20 @@ export function usePackageUpdateDialog({
   const [isOpen, setOpen] = React.useState(false)
   const [wasOpened, setWasOpened] = React.useState(false)
   const [exited, setExited] = React.useState(!isOpen)
-  const [success, setSuccess] = React.useState<{ name: string; hash: string } | false>(
-    false,
-  )
+  const [success, setSuccess] = React.useState<PD.PackageCreationSuccess | false>(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [key, setKey] = React.useState(1)
   const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
 
+  const workflowsData = Data.use(requests.workflowsConfig, { s3, bucket })
+  // const workflowsData = Data.use(requests.workflowsConfig, { s3, bucket }, { noAutoFetch: !wasOpened })
+  // XXX: use AsyncResult
+  const preferences = BucketPreferences.use()
   const manifestData = Data.use(
     requests.loadManifest,
     { s3, bucket, name, hash, key },
     { noAutoFetch: !wasOpened },
   )
-  const workflowsData = Data.use(requests.workflowsConfig, { s3, bucket })
-  // XXX: use AsyncResult
-  const preferences = BucketPreferences.use()
 
   const open = React.useCallback(() => {
     setOpen(true)
@@ -202,7 +179,7 @@ export function usePackageUpdateDialog({
 
   const render = React.useCallback(
     () => (
-      <DialogWrapper
+      <PD.DialogWrapper
         exited={exited}
         fullWidth
         maxWidth={success ? 'sm' : 'lg'}
@@ -234,6 +211,10 @@ export function usePackageUpdateDialog({
                       workflowsConfig,
                       sourceBuckets,
                       initial: { manifest, name },
+                      ui: {
+                        title: 'Push package revision',
+                        submit: 'Push',
+                      },
                     }}
                   />
                 )}
@@ -243,7 +224,7 @@ export function usePackageUpdateDialog({
           },
           state,
         )}
-      </DialogWrapper>
+      </PD.DialogWrapper>
     ),
     [bucket, name, isOpen, exited, close, state, success, handleExited, workflow],
   )

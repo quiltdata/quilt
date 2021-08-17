@@ -99,15 +99,12 @@ export function useUploads() {
         const promise = limit(async () => {
           if (rejected) {
             remove(path)
-            return
+            return undefined
           }
           try {
-            // TODO: lazy hashing?
-            // const resultP = upload.promise()
-            // const hashP = PD.hashFile(file)
-            // return { result: await resultP, hash: await hashP }
-            // eslint-disable-next-line consistent-return
-            return await upload.promise()
+            const uploadP = upload.promise()
+            await file.hash.promise
+            return await uploadP
           } catch (e) {
             rejected = true
             remove(path)

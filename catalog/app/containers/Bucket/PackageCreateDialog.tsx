@@ -8,7 +8,7 @@ import * as Intercom from 'components/Intercom'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import { useData } from 'utils/Data'
+import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import type * as workflows from 'utils/workflows'
@@ -59,68 +59,106 @@ function DialogSuccess({ bucket, name, hash, close }: DialogSuccessProps) {
   )
 }
 
-interface PackageCreateDialogWrapperProps {
+interface UsePackageCreateDialogProps {
   bucket: string
-  open: boolean
-  onClose: () => void
-  refresh: () => void
+  onExited: (result: { pushed: false | PD.PackageCreationSuccess }) => boolean
 }
 
-export default function PackageCreateDialogWrapper({
+export function usePackageCreateDialog({
   bucket,
-  open,
-  onClose,
-  refresh,
-}: PackageCreateDialogWrapperProps) {
+  onExited,
+}: UsePackageCreateDialogProps) {
   const s3 = AWS.S3.use()
-  const data = useData(requests.workflowsConfig, { s3, bucket }, { noAutoFetch: !open })
+
+  const [isOpen, setOpen] = React.useState(false)
+  // const [wasOpened, setWasOpened] = React.useState(false)
+  const [exited, setExited] = React.useState(!isOpen)
+  const [success, setSuccess] = React.useState<PD.PackageCreationSuccess | false>(false)
+  const [submitting, setSubmitting] = React.useState(false)
+  // const [key, setKey] = React.useState(1)
+  const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
+
+  const workflowsData = Data.use(requests.workflowsConfig, { s3, bucket })
+  // const workflowsData = Data.use(requests.workflowsConfig, { s3, bucket }, { noAutoFetch: !wasOpened })
   // XXX: use AsyncResult
   const preferences = BucketPreferences.use()
 
-  const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
-  const [success, setSuccess] = React.useState<{ name: string; hash: string } | false>()
-  const [submitting, setSubmitting] = React.useState(false)
+  const open = React.useCallback(() => {
+    setOpen(true)
+    // setWasOpened(true)
+    setExited(false)
+  }, [setOpen, /* setWasOpened, */ setExited])
 
   const close = React.useCallback(() => {
-    if (submitting && !success) return
+    if (submitting) return
+    setOpen(false)
+    // setWorkflow(undefined) // TODO: is this necessary?
+  }, [submitting, setOpen])
 
-    setWorkflow(undefined)
-    onClose()
-  }, [submitting, success, onClose])
+  const handleExited = React.useCallback(() => {
+    setExited(true)
+    setSuccess(false)
+    if (onExited) {
+      onExited({ pushed: success })
+    }
+  }, [setExited, setSuccess, success, onExited])
 
-  Intercom.usePauseVisibilityWhen(open)
+  Intercom.usePauseVisibilityWhen(isOpen)
 
   const username = redux.useSelector(authSelectors.username)
   const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
   // TODO: customize ui:
-  // submit action: Create
-  // dialog header: Create package
   // files:
-  //   dont visually treat added files
   //   undo changes -> clear files
 
-  return (
-    <M.Dialog
-      fullWidth
-      maxWidth={success ? 'sm' : 'lg'}
-      onClose={close}
-      onExited={close}
-      open={open}
-      scroll="body"
-    >
-      {data.case({
-        Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
-          success ? (
-            <DialogSuccess
-              bucket={bucket}
-              hash={success.hash}
-              name={success.name}
-              close={close}
-            />
-          ) : (
-            <PD.SchemaFetcher workflow={workflow} workflowsConfig={workflowsConfig}>
-              {(schemaProps) =>
-                preferences ? (
+  const state = React.useMemo<PD.PackageCreationDialogState>(() => {
+    if (exited) return PD.PackageCreationDialogState.Closed()
+    if (success) return PD.PackageCreationDialogState.Success(success)
+    return workflowsData.case({
+      Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
+        preferences
+          ? PD.PackageCreationDialogState.Form({
+              workflowsConfig,
+              sourceBuckets: preferences.ui.sourceBuckets,
+            })
+          : PD.PackageCreationDialogState.Loading(),
+      Err: PD.PackageCreationDialogState.Error,
+      _: PD.PackageCreationDialogState.Loading,
+    })
+  }, [exited, success, workflowsData, preferences])
+
+  const render = React.useCallback(
+    () => (
+      <PD.DialogWrapper
+        exited={exited}
+        fullWidth
+        maxWidth={success ? 'sm' : 'lg'}
+        onClose={close}
+        onExited={handleExited}
+        open={isOpen}
+        scroll="body"
+      >
+        {PD.PackageCreationDialogState.match(
+          {
+            Closed: () => null,
+            Loading: () => (
+              <PD.DialogLoading
+                skeletonElement={<PD.FormSkeleton />}
+                title="Create package"
+                onCancel={close}
+              />
+            ),
+            Error: (e) => (
+              <PD.DialogError
+                error={e}
+                skeletonElement={<PD.FormSkeleton animate={false} />}
+                title="Create package"
+                onCancel={close}
+              />
+            ),
+            Form: ({ workflowsConfig, sourceBuckets }) => (
+              <PD.SchemaFetcher workflow={workflow} workflowsConfig={workflowsConfig}>
+                {(schemaProps) => (
                   <PD.PackageCreationForm
                     {...schemaProps}
                     {...{
@@ -129,40 +167,36 @@ export default function PackageCreateDialogWrapper({
                       initial: {
                         name: usernamePrefix,
                       },
-                      refresh,
                       setSubmitting,
                       setSuccess,
                       setWorkflow,
-                      sourceBuckets: preferences.ui.sourceBuckets,
+                      sourceBuckets,
                       workflowsConfig,
                     }}
+                    delayHashing
+                    disableStateDisplay
                   />
-                ) : (
-                  <PD.DialogLoading
-                    skeletonElement={<PD.FormSkeleton />}
-                    title="Create package"
-                    onCancel={close}
-                  />
-                )
-              }
-            </PD.SchemaFetcher>
-          ),
-        Err: (error: Error) => (
-          <PD.DialogError
-            error={error}
-            skeletonElement={<PD.FormSkeleton animate={false} />}
-            title="Create package"
-            onCancel={close}
-          />
-        ),
-        _: () => (
-          <PD.DialogLoading
-            skeletonElement={<PD.FormSkeleton />}
-            title="Create package"
-            onCancel={close}
-          />
-        ),
-      })}
-    </M.Dialog>
+                )}
+              </PD.SchemaFetcher>
+            ),
+            Success: (props) => <DialogSuccess {...{ bucket, close, ...props }} />,
+          },
+          state,
+        )}
+      </PD.DialogWrapper>
+    ),
+    [
+      bucket,
+      usernamePrefix,
+      isOpen,
+      exited,
+      close,
+      state,
+      success,
+      handleExited,
+      workflow,
+    ],
   )
+
+  return React.useMemo(() => ({ open, close, render }), [open, close, render])
 }
