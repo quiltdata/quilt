@@ -14,19 +14,16 @@ const VEGA_OPTIONS = {
 const useStyles = M.makeStyles({
   root: {
     maxWidth: '100%',
-
     '&.vega-embed .vega-actions': {
       right: '38px',
       top: 0,
     },
-
     '&.vega-embed .vega-actions::after': {
       display: 'none',
     },
     '&.vega-embed .vega-actions::before': {
       display: 'none',
     },
-
     '&.vega-embed .chart-wrapper': {
       maxWidth: '100%',
       overflow: 'auto',
