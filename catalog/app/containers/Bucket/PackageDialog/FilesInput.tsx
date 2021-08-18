@@ -1505,9 +1505,8 @@ export function FilesInput({
           </M.Button>
         ) : (
           <Lab.Alert className={classes.warning} severity="info">
-            To add from S3 bucket{' '}
             <StyledLink href={DOCS_URL_SOURCE_BUCKETS} target="_blank">
-              see docs
+              Learn how to add files from a bucket
             </StyledLink>
           </Lab.Alert>
         )}
