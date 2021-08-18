@@ -2,6 +2,8 @@ import PT from 'prop-types'
 import * as React from 'react'
 import embed from 'vega-embed'
 
+import './vega.css'
+
 const VEGA_OPTIONS = {
   actions: {
     compiled: false,
