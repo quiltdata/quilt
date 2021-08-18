@@ -5,6 +5,8 @@ import * as React from 'react'
 import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
+import * as Intercom from 'components/Intercom'
+import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
@@ -474,20 +476,17 @@ export type PackageCreationDialogState = tagged.InstanceOf<
   typeof PackageCreationDialogState
 >
 
-interface PackageCreationDialogProps {
+interface UsePackageCreationDialogProps {
   bucket: string
-  close: () => void
+  data?: $TSFixMe // AsyncResult<{ manifest, workflowsConfig, sourceBuckets }>
   delayHashing?: boolean
   disableStateDisplay?: boolean
-  exited: boolean
-  onExited: () => void
-  isOpen: boolean
+  fetch?: () => void
   name?: string
-  setSubmitting: (submitting: boolean) => void
-  setSuccess: (success: PackageCreationSuccess | false) => void
-  setWorkflow: (workflow?: workflows.Workflow) => void
-  state: PackageCreationDialogState
-  success: PackageCreationSuccess | false
+  onExited: (result: {
+    pushed: PackageCreationSuccess | false
+  }) => boolean | undefined | void
+  refresh?: () => void
   ui?: {
     resetFiles?: React.ReactNode
     submit?: React.ReactNode
@@ -496,33 +495,68 @@ interface PackageCreationDialogProps {
     successTitle?: React.ReactNode
     title?: React.ReactNode
   }
-  workflow?: workflows.Workflow
 }
 
-export function PackageCreationDialog({
+export function usePackageCreationDialog({
   bucket,
-  close,
+  data,
   delayHashing = false,
   disableStateDisplay = false,
-  exited,
-  onExited,
-  isOpen,
+  fetch,
   name,
-  setSubmitting,
-  setSuccess,
-  setWorkflow,
-  state,
-  success,
+  onExited,
+  refresh,
   ui = {},
-  workflow,
-}: PackageCreationDialogProps) {
-  return (
+}: UsePackageCreationDialogProps) {
+  const [isOpen, setOpen] = React.useState(false)
+  const [exited, setExited] = React.useState(!isOpen)
+  const [success, setSuccess] = React.useState<PackageCreationSuccess | false>(false)
+  const [submitting, setSubmitting] = React.useState(false)
+  const [workflow, setWorkflow] = React.useState<workflows.Workflow>()
+
+  const open = React.useCallback(() => {
+    setOpen(true)
+    fetch?.()
+    setExited(false)
+  }, [setOpen, fetch, setExited])
+
+  const close = React.useCallback(() => {
+    if (submitting) return
+    setOpen(false)
+    setWorkflow(undefined) // TODO: is this necessary?
+  }, [submitting, setOpen])
+
+  const handleExited = React.useCallback(() => {
+    setExited(true)
+    setSuccess(false)
+    if (onExited) {
+      const shouldRefresh = onExited({ pushed: success })
+      if (shouldRefresh) refresh?.()
+    }
+  }, [setExited, setSuccess, success, onExited, refresh])
+
+  Intercom.usePauseVisibilityWhen(isOpen)
+
+  const state = React.useMemo<PackageCreationDialogState>(() => {
+    if (exited) return PackageCreationDialogState.Closed()
+    if (success) return PackageCreationDialogState.Success(success)
+    return AsyncResult.case(
+      {
+        Ok: PackageCreationDialogState.Form,
+        Err: PackageCreationDialogState.Error,
+        _: PackageCreationDialogState.Loading,
+      },
+      data,
+    )
+  }, [exited, success, data])
+
+  const element = (
     <PD.DialogWrapper
       exited={exited}
       fullWidth
       maxWidth={success ? 'sm' : 'lg'}
       onClose={close}
-      onExited={onExited}
+      onExited={handleExited}
       open={isOpen}
       scroll="body"
     >
@@ -591,4 +625,6 @@ export function PackageCreationDialog({
       )}
     </PD.DialogWrapper>
   )
+
+  return { open, close, element }
 }
