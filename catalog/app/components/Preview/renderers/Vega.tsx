@@ -31,9 +31,11 @@ const useStyles = M.makeStyles({
   },
 })
 
-interface VegaProps extends React.HTMLProps<HTMLDivElement> {
+interface VegaEssential {
   spec: VisualizationSpec | string
 }
+
+interface VegaProps extends React.HTMLProps<HTMLDivElement>, VegaEssential {}
 
 function Vega({ spec, ...props }: VegaProps) {
   const classes = useStyles()
@@ -48,7 +50,6 @@ function Vega({ spec, ...props }: VegaProps) {
   return <div className={classes.root} ref={setEl} {...props} />
 }
 
-export default (
-  { spec }: { spec: VisualizationSpec | string },
-  props: React.HTMLProps<HTMLDivElement>,
-) => <Vega spec={spec} {...props} />
+export default ({ spec }: VegaEssential, props: React.HTMLProps<HTMLDivElement>) => (
+  <Vega spec={spec} {...props} />
+)
