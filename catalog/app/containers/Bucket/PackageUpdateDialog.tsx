@@ -214,6 +214,7 @@ export function usePackageUpdateDialog({
                       ui: {
                         title: 'Push package revision',
                         submit: 'Push',
+                        resetFiles: 'Undo changes',
                       },
                     }}
                   />

@@ -79,6 +79,7 @@ interface PackageCreationFormProps {
   ui?: {
     title?: React.ReactNode
     submit?: React.ReactNode
+    resetFiles?: React.ReactNode
   }
 }
 
@@ -407,6 +408,7 @@ export function PackageCreationForm({
                     selectBucket={selectBucket}
                     delayHashing={delayHashing}
                     disableStateDisplay={disableStateDisplay}
+                    ui={{ reset: ui.resetFiles }}
                   />
                 </Layout.RightColumn>
               </Layout.Container>

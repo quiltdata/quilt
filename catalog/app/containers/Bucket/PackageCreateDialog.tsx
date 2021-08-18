@@ -107,9 +107,6 @@ export function usePackageCreateDialog({
 
   const username = redux.useSelector(authSelectors.username)
   const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
-  // TODO: customize ui:
-  // files:
-  //   undo changes -> clear files
 
   const state = React.useMemo<PD.PackageCreationDialogState>(() => {
     if (exited) return PD.PackageCreationDialogState.Closed()

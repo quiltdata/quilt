@@ -1228,6 +1228,9 @@ interface FilesInputProps {
   selectBucket?: (bucket: string) => void
   delayHashing?: boolean
   disableStateDisplay?: boolean
+  ui?: {
+    reset?: React.ReactNode
+  }
 }
 
 export function FilesInput({
@@ -1244,6 +1247,7 @@ export function FilesInput({
   selectBucket,
   delayHashing = false,
   disableStateDisplay = false,
+  ui = {},
 }: FilesInputProps) {
   const classes = useFilesInputStyles()
 
@@ -1438,7 +1442,7 @@ export function FilesInput({
             size="small"
             endIcon={<M.Icon fontSize="small">undo</M.Icon>}
           >
-            Undo changes
+            {ui.reset || 'Clear files'}
           </M.Button>
         )}
       </Header>
