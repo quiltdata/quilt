@@ -199,7 +199,6 @@ export function mkMetaValidator(schema?: JsonSchema) {
   }
 }
 
-// validate: FF.FieldValidator<$TSFixMe>
 export type MetaValidator = ReturnType<typeof mkMetaValidator>
 
 interface FieldProps {

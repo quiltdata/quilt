@@ -79,7 +79,7 @@ export function usePackageUpdateDialog({
       resetFiles: 'Undo changes',
       submit: 'Push',
       successBrowse: 'Browse',
-      successTitle: 'Package created', // TODO: package revision created?
+      successTitle: 'Push complete',
       successRenderMessage: ({ packageLink }) => (
         <>Package revision {packageLink} successfully created</>
       ),
