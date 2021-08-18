@@ -44,6 +44,7 @@
 * [Changed] PDF preview: don't count pages ([#2276](https://github.com/quiltdata/quilt/pull/2276))
 * [Changed] Default bucket icon changed from Quilt logo to more neutral ([#2287](https://github.com/quiltdata/quilt/pull/2287))
 * [Changed] Cachebust revision list request ([#2298](https://github.com/quiltdata/quilt/pull/2298))
+* [Changed] Wrap wide Vega charts with horizontal scroll ([#2304](https://github.com/quiltdata/quilt/pull/2304))
 * [Fixed] `UnicodeDecodeError` in indexer and pkgselect lambdas ([#2123](https://github.com/quiltdata/quilt/pull/2123))
 * [Fixed] Catch and display package-related errors properly ("no such package" and "bad revision") ([#2160](https://github.com/quiltdata/quilt/pull/2160))
 * [Fixed] Crashing `pkgselect` lambda's folder view on an empty manifest ([#2147](https://github.com/quiltdata/quilt/pull/2147))
