@@ -14,7 +14,6 @@ interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string
 }
 
-// className: string, drop: any
 export default function Spinner({ className, drop, ...props }: SpinnerProps) {
   const classes = useStyles({ drop })
   return (
