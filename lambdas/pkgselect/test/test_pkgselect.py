@@ -57,6 +57,27 @@ class TestPackageSelect(TestCase):
             ]
         }
 
+    def make_s3response_empty(self):
+        """
+        Generate a mock s3 select response
+        """
+        return {
+            'Payload': [
+                {
+                    'Stats': {
+                        'Details': {
+                            'BytesScanned': 123,
+                            'BytesProcessed': 123,
+                            'BytesReturned': 0
+                        }
+                    }
+                },
+                {
+                    'End': {}
+                }
+            ]
+        }
+
     def make_manifest_query(self, logical_keys):
         entries = []
         for key in logical_keys:
@@ -95,6 +116,7 @@ class TestPackageSelect(TestCase):
 
         self.s3response = self.make_manifest_query(logical_keys)
         self.s3response_detail = self.make_s3response(detailbytes)
+        self.s3response_detail_empty = self.make_s3response_empty()
         self.s3response_incomplete = {
             'Payload': [
                 {
@@ -382,6 +404,49 @@ class TestPackageSelect(TestCase):
             print(response)
             assert response['statusCode'] == 200
             json.loads(read_body(response))['contents']
+
+    def test_non_existing_logical_key(self):
+        """
+        End-to-end test (detail view)
+        """
+        bucket = "bucket"
+        key = ".quilt/packages/manifest_hash"
+        logical_key = "non-existing.txt"
+        params = dict(
+            bucket=bucket,
+            manifest=key,
+            logical_key=logical_key,
+            access_key="TESTKEY",
+            secret_key="TESTSECRET",
+            session_token="TESTSESSION"
+        )
+
+        expected_sql = f"SELECT s.* FROM s3object s WHERE s.logical_key = '{logical_key}' LIMIT 1"
+        expected_args = {
+            'Bucket': bucket,
+            'Key': key,
+            'Expression': "SELECT SUBSTRING(s.logical_key, 1) AS logical_key FROM s3object s",
+            'ExpressionType': 'SQL',
+            'InputSerialization': {
+                'CompressionType': 'NONE',
+                'JSON': {'Type': 'LINES'}
+                },
+            'OutputSerialization': {'JSON': {'RecordDelimiter': '\n'}},
+        }
+
+        mock_s3 = boto3.client('s3')
+        with patch.object(
+                mock_s3,
+                'select_object_content',
+                return_value=self.s3response_detail_empty
+        ) as client_patch, patch(
+            'boto3.Session.client',
+            return_value=mock_s3
+        ):
+            response = lambda_handler(self._make_event(params), None)
+            print(response)
+            assert response['statusCode'] == 404
+
 
     def test_incomplete_credentials(self):
         """

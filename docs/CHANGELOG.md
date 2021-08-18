@@ -51,6 +51,7 @@
 * [Fixed] Crashing `pkgselect` lambda's folder view on an empty manifest ([#2147](https://github.com/quiltdata/quilt/pull/2147))
 * [Fixed] Infinite spinner on logout ([#2232](https://github.com/quiltdata/quilt/pull/2232))
 * [Fixed] Dismiss error page when navigating from it ([#2291](https://github.com/quiltdata/quilt/pull/2291))
+* [Fixed] Avoid crash on non-existent logical keys in pkgselect detail view ([#2307](https://github.com/quiltdata/quilt/pull/2307)
 
 # 3.4.0 - 2021-03-15
 ## Python API
