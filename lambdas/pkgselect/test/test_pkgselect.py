@@ -447,7 +447,6 @@ class TestPackageSelect(TestCase):
             print(response)
             assert response['statusCode'] == 404
 
-
     def test_incomplete_credentials(self):
         """
         Verify that a call with incomplete credentials fails.
