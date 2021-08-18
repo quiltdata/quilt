@@ -688,15 +688,16 @@ export function SchemaFetcher({
   const s3 = AWS.S3.use()
   const sentry = Sentry.use()
 
+  const slug = manifest?.workflow?.id
+
   const initialWorkflow = React.useMemo(() => {
-    const slug = manifest && manifest.workflow && manifest.workflow.id
     // reuse workflow from previous revision if it's still present in the config
     if (slug) {
       const w = workflowsConfig.workflows.find(R.propEq('slug', slug))
       if (w) return w
     }
     return defaultWorkflowFromConfig(workflowsConfig)
-  }, [manifest, workflowsConfig])
+  }, [slug, workflowsConfig])
 
   const selectedWorkflow = workflow || initialWorkflow
 

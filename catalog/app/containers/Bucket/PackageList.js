@@ -416,16 +416,13 @@ export default function PackageList({
 
   const preferences = BucketPreferences.use()
 
-  const createDialog = usePackageCreateDialog({
-    bucket,
-    onExited,
-  })
+  const createDialog = usePackageCreateDialog({ bucket, onExited })
 
   return (
     <>
       <MetaTitle>{['Packages', bucket]}</MetaTitle>
 
-      {createDialog.render()}
+      {createDialog.element}
 
       {totalCountData.case({
         _: () => (

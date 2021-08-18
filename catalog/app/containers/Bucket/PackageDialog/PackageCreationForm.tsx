@@ -11,11 +11,14 @@ import * as tagged from 'utils/taggedV2'
 import * as validators from 'utils/validators'
 import type * as workflows from 'utils/workflows'
 
+import DialogError from './DialogError'
+import DialogLoading from './DialogLoading'
+import DialogSuccess, { DialogSuccessRenderMessageProps } from './DialogSuccess'
 import * as FI from './FilesInput'
 import * as Layout from './Layout'
 import * as PD from './PackageDialog'
 import { isS3File, S3File } from './S3FilePicker'
-import { MetaInputSkeleton } from './Skeleton'
+import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 import { useUploads } from './Uploads'
 import * as requests from '../requests'
@@ -74,8 +77,8 @@ interface PackageCreationFormProps {
   setWorkflow: (workflow: workflows.Workflow) => void
   sourceBuckets: BucketPreferences.SourceBuckets
   workflowsConfig: workflows.WorkflowsConfig
-  delayHashing?: boolean
-  disableStateDisplay?: boolean
+  delayHashing: boolean
+  disableStateDisplay: boolean
   ui?: {
     title?: React.ReactNode
     submit?: React.ReactNode
@@ -97,8 +100,8 @@ export function PackageCreationForm({
   sourceBuckets,
   validate: validateMetaInput,
   workflowsConfig,
-  delayHashing = false,
-  disableStateDisplay = false,
+  delayHashing,
+  disableStateDisplay,
   ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
   const nameValidator = PD.useNameValidator()
@@ -470,3 +473,122 @@ export const PackageCreationDialogState = tagged.create(
 export type PackageCreationDialogState = tagged.InstanceOf<
   typeof PackageCreationDialogState
 >
+
+interface PackageCreationDialogProps {
+  bucket: string
+  close: () => void
+  delayHashing?: boolean
+  disableStateDisplay?: boolean
+  exited: boolean
+  onExited: () => void
+  isOpen: boolean
+  name?: string
+  setSubmitting: (submitting: boolean) => void
+  setSuccess: (success: PackageCreationSuccess | false) => void
+  setWorkflow: (workflow?: workflows.Workflow) => void
+  state: PackageCreationDialogState
+  success: PackageCreationSuccess | false
+  ui?: {
+    resetFiles?: React.ReactNode
+    submit?: React.ReactNode
+    successBrowse?: React.ReactNode
+    successRenderMessage?: (props: DialogSuccessRenderMessageProps) => React.ReactNode
+    successTitle?: React.ReactNode
+    title?: React.ReactNode
+  }
+  workflow?: workflows.Workflow
+}
+
+export function PackageCreationDialog({
+  bucket,
+  close,
+  delayHashing = false,
+  disableStateDisplay = false,
+  exited,
+  onExited,
+  isOpen,
+  name,
+  setSubmitting,
+  setSuccess,
+  setWorkflow,
+  state,
+  success,
+  ui = {},
+  workflow,
+}: PackageCreationDialogProps) {
+  return (
+    <PD.DialogWrapper
+      exited={exited}
+      fullWidth
+      maxWidth={success ? 'sm' : 'lg'}
+      onClose={close}
+      onExited={onExited}
+      open={isOpen}
+      scroll="body"
+    >
+      {PackageCreationDialogState.match(
+        {
+          Closed: () => null,
+          Loading: () => (
+            <DialogLoading
+              skeletonElement={<FormSkeleton />}
+              title={ui.title || 'Create package'}
+              submitText={ui.submit}
+              onCancel={close}
+            />
+          ),
+          Error: (e) => (
+            <DialogError
+              error={e}
+              skeletonElement={<FormSkeleton animate={false} />}
+              title={ui.title || 'Create package'}
+              submitText={ui.submit}
+              onCancel={close}
+            />
+          ),
+          Form: ({ manifest, workflowsConfig, sourceBuckets }) => (
+            <PD.SchemaFetcher
+              manifest={manifest}
+              workflowsConfig={workflowsConfig}
+              workflow={workflow}
+            >
+              {(schemaProps) => (
+                <PackageCreationForm
+                  {...schemaProps}
+                  {...{
+                    bucket,
+                    close,
+                    setSubmitting,
+                    setSuccess,
+                    setWorkflow,
+                    workflowsConfig,
+                    sourceBuckets,
+                    initial: { manifest, name },
+                    delayHashing,
+                    disableStateDisplay,
+                    ui: {
+                      title: ui.title,
+                      submit: ui.submit,
+                      resetFiles: ui.resetFiles,
+                    },
+                  }}
+                />
+              )}
+            </PD.SchemaFetcher>
+          ),
+          Success: (props) => (
+            <DialogSuccess
+              {...props}
+              bucket={bucket}
+              onClose={close}
+              browseText={ui.successBrowse}
+              title={ui.successTitle}
+              renderMessage={ui.successRenderMessage}
+            />
+          ),
+        },
+        state,
+      )}
+    </PD.DialogWrapper>
+  )
+}

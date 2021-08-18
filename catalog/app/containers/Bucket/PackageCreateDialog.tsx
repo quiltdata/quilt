@@ -1,63 +1,15 @@
-import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
 import * as redux from 'react-redux'
-import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import StyledLink from 'utils/StyledLink'
 import type * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
 import * as requests from './requests'
-
-const useDialogSuccessStyles = M.makeStyles({
-  content: {
-    paddingTop: 0,
-  },
-})
-
-interface DialogSuccessProps {
-  bucket: string
-  close: () => void
-  hash: string
-  name: string
-}
-
-function DialogSuccess({ bucket, name, hash, close }: DialogSuccessProps) {
-  const { urls } = NamedRoutes.use()
-  const classes = useDialogSuccessStyles()
-  return (
-    <>
-      <M.DialogTitle>Package created</M.DialogTitle>
-      <M.DialogContent className={classes.content}>
-        <M.Typography>
-          Package{' '}
-          <StyledLink to={urls.bucketPackageTree(bucket, name, hash)}>
-            {name}@{R.take(10, hash)}
-          </StyledLink>{' '}
-          successfully created
-        </M.Typography>
-      </M.DialogContent>
-      <M.DialogActions>
-        <M.Button onClick={close}>Close</M.Button>
-        <M.Button
-          component={Link}
-          to={urls.bucketPackageTree(bucket, name, hash)}
-          variant="contained"
-          color="primary"
-        >
-          Browse package
-        </M.Button>
-      </M.DialogActions>
-    </>
-  )
-}
 
 interface UsePackageCreateDialogProps {
   bucket: string
@@ -92,7 +44,7 @@ export function usePackageCreateDialog({
   const close = React.useCallback(() => {
     if (submitting) return
     setOpen(false)
-    // setWorkflow(undefined) // TODO: is this necessary?
+    setWorkflow(undefined) // TODO: is this necessary?
   }, [submitting, setOpen])
 
   const handleExited = React.useCallback(() => {
@@ -124,76 +76,33 @@ export function usePackageCreateDialog({
     })
   }, [exited, success, workflowsData, preferences])
 
-  const render = React.useCallback(
-    () => (
-      <PD.DialogWrapper
-        exited={exited}
-        fullWidth
-        maxWidth={success ? 'sm' : 'lg'}
-        onClose={close}
-        onExited={handleExited}
-        open={isOpen}
-        scroll="body"
-      >
-        {PD.PackageCreationDialogState.match(
-          {
-            Closed: () => null,
-            Loading: () => (
-              <PD.DialogLoading
-                skeletonElement={<PD.FormSkeleton />}
-                title="Create package"
-                onCancel={close}
-              />
-            ),
-            Error: (e) => (
-              <PD.DialogError
-                error={e}
-                skeletonElement={<PD.FormSkeleton animate={false} />}
-                title="Create package"
-                onCancel={close}
-              />
-            ),
-            Form: ({ workflowsConfig, sourceBuckets }) => (
-              <PD.SchemaFetcher workflow={workflow} workflowsConfig={workflowsConfig}>
-                {(schemaProps) => (
-                  <PD.PackageCreationForm
-                    {...schemaProps}
-                    {...{
-                      bucket,
-                      close,
-                      initial: {
-                        name: usernamePrefix,
-                      },
-                      setSubmitting,
-                      setSuccess,
-                      setWorkflow,
-                      sourceBuckets,
-                      workflowsConfig,
-                    }}
-                    delayHashing
-                    disableStateDisplay
-                  />
-                )}
-              </PD.SchemaFetcher>
-            ),
-            Success: (props) => <DialogSuccess {...{ bucket, close, ...props }} />,
-          },
-          state,
-        )}
-      </PD.DialogWrapper>
-    ),
-    [
-      bucket,
-      usernamePrefix,
-      isOpen,
-      exited,
-      close,
-      state,
-      success,
-      handleExited,
-      workflow,
-    ],
+  const element = (
+    <PD.PackageCreationDialog
+      state={state}
+      delayHashing
+      disableStateDisplay
+      ui={{
+        successTitle: 'Package created',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package {packageLink} successfully created</>
+        ),
+        title: 'Create package',
+      }}
+      {...{
+        bucket,
+        close,
+        exited,
+        onExited: handleExited,
+        isOpen,
+        name: usernamePrefix,
+        setSubmitting,
+        setSuccess,
+        setWorkflow,
+        success,
+        workflow,
+      }}
+    />
   )
 
-  return React.useMemo(() => ({ open, close, render }), [open, close, render])
+  return { open, close, element }
 }

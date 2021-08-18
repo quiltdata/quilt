@@ -8,28 +8,29 @@ const useStyles = M.makeStyles({
 })
 
 interface DialogLoadingProps {
-  skeletonElement: React.ReactNode
-  title: React.ReactNode
+  cancelText?: React.ReactNode
   onCancel: () => void
+  skeletonElement: React.ReactNode
+  submitText?: React.ReactNode
+  title: React.ReactNode
 }
 
 export default function DialogLoading({
-  skeletonElement,
-  title,
+  cancelText,
   onCancel,
+  skeletonElement,
+  submitText,
+  title,
 }: DialogLoadingProps) {
   const classes = useStyles()
-
   return (
     <>
       <M.DialogTitle>{title}</M.DialogTitle>
-
       <M.DialogContent className={classes.content}>{skeletonElement}</M.DialogContent>
-
       <M.DialogActions>
-        <M.Button onClick={onCancel}>Cancel</M.Button>
+        <M.Button onClick={onCancel}>{cancelText || 'Cancel'}</M.Button>
         <M.Button variant="contained" color="primary" disabled>
-          Push
+          {submitText || 'Push'}
         </M.Button>
       </M.DialogActions>
     </>

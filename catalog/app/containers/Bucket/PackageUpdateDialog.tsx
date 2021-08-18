@@ -1,99 +1,14 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
-import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import * as AWS from 'utils/AWS'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as Data from 'utils/Data'
-import * as NamedRoutes from 'utils/NamedRoutes'
-import StyledLink from 'utils/StyledLink'
 import type * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
 import * as requests from './requests'
-
-const useDialogStyles = M.makeStyles({
-  content: {
-    paddingTop: 0,
-  },
-})
-
-interface DialogPlaceholderProps {
-  close?: () => void
-}
-
-function DialogPlaceholder({ close }: DialogPlaceholderProps) {
-  const classes = useDialogStyles()
-  return (
-    <>
-      <M.DialogTitle>Push package revision</M.DialogTitle>
-      <M.DialogContent className={classes.content}>
-        <PD.FormSkeleton />
-      </M.DialogContent>
-      <M.DialogActions>
-        <M.Button onClick={close}>Cancel</M.Button>
-        <M.Button variant="contained" color="primary" disabled>
-          Push
-        </M.Button>
-      </M.DialogActions>
-    </>
-  )
-}
-
-interface DialogErrorProps {
-  error: any
-  close: () => void
-}
-
-function DialogError({ error, close }: DialogErrorProps) {
-  return (
-    <PD.DialogError
-      error={error}
-      skeletonElement={<PD.FormSkeleton animate={false} />}
-      title="Push package revision"
-      onCancel={close}
-    />
-  )
-}
-
-interface DialogSuccessProps {
-  bucket: string
-  close: () => void
-  hash: string
-  name: string
-}
-
-function DialogSuccess({ bucket, name, hash, close }: DialogSuccessProps) {
-  const { urls } = NamedRoutes.use()
-  const classes = useDialogStyles()
-  return (
-    <>
-      <M.DialogTitle>Push complete</M.DialogTitle>
-      <M.DialogContent className={classes.content}>
-        <M.Typography>
-          Package revision{' '}
-          <StyledLink to={urls.bucketPackageTree(bucket, name, hash)}>
-            {name}@{R.take(10, hash)}
-          </StyledLink>{' '}
-          successfully created
-        </M.Typography>
-      </M.DialogContent>
-      <M.DialogActions>
-        <M.Button onClick={close}>Close</M.Button>
-        <M.Button
-          component={Link}
-          to={urls.bucketPackageTree(bucket, name, hash)}
-          variant="contained"
-          color="primary"
-        >
-          Browse
-        </M.Button>
-      </M.DialogActions>
-    </>
-  )
-}
 
 interface UsePackageUpdateDialogProps {
   bucket: string
@@ -137,6 +52,7 @@ export function usePackageUpdateDialog({
   const close = React.useCallback(() => {
     if (submitting) return
     setOpen(false)
+    setWorkflow(undefined) // TODO: is this necessary?
   }, [submitting, setOpen])
 
   const refreshManifest = React.useCallback(() => {
@@ -177,60 +93,34 @@ export function usePackageUpdateDialog({
     })
   }, [exited, success, workflowsData, manifestData, preferences])
 
-  const render = React.useCallback(
-    () => (
-      <PD.DialogWrapper
-        exited={exited}
-        fullWidth
-        maxWidth={success ? 'sm' : 'lg'}
-        onClose={close}
-        onExited={handleExited}
-        open={isOpen}
-        scroll="body"
-      >
-        {PD.PackageCreationDialogState.match(
-          {
-            Closed: () => null,
-            Loading: () => <DialogPlaceholder close={close} />,
-            Error: (e) => <DialogError close={close} error={e} />,
-            Form: ({ manifest, workflowsConfig, sourceBuckets }) => (
-              <PD.SchemaFetcher
-                manifest={manifest}
-                workflowsConfig={workflowsConfig}
-                workflow={workflow}
-              >
-                {(schemaProps) => (
-                  <PD.PackageCreationForm
-                    {...schemaProps}
-                    {...{
-                      bucket,
-                      close,
-                      setSubmitting,
-                      setSuccess,
-                      setWorkflow,
-                      workflowsConfig,
-                      sourceBuckets,
-                      initial: { manifest, name },
-                      ui: {
-                        title: 'Push package revision',
-                        submit: 'Push',
-                        resetFiles: 'Undo changes',
-                      },
-                    }}
-                  />
-                )}
-              </PD.SchemaFetcher>
-            ),
-            Success: (props) => <DialogSuccess {...{ bucket, close, ...props }} />,
-          },
-          state,
-        )}
-      </PD.DialogWrapper>
-    ),
-    [bucket, name, isOpen, exited, close, state, success, handleExited, workflow],
+  const element = (
+    <PD.PackageCreationDialog
+      state={state}
+      ui={{
+        resetFiles: 'Undo changes',
+        submit: 'Push',
+        successBrowse: 'Browse',
+        successTitle: 'Package created',
+        successRenderMessage: ({ packageLink }) => (
+          <>Package revision {packageLink} successfully created</>
+        ),
+        title: 'Push package revision',
+      }}
+      {...{
+        bucket,
+        close,
+        exited,
+        onExited: handleExited,
+        isOpen,
+        name,
+        setSubmitting,
+        setSuccess,
+        setWorkflow,
+        success,
+        workflow,
+      }}
+    />
   )
 
-  return React.useMemo(() => ({ open, close, render }), [open, close, render])
+  return { open, close, element }
 }
-
-export const use = usePackageUpdateDialog

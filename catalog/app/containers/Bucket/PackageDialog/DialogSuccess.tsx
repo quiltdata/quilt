@@ -12,35 +12,56 @@ const useStyles = M.makeStyles({
   },
 })
 
+export interface DialogSuccessRenderMessageProps {
+  bucketLink: React.ReactNode
+  packageLink: React.ReactNode
+}
+
+const defaultRenderMessage = (props: DialogSuccessRenderMessageProps) => (
+  <>
+    Pushed to {props.bucketLink} as {props.packageLink}
+  </>
+)
+
 interface DialogSuccessProps {
+  browseText?: React.ReactNode
   bucket: string
   hash: string
   name: string
   onClose: () => void
+  renderMessage?: (props: DialogSuccessRenderMessageProps) => React.ReactNode
+  title?: React.ReactNode
 }
 
 // TODO: use the same API as for DialogError and DialogLoading
 export default function DialogSuccess({
+  browseText,
   bucket,
   hash,
   name,
   onClose,
+  renderMessage,
+  title,
 }: DialogSuccessProps) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
 
-  const bucketUrl = urls.bucketOverview(bucket)
   const packageUrl = urls.bucketPackageTree(bucket, name, hash)
+  const packageLink = (
+    <StyledLink to={packageUrl}>
+      {name}@{R.take(10, hash)}
+    </StyledLink>
+  )
+  const bucketLink = (
+    <StyledLink to={urls.bucketOverview(bucket)}>s3://{bucket}</StyledLink>
+  )
 
   return (
     <>
-      <M.DialogTitle>Push complete</M.DialogTitle>
+      <M.DialogTitle>{title || 'Push complete'}</M.DialogTitle>
       <M.DialogContent className={classes.content}>
         <M.Typography>
-          Pushed to <StyledLink to={bucketUrl}>s3://{bucket}</StyledLink> as{' '}
-          <StyledLink to={packageUrl}>
-            {name}@{R.take(10, hash)}
-          </StyledLink>{' '}
+          {(renderMessage || defaultRenderMessage)({ bucketLink, packageLink })}
         </M.Typography>
       </M.DialogContent>
       <M.DialogActions>
@@ -52,7 +73,7 @@ export default function DialogSuccess({
           variant="contained"
           color="primary"
         >
-          Browse package
+          {browseText || 'Browse package'}
         </M.Button>
       </M.DialogActions>
     </>
