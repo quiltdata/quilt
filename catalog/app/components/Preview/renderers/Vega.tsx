@@ -1,7 +1,6 @@
 import * as React from 'react'
 import embed, { VisualizationSpec } from 'vega-embed'
-
-import './vega.css'
+import * as M from '@material-ui/core'
 
 const VEGA_OPTIONS = {
   actions: {
@@ -12,11 +11,36 @@ const VEGA_OPTIONS = {
   },
 }
 
+const useStyles = M.makeStyles({
+  root: {
+    maxWidth: '100%',
+
+    '&.vega-embed .vega-actions': {
+      right: '38px',
+      top: 0,
+    },
+
+    '&.vega-embed .vega-actions::after': {
+      display: 'none',
+    },
+    '&.vega-embed .vega-actions::before': {
+      display: 'none',
+    },
+
+    '&.vega-embed .chart-wrapper': {
+      maxWidth: '100%',
+      overflow: 'auto',
+    },
+  },
+})
+
 interface VegaProps extends React.HTMLProps<HTMLDivElement> {
   spec: VisualizationSpec | string
 }
 
 function Vega({ spec, ...props }: VegaProps) {
+  const classes = useStyles()
+
   const [el, setEl] = React.useState<HTMLElement | null>(null)
 
   React.useEffect(() => {
@@ -24,7 +48,7 @@ function Vega({ spec, ...props }: VegaProps) {
     embed(el, spec, VEGA_OPTIONS)
   }, [el, spec])
 
-  return <div ref={setEl} {...props} />
+  return <div className={classes.root} ref={setEl} {...props} />
 }
 
 export default (
