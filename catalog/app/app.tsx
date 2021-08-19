@@ -82,9 +82,9 @@ function ErrorBoundaryPlaceholder({ error, info, reset }: ErrorBoundaryPlacehold
 }
 
 const ErrorBoundary = createBoundary(
-  (_: unknown, { reset }: { reset: () => void }) => (error: $TSFixMe, info: $TSFixMe) => (
-    <ErrorBoundaryPlaceholder error={error} info={info} reset={reset} />
-  ),
+  (_: unknown, { reset }: { reset: () => void }) =>
+    (error: $TSFixMe, info: $TSFixMe) =>
+      <ErrorBoundaryPlaceholder error={error} info={info} reset={reset} />,
 )
 
 // error gets automatically logged to the console, so no need to do it explicitly

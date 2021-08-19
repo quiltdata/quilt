@@ -233,9 +233,10 @@ export function FilePreview({
 }
 
 function ContentSkel({ lines = 15, ...props }) {
-  const widths = React.useMemo(() => R.times(() => 80 + Math.random() * 20, lines), [
-    lines,
-  ])
+  const widths = React.useMemo(
+    () => R.times(() => 80 + Math.random() * 20, lines),
+    [lines],
+  )
   return (
     <M.Box {...props}>
       {widths.map((w, i) => (

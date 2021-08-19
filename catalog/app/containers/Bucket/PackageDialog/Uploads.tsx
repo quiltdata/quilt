@@ -54,9 +54,10 @@ export function useUploads() {
   const [uploads, setUploads] = React.useState<UploadsState>({})
   const progress = React.useMemo(() => computeTotalProgress(uploads), [uploads])
 
-  const remove = React.useCallback((path: string) => setUploads(R.dissoc(path)), [
-    setUploads,
-  ])
+  const remove = React.useCallback(
+    (path: string) => setUploads(R.dissoc(path)),
+    [setUploads],
+  )
   const removeByPrefix = React.useCallback(
     (prefix: string) => setUploads(dissocBy(R.startsWith(prefix))),
     [setUploads],

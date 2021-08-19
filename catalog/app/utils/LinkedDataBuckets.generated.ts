@@ -15,7 +15,7 @@ export type utils_LinkedDataBucketsQuery = { readonly __typename: 'Query' } & {
   >
 }
 
-export const utils_LinkedDataBucketsDocument = ({
+export const utils_LinkedDataBucketsDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -60,7 +60,7 @@ export const utils_LinkedDataBucketsDocument = ({
       },
     },
   ],
-} as unknown) as DocumentNode<
+} as unknown as DocumentNode<
   utils_LinkedDataBucketsQuery,
   utils_LinkedDataBucketsQueryVariables
 >

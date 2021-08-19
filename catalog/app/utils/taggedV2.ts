@@ -15,7 +15,11 @@ interface InstanceConstructor<
   VariantTag,
   Input extends any[],
   Value,
-  Inst extends Instance<TypeTag, VariantTag, Value> = Instance<TypeTag, VariantTag, Value>
+  Inst extends Instance<TypeTag, VariantTag, Value> = Instance<
+    TypeTag,
+    VariantTag,
+    Value
+  >,
 > {
   (...args: Input): Inst
   unbox(inst: Inst): Value
@@ -42,28 +46,30 @@ export type ValueOf<T> = T extends InstanceConstructor<any, any, any, infer Valu
   ? Value
   : never
 
-const mkCons = <TypeTag>(typeTag: TypeTag) => <
-  VConsMap extends Record<any, ValueConstructor<any, any>>,
-  Variant extends keyof VConsMap
->(
-  valueCons: VConsMap[Variant],
-  variantTag: Variant,
-) => {
-  type Inst = Instance<TypeTag, Variant, ReturnType<typeof valueCons>>
-  const cons = (...args: Parameters<typeof valueCons>): Inst => ({
-    type: typeTag,
-    variant: variantTag,
-    value: valueCons(...args),
-  })
+const mkCons =
+  <TypeTag>(typeTag: TypeTag) =>
+  <
+    VConsMap extends Record<any, ValueConstructor<any, any>>,
+    Variant extends keyof VConsMap,
+  >(
+    valueCons: VConsMap[Variant],
+    variantTag: Variant,
+  ) => {
+    type Inst = Instance<TypeTag, Variant, ReturnType<typeof valueCons>>
+    const cons = (...args: Parameters<typeof valueCons>): Inst => ({
+      type: typeTag,
+      variant: variantTag,
+      value: valueCons(...args),
+    })
 
-  cons.unbox = (inst: Inst) => inst.value
+    cons.unbox = (inst: Inst) => inst.value
 
-  // TODO: support optional predicate arg?
-  cons.is = (inst: any): inst is Inst =>
-    !!inst && inst.type === typeTag && inst.variant === variantTag
+    // TODO: support optional predicate arg?
+    cons.is = (inst: any): inst is Inst =>
+      !!inst && inst.type === typeTag && inst.variant === variantTag
 
-  return cons
-}
+    return cons
+  }
 
 export function create<TypeTag, VConsMap extends Record<any, ValueConstructor<any, any>>>(
   typeTag: TypeTag,

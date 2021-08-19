@@ -212,49 +212,44 @@ interface CreatePackageDependencies {
   serviceBucket: string
 }
 
-const mkCreatePackage = ({
-  s3,
-  credentials,
-  req,
-  serviceBucket,
-}: CreatePackageDependencies) => async (
-  { contents, message, meta, target, workflow }: CreatePackageParams,
-  schema?: JsonSchema, // TODO: should be already inside workflow
-) => {
-  await credentials.getPromise()
-  const header = {
-    name: target.name,
-    registry: `s3://${target.bucket}`,
-    message,
-    meta: getMetaValue(meta, schema),
-    workflow: getWorkflowApiParam(workflow.slug),
+const mkCreatePackage =
+  ({ s3, credentials, req, serviceBucket }: CreatePackageDependencies) =>
+  async (
+    { contents, message, meta, target, workflow }: CreatePackageParams,
+    schema?: JsonSchema, // TODO: should be already inside workflow
+  ) => {
+    await credentials.getPromise()
+    const header = {
+      name: target.name,
+      registry: `s3://${target.bucket}`,
+      message,
+      meta: getMetaValue(meta, schema),
+      workflow: getWorkflowApiParam(workflow.slug),
+    }
+    const payload = [header, ...contents].map((x) => JSON.stringify(x)).join('\n')
+    const upload = s3.upload({
+      Bucket: serviceBucket,
+      Key: CREATE_PACKAGE_PAYLOAD_KEY,
+      Body: payload,
+    })
+    const res = await upload.promise()
+    return makeBackendRequest(
+      req,
+      ENDPOINT_CREATE,
+      JSON.stringify((res as any).VersionId as string),
+      getCredentialsQuery(credentials),
+    )
   }
-  const payload = [header, ...contents].map((x) => JSON.stringify(x)).join('\n')
-  const upload = s3.upload({
-    Bucket: serviceBucket,
-    Key: CREATE_PACKAGE_PAYLOAD_KEY,
-    Body: payload,
-  })
-  const res = await upload.promise()
-  return makeBackendRequest(
-    req,
-    ENDPOINT_CREATE,
-    JSON.stringify((res as any).VersionId as string),
-    getCredentialsQuery(credentials),
-  )
-}
 
 export function useCreatePackage() {
   const req: ApiRequest = APIConnector.use()
   const { serviceBucket } = Config.use()
   const credentials = AWS.Credentials.use()
   const s3 = AWS.S3.use()
-  return React.useMemo(() => mkCreatePackage({ s3, credentials, req, serviceBucket }), [
-    s3,
-    credentials,
-    req,
-    serviceBucket,
-  ])
+  return React.useMemo(
+    () => mkCreatePackage({ s3, credentials, req, serviceBucket }),
+    [s3, credentials, req, serviceBucket],
+  )
 }
 
 const copyPackage = async (

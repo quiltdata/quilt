@@ -205,9 +205,10 @@ function ModeSelector({ mode, onChange }) {
 
   const [controlsShown, setControlsShown] = React.useState(false)
   const showControls = React.useCallback(() => setControlsShown(true), [setControlsShown])
-  const hideControls = React.useCallback(() => setControlsShown(false), [
-    setControlsShown,
-  ])
+  const hideControls = React.useCallback(
+    () => setControlsShown(false),
+    [setControlsShown],
+  )
 
   const controls = (
     <>
