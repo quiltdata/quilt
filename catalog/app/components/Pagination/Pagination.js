@@ -29,10 +29,10 @@ export const usePagination = (
 
   const pages = Math.max(1, Math.ceil(items.length / perPage))
 
-  const goToPage = React.useMemo(() => R.pipe(R.clamp(1, pages), setPage), [
-    pages,
-    setPage,
-  ])
+  const goToPage = React.useMemo(
+    () => R.pipe(R.clamp(1, pages), setPage),
+    [pages, setPage],
+  )
 
   const nextPage = React.useCallback(() => goToPage(page + 1), [goToPage, page])
 
@@ -46,10 +46,10 @@ export const usePagination = (
 
   const offset = (page - 1) * perPage
 
-  const paginate = React.useMemo(() => R.slice(offset, offset + perPage), [
-    offset,
-    perPage,
-  ])
+  const paginate = React.useMemo(
+    () => R.slice(offset, offset + perPage),
+    [offset, perPage],
+  )
   const paginated = useGetter(items, paginate)
 
   usePrevious(perPage, (prev) => {

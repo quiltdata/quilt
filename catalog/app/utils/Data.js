@@ -14,8 +14,10 @@ const mapResult = AsyncResult.mapCase({ Pending: R.prop('prev') })
 
 const reducer = Action.reducer({
   Reset: () => () => initial,
-  Request: ({ request, params }) => (prev) =>
-    AsyncResult.Pending({ request, params, prev: mapResult(prev) }),
+  Request:
+    ({ request, params }) =>
+    (prev) =>
+      AsyncResult.Pending({ request, params, prev: mapResult(prev) }),
   Response: ({ request, params, result }) =>
     AsyncResult.case({
       Pending: (p) =>
@@ -55,8 +57,11 @@ export function useData(request, params, { noAutoFetch = false } = {}) {
 
   const result = useMemoEq(stateRef.current, mapResult)
 
-  const doCase = useMemoEq([result], () => (cases, ...args) =>
-    AsyncResult.case(cases, result, ...args),
+  const doCase = useMemoEq(
+    [result],
+    () =>
+      (cases, ...args) =>
+        AsyncResult.case(cases, result, ...args),
   )
 
   return useMemoEq({ result, fetch, case: doCase }, R.identity)

@@ -156,7 +156,7 @@ function* errorMiddleware(opts, next) {
   return resp
 }
 
-const isInstance = (cls) => (b) => (cls ? b instanceof cls : false)
+const isInstance = (cls) => (b) => cls ? b instanceof cls : false
 
 const validBodyTests = [
   isNil,
@@ -218,8 +218,12 @@ const jsonAccepts = {
 function* jsonMiddleware({ json = true, ...opts }, next) {
   if (!json) return yield call(next, opts)
 
-  const { stringify = true, parse = true, contentType = true, accepts = true } =
-    json === true ? {} : json
+  const {
+    stringify = true,
+    parse = true,
+    contentType = true,
+    accepts = true,
+  } = json === true ? {} : json
 
   if (!stringify && !parse && !contentType && !accepts) {
     return yield call(next, opts)

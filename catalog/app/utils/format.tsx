@@ -79,10 +79,8 @@ interface PluralProps extends Rules {
 }
 
 export function Plural({ value, zero, one, other }: PluralProps) {
-  return React.useMemo(() => pluralify(value, { zero, one, other }), [
-    value,
-    zero,
-    one,
-    other,
-  ])
+  return React.useMemo(
+    () => pluralify(value, { zero, one, other }),
+    [value, zero, one, other],
+  )
 }

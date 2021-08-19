@@ -135,9 +135,10 @@ const unescape = (s) => s.replace(/\\n/g, '\n')
 export default function useSearch() {
   const req = APIConnector.use()
   const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
-  const allBuckets = React.useMemo(() => bucketConfigs.map((b) => b.name), [
-    bucketConfigs,
-  ])
+  const allBuckets = React.useMemo(
+    () => bucketConfigs.map((b) => b.name),
+    [bucketConfigs],
+  )
 
   return React.useCallback(
     async ({

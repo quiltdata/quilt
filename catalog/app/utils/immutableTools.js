@@ -1,8 +1,11 @@
 // TODO: deprecate
 import { fromJS as iFromJS } from 'immutable'
 
-export const invoke = (method) => (...args) => (obj) =>
-  obj && method in obj ? obj[method](...args) : obj
+export const invoke =
+  (method) =>
+  (...args) =>
+  (obj) =>
+    obj && method in obj ? obj[method](...args) : obj
 
 export const get = invoke('get')
 export const getIn = invoke('getIn')
@@ -14,4 +17,7 @@ export const sortBy = invoke('sortBy')
 export const push = invoke('push')
 export const map = invoke('map')
 export const toJS = invoke('toJS')
-export const fromJS = (...args) => (obj) => iFromJS(obj, ...args)
+export const fromJS =
+  (...args) =>
+  (obj) =>
+    iFromJS(obj, ...args)

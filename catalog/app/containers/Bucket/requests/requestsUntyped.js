@@ -19,8 +19,10 @@ import * as errors from '../errors'
 
 import { decodeS3Key } from './utils'
 
-const withErrorHandling = (fn, pairs) => (...args) =>
-  fn(...args).catch(errors.catchErrors(pairs))
+const withErrorHandling =
+  (fn, pairs) =>
+  (...args) =>
+    fn(...args).catch(errors.catchErrors(pairs))
 
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
@@ -1091,18 +1093,26 @@ export const getPackageRevisions = withErrorHandling(
     ).then(
       R.pipe(
         R.pathOr([], ['aggregations', 'revisions', 'buckets']),
-        R.map(({ latest: { hits: { hits: [{ _source: s }] } } }) => ({
-          pointer: s.pointer_file,
-          hash: s.hash,
-          modified: new Date(s.last_modified),
-          stats: {
-            files: R.pathOr(0, ['package_stats', 'total_files'], s),
-            bytes: R.pathOr(0, ['package_stats', 'total_bytes'], s),
-          },
-          message: s.comment,
-          metadata: tryParse(s.metadata),
-          // header, // not in ES
-        })),
+        R.map(
+          ({
+            latest: {
+              hits: {
+                hits: [{ _source: s }],
+              },
+            },
+          }) => ({
+            pointer: s.pointer_file,
+            hash: s.hash,
+            modified: new Date(s.last_modified),
+            stats: {
+              files: R.pathOr(0, ['package_stats', 'total_files'], s),
+              bytes: R.pathOr(0, ['package_stats', 'total_bytes'], s),
+            },
+            message: s.comment,
+            metadata: tryParse(s.metadata),
+            // header, // not in ES
+          }),
+        ),
       ),
     ),
 )

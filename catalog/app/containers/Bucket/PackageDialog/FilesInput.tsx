@@ -107,46 +107,52 @@ const handleFilesAction = FilesAction.match<
   (state: FilesState) => FilesState,
   [{ initial: FilesState }]
 >({
-  Add: ({ files, prefix }) => (state) =>
-    files.reduce((acc, file) => {
-      const path = (prefix || '') + PD.getNormalizedPath(file)
-      return R.evolve(
-        {
-          added: R.assoc(path, file),
-          deleted: R.dissoc(path),
-        },
-        acc,
-      )
-    }, state),
-  AddFromS3: ({ files, basePrefix, prefix }) => (state) =>
-    files.reduce((acc, file) => {
-      const path = (prefix || '') + withoutPrefix(basePrefix, file.key)
-      return R.evolve(
-        {
-          added: R.assoc(path, file),
-          deleted: R.dissoc(path),
-        },
-        acc,
-      )
-    }, state),
+  Add:
+    ({ files, prefix }) =>
+    (state) =>
+      files.reduce((acc, file) => {
+        const path = (prefix || '') + PD.getNormalizedPath(file)
+        return R.evolve(
+          {
+            added: R.assoc(path, file),
+            deleted: R.dissoc(path),
+          },
+          acc,
+        )
+      }, state),
+  AddFromS3:
+    ({ files, basePrefix, prefix }) =>
+    (state) =>
+      files.reduce((acc, file) => {
+        const path = (prefix || '') + withoutPrefix(basePrefix, file.key)
+        return R.evolve(
+          {
+            added: R.assoc(path, file),
+            deleted: R.dissoc(path),
+          },
+          acc,
+        )
+      }, state),
   Delete: (path) =>
     R.evolve({
       added: R.dissoc(path),
       deleted: R.assoc(path, true as const),
     }),
   // add all descendants from existing to deleted
-  DeleteDir: (prefix) => ({ existing, added, deleted, ...rest }) => ({
-    existing,
-    added: dissocBy(R.startsWith(prefix))(added),
-    deleted: R.mergeLeft(
-      Object.keys(existing).reduce(
-        (acc, k) => (k.startsWith(prefix) ? { ...acc, [k]: true } : acc),
-        {},
+  DeleteDir:
+    (prefix) =>
+    ({ existing, added, deleted, ...rest }) => ({
+      existing,
+      added: dissocBy(R.startsWith(prefix))(added),
+      deleted: R.mergeLeft(
+        Object.keys(existing).reduce(
+          (acc, k) => (k.startsWith(prefix) ? { ...acc, [k]: true } : acc),
+          {},
+        ),
+        deleted,
       ),
-      deleted,
-    ),
-    ...rest,
-  }),
+      ...rest,
+    }),
   Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
   // remove all descendants from added and deleted
   RevertDir: (prefix) =>
@@ -154,7 +160,10 @@ const handleFilesAction = FilesAction.match<
       added: dissocBy(R.startsWith(prefix)),
       deleted: dissocBy(R.startsWith(prefix)),
     }),
-  Reset: (_, { initial }) => () => initial,
+  Reset:
+    (_, { initial }) =>
+    () =>
+      initial,
 })
 
 interface DispatchFilesAction {

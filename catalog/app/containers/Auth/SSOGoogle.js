@@ -28,11 +28,13 @@ export default function SSOGoogle({ mutex, next, ...props }) {
   const { urls } = NamedRoutes.use()
   const { claim, release } = mutex
 
-  const handleClick = (onClick) => (...args) => {
-    if (mutex.current) return
-    claim(MUTEX_POPUP)
-    onClick(...args)
-  }
+  const handleClick =
+    (onClick) =>
+    (...args) => {
+      if (mutex.current) return
+      claim(MUTEX_POPUP)
+      onClick(...args)
+    }
 
   const handleSuccess = React.useCallback(
     async (user) => {

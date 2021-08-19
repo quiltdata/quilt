@@ -47,15 +47,18 @@ const useStyles = M.makeStyles((t) => ({
 function Vcf({ meta, header, data, variants, note, warnings }) {
   const classes = useStyles()
 
-  const renderCell = (type, i = '') => (col, j) => (
-    <M.TableCell
-      // eslint-disable-next-line react/no-array-index-key
-      key={`${type}:${i}:${j}`}
-      className={cx(classes.cell, classes[type])}
-    >
-      {col}
-    </M.TableCell>
-  )
+  const renderCell =
+    (type, i = '') =>
+    (col, j) =>
+      (
+        <M.TableCell
+          // eslint-disable-next-line react/no-array-index-key
+          key={`${type}:${i}:${j}`}
+          className={cx(classes.cell, classes[type])}
+        >
+          {col}
+        </M.TableCell>
+      )
 
   return (
     <div className={classes.root}>
