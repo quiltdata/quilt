@@ -22,7 +22,7 @@ export type BucketConfigSelectionFragment = {
   | 'lastIndexed'
 >
 
-export const BucketConfigSelectionFragmentDoc = ({
+export const BucketConfigSelectionFragmentDoc = {
   kind: 'Document',
   definitions: [
     {
@@ -50,4 +50,4 @@ export const BucketConfigSelectionFragmentDoc = ({
       },
     },
   ],
-} as unknown) as DocumentNode<BucketConfigSelectionFragment, unknown>
+} as unknown as DocumentNode<BucketConfigSelectionFragment, unknown>

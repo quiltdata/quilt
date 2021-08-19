@@ -37,9 +37,11 @@ export default composeComponent(
     },
   ),
   withHandlers({
-    copy: ({ result }) => () => {
-      copyToClipboard(result)
-    },
+    copy:
+      ({ result }) =>
+      () => {
+        copyToClipboard(result)
+      },
   }),
   Sentry.inject(),
   lifecycle({

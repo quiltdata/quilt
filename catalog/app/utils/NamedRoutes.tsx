@@ -39,14 +39,14 @@ export const Provider = function NamedRoutesProvider<R extends RoutesConfig>({
   children,
 }: React.PropsWithChildren<{ routes: R }>) {
   // using rest syntax here to cast module or some other object-like thing into plain object
-  const value = (useMemoEq(
+  const value = useMemoEq(
     // @ts-expect-error
     { ...routes },
     R.applySpec({
       paths: R.pluck('path'),
       urls: R.pluck('url'),
     }),
-  ) as unknown) as Routes<RouteMapFromConfig<R>>
+  ) as unknown as Routes<RouteMapFromConfig<R>>
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 

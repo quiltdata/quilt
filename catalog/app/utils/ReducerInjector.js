@@ -106,10 +106,13 @@ export const Inject = function ReducerInjector({
  *
  * @returns {reduxTools.StoreEnhancer}
  */
-export const withInjectableReducers = (createReducer) => (createStore) => (...args) => {
-  const store = createStore(...args)
-  const injector = createReducerInjector((injected) => {
-    store.replaceReducer(createReducer(injected))
-  })
-  return { ...store, injector }
-}
+export const withInjectableReducers =
+  (createReducer) =>
+  (createStore) =>
+  (...args) => {
+    const store = createStore(...args)
+    const injector = createReducerInjector((injected) => {
+      store.replaceReducer(createReducer(injected))
+    })
+    return { ...store, injector }
+  }

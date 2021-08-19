@@ -10,7 +10,9 @@ fragment RoleSelection on Role {
     name
     arn
     permissions {
-      bucket { name }
+      bucket {
+        name
+      }
       level
     }
   }

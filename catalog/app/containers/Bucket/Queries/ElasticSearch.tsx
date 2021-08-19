@@ -83,15 +83,12 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
   const [queryMeta, setQueryMeta] = React.useState<requests.Query | null>(null)
 
   // Custom query content, not associated with queryMeta
-  const [
-    customQueryBody,
-    setCustomQueryBody,
-  ] = React.useState<requests.ElasticSearchQuery>(null)
+  const [customQueryBody, setCustomQueryBody] =
+    React.useState<requests.ElasticSearchQuery>(null)
 
   // Query content requested to Elastic Search
-  const [queryRequest, setQueryRequest] = React.useState<requests.ElasticSearchQuery>(
-    null,
-  )
+  const [queryRequest, setQueryRequest] =
+    React.useState<requests.ElasticSearchQuery>(null)
 
   const [error, setError] = React.useState<Error | null>(null)
 

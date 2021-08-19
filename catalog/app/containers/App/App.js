@@ -12,9 +12,10 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import { loadable } from 'utils/reactTools'
 import { useLocation } from 'utils/router'
 
-const redirectTo = (path) => ({ location: { search } }) => (
-  <Redirect to={`${path}${search}`} />
-)
+const redirectTo =
+  (path) =>
+  ({ location: { search } }) =>
+    <Redirect to={`${path}${search}`} />
 
 const requireAdmin = requireAuth({ authorizedSelector: isAdmin })
 
@@ -67,10 +68,10 @@ export default function App() {
   const { paths, urls } = NamedRoutes.use()
   const l = useLocation()
 
-  const Home = React.useMemo(() => protect(cfg.mode === 'OPEN' ? OpenLanding : Landing), [
-    protect,
-    cfg.mode,
-  ])
+  const Home = React.useMemo(
+    () => protect(cfg.mode === 'OPEN' ? OpenLanding : Landing),
+    [protect, cfg.mode],
+  )
 
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>

@@ -20,7 +20,7 @@ export type utils_BucketConfigListQuery = { readonly __typename: 'Query' } & {
   >
 }
 
-export const utils_BucketConfigListDocument = ({
+export const utils_BucketConfigListDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -51,7 +51,7 @@ export const utils_BucketConfigListDocument = ({
       },
     },
   ],
-} as unknown) as DocumentNode<
+} as unknown as DocumentNode<
   utils_BucketConfigListQuery,
   utils_BucketConfigListQueryVariables
 >

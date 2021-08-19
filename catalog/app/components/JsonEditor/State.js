@@ -240,10 +240,10 @@ export default function JsonEditorState({ children, jsonObject, schema }) {
   }, [schema, sortOrder])
 
   // NOTE: list of root object keys + root schema keys
-  const rootKeys = React.useMemo(() => mergeSchemaAndObjRootKeys(schema, jsonObject), [
-    schema,
-    jsonObject,
-  ])
+  const rootKeys = React.useMemo(
+    () => mergeSchemaAndObjRootKeys(schema, jsonObject),
+    [schema, jsonObject],
+  )
 
   // NOTE: this data represents table columns shown to user
   //       it's the main source of UI data

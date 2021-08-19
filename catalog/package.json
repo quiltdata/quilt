@@ -7,8 +7,8 @@
     "url": "git://github.com/quiltdata/quilt.git"
   },
   "engines": {
-    "npm": "7",
-    "node": "15"
+    "npm": ">=7",
+    "node": ">=15"
   },
   "author": "Quilt Data, Inc. <contact@quiltdata.io> (https://quiltdata.com)",
   "license": "MIT",
@@ -195,7 +195,7 @@
     "jest-localstorage-mock": "^2.4.14",
     "lint-staged": "^11.1.2",
     "ngrok": "^3.4.1",
-    "prettier": "^2.2.1",
+    "prettier": "^2.3.2",
     "raw-loader": "^4.0.2",
     "react-test-renderer": "^17.0.2",
     "redux-logger": "^3.0.6",

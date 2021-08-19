@@ -29,7 +29,7 @@ export type containers_Admin_RolesCreateUnmanagedMutation = {
     | { readonly __typename: 'BucketConfigDoesNotExist' }
 }
 
-export const containers_Admin_RolesCreateUnmanagedDocument = ({
+export const containers_Admin_RolesCreateUnmanagedDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -99,7 +99,7 @@ export const containers_Admin_RolesCreateUnmanagedDocument = ({
     },
     ...RoleSelectionFragmentDoc.definitions,
   ],
-} as unknown) as DocumentNode<
+} as unknown as DocumentNode<
   containers_Admin_RolesCreateUnmanagedMutation,
   containers_Admin_RolesCreateUnmanagedMutationVariables
 >

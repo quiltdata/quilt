@@ -77,6 +77,8 @@ export const Inject = function InjectSentry({ children }) {
   return children(use())
 }
 
-export const inject = (prop = 'sentry') => (Component) => (props) => (
-  <Component {...props} {...{ [prop]: use() }} />
-)
+export const inject =
+  (prop = 'sentry') =>
+  (Component) =>
+  (props) =>
+    <Component {...props} {...{ [prop]: use() }} />
