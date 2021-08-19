@@ -1,7 +1,8 @@
+import * as FF from 'final-form'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
-import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
+import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import * as Config from 'utils/Config'
@@ -10,7 +11,6 @@ import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
 import defer from 'utils/defer'
 import parseSearch from 'utils/parseSearch'
-import { composeComponent } from 'utils/reactTools'
 import useMutex from 'utils/useMutex'
 import * as validators from 'utils/validators'
 
@@ -27,69 +27,79 @@ const Container = Layout.mkLayout('Sign in')
 
 const MUTEX_ID = 'password'
 
-const PasswordSignIn = composeComponent(
-  'Auth.SignIn.Password',
-  Sentry.inject(),
-  reduxForm({
-    form: 'Auth.SignIn.Password',
-    onSubmit: async (values, dispatch, { sentry, mutex }) => {
+function PasswordSignIn({ mutex }) {
+  const sentry = Sentry.use()
+  const dispatch = redux.useDispatch()
+  const onSubmit = React.useCallback(
+    async (values) => {
       if (mutex.current) return
       mutex.claim(MUTEX_ID)
       const result = defer()
-      dispatch(actions.signIn(values.toJS(), result.resolver))
+      dispatch(actions.signIn(values, result.resolver))
       try {
         await result.promise
       } catch (e) {
         if (e instanceof errors.InvalidCredentials) {
-          throw new SubmissionError({ _error: 'invalidCredentials' })
+          // eslint-disable-next-line consistent-return
+          return {
+            [FF.FORM_ERROR]: 'invalidCredentials',
+          }
         }
         sentry('captureException', e)
-        throw new SubmissionError({ _error: 'unexpected' })
+        // eslint-disable-next-line consistent-return
+        return {
+          [FF.FORM_ERROR]: 'unexpected',
+        }
       } finally {
         mutex.release(MUTEX_ID)
       }
     },
-  }),
-  ({ mutex, handleSubmit, submitting, submitFailed, invalid, error }) => (
-    <form onSubmit={handleSubmit}>
-      <Field
-        component={Layout.Field}
-        name="username"
-        validate={[validators.required]}
-        disabled={!!mutex.current || submitting}
-        floatingLabelText="Username or email"
-        errors={{
-          required: 'Enter your username or email',
-        }}
-      />
-      <Field
-        component={Layout.Field}
-        name="password"
-        type="password"
-        validate={[validators.required]}
-        disabled={!!mutex.current || submitting}
-        floatingLabelText="Password"
-        errors={{
-          required: 'Enter your password',
-        }}
-      />
-      <Layout.Error
-        {...{ submitFailed, error }}
-        errors={{
-          invalidCredentials: 'Invalid credentials',
-          unexpected: 'Something went wrong. Try again later.',
-        }}
-      />
-      <Layout.Actions>
-        <Layout.Submit
-          label="Sign in"
-          disabled={!!mutex.current || submitting || (submitFailed && invalid)}
-          busy={submitting}
-        />
-      </Layout.Actions>
-    </form>
-  ),
-)
+    [dispatch, mutex, sentry],
+  )
+  return (
+    <RF.Form onSubmit={onSubmit}>
+      {({ handleSubmit, submitting, submitError, submitFailed, invalid, error }) => (
+        <form onSubmit={handleSubmit}>
+          <RF.Field
+            component={Layout.Field}
+            name="username"
+            validate={validators.required}
+            disabled={!!mutex.current || submitting}
+            floatingLabelText="Username or email"
+            errors={{
+              required: 'Enter your username or email',
+            }}
+          />
+          <RF.Field
+            component={Layout.Field}
+            name="password"
+            type="password"
+            validate={validators.required}
+            disabled={!!mutex.current || submitting}
+            floatingLabelText="Password"
+            errors={{
+              required: 'Enter your password',
+            }}
+          />
+          <Layout.Error
+            {...{ submitFailed, error: error || submitError }}
+            errors={{
+              invalidCredentials: 'Invalid credentials',
+              unexpected: 'Something went wrong. Try again later.',
+            }}
+          />
+          <Layout.Actions>
+            <Layout.Submit
+              label="Sign in"
+              disabled={!!mutex.current || submitting || (submitFailed && invalid)}
+              busy={submitting}
+            />
+          </Layout.Actions>
+        </form>
+      )}
+    </RF.Form>
+  )
+}
 
 export default ({ location: { search } }) => {
   const authenticated = redux.useSelector(selectors.authenticated)
