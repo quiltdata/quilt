@@ -5,7 +5,6 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
-import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -165,23 +164,20 @@ function DialogForm({
     <RF.Form
       onSubmit={onSubmitWrapped}
       subscription={{
-        handleSubmit: true,
-        submitting: true,
-        submitFailed: true,
         error: true,
-        submitError: true,
         hasValidationErrors: true,
-        form: true,
+        submitError: true,
+        submitFailed: true,
+        submitting: true,
       }}
     >
       {({
-        handleSubmit,
-        submitting,
-        submitFailed,
         error,
-        submitError,
         hasValidationErrors,
-        form,
+        submitError,
+        submitFailed,
+        submitting,
+        handleSubmit,
       }) => (
         <>
           <DialogTitle bucket={successor.slug} />
@@ -422,27 +418,24 @@ export default function PackageCopyDialog({
               workflowsConfig={workflowsConfig}
               workflow={workflow}
             >
-              {AsyncResult.case({
-                Ok: (schemaProps) => (
-                  <DialogForm
-                    {...schemaProps}
-                    {...{
-                      bucket,
-                      close,
-                      setSubmitting,
-                      setSuccess,
-                      setWorkflow,
-                      workflowsConfig,
+              {(schemaProps) => (
+                <DialogForm
+                  {...schemaProps}
+                  {...{
+                    bucket,
+                    close,
+                    setSubmitting,
+                    setSuccess,
+                    setWorkflow,
+                    workflowsConfig,
 
-                      hash,
-                      manifest,
-                      name,
-                      successor,
-                    }}
-                  />
-                ),
-                _: R.identity,
-              })}
+                    hash,
+                    manifest,
+                    name,
+                    successor,
+                  }}
+                />
+              )}
             </PD.SchemaFetcher>
           ),
         Success: (props) =>

@@ -6,7 +6,7 @@ import { Redirect } from 'react-router-dom'
 import { createStructuredSelector } from 'reselect'
 import Button from '@material-ui/core/Button'
 import Typography from '@material-ui/core/Typography'
-import { withStyles } from '@material-ui/core/styles'
+import * as M from '@material-ui/core'
 
 import Error from 'components/Error'
 import Layout from 'components/Layout'
@@ -44,14 +44,15 @@ const ErrorScreen = () => {
   )
 }
 
-const NotAuthorized = RT.composeComponent(
-  'Auth.Wrapper.NotAuthorized',
-  withStyles((t) => ({
-    heading: {
-      marginTop: t.spacing(10),
-    },
-  })),
-  ({ classes }) => (
+const useStyles = M.makeStyles((t) => ({
+  heading: {
+    marginTop: t.spacing(10),
+  },
+}))
+
+function NotAuthorized() {
+  const classes = useStyles()
+  return (
     <Layout>
       <Typography variant="h3" align="center" className={classes.heading} gutterBottom>
         Not Authorized
@@ -60,8 +61,8 @@ const NotAuthorized = RT.composeComponent(
         You are not authorized to visit this page.
       </Typography>
     </Layout>
-  ),
-)
+  )
+}
 
 export default ({ authorizedSelector = R.T } = {}) => {
   const select = createStructuredSelector({

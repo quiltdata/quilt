@@ -186,7 +186,7 @@ const makeBackendRequest: BackendRequest = (
     body,
   })
 
-const getMetaValue = (value: unknown, optSchema: JsonSchema) =>
+const getMetaValue = (value: unknown, optSchema?: JsonSchema) =>
   value
     ? pipeThru(value || {})(
         makeSchemaDefaultsSetter(optSchema),
@@ -216,7 +216,7 @@ const mkCreatePackage =
   ({ s3, credentials, req, serviceBucket }: CreatePackageDependencies) =>
   async (
     { contents, message, meta, target, workflow }: CreatePackageParams,
-    schema: JsonSchema, // TODO: should be already inside workflow
+    schema?: JsonSchema, // TODO: should be already inside workflow
   ) => {
     await credentials.getPromise()
     const header = {
@@ -256,7 +256,7 @@ const copyPackage = async (
   req: ApiRequest,
   credentials: AWSCredentials,
   { message, meta, source, target, workflow }: CopyPackageParams,
-  schema: JsonSchema, // TODO: should be already inside workflow
+  schema?: JsonSchema, // TODO: should be already inside workflow
 ) => {
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
@@ -284,7 +284,7 @@ export function useCopyPackage() {
   const credentials = AWS.Credentials.use()
   const req: ApiRequest = APIConnector.use()
   return React.useCallback(
-    (params: CopyPackageParams, schema: JsonSchema) =>
+    (params: CopyPackageParams, schema?: JsonSchema) =>
       copyPackage(req, credentials, params, schema),
     [credentials, req],
   )
@@ -323,7 +323,7 @@ const wrapPackage = async (
   req: ApiRequest,
   credentials: AWSCredentials,
   { message, meta, source, target, workflow, entries }: WrapPackageParams,
-  schema: JsonSchema, // TODO: should be already inside workflow
+  schema?: JsonSchema, // TODO: should be already inside workflow
 ) => {
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
@@ -350,7 +350,7 @@ export function useWrapPackage() {
   const credentials = AWS.Credentials.use()
   const req: ApiRequest = APIConnector.use()
   return React.useCallback(
-    (params: WrapPackageParams, schema: JsonSchema) =>
+    (params: WrapPackageParams, schema?: JsonSchema) =>
       wrapPackage(req, credentials, params, schema),
     [credentials, req],
   )

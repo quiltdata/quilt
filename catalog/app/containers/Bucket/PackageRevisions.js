@@ -455,7 +455,7 @@ export default function PackageRevisions({
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
       <MetaTitle>{[name, bucket]}</MetaTitle>
 
-      {updateDialog.render()}
+      {updateDialog.element}
 
       <M.Box
         pt={{ xs: 2, sm: 3 }}

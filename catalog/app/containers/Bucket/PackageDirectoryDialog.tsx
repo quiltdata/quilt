@@ -8,7 +8,6 @@ import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import * as authSelectors from 'containers/Auth/selectors'
-import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -73,15 +72,10 @@ interface DialogFormProps {
   dirs: string[]
   files: { key: string; size: number }[]
   close: () => void
-  responseError: $TSFixMe
-  schema: object
-  schemaLoading: boolean
-  selectedWorkflow: workflows.Workflow
   setSubmitting: (submitting: boolean) => void
   setSuccess: (success: { name: string; hash: string }) => void
   setWorkflow: (workflow: workflows.Workflow) => void
   successor: workflows.Successor
-  validate: FF.FieldValidator<$TSFixMe>
   workflowsConfig: workflows.WorkflowsConfig
 }
 
@@ -102,7 +96,7 @@ function DialogForm({
   successor,
   validate: validateMetaInput,
   workflowsConfig,
-}: DialogFormProps) {
+}: DialogFormProps & PD.SchemaFetcherRenderProps) {
   const nameValidator = PD.useNameValidator()
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
@@ -501,33 +495,24 @@ export default function PackageDirectoryDialog({
           Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
             successor && (
               <PD.SchemaFetcher workflow={workflow} workflowsConfig={workflowsConfig}>
-                {AsyncResult.case({
-                  Ok: (schemaProps: {
-                    responseError: $TSFixMe
-                    schema: object
-                    schemaLoading: boolean
-                    selectedWorkflow: workflows.Workflow
-                    validate: FF.FieldValidator<$TSFixMe>
-                  }) => (
-                    <DialogForm
-                      {...schemaProps}
-                      {...{
-                        bucket,
-                        path,
-                        truncated,
-                        dirs,
-                        files,
-                        close: handleClose,
-                        setSubmitting,
-                        setSuccess,
-                        setWorkflow,
-                        successor,
-                        workflowsConfig,
-                      }}
-                    />
-                  ),
-                  _: R.identity,
-                })}
+                {(schemaProps) => (
+                  <DialogForm
+                    {...schemaProps}
+                    {...{
+                      bucket,
+                      path,
+                      truncated,
+                      dirs,
+                      files,
+                      close: handleClose,
+                      setSubmitting,
+                      setSuccess,
+                      setWorkflow,
+                      successor,
+                      workflowsConfig,
+                    }}
+                  />
+                )}
               </PD.SchemaFetcher>
             ),
           _: () =>

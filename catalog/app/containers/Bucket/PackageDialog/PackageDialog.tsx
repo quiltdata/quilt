@@ -14,7 +14,6 @@ import { parseJSON, stringifyJSON } from 'components/JsonEditor/utils'
 import * as Notifications from 'containers/Notifications'
 import { useData } from 'utils/Data'
 import Delay from 'utils/Delay'
-import AsyncResult from 'utils/AsyncResult'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Sentry from 'utils/Sentry'
@@ -30,7 +29,6 @@ import SelectWorkflow from './SelectWorkflow'
 
 export const MAX_UPLOAD_SIZE = 1000 * 1000 * 1000 // 1GB
 export const MAX_S3_SIZE = 10 * 1000 * 1000 * 1000 // 10GB
-export const ES_LAG = 3 * 1000
 export const MAX_META_FILE_SIZE = 10 * 1000 * 1000 // 10MB
 
 export const ERROR_MESSAGES = {
@@ -187,8 +185,6 @@ export function mkMetaValidator(schema?: JsonSchema) {
   //       Maybe we should split validators to files at first
   const schemaValidator = makeSchemaValidator(schema)
   return function validateMeta(value: object | null) {
-    const noError = undefined
-
     const jsonObjectErr = value && !R.is(Object, value)
     if (jsonObjectErr) {
       return new Error('Metadata must be a valid JSON object')
@@ -196,13 +192,14 @@ export function mkMetaValidator(schema?: JsonSchema) {
 
     if (schema) {
       const errors = schemaValidator(value || {})
-      if (!errors.length) return noError
-      return errors
+      if (errors.length) return errors
     }
 
-    return noError
+    return undefined
   }
 }
+
+export type MetaValidator = ReturnType<typeof mkMetaValidator>
 
 interface FieldProps {
   error?: string
@@ -459,7 +456,7 @@ interface MetaInputProps {
   schemaError: React.ReactNode
   input: RF.FieldInputProps<{}>
   meta: RF.FieldMetaState<{}>
-  schema: $TSFixMe
+  schema?: JsonSchema
 }
 
 type Mode = 'kv' | 'json'
@@ -486,7 +483,7 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
       [disabled, onChange],
     )
 
-    const handleModeChange = (e: unknown, m: Mode) => {
+    const handleModeChange = (_e: unknown, m: Mode) => {
       if (!m) return
       setMode(m)
     }
@@ -639,7 +636,36 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
   },
 )
 
-type Result = $TSFixMe
+export interface SchemaFetcherRenderPropsLoading {
+  responseError: undefined
+  schema: undefined
+  schemaLoading: true
+  selectedWorkflow: workflows.Workflow | undefined
+  validate: MetaValidator
+}
+
+export interface SchemaFetcherRenderPropsSuccess {
+  responseError: undefined
+  schema?: JsonSchema
+  schemaLoading: false
+  selectedWorkflow: workflows.Workflow | undefined
+  validate: MetaValidator
+}
+
+export interface SchemaFetcherRenderPropsError {
+  responseError: Error
+  schema: undefined
+  schemaLoading: false
+  selectedWorkflow: workflows.Workflow | undefined
+  validate: MetaValidator
+}
+
+export type SchemaFetcherRenderProps =
+  | SchemaFetcherRenderPropsLoading
+  | SchemaFetcherRenderPropsSuccess
+  | SchemaFetcherRenderPropsError
+
+const noopValidator: MetaValidator = () => undefined
 
 interface SchemaFetcherProps {
   manifest?: {
@@ -649,7 +675,7 @@ interface SchemaFetcherProps {
   }
   workflow?: workflows.Workflow
   workflowsConfig: workflows.WorkflowsConfig
-  children: (result: Result) => React.ReactElement
+  children: (props: SchemaFetcherRenderProps) => React.ReactElement
 }
 
 export function SchemaFetcher({
@@ -661,15 +687,16 @@ export function SchemaFetcher({
   const s3 = AWS.S3.use()
   const sentry = Sentry.use()
 
+  const slug = manifest?.workflow?.id
+
   const initialWorkflow = React.useMemo(() => {
-    const slug = manifest && manifest.workflow && manifest.workflow.id
     // reuse workflow from previous revision if it's still present in the config
     if (slug) {
       const w = workflowsConfig.workflows.find(R.propEq('slug', slug))
       if (w) return w
     }
     return defaultWorkflowFromConfig(workflowsConfig)
-  }, [manifest, workflowsConfig])
+  }, [slug, workflowsConfig])
 
   const selectedWorkflow = workflow || initialWorkflow
 
@@ -683,31 +710,31 @@ export function SchemaFetcher({
   const schemaUrl = R.pathOr('', ['schema', 'url'], selectedWorkflow)
   const data = useData(requests.metadataSchema, { s3, schemaUrl })
 
-  const defaultProps = React.useMemo(
-    () => ({
-      responseError: null,
-      schema: null,
-      schemaLoading: false,
-      selectedWorkflow,
-      validate: () => undefined,
-    }),
-    [selectedWorkflow],
-  )
-
-  const res = React.useMemo(
+  const res: SchemaFetcherRenderProps = React.useMemo(
     () =>
       data.case({
-        Ok: (schema: {}) =>
-          AsyncResult.Ok({ ...defaultProps, schema, validate: mkMetaValidator(schema) }),
+        Ok: (schema?: JsonSchema) =>
+          ({
+            schema,
+            schemaLoading: false,
+            selectedWorkflow,
+            validate: mkMetaValidator(schema),
+          } as SchemaFetcherRenderPropsSuccess),
         Err: (responseError: Error) =>
-          AsyncResult.Ok({
-            ...defaultProps,
+          ({
             responseError,
+            schemaLoading: false,
+            selectedWorkflow,
             validate: mkMetaValidator(),
-          }),
-        _: () => AsyncResult.Ok({ ...defaultProps, schemaLoading: true }),
+          } as SchemaFetcherRenderPropsError),
+        _: () =>
+          ({
+            schemaLoading: true,
+            selectedWorkflow,
+            validate: noopValidator,
+          } as SchemaFetcherRenderPropsLoading),
       }),
-    [defaultProps, data],
+    [data, selectedWorkflow],
   )
   return children(res)
 }
@@ -769,4 +796,26 @@ export const PackageNameWarning = ({ exists }: PackageNameWarningProps) => {
       {exists ? 'Existing package' : 'New package'}
     </>
   )
+}
+
+interface DialogWrapperProps {
+  exited: boolean
+}
+
+export function DialogWrapper({
+  exited,
+  ...props
+}: DialogWrapperProps & React.ComponentProps<typeof M.Dialog>) {
+  const refProps = { exited, onExited: props.onExited }
+  const ref = React.useRef<typeof refProps>()
+  ref.current = refProps
+  React.useEffect(
+    () => () => {
+      // call onExited on unmount if it has not been called yet
+      if (!ref.current!.exited && ref.current!.onExited)
+        (ref.current!.onExited as () => void)()
+    },
+    [],
+  )
+  return <M.Dialog {...props} />
 }

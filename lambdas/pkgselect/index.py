@@ -190,12 +190,22 @@ def lambda_handler(request):
     # Get details of a single file in the package
     if logical_key is not None:
         sql_stmt = f"SELECT s.* FROM s3object s WHERE s.logical_key = '{sql_escape(logical_key)}' LIMIT 1"
-        response_data = json.load(query_manifest_content(
+        details = query_manifest_content(
             s3_client,
             bucket=bucket,
             key=key,
             sql_stmt=sql_stmt
-        ))
+        )
+        if details is not None:
+            response_data = json.load(details)
+        else:
+            return make_json_response(
+                404,
+                {
+                    'title': 'Key Not Found',
+                    'detail': f"key, {logical_key} not found in package"
+                }
+            )
     else:
         # Call s3 select to fetch only logical keys matching the
         # desired prefix (folder path)
