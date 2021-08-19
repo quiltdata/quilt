@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 
 import { makeSchemaValidator } from 'utils/json-schema'
+import * as packageHandle from 'utils/packageName'
 import * as s3paths from 'utils/s3paths'
 import yaml from 'utils/yaml'
 import workflowsConfigSchema from 'schemas/workflows.yml.json'
@@ -10,6 +11,7 @@ interface WorkflowsYaml {
   version: '1'
   is_workflow_required?: boolean
   default_workflow?: string
+  package_handle?: packageHandle.Handles
   workflows: Record<string, WorkflowYaml>
   schemas?: Record<string, Schema>
   successors?: Record<string, SuccessorYaml>
@@ -19,6 +21,7 @@ interface WorkflowYaml {
   name: string
   description?: string
   metadata_schema?: string
+  package_handle?: packageHandle.Handles
   is_message_required?: boolean
 }
 
@@ -43,17 +46,33 @@ export interface Workflow {
   isDefault: boolean
   isDisabled: boolean
   name?: string
+  packageHandle: Required<packageHandle.Handles>
   schema?: Schema
   slug: string | typeof notAvailable | typeof notSelected
 }
 
 export interface WorkflowsConfig {
   isWorkflowRequired: boolean
+  packageHandle: Required<packageHandle.Handles>
   successors: Successor[]
   workflows: Workflow[]
 }
 
+const defaultPackageHandle = {
+  files: '',
+  packages: '',
+}
+
 export const notAvailable = Symbol('not available')
+
+const parsePackageHandle = (
+  globalHandle?: packageHandle.Handles,
+  workflowHandle?: packageHandle.Handles,
+): Required<packageHandle.Handles> => ({
+  ...defaultPackageHandle,
+  ...globalHandle,
+  ...workflowHandle,
+})
 
 export const notSelected = Symbol('not selected')
 
@@ -61,6 +80,7 @@ function getNoWorkflow(data: WorkflowsYaml, hasConfig: boolean): Workflow {
   return {
     isDefault: !data.default_workflow,
     isDisabled: data.is_workflow_required !== false,
+    packageHandle: parsePackageHandle(data.package_handle),
     slug: hasConfig ? notSelected : notAvailable,
   }
 }
@@ -69,6 +89,7 @@ const COPY_DATA_DEFAULT = true
 
 export const emptyConfig: WorkflowsConfig = {
   isWorkflowRequired: false,
+  packageHandle: defaultPackageHandle,
   successors: [],
   workflows: [getNoWorkflow({} as WorkflowsYaml, false)],
 }
@@ -94,6 +115,7 @@ function parseWorkflow(
     isDefault: workflowSlug === data.default_workflow,
     isDisabled: false,
     name: workflow.name,
+    packageHandle: parsePackageHandle(data.package_handle, workflow.package_handle),
     schema: parseSchema(workflow.metadata_schema, data.schemas),
     slug: workflowSlug,
   }
@@ -129,6 +151,7 @@ export function parse(workflowsYaml: string): WorkflowsConfig {
   const successors = data.successors || {}
   return {
     isWorkflowRequired: data.is_workflow_required !== false,
+    packageHandle: parsePackageHandle(data.package_handle),
     successors: Object.entries(successors).map(([url, successor]) =>
       parseSuccessor(url, successor),
     ),

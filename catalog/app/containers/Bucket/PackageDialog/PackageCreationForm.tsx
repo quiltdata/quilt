@@ -3,11 +3,14 @@ import * as FP from 'fp-ts'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
+import * as authSelectors from 'containers/Auth/selectors'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as packageHandle from 'utils/packageName'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
 import * as validators from 'utils/validators'
@@ -272,6 +275,34 @@ export function PackageCreationForm({
     [handleNameChange],
   )
 
+  const username = redux.useSelector(authSelectors.username)
+
+  const getDefaultPackageName = React.useCallback(
+    (workflow) =>
+      packageHandle.convert(workflow?.packageHandle, 'packages', {
+        username: PD.getUsernamePrefix(username),
+      }),
+    [username],
+  )
+
+  const [initialValues, setInitialValues] = React.useState({
+    files: initialFiles,
+    meta: PD.EMPTY_META_VALUE,
+    name: getDefaultPackageName(selectedWorkflow || workflowsConfig),
+    workflow: selectedWorkflow,
+  })
+
+  const onWorkflowChange = React.useCallback(
+    ({ modified, values }) => {
+      setWorkflow(values.workflow)
+
+      if (modified.name) return
+      const defaultPackageName = getDefaultPackageName(values.workflow)
+      setInitialValues(R.assoc('name', defaultPackageName, values))
+    },
+    [getDefaultPackageName, setWorkflow],
+  )
+
   React.useEffect(() => {
     if (editorElement) resizeObserver.observe(editorElement)
     return () => {
@@ -289,10 +320,12 @@ export function PackageCreationForm({
 
   return (
     <RF.Form
+      initialValues={initialValues}
       onSubmit={onSubmitWrapped}
       subscription={{
         error: true,
         hasValidationErrors: true,
+        initialValues: true,
         submitError: true,
         submitFailed: true,
         submitting: true,
@@ -319,8 +352,8 @@ export function PackageCreationForm({
               <RF.FormSpy
                 subscription={{ modified: true, values: true }}
                 onChange={({ modified, values }) => {
-                  if (modified!.workflow) {
-                    setWorkflow(values.workflow)
+                  if (modified?.workflow && values.workflow !== selectedWorkflow) {
+                    onWorkflowChange({ modified, values })
                   }
                 }}
               />
@@ -335,7 +368,6 @@ export function PackageCreationForm({
                     component={PD.WorkflowInput}
                     name="workflow"
                     workflowsConfig={workflowsConfig}
-                    initialValue={selectedWorkflow}
                     validate={validateWorkflow}
                     validateFields={['meta', 'workflow']}
                     errors={{
@@ -345,7 +377,6 @@ export function PackageCreationForm({
 
                   <RF.Field
                     component={PD.PackageNameInput}
-                    initialValue={initial?.name}
                     name="name"
                     validate={validators.composeAsync(
                       validators.required,
@@ -383,7 +414,6 @@ export function PackageCreationForm({
                       validate={validateMetaInput}
                       validateFields={['meta']}
                       isEqual={R.equals}
-                      initialValue={initial?.manifest?.meta || PD.EMPTY_META_VALUE}
                       ref={setEditorElement}
                     />
                   )}
@@ -407,7 +437,6 @@ export function PackageCreationForm({
                     title="Files"
                     onFilesAction={onFilesAction}
                     isEqual={R.equals}
-                    initialValue={initialFiles}
                     bucket={selectedBucket}
                     buckets={sourceBuckets.list}
                     selectBucket={selectBucket}
