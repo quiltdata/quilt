@@ -1,8 +1,8 @@
 import * as FF from 'final-form'
 import * as React from 'react'
+import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
-import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import * as Config from 'utils/Config'
