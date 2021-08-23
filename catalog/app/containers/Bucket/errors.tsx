@@ -1,3 +1,4 @@
+import type Ajv from 'ajv'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
@@ -43,7 +44,7 @@ export class FileNotFound extends BucketError {}
 export class VersionNotFound extends BucketError {}
 
 export interface BucketPreferencesInvalidProps {
-  errors: { dataPath: string; message: string }[]
+  errors: Ajv.ErrorObject[]
 }
 
 export class BucketPreferencesInvalid extends BucketError {
@@ -58,7 +59,7 @@ export class BucketPreferencesInvalid extends BucketError {
 }
 
 export interface WorkflowsConfigInvalidProps {
-  errors: { dataPath: string; message: string }[]
+  errors: Ajv.ErrorObject[]
 }
 
 export class WorkflowsConfigInvalid extends BucketError {

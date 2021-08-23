@@ -134,7 +134,9 @@ export function doesTypeMatchSchema(value: any, optSchema?: JsonSchema): boolean
 
 export const EMPTY_SCHEMA = {}
 
-export function makeSchemaValidator(optSchema?: JsonSchema) {
+export function makeSchemaValidator(
+  optSchema?: JsonSchema,
+): (obj?: any) => Ajv.ErrorObject[] {
   const schema = optSchema || EMPTY_SCHEMA
 
   const ajv = new Ajv({ useDefaults: true, schemaId: 'auto' })
@@ -149,7 +151,7 @@ export function makeSchemaValidator(optSchema?: JsonSchema) {
     }
   } catch (e) {
     // TODO: add custom errors
-    return () => [e]
+    return () => [e as Ajv.ErrorObject]
   }
 }
 

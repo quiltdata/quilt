@@ -19,6 +19,7 @@ interface WorkflowYaml {
   name: string
   description?: string
   metadata_schema?: string
+  object_schema?: string
   is_message_required?: boolean
 }
 
@@ -42,6 +43,7 @@ export interface Workflow {
   description?: string
   isDefault: boolean
   isDisabled: boolean
+  manifestSchema?: string
   name?: string
   schema?: Schema
   slug: string | typeof notAvailable | typeof notSelected
@@ -93,6 +95,7 @@ function parseWorkflow(
     description: workflow.description,
     isDefault: workflowSlug === data.default_workflow,
     isDisabled: false,
+    manifestSchema: data.schemas?.[workflow.object_schema || '']?.url,
     name: workflow.name,
     schema: parseSchema(workflow.metadata_schema, data.schemas),
     slug: workflowSlug,
