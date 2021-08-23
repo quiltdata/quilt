@@ -27,6 +27,7 @@ import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
 import defer from 'utils/defer'
 import { ErrorDisplay } from 'utils/error'
+import parseSearch from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
 import RouterProvider from 'utils/router'
 import * as s3paths from 'utils/s3paths'
@@ -41,6 +42,11 @@ import WithGlobalStyles from '../global-styles'
 
 import AppBar from './AppBar'
 import * as EmbedConfig from './EmbedConfig'
+
+const EVENT_SOURCE = 'quilt-embed'
+const search = parseSearch(window.location.search)
+const NONCE = search.nonce || `${Math.random}`
+const PARENT_ORIGIN = search.origin || '*'
 
 const mkLazy = (load) =>
   RT.loadable(load, { fallback: () => <Placeholder color="text.secondary" /> })
@@ -135,29 +141,27 @@ function BucketLayout({ bucket, children }) {
   )
 }
 
-function useInit() {
-  const [state, setState] = React.useState(null)
+function useMessageParent() {
+  return React.useCallback((data) => {
+    window.parent.postMessage(
+      { source: EVENT_SOURCE, nonce: NONCE, ...data },
+      PARENT_ORIGIN,
+    )
+  }, [])
+}
 
+function useMessageHandler(fn) {
   const handleMessage = React.useCallback(
-    ({ data }) => {
-      if (!data || data.type !== 'init') return
-      const { type, ...init } = data
-      try {
-        if (!init.bucket) throw new Error('missing .bucket')
-        if (init.scope) {
-          if (typeof init.scope !== 'string') throw new Error('.scope must be a string')
-          init.scope = s3paths.ensureSlash(init.scope)
-        }
-        setState(init)
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error(`Configuration error: ${e.message}`)
-        // eslint-disable-next-line no-console
-        console.log('init object:', init)
-        setState(e)
-      }
+    (e) => {
+      if (
+        e.source !== window.parent ||
+        (PARENT_ORIGIN !== '*' && e.origin !== PARENT_ORIGIN) ||
+        !e.data?.type
+      )
+        return
+      fn(e.data)
     },
-    [setState],
+    [fn],
   )
 
   React.useEffect(() => {
@@ -166,6 +170,42 @@ function useInit() {
       window.removeEventListener('message', handleMessage)
     }
   }, [handleMessage])
+}
+
+function useInit() {
+  const messageParent = useMessageParent()
+  const [state, setState] = React.useState(null)
+
+  useMessageHandler(
+    React.useCallback(
+      ({ type, ...init }) => {
+        if (type !== 'init') return
+        try {
+          if (!init.bucket && !init.route)
+            throw new Error('missing either .bucket or .route')
+          if (init.scope) {
+            if (typeof init.scope !== 'string') throw new Error('.scope must be a string')
+            // eslint-disable-next-line no-param-reassign
+            init.scope = s3paths.ensureSlash(init.scope)
+          }
+          setState(init)
+        } catch (e) {
+          const message = `Configuration error: ${e.message}`
+          // eslint-disable-next-line no-console
+          console.error(message)
+          // eslint-disable-next-line no-console
+          console.log('init object:', init)
+          messageParent({ type: 'error', message, init })
+          setState(e)
+        }
+      },
+      [setState, messageParent],
+    ),
+  )
+
+  React.useEffect(() => {
+    messageParent({ type: 'ready' })
+  }, [messageParent])
 
   return state
 }
@@ -191,6 +231,7 @@ function Init() {
 
 function usePostInit(init) {
   const dispatch = redux.useDispatch()
+  const messageParent = useMessageParent()
   const [state, setState] = React.useState(null)
 
   React.useEffect(() => {
@@ -199,6 +240,7 @@ function usePostInit(init) {
     result.promise
       .then(() => {
         setState(true)
+        messageParent({ type: 'init', init })
       })
       .catch((e) => {
         // eslint-disable-next-line no-console
@@ -206,8 +248,13 @@ function usePostInit(init) {
         // eslint-disable-next-line no-console
         console.error(e)
         setState(new ErrorDisplay('Authentication Failure'))
+        messageParent({
+          type: 'error',
+          message: `Authentication failure: ${e.message}`,
+          credentials: init.credentials,
+        })
       })
-  }, [init, dispatch])
+  }, [init, dispatch, messageParent])
 
   return state
 }
@@ -258,11 +305,52 @@ function useCssFiles(files = []) {
   }, [files])
 }
 
+function useSyncHistory(history) {
+  const messageParent = useMessageParent()
+
+  useMessageHandler(
+    React.useCallback(
+      ({ type, ...data }) => {
+        if (type !== 'navigate') return
+        try {
+          if (!data.route) throw new Error('missing .route')
+          if (typeof data.route !== 'string') throw new Error('.route must be a string')
+          history.push(data.route)
+        } catch (e) {
+          const message = `Navigate: error: ${e.message}`
+          // eslint-disable-next-line no-console
+          console.error(message)
+          // eslint-disable-next-line no-console
+          console.log('params:', data)
+          messageParent({ type: 'error', message, data })
+        }
+      },
+      [history, messageParent],
+    ),
+  )
+
+  React.useEffect(
+    () =>
+      history.listen((location, action) => {
+        messageParent({
+          type: 'navigate',
+          route: `${location.pathname}${location.search}${location.hash}`,
+          action,
+        })
+      }),
+    [history, messageParent],
+  )
+}
+
 function App({ init }) {
   const { urls } = NamedRoutes.use()
   const history = useConstant(() =>
-    createHistory({ initialEntries: [urls.bucketDir(init.bucket, init.path)] }),
+    createHistory({
+      initialEntries: [init.route || urls.bucketDir(init.bucket, init.path)],
+    }),
   )
+
+  useSyncHistory(history)
 
   const storage = useConstant(() => ({
     load: () => ({}),
