@@ -59,9 +59,10 @@ import * as R from 'ramda'
  *   ...
  * />
  */
-export default memoize((error, test) => (v, vs, props) =>
-  // only test truthy values
-  v && !test(v, vs, props) ? error : undefined,
+export default memoize(
+  (error, test) => (v, vs, props) =>
+    // only test truthy values
+    v && !test(v, vs, props) ? error : undefined,
 )
 
 /**
@@ -137,8 +138,10 @@ export const jsonObject = (v) => {
   }
 }
 
-export const composeAsync = (...validators) => (...args) =>
-  validators.reduce(
-    (error, next) => Promise.resolve(error).then((e) => e || next(...args)),
-    undefined,
-  )
+export const composeAsync =
+  (...validators) =>
+  (...args) =>
+    validators.reduce(
+      (error, next) => Promise.resolve(error).then((e) => e || next(...args)),
+      undefined,
+    )

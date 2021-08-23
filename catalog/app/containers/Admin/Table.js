@@ -58,10 +58,10 @@ export function useSelection({ rows, getId = R.unary(I.fromJS) }) {
     setSelected(emptySet)
   }, [setSelected])
 
-  const isSelected = React.useCallback((row) => selected.has(getId(row)), [
-    selected,
-    getId,
-  ])
+  const isSelected = React.useCallback(
+    (row) => selected.has(getId(row)),
+    [selected, getId],
+  )
 
   return { toggle, toggleAll, clear, isSelected, selected, all: allSelected }
 }

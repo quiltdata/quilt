@@ -50,9 +50,10 @@ export function TrackingProvider({ locationSelector, userSelector, children }) {
   // workaround to avoid changing client configs
   const token = cfg.mixpanelToken || cfg.mixPanelToken
 
-  const tracker = React.useMemo(() => (token ? loadMixpanel(token) : consoleTracker), [
-    token,
-  ])
+  const tracker = React.useMemo(
+    () => (token ? loadMixpanel(token) : consoleTracker),
+    [token],
+  )
 
   const location = mkLocation(redux.useSelector(locationSelector))
   const user = redux.useSelector(userSelector)

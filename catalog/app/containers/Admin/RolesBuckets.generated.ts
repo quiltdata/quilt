@@ -12,7 +12,7 @@ export type containers_Admin_RolesBucketsQuery = { readonly __typename: 'Query' 
   >
 }
 
-export const containers_Admin_RolesBucketsDocument = ({
+export const containers_Admin_RolesBucketsDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -35,7 +35,7 @@ export const containers_Admin_RolesBucketsDocument = ({
       },
     },
   ],
-} as unknown) as DocumentNode<
+} as unknown as DocumentNode<
   containers_Admin_RolesBucketsQuery,
   containers_Admin_RolesBucketsQueryVariables
 >

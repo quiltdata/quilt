@@ -17,7 +17,7 @@ export type containers_Admin_BucketConfigsQuery = { readonly __typename: 'Query'
   >
 }
 
-export const containers_Admin_BucketConfigsDocument = ({
+export const containers_Admin_BucketConfigsDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -45,7 +45,7 @@ export const containers_Admin_BucketConfigsDocument = ({
     },
     ...BucketConfigSelectionFragmentDoc.definitions,
   ],
-} as unknown) as DocumentNode<
+} as unknown as DocumentNode<
   containers_Admin_BucketConfigsQuery,
   containers_Admin_BucketConfigsQueryVariables
 >

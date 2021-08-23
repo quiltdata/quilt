@@ -41,9 +41,10 @@ export default function MultiSparkline({
     [data],
   )
   const max = React.useMemo(() => Math.max(...R.last(stacked)), [stacked])
-  const len = React.useMemo(() => Math.max(...data.map((r) => (r ? r.length : 0))), [
-    data,
-  ])
+  const len = React.useMemo(
+    () => Math.max(...data.map((r) => (r ? r.length : 0))),
+    [data],
+  )
   const vfactor = (height - pt - pb) / max
   const hfactor = (width - pl - pr) / (len - 1)
   const xScale = React.useMemo(() => (i) => pl + i * hfactor, [pl, hfactor])

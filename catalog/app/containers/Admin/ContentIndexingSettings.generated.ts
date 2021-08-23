@@ -19,7 +19,7 @@ export type containers_Admin_ContentIndexingSettingsQuery = {
   }
 }
 
-export const containers_Admin_ContentIndexingSettingsDocument = ({
+export const containers_Admin_ContentIndexingSettingsDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -55,7 +55,7 @@ export const containers_Admin_ContentIndexingSettingsDocument = ({
       },
     },
   ],
-} as unknown) as DocumentNode<
+} as unknown as DocumentNode<
   containers_Admin_ContentIndexingSettingsQuery,
   containers_Admin_ContentIndexingSettingsQueryVariables
 >

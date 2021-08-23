@@ -255,9 +255,10 @@ function ChartSkel({
   animate = false,
   children,
 }) {
-  const data = React.useMemo(() => R.times((i) => skelData[i % skelData.length], lines), [
-    lines,
-  ])
+  const data = React.useMemo(
+    () => R.times((i) => skelData[i % skelData.length], lines),
+    [lines],
+  )
   const fills = React.useMemo(
     () =>
       R.times(

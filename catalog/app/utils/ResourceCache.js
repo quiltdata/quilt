@@ -61,54 +61,68 @@ const keyFor = (resource, input) => [resource.id, I.fromJS(resource.key(input))]
 const reducer = reduxTools.withInitialState(
   I.Map(),
   Action.reducer({
-    Init: ({ resource, input, promise }) => (s) =>
-      s.updateIn(keyFor(resource, input), (entry) => {
-        if (entry) throw new Error('Init: entry already exists')
-        return { promise, result: AsyncResult.Init(), claimed: 0 }
-      }),
-    Request: ({ resource, input }) => (s) =>
-      s.updateIn(keyFor(resource, input), (entry) => {
-        if (!entry) throw new Error('Request: entry does not exist')
-        if (!AsyncResult.Init.is(entry.result)) {
-          throw new Error('Request: invalid transition')
-        }
-        return { ...entry, result: AsyncResult.Pending() }
-      }),
-    Response: ({ resource, input, result }) => (s) =>
-      s.updateIn(keyFor(resource, input), (entry) => {
-        if (!entry) return undefined // released before response
-        if (!AsyncResult.Pending.is(entry.result)) {
-          throw new Error('Response: invalid transition')
-        }
-        return { ...entry, result }
-      }),
-    Patch: ({ resource, input, update, silent = false }) => (s) =>
-      s.updateIn(keyFor(resource, input), (entry) => {
-        if (!entry) {
-          if (silent) return entry
-          throw new Error('Patch: entry does not exist')
-        }
-        return update(entry)
-      }),
-    Claim: ({ resource, input }) => (s) =>
-      s.updateIn(keyFor(resource, input), (entry) => {
-        if (!entry) throw new Error('Claim: entry does not exist')
-        return { ...entry, claimed: entry.claimed + 1 }
-      }),
-    Release: ({ resource, input, releasedAt }) => (s) =>
-      s.updateIn(keyFor(resource, input), (entry) => {
-        if (!entry) throw new Error('Release: entry does not exist')
-        return { ...entry, claimed: entry.claimed - 1, releasedAt }
-      }),
-    CleanUp: ({ time }) => (s) =>
-      s.map((r) =>
-        r.filter(
-          (entry) =>
-            entry.claimed >= 1 ||
-            !entry.releasedAt ||
-            time - entry.releasedAt < RELEASE_TIME,
+    Init:
+      ({ resource, input, promise }) =>
+      (s) =>
+        s.updateIn(keyFor(resource, input), (entry) => {
+          if (entry) throw new Error('Init: entry already exists')
+          return { promise, result: AsyncResult.Init(), claimed: 0 }
+        }),
+    Request:
+      ({ resource, input }) =>
+      (s) =>
+        s.updateIn(keyFor(resource, input), (entry) => {
+          if (!entry) throw new Error('Request: entry does not exist')
+          if (!AsyncResult.Init.is(entry.result)) {
+            throw new Error('Request: invalid transition')
+          }
+          return { ...entry, result: AsyncResult.Pending() }
+        }),
+    Response:
+      ({ resource, input, result }) =>
+      (s) =>
+        s.updateIn(keyFor(resource, input), (entry) => {
+          if (!entry) return undefined // released before response
+          if (!AsyncResult.Pending.is(entry.result)) {
+            throw new Error('Response: invalid transition')
+          }
+          return { ...entry, result }
+        }),
+    Patch:
+      ({ resource, input, update, silent = false }) =>
+      (s) =>
+        s.updateIn(keyFor(resource, input), (entry) => {
+          if (!entry) {
+            if (silent) return entry
+            throw new Error('Patch: entry does not exist')
+          }
+          return update(entry)
+        }),
+    Claim:
+      ({ resource, input }) =>
+      (s) =>
+        s.updateIn(keyFor(resource, input), (entry) => {
+          if (!entry) throw new Error('Claim: entry does not exist')
+          return { ...entry, claimed: entry.claimed + 1 }
+        }),
+    Release:
+      ({ resource, input, releasedAt }) =>
+      (s) =>
+        s.updateIn(keyFor(resource, input), (entry) => {
+          if (!entry) throw new Error('Release: entry does not exist')
+          return { ...entry, claimed: entry.claimed - 1, releasedAt }
+        }),
+    CleanUp:
+      ({ time }) =>
+      (s) =>
+        s.map((r) =>
+          r.filter(
+            (entry) =>
+              entry.claimed >= 1 ||
+              !entry.releasedAt ||
+              time - entry.releasedAt < RELEASE_TIME,
+          ),
         ),
-      ),
     __: () => R.identity,
   }),
 )

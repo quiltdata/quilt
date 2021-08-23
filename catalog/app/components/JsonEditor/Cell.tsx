@@ -69,10 +69,10 @@ export default function Cell({
   const isKeyCell = column.id === COLUMN_IDS.KEY
   const isValueCell = column.id === COLUMN_IDS.VALUE
 
-  const isEditable = React.useMemo(() => !(isKeyCell && row.original.valueSchema), [
-    isKeyCell,
-    row.original,
-  ])
+  const isEditable = React.useMemo(
+    () => !(isKeyCell && row.original.valueSchema),
+    [isKeyCell, row.original],
+  )
 
   const isEnumCell = React.useMemo(
     () => isValueCell && isSchemaEnum(row.original.valueSchema),

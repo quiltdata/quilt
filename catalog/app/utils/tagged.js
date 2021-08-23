@@ -3,7 +3,10 @@ import * as R from 'ramda'
 
 const scope = 'app/utils/tagged'
 
-const withValue = (fn) => (inst, ...rest) => fn(R.prop('value', inst), ...rest)
+const withValue =
+  (fn) =>
+  (inst, ...rest) =>
+    fn(R.prop('value', inst), ...rest)
 
 const exhaustive = (variants, cases) => cases._ || variants.every((v) => cases[v])
 
