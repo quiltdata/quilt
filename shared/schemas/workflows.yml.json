@@ -5,7 +5,7 @@
   "required": ["version", "workflows"],
   "additionalProperties": true,
   "definitions": {
-    "handleTemplate": {
+    "nameTemplate": {
       "type": "string",
       "default": "",
       "description": "Template for pre-filling package handle, use <%= username %> or <%= directory %> for username and parent directory substitutions"
@@ -15,10 +15,10 @@
       "description": "Map of contexts triggering different templates",
       "properties": {
         "files": {
-          "$ref": "#/definitions/handleTemplate"
+          "$ref": "#/definitions/nameTemplate"
         },
         "packages": {
-          "$ref": "#/definitions/handleTemplate"
+          "$ref": "#/definitions/nameTemplate"
         }
       }
     }
