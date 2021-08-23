@@ -45,7 +45,7 @@ function formatErrorMessage(validationErrors: Ajv.ErrorObject[]): string {
   return dataPath ? `"${dataPath}" ${message}` : message
 }
 
-async function validateRequestBody(
+async function validatePackageManifest(
   s3: S3,
   body: $TSFixMe,
   schemaUrl?: string,
@@ -291,7 +291,7 @@ const mkCreatePackage =
     })
     const res = await upload.promise()
 
-    const error = await validateRequestBody(
+    const error = await validatePackageManifest(
       s3,
       {
         ...header,
@@ -321,6 +321,7 @@ export function useCreatePackage() {
 }
 
 const copyPackage = async (
+  s3: S3,
   req: ApiRequest,
   credentials: AWSCredentials,
   { message, meta, source, target, workflow }: CopyPackageParams,
@@ -329,32 +330,33 @@ const copyPackage = async (
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
 
-  return makeBackendRequest(
-    req,
-    ENDPOINT_COPY,
-    {
-      message,
-      meta: getMetaValue(meta, schema),
-      name: target.name,
-      parent: {
-        top_hash: source.revision,
-        registry: `s3://${source.bucket}`,
-        name: source.name,
-      },
-      registry: `s3://${target.bucket}`,
-      workflow: getWorkflowApiParam(workflow.slug),
+  const body = {
+    message,
+    meta: getMetaValue(meta, schema),
+    name: target.name,
+    parent: {
+      top_hash: source.revision,
+      registry: `s3://${source.bucket}`,
+      name: source.name,
     },
-    getCredentialsQuery(credentials),
-  )
+    registry: `s3://${target.bucket}`,
+    workflow: getWorkflowApiParam(workflow.slug),
+  }
+
+  const error = await validatePackageManifest(s3, body, workflow.manifestSchema)
+  if (error) throw error
+
+  return makeBackendRequest(req, ENDPOINT_COPY, body, getCredentialsQuery(credentials))
 }
 
 export function useCopyPackage() {
   const credentials = AWS.Credentials.use()
   const req: ApiRequest = APIConnector.use()
+  const s3 = AWS.S3.use()
   return React.useCallback(
     (params: CopyPackageParams, schema?: JsonSchema) =>
-      copyPackage(req, credentials, params, schema),
-    [credentials, req],
+      copyPackage(s3, req, credentials, params, schema),
+    [credentials, req, s3],
   )
 }
 
@@ -388,6 +390,7 @@ export function useDeleteRevision() {
 }
 
 const wrapPackage = async (
+  s3: S3,
   req: ApiRequest,
   credentials: AWSCredentials,
   { message, meta, source, target, workflow, entries }: WrapPackageParams,
@@ -396,30 +399,31 @@ const wrapPackage = async (
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
 
-  return makeBackendRequest(
-    req,
-    ENDPOINT_WRAP,
-    {
-      dst: {
-        registry: `s3://${target.bucket}`,
-        name: target.name,
-      },
-      entries,
-      message,
-      meta: getMetaValue(meta, schema),
-      registry: `s3://${source}`,
-      workflow: getWorkflowApiParam(workflow.slug),
+  const body = {
+    dst: {
+      registry: `s3://${target.bucket}`,
+      name: target.name,
     },
-    getCredentialsQuery(credentials),
-  )
+    entries,
+    message,
+    meta: getMetaValue(meta, schema),
+    registry: `s3://${source}`,
+    workflow: getWorkflowApiParam(workflow.slug),
+  }
+
+  const error = await validatePackageManifest(s3, body, workflow.manifestSchema)
+  if (error) throw error
+
+  return makeBackendRequest(req, ENDPOINT_WRAP, body, getCredentialsQuery(credentials))
 }
 
 export function useWrapPackage() {
   const credentials = AWS.Credentials.use()
   const req: ApiRequest = APIConnector.use()
+  const s3 = AWS.S3.use()
   return React.useCallback(
     (params: WrapPackageParams, schema?: JsonSchema) =>
-      wrapPackage(req, credentials, params, schema),
-    [credentials, req],
+      wrapPackage(s3, req, credentials, params, schema),
+    [credentials, req, s3],
   )
 }
