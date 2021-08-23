@@ -6,10 +6,10 @@
     "version",
     "workflows"
   ],
-  "additionalProperties": false,
+  "additionalProperties": true,
   "properties": {
     "version": {
-      "const": "1"
+      "enum": ["1", "1-0-1"]
     },
     "is_workflow_required": {
       "type": "boolean",
