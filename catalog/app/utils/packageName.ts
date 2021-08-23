@@ -2,7 +2,7 @@ import lodashTemplate from 'lodash/template'
 
 type Context = 'files' | 'packages'
 
-export type Handles = Partial<Record<Context, string>>
+export type Templates = Partial<Record<Context, string>>
 
 type Options = {
   username?: string
@@ -18,9 +18,9 @@ export function convertItem(template: string, options?: Options): string | null 
 }
 
 export function convert(
-  handlesDict: Handles,
+  templatesDict: Templates,
   context: Context,
   options?: Options,
 ): string {
-  return convertItem(handlesDict[context] || '', options) || ''
+  return convertItem(templatesDict[context] || '', options) || ''
 }

@@ -1,6 +1,6 @@
 import * as packageName from './packageName'
 
-describe('utils/packageHandle', () => {
+describe('utils/packageName', () => {
   describe('convertItem', () => {
     it('should return static string when no template', () => {
       expect(packageName.convertItem('fgsfds')).toBe('fgsfds')

@@ -13,7 +13,7 @@ import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as s3paths from 'utils/s3paths'
-import * as packageHandle from 'utils/packageName'
+import * as packageName from 'utils/packageName'
 import * as validators from 'utils/validators'
 import type * as workflows from 'utils/workflows'
 
@@ -202,7 +202,7 @@ function DialogForm({
 
   const getDefaultPackageName = React.useCallback(
     (workflow) =>
-      packageHandle.convert(workflow?.packageHandle, 'files', {
+      packageName.convert(workflow?.packageName, 'files', {
         directory: s3paths.ensureNoSlash(path),
         username: PD.getUsernamePrefix(username),
       }),

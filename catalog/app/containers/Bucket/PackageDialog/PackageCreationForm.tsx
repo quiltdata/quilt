@@ -10,7 +10,7 @@ import * as Intercom from 'components/Intercom'
 import * as authSelectors from 'containers/Auth/selectors'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
-import * as packageHandle from 'utils/packageName'
+import * as packageName from 'utils/packageName'
 import * as s3paths from 'utils/s3paths'
 import * as tagged from 'utils/taggedV2'
 import * as validators from 'utils/validators'
@@ -279,7 +279,7 @@ export function PackageCreationForm({
 
   const getDefaultPackageName = React.useCallback(
     (workflow) =>
-      packageHandle.convert(workflow?.packageHandle, 'packages', {
+      packageName.convert(workflow?.packageName, 'packages', {
         username: PD.getUsernamePrefix(username),
       }),
     [username],
