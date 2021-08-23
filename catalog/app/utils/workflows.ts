@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 
 import { makeSchemaValidator } from 'utils/json-schema'
-import * as packageName from 'utils/packageName'
+import type * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import yaml from 'utils/yaml'
 import workflowsConfigSchema from 'schemas/workflows.yml.json'
@@ -11,7 +11,7 @@ interface WorkflowsYaml {
   version: '1'
   is_workflow_required?: boolean
   default_workflow?: string
-  package_name?: packageName.Templates
+  package_name?: packageHandleUtils.NameTemplates
   workflows: Record<string, WorkflowYaml>
   schemas?: Record<string, Schema>
   successors?: Record<string, SuccessorYaml>
@@ -21,7 +21,7 @@ interface WorkflowYaml {
   name: string
   description?: string
   metadata_schema?: string
-  package_name?: packageName.Templates
+  package_name?: packageHandleUtils.NameTemplates
   is_message_required?: boolean
 }
 
@@ -46,14 +46,14 @@ export interface Workflow {
   isDefault: boolean
   isDisabled: boolean
   name?: string
-  packageName: Required<packageName.Templates>
+  packageName: Required<packageHandleUtils.NameTemplates>
   schema?: Schema
   slug: string | typeof notAvailable | typeof notSelected
 }
 
 export interface WorkflowsConfig {
   isWorkflowRequired: boolean
-  packageName: Required<packageName.Templates>
+  packageName: Required<packageHandleUtils.NameTemplates>
   successors: Successor[]
   workflows: Workflow[]
 }
@@ -66,9 +66,9 @@ const defaultPackageName = {
 export const notAvailable = Symbol('not available')
 
 const parsePackageName = (
-  globalTemplates?: packageName.Templates,
-  workflowTemplates?: packageName.Templates,
-): Required<packageName.Templates> => ({
+  globalTemplates?: packageHandleUtils.NameTemplates,
+  workflowTemplates?: packageHandleUtils.NameTemplates,
+): Required<packageHandleUtils.NameTemplates> => ({
   ...defaultPackageName,
   ...globalTemplates,
   ...workflowTemplates,

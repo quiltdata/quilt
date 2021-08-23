@@ -1,25 +1,25 @@
-import * as packageName from './packageName'
+import * as packageHandle from './packageHandle'
 
-describe('utils/packageName', () => {
+describe('utils/packageHandle', () => {
   describe('convertItem', () => {
     it('should return static string when no template', () => {
-      expect(packageName.convertItem('fgsfds')).toBe('fgsfds')
-      expect(packageName.convertItem('')).toBe('')
+      expect(packageHandle.template('fgsfds')).toBe('fgsfds')
+      expect(packageHandle.template('')).toBe('')
     })
 
     it('should treat broken template as a string and return this string', () => {
-      expect(packageName.convertItem('start and <%= no end')).toBe('start and <%= no end')
+      expect(packageHandle.template('start and <%= no end')).toBe('start and <%= no end')
     })
 
     it('should return converted when template has values', () => {
       expect(
-        packageName.convertItem('what-<%=username %>-do/make-<%= directory %>-update', {
+        packageHandle.template('what-<%=username %>-do/make-<%= directory %>-update', {
           directory: 'staging',
           username: 'fiskus',
         }),
       ).toBe('what-fiskus-do/make-staging-update')
       expect(
-        packageName.convertItem('<%= username %>/<%= directory %>', {
+        packageHandle.template('<%= username %>/<%= directory %>', {
           directory: 'staging',
           username: 'fiskus',
         }),
@@ -28,12 +28,12 @@ describe('utils/packageName', () => {
 
     it('should return null when no values ', () => {
       expect(
-        packageName.convertItem('what-<%= username %>-do/make-<%= directory %>-update', {
+        packageHandle.template('what-<%= username %>-do/make-<%= directory %>-update', {
           username: 'fiskus',
         }),
       ).toBe(null)
       expect(
-        packageName.convertItem('<%= username %>/<%= directory %>', {
+        packageHandle.template('<%= username %>/<%= directory %>', {
           directory: 'staging',
         }),
       ).toBe(null)
@@ -41,7 +41,7 @@ describe('utils/packageName', () => {
 
     it('should treat null/undefined as an empty string', () => {
       expect(
-        packageName.convertItem(
+        packageHandle.template(
           'what-<%= username %>-do/make-<%= directory %>-update',
           // @ts-expect-error
           { directory: undefined, username: null },
@@ -53,13 +53,13 @@ describe('utils/packageName', () => {
   describe('convert', () => {
     it('should use contexted replacement', () => {
       expect(
-        packageName.convert(
+        packageHandle.execTemplate(
           { files: '<%= username %>/<%= directory %>', packages: 'abc/def' },
           'packages',
         ),
       ).toBe('abc/def')
       expect(
-        packageName.convert(
+        packageHandle.execTemplate(
           { files: '<%= username %>/<%= directory %>', packages: '<%= a %>/<%= b %>' },
           'files',
           {
@@ -72,9 +72,13 @@ describe('utils/packageName', () => {
 
     it('should return empty string if not enough values', () => {
       expect(
-        packageName.convert({ files: '<%= username %>/<%= directory %>' }, 'files', {
-          username: 'fiskus',
-        }),
+        packageHandle.execTemplate(
+          { files: '<%= username %>/<%= directory %>' },
+          'files',
+          {
+            username: 'fiskus',
+          },
+        ),
       ).toBe('')
     })
   })
