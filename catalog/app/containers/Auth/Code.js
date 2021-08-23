@@ -17,7 +17,7 @@ const Code = styled('div')({
   overflowWrap: 'break-word',
 })
 
-export default function Auth() {
+export default function AuthCode() {
   const [result, setResult] = React.useState(null)
   const copy = React.useCallback(() => copyToClipboard(result), [result])
   const sentry = Sentry.use()
