@@ -1,7 +1,7 @@
 ## Size 
 
 By design, Quilt is backed by Amazon S3 and scales to billions of objects and
-petabytes of data. The underlying limitations of S3 apply.
+petabytes of data. The underlying limitations of S3 apply.
 
 The Quilt catalog can browse packages and S3 buckets of any size.
 
@@ -23,7 +23,7 @@ API.
 
 As of this writing, with sufficient client-side memory, you can comfortable scale
 Quilt packages to at least one million objects per package, with no practical limit
-on object size (save S3's 5 TB per object limit). A fast network, or better yet an AWS
+on object size (save S3's 5 TB per object limit). A fast network, or better yet an AWS
 compute instance in the same region as your Quilt S3 buckets, is recommended.
 
 ### Metadata
