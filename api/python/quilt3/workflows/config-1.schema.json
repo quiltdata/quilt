@@ -1,9 +1,9 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://quiltdata.com/workflows/config/1",
+  "$id": "https://quiltdata.com/workflows/config/1-1-0",
   "type": "object",
   "required": ["version", "workflows"],
-  "additionalProperties": false,
+  "additionalProperties": true,
   "definitions": {
     "handleTemplate": {
       "type": "string",
@@ -25,7 +25,7 @@
   },
   "properties": {
     "version": {
-      "const": "1"
+      "enum": ["1", "1-0-1", "1-1-0"]
     },
     "is_workflow_required": {
       "type": "boolean",
