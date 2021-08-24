@@ -11,7 +11,7 @@ interface WorkflowsYaml {
   version: '1'
   is_workflow_required?: boolean
   default_workflow?: string
-  package_name?: packageHandleUtils.NameTemplates
+  package_handle?: packageHandleUtils.NameTemplates
   workflows: Record<string, WorkflowYaml>
   schemas?: Record<string, Schema>
   successors?: Record<string, SuccessorYaml>
@@ -21,7 +21,7 @@ interface WorkflowYaml {
   name: string
   description?: string
   metadata_schema?: string
-  package_name?: packageHandleUtils.NameTemplates
+  package_handle?: packageHandleUtils.NameTemplates
   is_message_required?: boolean
 }
 
@@ -58,18 +58,18 @@ export interface WorkflowsConfig {
   workflows: Workflow[]
 }
 
-const defaultPackageName = {
+const defaultPackageNameTemplates = {
   files: '',
   packages: '',
 }
 
 export const notAvailable = Symbol('not available')
 
-const parsePackageName = (
+const parsePackageNameTemplates = (
   globalTemplates?: packageHandleUtils.NameTemplates,
   workflowTemplates?: packageHandleUtils.NameTemplates,
 ): Required<packageHandleUtils.NameTemplates> => ({
-  ...defaultPackageName,
+  ...defaultPackageNameTemplates,
   ...globalTemplates,
   ...workflowTemplates,
 })
@@ -80,7 +80,7 @@ function getNoWorkflow(data: WorkflowsYaml, hasConfig: boolean): Workflow {
   return {
     isDefault: !data.default_workflow,
     isDisabled: data.is_workflow_required !== false,
-    packageName: parsePackageName(data.package_name),
+    packageName: parsePackageNameTemplates(data.package_handle),
     slug: hasConfig ? notSelected : notAvailable,
   }
 }
@@ -89,7 +89,7 @@ const COPY_DATA_DEFAULT = true
 
 export const emptyConfig: WorkflowsConfig = {
   isWorkflowRequired: false,
-  packageName: defaultPackageName,
+  packageName: defaultPackageNameTemplates,
   successors: [],
   workflows: [getNoWorkflow({} as WorkflowsYaml, false)],
 }
@@ -115,7 +115,7 @@ function parseWorkflow(
     isDefault: workflowSlug === data.default_workflow,
     isDisabled: false,
     name: workflow.name,
-    packageName: parsePackageName(data.package_name, workflow.package_name),
+    packageName: parsePackageNameTemplates(data.package_handle, workflow.package_handle),
     schema: parseSchema(workflow.metadata_schema, data.schemas),
     slug: workflowSlug,
   }
@@ -151,7 +151,7 @@ export function parse(workflowsYaml: string): WorkflowsConfig {
   const successors = data.successors || {}
   return {
     isWorkflowRequired: data.is_workflow_required !== false,
-    packageName: parsePackageName(data.package_name),
+    packageName: parsePackageNameTemplates(data.package_handle),
     successors: Object.entries(successors).map(([url, successor]) =>
       parseSuccessor(url, successor),
     ),
