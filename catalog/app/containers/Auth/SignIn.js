@@ -58,7 +58,15 @@ function PasswordSignIn({ mutex }) {
   )
   return (
     <RF.Form onSubmit={onSubmit}>
-      {({ handleSubmit, submitting, submitError, submitFailed, invalid, error }) => (
+      {({
+        handleSubmit,
+        submitting,
+        submitError,
+        submitFailed,
+        invalid,
+        modifiedSinceLastSubmit,
+        error,
+      }) => (
         <form onSubmit={handleSubmit}>
           <RF.Field
             component={Layout.Field}
@@ -82,7 +90,10 @@ function PasswordSignIn({ mutex }) {
             }}
           />
           <Layout.Error
-            {...{ submitFailed, error: error || submitError }}
+            {...{
+              submitFailed,
+              error: error || (!modifiedSinceLastSubmit && submitError),
+            }}
             errors={{
               invalidCredentials: 'Invalid credentials',
               unexpected: 'Something went wrong. Try again later.',
@@ -91,7 +102,9 @@ function PasswordSignIn({ mutex }) {
           <Layout.Actions>
             <Layout.Submit
               label="Sign in"
-              disabled={!!mutex.current || submitting || (submitFailed && invalid)}
+              disabled={
+                !!mutex.current || submitting || (invalid && !modifiedSinceLastSubmit)
+              }
               busy={submitting}
             />
           </Layout.Actions>
