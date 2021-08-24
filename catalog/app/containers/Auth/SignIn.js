@@ -59,13 +59,14 @@ function PasswordSignIn({ mutex }) {
   return (
     <RF.Form onSubmit={onSubmit}>
       {({
+        error,
         handleSubmit,
-        submitting,
+        hasSubmitErrors,
+        hasValidationErrors,
+        modifiedSinceLastSubmit,
         submitError,
         submitFailed,
-        invalid,
-        modifiedSinceLastSubmit,
-        error,
+        submitting,
       }) => (
         <form onSubmit={handleSubmit}>
           <RF.Field
@@ -103,7 +104,10 @@ function PasswordSignIn({ mutex }) {
             <Layout.Submit
               label="Sign in"
               disabled={
-                !!mutex.current || submitting || (invalid && !modifiedSinceLastSubmit)
+                !!mutex.current ||
+                submitting ||
+                (hasValidationErrors && submitFailed) ||
+                (hasSubmitErrors && !modifiedSinceLastSubmit)
               }
               busy={submitting}
             />
