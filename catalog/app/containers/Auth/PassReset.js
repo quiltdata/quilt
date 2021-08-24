@@ -59,7 +59,15 @@ export default function PassReset() {
   return (
     <Container>
       <RF.Form onSubmit={onSubmit}>
-        {({ handleSubmit, submitting, submitFailed, invalid, error }) => (
+        {({
+          error,
+          handleSubmit,
+          hasSubmitErrors,
+          hasValidationErrors,
+          modifiedSinceLastSubmit,
+          submitFailed,
+          submitting,
+        }) => (
           <form onSubmit={handleSubmit}>
             <RF.Field
               component={Layout.Field}
@@ -81,7 +89,11 @@ export default function PassReset() {
             <Layout.Actions>
               <Layout.Submit
                 label="Reset"
-                disabled={submitting || (submitFailed && invalid)}
+                disabled={
+                  submitting ||
+                  (hasValidationErrors && submitFailed) ||
+                  (hasSubmitErrors && !modifiedSinceLastSubmit)
+                }
                 busy={submitting}
               />
             </Layout.Actions>
