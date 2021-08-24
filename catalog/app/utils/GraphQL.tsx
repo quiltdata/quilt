@@ -51,6 +51,7 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
           Mutation: {
             bucketAdd: (result, _vars, cache) => {
               if ((result.bucketAdd as any)?.__typename !== 'BucketAddSuccess') return
+              cache.invalidate({ __typename: 'Query' }, 'roles')
               cache.updateQuery(
                 { query: BUCKET_CONFIGS_QUERY },
                 // XXX: sort?
@@ -62,6 +63,7 @@ export function GraphQLProvider({ children }: React.PropsWithChildren<{}>) {
             bucketRemove: (result, vars, cache) => {
               if ((result.bucketRemove as any)?.__typename !== 'BucketRemoveSuccess')
                 return
+              cache.invalidate({ __typename: 'Query' }, 'roles')
               cache.updateQuery(
                 { query: BUCKET_CONFIGS_QUERY },
                 R.evolve({ bucketConfigs: R.reject(R.propEq('name', vars.name)) }),
