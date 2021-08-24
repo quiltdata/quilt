@@ -3,23 +3,28 @@ import * as packageHandle from './packageHandle'
 describe('utils/packageHandle', () => {
   describe('convertItem', () => {
     it('should return static string when no template', () => {
-      expect(packageHandle.template('fgsfds')).toBe('fgsfds')
-      expect(packageHandle.template('')).toBe('')
+      expect(packageHandle.execTemplateItem('fgsfds')).toBe('fgsfds')
+      expect(packageHandle.execTemplateItem('')).toBe('')
     })
 
     it('should treat broken template as a string and return this string', () => {
-      expect(packageHandle.template('start and <%= no end')).toBe('start and <%= no end')
+      expect(packageHandle.execTemplateItem('start and <%= no end')).toBe(
+        'start and <%= no end',
+      )
     })
 
     it('should return converted when template has values', () => {
       expect(
-        packageHandle.template('what-<%=username %>-do/make-<%= directory %>-update', {
-          directory: 'staging',
-          username: 'fiskus',
-        }),
+        packageHandle.execTemplateItem(
+          'what-<%=username %>-do/make-<%= directory %>-update',
+          {
+            directory: 'staging',
+            username: 'fiskus',
+          },
+        ),
       ).toBe('what-fiskus-do/make-staging-update')
       expect(
-        packageHandle.template('<%= username %>/<%= directory %>', {
+        packageHandle.execTemplateItem('<%= username %>/<%= directory %>', {
           directory: 'staging',
           username: 'fiskus',
         }),
@@ -28,12 +33,15 @@ describe('utils/packageHandle', () => {
 
     it('should return null when no values ', () => {
       expect(
-        packageHandle.template('what-<%= username %>-do/make-<%= directory %>-update', {
-          username: 'fiskus',
-        }),
+        packageHandle.execTemplateItem(
+          'what-<%= username %>-do/make-<%= directory %>-update',
+          {
+            username: 'fiskus',
+          },
+        ),
       ).toBe(null)
       expect(
-        packageHandle.template('<%= username %>/<%= directory %>', {
+        packageHandle.execTemplateItem('<%= username %>/<%= directory %>', {
           directory: 'staging',
         }),
       ).toBe(null)
@@ -41,7 +49,7 @@ describe('utils/packageHandle', () => {
 
     it('should treat null/undefined as an empty string', () => {
       expect(
-        packageHandle.template(
+        packageHandle.execTemplateItem(
           'what-<%= username %>-do/make-<%= directory %>-update',
           // @ts-expect-error
           { directory: undefined, username: null },
