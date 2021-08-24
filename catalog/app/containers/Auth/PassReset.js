@@ -30,7 +30,7 @@ export default function PassReset() {
         const result = defer()
         dispatch(resetPassword(values.email, result.resolver))
         await result.promise
-        setDone()
+        setDone(true)
       } catch (e) {
         if (e instanceof errors.SMTPError) {
           return {
