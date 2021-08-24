@@ -93,7 +93,16 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
 
   return (
     <RF.Form onSubmit={onSubmit}>
-      {({ handleSubmit, submitting, submitFailed, invalid, error }) => (
+      {({
+        error,
+        handleSubmit,
+        hasSubmitErrors,
+        hasValidationErrors,
+        modifiedSinceLastSubmit,
+        submitError,
+        submitFailed,
+        submitting,
+      }) => (
         <form onSubmit={handleSubmit}>
           <RF.Field
             component={Layout.Field}
@@ -161,7 +170,10 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
             }}
           />
           <Layout.Error
-            {...{ submitFailed, error }}
+            {...{
+              submitFailed,
+              error: error || (!modifiedSinceLastSubmit && submitError),
+            }}
             errors={{
               unexpected: 'Something went wrong. Try again later.',
               smtp: 'SMTP error: contact your administrator',
@@ -170,7 +182,12 @@ function PasswordSignUp({ mutex, next, onSuccess }) {
           <Layout.Actions>
             <Layout.Submit
               label="Sign up"
-              disabled={!!mutex.current || submitting || (submitFailed && invalid)}
+              disabled={
+                !!mutex.current ||
+                submitting ||
+                (hasValidationErrors && submitFailed) ||
+                (hasSubmitErrors && !modifiedSinceLastSubmit)
+              }
               busy={submitting}
             />
           </Layout.Actions>
