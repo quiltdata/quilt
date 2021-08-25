@@ -25,6 +25,7 @@ class LocalPackageRegistryV1(PackageRegistryV1):
     def list_package_pointers(self, pkg_name: str):
         pointers_dir_path = self.pointers_dir(pkg_name).path
         for path in safe_listdir(pointers_dir_path):
+            # pylint: disable=unspecified-encoding
             with open(os.path.join(pointers_dir_path, path)) as f:
                 yield path, f.read()
 

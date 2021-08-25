@@ -28,6 +28,7 @@ VERSION = pkg_resources.require('quilt3')[0].version
 
 def _load_auth():
     if AUTH_PATH.exists():
+        # pylint: disable=unspecified-encoding
         with open(AUTH_PATH) as fd:
             return json.load(fd)
     return {}
@@ -35,6 +36,7 @@ def _load_auth():
 
 def _save_auth(cfg):
     BASE_PATH.mkdir(parents=True, exist_ok=True)
+    # pylint: disable=unspecified-encoding
     with open(AUTH_PATH, 'w') as fd:
         AUTH_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
         json.dump(cfg, fd)
@@ -42,6 +44,7 @@ def _save_auth(cfg):
 
 def _load_credentials():
     if CREDENTIALS_PATH.exists():
+        # pylint: disable=unspecified-encoding
         with open(CREDENTIALS_PATH) as fd:
             return json.load(fd)
     return {}
@@ -49,6 +52,7 @@ def _load_credentials():
 
 def _save_credentials(creds):
     BASE_PATH.mkdir(parents=True, exist_ok=True)
+    # pylint: disable=unspecified-encoding
     with open(CREDENTIALS_PATH, 'w') as fd:
         CREDENTIALS_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
         json.dump(creds, fd)
@@ -169,15 +173,16 @@ def clear_session():
 
 def open_url(url):
     try:
+        # pylint: disable=unspecified-encoding
         if sys.platform == 'win32':
-            os.startfile(url)   # pylint:disable=E1101
+            os.startfile(url)   # pylint: disable=E1101
         elif sys.platform == 'darwin':
             with open(os.devnull, 'r+') as null:
                 subprocess.check_call(['open', url], stdin=null, stdout=null, stderr=null)
         else:
             with open(os.devnull, 'r+') as null:
                 subprocess.check_call(['xdg-open', url], stdin=null, stdout=null, stderr=null)
-    except Exception as ex:     # pylint:disable=W0703
+    except Exception as ex:     # pylint: disable=W0703
         print("Failed to launch the browser: %s" % ex)
 
 

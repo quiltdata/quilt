@@ -23,7 +23,7 @@ class TestAPI(QuiltTestCase):
 
         he.config('https://foo.bar')
 
-        with open(util.CONFIG_PATH, 'r') as stream:
+        with open(util.CONFIG_PATH, 'r') as stream: # pylint: disable=unspecified-encoding
             config = yaml.safe_load(stream)
 
         # These come from CONFIG_TEMPLATE, not the mocked config file.

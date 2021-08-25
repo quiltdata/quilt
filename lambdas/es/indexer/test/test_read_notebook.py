@@ -31,6 +31,7 @@ def test_extract_text():
     basedir = os.path.join(parent, 'data')
     for name, expected_exc in NB_RAISES.items():
         path = os.path.join(basedir, name)
+        # pylint: disable=unspecified-encoding
         with open(path) as notebook:
             contents = notebook.read()
             with pytest.raises(expected_exc):
@@ -38,6 +39,7 @@ def test_extract_text():
 
     for name, expected_extracted in NB_EXTRACTS.items():
         path = os.path.join(basedir, name)
+        # pylint: disable=unspecified-encoding
         with open(path) as notebook:
             contents = notebook.read()
             extracted = extract_text(contents)

@@ -33,6 +33,8 @@ from quilt3.util import (
 
 from ..utils import QuiltTestCase
 
+# pylint: disable=unspecified-encoding
+
 DATA_DIR = Path(__file__).parent / 'data'
 LOCAL_MANIFEST = DATA_DIR / 'local_manifest.jsonl'
 REMOTE_MANIFEST = DATA_DIR / 'quilt_manifest.jsonl'
