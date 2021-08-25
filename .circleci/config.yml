@@ -109,7 +109,7 @@ jobs:
           flags: "api-python"
 
   test-lambda:
-    executor: python
+    executor: python-38
     description: "Test lambdas"
     environment:
       QUILT_DISABLE_USAGE_METRICS: true
