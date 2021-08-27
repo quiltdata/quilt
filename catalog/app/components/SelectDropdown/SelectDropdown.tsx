@@ -15,7 +15,6 @@ const useStyles = M.makeStyles((t) => ({
     textTransform: 'none',
   },
   label: {
-    fontWeight: 600,
     marginLeft: t.spacing(1),
   },
 }))
