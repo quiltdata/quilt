@@ -663,7 +663,7 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
           : Promise.all(fileHandle.map(parseFile.bind(null, resolvePath))),
       ),
     )
-    return handles.filter((h) => h)
+    return handles.filter((h) => h.handle)
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Error loading summary:')
