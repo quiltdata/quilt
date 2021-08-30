@@ -15,7 +15,7 @@ export type containers_Admin_BucketsRemoveMutation = {
     | { readonly __typename: 'IndexingInProgress' }
 }
 
-export const containers_Admin_BucketsRemoveDocument = ({
+export const containers_Admin_BucketsRemoveDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -56,7 +56,7 @@ export const containers_Admin_BucketsRemoveDocument = ({
       },
     },
   ],
-} as unknown) as DocumentNode<
+} as unknown as DocumentNode<
   containers_Admin_BucketsRemoveMutation,
   containers_Admin_BucketsRemoveMutationVariables
 >

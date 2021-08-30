@@ -16,7 +16,7 @@ export type containers_Admin_UsersRolesQuery = { readonly __typename: 'Query' } 
   >
 }
 
-export const containers_Admin_UsersRolesDocument = ({
+export const containers_Admin_UsersRolesDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -67,7 +67,7 @@ export const containers_Admin_UsersRolesDocument = ({
       },
     },
   ],
-} as unknown) as DocumentNode<
+} as unknown as DocumentNode<
   containers_Admin_UsersRolesQuery,
   containers_Admin_UsersRolesQueryVariables
 >

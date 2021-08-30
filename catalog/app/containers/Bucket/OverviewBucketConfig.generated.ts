@@ -17,7 +17,7 @@ export type containers_Bucket_OverviewBucketConfigQuery = {
   >
 }
 
-export const containers_Bucket_OverviewBucketConfigDocument = ({
+export const containers_Bucket_OverviewBucketConfigDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -60,7 +60,7 @@ export const containers_Bucket_OverviewBucketConfigDocument = ({
       },
     },
   ],
-} as unknown) as DocumentNode<
+} as unknown as DocumentNode<
   containers_Bucket_OverviewBucketConfigQuery,
   containers_Bucket_OverviewBucketConfigQueryVariables
 >

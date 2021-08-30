@@ -28,11 +28,13 @@ export default function SSOGoogle({ mutex, next, ...props }) {
   const { urls } = NamedRoutes.use()
   const { claim, release } = mutex
 
-  const handleClick = (onClick) => (...args) => {
-    if (mutex.current) return
-    claim(MUTEX_POPUP)
-    onClick(...args)
-  }
+  const handleClick =
+    (onClick) =>
+    (...args) => {
+      if (mutex.current) return
+      claim(MUTEX_POPUP)
+      onClick(...args)
+    }
 
   const handleSuccess = React.useCallback(
     async (user) => {
@@ -66,7 +68,7 @@ export default function SSOGoogle({ mutex, next, ...props }) {
   const handleFailure = React.useCallback(
     ({ error: code, details }) => {
       if (code !== 'popup_closed_by_user') {
-        notify(`Unable to sign in with Google. ${e.details}`)
+        notify(`Unable to sign in with Google. ${details}`)
         const e = new errors.SSOError({ provider: 'google', code, details })
         sentry('captureException', e)
       }

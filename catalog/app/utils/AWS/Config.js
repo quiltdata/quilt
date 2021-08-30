@@ -15,10 +15,9 @@ const useConfig = (props) => {
   return useMemoEq({ credentials, ...props }, (input) => new AWS.Config(input))
 }
 
-export const Provider = RT.composeComponent(
-  'AWS.Config.Provider',
-  ({ children, ...props }) => <Ctx.Provider value={props}>{children}</Ctx.Provider>,
-)
+export function Provider({ children, ...props }) {
+  return <Ctx.Provider value={props}>{children}</Ctx.Provider>
+}
 
 const useAll = () => useConfig(React.useContext(Ctx))
 

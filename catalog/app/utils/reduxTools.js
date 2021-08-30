@@ -116,10 +116,10 @@ export const handleTransitions = (getState, reducers) => (state, action) =>
  * @returns {Reducer}
  *   Reducer with the given initial state.
  */
-export const withInitialState = (initialState, reducer) => (
-  state = initialState,
-  action,
-) => reducer(state, action)
+export const withInitialState =
+  (initialState, reducer) =>
+  (state = initialState, action) =>
+    reducer(state, action)
 
 /**
  * Create a reducer that uses different handlers for error and non-error actions.
@@ -132,8 +132,10 @@ export const withInitialState = (initialState, reducer) => (
  *
  *  @returns {Reducer}
  */
-export const handleResult = ({ resolve, reject }) => (state, action) =>
-  ((action.error ? reject : resolve) || id)(state, action)
+export const handleResult =
+  ({ resolve, reject }) =>
+  (state, action) =>
+    ((action.error ? reject : resolve) || id)(state, action)
 
 /**
  * Create map of actions prefixed with the given scope.

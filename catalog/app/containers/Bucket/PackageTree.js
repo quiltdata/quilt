@@ -295,7 +295,7 @@ function DirDisplay({
             onDelete={handlePackageDeletion}
           />
 
-          {updateDialog.render()}
+          {updateDialog.element}
 
           <TopBar crumbs={crumbs}>
             {preferences?.ui?.actions?.revisePackage && (

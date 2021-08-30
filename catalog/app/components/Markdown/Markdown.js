@@ -132,24 +132,26 @@ const escape = R.pipe(Remarkable.utils.replaceEntities, Remarkable.utils.escapeH
  *
  * @returns {MarkdownPlugin}
  */
-const imageHandler = ({ disable = false, process = R.identity }) => (md) => {
-  // eslint-disable-next-line no-param-reassign
-  md.renderer.rules.image = (tokens, idx) => {
-    const t = process(tokens[idx])
+const imageHandler =
+  ({ disable = false, process = R.identity }) =>
+  (md) => {
+    // eslint-disable-next-line no-param-reassign
+    md.renderer.rules.image = (tokens, idx) => {
+      const t = process(tokens[idx])
 
-    if (disable) {
-      const alt = t.alt ? escape(t.alt) : ''
-      const src = escape(t.src)
-      const title = t.title ? ` "${escape(t.title)}"` : ''
-      return `<span>![${alt}](${src}${title})</span>`
+      if (disable) {
+        const alt = t.alt ? escape(t.alt) : ''
+        const src = escape(t.src)
+        const title = t.title ? ` "${escape(t.title)}"` : ''
+        return `<span>![${alt}](${src}${title})</span>`
+      }
+
+      const src = Remarkable.utils.escapeHtml(t.src)
+      const alt = t.alt ? escape(Remarkable.utils.unescapeMd(t.alt)) : ''
+      const title = t.title ? ` title="${escape(t.title)}"` : ''
+      return `<img src="${src}" alt="${alt}"${title} />`
     }
-
-    const src = Remarkable.utils.escapeHtml(t.src)
-    const alt = t.alt ? escape(Remarkable.utils.unescapeMd(t.alt)) : ''
-    const title = t.title ? ` title="${escape(t.title)}"` : ''
-    return `<img src="${src}" alt="${alt}"${title} />`
   }
-}
 
 /**
  * Create a plugin for remarkable that does custom processing of links.
@@ -163,15 +165,17 @@ const imageHandler = ({ disable = false, process = R.identity }) => (md) => {
  *
  * @returns {MarkdownPlugin}
  */
-const linkHandler = ({ nofollow = true, process = R.identity }) => (md) => {
-  // eslint-disable-next-line no-param-reassign
-  md.renderer.rules.link_open = (tokens, idx) => {
-    const t = process(tokens[idx])
-    const title = t.title ? ` title="${escape(t.title)}"` : ''
-    const rel = nofollow ? ' rel="nofollow"' : ''
-    return `<a href="${Remarkable.utils.escapeHtml(t.href)}"${rel}${title}>`
+const linkHandler =
+  ({ nofollow = true, process = R.identity }) =>
+  (md) => {
+    // eslint-disable-next-line no-param-reassign
+    md.renderer.rules.link_open = (tokens, idx) => {
+      const t = process(tokens[idx])
+      const title = t.title ? ` title="${escape(t.title)}"` : ''
+      const rel = nofollow ? ' rel="nofollow"' : ''
+      return `<a href="${Remarkable.utils.escapeHtml(t.href)}"${rel}${title}>`
+    }
   }
-}
 
 /**
  * Get Remarkable instance based on the given options (memoized).

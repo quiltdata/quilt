@@ -235,9 +235,10 @@ export default function Testimonials() {
   const actualIndex = mod(index, testimonials.length)
   const nearestZero = Math.floor(index / testimonials.length) * testimonials.length
 
-  const goToNearestIndex = React.useCallback((i) => setIndex(nearestZero + i), [
-    nearestZero,
-  ])
+  const goToNearestIndex = React.useCallback(
+    (i) => setIndex(nearestZero + i),
+    [nearestZero],
+  )
 
   const slideRenderer = React.useCallback(
     ({ index: i, key }) => {

@@ -28,7 +28,7 @@ export type containers_Admin_BucketsAddMutation = { readonly __typename: 'Mutati
     | { readonly __typename: 'SnsInvalid' }
 }
 
-export const containers_Admin_BucketsAddDocument = ({
+export const containers_Admin_BucketsAddDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -94,7 +94,7 @@ export const containers_Admin_BucketsAddDocument = ({
     },
     ...BucketConfigSelectionFragmentDoc.definitions,
   ],
-} as unknown) as DocumentNode<
+} as unknown as DocumentNode<
   containers_Admin_BucketsAddMutation,
   containers_Admin_BucketsAddMutationVariables
 >

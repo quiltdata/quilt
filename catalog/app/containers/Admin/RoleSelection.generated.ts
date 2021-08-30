@@ -26,7 +26,7 @@ export type RoleSelectionFragment =
   | RoleSelection_UnmanagedRole_Fragment
   | RoleSelection_ManagedRole_Fragment
 
-export const RoleSelectionFragmentDoc = ({
+export const RoleSelectionFragmentDoc = {
   kind: 'Document',
   definitions: [
     {
@@ -91,4 +91,4 @@ export const RoleSelectionFragmentDoc = ({
       },
     },
   ],
-} as unknown) as DocumentNode<RoleSelectionFragment, unknown>
+} as unknown as DocumentNode<RoleSelectionFragment, unknown>
