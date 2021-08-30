@@ -20,6 +20,7 @@ interface ContentToken extends TagToken {
   content?: any
   block?: boolean | undefined
 }
+// NOTE: copied from @types/remarkable because they don't export aux types
 interface ImageToken extends ContentToken {
   src: string
   alt: string
@@ -124,7 +125,7 @@ const highlight = (str: string, lang: string) => {
 }
 
 interface RemarkableWithUtils extends Remarkable.Remarkable {
-  // Remarkable.Remarkable doesn't export utils
+  // NOTE: Remarkable.Remarkable doesn't export utils
   utils: {
     escapeHtml: (str: string) => string
     replaceEntities: (str: string) => string
