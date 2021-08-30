@@ -42,6 +42,7 @@ import WithGlobalStyles from '../global-styles'
 
 import AppBar from './AppBar'
 import * as EmbedConfig from './EmbedConfig'
+import * as Overrides from './Overrides'
 
 const EVENT_SOURCE = 'quilt-embed'
 const search = parseSearch(window.location.search)
@@ -188,6 +189,7 @@ function useInit() {
             // eslint-disable-next-line no-param-reassign
             init.scope = s3paths.ensureSlash(init.scope)
           }
+          Overrides.validate(init.overrides)
           setState(init)
         } catch (e) {
           const message = `Configuration error: ${e.message}`
@@ -361,6 +363,7 @@ function App({ init }) {
   useCssFiles(init.css)
 
   return RT.nest(
+    [Overrides.Provider, { value: init.overrides }],
     [EmbedConfig.Provider, { config: init }],
     [CustomThemeProvider, { theme: init.theme }],
     [Store.Provider, { history }],
