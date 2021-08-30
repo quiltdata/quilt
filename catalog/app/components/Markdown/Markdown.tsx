@@ -3,16 +3,29 @@ import createDOMPurify from 'dompurify'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/default.css'
 import memoize from 'lodash/memoize'
-import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RC from 'recompose'
 import * as Remarkable from 'remarkable'
 import { linkify } from 'remarkable/linkify'
-import { withStyles } from '@material-ui/styles'
+import * as M from '@material-ui/core'
 
 import { linkStyle } from 'utils/StyledLink'
-import * as RT from 'utils/reactTools'
+
+interface TagToken {
+  level: number
+  type: string
+  lines?: [number, number] | undefined
+}
+interface ContentToken extends TagToken {
+  content?: any
+  block?: boolean | undefined
+}
+interface ImageToken extends ContentToken {
+  src: string
+  alt: string
+  title: string
+  type: 'image'
+}
 
 /* Most of what's in the commonmark spec for HTML blocks;
  * minus troublesome/abusey/not-in-HTML5 tags: basefont, body, center, dialog,
@@ -87,7 +100,7 @@ const SANITIZE_OPTS = {
 
 // TODO: switch to pluggable react-aware renderer
 // TODO: use react-router's Link component for local links
-const highlight = (str, lang) => {
+const highlight = (str: string, lang: string) => {
   if (lang === 'none') {
     return ''
   }
@@ -110,7 +123,19 @@ const highlight = (str, lang) => {
   return '' // use external default escaping
 }
 
-const escape = R.pipe(Remarkable.utils.replaceEntities, Remarkable.utils.escapeHtml)
+interface RemarkableWithUtils extends Remarkable.Remarkable {
+  // Remarkable.Remarkable doesn't export utils
+  utils: {
+    escapeHtml: (str: string) => string
+    replaceEntities: (str: string) => string
+    unescapeMd: (str: string) => string
+  }
+}
+
+const escape = R.pipe(
+  (Remarkable as unknown as RemarkableWithUtils).utils.replaceEntities,
+  (Remarkable as unknown as RemarkableWithUtils).utils.escapeHtml,
+)
 
 /**
  * A Markdown (Remarkable) plugin. Takes a Remarkable instance and adjusts it.
@@ -134,10 +159,10 @@ const escape = R.pipe(Remarkable.utils.replaceEntities, Remarkable.utils.escapeH
  */
 const imageHandler =
   ({ disable = false, process = R.identity }) =>
-  (md) => {
+  (md: Remarkable.Remarkable) => {
     // eslint-disable-next-line no-param-reassign
     md.renderer.rules.image = (tokens, idx) => {
-      const t = process(tokens[idx])
+      const t: ImageToken = process(tokens[idx])
 
       if (disable) {
         const alt = t.alt ? escape(t.alt) : ''
@@ -146,8 +171,10 @@ const imageHandler =
         return `<span>![${alt}](${src}${title})</span>`
       }
 
-      const src = Remarkable.utils.escapeHtml(t.src)
-      const alt = t.alt ? escape(Remarkable.utils.unescapeMd(t.alt)) : ''
+      const src = (Remarkable as unknown as RemarkableWithUtils).utils.escapeHtml(t.src)
+      const alt = t.alt
+        ? escape((Remarkable as unknown as RemarkableWithUtils).utils.unescapeMd(t.alt))
+        : ''
       const title = t.title ? ` title="${escape(t.title)}"` : ''
       return `<img src="${src}" alt="${alt}"${title} />`
     }
@@ -167,13 +194,15 @@ const imageHandler =
  */
 const linkHandler =
   ({ nofollow = true, process = R.identity }) =>
-  (md) => {
+  (md: Remarkable.Remarkable) => {
     // eslint-disable-next-line no-param-reassign
     md.renderer.rules.link_open = (tokens, idx) => {
       const t = process(tokens[idx])
       const title = t.title ? ` title="${escape(t.title)}"` : ''
       const rel = nofollow ? ' rel="nofollow"' : ''
-      return `<a href="${Remarkable.utils.escapeHtml(t.href)}"${rel}${title}>`
+      return `<a href="${(Remarkable as unknown as RemarkableWithUtils).utils.escapeHtml(
+        t.href,
+      )}"${rel}${title}>`
     }
   }
 
@@ -196,66 +225,74 @@ export const getRenderer = memoize(({ images, processImg, processLink }) => {
   md.use(linkHandler({ process: processLink }))
   md.use(imageHandler({ disable: !images, process: processImg }))
   const purify = createDOMPurify(window)
-  return (data) => purify.sanitize(md.render(data), SANITIZE_OPTS)
+  return (data: string) => purify.sanitize(md.render(data), SANITIZE_OPTS)
 })
 
-export const Container = RT.composeComponent(
-  'Markdown.Container',
-  RC.setPropTypes({
-    children: PT.string,
-    className: PT.string,
-  }),
-  withStyles(() => ({
-    root: {
-      overflow: 'auto',
+interface ContainerProps {
+  children: string
+  className?: string
+}
 
-      '& a': linkStyle,
+const useContainerStyles = M.makeStyles({
+  root: {
+    overflow: 'auto',
 
-      '& h1 code': {
-        backgroundColor: 'inherit',
+    '& a': linkStyle,
+
+    '& h1 code': {
+      backgroundColor: 'inherit',
+    },
+
+    /* prevent horizontal overflow */
+    '& img': {
+      maxWidth: '100%',
+    },
+
+    '& table': {
+      maxWidth: '100%',
+      width: '100%',
+
+      'th, td': {
+        lineHeight: '1.5em',
+        padding: '8px',
+        textAlign: 'left',
       },
 
-      /* prevent horizontal overflow */
-      '& img': {
-        maxWidth: '100%',
-      },
-
-      '& table': {
-        maxWidth: '100%',
-        width: '100%',
-
-        'th, td': {
-          lineHeight: '1.5em',
-          padding: '8px',
-          textAlign: 'left',
-        },
-
-        '&, th, td': {
-          border: '1px solid #ddd',
-        },
+      '&, th, td': {
+        border: '1px solid #ddd',
       },
     },
-  })),
-  ({ classes, className, children }) => (
+  },
+})
+
+export function Container({ className, children }: ContainerProps) {
+  const classes = useContainerStyles()
+  return (
     <div
       className={cx(className, classes.root)}
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: children }}
     />
-  ),
-)
+  )
+}
 
-export default RT.composeComponent(
-  'Markdown',
-  RC.setPropTypes({
-    data: PT.string,
-    images: PT.bool,
-    processImg: PT.func,
-    processLink: PT.func,
-  }),
-  ({ data, images = true, processImg, processLink, ...props }) => (
+interface MarkdownProps extends Omit<ContainerProps, 'children'> {
+  data?: string
+  images?: boolean
+  processImg?: () => $TSFixMe
+  processLink?: () => $TSFixMe
+}
+
+export default function Markdown({
+  data,
+  images = true,
+  processImg,
+  processLink,
+  ...props
+}: MarkdownProps) {
+  return (
     <Container {...props}>
-      {getRenderer({ images, processImg, processLink })(data)}
+      {getRenderer({ images, processImg, processLink })(data || '')}
     </Container>
-  ),
-)
+  )
+}
