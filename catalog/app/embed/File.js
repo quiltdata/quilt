@@ -34,6 +34,7 @@ import * as requests from 'containers/Bucket/requests'
 import * as EmbedConfig from './EmbedConfig'
 import * as Overrides from './Overrides'
 import getCrumbs from './getCrumbs'
+import * as ipc from './ipc'
 
 const defaults = {
   s3ObjectLink: {
@@ -63,6 +64,7 @@ function VersionInfo({ bucket, path, version }) {
   const { urls } = NamedRoutes.use()
   const cfg = Config.use()
   const { push } = Notifications.use()
+  const messageParent = ipc.useMessageParent()
 
   const containerRef = React.useRef()
   const [anchor, setAnchor] = React.useState()
@@ -87,8 +89,20 @@ function VersionInfo({ bucket, path, version }) {
 
   const copyLink = (v) => (e) => {
     e.preventDefault()
-    copyToClipboard(getLink(v), { container: containerRef.current })
-    push(overrides.s3ObjectLink.notification)
+    if (overrides.s3ObjectLink.emit !== 'override') {
+      copyToClipboard(getLink(v), { container: containerRef.current })
+      push(overrides.s3ObjectLink.notification)
+    }
+    if (overrides.s3ObjectLink.emit) {
+      messageParent({
+        type: 's3ObjectLink',
+        url: urls.bucketFile(bucket, path, v.id),
+        s3HttpsUri: s3paths.handleToHttpsUri({ bucket, key: path, version: v.id }),
+        bucket,
+        key: path,
+        version: v.id,
+      })
+    }
   }
 
   const copyCliArgs = (v) => (e) => {

@@ -14,6 +14,7 @@ interface S3ObjectLinkOverride {
     version: string
   }) => string
   notification?: React.ReactNode
+  emit?: 'notify' | 'override'
 }
 
 interface Overrides {
@@ -58,9 +59,19 @@ const compileTemplate = (scope?: string) => (str?: unknown) => {
   }
 }
 
-function compile(input: unknown): Overrides {
-  return R.evolve({ s3ObjectLink: { href: compileTemplate() } })((input as {}) || {})
+function validateEmit(v: unknown) {
+  if (!v) return undefined
+  if (v !== 'notify' && v !== 'override') {
+    throw new Error(
+      '.overrides.s3ObjectLink.emit must be either "notify" or "override" or some falsy value',
+    )
+  }
+  return v
 }
+
+const compile = R.evolve({
+  s3ObjectLink: { href: compileTemplate(), emit: validateEmit },
+})
 
 export function validate(input: unknown) {
   assertIsObject('.overrides', input)
@@ -68,6 +79,7 @@ export function validate(input: unknown) {
   R.evolve({
     s3ObjectLink: {
       href: compileTemplate('.overrides.s3ObjectLink.href'),
+      emit: validateEmit,
     },
   })(input)
 }
