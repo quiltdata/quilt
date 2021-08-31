@@ -1,7 +1,9 @@
+import * as FF from 'final-form'
+import * as R from 'ramda'
 import * as React from 'react'
+import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
-import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
 import * as M from '@material-ui/core'
 
 import * as Config from 'utils/Config'
@@ -10,7 +12,6 @@ import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
 import defer from 'utils/defer'
 import parseSearch from 'utils/parseSearch'
-import { composeComponent } from 'utils/reactTools'
 import useMutex from 'utils/useMutex'
 import validate, * as validators from 'utils/validators'
 
@@ -27,137 +28,179 @@ const Container = Layout.mkLayout('Complete sign-up')
 
 const MUTEX_ID = 'password'
 
-const PasswordSignUp = composeComponent(
-  'Auth.SignUp.Password',
-  Sentry.inject(),
-  reduxForm({
-    form: 'Auth.SignUp.Password',
-    onSubmit: async (values, dispatch, { onSuccess, mutex, sentry }) => {
+function PasswordSignUp({ mutex, next, onSuccess }) {
+  const sentry = Sentry.use()
+  const dispatch = redux.useDispatch()
+  const { urls } = NamedRoutes.use()
+
+  const onSubmit = React.useCallback(
+    async (values) => {
       if (mutex.current) return
       mutex.claim(MUTEX_ID)
       try {
         const result = defer()
-        dispatch(signUp(values.remove('passwordCheck').toJS(), result.resolver))
+        dispatch(signUp(R.dissoc('passwordCheck', values), result.resolver))
         await result.promise
         onSuccess()
       } catch (e) {
         if (e instanceof errors.UsernameTaken) {
-          throw new SubmissionError({ username: 'taken' })
+          // eslint-disable-next-line consistent-return
+          return {
+            username: 'taken',
+          }
         }
         if (e instanceof errors.InvalidUsername) {
-          throw new SubmissionError({ username: 'invalid' })
+          // eslint-disable-next-line consistent-return
+          return {
+            username: 'invalid',
+          }
         }
         if (e instanceof errors.EmailTaken) {
-          throw new SubmissionError({ email: 'taken' })
+          // eslint-disable-next-line consistent-return
+          return {
+            email: 'taken',
+          }
         }
         if (e instanceof errors.InvalidEmail) {
-          throw new SubmissionError({ email: 'invalid' })
+          // eslint-disable-next-line consistent-return
+          return {
+            email: 'invalid',
+          }
         }
         if (e instanceof errors.InvalidPassword) {
-          throw new SubmissionError({ password: 'invalid' })
+          // eslint-disable-next-line consistent-return
+          return {
+            password: 'invalid',
+          }
         }
         if (e instanceof errors.SMTPError) {
-          throw new SubmissionError({ _error: 'smtp' })
+          // eslint-disable-next-line consistent-return
+          return {
+            [FF.FORM_ERROR]: 'smtp',
+          }
         }
         sentry('captureException', e)
-        throw new SubmissionError({ _error: 'unexpected' })
+        // eslint-disable-next-line consistent-return
+        return {
+          [FF.FORM_ERROR]: 'unexpected',
+        }
       } finally {
         mutex.release(MUTEX_ID)
       }
     },
-  }),
-  ({ next, mutex, handleSubmit, submitting, submitFailed, invalid, error }) => {
-    const { urls } = NamedRoutes.use()
-    return (
-      <form onSubmit={handleSubmit}>
-        <Field
-          component={Layout.Field}
-          name="username"
-          validate={[validators.required]}
-          disabled={!!mutex.current || submitting}
-          floatingLabelText="Username"
-          errors={{
-            required: 'Enter a username',
-            taken: (
-              <>
-                Username taken, try{' '}
-                <Layout.FieldErrorLink to={urls.signIn(next)}>
-                  signing in
-                </Layout.FieldErrorLink>
-              </>
-            ),
-            invalid: 'Username invalid',
-          }}
-        />
-        <Field
-          component={Layout.Field}
-          name="email"
-          validate={[validators.required]}
-          disabled={!!mutex.current || submitting}
-          floatingLabelText="Email"
-          errors={{
-            required: 'Enter your email',
-            taken: (
-              <>
-                Email taken, try{' '}
-                <Layout.FieldErrorLink to={urls.signIn(next)}>
-                  signing in
-                </Layout.FieldErrorLink>
-              </>
-            ),
-            invalid: 'Enter a valid email address',
-          }}
-        />
-        <Field
-          component={Layout.Field}
-          name="password"
-          type="password"
-          validate={[validators.required]}
-          disabled={!!mutex.current || submitting}
-          floatingLabelText="Password"
-          errors={{
-            required: 'Enter a password',
-            invalid: 'Password must be at least 8 characters long',
-          }}
-        />
-        <Field
-          component={Layout.Field}
-          name="passwordCheck"
-          type="password"
-          validate={[
-            validators.required,
-            validate('check', validators.matchesField('password')),
-          ]}
-          disabled={!!mutex.current || submitting}
-          floatingLabelText="Verify password"
-          errors={{
-            required: 'Enter the password again',
-            check: 'Passwords must match',
-          }}
-        />
-        <Layout.Error
-          {...{ submitFailed, error }}
-          errors={{
-            unexpected: 'Something went wrong. Try again later.',
-            smtp: 'SMTP error: contact your administrator',
-          }}
-        />
-        <Layout.Actions>
-          <Layout.Submit
-            label="Sign up"
-            disabled={!!mutex.current || submitting || (submitFailed && invalid)}
-            busy={submitting}
+    [dispatch, mutex, onSuccess, sentry],
+  )
+
+  return (
+    <RF.Form onSubmit={onSubmit}>
+      {({
+        error,
+        handleSubmit,
+        hasSubmitErrors,
+        hasValidationErrors,
+        modifiedSinceLastSubmit,
+        submitError,
+        submitFailed,
+        submitting,
+      }) => (
+        <form onSubmit={handleSubmit}>
+          <RF.Field
+            component={Layout.Field}
+            name="username"
+            validate={validators.required}
+            disabled={!!mutex.current || submitting}
+            floatingLabelText="Username"
+            errors={{
+              required: 'Enter a username',
+              taken: (
+                <>
+                  Username taken, try{' '}
+                  <Layout.FieldErrorLink to={urls.signIn(next)}>
+                    signing in
+                  </Layout.FieldErrorLink>
+                </>
+              ),
+              invalid: 'Username invalid',
+            }}
           />
-        </Layout.Actions>
-        <Layout.Hint>
-          <>
-            Already have an account? <Link to={urls.signIn(next)}>Sign in</Link>
-          </>
-        </Layout.Hint>
-      </form>
-    )
-  },
-)
+          <RF.Field
+            component={Layout.Field}
+            name="email"
+            validate={validators.required}
+            disabled={!!mutex.current || submitting}
+            floatingLabelText="Email"
+            errors={{
+              required: 'Enter your email',
+              taken: (
+                <>
+                  Email taken, try{' '}
+                  <Layout.FieldErrorLink to={urls.signIn(next)}>
+                    signing in
+                  </Layout.FieldErrorLink>
+                </>
+              ),
+              invalid: 'Enter a valid email address',
+            }}
+          />
+          <RF.Field
+            component={Layout.Field}
+            name="password"
+            type="password"
+            validate={validators.required}
+            disabled={!!mutex.current || submitting}
+            floatingLabelText="Password"
+            errors={{
+              required: 'Enter a password',
+              invalid: 'Password must be at least 8 characters long',
+            }}
+          />
+          <RF.Field
+            component={Layout.Field}
+            name="passwordCheck"
+            type="password"
+            validate={validators.composeAsync(
+              validators.required,
+              validate('check', validators.matchesField('password')),
+            )}
+            disabled={!!mutex.current || submitting}
+            floatingLabelText="Verify password"
+            errors={{
+              required: 'Enter the password again',
+              check: 'Passwords must match',
+            }}
+          />
+          <Layout.Error
+            {...{
+              submitFailed,
+              error: error || (!modifiedSinceLastSubmit && submitError),
+            }}
+            errors={{
+              unexpected: 'Something went wrong. Try again later.',
+              smtp: 'SMTP error: contact your administrator',
+            }}
+          />
+          <Layout.Actions>
+            <Layout.Submit
+              label="Sign up"
+              disabled={
+                !!mutex.current ||
+                submitting ||
+                (hasValidationErrors && submitFailed) ||
+                (hasSubmitErrors && !modifiedSinceLastSubmit)
+              }
+              busy={submitting}
+            />
+          </Layout.Actions>
+          <Layout.Hint>
+            <>
+              Already have an account? <Link to={urls.signIn(next)}>Sign in</Link>
+            </>
+          </Layout.Hint>
+        </form>
+      )}
+    </RF.Form>
+  )
+}
 
 export default ({ location: { search } }) => {
   const authenticated = redux.useSelector(selectors.authenticated)
