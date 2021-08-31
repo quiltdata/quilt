@@ -27,7 +27,6 @@ import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
 import defer from 'utils/defer'
 import { ErrorDisplay } from 'utils/error'
-import parseSearch from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
 import RouterProvider from 'utils/router'
 import * as s3paths from 'utils/s3paths'
@@ -43,11 +42,7 @@ import WithGlobalStyles from '../global-styles'
 import AppBar from './AppBar'
 import * as EmbedConfig from './EmbedConfig'
 import * as Overrides from './Overrides'
-
-const EVENT_SOURCE = 'quilt-embed'
-const search = parseSearch(window.location.search)
-const NONCE = search.nonce || `${Math.random}`
-const PARENT_ORIGIN = search.origin || '*'
+import * as ipc from './ipc'
 
 const mkLazy = (load) =>
   RT.loadable(load, { fallback: () => <Placeholder color="text.secondary" /> })
@@ -142,42 +137,11 @@ function BucketLayout({ bucket, children }) {
   )
 }
 
-function useMessageParent() {
-  return React.useCallback((data) => {
-    window.parent.postMessage(
-      { source: EVENT_SOURCE, nonce: NONCE, ...data },
-      PARENT_ORIGIN,
-    )
-  }, [])
-}
-
-function useMessageHandler(fn) {
-  const handleMessage = React.useCallback(
-    (e) => {
-      if (
-        e.source !== window.parent ||
-        (PARENT_ORIGIN !== '*' && e.origin !== PARENT_ORIGIN) ||
-        !e.data?.type
-      )
-        return
-      fn(e.data)
-    },
-    [fn],
-  )
-
-  React.useEffect(() => {
-    window.addEventListener('message', handleMessage)
-    return () => {
-      window.removeEventListener('message', handleMessage)
-    }
-  }, [handleMessage])
-}
-
 function useInit() {
-  const messageParent = useMessageParent()
+  const messageParent = ipc.useMessageParent()
   const [state, setState] = React.useState(null)
 
-  useMessageHandler(
+  ipc.useMessageHandler(
     React.useCallback(
       ({ type, ...init }) => {
         if (type !== 'init') return
@@ -233,7 +197,7 @@ function Init() {
 
 function usePostInit(init) {
   const dispatch = redux.useDispatch()
-  const messageParent = useMessageParent()
+  const messageParent = ipc.useMessageParent()
   const [state, setState] = React.useState(null)
 
   React.useEffect(() => {
@@ -308,9 +272,9 @@ function useCssFiles(files = []) {
 }
 
 function useSyncHistory(history) {
-  const messageParent = useMessageParent()
+  const messageParent = ipc.useMessageParent()
 
-  useMessageHandler(
+  ipc.useMessageHandler(
     React.useCallback(
       ({ type, ...data }) => {
         if (type !== 'navigate') return
@@ -333,10 +297,10 @@ function useSyncHistory(history) {
 
   React.useEffect(
     () =>
-      history.listen((location, action) => {
+      history.listen((l, action) => {
         messageParent({
           type: 'navigate',
-          route: `${location.pathname}${location.search}${location.hash}`,
+          route: `${l.pathname}${l.search}${l.hash}`,
           action,
         })
       }),
