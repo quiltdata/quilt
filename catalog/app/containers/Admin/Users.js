@@ -3,19 +3,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'redux-form/es/immutable'
 import * as urql from 'urql'
-import Button from '@material-ui/core/Button'
-import DialogActions from '@material-ui/core/DialogActions'
-import DialogContent from '@material-ui/core/DialogContent'
-import DialogTitle from '@material-ui/core/DialogTitle'
-import Icon from '@material-ui/core/Icon'
-import MenuItem from '@material-ui/core/MenuItem'
-import Paper from '@material-ui/core/Paper'
-import Select from '@material-ui/core/Select'
-import Switch from '@material-ui/core/Switch'
-import MuiTable from '@material-ui/core/Table'
-import TableBody from '@material-ui/core/TableBody'
-import TableCell from '@material-ui/core/TableCell'
-import TableRow from '@material-ui/core/TableRow'
 import * as M from '@material-ui/core'
 
 import * as Pagination from 'components/Pagination'
@@ -121,8 +108,8 @@ function Invite({ close, roles }) {
     >
       {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
         <>
-          <DialogTitle>Invite a user</DialogTitle>
-          <DialogContent>
+          <M.DialogTitle>Invite a user</M.DialogTitle>
+          <M.DialogContent>
             <form onSubmit={handleSubmit}>
               <RF.Field
                 component={Form.Field}
@@ -169,9 +156,9 @@ function Invite({ close, roles }) {
                 margin="normal"
               >
                 {roles.map((r) => (
-                  <MenuItem value={r.id} key={r.id}>
+                  <M.MenuItem value={r.id} key={r.id}>
                     {r.name}
-                  </MenuItem>
+                  </M.MenuItem>
                 ))}
               </RF.Field>
               {submitFailed && (
@@ -185,19 +172,23 @@ function Invite({ close, roles }) {
               )}
               <input type="submit" style={{ display: 'none' }} />
             </form>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => close('cancel')} color="primary" disabled={submitting}>
+          </M.DialogContent>
+          <M.DialogActions>
+            <M.Button
+              onClick={() => close('cancel')}
+              color="primary"
+              disabled={submitting}
+            >
               Cancel
-            </Button>
-            <Button
+            </M.Button>
+            <M.Button
               onClick={handleSubmit}
               color="primary"
               disabled={submitting || (submitFailed && invalid)}
             >
               Invite
-            </Button>
-          </DialogActions>
+            </M.Button>
+          </M.DialogActions>
         </>
       )}
     </Form.ReduxForm>
@@ -259,8 +250,8 @@ function Edit({ close, user: { email: oldEmail, username } }) {
     >
       {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
         <>
-          <DialogTitle>Edit user: &quot;{username}&quot;</DialogTitle>
-          <DialogContent>
+          <M.DialogTitle>Edit user: &quot;{username}&quot;</M.DialogTitle>
+          <M.DialogContent>
             <form onSubmit={handleSubmit}>
               <RF.Field
                 component={Form.Field}
@@ -286,19 +277,23 @@ function Edit({ close, user: { email: oldEmail, username } }) {
               )}
               <input type="submit" style={{ display: 'none' }} />
             </form>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => close('cancel')} color="primary" disabled={submitting}>
+          </M.DialogContent>
+          <M.DialogActions>
+            <M.Button
+              onClick={() => close('cancel')}
+              color="primary"
+              disabled={submitting}
+            >
               Cancel
-            </Button>
-            <Button
+            </M.Button>
+            <M.Button
               onClick={handleSubmit}
               color="primary"
               disabled={submitting || (submitFailed && invalid)}
             >
               Save
-            </Button>
-          </DialogActions>
+            </M.Button>
+          </M.DialogActions>
         </>
       )}
     </Form.ReduxForm>
@@ -336,19 +331,19 @@ function Delete({ user, close }) {
 
   return (
     <>
-      <DialogTitle>Delete a user</DialogTitle>
-      <DialogContent>
+      <M.DialogTitle>Delete a user</M.DialogTitle>
+      <M.DialogContent>
         You are about to delete user &quot;{user.username}&quot;. This operation is
         irreversible.
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => close('cancel')} color="primary">
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={() => close('cancel')} color="primary">
           Cancel
-        </Button>
-        <Button onClick={doDelete} color="primary">
+        </M.Button>
+        <M.Button onClick={doDelete} color="primary">
           Delete
-        </Button>
-      </DialogActions>
+        </M.Button>
+      </M.DialogActions>
     </>
   )
 }
@@ -392,19 +387,19 @@ function AdminRights({ username, admin, close }) {
 
   return (
     <>
-      <DialogTitle>{admin ? 'Grant' : 'Revoke'} admin rights</DialogTitle>
-      <DialogContent>
+      <M.DialogTitle>{admin ? 'Grant' : 'Revoke'} admin rights</M.DialogTitle>
+      <M.DialogContent>
         You are about to {admin ? 'grant admin rights to' : 'revoke admin rights from'}{' '}
         &quot;{username}&quot;.
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => close('cancel')} color="primary">
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.Button onClick={() => close('cancel')} color="primary">
           Cancel
-        </Button>
-        <Button onClick={doChange} color="primary">
+        </M.Button>
+        <M.Button onClick={doChange} color="primary">
           {admin ? 'Grant' : 'Revoke'}
-        </Button>
-      </DialogActions>
+        </M.Button>
+      </M.DialogActions>
     </>
   )
 }
@@ -429,7 +424,7 @@ function Username({ className, admin = false, children, ...props }) {
   const classes = useUsernameStyles()
   return (
     <span className={cx(className, classes.root)} {...props}>
-      {admin && <Icon className={classes.icon}>security</Icon>}
+      {admin && <M.Icon className={classes.icon}>security</M.Icon>}
       <Mono className={cx({ [classes.admin]: admin })}>{children}</Mono>
     </span>
   )
@@ -465,10 +460,10 @@ const emptyRole = '<None>'
 
 function UsersSkeleton() {
   return (
-    <Paper>
+    <M.Paper>
       <Table.Toolbar heading="Users" />
       <Table.Progress />
-    </Paper>
+    </M.Paper>
   )
 }
 
@@ -546,7 +541,7 @@ export default function Users({ users }) {
         getDisplay: (v, u) => (
           <Editable value={v} onChange={(active) => setIsActive(u.username, active)}>
             {({ change, busy, value }) => (
-              <Switch
+              <M.Switch
                 checked={value}
                 onChange={(e) => change(e.target.checked)}
                 disabled={busy}
@@ -575,18 +570,18 @@ export default function Users({ users }) {
         getDisplay: (v, u) => (
           <Editable value={v} onChange={(role) => setRole(u.username, role)}>
             {({ change, busy, value }) => (
-              <Select
+              <M.Select
                 value={value || emptyRole}
                 onChange={(e) => change(e.target.value)}
                 disabled={busy}
                 renderValue={R.identity}
               >
                 {roles.map((r) => (
-                  <MenuItem value={r.name} key={r.id}>
+                  <M.MenuItem value={r.name} key={r.id}>
                     {r.name}
-                  </MenuItem>
+                  </M.MenuItem>
                 ))}
-              </Select>
+              </M.Select>
             )}
           </Editable>
         ),
@@ -627,7 +622,7 @@ export default function Users({ users }) {
             }}
           >
             {({ change, busy, value }) => (
-              <Switch
+              <M.Switch
                 checked={value}
                 onChange={(e) => change(e.target.checked)}
                 disabled={busy}
@@ -649,7 +644,7 @@ export default function Users({ users }) {
   const toolbarActions = [
     {
       title: 'Invite',
-      icon: <Icon>add</Icon>,
+      icon: <M.Icon>add</M.Icon>,
       fn: React.useCallback(() => {
         openDialog(({ close }) => <Invite {...{ close, roles }} />)
       }, [roles, openDialog]),
@@ -659,14 +654,14 @@ export default function Users({ users }) {
   const inlineActions = (user) => [
     {
       title: 'Delete',
-      icon: <Icon>delete</Icon>,
+      icon: <M.Icon>delete</M.Icon>,
       fn: () => {
         dialogs.open(({ close }) => <Delete {...{ user, close }} />)
       },
     },
     {
       title: 'Edit',
-      icon: <Icon>edit</Icon>,
+      icon: <M.Icon>edit</M.Icon>,
       fn: () => {
         dialogs.open(({ close }) => <Edit {...{ user, close }} />)
       },
@@ -675,30 +670,30 @@ export default function Users({ users }) {
 
   return (
     <React.Suspense fallback={<UsersSkeleton />}>
-      <Paper>
+      <M.Paper>
         {dialogs.render({ maxWidth: 'xs', fullWidth: true })}
         <Table.Toolbar heading="Users" actions={toolbarActions} />
         <Table.Wrapper>
-          <MuiTable size="small">
+          <M.Table size="small">
             <Table.Head columns={columns} ordering={ordering} withInlineActions />
-            <TableBody>
+            <M.TableBody>
               {pagination.paginated.map((i) => (
-                <TableRow hover key={i.username}>
+                <M.TableRow hover key={i.username}>
                   {columns.map((col) => (
-                    <TableCell key={col.id} {...col.props}>
+                    <M.TableCell key={col.id} {...col.props}>
                       {(col.getDisplay || R.identity)(col.getValue(i), i)}
-                    </TableCell>
+                    </M.TableCell>
                   ))}
-                  <TableCell align="right" padding="none">
+                  <M.TableCell align="right" padding="none">
                     <Table.InlineActions actions={inlineActions(i)} />
-                  </TableCell>
-                </TableRow>
+                  </M.TableCell>
+                </M.TableRow>
               ))}
-            </TableBody>
-          </MuiTable>
+            </M.TableBody>
+          </M.Table>
         </Table.Wrapper>
         <Table.Pagination pagination={pagination} />
-      </Paper>
+      </M.Paper>
     </React.Suspense>
   )
 }
