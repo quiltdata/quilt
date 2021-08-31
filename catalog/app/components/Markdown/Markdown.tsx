@@ -11,23 +11,6 @@ import * as M from '@material-ui/core'
 
 import { linkStyle } from 'utils/StyledLink'
 
-interface TagToken {
-  level: number
-  type: string
-  lines?: [number, number] | undefined
-}
-interface ContentToken extends TagToken {
-  content?: any
-  block?: boolean | undefined
-}
-// NOTE: copied from @types/remarkable because they don't export aux types
-interface ImageToken extends ContentToken {
-  src: string
-  alt: string
-  title: string
-  type: 'image'
-}
-
 /* Most of what's in the commonmark spec for HTML blocks;
  * minus troublesome/abusey/not-in-HTML5 tags: basefont, body, center, dialog,
  * dir, fieldset, form, frame, frameset, head, html, iframe, link, main, menu,
@@ -163,7 +146,7 @@ const imageHandler =
   (md: Remarkable.Remarkable) => {
     // eslint-disable-next-line no-param-reassign
     md.renderer.rules.image = (tokens, idx) => {
-      const t: ImageToken = process(tokens[idx])
+      const t = process(tokens[idx])
 
       if (disable) {
         const alt = t.alt ? escape(t.alt) : ''
