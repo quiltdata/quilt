@@ -25,9 +25,9 @@ const useMonoStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Mono({ className, ...props }) {
+function Mono({ className }) {
   const classes = useMonoStyles()
-  return <span className={cx(className, classes.root)} {...props} />
+  return <span className={cx(className, classes.root)} />
 }
 
 // close: PT.func.isRequired,
