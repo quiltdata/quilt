@@ -99,7 +99,6 @@ function Embedder() {
     (msg) => {
       if (!iframeRef.current) return
       const w = iframeRef.current.contentWindow
-      // eslint-disable-next-line no-console
       w.postMessage(msg, EMBED_ORIGIN)
       logMessage('out', msg)
     },
@@ -129,7 +128,6 @@ function Embedder() {
         nonce !== e.data.nonce
       )
         return
-      // eslint-disable-next-line no-console
       logMessage('in', R.omit(['source', 'nonce'], e.data))
     },
     [iframeRef, logMessage, nonce],
