@@ -121,7 +121,6 @@ const useBucketSelectDropdownStyles = M.makeStyles((t) => ({
 
     ...t.typography.body1,
     cursor: 'pointer',
-    fontWeight: t.typography.fontWeightMedium,
   },
 }))
 
