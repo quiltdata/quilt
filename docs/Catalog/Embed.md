@@ -1,4 +1,4 @@
-The Quilt catalog has a special (limited) S3 browser that can be embedded into any web app using an iframe.
+The Quilt catalog has a special (limited) S3 browser UI that can be embedded into any web app using an iframe -- "Embed" further on.
 This embeddable browser is served off the main catalog server under `/__embed` route.
 
 ![](../imgs/embed-example.png)
@@ -22,12 +22,12 @@ function Embed() {
 
   const [nonce, setNonce] = React.useState(mkNonce)
 
-  // nonce is used to identify "our" embed instance and make sure we're receiving messages from the same instance
-  // origin must be sent as a query parameter to enable cross-origin message passing from embed to the parent
+  // nonce is used to identify "our" Embed instance and make sure we're receiving messages from the same instance
+  // origin must be sent as a query parameter to enable cross-origin message passing from Embed to the parent
   const src = `${EMBED_ORIGIN}/__embed?nonce=${nonce}&origin=${encodeURIComponent(PARENT_ORIGIN)}`
 
   const postMessage = React.useCallback(
-    // function for sending messages to the embed (it will only handle messages sent by the window that opened it aka parent)
+    // function for sending messages to the Embed (it will only handle messages sent by the window that opened it aka parent)
     (msg) => {
       if (!iframeRef.current) return
       // origin must be sent as a second parameter to enable cross-origin message passing
@@ -37,25 +37,18 @@ function Embed() {
   )
 
   const initialize = React.useCallback(() => {
+    // see the `init` command reference in the API section below for details
     postMessage({
       type: 'init',
       bucket: 'your-bucket-here',
       path: 'path-to-object-or-prefix',
-      // initial route embed will navigate to, takes precedence over bucket / path
-      route: '/b/your-bucket/some/path',
-      // embed accepts any credentials supported by the Quilt authentication endpoint,
+      // deep linking can be implemented by storing Embed's route and then initializing it with this stored route
+      route: location.search.route || undefined,
+
       // e.g. { provider, token } for SSO or { password, username } (which doesn't seem like a right choice in most cases)
       // getting credentials is your app's responsibility
       credentials: { provider: 'okta', token: 'my token' },
-      // embed can be "scoped" to a path, meaning that path will be a virtual "root" for the object browser,
-      // but only for display purposes (i.e. formatting paths / rendering breadcrumbs),
-      // it won't prevent navigating to the paths outside the scope if navigated directly
-      // (via IPC or init parameters) or via a link, so it's not to be considered a security measure
-      scope: 'some-path-to-scope-the-embed-to',
-      // you can customize look and feel of the embed by providing theme overrides,
-      // see [MUI theming reference](https://material-ui.com/customization/theming/)
-      // and [Quilt theme construction code](https://github.com/quiltdata/quilt/blob/master/catalog/app/constants/style.js#L145)
-      // for details
+
       theme: {
         palette: {
           primary: {
@@ -69,28 +62,15 @@ function Embed() {
           fontFamily: '"Comic Sans MS", "Comic Sans", cursive',
         },
       },
-      // some aspects of the UI can be overriden:
+
       overrides: {
-        // this prop is responsible for customizing the display and behaviour of the "link" button
-        // in the object revision list menu
         s3ObjectLink: {
-          title: 'override title',
-          // link [template](https://lodash.com/docs/4.17.15#template)
-          // context:
-          //   url: string -- url / route of the object version in the context of the embed
-          //   s3HttpsUri: string -- HTTPS URI of the current object, e.g. https://my-bucket.s3.amazonaws.com/${key}?versionId=${version} (with properly encoded key)
-          //   bucket: string -- current bucket
-          //   key: string -- key of the browsed object
-          //   version: string -- object version id
           href: 'https://my-app/s3-browser?route=<%= encodeURIComponent(url) %>',
           // notification shown after copying href to the clipboard (if `emit` is not set to "override")
-          notification: 'url copied',
-          // when set "notify" or "override", embed will send "s3ObjectLink" message
-          // TODO: message reference
-          // when set to "override", default action (copying href to clipboard) won't be performed
-          emit: 'notify',
+          emit: 'override',
         },
       },
+
       // arbitrary CSS files can be injected to further customize look and feel and/or layout
       css: [
         'https://my-cdn.com/my-custom-styles-1.css',
@@ -100,12 +80,12 @@ function Embed() {
   }, [postMessage])
 
   const navigate = React.useCallback((route) => {
-    // you can command the embed to navigate to an arbitrary route
+    // command the Embed to navigate to an arbitrary route
     postMessage({ type: 'navigate', route })
   }, [postMessage])
 
   const reloadIframe = React.useCallback(() => {
-    // you can reload the iframe by generating a new nonce (and therefore changing `src` computed value)
+    // reload the iframe by generating a new nonce (and therefore changing `src` computed value)
     setNonce(mkNonce)
   }, [setNonce])
 
@@ -121,24 +101,32 @@ function Embed() {
         // ensure this is "our" instance by comparing nonce passed to the iframe
         // via query string to the nonce passed back by the iframe
         nonce !== e.data.nonce
-      )
+      ) {
         return
-      // there are several types of messages coming from the embed:
+      }
+      // handle messages from the Embed
       switch (e.data.type) {
         case 'error':
+          console.error(e.data.message, e.data)
           return
         case 'ready':
+          initialize()
           return
         case 'navigate':
+          // store Embed state (route), e.g. update our URL to store the embed route in a query paramter or smth
+          console.log('embed navigating to', e.data.route)
           return
         case 's3ObjectLink':
+          // construct a custom link using e.data and copy it to clipboard or perform any other relevant action
+          console.log('s3 object link clicked', e.data)
           return
       }
     },
-    [iframeRef, nonce],
+    [iframeRef, nonce, initialize],
   )
 
   React.useEffect(() => {
+    // subscribe to messages from Embed
     window.addEventListener('message', handleMessage)
     return () => {
       window.removeEventListener('message', handleMessage)
@@ -162,34 +150,169 @@ function Embed() {
 
 ### URL and query parameters
 
-The embed is served off the main catalog server under `/__embed` route
+The Embed is served off the main catalog server under `/__embed` route
 which takes two optional query parameters:
 
-`nonce`
+`nonce` (any unique string) is used to identify "our" Embed instance and make sure we're receiving messages from that same instance.
 
-`origin`
+`origin` must be sent to enable cross-origin message passing from Embed to the parent.
 
 
 ### Commands to embed
 
+Embed accepts commands from the parent via [`postMessage` API](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage).
+Command message data format is `{ type: '$COMMAND', ...parameters }`.
+Available commands are listed below.
+
 #### `init`
 
+Initialize the Embed.
+This command must be sent after the Embed is ready
+(see `ready` message reference for details).
+
+```ts
+{
+  type: 'init'
+
+  // Bucket name, e.g. 'my-bucket'
+  bucket?: string
+  // Path to object or prefix in the given bucket, e.g. 'some-prefix/some-object.csv'
+  path?: string
+
+  // Initial route Embed will navigate to, e.g. '/b/my-bucket/tree/some/path',
+  // takes precedence over bucket / path
+  route?: string
+
+  // Embed accepts any credentials supported by the Quilt authentication endpoint,
+  // e.g. { provider, token } for SSO or { password, username } (which doesn't seem like a right choice in most cases tho).
+  // Getting credentials is your app's responsibility
+  credentials: { provider: string; token: string } | { username: string; password: string }
+
+  // Embed can be "scoped" to a prefix, meaning that prefix will be a virtual "root" for the object browser,
+  // but only for display purposes (i.e. formatting paths / rendering breadcrumbs),
+  // it won't prevent navigating to the paths outside the scope if navigated directly
+  // via a command (navigate or init) or a link, so it's not to be considered a security measure.
+  scope?: string
+
+  // Look and feel of the Embed can be customzied by providing theme overrides,
+  // see [MUI theming reference](https://material-ui.com/customization/theming/)
+  // and [Quilt theme construction code](https://github.com/quiltdata/quilt/blob/master/catalog/app/constants/style.js#L145)
+  // for details.
+  theme?: MUI.ThemeOptions // https://github.com/mui-org/material-ui/blob/v4.12.3/packages/material-ui/src/styles/createTheme.d.ts#L15
+
+  // Some aspects of the UI can be overriden:
+  overrides?: {
+    // This prop is responsible for customizing the display and behaviour
+    // of the "link" button in the object revision list menu
+    s3ObjectLink?: {
+      // Title of the link element
+      title?: string
+      // Link [template](https://lodash.com/docs/4.17.15#template).
+      // Template context:
+      //   url: string -- url / route of the object version in the context of the Embed
+      //   s3HttpsUri: string -- HTTPS URI of the object version, e.g. https://my-bucket.s3.amazonaws.com/${key}?versionId=${version} (with properly encoded key)
+      //   bucket: string -- current bucket
+      //   key: string -- key of the browsed object
+      //   version: string -- object version id
+      // Example: 'https://my-app/s3-browser?route=<%= encodeURIComponent(url) %>'
+      href?: string
+      // Notification shown after copying href to the clipboard (if `emit` is not set to "override")
+      notification?: string
+      // When set "notify" or "override", Embed will send "s3ObjectLink" message.
+      // When set to "override", default action (copying href to clipboard) won't be performed.
+      emit?: 'notify' | 'override' | null
+    }
+  }
+
+  // List of CSS URLs to be injected (to further customize look and feel and/or layout)
+  // Example:
+  // [
+  //   'https://my-cdn.com/my-custom-styles-1.css',
+  //   'https://my-other-host.com/my-custom-styles-2.css',
+  // ],
+  css?: string[]
+}
+```
+
 #### `navigate`
+
+Navigate to the given route.
+
+```ts
+{
+  type: 'navigate'
+  // Route to navigate to, e.g. '/b/my-bucket/tree/some/path'
+  route: string
+}
+```
 
 ### Messages from embed
 
+Embed sends messages to its parent via [`postMessage` API](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage).
+Message data format is `{ source: 'quilt-embed', nonce: '$NONCE', type: '$TYPE', ...parameters }`.
+Available messages are listed below.
+
 #### `ready`
+
+Sent when the Embed is done loading and ready to receive commands (waiting for `init` command).
+
+```ts
+{ type: 'ready' }
+```
 
 #### `error`
 
+Sent when an error occurs.
+
+```ts
+{
+  type: 'error'
+  message: string
+  credentials?: object // for authentication error
+  init?: object // for initialization error
+  data?: object // for navigation error
+}
+```
+
 #### `navigate`
+
+Sent when the Embed navigates to a new route.
+Useful for syncing Embed state with the parent app state.
+
+```ts
+{
+  type: 'navigate'
+  route: string
+  action: 'PUSH' | 'POP' | 'REPLACE'
+}
+```
 
 #### `s3ObjectLink`
 
+Enabled only when `overrides.s3ObjectLink.emit` parameter is set during initialization.
+Sent when the link button in the object version menu is clicked.
+
+![](../imgs/embed-object-link.png)
+
+```ts
+{
+  type: 's3ObjectLink'
+  // URL aka route of the object version in the context of the Embed
+  url: string
+  // HTTPS URI of the object version, e.g. https://my-bucket.s3.amazonaws.com/${key}?versionId=${version} (with properly encoded key)
+  s3HttpsUri: string
+  // Bucket the object resides in
+  bucket: string
+  // Object's key
+  key: string
+  // Object's version ID
+  version: string
+}
+```
 
 ## Testing and debugging
 
-Catalog also has `/__embed-debug` route which serves a simple debug interface for the embed:
+Catalog also has `/__embed-debug` route which serves a simple debug interface for the Embed:
 
 ![](../imgs/embed-debug.png)
 
