@@ -36,20 +36,19 @@ const RODA_BUCKET = 'quilt-open-data-bucket'
 const MAX_EXTS = 7
 // must have length >= MAX_EXTS
 const COLOR_MAP = [
-  '#6996ff',
-  M.colors.blue[300],
-  M.colors.teal.A200,
-  M.colors.lightGreen[300],
-  M.colors.amber[300],
-  M.colors.deepOrange[300],
-  M.colors.pink[300],
-  M.colors.purple[300],
-  M.colors.indigo[300],
-  M.colors.cyan[300],
-  M.colors.green[300],
-  M.colors.lime[300],
-  M.colors.yellow[300],
-  M.colors.brown[300],
+  M.colors.blue,
+  M.colors.teal,
+  M.colors.lightGreen,
+  M.colors.amber,
+  M.colors.deepOrange,
+  M.colors.pink,
+  M.colors.purple,
+  M.colors.indigo,
+  M.colors.cyan,
+  M.colors.green,
+  M.colors.lime,
+  M.colors.yellow,
+  M.colors.brown,
 ]
 
 function mkKeyedPool(pool) {
@@ -63,6 +62,11 @@ function mkKeyedPool(pool) {
     return map[key]
   }
   return { get }
+}
+
+function getFaidedColor(colorPool, ext, orderNumber) {
+  const shade = orderNumber < 3 ? 300 : orderNumber < 6 ? 200 : 100
+  return colorPool.get(ext)[shade]
 }
 
 function useConst(cons) {
@@ -162,7 +166,7 @@ function ObjectsByExt({ data, colorPool, ...props }) {
             const max = Math.log(maxBytes + 1)
             const scale = (x) => Math.log(x + 1) / max
             return capped.map(({ ext, bytes, objects }, i) => {
-              const color = colorPool.get(ext)
+              const color = getFaidedColor(colorPool, ext, i)
               return (
                 <React.Fragment key={`ext:${ext}`}>
                   <div className={classes.ext} style={{ gridRow: i + 2 }}>
@@ -404,14 +408,16 @@ function StatsTip({ stats, colorPool, className, ...props }) {
         </div>
       </div>
       <div className={classes.extsContainer}>
-        {stats.byExt.map((s) => {
+        {stats.byExt.map((s, i) => {
           const hl = stats.highlighted ? stats.highlighted.ext === s.ext : true
           return (
             <React.Fragment key={s.ext}>
               <div className={cx(classes.ext, hl && classes.hl)}>{s.ext || 'other'}</div>
               <div
                 className={cx(classes.color, hl && classes.hl)}
-                style={{ background: colorPool.get(s.ext) }}
+                style={{
+                  background: getFaidedColor(colorPool, s.ext, i),
+                }}
               />
               <div className={cx(classes.number, hl && classes.hl)}>
                 {readableQuantity(s.sum)} (+
@@ -612,8 +618,8 @@ function Downloads({ bucket, colorPool, ...props }) {
                         onCursor={setCursor}
                         height={CHART_H}
                         width={width}
-                        areaFills={counts.byExtCollapsed.map((e) =>
-                          SVG.Paint.Color(colorPool.get(e.ext)),
+                        areaFills={counts.byExtCollapsed.map((e, i) =>
+                          SVG.Paint.Color(getFaidedColor(colorPool, e.ext, i)),
                         )}
                         extendL
                         extendR
