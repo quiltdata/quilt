@@ -158,10 +158,18 @@ which takes two optional query parameters:
 `origin` must be sent to enable cross-origin message passing from Embed to the parent.
 
 
-### Commands to embed
+### Commands to Embed
 
 Embed accepts commands from the parent via [`postMessage` API](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage).
-Command message data format is `{ type: '$COMMAND', ...parameters }`.
+Command message data format:
+
+```ts
+interface Command {
+  type: string
+  // ...parameters
+}
+```
+
 Available commands are listed below.
 
 #### `init`
@@ -171,7 +179,7 @@ This command must be sent after the Embed is ready
 (see `ready` message reference for details).
 
 ```ts
-{
+interface InitCommand extends Command {
   type: 'init'
 
   // Bucket name, e.g. 'my-bucket'
@@ -239,17 +247,27 @@ This command must be sent after the Embed is ready
 Navigate to the given route.
 
 ```ts
-{
+interface NavigateCommand extends Command {
   type: 'navigate'
   // Route to navigate to, e.g. '/b/my-bucket/tree/some/path'
   route: string
 }
 ```
 
-### Messages from embed
+### Messages from Embed
 
 Embed sends messages to its parent via [`postMessage` API](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage).
-Message data format is `{ source: 'quilt-embed', nonce: '$NONCE', type: '$TYPE', ...parameters }`.
+Message data format:
+
+```ts
+interface Message {
+  source: 'quilt-embed'
+  nonce: string
+  type: string
+  // ...parameters
+}
+```
+
 Available messages are listed below.
 
 #### `ready`
@@ -257,7 +275,9 @@ Available messages are listed below.
 Sent when the Embed is done loading and ready to receive commands (waiting for `init` command).
 
 ```ts
-{ type: 'ready' }
+interface ReadyMessage extends Message {
+  type: 'ready'
+}
 ```
 
 #### `error`
@@ -265,7 +285,7 @@ Sent when the Embed is done loading and ready to receive commands (waiting for `
 Sent when an error occurs.
 
 ```ts
-{
+interface ErrorMessage extends Message {
   type: 'error'
   message: string
   credentials?: object // for authentication error
@@ -280,7 +300,7 @@ Sent when the Embed navigates to a new route.
 Useful for syncing Embed state with the parent app state.
 
 ```ts
-{
+interface NavigateMessage extends Message {
   type: 'navigate'
   route: string
   action: 'PUSH' | 'POP' | 'REPLACE'
@@ -295,7 +315,7 @@ Sent when the link button in the object version menu is clicked.
 ![](../imgs/embed-object-link.png)
 
 ```ts
-{
+interface S3ObjectLinkMessage extends Message {
   type: 's3ObjectLink'
   // URL aka route of the object version in the context of the Embed
   url: string
@@ -316,7 +336,7 @@ Catalog also has `/__embed-debug` route which serves a simple debug interface fo
 
 ![](../imgs/embed-debug.png)
 
-It's useful for trying different parameters and inspecting messages passed to/from the embed.
+It's useful for trying different parameters and inspecting messages passed to/from the Embed.
 
 Its main components are:
 
