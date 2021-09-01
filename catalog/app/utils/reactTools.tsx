@@ -24,45 +24,6 @@ const createFactory = RC.hoistStatics(
 )
 
 /**
- * Create a HOC that sets the displayName of a component
- * if it's possible and the name isn't already set.
- *
- * @param name
- *
- * @returns HOC setting the displayName to the given value
- */
-const maybeSetDisplayName = (name: string) => (C: any) =>
-  !C || typeof C === 'string' || typeof C === 'symbol' || C.displayName || C.name
-    ? C
-    : RC.setDisplayName(name)(C)
-
-/**
- * Create a compound component from a set of HOCs (possibly empty) and a component.
- *
- * @param name - Display name of the resulting component.
- *
- * @param decorators - The set of HOCs to apply to the "render" component.
- *
- * @param render
- *   The leaf component that does the actual rendering.
- *   Usually a stateless functional component.
- *
- * @returns The resulting component with all the HOCs applied and displayName set.
- */
-export const composeComponent = (name: string, ...args: $TSFixMe[]) => {
-  const decorators = R.init(args)
-  const render = R.last(args)
-  return decorators.length
-    ? RC.compose(
-        RC.setDisplayName(name),
-        createFactory,
-        ...decorators,
-        maybeSetDisplayName(`${name}:render`),
-      )(render)
-    : RC.setDisplayName(name)(render)
-}
-
-/**
  * Create a compound HOC from a set of HOCs.
  *
  * @param name - The string used to wrap the decorated component.
@@ -120,45 +81,6 @@ export const wrap = (Wrapper, propMapper = R.identity) =>
     // @ts-expect-error
     (Component) => (props) => nest([Wrapper, propMapper(props)], [Component, props]),
   )
-
-/**
- * Create a HOC that consumes a given context and injects it into props.
- *
- * @param context - React Context to consume
- *
- * @param propMapper
- *   When string, use it as a prop name to inject the context value to.
- *   When function, call it with the context value and props passed to the
- *   resulting component, and use the result as props passed to the decorated
- *   component.
- *
- * @returns Component receiving the context value via props
- *
- * @example
- * const ctx = createContext({ thing: 'value' });
- *
- * // the following calls are equivalent:
- * const withStuff = consume(ctx, 'stuff');
- * const withStuff2 = consume(ctx, (stuff, props) => ({ ...props, stuff });
- *
- * const Component = composeComponent('Component',
- *   withStuff,
- *   ({ stuff }) => <h1>{stuff.thing}</h1>);
- */
-// @ts-expect-error
-export const consume = ({ Consumer }, propMapper) => {
-  const mkProps =
-    typeof propMapper === 'string'
-      ? // @ts-expect-error
-        (value, props) => ({ ...props, [propMapper]: value })
-      : propMapper
-  // @ts-expect-error
-  return (Component) => (props) =>
-    (
-      // @ts-expect-error
-      <Consumer>{(value) => <Component {...mkProps(value, props)} />}</Consumer>
-    )
-}
 
 /**
  * Wrap component into React.Suspense with given fallback and extra props.
