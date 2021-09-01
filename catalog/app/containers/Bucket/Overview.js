@@ -165,36 +165,33 @@ function ObjectsByExt({ data, colorPool, ...props }) {
             const maxBytes = capped.reduce((max, e) => Math.max(max, e.bytes), 0)
             const max = Math.log(maxBytes + 1)
             const scale = (x) => Math.log(x + 1) / max
-            return capped.map(({ ext, bytes, objects }, i) => {
-              const color = getFaidedColor(colorPool, ext, i)
-              return (
-                <React.Fragment key={`ext:${ext}`}>
-                  <div className={classes.ext} style={{ gridRow: i + 2 }}>
-                    {ext || 'other'}
-                  </div>
-                  <div className={classes.bar} style={{ gridRow: i + 2 }}>
+            return capped.map(({ ext, bytes, objects }, i) => (
+              <React.Fragment key={`ext:${ext}`}>
+                <div className={classes.ext} style={{ gridRow: i + 2 }}>
+                  {ext || 'other'}
+                </div>
+                <div className={classes.bar} style={{ gridRow: i + 2 }}>
+                  <div
+                    className={classes.gauge}
+                    style={{
+                      background: getFaidedColor(colorPool, ext, i),
+                      width: `${scale(bytes) * 100}%`,
+                    }}
+                  >
                     <div
-                      className={classes.gauge}
-                      style={{
-                        background: color,
-                        width: `${scale(bytes) * 100}%`,
-                      }}
+                      className={cx(classes.size, {
+                        [classes.flip]: scale(bytes) < 0.3,
+                      })}
                     >
-                      <div
-                        className={cx(classes.size, {
-                          [classes.flip]: scale(bytes) < 0.3,
-                        })}
-                      >
-                        {readableBytes(bytes)}
-                      </div>
+                      {readableBytes(bytes)}
                     </div>
                   </div>
-                  <div className={classes.count} style={{ gridRow: i + 2 }}>
-                    {readableQuantity(objects)}
-                  </div>
-                </React.Fragment>
-              )
-            })
+                </div>
+                <div className={classes.count} style={{ gridRow: i + 2 }}>
+                  {readableQuantity(objects)}
+                </div>
+              </React.Fragment>
+            ))
           },
           _: (r) => (
             <>
