@@ -42,12 +42,11 @@ import WithGlobalStyles from '../global-styles'
 import AppBar from './AppBar'
 import * as EmbedConfig from './EmbedConfig'
 
-const mkLazy = (load) =>
-  RT.loadable(load, { fallback: () => <Placeholder color="text.secondary" /> })
+const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
-const Dir = mkLazy(() => import('./Dir'))
-const File = mkLazy(() => import('./File'))
-const Search = mkLazy(() => import('./Search'))
+const Dir = RT.mkLazy(() => import('./Dir'), SuspensePlaceholder)
+const File = RT.mkLazy(() => import('./File'), SuspensePlaceholder)
+const Search = RT.mkLazy(() => import('./Search'), SuspensePlaceholder)
 
 const FinalBoundary = createBoundary(() => (error) => (
   <h1
