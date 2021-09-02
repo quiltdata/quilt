@@ -177,6 +177,7 @@ Available commands are listed below.
 Initialize the Embed.
 This command must be sent after the Embed is ready
 (see `ready` message reference for details).
+Supported SSO providers are listed in the [Technical Reference](../advanced-usage/technical-reference#single-sign-on-sso).
 
 ```ts
 interface InitCommand extends Command {
@@ -192,8 +193,9 @@ interface InitCommand extends Command {
   route?: string
 
   // Embed accepts any credentials supported by the Quilt authentication endpoint,
-  // e.g. { provider, token } for SSO or { password, username } (which doesn't seem like a right choice in most cases tho).
-  // Getting credentials is your app's responsibility
+  // e.g. { provider, token } for [SSO](../advanced-usage/technical-reference#single-sign-on-sso)
+  // or { password, username } (which doesn't seem like a right choice in most cases tho).
+  // Getting credentials is your app's responsibility.
   credentials: { provider: string; token: string } | { username: string; password: string }
 
   // Embed can be "scoped" to a prefix, meaning that prefix will be a virtual "root" for the object browser,
@@ -226,8 +228,9 @@ interface InitCommand extends Command {
       href?: string
       // Notification shown after copying href to the clipboard (if `emit` is not set to "override")
       notification?: string
-      // When set "notify" or "override", Embed will send "s3ObjectLink" message.
-      // When set to "override", default action (copying href to clipboard) won't be performed.
+      // Set to "notify" or "override" to enable Embed sending "s3ObjectLink" messages
+      // (otherwise those messages won't be sent).
+      // Set to "override" to disable default action on click (copying href to clipboard).
       emit?: 'notify' | 'override' | null
     }
   }
