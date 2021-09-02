@@ -325,7 +325,7 @@ export default function File({
   },
   location,
 }) {
-  const { version, mode: viewModeSlug } = parseSearch(location.search)
+  const { version, mode } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const history = useHistory()
@@ -382,9 +382,18 @@ export default function File({
       }),
     })
 
+  const viewModes = useViewModes(path, mode)
+
+  const onViewModeChange = React.useCallback(
+    (m) => {
+      history.push(urls.bucketFile(bucket, encodedPath, version, m.valueOf()))
+    },
+    [history, urls, bucket, encodedPath, version],
+  )
+
   const handle = { bucket, key: path, version }
 
-  const withPreview = (callback, mode) =>
+  const withPreview = (callback) =>
     requests.ObjectExistence.case({
       Exists: (h) => {
         if (h.deleted) {
@@ -393,36 +402,11 @@ export default function File({
         if (h.archived) {
           return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
         }
-        return mode
-          ? Preview.load(R.assoc('mode', mode.key, handle), callback)
-          : Preview.load(handle, callback)
+        return Preview.load({ ...handle, mode: viewModes.mode?.key }, callback)
       },
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
     })
-
-  const [previewResult, setPreviewResult] = React.useState(false)
-  const onRender = React.useCallback(
-    (result) => {
-      const changed = !R.equals(previewResult, result)
-      if (changed) setPreviewResult(result)
-      return renderPreview(changed ? AsyncResult.Pending() : result)
-    },
-    [previewResult, setPreviewResult],
-  )
-
-  const { registryUrl } = Config.use()
-  const viewModes = useViewModes(registryUrl, path, previewResult)
-  const viewMode = React.useMemo(
-    () => viewModes.find(({ key }) => key === viewModeSlug) || viewModes[0] || null,
-    [viewModes, viewModeSlug],
-  )
-  const onViewModeChange = React.useCallback(
-    (mode) => {
-      history.push(urls.bucketFile(bucket, encodedPath, version, mode.key))
-    },
-    [history, urls, bucket, encodedPath, version],
-  )
 
   return (
     <FileView.Root>
@@ -447,11 +431,11 @@ export default function File({
         </div>
 
         <div className={classes.actions}>
-          {!!viewModes.length && (
-            <FileView.ViewWithVoilaButtonLayout
+          {!!viewModes.options.length && (
+            <FileView.ViewModeSelector
               className={classes.button}
-              modesList={viewModes}
-              mode={viewMode}
+              options={viewModes.options}
+              value={viewModes.value}
               onChange={onViewModeChange}
             />
           )}
@@ -485,7 +469,7 @@ export default function File({
                   Err: (e) => {
                     throw e
                   },
-                  Ok: withPreview(onRender, viewMode),
+                  Ok: withPreview(renderPreview(viewModes.handlePreviewResult)),
                 })}
               </Section>
             </>
