@@ -31,7 +31,7 @@ import * as FileView from './FileView'
 import Section from './Section'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
-import useViewModes from './viewModes'
+import { useViewModes, viewModeToSelectOption } from './viewModes'
 
 const getCrumbs = ({ bucket, path, urls }) =>
   R.chain(
@@ -402,7 +402,7 @@ export default function File({
         if (h.archived) {
           return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
         }
-        return Preview.load({ ...handle, mode: viewModes.mode?.key }, callback)
+        return Preview.load({ ...handle, mode: viewModes.mode }, callback)
       },
       DoesNotExist: () =>
         callback(AsyncResult.Err(Preview.PreviewError.InvalidVersion({ handle }))),
@@ -431,11 +431,11 @@ export default function File({
         </div>
 
         <div className={classes.actions}>
-          {!!viewModes.options.length && (
+          {!!viewModes.modes.length && (
             <FileView.ViewModeSelector
               className={classes.button}
-              options={viewModes.options}
-              value={viewModes.value}
+              options={viewModes.modes.map(viewModeToSelectOption)}
+              value={viewModeToSelectOption(viewModes.mode)}
               onChange={onViewModeChange}
             />
           )}

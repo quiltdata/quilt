@@ -39,7 +39,7 @@ import Summary from './Summary'
 import * as errors from './errors'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
-import useViewModes from './viewModes'
+import { useViewModes, viewModeToSelectOption } from './viewModes'
 
 /*
 function ExposeLinkedData({ bucketCfg, bucket, name, hash, modified }) {
@@ -429,7 +429,7 @@ function FileDisplay({ bucket, mode, name, hash, revision, path, crumbs }) {
     if (archived) {
       return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
     }
-    return Preview.load({ ...handle, mode: viewModes.mode?.key }, callback)
+    return Preview.load({ ...handle, mode: viewModes.mode }, callback)
   }
 
   const renderProgress = () => (
@@ -475,11 +475,11 @@ function FileDisplay({ bucket, mode, name, hash, revision, path, crumbs }) {
             Exists: ({ archived, deleted }) => (
               <>
                 <TopBar crumbs={crumbs}>
-                  {!!viewModes.options.length && (
+                  {!!viewModes.modes.length && (
                     <FileView.ViewModeSelector
                       className={classes.button}
-                      options={viewModes.options}
-                      value={viewModes.value}
+                      options={viewModes.modes.map(viewModeToSelectOption)}
+                      value={viewModeToSelectOption(viewModes.mode)}
                       onChange={onViewModeChange}
                     />
                   )}
