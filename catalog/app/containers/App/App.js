@@ -41,8 +41,7 @@ const AuthActivationError = RT.mkLazy(
   Placeholder,
 )
 const AuthCode = requireAuth()(
-  RT.mkLazy(() => import('containers/Auth/Code')),
-  Placeholder,
+  RT.mkLazy(() => import('containers/Auth/Code'), Placeholder),
 )
 const AuthPassChange = RT.mkLazy(() => import('containers/Auth/PassChange'), Placeholder)
 const AuthPassReset = RT.mkLazy(() => import('containers/Auth/PassReset'), Placeholder)
@@ -57,8 +56,7 @@ const UriResolver = RT.mkLazy(() => import('containers/UriResolver'), Placeholde
 const Landing = RT.mkLazy(() => import('website/pages/Landing'), Placeholder)
 const OpenLanding = RT.mkLazy(() => import('website/pages/OpenLanding'), Placeholder)
 const OpenProfile = requireAuth()(
-  RT.mkLazy(() => import('website/pages/OpenProfile')),
-  Placeholder,
+  RT.mkLazy(() => import('website/pages/OpenProfile'), Placeholder),
 )
 const Install = RT.mkLazy(() => import('website/pages/Install'), Placeholder)
 
