@@ -1,12 +1,12 @@
-The Quilt catalog has a special (limited) S3 browser UI that can be embedded into any web app using an iframe -- "Embed" further on.
-This embeddable browser is served off the main catalog server under `/__embed` route.
+The Quilt catalog has limited-feature S3 browser called Embed, an embeddable iframe.
+Embed is served off the main catalog under `/__embed` route.
 
 ![](../imgs/embed-example.png)
 
 
 ## Usage
 
-Here's an example code written in plain JavaScript + React outlining the basic use cases:
+Here's a sample code snippet in plain JavaScript + React that outlines the basic use cases:
 
 ```js
 import * as React from 'react'
@@ -332,17 +332,17 @@ interface S3ObjectLinkMessage extends Message {
 
 ## Testing and debugging
 
-Catalog also has `/__embed-debug` route which serves a simple debug interface for the Embed:
+The catalog's `/__embed-debug` route is a simple driver for testing Embed:
 
 ![](../imgs/embed-debug.png)
 
-It's useful for trying different parameters and inspecting messages passed to/from the Embed.
+`__embed-debug` is useful for trying different parameters and inspecting messages passed to and from the Embed.
 
 Its main components are:
 
-1. Inputs for `init` parameters and button for sending `init` command.
+1. Inputs for `init` parameters and button for sending the `init` command.
 
-2. "Navigate to" button and route input for sending `navigate` command.
+2. "Navigate to" button and route input for sending the `navigate` command.
 
 3. Embed window.
 
