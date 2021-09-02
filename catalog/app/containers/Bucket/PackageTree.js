@@ -456,12 +456,9 @@ function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumb
   const [previewResult, setPreviewResult] = React.useState(false)
   const onRender = React.useCallback(
     (result) => {
-      if (previewResult === result) {
-        return renderPreview(result)
-      }
-
-      setPreviewResult(result)
-      return renderPreview(AsyncResult.Pending())
+      const changed = !R.equals(previewResult, result)
+      if (changed) setPreviewResult(result)
+      return renderPreview(changed ? AsyncResult.Pending() : result)
     },
     [previewResult, setPreviewResult],
   )

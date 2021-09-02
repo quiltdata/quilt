@@ -404,11 +404,9 @@ export default function File({
   const [previewResult, setPreviewResult] = React.useState(false)
   const onRender = React.useCallback(
     (result) => {
-      if (AsyncResult.Ok.is(result) && !previewResult) {
-        setPreviewResult(result)
-        return renderPreview(AsyncResult.Pending())
-      }
-      return renderPreview(result)
+      const changed = !R.equals(previewResult, result)
+      if (changed) setPreviewResult(result)
+      return renderPreview(changed ? AsyncResult.Pending() : result)
     },
     [previewResult, setPreviewResult],
   )
