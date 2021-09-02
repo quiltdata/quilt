@@ -6,7 +6,6 @@ import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as Config from 'utils/Config'
 import StyledLink from 'utils/StyledLink'
-import pipeThru from 'utils/pipeThru'
 
 import render from './render'
 import { PreviewError } from './types'
@@ -42,11 +41,17 @@ export default function PreviewDisplay({
   renderProgress = defaultProgress,
   renderMessage = defaultMessage,
   renderAction = defaultAction,
+  onData,
 }) {
   const cfg = Config.use()
   const noDl = noDownload != null ? noDownload : cfg.noDownload
-  return pipeThru(data)(
-    AsyncResult.case({
+
+  React.useEffect(() => {
+    onData?.(data)
+  }, [data, onData])
+
+  return AsyncResult.case(
+    {
       _: renderProgress,
       Ok: R.pipe(render, renderContents),
       Err: PreviewError.case({
@@ -133,7 +138,8 @@ export default function PreviewDisplay({
             action: !!retry && renderAction({ label: 'Retry', onClick: retry }),
           }),
       }),
-    }),
+    },
+    data,
   )
 }
 
