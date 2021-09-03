@@ -1,136 +1,164 @@
 /**
  * @jest-environment jsdom
  */
-import { mocked } from 'ts-jest/utils'
-import { renderHook } from '@testing-library/react-hooks'
+
+import { renderHook, act } from '@testing-library/react-hooks'
 
 // NOTE: module imported selectively because Preview's deps break unit-tests
 import { PreviewData } from 'components/Preview/types'
 import AsyncResult from 'utils/AsyncResult'
-import global from 'utils/global'
+import * as voila from 'utils/voila'
 
-import useViewModes from './viewModes'
+import { useViewModes, viewModeToSelectOption } from './viewModes'
 
-jest.mock('utils/global')
+jest.mock('utils/voila')
 
-function fetchOk(): Promise<Response> {
-  return new Promise((resolve) =>
-    setTimeout(() => {
-      resolve({
-        ok: true,
-      } as Response)
-    }, 100),
-  )
-}
+const VEGA_SCHEMA = 'https://vega.github.io/schema/a/b.json'
 
-function fetchNotOk(): Promise<Response> {
-  return new Promise((resolve) =>
-    setTimeout(() => {
-      resolve({
-        ok: false,
-      } as Response)
-    }, 100),
-  )
-}
+const previewDataJsonPlain = PreviewData.Json({ rendered: { a: 1 } })
+const previewDataJsonVega = PreviewData.Json({ rendered: { $schema: VEGA_SCHEMA } })
+const previewDataVega = PreviewData.Vega({ spec: { $schema: VEGA_SCHEMA } })
 
-const jsonResult = AsyncResult.Ok(
-  PreviewData.Json({
-    rendered: {
-      $schema: 'https://vega.github.io/schema/a/b.json',
-    },
-  }),
-)
-
-const vegaResult = AsyncResult.Ok(
-  PreviewData.Vega({
-    spec: {
-      $schema: 'https://vega.github.io/schema/a/b.json',
-    },
-  }),
-)
-
-const imgResult = AsyncResult.Ok(PreviewData.Image())
-
-const pendingResult = AsyncResult.Pending()
+const render = (...args: Parameters<typeof useViewModes>) =>
+  renderHook(() => useViewModes(...args))
 
 describe('containers/Bucket/viewModes', () => {
+  describe('viewModeToSelectOption', () => {
+    it('returns null when given null', () => {
+      expect(viewModeToSelectOption(null)).toBe(null)
+    })
+    it('returns propery formatted select option when given a view mode', () => {
+      const opt = viewModeToSelectOption('json')
+      expect(opt.toString()).toBe('JSON')
+      expect(opt.valueOf()).toBe('json')
+    })
+  })
+
   describe('useViewModes', () => {
-    afterEach(() => {
-      mocked(global.fetch).mockClear()
+    describe('for files with no alternative view modes', () => {
+      const path = 'test.md'
+
+      it('returns empty mode list and null mode when given no mode input', () => {
+        expect(render(path, null).result.current).toMatchObject({ modes: [], mode: null })
+      })
+
+      it('returns empty mode list and null mode when given any mode input', () => {
+        expect(render(path, 'some-mode').result.current).toMatchObject({
+          modes: [],
+          mode: null,
+        })
+      })
     })
 
-    it('returns empty list when no modes', () => {
-      const { result } = renderHook(() =>
-        useViewModes('https://registry.example', 'test.md'),
-      )
-      expect(result.current).toMatchObject([])
+    describe('for Jupyter notebook files', () => {
+      const path = 'test.ipynb'
+
+      describe('when Voila is available', () => {
+        beforeEach(() => {
+          ;(voila as any).override(true)
+        })
+
+        afterEach(() => {
+          ;(voila as any).reset()
+        })
+
+        it('returns Jupyter, JSON and Voila modes and defaults to Jupyter mode when no mode is given', () => {
+          expect(render(path, null).result.current).toMatchObject({
+            modes: ['jupyter', 'json', 'voila'],
+            mode: 'jupyter',
+          })
+        })
+
+        it('returns Jupyter, JSON and Voila modes and selected mode when correct mode is given', () => {
+          expect(render(path, 'voila').result.current).toMatchObject({
+            modes: ['jupyter', 'json', 'voila'],
+            mode: 'voila',
+          })
+        })
+
+        it('returns Jupyter, JSON and Voila modes and defaults to Jupyter mode when incorrect mode is given', () => {
+          expect(render(path, 'bad').result.current).toMatchObject({
+            modes: ['jupyter', 'json', 'voila'],
+            mode: 'jupyter',
+          })
+        })
+      })
+
+      describe('when Voila is unavailable', () => {
+        it('returns Jupyter and JSON modes and defaults to Jupyter mode when no mode is given', () => {
+          expect(render(path, null).result.current).toMatchObject({
+            modes: ['jupyter', 'json'],
+            mode: 'jupyter',
+          })
+        })
+      })
     })
 
-    it('returns Notebooks modes for .ipynb when no Voila service', async () => {
-      mocked(global.fetch).mockImplementation(fetchNotOk)
+    describe('for JSON files', () => {
+      const path = 'test.json'
 
-      const { result } = renderHook(() =>
-        useViewModes('https://registry.example', 'test.ipynb'),
-      )
-      expect(result.current).toMatchObject([
-        { key: 'jupyter', label: 'Jupyter' },
-        { key: 'json', label: 'JSON' },
-      ])
-    })
+      it('initially returns empty mode list and null mode when given any mode', () => {
+        expect(render(path, 'vega').result.current).toMatchObject({
+          modes: [],
+          mode: null,
+        })
+      })
 
-    it('returns Notebooks modes for .ipynb with Voila mode', async () => {
-      mocked(global.fetch).mockImplementation(fetchOk)
+      it('ignores non-Ok results', () => {
+        const { result } = render(path, null)
+        act(() => {
+          result.current.handlePreviewResult(AsyncResult.Pending())
+        })
+        expect(result.current).toMatchObject({ modes: [], mode: null })
+        act(() => {
+          result.current.handlePreviewResult(AsyncResult.Err())
+        })
+        expect(result.current).toMatchObject({ modes: [], mode: null })
+      })
 
-      const { result, waitForNextUpdate } = renderHook(() =>
-        useViewModes('https://registry.example', 'test.ipynb'),
-      )
-      await waitForNextUpdate()
-      expect(result.current).toMatchObject([
-        { key: 'jupyter', label: 'Jupyter' },
-        { key: 'json', label: 'JSON' },
-        { key: 'voila', label: 'Voila' },
-      ])
-    })
+      it('only sets result once', () => {
+        const { result } = render(path, null)
+        act(() => {
+          result.current.handlePreviewResult(AsyncResult.Ok(previewDataJsonVega))
+        })
+        expect(result.current).toMatchObject({ modes: ['vega', 'json'], mode: 'vega' })
+        act(() => {
+          result.current.handlePreviewResult(AsyncResult.Ok(previewDataJsonPlain))
+        })
+        expect(result.current).toMatchObject({ modes: ['vega', 'json'], mode: 'vega' })
+      })
 
-    it('returns no modes for .json when no Vega mode', async () => {
-      const { result } = renderHook(() =>
-        useViewModes('https://registry.example', 'test.json'),
-      )
-      expect(result.current).toMatchObject([])
-    })
+      it('returns Vega and JSON modes and defaults to Vega mode for Vega preview data', () => {
+        const { result } = render(path, null)
+        act(() => {
+          result.current.handlePreviewResult(AsyncResult.Ok(previewDataVega))
+        })
+        expect(result.current).toMatchObject({ modes: ['vega', 'json'], mode: 'vega' })
+      })
 
-    it('returns no modes for .json when result is pending', async () => {
-      const { result } = renderHook(() =>
-        useViewModes('https://registry.example', 'test.json', pendingResult),
-      )
-      expect(result.current).toMatchObject([])
-    })
+      it('returns Vega and JSON modes and defaults to Vega mode for JSON preview data with vega schema', () => {
+        const { result } = render(path, null)
+        act(() => {
+          result.current.handlePreviewResult(AsyncResult.Ok(previewDataJsonVega))
+        })
+        expect(result.current).toMatchObject({ modes: ['vega', 'json'], mode: 'vega' })
+      })
 
-    it('returns Vega/JSON modes for .json when Vega mode selected', async () => {
-      const { result } = renderHook(() =>
-        useViewModes('https://registry.example', 'test.json', vegaResult),
-      )
-      expect(result.current).toMatchObject([
-        { key: 'vega', label: 'Vega' },
-        { key: 'json', label: 'JSON' },
-      ])
-    })
+      it('returns empty mode list and null mode for JSON preview data without vega schema', () => {
+        const { result } = render(path, null)
+        act(() => {
+          result.current.handlePreviewResult(AsyncResult.Ok(previewDataJsonPlain))
+        })
+        expect(result.current).toMatchObject({ modes: [], mode: null })
+      })
 
-    it('returns Vega/JSON modes for .json when JSON mode selected', async () => {
-      const { result } = renderHook(() =>
-        useViewModes('https://registry.example', 'test.json', jsonResult),
-      )
-      expect(result.current).toMatchObject([
-        { key: 'vega', label: 'Vega' },
-        { key: 'json', label: 'JSON' },
-      ])
-    })
-
-    it('returns no modes for .json when result is different Preview', async () => {
-      const { result } = renderHook(() =>
-        useViewModes('https://registry.example', 'test.json', imgResult),
-      )
-      expect(result.current).toMatchObject([])
+      it('returns empty mode list and null mode for other preview data', () => {
+        const { result } = render(path, null)
+        act(() => {
+          result.current.handlePreviewResult(AsyncResult.Ok(PreviewData.Image()))
+        })
+        expect(result.current).toMatchObject({ modes: [], mode: null })
+      })
     })
   })
 })
