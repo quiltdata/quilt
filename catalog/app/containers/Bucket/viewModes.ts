@@ -1,5 +1,4 @@
 import { extname } from 'path'
-import * as R from 'ramda'
 import * as React from 'react'
 
 // NOTE: module imported selectively because Preview's deps break unit-tests
@@ -29,12 +28,13 @@ export const viewModeToSelectOption = (m: ViewMode | null) =>
 
 export function useViewModes(path: string, modeInput: string) {
   const voilaAvailable = useVoila()
-  const [previewResult, setPreviewResult] = React.useState(false)
+  const [previewResult, setPreviewResult] = React.useState(null)
 
   const handlePreviewResult = React.useCallback(
     (result) => {
-      if (!R.equals(previewResult, result) && AsyncResult.Ok.is(result))
-        setPreviewResult(result)
+      if (!previewResult && AsyncResult.Ok.is(result)) {
+        setPreviewResult(AsyncResult.Ok.unbox(result))
+      }
     },
     [previewResult, setPreviewResult],
   )
@@ -44,15 +44,12 @@ export function useViewModes(path: string, modeInput: string) {
       case '.ipynb':
         return voilaAvailable ? ['jupyter', 'json', 'voila'] : ['jupyter', 'json']
       case '.json':
-        return AsyncResult.case(
+        return PreviewData.case(
           {
-            Ok: PreviewData.case({
-              Vega: (json: any) =>
-                isVegaSchema(json.spec?.$schema) ? ['vega', 'json'] : [],
-              Json: (json: any) =>
-                isVegaSchema(json.rendered?.$schema) ? ['vega', 'json'] : [],
-              _: () => [],
-            }),
+            Vega: (json: any) =>
+              isVegaSchema(json.spec?.$schema) ? ['vega', 'json'] : [],
+            Json: (json: any) =>
+              isVegaSchema(json.rendered?.$schema) ? ['vega', 'json'] : [],
             _: () => [],
             __: () => [],
           },
