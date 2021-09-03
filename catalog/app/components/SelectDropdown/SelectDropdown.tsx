@@ -20,7 +20,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ValueBase {
+export interface ValueBase {
   toString: () => string
   valueOf: () => string | number | boolean
 }
