@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -19,7 +20,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-interface ValueBase {
+export interface ValueBase {
   toString: () => string
   valueOf: () => string | number | boolean
 }
@@ -36,7 +37,9 @@ export default function SelectDropdown<Value extends ValueBase>({
   onChange,
   options,
   value,
-}: SelectDropdownProps<Value>) {
+  className,
+  ...props
+}: SelectDropdownProps<Value> & M.PaperProps) {
   const classes = useStyles()
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null)
@@ -57,7 +60,7 @@ export default function SelectDropdown<Value extends ValueBase>({
   const aboveSm = M.useMediaQuery(t.breakpoints.up('sm'))
 
   return (
-    <M.Paper className={classes.root}>
+    <M.Paper className={cx(className, classes.root)} {...props}>
       <M.Button
         className={classes.button}
         onClick={handleOpen}

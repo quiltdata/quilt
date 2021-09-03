@@ -240,7 +240,6 @@ workflows:
                 - access_counts
                 - preview
                 - s3select
-                - search
                 - thumbnail
                 - pkgselect
                 - shared
