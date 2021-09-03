@@ -3,6 +3,7 @@ import * as React from 'react'
 
 // NOTE: module imported selectively because Preview's deps break unit-tests
 import { PreviewData } from 'components/Preview/types'
+import type { ValueBase as SelectOption } from 'components/SelectDropdown'
 import AsyncResult from 'utils/AsyncResult'
 import { useVoila } from 'utils/voila'
 
@@ -20,13 +21,18 @@ const isVegaSchema = (schema: string) => {
   return !!schema.match(/https:\/\/vega\.github\.io\/schema\/([\w-]+)\/([\w.-]+)\.json/)
 }
 
-export const viewModeToSelectOption = (m: ViewMode | null) =>
-  m && {
-    toString: () => MODES[m],
-    valueOf: () => m,
-  }
+export function viewModeToSelectOption(m: ViewMode): SelectOption
+export function viewModeToSelectOption(m: null): null
+export function viewModeToSelectOption(m: ViewMode | null): SelectOption | null {
+  return (
+    m && {
+      toString: () => MODES[m],
+      valueOf: () => m,
+    }
+  )
+}
 
-export function useViewModes(path: string, modeInput: string) {
+export function useViewModes(path: string, modeInput: string | null | undefined) {
   const voilaAvailable = useVoila()
   const [previewResult, setPreviewResult] = React.useState(null)
 
