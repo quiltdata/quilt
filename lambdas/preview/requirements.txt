@@ -31,6 +31,6 @@ requests==2.22.0
 six==1.12.0
 testpath==0.4.2
 traitlets==4.3.2
-urllib3==1.25.8
+urllib3==1.26.5
 webencodings==0.5.1
 xlrd==2.0.1
