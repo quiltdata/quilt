@@ -1,6 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
+import { darken } from '@material-ui/core/styles/colorManipulator'
 
 import * as SVG from 'utils/SVG'
 import usePrevious from 'utils/usePrevious'
@@ -71,6 +72,15 @@ export default function MultiSparkline({
     [stacked, mkPoints],
   )
 
+  const strokes = React.useMemo(
+    () =>
+      R.pipe(
+        R.aperture(2),
+        R.map((points) => mkPoints(points[1])),
+      )(stacked),
+    [stacked, mkPoints],
+  )
+
   const [cursorI, setCursorI] = React.useState(null)
   const [cursorJ, setCursorJ] = React.useState(null)
   const cursor = cursorJ == null ? null : { i: cursorI, j: cursorJ }
@@ -125,14 +135,37 @@ export default function MultiSparkline({
         {areas.map(
           (points, i) =>
             points && (
-              <polygon
+              <>
+                <polygon
+                  // eslint-disable-next-line react/no-array-index-key
+                  key={`area:${i}`}
+                  onMouseEnter={handleAreaEnter(i)}
+                  onMouseLeave={handleAreaLeave}
+                  points={SVG.pointsToSVG(points)}
+                  // style={{ filter: `url(#area:${i})` }}
+                  fill={areaPaints[i].ref}
+                  fillOpacity={
+                    onCursor && cursor && cursor.i != null && cursor.i !== i ? fade : 1
+                  }
+                />
+              </>
+            ),
+        )}
+        {strokes.map(
+          (points, i) =>
+            points && (
+              <polyline
                 // eslint-disable-next-line react/no-array-index-key
-                key={`area:${i}`}
-                onMouseEnter={handleAreaEnter(i)}
-                onMouseLeave={handleAreaLeave}
+                key={`stroke:${i}`}
                 points={SVG.pointsToSVG(points)}
-                fill={areaPaints[i].ref}
-                fillOpacity={
+                stroke={
+                  areaPaints[i].ref.length === 7
+                    ? darken(areaPaints[i].ref, 0.3)
+                    : 'white'
+                }
+                strokeWidth={2}
+                fillOpacity={0}
+                strokeOpacity={
                   onCursor && cursor && cursor.i != null && cursor.i !== i ? fade : 1
                 }
               />
