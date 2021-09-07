@@ -163,6 +163,8 @@ export default function MultiSparkline({
                     ? darken(areaPaints[i].ref, 0.3)
                     : 'white'
                 }
+                onMouseEnter={handleAreaEnter(i)}
+                onMouseLeave={handleAreaLeave}
                 strokeWidth={2}
                 fillOpacity={0}
                 strokeOpacity={
