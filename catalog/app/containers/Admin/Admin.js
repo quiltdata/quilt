@@ -9,12 +9,11 @@ import { ThrowNotFound } from 'containers/NotFoundPage'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
 
-const mkLazy = (load) =>
-  RT.loadable(load, { fallback: () => <Placeholder color="text.secondary" /> })
+const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
-const UsersAndRoles = mkLazy(() => import('./UsersAndRoles'))
-const Buckets = mkLazy(() => import('./Buckets'))
-const Settings = mkLazy(() => import('./Settings'))
+const UsersAndRoles = RT.mkLazy(() => import('./UsersAndRoles'), SuspensePlaceholder)
+const Buckets = RT.mkLazy(() => import('./Buckets'), SuspensePlaceholder)
+const Settings = RT.mkLazy(() => import('./Settings'), SuspensePlaceholder)
 
 const match = (cases) => (pathname) => {
   // eslint-disable-next-line no-restricted-syntax

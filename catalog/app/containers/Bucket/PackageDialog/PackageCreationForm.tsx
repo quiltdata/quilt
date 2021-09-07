@@ -566,7 +566,7 @@ export function usePackageCreationDialog({
           Loading: () => (
             <DialogLoading
               skeletonElement={<FormSkeleton />}
-              title={ui.title || 'Create package'}
+              title="Downloading manifest and preparing form…"
               submitText={ui.submit}
               onCancel={close}
             />

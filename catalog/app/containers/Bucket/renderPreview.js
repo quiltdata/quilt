@@ -30,4 +30,4 @@ const renderProgress = () => (
   </Message>
 )
 
-export default Preview.display({ renderMessage, renderProgress })
+export default (onData) => Preview.display({ renderMessage, renderProgress, onData })

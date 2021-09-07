@@ -476,7 +476,7 @@ export default function File({
                   Err: (e) => {
                     throw e
                   },
-                  Ok: withPreview(renderPreview),
+                  Ok: withPreview(renderPreview()),
                 })}
               </Section>
               <Meta bucket={bucket} path={path} version={version} />

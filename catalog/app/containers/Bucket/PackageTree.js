@@ -39,7 +39,7 @@ import Summary from './Summary'
 import * as errors from './errors'
 import renderPreview from './renderPreview'
 import * as requests from './requests'
-import useViewModes from './viewModes'
+import { useViewModes, viewModeToSelectOption } from './viewModes'
 
 /*
 function ExposeLinkedData({ bucketCfg, bucket, name, hash, modified }) {
@@ -395,11 +395,12 @@ const useFileDisplayStyles = M.makeStyles((t) => ({
   },
 }))
 
-function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumbs }) {
+function FileDisplay({ bucket, mode, name, hash, revision, path, crumbs }) {
   const s3 = AWS.S3.use()
   const credentials = AWS.Credentials.use()
   const { apiGatewayEndpoint: endpoint, noDownload } = Config.use()
-
+  const history = useHistory()
+  const { urls } = NamedRoutes.use()
   const classes = useFileDisplayStyles()
 
   const data = useData(requests.packageFileDetail, {
@@ -411,6 +412,25 @@ function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumb
     hash,
     path,
   })
+
+  const viewModes = useViewModes(path, mode)
+
+  const onViewModeChange = React.useCallback(
+    (m) => {
+      history.push(urls.bucketPackageTree(bucket, name, revision, path, m.valueOf()))
+    },
+    [bucket, history, name, path, revision, urls],
+  )
+
+  const withPreview = ({ archived, deleted, handle }, callback) => {
+    if (deleted) {
+      return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
+    }
+    if (archived) {
+      return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
+    }
+    return Preview.load({ ...handle, mode: viewModes.mode }, callback)
+  }
 
   const renderProgress = () => (
     // TODO: skeleton placeholder
@@ -438,47 +458,6 @@ function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumb
     </>
   )
 
-  const withPreview = ({ archived, deleted, handle, mode }, callback) => {
-    if (deleted) {
-      return callback(AsyncResult.Err(Preview.PreviewError.Deleted({ handle })))
-    }
-    if (archived) {
-      return callback(AsyncResult.Err(Preview.PreviewError.Archived({ handle })))
-    }
-    return mode
-      ? Preview.load(R.assoc('mode', mode.key, handle), callback)
-      : Preview.load(handle, callback)
-  }
-
-  const history = useHistory()
-  const { urls } = NamedRoutes.use()
-
-  const [previewResult, setPreviewResult] = React.useState(false)
-  const onRender = React.useCallback(
-    (result) => {
-      if (previewResult === result) {
-        return renderPreview(result)
-      }
-
-      setPreviewResult(result)
-      return renderPreview(AsyncResult.Pending())
-    },
-    [previewResult, setPreviewResult],
-  )
-
-  const { registryUrl } = Config.use()
-  const viewModes = useViewModes(registryUrl, path, previewResult)
-  const viewMode = React.useMemo(
-    () => viewModes.find(({ key }) => key === modeSlug) || viewModes[0] || null,
-    [viewModes, modeSlug],
-  )
-  const onViewModeChange = React.useCallback(
-    (mode) => {
-      history.push(urls.bucketPackageTree(bucket, name, revision, path, mode.key))
-    },
-    [bucket, history, name, path, revision, urls],
-  )
-
   return data.case({
     Ok: ({ meta, ...handle }) => (
       <Data fetch={requests.getObjectExistence} params={{ s3, ...handle }}>
@@ -496,11 +475,11 @@ function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumb
             Exists: ({ archived, deleted }) => (
               <>
                 <TopBar crumbs={crumbs}>
-                  {!!viewModes.length && (
-                    <FileView.ViewWithVoilaButtonLayout
+                  {!!viewModes.modes.length && (
+                    <FileView.ViewModeSelector
                       className={classes.button}
-                      modesList={viewModes}
-                      mode={viewMode}
+                      options={viewModes.modes.map(viewModeToSelectOption)}
+                      value={viewModeToSelectOption(viewModes.mode)}
                       onChange={onViewModeChange}
                     />
                   )}
@@ -511,7 +490,10 @@ function FileDisplay({ bucket, mode: modeSlug, name, hash, revision, path, crumb
                 <PkgCode {...{ bucket, name, hash, revision, path }} />
                 <FileView.Meta data={AsyncResult.Ok(meta)} />
                 <Section icon="remove_red_eye" heading="Preview" expandable={false}>
-                  {withPreview({ archived, deleted, handle, mode: viewMode }, onRender)}
+                  {withPreview(
+                    { archived, deleted, handle },
+                    renderPreview(viewModes.handlePreviewResult),
+                  )}
                 </Section>
               </>
             ),

@@ -9,7 +9,7 @@ import requireAuth from 'containers/Auth/wrapper'
 import { CatchNotFound, ThrowNotFound } from 'containers/NotFoundPage'
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import { loadable } from 'utils/reactTools'
+import * as RT from 'utils/reactTools'
 import { useLocation } from 'utils/router'
 
 const redirectTo =
@@ -35,29 +35,34 @@ const LegacyPackages = ({ location: l }) => {
   return <AbsRedirect url={urls.legacyPackages(legacyPackagesRedirect, l)} />
 }
 
-const mkLazy = (load) => loadable(load, { fallback: () => <Placeholder /> })
+const Admin = RT.mkLazy(() => import('containers/Admin'), Placeholder)
+const AuthActivationError = RT.mkLazy(
+  () => import('containers/Auth/ActivationError'),
+  Placeholder,
+)
+const AuthCode = requireAuth()(
+  RT.mkLazy(() => import('containers/Auth/Code'), Placeholder),
+)
+const AuthPassChange = RT.mkLazy(() => import('containers/Auth/PassChange'), Placeholder)
+const AuthPassReset = RT.mkLazy(() => import('containers/Auth/PassReset'), Placeholder)
+const AuthSignIn = RT.mkLazy(() => import('containers/Auth/SignIn'), Placeholder)
+const AuthSignOut = RT.mkLazy(() => import('containers/Auth/SignOut'), Placeholder)
+const AuthSignUp = RT.mkLazy(() => import('containers/Auth/SignUp'), Placeholder)
+const AuthSSOSignUp = RT.mkLazy(() => import('containers/Auth/SSOSignUp'), Placeholder)
+const Bucket = RT.mkLazy(() => import('containers/Bucket'), Placeholder)
+const Search = RT.mkLazy(() => import('containers/Search'), Placeholder)
+const UriResolver = RT.mkLazy(() => import('containers/UriResolver'), Placeholder)
 
-const Admin = mkLazy(() => import('containers/Admin'))
-const AuthActivationError = mkLazy(() => import('containers/Auth/ActivationError'))
-const AuthCode = requireAuth()(mkLazy(() => import('containers/Auth/Code')))
-const AuthPassChange = mkLazy(() => import('containers/Auth/PassChange'))
-const AuthPassReset = mkLazy(() => import('containers/Auth/PassReset'))
-const AuthSignIn = mkLazy(() => import('containers/Auth/SignIn'))
-const AuthSignOut = mkLazy(() => import('containers/Auth/SignOut'))
-const AuthSignUp = mkLazy(() => import('containers/Auth/SignUp'))
-const AuthSSOSignUp = mkLazy(() => import('containers/Auth/SSOSignUp'))
-const Bucket = mkLazy(() => import('containers/Bucket'))
-const Search = mkLazy(() => import('containers/Search'))
-const UriResolver = mkLazy(() => import('containers/UriResolver'))
+const Landing = RT.mkLazy(() => import('website/pages/Landing'), Placeholder)
+const OpenLanding = RT.mkLazy(() => import('website/pages/OpenLanding'), Placeholder)
+const OpenProfile = requireAuth()(
+  RT.mkLazy(() => import('website/pages/OpenProfile'), Placeholder),
+)
+const Install = RT.mkLazy(() => import('website/pages/Install'), Placeholder)
 
-const Landing = mkLazy(() => import('website/pages/Landing'))
-const OpenLanding = mkLazy(() => import('website/pages/OpenLanding'))
-const OpenProfile = requireAuth()(mkLazy(() => import('website/pages/OpenProfile')))
-const Install = mkLazy(() => import('website/pages/Install'))
-
-const MAbout = mkLazy(() => import('website/pages/About'))
-const MPersonas = mkLazy(() => import('website/pages/Personas'))
-const MProduct = mkLazy(() => import('website/pages/Product'))
+const MAbout = RT.mkLazy(() => import('website/pages/About'), Placeholder)
+const MPersonas = RT.mkLazy(() => import('website/pages/Personas'), Placeholder)
+const MProduct = RT.mkLazy(() => import('website/pages/Product'), Placeholder)
 
 export default function App() {
   const cfg = Config.useConfig()
