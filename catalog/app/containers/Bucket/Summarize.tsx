@@ -18,9 +18,11 @@ import Link from 'utils/StyledLink'
 import { getBreadCrumbs, getPrefix, withoutPrefix } from 'utils/s3paths'
 
 import * as requests from './requests'
+import * as errors from './errors'
 
 interface S3Handle {
   bucket: string
+  error?: errors.BucketError
   key: string
   logicalKey?: string
   size?: number
@@ -331,6 +333,9 @@ interface FileHandleProps {
 }
 
 function FileHandle({ file, mkUrl, s3 }: FileHandleProps) {
+  if (file.handle.error)
+    return <Section heading={file.handle.key}>Couldn&apos;t resolve file</Section>
+
   return (
     <EnsureAvailability s3={s3} handle={file.handle}>
       {() => (

@@ -642,28 +642,40 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
       )
     }
 
-    const resolvePath = (path) =>
-      resolveLogicalKey && handle.logicalKey
-        ? resolveLogicalKey(s3paths.resolveKey(handle.logicalKey, path)).catch((e) => {
-            // eslint-disable-next-line no-console
-            console.warn('Error resolving logical key for summary', { handle, path })
-            // eslint-disable-next-line no-console
-            console.error(e)
-            return null
-          })
-        : Promise.resolve({
-            bucket: handle.bucket,
-            key: s3paths.resolveKey(handle.key, path),
-          })
+    const resolvePath = async (path) => {
+      const resolvedHandle = {
+        bucket: handle.bucket,
+        key: s3paths.resolveKey(handle.key, path),
+      }
 
-    const handles = await Promise.all(
+      if (resolveLogicalKey && handle.logicalKey) {
+        try {
+          const resolvedLogicalHandle = await resolveLogicalKey(
+            s3paths.resolveKey(handle.logicalKey, path),
+          )
+          return resolvedLogicalHandle
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.warn('Error resolving logical key for summary', { handle, path })
+          // eslint-disable-next-line no-console
+          console.error(error)
+          return {
+            ...resolvedHandle,
+            error,
+          }
+        }
+      }
+
+      return resolvedHandle
+    }
+
+    return await Promise.all(
       manifest.map((fileHandle) =>
         isFile(fileHandle)
           ? parseFile(resolvePath, fileHandle)
           : Promise.all(fileHandle.map(parseFile.bind(null, resolvePath))),
       ),
     )
-    return handles.filter((h) => h.handle)
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Error loading summary:')
