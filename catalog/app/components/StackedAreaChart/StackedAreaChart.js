@@ -6,6 +6,15 @@ import { darken } from '@material-ui/core/styles/colorManipulator'
 import * as SVG from 'utils/SVG'
 import usePrevious from 'utils/usePrevious'
 
+const useStyles = M.makeStyles({
+  root: {
+    opacity: 0.8,
+    '&:hover': {
+      opacity: 1,
+    },
+  },
+})
+
 export default function MultiSparkline({
   data, // PT.arrayOf(PT.arrayOf(PT.number)).isRequired,
   onCursor,
@@ -32,6 +41,7 @@ export default function MultiSparkline({
   boxProps,
   ...props
 }) {
+  const classes = useStyles()
   const stacked = React.useMemo(
     () =>
       R.pipe(
@@ -113,6 +123,7 @@ export default function MultiSparkline({
 
   return (
     <M.Box
+      className={classes.root}
       component="svg"
       viewBox={`0 0 ${width} ${height}`}
       onMouseLeave={handleLeave}

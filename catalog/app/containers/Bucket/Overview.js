@@ -36,20 +36,18 @@ const RODA_BUCKET = 'quilt-open-data-bucket'
 const MAX_EXTS = 7
 // must have length >= MAX_EXTS
 const COLOR_MAP = [
-  '#6996ff',
-  M.colors.blue[300],
-  M.colors.teal.A200,
-  M.colors.lightGreen[300],
-  M.colors.amber[300],
-  M.colors.deepOrange[300],
-  M.colors.pink[300],
-  M.colors.purple[300],
-  M.colors.indigo[300],
-  M.colors.cyan[300],
-  M.colors.green[300],
-  M.colors.lime[300],
-  M.colors.yellow[300],
-  M.colors.brown[300],
+  '#8ad3cb',
+  '#d7ce69',
+  '#bfbadb',
+  '#f4806c',
+  '#83b0d1',
+  '#b2de67',
+  '#bc81be',
+  '#f0b5d3',
+  '#7ba39f',
+  '#9894ad',
+  '#be7265',
+  '#94ad6b',
 ]
 
 function mkKeyedPool(pool) {
