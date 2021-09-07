@@ -1,10 +1,7 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
-  extends: [
-    'airbnb-typescript',
-    'prettier',
-  ],
-  plugins: ['@typescript-eslint', 'redux-saga', 'react', 'react-hooks', 'jsx-a11y'],
+  extends: ['airbnb-typescript', 'prettier'],
+  plugins: ['@typescript-eslint', 'redux-saga', 'react', 'react-hooks', 'jsx-a11y', 'import'],
   env: {
     jest: true,
     browser: true,
@@ -65,6 +62,9 @@ module.exports = {
       webpack: {
         config: './internals/webpack/webpack.prod.js',
       },
+    },
+    react: {
+      version: 'detect',
     },
   },
 }
