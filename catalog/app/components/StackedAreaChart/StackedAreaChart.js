@@ -63,20 +63,14 @@ export default function MultiSparkline({
     [xScale, yScale, extendL, extendR, width],
   )
 
-  const areas = React.useMemo(
+  const figures = React.useMemo(
     () =>
       R.pipe(
         R.aperture(2),
-        R.map(([bottom, top]) => R.concat(mkPoints(top), R.reverse(mkPoints(bottom)))),
-      )(stacked),
-    [stacked, mkPoints],
-  )
-
-  const strokes = React.useMemo(
-    () =>
-      R.pipe(
-        R.aperture(2),
-        R.map((points) => mkPoints(points[1])),
+        R.map(([bottom, top]) => ({
+          area: R.concat(mkPoints(top), R.reverse(mkPoints(bottom))),
+          stroke: mkPoints(top),
+        })),
       )(stacked),
     [stacked, mkPoints],
   )
@@ -132,47 +126,35 @@ export default function MultiSparkline({
         {!!onCursor && cursorPaint.def}
       </defs>
       <g>
-        {areas.map(
-          (points, i) =>
-            points && (
-              <>
-                <polygon
-                  // eslint-disable-next-line react/no-array-index-key
-                  key={`area:${i}`}
-                  onMouseEnter={handleAreaEnter(i)}
-                  onMouseLeave={handleAreaLeave}
-                  points={SVG.pointsToSVG(points)}
-                  // style={{ filter: `url(#area:${i})` }}
-                  fill={areaPaints[i].ref}
-                  fillOpacity={
-                    onCursor && cursor && cursor.i != null && cursor.i !== i ? fade : 1
-                  }
-                />
-              </>
-            ),
-        )}
-        {strokes.map(
-          (points, i) =>
-            points && (
-              <polyline
-                // eslint-disable-next-line react/no-array-index-key
-                key={`stroke:${i}`}
-                points={SVG.pointsToSVG(points)}
-                stroke={
-                  areaPaints[i].ref.length === 7
-                    ? darken(areaPaints[i].ref, 0.3)
-                    : 'white'
-                }
-                onMouseEnter={handleAreaEnter(i)}
-                onMouseLeave={handleAreaLeave}
-                strokeWidth={2}
-                fillOpacity={0}
-                strokeOpacity={
-                  onCursor && cursor && cursor.i != null && cursor.i !== i ? fade : 1
-                }
-              />
-            ),
-        )}
+        {figures.map(({ area, stroke }, i) => (
+          <g onMouseEnter={handleAreaEnter(i)} onMouseLeave={handleAreaLeave}>
+            <polygon
+              // eslint-disable-next-line react/no-array-index-key
+              key={`area:${i}`}
+              points={SVG.pointsToSVG(area)}
+              // style={{ filter: `url(#area:${i})` }}
+              fill={areaPaints[i].ref}
+              fillOpacity={
+                onCursor && cursor && cursor.i != null && cursor.i !== i ? fade : 1
+              }
+            />
+            <polyline
+              // eslint-disable-next-line react/no-array-index-key
+              key={`stroke:${i}`}
+              points={SVG.pointsToSVG(stroke)}
+              stroke={
+                areaPaints[i].ref.length === 7 ? darken(areaPaints[i].ref, 0.3) : 'white'
+              }
+              onMouseEnter={handleAreaEnter(i)}
+              onMouseLeave={handleAreaLeave}
+              strokeWidth={2}
+              fillOpacity={0}
+              strokeOpacity={
+                onCursor && cursor && cursor.i != null && cursor.i !== i ? fade : 1
+              }
+            />
+          </g>
+        ))}
         {!!cursor && !!onCursor && (
           <line
             x1={xScale(cursor.j)}
