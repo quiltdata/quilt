@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { darken } from '@material-ui/core/styles/colorManipulator'
+import * as colors from '@material-ui/core/styles/colorManipulator'
 
 import * as SVG from 'utils/SVG'
 import usePrevious from 'utils/usePrevious'
@@ -138,26 +138,26 @@ export default function MultiSparkline({
       </defs>
       <g>
         {figures.map(({ area, stroke }, i) => (
-          <g onMouseEnter={handleAreaEnter(i)} onMouseLeave={handleAreaLeave}>
+          <g
+            // eslint-disable-next-line react/no-array-index-key
+            key={`area:${i}`}
+            onMouseEnter={handleAreaEnter(i)}
+            onMouseLeave={handleAreaLeave}
+          >
             <polygon
-              // eslint-disable-next-line react/no-array-index-key
-              key={`area:${i}`}
               points={SVG.pointsToSVG(area)}
-              // style={{ filter: `url(#area:${i})` }}
-              fill={areaPaints[i].ref}
+              fill={
+                areaPaints[i].ref.length === 7
+                  ? colors.fade(areaPaints[i].ref, 0.5)
+                  : 'white'
+              }
               fillOpacity={
                 onCursor && cursor && cursor.i != null && cursor.i !== i ? fade : 1
               }
             />
             <polyline
-              // eslint-disable-next-line react/no-array-index-key
-              key={`stroke:${i}`}
               points={SVG.pointsToSVG(stroke)}
-              stroke={
-                areaPaints[i].ref.length === 7 ? darken(areaPaints[i].ref, 0.3) : 'white'
-              }
-              onMouseEnter={handleAreaEnter(i)}
-              onMouseLeave={handleAreaLeave}
+              stroke={areaPaints[i].ref}
               strokeWidth={2}
               fillOpacity={0}
               strokeOpacity={
