@@ -78,7 +78,11 @@ export default function MultiSparkline({
       R.pipe(
         R.aperture(2),
         R.map(([bottom, top]) => ({
-          area: R.concat(mkPoints(top), R.reverse(mkPoints(bottom))),
+          area: R.concat(
+            mkPoints(top),
+            // Leave one pixel room for stroke
+            R.reverse(mkPoints(bottom).map(({ x, y }) => ({ x, y: y - 1 }))),
+          ),
           stroke: mkPoints(top),
         })),
       )(stacked),
@@ -147,8 +151,9 @@ export default function MultiSparkline({
             <polygon
               points={SVG.pointsToSVG(area)}
               fill={
+                // If color is #COLOR7
                 areaPaints[i].ref.length === 7
-                  ? colors.fade(areaPaints[i].ref, 0.5)
+                  ? colors.lighten(areaPaints[i].ref, 0.6)
                   : 'white'
               }
               fillOpacity={
