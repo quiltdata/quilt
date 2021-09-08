@@ -613,6 +613,7 @@ function Downloads({ bucket, colorPool, ...props }) {
                         areaFills={counts.byExtCollapsed.map((e) =>
                           SVG.Paint.Color(colorPool.get(e.ext)),
                         )}
+                        lineStroke={SVG.Paint.Color(M.colors.grey[500])}
                         extendL
                         extendR
                         px={10}
