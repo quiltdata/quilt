@@ -1,19 +1,9 @@
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as colors from '@material-ui/core/styles/colorManipulator'
 
 import * as SVG from 'utils/SVG'
 import usePrevious from 'utils/usePrevious'
-
-const useStyles = M.makeStyles({
-  root: {
-    opacity: 0.8,
-    '&:hover': {
-      opacity: 1,
-    },
-  },
-})
 
 export default function MultiSparkline({
   data, // PT.arrayOf(PT.arrayOf(PT.number)).isRequired,
@@ -30,7 +20,6 @@ export default function MultiSparkline({
   axis = true,
   extendL = false,
   extendR = false,
-  fade = 0.5,
   padding = 1,
   px = padding,
   py = padding,
@@ -41,7 +30,6 @@ export default function MultiSparkline({
   boxProps,
   ...props
 }) {
-  const classes = useStyles()
   const stacked = React.useMemo(
     () =>
       R.pipe(
@@ -78,13 +66,10 @@ export default function MultiSparkline({
       R.pipe(
         R.aperture(2),
         R.map(([bottom, top]) => ({
-          area: R.concat(
-            mkPoints(top),
-            // Leave one pixel room for stroke
-            R.reverse(mkPoints(bottom).map(({ x, y }) => ({ x, y: y - 1 }))),
-          ),
-          stroke: mkPoints(top),
+          area: [...mkPoints(top), ...R.reverse(mkPoints(bottom))],
+          stroke: [...mkPoints(top), ...R.reverse(mkPoints(top))],
         })),
+        R.reverse,
       )(stacked),
     [stacked, mkPoints],
   )
@@ -127,7 +112,6 @@ export default function MultiSparkline({
 
   return (
     <M.Box
-      className={classes.root}
       component="svg"
       viewBox={`0 0 ${width} ${height}`}
       onMouseLeave={handleLeave}
@@ -147,27 +131,17 @@ export default function MultiSparkline({
             key={`area:${i}`}
             onMouseEnter={handleAreaEnter(i)}
             onMouseLeave={handleAreaLeave}
+            opacity={onCursor && cursor?.i != null && cursor.i !== i ? 0.4 : 1}
           >
             <polygon
               points={SVG.pointsToSVG(area)}
-              fill={
-                // If color is #COLOR7
-                areaPaints[i].ref.length === 7
-                  ? colors.lighten(areaPaints[i].ref, 0.6)
-                  : areaPaints[i].ref
-              }
-              fillOpacity={
-                onCursor && cursor && cursor.i != null && cursor.i !== i ? fade : 1
-              }
+              fill={areaPaints[i].ref}
+              fillOpacity={onCursor && cursor?.i === i ? 0.6 : 0.5}
             />
             <polyline
               points={SVG.pointsToSVG(stroke)}
               stroke={areaPaints[i].ref}
               strokeWidth={2}
-              fillOpacity={0}
-              strokeOpacity={
-                onCursor && cursor && cursor.i != null && cursor.i !== i ? fade : 1
-              }
             />
           </g>
         ))}
