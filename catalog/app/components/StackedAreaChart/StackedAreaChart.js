@@ -154,7 +154,7 @@ export default function MultiSparkline({
                 // If color is #COLOR7
                 areaPaints[i].ref.length === 7
                   ? colors.lighten(areaPaints[i].ref, 0.6)
-                  : 'white'
+                  : areaPaints[i].ref
               }
               fillOpacity={
                 onCursor && cursor && cursor.i != null && cursor.i !== i ? fade : 1
