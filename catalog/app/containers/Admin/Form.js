@@ -1,5 +1,4 @@
 import * as React from 'react'
-import * as RF from 'redux-form/es/immutable'
 import * as M from '@material-ui/core'
 
 export function Field({ input, meta, errors, helperText, InputLabelProps, ...rest }) {
@@ -66,5 +65,3 @@ export function FormError({ error, errors, ...rest }) {
     </M.Typography>
   )
 }
-
-export const ReduxForm = RF.reduxForm()(({ children, ...props }) => children(props))

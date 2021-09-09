@@ -1,8 +1,9 @@
 import { goBack, push } from 'connected-react-router'
+import * as FF from 'final-form'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
-import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
+import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import { push as notify } from 'containers/Notifications/actions'
@@ -21,10 +22,6 @@ import * as selectors from './selectors'
 
 const Container = Layout.mkLayout('Complete sign-up')
 
-const Form = reduxForm({ form: 'Auth.SSO.SignUp' })(({ children, ...props }) => (
-  <form onSubmit={props.handleSubmit}>{children(props)}</form>
-))
-
 export default ({ location: { search } }) => {
   const { provider, token, next } = parseSearch(search)
 
@@ -37,8 +34,7 @@ export default ({ location: { search } }) => {
   const back = React.useCallback(() => dispatch(goBack()), [dispatch])
 
   const onSubmit = React.useCallback(
-    async (values) => {
-      const { username, password } = values.toJS()
+    async ({ username, password }) => {
       try {
         const result = defer()
         const credentials = { username, provider, token }
@@ -47,22 +43,34 @@ export default ({ location: { search } }) => {
         await result.promise
       } catch (e) {
         if (e instanceof errors.UsernameTaken) {
-          throw new SubmissionError({ username: 'taken' })
+          return {
+            username: 'taken',
+          }
         }
         if (e instanceof errors.InvalidUsername) {
-          throw new SubmissionError({ username: 'invalid' })
+          return {
+            username: 'invalid',
+          }
         }
         if (password != null && e instanceof errors.InvalidPassword) {
-          throw new SubmissionError({ password: 'invalid' })
+          return {
+            password: 'invalid',
+          }
         }
         if (e instanceof errors.EmailDomainNotAllowed) {
-          throw new SubmissionError({ _error: 'emailDomain' })
+          return {
+            [FF.FORM_ERROR]: 'emailDomain',
+          }
         }
         if (e instanceof errors.SMTPError) {
-          throw new SubmissionError({ _error: 'smtp' })
+          return {
+            [FF.FORM_ERROR]: 'smtp',
+          }
         }
         sentry('captureException', e)
-        throw new SubmissionError({ _error: 'unexpected' })
+        return {
+          [FF.FORM_ERROR]: 'unexpected',
+        }
       }
 
       try {
@@ -73,7 +81,9 @@ export default ({ location: { search } }) => {
         dispatch(notify(`Couldn't sign in automatically`))
         dispatch(push(urls.signIn(next)))
         sentry('captureException', e)
-        throw new SubmissionError({ _error: 'unexpected' })
+        return {
+          [FF.FORM_ERROR]: 'unexpected',
+        }
       }
     },
     [provider, token, next, urls, dispatch, sentry],
@@ -85,13 +95,22 @@ export default ({ location: { search } }) => {
 
   return (
     <Container>
-      <Form onSubmit={onSubmit}>
-        {({ submitting, submitFailed, invalid, error }) => (
-          <>
-            <Field
+      <RF.Form onSubmit={onSubmit}>
+        {({
+          error,
+          handleSubmit,
+          hasSubmitErrors,
+          hasValidationErrors,
+          modifiedSinceLastSubmit,
+          submitError,
+          submitFailed,
+          submitting,
+        }) => (
+          <form onSubmit={handleSubmit}>
+            <RF.Field
               component={Layout.Field}
               name="username"
-              validate={[validators.required]}
+              validate={validators.required}
               disabled={submitting}
               floatingLabelText="Username"
               errors={{
@@ -109,11 +128,11 @@ export default ({ location: { search } }) => {
             />
             {cfg.passwordAuth === true && (
               <>
-                <Field
+                <RF.Field
                   component={Layout.Field}
                   name="password"
                   type="password"
-                  validate={[validators.required]}
+                  validate={validators.required}
                   disabled={submitting}
                   floatingLabelText="Password"
                   errors={{
@@ -121,14 +140,14 @@ export default ({ location: { search } }) => {
                     invalid: 'Password must be at least 8 characters long',
                   }}
                 />
-                <Field
+                <RF.Field
                   component={Layout.Field}
                   name="passwordCheck"
                   type="password"
-                  validate={[
+                  validate={validators.composeAsync(
                     validators.required,
                     validate('check', validators.matchesField('password')),
-                  ]}
+                  )}
                   disabled={submitting}
                   floatingLabelText="Verify password"
                   errors={{
@@ -139,7 +158,10 @@ export default ({ location: { search } }) => {
               </>
             )}
             <Layout.Error
-              {...{ submitFailed, error }}
+              {...{
+                submitFailed,
+                error: error || (!modifiedSinceLastSubmit && submitError),
+              }}
               errors={{
                 unexpected: 'Something went wrong. Try again later.',
                 emailDomain: 'Email domain is not allowed',
@@ -153,7 +175,11 @@ export default ({ location: { search } }) => {
               <M.Box mr={2} />
               <Layout.Submit
                 label="Sign up"
-                disabled={submitting || (submitFailed && invalid)}
+                disabled={
+                  submitting ||
+                  (hasValidationErrors && submitFailed) ||
+                  (hasSubmitErrors && !modifiedSinceLastSubmit)
+                }
                 busy={submitting}
               />
             </Layout.Actions>
@@ -162,9 +188,9 @@ export default ({ location: { search } }) => {
                 Already have an account? <Link to={urls.signIn(next)}>Sign in</Link>
               </>
             </Layout.Hint>
-          </>
+          </form>
         )}
-      </Form>
+      </RF.Form>
     </Container>
   )
 }
