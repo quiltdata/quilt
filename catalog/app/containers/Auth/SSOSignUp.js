@@ -1,4 +1,5 @@
 import { goBack, push } from 'connected-react-router'
+import * as FF from 'final-form'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
@@ -33,8 +34,7 @@ export default ({ location: { search } }) => {
   const back = React.useCallback(() => dispatch(goBack()), [dispatch])
 
   const onSubmit = React.useCallback(
-    async (values) => {
-      const { username, password } = values.toJS()
+    async ({ username, password }) => {
       try {
         const result = defer()
         const credentials = { username, provider, token }
@@ -97,18 +97,20 @@ export default ({ location: { search } }) => {
     <Container>
       <RF.Form onSubmit={onSubmit}>
         {({
-          submitting,
-          submitFailed,
+          error,
+          handleSubmit,
           hasSubmitErrors,
           hasValidationErrors,
           modifiedSinceLastSubmit,
-          error,
+          submitError,
+          submitFailed,
+          submitting,
         }) => (
-          <>
+          <form onSubmit={handleSubmit}>
             <RF.Field
               component={Layout.Field}
               name="username"
-              validate={[validators.required]}
+              validate={validators.required}
               disabled={submitting}
               floatingLabelText="Username"
               errors={{
@@ -130,7 +132,7 @@ export default ({ location: { search } }) => {
                   component={Layout.Field}
                   name="password"
                   type="password"
-                  validate={[validators.required]}
+                  validate={validators.required}
                   disabled={submitting}
                   floatingLabelText="Password"
                   errors={{
@@ -142,10 +144,10 @@ export default ({ location: { search } }) => {
                   component={Layout.Field}
                   name="passwordCheck"
                   type="password"
-                  validate={[
+                  validate={validators.composeAsync(
                     validators.required,
                     validate('check', validators.matchesField('password')),
-                  ]}
+                  )}
                   disabled={submitting}
                   floatingLabelText="Verify password"
                   errors={{
@@ -156,7 +158,10 @@ export default ({ location: { search } }) => {
               </>
             )}
             <Layout.Error
-              {...{ submitFailed, error }}
+              {...{
+                submitFailed,
+                error: error || (!modifiedSinceLastSubmit && submitError),
+              }}
               errors={{
                 unexpected: 'Something went wrong. Try again later.',
                 emailDomain: 'Email domain is not allowed',
@@ -183,7 +188,7 @@ export default ({ location: { search } }) => {
                 Already have an account? <Link to={urls.signIn(next)}>Sign in</Link>
               </>
             </Layout.Hint>
-          </>
+          </form>
         )}
       </RF.Form>
     </Container>
