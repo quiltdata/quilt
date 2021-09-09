@@ -58,7 +58,7 @@ export class BucketPreferencesInvalid extends BucketError {
 }
 
 export interface WorkflowsConfigInvalidProps {
-  errors: { dataPath: string; message: string }[]
+  errors: { dataPath?: string; message?: string }[]
 }
 
 export class WorkflowsConfigInvalid extends BucketError {

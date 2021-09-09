@@ -142,14 +142,14 @@ export function makeSchemaValidator(optSchema?: JsonSchema) {
   try {
     const validate = ajv.compile(schema)
 
-    return (obj: any) => {
+    return (obj: any): Ajv.ErrorObject[] => {
       validate(R.clone(obj))
       // TODO: add custom errors
       return validate.errors || []
     }
   } catch (e) {
     // TODO: add custom errors
-    return () => [e]
+    return (): Error[] => (e instanceof Error ? ([e] as Error[]) : ([] as Error[]))
   }
 }
 
