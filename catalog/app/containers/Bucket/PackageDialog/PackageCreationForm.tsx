@@ -279,11 +279,19 @@ export function PackageCreationForm({
     }
   }, [editorElement, resizeObserver])
 
+  const nonEmpty = (value: FI.FilesState) => {
+    const filesToAdd = Object.assign({}, value.existing, value.added)
+    return (
+      validators.nonEmpty(filesToAdd) ||
+      validators.nonEmpty(R.omit(Object.keys(value.deleted), filesToAdd))
+    )
+  }
+
   const validateFiles = React.useMemo(
     () =>
       delayHashing
-        ? validators.nonEmpty
-        : validators.composeAsync(validators.nonEmpty, FI.validateHashingComplete),
+        ? nonEmpty
+        : validators.composeAsync(nonEmpty, FI.validateHashingComplete),
     [delayHashing],
   )
 

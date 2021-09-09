@@ -29,7 +29,6 @@ import { BucketCacheProvider } from 'utils/BucketCache'
 import * as Config from 'utils/Config'
 import { createBoundary } from 'utils/ErrorBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as RF from 'utils/ReduxForm'
 import * as Cache from 'utils/ResourceCache'
 import * as Sentry from 'utils/Sentry'
 import * as Store from 'utils/Store'
@@ -142,7 +141,6 @@ const render = () => {
       [Sentry.Loader, { userSelector: sentryUserSelector }],
       GraphQLProvider,
       ErrorBoundary,
-      RF.Provider,
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { checkOn: LOCATION_CHANGE, storage }],

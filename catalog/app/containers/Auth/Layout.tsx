@@ -23,7 +23,7 @@ export function Heading(props: M.TypographyProps) {
 }
 
 interface FieldOwnProps {
-  // TODO: use redux-form / final-form type definitions
+  // TODO: use final-form type definitions
   input: {}
   meta: {
     error?: string

@@ -23,7 +23,7 @@ import * as R from 'ramda'
  */
 
 /**
- * Validator function to use with redux-form.
+ * Validator function to use with final-form.
  *
  * @typedef {function} Validator
  *

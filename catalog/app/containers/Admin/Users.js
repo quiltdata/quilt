@@ -1,7 +1,7 @@
 import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
-import * as RF from 'redux-form/es/immutable'
+import * as RF from 'react-final-form'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
 
@@ -37,8 +37,7 @@ function Invite({ close, roles }) {
   const cache = Cache.use()
   const { push } = Notifications.use()
   const onSubmit = React.useCallback(
-    async (values) => {
-      const { username, email, roleId } = values.toJS()
+    async ({ username, email, roleId }) => {
       const role = roles.find((r) => r.id === roleId)
 
       try {
@@ -76,37 +75,53 @@ function Invite({ close, roles }) {
         close()
       } catch (e) {
         if (APIConnector.HTTPError.is(e, 400, /Username is not valid/)) {
-          throw new RF.SubmissionError({ username: 'invalid' })
+          return {
+            username: 'invalid',
+          }
         }
         if (APIConnector.HTTPError.is(e, 409, /Username already taken/)) {
-          throw new RF.SubmissionError({ username: 'taken' })
+          return {
+            username: 'taken',
+          }
         }
         if (APIConnector.HTTPError.is(e, 400, /Invalid email/)) {
-          throw new RF.SubmissionError({ email: 'invalid' })
+          return {
+            email: 'invalid',
+          }
         }
         if (APIConnector.HTTPError.is(e, 409, /Email already taken/)) {
-          throw new RF.SubmissionError({ email: 'taken' })
+          return {
+            email: 'taken',
+          }
         }
         if (APIConnector.HTTPError.is(e, 500, /SMTP.*invalid/)) {
-          throw new RF.SubmissionError({ _error: 'smtp' })
+          return {
+            [FF.FORM_ERROR]: 'smtp',
+          }
         }
         // eslint-disable-next-line no-console
         console.error('Error creating user')
         // eslint-disable-next-line no-console
         console.dir(e)
-        throw new RF.SubmissionError({ _error: 'unexpected' })
+        return {
+          [FF.FORM_ERROR]: 'unexpected',
+        }
       }
     },
     [req, cache, push, close, roles],
   )
 
   return (
-    <Form.ReduxForm
-      form="Admin.Users.Invite"
-      onSubmit={onSubmit}
-      initialValues={{ roleId: roles[0].id }}
-    >
-      {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
+    <RF.Form onSubmit={onSubmit} initialValues={{ roleId: roles[0].id }}>
+      {({
+        handleSubmit,
+        submitting,
+        submitFailed,
+        error,
+        hasSubmitErrors,
+        hasValidationErrors,
+        modifiedSinceLastSubmit,
+      }) => (
         <>
           <M.DialogTitle>Invite a user</M.DialogTitle>
           <M.DialogContent>
@@ -114,7 +129,7 @@ function Invite({ close, roles }) {
               <RF.Field
                 component={Form.Field}
                 name="username"
-                validate={[validators.required]}
+                validate={validators.required}
                 label="Username"
                 fullWidth
                 margin="normal"
@@ -136,7 +151,7 @@ function Invite({ close, roles }) {
               <RF.Field
                 component={Form.Field}
                 name="email"
-                validate={[validators.required]}
+                validate={validators.required}
                 label="Email"
                 fullWidth
                 margin="normal"
@@ -184,14 +199,18 @@ function Invite({ close, roles }) {
             <M.Button
               onClick={handleSubmit}
               color="primary"
-              disabled={submitting || (submitFailed && invalid)}
+              disabled={
+                submitting ||
+                (hasValidationErrors && submitFailed) ||
+                (hasSubmitErrors && !modifiedSinceLastSubmit)
+              }
             >
               Invite
             </M.Button>
           </M.DialogActions>
         </>
       )}
-    </Form.ReduxForm>
+    </RF.Form>
   )
 }
 
@@ -203,9 +222,7 @@ function Edit({ close, user: { email: oldEmail, username } }) {
   const { push } = Notifications.use()
 
   const onSubmit = React.useCallback(
-    async (values) => {
-      const { email } = values.toJS()
-
+    async ({ email }) => {
       if (email === oldEmail) {
         close()
         return
@@ -227,28 +244,38 @@ function Edit({ close, user: { email: oldEmail, username } }) {
         close()
       } catch (e) {
         if (APIConnector.HTTPError.is(e, 400, /Another user already has that email/)) {
-          throw new RF.SubmissionError({ email: 'taken' })
+          return {
+            email: 'taken',
+          }
         }
         if (APIConnector.HTTPError.is(e, 400, /Invalid email/)) {
-          throw new RF.SubmissionError({ email: 'invalid' })
+          return {
+            email: 'invalid',
+          }
         }
         // eslint-disable-next-line no-console
         console.error('Error changing email')
         // eslint-disable-next-line no-console
         console.dir(e)
-        throw new RF.SubmissionError({ _error: 'unexpected' })
+        return {
+          [FF.FORM_ERROR]: 'unexpected',
+        }
       }
     },
     [close, username, oldEmail, req, cache, push],
   )
 
   return (
-    <Form.ReduxForm
-      form={`Admin.Users.Edit(${username})`}
-      onSubmit={onSubmit}
-      initialValues={{ email: oldEmail }}
-    >
-      {({ handleSubmit, submitting, submitFailed, error, invalid }) => (
+    <RF.Form onSubmit={onSubmit} initialValues={{ email: oldEmail }}>
+      {({
+        handleSubmit,
+        submitting,
+        submitFailed,
+        error,
+        hasSubmitErrors,
+        hasValidationErrors,
+        modifiedSinceLastSubmit,
+      }) => (
         <>
           <M.DialogTitle>Edit user: &quot;{username}&quot;</M.DialogTitle>
           <M.DialogContent>
@@ -256,7 +283,7 @@ function Edit({ close, user: { email: oldEmail, username } }) {
               <RF.Field
                 component={Form.Field}
                 name="email"
-                validate={[validators.required]}
+                validate={validators.required}
                 label="Email"
                 fullWidth
                 margin="normal"
@@ -289,14 +316,18 @@ function Edit({ close, user: { email: oldEmail, username } }) {
             <M.Button
               onClick={handleSubmit}
               color="primary"
-              disabled={submitting || (submitFailed && invalid)}
+              disabled={
+                submitting ||
+                (hasValidationErrors && submitFailed) ||
+                (hasSubmitErrors && !modifiedSinceLastSubmit)
+              }
             >
               Save
             </M.Button>
           </M.DialogActions>
         </>
       )}
-    </Form.ReduxForm>
+    </RF.Form>
   )
 }
 
