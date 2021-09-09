@@ -279,8 +279,13 @@ export function PackageCreationForm({
     }
   }, [editorElement, resizeObserver])
 
-  const nonEmpty = (value: FI.FilesState) =>
-    validators.nonEmpty(value.existing) || validators.nonEmpty(value.added)
+  const nonEmpty = (value: FI.FilesState) => {
+    const filesToAdd = Object.assign({}, value.existing, value.added)
+    return (
+      validators.nonEmpty(filesToAdd) ||
+      validators.nonEmpty(R.omit(Object.keys(value.deleted), filesToAdd))
+    )
+  }
 
   const validateFiles = React.useMemo(
     () =>
