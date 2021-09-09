@@ -37,8 +37,7 @@ function Invite({ close, roles }) {
   const cache = Cache.use()
   const { push } = Notifications.use()
   const onSubmit = React.useCallback(
-    async (values) => {
-      const { username, email, roleId } = values.toJS()
+    async ({ username, email, roleId }) => {
       const role = roles.find((r) => r.id === roleId)
 
       try {
@@ -223,9 +222,7 @@ function Edit({ close, user: { email: oldEmail, username } }) {
   const { push } = Notifications.use()
 
   const onSubmit = React.useCallback(
-    async (values) => {
-      const { email } = values.toJS()
-
+    async ({ email }) => {
       if (email === oldEmail) {
         close()
         return
