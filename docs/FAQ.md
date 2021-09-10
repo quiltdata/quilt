@@ -47,7 +47,6 @@ quilt3 --version
 ```
 
 ### CloudFormation application
-
 1. Go to CloudFormation > Stacks > YourQuiltStack > Outputs
 1. Copy the row labeled TemplateBuildMetadata
 1. "git_revision" is your template version
