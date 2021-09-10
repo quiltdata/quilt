@@ -847,6 +847,7 @@ function Reindex({ bucket, open, close }: ReindexProps) {
           </M.DialogContentText>
           <Form.Checkbox
             meta={{ submitting, submitSucceeded }}
+            // @ts-expect-error, FF.FieldInputProps misses second argument for onChange
             input={{ checked: repair, onChange: handleRepairChange }}
             label="Repair S3 notifications"
           />
