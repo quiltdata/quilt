@@ -126,7 +126,6 @@ export function useUploads() {
 
       return FP.function.pipe(
         FP.array.zipWith(files, uploaded, (f, r) => {
-          const version: string | undefined = r.VersionId
           invariant(f.file.hash.value, 'File must have a hash')
           return [
             f.path,
@@ -134,7 +133,7 @@ export function useUploads() {
               physicalKey: s3paths.handleToS3Url({
                 bucket,
                 key: r.Key,
-                version,
+                version: r.VersionId,
               }),
               size: f.file.size,
               hash: f.file.hash.value,
