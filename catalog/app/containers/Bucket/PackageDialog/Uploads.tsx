@@ -133,7 +133,7 @@ export function useUploads() {
               physicalKey: s3paths.handleToS3Url({
                 bucket,
                 key: r.Key,
-                version: r.VersionId,
+                version: r.VersionId as string | undefined,
               }),
               size: f.file.size,
               hash: f.file.hash.value,

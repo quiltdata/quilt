@@ -33,7 +33,7 @@ export default function UriResolver({ match }: RouteComponentProps<{ uri: string
     try {
       return [uri ? PackageUri.parse(uri) : null]
     } catch (e) {
-      return [null, e]
+      return [null, e as unknown as PackageUri.PackageUriError]
     }
   }, [uri])
 

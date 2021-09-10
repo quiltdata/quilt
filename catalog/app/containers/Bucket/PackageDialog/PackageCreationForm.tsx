@@ -230,7 +230,9 @@ export function PackageCreationForm({
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
       // TODO: handle specific cases?
-      return { [FF.FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
+      if (e instanceof Error)
+        return { [FF.FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
+      return { [FF.FORM_ERROR]: PD.ERROR_MESSAGES.MANIFEST }
     }
   }
 

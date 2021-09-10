@@ -52,7 +52,7 @@ const compileTemplate = (scope?: string) => (str?: unknown) => {
       ? template(str)
       : (str as NonNullable<Overrides['s3ObjectLink']>['href'])
   } catch (e) {
-    if (scope) {
+    if (scope && e instanceof Error) {
       throw new Error(`${scope} must be a valid template string: ${e.message}`)
     }
     throw e

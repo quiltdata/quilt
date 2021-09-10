@@ -43,7 +43,7 @@ export class FileNotFound extends BucketError {}
 export class VersionNotFound extends BucketError {}
 
 export interface BucketPreferencesInvalidProps {
-  errors: { dataPath: string; message: string }[]
+  errors: { dataPath?: string; message?: string }[]
 }
 
 export class BucketPreferencesInvalid extends BucketError {
