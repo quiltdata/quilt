@@ -41,6 +41,12 @@ $ export QUILT_MINIMIZE_STDOUT=true
 
 ## Which version of Quilt are you on?
 
+### Python client
+```bash
+quilt3 --version
+```
+
+### CloudFormation application
 1. Go to CloudFormation > Stacks > YourQuiltStack > Outputs
 1. Copy the row labeled TemplateBuildMetadata
 1. "git_revision" is your template version
