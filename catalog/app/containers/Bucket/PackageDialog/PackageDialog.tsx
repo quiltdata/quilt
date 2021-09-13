@@ -144,7 +144,7 @@ export function useNameValidator() {
         return error
       } catch (e) {
         setProcessing(false)
-        return e.message as string
+        return e instanceof Error ? (e.message as string) : ''
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps

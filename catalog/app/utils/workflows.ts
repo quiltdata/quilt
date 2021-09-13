@@ -102,7 +102,7 @@ function parseWorkflow(
 const parseSuccessor = (url: string, successor: SuccessorYaml): Successor => ({
   copyData: successor.copy_data === undefined ? COPY_DATA_DEFAULT : successor.copy_data,
   name: successor.title,
-  slug: s3paths.parseS3Url(url).bucket,
+  slug: s3paths.parseS3Url(url).bucket || '',
   url,
 })
 

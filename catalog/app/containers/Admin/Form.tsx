@@ -1,7 +1,21 @@
 import * as React from 'react'
+import type * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
-export function Field({ input, meta, errors, helperText, InputLabelProps, ...rest }) {
+interface FieldProps {
+  errors: Record<string, React.ReactNode>
+  input: RF.FieldInputProps<string>
+  meta: RF.FieldMetaState<string>
+}
+
+export function Field({
+  input,
+  meta,
+  errors,
+  helperText,
+  InputLabelProps,
+  ...rest
+}: FieldProps & M.TextFieldProps) {
   const error = meta.submitFailed && (meta.error || meta.submitError)
   const props = {
     error: !!error,
@@ -21,27 +35,35 @@ const useCheckboxStyles = M.makeStyles({
   },
 })
 
+interface CheckboxProps {
+  errors?: Record<string, React.ReactNode>
+  input?: RF.FieldInputProps<boolean>
+  meta: RF.FieldMetaState<string | Symbol>
+  label?: string
+  FormControlLabelProps?: M.FormControlLabelProps
+}
+
 export function Checkbox({
-  input = {},
+  input = {} as RF.FieldInputProps<boolean>,
   meta,
   errors = undefined, // eslint-disable-line @typescript-eslint/no-unused-vars
   label = undefined,
-  FormControlLabelProps = {},
+  FormControlLabelProps = {} as M.FormControlLabelProps,
   ...rest
-}) {
+}: CheckboxProps & M.CheckboxProps) {
   const classes = useCheckboxStyles()
   return (
     <M.FormControlLabel
+      {...FormControlLabelProps}
       control={
         <M.Checkbox
           classes={classes}
-          disabled={meta.submitting || meta.submitScceeded}
+          disabled={meta.submitting || meta.submitSucceeded}
           {...input}
           {...rest}
         />
       }
       label={label}
-      {...FormControlLabelProps}
     />
   )
 }
@@ -56,7 +78,16 @@ const useFormErrorStyles = M.makeStyles((t) => ({
   },
 }))
 
-export function FormError({ error, errors, ...rest }) {
+interface FormErrorProps {
+  errors: Record<string, React.ReactNode>
+  error?: string
+}
+
+export function FormError({
+  error,
+  errors,
+  ...rest
+}: FormErrorProps & M.TypographyProps) {
   const classes = useFormErrorStyles()
   if (!error) return null
   return (
