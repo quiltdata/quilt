@@ -149,7 +149,7 @@ export function makeSchemaValidator(optSchema?: JsonSchema) {
     }
   } catch (e) {
     // TODO: add custom errors
-    return (): Error[] => (e instanceof Error ? ([e] as Error[]) : ([] as Error[]))
+    return () => (e instanceof Error ? [e] : []) as Error[]
   }
 }
 
