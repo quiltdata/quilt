@@ -139,9 +139,8 @@ function DialogForm({
       } catch (e) {
         // eslint-disable-next-line no-console
         console.log('error creating manifest', e)
-        if (e instanceof Error)
-          return { [FF.FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
-        return { [FF.FORM_ERROR]: PD.ERROR_MESSAGES.MANIFEST }
+        const errorMessage = e instanceof Error ? e.message : null
+        return { [FF.FORM_ERROR]: errorMessage || PD.ERROR_MESSAGES.MANIFEST }
       }
     },
     [bucket, successor, createPackage, setSuccess, schema, path],
