@@ -1,15 +1,15 @@
-import { fromJS } from 'immutable'
+import * as R from 'ramda'
 
 import { PUSH, DISMISS } from './constants'
 
-const initialState = fromJS([])
+const initialState = []
 
 export default (state = initialState, action) => {
   switch (action.type) {
     case PUSH:
-      return state.push(fromJS(action.notification))
+      return R.append(action.notification, state)
     case DISMISS:
-      return state.filter((n) => n.get('id') !== action.id)
+      return R.filter((n) => n.id !== action.id, state)
     default:
       return state
   }
