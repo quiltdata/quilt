@@ -83,7 +83,7 @@ export const matches = (re) => (str) => re.test(str)
  * @returns {TestFunction}
  */
 export const matchesField = (field) => (v, vs) => {
-  const other = typeof vs.get === 'function' ? vs.get(field) : vs[field]
+  const other = vs[field]
   return !other || v === other
 }
 

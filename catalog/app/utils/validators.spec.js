@@ -1,5 +1,3 @@
-import { Map } from 'immutable'
-
 import validate, * as validators from './validators'
 
 describe('utils/validators', () => {
@@ -12,7 +10,7 @@ describe('utils/validators', () => {
     })
 
     describe('the created validator function', () => {
-      const values = Map({ v1: 'test', v2: 'test2' })
+      const values = { v1: 'test', v2: 'test2' }
       const props = { p: 'test' }
       let test
       let validator
@@ -60,9 +58,9 @@ describe('utils/validators', () => {
   describe('matchesField', () => {
     it('should create a function that tests if two fields have the same value', () => {
       const matchesPassword = validators.matchesField('password')
-      expect(matchesPassword('test', Map({ password: null }))).toBe(true)
-      expect(matchesPassword('test', Map({ password: 'test' }))).toBe(true)
-      expect(matchesPassword('sup', Map({ password: 'test' }))).toBe(false)
+      expect(matchesPassword('test', { password: null })).toBe(true)
+      expect(matchesPassword('test', { password: 'test' })).toBe(true)
+      expect(matchesPassword('sup', { password: 'test' })).toBe(false)
     })
   })
 
