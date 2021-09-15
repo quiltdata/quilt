@@ -1,4 +1,4 @@
-import { push } from 'connected-react-router/esm/immutable'
+import { push } from 'connected-react-router'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'

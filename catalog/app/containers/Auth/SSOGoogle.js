@@ -1,4 +1,4 @@
-import { push } from 'connected-react-router/esm/immutable'
+import { push } from 'connected-react-router'
 import invariant from 'invariant'
 import * as React from 'react'
 import GoogleLogin from 'react-google-login'

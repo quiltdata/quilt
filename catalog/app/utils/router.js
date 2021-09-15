@@ -1,8 +1,4 @@
-import {
-  ConnectedRouter,
-  connectRouter,
-  LOCATION_CHANGE,
-} from 'connected-react-router/esm/immutable'
+import { ConnectedRouter, connectRouter, LOCATION_CHANGE } from 'connected-react-router'
 import * as React from 'react'
 import { matchPath } from 'react-router-dom'
 import * as redux from 'react-redux'
@@ -13,7 +9,7 @@ export { LOCATION_CHANGE }
 
 export const REDUX_KEY = 'router'
 
-export const selectLocation = (s) => s[REDUX_KEY].get('location').toJS()
+export const selectLocation = (s) => s[REDUX_KEY].location
 
 export const useLocation = () => redux.useSelector(selectLocation)
 

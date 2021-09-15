@@ -1,4 +1,4 @@
-import { routerMiddleware } from 'connected-react-router/esm/immutable'
+import { routerMiddleware } from 'connected-react-router'
 import * as React from 'react'
 import { Provider as ReduxProvider } from 'react-redux'
 import { createStore, applyMiddleware, combineReducers } from 'redux'

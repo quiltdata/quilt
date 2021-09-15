@@ -1,4 +1,4 @@
-import { push } from 'connected-react-router/esm/immutable'
+import { push } from 'connected-react-router'
 import deburr from 'lodash/deburr'
 import { matchSorter } from 'match-sorter'
 import * as R from 'ramda'
