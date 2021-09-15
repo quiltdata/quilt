@@ -1,10 +1,8 @@
 import { routerMiddleware } from 'connected-react-router/esm/immutable'
-import { fromJS, Iterable } from 'immutable'
 import * as React from 'react'
 import { Provider as ReduxProvider } from 'react-redux'
-import { createStore, applyMiddleware } from 'redux'
+import { createStore, applyMiddleware, combineReducers } from 'redux'
 import { composeWithDevTools } from 'redux-devtools-extension'
-import { combineReducers } from 'redux-immutable'
 
 import { withInjectableReducers } from 'utils/ReducerInjector'
 import { withSaga } from 'utils/SagaInjector'
@@ -25,9 +23,7 @@ export const Provider = function StoreProvider({ initialState = {}, history, chi
       process.env.NODE_ENV === 'development' &&
       process.env.LOGGER_REDUX === 'enabled'
     ) {
-      const stateTransformer = (state) =>
-        // pure JS is easier to read than Immutable objects
-        Iterable.isIterable(state) ? state.toJS() : state
+      const stateTransformer = (state) => state
       // eslint-disable-next-line global-require
       const { createLogger } = require('redux-logger')
       middlewares.push(createLogger({ stateTransformer, collapsed: true }))
@@ -39,7 +35,7 @@ export const Provider = function StoreProvider({ initialState = {}, history, chi
 
     return createStore(
       (state) => state, // noop reducer, the actual ones will be injected
-      fromJS(initialState),
+      initialState,
       composeEnhancers(
         withSaga({ onError: captureError }),
         applyMiddleware(...middlewares),

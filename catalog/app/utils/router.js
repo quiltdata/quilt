@@ -13,7 +13,7 @@ export { LOCATION_CHANGE }
 
 export const REDUX_KEY = 'router'
 
-export const selectLocation = (s) => s.getIn([REDUX_KEY, 'location']).toJS()
+export const selectLocation = (s) => s[REDUX_KEY].get('location').toJS()
 
 export const useLocation = () => redux.useSelector(selectLocation)
 

@@ -161,7 +161,7 @@ const reducer = reduxTools.withInitialState(
 )
 
 const selectEntry = (resource, input) => (s) =>
-  R.path(keyFor(resource, input), s.get(REDUX_KEY))
+  R.path([REDUX_KEY, ...keyFor(resource, input)], s)
 
 function* handleInit({ resource, input, resolver }) {
   yield effects.put(Action.Request({ resource, input }))
