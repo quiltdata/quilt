@@ -84,7 +84,7 @@ function QueriesState({ bucket, children }: QueriesStateProps) {
 
   // Custom query content, not associated with queryMeta
   const [customQueryBody, setCustomQueryBody] =
-    React.useState<requests.ElasticSearchQuery>(null)
+    React.useState<requests.ElasticSearchQuery>(QUERY_PLACEHOLDER)
 
   // Query content requested to Elastic Search
   const [queryRequest, setQueryRequest] =
@@ -232,7 +232,7 @@ export default function ElastiSearch({
                 onChange={handleQueryBodyChange}
                 onError={handleError}
                 onSubmit={handleSubmit}
-                value={customQueryBody || QUERY_PLACEHOLDER}
+                value={customQueryBody}
               />
             ),
             Ok: (queryBody: requests.ElasticSearchQuery) => (
@@ -245,7 +245,7 @@ export default function ElastiSearch({
                 onChange={handleQueryBodyChange}
                 onError={handleError}
                 onSubmit={handleSubmit}
-                value={customQueryBody || queryBody || QUERY_PLACEHOLDER}
+                value={customQueryBody || queryBody}
               />
             ),
             Err: (error: Error) => (

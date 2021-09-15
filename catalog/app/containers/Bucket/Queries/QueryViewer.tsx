@@ -92,8 +92,6 @@ export default function QueryViewer({
     [t],
   )
 
-  if (!query) return null
-
   return (
     <div className={className}>
       <M.Typography className={classes.header} variant="body1">
