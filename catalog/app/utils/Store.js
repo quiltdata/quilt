@@ -1,4 +1,5 @@
 import { routerMiddleware } from 'connected-react-router'
+import * as R from 'ramda'
 import * as React from 'react'
 import { Provider as ReduxProvider } from 'react-redux'
 import { createStore, applyMiddleware, combineReducers } from 'redux'
@@ -23,10 +24,9 @@ export const Provider = function StoreProvider({ initialState = {}, history, chi
       process.env.NODE_ENV === 'development' &&
       process.env.LOGGER_REDUX === 'enabled'
     ) {
-      const stateTransformer = (state) => state
       // eslint-disable-next-line global-require
       const { createLogger } = require('redux-logger')
-      middlewares.push(createLogger({ stateTransformer, collapsed: true }))
+      middlewares.push(createLogger({ stateTransformer: R.identity, collapsed: true }))
     }
 
     const composeEnhancers = composeWithDevTools({})
@@ -34,7 +34,7 @@ export const Provider = function StoreProvider({ initialState = {}, history, chi
     const captureError = (e) => sentry('captureException', e)
 
     return createStore(
-      (state) => state, // noop reducer, the actual ones will be injected
+      R.identity, // noop reducer, the actual ones will be injected
       initialState,
       composeEnhancers(
         withSaga({ onError: captureError }),
