@@ -66,13 +66,13 @@ export default function AuthProvider({
   latency = 20, // number
 }) {
   const reducerWithInit = useConstant(() => {
-    const loadedState = R.filter(Boolean, storage.load())
-    const signed = R.assoc(
-      'state',
-      R.path(['user', 'current_user'], loadedState) ? 'SIGNED_IN' : 'SIGNED_OUT',
-      loadedState,
-    )
-    const init = R.assoc('sessionId', 0, signed)
+    const getAuthState = (state) =>
+      state?.user?.current_user ? 'SIGNED_IN' : 'SIGNED_OUT'
+    const init = R.pipe(
+      R.filter(Boolean),
+      R.over(R.lensProp('state'), getAuthState),
+      R.assoc('sessionId', 0),
+    )(storage.load())
     return withInitialState(init, reducer)
   })
   useReducer(REDUX_KEY, reducerWithInit)
