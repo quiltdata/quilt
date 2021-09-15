@@ -1,7 +1,5 @@
-import { fromJS } from 'immutable'
 import * as R from 'ramda'
 
-import { get } from 'utils/immutableTools'
 import {
   handleActions,
   handleResult,
@@ -13,7 +11,7 @@ import {
 
 import { actions } from './constants'
 
-export default handleTransitions(get('state'), {
+export default handleTransitions((state) => state.state, {
   SIGNED_OUT: handleActions({
     [actions.SIGN_IN]: combine({
       state: 'SIGNING_IN',
@@ -24,8 +22,8 @@ export default handleTransitions(get('state'), {
     [actions.SIGN_IN_RESULT]: handleResult({
       resolve: combine({
         state: 'SIGNED_IN',
-        user: (p) => fromJS(p.user),
-        tokens: (p) => fromJS(p.tokens),
+        user: (p) => p.user,
+        tokens: (p) => p.tokens,
         sessionId: () => R.inc,
       }),
       reject: combine({
@@ -56,8 +54,8 @@ export default handleTransitions(get('state'), {
     [actions.REFRESH_RESULT]: handleResult({
       resolve: combine({
         state: 'SIGNED_IN',
-        tokens: ({ tokens }) => fromJS(tokens),
-        user: ({ user }) => (user ? fromJS(user) : noop),
+        tokens: ({ tokens }) => tokens,
+        user: ({ user }) => (user ? user : noop),
       }),
       reject: combine({
         state: 'SIGNED_OUT',

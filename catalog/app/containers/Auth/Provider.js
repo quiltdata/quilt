@@ -1,4 +1,4 @@
-import { fromJS } from 'immutable'
+import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
@@ -66,13 +66,13 @@ export default function AuthProvider({
   latency = 20, // number
 }) {
   const reducerWithInit = useConstant(() => {
-    const init = fromJS(storage.load())
-      .filter(Boolean)
-      .update((s) =>
-        s
-          .set('state', s.getIn(['user', 'current_user']) ? 'SIGNED_IN' : 'SIGNED_OUT')
-          .set('sessionId', 0),
-      )
+    const loadedState = R.filter(Boolean, storage.load())
+    const signed = R.assoc(
+      'state',
+      R.path(['user', 'current_user'], loadedState) ? 'SIGNED_IN' : 'SIGNED_OUT',
+      loadedState,
+    )
+    const init = R.assoc('sessionId', 0, signed)
     return withInitialState(init, reducer)
   })
   useReducer(REDUX_KEY, reducerWithInit)
