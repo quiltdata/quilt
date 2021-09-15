@@ -120,8 +120,7 @@ const reducer = reduxTools.withInitialState(
   }),
 )
 
-const selectEntry = (resource, input) => (s) =>
-  R.path([REDUX_KEY, ...keyFor(resource, input)], s)
+const selectEntry = (resource, input) => R.path([REDUX_KEY, ...keyFor(resource, input)])
 
 function* handleInit({ resource, input, resolver }) {
   yield effects.put(Action.Request({ resource, input }))
