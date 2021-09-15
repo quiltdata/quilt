@@ -63,99 +63,59 @@ const initialState = {}
 const reducer = reduxTools.withInitialState(
   initialState,
   Action.reducer({
-    Init:
-      ({ resource, input, promise }) =>
-      (s) =>
-        R.over(
-          R.lensPath(keyFor(resource, input)),
-          (entry) => {
-            if (entry) throw new Error('Init: entry already exists')
-            return {
-              promise,
-              result: AsyncResult.Init(),
-              claimed: resource.persist ? 1 : 0, // "persistent" resources won't be released
-            }
-          },
-          s,
+    Init: ({ resource, input, promise }) =>
+      R.over(R.lensPath(keyFor(resource, input)), (entry) => {
+        if (entry) throw new Error('Init: entry already exists')
+        return {
+          promise,
+          result: AsyncResult.Init(),
+          claimed: resource.persist ? 1 : 0, // "persistent" resources won't be released
+        }
+      }),
+    Request: ({ resource, input }) =>
+      R.over(R.lensPath(keyFor(resource, input)), (entry) => {
+        if (!entry) throw new Error('Request: entry does not exist')
+        if (!AsyncResult.Init.is(entry.result)) {
+          throw new Error('Request: invalid transition')
+        }
+        return { ...entry, result: AsyncResult.Pending() }
+      }),
+    Response: ({ resource, input, result }) =>
+      R.over(R.lensPath(keyFor(resource, input)), (entry) => {
+        if (!entry) return undefined // released before response
+        if (!AsyncResult.Pending.is(entry.result)) {
+          throw new Error('Response: invalid transition')
+        }
+        return { ...entry, result }
+      }),
+    Patch: ({ resource, input, update, silent = false }) =>
+      R.over(R.lensPath(keyFor(resource, input)), (entry) => {
+        if (!entry) {
+          if (silent) return entry
+          throw new Error('Patch: entry does not exist')
+        }
+        return update(entry)
+      }),
+    Claim: ({ resource, input }) =>
+      R.over(R.lensPath(keyFor(resource, input)), (entry) => {
+        if (!entry) throw new Error('Claim: entry does not exist')
+        return { ...entry, claimed: entry.claimed + 1 }
+      }),
+    Release: ({ resource, input, releasedAt }) =>
+      R.over(R.lensPath(keyFor(resource, input)), (entry) => {
+        if (!entry) throw new Error('Release: entry does not exist')
+        return { ...entry, claimed: entry.claimed - 1, releasedAt }
+      }),
+    CleanUp: ({ time }) =>
+      R.map((r) =>
+        R.filter(
+          (entry) =>
+            entry.claimed >= 1 ||
+            !entry.releasedAt ||
+            time - entry.releasedAt < RELEASE_TIME,
+          r,
         ),
-    Request:
-      ({ resource, input }) =>
-      (s) =>
-        R.over(
-          R.lensPath(keyFor(resource, input)),
-          (entry) => {
-            if (!entry) throw new Error('Request: entry does not exist')
-            if (!AsyncResult.Init.is(entry.result)) {
-              throw new Error('Request: invalid transition')
-            }
-            return { ...entry, result: AsyncResult.Pending() }
-          },
-          s,
-        ),
-    Response:
-      ({ resource, input, result }) =>
-      (s) =>
-        R.over(
-          R.lensPath(keyFor(resource, input)),
-          (entry) => {
-            if (!entry) return undefined // released before response
-            if (!AsyncResult.Pending.is(entry.result)) {
-              throw new Error('Response: invalid transition')
-            }
-            return { ...entry, result }
-          },
-          s,
-        ),
-    Patch:
-      ({ resource, input, update, silent = false }) =>
-      (s) =>
-        R.over(
-          R.lensPath(keyFor(resource, input)),
-          (entry) => {
-            if (!entry) {
-              if (silent) return entry
-              throw new Error('Patch: entry does not exist')
-            }
-            return update(entry)
-          },
-          s,
-        ),
-    Claim:
-      ({ resource, input }) =>
-      (s) =>
-        R.over(
-          R.lensPath(keyFor(resource, input)),
-          (entry) => {
-            if (!entry) throw new Error('Claim: entry does not exist')
-            return { ...entry, claimed: entry.claimed + 1 }
-          },
-          s,
-        ),
-    Release:
-      ({ resource, input, releasedAt }) =>
-      (s) =>
-        R.over(
-          R.lensPath(keyFor(resource, input)),
-          (entry) => {
-            if (!entry) throw new Error('Release: entry does not exist')
-            return { ...entry, claimed: entry.claimed - 1, releasedAt }
-          },
-          s,
-        ),
-    CleanUp:
-      ({ time }) =>
-      (s) =>
-        R.map(
-          (r) =>
-            R.filter(
-              (entry) =>
-                entry.claimed >= 1 ||
-                !entry.releasedAt ||
-                time - entry.releasedAt < RELEASE_TIME,
-              r,
-            ),
-          s,
-        ),
+      ),
     __: () => R.identity,
   }),
 )
