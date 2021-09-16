@@ -16,10 +16,10 @@ import { Title, SectionContainer } from './Example'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 
-export default function BioIT() {
+function BioIT() {
   const talk = useTalkToUs({ src: 'bioit' })
   return (
-    <Layout>
+    <>
       {/* TODO: title? */}
       <MetaTitle>Quilt @ Bio-IT World</MetaTitle>
       <Dots />
@@ -134,6 +134,16 @@ export default function BioIT() {
       </SectionContainer>
 
       {/* TODO: sticky footer? */}
+    </>
+  )
+}
+
+export default function BioITWrapper() {
+  // Layout injects TalkToUs provider into the component tree
+  // (required for BioIT component)
+  return (
+    <Layout>
+      <BioIT />
     </Layout>
   )
 }
