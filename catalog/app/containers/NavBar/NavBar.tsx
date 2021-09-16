@@ -365,6 +365,10 @@ function useLinks(): LinkDescriptor[] {
   const cfg = Config.useConfig()
   const settings = CatalogSettings.use()
   return [
+    process.env.NODE_ENV === 'development' && {
+      to: urls.example(),
+      label: 'Example',
+    },
     settings?.customNavLink && {
       href: settings.customNavLink.url,
       label: settings.customNavLink.label,
