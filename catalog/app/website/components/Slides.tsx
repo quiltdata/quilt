@@ -60,13 +60,17 @@ export default function Slides({ slides, disableCaptions, ...props }: SlidesProp
   const current = slides[actualIndex]
   const maxSlides = slides.length > 1 ? slides.length * SLIDE_COUNT_FACTOR : 1
   const nearestZero = Math.floor(index / slides.length) * slides.length
+  const slidesMemo = useMemoEq(slides, R.identity)
+
+  const disableCaptionsComputed = React.useMemo(() => {
+    if (disableCaptions) return disableCaptions
+    return slidesMemo.every((s) => !getCaption(s))
+  }, [disableCaptions, slidesMemo])
 
   const goToNearestIndex = React.useCallback(
     (i: number) => setIndex(nearestZero + i),
     [nearestZero],
   )
-
-  const slidesMemo = useMemoEq(slides, R.identity)
 
   const slideRenderer = React.useCallback(
     ({ index: i, key }: { index: number; key: number | string }) => (
@@ -94,7 +98,7 @@ export default function Slides({ slides, disableCaptions, ...props }: SlidesProp
           className={classes.container}
         />
       </div>
-      {!disableCaptions && (
+      {!disableCaptionsComputed && (
         <div className={classes.captionContainer}>
           {slides.map((s, i) => (
             // eslint-disable-next-line react/no-array-index-key
