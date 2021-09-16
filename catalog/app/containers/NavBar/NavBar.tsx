@@ -37,6 +37,15 @@ function LogoLink() {
   )
 }
 
+const useItemStyles = M.makeStyles({
+  root: {
+    display: 'inline-flex',
+    maxWidth: '400px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+})
+
 // type ItemProps = (LinkProps | { href: string }) & M.MenuItemProps
 interface ItemProps extends M.MenuItemProps {
   to?: string
@@ -46,19 +55,20 @@ interface ItemProps extends M.MenuItemProps {
 // FIXME: doesn't compile with Ref<unknown>
 // const Item = React.forwardRef((props: ItemProps, ref: React.Ref<unknown>) => (
 const Item = React.forwardRef(
-  ({ children, ...props }: ItemProps, ref: React.Ref<any>) => (
-    <M.MenuItem
-      // @ts-expect-error
-      // eslint-disable-next-line no-nested-ternary
-      component={props.to ? Link : props.href ? 'a' : undefined}
-      ref={ref}
-      {...props}
-    >
-      <M.Box component="span" textOverflow="ellipsis" overflow="hidden" maxWidth={400}>
-        {children}
-      </M.Box>
-    </M.MenuItem>
-  ),
+  ({ children, ...props }: ItemProps, ref: React.Ref<any>) => {
+    const classes = useItemStyles()
+    return (
+      <M.MenuItem
+        // @ts-expect-error
+        // eslint-disable-next-line no-nested-ternary
+        component={props.to ? Link : props.href ? 'a' : undefined}
+        ref={ref}
+        {...props}
+      >
+        <span className={classes.root}>{children}</span>
+      </M.MenuItem>
+    )
+  },
 )
 
 const selectUser = createStructuredSelector({

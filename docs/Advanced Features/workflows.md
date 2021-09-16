@@ -186,7 +186,7 @@ The `dateformat` template follows
 
 ### Full `config.yml` schema
 See
-[config-1-.schema.json](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/workflows/config-1.schema.json).
+[config-1.schema.json](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/workflows/config-1.schema.json).
 
 
 ### Known limitations
