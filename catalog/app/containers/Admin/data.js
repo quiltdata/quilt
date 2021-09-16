@@ -20,5 +20,5 @@ export const UsersResource = Cache.createResource({
         })),
       ),
     ),
-  key: () => null,
+  key: () => 'Admin.data.users',
 })

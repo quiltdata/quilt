@@ -42,8 +42,8 @@ async function fetchSettings({
 const CatalogSettingsResource = Cache.createResource({
   name: 'CatalogSettings.config',
   fetch: fetchSettings,
-  // @ts-expect-error
-  key: () => null,
+  key: ({ serviceBucket, mode }: { serviceBucket: string; mode: string }) =>
+    `CatalogSettings.config.${serviceBucket}.${mode}`,
 })
 
 function format(settings: CatalogSettings) {

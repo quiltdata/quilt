@@ -18,6 +18,7 @@ const VoilaResource = Cache.createResource({
         }
         return r
       }),
+  key: (registryUrl: string) => registryUrl,
 })
 
 export function useVoila(): boolean {

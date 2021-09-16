@@ -38,7 +38,7 @@ const RELEASE_TIME = 5000
 // }
 // State = Map<string, Map<I, Entry<O>>>
 
-export const createResource = ({ name, fetch, key = R.identity, persist = false }) => ({
+export const createResource = ({ name, fetch, key, persist = false }) => ({
   name,
   fetch,
   id: uuid.v4(),
