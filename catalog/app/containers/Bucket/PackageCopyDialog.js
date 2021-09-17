@@ -183,7 +183,10 @@ function DialogForm({
           <DialogTitle bucket={successor.slug} />
           <M.DialogContent classes={dialogContentClasses}>
             <form onSubmit={handleSubmit} className={classes.form}>
-              <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
+              <RF.FormSpy
+                subscription={{ modified: true, values: true }}
+                onChange={onFormChange}
+              />
 
               <RF.FormSpy
                 subscription={{ modified: true, values: true }}
