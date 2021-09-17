@@ -4,15 +4,13 @@ import * as M from '@material-ui/core'
 import { useTalkToUs } from 'components/TalkToUs'
 import MetaTitle from 'utils/MetaTitle'
 
-import O1 from 'website/components/Backgrounds/Overlay1Full'
-import O2 from 'website/components/Backgrounds/Overlay2'
 import Dots from 'website/components/Backgrounds/Dots'
 import ChevronLink from 'website/components/ChevronLink'
 import Layout from 'website/components/Layout'
+import Lede from 'website/components/Lede'
+import Section from 'website/components/Section'
 import Tabs from 'website/components/Tabs'
 import Videos from 'website/components/Videos'
-
-import { Title, SectionContainer } from './Example'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 
@@ -23,12 +21,17 @@ function BioIT() {
       {/* TODO: title? */}
       <MetaTitle>Quilt @ Bio-IT World</MetaTitle>
       <Dots />
-      <O1 />
-      <O2 />
-      <Title
-        // TODO: image
-        primary="Your data is depreciating because it lacks context"
-        secondary={
+      <M.Box pt={10} />
+      <Lede
+        variant="flying"
+        heading={
+          <>
+            Your data is depreciating
+            <br />
+            because it lacks context
+          </>
+        }
+        detail={
           <>
             Your team is rapidly accumulating data from instruments, CROs, scientists, and
             executives. But naively storing data adds cost without benefit. Data without
@@ -37,21 +40,18 @@ function BioIT() {
             and teams waste months doing "data archaeology" on past results.
           </>
         }
-      >
-        <M.Box mt={2}>
+        cta={
           <M.Button variant="contained" color="primary" onClick={talk}>
             Schedule a demo
           </M.Button>
-        </M.Box>
-        <M.Box mt={3}>
-          <ChevronLink href={SALES_ADDRESS}>Ask a question</ChevronLink>
-        </M.Box>
-      </Title>
-
-      <Title
-        center
-        primary="Data hubs illuminate your data with context"
-        secondary={
+        }
+        link={<ChevronLink href={SALES_ADDRESS}>Ask a question</ChevronLink>}
+      />
+      <M.Box pt={20} />
+      <Lede
+        variant="center"
+        heading="Data hubs illuminate your data with context"
+        detail={
           <>
             Data hubs integrate data sources so that everyone is on the same page with the
             latest and most accurate data. Teams with data hubs make informed decisions
@@ -60,7 +60,7 @@ function BioIT() {
         }
       />
 
-      <SectionContainer>
+      <Section>
         <M.Box pt={5} />
         <Tabs
           sections={[
@@ -116,11 +116,11 @@ function BioIT() {
             },
           ]}
         />
-      </SectionContainer>
+      </Section>
 
       <Videos bare />
 
-      <SectionContainer>
+      <Section>
         <M.Box display="flex" flexDirection="column" alignItems="center" pb={15} pt={5}>
           <M.Box mt={2}>
             <M.Button variant="contained" color="primary" onClick={talk}>
@@ -131,9 +131,7 @@ function BioIT() {
             <ChevronLink href={SALES_ADDRESS}>Ask a question</ChevronLink>
           </M.Box>
         </M.Box>
-      </SectionContainer>
-
-      {/* TODO: sticky footer? */}
+      </Section>
     </>
   )
 }
