@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -9,9 +8,11 @@ import MetaTitle from 'utils/MetaTitle'
 import O1 from 'website/components/Backgrounds/Overlay1Full'
 import O2 from 'website/components/Backgrounds/Overlay2'
 import Dots from 'website/components/Backgrounds/Dots'
-import Bar from 'website/components/Bar'
 import Layout from 'website/components/Layout'
-import Slides from 'website/components/Slides'
+import Lede from 'website/components/Lede'
+import Quotes from 'website/components/Quotes'
+import Section from 'website/components/Section'
+import SlideBlock from 'website/components/SlideBlock'
 
 import slide1 from 'website/components/Screenshots/chloropleth.png'
 import slide2 from 'website/components/Screenshots/overview.png'
@@ -23,10 +24,10 @@ export default function LandingExample() {
       <Dots />
       <O1 />
       <O2 />
-      <Title
-        center
-        primary="Quilt is a Data Hub for Biotech"
-        secondary={
+      <Lede
+        variant="center"
+        heading="Quilt is a Data Hub for Biotech"
+        detail={
           <>
             You can use Quilt to transform scattered, unlabeled data into reproducible,
             discoverable, and trusted datasets in the cloud. With Quilt, your company will
@@ -34,95 +35,63 @@ export default function LandingExample() {
           </>
         }
       />
-      <SlideBlock slides={[slide1, slide2]} />
-      <SlideBlock slides={[slide1]} alt />
-      {/* TODO: hero section w/ CTAs */}
-      {/* TODO: detail text (?centered, alt bg), CTAs */}
-      {/* TODO: tabs */}
-      {/* TODO: quotes (single?, w/ and w/o avatats?) */}
-      {/* TODO: title + CTAs */}
-      {/* TODO: sticky footer? */}
-    </Layout>
-  )
-}
-
-export function SectionContainer(props: M.ContainerProps) {
-  return (
-    <M.Container maxWidth="lg" style={{ position: 'relative', zIndex: 1 }} {...props} />
-  )
-}
-
-interface TitleProps {
-  primary: React.ReactNode
-  secondary?: React.ReactNode
-  center?: true
-  children?: React.ReactNode
-}
-
-export function Title({ primary, secondary, center, children }: TitleProps) {
-  const align = center && 'center'
-  return (
-    <M.Container maxWidth="lg" style={{ position: 'relative', zIndex: 1 }}>
-      <M.Box
-        display="flex"
-        flexDirection="column"
-        alignItems={{ sm: align }}
-        pt={8}
-        pb={5}
-      >
-        <Bar color="primary" />
-        <M.Box pt={5} textAlign={{ sm: align }}>
-          <M.Typography variant="h1" color="textPrimary">
-            {primary}
+      <Section>
+        <SlideBlock slides={[slide1, slide2]} />
+      </Section>
+      <Section>
+        <Quotes
+          quotes={[
+            {
+              name: 'Jackson Brown',
+              title: 'Research Engineer, Allen Institute for Cell Science',
+              contents: (
+                <p>
+                  Quilt helps us maximize the dissemination of our data to the scientific
+                  community by simplifying downloads, allowing data versioning, and
+                  seamless integration with Jupyter Notebooks.
+                </p>
+              ),
+            },
+            {
+              name: 'Eli Knaap',
+              title: 'Center for Geospatial Sciences',
+              contents: (
+                <p>
+                  Quilt has been an incredibly useful addition to our stack. It lets us
+                  focus on developing novel spatial analytics while providing a wealth of
+                  data for our users to apply them on. It also lets us distribute bespoke
+                  data products along with our code, which is a game-changer, particularly
+                  for academic and research software.
+                </p>
+              ),
+            },
+          ]}
+        />
+      </Section>
+      <Section bg="fancy">
+        <SlideBlock slides={[slide1]} />
+      </Section>
+      <Section>
+        <M.Box maxWidth="50rem" pt={10} pb={10}>
+          <M.Typography variant="h6" color="textPrimary">
+            Quilt is a Data Hub for Biotech
+          </M.Typography>
+          <M.Box pt={2} />
+          <M.Typography variant="body2" color="textSecondary">
+            You can use Quilt to transform scattered, unlabeled data into reproducible,
+            discoverable, and trusted datasets in the cloud. With Quilt, your company will
+            discover drugs, targets, and models faster.
+          </M.Typography>
+          <M.Box pt={2} />
+          <M.Typography variant="body2" color="textSecondary">
+            Your team is rapidly accumulating data from instruments, CROs, scientists, and
+            executives. But naively storing data adds cost without benefit. Data without
+            context (labels, documentation, links, and charts) quickly becomes
+            meaningless. Decision quality suffers, experiments are needlessly repeated,
+            and teams waste months doing "data archaeology" on past results.
           </M.Typography>
         </M.Box>
-        {!!secondary && (
-          <M.Box pt={3} pb={3} textAlign={{ sm: align }} maxWidth="35rem">
-            <M.Typography variant="body1" color="textSecondary">
-              {secondary}
-            </M.Typography>
-          </M.Box>
-        )}
-        {children}
-      </M.Box>
-    </M.Container>
-  )
-}
-
-const useSlidesStyles = M.makeStyles((t) => ({
-  root: {},
-  alt: {
-    // TODO: alt bg
-    background: '#319',
-  },
-  slidesContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    paddingBottom: t.spacing(10),
-    paddingTop: t.spacing(10),
-  },
-  slides: {
-    maxWidth: '50rem',
-  },
-}))
-
-interface SlideBlockProps {
-  alt?: true
-}
-
-export function SlideBlock({
-  slides,
-  disableCaptions,
-  alt,
-}: SlideBlockProps & Parameters<typeof Slides>[0]) {
-  const classes = useSlidesStyles()
-  return (
-    <div className={cx(classes.root, alt && classes.alt)}>
-      <M.Container maxWidth="lg" style={{ position: 'relative', zIndex: 1 }}>
-        <div className={classes.slidesContainer}>
-          <Slides {...{ slides, disableCaptions }} className={classes.slides} />
-        </div>
-      </M.Container>
-    </div>
+      </Section>
+    </Layout>
   )
 }
