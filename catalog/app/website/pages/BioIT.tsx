@@ -26,7 +26,7 @@ function BioIT() {
       <M.Box pt={10} />
       <Lede
         variant="flying"
-        heading={<>Is your data depreciating?</>}
+        heading={<>Your data is a depreciating asset</>}
         detail={
           <>
             Your team is rapidly accumulating data from instruments, CROs, scientists, and
@@ -53,7 +53,7 @@ function BioIT() {
       <M.Box pt={20} />
       <Lede
         variant="center"
-        heading="Data hubs grow the value of your data"
+        heading="Data hubs make data appreciate in value"
         detail={
           <>
             Data hubs integrate data sources so that everyone is on the same page with the
