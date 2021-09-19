@@ -13,6 +13,8 @@ import Tabs from 'website/components/Tabs'
 import Videos from 'website/components/Videos'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
+const DECK_URL =
+  'https://quilt-web-public.s3.amazonaws.com/deck/Quilt%E2%80%94the+data+hub+for+biotech.pdf'
 
 function BioIT() {
   const talk = useTalkToUs({ src: 'bioit' })
@@ -24,13 +26,7 @@ function BioIT() {
       <M.Box pt={10} />
       <Lede
         variant="flying"
-        heading={
-          <>
-            Your data is depreciating
-            <br />
-            because it lacks context
-          </>
-        }
+        heading={<>Is your data depreciating?</>}
         detail={
           <>
             Your team is rapidly accumulating data from instruments, CROs, scientists, and
@@ -45,17 +41,28 @@ function BioIT() {
             Schedule a demo
           </M.Button>
         }
-        link={<ChevronLink href={SALES_ADDRESS}>Ask a question</ChevronLink>}
+        link={
+          <div>
+            <ChevronLink href={SALES_ADDRESS}>Email us</ChevronLink>
+            <br />
+            <br />
+            <ChevronLink href={DECK_URL}>Get the deck (PDF)</ChevronLink>
+          </div>
+        }
       />
       <M.Box pt={20} />
       <Lede
         variant="center"
-        heading="Data hubs illuminate your data with context"
+        heading="Data hubs grow the value of your data"
         detail={
           <>
             Data hubs integrate data sources so that everyone is on the same page with the
             latest and most accurate data. Teams with data hubs make informed decisions
-            faster—and get drugs, targets, and therapies to market faster.
+            faster—and get drugs, targets, and therapies to market on time.
+            <br />
+            <br />
+            Data hubs do what data lakes, databases, data catalogs, data warehouses, and
+            notebooks cannot: link to large data in any format.
           </>
         }
       />
@@ -73,8 +80,8 @@ function BioIT() {
                 </>,
                 <>Make informed decisions faster from a single source of truth</>,
                 <>
-                  Spend less time and money on custom infrastructure (Quilt gives a 6-9
-                  month head start on your scientific data infrastructure)
+                  Spend less time and money on custom infrastructure (Quilt gives you a
+                  six to nine month head start)
                 </>,
                 <>
                   Ensure that every dataset is reproducible (via versioning) and
@@ -128,7 +135,10 @@ function BioIT() {
             </M.Button>
           </M.Box>
           <M.Box mt={3}>
-            <ChevronLink href={SALES_ADDRESS}>Ask a question</ChevronLink>
+            <ChevronLink href={SALES_ADDRESS}>Email us</ChevronLink>
+          </M.Box>
+          <M.Box mt={3}>
+            <ChevronLink href={DECK_URL}>Get the deck (PDF)</ChevronLink>
           </M.Box>
         </M.Box>
       </Section>
