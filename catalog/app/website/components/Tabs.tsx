@@ -25,6 +25,8 @@ const useStyles = M.makeStyles((t) => ({
     border: 'none',
     color: t.palette.text.primary,
     cursor: 'pointer',
+    marginLeft: t.spacing(2),
+    marginRight: t.spacing(2),
     marginTop: t.spacing(3),
     outline: 'none',
     paddingBottom: t.spacing(1),
@@ -85,7 +87,10 @@ const useStyles = M.makeStyles((t) => ({
       paddingBottom: t.spacing(6),
       paddingLeft: t.spacing(7),
       paddingRight: t.spacing(7),
-      paddingTop: 0,
+      paddingTop: t.spacing(6),
+      '$img + &': {
+        paddingTop: 0,
+      },
     },
     [t.breakpoints.down('xs')]: {
       paddingBottom: t.spacing(4),

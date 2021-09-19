@@ -20,8 +20,7 @@ function BioIT() {
   const talk = useTalkToUs({ src: 'bioit' })
   return (
     <>
-      {/* TODO: title? */}
-      <MetaTitle>Quilt @ Bio-IT World</MetaTitle>
+      <MetaTitle />
       <Dots />
       <M.Box pt={10} />
       <Lede
@@ -42,15 +41,14 @@ function BioIT() {
           </M.Button>
         }
         link={
-          <div>
+          <>
             <ChevronLink href={SALES_ADDRESS}>Email us</ChevronLink>
-            <br />
-            <br />
+            <M.Box pt={2} />
             <ChevronLink href={DECK_URL}>Get the deck (PDF)</ChevronLink>
-          </div>
+          </>
         }
       />
-      <M.Box pt={20} />
+      <M.Box pt={{ xs: 3, md: 25 }} />
       <Lede
         variant="center"
         heading="Data hubs make data appreciate in value"
@@ -125,21 +123,18 @@ function BioIT() {
         />
       </Section>
 
+      <M.Box pt={2} />
       <Videos bare />
 
       <Section>
-        <M.Box display="flex" flexDirection="column" alignItems="center" pb={15} pt={5}>
-          <M.Box mt={2}>
-            <M.Button variant="contained" color="primary" onClick={talk}>
-              Schedule a demo
-            </M.Button>
-          </M.Box>
-          <M.Box mt={3}>
-            <ChevronLink href={SALES_ADDRESS}>Email us</ChevronLink>
-          </M.Box>
-          <M.Box mt={3}>
-            <ChevronLink href={DECK_URL}>Get the deck (PDF)</ChevronLink>
-          </M.Box>
+        <M.Box display="flex" flexDirection="column" alignItems="center" pb={15} pt={7}>
+          <M.Button variant="contained" color="primary" onClick={talk}>
+            Schedule a demo
+          </M.Button>
+          <M.Box pt={3} />
+          <ChevronLink href={SALES_ADDRESS}>Email us</ChevronLink>
+          <M.Box pt={2} />
+          <ChevronLink href={DECK_URL}>Get the deck (PDF)</ChevronLink>
         </M.Box>
       </Section>
     </>

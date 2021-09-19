@@ -21,14 +21,11 @@ const useStyles = M.makeStyles((t) => ({
   flying: {
     position: 'absolute',
     [t.breakpoints.down('sm')]: {
-      marginBottom: t.spacing(1),
-      marginTop: t.spacing(4),
-      maxWidth: 862,
-      order: -1,
-      width: '100%',
+      display: 'none',
     },
     [t.breakpoints.up('md')]: {
       right: 'calc(34vw - 535px)',
+      top: 32,
       width: 862,
     },
     [t.breakpoints.up('lg')]: {
