@@ -18,7 +18,7 @@ const SLIDE_COUNT_FACTOR = 1000000
 const videos = [
   {
     title: 'Overview',
-    src: 'https://www.youtube.com/embed/wDgPvwUD84I?list=PLmXfD6KoA_vBtgGgt0X4ui4cRlEkdJKp9',
+    src: 'https://www.youtube.com/embed/videoseries?list=PLmXfD6KoA_vArp85tMod7apo2UTeC3khq',
   },
 ]
 
@@ -35,11 +35,7 @@ const useStyles = M.makeStyles((t) => ({
     paddingTop: t.spacing(12),
     position: 'relative',
     zIndex: 1,
-    '&$bare': {
-      paddingTop: t.spacing(5),
-    },
   },
-  bare: {},
   adornment: {
     alignItems: 'center',
     display: 'flex',
@@ -104,7 +100,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Videos({ bare = false }) {
+export default function Videos() {
   const classes = useStyles()
   const [index, setIndex] = React.useState(0)
   const onChangeIndex = React.useCallback((i) => setIndex(i), [])
@@ -128,26 +124,22 @@ export default function Videos({ bare = false }) {
   )
 
   return (
-    <M.Container maxWidth="lg" className={cx(classes.root, bare && classes.bare)}>
-      {!bare && (
-        <>
-          <M.Typography
-            variant="h1"
-            color="textPrimary"
-            align="center"
-            id="demo-video"
-            ref={scrollIntoView()}
-          >
-            Drive every decision with data
-          </M.Typography>
-          <M.Box mt={3} mb={5} maxWidth={720}>
-            <M.Typography variant="body1" color="textSecondary" align="center">
-              Bring your team together around a data portal that is accessible to
-              everyone&mdash;from business users, to analysts, to developers.
-            </M.Typography>
-          </M.Box>
-        </>
-      )}
+    <M.Container maxWidth="lg" className={classes.root}>
+      <M.Typography
+        variant="h1"
+        color="textPrimary"
+        align="center"
+        id="demo-video"
+        ref={scrollIntoView()}
+      >
+        Drive every decision with data
+      </M.Typography>
+      <M.Box mt={3} mb={5} maxWidth={720}>
+        <M.Typography variant="body1" color="textSecondary" align="center">
+          Bring your team together around a data portal that is accessible to
+          everyone&mdash;from business users, to analysts, to developers.
+        </M.Typography>
+      </M.Box>
       <div className={classes.adornment}>
         <div className={classes.overflow}>
           <Swipeable

@@ -10,11 +10,36 @@ import Layout from 'website/components/Layout'
 import Lede from 'website/components/Lede'
 import Section from 'website/components/Section'
 import Tabs from 'website/components/Tabs'
-import Videos from 'website/components/Videos'
 
 const SALES_ADDRESS = 'mailto:sales@quiltdata.io'
 const DECK_URL =
   'https://quilt-web-public.s3.amazonaws.com/deck/Quilt%E2%80%94the+data+hub+for+biotech.pdf'
+
+function Video() {
+  return (
+    <M.Box alignItems="center" display="flex" flexDirection="column" pb={8} pt={8}>
+      <M.Box
+        position="relative"
+        maxWidth={900}
+        width="100%"
+        bgcolor="common.black"
+        pb="56.25%"
+      >
+        <iframe
+          frameBorder="0"
+          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          style={{
+            position: 'absolute',
+            height: '100%',
+            width: '100%',
+          }}
+          src="https://www.youtube.com/embed/wDgPvwUD84I?list=PLmXfD6KoA_vBtgGgt0X4ui4cRlEkdJKp9"
+        />
+      </M.Box>
+    </M.Box>
+  )
+}
 
 function BioIT() {
   const talk = useTalkToUs({ src: 'bioit' })
@@ -124,7 +149,9 @@ function BioIT() {
       </Section>
 
       <M.Box pt={2} />
-      <Videos bare />
+      <Section bg="fancy">
+        <Video />
+      </Section>
 
       <Section>
         <M.Box display="flex" flexDirection="column" alignItems="center" pb={15} pt={7}>
