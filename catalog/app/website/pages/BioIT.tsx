@@ -25,7 +25,7 @@ function BioIT() {
       <M.Box pt={10} />
       <Lede
         variant="flying"
-        heading={<>Is your depreciating over time?</>}
+        heading={<>Get bench science and data science on the same page</>}
         detail={
           <>
             Your team is rapidly accumulating data from instruments, CROs, scientists, and
