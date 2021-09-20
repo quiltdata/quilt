@@ -25,7 +25,7 @@ function BioIT() {
       <M.Box pt={10} />
       <Lede
         variant="flying"
-        heading={<>Your data is a depreciating asset</>}
+        heading={<>Is your depreciating with time?</>}
         detail={
           <>
             Your team is rapidly accumulating data from instruments, CROs, scientists, and
