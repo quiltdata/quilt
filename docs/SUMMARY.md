@@ -30,6 +30,7 @@
 * [Search & query](Catalog/SearchQuery.md)
 * [Metadata for teams](Catalog/Metadata.md)
 * [Admin UI](Catalog/Admin.md)
+* [Embed](Catalog/Embed.md)
 
 ### Advanced Usage
 

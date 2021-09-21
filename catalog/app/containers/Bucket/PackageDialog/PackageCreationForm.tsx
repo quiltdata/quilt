@@ -230,7 +230,8 @@ export function PackageCreationForm({
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
       // TODO: handle specific cases?
-      return { [FF.FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
+      const errorMessage = e instanceof Error ? e.message : null
+      return { [FF.FORM_ERROR]: errorMessage || PD.ERROR_MESSAGES.MANIFEST }
     }
   }
 
@@ -279,11 +280,19 @@ export function PackageCreationForm({
     }
   }, [editorElement, resizeObserver])
 
+  const nonEmpty = (value: FI.FilesState) => {
+    const filesToAdd = Object.assign({}, value.existing, value.added)
+    return (
+      validators.nonEmpty(filesToAdd) ||
+      validators.nonEmpty(R.omit(Object.keys(value.deleted), filesToAdd))
+    )
+  }
+
   const validateFiles = React.useMemo(
     () =>
       delayHashing
-        ? validators.nonEmpty
-        : validators.composeAsync(validators.nonEmpty, FI.validateHashingComplete),
+        ? nonEmpty
+        : validators.composeAsync(nonEmpty, FI.validateHashingComplete),
     [delayHashing],
   )
 
@@ -566,7 +575,7 @@ export function usePackageCreationDialog({
           Loading: () => (
             <DialogLoading
               skeletonElement={<FormSkeleton />}
-              title={ui.title || 'Create package'}
+              title="Fetching package manifest. One moment…"
               submitText={ui.submit}
               onCancel={close}
             />

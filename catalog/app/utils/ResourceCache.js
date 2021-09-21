@@ -39,11 +39,12 @@ const RELEASE_TIME = 5000
 // }
 // State = Map<string, Map<I, Entry<O>>>
 
-export const createResource = ({ name, fetch, key = R.identity }) => ({
+export const createResource = ({ name, fetch, key = R.identity, persist = false }) => ({
   name,
   fetch,
   id: uuid.v4(),
   key,
+  persist,
 })
 
 const Action = tagged([
@@ -66,7 +67,11 @@ const reducer = reduxTools.withInitialState(
       (s) =>
         s.updateIn(keyFor(resource, input), (entry) => {
           if (entry) throw new Error('Init: entry already exists')
-          return { promise, result: AsyncResult.Init(), claimed: 0 }
+          return {
+            promise,
+            result: AsyncResult.Init(),
+            claimed: resource.persist ? 1 : 0, // "persistent" resources won't be released
+          }
         }),
     Request:
       ({ resource, input }) =>

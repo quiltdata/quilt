@@ -79,19 +79,12 @@ export function DownloadButton({ className, handle }) {
   ))
 }
 
-const viewModeToSelectOption = ({ key, label }) => ({
-  key,
-  toString: () => label,
-  valueOf: () => key,
-})
-
-export function ViewWithVoilaButtonLayout({ modesList, mode, ...props }) {
+export function ViewModeSelector({ className, ...props }) {
+  const classes = useDownloadButtonStyles()
   const t = M.useTheme()
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
-  const options = React.useMemo(() => modesList.map(viewModeToSelectOption), [modesList])
-  const value = React.useMemo(() => viewModeToSelectOption(mode), [mode])
   return (
-    <SelectDropdown options={options} value={value} {...props}>
+    <SelectDropdown className={cx(classes.root, className)} {...props}>
       {sm ? <M.Icon>visibility</M.Icon> : 'View as:'}
     </SelectDropdown>
   )

@@ -12,7 +12,6 @@ import Error from 'components/Error'
 import Layout from 'components/Layout'
 import Working from 'components/Working'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import * as RT from 'utils/reactTools'
 import { selectLocation } from 'utils/router'
 
 import { check } from './actions'
@@ -72,30 +71,28 @@ export default ({ authorizedSelector = R.T } = {}) => {
     waiting: selectors.waiting,
     location: selectLocation,
   })
-  return memoize(
-    RT.composeHOC('Auth.Wrapper', (Component) => (props) => {
-      const state = redux.useSelector(select)
-      const { urls } = NamedRoutes.use()
+  return memoize((Component) => (props) => {
+    const state = redux.useSelector(select)
+    const { urls } = NamedRoutes.use()
 
-      if (state.error && !(state.error instanceof InvalidToken)) {
-        return <ErrorScreen />
-      }
+    if (state.error && !(state.error instanceof InvalidToken)) {
+      return <ErrorScreen />
+    }
 
-      // TODO: use suspense
-      if (state.waiting) {
-        return <Working>Authenticating…</Working>
-      }
+    // TODO: use suspense
+    if (state.waiting) {
+      return <Working>Authenticating…</Working>
+    }
 
-      if (!state.authenticated) {
-        const l = state.location
-        return <Redirect to={urls.signIn(l.pathname + l.search)} />
-      }
+    if (!state.authenticated) {
+      const l = state.location
+      return <Redirect to={urls.signIn(l.pathname + l.search)} />
+    }
 
-      if (!state.authorized) {
-        return <NotAuthorized />
-      }
+    if (!state.authorized) {
+      return <NotAuthorized />
+    }
 
-      return <Component {...props} />
-    }),
-  )
+    return <Component {...props} />
+  })
 }

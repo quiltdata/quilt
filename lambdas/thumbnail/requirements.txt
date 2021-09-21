@@ -10,8 +10,8 @@ pdf2image==1.13.1
 Pillow==6.2.2
 psutil==5.7.0
 pyrsistent==0.14.11
-requests==2.24.0
+requests==2.26.0
 scipy==1.7.1
 tifffile==0.15.1
 six==1.12.0
-urllib3==1.25.10
+urllib3==1.26.5

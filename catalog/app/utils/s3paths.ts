@@ -19,6 +19,19 @@ import { mkSearch } from 'utils/NamedRoutes'
  * @property {string} etag
  */
 
+interface S3HandleBase {
+  bucket: string
+  key: string
+  version?: string
+}
+
+interface S3Handle extends S3HandleBase {
+  region: string
+  modified: Date
+  size: Number
+  etag: string
+}
+
 /**
  * Ensure the string has no trailing slash.
  *
@@ -26,7 +39,7 @@ import { mkSearch } from 'utils/NamedRoutes'
  *
  * @returns {string}
  */
-export const ensureNoSlash = (str) => str.replace(/\/$/, '')
+export const ensureNoSlash = (str: string) => str.replace(/\/$/, '')
 
 /**
  * Ensure the string has a trailing slash.
@@ -35,7 +48,7 @@ export const ensureNoSlash = (str) => str.replace(/\/$/, '')
  *
  * @returns {string}
  */
-export const ensureSlash = (str) => `${ensureNoSlash(str)}/`
+export const ensureSlash = (str: string) => `${ensureNoSlash(str)}/`
 
 /**
  * Go up a level.
@@ -44,7 +57,7 @@ export const ensureSlash = (str) => `${ensureNoSlash(str)}/`
  *
  * @returns {string}
  */
-export const up = (prefix) => {
+export const up = (prefix: string) => {
   // handle double slashes
   if (prefix.endsWith('//')) return prefix.substring(0, prefix.length - 1)
   const m = prefix.match(/^(.*\/\/)[^/]+$/)
@@ -60,7 +73,7 @@ export const up = (prefix) => {
  *
  * @returns {bool}
  */
-export const isDir = (path) => path === '' || path.endsWith('/')
+export const isDir = (path: string) => path === '' || path.endsWith('/')
 
 /**
  * Get the "prefix" part of a path.
@@ -69,7 +82,7 @@ export const isDir = (path) => path === '' || path.endsWith('/')
  *
  * @returns {string}
  */
-export const getPrefix = (path) => {
+export const getPrefix = (path: string) => {
   if (!path) return ''
   if (isDir(path)) return path
   const name = dirname(path)
@@ -83,7 +96,7 @@ export const getPrefix = (path) => {
  *
  * @returns {string}
  */
-export const getBasename = (path) => {
+export const getBasename = (path: string) => {
   if (!path) return ''
   return isDir(path) ? '' : basename(path)
 }
@@ -103,7 +116,7 @@ export const getBasename = (path) => {
  *
  * @returns {{ prefix: string, basename: string }}
  */
-export const splitPath = (path) => ({
+export const splitPath = (path: string) => ({
   prefix: getPrefix(path),
   basename: getBasename(path),
 })
@@ -116,7 +129,7 @@ export const splitPath = (path) => ({
  *
  * @returns {string}
  */
-export const withoutPrefix = (prefix, path) =>
+export const withoutPrefix = (prefix: string, path: string) =>
   path.startsWith(prefix) ? path.replace(prefix, '') : path
 
 /**
@@ -126,7 +139,7 @@ export const withoutPrefix = (prefix, path) =>
  *
  * @returns {bool}
  */
-export const isS3Url = (url) => url.startsWith('s3://')
+export const isS3Url = (url: string) => url.startsWith('s3://')
 
 /**
  * Parse an S3 URL and create an S3Handle out of it.
@@ -135,7 +148,7 @@ export const isS3Url = (url) => url.startsWith('s3://')
  *
  * @returns {S3Handle}
  */
-export const parseS3Url = (url) => {
+export const parseS3Url = (url: string) => {
   const u = parseUrl(url, true)
   return {
     bucket: u.hostname,
@@ -152,7 +165,8 @@ export const parseS3Url = (url) => {
  *
  * @returns {string}
  */
-export const resolveKey = (from, to) => resolve(`/${getPrefix(from)}`, to).substring(1)
+export const resolveKey = (from: string, to: string) =>
+  resolve(`/${getPrefix(from)}`, to).substring(1)
 
 /**
  * Create an S3Handle for a URL relative to the given S3Handle.
@@ -162,7 +176,7 @@ export const resolveKey = (from, to) => resolve(`/${getPrefix(from)}`, to).subst
  *
  * @returns {S3Handle}
  */
-export const handleFromUrl = (url, referrer) => {
+export const handleFromUrl = (url: string, referrer: S3Handle) => {
   // absolute URL (e.g. `s3://${bucket}/${key}`)
   if (isS3Url(url)) return parseS3Url(url)
   if (!referrer) {
@@ -176,10 +190,10 @@ export const handleFromUrl = (url, referrer) => {
 // "buckets created in Regions launched after March 20, 2019 are not reachable via the
 // `https://bucket.s3.amazonaws.com naming scheme`", so probably we need to support
 // `https://bucket.s3.aws-region.amazonaws.com` scheme as well.
-export const handleToHttpsUri = ({ bucket, key, version }) =>
+export const handleToHttpsUri = ({ bucket, key, version }: S3HandleBase) =>
   `https://${bucket}.s3.amazonaws.com/${encode(key)}${mkSearch({ versionId: version })}`
 
-export const handleToS3Url = ({ bucket, key, version = undefined }) =>
+export const handleToS3Url = ({ bucket, key, version = undefined }: S3HandleBase) =>
   `s3://${bucket}/${encode(key)}${mkSearch({ versionId: version })}`
 
 /**
@@ -189,7 +203,7 @@ export const handleToS3Url = ({ bucket, key, version = undefined }) =>
  *
  * @returns {[{ label: string, path: string }]}
  */
-export const getBreadCrumbs = (path) =>
+export const getBreadCrumbs = (path: string): { label: string; path: string }[] =>
   path
     ? [
         ...getBreadCrumbs(up(path)),

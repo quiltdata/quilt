@@ -1086,6 +1086,8 @@ function DirUpload({
 
   const onDrop = React.useCallback(
     (files: FileWithPath[]) => {
+      // TODO: fix File ⟷ DOMFile ⟷ FileWithHash ⟷ FileWithPath interplay
+      // @ts-expect-error
       dispatch(FilesAction.Add({ prefix: path, files: files.map(computeHash) }))
     },
     [dispatch, path],
