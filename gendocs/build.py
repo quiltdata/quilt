@@ -81,7 +81,7 @@ if __name__ == "__main__":
     pydocmd_main()
 
     # report where stuff is
-    with open('pydocmd.yml') as f:
+    with open('pydocmd.yml', encoding='utf-8') as f:
         pydocmd_config = yaml.safe_load(f)
     print("Generated HTML in {!r}".format(pydocmd_config.get('site_dir')))
     print("Generated markdown in {!r}".format(pydocmd_config.get('gens_dir')))

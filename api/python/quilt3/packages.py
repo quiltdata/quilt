@@ -103,7 +103,7 @@ class ObjectPathCache:
     def get(cls, url):
         cache_path = cls._cache_path(url)
         try:
-            with open(cache_path) as fd:
+            with open(cache_path, encoding='utf-8') as fd:
                 path, dev, ino, mtime = json.load(fd)
         except (FileNotFoundError, ValueError):
             return None
@@ -125,7 +125,7 @@ class ObjectPathCache:
         stat = pathlib.Path(path).stat()
         cache_path = cls._cache_path(url)
         cache_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(cache_path, 'w') as fd:
+        with open(cache_path, 'w', encoding='utf-8') as fd:
             json.dump([path, stat.st_dev, stat.st_ino, stat.st_mtime_ns], fd)
 
     @classmethod
@@ -183,7 +183,7 @@ class PackageEntry:
 
     @property
     def meta(self):
-        return self._meta.get('user_meta', dict())
+        return self._meta.get('user_meta', {})
 
     def set_meta(self, meta):
         """
@@ -456,7 +456,7 @@ class Package:
 
     @property
     def meta(self):
-        return self._meta.get('user_meta', dict())
+        return self._meta.get('user_meta', {})
 
     @classmethod
     @ApiTelemetry("package.install")

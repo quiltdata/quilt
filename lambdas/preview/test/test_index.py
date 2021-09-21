@@ -184,7 +184,7 @@ class TestIndex():
         assert body_html.count('<p>') == body_html.count('</p>'), 'malformed HTML'
         assert not re.match(r'\d+ rows × \d+ columns', body_html), \
             'table dimensions should be removed'
-        with open(BASE_DIR / 'csv_html_response_head.txt') as expected:
+        with open(BASE_DIR / 'csv_html_response_head.txt', encoding='utf-8') as expected:
             head = expected.read()
             assert head in body_html, 'unexpected first columns'
 
@@ -383,7 +383,7 @@ class TestIndex():
             'Expected Nick to be an Avenger'
         assert not re.match(r'\d+ rows × \d+ columns', body_html), \
             'table dimensions should be removed'
-        with open(BASE_DIR / 'tsv_html_response_head.txt') as expected:
+        with open(BASE_DIR / 'tsv_html_response_head.txt', encoding='utf-8') as expected:
             head = expected.read()
             assert head in body_html, 'unexpected first columns'
 
@@ -434,7 +434,7 @@ class TestIndex():
             'Missing a cell on the Taiwan Strait'
         assert not re.match(r'\d+ rows × \d+ columns', body_html), \
             'table dimensions should be removed'
-        with open(BASE_DIR / 'tsv_mixed_types_html_response_head.txt') as expected:
+        with open(BASE_DIR / 'tsv_mixed_types_html_response_head.txt', encoding='utf-8') as expected:
             head = expected.read()
             assert head in body_html, 'unexpected first columns'
 
