@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
     # report where stuff is
     # pylint: disable=unspecified-encoding
-    with open('pydocmd.yml') as f:
+    with open('pydocmd.yml', encoding='utf-8') as f:
         pydocmd_config = yaml.safe_load(f)
     print("Generated HTML in {!r}".format(pydocmd_config.get('site_dir')))
     print("Generated markdown in {!r}".format(pydocmd_config.get('gens_dir')))
