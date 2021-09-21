@@ -170,14 +170,14 @@ def clear_session():
 def open_url(url):
     try:
         if sys.platform == 'win32':
-            os.startfile(url)   # pylint: disable=E1101
+            os.startfile(url)   # pylint:disable=E1101
         elif sys.platform == 'darwin':
             with open(os.devnull, 'rb+') as null:
                 subprocess.check_call(['open', url], stdin=null, stdout=null, stderr=null)
         else:
             with open(os.devnull, 'rb+') as null:
                 subprocess.check_call(['xdg-open', url], stdin=null, stdout=null, stderr=null)
-    except Exception as ex:     # pylint: disable=W0703
+    except Exception as ex:     # pylint:disable=W0703
         print("Failed to launch the browser: %s" % ex)
 
 
