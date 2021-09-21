@@ -294,7 +294,7 @@ class PackageTest(QuiltTestCase):
             pkg = Package.load(fd)
 
         out_path = 'new_manifest.jsonl'
-        with open(out_path, 'w') as fd:
+        with open(out_path, 'w', encoding='utf-8') as fd:
             pkg.dump(fd)
 
         # Insepct the jsonl to verify everything is maintained, i.e.
@@ -1798,6 +1798,7 @@ class PackageTest(QuiltTestCase):
         for mode in 'bt':
             with self.subTest(mode=mode):
                 fn = f'test-manifest-{mode}.jsonl'
+                # pylint: disable=unspecified-encoding
                 with open(fn, f'w{mode}', **({'encoding': 'utf-8'} if mode == 't' else {})) as f:
                     pkg.dump(f)
                 with open(fn, encoding='utf-8') as f:
