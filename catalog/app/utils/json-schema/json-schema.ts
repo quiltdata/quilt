@@ -1,23 +1,11 @@
-import Ajv from 'ajv'
+import Ajv, { SchemaObject, ErrorObject } from 'ajv'
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 
 type CompoundCondition = 'anyOf' | 'oneOf' | 'not' | 'allOf'
 
-export type JsonSchema = Partial<
-  {
-    $ref: string
-    const: string
-    dateformat: string
-    default: any
-    description: string
-    enum: $TSFixMe[]
-    format: string
-    items: JsonSchema
-    properties: Record<string, JsonSchema>
-    type: string | string[] | JsonSchema[]
-  } & Record<CompoundCondition, JsonSchema[]>
->
+// TODO: use more detailed `Ajv.JSONSchemaType` instead
+export type JsonSchema = SchemaObject
 
 export const isSchemaArray = (optSchema?: JsonSchema) => optSchema?.type === 'array'
 
@@ -62,7 +50,7 @@ function compoundTypeToHumanString(
   if (!isSchemaCompound(optSchema)) return ''
 
   return optSchema[condition]!.map(schemaTypeToHumanString)
-    .filter((v) => v !== 'undefined') // NOTE: sic, see default case of `schemaTypeToHumanString`
+    .filter((v: string) => v !== 'undefined') // NOTE: sic, see default case of `schemaTypeToHumanString`
     .join(divider)
 }
 
@@ -100,7 +88,7 @@ function doesTypeMatchCompoundSchema(
 
   if (!isSchemaCompound(optSchema)) return false
 
-  return optSchema[condition]!.filter(R.has('type')).some((subSchema) =>
+  return optSchema[condition]!.filter(R.has('type')).some((subSchema: JsonSchema) =>
     doesTypeMatchSchema(value, subSchema),
   )
 }
@@ -137,12 +125,12 @@ export const EMPTY_SCHEMA = {}
 export function makeSchemaValidator(optSchema?: JsonSchema) {
   const schema = optSchema || EMPTY_SCHEMA
 
-  const ajv = new Ajv({ useDefaults: true, schemaId: 'auto' })
+  const ajv = new Ajv({ useDefaults: true, schemaId: '$id' })
 
   try {
     const validate = ajv.compile(schema)
 
-    return (obj: any): Ajv.ErrorObject[] => {
+    return (obj: any): ErrorObject[] => {
       validate(R.clone(obj))
       // TODO: add custom errors
       return validate.errors || []
