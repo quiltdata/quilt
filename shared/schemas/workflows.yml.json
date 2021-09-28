@@ -41,6 +41,72 @@
             "description": "The workflow description displayed by Quilt in the Python API or web UI.",
             "type": "string",
             "minLength": 1
+          },
+          "metadata_schema": {
+            "type": "string",
+            "description": "JSON Schema $id."
+          },
+          "is_message_required": {
+            "type": "boolean",
+            "description": "If true, the user must provide a commit message.",
+            "default": false
+          },
+          "object_schema": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "schemas": {
+      "type": "object",
+      "description": "JSON Schemas for validating user-supplied metadata.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL from where the schema will be obtained.",
+            "format": "uri"
+          }
+        }
+      }
+    },
+    "successors": {
+      "type": "object",
+      "description": "Buckets usable as destination with \"Push to Bucket\" in web UI.",
+      "examples": [
+        {
+          "s3://bucket1": {
+            "title": "Bucket 1 Title",
+            "copy_data": true
+          },
+          "s3://bucket2": {
+            "title": "Bucket 2 Title",
+            "copy_data": false
+          },
+          "s3://bucket3": {
+            "title": "Bucket 3 Title (`copy_data` defaults to `true`)"
+          }
+        }
+      ],
+      "minProperties": 1,
+      "propertyNames": {
+        "format": "uri"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "copy_data": {
+            "type": "boolean",
+            "default": true,
+            "description": "If true, all package entries will be copied to the destination bucket. If false, all entries will remain in their current locations."
           }
         }
       }
