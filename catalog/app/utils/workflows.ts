@@ -4,6 +4,7 @@ import { makeSchemaValidator } from 'utils/json-schema'
 import * as s3paths from 'utils/s3paths'
 import yaml from 'utils/yaml'
 import workflowsConfigSchema from 'schemas/workflows.yml.json'
+import workflowsCatalogConfigSchema from 'schemas/workflows-catalog.yml.json'
 import * as bucketErrors from 'containers/Bucket/errors'
 
 interface WorkflowsYaml {
@@ -106,7 +107,9 @@ const parseSuccessor = (url: string, successor: SuccessorYaml): Successor => ({
   url,
 })
 
-const workflowsConfigValidator = makeSchemaValidator(workflowsConfigSchema)
+const workflowsConfigValidator = makeSchemaValidator(workflowsCatalogConfigSchema, [
+  workflowsConfigSchema,
+])
 
 function validateConfig(data: unknown): asserts data is WorkflowsYaml {
   const errors = workflowsConfigValidator(data)

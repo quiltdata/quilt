@@ -1,4 +1,5 @@
-import Ajv, { SchemaObject, ErrorObject } from 'ajv'
+import Ajv, { SchemaObject, ErrorObject, Options } from 'ajv'
+import addFormats from 'ajv-formats'
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 
@@ -120,20 +121,37 @@ export function doesTypeMatchSchema(value: any, optSchema?: JsonSchema): boolean
   ])(optSchema)
 }
 
-export const EMPTY_SCHEMA = {}
+export const EMPTY_SCHEMA: JsonSchema = {}
 
-export function makeSchemaValidator(optSchema?: JsonSchema) {
-  const schema = optSchema || EMPTY_SCHEMA
+export function makeSchemaValidator(optSchema?: JsonSchema, optSchemas?: JsonSchema[]) {
+  let mainSchema = R.clone(optSchema || EMPTY_SCHEMA)
+  if (!mainSchema.$id) {
+    // Make further code more universal by using one format: `id` → `$id`
+    if (mainSchema.id) {
+      mainSchema = R.pipe(R.assoc('$id', mainSchema.id), R.dissoc('id'))(mainSchema)
+    } else {
+      mainSchema = R.assoc('$id', 'main_schema', mainSchema)
+    }
+  }
+  const schemas = optSchemas ? [mainSchema, ...optSchemas] : [mainSchema]
 
-  const ajv = new Ajv({ useDefaults: true, schemaId: '$id' })
+  const { $id } = schemas[0]
+  const options: Options = {
+    allErrors: true,
+    schemaId: '$id',
+    schemas,
+    useDefaults: true,
+  }
+  const ajv = new Ajv(options)
+  addFormats(ajv, ['uri'])
 
   try {
-    const validate = ajv.compile(schema)
+    if (!$id) return () => [new Error('$id is not provided')]
 
     return (obj: any): ErrorObject[] => {
-      validate(R.clone(obj))
+      ajv.validate($id, R.clone(obj))
       // TODO: add custom errors
-      return validate.errors || []
+      return ajv.errors || []
     }
   } catch (e) {
     // TODO: add custom errors
