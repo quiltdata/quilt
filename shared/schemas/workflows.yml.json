@@ -50,9 +50,6 @@
             "type": "boolean",
             "description": "If true, the user must provide a commit message.",
             "default": false
-          },
-          "object_schema": {
-            "type": "string"
           }
         }
       }
