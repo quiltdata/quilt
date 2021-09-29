@@ -123,7 +123,11 @@ export function doesTypeMatchSchema(value: any, optSchema?: JsonSchema): boolean
 
 export const EMPTY_SCHEMA: JsonSchema = {}
 
-export function makeSchemaValidator(optSchema?: JsonSchema, optSchemas?: JsonSchema[]) {
+export function makeSchemaValidator(
+  optSchema?: JsonSchema,
+  optSchemas?: JsonSchema[],
+  ajvOptions?: Options,
+) {
   let mainSchema = R.clone(optSchema || EMPTY_SCHEMA)
   if (!mainSchema.$id) {
     // Make further code more universal by using one format: `id` → `$id`
@@ -141,6 +145,7 @@ export function makeSchemaValidator(optSchema?: JsonSchema, optSchemas?: JsonSch
     schemaId: '$id',
     schemas,
     useDefaults: true,
+    ...ajvOptions,
   }
   const ajv = new Ajv(options)
   addFormats(ajv, ['uri'])

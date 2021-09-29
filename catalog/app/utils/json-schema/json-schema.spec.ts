@@ -236,8 +236,9 @@ describe('utils/json-schema', () => {
     })
 
     describe('validator for Schema with types as array', () => {
-      // TODO: use allowUnionTypes
-      const validate = makeSchemaValidator(compound.schemaTypeArray)
+      const validate = makeSchemaValidator(compound.schemaTypeArray, [], {
+        allowUnionTypes: true,
+      })
 
       it("should return error, when root property doesn't match type", () => {
         const invalidProperty = { strOrNum: [], strOrNumList: [{}, null, true] }
