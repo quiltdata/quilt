@@ -3,11 +3,9 @@ import { basename } from 'path'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
-import * as authSelectors from 'containers/Auth/selectors'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -203,8 +201,20 @@ function DialogForm({
     }
   }, [editorElement, setMetaHeight])
 
-  const username = redux.useSelector(authSelectors.username)
-  const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
+  const [initialPackageName, onWorkflow] = PD.useInitialPackageName(
+    '',
+    selectedWorkflow || workflowsConfig,
+  )
+
+  const onWorkflowChange = React.useCallback(
+    ({ modified, values }) => {
+      setWorkflow(values.workflow)
+
+      if (modified.name) return
+      onWorkflow(values.workflow)
+    },
+    [setWorkflow, onWorkflow],
+  )
 
   return (
     <RF.Form
@@ -241,7 +251,7 @@ function DialogForm({
                 subscription={{ modified: true, values: true }}
                 onChange={({ modified, values }) => {
                   if (modified?.workflow && values.workflow !== selectedWorkflow) {
-                    setWorkflow(values.workflow)
+                    onWorkflowChange(values.workflow)
                   }
                 }}
               />
@@ -266,7 +276,7 @@ function DialogForm({
 
                   <RF.Field
                     component={PD.PackageNameInput}
-                    initialValue={usernamePrefix}
+                    initialValue={initialPackageName}
                     name="name"
                     validate={validators.composeAsync(
                       validators.required,

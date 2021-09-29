@@ -5,12 +5,14 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import type * as RF from 'react-final-form'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import * as Lab from '@material-ui/lab'
 
 import JsonEditor from 'components/JsonEditor'
 import { parseJSON, stringifyJSON } from 'components/JsonEditor/utils'
+import * as authSelectors from 'containers/Auth/selectors'
 import * as Notifications from 'containers/Notifications'
 import { useData } from 'utils/Data'
 import Delay from 'utils/Delay'
@@ -19,6 +21,7 @@ import * as AWS from 'utils/AWS'
 import * as Sentry from 'utils/Sentry'
 import useDragging from 'utils/dragging'
 import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
+import * as packageHandleUtils from 'utils/packageHandle'
 import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
 import * as workflows from 'utils/workflows'
@@ -773,6 +776,33 @@ export function getUsernamePrefix(username?: string | null) {
   // see PACKAGE_NAME_FORMAT at quilt3/util.py
   const validParts = name.match(/\w+/g)
   return validParts ? `${validParts.join('')}/` : ''
+}
+
+const getDefaultPackageName = (
+  workflow: { packageName: packageHandleUtils.NameTemplates },
+  username: string,
+) =>
+  packageHandleUtils.execTemplate(workflow?.packageName, 'packages', {
+    username: getUsernamePrefix(username),
+  })
+
+export function useInitialPackageName(
+  initialName: string,
+  initialWorkflow: { packageName: packageHandleUtils.NameTemplates },
+): [string, (workflow: workflows.Workflow) => void] {
+  const username = redux.useSelector(authSelectors.username)
+  const [name, setName] = React.useState(
+    initialName || getDefaultPackageName(initialWorkflow, username),
+  )
+
+  const onWorkflow = React.useCallback(
+    (workflow: workflows.Workflow) => {
+      setName(getDefaultPackageName(workflow, username))
+    },
+    [setName, username],
+  )
+
+  return [name, onWorkflow]
 }
 
 const usePackageNameWarningStyles = M.makeStyles({
