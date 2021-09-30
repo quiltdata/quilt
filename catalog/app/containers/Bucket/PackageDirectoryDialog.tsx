@@ -201,19 +201,9 @@ function DialogForm({
     }
   }, [editorElement, setMetaHeight])
 
-  const [initialPackageName, onWorkflow] = PD.useInitialPackageName(
-    '',
-    selectedWorkflow || workflowsConfig,
-  )
-
-  const onWorkflowChange = React.useCallback(
-    ({ modified, values }) => {
-      setWorkflow(values.workflow)
-
-      if (modified.name) return
-      onWorkflow(values.workflow)
-    },
-    [setWorkflow, onWorkflow],
+  const getWorkflow = React.useCallback(
+    () => selectedWorkflow || workflowsConfig,
+    [selectedWorkflow, workflowsConfig],
   )
 
   return (
@@ -251,7 +241,7 @@ function DialogForm({
                 subscription={{ modified: true, values: true }}
                 onChange={({ modified, values }) => {
                   if (modified?.workflow && values.workflow !== selectedWorkflow) {
-                    onWorkflowChange(values.workflow)
+                    setWorkflow(values.workflow)
                   }
                 }}
               />
@@ -276,7 +266,8 @@ function DialogForm({
 
                   <RF.Field
                     component={PD.PackageNameInput}
-                    initialValue={initialPackageName}
+                    directory={path}
+                    getWorkflow={getWorkflow}
                     name="name"
                     validate={validators.composeAsync(
                       validators.required,

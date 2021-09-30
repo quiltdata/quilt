@@ -139,21 +139,6 @@ function DialogForm({
     [nameWarning, nameExistence],
   )
 
-  const [initialPackageName, onWorkflow] = PD.useInitialPackageName(
-    initialName || '',
-    selectedWorkflow || workflowsConfig,
-  )
-
-  const handleWorkflowChange = React.useCallback(
-    ({ modified, values }) => {
-      setWorkflow(values.workflow)
-
-      if (modified.name) return
-      onWorkflow(values.workflow)
-    },
-    [setWorkflow, onWorkflow],
-  )
-
   const [editorElement, setEditorElement] = React.useState()
 
   const onFormChange = React.useCallback(
@@ -163,18 +148,17 @@ function DialogForm({
       }
 
       if (modified.workflow && values.workflow !== selectedWorkflow) {
-        handleWorkflowChange({ modified, values })
+        setWorkflow(values.workflow)
       }
 
       handleNameChange(values.name)
     },
-    [
-      editorElement,
-      handleNameChange,
-      setMetaHeight,
-      selectedWorkflow,
-      handleWorkflowChange,
-    ],
+    [editorElement, handleNameChange, selectedWorkflow, setMetaHeight, setWorkflow],
+  )
+
+  const getWorkflow = React.useCallback(
+    () => selectedWorkflow || workflowsConfig,
+    [selectedWorkflow, workflowsConfig],
   )
 
   React.useEffect(() => {
@@ -237,6 +221,7 @@ function DialogForm({
               <RF.Field
                 component={PD.PackageNameInput}
                 name="name"
+                getWorkflow={getWorkflow}
                 validate={validators.composeAsync(
                   validators.required,
                   nameValidator.validate,
@@ -247,7 +232,7 @@ function DialogForm({
                   invalid: 'Invalid package name',
                 }}
                 helperText={nameWarning}
-                initialValue={initialPackageName}
+                initialValue={initialName}
               />
 
               <RF.Field

@@ -1,3 +1,5 @@
+import { basename } from 'path'
+
 import cx from 'classnames'
 import { FORM_ERROR } from 'final-form'
 import mime from 'mime-types'
@@ -22,6 +24,7 @@ import * as Sentry from 'utils/Sentry'
 import useDragging from 'utils/dragging'
 import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
 import * as packageHandleUtils from 'utils/packageHandle'
+import * as s3paths from 'utils/s3paths'
 import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
 import * as workflows from 'utils/workflows'
@@ -240,7 +243,9 @@ export function Field({
 interface PackageNameInputOwnProps {
   errors: Record<string, React.ReactNode>
   input: RF.FieldInputProps<string>
+  directory?: string
   meta: RF.FieldMetaState<string>
+  getWorkflow: () => { packageName: packageHandleUtils.NameTemplates }
   validating: boolean
 }
 
@@ -249,26 +254,53 @@ type PackageNameInputProps = PackageNameInputOwnProps &
 
 export function PackageNameInput({
   errors,
-  input,
+  input: { value, onChange },
   meta,
+  getWorkflow,
+  directory,
   validating,
   ...rest
 }: PackageNameInputProps) {
-  const readyForValidation = (input.value && meta.modified) || meta.submitFailed
+  const readyForValidation = (value && meta.modified) || meta.submitFailed
   const errorCode = readyForValidation && meta.error
   const error = errorCode ? errors[errorCode] || errorCode : ''
+  const [modified, setModified] = React.useState(meta.modified)
+  const handleChange = React.useCallback(
+    (event) => {
+      setModified(true)
+      onChange(event)
+    },
+    [onChange, setModified],
+  )
   const props = {
     disabled: meta.submitting || meta.submitSucceeded,
     error,
     fullWidth: true,
     label: 'Name',
     margin: 'normal' as const,
+    onChange: handleChange,
     placeholder: 'e.g. user/package',
     // NOTE: react-form doesn't change `FormState.validating` on async validation when field loses focus
     validating,
-    ...input,
+    value,
     ...rest,
   }
+  const username = redux.useSelector(authSelectors.username)
+  React.useEffect(() => {
+    if (modified) return
+
+    const packageName = getDefaultPackageName(getWorkflow(), {
+      username,
+      directory,
+    })
+    if (!packageName) return
+
+    onChange({
+      target: {
+        value: packageName,
+      },
+    })
+  }, [directory, getWorkflow, modified, onChange, username])
   return <Field {...props} />
 }
 
@@ -780,30 +812,15 @@ export function getUsernamePrefix(username?: string | null) {
 
 const getDefaultPackageName = (
   workflow: { packageName: packageHandleUtils.NameTemplates },
-  username: string,
+  { directory, username }: { directory?: string; username: string },
 ) =>
-  packageHandleUtils.execTemplate(workflow?.packageName, 'packages', {
-    username: getUsernamePrefix(username),
-  })
-
-export function useInitialPackageName(
-  initialName: string,
-  initialWorkflow: { packageName: packageHandleUtils.NameTemplates },
-): [string, (workflow: workflows.Workflow) => void] {
-  const username = redux.useSelector(authSelectors.username)
-  const [name, setName] = React.useState(
-    initialName || getDefaultPackageName(initialWorkflow, username),
-  )
-
-  const onWorkflow = React.useCallback(
-    (workflow: workflows.Workflow) => {
-      setName(getDefaultPackageName(workflow, username))
-    },
-    [setName, username],
-  )
-
-  return [name, onWorkflow]
-}
+  directory
+    ? packageHandleUtils.execTemplate(workflow?.packageName, 'files', {
+        directory: basename(directory),
+      })
+    : packageHandleUtils.execTemplate(workflow?.packageName, 'packages', {
+        username: s3paths.ensureNoSlash(getUsernamePrefix(username)),
+      })
 
 const usePackageNameWarningStyles = M.makeStyles({
   root: {

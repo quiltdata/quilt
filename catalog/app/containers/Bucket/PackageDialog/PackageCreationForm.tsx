@@ -273,21 +273,6 @@ export function PackageCreationForm({
     [handleNameChange],
   )
 
-  const [initialPackageName, onWorkflow] = PD.useInitialPackageName(
-    initial?.name || '',
-    selectedWorkflow || workflowsConfig,
-  )
-
-  const onWorkflowChange = React.useCallback(
-    ({ modified, values }) => {
-      setWorkflow(values.workflow)
-
-      if (modified.name) return
-      onWorkflow(values.workflow)
-    },
-    [setWorkflow, onWorkflow],
-  )
-
   React.useEffect(() => {
     if (editorElement) resizeObserver.observe(editorElement)
     return () => {
@@ -309,6 +294,11 @@ export function PackageCreationForm({
         ? nonEmpty
         : validators.composeAsync(nonEmpty, FI.validateHashingComplete),
     [delayHashing],
+  )
+
+  const getWorkflow = React.useCallback(
+    () => selectedWorkflow || workflowsConfig,
+    [selectedWorkflow, workflowsConfig],
   )
 
   return (
@@ -344,7 +334,7 @@ export function PackageCreationForm({
                 subscription={{ modified: true, values: true }}
                 onChange={({ modified, values }) => {
                   if (modified!.workflow && values.workflow !== selectedWorkflow) {
-                    onWorkflowChange({ modified, values })
+                    setWorkflow(values.workflow)
                   }
                 }}
               />
@@ -369,7 +359,8 @@ export function PackageCreationForm({
 
                   <RF.Field
                     component={PD.PackageNameInput}
-                    initialValue={initialPackageName}
+                    getWorkflow={getWorkflow}
+                    initialValue={initial?.name}
                     name="name"
                     validate={validators.composeAsync(
                       validators.required,
