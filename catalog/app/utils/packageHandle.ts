@@ -33,5 +33,6 @@ export function execTemplate(
   context: Context,
   options?: Options,
 ): string {
+  if (!templatesDict) return ''
   return execTemplateItem(templatesDict[context] || '', options) || ''
 }
