@@ -24,6 +24,7 @@ interface WorkflowYaml {
   description?: string
   is_message_required?: boolean
   metadata_schema?: string
+  object_schema?: string
   name: string
   catalog: {
     package_handle?: packageHandleUtils.NameTemplates
@@ -50,6 +51,7 @@ export interface Workflow {
   description?: string
   isDefault: boolean
   isDisabled: boolean
+  manifestSchema?: string
   name?: string
   packageName: Required<packageHandleUtils.NameTemplates>
   schema?: Schema
@@ -119,6 +121,7 @@ function parseWorkflow(
     description: workflow.description,
     isDefault: workflowSlug === data.default_workflow,
     isDisabled: false,
+    manifestSchema: data.schemas?.[workflow.object_schema || '']?.url,
     name: workflow.name,
     packageName: parsePackageNameTemplates(
       data.catalog?.package_handle,
