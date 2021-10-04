@@ -127,7 +127,7 @@ export function makeSchemaValidator(
   optSchema?: JsonSchema,
   optSchemas?: JsonSchema[],
   ajvOptions?: Options,
-) {
+): (obj?: any) => (Error | ErrorObject)[] {
   let mainSchema = R.clone(optSchema || EMPTY_SCHEMA)
   if (!mainSchema.$id) {
     // Make further code more universal by using one format: `id` → `$id`
