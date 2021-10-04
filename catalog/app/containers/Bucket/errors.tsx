@@ -69,7 +69,9 @@ export class WorkflowsConfigInvalid extends BucketError {
   constructor(props: WorkflowsConfigInvalidProps) {
     super(
       props.errors
-        .map(({ instancePath, message }) => `${instancePath} ${message}`)
+        .map(({ instancePath, message }) =>
+          instancePath ? `${instancePath} ${message}` : message,
+        )
         .join(', '),
       props,
     )

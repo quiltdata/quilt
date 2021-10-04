@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://schemas.quiltdata.com/workflows-config-2.0.0.json",
+  "$id": "https://schemas.quiltdata.com/workflows-config-1.1.0.json",
   "type": "object",
   "required": ["version", "workflows"],
   "additionalProperties": false,

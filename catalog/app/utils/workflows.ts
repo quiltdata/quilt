@@ -1,3 +1,5 @@
+import semver from 'semver'
+
 import * as R from 'ramda'
 
 import { makeSchemaValidator } from 'utils/json-schema'
@@ -139,11 +141,31 @@ const parseSuccessor = (url: string, successor: SuccessorYaml): Successor => ({
   url,
 })
 
-const workflowsConfigValidator = makeSchemaValidator(workflowsCatalogConfigSchema, [
-  workflowsConfigSchema,
-])
+function validateConfigVersion(objectVersion: string): undefined | Error[] {
+  const baseSchemaVersion = '<=1.1.0'
+  const catalogSchemaVersion = '<=1.0.0'
+
+  const [baseVersion, catalogVersion] = objectVersion.split(' ')
+  const errors = []
+  if (!semver.satisfies(semver.coerce(baseVersion) || '0.0.0', baseSchemaVersion))
+    errors.push(new Error(`Catalog supports ${baseSchemaVersion} version of base Schema`))
+  if (!semver.satisfies(semver.coerce(catalogVersion) || '0.0.0', catalogSchemaVersion))
+    errors.push(
+      new Error(`Catalog supports ${catalogSchemaVersion} version of catalog Schema`),
+    )
+  return errors.length ? errors : undefined
+}
 
 function validateConfig(data: unknown): asserts data is WorkflowsYaml {
+  const objectVersion = (data as WorkflowsYaml).version
+  const workflowsConfigValidator = makeSchemaValidator(workflowsCatalogConfigSchema, [
+    workflowsConfigSchema,
+  ])
+
+  const versionErrors = validateConfigVersion(objectVersion)
+  if (versionErrors)
+    throw new bucketErrors.WorkflowsConfigInvalid({ errors: versionErrors })
+
   const errors = workflowsConfigValidator(data)
   if (errors.length) throw new bucketErrors.WorkflowsConfigInvalid({ errors })
 }
