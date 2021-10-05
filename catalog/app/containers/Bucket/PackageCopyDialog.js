@@ -230,6 +230,7 @@ function DialogForm({
                 errors={{
                   required: 'Enter a package name',
                   invalid: 'Invalid package name',
+                  pattern: `Name should match with ${selectedWorkflow?.packageNamePattern}`,
                 }}
                 helperText={nameWarning}
                 initialValue={initialName}

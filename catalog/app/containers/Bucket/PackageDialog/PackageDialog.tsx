@@ -144,7 +144,7 @@ export function useNameValidator(workflow?: workflows.Workflow) {
   const validate = React.useCallback(
     async (name: string) => {
       if (workflow?.packageNamePattern?.test(name) === false) {
-        return 'invalid'
+        return 'pattern'
       }
 
       setProcessing(true)
