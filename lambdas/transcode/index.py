@@ -1,12 +1,11 @@
 """
 Generate video previews for videos in S3.
 """
-import pathlib
 import subprocess
 import tempfile
 
 from t4_lambda_shared.decorator import api, validate
-from t4_lambda_shared.utils import get_default_origins
+from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 
 SCHEMA = {
@@ -20,7 +19,7 @@ SCHEMA = {
     'additionalProperties': False
 }
 
-FFMPEG = pathlib.Path('/opt/bin/ffmpeg')
+FFMPEG = '/opt/bin/ffmpeg'
 FFMPEG_TIME_LIMIT = 20
 DURATION = 5
 WIDTH = 320
@@ -36,15 +35,19 @@ def lambda_handler(request):
     url = request.args['url']
 
     with tempfile.NamedTemporaryFile(suffix='.mp4') as output_file:
-        subprocess.check_call([
+        p = subprocess.run([
             FFMPEG,
             "-t", str(DURATION),
             "-i", url,
             "-vf", f"scale=w={WIDTH}:h={HEIGHT}:force_original_aspect_ratio=decrease",
             "-timelimit", str(FFMPEG_TIME_LIMIT),
             "-y",  # Overwrite output file
+            "-v", "error",  # Only print errors
             output_file.name
-        ], stdin=subprocess.DEVNULL)
+        ], stdin=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+        if p.returncode != 0:
+            return make_json_response(403, {'error': p.stderr.decode()})
 
         data = output_file.read()
 
