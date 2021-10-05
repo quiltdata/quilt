@@ -1,3 +1,4 @@
+import type { ErrorObject } from 'ajv'
 import * as FF from 'final-form'
 import * as FP from 'fp-ts'
 import * as R from 'ramda'
@@ -18,6 +19,7 @@ import DialogLoading from './DialogLoading'
 import DialogSuccess, { DialogSuccessRenderMessageProps } from './DialogSuccess'
 import * as FI from './FilesInput'
 import * as Layout from './Layout'
+import MetaInputErrorHelper from './MetaInputErrorHelper'
 import * as PD from './PackageDialog'
 import { isS3File, S3File } from './S3FilePicker'
 import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
@@ -55,6 +57,9 @@ export interface PackageCreationSuccess {
 const useStyles = M.makeStyles((t) => ({
   files: {
     height: '100%',
+  },
+  filesError: {
+    marginTop: t.spacing(),
   },
   form: {
     height: '100%',
@@ -114,6 +119,10 @@ export function PackageCreationForm({
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
 
+  const [entriesError, setEntriesError] = React.useState<(Error | ErrorObject)[] | null>(
+    null,
+  )
+
   const [selectedBucket, selectBucket] = React.useState(sourceBuckets.getDefault)
 
   const existingEntries = initial?.manifest?.entries ?? EMPTY_MANIFEST_ENTRIES
@@ -137,6 +146,7 @@ export function PackageCreationForm({
   )
 
   const createPackage = requests.useCreatePackage()
+  const validateEntries = PD.useEntriesValidator(selectedWorkflow)
 
   const onSubmit = async ({
     name,
@@ -166,6 +176,20 @@ export function PackageCreationForm({
       const e = files.existing[path]
       return !e || e.hash !== file.hash.value
     })
+
+    const entries = toUpload.map(({ file, path }) => ({
+      logical_key: path,
+      size: file.size,
+    }))
+    const error = await validateEntries(entries)
+    // console.log({ toUpload, entriesError, entries })
+    if (error) {
+      setEntriesError(error)
+      return {
+        files: 'schema',
+      }
+    }
+    return
 
     let uploadedEntries
     try {
@@ -230,7 +254,7 @@ export function PackageCreationForm({
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
       // TODO: handle specific cases?
-      const errorMessage = e instanceof Error ? e.message : null
+      const errorMessage = e instanceof Error ? (e as Error).message : null
       return { [FF.FORM_ERROR]: errorMessage || PD.ERROR_MESSAGES.MANIFEST }
     }
   }
@@ -415,6 +439,7 @@ export function PackageCreationForm({
                     validateFields={['files']}
                     errors={{
                       nonEmpty: 'Add files to create a package',
+                      schema: 'Files should match schema',
                       [FI.HASHING]: 'Please wait while we hash the files',
                       [FI.HASHING_ERROR]:
                         'Error hashing files, probably some of them are too large. Please try again or contact support.',
@@ -430,6 +455,11 @@ export function PackageCreationForm({
                     delayHashing={delayHashing}
                     disableStateDisplay={disableStateDisplay}
                     ui={{ reset: ui.resetFiles }}
+                  />
+
+                  <MetaInputErrorHelper
+                    className={classes.filesError}
+                    error={entriesError}
                   />
                 </Layout.RightColumn>
               </Layout.Container>

@@ -870,3 +870,20 @@ export function DialogWrapper({
   )
   return <M.Dialog {...props} />
 }
+
+export function useEntriesValidator(workflow?: workflows.Workflow) {
+  const s3 = AWS.S3.use()
+
+  return React.useCallback(
+    async (entries: $TSFixMe) => {
+      const schemaUrl = workflow?.entriesSchema
+      if (!schemaUrl) return undefined
+      const entriesSchema = await requests.objectSchema({ s3, schemaUrl })
+      // TODO: Show error if there is network error
+      if (!entriesSchema) return undefined
+
+      return makeSchemaValidator(entriesSchema)(entries)
+    },
+    [workflow, s3],
+  )
+}
