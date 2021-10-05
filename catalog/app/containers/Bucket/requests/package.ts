@@ -297,7 +297,7 @@ const mkCreatePackage =
         ...header,
         contents,
       },
-      workflow.manifestSchema,
+      workflow.entriesSchema,
     )
     if (error) throw error
 
@@ -343,7 +343,7 @@ const copyPackage = async (
     workflow: getWorkflowApiParam(workflow.slug),
   }
 
-  const error = await validatePackageManifest(s3, body, workflow.manifestSchema)
+  const error = await validatePackageManifest(s3, body, workflow.entriesSchema)
   if (error) throw error
 
   return makeBackendRequest(req, ENDPOINT_COPY, body, getCredentialsQuery(credentials))
@@ -411,7 +411,7 @@ const wrapPackage = async (
     workflow: getWorkflowApiParam(workflow.slug),
   }
 
-  const error = await validatePackageManifest(s3, body, workflow.manifestSchema)
+  const error = await validatePackageManifest(s3, body, workflow.entriesSchema)
   if (error) throw error
 
   return makeBackendRequest(req, ENDPOINT_WRAP, body, getCredentialsQuery(credentials))

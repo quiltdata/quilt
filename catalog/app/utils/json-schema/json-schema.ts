@@ -149,6 +149,7 @@ export function makeSchemaValidator(
   }
   const ajv = new Ajv(options)
   addFormats(ajv, ['date', 'uri'])
+  ajv.addKeyword('dateformat')
 
   try {
     if (!$id) return () => [new Error('$id is not provided')]

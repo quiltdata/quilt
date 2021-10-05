@@ -24,9 +24,10 @@ interface WorkflowsYaml {
 
 interface WorkflowYaml {
   description?: string
+  entries_schema?: string
+  handle_pattern?: string
   is_message_required?: boolean
   metadata_schema?: string
-  object_schema?: string
   name: string
   catalog: {
     package_handle?: packageHandleUtils.NameTemplates
@@ -53,8 +54,9 @@ export interface Workflow {
   description?: string
   isDefault: boolean
   isDisabled: boolean
-  manifestSchema?: string
+  entriesSchema?: string
   name?: string
+  packageNamePattern: RegExp | null
   packageName: Required<packageHandleUtils.NameTemplates>
   schema?: Schema
   slug: string | typeof notAvailable | typeof notSelected
@@ -90,6 +92,7 @@ function getNoWorkflow(data: WorkflowsYaml, hasConfig: boolean): Workflow {
     isDefault: !data.default_workflow,
     isDisabled: data.is_workflow_required !== false,
     packageName: parsePackageNameTemplates(data.catalog?.package_handle),
+    packageNamePattern: null,
     slug: hasConfig ? notSelected : notAvailable,
   }
 }
@@ -123,12 +126,15 @@ function parseWorkflow(
     description: workflow.description,
     isDefault: workflowSlug === data.default_workflow,
     isDisabled: false,
-    manifestSchema: data.schemas?.[workflow.object_schema || '']?.url,
+    entriesSchema: data.schemas?.[workflow.entries_schema || '']?.url,
     name: workflow.name,
     packageName: parsePackageNameTemplates(
       data.catalog?.package_handle,
       workflow.catalog?.package_handle,
     ),
+    packageNamePattern: workflow.handle_pattern
+      ? new RegExp(workflow.handle_pattern)
+      : null,
     schema: parseSchema(workflow.metadata_schema, data.schemas),
     slug: workflowSlug,
   }

@@ -95,7 +95,7 @@ function DialogForm({
   validate: validateMetaInput,
   workflowsConfig,
 }: DialogFormProps & PD.SchemaFetcherRenderProps) {
-  const nameValidator = PD.useNameValidator()
+  const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const [metaHeight, setMetaHeight] = React.useState(0)

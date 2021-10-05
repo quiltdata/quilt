@@ -106,7 +106,7 @@ export function PackageCreationForm({
   disableStateDisplay,
   ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
-  const nameValidator = PD.useNameValidator()
+  const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(bucket)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const [metaHeight, setMetaHeight] = React.useState(0)

@@ -133,7 +133,7 @@ const validateName = (req: ApiRequest) =>
     return undefined
   }, 200)
 
-export function useNameValidator() {
+export function useNameValidator(workflow?: workflows.Workflow) {
   const req: ApiRequest = APIConnector.use()
   const [counter, setCounter] = React.useState(0)
   const [processing, setProcessing] = React.useState(false)
@@ -143,6 +143,10 @@ export function useNameValidator() {
 
   const validate = React.useCallback(
     async (name: string) => {
+      if (workflow?.packageNamePattern?.test(name) === false) {
+        return 'invalid'
+      }
+
       setProcessing(true)
       try {
         const error = await validator(name)
@@ -154,7 +158,7 @@ export function useNameValidator() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [counter, validator],
+    [counter, validator, workflow],
   )
 
   return React.useMemo(() => ({ validate, processing, inc }), [validate, processing, inc])

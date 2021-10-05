@@ -42,11 +42,19 @@
             "type": "string",
             "minLength": 1
           },
+          "handle_pattern": {
+            "type": "string",
+            "description": "Regular expression to validate package handle",
+            "examples": [
+              "instruments/(production/staging)",
+              "(employee1|employee2)/instruments"
+            ]
+          },
           "metadata_schema": {
             "type": "string",
             "description": "JSON Schema $id."
           },
-          "object_schema": {
+          "entries_schema": {
             "type": "string",
             "description": "JSON Schema $id."
           },
