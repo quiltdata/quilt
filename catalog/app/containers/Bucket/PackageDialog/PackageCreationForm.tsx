@@ -60,6 +60,8 @@ const useStyles = M.makeStyles((t) => ({
   },
   filesError: {
     marginTop: t.spacing(),
+    maxHeight: t.spacing(9),
+    overflowY: 'auto',
   },
   form: {
     height: '100%',
