@@ -15,6 +15,7 @@ def _make_event(query, headers=None):
         'isBase64Encoded': False,
     }
 
+
 def test_403():
     """test 403 cases, such as Glacier"""
     url = "https://example.com/folder/file.ext"
