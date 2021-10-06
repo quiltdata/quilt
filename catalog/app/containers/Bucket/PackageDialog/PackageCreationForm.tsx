@@ -1,4 +1,5 @@
 import type { ErrorObject } from 'ajv'
+import cx from 'classnames'
 import * as FF from 'final-form'
 import * as FP from 'fp-ts'
 import * as R from 'ramda'
@@ -57,6 +58,9 @@ export interface PackageCreationSuccess {
 const useStyles = M.makeStyles((t) => ({
   files: {
     height: '100%',
+  },
+  filesWithError: {
+    height: `calc(90% - ${t.spacing()}px)`,
   },
   filesError: {
     marginTop: t.spacing(),
@@ -184,14 +188,12 @@ export function PackageCreationForm({
       size: file.size,
     }))
     const error = await validateEntries(entries)
-    // console.log({ toUpload, entriesError, entries })
     if (error) {
       setEntriesError(error)
       return {
         files: 'schema',
       }
     }
-    return
 
     let uploadedEntries
     try {
@@ -433,7 +435,9 @@ export function PackageCreationForm({
 
                 <Layout.RightColumn>
                   <RF.Field
-                    className={classes.files}
+                    className={cx(classes.files, {
+                      [classes.filesWithError]: entriesError,
+                    })}
                     // @ts-expect-error
                     component={FI.FilesInput}
                     name="files"
