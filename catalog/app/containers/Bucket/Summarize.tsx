@@ -39,6 +39,32 @@ interface SummarizeFile {
 
 type MakeURL = (h: S3Handle) => LocationDescriptor
 
+const useDownloadButtonStyles = M.makeStyles((t) => ({
+  root: {
+    alignItems: 'center',
+    display: 'flex',
+    height: t.spacing(4),
+    justifyContent: 'center',
+    width: t.spacing(3),
+  },
+}))
+
+interface DownloadButtonProps {
+  className?: string
+  handle: S3Handle
+}
+
+function DownloadButton({ className, handle }: DownloadButtonProps) {
+  const classes = useDownloadButtonStyles()
+  return AWS.Signer.withDownloadUrl(handle, (url: string) => (
+    <div className={cx(classes.root, className)}>
+      <M.IconButton href={url} title="Download" download>
+        <M.Icon>arrow_downward</M.Icon>
+      </M.IconButton>
+    </div>
+  ))
+}
+
 enum FileThemes {
   Overview = 'overview',
   Nested = 'nested',
@@ -78,6 +104,7 @@ const useSectionStyles = M.makeStyles((t) => ({
   },
   heading: {
     ...t.typography.h6,
+    display: 'flex',
     lineHeight: 1.75,
     marginBottom: t.spacing(1),
     [t.breakpoints.up('sm')]: {
@@ -87,19 +114,34 @@ const useSectionStyles = M.makeStyles((t) => ({
       ...t.typography.h5,
     },
   },
+  headingAction: {
+    marginLeft: 'auto',
+  },
 }))
 
 interface SectionProps extends M.PaperProps {
   description?: React.ReactNode
+  handle?: S3Handle
   heading?: React.ReactNode
 }
 
-export function Section({ heading, description, children, ...props }: SectionProps) {
+export function Section({
+  handle,
+  heading,
+  description,
+  children,
+  ...props
+}: SectionProps) {
   const ft = React.useContext(FileThemeContext)
   const classes = useSectionStyles()
   return (
     <M.Paper className={cx(classes.root, classes[ft])} {...props}>
-      {!!heading && <div className={classes.heading}>{heading}</div>}
+      {!!heading && (
+        <div className={classes.heading}>
+          {heading}
+          {handle && <DownloadButton className={classes.headingAction} handle={handle} />}
+        </div>
+      )}
       {!!description && <div className={classes.description}>{description}</div>}
       {children}
     </M.Paper>
@@ -220,7 +262,7 @@ export function FilePreview({
 
   // TODO: check for glacier and hide items
   return (
-    <Section description={description} heading={heading}>
+    <Section description={description} heading={heading} handle={handle}>
       {Preview.load(
         handle,
         Preview.display({
