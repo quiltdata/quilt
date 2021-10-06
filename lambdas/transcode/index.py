@@ -7,7 +7,6 @@ import tempfile
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
-
 SCHEMA = {
     'type': 'object',
     'properties': {
@@ -44,7 +43,7 @@ def lambda_handler(request):
             "-y",  # Overwrite output file
             "-v", "error",  # Only print errors
             output_file.name
-        ], stdin=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        ], check=False, stdin=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
         if p.returncode != 0:
             return make_json_response(403, {'error': p.stderr.decode()})
