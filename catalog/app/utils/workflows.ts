@@ -6,8 +6,8 @@ import { makeSchemaValidator } from 'utils/json-schema'
 import type * as packageHandleUtils from 'utils/packageHandle'
 import * as s3paths from 'utils/s3paths'
 import yaml from 'utils/yaml'
-import workflowsConfigSchema from 'schemas/workflows.yml.json'
-import workflowsCatalogConfigSchema from 'schemas/workflows-catalog.yml.json'
+import workflowsConfigSchema from 'schemas/workflows-config-1.1.0.json'
+import workflowsCatalogConfigSchema from 'schemas/workflows-config_catalog-1.0.0.json'
 import * as bucketErrors from 'containers/Bucket/errors'
 
 interface WorkflowsVersion {
