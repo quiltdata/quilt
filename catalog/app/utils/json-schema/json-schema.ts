@@ -148,7 +148,7 @@ export function makeSchemaValidator(
     ...ajvOptions,
   }
   const ajv = new Ajv(options)
-  addFormats(ajv, ['date', 'uri'])
+  addFormats(ajv, ['date', 'regex', 'uri'])
   ajv.addKeyword('dateformat')
 
   try {
