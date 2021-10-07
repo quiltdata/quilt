@@ -215,10 +215,12 @@ function DialogForm({
   const [editorElement, setEditorElement] = React.useState<HTMLElement | null>(null)
 
   const onFormChange = React.useCallback(
-    async ({ values }) => {
+    async ({ dirtyFields, values }) => {
       if (document.body.contains(editorElement)) {
         setMetaHeight(editorElement!.clientHeight)
       }
+
+      if (dirtyFields?.files) setEntriesError(null)
 
       handleNameChange(values.name)
     },

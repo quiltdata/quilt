@@ -297,6 +297,7 @@ export function PackageCreationForm({
   const onFormChange = React.useCallback(
     async ({ dirtyFields, values }) => {
       if (dirtyFields?.name) handleNameChange(values.name)
+      if (dirtyFields?.files) setEntriesError(null)
     },
     [handleNameChange],
   )
