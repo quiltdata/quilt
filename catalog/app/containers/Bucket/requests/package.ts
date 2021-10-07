@@ -1,4 +1,3 @@
-import type { ErrorObject } from 'ajv'
 import type { S3 } from 'aws-sdk'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -7,11 +6,7 @@ import { JsonValue } from 'components/JsonEditor/constants'
 import * as APIConnector from 'utils/APIConnector'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
-import {
-  makeSchemaDefaultsSetter,
-  makeSchemaValidator,
-  JsonSchema,
-} from 'utils/json-schema'
+import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
@@ -38,34 +33,6 @@ export const objectSchema = async ({ s3, schemaUrl }: { s3: S3; schemaUrl: strin
   }
 
   return null
-}
-
-function formatErrorMessage(validationErrors: (ErrorObject | Error)[]): string {
-  const { instancePath, message = '' } = validationErrors[0] as ErrorObject
-  return instancePath ? `"${instancePath}" ${message}` : message
-}
-
-async function validatePackageManifest(
-  s3: S3,
-  body: $TSFixMe,
-  schemaUrl?: string,
-): Promise<Error | undefined> {
-  if (!schemaUrl) return undefined
-
-  const schema = await objectSchema({
-    s3,
-    schemaUrl,
-  })
-  const normalizedBody = {
-    contents: body.entries || body.contents,
-    message: body.message,
-    meta: body.meta,
-    workflow: body.workflow,
-  }
-  const validationErrors = makeSchemaValidator(schema)(normalizedBody)
-  if (!validationErrors.length) return undefined
-
-  return new Error(formatErrorMessage(validationErrors))
 }
 
 interface AWSCredentials {
@@ -291,16 +258,6 @@ const mkCreatePackage =
     })
     const res = await upload.promise()
 
-    const error = await validatePackageManifest(
-      s3,
-      {
-        ...header,
-        contents,
-      },
-      workflow.entriesSchema,
-    )
-    if (error) throw error
-
     return makeBackendRequest(
       req,
       ENDPOINT_CREATE,
@@ -321,7 +278,6 @@ export function useCreatePackage() {
 }
 
 const copyPackage = async (
-  s3: S3,
   req: ApiRequest,
   credentials: AWSCredentials,
   { message, meta, source, target, workflow }: CopyPackageParams,
@@ -343,20 +299,16 @@ const copyPackage = async (
     workflow: getWorkflowApiParam(workflow.slug),
   }
 
-  const error = await validatePackageManifest(s3, body, workflow.entriesSchema)
-  if (error) throw error
-
   return makeBackendRequest(req, ENDPOINT_COPY, body, getCredentialsQuery(credentials))
 }
 
 export function useCopyPackage() {
   const credentials = AWS.Credentials.use()
   const req: ApiRequest = APIConnector.use()
-  const s3 = AWS.S3.use()
   return React.useCallback(
     (params: CopyPackageParams, schema?: JsonSchema) =>
-      copyPackage(s3, req, credentials, params, schema),
-    [credentials, req, s3],
+      copyPackage(req, credentials, params, schema),
+    [credentials, req],
   )
 }
 
@@ -390,7 +342,6 @@ export function useDeleteRevision() {
 }
 
 const wrapPackage = async (
-  s3: S3,
   req: ApiRequest,
   credentials: AWSCredentials,
   { message, meta, source, target, workflow, entries }: WrapPackageParams,
@@ -411,19 +362,15 @@ const wrapPackage = async (
     workflow: getWorkflowApiParam(workflow.slug),
   }
 
-  const error = await validatePackageManifest(s3, body, workflow.entriesSchema)
-  if (error) throw error
-
   return makeBackendRequest(req, ENDPOINT_WRAP, body, getCredentialsQuery(credentials))
 }
 
 export function useWrapPackage() {
   const credentials = AWS.Credentials.use()
   const req: ApiRequest = APIConnector.use()
-  const s3 = AWS.S3.use()
   return React.useCallback(
     (params: WrapPackageParams, schema?: JsonSchema) =>
-      wrapPackage(s3, req, credentials, params, schema),
-    [credentials, req, s3],
+      wrapPackage(req, credentials, params, schema),
+    [credentials, req],
   )
 }
