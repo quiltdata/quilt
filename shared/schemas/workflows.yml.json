@@ -44,6 +44,7 @@
           },
           "handle_pattern": {
             "type": "string",
+            "format": "regex",
             "description": "Regular expression to validate package handle",
             "examples": [
               "instruments/(production/staging)",
