@@ -188,7 +188,7 @@ export function PackageCreationForm({
       size: file.size,
     }))
     const error = await validateEntries(entries)
-    if (error) {
+    if (error && error.length) {
       setEntriesError(error)
       return {
         files: 'schema',
@@ -437,7 +437,7 @@ export function PackageCreationForm({
                 <Layout.RightColumn>
                   <RF.Field
                     className={cx(classes.files, {
-                      [classes.filesWithError]: entriesError,
+                      [classes.filesWithError]: !!entriesError,
                     })}
                     // @ts-expect-error
                     component={FI.FilesInput}
