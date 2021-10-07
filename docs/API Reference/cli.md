@@ -206,7 +206,8 @@ depends on network bandwidth, CPU performance, file sizes, etc.
 $ export QUILT_TRANSFER_MAX_CONCURRENCY=20
 ```
 ### `QUILT_MANIFEST_MAX_RECORD_SIZE`
-Maximum size of a record in package manifest. Defaults to `1_000_000`.
+Maximum size of a record in package manifest. **Setting this variable is strongly discouraged.**
+Defaults to `1_000_000`.
 
 ### `XDG_*`
 Quilt uses appdirs for Python to determine where to write data. You can therefore
