@@ -10,6 +10,11 @@ import workflowsConfigSchema from 'schemas/workflows.yml.json'
 import workflowsCatalogConfigSchema from 'schemas/workflows-catalog.yml.json'
 import * as bucketErrors from 'containers/Bucket/errors'
 
+interface WorkflowsVersion {
+  base: string
+  catalog?: string
+}
+
 interface WorkflowsYaml {
   default_workflow?: string
   is_workflow_required?: boolean
@@ -18,7 +23,7 @@ interface WorkflowsYaml {
   }
   schemas?: Record<string, Schema>
   successors?: Record<string, SuccessorYaml>
-  version: '1'
+  version: '1' | WorkflowsVersion
   workflows: Record<string, WorkflowYaml>
 }
 
@@ -147,28 +152,35 @@ const parseSuccessor = (url: string, successor: SuccessorYaml): Successor => ({
   url,
 })
 
-function validateConfigVersion(objectVersion: string): undefined | Error[] {
+function validateConfigVersion(objectVersion: WorkflowsVersion): undefined | Error[] {
   const baseSchemaVersion = '<=1.1.0'
   const catalogSchemaVersion = '<=1.0.0'
 
-  const [baseVersion, catalogVersion] = objectVersion.split(' ')
+  const { base: baseVersion, catalog: catalogVersion } = objectVersion
   const errors = []
-  if (!semver.satisfies(semver.coerce(baseVersion) || '0.0.0', baseSchemaVersion))
+  if (!semver.satisfies(semver.coerce(baseVersion) || '0.0.0', baseSchemaVersion)) {
     errors.push(new Error(`Catalog supports ${baseSchemaVersion} version of base Schema`))
-  if (!semver.satisfies(semver.coerce(catalogVersion) || '0.0.0', catalogSchemaVersion))
+  }
+  if (
+    catalogVersion &&
+    !semver.satisfies(semver.coerce(catalogVersion) || '0.0.0', catalogSchemaVersion)
+  ) {
     errors.push(
       new Error(`Catalog supports ${catalogSchemaVersion} version of catalog Schema`),
     )
+  }
   return errors.length ? errors : undefined
 }
 
 function validateConfig(data: unknown): asserts data is WorkflowsYaml {
   const objectVersion = (data as WorkflowsYaml).version
-  const workflowsConfigValidator = makeSchemaValidator(workflowsCatalogConfigSchema, [
-    workflowsConfigSchema,
-  ])
+  const workflowsConfigValidator = (objectVersion as WorkflowsVersion).catalog
+    ? makeSchemaValidator(workflowsCatalogConfigSchema, [workflowsConfigSchema])
+    : makeSchemaValidator(workflowsConfigSchema)
 
-  const versionErrors = validateConfigVersion(objectVersion)
+  const versionErrors = validateConfigVersion(
+    typeof objectVersion === 'string' ? { base: objectVersion } : objectVersion,
+  )
   if (versionErrors)
     throw new bucketErrors.WorkflowsConfigInvalid({ errors: versionErrors })
 
