@@ -734,7 +734,8 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
         workflow_validate_mock.assert_called_once_with(
             registry=get_package_registry(self.dst_registry),
             workflow=expected_workflow,
-            meta=self.meta,
+            name=self.dst_pkg_name,
+            pkg=mock.ANY,  # FIXME
             message=message,
         )
 
