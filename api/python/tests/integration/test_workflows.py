@@ -3,7 +3,7 @@ import textwrap
 import pytest
 from tests.utils import QuiltTestCase
 
-from quilt3 import workflows, Package
+from quilt3 import Package, workflows
 from quilt3.backends import get_package_registry
 from quilt3.data_transfer import put_bytes
 from quilt3.util import PhysicalKey, QuiltException
