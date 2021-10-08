@@ -158,7 +158,7 @@ export function useNameValidator(workflow?: workflows.Workflow) {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [counter, validator, workflow],
+    [counter, validator, workflow?.packageNamePattern],
   )
 
   return React.useMemo(() => ({ validate, processing, inc }), [validate, processing, inc])
