@@ -12,34 +12,75 @@ SCHEMA = {
     'properties': {
         'url': {
             'type': 'string'
-        }
+        },
+        'format': {
+            'enum': ['mp4', 'webm']
+        },
+        'width': {
+            'type': 'string'
+        },
+        'height': {
+            'type': 'string'
+        },
+        'duration': {
+            'type': 'string'
+        },
     },
     'required': ['url'],
     'additionalProperties': False
 }
 
 FFMPEG = '/opt/bin/ffmpeg'
-FFMPEG_TIME_LIMIT = 20
-DURATION = 5
-WIDTH = 320
-HEIGHT = 240
 
+# Lambda has a 6MB limit for request and response,
+# so limit the preview to 6MB, minus 4KB for headers, etc.
+MAX_VIDEO_SIZE = 6 * 1024 * 1024 - 4 * 1024
 
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 def lambda_handler(request):
     """
-    Generate thumbnails for images in S3
+    Generate previews for videos in S3
     """
     url = request.args['url']
+    format = request.args.get('format', 'mp4')
+    width_str = request.args.get('width', '320')
+    height_str = request.args.get('width', '240')
+    duration_str = request.args.get('duration', '5')
 
-    with tempfile.NamedTemporaryFile(suffix='.mp4') as output_file:
+    try:
+        width = int(width_str)
+        if not (10 <= width <= 640):
+            raise ValueError
+    except ValueError:
+        return make_json_response(400, {'error': "Invalid 'width'"})
+
+    try:
+        height = int(height_str)
+        if not (10 <= height <= 480):
+            raise ValueError
+    except ValueError:
+        return make_json_response(400, {'error': "Invalid 'height'"})
+
+    try:
+        duration = float(duration_str)
+        if not (0 < duration <= 10):
+            raise ValueError
+    except ValueError:
+        return make_json_response(400, {'error': "Invalid 'duration'"})
+
+    with tempfile.NamedTemporaryFile() as output_file:
         p = subprocess.run([
             FFMPEG,
-            "-t", str(DURATION),
+            "-t", str(duration),
             "-i", url,
-            "-vf", f"scale=w={WIDTH}:h={HEIGHT}:force_original_aspect_ratio=decrease",
-            "-timelimit", str(FFMPEG_TIME_LIMIT),
+            "-f", format,
+            "-vf", ','.join([
+                f"scale=w={width}:h={height}:force_original_aspect_ratio=decrease",
+                f"crop='iw-mod(iw\\,2)':'ih-mod(ih\\,2)'",
+            ]),
+            "-timelimit", str(request.context.get_remaining_time_in_millis() // 1000 - 2),  # 2 seconds for padding
+            "-fs", str(MAX_VIDEO_SIZE),
             "-y",  # Overwrite output file
             "-v", "error",  # Only print errors
             output_file.name
@@ -50,4 +91,4 @@ def lambda_handler(request):
 
         data = output_file.read()
 
-    return 200, data, {'Content-Type': 'video/mp4'}
+    return 200, data, {'Content-Type': f'video/{format}'}
