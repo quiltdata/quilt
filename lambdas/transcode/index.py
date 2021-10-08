@@ -25,9 +25,6 @@ SCHEMA = {
         'duration': {
             'type': 'string'
         },
-        'timelimit': {
-            'type': 'string'
-        },
     },
     'required': ['url'],
     'additionalProperties': False
@@ -35,9 +32,9 @@ SCHEMA = {
 
 FFMPEG = '/opt/bin/ffmpeg'
 
-# Lambda has a 6MB limit for request and response,
-# so limit the preview to 6MB, minus 4KB for headers, etc.
-MAX_VIDEO_SIZE = 6 * 1024 * 1024 - 4 * 1024
+# Lambda has a 6MB limit for request and response, however, base64 adds 33% overhead.
+# Also, leave a few KB for the headers.
+MAX_VIDEO_SIZE = 6 * 1024 * 1024 * 3 // 4 - 4096
 
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
@@ -48,28 +45,26 @@ def lambda_handler(request):
     url = request.args['url']
     format = request.args.get('format', 'mp4')
     width_str = request.args.get('width', '320')
-    height_str = request.args.get('width', '240')
+    height_str = request.args.get('height', '240')
     duration_str = request.args.get('duration', '5')
-
-    timelimit = request.args.get('timelimit', '20')
 
     try:
         width = int(width_str)
-        if not (10 <= width <= 640):
+        if not 10 <= width <= 640:
             raise ValueError
     except ValueError:
         return make_json_response(400, {'error': "Invalid 'width'"})
 
     try:
         height = int(height_str)
-        if not (10 <= height <= 480):
+        if not 10 <= height <= 480:
             raise ValueError
     except ValueError:
         return make_json_response(400, {'error': "Invalid 'height'"})
 
     try:
         duration = float(duration_str)
-        if not (0 < duration <= 10):
+        if not 0 < duration <= 10:
             raise ValueError
     except ValueError:
         return make_json_response(400, {'error': "Invalid 'duration'"})
@@ -82,10 +77,9 @@ def lambda_handler(request):
             "-f", format,
             "-vf", ','.join([
                 f"scale=w={width}:h={height}:force_original_aspect_ratio=decrease",
-                f"crop='iw-mod(iw\\,2)':'ih-mod(ih\\,2)'",
+                "crop='iw-mod(iw\\,2)':'ih-mod(ih\\,2)'",
             ]),
-            # "-timelimit", str(request.context.get_remaining_time_in_millis() // 1000 - 3),  # 3 seconds for padding
-            "-timelimit", timelimit,
+            "-timelimit", str(request.context.get_remaining_time_in_millis() // 1000 - 2),  # 2 seconds for padding
             "-fs", str(MAX_VIDEO_SIZE),
             "-y",  # Overwrite output file
             "-v", "error",  # Only print errors
