@@ -192,10 +192,80 @@ keyword `dateformat` in your schemas. For example:
 The `dateformat` template follows
 [Unicode Technical Standard #35](https://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table).
 
+### Default package name
+
+If you wish to set default package name you can use keyword `package_handle` in `workflows/config.yml`.
+Defaults for creating package from directory are located at `files`  sub-field,
+for creating package for scratch, editing or copying are set up at `packages`.
+You can use `<%= directory %>` to substitute current directory and `<%= username %>` for current username.
+For example:
+
+```json
+{
+  "package_handle": {
+    "files": "<%= username %>/<%= directory %>",
+    "packages": "<%= username %>/production",
+
+  }
+}
+```
+
+### Validating package name
+
+You can validate package name using `handle_pattern` property for workflow. Use Javascript RegExp as a pattern:
+For exapmle:
+
+```json
+{
+  "handle_pattern": "^(employee1|employee2)/(production/staging)$"
+}
+```
+
+### Validating file entries
+
+You can validate names and sizes of files used for package by providing Schema id with `entries_schema` property.
+Schema should be used against array of `{ "logical_key", "size" }` objects.
+For example:
+
+```json
+{
+  "workflows": {
+    "workflow-1": {
+      "entries_schema": "must-contain-readme"
+    }
+  },
+  "schemas": {
+    "must-contain-readme": {
+       "url": "s3://bucket/must-contain-readme.json"
+    }
+  }
+}
+```
+
+Where `s3://bucket/must-contain-readme.json` is:
+
+```json
+{
+  "type": "array",
+  "items": {
+  "contains": {
+    "type": "object",
+    "properties": {
+      "logical_key": {
+        "type": "string",
+        "pattern": "^README.md$"
+      }
+    }
+  }
+}
+```
+
 
 ### Full `config.yml` schema
 See
-[config-1.schema.json](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/workflows/config-1.schema.json).
+[workflows-config_catalog-1.0.0.json](https://github.com/quiltdata/quilt/blob/master/shared/schemas/workflows-config_catalog-1.0.0.json).
+and
+[workflows-config-1.1.0.json](https://github.com/quiltdata/quilt/blob/master/shared/schemas/workflows-config-1.1.0.json).
 
 
 ### Known limitations
