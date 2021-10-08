@@ -399,7 +399,7 @@ export function PackageCreationForm({
                     errors={{
                       required: 'Enter a package name',
                       invalid: 'Invalid package name',
-                      pattern: `Name should match with ${selectedWorkflow?.packageNamePattern}`,
+                      pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
                     }}
                     helperText={nameWarning}
                     validating={nameValidator.processing}
