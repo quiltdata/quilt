@@ -1,5 +1,6 @@
 import functools
 import json
+import re
 
 import botocore.exceptions
 import jsonschema
@@ -112,7 +113,7 @@ class WorkflowValidator:
         self.loaded_schemas[schema_id] = (validator, schema_pk_to_store)
         return validator
 
-    def validate(self, workflow, meta, message):
+    def validate(self, *, workflow, name, pkg, message):
         if workflow is ...:
             workflow = self.config.get('default_workflow')
 
@@ -129,13 +130,39 @@ class WorkflowValidator:
         if workflow not in workflows_data:
             raise util.QuiltException(f'There is no {workflow!r} workflow in config.')
         workflow_data = workflows_data[workflow]
+
+        handle_pattern = workflow_data.get('handle_pattern')
+        if handle_pattern:
+            try:
+                handle_pattern_regex = re.compile(handle_pattern)
+            except re.error:
+                raise util.QuiltException('Invalid handle_pattern regex.')
+
+            if not handle_pattern_regex.search(name):
+                raise util.QuiltException('Handle failed validation.')
+
         metadata_schema_id = workflow_data.get('metadata_schema')
         if metadata_schema_id:
             validator = self.make_validator_from_schema(metadata_schema_id)
             try:
-                validator.validate(meta)
+                validator.validate(pkg.meta)
             except jsonschema.ValidationError as e:
                 raise util.QuiltException(f"Metadata failed validation: {e.message}.")
+
+        entries_schema_id = workflow_data.get('entries_schema')
+        if entries_schema_id:
+            validator = self.make_validator_from_schema(entries_schema_id)
+            try:
+                validator.validate([
+                    {
+                        'logical_key': lk,
+                        'size': e.size
+                    }
+                    for lk, e in pkg.walk()
+                ])
+            except jsonschema.ValidationError as e:
+                raise util.QuiltException(f"Package entries failed validation: {e.message}.")
+
         if workflow_data.get('is_message_required', False) and not message:
             raise util.QuiltException('Commit message is required by workflow, but none was provided.')
 
@@ -147,7 +174,7 @@ class WorkflowValidator:
         return result
 
 
-def validate(*, registry: PackageRegistry, workflow, meta, message):
+def validate(*, registry: PackageRegistry, workflow, name, pkg, message):
     # workflow is ... => no workflow provided by user;
     # workflow is None => don't use any workflow.
     if not (workflow in (None, ...) or isinstance(workflow, str)):
@@ -159,4 +186,4 @@ def validate(*, registry: PackageRegistry, workflow, meta, message):
             return
         raise util.QuiltException(f'{workflow!r} workflow is specified, but no workflows config exist.')
 
-    return workflow_validator.validate(workflow, meta, message)
+    return workflow_validator.validate(workflow=workflow, name=name, pkg=pkg, message=message)

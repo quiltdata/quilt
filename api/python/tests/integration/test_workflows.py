@@ -3,7 +3,7 @@ import textwrap
 import pytest
 from tests.utils import QuiltTestCase
 
-from quilt3 import workflows
+from quilt3 import workflows, Package
 from quilt3.backends import get_package_registry
 from quilt3.data_transfer import put_bytes
 from quilt3.util import PhysicalKey, QuiltException
@@ -25,10 +25,12 @@ def create_local_tmp_schema(data):
 
 
 class WorkflowTest(QuiltTestCase):
-    def _validate(self, registry=None, workflow=..., meta=None, message=None):
+    def _validate(self, registry=None, workflow=..., name='test/name', meta=None, message=None):
         registry = get_package_registry(registry)
         meta = meta or {}
-        return workflows.validate(registry=registry, workflow=workflow, meta=meta, message=message)
+        pkg = Package()
+        pkg.set_meta(meta)
+        return workflows.validate(registry=registry, workflow=workflow, name=name, pkg=pkg, message=message)
 
     def s3_mock_config(self, data, pkg_registry):
         self.s3_stubber.add_response(

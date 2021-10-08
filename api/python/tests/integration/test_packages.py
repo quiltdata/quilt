@@ -1105,7 +1105,8 @@ class PackageTest(QuiltTestCase):
             mocked_workflow_validate.assert_called_once_with(
                 registry=registry,
                 workflow=...,
-                meta={},
+                name='Quilt/test_pkg_name',
+                pkg=pkg,
                 message=message,
             )
 
@@ -1698,7 +1699,8 @@ class PackageTest(QuiltTestCase):
                     workflow_validate_mock.assert_called_once_with(
                         registry=pkg_registry,
                         workflow=...,
-                        meta={},
+                        name='test/pkg',
+                        pkg=pkg,
                         message=None,
                     )
                     assert pkg._workflow is mock.sentinel.returned_workflow
@@ -1721,7 +1723,8 @@ class PackageTest(QuiltTestCase):
                     workflow_validate_mock.assert_called_once_with(
                         registry=pkg_registry,
                         workflow=mock.sentinel.workflow,
-                        meta=mock.sentinel.pkg_meta,
+                        name='test/pkg',
+                        pkg=pkg,
                         message=mock.sentinel.message,
                     )
                     assert pkg._workflow is mock.sentinel.returned_workflow
