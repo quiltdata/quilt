@@ -1,5 +1,7 @@
 import * as packageHandle from './packageHandle'
 
+/* eslint-disable no-console */
+
 describe('utils/packageHandle', () => {
   describe('convertItem', () => {
     it('should return static string when no template', () => {
@@ -31,7 +33,9 @@ describe('utils/packageHandle', () => {
       ).toBe('fiskus/staging')
     })
 
-    it('should return null when no values ', () => {
+    it('should return null when no value for directory', () => {
+      console.log = jest.fn()
+      console.error = jest.fn()
       expect(
         packageHandle.execTemplateItem(
           'what-<%= username %>-do/make-<%= directory %>-update',
@@ -40,11 +44,28 @@ describe('utils/packageHandle', () => {
           },
         ),
       ).toBe(null)
+      expect(console.log).toHaveBeenCalledWith(
+        'Template for default package name is invalid',
+      )
+      expect((console.error as jest.Mock).mock.calls[0][0]).toMatchObject({
+        message: 'directory is not defined',
+      })
+    })
+
+    it('should return null when no value for username', () => {
+      console.log = jest.fn()
+      console.error = jest.fn()
       expect(
         packageHandle.execTemplateItem('<%= username %>/<%= directory %>', {
           directory: 'staging',
         }),
       ).toBe(null)
+      expect(console.log).toHaveBeenCalledWith(
+        'Template for default package name is invalid',
+      )
+      expect((console.error as jest.Mock).mock.calls[0][0]).toMatchObject({
+        message: 'username is not defined',
+      })
     })
 
     it('should treat null/undefined as an empty string', () => {
@@ -79,6 +100,8 @@ describe('utils/packageHandle', () => {
     })
 
     it('should return empty string if not enough values', () => {
+      console.log = jest.fn()
+      console.error = jest.fn()
       expect(
         packageHandle.execTemplate(
           { files: '<%= username %>/<%= directory %>' },
@@ -88,6 +111,12 @@ describe('utils/packageHandle', () => {
           },
         ),
       ).toBe('')
+      expect(console.log).toHaveBeenCalledWith(
+        'Template for default package name is invalid',
+      )
+      expect((console.error as jest.Mock).mock.calls[0][0]).toMatchObject({
+        message: 'directory is not defined',
+      })
     })
   })
 })
