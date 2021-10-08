@@ -41,6 +41,7 @@ class WorkflowValidator:
         """
         self.config = config
         self.physical_key = physical_key
+        self.loaded_schemas = {}
 
     @classmethod
     def load(cls, pk: util.PhysicalKey):
@@ -68,6 +69,49 @@ class WorkflowValidator:
 
         return cls(config, pk)
 
+    def make_validator_from_schema(self, schema_id):
+        if schema_id in self.loaded_schemas:
+            return self.loaded_schemas[schema_id][0]
+
+        schemas = self.config.get('schemas', {})
+        if schema_id not in schemas:
+            raise util.QuiltException(f'There is no {schema_id!r} in schemas.')
+        schema_url = schemas[schema_id]['url']
+        try:
+            schema_pk = util.PhysicalKey.from_url(schema_url)
+        except util.URLParseError as e:
+            raise util.QuiltException(f"Couldn't parse URL {schema_url!r}. {e}.")
+        if schema_pk.is_local() and not self.physical_key.is_local():
+            raise util.QuiltException(f"Local schema {str(schema_pk)!r} can't be used on the remote registry.")
+
+        handled_exception = (OSError if schema_pk.is_local() else botocore.exceptions.ClientError)
+        try:
+            schema_data, schema_pk_to_store = get_bytes_and_effective_pk(schema_pk)
+        except handled_exception as e:
+            raise util.QuiltException(f"Couldn't load schema at {schema_pk}. {e}.")
+        try:
+            schema = _load_schema_json(schema_data.decode())
+        except json.JSONDecodeError as e:
+            raise util.QuiltException(f"Couldn't parse {schema_pk} as JSON. {e}.")
+
+        validator_cls = jsonschema.Draft7Validator
+        if isinstance(schema, dict) and '$schema' in schema:
+            meta_schema = schema['$schema']
+            if not isinstance(meta_schema, str):
+                raise util.QuiltException('$schema must be a string.')
+            validator_cls = SUPPORTED_META_SCHEMAS.get(meta_schema)
+            if validator_cls is None:
+                raise util.QuiltException(f"Unsupported meta-schema: {meta_schema}.")
+
+        try:
+            validator_cls.check_schema(schema)
+        except jsonschema.exceptions.SchemaError as e:
+            raise util.QuiltException(f"Schema {schema_id!r} is not valid: {e.message}")
+
+        validator = validator_cls(schema)
+        self.loaded_schemas[schema_id] = (validator, schema_pk_to_store)
+        return validator
+
     def validate(self, workflow, meta, message):
         if workflow is ...:
             workflow = self.config.get('default_workflow')
@@ -87,43 +131,19 @@ class WorkflowValidator:
         workflow_data = workflows_data[workflow]
         metadata_schema_id = workflow_data.get('metadata_schema')
         if metadata_schema_id:
-            schemas = self.config.get('schemas', {})
-            if metadata_schema_id not in schemas:
-                raise util.QuiltException(f'There is no {metadata_schema_id!r} in schemas.')
-            schema_url = schemas[metadata_schema_id]['url']
+            validator = self.make_validator_from_schema(metadata_schema_id)
             try:
-                schema_pk = util.PhysicalKey.from_url(schema_url)
-            except util.URLParseError as e:
-                raise util.QuiltException(f"Couldn't parse URL {schema_url!r}. {e}.")
-            if schema_pk.is_local() and not self.physical_key.is_local():
-                raise util.QuiltException(f"Local schema {str(schema_pk)!r} can't be used on the remote registry.")
-
-            handled_exception = (OSError if schema_pk.is_local() else botocore.exceptions.ClientError)
-            try:
-                schema_data, schema_pk_to_store = get_bytes_and_effective_pk(schema_pk)
-            except handled_exception as e:
-                raise util.QuiltException(f"Couldn't load schema at {schema_pk}. {e}.")
-            try:
-                schema = _load_schema_json(schema_data.decode())
-            except json.JSONDecodeError as e:
-                raise util.QuiltException(f"Couldn't parse {schema_pk} as JSON. {e}.")
-
-            validator_cls = jsonschema.Draft7Validator
-            if isinstance(schema, dict) and '$schema' in schema:
-                meta_schema = schema['$schema']
-                if not isinstance(meta_schema, str):
-                    raise util.QuiltException('$schema must be a string.')
-                validator_cls = SUPPORTED_META_SCHEMAS.get(meta_schema)
-                if validator_cls is None:
-                    raise util.QuiltException(f"Unsupported meta-schema: {meta_schema}.")
-            try:
-                jsonschema.validate(meta, schema, cls=validator_cls)
+                validator.validate(meta)
             except jsonschema.ValidationError as e:
                 raise util.QuiltException(f"Metadata failed validation: {e.message}.")
-            result['schemas'] = {metadata_schema_id: str(schema_pk_to_store)}
         if workflow_data.get('is_message_required', False) and not message:
             raise util.QuiltException('Commit message is required by workflow, but none was provided.')
 
+        if self.loaded_schemas:
+            result['schemas'] = {
+                schema_id: str(x[1])
+                for schema_id, x in self.loaded_schemas.items()
+            }
         return result
 
 
