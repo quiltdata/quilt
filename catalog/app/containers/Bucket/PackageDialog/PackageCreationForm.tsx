@@ -183,7 +183,7 @@ export function PackageCreationForm({
       return !e || e.hash !== file.hash.value
     })
 
-    const entries = toUpload.map(({ file, path }) => ({
+    const entries = [...addedS3Entries, ...toUpload].map(({ file, path }) => ({
       logical_key: path,
       size: file.size,
     }))
