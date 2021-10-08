@@ -152,23 +152,35 @@ const parseSuccessor = (url: string, successor: SuccessorYaml): Successor => ({
   url,
 })
 
-function validateConfigVersion(objectVersion: WorkflowsVersion): undefined | Error[] {
-  const baseSchemaVersion = '<=1.1.0'
-  const catalogSchemaVersion = '<=1.0.0'
+function validateConfigVersion(
+  objectVersion: string,
+  schemaVersion: string,
+): undefined | Error {
+  if (semver.satisfies(schemaVersion, `^${objectVersion}`)) return undefined
 
-  const { base: baseVersion, catalog: catalogVersion } = objectVersion
+  return new Error(
+    `Your config file version (${objectVersion}) is incompatible with the current version of the config schema (${schemaVersion})`,
+  )
+}
+
+function validateConfigCompoundVersion(
+  objectCompoundVersion: WorkflowsVersion,
+): undefined | Error[] {
+  const { base: baseVersion, catalog: catalogVersion } = objectCompoundVersion
   const errors = []
-  if (!semver.satisfies(semver.coerce(baseVersion) || '0.0.0', baseSchemaVersion)) {
-    errors.push(new Error(`Catalog supports ${baseSchemaVersion} version of base Schema`))
+
+  const invalidBaseVersion = validateConfigVersion(baseVersion, '1.1.0')
+  if (invalidBaseVersion) {
+    errors.push(invalidBaseVersion)
   }
-  if (
-    catalogVersion &&
-    !semver.satisfies(semver.coerce(catalogVersion) || '0.0.0', catalogSchemaVersion)
-  ) {
-    errors.push(
-      new Error(`Catalog supports ${catalogSchemaVersion} version of catalog Schema`),
-    )
+
+  if (catalogVersion) {
+    const invalidCatalogVersion = validateConfigVersion(catalogVersion, '1.0.0')
+    if (invalidCatalogVersion) {
+      errors.push(invalidCatalogVersion)
+    }
   }
+
   return errors.length ? errors : undefined
 }
 
@@ -178,7 +190,7 @@ function validateConfig(data: unknown): asserts data is WorkflowsYaml {
     ? makeSchemaValidator(workflowsCatalogConfigSchema, [workflowsConfigSchema])
     : makeSchemaValidator(workflowsConfigSchema)
 
-  const versionErrors = validateConfigVersion(
+  const versionErrors = validateConfigCompoundVersion(
     typeof objectVersion === 'string' ? { base: objectVersion } : objectVersion,
   )
   if (versionErrors)
