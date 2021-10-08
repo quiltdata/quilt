@@ -47,8 +47,8 @@
             "format": "regex",
             "description": "Regular expression to validate package handle",
             "examples": [
-              "instruments/(production/staging)",
-              "(employee1|employee2)/instruments"
+              "^instruments/(production/staging)$",
+              "^(employee1|employee2)/instruments$"
             ]
           },
           "metadata_schema": {
