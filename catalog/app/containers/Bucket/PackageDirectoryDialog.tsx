@@ -1,4 +1,3 @@
-import type { ErrorObject } from 'ajv'
 import cx from 'classnames'
 import * as FF from 'final-form'
 import { basename } from 'path'
@@ -16,7 +15,6 @@ import * as validators from 'utils/validators'
 import type * as workflows from 'utils/workflows'
 
 import * as PD from './PackageDialog'
-import MetaInputErrorHelper from './PackageDialog/MetaInputErrorHelper'
 import * as requests from './requests'
 
 const prepareEntries = (entries: PD.FilesSelectorState, path: string) => {
@@ -54,14 +52,6 @@ function DialogTitle({ bucket, path }: DialogTitleProps) {
 const useStyles = M.makeStyles((t) => ({
   files: {
     height: '100%',
-  },
-  filesWithError: {
-    height: `calc(90% - ${t.spacing()}px)`,
-  },
-  filesError: {
-    marginTop: t.spacing(),
-    maxHeight: t.spacing(9),
-    overflowY: 'auto',
   },
   form: {
     height: '100%',
@@ -111,12 +101,7 @@ function DialogForm({
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const [metaHeight, setMetaHeight] = React.useState(0)
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
-  const validateEntries = PD.useEntriesValidator(selectedWorkflow)
   const classes = useStyles()
-
-  const [entriesError, setEntriesError] = React.useState<(Error | ErrorObject)[] | null>(
-    null,
-  )
 
   const createPackage = requests.useWrapPackage()
 
@@ -136,20 +121,6 @@ function DialogForm({
       // eslint-disable-next-line consistent-return
     }) => {
       try {
-        const entries = filesValue
-          .filter((f) => f.selected)
-          .map((f) => ({
-            logical_key: f.name,
-            size: f.size,
-          }))
-        const error = await validateEntries(entries)
-        if (error) {
-          setEntriesError(error)
-          return {
-            files: 'schema',
-          }
-        }
-
         const res = await createPackage(
           {
             ...values,
@@ -171,7 +142,7 @@ function DialogForm({
         return { [FF.FORM_ERROR]: errorMessage || PD.ERROR_MESSAGES.MANIFEST }
       }
     },
-    [bucket, successor, createPackage, setSuccess, schema, path, validateEntries],
+    [bucket, successor, createPackage, setSuccess, schema, path],
   )
 
   const initialFiles: PD.FilesSelectorState = React.useMemo(
@@ -215,12 +186,10 @@ function DialogForm({
   const [editorElement, setEditorElement] = React.useState<HTMLElement | null>(null)
 
   const onFormChange = React.useCallback(
-    async ({ dirtyFields, values }) => {
+    async ({ values }) => {
       if (document.body.contains(editorElement)) {
         setMetaHeight(editorElement!.clientHeight)
       }
-
-      if (dirtyFields?.files) setEntriesError(null)
 
       handleNameChange(values.name)
     },
@@ -348,9 +317,7 @@ function DialogForm({
 
                 <PD.RightColumn>
                   <RF.Field
-                    className={cx(classes.files, {
-                      [classes.filesWithError]: entriesError,
-                    })}
+                    className={cx(classes.files)}
                     // @ts-expect-error
                     component={PD.FilesSelector}
                     name="files"
@@ -365,11 +332,6 @@ function DialogForm({
                     isEqual={R.equals}
                     initialValue={initialFiles}
                     truncated={truncated}
-                  />
-
-                  <MetaInputErrorHelper
-                    className={classes.filesError}
-                    error={entriesError}
                   />
                 </PD.RightColumn>
               </PD.Container>
