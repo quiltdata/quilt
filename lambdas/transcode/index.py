@@ -36,6 +36,7 @@ FFMPEG = '/opt/bin/ffmpeg'
 # Also, leave a few KB for the headers.
 MAX_VIDEO_SIZE = 6 * 1024 * 1024 * 3 // 4 - 4096
 
+
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 def lambda_handler(request):
