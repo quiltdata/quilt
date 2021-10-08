@@ -25,6 +25,9 @@ SCHEMA = {
         'duration': {
             'type': 'string'
         },
+        'timelimit': {
+            'type': 'string'
+        },
     },
     'required': ['url'],
     'additionalProperties': False
@@ -47,6 +50,8 @@ def lambda_handler(request):
     width_str = request.args.get('width', '320')
     height_str = request.args.get('width', '240')
     duration_str = request.args.get('duration', '5')
+
+    timelimit = request.args.get('timelimit', '20')
 
     try:
         width = int(width_str)
@@ -79,7 +84,8 @@ def lambda_handler(request):
                 f"scale=w={width}:h={height}:force_original_aspect_ratio=decrease",
                 f"crop='iw-mod(iw\\,2)':'ih-mod(ih\\,2)'",
             ]),
-            "-timelimit", str(request.context.get_remaining_time_in_millis() // 1000 - 2),  # 2 seconds for padding
+            # "-timelimit", str(request.context.get_remaining_time_in_millis() // 1000 - 3),  # 3 seconds for padding
+            "-timelimit", timelimit,
             "-fs", str(MAX_VIDEO_SIZE),
             "-y",  # Overwrite output file
             "-v", "error",  # Only print errors
