@@ -1,1 +1,1 @@
-quilt3==3.5.0
+https://github.com/quiltdata/quilt/archive/schema-validation-2.tar.gz#egg=quilt3&subdirectory=api/python
