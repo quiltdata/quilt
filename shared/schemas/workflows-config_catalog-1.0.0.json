@@ -13,10 +13,12 @@
       "additionalProperties": false,
       "properties": {
         "files": {
-          "$ref": "#/definitions/PackageHandleTemplate"
+          "$ref": "#/definitions/PackageHandleTemplate",
+          "description": "Default package name used for creating package from directory"
         },
         "packages": {
-          "$ref": "#/definitions/PackageHandleTemplate"
+          "$ref": "#/definitions/PackageHandleTemplate",
+          "description": "Default package name used for creating package from scratch or from another package"
         }
       }
     },
