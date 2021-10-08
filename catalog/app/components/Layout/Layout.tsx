@@ -29,7 +29,7 @@ export function Root({ dark = false, ...props }: RootProps) {
   )
 }
 
-interface LayoutProps {
+export interface LayoutProps {
   bare?: boolean
   dark?: boolean
   children?: React.ReactNode
