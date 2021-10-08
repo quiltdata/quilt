@@ -8,7 +8,9 @@ at `s3://BUCKET/.quilt/workflows/config.yml`.
 
 Here's an example:
 ```yaml
-version: "1"
+version:
+  base: "1.1.0"
+  catalog: "1.0.0"
 workflows:
   alpha:
     name: Search for aliens
@@ -21,11 +23,18 @@ workflows:
     description: TOP SECRET
     is_message_required: true
     metadata_schema: top-secret
+    handle_pattern: ^(employee1|employee2)/(staging|production)$
+    entries_schema: validate-secrets
+    package_handle:
+      files: <%= username %>/<%= directory %>
+      packages: <%= username %>/production
 schemas:
   superheroes:
     url: s3://quilt-sergey-dev-metadata/schemas/superheroes.schema.json
   top-secret:
     url: s3://quilt-sergey-dev-metadata/schemas/top-secret.schema.json
+  validate-secrets:
+    url: s3://quilt-sergey-dev-metadata/schemas/validate-secrets.schema.json
 ```
 
 With the above configuration, you must specify a workflow before you can push:
