@@ -24,6 +24,10 @@ export function execTemplateItem(template: string, options?: Options): string | 
   try {
     return lodashTemplate(template)(options)
   } catch (error) {
+    // eslint-disable-next-line no-console
+    console.log('Template for default package name is invalid')
+    // eslint-disable-next-line no-console
+    console.error(error)
     return null
   }
 }
