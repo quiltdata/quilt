@@ -480,6 +480,7 @@ def create_package(request):
         pkg._validate_with_workflow(
             registry=package_registry,
             workflow=data.get('workflow', ...),
+            name=handle,
             message=message,
         )
 
