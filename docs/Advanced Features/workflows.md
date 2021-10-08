@@ -200,14 +200,12 @@ for creating package for scratch, editing or copying are set up at `packages`.
 You can use `<%= directory %>` to substitute current directory and `<%= username %>` for current username.
 For example:
 
-```json
-{
-  "package_handle": {
-    "files": "<%= username %>/<%= directory %>",
-    "packages": "<%= username %>/production",
-
-  }
-}
+```yaml
+workflows:
+  workflow-1:
+    package_handle:
+      files: <%= username %>/<%= directory %>
+      packages: <%= username %>/production
 ```
 
 ### Validating package name
@@ -215,10 +213,10 @@ For example:
 You can validate package name using `handle_pattern` property for workflow. Use Javascript RegExp as a pattern:
 For exapmle:
 
-```json
-{
-  "handle_pattern": "^(employee1|employee2)/(production/staging)$"
-}
+```yaml
+workflows:
+  workflow-1:
+    handle_pattern: ^(employee1|employee2)/(production/staging)$
 ```
 
 ### Validating file entries
@@ -227,19 +225,13 @@ You can validate names and sizes of files used for package by providing Schema i
 Schema should be used against array of `{ "logical_key", "size" }` objects.
 For example:
 
-```json
-{
-  "workflows": {
-    "workflow-1": {
-      "entries_schema": "must-contain-readme"
-    }
-  },
-  "schemas": {
-    "must-contain-readme": {
-       "url": "s3://bucket/must-contain-readme.json"
-    }
-  }
-}
+```yaml
+workflows:
+  workflow-1:
+    entries_schema: must-contain-readme
+schemas:
+  must-contain-readme:
+    url: s3://bucket/must-contain-readme.json
 ```
 
 Where `s3://bucket/must-contain-readme.json` is:
