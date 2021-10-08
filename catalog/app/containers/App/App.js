@@ -64,6 +64,9 @@ const MAbout = RT.mkLazy(() => import('website/pages/About'), Placeholder)
 const MPersonas = RT.mkLazy(() => import('website/pages/Personas'), Placeholder)
 const MProduct = RT.mkLazy(() => import('website/pages/Product'), Placeholder)
 
+const Example = RT.mkLazy(() => import('website/pages/Example'), Placeholder)
+const BioIT = RT.mkLazy(() => import('website/pages/BioIT'), Placeholder)
+
 export default function App() {
   const cfg = Config.useConfig()
   const protect = React.useMemo(
@@ -82,6 +85,10 @@ export default function App() {
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
       <Switch>
         <Route path={paths.home} component={Home} exact />
+
+        {process.env.NODE_ENV === 'development' && (
+          <Route path={paths.example} component={Example} />
+        )}
 
         {(cfg.mode === 'MARKETING' || cfg.mode === 'PRODUCT') && (
           <Route path={paths.install} component={Install} exact />
@@ -104,6 +111,7 @@ export default function App() {
         {cfg.enableMarketingPages && (
           <Route path={paths.product} component={MProduct} exact />
         )}
+        {cfg.mode === 'MARKETING' && <Route path="/bioit" component={BioIT} exact />}
 
         {!cfg.disableNavigator && (
           <Route path={paths.activate} component={Activate} exact />
