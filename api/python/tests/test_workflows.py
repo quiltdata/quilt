@@ -2,7 +2,6 @@ import unittest
 from unittest import mock
 
 from quilt3 import workflows
-from tests.utils import QuiltTestCase
 
 
 class WorkflowValidatorConfigDataVersionSupportTest(unittest.TestCase):
@@ -36,14 +35,14 @@ class WorkflowValidatorConfigDataVersionSupportTest(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     def test_supported(self):
-        assert len(self.supported_versions)
+        assert self.supported_versions
 
         for v in self.supported_versions:
             with self.subTest(version=v):
                 assert workflows.WorkflowValidator.is_supported_config_data_version(v) is True
 
     def test_not_supported(self):
-        assert len(self.not_supported_versions)
+        assert self.not_supported_versions
 
         for v in self.not_supported_versions:
             with self.subTest(version=v):
@@ -83,4 +82,3 @@ class ConfigDataVersionParseTest(unittest.TestCase):
             expected_version = workflows.ConfigDataVersion._make(expected_version)
             with self.subTest(version_string=version_string, expected_version=expected_version):
                 assert workflows.ConfigDataVersion.parse(version_string) == expected_version
-
