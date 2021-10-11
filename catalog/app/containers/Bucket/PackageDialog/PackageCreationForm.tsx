@@ -183,10 +183,16 @@ export function PackageCreationForm({
       return !e || e.hash !== file.hash.value
     })
 
-    const entries = [...addedS3Entries, ...toUpload].map(({ file, path }) => ({
-      logical_key: path,
-      size: file.size,
-    }))
+    const entries = FP.function.pipe(
+      R.mergeLeft(files.added, files.existing),
+      R.omit(Object.keys(files.deleted)),
+      Object.entries,
+      R.map(([path, file]) => ({
+        logical_key: path,
+        size: file.size,
+      })),
+    )
+
     const error = await validateEntries(entries)
     if (error && error.length) {
       setEntriesError(error)
