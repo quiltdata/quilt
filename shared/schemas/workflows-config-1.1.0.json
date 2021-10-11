@@ -4,9 +4,37 @@
   "type": "object",
   "required": ["version", "workflows"],
   "additionalProperties": false,
+  "definitions": {
+    "Version": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*(\\.(0|[1-9][0-9]*)){0,2}$",
+      "examples": ["1", "1.0"]
+    },
+    "CompoundVersion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base"],
+      "properties": {
+        "base": {
+          "$ref": "#/definitions/Version"
+        },
+        "catalog": {
+          "$ref": "#/definitions/Version"
+        }
+      }
+    }
+  },
   "properties": {
     "catalog": true,
     "version": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/Version"
+        },
+        {
+          "$ref": "#/definitions/CompoundVersion"
+        }
+      ],
       "type": "string",
       "pattern": "^[1-9][0-9]*(\\.[0-9]+)?( catalog:[1-9][0-9]*(\\.[0-9]+)?)*$"
     },
