@@ -18,7 +18,7 @@ interface WorkflowsVersion {
 interface WorkflowsYaml {
   default_workflow?: string
   is_workflow_required?: boolean
-  catalog: {
+  catalog?: {
     package_handle?: packageHandleUtils.NameTemplates
   }
   schemas?: Record<string, Schema>
@@ -34,7 +34,7 @@ interface WorkflowYaml {
   is_message_required?: boolean
   metadata_schema?: string
   name: string
-  catalog: {
+  catalog?: {
     package_handle?: packageHandleUtils.NameTemplates
   }
 }
@@ -200,11 +200,22 @@ function validateConfig(data: unknown): asserts data is WorkflowsYaml {
   if (errors.length) throw new bucketErrors.WorkflowsConfigInvalid({ errors })
 }
 
-export function parse(workflowsYaml: string): WorkflowsConfig {
-  const data = yaml(workflowsYaml)
-  if (!data) return emptyConfig
-
+function prepareData(data: unknown): WorkflowsYaml {
   validateConfig(data)
+
+  if ((data.version as WorkflowsVersion).catalog) return data
+
+  const removeCatalog = R.dissoc('catalog')
+  return removeCatalog(
+    R.over(R.lensProp('workflows'), R.mapObjIndexed(removeCatalog), data),
+  )
+}
+
+export function parse(workflowsYaml: string): WorkflowsConfig {
+  const rawData = yaml(workflowsYaml)
+  if (!rawData) return emptyConfig
+
+  const data = prepareData(rawData)
 
   const { workflows } = data
   const workflowsList = Object.keys(workflows).map((slug) =>
