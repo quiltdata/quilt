@@ -325,7 +325,7 @@ export function PackageCreationForm({
     [delayHashing],
   )
 
-  const getWorkflow = React.useCallback(
+  const workflowTemplate = React.useMemo(
     () => selectedWorkflow || workflowsConfig,
     [selectedWorkflow, workflowsConfig],
   )
@@ -388,7 +388,7 @@ export function PackageCreationForm({
 
                   <RF.Field
                     component={PD.PackageNameInput}
-                    getWorkflow={getWorkflow}
+                    workflow={workflowTemplate}
                     initialValue={initial?.name}
                     name="name"
                     validate={validators.composeAsync(

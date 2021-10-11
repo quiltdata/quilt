@@ -249,8 +249,8 @@ interface PackageNameInputOwnProps {
   input: RF.FieldInputProps<string>
   directory?: string
   meta: RF.FieldMetaState<string>
-  getWorkflow: () => { packageName: packageHandleUtils.NameTemplates }
   validating: boolean
+  workflow: { packageName: packageHandleUtils.NameTemplates }
 }
 
 type PackageNameInputProps = PackageNameInputOwnProps &
@@ -260,7 +260,7 @@ export function PackageNameInput({
   errors,
   input: { value, onChange },
   meta,
-  getWorkflow,
+  workflow,
   directory,
   validating,
   ...rest
@@ -293,7 +293,7 @@ export function PackageNameInput({
   React.useEffect(() => {
     if (modified) return
 
-    const packageName = getDefaultPackageName(getWorkflow(), {
+    const packageName = getDefaultPackageName(workflow, {
       username,
       directory,
     })
@@ -304,7 +304,7 @@ export function PackageNameInput({
         value: packageName,
       },
     })
-  }, [directory, getWorkflow, modified, onChange, username])
+  }, [directory, workflow, modified, onChange, username])
   return <Field {...props} />
 }
 

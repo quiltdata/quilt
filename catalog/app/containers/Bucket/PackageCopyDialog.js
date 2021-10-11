@@ -156,7 +156,7 @@ function DialogForm({
     [editorElement, handleNameChange, selectedWorkflow, setMetaHeight, setWorkflow],
   )
 
-  const getWorkflow = React.useCallback(
+  const workflowTemplate = React.useCallback(
     () => selectedWorkflow || workflowsConfig,
     [selectedWorkflow, workflowsConfig],
   )
@@ -221,7 +221,7 @@ function DialogForm({
               <RF.Field
                 component={PD.PackageNameInput}
                 name="name"
-                getWorkflow={getWorkflow}
+                workflow={workflowTemplate}
                 validate={validators.composeAsync(
                   validators.required,
                   nameValidator.validate,
