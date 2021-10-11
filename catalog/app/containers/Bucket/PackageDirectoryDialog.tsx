@@ -1,4 +1,3 @@
-import cx from 'classnames'
 import * as FF from 'final-form'
 import { basename } from 'path'
 import * as R from 'ramda'
@@ -202,11 +201,6 @@ function DialogForm({
     }
   }, [editorElement, setMetaHeight])
 
-  const workflowTemplate = React.useCallback(
-    () => selectedWorkflow || workflowsConfig,
-    [selectedWorkflow, workflowsConfig],
-  )
-
   return (
     <RF.Form
       onSubmit={onSubmitWrapped}
@@ -268,7 +262,7 @@ function DialogForm({
                   <RF.Field
                     component={PD.PackageNameInput}
                     directory={path}
-                    workflow={workflowTemplate}
+                    workflow={selectedWorkflow || workflowsConfig}
                     name="name"
                     validate={validators.composeAsync(
                       validators.required,

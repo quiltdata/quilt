@@ -325,11 +325,6 @@ export function PackageCreationForm({
     [delayHashing],
   )
 
-  const workflowTemplate = React.useMemo(
-    () => selectedWorkflow || workflowsConfig,
-    [selectedWorkflow, workflowsConfig],
-  )
-
   return (
     <RF.Form
       onSubmit={onSubmitWrapped}
@@ -388,7 +383,7 @@ export function PackageCreationForm({
 
                   <RF.Field
                     component={PD.PackageNameInput}
-                    workflow={workflowTemplate}
+                    workflow={selectedWorkflow || workflowsConfig}
                     initialValue={initial?.name}
                     name="name"
                     validate={validators.composeAsync(

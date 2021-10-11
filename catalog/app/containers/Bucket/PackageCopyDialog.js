@@ -156,11 +156,6 @@ function DialogForm({
     [editorElement, handleNameChange, selectedWorkflow, setMetaHeight, setWorkflow],
   )
 
-  const workflowTemplate = React.useCallback(
-    () => selectedWorkflow || workflowsConfig,
-    [selectedWorkflow, workflowsConfig],
-  )
-
   React.useEffect(() => {
     if (document.body.contains(editorElement)) {
       setMetaHeight(editorElement.clientHeight)
@@ -221,7 +216,7 @@ function DialogForm({
               <RF.Field
                 component={PD.PackageNameInput}
                 name="name"
-                workflow={workflowTemplate}
+                workflow={selectedWorkflow || workflowsConfig}
                 validate={validators.composeAsync(
                   validators.required,
                   nameValidator.validate,
