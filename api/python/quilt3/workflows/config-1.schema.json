@@ -1,15 +1,40 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://quiltdata.com/workflows/config/1",
+  "$id": "https://schemas.quiltdata.com/workflows-config-1.1.0",
   "type": "object",
-  "required": [
-    "version",
-    "workflows"
-  ],
+  "required": ["version", "workflows"],
   "additionalProperties": false,
+  "definitions": {
+    "Version": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*(\\.(0|[1-9][0-9]*)){0,2}$",
+      "examples": ["1", "1.0"]
+    },
+    "CompoundVersion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base"],
+      "properties": {
+        "base": {
+          "$ref": "#/definitions/Version"
+        },
+        "catalog": {
+          "$ref": "#/definitions/Version"
+        }
+      }
+    }
+  },
   "properties": {
+    "catalog": true,
     "version": {
-      "const": "1"
+      "oneOf": [
+        {
+          "$ref": "#/definitions/Version"
+        },
+        {
+          "$ref": "#/definitions/CompoundVersion"
+        }
+      ]
     },
     "is_workflow_required": {
       "type": "boolean",
@@ -29,23 +54,36 @@
       },
       "additionalProperties": {
         "type": "object",
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
+        "additionalProperties": false,
         "properties": {
+          "catalog": true,
           "name": {
             "type": "string",
             "description": "The workflow name displayed by Quilt in the Python API or web UI.",
             "minLength": 1
           },
           "description": {
-            "type": "string",
             "description": "The workflow description displayed by Quilt in the Python API or web UI.",
+            "type": "string",
             "minLength": 1
+          },
+          "handle_pattern": {
+            "type": "string",
+            "format": "regex",
+            "description": "Regular expression to validate package handle",
+            "examples": [
+              "^instruments/(production|staging)$",
+              "^(employee1|employee2)/instruments$"
+            ]
           },
           "metadata_schema": {
             "type": "string",
-            "description": "JSON Schema $id."
+            "description": "JSON Schema $id to validate package metadata against."
+          },
+          "entries_schema": {
+            "type": "string",
+            "description": "JSON Schema $id to validate package entries against."
           },
           "is_message_required": {
             "type": "boolean",
@@ -57,13 +95,11 @@
     },
     "schemas": {
       "type": "object",
-      "description": "JSON Schemas for validating user-supplied metadata.",
+      "description": "JSON Schemas for validating user-supplied metadata and/or package entries.",
       "minProperties": 1,
       "additionalProperties": {
         "type": "object",
-        "required": [
-          "url"
-        ],
+        "required": ["url"],
         "properties": {
           "url": {
             "type": "string",
@@ -97,9 +133,7 @@
       },
       "additionalProperties": {
         "type": "object",
-        "required": [
-          "title"
-        ],
+        "required": ["title"],
         "properties": {
           "title": {
             "type": "string",
