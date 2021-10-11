@@ -56,7 +56,7 @@
   },
   "allOf": [
     {
-      "$ref": "https://schemas.quiltdata.com/workflows-config-1.1.0.json"
+      "$ref": "https://schemas.quiltdata.com/workflows-config-1.1.0"
     },
     {
       "$ref": "#/definitions/CatalogSettings"
