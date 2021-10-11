@@ -1,6 +1,8 @@
+import collections
 import functools
 import json
 import re
+import typing
 
 import botocore.exceptions
 import jsonschema
@@ -11,6 +13,28 @@ from quilt3.data_transfer import get_bytes_and_effective_pk
 
 from .. import util
 from ..backends import PackageRegistry
+
+
+class ConfigDataVersion(typing.NamedTuple):
+    major: int
+    minor: int
+    patch: int
+
+    @classmethod
+    def parse(cls, version_str: str):
+        """
+        Parse valid version string.
+        """
+        return cls._make(((*map(int, version_str.split('.')), 0, 0)[:3]))
+
+    def __str__(self):
+        return '%s.%s.%s' % self
+
+
+class UnsupportedConfigDataVersion(util.QuiltException):
+    def __init__(self, version: ConfigDataVersion):
+        self.version = version
+        super().__init__(f'{version} is not supported')
 
 
 @functools.lru_cache(maxsize=None)
@@ -34,6 +58,8 @@ _load_schema_json = json.JSONDecoder(object_hook=_schema_load_object_hook).decod
 
 
 class WorkflowValidator:
+    CONFIG_DATA_VERSION = ConfigDataVersion(1, 1, 0)
+
     def __init__(self, config: dict, physical_key: util.PhysicalKey):
         """
         Args:
@@ -43,6 +69,16 @@ class WorkflowValidator:
         self.config = config
         self.physical_key = physical_key
         self.loaded_schemas = {}
+
+    @staticmethod
+    def get_config_data_version_str(data: dict) -> str:
+        version_obj = data['version']
+        assert isinstance(version_obj, (str, dict))
+        return version_obj if isinstance(version_obj, str) else version_obj['base']
+
+    @classmethod
+    def is_supported_config_data_version(cls, version: ConfigDataVersion):
+        return cls.CONFIG_DATA_VERSION >= version
 
     @classmethod
     def load(cls, pk: util.PhysicalKey):
@@ -67,6 +103,11 @@ class WorkflowValidator:
             conf_validator(config)
         except jsonschema.ValidationError as e:
             raise util.QuiltException(f'Workflows config failed validation: {e.message}.') from e
+
+        version_str = cls.get_config_data_version_str(config)
+        version = ConfigDataVersion.parse(version_str)
+        if not cls.is_supported_config_data_version(version):
+            raise UnsupportedConfigDataVersion(version)
 
         return cls(config, pk)
 
