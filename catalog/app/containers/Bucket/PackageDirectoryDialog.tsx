@@ -317,7 +317,7 @@ function DialogForm({
 
                 <PD.RightColumn>
                   <RF.Field
-                    className={cx(classes.files)}
+                    className={classes.files}
                     // @ts-expect-error
                     component={PD.FilesSelector}
                     name="files"

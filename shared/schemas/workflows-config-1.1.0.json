@@ -75,17 +75,17 @@
             "format": "regex",
             "description": "Regular expression to validate package handle",
             "examples": [
-              "^instruments/(production/staging)$",
+              "^instruments/(production|staging)$",
               "^(employee1|employee2)/instruments$"
             ]
           },
           "metadata_schema": {
             "type": "string",
-            "description": "JSON Schema $id."
+            "description": "JSON Schema $id to validate package metadata against."
           },
           "entries_schema": {
             "type": "string",
-            "description": "JSON Schema $id."
+            "description": "JSON Schema $id to validate package entries against."
           },
           "is_message_required": {
             "type": "boolean",
@@ -97,7 +97,7 @@
     },
     "schemas": {
       "type": "object",
-      "description": "JSON Schemas for validating user-supplied metadata.",
+      "description": "JSON Schemas for validating user-supplied metadata and/or package entries.",
       "minProperties": 1,
       "additionalProperties": {
         "type": "object",
