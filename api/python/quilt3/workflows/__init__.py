@@ -37,7 +37,7 @@ class UnsupportedConfigDataVersion(util.QuiltException):
         super().__init__(f'{version} is not supported')
 
 
-class WorkflowValidationFailedException(util.QuiltException):
+class WorkflowValidationError(util.QuiltException):
     pass
 
 
@@ -211,11 +211,11 @@ class WorkflowValidator(typing.NamedTuple):
 
     def validate_name(self, name):
         if self.handle_pattern and not self.handle_pattern.search(name):
-            raise WorkflowValidationFailedException('Handle failed validation.')
+            raise WorkflowValidationError('Handle failed validation.')
 
     def validate_message(self, message):
         if self.is_message_required and not message:
-            raise WorkflowValidationFailedException('Commit message is required by workflow, but none was provided.')
+            raise WorkflowValidationError('Commit message is required by workflow, but none was provided.')
 
     def validate_metadata(self, meta):
         if self.metadata_validator is None:
@@ -223,7 +223,7 @@ class WorkflowValidator(typing.NamedTuple):
         try:
             self.metadata_validator.validate(meta)
         except jsonschema.ValidationError as e:
-            raise WorkflowValidationFailedException(f"Metadata failed validation: {e.message}.")
+            raise WorkflowValidationError(f"Metadata failed validation: {e.message}.")
 
     def validate_entries(self, pkg):
         if self.entries_validator is None:
@@ -231,7 +231,7 @@ class WorkflowValidator(typing.NamedTuple):
         try:
             self.entries_validator.validate(self.get_pkg_entries_for_validation(pkg))
         except jsonschema.ValidationError as e:
-            raise WorkflowValidationFailedException(f"Package entries failed validation: {e.message}.")
+            raise WorkflowValidationError(f"Package entries failed validation: {e.message}.")
 
     def get_pkg_entries_for_validation(self, pkg):
         return [

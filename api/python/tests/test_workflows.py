@@ -1,5 +1,9 @@
+import re
 import unittest
 from unittest import mock
+
+import jsonschema
+import pytest
 
 from quilt3 import Package, workflows
 
@@ -85,6 +89,8 @@ class ConfigDataVersionParseTest(unittest.TestCase):
 
 
 class WorkflowValidatorTest(unittest.TestCase):
+    JSON_SCHEMA_VALIDATOR_CLS = jsonschema.Draft7Validator
+
     def get_workflow_validator(self, **kwargs):
         return workflows.WorkflowValidator(
             **{
@@ -122,3 +128,80 @@ class WorkflowValidatorTest(unittest.TestCase):
             mocks['validate_message'].assert_called_once_with(msg)
             mocks['validate_metadata'].assert_called_once_with(meta)
             mocks['validate_entries'].assert_called_once_with(pkg)
+
+    def test_validate_name_noop(self):
+        workflow_validator = self.get_workflow_validator(handle_pattern=None)
+        workflow_validator.validate_name('foobar')
+
+    def test_validate_name(self):
+        workflow_validator = self.get_workflow_validator(handle_pattern=re.compile(r'oob'))
+        workflow_validator.validate_name('foobar')
+
+    def test_validate_name_fail(self):
+        workflow_validator = self.get_workflow_validator(handle_pattern=re.compile(r'^oob'))
+        with pytest.raises(workflows.WorkflowValidationError):
+            workflow_validator.validate_name('foobar')
+
+    def test_validate_message_not_required(self):
+        workflow_validator = self.get_workflow_validator(is_message_required=False)
+        for msg in (
+            None,
+            '',
+            'message',
+        ):
+            with self.subTest(message=msg):
+                workflow_validator.validate_message(msg)
+
+    def test_validate_message_required(self):
+        workflow_validator = self.get_workflow_validator(is_message_required=True)
+        workflow_validator.validate_message('message')
+
+    def test_validate_message_required_fail(self):
+        workflow_validator = self.get_workflow_validator(is_message_required=True)
+        for msg in (
+            None,
+            '',
+        ):
+            with self.subTest(message=msg):
+                with pytest.raises(workflows.WorkflowValidationError):
+                    workflow_validator.validate_message(msg)
+
+    def test_validate_metadata_noop(self):
+        workflow_validator = self.get_workflow_validator()
+        workflow_validator.validate_metadata({})
+
+    def test_validate_metadata(self):
+        workflow_validator = self.get_workflow_validator(metadata_validator=self.JSON_SCHEMA_VALIDATOR_CLS(True))
+        workflow_validator.validate_metadata({})
+
+    def test_validate_metadata_fail(self):
+        workflow_validator = self.get_workflow_validator(metadata_validator=self.JSON_SCHEMA_VALIDATOR_CLS(False))
+        with pytest.raises(workflows.WorkflowValidationError):
+            workflow_validator.validate_metadata({})
+
+    @mock.patch.object(workflows.WorkflowValidator, 'get_pkg_entries_for_validation')
+    def test_validate_pkg_entries_noop(self, get_pkg_entries_for_validation_mock):
+        workflow_validator = self.get_workflow_validator()
+        workflow_validator.validate_entries(Package())
+
+        get_pkg_entries_for_validation_mock.assert_not_called()
+
+    @mock.patch.object(workflows.WorkflowValidator, 'get_pkg_entries_for_validation')
+    def test_validate_pkg_entries(self, get_pkg_entries_for_validation_mock):
+        pkg = Package()
+
+        workflow_validator = self.get_workflow_validator(entries_validator=self.JSON_SCHEMA_VALIDATOR_CLS(True))
+        workflow_validator.validate_entries(pkg)
+
+        get_pkg_entries_for_validation_mock.assert_called_once_with(pkg)
+
+    @mock.patch.object(workflows.WorkflowValidator, 'get_pkg_entries_for_validation')
+    def test_validate_pkg_entries_fail(self, get_pkg_entries_for_validation_mock):
+        pkg = Package()
+
+        workflow_validator = self.get_workflow_validator(entries_validator=self.JSON_SCHEMA_VALIDATOR_CLS(False))
+        with pytest.raises(workflows.WorkflowValidationError):
+            workflow_validator.validate_entries(pkg)
+
+        get_pkg_entries_for_validation_mock.assert_called_once_with(pkg)
+
