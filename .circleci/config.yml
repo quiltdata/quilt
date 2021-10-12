@@ -23,6 +23,9 @@ executors:
   python-39:
     docker:
       - image: cimg/python:3.9
+  python-310:
+    docker:
+      - image: cimg/python:3.10
   python: python-36
 
 commands:
@@ -223,6 +226,7 @@ workflows:
                 - python-37
                 - python-38
                 - python-39
+                - python-310
           filters:
             <<: *release-tags
       - test-client:
