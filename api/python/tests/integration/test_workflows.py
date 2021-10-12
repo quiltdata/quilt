@@ -1,4 +1,6 @@
+import functools
 import textwrap
+from unittest import mock
 
 import pytest
 from tests.utils import QuiltTestCase
@@ -9,9 +11,12 @@ from quilt3.data_transfer import put_bytes
 from quilt3.util import PhysicalKey, QuiltException
 
 
-def get_v1_conf_data(conf_data):
+def get_conf_data(conf_data, *, version: str):
     conf_data = textwrap.dedent(conf_data)
-    return f'version: "1"\n{conf_data}'
+    return f'version: "{version}"\n{conf_data}'
+
+
+get_v1_conf_data = functools.partial(get_conf_data, version="1")
 
 
 def set_local_conf_data(conf_data):
@@ -436,3 +441,17 @@ class WorkflowTest(QuiltTestCase):
             'id': 'w1',
             'config': str(get_package_registry().workflow_conf_pk),
         }
+
+    @mock.patch.object(workflows.WorkflowConfig, 'CONFIG_DATA_VERSION', workflows.ConfigDataVersion(1, 1, 0))
+    def test_unsupported_version(self):
+        set_local_conf_data(get_conf_data('''
+            workflows:
+              w1:
+                name: Name
+            successors:
+              s3://some-bucket:
+                title: successor title
+        ''', version='2'))
+
+        with pytest.raises(workflows.UnsupportedConfigDataVersion, match=r"Version '2.0.0' is not supported"):
+            self._validate(workflow='w1')

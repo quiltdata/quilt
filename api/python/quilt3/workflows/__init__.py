@@ -1,4 +1,3 @@
-import collections
 import functools
 import json
 import re
@@ -34,7 +33,7 @@ class ConfigDataVersion(typing.NamedTuple):
 class UnsupportedConfigDataVersion(util.QuiltException):
     def __init__(self, version: ConfigDataVersion):
         self.version = version
-        super().__init__(f'{version} is not supported')
+        super().__init__(f"Version '{version}' is not supported")
 
 
 class WorkflowValidationError(util.QuiltException):
@@ -172,8 +171,8 @@ class WorkflowConfig:
         else:
             workflow_data = workflows_data[workflow]
 
-        handle_pattern = workflow_data.get('handle_pattern')
-        handle_pattern = re.compile(handle_pattern) if handle_pattern else None
+        pkg_name_pattern = workflow_data.get('handle_pattern')
+        pkg_name_pattern = re.compile(pkg_name_pattern) if pkg_name_pattern else None
 
         metadata_schema_id = workflow_data.get('metadata_schema')
         metadata_validator = self.make_validator_from_schema(metadata_schema_id) if metadata_schema_id else None
@@ -196,7 +195,7 @@ class WorkflowConfig:
         return WorkflowValidator(
             data_to_store=data_to_store,
             is_message_required=is_message_required,
-            handle_pattern=handle_pattern,
+            pkg_name_pattern=pkg_name_pattern,
             metadata_validator=metadata_validator,
             entries_validator=entries_validator,
         )
@@ -205,12 +204,12 @@ class WorkflowConfig:
 class WorkflowValidator(typing.NamedTuple):
     data_to_store: dict
     is_message_required: bool
-    handle_pattern: typing.Optional[typing.Pattern[str]]
+    pkg_name_pattern: typing.Optional[typing.Pattern[str]]
     metadata_validator: typing.Any
     entries_validator: typing.Any
 
     def validate_name(self, name):
-        if self.handle_pattern and not self.handle_pattern.search(name):
+        if self.pkg_name_pattern and not self.pkg_name_pattern.search(name):
             raise WorkflowValidationError('Handle failed validation.')
 
     def validate_message(self, message):

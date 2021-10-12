@@ -96,7 +96,7 @@ class WorkflowValidatorTest(unittest.TestCase):
             **{
                 'data_to_store': None,
                 'is_message_required': False,
-                'handle_pattern': None,
+                'pkg_name_pattern': None,
                 'metadata_validator': None,
                 'entries_validator': None,
                 **kwargs,
@@ -130,15 +130,15 @@ class WorkflowValidatorTest(unittest.TestCase):
             mocks['validate_entries'].assert_called_once_with(pkg)
 
     def test_validate_name_noop(self):
-        workflow_validator = self.get_workflow_validator(handle_pattern=None)
+        workflow_validator = self.get_workflow_validator(pkg_name_pattern=None)
         workflow_validator.validate_name('foobar')
 
     def test_validate_name(self):
-        workflow_validator = self.get_workflow_validator(handle_pattern=re.compile(r'oob'))
+        workflow_validator = self.get_workflow_validator(pkg_name_pattern=re.compile(r'oob'))
         workflow_validator.validate_name('foobar')
 
     def test_validate_name_fail(self):
-        workflow_validator = self.get_workflow_validator(handle_pattern=re.compile(r'^oob'))
+        workflow_validator = self.get_workflow_validator(pkg_name_pattern=re.compile(r'^oob'))
         with pytest.raises(workflows.WorkflowValidationError):
             workflow_validator.validate_name('foobar')
 
