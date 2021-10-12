@@ -204,4 +204,3 @@ class WorkflowValidatorTest(unittest.TestCase):
             workflow_validator.validate_entries(pkg)
 
         get_pkg_entries_for_validation_mock.assert_called_once_with(pkg)
-
