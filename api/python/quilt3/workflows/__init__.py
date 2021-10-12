@@ -88,6 +88,7 @@ class WorkflowConfig:
         """
         self.config = config
         self.physical_key = physical_key
+        self.loaded_schemas_by_id = {}
         self.loaded_schemas = {}
 
     @staticmethod
@@ -131,10 +132,7 @@ class WorkflowConfig:
 
         return cls(config, pk)
 
-    def make_validator_from_schema(self, schema_id):
-        if schema_id in self.loaded_schemas:
-            return self.loaded_schemas[schema_id][0]
-
+    def get_pk_for_schema_id(self, schema_id: str) -> util.PhysicalKey:
         schemas = self.config.get('schemas', {})
         if schema_id not in schemas:
             raise ConfigurationError(f'There is no {schema_id!r} in schemas.')
@@ -146,11 +144,25 @@ class WorkflowConfig:
         if schema_pk.is_local() and not self.physical_key.is_local():
             raise ConfigurationError(f"Local schema {str(schema_pk)!r} can't be used on the remote registry.")
 
+        return schema_pk
+
+    def load_schema(self, schema_pk: util.PhysicalKey) -> (bytes, util.PhysicalKey):
         handled_exception = (OSError if schema_pk.is_local() else botocore.exceptions.ClientError)
         try:
-            schema_data, schema_pk_to_store = get_bytes_and_effective_pk(schema_pk)
+            return get_bytes_and_effective_pk(schema_pk)
         except handled_exception as e:
             raise ConfigurationError(f"Couldn't load schema at {schema_pk}.") from e
+
+    def make_validator_from_schema(self, schema_id):
+        if schema_id in self.loaded_schemas_by_id:
+            return self.loaded_schemas_by_id[schema_id][0]
+
+        schema_pk = self.get_pk_for_schema_id(schema_id)
+        if str(schema_pk) in self.loaded_schemas:
+            self.loaded_schemas_by_id[schema_id] = self.loaded_schemas[str(schema_pk)]
+            return self.loaded_schemas_by_id[schema_id][0]
+
+        schema_data, schema_pk_to_store = self.load_schema(schema_pk)
         try:
             schema = _load_schema_json(schema_data.decode())
         except json.JSONDecodeError as e:
@@ -171,7 +183,7 @@ class WorkflowConfig:
             raise ConfigurationError.from_schema_validation_error(f'Schema {schema_id!r} is not valid', e) from e
 
         validator = validator_cls(schema)
-        self.loaded_schemas[schema_id] = (validator, schema_pk_to_store)
+        self.loaded_schemas_by_id[schema_id] = self.loaded_schemas[str(schema_pk)] = (validator, schema_pk_to_store)
         return validator
 
     def get_workflow_validator(self, workflow):
@@ -206,7 +218,7 @@ class WorkflowConfig:
         if self.loaded_schemas:
             data_to_store['schemas'] = {
                 schema_id: str(x[1])
-                for schema_id, x in self.loaded_schemas.items()
+                for schema_id, x in self.loaded_schemas_by_id.items()
             }
 
         return WorkflowValidator(

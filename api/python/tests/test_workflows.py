@@ -6,6 +6,7 @@ import jsonschema
 import pytest
 
 from quilt3 import Package, workflows
+from tests.utils import QuiltTestCase
 
 
 class WorkflowConfigConfigDataVersionSupportTest(unittest.TestCase):
@@ -88,9 +89,7 @@ class ConfigDataVersionParseTest(unittest.TestCase):
                 assert workflows.ConfigDataVersion.parse(version_string) == expected_version
 
 
-class WorkflowValidatorTest(unittest.TestCase):
-    JSON_SCHEMA_VALIDATOR_CLS = jsonschema.Draft7Validator
-
+class WorkflowValidatorTestMixin:
     def get_workflow_validator(self, **kwargs):
         return workflows.WorkflowValidator(
             **{
@@ -102,6 +101,10 @@ class WorkflowValidatorTest(unittest.TestCase):
                 **kwargs,
             }
         )
+
+
+class WorkflowValidatorTest(unittest.TestCase, WorkflowValidatorTestMixin):
+    JSON_SCHEMA_VALIDATOR_CLS = jsonschema.Draft7Validator
 
     def test_validate(self):
         pkg_name = 'test/name'
@@ -204,3 +207,31 @@ class WorkflowValidatorTest(unittest.TestCase):
             workflow_validator.validate_entries(pkg)
 
         get_pkg_entries_for_validation_mock.assert_called_once_with(pkg)
+
+
+class GetPkgEntriesForValidationTest(QuiltTestCase, WorkflowValidatorTestMixin):
+    def test(self):
+        entries_data = {
+            'b/a': bytes(1),
+            'a/b': bytes(2),
+            'c': bytes(3),
+        }
+        pkg = Package()
+        for lk, data in entries_data.items():
+            pkg.set(lk, data)
+
+        workflow_validator = self.get_workflow_validator()
+        assert workflow_validator.get_pkg_entries_for_validation(pkg) == [
+            {
+                'logical_key': 'a/b',
+                'size': 2,
+            },
+            {
+                'logical_key': 'b/a',
+                'size': 1,
+            },
+            {
+                'logical_key': 'c',
+                'size': 3,
+            },
+        ]
