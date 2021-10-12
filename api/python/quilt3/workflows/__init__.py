@@ -262,6 +262,7 @@ class WorkflowValidator(typing.NamedTuple):
             raise WorkflowValidationError.from_schema_validation_error('"Package entries failed validation', e) from e
 
     def get_pkg_entries_for_validation(self, pkg):
+        # TODO: this should be validated without fully populating array.
         return [
             {
                 'logical_key': lk,
