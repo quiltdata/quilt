@@ -211,6 +211,20 @@ class WorkflowTest(QuiltTestCase):
         with pytest.raises(QuiltException, match=fr"Couldn't parse {tmp_schema} as JSON."):
             self._validate(workflow='w1')
 
+    def test_schema_invalid_schema(self):
+        tmp_schema = create_local_tmp_schema('""')
+        set_local_conf_data(get_v1_conf_data('''
+            workflows:
+              w1:
+                name: Name
+                metadata_schema: schema-id
+            schemas:
+              schema-id:
+                url: %s
+        ''' % tmp_schema))
+        with pytest.raises(QuiltException, match=r"Schema 'schema-id' is not valid:"):
+            self._validate(workflow='w1')
+
     def test_schema_load_error(self):
         schema_pk = get_package_registry().root.join('nonexistent-schema')
         set_local_conf_data(get_v1_conf_data('''
@@ -453,5 +467,5 @@ class WorkflowTest(QuiltTestCase):
                 title: successor title
         ''', version='2'))
 
-        with pytest.raises(workflows.UnsupportedConfigDataVersion, match=r"Version '2.0.0' is not supported"):
+        with pytest.raises(workflows.UnsupportedConfigurationVersionError, match=r"Version '2.0.0' is not supported"):
             self._validate(workflow='w1')

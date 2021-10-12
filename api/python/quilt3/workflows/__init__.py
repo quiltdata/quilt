@@ -30,13 +30,30 @@ class ConfigDataVersion(typing.NamedTuple):
         return '%s.%s.%s' % self
 
 
-class UnsupportedConfigDataVersion(util.QuiltException):
+JSONSchemaError = typing.Union[jsonschema.ValidationError, jsonschema.SchemaError]
+
+
+class WorkflowErrorBase(util.QuiltException):
+    schema_validation_error: JSONSchemaError = None
+
+    @classmethod
+    def from_schema_validation_error(cls, message: str, err: JSONSchemaError):
+        obj = cls(f'{message}: {err.message}.')
+        obj.schema_validation_error = err
+        return obj
+
+
+class ConfigurationError(WorkflowErrorBase):
+    pass
+
+
+class UnsupportedConfigurationVersionError(ConfigurationError):
     def __init__(self, version: ConfigDataVersion):
         self.version = version
         super().__init__(f"Version '{version}' is not supported")
 
 
-class WorkflowValidationError(util.QuiltException):
+class WorkflowValidationError(WorkflowErrorBase):
     pass
 
 
@@ -92,7 +109,7 @@ class WorkflowConfig:
             pass
         except botocore.exceptions.ClientError as e:
             if e.response['Error']['Code'] != 'NoSuchKey':
-                raise util.QuiltException(f"Couldn't load workflows config. {e}.")
+                raise ConfigurationError(f"Couldn't load workflows config. {e}.")
         if data is None:
             return
 
@@ -100,17 +117,17 @@ class WorkflowConfig:
             # TODO: raise if objects contain duplicate properties
             config = yaml.safe_load(data.decode())
         except yaml.YAMLError as e:
-            raise util.QuiltException("Couldn't parse workflows config as YAML.") from e
+            raise ConfigurationError("Couldn't parse workflows config as YAML.") from e
         conf_validator = _get_conf_validator()
         try:
             conf_validator(config)
         except jsonschema.ValidationError as e:
-            raise util.QuiltException(f'Workflows config failed validation: {e.message}.') from e
+            raise ConfigurationError.from_schema_validation_error('Workflows config failed validation', e) from e
 
         version_str = cls.get_config_data_version_str(config)
         version = ConfigDataVersion.parse(version_str)
         if not cls.is_supported_config_data_version(version):
-            raise UnsupportedConfigDataVersion(version)
+            raise UnsupportedConfigurationVersionError(version)
 
         return cls(config, pk)
 
@@ -120,38 +137,38 @@ class WorkflowConfig:
 
         schemas = self.config.get('schemas', {})
         if schema_id not in schemas:
-            raise util.QuiltException(f'There is no {schema_id!r} in schemas.')
+            raise ConfigurationError(f'There is no {schema_id!r} in schemas.')
         schema_url = schemas[schema_id]['url']
         try:
             schema_pk = util.PhysicalKey.from_url(schema_url)
         except util.URLParseError as e:
-            raise util.QuiltException(f"Couldn't parse URL {schema_url!r}. {e}.")
+            raise ConfigurationError(f"Couldn't parse URL {schema_url!r}.") from e
         if schema_pk.is_local() and not self.physical_key.is_local():
-            raise util.QuiltException(f"Local schema {str(schema_pk)!r} can't be used on the remote registry.")
+            raise ConfigurationError(f"Local schema {str(schema_pk)!r} can't be used on the remote registry.")
 
         handled_exception = (OSError if schema_pk.is_local() else botocore.exceptions.ClientError)
         try:
             schema_data, schema_pk_to_store = get_bytes_and_effective_pk(schema_pk)
         except handled_exception as e:
-            raise util.QuiltException(f"Couldn't load schema at {schema_pk}. {e}.")
+            raise ConfigurationError(f"Couldn't load schema at {schema_pk}.") from e
         try:
             schema = _load_schema_json(schema_data.decode())
         except json.JSONDecodeError as e:
-            raise util.QuiltException(f"Couldn't parse {schema_pk} as JSON. {e}.")
+            raise ConfigurationError(f"Couldn't parse {schema_pk} as JSON.") from e
 
         validator_cls = jsonschema.Draft7Validator
         if isinstance(schema, dict) and '$schema' in schema:
             meta_schema = schema['$schema']
             if not isinstance(meta_schema, str):
-                raise util.QuiltException('$schema must be a string.')
+                raise ConfigurationError('$schema must be a string.')
             validator_cls = SUPPORTED_META_SCHEMAS.get(meta_schema)
             if validator_cls is None:
-                raise util.QuiltException(f"Unsupported meta-schema: {meta_schema}.")
+                raise ConfigurationError(f"Unsupported meta-schema: {meta_schema}.")
 
         try:
             validator_cls.check_schema(schema)
-        except jsonschema.exceptions.SchemaError as e:
-            raise util.QuiltException(f"Schema {schema_id!r} is not valid: {e.message}")
+        except jsonschema.SchemaError as e:
+            raise ConfigurationError.from_schema_validation_error(f'Schema {schema_id!r} is not valid', e) from e
 
         validator = validator_cls(schema)
         self.loaded_schemas[schema_id] = (validator, schema_pk_to_store)
@@ -210,7 +227,7 @@ class WorkflowValidator(typing.NamedTuple):
 
     def validate_name(self, name):
         if self.pkg_name_pattern and not self.pkg_name_pattern.search(name):
-            raise WorkflowValidationError('Handle failed validation.')
+            raise WorkflowValidationError("Package name doesn't match required pattern.")
 
     def validate_message(self, message):
         if self.is_message_required and not message:
@@ -222,7 +239,7 @@ class WorkflowValidator(typing.NamedTuple):
         try:
             self.metadata_validator.validate(meta)
         except jsonschema.ValidationError as e:
-            raise WorkflowValidationError(f"Metadata failed validation: {e.message}.")
+            raise WorkflowValidationError.from_schema_validation_error('Metadata failed validation', e) from e
 
     def validate_entries(self, pkg):
         if self.entries_validator is None:
@@ -230,7 +247,7 @@ class WorkflowValidator(typing.NamedTuple):
         try:
             self.entries_validator.validate(self.get_pkg_entries_for_validation(pkg))
         except jsonschema.ValidationError as e:
-            raise WorkflowValidationError(f"Package entries failed validation: {e.message}.")
+            raise WorkflowValidationError.from_schema_validation_error('"Package entries failed validation', e) from e
 
     def get_pkg_entries_for_validation(self, pkg):
         return [
