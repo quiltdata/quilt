@@ -1,1 +1,1 @@
-https://github.com/quiltdata/quilt/archive/schema-validation-2.tar.gz#egg=quilt3&subdirectory=api/python
+https://github.com/quiltdata/quilt/archive/schema-validation-2.tar.gz#egg=quilt3&subdirectory=api/python # FIXME: set hash after merging this to master
