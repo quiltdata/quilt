@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-from quilt3 import workflows, Package
+from quilt3 import Package, workflows
 
 
 class WorkflowConfigConfigDataVersionSupportTest(unittest.TestCase):
