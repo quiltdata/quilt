@@ -136,8 +136,8 @@ class PackagePromoteTestBase(unittest.TestCase):
 
     @contextlib.contextmanager
     def mock_successors(self, successors):
-        workflow_validator_mock = mock.MagicMock()
-        workflow_validator_mock.config = {
+        workflow_config_mock = mock.MagicMock()
+        workflow_config_mock.config = {
             'successors': successors,
         }
         src_registry = get_package_registry(self.src_registry)
@@ -147,7 +147,7 @@ class PackagePromoteTestBase(unittest.TestCase):
                 return src_registry
             return mock.DEFAULT
 
-        with mock.patch.object(src_registry, 'get_workflow_validator', return_value=workflow_validator_mock), \
+        with mock.patch.object(src_registry, 'get_workflow_config', return_value=workflow_config_mock), \
              mock.patch('index.get_package_registry', side_effect=side_effect, wraps=get_package_registry):
             yield
 

@@ -296,8 +296,8 @@ def get_registry(registry_url):
 
 
 def _get_successor_params(registry, successor):
-    workflow_validator = registry.get_workflow_validator()
-    successors = workflow_validator.config.get('successors') or {}
+    workflow_config = registry.get_workflow_config()
+    successors = workflow_config.config.get('successors') or {}
     for successor_url, successor_params in successors.items():
         if get_registry(successor_url) == successor:
             return successor_params
