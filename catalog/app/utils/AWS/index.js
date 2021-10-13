@@ -1,4 +1,3 @@
-export * as APIGateway from './APIGateway'
 export * as Athena from './Athena'
 export * as Config from './Config'
 export * as Credentials from './Credentials'
