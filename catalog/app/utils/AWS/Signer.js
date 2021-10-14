@@ -1,4 +1,3 @@
-import SignerV4 from 'aws-sdk/lib/signers/v4'
 import * as React from 'react'
 import * as redux from 'react-redux'
 
@@ -15,21 +14,6 @@ const POLL_INTERVAL = 10 // in seconds
 const LAG = POLL_INTERVAL * 3
 
 const Ctx = React.createContext({ urlExpiration: DEFAULT_URL_EXPIRATION })
-
-export function useRequestSigner() {
-  const authenticated = redux.useSelector(authSelectors.authenticated)
-  const { mode } = Config.useConfig()
-  const credentials = Credentials.use().suspend()
-  return React.useCallback(
-    (request, serviceName) => {
-      if (mode === 'LOCAL' || authenticated) {
-        const signer = new SignerV4(request, serviceName)
-        signer.addAuthorization(credentials, new Date())
-      }
-    },
-    [credentials, authenticated, mode],
-  )
-}
 
 export function useS3Signer({ urlExpiration: exp } = {}) {
   const ctx = React.useContext(Ctx)
