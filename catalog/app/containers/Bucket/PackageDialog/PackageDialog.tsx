@@ -268,7 +268,7 @@ export function PackageNameInput({
   const readyForValidation = (value && meta.modified) || meta.submitFailed
   const errorCode = readyForValidation && meta.error
   const error = errorCode ? errors[errorCode] || errorCode : ''
-  const [modified, setModified] = React.useState(meta.modified)
+  const [modified, setModified] = React.useState(!!(meta.modified || value))
   const handleChange = React.useCallback(
     (event) => {
       setModified(true)
@@ -817,15 +817,19 @@ export function getUsernamePrefix(username?: string | null) {
 const getDefaultPackageName = (
   workflow: { packageName: packageHandleUtils.NameTemplates },
   { directory, username }: { directory?: string; username: string },
-) =>
-  typeof directory === 'string'
-    ? packageHandleUtils.execTemplate(workflow?.packageName, 'files', {
-        directory: basename(directory),
-        username: s3paths.ensureNoSlash(getUsernamePrefix(username)),
-      })
-    : packageHandleUtils.execTemplate(workflow?.packageName, 'packages', {
-        username: s3paths.ensureNoSlash(getUsernamePrefix(username)),
-      })
+) => {
+  const usernamePrefix = getUsernamePrefix(username)
+  const templateBasedName =
+    typeof directory === 'string'
+      ? packageHandleUtils.execTemplate(workflow?.packageName, 'files', {
+          directory: basename(directory),
+          username: s3paths.ensureNoSlash(usernamePrefix),
+        })
+      : packageHandleUtils.execTemplate(workflow?.packageName, 'packages', {
+          username: s3paths.ensureNoSlash(usernamePrefix),
+        })
+  return templateBasedName || usernamePrefix
+}
 
 const usePackageNameWarningStyles = M.makeStyles({
   root: {

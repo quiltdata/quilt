@@ -1,8 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import * as redux from 'react-redux'
 
-import * as authSelectors from 'containers/Auth/selectors'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
@@ -40,15 +38,11 @@ export function usePackageCreateDialog({
     _: R.identity,
   })
 
-  const username = redux.useSelector(authSelectors.username)
-  const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
-
   return PD.usePackageCreationDialog({
     bucket,
     data,
     delayHashing: true,
     disableStateDisplay: true,
-    name: usernamePrefix,
     onExited,
     ui: {
       successTitle: 'Package created',
