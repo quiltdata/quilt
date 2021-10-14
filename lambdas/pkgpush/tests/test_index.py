@@ -735,7 +735,7 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
             registry=get_package_registry(self.dst_registry),
             workflow=expected_workflow,
             name=self.dst_pkg_name,
-            pkg=mock.ANY,
+            pkg=mock.ANY,  # TODO: probably this should be more specific.
             message=message,
         )
 
