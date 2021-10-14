@@ -110,7 +110,7 @@ describe('utils/packageHandle', () => {
             username: 'fiskus',
           },
         ),
-      ).toBe('')
+      ).toBe(null)
       expect(console.log).toHaveBeenCalledWith(
         'Template for default package name is invalid',
       )
