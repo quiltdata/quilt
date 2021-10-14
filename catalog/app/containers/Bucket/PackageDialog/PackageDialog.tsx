@@ -818,9 +818,10 @@ const getDefaultPackageName = (
   workflow: { packageName: packageHandleUtils.NameTemplates },
   { directory, username }: { directory?: string; username: string },
 ) =>
-  directory
+  typeof directory === 'string'
     ? packageHandleUtils.execTemplate(workflow?.packageName, 'files', {
         directory: basename(directory),
+        username: s3paths.ensureNoSlash(getUsernamePrefix(username)),
       })
     : packageHandleUtils.execTemplate(workflow?.packageName, 'packages', {
         username: s3paths.ensureNoSlash(getUsernamePrefix(username)),
