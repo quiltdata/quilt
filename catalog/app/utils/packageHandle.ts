@@ -36,7 +36,7 @@ export function execTemplate(
   templatesDict: NameTemplates,
   context: Context,
   options?: Options,
-): string {
-  if (!templatesDict) return ''
-  return execTemplateItem(templatesDict[context] || '', options) || ''
+): string | null {
+  if (!templatesDict || !templatesDict[context]) return null
+  return execTemplateItem(templatesDict[context] || '', options)
 }

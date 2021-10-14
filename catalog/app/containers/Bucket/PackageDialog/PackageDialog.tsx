@@ -828,7 +828,7 @@ const getDefaultPackageName = (
       : packageHandleUtils.execTemplate(workflow?.packageName, 'packages', {
           username: s3paths.ensureNoSlash(usernamePrefix),
         })
-  return templateBasedName || usernamePrefix
+  return typeof templateBasedName === 'string' ? templateBasedName : usernamePrefix
 }
 
 const usePackageNameWarningStyles = M.makeStyles({
