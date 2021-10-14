@@ -20,10 +20,10 @@ describe('utils/json-schema', () => {
       })
     })
 
-    it('should throw an error when schema is incorrect', () => {
-      expect(() => {
-        makeSchemaValidator(incorrect.schema)
-      }).toThrowError(/schema is invalid/)
+    it('should return an error when schema is incorrect', () => {
+      expect(makeSchemaValidator(incorrect.schema)()[0].message).toMatch(
+        /schema is invalid/,
+      )
     })
 
     describe('validator for Schema with enum types', () => {
