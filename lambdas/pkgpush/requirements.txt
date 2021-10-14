@@ -1,2 +1,2 @@
 jsonschema==3.2.0
-https://github.com/quiltdata/quilt/archive/81c8d2453cf5d8861abe001c79d5fa460251a80f.tar.gz#egg=quilt3&subdirectory=api/python # FIXME: set hash after merging this to master
+https://github.com/quiltdata/quilt/archive/b4d395061e5eb55b37e7cdac7cbfe36a88b3cdc4.tar.gz#egg=quilt3&subdirectory=api/python
