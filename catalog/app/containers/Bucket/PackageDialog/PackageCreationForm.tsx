@@ -99,7 +99,7 @@ interface PackageCreationFormProps {
   }
 }
 
-export function PackageCreationForm({
+function PackageCreationForm({
   bucket,
   close,
   initial,
@@ -510,7 +510,7 @@ export function PackageCreationForm({
   )
 }
 
-export const PackageCreationDialogState = tagged.create(
+const PackageCreationDialogState = tagged.create(
   'app/containers/Bucket/PackageDialog/PackageCreationForm:DialogState' as const,
   {
     Closed: () => {},
@@ -526,9 +526,7 @@ export const PackageCreationDialogState = tagged.create(
 )
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export type PackageCreationDialogState = tagged.InstanceOf<
-  typeof PackageCreationDialogState
->
+type PackageCreationDialogState = tagged.InstanceOf<typeof PackageCreationDialogState>
 
 interface UsePackageCreationDialogProps {
   bucket: string
