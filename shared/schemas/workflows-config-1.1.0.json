@@ -1,0 +1,151 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.quiltdata.com/workflows-config-1.1.0",
+  "type": "object",
+  "required": ["version", "workflows"],
+  "additionalProperties": false,
+  "definitions": {
+    "Version": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*(\\.(0|[1-9][0-9]*)){0,2}$",
+      "examples": ["1", "1.0"]
+    },
+    "CompoundVersion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base"],
+      "properties": {
+        "base": {
+          "$ref": "#/definitions/Version"
+        },
+        "catalog": {
+          "$ref": "#/definitions/Version"
+        }
+      }
+    }
+  },
+  "properties": {
+    "catalog": true,
+    "version": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/Version"
+        },
+        {
+          "$ref": "#/definitions/CompoundVersion"
+        }
+      ]
+    },
+    "is_workflow_required": {
+      "type": "boolean",
+      "description": "If true, users must succeed a workflow in order to push. If false, users may skip workflows altogether.",
+      "default": true
+    },
+    "default_workflow": {
+      "type": "string",
+      "description": "The workflow to use if the user doesn't specify a workflow."
+    },
+    "workflows": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[A-Za-z_-][A-Za-z0-9_-]*$",
+        "maxLength": 64
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "catalog": true,
+          "name": {
+            "type": "string",
+            "description": "The workflow name displayed by Quilt in the Python API or web UI.",
+            "minLength": 1
+          },
+          "description": {
+            "description": "The workflow description displayed by Quilt in the Python API or web UI.",
+            "type": "string",
+            "minLength": 1
+          },
+          "handle_pattern": {
+            "type": "string",
+            "format": "regex",
+            "description": "Regular expression to validate package handle",
+            "examples": [
+              "^instruments/(production|staging)$",
+              "^(employee1|employee2)/instruments$"
+            ]
+          },
+          "metadata_schema": {
+            "type": "string",
+            "description": "JSON Schema $id to validate package metadata against."
+          },
+          "entries_schema": {
+            "type": "string",
+            "description": "JSON Schema $id to validate package entries against."
+          },
+          "is_message_required": {
+            "type": "boolean",
+            "description": "If true, the user must provide a commit message.",
+            "default": false
+          }
+        }
+      }
+    },
+    "schemas": {
+      "type": "object",
+      "description": "JSON Schemas for validating user-supplied metadata and/or package entries.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL from where the schema will be obtained.",
+            "format": "uri"
+          }
+        }
+      }
+    },
+    "successors": {
+      "type": "object",
+      "description": "Buckets usable as destination with \"Push to Bucket\" in web UI.",
+      "examples": [
+        {
+          "s3://bucket1": {
+            "title": "Bucket 1 Title",
+            "copy_data": true
+          },
+          "s3://bucket2": {
+            "title": "Bucket 2 Title",
+            "copy_data": false
+          },
+          "s3://bucket3": {
+            "title": "Bucket 3 Title (`copy_data` defaults to `true`)"
+          }
+        }
+      ],
+      "minProperties": 1,
+      "propertyNames": {
+        "format": "uri"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["title"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "copy_data": {
+            "type": "boolean",
+            "default": true,
+            "description": "If true, all package entries will be copied to the destination bucket. If false, all entries will remain in their current locations."
+          }
+        }
+      }
+    }
+  }
+}

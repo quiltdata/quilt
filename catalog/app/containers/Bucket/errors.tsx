@@ -43,7 +43,7 @@ export class FileNotFound extends BucketError {}
 export class VersionNotFound extends BucketError {}
 
 export interface BucketPreferencesInvalidProps {
-  errors: { dataPath?: string; message?: string }[]
+  errors: { instancePath?: string; message?: string }[]
 }
 
 export class BucketPreferencesInvalid extends BucketError {
@@ -51,14 +51,16 @@ export class BucketPreferencesInvalid extends BucketError {
 
   constructor(props: BucketPreferencesInvalidProps) {
     super(
-      props.errors.map(({ dataPath, message }) => `${dataPath} ${message}`).join(', '),
+      props.errors
+        .map(({ instancePath, message }) => `${instancePath} ${message}`)
+        .join(', '),
       props,
     )
   }
 }
 
 export interface WorkflowsConfigInvalidProps {
-  errors: { dataPath?: string; message?: string }[]
+  errors: { instancePath?: string; message?: string }[]
 }
 
 export class WorkflowsConfigInvalid extends BucketError {
@@ -66,7 +68,11 @@ export class WorkflowsConfigInvalid extends BucketError {
 
   constructor(props: WorkflowsConfigInvalidProps) {
     super(
-      props.errors.map(({ dataPath, message }) => `${dataPath} ${message}`).join(', '),
+      props.errors
+        .map(({ instancePath, message }) =>
+          instancePath ? `${instancePath} ${message}` : message,
+        )
+        .join(', '),
       props,
     )
   }

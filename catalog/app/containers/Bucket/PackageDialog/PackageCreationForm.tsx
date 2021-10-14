@@ -1,3 +1,5 @@
+import type { ErrorObject } from 'ajv'
+import cx from 'classnames'
 import * as FF from 'final-form'
 import * as FP from 'fp-ts'
 import * as R from 'ramda'
@@ -18,6 +20,7 @@ import DialogLoading from './DialogLoading'
 import DialogSuccess, { DialogSuccessRenderMessageProps } from './DialogSuccess'
 import * as FI from './FilesInput'
 import * as Layout from './Layout'
+import MetaInputErrorHelper from './MetaInputErrorHelper'
 import * as PD from './PackageDialog'
 import { isS3File, S3File } from './S3FilePicker'
 import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
@@ -56,6 +59,14 @@ const useStyles = M.makeStyles((t) => ({
   files: {
     height: '100%',
   },
+  filesWithError: {
+    height: `calc(90% - ${t.spacing()}px)`,
+  },
+  filesError: {
+    marginTop: t.spacing(),
+    maxHeight: t.spacing(9),
+    overflowY: 'auto',
+  },
   form: {
     height: '100%',
   },
@@ -88,7 +99,7 @@ interface PackageCreationFormProps {
   }
 }
 
-export function PackageCreationForm({
+function PackageCreationForm({
   bucket,
   close,
   initial,
@@ -106,13 +117,17 @@ export function PackageCreationForm({
   disableStateDisplay,
   ui = {},
 }: PackageCreationFormProps & PD.SchemaFetcherRenderProps) {
-  const nameValidator = PD.useNameValidator()
+  const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(bucket)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const [metaHeight, setMetaHeight] = React.useState(0)
   const classes = useStyles()
   const dialogContentClasses = PD.useContentStyles({ metaHeight })
   const validateWorkflow = PD.useWorkflowValidator(workflowsConfig)
+
+  const [entriesError, setEntriesError] = React.useState<(Error | ErrorObject)[] | null>(
+    null,
+  )
 
   const [selectedBucket, selectBucket] = React.useState(sourceBuckets.getDefault)
 
@@ -137,6 +152,7 @@ export function PackageCreationForm({
   )
 
   const createPackage = requests.useCreatePackage()
+  const validateEntries = PD.useEntriesValidator(selectedWorkflow)
 
   const onSubmit = async ({
     name,
@@ -166,6 +182,24 @@ export function PackageCreationForm({
       const e = files.existing[path]
       return !e || e.hash !== file.hash.value
     })
+
+    const entries = FP.function.pipe(
+      R.mergeLeft(files.added, files.existing),
+      R.omit(Object.keys(files.deleted)),
+      Object.entries,
+      R.map(([path, file]) => ({
+        logical_key: path,
+        size: file.size,
+      })),
+    )
+
+    const error = await validateEntries(entries)
+    if (error && error.length) {
+      setEntriesError(error)
+      return {
+        files: 'schema',
+      }
+    }
 
     let uploadedEntries
     try {
@@ -230,7 +264,7 @@ export function PackageCreationForm({
       // eslint-disable-next-line no-console
       console.log('error creating manifest', e)
       // TODO: handle specific cases?
-      const errorMessage = e instanceof Error ? e.message : null
+      const errorMessage = e instanceof Error ? (e as Error).message : null
       return { [FF.FORM_ERROR]: errorMessage || PD.ERROR_MESSAGES.MANIFEST }
     }
   }
@@ -269,6 +303,7 @@ export function PackageCreationForm({
   const onFormChange = React.useCallback(
     async ({ dirtyFields, values }) => {
       if (dirtyFields?.name) handleNameChange(values.name)
+      if (dirtyFields?.files) setEntriesError(null)
     },
     [handleNameChange],
   )
@@ -328,7 +363,7 @@ export function PackageCreationForm({
               <RF.FormSpy
                 subscription={{ modified: true, values: true }}
                 onChange={({ modified, values }) => {
-                  if (modified!.workflow) {
+                  if (modified!.workflow && values.workflow !== selectedWorkflow) {
                     setWorkflow(values.workflow)
                   }
                 }}
@@ -354,6 +389,7 @@ export function PackageCreationForm({
 
                   <RF.Field
                     component={PD.PackageNameInput}
+                    workflow={selectedWorkflow || workflowsConfig}
                     initialValue={initial?.name}
                     name="name"
                     validate={validators.composeAsync(
@@ -364,6 +400,7 @@ export function PackageCreationForm({
                     errors={{
                       required: 'Enter a package name',
                       invalid: 'Invalid package name',
+                      pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
                     }}
                     helperText={nameWarning}
                     validating={nameValidator.processing}
@@ -400,7 +437,9 @@ export function PackageCreationForm({
 
                 <Layout.RightColumn>
                   <RF.Field
-                    className={classes.files}
+                    className={cx(classes.files, {
+                      [classes.filesWithError]: !!entriesError,
+                    })}
                     // @ts-expect-error
                     component={FI.FilesInput}
                     name="files"
@@ -408,6 +447,7 @@ export function PackageCreationForm({
                     validateFields={['files']}
                     errors={{
                       nonEmpty: 'Add files to create a package',
+                      schema: 'Files should match schema',
                       [FI.HASHING]: 'Please wait while we hash the files',
                       [FI.HASHING_ERROR]:
                         'Error hashing files, probably some of them are too large. Please try again or contact support.',
@@ -423,6 +463,11 @@ export function PackageCreationForm({
                     delayHashing={delayHashing}
                     disableStateDisplay={disableStateDisplay}
                     ui={{ reset: ui.resetFiles }}
+                  />
+
+                  <MetaInputErrorHelper
+                    className={classes.filesError}
+                    error={entriesError}
                   />
                 </Layout.RightColumn>
               </Layout.Container>
@@ -465,7 +510,7 @@ export function PackageCreationForm({
   )
 }
 
-export const PackageCreationDialogState = tagged.create(
+const PackageCreationDialogState = tagged.create(
   'app/containers/Bucket/PackageDialog/PackageCreationForm:DialogState' as const,
   {
     Closed: () => {},
@@ -481,9 +526,7 @@ export const PackageCreationDialogState = tagged.create(
 )
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export type PackageCreationDialogState = tagged.InstanceOf<
-  typeof PackageCreationDialogState
->
+type PackageCreationDialogState = tagged.InstanceOf<typeof PackageCreationDialogState>
 
 interface UsePackageCreationDialogProps {
   bucket: string
