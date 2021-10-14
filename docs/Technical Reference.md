@@ -49,7 +49,7 @@ The infrastructure costs of running a Quilt stack vary with usage. Baseline infr
 | Lambda | Variable |
 | CloudTrail | Variable |
 | Athena | Variable |
-| **Total:** | **$619.03 + Variable Costs** |
+| **Total** | **$619.03 + Variable Costs** |
 
 ### Health and Monitoring
 To check the status of your Quilt stack after bring-up or update, check the stack health in the CloudFormation console.
@@ -84,10 +84,10 @@ Service Catalog).
 The `AdministratorAccess` policy is sufficient. (Quilt creates and manages a
 VPC, containers, S3 buckets, a database, and more.)
 
-Reference: [Controlling access with AWS Identity and Access Management](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html)
+If you wish to create an [AWS CloudFormation service role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html)
+for the installation, visit `IAM > Roles > Create Role > AWS service > CloudFormation`
+in the AWS console.
 
-If you wish to create a service role for the installation, visit
-`IAM > Roles > Create Role > AWS service > CloudFormation` in the AWS console.
 The following service role is equivalent to `AdministratorAccess`:
     ```json
     {
