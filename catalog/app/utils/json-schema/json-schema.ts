@@ -147,11 +147,13 @@ export function makeSchemaValidator(
     useDefaults: true,
     ...ajvOptions,
   }
-  const ajv = new Ajv(options)
-  addFormats(ajv, ['date', 'regex', 'uri'])
-  ajv.addKeyword('dateformat')
 
   try {
+    const ajv = new Ajv(options)
+    addFormats(ajv, ['date', 'regex', 'uri'])
+    ajv.addKeyword('dateformat')
+
+    // TODO: fail early, return Error instead of callback
     if (!$id) return () => [new Error('$id is not provided')]
 
     return (obj: any): ErrorObject[] => {
@@ -160,6 +162,7 @@ export function makeSchemaValidator(
       return ajv.errors || []
     }
   } catch (e) {
+    // TODO: fail early if Ajv options are incorrect, return Error instead of callback
     // TODO: add custom errors
     return () => (e instanceof Error ? [e] : []) as Error[]
   }
