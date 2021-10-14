@@ -141,6 +141,9 @@ function DialogForm({
 
   const [editorElement, setEditorElement] = React.useState()
 
+  // HACK: FIXME: it triggers name validation with correct workflow
+  const [hideMeta, setHideMeta] = React.useState(false)
+
   const onFormChange = React.useCallback(
     async ({ modified, values }) => {
       if (document.body.contains(editorElement)) {
@@ -149,6 +152,12 @@ function DialogForm({
 
       if (modified.workflow && values.workflow !== selectedWorkflow) {
         setWorkflow(values.workflow)
+
+        // HACK: FIXME: it triggers name validation with correct workflow
+        setHideMeta(true)
+        setTimeout(() => {
+          setHideMeta(false)
+        }, 300)
       }
 
       handleNameChange(values.name)
@@ -241,7 +250,7 @@ function DialogForm({
                 }}
               />
 
-              {schemaLoading ? (
+              {schemaLoading || hideMeta ? (
                 <PD.MetaInputSkeleton className={classes.meta} ref={setEditorElement} />
               ) : (
                 <RF.Field

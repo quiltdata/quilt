@@ -201,6 +201,9 @@ function DialogForm({
     }
   }, [editorElement, setMetaHeight])
 
+  // HACK: FIXME: it triggers name validation with correct workflow
+  const [hideMeta, setHideMeta] = React.useState(false)
+
   return (
     <RF.Form
       onSubmit={onSubmitWrapped}
@@ -237,6 +240,12 @@ function DialogForm({
                 onChange={({ modified, values }) => {
                   if (modified?.workflow && values.workflow !== selectedWorkflow) {
                     setWorkflow(values.workflow)
+
+                    // HACK: FIXME: it triggers name validation with correct workflow
+                    setHideMeta(true)
+                    setTimeout(() => {
+                      setHideMeta(false)
+                    }, 300)
                   }
                 }}
               />
@@ -287,7 +296,7 @@ function DialogForm({
                     }}
                   />
 
-                  {schemaLoading ? (
+                  {schemaLoading || hideMeta ? (
                     <PD.MetaInputSkeleton
                       className={classes.meta}
                       ref={setEditorElement}
