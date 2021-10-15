@@ -195,12 +195,15 @@ The `dateformat` template follows
 ### Default package name
 
 If you wish to set default package name you can use keyword `package_handle` in `workflows/config.yml`.
+You can use `package_handle` at config's root level or/and one per workflow.
 Defaults for creating package from directory are located at `files` sub-field,
 for creating package from scratch, editing or copying are set up at `packages`.
 You can use `<%= directory %>` to substitute current directory and `<%= username %>` for current username.
 For example:
 
 ```yaml
+package_handle:
+  packages: <%= username %>/staging
 workflows:
   workflow-1:
     package_handle:
