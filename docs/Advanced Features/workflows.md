@@ -233,9 +233,14 @@ For example:
 workflows:
   workflow-1:
     entries_schema: must-contain-readme
+  workflow-2:
+    entries_schema: must-contain-readme-summarize-at-least-1byte
+    description: Must contain non-empty README.md and quilt_summarize.json, no more than 4 files
 schemas:
   must-contain-readme:
     url: s3://bucket/must-contain-readme.json
+  must-contain-readme-summarize-at-least-1byte:
+    url: s3://bucket/must-contain-readme-summarize-at-least-1byte.json
 ```
 
 Where `s3://bucket/must-contain-readme.json` is:
@@ -253,6 +258,54 @@ Where `s3://bucket/must-contain-readme.json` is:
       }
     }
   }
+}
+```
+
+and `s3://bucket/must-contain-readme-summarize-at-least-1byte.json` is:
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "allOf": [
+    {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "size": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100000
+          }
+        }
+      },
+      "minItems": 2,
+      "maxItems": 4
+    },
+    {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "properties": {
+          "logical_key": {
+            "type": "string",
+            "pattern": "^README.md$"
+          }
+        }
+      }
+    },
+    {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "properties": {
+          "logical_key": {
+            "type": "string",
+            "pattern": "^quilt_summarize.json$"
+          }
+        }
+      }
+    }
+  ]
 }
 ```
 
