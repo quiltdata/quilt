@@ -9,8 +9,8 @@ at `s3://BUCKET/.quilt/workflows/config.yml`.
 Here's an example:
 ```yaml
 version:
-  base: "1.1.0"
-  catalog: "1.0.0"
+  base: "1"
+  catalog: "1"
 workflows:
   alpha:
     name: Search for aliens
