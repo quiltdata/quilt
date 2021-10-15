@@ -331,6 +331,9 @@ function PackageCreationForm({
     [delayHashing],
   )
 
+  // HACK: FIXME: it triggers name validation with correct workflow
+  const [hideMeta, setHideMeta] = React.useState(false)
+
   return (
     <RF.Form
       onSubmit={onSubmitWrapped}
@@ -365,6 +368,12 @@ function PackageCreationForm({
                 onChange={({ modified, values }) => {
                   if (modified!.workflow && values.workflow !== selectedWorkflow) {
                     setWorkflow(values.workflow)
+
+                    // HACK: FIXME: it triggers name validation with correct workflow
+                    setHideMeta(true)
+                    setTimeout(() => {
+                      setHideMeta(false)
+                    }, 300)
                   }
                 }}
               />
@@ -416,7 +425,7 @@ function PackageCreationForm({
                     }}
                   />
 
-                  {schemaLoading ? (
+                  {schemaLoading || hideMeta ? (
                     <MetaInputSkeleton className={classes.meta} ref={setEditorElement} />
                   ) : (
                     <RF.Field
