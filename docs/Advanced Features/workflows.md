@@ -195,8 +195,8 @@ The `dateformat` template follows
 ### Default package name
 
 If you wish to set default package name you can use keyword `package_handle` in `workflows/config.yml`.
-Defaults for creating package from directory are located at `files`  sub-field,
-for creating package for scratch, editing or copying are set up at `packages`.
+Defaults for creating package from directory are located at `files` sub-field,
+for creating package from scratch, editing or copying are set up at `packages`.
 You can use `<%= directory %>` to substitute current directory and `<%= username %>` for current username.
 For example:
 
@@ -210,7 +210,8 @@ workflows:
 
 ### Validating package name
 
-You can validate package name using `handle_pattern` property for workflow. Use Javascript RegExp as a pattern:
+You can validate package name using `handle_pattern` property for workflow. Use Javascript RegExp as a pattern.
+Note that patterns are not anchored by default, meaning that start (`^`) and end (`$`) markers should be added explicitly when required.
 For exapmle:
 
 ```yaml
