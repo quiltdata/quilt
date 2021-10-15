@@ -1,23 +1,12 @@
-import Ajv from 'ajv'
+import Ajv, { SchemaObject, ErrorObject, Options } from 'ajv'
+import addFormats from 'ajv-formats'
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 
 type CompoundCondition = 'anyOf' | 'oneOf' | 'not' | 'allOf'
 
-export type JsonSchema = Partial<
-  {
-    $ref: string
-    const: string
-    dateformat: string
-    default: any
-    description: string
-    enum: $TSFixMe[]
-    format: string
-    items: JsonSchema
-    properties: Record<string, JsonSchema>
-    type: string | string[] | JsonSchema[]
-  } & Record<CompoundCondition, JsonSchema[]>
->
+// TODO: use more detailed `Ajv.JSONSchemaType` instead
+export type JsonSchema = SchemaObject
 
 export const isSchemaArray = (optSchema?: JsonSchema) => optSchema?.type === 'array'
 
@@ -62,7 +51,7 @@ function compoundTypeToHumanString(
   if (!isSchemaCompound(optSchema)) return ''
 
   return optSchema[condition]!.map(schemaTypeToHumanString)
-    .filter((v) => v !== 'undefined') // NOTE: sic, see default case of `schemaTypeToHumanString`
+    .filter((v: string) => v !== 'undefined') // NOTE: sic, see default case of `schemaTypeToHumanString`
     .join(divider)
 }
 
@@ -100,7 +89,7 @@ function doesTypeMatchCompoundSchema(
 
   if (!isSchemaCompound(optSchema)) return false
 
-  return optSchema[condition]!.filter(R.has('type')).some((subSchema) =>
+  return optSchema[condition]!.filter(R.has('type')).some((subSchema: JsonSchema) =>
     doesTypeMatchSchema(value, subSchema),
   )
 }
@@ -132,22 +121,48 @@ export function doesTypeMatchSchema(value: any, optSchema?: JsonSchema): boolean
   ])(optSchema)
 }
 
-export const EMPTY_SCHEMA = {}
+export const EMPTY_SCHEMA: JsonSchema = {}
 
-export function makeSchemaValidator(optSchema?: JsonSchema) {
-  const schema = optSchema || EMPTY_SCHEMA
+export function makeSchemaValidator(
+  optSchema?: JsonSchema,
+  optSchemas?: JsonSchema[],
+  ajvOptions?: Options,
+): (obj?: any) => (Error | ErrorObject)[] {
+  let mainSchema = R.clone(optSchema || EMPTY_SCHEMA)
+  if (!mainSchema.$id) {
+    // Make further code more universal by using one format: `id` → `$id`
+    if (mainSchema.id) {
+      mainSchema = R.pipe(R.assoc('$id', mainSchema.id), R.dissoc('id'))(mainSchema)
+    } else {
+      mainSchema = R.assoc('$id', 'main_schema', mainSchema)
+    }
+  }
+  const schemas = optSchemas ? [mainSchema, ...optSchemas] : [mainSchema]
 
-  const ajv = new Ajv({ useDefaults: true, schemaId: 'auto' })
+  const { $id } = schemas[0]
+  const options: Options = {
+    allErrors: true,
+    schemaId: '$id',
+    schemas,
+    useDefaults: true,
+    ...ajvOptions,
+  }
 
   try {
-    const validate = ajv.compile(schema)
+    const ajv = new Ajv(options)
+    addFormats(ajv, ['date', 'regex', 'uri'])
+    ajv.addKeyword('dateformat')
 
-    return (obj: any): Ajv.ErrorObject[] => {
-      validate(R.clone(obj))
+    // TODO: fail early, return Error instead of callback
+    if (!$id) return () => [new Error('$id is not provided')]
+
+    return (obj: any): ErrorObject[] => {
+      ajv.validate($id, R.clone(obj))
       // TODO: add custom errors
-      return validate.errors || []
+      return ajv.errors || []
     }
   } catch (e) {
+    // TODO: fail early if Ajv options are incorrect, return Error instead of callback
     // TODO: add custom errors
     return () => (e instanceof Error ? [e] : []) as Error[]
   }

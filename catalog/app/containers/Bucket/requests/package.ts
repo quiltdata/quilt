@@ -9,7 +9,31 @@ import * as Config from 'utils/Config'
 import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
 import pipeThru from 'utils/pipeThru'
+import * as s3paths from 'utils/s3paths'
 import * as workflows from 'utils/workflows'
+
+import * as errors from '../errors'
+import * as requests from './requestsUntyped'
+
+export const objectSchema = async ({ s3, schemaUrl }: { s3: S3; schemaUrl: string }) => {
+  if (!schemaUrl) return null
+
+  const { bucket, key, version } = s3paths.parseS3Url(schemaUrl)
+
+  try {
+    const response = await requests.fetchFile({ s3, bucket, path: key, version })
+    return JSON.parse(response.Body.toString('utf-8'))
+  } catch (e) {
+    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) throw e
+
+    // eslint-disable-next-line no-console
+    console.log('Unable to fetch')
+    // eslint-disable-next-line no-console
+    console.error(e)
+  }
+
+  return null
+}
 
 interface AWSCredentials {
   accessKeyId: string
@@ -233,6 +257,7 @@ const mkCreatePackage =
       Body: payload,
     })
     const res = await upload.promise()
+
     return makeBackendRequest(
       req,
       ENDPOINT_CREATE,
@@ -261,23 +286,20 @@ const copyPackage = async (
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
 
-  return makeBackendRequest(
-    req,
-    ENDPOINT_COPY,
-    {
-      message,
-      meta: getMetaValue(meta, schema),
-      name: target.name,
-      parent: {
-        top_hash: source.revision,
-        registry: `s3://${source.bucket}`,
-        name: source.name,
-      },
-      registry: `s3://${target.bucket}`,
-      workflow: getWorkflowApiParam(workflow.slug),
+  const body = {
+    message,
+    meta: getMetaValue(meta, schema),
+    name: target.name,
+    parent: {
+      top_hash: source.revision,
+      registry: `s3://${source.bucket}`,
+      name: source.name,
     },
-    getCredentialsQuery(credentials),
-  )
+    registry: `s3://${target.bucket}`,
+    workflow: getWorkflowApiParam(workflow.slug),
+  }
+
+  return makeBackendRequest(req, ENDPOINT_COPY, body, getCredentialsQuery(credentials))
 }
 
 export function useCopyPackage() {
@@ -328,22 +350,19 @@ const wrapPackage = async (
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
 
-  return makeBackendRequest(
-    req,
-    ENDPOINT_WRAP,
-    {
-      dst: {
-        registry: `s3://${target.bucket}`,
-        name: target.name,
-      },
-      entries,
-      message,
-      meta: getMetaValue(meta, schema),
-      registry: `s3://${source}`,
-      workflow: getWorkflowApiParam(workflow.slug),
+  const body = {
+    dst: {
+      registry: `s3://${target.bucket}`,
+      name: target.name,
     },
-    getCredentialsQuery(credentials),
-  )
+    entries,
+    message,
+    meta: getMetaValue(meta, schema),
+    registry: `s3://${source}`,
+    workflow: getWorkflowApiParam(workflow.slug),
+  }
+
+  return makeBackendRequest(req, ENDPOINT_WRAP, body, getCredentialsQuery(credentials))
 }
 
 export function useWrapPackage() {

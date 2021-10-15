@@ -18,9 +18,9 @@ function SingleError({ error }) {
 
   return (
     <Lab.Alert severity="error">
-      {error.dataPath && (
+      {error.instancePath && (
         <>
-          <code className={classes.code}>{error.dataPath}</code>
+          <code className={classes.code}>{error.instancePath}</code>
         </>
       )}
       {error.message}
@@ -34,7 +34,7 @@ export default function ErrorHelper({ className, error }) {
   return (
     <div className={className}>
       {Array.isArray(error) ? (
-        error.map((e) => <SingleError error={e} key={e.dataPath + e.message} />)
+        error.map((e) => <SingleError error={e} key={e.instancePath + e.message} />)
       ) : (
         <SingleError error={error} />
       )}

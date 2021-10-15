@@ -13,10 +13,10 @@ export const schemaAnyOf = {
       ],
     },
     intOrNonNumberOrLess3: {
-      oneOf: [{ maximum: 3 }, { type: 'integer' }],
+      oneOf: [{ maximum: 3, type: 'number' }, { type: 'integer' }],
     },
     intLessThan3: {
-      allOf: [{ maximum: 3 }, { type: 'integer' }],
+      allOf: [{ maximum: 3, type: 'number' }, { type: 'integer' }],
     },
   },
 }

@@ -1047,8 +1047,8 @@ class Package:
         else:
             self._meta.pop('workflow', None)
 
-    def _validate_with_workflow(self, *, registry, workflow, message):
-        self._workflow = workflows.validate(registry=registry, workflow=workflow, meta=self.meta, message=message)
+    def _validate_with_workflow(self, *, registry, workflow, name, message):
+        self._workflow = workflows.validate(registry=registry, workflow=workflow, name=name, pkg=self, message=message)
 
     @ApiTelemetry("package.build")
     @_fix_docstring(workflow=_WORKFLOW_PARAM_DOCSTRING)
@@ -1067,7 +1067,7 @@ class Package:
             The top hash as a string.
         """
         registry = get_package_registry(registry)
-        self._validate_with_workflow(registry=registry, workflow=workflow, message=message)
+        self._validate_with_workflow(registry=registry, workflow=workflow, name=name, message=message)
         return self._build(name=name, registry=registry, message=message)
 
     def _build(self, name, registry, message):
@@ -1434,7 +1434,7 @@ class Package:
                     )
 
         registry = get_package_registry(registry)
-        self._validate_with_workflow(registry=registry, workflow=workflow, message=message)
+        self._validate_with_workflow(registry=registry, workflow=workflow, name=name, message=message)
 
         self._fix_sha256()
 

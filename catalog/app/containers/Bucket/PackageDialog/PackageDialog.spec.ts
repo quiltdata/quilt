@@ -55,7 +55,7 @@ describe('containers/Bucket/PackageDialog/PackageDialog', () => {
 
     test("should return error when metadata isn't compliant with Schema", () => {
       expect(PD.mkMetaValidator({ type: 'array' })({ any: 'thing' })).toMatchObject([
-        { message: 'should be array' },
+        { message: 'must be array' },
       ])
     })
 

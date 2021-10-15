@@ -81,7 +81,7 @@ function DialogForm({
   validate: validateMetaInput,
   workflowsConfig,
 }) {
-  const nameValidator = PD.useNameValidator()
+  const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState('')
   const [metaHeight, setMetaHeight] = React.useState(0)
@@ -141,15 +141,28 @@ function DialogForm({
 
   const [editorElement, setEditorElement] = React.useState()
 
+  // HACK: FIXME: it triggers name validation with correct workflow
+  const [hideMeta, setHideMeta] = React.useState(false)
+
   const onFormChange = React.useCallback(
-    async ({ values }) => {
+    async ({ modified, values }) => {
       if (document.body.contains(editorElement)) {
         setMetaHeight(editorElement.clientHeight)
       }
 
+      if (modified.workflow && values.workflow !== selectedWorkflow) {
+        setWorkflow(values.workflow)
+
+        // HACK: FIXME: it triggers name validation with correct workflow
+        setHideMeta(true)
+        setTimeout(() => {
+          setHideMeta(false)
+        }, 300)
+      }
+
       handleNameChange(values.name)
     },
-    [editorElement, handleNameChange, setMetaHeight],
+    [editorElement, handleNameChange, selectedWorkflow, setMetaHeight, setWorkflow],
   )
 
   React.useEffect(() => {
@@ -212,6 +225,7 @@ function DialogForm({
               <RF.Field
                 component={PD.PackageNameInput}
                 name="name"
+                workflow={selectedWorkflow || workflowsConfig}
                 validate={validators.composeAsync(
                   validators.required,
                   nameValidator.validate,
@@ -220,6 +234,7 @@ function DialogForm({
                 errors={{
                   required: 'Enter a package name',
                   invalid: 'Invalid package name',
+                  pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
                 }}
                 helperText={nameWarning}
                 initialValue={initialName}
@@ -235,7 +250,7 @@ function DialogForm({
                 }}
               />
 
-              {schemaLoading ? (
+              {schemaLoading || hideMeta ? (
                 <PD.MetaInputSkeleton className={classes.meta} ref={setEditorElement} />
               ) : (
                 <RF.Field

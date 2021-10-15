@@ -1,3 +1,5 @@
+import { basename } from 'path'
+
 import cx from 'classnames'
 import { FORM_ERROR } from 'final-form'
 import mime from 'mime-types'
@@ -5,12 +7,14 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { useDropzone } from 'react-dropzone'
 import type * as RF from 'react-final-form'
+import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import * as Lab from '@material-ui/lab'
 
 import JsonEditor from 'components/JsonEditor'
 import { parseJSON, stringifyJSON } from 'components/JsonEditor/utils'
+import * as authSelectors from 'containers/Auth/selectors'
 import * as Notifications from 'containers/Notifications'
 import { useData } from 'utils/Data'
 import Delay from 'utils/Delay'
@@ -19,6 +23,8 @@ import * as AWS from 'utils/AWS'
 import * as Sentry from 'utils/Sentry'
 import useDragging from 'utils/dragging'
 import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
+import * as packageHandleUtils from 'utils/packageHandle'
+import * as s3paths from 'utils/s3paths'
 import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
 import * as workflows from 'utils/workflows'
@@ -127,7 +133,7 @@ const validateName = (req: ApiRequest) =>
     return undefined
   }, 200)
 
-export function useNameValidator() {
+export function useNameValidator(workflow?: workflows.Workflow) {
   const req: ApiRequest = APIConnector.use()
   const [counter, setCounter] = React.useState(0)
   const [processing, setProcessing] = React.useState(false)
@@ -137,6 +143,10 @@ export function useNameValidator() {
 
   const validate = React.useCallback(
     async (name: string) => {
+      if (workflow?.packageNamePattern?.test(name) === false) {
+        return 'pattern'
+      }
+
       setProcessing(true)
       try {
         const error = await validator(name)
@@ -148,7 +158,7 @@ export function useNameValidator() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [counter, validator],
+    [counter, validator, workflow?.packageNamePattern],
   )
 
   return React.useMemo(() => ({ validate, processing, inc }), [validate, processing, inc])
@@ -237,8 +247,10 @@ export function Field({
 interface PackageNameInputOwnProps {
   errors: Record<string, React.ReactNode>
   input: RF.FieldInputProps<string>
+  directory?: string
   meta: RF.FieldMetaState<string>
   validating: boolean
+  workflow: { packageName: packageHandleUtils.NameTemplates }
 }
 
 type PackageNameInputProps = PackageNameInputOwnProps &
@@ -246,26 +258,53 @@ type PackageNameInputProps = PackageNameInputOwnProps &
 
 export function PackageNameInput({
   errors,
-  input,
+  input: { value, onChange },
   meta,
+  workflow,
+  directory,
   validating,
   ...rest
 }: PackageNameInputProps) {
-  const readyForValidation = (input.value && meta.modified) || meta.submitFailed
+  const readyForValidation = (value && meta.modified) || meta.submitFailed
   const errorCode = readyForValidation && meta.error
   const error = errorCode ? errors[errorCode] || errorCode : ''
+  const [modified, setModified] = React.useState(!!(meta.modified || value))
+  const handleChange = React.useCallback(
+    (event) => {
+      setModified(true)
+      onChange(event)
+    },
+    [onChange, setModified],
+  )
   const props = {
     disabled: meta.submitting || meta.submitSucceeded,
     error,
     fullWidth: true,
     label: 'Name',
     margin: 'normal' as const,
+    onChange: handleChange,
     placeholder: 'e.g. user/package',
     // NOTE: react-form doesn't change `FormState.validating` on async validation when field loses focus
     validating,
-    ...input,
+    value,
     ...rest,
   }
+  const username = redux.useSelector(authSelectors.username)
+  React.useEffect(() => {
+    if (modified) return
+
+    const packageName = getDefaultPackageName(workflow, {
+      username,
+      directory,
+    })
+    if (!packageName) return
+
+    onChange({
+      target: {
+        value: packageName,
+      },
+    })
+  }, [directory, workflow, modified, onChange, username])
   return <Field {...props} />
 }
 
@@ -775,6 +814,23 @@ export function getUsernamePrefix(username?: string | null) {
   return validParts ? `${validParts.join('')}/` : ''
 }
 
+const getDefaultPackageName = (
+  workflow: { packageName: packageHandleUtils.NameTemplates },
+  { directory, username }: { directory?: string; username: string },
+) => {
+  const usernamePrefix = getUsernamePrefix(username)
+  const templateBasedName =
+    typeof directory === 'string'
+      ? packageHandleUtils.execTemplate(workflow?.packageName, 'files', {
+          directory: basename(directory),
+          username: s3paths.ensureNoSlash(usernamePrefix),
+        })
+      : packageHandleUtils.execTemplate(workflow?.packageName, 'packages', {
+          username: s3paths.ensureNoSlash(usernamePrefix),
+        })
+  return typeof templateBasedName === 'string' ? templateBasedName : usernamePrefix
+}
+
 const usePackageNameWarningStyles = M.makeStyles({
   root: {
     marginRight: '4px',
@@ -818,4 +874,21 @@ export function DialogWrapper({
     [],
   )
   return <M.Dialog {...props} />
+}
+
+export function useEntriesValidator(workflow?: workflows.Workflow) {
+  const s3 = AWS.S3.use()
+
+  return React.useCallback(
+    async (entries: $TSFixMe) => {
+      const schemaUrl = workflow?.entriesSchema
+      if (!schemaUrl) return undefined
+      const entriesSchema = await requests.objectSchema({ s3, schemaUrl })
+      // TODO: Show error if there is network error
+      if (!entriesSchema) return undefined
+
+      return makeSchemaValidator(entriesSchema)(entries)
+    },
+    [workflow, s3],
+  )
 }
