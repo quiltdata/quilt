@@ -9,8 +9,8 @@
 
 # 3.6.0 - 2021-10-15
 ## Python API
-* [Added] Validation of package names with `handle_pattern` in [workflows]("./Advanced Features/workflows.md") config.
-* [Added] Validation of package entries with `entries_schema` in [workflows]("./Advanced Features/workflows.md") config.
+* [Added] Validation of package names with `handle_pattern` in [workflows](https://docs.quiltdata.com/advanced-usage/workflows) config.
+* [Added] Validation of package entries with `entries_schema` in [workflows](https://docs.quiltdata.com/advanced-usage/workflows) config.
 
 # 3.5.0 - 2021-09-07
 ## Python API
