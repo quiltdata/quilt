@@ -382,7 +382,7 @@ If `copy_data` is `true` (the default), all package entries will be copied to th
 destination bucket. If `copy_data` is `false`, all entries will remain in their
 current locations.
 
-## `config.yml` JSON schema
+## `config.yml` JSON Schema
 See
 [workflows-config_catalog-1.0.0.json](https://github.com/quiltdata/quilt/blob/master/shared/schemas/workflows-config_catalog-1.0.0.json).
 and
