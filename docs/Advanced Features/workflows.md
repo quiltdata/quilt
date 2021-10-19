@@ -2,12 +2,12 @@
 
 
 # Workflows
-A Quilt *workflow* is a quality gates that you set to ensure the quality of your
+A Quilt *workflow* is a quality gate that you set to ensure the quality of your
 data and metadata *before* it becomes a Quilt package. You can create as many
 workflows as you like to accommodate all of your data creation patterns.
 
 ## On data quality
-Under the hood, Quilt workflows use industry-standard JSON schemas to check that
+Under the hood, Quilt workflows use [JSON Schema](https://json-schema.org) to check that
 package metadata have the right *shape*. Metadata shape determines which keys are
 defined, their values, and the types of the values types.
 
@@ -15,7 +15,7 @@ Ensuring the quality of your data has long-lasting implications:
 1. Consistency - if labels and other metadata are do not use a consistent, controlled
 vocabulary, reuse becomes difficult and trust in data declines
 1. Completeness - if your workflows do not require users to include files,
-documentation,labels, etc. then your data is on its way towards becoming mystery
+documentation, labels, etc. then your data is on its way towards becoming mystery
 data and ultimately junk data that no one can use
 1. Context - data can only be reused if users know where it came from, what it means,
 who touched it, and what the related datasets are
@@ -28,7 +28,7 @@ and tribal knowledge is lost.
 ## Use cases
 * Ensure that labels are correct and drawn from a controlled vocabulary (e.g.
 ensure that the only labels in a package of images are either "bird" or "not bird";
-avoid data entry errors like "birb").
+avoid data entry errors like "birb")
 * Ensure that users provide a README.md for every new package
 * Ensure that included files are non-empty
 * Ensure that every new package (or dataset) has enough labels so that it can be
@@ -212,7 +212,12 @@ The `dateformat` template follows
 ## Data quality controls
 In addition to package-level metadata. Quilt workflows enable you to validate
 package names, object-level metadata, and basic file metadata.
-
+> You must include the following schema version at the root of your config.yaml in order for
+> any catalog-specific features to function:
+```json
+version:
+  base: "1"
+  catalog: "1"
 ### Package name defaults (Quilt catalog)
 By default the Quilt catalog auto-fills the package handle **prefix** according to the following logic:
 * Packages tab: username (everything before the @ in your sign-in email).
@@ -221,15 +226,16 @@ Equivalent to `package_handle: <%= username %>`.
 
 You can customize the default prefix with `package_handle` key in one or both of
 the following places:
-* Set `package_handle` at the root of config.yml to affect all tabs and workflows
-* Set `workflows.WORKFLOW.(files|package).package_handle` to affect the tabs
+* Set `catalog.package_handle` at the root of config.yml to affect all tabs and workflows
+* Set `workflows.WORKFLOW.catalog.(files|package).package_handle` to affect the tabs
 and workflow in question
 
 #### Example
 ```yaml
 package_handle:
   # default for all tabs and workflows
-  packages: analysis/
+  catalog:
+    packages: analysis/
 workflows:
   my-workflow:
     # defaults for my-workflow, different for each tab
