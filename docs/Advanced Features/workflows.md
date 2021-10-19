@@ -265,7 +265,7 @@ workflows:
     entries_schema: must-contain-readme
   myworkflow-2:
     entries_schema: must-contain-readme-summarize-at-least-1byte
-    description: Must contain non-empty README.md and quilt_summarize.json, no more than 4 files
+    description: Must contain non-empty README.md and quilt_summarize.json at package root; no more than 4 files
 schemas:
   must-contain-readme:
     url: s3://bucket/must-contain-readme.json
@@ -283,8 +283,7 @@ schemas:
     "properties": {
       "logical_key": {
         "type": "string",
-        // README must be at package root
-        "pattern": "^README.md$"
+        "pattern": "^README\\.md$"
       }
     }
   }
@@ -318,7 +317,7 @@ schemas:
         "properties": {
           "logical_key": {
             "type": "string",
-            "pattern": "^README.md$"
+            "pattern": "^README\\.md$"
           }
         }
       }
@@ -330,7 +329,7 @@ schemas:
         "properties": {
           "logical_key": {
             "type": "string",
-            "pattern": "^quilt_summarize.json$"
+            "pattern": "^quilt_summarize\\.json$"
           }
         }
       }
