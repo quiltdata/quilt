@@ -37,4 +37,4 @@ $ pip install git+https://github.com/quiltdata/quilt.git#subdirectory=api/python
 
 ## Web catalog and backend services (on AWS)
 
-See [Enterprise install](./Technical%20Reference.md) for installation instructions.
+See [Enterprise install](technical-reference.md) for installation instructions.

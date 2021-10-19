@@ -177,7 +177,7 @@ Available commands are listed below.
 Initialize the Embed.
 This command must be sent after the Embed is ready
 (see `ready` message reference for details).
-Supported SSO providers are listed in the [Technical Reference](../Technical Reference.md#single-sign-on-sso).
+Supported SSO providers are listed in the [Technical Reference](../technical-reference.md#single-sign-on-sso).
 
 ```ts
 interface InitCommand extends Command {
@@ -193,7 +193,7 @@ interface InitCommand extends Command {
   route?: string
 
   // Embed accepts any credentials supported by the Quilt authentication endpoint,
-  // e.g. { provider, token } for [SSO](../Technical Reference.md#single-sign-on-sso)
+  // e.g. { provider, token } for [SSO](../technical-reference.md#single-sign-on-sso)
   // or { password, username } (which doesn't seem like a right choice in most cases tho).
   // Getting credentials is your app's responsibility.
   credentials: { provider: string; token: string } | { username: string; password: string }

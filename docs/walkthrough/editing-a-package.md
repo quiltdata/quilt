@@ -38,7 +38,7 @@ p = quilt3.Package.browse('examples/hurdat')
     Loading manifest: 100%|██████████| 5/5 [00:00<00:00, 9920.30entries/s]
 
 
-For more information on accessing existing packages see the section "[Installing a Package](./Installing%20a%20Package.md)".
+For more information on accessing existing packages see the section "[Installing a Package](installing-a-package.md)".
 
 ## Adding data to a package
 

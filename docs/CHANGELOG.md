@@ -9,8 +9,8 @@
 
 # 3.6.0 - 2021-10-15
 ## Python API
-* [Added] Validation of package names with `handle_pattern` in [workflows](Advanced Features/workflows.md) config.
-* [Added] Validation of package entries with `entries_schema` in [workflows](Advanced Features/workflows.md) config.
+* [Added] Validation of package names with `handle_pattern` in [workflows](advanced-features/workflows.md) config.
+* [Added] Validation of package entries with `entries_schema` in [workflows](advanced-features/workflows.md) config.
 
 # 3.5.0 - 2021-09-07
 ## Python API
@@ -101,7 +101,7 @@ via OIDC ([#2089](https://github.com/quiltdata/quilt/pull/2089))
 
 # 3.3.0 - 2020-12-08
 ## Python API
-* [Added] Metadata quality API ([#1855](https://github.com/quiltdata/quilt/pull/1874)). For details see this [section](Advanced Features/workflows.md).
+* [Added] Metadata quality API ([#1855](https://github.com/quiltdata/quilt/pull/1874)). For details see this [section](advanced-features/workflows.md).
 * [Changed] Improved formatting of package load progress bar ([#1897](https://github.com/quiltdata/quilt/pull/1897))
 * [Fixed] Crash during load of package manifest with unicode symbols with non-unicode locale set ([#1931](https://github.com/quiltdata/quilt/pull/1931))
 
