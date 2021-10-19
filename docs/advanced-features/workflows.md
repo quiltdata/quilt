@@ -259,7 +259,7 @@ workflows:
 
 ### Package name validation
 You can validate package names with `WORKFLOW.handle_pattern`, which accepts
-JavaScript regular expression.
+[JavaScript regular expression](https://datatracker.ietf.org/doc/html/draft-handrews-json-schema-validation-01#section-6.3.3).
 
 > By default, patterns are not anchored.
 > You can explicitly add start (`^`) and end (`$`) markers as needed.
