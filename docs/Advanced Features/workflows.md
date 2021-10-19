@@ -239,10 +239,11 @@ catalog:
     packages: analysis/
 workflows:
   my-workflow:
-    # defaults for my-workflow, different for each tab
-    package_handle:
-      files: <%= username %>/<%= directory %>
-      packages: <%= username %>/production
+    catalog:
+      # defaults for my-workflow, different for each tab
+      package_handle:
+        files: <%= username %>/<%= directory %>
+        packages: <%= username %>/production
 ```
 
 ### Package name validation
