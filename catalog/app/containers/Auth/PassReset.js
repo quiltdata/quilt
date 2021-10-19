@@ -1,110 +1,112 @@
-import get from 'lodash/fp/get'
+import * as FF from 'final-form'
 import React from 'react'
-import { FormattedMessage as FM } from 'react-intl'
-import { branch, renderComponent, withStateHandlers } from 'recompose'
-import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
+import * as RF from 'react-final-form'
+import * as redux from 'react-redux'
 
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
 import defer from 'utils/defer'
-import { composeComponent } from 'utils/reactTools'
 import * as validators from 'utils/validators'
 
 import { resetPassword } from './actions'
 import * as errors from './errors'
-import msg from './messages'
 import * as Layout from './Layout'
 
-const Container = Layout.mkLayout(<FM {...msg.passResetHeading} />)
+const Container = Layout.mkLayout('Reset Password')
 
-// TODO: what to show if user is authenticated?
-export default composeComponent(
-  'Auth.PassReset',
-  // connect(createStructuredSelector({ authenticated })),
-  withStateHandlers(
-    {
-      done: false,
-    },
-    {
-      setDone: () => () => ({ done: true }),
-    },
-  ),
-  Sentry.inject(),
-  reduxForm({
-    form: 'Auth.PassReset',
-    onSubmit: async (values, dispatch, { setDone, sentry }) => {
+export default function PassReset() {
+  const [done, setDone] = React.useState(false)
+  const sentry = Sentry.use()
+  const dispatch = redux.useDispatch()
+  const cfg = Config.useConfig()
+  const { urls } = NamedRoutes.use()
+
+  const onSubmit = React.useCallback(
+    // eslint-disable-next-line consistent-return
+    async (values) => {
       try {
         const result = defer()
-        dispatch(resetPassword(values.toJS().email, result.resolver))
+        dispatch(resetPassword(values.email, result.resolver))
         await result.promise
-        setDone()
+        setDone(true)
       } catch (e) {
         if (e instanceof errors.SMTPError) {
-          throw new SubmissionError({ _error: 'smtp' })
+          return {
+            [FF.FORM_ERROR]: 'smtp',
+          }
         }
         sentry('captureException', e)
-        throw new SubmissionError({ _error: 'unexpected' })
+        return {
+          [FF.FORM_ERROR]: 'unexpected',
+        }
       }
     },
-  }),
-  branch(
-    get('done'),
-    renderComponent(() => (
-      <Container>
-        <Layout.Message>
-          <FM {...msg.passResetSuccess} />
-        </Layout.Message>
-      </Container>
-    )),
-  ),
-  ({ handleSubmit, submitting, submitFailed, invalid, error }) => {
-    const cfg = Config.useConfig()
-    const { urls } = NamedRoutes.use()
+    [dispatch, sentry, setDone],
+  )
+
+  if (done) {
     return (
       <Container>
-        <form onSubmit={handleSubmit}>
-          <Field
-            component={Layout.Field}
-            name="email"
-            validate={[validators.required]}
-            disabled={submitting}
-            floatingLabelText={<FM {...msg.passResetEmailLabel} />}
-            errors={{
-              required: <FM {...msg.passResetEmailRequired} />,
-            }}
-          />
-          <Layout.Error
-            {...{ submitFailed, error }}
-            errors={{
-              unexpected: <FM {...msg.passResetErrorUnexpected} />,
-              smtp: <FM {...msg.passResetErrorSMTP} />,
-            }}
-          />
-          <Layout.Actions>
-            <Layout.Submit
-              label={<FM {...msg.passResetSubmit} />}
-              disabled={submitting || (submitFailed && invalid)}
-              busy={submitting}
-            />
-          </Layout.Actions>
-          {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
-            <Layout.Hint>
-              <FM
-                {...msg.passResetHintSignUp}
-                values={{
-                  link: (
-                    <Link to={urls.signUp()}>
-                      <FM {...msg.passResetHintSignUpLink} />
-                    </Link>
-                  ),
-                }}
-              />
-            </Layout.Hint>
-          )}
-        </form>
+        <Layout.Message>
+          You have requested a password reset. Check your email for further instructions.
+        </Layout.Message>
       </Container>
     )
-  },
-)
+  }
+
+  return (
+    <Container>
+      <RF.Form onSubmit={onSubmit}>
+        {({
+          error,
+          handleSubmit,
+          hasSubmitErrors,
+          hasValidationErrors,
+          modifiedSinceLastSubmit,
+          submitFailed,
+          submitting,
+        }) => (
+          <form onSubmit={handleSubmit}>
+            <RF.Field
+              component={Layout.Field}
+              name="email"
+              validate={validators.required}
+              disabled={submitting}
+              floatingLabelText="Email"
+              errors={{
+                required: 'Enter your email',
+              }}
+            />
+            <Layout.Error
+              {...{ submitFailed, error }}
+              errors={{
+                unexpected: 'Something went wrong. Try again later.',
+                smtp: 'SMTP error: contact your administrator',
+              }}
+            />
+            <Layout.Actions>
+              <Layout.Submit
+                label="Reset"
+                disabled={
+                  submitting ||
+                  (hasValidationErrors && submitFailed) ||
+                  (hasSubmitErrors && !modifiedSinceLastSubmit)
+                }
+                busy={submitting}
+              />
+            </Layout.Actions>
+            {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
+              <Layout.Hint>
+                <>
+                  Don&apos;t have an account? <Link to={urls.signUp()}>Sign up</Link>
+                </>
+              </Layout.Hint>
+            )}
+          </form>
+        )}
+      </RF.Form>
+    </Container>
+  )
+}

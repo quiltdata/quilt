@@ -296,8 +296,8 @@ def get_registry(registry_url):
 
 
 def _get_successor_params(registry, successor):
-    workflow_validator = registry.get_workflow_validator()
-    successors = workflow_validator.config.get('successors') or {}
+    workflow_config = registry.get_workflow_config()
+    successors = workflow_config.config.get('successors') or {}
     for successor_url, successor_params in successors.items():
         if get_registry(successor_url) == successor:
             return successor_params
@@ -477,11 +477,6 @@ def create_package(request):
         pkg = quilt3.Package()
         if meta is not None:
             pkg.set_meta(meta)
-        pkg._validate_with_workflow(
-            registry=package_registry,
-            workflow=data.get('workflow', ...),
-            message=message,
-        )
 
         size_to_hash = 0
         files_to_hash = 0
@@ -526,6 +521,13 @@ def create_package(request):
                         f"Package has new S3 {files_to_hash} files, "
                         f"but max supported number is {PKG_FROM_FOLDER_MAX_FILES}"
                     )
+
+        pkg._validate_with_workflow(
+            registry=package_registry,
+            workflow=data.get('workflow', ...),
+            name=handle,
+            message=message,
+        )
 
     except quilt3.util.QuiltException as qe:
         raise ApiException(HTTPStatus.BAD_REQUEST, qe.message)

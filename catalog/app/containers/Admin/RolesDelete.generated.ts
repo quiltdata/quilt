@@ -11,9 +11,10 @@ export type containers_Admin_RolesDeleteMutation = { readonly __typename: 'Mutat
     | { readonly __typename: 'RoleDeleteSuccess' }
     | { readonly __typename: 'RoleDoesNotExist' }
     | { readonly __typename: 'RoleNameReserved' }
+    | { readonly __typename: 'RoleAssigned' }
 }
 
-export const containers_Admin_RolesDeleteDocument = ({
+export const containers_Admin_RolesDeleteDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -54,7 +55,7 @@ export const containers_Admin_RolesDeleteDocument = ({
       },
     },
   ],
-} as unknown) as DocumentNode<
+} as unknown as DocumentNode<
   containers_Admin_RolesDeleteMutation,
   containers_Admin_RolesDeleteMutationVariables
 >

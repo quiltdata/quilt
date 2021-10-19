@@ -9,7 +9,31 @@ import * as Config from 'utils/Config'
 import { makeSchemaDefaultsSetter, JsonSchema } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
 import pipeThru from 'utils/pipeThru'
+import * as s3paths from 'utils/s3paths'
 import * as workflows from 'utils/workflows'
+
+import * as errors from '../errors'
+import * as requests from './requestsUntyped'
+
+export const objectSchema = async ({ s3, schemaUrl }: { s3: S3; schemaUrl: string }) => {
+  if (!schemaUrl) return null
+
+  const { bucket, key, version } = s3paths.parseS3Url(schemaUrl)
+
+  try {
+    const response = await requests.fetchFile({ s3, bucket, path: key, version })
+    return JSON.parse(response.Body.toString('utf-8'))
+  } catch (e) {
+    if (e instanceof errors.FileNotFound || e instanceof errors.VersionNotFound) throw e
+
+    // eslint-disable-next-line no-console
+    console.log('Unable to fetch')
+    // eslint-disable-next-line no-console
+    console.error(e)
+  }
+
+  return null
+}
 
 interface AWSCredentials {
   accessKeyId: string
@@ -186,7 +210,7 @@ const makeBackendRequest: BackendRequest = (
     body,
   })
 
-const getMetaValue = (value: unknown, optSchema: JsonSchema) =>
+const getMetaValue = (value: unknown, optSchema?: JsonSchema) =>
   value
     ? pipeThru(value || {})(
         makeSchemaDefaultsSetter(optSchema),
@@ -212,84 +236,77 @@ interface CreatePackageDependencies {
   serviceBucket: string
 }
 
-const mkCreatePackage = ({
-  s3,
-  credentials,
-  req,
-  serviceBucket,
-}: CreatePackageDependencies) => async (
-  { contents, message, meta, target, workflow }: CreatePackageParams,
-  schema: JsonSchema, // TODO: should be already inside workflow
-) => {
-  await credentials.getPromise()
-  const header = {
-    name: target.name,
-    registry: `s3://${target.bucket}`,
-    message,
-    meta: getMetaValue(meta, schema),
-    workflow: getWorkflowApiParam(workflow.slug),
+const mkCreatePackage =
+  ({ s3, credentials, req, serviceBucket }: CreatePackageDependencies) =>
+  async (
+    { contents, message, meta, target, workflow }: CreatePackageParams,
+    schema?: JsonSchema, // TODO: should be already inside workflow
+  ) => {
+    await credentials.getPromise()
+    const header = {
+      name: target.name,
+      registry: `s3://${target.bucket}`,
+      message,
+      meta: getMetaValue(meta, schema),
+      workflow: getWorkflowApiParam(workflow.slug),
+    }
+    const payload = [header, ...contents].map((x) => JSON.stringify(x)).join('\n')
+    const upload = s3.upload({
+      Bucket: serviceBucket,
+      Key: CREATE_PACKAGE_PAYLOAD_KEY,
+      Body: payload,
+    })
+    const res = await upload.promise()
+
+    return makeBackendRequest(
+      req,
+      ENDPOINT_CREATE,
+      JSON.stringify((res as any).VersionId as string),
+      getCredentialsQuery(credentials),
+    )
   }
-  const payload = [header, ...contents].map((x) => JSON.stringify(x)).join('\n')
-  const upload = s3.upload({
-    Bucket: serviceBucket,
-    Key: CREATE_PACKAGE_PAYLOAD_KEY,
-    Body: payload,
-  })
-  const res = await upload.promise()
-  return makeBackendRequest(
-    req,
-    ENDPOINT_CREATE,
-    JSON.stringify((res as any).VersionId as string),
-    getCredentialsQuery(credentials),
-  )
-}
 
 export function useCreatePackage() {
   const req: ApiRequest = APIConnector.use()
   const { serviceBucket } = Config.use()
   const credentials = AWS.Credentials.use()
   const s3 = AWS.S3.use()
-  return React.useMemo(() => mkCreatePackage({ s3, credentials, req, serviceBucket }), [
-    s3,
-    credentials,
-    req,
-    serviceBucket,
-  ])
+  return React.useMemo(
+    () => mkCreatePackage({ s3, credentials, req, serviceBucket }),
+    [s3, credentials, req, serviceBucket],
+  )
 }
 
 const copyPackage = async (
   req: ApiRequest,
   credentials: AWSCredentials,
   { message, meta, source, target, workflow }: CopyPackageParams,
-  schema: JsonSchema, // TODO: should be already inside workflow
+  schema?: JsonSchema, // TODO: should be already inside workflow
 ) => {
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
 
-  return makeBackendRequest(
-    req,
-    ENDPOINT_COPY,
-    {
-      message,
-      meta: getMetaValue(meta, schema),
-      name: target.name,
-      parent: {
-        top_hash: source.revision,
-        registry: `s3://${source.bucket}`,
-        name: source.name,
-      },
-      registry: `s3://${target.bucket}`,
-      workflow: getWorkflowApiParam(workflow.slug),
+  const body = {
+    message,
+    meta: getMetaValue(meta, schema),
+    name: target.name,
+    parent: {
+      top_hash: source.revision,
+      registry: `s3://${source.bucket}`,
+      name: source.name,
     },
-    getCredentialsQuery(credentials),
-  )
+    registry: `s3://${target.bucket}`,
+    workflow: getWorkflowApiParam(workflow.slug),
+  }
+
+  return makeBackendRequest(req, ENDPOINT_COPY, body, getCredentialsQuery(credentials))
 }
 
 export function useCopyPackage() {
   const credentials = AWS.Credentials.use()
   const req: ApiRequest = APIConnector.use()
   return React.useCallback(
-    (params: CopyPackageParams, schema: JsonSchema) =>
+    (params: CopyPackageParams, schema?: JsonSchema) =>
       copyPackage(req, credentials, params, schema),
     [credentials, req],
   )
@@ -328,34 +345,31 @@ const wrapPackage = async (
   req: ApiRequest,
   credentials: AWSCredentials,
   { message, meta, source, target, workflow, entries }: WrapPackageParams,
-  schema: JsonSchema, // TODO: should be already inside workflow
+  schema?: JsonSchema, // TODO: should be already inside workflow
 ) => {
   // refresh credentials and load if they are not loaded
   await credentials.getPromise()
 
-  return makeBackendRequest(
-    req,
-    ENDPOINT_WRAP,
-    {
-      dst: {
-        registry: `s3://${target.bucket}`,
-        name: target.name,
-      },
-      entries,
-      message,
-      meta: getMetaValue(meta, schema),
-      registry: `s3://${source}`,
-      workflow: getWorkflowApiParam(workflow.slug),
+  const body = {
+    dst: {
+      registry: `s3://${target.bucket}`,
+      name: target.name,
     },
-    getCredentialsQuery(credentials),
-  )
+    entries,
+    message,
+    meta: getMetaValue(meta, schema),
+    registry: `s3://${source}`,
+    workflow: getWorkflowApiParam(workflow.slug),
+  }
+
+  return makeBackendRequest(req, ENDPOINT_WRAP, body, getCredentialsQuery(credentials))
 }
 
 export function useWrapPackage() {
   const credentials = AWS.Credentials.use()
   const req: ApiRequest = APIConnector.use()
   return React.useCallback(
-    (params: WrapPackageParams, schema: JsonSchema) =>
+    (params: WrapPackageParams, schema?: JsonSchema) =>
       wrapPackage(req, credentials, params, schema),
     [credentials, req],
   )

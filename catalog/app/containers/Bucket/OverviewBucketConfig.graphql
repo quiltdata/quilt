@@ -1,4 +1,4 @@
-query($bucket: String!) {
+query ($bucket: String!) {
   bucketConfig(name: $bucket) {
     name
     description

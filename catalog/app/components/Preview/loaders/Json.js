@@ -13,7 +13,8 @@ import { PreviewData, PreviewError } from '../types'
 import * as utils from './utils'
 
 const MAX_SIZE = 20 * 1024 * 1024
-const SCHEMA_RE = /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/([\w-]+)\/([\w.-]+)\.json"/
+const SCHEMA_RE =
+  /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/([\w-]+)\/([\w.-]+)\.json"/
 const BYTES_TO_SCAN = 128 * 1024
 
 const map = (fn) => R.ifElse(Array.isArray, R.map(fn), fn)
@@ -155,7 +156,7 @@ export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
 export const Loader = function GatedJsonLoader({ handle, children }) {
   return utils.useFirstBytes({ bytes: BYTES_TO_SCAN, handle }).case({
     Ok: ({ firstBytes, contentLength }) =>
-      detectSchema(firstBytes) ? (
+      detectSchema(firstBytes) && handle.mode !== 'json' ? (
         <VegaLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />
       ) : (
         <JsonLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />

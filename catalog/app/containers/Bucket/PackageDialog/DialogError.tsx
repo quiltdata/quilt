@@ -80,33 +80,34 @@ const errorDisplay = R.cond([
 ])
 
 interface DialogErrorProps {
+  cancelText?: React.ReactNode
   error: any
-  skeletonElement: React.ReactNode
-  title: React.ReactNode
   onCancel: () => void
+  skeletonElement: React.ReactNode
+  submitText?: React.ReactNode
+  title: React.ReactNode
 }
 
 export default function DialogError({
+  cancelText,
   error,
-  skeletonElement,
-  title,
   onCancel,
+  skeletonElement,
+  submitText,
+  title,
 }: DialogErrorProps) {
   const classes = useStyles()
-
   return (
     <>
       <M.DialogTitle>{title}</M.DialogTitle>
-
       <M.DialogContent className={classes.content}>
         {skeletonElement}
         <div className={classes.overlay}>{errorDisplay(error)}</div>
       </M.DialogContent>
-
       <M.DialogActions>
-        <M.Button onClick={onCancel}>Cancel</M.Button>
+        <M.Button onClick={onCancel}>{cancelText || 'Cancel'}</M.Button>
         <M.Button variant="contained" color="primary" disabled>
-          Push
+          {submitText || 'Push'}
         </M.Button>
       </M.DialogActions>
     </>

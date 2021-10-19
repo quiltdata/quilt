@@ -1,3 +1,7 @@
 # import RoleSelection from "./RoleSelection.graphql"
 
-query { roles { ...RoleSelection } }
+query {
+  roles {
+    ...RoleSelection
+  }
+}

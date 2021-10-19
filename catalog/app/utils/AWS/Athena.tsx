@@ -25,9 +25,10 @@ export const Provider = function AthenaProvider({
   const awsConfig = Config.use()
   const catalogConfig = CatalogConfig.use()
 
-  const region = React.useMemo(() => getRegion(catalogConfig.apiGatewayEndpoint), [
-    catalogConfig,
-  ])
+  const region = React.useMemo(
+    () => getRegion(catalogConfig.apiGatewayEndpoint),
+    [catalogConfig],
+  )
 
   const client: () => Athena = useMemoEqLazy(
     {

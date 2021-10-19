@@ -5,7 +5,6 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
-import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -82,7 +81,7 @@ function DialogForm({
   validate: validateMetaInput,
   workflowsConfig,
 }) {
-  const nameValidator = PD.useNameValidator()
+  const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState('')
   const [metaHeight, setMetaHeight] = React.useState(0)
@@ -142,15 +141,28 @@ function DialogForm({
 
   const [editorElement, setEditorElement] = React.useState()
 
+  // HACK: FIXME: it triggers name validation with correct workflow
+  const [hideMeta, setHideMeta] = React.useState(false)
+
   const onFormChange = React.useCallback(
-    async ({ values }) => {
+    async ({ modified, values }) => {
       if (document.body.contains(editorElement)) {
         setMetaHeight(editorElement.clientHeight)
       }
 
+      if (modified.workflow && values.workflow !== selectedWorkflow) {
+        setWorkflow(values.workflow)
+
+        // HACK: FIXME: it triggers name validation with correct workflow
+        setHideMeta(true)
+        setTimeout(() => {
+          setHideMeta(false)
+        }, 300)
+      }
+
       handleNameChange(values.name)
     },
-    [editorElement, handleNameChange, setMetaHeight],
+    [editorElement, handleNameChange, selectedWorkflow, setMetaHeight, setWorkflow],
   )
 
   React.useEffect(() => {
@@ -165,29 +177,29 @@ function DialogForm({
     <RF.Form
       onSubmit={onSubmitWrapped}
       subscription={{
-        handleSubmit: true,
-        submitting: true,
-        submitFailed: true,
         error: true,
-        submitError: true,
         hasValidationErrors: true,
-        form: true,
+        submitError: true,
+        submitFailed: true,
+        submitting: true,
       }}
     >
       {({
-        handleSubmit,
-        submitting,
-        submitFailed,
         error,
-        submitError,
         hasValidationErrors,
-        form,
+        submitError,
+        submitFailed,
+        submitting,
+        handleSubmit,
       }) => (
         <>
           <DialogTitle bucket={successor.slug} />
           <M.DialogContent classes={dialogContentClasses}>
             <form onSubmit={handleSubmit} className={classes.form}>
-              <RF.FormSpy subscription={{ values: true }} onChange={onFormChange} />
+              <RF.FormSpy
+                subscription={{ modified: true, values: true }}
+                onChange={onFormChange}
+              />
 
               <RF.FormSpy
                 subscription={{ modified: true, values: true }}
@@ -213,6 +225,7 @@ function DialogForm({
               <RF.Field
                 component={PD.PackageNameInput}
                 name="name"
+                workflow={selectedWorkflow || workflowsConfig}
                 validate={validators.composeAsync(
                   validators.required,
                   nameValidator.validate,
@@ -221,6 +234,7 @@ function DialogForm({
                 errors={{
                   required: 'Enter a package name',
                   invalid: 'Invalid package name',
+                  pattern: `Name should match ${selectedWorkflow?.packageNamePattern}`,
                 }}
                 helperText={nameWarning}
                 initialValue={initialName}
@@ -236,7 +250,7 @@ function DialogForm({
                 }}
               />
 
-              {schemaLoading ? (
+              {schemaLoading || hideMeta ? (
                 <PD.MetaInputSkeleton className={classes.meta} ref={setEditorElement} />
               ) : (
                 <RF.Field
@@ -422,27 +436,24 @@ export default function PackageCopyDialog({
               workflowsConfig={workflowsConfig}
               workflow={workflow}
             >
-              {AsyncResult.case({
-                Ok: (schemaProps) => (
-                  <DialogForm
-                    {...schemaProps}
-                    {...{
-                      bucket,
-                      close,
-                      setSubmitting,
-                      setSuccess,
-                      setWorkflow,
-                      workflowsConfig,
+              {(schemaProps) => (
+                <DialogForm
+                  {...schemaProps}
+                  {...{
+                    bucket,
+                    close,
+                    setSubmitting,
+                    setSuccess,
+                    setWorkflow,
+                    workflowsConfig,
 
-                      hash,
-                      manifest,
-                      name,
-                      successor,
-                    }}
-                  />
-                ),
-                _: R.identity,
-              })}
+                    hash,
+                    manifest,
+                    name,
+                    successor,
+                  }}
+                />
+              )}
             </PD.SchemaFetcher>
           ),
         Success: (props) =>

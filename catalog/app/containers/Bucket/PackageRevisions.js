@@ -1,7 +1,6 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedPlural } from 'react-intl'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
@@ -21,6 +20,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import StyledLink from 'utils/StyledLink'
 import copyToClipboard from 'utils/clipboard'
+import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
@@ -297,6 +297,7 @@ function Revision({ bucket, name, hash, stats, message, modified, metadata, coun
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const dateFmt = xs ? 'MMM d yyyy - h:mmaaaaa' : 'MMMM do yyyy - h:mma'
+
   return (
     <RevisionLayout
       link={
@@ -338,7 +339,7 @@ function Revision({ bucket, name, hash, stats, message, modified, metadata, coun
           <M.Typography component="span" variant="body2">
             {readableQuantity(stats.files)}
             &nbsp;
-            <FormattedPlural value={stats.files} one="file" other="files" />
+            <Format.Plural value={stats.files} one="file" other="files" />
           </M.Typography>
         </>
       }
@@ -454,7 +455,7 @@ export default function PackageRevisions({
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
       <MetaTitle>{[name, bucket]}</MetaTitle>
 
-      {updateDialog.render()}
+      {updateDialog.element}
 
       <M.Box
         pt={{ xs: 2, sm: 3 }}

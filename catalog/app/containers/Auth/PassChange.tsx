@@ -1,7 +1,6 @@
 import { FORM_ERROR } from 'final-form'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import { FormattedMessage as FM } from 'react-intl'
 import * as redux from 'react-redux'
 
 import Working from 'components/Working'
@@ -15,10 +14,9 @@ import * as Layout from './Layout'
 import { useSignOut } from './SignOut'
 import { changePassword } from './actions'
 import * as errors from './errors'
-import msg from './messages'
 import * as selectors from './selectors'
 
-const Container = Layout.mkLayout(<FM {...msg.passChangeHeading} />)
+const Container = Layout.mkLayout('Change Password')
 
 function SignOut() {
   const waiting = redux.useSelector(selectors.waiting)
@@ -29,9 +27,7 @@ function SignOut() {
   }, [waiting, signOutRef])
   return (
     <Container>
-      <Working style={{ textAlign: 'center' }}>
-        <FM {...msg.signOutWaiting} />
-      </Working>
+      <Working style={{ textAlign: 'center' }}>Signing out</Working>
     </Container>
   )
 }
@@ -64,7 +60,7 @@ function Form({ onSuccess, link }: FormProps) {
         return { [FORM_ERROR]: 'userNotFound' }
       }
       if (e instanceof errors.InvalidPassword) {
-        return { password: 'invalid' }
+        return { [FORM_ERROR]: 'invalid' }
       }
       sentry('captureException', e)
       return { [FORM_ERROR]: 'unexpected' }
@@ -74,7 +70,16 @@ function Form({ onSuccess, link }: FormProps) {
   return (
     <Container>
       <RF.Form onSubmit={onSubmit}>
-        {({ handleSubmit, submitting, submitFailed, invalid, error, submitError }) => (
+        {({
+          error,
+          handleSubmit,
+          hasSubmitErrors,
+          hasValidationErrors,
+          modifiedSinceLastSubmit,
+          submitError,
+          submitFailed,
+          submitting,
+        }) => (
           <form onSubmit={handleSubmit}>
             <RF.Field
               // @ts-expect-error
@@ -84,10 +89,9 @@ function Form({ onSuccess, link }: FormProps) {
               // @ts-expect-error
               validate={validators.required}
               disabled={submitting}
-              floatingLabelText={<FM {...msg.passChangePassLabel} />}
+              floatingLabelText="New password"
               errors={{
-                required: <FM {...msg.passChangePassRequired} />,
-                invalid: <FM {...msg.passChangePassInvalid} />,
+                required: 'Enter a password',
               }}
             />
             <RF.Field
@@ -100,37 +104,40 @@ function Form({ onSuccess, link }: FormProps) {
                 validate('check', validators.matchesField('password')),
               )}
               disabled={submitting}
-              floatingLabelText={<FM {...msg.passChangePassCheckLabel} />}
+              floatingLabelText="Re-enter your new password"
               errors={{
-                required: <FM {...msg.passChangePassCheckRequired} />,
-                check: <FM {...msg.passChangePassCheckMatch} />,
+                required: 'Enter the password again',
+                check: 'Passwords must match',
               }}
               fullWidth
             />
             <Layout.Error
-              {...{ submitFailed, error: error || submitError }}
+              {...{
+                submitFailed,
+                error: error || (!modifiedSinceLastSubmit && submitError),
+              }}
               errors={{
                 invalidToken: (
-                  <FM
-                    {...msg.passChangeErrorInvalidToken}
-                    values={{
-                      link: (
-                        <Link to={urls.passReset()}>
-                          <FM {...msg.passChangeErrorInvalidTokenLink} />
-                        </Link>
-                      ),
-                    }}
-                  />
+                  <>
+                    This reset link is invalid (probably expired). Try{' '}
+                    <Link to={urls.passReset()}>resetting password</Link> again.
+                  </>
                 ),
-                notAllowed: <FM {...msg.passChangeErrorNotAllowed} />,
-                userNotFound: <FM {...msg.passChangeErrorUserNotFound} />,
-                unexpected: <FM {...msg.passChangeErrorUnexpected} />,
+                invalid: 'Password must be at least 8 characters long',
+                notAllowed: 'You are not allowed to set password.',
+                userNotFound:
+                  'User not found for this reset link. Please contact support.',
+                unexpected: 'Something went wrong. Try again later.',
               }}
             />
             <Layout.Actions>
               <Layout.Submit
-                label={<FM {...msg.passChangeSubmit} />}
-                disabled={submitting || (submitFailed && invalid)}
+                label="Change Password"
+                disabled={
+                  submitting ||
+                  (hasValidationErrors && submitFailed) ||
+                  (hasSubmitErrors && !modifiedSinceLastSubmit)
+                }
                 busy={submitting}
               />
             </Layout.Actions>
@@ -145,20 +152,11 @@ function Success() {
   const { urls } = NamedRoutes.use()
   return (
     <Container>
+      <Layout.Message>Your password has been changed.</Layout.Message>
       <Layout.Message>
-        <FM {...msg.passChangeSuccess} />
-      </Layout.Message>
-      <Layout.Message>
-        <FM
-          {...msg.passChangeSuccessCTA}
-          values={{
-            link: (
-              <Link to={urls.signIn()}>
-                <FM {...msg.passChangeSuccessCTALink} />
-              </Link>
-            ),
-          }}
-        />
+        <>
+          Now you can <Link to={urls.signIn()}>sign in</Link> using your new password.
+        </>
       </Layout.Message>
     </Container>
   )

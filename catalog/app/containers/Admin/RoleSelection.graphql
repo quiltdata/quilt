@@ -1,4 +1,5 @@
 fragment RoleSelection on Role {
+  __typename
   ... on UnmanagedRole {
     id
     name
@@ -9,7 +10,9 @@ fragment RoleSelection on Role {
     name
     arn
     permissions {
-      bucket { name }
+      bucket {
+        name
+      }
       level
     }
   }

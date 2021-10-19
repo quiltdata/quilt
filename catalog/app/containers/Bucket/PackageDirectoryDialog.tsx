@@ -3,12 +3,9 @@ import { basename } from 'path'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RF from 'react-final-form'
-import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
-import * as authSelectors from 'containers/Auth/selectors'
-import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -73,15 +70,10 @@ interface DialogFormProps {
   dirs: string[]
   files: { key: string; size: number }[]
   close: () => void
-  responseError: $TSFixMe
-  schema: object
-  schemaLoading: boolean
-  selectedWorkflow: workflows.Workflow
   setSubmitting: (submitting: boolean) => void
   setSuccess: (success: { name: string; hash: string }) => void
   setWorkflow: (workflow: workflows.Workflow) => void
   successor: workflows.Successor
-  validate: FF.FieldValidator<$TSFixMe>
   workflowsConfig: workflows.WorkflowsConfig
 }
 
@@ -102,8 +94,8 @@ function DialogForm({
   successor,
   validate: validateMetaInput,
   workflowsConfig,
-}: DialogFormProps) {
-  const nameValidator = PD.useNameValidator()
+}: DialogFormProps & PD.SchemaFetcherRenderProps) {
+  const nameValidator = PD.useNameValidator(selectedWorkflow)
   const nameExistence = PD.useNameExistence(successor.slug)
   const [nameWarning, setNameWarning] = React.useState<React.ReactNode>('')
   const [metaHeight, setMetaHeight] = React.useState(0)
@@ -145,7 +137,8 @@ function DialogForm({
       } catch (e) {
         // eslint-disable-next-line no-console
         console.log('error creating manifest', e)
-        return { [FF.FORM_ERROR]: e.message || PD.ERROR_MESSAGES.MANIFEST }
+        const errorMessage = e instanceof Error ? e.message : null
+        return { [FF.FORM_ERROR]: errorMessage || PD.ERROR_MESSAGES.MANIFEST }
       }
     },
     [bucket, successor, createPackage, setSuccess, schema, path],
@@ -208,8 +201,8 @@ function DialogForm({
     }
   }, [editorElement, setMetaHeight])
 
-  const username = redux.useSelector(authSelectors.username)
-  const usernamePrefix = React.useMemo(() => PD.getUsernamePrefix(username), [username])
+  // HACK: FIXME: it triggers name validation with correct workflow
+  const [hideMeta, setHideMeta] = React.useState(false)
 
   return (
     <RF.Form
@@ -247,6 +240,12 @@ function DialogForm({
                 onChange={({ modified, values }) => {
                   if (modified?.workflow && values.workflow !== selectedWorkflow) {
                     setWorkflow(values.workflow)
+
+                    // HACK: FIXME: it triggers name validation with correct workflow
+                    setHideMeta(true)
+                    setTimeout(() => {
+                      setHideMeta(false)
+                    }, 300)
                   }
                 }}
               />
@@ -271,7 +270,8 @@ function DialogForm({
 
                   <RF.Field
                     component={PD.PackageNameInput}
-                    initialValue={usernamePrefix}
+                    directory={path}
+                    workflow={selectedWorkflow || workflowsConfig}
                     name="name"
                     validate={validators.composeAsync(
                       validators.required,
@@ -281,6 +281,7 @@ function DialogForm({
                     errors={{
                       required: 'Enter a package name',
                       invalid: 'Invalid package name',
+                      pattern: `Name should match "${selectedWorkflow?.packageNamePattern}" regexp`,
                     }}
                     helperText={nameWarning}
                   />
@@ -295,7 +296,7 @@ function DialogForm({
                     }}
                   />
 
-                  {schemaLoading ? (
+                  {schemaLoading || hideMeta ? (
                     <PD.MetaInputSkeleton
                       className={classes.meta}
                       ref={setEditorElement}
@@ -501,33 +502,24 @@ export default function PackageDirectoryDialog({
           Ok: (workflowsConfig: workflows.WorkflowsConfig) =>
             successor && (
               <PD.SchemaFetcher workflow={workflow} workflowsConfig={workflowsConfig}>
-                {AsyncResult.case({
-                  Ok: (schemaProps: {
-                    responseError: $TSFixMe
-                    schema: object
-                    schemaLoading: boolean
-                    selectedWorkflow: workflows.Workflow
-                    validate: FF.FieldValidator<$TSFixMe>
-                  }) => (
-                    <DialogForm
-                      {...schemaProps}
-                      {...{
-                        bucket,
-                        path,
-                        truncated,
-                        dirs,
-                        files,
-                        close: handleClose,
-                        setSubmitting,
-                        setSuccess,
-                        setWorkflow,
-                        successor,
-                        workflowsConfig,
-                      }}
-                    />
-                  ),
-                  _: R.identity,
-                })}
+                {(schemaProps) => (
+                  <DialogForm
+                    {...schemaProps}
+                    {...{
+                      bucket,
+                      path,
+                      truncated,
+                      dirs,
+                      files,
+                      close: handleClose,
+                      setSubmitting,
+                      setSuccess,
+                      setWorkflow,
+                      successor,
+                      workflowsConfig,
+                    }}
+                  />
+                )}
               </PD.SchemaFetcher>
             ),
           _: () =>

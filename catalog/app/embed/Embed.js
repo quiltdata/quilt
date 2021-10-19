@@ -11,7 +11,6 @@ import * as M from '@material-ui/core'
 import * as Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
 import * as Auth from 'containers/Auth'
-import LanguageProvider from 'containers/LanguageProvider'
 import { ThrowNotFound, createNotFound } from 'containers/NotFoundPage'
 import * as Notifications from 'containers/Notifications'
 import * as routes from 'constants/embed-routes'
@@ -42,13 +41,14 @@ import WithGlobalStyles from '../global-styles'
 
 import AppBar from './AppBar'
 import * as EmbedConfig from './EmbedConfig'
+import * as Overrides from './Overrides'
+import * as ipc from './ipc'
 
-const mkLazy = (load) =>
-  RT.loadable(load, { fallback: () => <Placeholder color="text.secondary" /> })
+const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
-const Dir = mkLazy(() => import('./Dir'))
-const File = mkLazy(() => import('./File'))
-const Search = mkLazy(() => import('./Search'))
+const Dir = RT.mkLazy(() => import('./Dir'), SuspensePlaceholder)
+const File = RT.mkLazy(() => import('./File'), SuspensePlaceholder)
+const Search = RT.mkLazy(() => import('./Search'), SuspensePlaceholder)
 
 const FinalBoundary = createBoundary(() => (error) => (
   <h1
@@ -137,41 +137,45 @@ function BucketLayout({ bucket, children }) {
 }
 
 function useInit() {
+  const messageParent = ipc.useMessageParent()
   const [state, setState] = React.useState(null)
 
-  const handleMessage = React.useCallback(
-    ({ data }) => {
-      if (!data || data.type !== 'init') return
-      const { type, ...init } = data
-      try {
-        if (!init.bucket) throw new Error('missing .bucket')
-        if (init.scope) {
-          if (typeof init.scope !== 'string') throw new Error('.scope must be a string')
-          init.scope = s3paths.ensureSlash(init.scope)
+  ipc.useMessageHandler(
+    React.useCallback(
+      ({ type, ...init }) => {
+        if (type !== 'init') return
+        try {
+          if (!init.bucket && !init.route)
+            throw new Error('missing either .bucket or .route')
+          if (init.scope) {
+            if (typeof init.scope !== 'string') throw new Error('.scope must be a string')
+            // eslint-disable-next-line no-param-reassign
+            init.scope = s3paths.ensureSlash(init.scope)
+          }
+          Overrides.validate(init.overrides)
+          setState(init)
+        } catch (e) {
+          const message = `Configuration error: ${e.message}`
+          // eslint-disable-next-line no-console
+          console.error(message)
+          // eslint-disable-next-line no-console
+          console.log('init object:', init)
+          messageParent({ type: 'error', message, init })
+          setState(e)
         }
-        setState(init)
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error(`Configuration error: ${e.message}`)
-        // eslint-disable-next-line no-console
-        console.log('init object:', init)
-        setState(e)
-      }
-    },
-    [setState],
+      },
+      [setState, messageParent],
+    ),
   )
 
   React.useEffect(() => {
-    window.addEventListener('message', handleMessage)
-    return () => {
-      window.removeEventListener('message', handleMessage)
-    }
-  }, [handleMessage])
+    messageParent({ type: 'ready' })
+  }, [messageParent])
 
   return state
 }
 
-function Init({ messages }) {
+function Init() {
   const [key, setKey] = React.useState(0)
   const init = useInit()
   usePrevious(init, (prev) => {
@@ -185,13 +189,14 @@ function Init({ messages }) {
   }
   return (
     <ErrorBoundary key={key}>
-      <App {...{ key, init, messages }} />
+      <App {...{ key, init }} />
     </ErrorBoundary>
   )
 }
 
 function usePostInit(init) {
   const dispatch = redux.useDispatch()
+  const messageParent = ipc.useMessageParent()
   const [state, setState] = React.useState(null)
 
   React.useEffect(() => {
@@ -200,6 +205,7 @@ function usePostInit(init) {
     result.promise
       .then(() => {
         setState(true)
+        messageParent({ type: 'init', init })
       })
       .catch((e) => {
         // eslint-disable-next-line no-console
@@ -207,8 +213,13 @@ function usePostInit(init) {
         // eslint-disable-next-line no-console
         console.error(e)
         setState(new ErrorDisplay('Authentication Failure'))
+        messageParent({
+          type: 'error',
+          message: `Authentication failure: ${e.message}`,
+          credentials: init.credentials,
+        })
       })
-  }, [init, dispatch])
+  }, [init, dispatch, messageParent])
 
   return state
 }
@@ -259,11 +270,52 @@ function useCssFiles(files = []) {
   }, [files])
 }
 
-function App({ messages, init }) {
+function useSyncHistory(history) {
+  const messageParent = ipc.useMessageParent()
+
+  ipc.useMessageHandler(
+    React.useCallback(
+      ({ type, ...data }) => {
+        if (type !== 'navigate') return
+        try {
+          if (!data.route) throw new Error('missing .route')
+          if (typeof data.route !== 'string') throw new Error('.route must be a string')
+          history.push(data.route)
+        } catch (e) {
+          const message = `Navigate: error: ${e.message}`
+          // eslint-disable-next-line no-console
+          console.error(message)
+          // eslint-disable-next-line no-console
+          console.log('params:', data)
+          messageParent({ type: 'error', message, data })
+        }
+      },
+      [history, messageParent],
+    ),
+  )
+
+  React.useEffect(
+    () =>
+      history.listen((l, action) => {
+        messageParent({
+          type: 'navigate',
+          route: `${l.pathname}${l.search}${l.hash}`,
+          action,
+        })
+      }),
+    [history, messageParent],
+  )
+}
+
+function App({ init }) {
   const { urls } = NamedRoutes.use()
   const history = useConstant(() =>
-    createHistory({ initialEntries: [urls.bucketDir(init.bucket, init.path)] }),
+    createHistory({
+      initialEntries: [init.route || urls.bucketDir(init.bucket, init.path)],
+    }),
   )
+
+  useSyncHistory(history)
 
   const storage = useConstant(() => ({
     load: () => ({}),
@@ -274,10 +326,10 @@ function App({ messages, init }) {
   useCssFiles(init.css)
 
   return RT.nest(
+    [Overrides.Provider, { value: init.overrides }],
     [EmbedConfig.Provider, { config: init }],
     [CustomThemeProvider, { theme: init.theme }],
     [Store.Provider, { history }],
-    [LanguageProvider, { messages }],
     [RouterProvider, { history }],
     Cache.Provider,
     [Config.Provider, { path: '/config.json' }],
@@ -296,7 +348,7 @@ function App({ messages, init }) {
   )
 }
 
-export default function Embed({ messages }) {
+export default function Embed() {
   return RT.nest(
     FinalBoundary,
     [M.MuiThemeProvider, { theme: style.appTheme }],
@@ -305,6 +357,6 @@ export default function Embed({ messages }) {
     ErrorBoundary,
     Sentry.Provider,
     [NamedRoutes.Provider, { routes }],
-    [Init, { messages }],
+    [Init],
   )
 }

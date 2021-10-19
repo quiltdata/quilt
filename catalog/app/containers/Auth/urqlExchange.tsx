@@ -34,7 +34,7 @@ export function useAuthExchange() {
   const dispatch = redux.useDispatch()
 
   const getTokens = React.useCallback(() => {
-    const { resolver, promise } = defer()
+    const { resolver, promise } = defer<AuthTokens>()
     dispatch(actions.getTokens(resolver))
     return promise
   }, [dispatch])
@@ -86,13 +86,14 @@ export function useAuthExchange() {
   )
 
   return React.useCallback(
-    ({ forward }: urql.ExchangeInput): urql.ExchangeIO => (ops$) =>
-      W.pipe(
-        ops$,
-        W.mergeMap((op) => W.fromPromise(transformOp(op))),
-        forward,
-        W.mergeMap((result) => W.fromPromise(handleResult(result))),
-      ),
+    ({ forward }: urql.ExchangeInput): urql.ExchangeIO =>
+      (ops$) =>
+        W.pipe(
+          ops$,
+          W.mergeMap((op) => W.fromPromise(transformOp(op))),
+          forward,
+          W.mergeMap((result) => W.fromPromise(handleResult(result))),
+        ),
     [transformOp, handleResult],
   )
 }

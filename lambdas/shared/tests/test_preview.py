@@ -17,6 +17,7 @@ from t4_lambda_shared.preview import (
     get_preview_lines,
 )
 
+TEST_EXTRACT_PARQUET_MAX_BYTES = 10_000
 BASE_DIR = pathlib.Path(__file__).parent / 'data'
 ACCEPTABLE_ERROR_MESSAGES = [
     'Start tag seen without seeing a doctype first. Expected “<!DOCTYPE html>”.',
@@ -33,7 +34,6 @@ def iterate_chunks(file_obj, chunk_size=4096):
 
 class TestPreview(TestCase):
     """Tests the preview functions"""
-    # 15_000 is magic = exact number of cells (cols*rows) in test file
     def test_extract_parquet(self):
         file = BASE_DIR / 'amazon-reviews-1000.snappy.parquet'
         cell_value = '<td>TSD Airsoft/Paintball Full-Face Mask, Goggle Lens</td>'
@@ -41,7 +41,7 @@ class TestPreview(TestCase):
         with patch('t4_lambda_shared.preview.get_available_memory') as mem_mock:
             mem_mock.return_value = 1
             with open(file, mode='rb') as parquet:
-                body, info = extract_parquet(parquet)
+                body, info = extract_parquet(parquet, max_bytes=TEST_EXTRACT_PARQUET_MAX_BYTES)
                 assert all(bracket in body for bracket in ('<', '>'))
                 assert body.count('<') == body.count('>'), \
                     'expected matching HTML tags'
@@ -49,16 +49,16 @@ class TestPreview(TestCase):
                 assert 'skipped rows' in info['warnings']
 
         with open(file, mode='rb') as parquet:
-            body, info = extract_parquet(parquet, as_html=True)
+            body, info = extract_parquet(parquet, as_html=True, max_bytes=TEST_EXTRACT_PARQUET_MAX_BYTES)
             assert cell_value in body, 'missing expected HTML cell'
 
         with open(file, mode='rb') as parquet:
-            body, info = extract_parquet(parquet, skip_rows=True)
+            body, info = extract_parquet(parquet, skip_rows=True, max_bytes=TEST_EXTRACT_PARQUET_MAX_BYTES)
             assert 'skipped rows' in info['warnings']
             assert cell_value not in body, 'only expected columns'
 
         with open(file, mode='rb') as parquet:
-            body, info = extract_parquet(parquet, as_html=False)
+            body, info = extract_parquet(parquet, as_html=False, max_bytes=TEST_EXTRACT_PARQUET_MAX_BYTES)
             assert all(bracket not in body for bracket in ('<', '>')), \
                 'did not expect HTML'
             parquet_file = pq.ParquetFile(file)
@@ -95,7 +95,7 @@ class TestPreview(TestCase):
             }
         }
         vld = HTMLValidator()
-        for file in test_files:
+        for file, expected_data in test_files.items():
             in_file = os.path.join(BASE_DIR, "excel", file)
             with open(in_file, mode="rb") as excel:
                 for html in [False, True]:
@@ -113,7 +113,7 @@ class TestPreview(TestCase):
                         print(vld.warnings)
                     else:
                         assert not any(t in body for t in tags)
-                    assert all(c in body for c in test_files[file]["contents"])
+                    assert all(c in body for c in expected_data["contents"])
 
     def test_fcs(self):
         """test FCS parsing"""
@@ -132,25 +132,25 @@ class TestPreview(TestCase):
                 'has_warnings': True,
             },
         }
-        for file in test_files:
+        for file, expected_data in test_files.items():
             in_file = os.path.join(BASE_DIR, 'fcs', file)
 
             with open(in_file, mode='rb') as fcs:
                 body, info = extract_fcs(fcs)
                 if body != "":
-                    assert test_files[file]['in_body'] in body
-                    assert not test_files[file].get('has_warnings')
+                    assert expected_data['in_body'] in body
+                    assert not expected_data.get('has_warnings')
                 else:
-                    assert test_files[file]['has_warnings']
+                    assert expected_data['has_warnings']
                     assert info['warnings']
-                assert test_files[file]['in_meta_keys'] in info['metadata'].keys()
-                assert test_files[file]['in_meta_values'] in info['metadata'].values()
+                assert expected_data['in_meta_keys'] in info['metadata'].keys()
+                assert expected_data['in_meta_values'] in info['metadata'].values()
                 # when there's a body, check if columns only works
-                if test_files[file].get('in_body'):
+                if expected_data.get('in_body'):
                     # move to start so we can use the file-like a second time
                     fcs.seek(0)
                     body, info = extract_fcs(fcs, as_html=False)
-                    assert body == test_files[file]['columns_string']
+                    assert body == expected_data['columns_string']
 
     def test_long(self):
         """test a text file with lots of lines"""

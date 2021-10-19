@@ -72,7 +72,7 @@ const transformConfig = (cfg) => ({
 
 const ConfigResource = Cache.createResource({
   name: 'Config.config',
-  fetch: R.pipeWith(R.then)([fetchConfig, transformConfig]),
+  fetch: R.pipeWith(R.andThen)([fetchConfig, transformConfig]),
 })
 
 const Ctx = React.createContext()

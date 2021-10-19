@@ -21,13 +21,15 @@ export type containers_Admin_BucketsUpdateMutation = {
           readonly __typename: 'BucketConfig'
         } & BucketConfigSelectionFragment
       })
+    | { readonly __typename: 'BucketFileExtensionsToIndexInvalid' }
+    | { readonly __typename: 'BucketIndexContentBytesInvalid' }
     | { readonly __typename: 'BucketNotFound' }
     | { readonly __typename: 'NotificationConfigurationError' }
     | { readonly __typename: 'NotificationTopicNotFound' }
     | { readonly __typename: 'SnsInvalid' }
 }
 
-export const containers_Admin_BucketsUpdateDocument = ({
+export const containers_Admin_BucketsUpdateDocument = {
   kind: 'Document',
   definitions: [
     {
@@ -109,7 +111,7 @@ export const containers_Admin_BucketsUpdateDocument = ({
     },
     ...BucketConfigSelectionFragmentDoc.definitions,
   ],
-} as unknown) as DocumentNode<
+} as unknown as DocumentNode<
   containers_Admin_BucketsUpdateMutation,
   containers_Admin_BucketsUpdateMutationVariables
 >

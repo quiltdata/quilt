@@ -1,7 +1,6 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import { FormattedRelative, FormattedPlural } from 'react-intl'
 import { useHistory, Link, Redirect } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
@@ -20,13 +19,14 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as SVG from 'utils/SVG'
 import * as BucketPreferences from 'utils/BucketPreferences'
+import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import mkStorage from 'utils/storage'
 import { readableQuantity } from 'utils/string'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
-import PackageCreateDialog from './PackageCreateDialog'
+import { usePackageCreateDialog } from './PackageCreateDialog'
 import Pagination from './Pagination'
 import { displayError } from './errors'
 import * as requests from './requests'
@@ -191,13 +191,13 @@ function Package({ name, modified, revisions, bucket, views }) {
           {xs ? (
             'Rev.'
           ) : (
-            <FormattedPlural one="Revision" other="Revisions" value={revisions} />
+            <Format.Plural value={revisions} one="Revision" other="Revisions" />
           )}
         </span>
         <M.Box mr={2} component="span" />
-        <span className={classes.updated}>
+        <span className={classes.updated} title={modified ? modified.toString() : null}>
           {xs ? 'Upd. ' : 'Updated '}
-          {modified ? <FormattedRelative value={modified} /> : '[unknown: see console]'}
+          {modified ? <Format.Relative value={modified} /> : '[unknown: see console]'}
         </span>
       </M.Box>
       {!!views && <Counts {...views} />}
@@ -339,17 +339,6 @@ export default function PackageList({
   const today = React.useMemo(() => new Date(), [])
 
   const [counter, setCounter] = React.useState(0)
-  const refresh = React.useCallback(() => setCounter(R.inc), [setCounter])
-
-  const [uploadOpen, setUploadOpen] = React.useState(false)
-
-  const openUpload = React.useCallback(() => {
-    setUploadOpen(true)
-  }, [setUploadOpen])
-
-  const closeUpload = React.useCallback(() => {
-    setUploadOpen(false)
-  }, [setUploadOpen])
 
   const totalCountData = Data.use(requests.countPackages, { req, bucket, counter })
   const filteredCountData = Data.use(requests.countPackages, {
@@ -416,15 +405,25 @@ export default function PackageList({
     }
   })
 
+  const onExited = React.useCallback(
+    (res) => {
+      if (res && res.pushed) {
+        setCounter(R.inc)
+      }
+    },
+    [setCounter],
+  )
+
   const preferences = BucketPreferences.use()
+
+  const createDialog = usePackageCreateDialog({ bucket, onExited })
 
   return (
     <>
       <MetaTitle>{['Packages', bucket]}</MetaTitle>
 
-      <PackageCreateDialog
-        {...{ bucket, refresh, open: uploadOpen, onClose: closeUpload }}
-      />
+      {createDialog.element}
+
       {totalCountData.case({
         _: () => (
           <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
@@ -469,7 +468,11 @@ export default function PackageList({
                 <M.Box pt={3} />
                 {preferences?.ui?.actions?.createPackage && (
                   <>
-                    <M.Button variant="contained" color="primary" onClick={openUpload}>
+                    <M.Button
+                      variant="contained"
+                      color="primary"
+                      onClick={createDialog.open}
+                    >
                       Create package
                     </M.Button>
                     <M.Box pt={2} />
@@ -524,7 +527,7 @@ export default function PackageList({
                       size="large"
                       color="primary"
                       style={{ paddingTop: 7, paddingBottom: 7 }}
-                      onClick={openUpload}
+                      onClick={createDialog.open}
                     >
                       Create package
                     </M.Button>

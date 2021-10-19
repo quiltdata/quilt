@@ -25,7 +25,7 @@ class LocalPackageRegistryV1(PackageRegistryV1):
     def list_package_pointers(self, pkg_name: str):
         pointers_dir_path = self.pointers_dir(pkg_name).path
         for path in safe_listdir(pointers_dir_path):
-            with open(os.path.join(pointers_dir_path, path)) as f:
+            with open(os.path.join(pointers_dir_path, path), encoding='utf-8') as f:
                 yield path, f.read()
 
     def delete_package(self, pkg_name: str):

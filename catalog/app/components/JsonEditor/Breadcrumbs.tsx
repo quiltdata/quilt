@@ -10,6 +10,11 @@ const useStyles = M.makeStyles((t) => ({
     display: 'flex',
     padding: '5px 8px',
   },
+  li: {
+    '&::before': {
+      position: 'absolute', // Workaround for sanitize.css a11y styles
+    },
+  },
 }))
 
 const useItemStyles = M.makeStyles({
@@ -65,8 +70,15 @@ export default function Breadcrumbs({ items, onSelect }: BreadcrumbsProps) {
     ref.current?.scrollIntoView()
   }, [ref])
 
+  const overrideClasses = React.useMemo(() => ({ li: classes.li }), [classes])
+
   return (
-    <M.Breadcrumbs className={classes.root} ref={ref} separator={<BreadcrumbsDivider />}>
+    <M.Breadcrumbs
+      className={classes.root}
+      classes={overrideClasses}
+      ref={ref}
+      separator={<BreadcrumbsDivider />}
+    >
       <BreadcrumbsItem index={0} onClick={onBreadcrumb}>
         <M.Icon fontSize="small">home</M.Icon>
       </BreadcrumbsItem>

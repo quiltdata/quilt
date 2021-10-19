@@ -3,18 +3,15 @@ import isBuffer from 'lodash/isBuffer'
 import isNil from 'lodash/isNil'
 import isString from 'lodash/isString'
 import isTypedArray from 'lodash/isTypedArray'
-import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-import { setPropTypes } from 'recompose'
 import { takeEvery, call, put } from 'redux-saga/effects'
 
 import * as Config from 'utils/Config'
 import * as SagaInjector from 'utils/SagaInjector'
 import defer from 'utils/defer'
 import { BaseError } from 'utils/error'
-import { composeComponent } from 'utils/reactTools'
 import { actionCreator, createActions } from 'utils/reduxTools'
 
 const REDUX_KEY = 'app/utils/APIConnector'
@@ -95,7 +92,7 @@ export class HTTPError extends BaseError {
     try {
       json = JSON.parse(text)
     } catch (e) {
-      // ignore it
+      json = { message: message || text }
     }
 
     super(message || (json && (json.message || json.error)) || resp.statusText, {
@@ -159,7 +156,7 @@ function* errorMiddleware(opts, next) {
   return resp
 }
 
-const isInstance = (cls) => (b) => (cls ? b instanceof cls : false)
+const isInstance = (cls) => (b) => cls ? b instanceof cls : false
 
 const validBodyTests = [
   isNil,
@@ -221,8 +218,12 @@ const jsonAccepts = {
 function* jsonMiddleware({ json = true, ...opts }, next) {
   if (!json) return yield call(next, opts)
 
-  const { stringify = true, parse = true, contentType = true, accepts = true } =
-    json === true ? {} : json
+  const {
+    stringify = true,
+    parse = true,
+    contentType = true,
+    accepts = true,
+  } = json === true ? {} : json
 
   if (!stringify && !parse && !contentType && !accepts) {
     return yield call(next, opts)
@@ -311,26 +312,20 @@ export const useApi = () => React.useContext(Ctx)
 
 export const use = useApi
 
-export const Provider = composeComponent(
-  'APIConnector.Provider',
-  setPropTypes({
-    fetch: PT.func.isRequired,
-    middleware: PT.arrayOf(PT.func.isRequired),
-  }),
-  ({ fetch, middleware, children }) => {
-    const base = `${Config.useConfig().registryUrl}/api`
-    SagaInjector.useSaga(apiSaga, { fetch, base, middleware })
+// fetch: window.fetch, middleware: ((any) => any)[]
+export function Provider({ fetch, middleware, children }) {
+  const base = `${Config.useConfig().registryUrl}/api`
+  SagaInjector.useSaga(apiSaga, { fetch, base, middleware })
 
-    const dispatch = redux.useDispatch()
-    const req = React.useCallback(
-      (opts) => {
-        const dfd = defer()
-        dispatch(request(opts, dfd.resolver))
-        return dfd.promise
-      },
-      [dispatch],
-    )
+  const dispatch = redux.useDispatch()
+  const req = React.useCallback(
+    (opts) => {
+      const dfd = defer()
+      dispatch(request(opts, dfd.resolver))
+      return dfd.promise
+    },
+    [dispatch],
+  )
 
-    return <Ctx.Provider value={req}>{children}</Ctx.Provider>
-  },
-)
+  return <Ctx.Provider value={req}>{children}</Ctx.Provider>
+}

@@ -145,7 +145,7 @@ optional arguments:
 ## `push`
 ```
 usage: quilt3 push --dir DIR [-h] [--registry REGISTRY] [--dest DEST]
-                   [--message MESSAGE] [--meta META]
+                   [--message MESSAGE] [--meta META] [--workflow WORKFLOW]
                    name
 
 Pushes the new package to the remote registry
@@ -164,6 +164,9 @@ optional arguments:
   --message MESSAGE    The commit message for the new package
   --meta META          Sets package-level metadata. Format: A json string with
                        keys in double quotes '{"key": "value"}'
+  --workflow WORKFLOW  Workflow ID or empty string to skip workflow
+                       validation. If not specified, the default workflow will
+                       be used.
 ```
 ## `config-default-remote-registry`
 ```
@@ -203,7 +206,8 @@ depends on network bandwidth, CPU performance, file sizes, etc.
 $ export QUILT_TRANSFER_MAX_CONCURRENCY=20
 ```
 ### `QUILT_MANIFEST_MAX_RECORD_SIZE`
-Maximum size of a record in package manifest. Defaults to `1_000_000`.
+Maximum size of a record in package manifest. **Setting this variable is strongly discouraged.**
+Defaults to `1_000_000`.
 
 ### `XDG_*`
 Quilt uses appdirs for Python to determine where to write data. You can therefore

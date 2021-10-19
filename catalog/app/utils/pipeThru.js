@@ -1,3 +1,6 @@
 import * as R from 'ramda'
 
-export default (...args) => (...fns) => R.pipe(...fns)(...args)
+/** @deprecated Use pipe from fp-ts */
+export default (...args) =>
+  (...fns) =>
+    R.pipe(...fns)(...args)

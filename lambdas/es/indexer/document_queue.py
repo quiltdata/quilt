@@ -1,5 +1,7 @@
 """ core logic for fetching documents from S3 and queueing them locally before
 sending to elastic search in memory-limited batches"""
+import functools
+import json
 import os
 from datetime import datetime
 from enum import Enum
@@ -11,23 +13,19 @@ from aws_requests_auth.aws_auth import AWSRequestsAuth
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 
-from t4_lambda_shared.preview import ELASTIC_LIMIT_BYTES
 from t4_lambda_shared.utils import (
     PACKAGE_INDEX_SUFFIX,
     get_quilt_logger,
     separated_env_to_iter,
 )
 
-CONTENT_INDEX_EXTS = separated_env_to_iter("CONTENT_INDEX_EXTS") or {
-    ".csv",
-    ".ipynb",
-    ".json",
-    ".md",
-    ".parquet",
-    ".rmd",
-    ".tsv",
-    ".txt"
-}
+# number of bytes we take from each document before sending to elastic-search
+# DOC_LIMIT_BYTES is the legacy variable name; leave as-is for now; requires
+# change to CloudFormation templates to use the new name
+assert 'DOC_LIMIT_BYTES' in os.environ
+ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES'))
+assert 'CONTENT_INDEX_EXTS' in os.environ
+CONTENT_INDEX_EXTS = separated_env_to_iter("CONTENT_INDEX_EXTS")
 
 EVENT_PREFIX = {
     "Created": "ObjectCreated:",
@@ -41,6 +39,28 @@ MAX_BACKOFF = 360  # seconds
 MAX_RETRY = 2  # prevent long-running lambdas due to malformed calls
 QUEUE_LIMIT_BYTES = 100_000_000  # 100MB
 RETRY_429 = 3
+
+
+PER_BUCKET_CONFIGS = os.getenv('PER_BUCKET_CONFIGS')
+PER_BUCKET_CONFIGS = json.loads(PER_BUCKET_CONFIGS) if PER_BUCKET_CONFIGS else {}
+
+
+@functools.lru_cache(maxsize=None)
+def get_content_index_extensions(*, bucket_name: str):
+    try:
+        extensions = PER_BUCKET_CONFIGS[bucket_name]['content_extensions']
+    except KeyError:
+        extensions = None
+    return frozenset(CONTENT_INDEX_EXTS if extensions is None else extensions)
+
+
+@functools.lru_cache(maxsize=None)
+def get_content_index_bytes(*, bucket_name: str):
+    try:
+        content_index_bytes = PER_BUCKET_CONFIGS[bucket_name]['content_bytes']
+    except KeyError:
+        content_index_bytes = None
+    return ELASTIC_LIMIT_BYTES if content_index_bytes is None else content_index_bytes
 
 
 def get_id(key, version_id):
@@ -183,18 +203,18 @@ class DocumentQueue:
         else:
             logger_.error("Skipping unexpected document type: %s", doc_type)
 
-        self._append_document(body)
+        self._append_document(body, content_index_bytes=get_content_index_bytes(bucket_name=bucket))
 
         if self.size >= QUEUE_LIMIT_BYTES:
             self.send_all()
 
-    def _append_document(self, doc):
+    def _append_document(self, doc, *, content_index_bytes):
         """append well-formed documents (used for retry or by append())"""
         logger_ = get_quilt_logger()
         if doc.get("content"):
             # document text dominates memory footprint; OK to neglect the
             # small fixed size for the JSON metadata
-            self.size += min(doc["size"], ELASTIC_LIMIT_BYTES)
+            self.size += min(doc["size"], content_index_bytes)
         logger_.debug("Appending document %s", doc)
         self.queue.append(doc)
 

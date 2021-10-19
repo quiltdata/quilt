@@ -20,7 +20,8 @@ export const SIZE_THRESHOLDS = [
 
 export const COMPRESSION_TYPES = { gz: '.gz', bz2: '.bz2' }
 
-export const GLACIER_ERROR_RE = /<Code>InvalidObjectState<\/Code><Message>The operation is not valid for the object's storage class<\/Message>/
+export const GLACIER_ERROR_RE =
+  /<Code>InvalidObjectState<\/Code><Message>The operation is not valid for the object's storage class<\/Message>/
 
 // eslint-disable-next-line consistent-return
 export const getCompression = (key) => {
@@ -204,7 +205,7 @@ export function usePreview({ type, handle, query }) {
 }
 
 export function useProcessing(asyncResult, process, deps = []) {
-  return useMemoEq([asyncResult, process, deps], () =>
+  return useMemoEq([asyncResult, deps], () =>
     AsyncResult.case(
       {
         Ok: R.tryCatch(R.pipe(process, AsyncResult.Ok), AsyncResult.Err),

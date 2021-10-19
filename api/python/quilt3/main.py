@@ -24,6 +24,13 @@ from .util import (
 )
 
 
+def parse_arg_json(value):
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        raise argparse.ArgumentTypeError(f'{value!r} is not a valid json string.')
+
+
 def cmd_config(catalog_url, **kwargs):
     """
     Configure quilt3 to a Quilt stack
@@ -93,7 +100,7 @@ def _launch_local_catalog():
     for var in [f"{key}={value}" for key, value in env.items()]:
         command += ["-e", var]
     command += ["-p", "3000:80", "quiltdata/catalog"]
-    subprocess.Popen(command)
+    subprocess.run(command, check=True)
 
 
 def _launch_local_s3proxy():
@@ -115,7 +122,7 @@ def _launch_local_s3proxy():
         command += ["--dns", nameservers[0]]
 
     command += ["-p", "5002:80", "quiltdata/s3proxy"]
-    subprocess.Popen(command)
+    subprocess.run(command, check=True)
 
 
 catalog_cmd_detailed_help = """
@@ -220,15 +227,10 @@ def cmd_verify(name, registry, top_hash, dir, extra_files_ok):
         return 1
 
 
-def cmd_push(name, dir, registry, dest, message, meta):
+def cmd_push(name, dir, registry, dest, message, meta, workflow):
     pkg = Package()
-    if meta:
-        try:
-            meta = json.loads(meta)
-        except ValueError:
-            raise QuiltException(f'{meta!r} is not a valid json string.')
     pkg.set_dir('.', dir, meta=meta)
-    pkg.push(name, registry=registry, dest=dest, message=message)
+    pkg.push(name, registry=registry, dest=dest, message=message, workflow=workflow)
 
 
 def create_parser():
@@ -440,7 +442,16 @@ def create_parser():
             Sets package-level metadata.
             Format: A json string with keys in double quotes '{"key": "value"}'
             """,
-        type=str,
+        type=parse_arg_json,
+    )
+    optional_args.add_argument(
+        "--workflow",
+        help="""
+            Workflow ID or empty string to skip workflow validation.
+            If not specified, the default workflow will be used.
+            """,
+        default=...,
+        type=lambda v: None if v == '' else v
     )
     push_p.set_defaults(func=cmd_push)
 

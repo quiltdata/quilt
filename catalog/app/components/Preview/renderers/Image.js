@@ -1,20 +1,20 @@
 import cx from 'classnames'
 import * as React from 'react'
-import { withStyles } from '@material-ui/styles'
+import * as M from '@material-ui/core'
 
 import Thumbnail from 'components/Thumbnail'
-import * as RT from 'utils/reactTools'
 
-const Image = RT.composeComponent(
-  'Preview.renderers.Image',
-  withStyles(() => ({
-    root: {
-      display: 'block',
-      margin: 'auto',
-      maxWidth: '100%',
-    },
-  })),
-  ({ handle, classes, className, ...props }) => (
+const useStyles = M.makeStyles({
+  root: {
+    display: 'block',
+    margin: 'auto',
+    maxWidth: '100%',
+  },
+})
+
+function Image({ handle, className, ...props }) {
+  const classes = useStyles()
+  return (
     <Thumbnail
       handle={handle}
       size="lg"
@@ -23,7 +23,7 @@ const Image = RT.composeComponent(
       skeletonProps={{ width: '100%' }}
       {...props}
     />
-  ),
-)
+  )
+}
 
 export default (img, props) => <Image {...img} {...props} />

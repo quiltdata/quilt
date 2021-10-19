@@ -4,6 +4,17 @@ scalar Datetime
 
 scalar Json
 
+type ContentIndexingSettings {
+  extensions: [String!]!
+  bytesDefault: Int!
+  bytesMin: Int!
+  bytesMax: Int!
+}
+
+type Config {
+  contentIndexingSettings: ContentIndexingSettings! @admin
+}
+
 type BucketConfig {
   name: String!
   title: String!
@@ -18,6 +29,7 @@ type BucketConfig {
   scannerParallelShardsDepth: Int @admin
   skipMetaDataIndexing: Boolean @admin
   fileExtensionsToIndex: [String!] @admin
+  indexContentBytes: Int @admin
   permissions: [RoleBucketPermission!]! @admin
 }
 
@@ -48,6 +60,7 @@ type RoleBucketPermission {
 }
 
 type Query {
+  config: Config!
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
   roles: [Role!]! @admin
@@ -67,6 +80,7 @@ input BucketAddInput {
   scannerParallelShardsDepth: Int
   skipMetaDataIndexing: Boolean
   fileExtensionsToIndex: [String!]
+  indexContentBytes: Int
   setVersioning: Boolean
   delayScan: Boolean
 }
@@ -83,6 +97,7 @@ input BucketUpdateInput {
   scannerParallelShardsDepth: Int
   skipMetaDataIndexing: Boolean
   fileExtensionsToIndex: [String!]
+  indexContentBytes: Int
   setVersioning: Boolean
 }
 
@@ -99,6 +114,14 @@ type BucketAlreadyAdded {
 }
 
 type BucketDoesNotExist {
+  _: Boolean
+}
+
+type BucketFileExtensionsToIndexInvalid {
+  _: Boolean
+}
+
+type BucketIndexContentBytesInvalid {
   _: Boolean
 }
 
@@ -126,6 +149,8 @@ union BucketAddResult =
     BucketAddSuccess
   | BucketAlreadyAdded
   | BucketDoesNotExist
+  | BucketFileExtensionsToIndexInvalid
+  | BucketIndexContentBytesInvalid
   | InsufficientPermissions
   | NotificationConfigurationError
   | NotificationTopicNotFound
@@ -137,6 +162,8 @@ type BucketUpdateSuccess {
 
 union BucketUpdateResult =
     BucketUpdateSuccess
+  | BucketFileExtensionsToIndexInvalid
+  | BucketIndexContentBytesInvalid
   | BucketNotFound
   | NotificationConfigurationError
   | NotificationTopicNotFound
@@ -222,7 +249,11 @@ type RoleDeleteSuccess {
   _: Boolean
 }
 
-union RoleDeleteResult = RoleDeleteSuccess | RoleDoesNotExist | RoleNameReserved
+type RoleAssigned {
+  _: Boolean
+}
+
+union RoleDeleteResult = RoleDeleteSuccess | RoleDoesNotExist | RoleNameReserved | RoleAssigned
 
 type Mutation {
   bucketAdd(input: BucketAddInput!): BucketAddResult! @admin

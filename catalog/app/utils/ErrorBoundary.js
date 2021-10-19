@@ -1,9 +1,5 @@
-import { boundMethod } from 'autobind-decorator'
 import PT from 'prop-types'
 import * as React from 'react'
-import * as RC from 'recompose'
-
-import * as RT from 'utils/reactTools'
 
 export const createBoundary = (handle, name = 'ErrorBoundary') =>
   class extends React.Component {
@@ -17,6 +13,7 @@ export const createBoundary = (handle, name = 'ErrorBoundary') =>
     constructor(props) {
       super(props)
       this.state = { handled: null }
+      this.boundReset = this.reset.bind(this)
     }
 
     componentDidUpdate({ id: oldId }) {
@@ -24,8 +21,7 @@ export const createBoundary = (handle, name = 'ErrorBoundary') =>
     }
 
     componentDidCatch(error, info) {
-      const { reset } = this
-      const handled = handle(this.props, { reset })(error, info)
+      const handled = handle(this.props, { reset: this.boundReset })(error, info)
       if (handled && handled !== error) {
         this.setState({ handled })
       } else {
@@ -33,7 +29,6 @@ export const createBoundary = (handle, name = 'ErrorBoundary') =>
       }
     }
 
-    @boundMethod
     reset() {
       this.setState({ handled: null })
     }
@@ -42,11 +37,3 @@ export const createBoundary = (handle, name = 'ErrorBoundary') =>
       return this.state.handled || this.props.children
     }
   }
-
-export const withBoundary = (handle) =>
-  RT.composeHOC('withErrorBoundary', (Component) =>
-    RC.nest(
-      createBoundary(handle, `ErrorBoundary(${RC.getDisplayName(Component)})`),
-      Component,
-    ),
-  )

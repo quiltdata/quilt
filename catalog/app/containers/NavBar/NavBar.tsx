@@ -20,16 +20,31 @@ import bg from './bg.png'
 
 import Controls from './Controls'
 
-function LogoLink(props: M.BoxProps) {
+const useLogoLinkStyles = M.makeStyles((t) => ({
+  root: {
+    margin: t.spacing(2),
+  },
+}))
+
+function LogoLink() {
+  const classes = useLogoLinkStyles()
   const cfg = Config.useConfig()
   const { urls } = NamedRoutes.use()
   return (
-    // @ts-expect-error Property 'to' does not exist on type 'IntrinsicAttributes & BoxProps & { children?: ReactNode; }'
-    <M.Box component={Link} mr={2} to={urls.home()} {...props}>
+    <Link className={classes.root} to={urls.home()}>
       <Logo responsive forcedShort={cfg.mode === 'OPEN' || cfg.mode === 'PRODUCT'} />
-    </M.Box>
+    </Link>
   )
 }
+
+const useItemStyles = M.makeStyles({
+  root: {
+    display: 'inline-flex',
+    maxWidth: '400px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+})
 
 // type ItemProps = (LinkProps | { href: string }) & M.MenuItemProps
 interface ItemProps extends M.MenuItemProps {
@@ -40,19 +55,20 @@ interface ItemProps extends M.MenuItemProps {
 // FIXME: doesn't compile with Ref<unknown>
 // const Item = React.forwardRef((props: ItemProps, ref: React.Ref<unknown>) => (
 const Item = React.forwardRef(
-  ({ children, ...props }: ItemProps, ref: React.Ref<any>) => (
-    <M.MenuItem
-      // @ts-expect-error
-      // eslint-disable-next-line no-nested-ternary
-      component={props.to ? Link : props.href ? 'a' : undefined}
-      ref={ref}
-      {...props}
-    >
-      <M.Box component="span" textOverflow="ellipsis" overflow="hidden" maxWidth={400}>
-        {children}
-      </M.Box>
-    </M.MenuItem>
-  ),
+  ({ children, ...props }: ItemProps, ref: React.Ref<any>) => {
+    const classes = useItemStyles()
+    return (
+      <M.MenuItem
+        // @ts-expect-error
+        // eslint-disable-next-line no-nested-ternary
+        component={props.to ? Link : props.href ? 'a' : undefined}
+        ref={ref}
+        {...props}
+      >
+        <span className={classes.root}>{children}</span>
+      </M.MenuItem>
+    )
+  },
 )
 
 const selectUser = createStructuredSelector({
@@ -349,6 +365,10 @@ function useLinks(): LinkDescriptor[] {
   const cfg = Config.useConfig()
   const settings = CatalogSettings.use()
   return [
+    process.env.NODE_ENV === 'development' && {
+      to: urls.example(),
+      label: 'Example',
+    },
     settings?.customNavLink && {
       href: settings.customNavLink.url,
       label: settings.customNavLink.label,

@@ -7,12 +7,18 @@
 ## Catalog, Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
+# 3.6.0 - 2021-10-15
+## Python API
+* [Added] Validation of package names with `handle_pattern` in [workflows](Advanced Features/workflows.md) config.
+* [Added] Validation of package entries with `entries_schema` in [workflows](Advanced Features/workflows.md) config.
+
+# 3.5.0 - 2021-09-07
 ## Python API
 * [Added] Size of each manifest record is now limited by 1 MB. This constraint is added to ensure that S3 select, Athena and downstream services work correctly. This limit can be overridden with `QUILT_MANIFEST_MAX_RECORD_SIZE` environment variable. ([#2114](https://github.com/quiltdata/quilt/pull/2114))
 * [Changed] Decrease size of `Package` in-memory representation ([#1943](https://github.com/quiltdata/quilt/pull/1943))
 
 ## CLI
+* [Added] `--workflow` argument to `push` command ([#2279](https://github.com/quiltdata/quilt/pull/2279))
 
 ## Catalog, Lambdas
 * [Added] Prepopulate today date for metadata ([#2121](https://github.com/quiltdata/quilt/pull/2121))
@@ -27,6 +33,10 @@
 * [Added] Managing per-bucket permissions via admin UI ([#2228](https://github.com/quiltdata/quilt/pull/2228))
 * [Added] Deep search indexing for Excel ([#2247](https://github.com/quiltdata/quilt/pull/2247))
 * [Added] Deep search indexing for PDF ([#2256](https://github.com/quiltdata/quilt/pull/2256))
+* [Added] Add Vega/JSON view switcher for Vega files ([#2236](https://github.com/quiltdata/quilt/pull/2236))
+* [Added] Subpackage download ([#2258](https://github.com/quiltdata/quilt/pull/2258))
+* [Added] Per-bucket deep indexing settings ([#2290](https://github.com/quiltdata/quilt/pull/2290))
+* [Added] Embed: IPC, more debug features, docs ([#2314](https://github.com/quiltdata/quilt/pull/2314))
 * [Changed] New DataGrid-based file listing UI with arbitrary sorting and filtering ([#2097](https://github.com/quiltdata/quilt/pull/2097))
 * [Changed] Item selection in folder-to-package dialog ([#2122](https://github.com/quiltdata/quilt/pull/2122))
 * [Changed] Don't preview .tif (but keep .tiff), preview .results as plain text ([#2128](https://github.com/quiltdata/quilt/pull/2128))
@@ -36,10 +46,19 @@
 * [Changed] Scan more bytes (first 128 KiB) when trying to detect if a JSON file is a Vega visualization ([#2229](https://github.com/quiltdata/quilt/pull/2229))
 * [Changed] Use GraphQL for fetching and editing buckets ([#2240](https://github.com/quiltdata/quilt/pull/2240))
 * [Changed] Use registry for search requests ([#2242](https://github.com/quiltdata/quilt/pull/2242))
+* [Changed] Enhance `quilt_summarize.json` format, support title, description and multi-column layout ([#2245](https://github.com/quiltdata/quilt/pull/2245))
+* [Changed] PDF preview: don't count pages ([#2276](https://github.com/quiltdata/quilt/pull/2276))
+* [Changed] Default bucket icon changed from Quilt logo to more neutral ([#2287](https://github.com/quiltdata/quilt/pull/2287))
+* [Changed] Cachebust revision list request ([#2298](https://github.com/quiltdata/quilt/pull/2298))
+* [Changed] Wrap wide Vega charts with horizontal scroll ([#2304](https://github.com/quiltdata/quilt/pull/2304))
+* [Changed] Unify package creation and update dialogs (support adding S3 files in both) ([#2302](https://github.com/quiltdata/quilt/pull/2302))
 * [Fixed] `UnicodeDecodeError` in indexer and pkgselect lambdas ([#2123](https://github.com/quiltdata/quilt/pull/2123))
 * [Fixed] Catch and display package-related errors properly ("no such package" and "bad revision") ([#2160](https://github.com/quiltdata/quilt/pull/2160))
 * [Fixed] Crashing `pkgselect` lambda's folder view on an empty manifest ([#2147](https://github.com/quiltdata/quilt/pull/2147))
 * [Fixed] Infinite spinner on logout ([#2232](https://github.com/quiltdata/quilt/pull/2232))
+* [Fixed] Dismiss error page when navigating from it ([#2291](https://github.com/quiltdata/quilt/pull/2291))
+* [Fixed] Avoid crash on non-existent logical keys in pkgselect detail view ([#2307](https://github.com/quiltdata/quilt/pull/2307)
+* [Fixed] Error while rendering a preview inside a package ([#2328](https://github.com/quiltdata/quilt/pull/2328))
 
 # 3.4.0 - 2021-03-15
 ## Python API

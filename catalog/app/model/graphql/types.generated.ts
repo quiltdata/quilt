@@ -30,6 +30,7 @@ export interface BucketAddInput {
   readonly scannerParallelShardsDepth: Maybe<Scalars['Int']>
   readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
+  readonly indexContentBytes: Maybe<Scalars['Int']>
   readonly setVersioning: Maybe<Scalars['Boolean']>
   readonly delayScan: Maybe<Scalars['Boolean']>
 }
@@ -38,6 +39,8 @@ export type BucketAddResult =
   | BucketAddSuccess
   | BucketAlreadyAdded
   | BucketDoesNotExist
+  | BucketFileExtensionsToIndexInvalid
+  | BucketIndexContentBytesInvalid
   | InsufficientPermissions
   | NotificationConfigurationError
   | NotificationTopicNotFound
@@ -68,6 +71,7 @@ export interface BucketConfig {
   readonly scannerParallelShardsDepth: Maybe<Scalars['Int']>
   readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
+  readonly indexContentBytes: Maybe<Scalars['Int']>
   readonly permissions: ReadonlyArray<RoleBucketPermission>
 }
 
@@ -78,6 +82,16 @@ export interface BucketConfigDoesNotExist {
 
 export interface BucketDoesNotExist {
   readonly __typename: 'BucketDoesNotExist'
+  readonly _: Maybe<Scalars['Boolean']>
+}
+
+export interface BucketFileExtensionsToIndexInvalid {
+  readonly __typename: 'BucketFileExtensionsToIndexInvalid'
+  readonly _: Maybe<Scalars['Boolean']>
+}
+
+export interface BucketIndexContentBytesInvalid {
+  readonly __typename: 'BucketIndexContentBytesInvalid'
   readonly _: Maybe<Scalars['Boolean']>
 }
 
@@ -110,11 +124,14 @@ export interface BucketUpdateInput {
   readonly scannerParallelShardsDepth: Maybe<Scalars['Int']>
   readonly skipMetaDataIndexing: Maybe<Scalars['Boolean']>
   readonly fileExtensionsToIndex: Maybe<ReadonlyArray<Scalars['String']>>
+  readonly indexContentBytes: Maybe<Scalars['Int']>
   readonly setVersioning: Maybe<Scalars['Boolean']>
 }
 
 export type BucketUpdateResult =
   | BucketUpdateSuccess
+  | BucketFileExtensionsToIndexInvalid
+  | BucketIndexContentBytesInvalid
   | BucketNotFound
   | NotificationConfigurationError
   | NotificationTopicNotFound
@@ -123,6 +140,19 @@ export type BucketUpdateResult =
 export interface BucketUpdateSuccess {
   readonly __typename: 'BucketUpdateSuccess'
   readonly bucketConfig: BucketConfig
+}
+
+export interface Config {
+  readonly __typename: 'Config'
+  readonly contentIndexingSettings: ContentIndexingSettings
+}
+
+export interface ContentIndexingSettings {
+  readonly __typename: 'ContentIndexingSettings'
+  readonly extensions: ReadonlyArray<Scalars['String']>
+  readonly bytesDefault: Scalars['Int']
+  readonly bytesMin: Scalars['Int']
+  readonly bytesMax: Scalars['Int']
 }
 
 export interface IndexingInProgress {
@@ -212,6 +242,7 @@ export interface PermissionInput {
 
 export interface Query {
   readonly __typename: 'Query'
+  readonly config: Config
   readonly bucketConfigs: ReadonlyArray<BucketConfig>
   readonly bucketConfig: Maybe<BucketConfig>
   readonly roles: ReadonlyArray<Role>
@@ -227,6 +258,11 @@ export interface QueryroleArgs {
 }
 
 export type Role = UnmanagedRole | ManagedRole
+
+export interface RoleAssigned {
+  readonly __typename: 'RoleAssigned'
+  readonly _: Maybe<Scalars['Boolean']>
+}
 
 export interface RoleBucketPermission {
   readonly __typename: 'RoleBucketPermission'
@@ -247,7 +283,11 @@ export interface RoleCreateSuccess {
   readonly role: Role
 }
 
-export type RoleDeleteResult = RoleDeleteSuccess | RoleDoesNotExist | RoleNameReserved
+export type RoleDeleteResult =
+  | RoleDeleteSuccess
+  | RoleDoesNotExist
+  | RoleNameReserved
+  | RoleAssigned
 
 export interface RoleDeleteSuccess {
   readonly __typename: 'RoleDeleteSuccess'

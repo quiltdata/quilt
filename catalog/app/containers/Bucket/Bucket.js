@@ -16,17 +16,19 @@ import BucketNav from './BucketNav'
 import CatchNotFound from './CatchNotFound'
 import { displayError } from './errors'
 
-const mkLazy = (load) =>
-  RT.loadable(load, { fallback: () => <Placeholder color="text.secondary" /> })
+const SuspensePlaceholder = () => <Placeholder color="text.secondary" />
 
-const Dir = mkLazy(() => import('./Dir'))
-const File = mkLazy(() => import('./File'))
-const Overview = mkLazy(() => import('./Overview'))
-const PackageList = mkLazy(() => import('./PackageList'))
-const PackageRevisions = mkLazy(() => import('./PackageRevisions'))
-const PackageTree = mkLazy(() => import('./PackageTree'))
-const Queries = mkLazy(() => import('./Queries'))
-const Search = mkLazy(() => import('./Search'))
+const Dir = RT.mkLazy(() => import('./Dir'), SuspensePlaceholder)
+const File = RT.mkLazy(() => import('./File'), SuspensePlaceholder)
+const Overview = RT.mkLazy(() => import('./Overview'), SuspensePlaceholder)
+const PackageList = RT.mkLazy(() => import('./PackageList'), SuspensePlaceholder)
+const PackageRevisions = RT.mkLazy(
+  () => import('./PackageRevisions'),
+  SuspensePlaceholder,
+)
+const PackageTree = RT.mkLazy(() => import('./PackageTree'), SuspensePlaceholder)
+const Queries = RT.mkLazy(() => import('./Queries'), SuspensePlaceholder)
+const Search = RT.mkLazy(() => import('./Search'), SuspensePlaceholder)
 
 const match = (cases) => (pathname) => {
   // eslint-disable-next-line no-restricted-syntax

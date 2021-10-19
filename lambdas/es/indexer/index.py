@@ -48,6 +48,7 @@ See docs/EventBridge.md for more
 
 import datetime
 import json
+import os
 import pathlib
 import re
 from os.path import split
@@ -59,11 +60,12 @@ import botocore
 import nbformat
 from dateutil.tz import tzutc
 from document_queue import (
-    CONTENT_INDEX_EXTS,
     EVENT_PREFIX,
     MAX_RETRY,
     DocTypes,
     DocumentQueue,
+    get_content_index_bytes,
+    get_content_index_extensions,
 )
 from jsonschema import ValidationError, draft7_format_checker, validate
 from pdfminer.high_level import extract_text as extract_pdf_text
@@ -75,7 +77,6 @@ from tenacity import (
 )
 
 from t4_lambda_shared.preview import (
-    ELASTIC_LIMIT_BYTES,
     ELASTIC_LIMIT_LINES,
     extract_excel,
     extract_fcs,
@@ -163,6 +164,7 @@ MAX_PDF_PAGES = 100
 # 10 MB, see https://amzn.to/2xJpngN
 NB_VERSION = 4  # default notebook version for nbformat
 # currently only affects .parquet, TODO: extend to other extensions
+assert 'SKIP_ROWS_EXTS' in os.environ
 SKIP_ROWS_EXTS = separated_env_to_iter('SKIP_ROWS_EXTS')
 SELECT_PACKAGE_META = "SELECT * from S3Object o WHERE o.version IS NOT MISSING LIMIT 1"
 # No WHERE clause needed for aggregations since S3 Select skips missing fields for aggs
@@ -409,7 +411,7 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
     )
     content = ""
     inferred_ext = infer_extensions(key, ext)
-    if inferred_ext in CONTENT_INDEX_EXTS:
+    if inferred_ext in get_content_index_extensions(bucket_name=bucket):
         if inferred_ext == ".fcs":
             obj = retry_s3(
                 "get",
@@ -423,7 +425,7 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
             body, info = extract_fcs(get_bytes(obj["Body"], compression), as_html=False)
             # be smart and just send column names to ES (instead of bloated full schema)
             # if this is not an HTML/catalog preview
-            content = trim_to_bytes(f"{body}\n{info}", ELASTIC_LIMIT_BYTES)
+            content = trim_to_bytes(f"{body}\n{info}", get_content_index_bytes(bucket_name=bucket))
         elif inferred_ext == ".ipynb":
             content = trim_to_bytes(
                 # we have no choice but to fetch the entire notebook, because we
@@ -438,7 +440,7 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                     s3_client=s3_client,
                     version_id=version_id
                 ),
-                ELASTIC_LIMIT_BYTES
+                get_content_index_bytes(bucket_name=bucket),
             )
         elif inferred_ext == ".parquet":
             if size >= get_available_memory():
@@ -458,12 +460,13 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
             body, info = extract_parquet(
                 get_bytes(obj["Body"], compression),
                 as_html=False,
-                skip_rows=(inferred_ext in SKIP_ROWS_EXTS)
+                skip_rows=(inferred_ext in SKIP_ROWS_EXTS),
+                max_bytes=get_content_index_bytes(bucket_name=bucket),
             )
             # be smart and just send column names to ES (instead of bloated full schema)
             # if this is not an HTML/catalog preview
             columns = ','.join(list(info['schema']['names']))
-            content = trim_to_bytes(f"{columns}\n{body}", ELASTIC_LIMIT_BYTES)
+            content = trim_to_bytes(f"{columns}\n{body}", get_content_index_bytes(bucket_name=bucket))
         elif inferred_ext == ".pdf":
             obj = retry_s3(
                 "get",
@@ -476,7 +479,7 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
             )
             content = trim_to_bytes(
                 extract_pdf(get_bytes(obj["Body"], compression)),
-                ELASTIC_LIMIT_BYTES
+                get_content_index_bytes(bucket_name=bucket),
             )
         elif inferred_ext in (".xls", ".xlsx"):
             obj = retry_s3(
@@ -491,7 +494,7 @@ def maybe_get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
             body, _ = extract_excel(get_bytes(obj["Body"], compression), as_html=False)
             content = trim_to_bytes(
                 body,
-                ELASTIC_LIMIT_BYTES
+                get_content_index_bytes(bucket_name=bucket),
             )
         else:
             content = get_plain_text(
@@ -605,14 +608,14 @@ def get_plain_text(
             size,
             etag=etag,
             s3_client=s3_client,
-            limit=ELASTIC_LIMIT_BYTES,
+            limit=get_content_index_bytes(bucket_name=bucket),
             version_id=version_id
         )
         lines = get_preview_lines(
             obj["Body"],
             compression,
             ELASTIC_LIMIT_LINES,
-            ELASTIC_LIMIT_BYTES
+            get_content_index_bytes(bucket_name=bucket),
         )
         text = '\n'.join(lines)
     except UnicodeDecodeError as ex:
@@ -839,7 +842,7 @@ def retry_s3(
     }
     if operation == 'get' and size and limit:
         # can only request range if file is not empty
-        arguments['Range'] = f"bytes=0-{min(size, limit)}"
+        arguments['Range'] = f"bytes=0-{min(size, limit) - 1}"
     if version_id:
         arguments['VersionId'] = version_id
     elif etag:

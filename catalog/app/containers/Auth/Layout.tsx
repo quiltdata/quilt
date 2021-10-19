@@ -23,7 +23,7 @@ export function Heading(props: M.TypographyProps) {
 }
 
 interface FieldOwnProps {
-  // TODO: use redux-form / final-form type definitions
+  // TODO: use final-form type definitions
   input: {}
   meta: {
     error?: string
@@ -145,19 +145,19 @@ interface LayoutProps {
 
 type LayoutHeading = React.ReactNode | ((props: {}) => React.ReactNode)
 
-export const mkLayout = (heading: LayoutHeading) => ({
-  children,
-  ...props
-}: LayoutProps) => (
-  <Layout>
-    <Container>
-      <M.Box pt={5} pb={2}>
-        <Heading>{typeof heading === 'function' ? heading(props) : heading}</Heading>
-      </M.Box>
-      {children}
-    </Container>
-  </Layout>
-)
+export const mkLayout =
+  (heading: LayoutHeading) =>
+  ({ children, ...props }: LayoutProps) =>
+    (
+      <Layout>
+        <Container>
+          <M.Box pt={5} pb={2}>
+            <Heading>{typeof heading === 'function' ? heading(props) : heading}</Heading>
+          </M.Box>
+          {children}
+        </Container>
+      </Layout>
+    )
 
 interface SubmitProps extends M.ButtonProps {
   busy: boolean

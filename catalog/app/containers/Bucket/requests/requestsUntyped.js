@@ -1,11 +1,14 @@
 import { join as pathJoin } from 'path'
 
 import * as dateFns from 'date-fns'
+import * as FP from 'fp-ts'
 import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
 import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
+import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
 import * as Resource from 'utils/Resource'
+import { makeSchemaValidator } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
 import pipeThru from 'utils/pipeThru'
 import * as s3paths from 'utils/s3paths'
@@ -16,8 +19,10 @@ import * as errors from '../errors'
 
 import { decodeS3Key } from './utils'
 
-const withErrorHandling = (fn, pairs) => (...args) =>
-  fn(...args).catch(errors.catchErrors(pairs))
+const withErrorHandling =
+  (fn, pairs) =>
+  (...args) =>
+    fn(...args).catch(errors.catchErrors(pairs))
 
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
@@ -39,7 +44,7 @@ export const bucketAccessCounts = async ({
   )
 
   try {
-    return await s3Select({
+    const result = await s3Select({
       s3,
       Bucket: analyticsBucket,
       Key: `${ACCESS_COUNTS_PREFIX}/Exts.csv`,
@@ -54,65 +59,65 @@ export const bucketAccessCounts = async ({
           AllowQuotedRecordDelimiter: true,
         },
       },
-    }).then(
-      R.pipe(
-        R.map((r) => {
-          const recordedCounts = JSON.parse(r.counts)
-          const { counts, total } = dates.reduce(
-            (acc, date) => {
-              const value = recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0
-              const sum = acc.total + value
-              return {
-                total: sum,
-                counts: acc.counts.concat({ date, value, sum }),
-              }
-            },
-            { total: 0, counts: [] },
-          )
-          return { ext: r.ext && `.${r.ext}`, total, counts }
-        }),
-        R.filter((i) => i.total),
-        R.sort(R.descend(R.prop('total'))),
-        R.applySpec({
-          byExt: R.identity,
-          byExtCollapsed: (bands) => {
-            if (bands.length <= MAX_BANDS) return bands
-            const [other, rest] = R.partition((b) => b.ext === '', bands)
-            const [toKeep, toMerge] = R.splitAt(MAX_BANDS - 1, rest)
-            const merged = [...other, ...toMerge].reduce((acc, band) => ({
-              ext: '',
-              total: acc.total + band.total,
-              counts: R.zipWith(
-                (a, b) => ({
-                  date: a.date,
-                  value: a.value + b.value,
-                  sum: a.sum + b.sum,
-                }),
-                acc.counts,
-                band.counts,
-              ),
-            }))
-            return R.sort(R.descend(R.prop('total')), toKeep.concat(merged))
+    })
+    return FP.function.pipe(
+      result,
+      R.map((r) => {
+        const recordedCounts = JSON.parse(r.counts)
+        const { counts, total } = dates.reduce(
+          (acc, date) => {
+            const value = recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0
+            const sum = acc.total + value
+            return {
+              total: sum,
+              counts: acc.counts.concat({ date, value, sum }),
+            }
           },
-          combined: {
-            total: R.reduce((sum, { total }) => sum + total, 0),
-            counts: R.pipe(
-              R.pluck('counts'),
-              R.transpose,
-              R.map(
-                R.reduce(
-                  (acc, { date, value, sum }) => ({
-                    date,
-                    value: acc.value + value,
-                    sum: acc.sum + sum,
-                  }),
-                  { value: 0, sum: 0 },
-                ),
+          { total: 0, counts: [] },
+        )
+        return { ext: r.ext && `.${r.ext}`, total, counts }
+      }),
+      R.filter((i) => i.total),
+      R.sort(R.descend(R.prop('total'))),
+      R.applySpec({
+        byExt: R.identity,
+        byExtCollapsed: (bands) => {
+          if (bands.length <= MAX_BANDS) return bands
+          const [other, rest] = R.partition((b) => b.ext === '', bands)
+          const [toKeep, toMerge] = R.splitAt(MAX_BANDS - 1, rest)
+          const merged = [...other, ...toMerge].reduce((acc, band) => ({
+            ext: '',
+            total: acc.total + band.total,
+            counts: R.zipWith(
+              (a, b) => ({
+                date: a.date,
+                value: a.value + b.value,
+                sum: a.sum + b.sum,
+              }),
+              acc.counts,
+              band.counts,
+            ),
+          }))
+          return R.sort(R.descend(R.prop('total')), toKeep.concat(merged))
+        },
+        combined: {
+          total: R.reduce((sum, { total }) => sum + total, 0),
+          counts: R.pipe(
+            R.pluck('counts'),
+            R.transpose,
+            R.map(
+              R.reduce(
+                (acc, { date, value, sum }) => ({
+                  date,
+                  value: acc.value + value,
+                  sum: acc.sum + sum,
+                }),
+                { value: 0, sum: 0 },
               ),
             ),
-          },
-        }),
-      ),
+          ),
+        },
+      }),
     )
   } catch (e) {
     // eslint-disable-next-line no-console
@@ -168,7 +173,8 @@ export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
 
   try {
     const qs = mkSearch({ index: bucket, action: 'stats' })
-    return await req(`/search${qs}`).then(processStats)
+    const result = await req(`/search${qs}`)
+    return processStats(result)
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Unable to fetch live stats:')
@@ -400,6 +406,7 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
               R.descend(R.prop('lastModified')),
             ]),
             R.take(SAMPLE_SIZE),
+            R.map(R.objOf('handle')),
           ),
         )
     } catch (e) {
@@ -412,16 +419,17 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
   if (inStack) {
     try {
       const qs = mkSearch({ action: 'sample', index: bucket })
-      return await req(`/search${qs}`).then(
-        R.pipe(
-          R.pathOr([], ['aggregations', 'objects', 'buckets']),
-          R.map((h) => {
-            // eslint-disable-next-line no-underscore-dangle
-            const s = h.latest.hits.hits[0]._source
-            return { bucket, key: s.key, version: s.version_id }
-          }),
-          R.take(SAMPLE_SIZE),
-        ),
+      const result = await req(`/search${qs}`)
+      return FP.function.pipe(
+        result,
+        R.pathOr([], ['aggregations', 'objects', 'buckets']),
+        R.map((h) => {
+          // eslint-disable-next-line no-underscore-dangle
+          const s = h.latest.hits.hits[0]._source
+          return { bucket, key: s.key, version: s.version_id }
+        }),
+        R.take(SAMPLE_SIZE),
+        R.map(R.objOf('handle')),
       )
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -431,29 +439,29 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
     }
   }
   try {
-    return await s3
+    const result = await s3
       .listObjectsV2({ Bucket: bucket, EncodingType: 'url' })
       .promise()
-      .then(
-        R.pipe(
-          R.path(['Contents']),
-          R.map(R.evolve({ Key: decodeS3Key })),
-          R.filter(
-            R.propSatisfies(
-              R.allPass([
-                R.complement(R.startsWith('.quilt/')),
-                R.complement(R.startsWith('/')),
-                R.complement(R.endsWith(SUMMARIZE_KEY)),
-                R.complement(R.includes(R.__, README_KEYS)),
-                R.anyPass(SAMPLE_EXTS.map(R.unary(R.endsWith))),
-              ]),
-              'Key',
-            ),
-          ),
-          sampleSize(SAMPLE_SIZE),
-          R.map(({ Key: key }) => ({ key, bucket })),
+    return FP.function.pipe(
+      result,
+      R.path(['Contents']),
+      R.map(R.evolve({ Key: decodeS3Key })),
+      R.filter(
+        R.propSatisfies(
+          R.allPass([
+            R.complement(R.startsWith('.quilt/')),
+            R.complement(R.startsWith('/')),
+            R.complement(R.endsWith(SUMMARIZE_KEY)),
+            R.complement(R.includes(R.__, README_KEYS)),
+            R.anyPass(SAMPLE_EXTS.map(R.unary(R.endsWith))),
+          ]),
+          'Key',
         ),
-      )
+      ),
+      sampleSize(SAMPLE_SIZE),
+      R.map(({ Key: key }) => ({ key, bucket })),
+      R.map(R.objOf('handle')),
+    )
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Unable to fetch summary from S3 listing:')
@@ -508,16 +516,16 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
   if (inStack) {
     try {
       const qs = mkSearch({ action: 'images', index: bucket })
-      return await req(`/search${qs}`).then(
-        R.pipe(
-          R.pathOr([], ['aggregations', 'objects', 'buckets']),
-          R.map((h) => {
-            // eslint-disable-next-line no-underscore-dangle
-            const s = h.latest.hits.hits[0]._source
-            return { bucket, key: s.key, version: s.version_id }
-          }),
-          R.take(MAX_IMGS),
-        ),
+      const result = await req(`/search${qs}`)
+      return FP.function.pipe(
+        result,
+        R.pathOr([], ['aggregations', 'objects', 'buckets']),
+        R.map((h) => {
+          // eslint-disable-next-line no-underscore-dangle
+          const s = h.latest.hits.hits[0]._source
+          return { bucket, key: s.key, version: s.version_id }
+        }),
+        R.take(MAX_IMGS),
       )
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -527,24 +535,23 @@ export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
     }
   }
   try {
-    return await s3
+    const result = await s3
       .listObjectsV2({ Bucket: bucket, EncodingType: 'url' })
       .promise()
-      .then(
-        R.pipe(
-          R.path(['Contents']),
-          R.map(R.evolve({ Key: decodeS3Key })),
-          R.filter(
-            (i) =>
-              i.StorageClass !== 'GLACIER' &&
-              i.StorageClass !== 'DEEP_ARCHIVE' &&
-              !i.Key.startsWith('/') &&
-              IMG_EXTS.some((e) => i.Key.toLowerCase().endsWith(e)),
-          ),
-          sampleSize(MAX_IMGS),
-          R.map(({ Key: key }) => ({ key, bucket })),
-        ),
-      )
+    return FP.function.pipe(
+      result,
+      R.path(['Contents']),
+      R.map(R.evolve({ Key: decodeS3Key })),
+      R.filter(
+        (i) =>
+          i.StorageClass !== 'GLACIER' &&
+          i.StorageClass !== 'DEEP_ARCHIVE' &&
+          !i.Key.startsWith('/') &&
+          IMG_EXTS.some((e) => i.Key.toLowerCase().endsWith(e)),
+      ),
+      sampleSize(MAX_IMGS),
+      R.map(({ Key: key }) => ({ key, bucket })),
+    )
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Unable to fetch images sample from S3 listing:')
@@ -585,7 +592,27 @@ export const objectMeta = ({ s3, bucket, path, version }) =>
     .promise()
     .then(R.pipe(R.path(['Metadata', 'helium']), R.when(Boolean, JSON.parse)))
 
-const isValidManifest = R.both(Array.isArray, R.all(R.is(String)))
+const isFile = (fileHandle) => typeof fileHandle === 'string' || fileHandle.path
+
+const isValidManifest = makeSchemaValidator(quiltSummarizeSchema)
+
+async function parseFile(resolvePath, fileHandle) {
+  const handle = await new Promise((resolve, reject) =>
+    R.pipe(
+      Resource.parse,
+      Resource.Pointer.case({
+        Web: () => null,
+        S3: resolve,
+        S3Rel: (path) => resolvePath(path).then(resolve).catch(reject),
+        Path: (path) => resolvePath(path).then(resolve).catch(reject),
+      }),
+    )(fileHandle.path || fileHandle),
+  )
+  return {
+    ...(typeof fileHandle === 'string' ? null : fileHandle),
+    handle,
+  }
+}
 
 export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) => {
   if (!inputHandle) return null
@@ -606,38 +633,49 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
       .promise()
     const json = file.Body.toString('utf-8')
     const manifest = JSON.parse(json)
-    if (!isValidManifest(manifest)) {
-      throw new Error('Invalid manifest: must be a JSON array of file links')
+    const configErrors = isValidManifest(manifest)
+    if (configErrors.length) {
+      // eslint-disable-next-line no-console
+      console.error(configErrors[0])
+      throw new Error(
+        'Invalid manifest: must be a JSON array of files or arrays of files',
+      )
     }
 
-    const resolvePath = (path) =>
-      resolveLogicalKey && handle.logicalKey
-        ? resolveLogicalKey(s3paths.resolveKey(handle.logicalKey, path)).catch((e) => {
-            // eslint-disable-next-line no-console
-            console.warn('Error resolving logical key for summary', { handle, path })
-            // eslint-disable-next-line no-console
-            console.error(e)
-            return null
-          })
-        : {
-            bucket: handle.bucket,
-            key: s3paths.resolveKey(handle.key, path),
-          }
+    const resolvePath = async (path) => {
+      const resolvedHandle = {
+        bucket: handle.bucket,
+        key: s3paths.resolveKey(handle.key, path),
+      }
 
-    const handles = await Promise.all(
-      manifest.map(
-        R.pipe(
-          Resource.parse,
-          Resource.Pointer.case({
-            Web: () => null, // web urls are not supported in this context
-            S3: R.identity,
-            S3Rel: resolvePath,
-            Path: resolvePath,
-          }),
-        ),
+      if (resolveLogicalKey && handle.logicalKey) {
+        try {
+          const resolvedLogicalHandle = await resolveLogicalKey(
+            s3paths.resolveKey(handle.logicalKey, path),
+          )
+          return resolvedLogicalHandle
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.warn('Error resolving logical key for summary', { handle, path })
+          // eslint-disable-next-line no-console
+          console.error(error)
+          return {
+            ...resolvedHandle,
+            error,
+          }
+        }
+      }
+
+      return resolvedHandle
+    }
+
+    return await Promise.all(
+      manifest.map((fileHandle) =>
+        isFile(fileHandle)
+          ? parseFile(resolvePath, fileHandle)
+          : Promise.all(fileHandle.map(parseFile.bind(null, resolvePath))),
       ),
     )
-    return handles.filter((h) => h)
   } catch (e) {
     // eslint-disable-next-line no-console
     console.log('Error loading summary:')
@@ -812,7 +850,7 @@ export const countPackages = withErrorHandling(async ({ req, bucket, filter }) =
     ),
   })
   const result = await req(`/search${qs}`)
-  return result.aggregations.total_handles.value
+  return result.aggregations?.total_handles?.value ?? 0
 })
 
 export const listPackages = withErrorHandling(
@@ -1005,6 +1043,7 @@ export const getPackageRevisions = withErrorHandling(
   ({ req, bucket, name, page = 1, perPage = 10 }) =>
     req(
       `/search${mkSearch({
+        nonce: Math.random(),
         index: `${bucket}_packages`,
         action: 'packages',
         size: 0,
@@ -1066,18 +1105,26 @@ export const getPackageRevisions = withErrorHandling(
     ).then(
       R.pipe(
         R.pathOr([], ['aggregations', 'revisions', 'buckets']),
-        R.map(({ latest: { hits: { hits: [{ _source: s }] } } }) => ({
-          pointer: s.pointer_file,
-          hash: s.hash,
-          modified: new Date(s.last_modified),
-          stats: {
-            files: R.pathOr(0, ['package_stats', 'total_files'], s),
-            bytes: R.pathOr(0, ['package_stats', 'total_bytes'], s),
-          },
-          message: s.comment,
-          metadata: tryParse(s.metadata),
-          // header, // not in ES
-        })),
+        R.map(
+          ({
+            latest: {
+              hits: {
+                hits: [{ _source: s }],
+              },
+            },
+          }) => ({
+            pointer: s.pointer_file,
+            hash: s.hash,
+            modified: new Date(s.last_modified),
+            stats: {
+              files: R.pathOr(0, ['package_stats', 'total_files'], s),
+              bytes: R.pathOr(0, ['package_stats', 'total_bytes'], s),
+            },
+            message: s.comment,
+            metadata: tryParse(s.metadata),
+            // header, // not in ES
+          }),
+        ),
       ),
     ),
 )

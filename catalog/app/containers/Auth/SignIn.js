@@ -1,8 +1,8 @@
+import * as FF from 'final-form'
 import * as React from 'react'
-import { FormattedMessage as FM } from 'react-intl'
+import * as RF from 'react-final-form'
 import * as redux from 'react-redux'
 import { Redirect } from 'react-router-dom'
-import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
 import * as M from '@material-ui/core'
 
 import * as Config from 'utils/Config'
@@ -11,7 +11,6 @@ import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
 import defer from 'utils/defer'
 import parseSearch from 'utils/parseSearch'
-import { composeComponent } from 'utils/reactTools'
 import useMutex from 'utils/useMutex'
 import * as validators from 'utils/validators'
 
@@ -22,76 +21,102 @@ import SSOOkta from './SSOOkta'
 import SSOOneLogin from './SSOOneLogin'
 import * as actions from './actions'
 import * as errors from './errors'
-import msg from './messages'
 import * as selectors from './selectors'
 
-const Container = Layout.mkLayout(<FM {...msg.signInHeading} />)
+const Container = Layout.mkLayout('Sign in')
 
 const MUTEX_ID = 'password'
 
-const PasswordSignIn = composeComponent(
-  'Auth.SignIn.Password',
-  Sentry.inject(),
-  reduxForm({
-    form: 'Auth.SignIn.Password',
-    onSubmit: async (values, dispatch, { sentry, mutex }) => {
+function PasswordSignIn({ mutex }) {
+  const sentry = Sentry.use()
+  const dispatch = redux.useDispatch()
+  const onSubmit = React.useCallback(
+    async (values) => {
       if (mutex.current) return
       mutex.claim(MUTEX_ID)
       const result = defer()
-      dispatch(actions.signIn(values.toJS(), result.resolver))
+      dispatch(actions.signIn(values, result.resolver))
       try {
         await result.promise
       } catch (e) {
         if (e instanceof errors.InvalidCredentials) {
-          throw new SubmissionError({ _error: 'invalidCredentials' })
+          // eslint-disable-next-line consistent-return
+          return {
+            [FF.FORM_ERROR]: 'invalidCredentials',
+          }
         }
         sentry('captureException', e)
-        throw new SubmissionError({ _error: 'unexpected' })
+        // eslint-disable-next-line consistent-return
+        return {
+          [FF.FORM_ERROR]: 'unexpected',
+        }
       } finally {
         mutex.release(MUTEX_ID)
       }
     },
-  }),
-  ({ mutex, handleSubmit, submitting, submitFailed, invalid, error }) => (
-    <form onSubmit={handleSubmit}>
-      <Field
-        component={Layout.Field}
-        name="username"
-        validate={[validators.required]}
-        disabled={!!mutex.current || submitting}
-        floatingLabelText={<FM {...msg.signInUsernameLabel} />}
-        errors={{
-          required: <FM {...msg.signInUsernameRequired} />,
-        }}
-      />
-      <Field
-        component={Layout.Field}
-        name="password"
-        type="password"
-        validate={[validators.required]}
-        disabled={!!mutex.current || submitting}
-        floatingLabelText={<FM {...msg.signInPassLabel} />}
-        errors={{
-          required: <FM {...msg.signInPassRequired} />,
-        }}
-      />
-      <Layout.Error
-        {...{ submitFailed, error }}
-        errors={{
-          invalidCredentials: <FM {...msg.signInErrorInvalidCredentials} />,
-          unexpected: <FM {...msg.signInErrorUnexpected} />,
-        }}
-      />
-      <Layout.Actions>
-        <Layout.Submit
-          label={<FM {...msg.signInSubmit} />}
-          disabled={!!mutex.current || submitting || (submitFailed && invalid)}
-          busy={submitting}
-        />
-      </Layout.Actions>
-    </form>
-  ),
-)
+    [dispatch, mutex, sentry],
+  )
+  return (
+    <RF.Form onSubmit={onSubmit}>
+      {({
+        error,
+        handleSubmit,
+        hasSubmitErrors,
+        hasValidationErrors,
+        modifiedSinceLastSubmit,
+        submitError,
+        submitFailed,
+        submitting,
+      }) => (
+        <form onSubmit={handleSubmit}>
+          <RF.Field
+            component={Layout.Field}
+            name="username"
+            validate={validators.required}
+            disabled={!!mutex.current || submitting}
+            floatingLabelText="Username or email"
+            errors={{
+              required: 'Enter your username or email',
+            }}
+          />
+          <RF.Field
+            component={Layout.Field}
+            name="password"
+            type="password"
+            validate={validators.required}
+            disabled={!!mutex.current || submitting}
+            floatingLabelText="Password"
+            errors={{
+              required: 'Enter your password',
+            }}
+          />
+          <Layout.Error
+            {...{
+              submitFailed,
+              error: error || (!modifiedSinceLastSubmit && submitError),
+            }}
+            errors={{
+              invalidCredentials: 'Invalid credentials',
+              unexpected: 'Something went wrong. Try again later.',
+            }}
+          />
+          <Layout.Actions>
+            <Layout.Submit
+              label="Sign in"
+              disabled={
+                !!mutex.current ||
+                submitting ||
+                (hasValidationErrors && submitFailed) ||
+                (hasSubmitErrors && !modifiedSinceLastSubmit)
+              }
+              busy={submitting}
+            />
+          </Layout.Actions>
+        </form>
+      )}
+    </RF.Form>
+  )
+}
 
 export default ({ location: { search } }) => {
   const authenticated = redux.useSelector(selectors.authenticated)
@@ -163,30 +188,16 @@ export default ({ location: { search } }) => {
       {!!cfg.passwordAuth && <PasswordSignIn mutex={mutex} />}
       {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
         <Layout.Hint>
-          <FM
-            {...msg.signInHintSignUp}
-            values={{
-              link: (
-                <Link to={urls.signUp(next)}>
-                  <FM {...msg.signInHintSignUpLink} />
-                </Link>
-              ),
-            }}
-          />
+          <>
+            Don&apos;t have an account? <Link to={urls.signUp(next)}>Sign up</Link>.
+          </>
         </Layout.Hint>
       )}
       {!!cfg.passwordAuth && (
         <Layout.Hint>
-          <FM
-            {...msg.signInHintReset}
-            values={{
-              link: (
-                <Link to={urls.passReset()}>
-                  <FM {...msg.signInHintResetLink} />
-                </Link>
-              ),
-            }}
-          />
+          <>
+            Did you forget your password? <Link to={urls.passReset()}>Reset it</Link>.
+          </>
         </Layout.Hint>
       )}
     </Container>

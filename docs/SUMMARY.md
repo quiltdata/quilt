@@ -29,6 +29,8 @@
 * [Preview](Catalog/Preview.md)
 * [Search & query](Catalog/SearchQuery.md)
 * [Metadata for teams](Catalog/Metadata.md)
+* [Admin UI](Catalog/Admin.md)
+* [Embed](Catalog/Embed.md)
 
 ### Advanced Usage
 
@@ -45,5 +47,6 @@
 ### More
 
 * [Frequently Asked Questions](FAQ.md)
+* [Troubleshooting](Troubleshooting.md)
 * [Contributing](CONTRIBUTING.md)
 * [Changelog](CHANGELOG.md)
