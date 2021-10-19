@@ -233,11 +233,10 @@ and workflow in question
 
 #### Example
 ```yaml
-package_handle:
-  # default for all tabs and workflows
-  catalog:
-    package_handle:
-      packages: analysis/
+catalog:
+  # default for all workflows for Packages tab
+  package_handle:
+    packages: analysis/
 workflows:
   my-workflow:
     # defaults for my-workflow, different for each tab
