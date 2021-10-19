@@ -227,7 +227,7 @@ Equivalent to `package_handle: <%= username %>`.
 
 You can customize the default prefix with `package_handle` key in one or both of
 the following places:
-* Set `catalog.package_handle` at the root of config.yml to affect all tabs and workflows
+* Set `catalog.package_handle.(files|packages)` at the root of config.yml to affect all workflows
 * Set `workflows.WORKFLOW.catalog.package_handle.(files|packages)` to affect the tabs
 and workflow in question
 
