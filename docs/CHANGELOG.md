@@ -153,14 +153,14 @@ via OIDC ([#2089](https://github.com/quiltdata/quilt/pull/2089))
 * [Fixed] Previews not rendering in global search ([#1787](https://github.com/quiltdata/quilt/pull/1787))
 
 # 3.2.0 - 2020-09-08 - Package Registry Refactor
-## Python:
+## Python
 * Refactors local and s3 storage-layer code around a new PackageRegistry base class (to support improved file layouts in future releases)
 * Multi-threaded download for large files, 2X to 5X performance gains when installing packages with large files, especially on larger EC2 instances
 * Package name added to Package.resolve_hash
 * Bugfix: remove package revision by shorthash
 * Performance improvements for build and push
 
-## Catalog & Lambdas:
+## Catalog & Lambdas
 * PDF previews
 * Browse full package contents (no longer limited to 1000 files)
 * Indexing and search package-level metadata
@@ -402,10 +402,10 @@ Expands and improves documentation for working with Quilt packages.
 - Improved full-text search
 
 # 2.9.3 - 2018-03-20 - Package Composition
-## Compiler:
+## Compiler
 - Allow building packages out of other packages and elements from other packages. A new build-file keyword, `package` inserts a package (or sub-package) as an element in the package being built.
 
-## Catalog:
+## Catalog
 - Upgrade router and other dependencies
 - Display packages by author
 
@@ -445,7 +445,7 @@ Updates to commands and local storage to allow users to connect to different reg
 Fixes a bug in download that prevented retrying failed downloads.
 
 # 2.8.3 - 2018-01-19 - Remove Unneeded Pandas dependency
-#186 introduced an undeclared dependency on Pandas >= 0.21.0 (by catching ParserError during CSV parsing). This release removes that dependency and resolves #291.
+&#35;186 introduced an undeclared dependency on Pandas >= 0.21.0 (by catching ParserError during CSV parsing). This release removes that dependency and resolves #291.
 
 # 2.8.2 - 2018-01-17 - Hotfix for several quilt commands
 PR https://github.com/quiltdata/quilt/pull/290
