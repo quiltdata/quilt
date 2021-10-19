@@ -1,9 +1,41 @@
 *New in Quilt 3.3*
 
 
-### Workflows basics
-A *workflow* is a quality gate that your data must pass in order to be pushed
-to S3. To get started, create a configuration file in your Quilt S3 bucket
+# Workflows
+A Quilt *workflow* is a quality gates that you set to ensure the quality of your
+data and metadata *before* it becomes a Quilt package. You can create as many
+workflows as you like to accommodate all of your data creation patterns.
+
+## On data quality
+Under the hood, Quilt workflows use industry-standard JSON schemas to check that
+package metadata have the right *shape*. Metadata shape determines which keys are
+defined, their values, and the types of the values types.
+
+Ensuring the quality of your data has long-lasting implications:
+1. Consistency - if labels and other metadata are do not use a consistent, controlled
+vocabulary, reuse becomes difficult and trust in data declines
+1. Completeness - if your workflows do not require users to include files,
+documentation,labels, etc. then your data is on its way towards becoming mystery
+data and ultimately junk data that no one can use
+1. Context - data can only be reused if users know where it came from, what it means,
+who touched it, and what the related datasets are
+
+From the standpoint of querying engines like Amazon Athena, data that lacks
+consistency and completeness is extremely difficult to query longitudinally and
+once again becomes worth less over time, as team members change platforms change,
+and tribal knowledge is lost.
+
+## Use cases
+* Ensure that labels are correct and drawn from a controlled vocabulary (e.g.
+ensure that the only labels in a package of images are either "bird" or "not bird";
+avoid data entry errors like "birb").
+* Ensure that users provide a README.md for every new package
+* Ensure that included files are non-empty
+* Ensure that every new package (or dataset) has enough labels so that it can be
+reused (e.g. Date, Creator, Type, etc.)
+
+## Get started
+To get started, create a configuration file in your Quilt S3 bucket
 at `s3://BUCKET/.quilt/workflows/config.yml`.
 
 Here's an example:
@@ -156,29 +188,14 @@ Also `default_workflow` can be set in the config to specify which workflow will 
 if `workflow` parameter is not provided.
 
 
-### Pushing across buckets with the Quilt catalog
-The catalog's [Push to bucket](../Walkthrough/Working%20with%20the%20Catalog.md)
-feature can be enabled by adding a `successors` property to the config.
-A *successor* is a destination bucket.
-
-```yaml
-successors:
-  s3://bucket1:
-    title: Staging
-    copy_data: false
-  s3://bucket2:
-    title: Production
-```
-
-If `copy_data` is `true` (the default), all package entries will be copied to the
-destination bucket. If `copy_data` is `false`, all entries will remain in their
-current locations.
+## JSON Schema
+Quilt workflows support the Draft 7 JSON schema.
 
 ### Default values
 Quilt supports the
-[`default` JSON Schema keyword](https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=default).
+[`default` keyword](https://json-schema.org/understanding-json-schema/reference/generic.html?highlight=default).
 
-#### Auto-filling dates
+### Auto-fill dates
 If you wish to pre-populate dates in the Quilt catalog, you can use the custom
 keyword `dateformat` in your schemas. For example:
 
@@ -192,48 +209,61 @@ keyword `dateformat` in your schemas. For example:
 The `dateformat` template follows
 [Unicode Technical Standard #35](https://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table).
 
-### Default package name
+## Data quality controls
+In addition to package-level metadata. Quilt workflows enable you to validate
+package names, object-level metadata, and basic file metadata.
 
-If you wish to set default package name you can use keyword `package_handle` in `workflows/config.yml`.
-You can use `package_handle` at config's root level or/and one per workflow.
-Defaults for creating package from directory are located at `files` sub-field,
-for creating package from scratch, editing or copying are set up at `packages`.
-You can use `<%= directory %>` to substitute current directory and `<%= username %>` for current username.
-For example:
+### Package name defaults (Quilt catalog)
+By default the Quilt catalog auto-fills the package handle **prefix** according to the following logic:
+* Packages tab: username (everything before the @ in your sign-in email).
+Equivalent to `package_handle: <%= username %>`.
+* Files tab: parent directory name. Equivalent to `package_handle: <%= directory %>`.
 
+You can customize the default prefix with `package_handle` key in one or both of
+the following places:
+* Set `package_handle` at the root of config.yml to affect all tabs and workflows
+* Set `workflows.WORKFLOW.(files|package).package_handle` to affect the tabs
+and workflow in question
+
+#### Example
 ```yaml
 package_handle:
-  packages: <%= username %>/staging
+  # default for all tabs and workflows
+  packages: analysis/
 workflows:
-  workflow-1:
+  my-workflow:
+    # defaults for my-workflow, different for each tab
     package_handle:
       files: <%= username %>/<%= directory %>
       packages: <%= username %>/production
 ```
 
-### Validating package name
+### Package name validation
+You can validate package names with `WORKFLOW.handle_pattern`, which accepts
+JavaScript regular expression.
 
-You can validate package name using `handle_pattern` property for workflow. Use Javascript RegExp as a pattern.
-Note that patterns are not anchored by default, meaning that start (`^`) and end (`$`) markers should be added explicitly when required.
-For exapmle:
+> By default, patterns are not anchored.
+> You can explicitly add start (`^`) and end (`$`) markers as needed.
 
+#### Example
 ```yaml
 workflows:
-  workflow-1:
+  my-workflow:
     handle_pattern: ^(employee1|employee2)/(production/staging)$
 ```
 
-### Validating file entries
+### Package file validation
+You can validate the names and sizes of files in the package with
+`WORkFLOW.entries_schema`. The provided schema runs against an array of
+objects known as *package entries*. Each package entry defines a logical key
+(its releative path and name in the parent package) and size (in bytes).
 
-You can validate names and sizes of files used for package by providing Schema id with `entries_schema` property.
-Schema should be used against array of `{ "logical_key", "size" }` objects.
-For example:
-
+#### Example
 ```yaml
 workflows:
-  workflow-1:
+  myworkflow-1:
     entries_schema: must-contain-readme
-  workflow-2:
+  myworkflow-2:
     entries_schema: must-contain-readme-summarize-at-least-1byte
     description: Must contain non-empty README.md and quilt_summarize.json, no more than 4 files
 schemas:
@@ -243,8 +273,7 @@ schemas:
     url: s3://bucket/must-contain-readme-summarize-at-least-1byte.json
 ```
 
-Where `s3://bucket/must-contain-readme.json` is:
-
+##### `s3://bucket/must-contain-readme.json`
 ```json
 {
   "type": "array",
@@ -254,6 +283,7 @@ Where `s3://bucket/must-contain-readme.json` is:
     "properties": {
       "logical_key": {
         "type": "string",
+        // README must be at package root
         "pattern": "^README.md$"
       }
     }
@@ -261,7 +291,7 @@ Where `s3://bucket/must-contain-readme.json` is:
 }
 ```
 
-and `s3://bucket/must-contain-readme-summarize-at-least-1byte.json` is:
+##### `s3://bucket/must-contain-readme-summarize-at-least-1byte.json`
 ```json
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
@@ -309,15 +339,39 @@ and `s3://bucket/must-contain-readme-summarize-at-least-1byte.json` is:
 }
 ```
 
+### Cross-bucket package push (Quilt catalog)
+In Quilt, S3 buckets are like git branches but for data. With `quilt3` you can
+`browse` any package and then `push` it to any bucket that you choose.
 
-### Full `config.yml` schema
+As a rule, cross-bucket pushes or "merges" reflect change in a package's
+lifecycle. For example, you might push a package from  *my-staging-bucket*
+to *my-production-bucket* as it matures and becomes trusted.
+
+The catalog's
+[Push to bucket](../Walkthrough/Working%20with%20the%20Catalog.md)
+feature can be enabled by adding a `successors` property to the config.
+A *successor* is a destination bucket. 
+```yaml
+successors:
+  s3://bucket1:
+    title: Staging
+    copy_data: false
+  s3://bucket2:
+    title: Production
+```
+
+If `copy_data` is `true` (the default), all package entries will be copied to the
+destination bucket. If `copy_data` is `false`, all entries will remain in their
+current locations.
+
+## `config.yml` JSON schema
 See
 [workflows-config_catalog-1.0.0.json](https://github.com/quiltdata/quilt/blob/master/shared/schemas/workflows-config_catalog-1.0.0.json).
 and
 [workflows-config-1.1.0.json](https://github.com/quiltdata/quilt/blob/master/shared/schemas/workflows-config-1.1.0.json).
 
 
-### Known limitations
+## Known limitations
 * Only [Draft 7 Json Schemas](https://json-schema.org/specification-links.html#draft-7) are supported
 * Schemas with [`$ref`](https://json-schema.org/draft-07/json-schema-core.html#rfc.section.8.3) are not supported
 * Schemas must be in an S3 bucket for which the Quilt user has read permissions
