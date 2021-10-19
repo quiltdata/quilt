@@ -57,9 +57,10 @@ workflows:
     metadata_schema: top-secret
     handle_pattern: ^(employee1|employee2)/(staging|production)$
     entries_schema: validate-secrets
-    package_handle:
-      files: <%= username %>/<%= directory %>
-      packages: <%= username %>/production
+    catalog:
+      package_handle:
+        files: <%= username %>/<%= directory %>
+        packages: <%= username %>/production
 schemas:
   superheroes:
     url: s3://quilt-sergey-dev-metadata/schemas/superheroes.schema.json
@@ -222,8 +223,18 @@ version:
 ### Package name defaults (Quilt catalog)
 By default the Quilt catalog auto-fills the package handle **prefix** according to the following logic:
 * Packages tab: username (everything before the @ in your sign-in email).
-Equivalent to `package_handle: <%= username %>`.
-* Files tab: parent directory name. Equivalent to `package_handle: <%= directory %>`.
+Equivalent to
+```yaml
+catalog:
+  package_handle:
+    packages: <%= username %>`
+```
+* Files tab: parent directory name. Equivalent to
+```yaml
+catalog:
+  package_handle:
+    files: <%= directory %>`
+```
 
 You can customize the default prefix with `package_handle` key in one or both of
 the following places:
