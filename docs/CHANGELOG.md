@@ -220,12 +220,12 @@ Python
 * `quilt3 install foo/bar/subdirectory`
 * Bug fixes for CopyObject and other exceptions
 
-# 3.1.10 - 2020-01-29 - 3.1.10
+# 3.1.10 - 2020-01-29
 ## Python Client
 
 - Fix bug introduced in 3.1.9 where uploads fail due to incorrect error checking after a HEAD request to see if an object already exists (#1512)
 
-# 3.1.9 - 2020-01-29 - Release 3.1.9
+# 3.1.9 - 2020-01-29
 ## Python Client
 
 - `quilt3 install` now displays the tophash of the installed package (#1461)
@@ -285,10 +285,10 @@ Python
 * Fix uploads of very large files
 * Remove unnecessary copying during push
 
-# 3.1.4 - 2019-10-17 - Release v3.1.4
+# 3.1.4 - 2019-10-17
 * [`delete_package`](https://docs.quiltdata.com/api-reference/api#delete\_package) for a specific version via `top_hash=`
 
-# 3.1.3 - 2019-10-11 - Release v3.1.3
+# 3.1.3 - 2019-10-11
 - Bug fix: when adding python objects to a package a temporary file would be created and then deleted when the object was pushed, leading to a crash if you tried to push that package again (PR #1264)
 
 # 3.1.2 - 2019-10-11
