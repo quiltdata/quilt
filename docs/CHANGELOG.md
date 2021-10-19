@@ -7,12 +7,10 @@
 ## Catalog, Lambdas
 !-->
 
-# unreleased - YYYY-MM-DD
+# 3.6.0 - 2021-10-15
 ## Python API
-
-## CLI
-
-## Catalog, Lambdas
+* [Added] Validation of package names with `handle_pattern` in [workflows](Advanced Features/workflows.md) config.
+* [Added] Validation of package entries with `entries_schema` in [workflows](Advanced Features/workflows.md) config.
 
 # 3.5.0 - 2021-09-07
 ## Python API
