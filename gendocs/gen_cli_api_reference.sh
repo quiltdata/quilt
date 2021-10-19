@@ -42,4 +42,4 @@ gen_cmd_docs 'config-default-remote-registry'
 # Document environment varialbes and constants
 cat env_constants.md >> cli.md
 
-mv cli.md "../docs/API Reference/cli.md"
+mv cli.md "../docs/api-reference/cli.md"

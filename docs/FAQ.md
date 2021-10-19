@@ -60,5 +60,5 @@ a local machine or foreign region)—I/O is much faster.
 
 1. Use a larger instance with more vCPUs.
 
-1. Increase [`QUILT_TRANSFER_MAX_CONCURRENCY`](API%20Reference/cli.md#quilt_transfer_max_concurrency)
+1. Increase [`QUILT_TRANSFER_MAX_CONCURRENCY`](api-reference/cli.md#quilt_transfer_max_concurrency)
 above its default to match your available vCPUs.

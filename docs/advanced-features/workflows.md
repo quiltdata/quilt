@@ -355,7 +355,7 @@ lifecycle. For example, you might push a package from  *my-staging-bucket*
 to *my-production-bucket* as it matures and becomes trusted.
 
 The catalog's
-[Push to bucket](../Walkthrough/Working%20with%20the%20Catalog.md)
+[Push to bucket](../walkthrough/working-with-the-catalog.md)
 feature can be enabled by adding a `successors` property to the config.
 A *successor* is a destination bucket. 
 ```yaml
