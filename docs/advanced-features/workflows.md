@@ -227,13 +227,13 @@ Equivalent to
 ```yaml
 catalog:
   package_handle:
-    packages: <%= username %>`
+    packages: <%= username %>
 ```
 * Files tab: parent directory name. Equivalent to
 ```yaml
 catalog:
   package_handle:
-    files: <%= directory %>`
+    files: <%= directory %>
 ```
 
 You can customize the default prefix with `package_handle` key in one or both of
