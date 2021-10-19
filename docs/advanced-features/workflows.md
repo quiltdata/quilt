@@ -213,7 +213,7 @@ The `dateformat` template follows
 ## Data quality controls
 In addition to package-level metadata. Quilt workflows enable you to validate
 package names, and basic file metadata.
-> You must include the following schema version at the root of your config.yaml in order for
+> You must include the following schema version at the root of your config.yml in order for
 > any catalog-specific features to function:
 ```yaml
 version:
