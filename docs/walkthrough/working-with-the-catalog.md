@@ -28,7 +28,7 @@ Catalogs also enable you to search the contents of your bucket. We support both 
 
 ### Upload package
 
-You can upload a new package providing the name of the package, commit message, files, metadata, and [workflow](../Advanced Features/workflows.md).
+You can upload a new package providing the name of the package, commit message, files, metadata, and [workflow](../advanced-features/workflows.md).
 
 The name should have the format `namespace/package-name`.
 
@@ -50,7 +50,7 @@ We don't support references and compound types yet.
 
 ### Push to bucket
 
-You can push the existing package from one bucket to another. To use this feature consult [workflows](../Advanced Features/workflows.md) page.
+You can push the existing package from one bucket to another. To use this feature consult [workflows](../advanced-features/workflows.md) page.
 
 ### Summarize
 

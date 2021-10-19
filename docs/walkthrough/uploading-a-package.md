@@ -60,7 +60,7 @@ p.push(
 )
 ```
 
->For even more fine-grained control of object landing paths see [Materialization](../Advanced%20Features/Materialization.md).
+>For even more fine-grained control of object landing paths see [Materialization](../advanced-features/materialization.md).
 
 ## Saving a package on a remote registry
 

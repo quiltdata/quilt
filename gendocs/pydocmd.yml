@@ -44,7 +44,7 @@ pages:
 # These options all show off their default values. You don't have to add
 # them to your configuration if you're fine with the default.
 docs_dir: sources
-gens_dir: ../docs/API Reference
+gens_dir: ../docs/api-reference
 site_dir: _build/html
 theme:    readthedocs
 loader:   pydocmd.loader.PythonLoader
