@@ -9,10 +9,10 @@ workflows as you like to accommodate all of your data creation patterns.
 ## On data quality
 Under the hood, Quilt workflows use [JSON Schema](https://json-schema.org) to check that
 package metadata have the right *shape*. Metadata shape determines which keys are
-defined, their values, and the types of the values types.
+defined, their values, and the types of the values.
 
 Ensuring the quality of your data has long-lasting implications:
-1. Consistency - if labels and other metadata are do not use a consistent, controlled
+1. Consistency - if labels and other metadata don't use a consistent, controlled
 vocabulary, reuse becomes difficult and trust in data declines
 1. Completeness - if your workflows do not require users to include files,
 documentation, labels, etc. then your data is on its way towards becoming mystery
@@ -22,7 +22,7 @@ who touched it, and what the related datasets are
 
 From the standpoint of querying engines like Amazon Athena, data that lacks
 consistency and completeness is extremely difficult to query longitudinally and
-once again becomes worth less over time, as team members change platforms change,
+once again worth less over time, as team members change platforms change,
 and tribal knowledge is lost.
 
 ## Use cases
@@ -189,7 +189,7 @@ if `workflow` parameter is not provided.
 
 
 ## JSON Schema
-Quilt workflows support the Draft 7 JSON schema.
+Quilt workflows support the [Draft 7 JSON Schema](https://json-schema.org/specification-links.html#draft-7).
 
 ### Default values
 Quilt supports the
@@ -214,10 +214,11 @@ In addition to package-level metadata. Quilt workflows enable you to validate
 package names, object-level metadata, and basic file metadata.
 > You must include the following schema version at the root of your config.yaml in order for
 > any catalog-specific features to function:
-```json
+```yaml
 version:
   base: "1"
   catalog: "1"
+```
 ### Package name defaults (Quilt catalog)
 By default the Quilt catalog auto-fills the package handle **prefix** according to the following logic:
 * Packages tab: username (everything before the @ in your sign-in email).
@@ -227,7 +228,7 @@ Equivalent to `package_handle: <%= username %>`.
 You can customize the default prefix with `package_handle` key in one or both of
 the following places:
 * Set `catalog.package_handle` at the root of config.yml to affect all tabs and workflows
-* Set `workflows.WORKFLOW.catalog.(files|package).package_handle` to affect the tabs
+* Set `workflows.WORKFLOW.catalog.package_handle.(files|packages)` to affect the tabs
 and workflow in question
 
 #### Example
@@ -235,7 +236,8 @@ and workflow in question
 package_handle:
   # default for all tabs and workflows
   catalog:
-    packages: analysis/
+    package_handle:
+      packages: analysis/
 workflows:
   my-workflow:
     # defaults for my-workflow, different for each tab
@@ -255,7 +257,7 @@ JavaScript regular expression.
 ```yaml
 workflows:
   my-workflow:
-    handle_pattern: ^(employee1|employee2)/(production/staging)$
+    handle_pattern: ^(employee1|employee2)/(production|staging)$
 ```
 
 ### Package file validation
