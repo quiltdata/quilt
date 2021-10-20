@@ -4,7 +4,7 @@ import * as echarts from 'echarts'
 
 const usetyles = M.makeStyles({
   root: {
-    height: '200px',
+    height: '400px',
   },
 })
 
