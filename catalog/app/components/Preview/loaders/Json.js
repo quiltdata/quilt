@@ -153,45 +153,6 @@ function JsonLoader({ gated, handle, children }) {
   )
 }
 
-function EChartsLoader({ gated, handle, children }) {
-  const { result, fetch } = utils.usePreview({
-    type: 'txt',
-    handle,
-  })
-  const processed = utils.useProcessing(
-    result,
-    ({ info: { data, note, warnings } }) => {
-      const head = data.head.join('\n')
-      const tail = data.tail.join('\n')
-      try {
-        const dataset = JSON.parse([head, tail].join('\n'))
-        return PreviewData.ECharts({ dataset })
-      } catch (e) {
-        if (e instanceof SyntaxError) {
-          const lang = 'json'
-          const highlighted = R.map(hl(lang), { head, tail })
-          return PreviewData.Text({
-            head,
-            tail,
-            lang,
-            highlighted,
-            note,
-            warnings,
-          })
-        }
-        throw e
-      }
-    },
-    [],
-  )
-  const handled = utils.useErrorHandling(processed, { handle, retry: fetch })
-  return children(
-    gated && AsyncResult.Init.is(handled)
-      ? AsyncResult.Err(PreviewError.Gated({ handle, load: fetch }))
-      : handled,
-  )
-}
-
 export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
 
 export const Loader = function GatedJsonLoader({ handle, children }) {

@@ -1,6 +1,7 @@
 import * as React from 'react'
 
 import * as Csv from './loaders/Csv'
+import * as Echarts from './loaders/Echarts'
 import * as Excel from './loaders/Excel'
 import * as Fcs from './loaders/Fcs'
 import * as Html from './loaders/Html'
@@ -18,6 +19,7 @@ const loaderChain = [
   Csv,
   Excel,
   Fcs,
+  Echarts,
   Json,
   Markdown,
   Notebook,
@@ -30,9 +32,12 @@ const loaderChain = [
   fallback,
 ]
 
-export function Load({ handle, children }) {
+export function Load({ handle, children, options }) {
   const key = handle.logicalKey || handle.key
-  const { Loader } = React.useMemo(() => loaderChain.find((L) => L.detect(key)), [key])
+  const { Loader } = React.useMemo(
+    () => loaderChain.find((L) => L.detect(key, options)),
+    [key, options],
+  )
   return <Loader {...{ handle, children }} />
 }
 
