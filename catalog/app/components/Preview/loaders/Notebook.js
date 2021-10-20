@@ -72,12 +72,28 @@ async function loadVoila({ src }) {
   return PreviewData.IFrame({ src, sandbox: IFRAME_SANDBOX_ATTRIBUTES })
 }
 
+const getCredentialsQuery = (credentials) => ({
+  access_key: credentials.accessKeyId,
+  secret_key: credentials.secretAccessKey,
+  session_token: credentials.sessionToken,
+})
+
+const useCredentialsQuery = () => {
+  const credentials = AWS.Credentials.use()
+  return getCredentialsQuery(credentials)
+}
+
 const useVoilaUrl = (handle) => {
   const sign = AWS.Signer.useS3Signer()
   const endpoint = Config.use().registryUrl
+  const credentialsQuery = useCredentialsQuery()
   return useMemoEq(
     [endpoint, handle, sign],
-    () => `${endpoint}/voila/voila/render/${mkSearch({ url: sign(handle) })}`,
+    () =>
+      `${endpoint}/voila/voila/render/${mkSearch({
+        url: sign(handle),
+        ...credentialsQuery,
+      })}`,
   )
 }
 
