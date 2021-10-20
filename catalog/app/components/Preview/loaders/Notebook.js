@@ -78,11 +78,7 @@ const getCredentialsQuery = (credentials) => ({
   session_token: credentials.sessionToken,
 })
 
-const useCredentialsQuery = () => {
-  const credentials = AWS.Credentials.use()
-  AWS.Credentials.use().suspend()
-  return getCredentialsQuery(credentials)
-}
+const useCredentialsQuery = () => getCredentialsQuery(AWS.Credentials.use().suspend())
 
 const useVoilaUrl = (handle) => {
   const sign = AWS.Signer.useS3Signer()
