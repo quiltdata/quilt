@@ -384,7 +384,7 @@ current locations.
 
 ## `config.yml` JSON Schema
 See
-[workflows-config_catalog-1.0.0.json](https://github.com/quiltdata/quilt/blob/master/shared/schemas/workflows-config_catalog-1.0.0.json).
+[workflows-config_catalog-1.0.0.json](https://github.com/quiltdata/quilt/blob/master/shared/schemas/workflows-config_catalog-1.0.0.json)
 and
 [workflows-config-1.1.0.json](https://github.com/quiltdata/quilt/blob/master/shared/schemas/workflows-config-1.1.0.json).
 
