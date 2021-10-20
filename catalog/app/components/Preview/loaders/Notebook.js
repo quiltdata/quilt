@@ -80,6 +80,7 @@ const getCredentialsQuery = (credentials) => ({
 
 const useCredentialsQuery = () => {
   const credentials = AWS.Credentials.use()
+  AWS.Credentials.use().suspend()
   return getCredentialsQuery(credentials)
 }
 
