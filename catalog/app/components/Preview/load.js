@@ -35,10 +35,11 @@ const loaderChain = [
 export function Load({ handle, children, options }) {
   const key = handle.logicalKey || handle.key
   const { Loader } = React.useMemo(
-    () => loaderChain.find((L) => L.detect(key, options)),
+    () =>
+      loaderChain.find((L) => (L === Echarts ? L.detect(key, options) : L.detect(key))),
     [key, options],
   )
   return <Loader {...{ handle, children }} />
 }
 
-export default (handle, children) => <Load {...{ handle, children }} />
+export default (handle, children, options) => <Load {...{ handle, children, options }} />

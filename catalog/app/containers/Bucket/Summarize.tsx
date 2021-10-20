@@ -20,6 +20,8 @@ import { getBreadCrumbs, getPrefix, withoutPrefix } from 'utils/s3paths'
 import * as requests from './requests'
 import * as errors from './errors'
 
+type SummaryFileType = 'echarts'
+
 interface S3Handle {
   bucket: string
   error?: errors.BucketError
@@ -35,6 +37,7 @@ interface SummarizeFile {
   path: string
   title?: string
   width?: string | number
+  type?: SummaryFileType
 }
 
 type MakeURL = (h: S3Handle) => LocationDescriptor
@@ -222,13 +225,15 @@ interface FilePreviewProps {
   handle: S3Handle
   headingOverride: React.ReactNode
   expanded?: boolean
+  type?: SummaryFileType
 }
 
 export function FilePreview({
   description,
+  expanded,
   handle,
   headingOverride,
-  expanded,
+  type,
 }: FilePreviewProps) {
   const { urls } = NamedRoutes.use()
 
@@ -271,6 +276,7 @@ export function FilePreview({
           ),
           renderProgress: () => <ContentSkel />,
         }),
+        type ? { type } : undefined,
       )}
     </Section>
   )
@@ -384,6 +390,7 @@ function FileHandle({ file, mkUrl, s3 }: FileHandleProps) {
         <FilePreview
           description={<Markdown data={file.description} />}
           handle={file.handle}
+          type={file.type}
           headingOverride={getHeadingOverride(file, mkUrl)}
         />
       )}
