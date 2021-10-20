@@ -22,8 +22,8 @@ who touched it, and what the related datasets are
 
 From the standpoint of querying engines like Amazon Athena, data that lacks
 consistency and completeness is extremely difficult to query longitudinally and
-once again worth less over time, as team members change platforms change,
-and tribal knowledge is lost.
+depreciates over time (as team members change, platforms change,
+and tribal knowledge is lost).
 
 ## Use cases
 * Ensure that labels are correct and drawn from a controlled vocabulary (e.g.
