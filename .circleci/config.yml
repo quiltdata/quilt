@@ -191,7 +191,7 @@ jobs:
   test-catalog:
     executor:
       name: node/default
-      tag: "current"
+      tag: "16.11"
     steps:
       - checkout
       - node/install-packages:
