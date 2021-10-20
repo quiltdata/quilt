@@ -112,8 +112,6 @@ function VegaLoader({ handle, gated, children }) {
 const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 
 function JsonLoader({ gated, handle, children }) {
-  if (handle.key === 'uk-energy.json') return EChartsLoader({ gated, handle, children })
-
   const { result, fetch } = utils.usePreview({
     type: 'txt',
     handle,

@@ -36,6 +36,7 @@ export function Load({ handle, children, options }) {
   const key = handle.logicalKey || handle.key
   const { Loader } = React.useMemo(
     () =>
+      // TODO: fix L.detect arity
       loaderChain.find((L) => (L === Echarts ? L.detect(key, options) : L.detect(key))),
     [key, options],
   )

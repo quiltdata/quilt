@@ -21,6 +21,7 @@ import * as requests from './requests'
 import * as errors from './errors'
 
 type SummaryFileType = 'echarts'
+type SummaryFileTypes = SummaryFileType[]
 
 interface S3Handle {
   bucket: string
@@ -37,7 +38,7 @@ interface SummarizeFile {
   path: string
   title?: string
   width?: string | number
-  type?: SummaryFileType
+  types?: SummaryFileTypes
 }
 
 type MakeURL = (h: S3Handle) => LocationDescriptor
@@ -225,7 +226,7 @@ interface FilePreviewProps {
   handle: S3Handle
   headingOverride: React.ReactNode
   expanded?: boolean
-  type?: SummaryFileType
+  types?: SummaryFileTypes
 }
 
 export function FilePreview({
@@ -233,7 +234,7 @@ export function FilePreview({
   expanded,
   handle,
   headingOverride,
-  type,
+  types,
 }: FilePreviewProps) {
   const { urls } = NamedRoutes.use()
 
@@ -265,6 +266,11 @@ export function FilePreview({
       </span>
     )
 
+  let options: { types?: SummaryFileTypes } | undefined
+  if (types) {
+    options = { types }
+  }
+
   // TODO: check for glacier and hide items
   return (
     <Section description={description} heading={heading} handle={handle}>
@@ -276,7 +282,7 @@ export function FilePreview({
           ),
           renderProgress: () => <ContentSkel />,
         }),
-        type ? { type } : undefined,
+        options,
       )}
     </Section>
   )
@@ -390,7 +396,7 @@ function FileHandle({ file, mkUrl, s3 }: FileHandleProps) {
         <FilePreview
           description={<Markdown data={file.description} />}
           handle={file.handle}
-          type={file.type}
+          types={file.types}
           headingOverride={getHeadingOverride(file, mkUrl)}
         />
       )}

@@ -7,7 +7,7 @@ import * as utils from './utils'
 const MAX_SIZE = 20 * 1024 * 1024
 const BYTES_TO_SCAN = 128 * 1024
 
-export const detect = (key, options = {}) => options.type === 'echarts'
+export const detect = (key, options) => options?.types?.includes('echarts')
 
 const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 
