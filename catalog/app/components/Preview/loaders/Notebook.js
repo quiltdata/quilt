@@ -85,7 +85,7 @@ const useVoilaUrl = (handle) => {
   const endpoint = Config.use().registryUrl
   const credentialsQuery = useCredentialsQuery()
   return useMemoEq(
-    [endpoint, handle, sign],
+    [credentialsQuery, endpoint, handle, sign],
     () =>
       `${endpoint}/voila/voila/render/${mkSearch({
         url: sign(handle),
