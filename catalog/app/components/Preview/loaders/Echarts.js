@@ -1,5 +1,10 @@
+import * as R from 'ramda'
 import * as React from 'react'
 import hljs from 'highlight.js'
+import * as Papa from 'papaparse'
+
+import * as AWS from 'utils/AWS'
+import * as s3paths from 'utils/s3paths'
 
 import { PreviewData, PreviewError } from '../types'
 import * as utils from './utils'
@@ -16,13 +21,31 @@ function EChartsLoader({ gated, handle, children }) {
     type: 'txt',
     handle,
   })
-  const processed = utils.useProcessing(
+
+  const s3 = AWS.S3.use()
+
+  const processed = utils.useAsyncProcessing(
     result,
-    ({ info: { data, note, warnings } }) => {
+    async ({ info: { data, note, warnings } }) => {
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
       try {
         const dataset = JSON.parse([head, tail].join('\n'))
+        if (dataset.dataset && dataset.dataset.source) {
+          const loadedDataset = await s3
+            .getObject({
+              Bucket: handle.bucket,
+              Key: s3paths.resolveKey(handle.key, dataset.dataset.source),
+              VersionId: handle.version,
+            })
+            .promise()
+          if (dataset.dataset.source.endsWith('.csv')) {
+            const json = Papa.parse(loadedDataset.Body.toString('utf-8'))
+            dataset.dataset.source = json.data
+          } else {
+            dataset.dataset.source = JSON.parse(loadedDataset.Body.toString('utf-8'))
+          }
+        }
         return PreviewData.ECharts({ dataset })
       } catch (e) {
         if (e instanceof SyntaxError) {
