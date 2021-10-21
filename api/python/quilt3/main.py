@@ -156,6 +156,9 @@ def cmd_catalog(navigation_target=None, detailed_help=False):
 
     If detailed_help=True, display detailed information about the `quilt3 catalog` command and then exit
     """
+    print('disabled')
+    return
+
     from .registry import app  # Delay importing it cause it's expensive.
 
     if detailed_help:
