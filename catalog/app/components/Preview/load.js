@@ -13,15 +13,17 @@ import * as Parquet from './loaders/Parquet'
 import * as Pdf from './loaders/Pdf'
 import * as Text from './loaders/Text'
 import * as Vcf from './loaders/Vcf'
+import * as Voila from './loaders/Voila'
 import * as fallback from './loaders/fallback'
 
 const loaderChain = [
   Csv,
   Excel,
   Fcs,
-  Echarts,
+  Echarts, // should be before Json, or TODO: add "type is not 'echarts'" to Json.detect
   Json,
   Markdown,
+  Voila, // should be before Notebook, or TODO: add "type is not 'voila'" to Notebook.detect
   Notebook,
   Parquet,
   Pdf,
@@ -37,7 +39,9 @@ export function Load({ handle, children, options }) {
   const { Loader } = React.useMemo(
     () =>
       // TODO: fix L.detect arity
-      loaderChain.find((L) => (L === Echarts ? L.detect(key, options) : L.detect(key))),
+      loaderChain.find((L) =>
+        L === Echarts || L === Voila ? L.detect(key, options) : L.detect(key),
+      ),
     [key, options],
   )
   return <Loader {...{ handle, children }} />

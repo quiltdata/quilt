@@ -20,7 +20,7 @@ import { getBreadCrumbs, getPrefix, withoutPrefix } from 'utils/s3paths'
 import * as requests from './requests'
 import * as errors from './errors'
 
-type SummaryFileType = 'echarts'
+type SummaryFileType = 'echarts' | 'voila'
 type SummaryFileTypes = SummaryFileType[]
 
 interface S3Handle {
