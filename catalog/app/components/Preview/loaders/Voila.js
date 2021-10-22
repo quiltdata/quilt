@@ -7,13 +7,13 @@ import useMemoEq from 'utils/useMemoEq'
 import { PreviewData } from '../types'
 import * as utils from './utils'
 
-// const getCredentialsQuery = (credentials) => ({
-//   access_key: credentials.accessKeyId,
-//   secret_key: credentials.secretAccessKey,
-//   session_token: credentials.sessionToken,
-// })
+const getCredentialsQuery = (credentials) => ({
+  access_key: credentials.accessKeyId,
+  secret_key: credentials.secretAccessKey,
+  session_token: credentials.sessionToken,
+})
 
-// const useCredentialsQuery = () => getCredentialsQuery(AWS.Credentials.use().suspend())
+const useCredentialsQuery = () => getCredentialsQuery(AWS.Credentials.use().suspend())
 
 // NOTE: dummy unused function
 export const detect = () => false
@@ -68,14 +68,14 @@ async function loadVoila({ src }) {
 const useVoilaUrl = (handle) => {
   const sign = AWS.Signer.useS3Signer()
   const endpoint = Config.use().registryUrl
-  //   const credentialsQuery = useCredentialsQuery()
+  const credentialsQuery = useCredentialsQuery()
   return useMemoEq(
-    // [credentialsQuery, endpoint, handle, sign],
-    [endpoint, handle, sign],
+    [credentialsQuery, endpoint, handle, sign],
+    // [endpoint, handle, sign],
     () =>
       `${endpoint}/voila/voila/render/${mkSearch({
         url: sign(handle),
-        // ...credentialsQuery,
+        ...credentialsQuery,
       })}`,
   )
 }
