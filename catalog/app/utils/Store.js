@@ -26,7 +26,7 @@ export const Provider = function StoreProvider({ initialState = {}, history, chi
     ) {
       // eslint-disable-next-line global-require
       const { createLogger } = require('redux-logger')
-      middlewares.push(createLogger({ stateTransformer: R.identity, collapsed: true }))
+      middlewares.push(createLogger({ collapsed: true }))
     }
 
     const composeEnhancers = composeWithDevTools({})
