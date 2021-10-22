@@ -8,20 +8,20 @@
 
 ### Walkthrough
 
-* [Editing a Package](Walkthrough/Editing a Package.md)
-* [Uploading a Package](Walkthrough/Uploading a Package.md)
-* [Installing a Package](Walkthrough/Installing a Package.md)
-* [Getting Data from a Package](Walkthrough/Getting Data from a Package.md)
-* [Working with the Catalog](Walkthrough/Working with the Catalog.md)
-* [Working with a Bucket](Walkthrough/Working with a Bucket.md)
+* [Editing a Package](walkthrough/editing-a-package.md)
+* [Uploading a Package](walkthrough/uploading-a-package.md)
+* [Installing a Package](walkthrough/installing-a-package.md)
+* [Getting Data from a Package](walkthrough/getting-data-from-a-package.md)
+* [Working with the Catalog](walkthrough/working-with-the-catalog.md)
+* [Working with a Bucket](walkthrough/working-with-a-bucket.md)
 
 ### API Reference
 
-* [quilt3](API Reference/api.md)
-* [quilt3.Package](API Reference/Package.md)
-* [quilt3.Bucket](API Reference/Bucket.md)
-* [CLI, environment](API Reference/cli.md)
-* [Known limitations](API%20Reference/limitations.md)
+* [quilt3](api-reference/api.md)
+* [quilt3.Package](api-reference/Package.md)
+* [quilt3.Bucket](api-reference/Bucket.md)
+* [CLI, environment](api-reference/cli.md)
+* [Known limitations](api-reference/limitations.md)
 
 ### Catalog
 
@@ -34,13 +34,13 @@
 
 ### Advanced Usage
 
-* [Filtering a Package](Advanced Features/Filtering a Package.md)
-* [.quiltignore](Advanced Features/.quiltignore.md)
-* [Materialization](Advanced Features/Materialization.md)
-* [Working with Manifests](Advanced Features/Working with Manifests.md)
-* [S3 Select](Advanced Features/S3 Select.md)
-* [Workflows](Advanced Features/workflows.md)
-* [Enterprise install](Technical Reference.md)
+* [Filtering a Package](advanced-features/filtering-a-package.md)
+* [.quiltignore](advanced-features/.quiltignore.md)
+* [Materialization](advanced-features/materialization.md)
+* [Working with Manifests](advanced-features/working-with-manifests.md)
+* [S3 Select](advanced-features/s3-select.md)
+* [Workflows](advanced-features/workflows.md)
+* [Enterprise install](technical-reference.md)
 * [S3 Events, EventBridge](EventBridge.md)
 
 
