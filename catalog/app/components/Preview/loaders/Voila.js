@@ -18,7 +18,7 @@ const useCredentialsQuery = () => getCredentialsQuery(AWS.Credentials.use().susp
 // NOTE: dummy unused function
 export const detect = () => false
 
-const IFRAME_SANDBOX_ATTRIBUTES = 'allow-scripts allow-same-origin'
+const IFRAME_SANDBOX_ATTRIBUTES = 'allow-scripts allow-same-origin allow-downloads'
 const IFRAME_LOAD_TIMEOUT = 30000
 
 function waitForIframe(src) {
