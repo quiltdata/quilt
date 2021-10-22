@@ -1,1 +1,2 @@
-https://github.com/quiltdata/quilt/archive/989b0223952a821cef978d6ee902af9ed5d23b10.tar.gz#egg=quilt3&subdirectory=api/python
+jsonschema==3.2.0
+https://github.com/quiltdata/quilt/archive/b4d395061e5eb55b37e7cdac7cbfe36a88b3cdc4.tar.gz#egg=quilt3&subdirectory=api/python

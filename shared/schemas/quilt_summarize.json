@@ -3,7 +3,7 @@
     "fileShortcut": {
       "type": "string",
       "description": "Path relative to quilt_summarize.json",
-      "example": "file1.json"
+      "examples": ["file1.json"]
     },
 
     "fileExtended": {
@@ -47,12 +47,12 @@
       "anyOf": [
         {
           "description": "Ratio number for flex-based width",
-          "example": 1.5,
+          "examples": [1.5],
           "type": "number"
         },
         {
           "description": "Width in pixels or percents",
-          "example": "100px",
+          "examples": ["100px"],
           "type": "string"
         }
       ]

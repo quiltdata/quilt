@@ -34,6 +34,11 @@ export const activate = {
   url: ({ registryUrl, token }) => `${registryUrl}/activate/${token}`,
 }
 
+export const example = {
+  path: '/__example',
+  url: () => '/__example',
+}
+
 // auth
 export const signIn = {
   path: '/signin',

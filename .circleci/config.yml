@@ -13,16 +13,16 @@ release-tags: &release-tags
 executors:
   python-36:
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.6
   python-37:
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
   python-38:
     docker:
-      - image: circleci/python:3.8
+      - image: cimg/python:3.8
   python-39:
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.9
   python: python-36
 
 commands:
@@ -32,7 +32,7 @@ commands:
       - run:
           name: Setup venv
           command: |
-            pip install virtualenv==20.0.25
+            pip install virtualenv==20.8.0
             virtualenv venv
             if [ -e venv/bin/activate ]; then
               echo ". venv/bin/activate" >> $BASH_ENV
@@ -63,7 +63,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            pip install 'pylint==2.9' 'pycodestyle>=2.6.0a1'
+            pip install 'pylint==2.10.2' 'pycodestyle>=2.6.0a1'
       - run:
           name: Run pylint
           command: |
@@ -146,7 +146,7 @@ jobs:
       - setup-venv
       - run:
           name: install deps
-          command: pip install api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@quilt
+          command: pip install PyYAML~=5.4.1 api/python nbconvert git+https://github.com/quiltdata/pydoc-markdown.git@quilt
       - run:
           name: generate docs
           command: cd gendocs && python build.py
@@ -191,7 +191,7 @@ jobs:
   test-catalog:
     executor:
       name: node/default
-      tag: "current"
+      tag: "16.11"
     steps:
       - checkout
       - node/install-packages:

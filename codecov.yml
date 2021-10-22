@@ -7,7 +7,7 @@ coverage:
           - '!**/test/'
         informational: true
     patch:
-      default: false
+      informational: true
 
 flag_management:
   default_rules:

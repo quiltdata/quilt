@@ -92,7 +92,7 @@ export class HTTPError extends BaseError {
     try {
       json = JSON.parse(text)
     } catch (e) {
-      // ignore it
+      json = { message: message || text }
     }
 
     super(message || (json && (json.message || json.error)) || resp.statusText, {

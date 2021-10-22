@@ -265,7 +265,7 @@ class PackageTest(QuiltTestCase):
                 mocked_get_from_config.assert_any_call('default_local_registry')
 
                 # Verify manifest is registered by hash.
-                with open(local_registry.manifest_pk(pkg_name, top_hash).path) as fd:
+                with open(local_registry.manifest_pk(pkg_name, top_hash).path, encoding='utf-8') as fd:
                     pkg = Package.load(fd)
                     assert PhysicalKey.from_path(test_file) == pkg['foo'].physical_key
 
@@ -290,19 +290,19 @@ class PackageTest(QuiltTestCase):
 
     def test_read_manifest(self):
         """ Verify reading serialized manifest from disk. """
-        with open(LOCAL_MANIFEST) as fd:
+        with open(LOCAL_MANIFEST, encoding='utf-8') as fd:
             pkg = Package.load(fd)
 
         out_path = 'new_manifest.jsonl'
-        with open(out_path, 'w') as fd:
+        with open(out_path, 'w', encoding='utf-8') as fd:
             pkg.dump(fd)
 
         # Insepct the jsonl to verify everything is maintained, i.e.
         # that load/dump results in an equivalent set.
         # todo: Use load/dump once __eq__ implemented.
-        with open(LOCAL_MANIFEST) as fd:
+        with open(LOCAL_MANIFEST, encoding='utf-8') as fd:
             original_set = list(jsonlines.Reader(fd))
-        with open(out_path) as fd:
+        with open(out_path, encoding='utf-8') as fd:
             written_set = list(jsonlines.Reader(fd))
         assert len(original_set) == len(written_set)
 
@@ -379,7 +379,7 @@ class PackageTest(QuiltTestCase):
         for dirpath, _, files in os.walk(out_dir):
             for name in files:
                 file_count += 1
-                with open(os.path.join(dirpath, name)) as file_:
+                with open(os.path.join(dirpath, name), encoding='utf-8') as file_:
                     assert name in expected, 'unexpected file: {}'.format(name)
                     contents = file_.read().strip()
                     assert contents == expected[name], \
@@ -410,11 +410,11 @@ class PackageTest(QuiltTestCase):
         pkg['foo'].meta['target'] = 'unicode'
         pkg['bar'].meta['target'] = 'unicode'
 
-        with open(DATA_DIR / 'foo.txt') as fd:
+        with open(DATA_DIR / 'foo.txt', encoding='utf-8') as fd:
             assert fd.read().replace('\n', '') == '123'
         # Copy foo.text to bar.txt
         pkg['foo'].fetch('data/bar.txt')
-        with open('data/bar.txt') as fd:
+        with open('data/bar.txt', encoding='utf-8') as fd:
             assert fd.read().replace('\n', '') == '123'
 
         # Raise an error if you copy to yourself.
@@ -521,13 +521,13 @@ class PackageTest(QuiltTestCase):
         foodir = pathlib.Path("foo_dir")
         bazdir = pathlib.Path(foodir, "baz_dir")
         bazdir.mkdir(parents=True, exist_ok=True)
-        with open('bar', 'w') as fd:
+        with open('bar', 'w', encoding='utf-8') as fd:
             fd.write(fd.name)
-        with open('foo', 'w') as fd:
+        with open('foo', 'w', encoding='utf-8') as fd:
             fd.write(fd.name)
-        with open(bazdir / 'baz', 'w') as fd:
+        with open(bazdir / 'baz', 'w', encoding='utf-8') as fd:
             fd.write(fd.name)
-        with open(foodir / 'bar', 'w') as fd:
+        with open(foodir / 'bar', 'w', encoding='utf-8') as fd:
             fd.write(fd.name)
 
         pkg = pkg.set_dir("/", ".", meta="test_meta")
@@ -549,7 +549,7 @@ class PackageTest(QuiltTestCase):
         assert PhysicalKey.from_path(bazdir / 'baz') == pkg['my_keys/baz'].physical_key
 
         # Verify ignoring files in the presence of a dot-quiltignore
-        with open('.quiltignore', 'w') as fd:
+        with open('.quiltignore', 'w', encoding='utf-8') as fd:
             fd.write('foo\n')
             fd.write('bar')
 
@@ -558,14 +558,14 @@ class PackageTest(QuiltTestCase):
         assert 'foo_dir' in pkg.keys()
         assert 'foo' not in pkg.keys() and 'bar' not in pkg.keys()
 
-        with open('.quiltignore', 'w') as fd:
+        with open('.quiltignore', 'w', encoding='utf-8') as fd:
             fd.write('foo_dir')
 
         pkg = Package()
         pkg = pkg.set_dir("/", ".")
         assert 'foo_dir' not in pkg.keys()
 
-        with open('.quiltignore', 'w') as fd:
+        with open('.quiltignore', 'w', encoding='utf-8') as fd:
             fd.write('foo_dir\n')
             fd.write('foo_dir/baz_dir')
 
@@ -892,7 +892,7 @@ class PackageTest(QuiltTestCase):
 
         # Create a dummy file to add to the package.
         test_file_name = 'bar'
-        with open(test_file_name, "w") as fd:
+        with open(test_file_name, "w", encoding='utf-8') as fd:
             fd.write('test_file_content_string')
             test_file = Path(fd.name)
 
@@ -922,9 +922,9 @@ class PackageTest(QuiltTestCase):
         pkg.set_meta(test_meta)
         assert pkg.meta == test_meta
         dump_path = 'test_meta'
-        with open(dump_path, 'w') as f:
+        with open(dump_path, 'w', encoding='utf-8') as f:
             pkg.dump(f)
-        with open(dump_path) as f:
+        with open(dump_path, encoding='utf-8') as f:
             pkg2 = Package.load(f)
         assert pkg2['asdf'].meta == test_meta
         assert pkg2['qwer']['as'].meta == test_meta
@@ -1091,7 +1091,7 @@ class PackageTest(QuiltTestCase):
         with patch('quilt3.packages.copy_file_list', _mock_copy_file_list), \
              patch('quilt3.Package._push_manifest') as push_manifest_mock, \
              patch('quilt3.Package._calculate_top_hash', return_value=mock.sentinel.top_hash):
-            with open(REMOTE_MANIFEST) as fd:
+            with open(REMOTE_MANIFEST, encoding='utf-8') as fd:
                 pkg = Package.load(fd)
 
             pkg.push('Quilt/test_pkg_name', 's3://test-bucket', message='test_message')
@@ -1105,7 +1105,8 @@ class PackageTest(QuiltTestCase):
             mocked_workflow_validate.assert_called_once_with(
                 registry=registry,
                 workflow=...,
-                meta={},
+                name='Quilt/test_pkg_name',
+                pkg=pkg,
                 message=message,
             )
 
@@ -1698,7 +1699,8 @@ class PackageTest(QuiltTestCase):
                     workflow_validate_mock.assert_called_once_with(
                         registry=pkg_registry,
                         workflow=...,
-                        meta={},
+                        name='test/pkg',
+                        pkg=pkg,
                         message=None,
                     )
                     assert pkg._workflow is mock.sentinel.returned_workflow
@@ -1721,7 +1723,8 @@ class PackageTest(QuiltTestCase):
                     workflow_validate_mock.assert_called_once_with(
                         registry=pkg_registry,
                         workflow=mock.sentinel.workflow,
-                        meta=mock.sentinel.pkg_meta,
+                        name='test/pkg',
+                        pkg=pkg,
                         message=mock.sentinel.message,
                     )
                     assert pkg._workflow is mock.sentinel.returned_workflow
@@ -1798,6 +1801,7 @@ class PackageTest(QuiltTestCase):
         for mode in 'bt':
             with self.subTest(mode=mode):
                 fn = f'test-manifest-{mode}.jsonl'
+                # pylint: disable=unspecified-encoding
                 with open(fn, f'w{mode}', **({'encoding': 'utf-8'} if mode == 't' else {})) as f:
                     pkg.dump(f)
                 with open(fn, encoding='utf-8') as f:

@@ -24,11 +24,11 @@ pyarrow==2.0.0
 pyrsistent==0.15.4
 python-dateutil==2.8.0
 pytz==2019.2
-requests==2.22.0
+requests==2.26.0
 s3transfer==0.4.2
 six==1.12.0
 strict-rfc3339==0.7
 tenacity==5.0.3
 traitlets==4.3.2
-urllib3==1.25.8
+urllib3==1.26.5
 xlrd==2.0.1
