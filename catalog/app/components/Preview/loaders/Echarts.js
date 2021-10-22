@@ -30,23 +30,24 @@ function EChartsLoader({ gated, handle, children }) {
       const head = data.head.join('\n')
       const tail = data.tail.join('\n')
       try {
-        const dataset = JSON.parse([head, tail].join('\n'))
-        if (dataset.dataset && dataset.dataset.source) {
-          const loadedDataset = await s3
+        const option = JSON.parse([head, tail].join('\n'))
+        const source = option?.dataset?.source
+        if (source && typeof source === 'string') {
+          const loadedDatasetResponse = await s3
             .getObject({
               Bucket: handle.bucket,
-              Key: s3paths.resolveKey(handle.key, dataset.dataset.source),
+              Key: s3paths.resolveKey(handle.key, source),
               VersionId: handle.version,
             })
             .promise()
-          if (dataset.dataset.source.endsWith('.csv')) {
-            const json = Papa.parse(loadedDataset.Body.toString('utf-8'))
-            dataset.dataset.source = json.data
+          const loadedDataset = loadedDatasetResponse.Body.toString('utf-8')
+          if (source.endsWith('.csv')) {
+            option.dataset.source = Papa.parse(loadedDataset).data
           } else {
-            dataset.dataset.source = JSON.parse(loadedDataset.Body.toString('utf-8'))
+            option.dataset.source = JSON.parse(loadedDataset)
           }
         }
-        return PreviewData.ECharts({ dataset })
+        return PreviewData.ECharts({ dataset: option })
       } catch (e) {
         if (e instanceof SyntaxError) {
           const lang = 'json'
