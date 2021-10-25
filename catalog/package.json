@@ -120,7 +120,7 @@
     "react-swipeable-views-core": "^0.14.0",
     "react-swipeable-views-utils": "^0.14.0",
     "react-table": "^7.7.0",
-    "redux": "^4.1.0",
+    "redux": "^4.1.1",
     "redux-devtools-extension": "^2.13.9",
     "redux-immutable": "^4.0.0",
     "redux-saga": "^1.1.3",
