@@ -48,7 +48,7 @@ function useDatasetResolver(handle) {
       R.pipe(
         Resource.parse,
         Resource.Pointer.case({
-          // Web: async (url) => url, NOTE: seems like it's violates versioning
+          Web: async (url) => url, // NOTE: seems like it's violates versioning?
           S3: async (h) => h, // NOTE: violates versioning too?
           S3Rel: (path) => resolvePath(path, handle, resolveLogicalKey),
           Path: (path) => resolvePath(path, handle, resolveLogicalKey),
@@ -58,14 +58,25 @@ function useDatasetResolver(handle) {
   )
 }
 
+async function downloadDatasetFromS3(s3, handle) {
+  const loadedDatasetResponse = await utils.getObject({ s3, handle })
+  return loadedDatasetResponse.Body.toString('utf-8')
+}
+
+async function downloadDatasetFromWeb(url) {
+  const loadedDatasetResponse = await window.fetch(url, { mode: 'no-cors' })
+  return loadedDatasetResponse.text()
+}
+
 function useDataSetLoader() {
   // TODO: use utils.useObjectGetter
   const s3 = AWS.S3.use()
   return React.useCallback(
     async (handle) => {
-      const loadedDatasetResponse = await utils.getObject({ s3, handle })
-      const loadedDataset = loadedDatasetResponse.Body.toString('utf-8')
-      if (handle.key.endsWith('.csv')) {
+      const loadedDataset = await (typeof handle === 'string'
+        ? downloadDatasetFromWeb(handle)
+        : downloadDatasetFromS3(s3, handle))
+      if ((handle?.key || handle).endsWith('.csv')) {
         return Papa.parse(loadedDataset).data
       } else {
         return JSON.parse(loadedDataset)
