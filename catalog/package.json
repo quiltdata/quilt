@@ -172,7 +172,7 @@
     "@types/react-table": "^7.7.2",
     "@types/react-test-renderer": "^17.0.1",
     "@types/remarkable": "^2.0.3",
-    "@types/semver": "^7.3.8",
+    "@types/semver": "^7.3.9",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
     "bundlewatch": "^0.3.2",
