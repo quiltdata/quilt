@@ -15,7 +15,6 @@ const getCredentialsQuery = (credentials) => ({
 
 const useCredentialsQuery = () => getCredentialsQuery(AWS.Credentials.use().suspend())
 
-// NOTE: dummy unused function
 export const detect = () => false
 
 const IFRAME_SANDBOX_ATTRIBUTES = 'allow-scripts allow-same-origin allow-downloads'
