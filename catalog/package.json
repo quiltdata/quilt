@@ -96,7 +96,7 @@
     "mime-types": "^2.1.30",
     "minimist": "^1.2.5",
     "mixpanel-browser": "^2.41.0",
-    "monocle-ts": "^2.3.10",
+    "monocle-ts": "^2.3.11",
     "newtype-ts": "^0.3.4",
     "p-limit": "^3.1.0",
     "path-browserify": "^1.0.1",
