@@ -4,13 +4,11 @@ import hljs from 'highlight.js'
 import * as Papa from 'papaparse'
 
 import * as AWS from 'utils/AWS'
+import AsyncResult from 'utils/AsyncResult'
 import * as s3paths from 'utils/s3paths'
 
 import { PreviewData, PreviewError } from '../types'
 import * as utils from './utils'
-
-const MAX_SIZE = 20 * 1024 * 1024
-const BYTES_TO_SCAN = 128 * 1024
 
 export const detect = (key, options) => options?.types?.includes('echarts')
 
@@ -75,11 +73,10 @@ function EChartsLoader({ gated, handle, children }) {
 }
 
 export const Loader = function GatedEchartsLoader({ handle, children }) {
-  //  TODO: utils.useGate(handle)
-  return utils.useFirstBytes({ bytes: BYTES_TO_SCAN, handle }).case({
-    Ok: ({ contentLength }) => (
-      <EChartsLoader {...{ handle, children, gated: contentLength > MAX_SIZE }} />
-    ),
+  const data = utils.useGate(handle)
+  const handled = utils.useErrorHandling(data.result, { handle, retry: data.fetch })
+  return AsyncResult.case({
     _: children,
-  })
+    Ok: (gated) => <EChartsLoader {...{ gated, handle, children }} />,
+  })(handled)
 }
