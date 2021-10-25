@@ -218,6 +218,6 @@
     "webpack": "^5.59.1",
     "webpack-cli": "^4.9.1",
     "webpack-dev-middleware": "^5.2.1",
-    "webpack-hot-middleware": "^2.25.0"
+    "webpack-hot-middleware": "^2.25.1"
   }
 }
