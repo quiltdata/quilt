@@ -19,13 +19,32 @@ interface EChartsProps extends React.HTMLProps<HTMLDivElement> {
 function ECharts({ dataset, ...props }: EChartsProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null)
 
+  const [error, setError] = React.useState<Error | null>(null)
   const classes = usetyles()
 
   React.useEffect(() => {
     if (!containerRef.current) return
-    const chart = echarts.init(containerRef.current)
-    chart.setOption(dataset)
+    try {
+      const chart = echarts.init(containerRef.current)
+      chart.setOption(dataset)
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(e)
+      if (e instanceof Error) setError(e)
+    }
   }, [containerRef, dataset])
+
+  if (error)
+    return (
+      <>
+        <M.Typography variant="h6" gutterBottom>
+          Unexpected Error
+        </M.Typography>
+        <M.Typography variant="body1" gutterBottom>
+          Something went wrong while loading preview
+        </M.Typography>
+      </>
+    )
 
   return <div ref={containerRef} className={classes.root} {...props} />
 }
