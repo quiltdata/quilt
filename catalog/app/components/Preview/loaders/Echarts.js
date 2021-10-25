@@ -64,7 +64,7 @@ async function downloadDatasetFromS3(s3, handle) {
 }
 
 async function downloadDatasetFromWeb(url) {
-  const loadedDatasetResponse = await window.fetch(url, { mode: 'no-cors' })
+  const loadedDatasetResponse = await window.fetch(url)
   return loadedDatasetResponse.text()
 }
 
@@ -109,6 +109,8 @@ function EChartsLoader({ gated, handle, children }) {
         }
         return PreviewData.ECharts({ dataset: option })
       } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(e)
         if (e instanceof SyntaxError) {
           const lang = 'json'
           const highlighted = R.map(hl(lang), { head, tail })
