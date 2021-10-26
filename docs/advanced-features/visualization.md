@@ -76,7 +76,6 @@ Relative paths are relative to JSON file containing `option` data:
 ```
  ├─ echarts-option-file.json # { "dataset": {"source": "./dataset.csv" }}
  ├─ dataset.csv
-
 ```
 
 ### Limitations
