@@ -72,7 +72,8 @@ array instead of a string:
   }, {
     "path": "file3.ipynb",
     "title": "Scientific notebook",
-    "description": "[See docs](https://docs.com)"
+    "description": "[See docs](https://docs.com)",
+    "types": [ "voila" ]
   }]
 ]
 ```
@@ -84,6 +85,7 @@ or an object with one or more of the following properties:
 - `title` - title rendered instead of file path
 - `description` - description in markdown format
 - `width` - column width either in pixels or ratio (default is ratio `1`)
+- `types` - force file to render as `"echart"` or `"voila"`
 
 `quilt_summarize.json` will render in any directory that contains a file of the
 same name, in both bucket view and package view.
