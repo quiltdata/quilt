@@ -48,8 +48,8 @@ function useDatasetResolver(handle) {
       R.pipe(
         Resource.parse,
         Resource.Pointer.case({
-          Web: async (url) => url, // NOTE: seems like it's violates versioning?
-          S3: async (h) => h, // NOTE: violates versioning too?
+          Web: async (url) => url,
+          S3: async (h) => h,
           S3Rel: (path) => resolvePath(path, handle, resolveLogicalKey),
           Path: (path) => resolvePath(path, handle, resolveLogicalKey),
         }),

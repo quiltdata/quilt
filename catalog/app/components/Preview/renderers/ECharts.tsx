@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as echarts from 'echarts'
 
-const usetyles = M.makeStyles({
+const useStyles = M.makeStyles({
   root: {
     height: '400px',
   },
@@ -20,7 +20,7 @@ function ECharts({ option, ...props }: EChartsProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null)
 
   const [error, setError] = React.useState<Error | null>(null)
-  const classes = usetyles()
+  const classes = useStyles()
 
   React.useEffect(() => {
     if (!containerRef.current) return
