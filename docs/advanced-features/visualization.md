@@ -46,6 +46,8 @@ Basic Echarts example: https://echarts.apache.org/examples/en/editor.html?c=line
 }
 ```
 
+![](../imgs/catalog_echart.png)
+
 ### Embed dataset
 
 As additional enhancment insted of inserting datasets inside JSON, you can provide path or URL to dataset file.
