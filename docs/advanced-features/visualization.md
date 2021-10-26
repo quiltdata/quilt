@@ -4,7 +4,7 @@
 
 We support visualization library `echarts` on Summary page using [`quilt_summarize.json`](../Catalog/Preferences.md#custom-overviews-for-buckets-folders)
 
-To draw chart you can provide JSON file which content will be treated as an [option parameter](https://echarts.apache.org/en/option.html) and set `"types"` property to `[ "echart" ]`
+To draw a chart you can provide a JSON file which content will be treated as an [option parameter](https://echarts.apache.org/en/option.html) and set `"types"` property to `[ "echart" ]`
 
 ```json
 // quilt_summarize.json
@@ -50,7 +50,7 @@ Basic Echarts example: https://echarts.apache.org/examples/en/editor.html?c=line
 
 ### Embed dataset
 
-As additional enhancment insted of inserting datasets inside JSON, you can provide path or URL to dataset file.
+As additional enhancement instead of inserting datasets inside JSON, you can provide a path or URL to the dataset file.
 
 ```json
 {
@@ -81,4 +81,4 @@ Relative paths are relative to JSON file containing `option` data:
 
 ### Limitations
 
-Since we support JSON only, functionality is limited by JSON types only (numbers, strings, objects, arrays etc.). You can't use functions like [`symbolSize`](https://echarts.apache.org/en/option.html#series-scatter.symbolSize)
+Since we support JSON only, functionality is limited by JSON types only (numbers, strings, objects, arrays, etc.). You can't use functions like [`symbolSize`](https://echarts.apache.org/en/option.html#series-scatter.symbolSize)
