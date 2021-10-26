@@ -110,6 +110,11 @@ function EChartsLoader({ gated, handle, children }) {
           const datasetHandle = await resolveDatasetUrl(source)
           option.dataset.source = await loadDataset(datasetHandle)
         }
+        if (Array.isArray(option?.dataset)) {
+          if (option?.dataset.some((dataset) => typeof dataset.source === 'string')) {
+            throw new Error('Multiple remote sources are not supported')
+          }
+        }
         return PreviewData.ECharts({ option })
       } catch (e) {
         // eslint-disable-next-line no-console
