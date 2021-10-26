@@ -9,14 +9,14 @@ const usetyles = M.makeStyles({
 })
 
 interface EChartsEssential {
-  dataset: echarts.EChartsOption
+  option: echarts.EChartsOption
 }
 
 interface EChartsProps extends React.HTMLProps<HTMLDivElement> {
-  dataset: echarts.EChartsOption
+  option: echarts.EChartsOption
 }
 
-function ECharts({ dataset, ...props }: EChartsProps) {
+function ECharts({ option, ...props }: EChartsProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null)
 
   const [error, setError] = React.useState<Error | null>(null)
@@ -26,13 +26,13 @@ function ECharts({ dataset, ...props }: EChartsProps) {
     if (!containerRef.current) return
     try {
       const chart = echarts.init(containerRef.current)
-      chart.setOption(dataset)
+      chart.setOption(option)
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error(e)
       if (e instanceof Error) setError(e)
     }
-  }, [containerRef, dataset])
+  }, [containerRef, option])
 
   if (error)
     return (
@@ -49,7 +49,6 @@ function ECharts({ dataset, ...props }: EChartsProps) {
   return <div ref={containerRef} className={classes.root} {...props} />
 }
 
-export default (
-  { dataset }: EChartsEssential,
-  props: React.HTMLProps<HTMLDivElement>,
-) => <ECharts dataset={dataset} {...props} />
+export default ({ option }: EChartsEssential, props: React.HTMLProps<HTMLDivElement>) => (
+  <ECharts option={option} {...props} />
+)

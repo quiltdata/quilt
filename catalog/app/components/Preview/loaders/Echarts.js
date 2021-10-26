@@ -107,7 +107,7 @@ function EChartsLoader({ gated, handle, children }) {
           const datasetHandle = await resolveDatasetUrl(source)
           option.dataset.source = await loadDataset(datasetHandle)
         }
-        return PreviewData.ECharts({ dataset: option })
+        return PreviewData.ECharts({ option })
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error(e)
