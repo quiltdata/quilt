@@ -58,10 +58,14 @@ function waitForIframe(src) {
   })
 }
 
-async function loadVoila({ src }) {
+async function loadVoila({ src, style }) {
   // Preload iframe, then insert cached iframe
   await waitForIframe(src)
-  return PreviewData.IFrame({ src, sandbox: IFRAME_SANDBOX_ATTRIBUTES })
+  return PreviewData.IFrame({
+    src,
+    sandbox: IFRAME_SANDBOX_ATTRIBUTES,
+    style,
+  })
 }
 
 const useVoilaUrl = (handle) => {
@@ -78,8 +82,12 @@ const useVoilaUrl = (handle) => {
   )
 }
 
-export const Loader = function VoilaLoader({ handle, children }) {
+export const Loader = function VoilaLoader({ handle, children, options }) {
   const src = useVoilaUrl(handle)
-  const data = Data.use(loadVoila, { src })
+  const style = React.useMemo(
+    () => (options.height ? { height: options.height } : null),
+    [options.height],
+  )
+  const data = Data.use(loadVoila, { src, style })
   return children(utils.useErrorHandling(data.result, { handle, retry: data.fetch }))
 }

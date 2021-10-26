@@ -43,6 +43,12 @@
       ]
     },
 
+    "height": {
+      "description": "Height as an absolute value (in `px`, `vh`, `em` etc)",
+      "examples": ["100px"],
+      "type": "string"
+    },
+
     "width": {
       "anyOf": [
         {

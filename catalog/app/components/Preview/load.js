@@ -44,7 +44,7 @@ export function Load({ handle, children, options }) {
       ),
     [key, options],
   )
-  return <Loader {...{ handle, children }} />
+  return <Loader {...{ handle, children, options }} />
 }
 
 export default (handle, children, options) => <Load {...{ handle, children, options }} />
