@@ -68,6 +68,9 @@ async function downloadDatasetFromWeb(url) {
   return loadedDatasetResponse.text()
 }
 
+const sourceFormatRegex = /(.tsv|.csv)$/
+const isSupportedSourceFormat = (filename) => sourceFormatRegex.test(filename)
+
 function useDataSetLoader() {
   // TODO: use utils.useObjectGetter
   const s3 = AWS.S3.use()
@@ -76,7 +79,7 @@ function useDataSetLoader() {
       const loadedDataset = await (typeof handle === 'string'
         ? downloadDatasetFromWeb(handle)
         : downloadDatasetFromS3(s3, handle))
-      if ((handle?.key || handle).endsWith('.csv')) {
+      if (isSupportedSourceFormat(handle?.key || handle)) {
         return Papa.parse(loadedDataset).data
       } else {
         return JSON.parse(loadedDataset)
