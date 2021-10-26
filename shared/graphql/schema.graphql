@@ -62,7 +62,7 @@ type RoleBucketPermission {
 }
 
 type AccessCountForDate {
-  date: Date!
+  date: Datetime!
   value: Int!
 }
 
@@ -71,68 +71,68 @@ type AccessCounts {
   counts: [AccessCountForDate!]!
 }
 
-enum ObjectType {
-  # TBD
-}
-
-type ObjectPreview {
-  # TBD
-}
-
-interface ObjectLike {
-  name: String! # absolute vs relative?
-  size: Int!
-  type: ObjectType!
-  preview(opts?): ObjectPreview
-}
-
-type PhysicalObject {
-  bucket: String!
-  key: String!
-  versionId: String!
-
-  size: Int!
-  hash: String! # optional?
-  meta: JsonDict
-  modified: Date! # optional
-  # meta
-  # type and preview stuff
-}
-
-type PackageEntryFile {
-  name: String! # absolute vs relative?
-  size: Int!
-  meta: JsonDict
-  # physicalKey
-  physicalObject: PhysicalObject!
-}
-
-type PackageEntryDir {
-  name: String!
-  size: Int!
-  meta: JsonDict
-  children: PackageEntryList!
-}
-
-union PackageEntry = PackageEntryFile | PackageEntryDir
+# enum ObjectType {
+#   # TBD
+# }
+#
+# type ObjectPreview {
+#   # TBD
+# }
+#
+# interface ObjectLike {
+#   name: String! # absolute vs relative?
+#   size: Int!
+#   type: ObjectType!
+#   preview(opts?): ObjectPreview
+# }
+#
+# type PhysicalObject {
+#   bucket: String!
+#   key: String!
+#   versionId: String!
+#
+#   size: Int!
+#   hash: String! # optional?
+#   meta: JsonDict
+#   modified: Date! # optional
+#   # meta
+#   # type and preview stuff
+# }
+#
+# type PackageEntryFile {
+#   name: String! # absolute vs relative?
+#   size: Int!
+#   meta: JsonDict
+#   # physicalKey
+#   physicalObject: PhysicalObject!
+# }
+#
+# type PackageEntryDir {
+#   name: String!
+#   size: Int!
+#   meta: JsonDict
+#   children: PackageEntryList!
+# }
+#
+# union PackageEntry = PackageEntryFile | PackageEntryDir
 
 type PackageEntryList {
   total: Int!
   totalBytes: Int!
-  page(number: Int = 1, perPage: Int = 50, prefix: String): [PackageEntry!]!
+  # page(number: Int = 1, perPage: Int = 50, prefix: String): [PackageEntry!]!
 }
 
 type PackageRevision {
   # link to package?
   pointer: String!
   hash: String!
-  modified: Date!
-  stats: PackageRevisionStats!
+  modified: Datetime!
+  # stats: PackageRevisionStats!
   message: String
   metadata: JsonDict!
   # header: do we need this?
   entries: PackageEntryList!
-  entry(path: String!): PackageEntry
+  # entry(path: String!): PackageEntry
 }
 
 type PackageRevisionList {
@@ -143,9 +143,9 @@ type PackageRevisionList {
 type Package {
   bucket: String!
   name: String!
-  modified: Date!
+  modified: Datetime!
   revisions: PackageRevisionList!
-  revision(hashOrTag: String = "latest"): PackageRevision
+  # revision(hashOrTag: String = "latest"): PackageRevision
   accessCounts(window: Int = 30): AccessCounts
 }
 
@@ -159,8 +159,6 @@ type Query {
   config: Config!
   bucketConfigs: [BucketConfig!]!
   bucketConfig(name: String!): BucketConfig
-  bucket(name: String!): Bucket! # probably not necessary atm
-  # null if cant access packages -- return specific errors instead?
   packages(bucket: String!, filter: String): PackageList
   package(bucket: String!, name: String!): Package
   roles: [Role!]! @admin
