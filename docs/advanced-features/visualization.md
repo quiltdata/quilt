@@ -48,7 +48,7 @@ Basic Echarts example: https://echarts.apache.org/examples/en/editor.html?c=line
 
 ![](../imgs/catalog_echarts.png)
 
-### Embed dataset
+### Remote dataset
 
 As additional enhancement instead of inserting datasets inside JSON, you can provide a path or URL to the dataset file.
 
