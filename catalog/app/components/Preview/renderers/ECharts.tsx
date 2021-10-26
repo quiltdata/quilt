@@ -27,10 +27,12 @@ function ECharts({ option, ...props }: EChartsProps) {
     try {
       const chart = echarts.init(containerRef.current)
       chart.setOption(option)
+      return () => chart.dispose()
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error(e)
       if (e instanceof Error) setError(e)
+      return () => setError(null)
     }
   }, [containerRef, option])
 
