@@ -5,17 +5,18 @@ import fastapi
 import starlette.staticfiles
 import quilt3
 
+
 from .api import api
 
 REG_PREFIX = "/__reg"
-CATALOG_BUNDLE = "../catalog/build"
+CATALOG_BUNDLE = os.getenv("CATALOG_BUNDLE", "../catalog/build")
+CATALOG_URL = os.getenv("CATALOG_URL")
 
 open_config = quilt3.api._config()
 
 app = fastapi.FastAPI()
 
 
-# TODO: support proxying to local catalog server for easier development
 class SPA(starlette.staticfiles.StaticFiles):
     def __init__(self, directory: os.PathLike, index='index.html') -> None:
         self.index = index
@@ -59,4 +60,21 @@ def config():
 
 
 app.mount(REG_PREFIX, api, "API")
-app.mount("/", SPA(directory=CATALOG_BUNDLE), "SPA")
+
+if CATALOG_URL:
+    # to avoid long-polling connections preventing server restarts
+    @app.get("/__webpack_hmr")
+    def webpack_hmr():
+        return starlette.responses.Response(status_code=404)
+
+    from asgiproxy.__main__ import make_app as make_proxy_app
+
+    proxy_app, proxy_context = make_proxy_app(upstream_base_url=CATALOG_URL)
+    app.mount("/", proxy_app, "SPAProxy")
+
+    @app.on_event("shutdown")
+    async def on_shutdown():
+        await proxy_context.close()
+
+else:
+    app.mount("/", SPA(directory=CATALOG_BUNDLE), "SPA")
