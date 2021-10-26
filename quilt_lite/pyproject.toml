@@ -17,6 +17,7 @@ importlib-resources = "^5.3.0"
 # pytest = "^5.2"
 # python-dotenv = "^0.19.1"
 # watchdog = "^2.1.6"
+asgiproxy = "^0.0"
 black = "^21.9b0"
 
 [build-system]
