@@ -4,15 +4,15 @@
 
 We support visualization library `echarts` on Summary page using [`quilt_summarize.json`](../Catalog/Preferences.md#custom-overviews-for-buckets-folders)
 
-To draw a chart you can provide a JSON file which content will be treated as an [option parameter](https://echarts.apache.org/en/option.html) and set `"types"` property to `[ "echart" ]`
+To draw a chart you can provide a JSON file which content will be treated as an [option parameter](https://echarts.apache.org/en/option.html) and set `"types"` property to `[ "echarts" ]`
 
 ```json
 // quilt_summarize.json
 [
   {
-    "path": "echart-option-file.json",
-    "title": "Awesome pie chart",
-    "types": ["echart"]
+    "path": "echarts-option-file.json",
+    "title": "Awesome line chart",
+    "types": ["echarts"]
   }
 ]
 ```
@@ -46,7 +46,7 @@ Basic Echarts example: https://echarts.apache.org/examples/en/editor.html?c=line
 }
 ```
 
-![](../imgs/catalog_echart.png)
+![](../imgs/catalog_echarts.png)
 
 ### Embed dataset
 
@@ -74,7 +74,7 @@ As additional enhancement instead of inserting datasets inside JSON, you can pro
 Relative paths are relative to JSON file containing `option` data:
 
 ```
- ├─ echart-option-file.json # { "dataset": {"source": "./dataset.csv" }}
+ ├─ echarts-option-file.json # { "dataset": {"source": "./dataset.csv" }}
  ├─ dataset.csv
 
 ```
