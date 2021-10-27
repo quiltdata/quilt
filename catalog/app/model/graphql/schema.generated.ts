@@ -11,12 +11,80 @@ export default {
     subscriptionType: null,
     types: [
       {
-        kind: 'SCALAR',
-        name: 'String',
+        kind: 'OBJECT',
+        name: 'AccessCountForDate',
+        fields: [
+          {
+            name: 'date',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'value',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
       },
       {
         kind: 'SCALAR',
         name: 'Int',
+      },
+      {
+        kind: 'OBJECT',
+        name: 'AccessCounts',
+        fields: [
+          {
+            name: 'total',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'counts',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'AccessCountForDate',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'SCALAR',
+        name: 'String',
       },
       {
         kind: 'SCALAR',
@@ -562,6 +630,10 @@ export default {
         name: 'Json',
       },
       {
+        kind: 'SCALAR',
+        name: 'JsonRecord',
+      },
+      {
         kind: 'OBJECT',
         name: 'ManagedRole',
         fields: [
@@ -883,6 +955,294 @@ export default {
       },
       {
         kind: 'OBJECT',
+        name: 'Package',
+        fields: [
+          {
+            name: 'bucket',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'name',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'modified',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'revisions',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'PackageRevisionList',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'accessCounts',
+            type: {
+              kind: 'OBJECT',
+              name: 'AccessCounts',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'window',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+            ],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'PackageEntryList',
+        fields: [
+          {
+            name: 'total',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'totalBytes',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'PackageList',
+        fields: [
+          {
+            name: 'total',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'page',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'Package',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [
+              {
+                name: 'number',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'perPage',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+            ],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'PackageRevision',
+        fields: [
+          {
+            name: 'pointer',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'hash',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'modified',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Datetime',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'message',
+            type: {
+              kind: 'SCALAR',
+              name: 'String',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'metadata',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'JsonRecord',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'entries',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'OBJECT',
+                name: 'PackageEntryList',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'PackageRevisionList',
+        fields: [
+          {
+            name: 'total',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'page',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'OBJECT',
+                    name: 'PackageRevision',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [
+              {
+                name: 'number',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+              {
+                name: 'perPage',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Int',
+                  ofType: null,
+                },
+              },
+            ],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'OBJECT',
         name: 'Query',
         fields: [
           {
@@ -923,6 +1283,67 @@ export default {
               ofType: null,
             },
             args: [
+              {
+                name: 'name',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'packages',
+            type: {
+              kind: 'OBJECT',
+              name: 'PackageList',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'bucket',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+              {
+                name: 'filter',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+            ],
+          },
+          {
+            name: 'package',
+            type: {
+              kind: 'OBJECT',
+              name: 'Package',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'bucket',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
               {
                 name: 'name',
                 type: {
