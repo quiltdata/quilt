@@ -114,7 +114,7 @@
     "react-google-login": "^5.2.2",
     "react-helmet": "^6.1.0",
     "react-input-autosize": "^3.0.0",
-    "react-multi-carousel": "^2.6.3",
+    "react-multi-carousel": "^2.6.5",
     "react-redux": "^7.2.6",
     "react-router-dom": "^5.2.0",
     "react-router-hash-link": "^1.2.2",
