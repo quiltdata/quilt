@@ -35,10 +35,11 @@ interface S3Handle {
 interface SummarizeFile {
   description?: string
   handle: S3Handle
+  height?: string
   path: string
   title?: string
-  width?: string | number
   types?: SummaryFileTypes
+  width?: string | number
 }
 
 type MakeURL = (h: S3Handle) => LocationDescriptor
@@ -226,7 +227,10 @@ interface FilePreviewProps {
   handle: S3Handle
   headingOverride: React.ReactNode
   expanded?: boolean
-  types?: SummaryFileTypes
+  options: {
+    height?: string
+    types?: SummaryFileTypes
+  }
 }
 
 export function FilePreview({
@@ -234,7 +238,7 @@ export function FilePreview({
   expanded,
   handle,
   headingOverride,
-  types,
+  options,
 }: FilePreviewProps) {
   const { urls } = NamedRoutes.use()
 
@@ -265,11 +269,6 @@ export function FilePreview({
         <CrumbLink {...crumbs.file} />
       </span>
     )
-
-  let options: { types?: SummaryFileTypes } | undefined
-  if (types) {
-    options = { types }
-  }
 
   // TODO: check for glacier and hide items
   return (
@@ -396,8 +395,11 @@ function FileHandle({ file, mkUrl, s3 }: FileHandleProps) {
         <FilePreview
           description={<Markdown data={file.description} />}
           handle={file.handle}
-          types={file.types}
           headingOverride={getHeadingOverride(file, mkUrl)}
+          options={{
+            types: file.types,
+            height: file.height,
+          }}
         />
       )}
     </EnsureAvailability>
