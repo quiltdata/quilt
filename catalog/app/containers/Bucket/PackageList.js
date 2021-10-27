@@ -2,17 +2,17 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import { useHistory, Link, Redirect } from 'react-router-dom'
+import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
-import * as AWS from 'utils/AWS'
-import * as APIConnector from 'utils/APIConnector'
-// import AsyncResult from 'utils/AsyncResult'
+// import * as AWS from 'utils/AWS'
+// import * as APIConnector from 'utils/APIConnector'
 // import * as BucketConfig from 'utils/BucketConfig'
-import * as Config from 'utils/Config'
-import * as Data from 'utils/Data'
+// import * as Config from 'utils/Config'
+// import * as Data from 'utils/Data'
 // import * as LinkedData from 'utils/LinkedData'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -29,7 +29,34 @@ import usePrevious from 'utils/usePrevious'
 import { usePackageCreateDialog } from './PackageCreateDialog'
 import Pagination from './Pagination'
 import { displayError } from './errors'
-import * as requests from './requests'
+// import * as requests from './requests'
+
+import PACKAGE_COUNT_QUERY from './PackageListPackageCountQuery.generated'
+
+const PACKAGE_LIST_QUERY = `
+  query ($bucket: String!, $filter: String, $page: Int!, $perPage: Int!) {
+    packages(bucket: $bucket, filter: $filter) {
+      page(number: $page, perPage: $perPage) {
+        bucket
+        name
+        modified
+        revisions { total }
+        accessCounts {
+          total
+          counts { date, value }
+        }
+      }
+    }
+  }
+`
+
+const DISABLE_SUSPENSE = { suspense: false }
+
+const opCase = (result, { data, error, fetching }) => {
+  if (result.fetching) return fetching()
+  if (result.data) return data(result.data)
+  return error(result.error)
+}
 
 const EXAMPLE_PACKAGE_URL = 'https://docs.quiltdata.com/walkthrough/editing-a-package'
 
@@ -172,7 +199,7 @@ const usePackageStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Package({ name, modified, revisions, bucket, views }) {
+function Package({ name, modified, revisions, bucket, accessCounts }) {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
   const t = M.useTheme()
@@ -187,11 +214,11 @@ function Package({ name, modified, revisions, bucket, views }) {
       </div>
       <M.Box pl={2} pb={2} pt={1}>
         <span className={classes.revisions}>
-          {revisions}{' '}
+          {revisions.total}{' '}
           {xs ? (
             'Rev.'
           ) : (
-            <Format.Plural value={revisions} one="Revision" other="Revisions" />
+            <Format.Plural value={revisions.total} one="Revision" other="Revisions" />
           )}
         </span>
         <M.Box mr={2} component="span" />
@@ -200,7 +227,7 @@ function Package({ name, modified, revisions, bucket, views }) {
           {modified ? <Format.Relative value={modified} /> : '[unknown: see console]'}
         </span>
       </M.Box>
-      {!!views && <Counts {...views} />}
+      {!!accessCounts && <Counts {...accessCounts} />}
     </M.Paper>
   )
 }
@@ -319,11 +346,11 @@ export default function PackageList({
   location,
 }) {
   const history = useHistory()
-  const s3 = AWS.S3.use()
-  const req = APIConnector.use()
+  // const s3 = AWS.S3.use()
+  // const req = APIConnector.use()
   // const sign = AWS.Signer.useS3Signer()
   // const { analyticsBucket, apiGatewayEndpoint: endpoint } = Config.useConfig()
-  const { analyticsBucket } = Config.useConfig()
+  // const { analyticsBucket } = Config.useConfig()
   const { urls } = NamedRoutes.use()
   // const bucketCfg = BucketConfig.useCurrentBucketConfig()
   const classes = useStyles()
@@ -336,28 +363,56 @@ export default function PackageList({
   const computedSort = getSort(sort)
   const computedFilter = filter || ''
   const filtering = useDebouncedInput(computedFilter, 500)
-  const today = React.useMemo(() => new Date(), [])
+  // const today = React.useMemo(() => new Date(), [])
 
-  const [counter, setCounter] = React.useState(0)
+  // const [counter, setCounter] = React.useState(0)
 
-  const totalCountData = Data.use(requests.countPackages, { req, bucket, counter })
-  const filteredCountData = Data.use(requests.countPackages, {
-    req,
-    bucket,
-    filter: computedFilter,
-    counter,
+  const refreshData = React.useCallback(() => {
+    // console.log('refresh data')
+    // TODO: reexecute queries
+  }, [])
+
+  // const totalCountData = Data.use(requests.countPackages, { req, bucket, counter })
+  // TODO: re-request via counter?
+  // possible to run reexecuteQuery with requestPolicy: 'network-only'
+  const [totalCountQuery] = urql.useQuery({
+    query: PACKAGE_COUNT_QUERY,
+    variables: { bucket },
+    context: DISABLE_SUSPENSE,
   })
-  const packagesData = Data.use(requests.listPackages, {
-    s3,
-    req,
-    analyticsBucket,
-    bucket,
-    filter,
-    sort: computedSort.key,
-    perPage: PER_PAGE,
-    page,
-    today,
-    counter,
+  const [filteredCountQuery] = urql.useQuery({
+    query: PACKAGE_COUNT_QUERY,
+    variables: { bucket, filter },
+    context: DISABLE_SUSPENSE,
+  })
+  // const filteredCountData = Data.use(requests.countPackages, {
+  //   req,
+  //   bucket,
+  //   filter: computedFilter,
+  //   counter,
+  // })
+  // const packagesData = Data.use(requests.listPackages, {
+  //   s3,
+  //   req,
+  //   analyticsBucket,
+  //   bucket,
+  //   filter,
+  //   sort: computedSort.key,
+  //   perPage: PER_PAGE,
+  //   page,
+  //   today,
+  //   counter,
+  // })
+  const [packagesQuery] = urql.useQuery({
+    query: PACKAGE_LIST_QUERY,
+    variables: {
+      bucket,
+      filter,
+      // sort: computedSort.key, // TODO
+      page: computedPage,
+      perPage: PER_PAGE,
+    },
+    context: DISABLE_SUSPENSE,
   })
 
   const makeSortUrl = React.useCallback(
@@ -407,11 +462,9 @@ export default function PackageList({
 
   const onExited = React.useCallback(
     (res) => {
-      if (res && res.pushed) {
-        setCounter(R.inc)
-      }
+      if (res?.pushed) refreshData()
     },
-    [setCounter],
+    [refreshData],
   )
 
   const preferences = BucketPreferences.use()
@@ -424,8 +477,8 @@ export default function PackageList({
 
       {createDialog.element}
 
-      {totalCountData.case({
-        _: () => (
+      {opCase(totalCountQuery, {
+        fetching: () => (
           <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
             <M.Box mt={{ xs: 0, sm: 3 }} display="flex" justifyContent="space-between">
               <M.Box
@@ -459,8 +512,9 @@ export default function PackageList({
             ))}
           </M.Box>
         ),
-        Err: displayError(),
-        Ok: (totalCount) => {
+        error: displayError(),
+        data: (d) => {
+          const totalCount = d.packages?.total
           if (!totalCount) {
             return (
               <M.Box pt={5} textAlign="center">
@@ -542,10 +596,11 @@ export default function PackageList({
                 </M.Box>
               </M.Box>
 
-              {filteredCountData.case({
-                _: () => R.range(0, 10).map((i) => <PackageSkel key={i} />),
-                Err: displayError(),
-                Ok: (filteredCount) => {
+              {opCase(filteredCountQuery, {
+                fetching: () => R.range(0, 10).map((i) => <PackageSkel key={i} />),
+                error: displayError(),
+                data: (dd) => {
+                  const filteredCount = dd.packages?.total
                   if (!filteredCount) {
                     return (
                       <M.Box
@@ -569,16 +624,17 @@ export default function PackageList({
 
                   return (
                     <>
-                      {packagesData.case({
-                        _: () => {
+                      {opCase(packagesQuery, {
+                        fetching: () => {
                           const items =
                             computedPage < pages ? PER_PAGE : filteredCount % PER_PAGE
                           return R.range(0, items).map((i) => <PackageSkel key={i} />)
                         },
-                        Err: displayError(),
-                        Ok: R.map((pkg) => (
-                          <Package key={pkg.name} {...pkg} bucket={bucket} />
-                        )),
+                        error: displayError(),
+                        data: (ddd) =>
+                          (ddd.packages?.page || []).map((pkg) => (
+                            <Package key={pkg.name} {...pkg} />
+                          )),
                       })}
                       {pages > 1 && (
                         <Pagination {...{ pages, page: computedPage, makePageUrl }} />
