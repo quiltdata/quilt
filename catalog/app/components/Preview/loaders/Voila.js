@@ -1,3 +1,5 @@
+import * as React from 'react'
+
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as Config from 'utils/Config'
