@@ -57,7 +57,7 @@ The simplest summary is just a list of relative paths to files that you wish to 
 ```
 By default each list element renders in its own row.
 
-![](./imgs/quilt-summarize-rows.png)
+![](../imgs/quilt-summarize-rows.png)
 
 For more sophisticated layouts, you can break a row into columns by providing an
 array instead of a string:
@@ -76,7 +76,7 @@ array instead of a string:
   }]
 ]
 ```
-![](./imgs/quilt-summarize-columns.png)
+![](../imgs/quilt-summarize-columns.png)
 
 Each element of an array in `quilt_summarize.json` can either be a path string
 or an object with one or more of the following properties:

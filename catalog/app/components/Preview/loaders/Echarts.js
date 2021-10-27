@@ -1,7 +1,7 @@
-import * as R from 'ramda'
-import * as React from 'react'
 import hljs from 'highlight.js'
 import * as Papa from 'papaparse'
+import * as R from 'ramda'
+import * as React from 'react'
 
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
@@ -22,7 +22,7 @@ async function resolvePath(path, handle, resolveLogicalKey) {
     key: s3paths.resolveKey(handle.key, path),
   }
 
-  if (!resolveLogicalKey || handle.logicalKey) return resolvedHandle
+  if (!resolveLogicalKey || !handle.logicalKey) return resolvedHandle
 
   try {
     const resolvedLogicalHandle = await resolveLogicalKey(
@@ -48,8 +48,8 @@ function useDatasetResolver(handle) {
       R.pipe(
         Resource.parse,
         Resource.Pointer.case({
-          Web: async (url) => url, // NOTE: seems like it's violates versioning?
-          S3: async (h) => h, // NOTE: violates versioning too?
+          Web: async (url) => url,
+          S3: async (h) => h,
           S3Rel: (path) => resolvePath(path, handle, resolveLogicalKey),
           Path: (path) => resolvePath(path, handle, resolveLogicalKey),
         }),
@@ -68,6 +68,9 @@ async function downloadDatasetFromWeb(url) {
   return loadedDatasetResponse.text()
 }
 
+const sourceFormatRegex = /(.tsv|.csv)$/
+const isSupportedSourceFormat = (filename) => sourceFormatRegex.test(filename)
+
 function useDataSetLoader() {
   // TODO: use utils.useObjectGetter
   const s3 = AWS.S3.use()
@@ -76,7 +79,7 @@ function useDataSetLoader() {
       const loadedDataset = await (typeof handle === 'string'
         ? downloadDatasetFromWeb(handle)
         : downloadDatasetFromS3(s3, handle))
-      if ((handle?.key || handle).endsWith('.csv')) {
+      if (isSupportedSourceFormat(handle?.key || handle)) {
         return Papa.parse(loadedDataset).data
       } else {
         return JSON.parse(loadedDataset)
@@ -107,7 +110,12 @@ function EChartsLoader({ gated, handle, children }) {
           const datasetHandle = await resolveDatasetUrl(source)
           option.dataset.source = await loadDataset(datasetHandle)
         }
-        return PreviewData.ECharts({ dataset: option })
+        if (Array.isArray(option?.dataset)) {
+          if (option?.dataset.some((dataset) => typeof dataset.source === 'string')) {
+            throw new Error('Multiple remote sources are not supported')
+          }
+        }
+        return PreviewData.ECharts({ option })
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error(e)

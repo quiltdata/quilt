@@ -2,37 +2,39 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as echarts from 'echarts'
 
-const usetyles = M.makeStyles({
+const useStyles = M.makeStyles({
   root: {
     height: '400px',
   },
 })
 
 interface EChartsEssential {
-  dataset: echarts.EChartsOption
+  option: echarts.EChartsOption
 }
 
 interface EChartsProps extends React.HTMLProps<HTMLDivElement> {
-  dataset: echarts.EChartsOption
+  option: echarts.EChartsOption
 }
 
-function ECharts({ dataset, ...props }: EChartsProps) {
+function ECharts({ option, ...props }: EChartsProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null)
 
   const [error, setError] = React.useState<Error | null>(null)
-  const classes = usetyles()
+  const classes = useStyles()
 
   React.useEffect(() => {
     if (!containerRef.current) return
     try {
       const chart = echarts.init(containerRef.current)
-      chart.setOption(dataset)
+      chart.setOption(option)
+      return () => chart.dispose()
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error(e)
       if (e instanceof Error) setError(e)
+      return () => setError(null)
     }
-  }, [containerRef, dataset])
+  }, [containerRef, option])
 
   if (error)
     return (
@@ -49,7 +51,6 @@ function ECharts({ dataset, ...props }: EChartsProps) {
   return <div ref={containerRef} className={classes.root} {...props} />
 }
 
-export default (
-  { dataset }: EChartsEssential,
-  props: React.HTMLProps<HTMLDivElement>,
-) => <ECharts dataset={dataset} {...props} />
+export default ({ option }: EChartsEssential, props: React.HTMLProps<HTMLDivElement>) => (
+  <ECharts option={option} {...props} />
+)

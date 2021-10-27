@@ -25,7 +25,7 @@ PreviewStatus: {
 
 export const PreviewData = tagged([
   'DataFrame', // { preview: string, ...PreviewStatus }
-  'ECharts', // { dataset: object }
+  'ECharts', // { option: object }
   'Fcs', // { preview: string, metadata: object, ...PreviewStatus }
   'IFrame', // { src: string }
   'Image', // { handle: object }
