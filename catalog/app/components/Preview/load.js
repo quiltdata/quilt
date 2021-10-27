@@ -1,6 +1,7 @@
 import * as React from 'react'
 
 import * as Csv from './loaders/Csv'
+import * as Echarts from './loaders/Echarts'
 import * as Excel from './loaders/Excel'
 import * as Fcs from './loaders/Fcs'
 import * as Html from './loaders/Html'
@@ -12,14 +13,17 @@ import * as Parquet from './loaders/Parquet'
 import * as Pdf from './loaders/Pdf'
 import * as Text from './loaders/Text'
 import * as Vcf from './loaders/Vcf'
+import * as Voila from './loaders/Voila'
 import * as fallback from './loaders/fallback'
 
 const loaderChain = [
   Csv,
   Excel,
   Fcs,
+  Echarts, // should be before Json, or TODO: add "type is not 'echarts'" to Json.detect
   Json,
   Markdown,
+  Voila, // should be before Notebook, or TODO: add "type is not 'voila'" to Notebook.detect
   Notebook,
   Parquet,
   Pdf,
@@ -30,10 +34,17 @@ const loaderChain = [
   fallback,
 ]
 
-export function Load({ handle, children }) {
+export function Load({ handle, children, options }) {
   const key = handle.logicalKey || handle.key
-  const { Loader } = React.useMemo(() => loaderChain.find((L) => L.detect(key)), [key])
+  const { Loader } = React.useMemo(
+    () =>
+      // TODO: fix L.detect arity
+      loaderChain.find((L) =>
+        L === Echarts || L === Voila ? L.detect(key, options) : L.detect(key),
+      ),
+    [key, options],
+  )
   return <Loader {...{ handle, children }} />
 }
 
-export default (handle, children) => <Load {...{ handle, children }} />
+export default (handle, children, options) => <Load {...{ handle, children, options }} />

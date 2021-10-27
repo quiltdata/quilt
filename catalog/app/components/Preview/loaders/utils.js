@@ -148,7 +148,7 @@ export function useFirstBytes({ bytes, handle }) {
   return Data.use(getFirstBytes, { s3, bytes, handle })
 }
 
-const getObject = ({ s3, handle }) =>
+export const getObject = ({ s3, handle }) =>
   s3
     .getObject({
       Bucket: handle.bucket,
