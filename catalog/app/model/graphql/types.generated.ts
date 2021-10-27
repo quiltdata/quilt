@@ -1,4 +1,4 @@
-import type { Json } from 'utils/types'
+import type { Json, JsonRecord } from 'utils/types'
 
 export type Maybe<T> = T | null
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] }
@@ -17,6 +17,19 @@ export interface Scalars {
   Float: number
   Datetime: Date
   Json: Json
+  JsonRecord: JsonRecord
+}
+
+export interface AccessCountForDate {
+  readonly __typename: 'AccessCountForDate'
+  readonly date: Scalars['Datetime']
+  readonly value: Scalars['Int']
+}
+
+export interface AccessCounts {
+  readonly __typename: 'AccessCounts'
+  readonly total: Scalars['Int']
+  readonly counts: ReadonlyArray<AccessCountForDate>
 }
 
 export interface BucketAddInput {
@@ -237,6 +250,57 @@ export interface NotificationTopicNotFound {
   readonly _: Maybe<Scalars['Boolean']>
 }
 
+export interface Package {
+  readonly __typename: 'Package'
+  readonly bucket: Scalars['String']
+  readonly name: Scalars['String']
+  readonly modified: Scalars['Datetime']
+  readonly revisions: PackageRevisionList
+  readonly accessCounts: Maybe<AccessCounts>
+}
+
+export interface PackageaccessCountsArgs {
+  window?: Maybe<Scalars['Int']>
+}
+
+export interface PackageEntryList {
+  readonly __typename: 'PackageEntryList'
+  readonly total: Scalars['Int']
+  readonly totalBytes: Scalars['Int']
+}
+
+export interface PackageList {
+  readonly __typename: 'PackageList'
+  readonly total: Scalars['Int']
+  readonly page: ReadonlyArray<Package>
+}
+
+export interface PackageListpageArgs {
+  number?: Maybe<Scalars['Int']>
+  perPage?: Maybe<Scalars['Int']>
+}
+
+export interface PackageRevision {
+  readonly __typename: 'PackageRevision'
+  readonly pointer: Scalars['String']
+  readonly hash: Scalars['String']
+  readonly modified: Scalars['Datetime']
+  readonly message: Maybe<Scalars['String']>
+  readonly metadata: Scalars['JsonRecord']
+  readonly entries: PackageEntryList
+}
+
+export interface PackageRevisionList {
+  readonly __typename: 'PackageRevisionList'
+  readonly total: Scalars['Int']
+  readonly page: ReadonlyArray<PackageRevision>
+}
+
+export interface PackageRevisionListpageArgs {
+  number?: Maybe<Scalars['Int']>
+  perPage?: Maybe<Scalars['Int']>
+}
+
 export interface PermissionInput {
   readonly bucket: Scalars['String']
   readonly level: Maybe<BucketPermissionLevel>
@@ -247,11 +311,23 @@ export interface Query {
   readonly config: Config
   readonly bucketConfigs: ReadonlyArray<BucketConfig>
   readonly bucketConfig: Maybe<BucketConfig>
+  readonly packages: Maybe<PackageList>
+  readonly package: Maybe<Package>
   readonly roles: ReadonlyArray<Role>
   readonly role: Maybe<Role>
 }
 
 export interface QuerybucketConfigArgs {
+  name: Scalars['String']
+}
+
+export interface QuerypackagesArgs {
+  bucket: Scalars['String']
+  filter: Maybe<Scalars['String']>
+}
+
+export interface QuerypackageArgs {
+  bucket: Scalars['String']
   name: Scalars['String']
 }
 
