@@ -223,36 +223,31 @@ function PreviewBox({ contents, expanded: defaultExpanded = false }: PreviewBoxP
 const CrumbLink = M.styled(Link)({ wordBreak: 'break-word' })
 
 interface FilePreviewProps {
-  description: React.ReactNode
+  expanded?: boolean
+  file?: SummarizeFile
   handle: S3Handle
   headingOverride: React.ReactNode
-  expanded?: boolean
-  options: {
-    height?: string
-    types?: SummaryFileTypes
-  }
 }
 
 export function FilePreview({
-  description,
   expanded,
+  file,
   handle,
   headingOverride,
-  options,
 }: FilePreviewProps) {
   const { urls } = NamedRoutes.use()
 
   const crumbs = React.useMemo(() => {
     const all = getBreadCrumbs(handle.key)
-    const dirs = R.init(all).map(({ label, path }) => ({
+    const crumbDirs = R.init(all).map(({ label, path }) => ({
       to: urls.bucketFile(handle.bucket, path),
       children: label,
     }))
-    const file = {
+    const crumbFile = {
       to: urls.bucketFile(handle.bucket, handle.key),
       children: R.last(all)?.label,
     }
-    return { dirs, file }
+    return { dirs: crumbDirs, file: crumbFile }
   }, [handle.bucket, handle.key, urls])
 
   const heading =
@@ -269,6 +264,7 @@ export function FilePreview({
         <CrumbLink {...crumbs.file} />
       </span>
     )
+  const description = file ? <Markdown data={file.description} /> : null
 
   // TODO: check for glacier and hide items
   return (
@@ -281,7 +277,7 @@ export function FilePreview({
           ),
           renderProgress: () => <ContentSkel />,
         }),
-        options,
+        file,
       )}
     </Section>
   )
@@ -393,13 +389,9 @@ function FileHandle({ file, mkUrl, s3 }: FileHandleProps) {
     <EnsureAvailability s3={s3} handle={file.handle}>
       {() => (
         <FilePreview
-          description={<Markdown data={file.description} />}
           handle={file.handle}
           headingOverride={getHeadingOverride(file, mkUrl)}
-          options={{
-            types: file.types,
-            height: file.height,
-          }}
+          file={file}
         />
       )}
     </EnsureAvailability>
