@@ -222,6 +222,38 @@ function PreviewBox({ contents, expanded: defaultExpanded = false }: PreviewBoxP
 
 const CrumbLink = M.styled(Link)({ wordBreak: 'break-word' })
 
+interface CrumbsProps {
+  handle: S3Handle
+}
+
+function Crumbs({ handle }: CrumbsProps) {
+  const { urls } = NamedRoutes.use()
+  const crumbs = React.useMemo(() => {
+    const all = getBreadCrumbs(handle.key)
+    const dirs = R.init(all).map(({ label, path }) => ({
+      to: urls.bucketFile(handle.bucket, path),
+      children: label,
+    }))
+    const file = {
+      to: urls.bucketFile(handle.bucket, handle.key),
+      children: R.last(all)?.label,
+    }
+    return { dirs, file }
+  }, [handle.bucket, handle.key, urls])
+
+  return (
+    <span onCopy={copyWithoutSpaces}>
+      {crumbs.dirs.map((c) => (
+        <React.Fragment key={`crumb:${c.to}`}>
+          <CrumbLink {...c} />
+          &nbsp;/{' '}
+        </React.Fragment>
+      ))}
+      <CrumbLink {...crumbs.file} />
+    </span>
+  )
+}
+
 interface FilePreviewProps {
   expanded?: boolean
   file?: SummarizeFile
@@ -235,36 +267,8 @@ export function FilePreview({
   handle,
   headingOverride,
 }: FilePreviewProps) {
-  const { urls } = NamedRoutes.use()
-
-  const crumbs = React.useMemo(() => {
-    const all = getBreadCrumbs(handle.key)
-    const crumbDirs = R.init(all).map(({ label, path }) => ({
-      to: urls.bucketFile(handle.bucket, path),
-      children: label,
-    }))
-    const crumbFile = {
-      to: urls.bucketFile(handle.bucket, handle.key),
-      children: R.last(all)?.label,
-    }
-    return { dirs: crumbDirs, file: crumbFile }
-  }, [handle.bucket, handle.key, urls])
-
-  const heading =
-    headingOverride != null ? (
-      headingOverride
-    ) : (
-      <span onCopy={copyWithoutSpaces}>
-        {crumbs.dirs.map((c) => (
-          <React.Fragment key={`crumb:${c.to}`}>
-            <CrumbLink {...c} />
-            &nbsp;/{' '}
-          </React.Fragment>
-        ))}
-        <CrumbLink {...crumbs.file} />
-      </span>
-    )
   const description = file ? <Markdown data={file.description} /> : null
+  const heading = headingOverride != null ? headingOverride : <Crumbs handle={handle} />
 
   // TODO: check for glacier and hide items
   return (
