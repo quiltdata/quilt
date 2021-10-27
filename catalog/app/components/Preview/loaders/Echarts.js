@@ -22,7 +22,7 @@ async function resolvePath(path, handle, resolveLogicalKey) {
     key: s3paths.resolveKey(handle.key, path),
   }
 
-  if (!resolveLogicalKey || handle.logicalKey) return resolvedHandle
+  if (!resolveLogicalKey || !handle.logicalKey) return resolvedHandle
 
   try {
     const resolvedLogicalHandle = await resolveLogicalKey(
