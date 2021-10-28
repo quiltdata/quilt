@@ -1,24 +1,20 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import { useHistory, Link, Redirect } from 'react-router-dom'
+import * as RRDom from 'react-router-dom'
 import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
+import type { ResultOf } from '@graphql-typed-document-node/core'
 
 import Skeleton from 'components/Skeleton'
 import Sparkline from 'components/Sparkline'
-// import * as AWS from 'utils/AWS'
-// import * as APIConnector from 'utils/APIConnector'
-// import * as BucketConfig from 'utils/BucketConfig'
-// import * as Config from 'utils/Config'
-// import * as Data from 'utils/Data'
-// import * as LinkedData from 'utils/LinkedData'
+import * as Model from 'model'
+import * as BucketPreferences from 'utils/BucketPreferences'
 import MetaTitle from 'utils/MetaTitle'
 import * as NamedRoutes from 'utils/NamedRoutes'
-import StyledLink from 'utils/StyledLink'
 import * as SVG from 'utils/SVG'
-import * as BucketPreferences from 'utils/BucketPreferences'
+import StyledLink from 'utils/StyledLink'
 import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import mkStorage from 'utils/storage'
@@ -26,35 +22,27 @@ import { readableQuantity } from 'utils/string'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
-import { usePackageCreateDialog } from './PackageCreateDialog'
-import Pagination from './Pagination'
-import { displayError } from './errors'
-// import * as requests from './requests'
+import { usePackageCreateDialog } from '../PackageCreateDialog'
+import Pagination from '../Pagination'
+import { displayError } from '../errors'
 
-import PACKAGE_COUNT_QUERY from './PackageListPackageCountQuery.generated'
-
-const PACKAGE_LIST_QUERY = `
-  query ($bucket: String!, $filter: String, $page: Int!, $perPage: Int!) {
-    packages(bucket: $bucket, filter: $filter) {
-      page(number: $page, perPage: $perPage) {
-        bucket
-        name
-        modified
-        revisions { total }
-        accessCounts {
-          total
-          counts { date, value }
-        }
-      }
-    }
-  }
-`
+import PACKAGE_COUNT_QUERY from './gql/PackageCount.generated'
+import PACKAGE_LIST_QUERY from './gql/PackageList.generated'
 
 const DISABLE_SUSPENSE = { suspense: false }
 
-const opCase = (result, { data, error, fetching }) => {
+interface OpCases<D, DR, ER, FR> {
+  data: (data: D, error: urql.CombinedError | undefined) => DR
+  error: (error: urql.CombinedError | undefined) => ER
+  fetching: () => FR
+}
+
+function opCase<D, DR, ER, FR>(
+  result: urql.UseQueryState<D, any>,
+  { data, error, fetching }: OpCases<D, DR, ER, FR>,
+) {
   if (result.fetching) return fetching()
-  if (result.data) return data(result.data)
+  if (result.data) return data(result.data, result.error)
   return error(result.error)
 }
 
@@ -63,18 +51,38 @@ const EXAMPLE_PACKAGE_URL = 'https://docs.quiltdata.com/walkthrough/editing-a-pa
 const PER_PAGE = 30
 
 const SORT_OPTIONS = [
-  { key: 'modified', label: 'Updated' },
-  { key: 'name', label: 'Name' },
-]
+  {
+    key: 'modified',
+    value: Model.GQLTypes.PackageListOrder.MODIFIED,
+    label: 'Updated',
+  },
+  {
+    key: 'name',
+    value: Model.GQLTypes.PackageListOrder.NAME,
+    label: 'Name',
+  },
+] as const
+
+type SortMode = typeof SORT_OPTIONS[number]['key']
 
 const DEFAULT_SORT = SORT_OPTIONS[0]
 
 // Possible values are 'modified', 'name'
 const storage = mkStorage({ sortPackagesBy: 'SORT_PACKAGES_BY' })
 
-const getSort = (key) => (key && SORT_OPTIONS.find((o) => o.key === key)) || DEFAULT_SORT
+const getSort = (key: unknown) => {
+  if (!key) return DEFAULT_SORT
+  return SORT_OPTIONS.find((o) => o.key === key) || DEFAULT_SORT
+}
 
-function Counts({ counts, total }) {
+type CountsProps = NonNullable<
+  NonNullable<
+    ResultOf<typeof PACKAGE_LIST_QUERY>['packages']
+  >['page'][number]['accessCounts']
+>
+
+function Counts({ counts, total }: CountsProps) {
+  // TODO: consider fetching access counts separately for every package
   const [cursor, setCursor] = React.useState(null)
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
@@ -199,7 +207,11 @@ const usePackageStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Package({ name, modified, revisions, bucket, accessCounts }) {
+type PackageProps = NonNullable<
+  ResultOf<typeof PACKAGE_LIST_QUERY>['packages']
+>['page'][number]
+
+function Package({ name, modified, revisions, bucket, accessCounts }: PackageProps) {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
   const t = M.useTheme()
@@ -207,10 +219,13 @@ function Package({ name, modified, revisions, bucket, accessCounts }) {
   return (
     <M.Paper className={classes.root}>
       <div className={classes.handleContainer}>
-        <Link className={classes.handle} to={urls.bucketPackageDetail(bucket, name)}>
+        <RRDom.Link
+          className={classes.handle}
+          to={urls.bucketPackageDetail(bucket, name)}
+        >
           <span className={classes.handleClickArea} />
           <span className={classes.handleText}>{name}</span>
-        </Link>
+        </RRDom.Link>
       </div>
       <M.Box pl={2} pb={2} pt={1}>
         <span className={classes.revisions}>
@@ -222,7 +237,10 @@ function Package({ name, modified, revisions, bucket, accessCounts }) {
           )}
         </span>
         <M.Box mr={2} component="span" />
-        <span className={classes.updated} title={modified ? modified.toString() : null}>
+        <span
+          className={classes.updated}
+          title={modified ? modified.toString() : undefined}
+        >
           {xs ? 'Upd. ' : 'Updated '}
           {modified ? <Format.Relative value={modified} /> : '[unknown: see console]'}
         </span>
@@ -254,7 +272,13 @@ const useSortDropdownStyles = M.makeStyles((t) => ({
   },
 }))
 
-function SortDropdown({ value, options, makeSortUrl }) {
+interface SortDropdownProps {
+  value: SortMode
+  options: typeof SORT_OPTIONS
+  makeSortUrl: (mode: SortMode) => string
+}
+
+function SortDropdown({ value, options, makeSortUrl }: SortDropdownProps) {
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const classes = useSortDropdownStyles()
@@ -298,7 +322,7 @@ function SortDropdown({ value, options, makeSortUrl }) {
         {options.map((o) => (
           <M.MenuItem
             onClick={() => handleClick(o.key)}
-            component={Link}
+            component={RRDom.Link}
             to={makeSortUrl(o.key)}
             key={o.key}
             selected={o.key === value}
@@ -344,76 +368,48 @@ export default function PackageList({
     params: { bucket },
   },
   location,
-}) {
-  const history = useHistory()
-  // const s3 = AWS.S3.use()
-  // const req = APIConnector.use()
-  // const sign = AWS.Signer.useS3Signer()
-  // const { analyticsBucket, apiGatewayEndpoint: endpoint } = Config.useConfig()
-  // const { analyticsBucket } = Config.useConfig()
+}: RRDom.RouteComponentProps<{ bucket: string }>) {
+  const history = RRDom.useHistory()
   const { urls } = NamedRoutes.use()
-  // const bucketCfg = BucketConfig.useCurrentBucketConfig()
   const classes = useStyles()
 
-  const scrollRef = React.useRef(null)
+  const scrollRef = React.useRef<HTMLDivElement | null>(null)
 
-  const { sort, filter, p } = parseSearch(location.search)
-  const page = p && parseInt(p, 10)
+  const { sort, filter, p } = parseSearch(location.search, true)
+  const page = p ? parseInt(p, 10) : undefined
   const computedPage = page || 1
   const computedSort = getSort(sort)
   const computedFilter = filter || ''
   const filtering = useDebouncedInput(computedFilter, 500)
-  // const today = React.useMemo(() => new Date(), [])
 
-  // const [counter, setCounter] = React.useState(0)
-
-  const refreshData = React.useCallback(() => {
-    // console.log('refresh data')
-    // TODO: reexecute queries
-  }, [])
-
-  // const totalCountData = Data.use(requests.countPackages, { req, bucket, counter })
-  // TODO: re-request via counter?
-  // possible to run reexecuteQuery with requestPolicy: 'network-only'
   const [totalCountQuery] = urql.useQuery({
     query: PACKAGE_COUNT_QUERY,
-    variables: { bucket },
+    variables: { bucket, filter: null },
     context: DISABLE_SUSPENSE,
   })
+
   const [filteredCountQuery] = urql.useQuery({
     query: PACKAGE_COUNT_QUERY,
-    variables: { bucket, filter },
+    variables: { bucket, filter: filter || null },
     context: DISABLE_SUSPENSE,
   })
-  // const filteredCountData = Data.use(requests.countPackages, {
-  //   req,
-  //   bucket,
-  //   filter: computedFilter,
-  //   counter,
-  // })
-  // const packagesData = Data.use(requests.listPackages, {
-  //   s3,
-  //   req,
-  //   analyticsBucket,
-  //   bucket,
-  //   filter,
-  //   sort: computedSort.key,
-  //   perPage: PER_PAGE,
-  //   page,
-  //   today,
-  //   counter,
-  // })
+
   const [packagesQuery] = urql.useQuery({
     query: PACKAGE_LIST_QUERY,
     variables: {
       bucket,
-      filter,
-      // sort: computedSort.key, // TODO
+      filter: filter || null,
+      order: computedSort.value,
       page: computedPage,
       perPage: PER_PAGE,
     },
     context: DISABLE_SUSPENSE,
   })
+
+  const refreshData = React.useCallback(() => {
+    // console.log('refresh data')
+    // TODO: reexecute queries
+  }, [])
 
   const makeSortUrl = React.useCallback(
     (s) =>
@@ -619,7 +615,7 @@ export default function PackageList({
                   const pages = Math.ceil(filteredCount / PER_PAGE)
 
                   if (computedPage > pages) {
-                    return <Redirect to={makePageUrl(pages)} />
+                    return <RRDom.Redirect to={makePageUrl(pages)} />
                   }
 
                   return (
