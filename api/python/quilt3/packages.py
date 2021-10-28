@@ -1155,7 +1155,7 @@ class Package:
             serialization_format_opts(dict): Optional. If passed in, only used if entry is an object. Options to help
                 Quilt understand how the object should be serialized. Useful for underspecified file formats like csv
                 when content contains confusing characters. Will be passed as kwargs to the FormatHandler.serialize()
-                function. See docstrings for individual FormatHandlers for full list of options -
+                function. See docstrings for individual FormatHandlers for full list of options —
                 https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/formats.py
             serialization_location(string): Optional. If passed in, only used if entry is an object. Where the
                 serialized object should be written, e.g. "./mydataframe.parquet"
