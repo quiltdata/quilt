@@ -1106,6 +1106,13 @@ export default {
                   ofType: null,
                 },
               },
+              {
+                name: 'order',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'Any',
+                },
+              },
             ],
           },
         ],

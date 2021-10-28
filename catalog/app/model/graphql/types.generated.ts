@@ -278,6 +278,12 @@ export interface PackageList {
 export interface PackageListpageArgs {
   number?: Maybe<Scalars['Int']>
   perPage?: Maybe<Scalars['Int']>
+  order?: Maybe<PackageListOrder>
+}
+
+export enum PackageListOrder {
+  NAME = 'NAME',
+  MODIFIED = 'MODIFIED',
 }
 
 export interface PackageRevision {
