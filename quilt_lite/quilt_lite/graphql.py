@@ -31,13 +31,10 @@ def query_bucket_config(*_, name: str):
 
 # Packages
 class Package:
-    def __init__(self, bucket: str, name: str):
+    def __init__(self, bucket: str, name: str, modified: datetime.datetime):
         self.bucket = bucket
         self.name = name
-
-    def modified(self, *_):
-        # return None # Datetime
-        return datetime.datetime.now()
+        self.modified = modified
 
     # def set_revisions(self, revisions: list(PackageRevision)):
     def set_revisions(self, revisions):
@@ -51,7 +48,19 @@ class Package:
         return PackageRevisionList(self)
 
     def accessCounts(self, *_, window: int):
-        return None #{} # AccessCounts
+        return {
+            "total": 99,
+            "counts": [
+                {"value": 10, "date": datetime.datetime.fromisoformat("2021-10-01")},
+                {"value": 11, "date": datetime.datetime.fromisoformat("2021-10-02")},
+                {"value": 99, "date": datetime.datetime.fromisoformat("2021-10-03")},
+                {"value": 20, "date": datetime.datetime.fromisoformat("2021-10-04")},
+                {"value": 1, "date": datetime.datetime.fromisoformat("2021-10-05")},
+                {"value": 10, "date": datetime.datetime.fromisoformat("2021-10-06")},
+                {"value": 80, "date": datetime.datetime.fromisoformat("2021-10-07")},
+            ],
+        }
+        # return None #{} # AccessCounts
 
 
 class PackageRevision:
@@ -84,12 +93,14 @@ class PackageRevision:
 pkg1 = Package(
     bucket="quilt-nl0-stage",
     name="nl0/pkg1",
+    modified=datetime.datetime.fromisoformat("2021-10-01"),
 )
 pkg1.set_revisions([PackageRevision(pkg1, pointer="latest", hash="hash1")])
 
 pkg2 = Package(
     bucket="quilt-nl0-stage",
     name="nl0/pkg2",
+    modified=datetime.datetime.fromisoformat("2021-10-21"),
 )
 pkg2.set_revisions([PackageRevision(pkg2, pointer="latest", hash="hash2")])
 
@@ -107,9 +118,15 @@ class PackageList:
         # return 0
 
     # TODO: ensure perPage is converted to per_page
-    def page(self, *_, number: int, perPage: int):
+    # order is actually an enum 'NAME' | 'MODIFIED'
+    def page(self, *_, number: int, perPage: int, order: str):
         # fetch packages
-        return dummy_pkg_list
+        key = lambda p: p.name
+        reverse = False
+        if order == 'MODIFIED':
+            key = lambda p: p.modified
+            reverse = True
+        return sorted(dummy_pkg_list, key=key, reverse=reverse)
         # return [] # Package[]
 
 
