@@ -270,6 +270,11 @@ export function FilePreview({
   const description = file ? <Markdown data={file.description} /> : null
   const heading = headingOverride != null ? headingOverride : <Crumbs handle={handle} />
 
+  const previewProps = React.useMemo(
+    () => (file?.height ? { style: { height: file.height } } : null),
+    [file?.height],
+  )
+
   // TODO: check for glacier and hide items
   return (
     <Section description={description} heading={heading} handle={handle}>
@@ -280,6 +285,7 @@ export function FilePreview({
             <PreviewBox {...{ contents, expanded }} />
           ),
           renderProgress: () => <ContentSkel />,
+          props: previewProps,
         }),
         file,
       )}

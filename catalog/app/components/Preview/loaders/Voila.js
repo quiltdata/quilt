@@ -1,5 +1,3 @@
-import * as React from 'react'
-
 import * as AWS from 'utils/AWS'
 import * as Data from 'utils/Data'
 import * as Config from 'utils/Config'
@@ -60,13 +58,12 @@ function waitForIframe(src) {
   })
 }
 
-async function loadVoila({ src, style }) {
+async function loadVoila({ src }) {
   // Preload iframe, then insert cached iframe
   await waitForIframe(src)
   return PreviewData.IFrame({
     src,
     sandbox: IFRAME_SANDBOX_ATTRIBUTES,
-    style,
   })
 }
 
@@ -84,12 +81,8 @@ const useVoilaUrl = (handle) => {
   )
 }
 
-export const Loader = function VoilaLoader({ handle, children, options }) {
+export const Loader = function VoilaLoader({ handle, children }) {
   const src = useVoilaUrl(handle)
-  const style = React.useMemo(
-    () => (options.height ? { height: options.height } : null),
-    [options.height],
-  )
-  const data = Data.use(loadVoila, { src, style })
+  const data = Data.use(loadVoila, { src })
   return children(utils.useErrorHandling(data.result, { handle, retry: data.fetch }))
 }
