@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/core'
-import * as Types from '../../model/graphql/types.generated'
+import * as Types from '../../../../model/graphql/types.generated'
 
-export type containers_Bucket_PackageListPackageCountQueryQueryVariables = Types.Exact<{
+export type containers_Bucket_PackageList_gql_PackageCountQueryVariables = Types.Exact<{
   bucket: Types.Scalars['String']
   filter: Types.Maybe<Types.Scalars['String']>
 }>
 
-export type containers_Bucket_PackageListPackageCountQueryQuery = {
+export type containers_Bucket_PackageList_gql_PackageCountQuery = {
   readonly __typename: 'Query'
 } & {
   readonly packages: Types.Maybe<
@@ -15,13 +15,13 @@ export type containers_Bucket_PackageListPackageCountQueryQuery = {
   >
 }
 
-export const containers_Bucket_PackageListPackageCountQueryDocument = {
+export const containers_Bucket_PackageList_gql_PackageCountDocument = {
   kind: 'Document',
   definitions: [
     {
       kind: 'OperationDefinition',
       operation: 'query',
-      name: { kind: 'Name', value: 'containers_Bucket_PackageListPackageCountQuery' },
+      name: { kind: 'Name', value: 'containers_Bucket_PackageList_gql_PackageCount' },
       variableDefinitions: [
         {
           kind: 'VariableDefinition',
@@ -65,8 +65,8 @@ export const containers_Bucket_PackageListPackageCountQueryDocument = {
     },
   ],
 } as unknown as DocumentNode<
-  containers_Bucket_PackageListPackageCountQueryQuery,
-  containers_Bucket_PackageListPackageCountQueryQueryVariables
+  containers_Bucket_PackageList_gql_PackageCountQuery,
+  containers_Bucket_PackageList_gql_PackageCountQueryVariables
 >
 
-export { containers_Bucket_PackageListPackageCountQueryDocument as default }
+export { containers_Bucket_PackageList_gql_PackageCountDocument as default }
