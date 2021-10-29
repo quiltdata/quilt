@@ -63,10 +63,7 @@ function waitForIframe(src) {
 async function loadVoila({ src }) {
   // Preload iframe, then insert cached iframe
   await waitForIframe(src)
-  return PreviewData.IFrame({
-    src,
-    sandbox: IFRAME_SANDBOX_ATTRIBUTES,
-  })
+  return PreviewData.IFrame({ src, sandbox: IFRAME_SANDBOX_ATTRIBUTES })
 }
 
 const useVoilaUrl = (handle) => {
