@@ -15,7 +15,9 @@ const getCredentialsQuery = (credentials) => ({
 
 const useCredentialsQuery = () => getCredentialsQuery(AWS.Credentials.use().suspend())
 
-export const detect = (key, options) => options?.types?.includes('voila')
+const FILE_TYPE = 'voila'
+export const detect = (key, options) =>
+  options?.types?.find((type) => FILE_TYPE || type.name === FILE_TYPE)
 
 const IFRAME_SANDBOX_ATTRIBUTES = 'allow-scripts allow-same-origin allow-downloads'
 const IFRAME_LOAD_TIMEOUT = 30000
