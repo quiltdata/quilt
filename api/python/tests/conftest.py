@@ -27,7 +27,7 @@ def pytest_sessionstart(session):
     Do teardown in `pytest_sessionfinish()`
     """
     print("Pre-Session Setup..")
-    # Unfortunately it looks like there is no public API to get resolved value of pytest base temp dir
+    # Looks like there's no public API to get the resolved value of pytest base temp dir
     # (https://docs.pytest.org/en/6.2.x/tmpdir.html#the-default-base-temporary-directory).
     Vars.tmpdir_home = pathlib.Path(tempfile.mkdtemp(prefix='pytest-fake_home'))
     Vars.tmpdir_data = Vars.tmpdir_home / 'appdirs_datadir'
