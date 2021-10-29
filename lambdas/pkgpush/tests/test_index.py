@@ -166,6 +166,7 @@ class PackagePromoteTestBase(unittest.TestCase):
     def make_request_wrapper(self, params, *, credentials, **kwargs):
         return Request(
             self._make_event(json.dumps(params), credentials=credentials),
+            None,
         )
 
     def make_request_base(self, data, *, credentials, **kwargs):

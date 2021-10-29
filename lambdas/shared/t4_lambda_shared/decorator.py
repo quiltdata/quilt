@@ -21,8 +21,9 @@ class Request:
     Wraps a lambda event in an object similar to a Flask Request:
     http://flask.pocoo.org/docs/1.0/api/#flask.Request
     """
-    def __init__(self, event):
+    def __init__(self, event, context):
         self.event = event
+        self.context = context
         self.method = event['httpMethod']
         self.path = event['path']
         self.pathParameters = event.get('pathParameters')
@@ -35,8 +36,8 @@ class Request:
 
 
 class ELBRequest(Request):
-    def __init__(self, event):
-        super().__init__(event)
+    def __init__(self, event, context):
+        super().__init__(event, context)
         # ELB pass queryStringParameters escaped.
         self.args = dict(
             urllib.parse.parse_qsl(
@@ -51,8 +52,8 @@ class ELBRequest(Request):
 def api(cors_origins=(), *, request_class=Request):
     def innerdec(f):
         @wraps(f)
-        def wrapper(event, _):
-            request = request_class(event)
+        def wrapper(event, context):
+            request = request_class(event, context)
             if request.method == 'OPTIONS':
                 status = 200
                 response_headers = {}

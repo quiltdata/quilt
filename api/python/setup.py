@@ -50,6 +50,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
     ],
     author='quiltdata',
     author_email='contact@quiltdata.io',
@@ -79,11 +80,10 @@ setup(
             'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
         ],
         'tests': [
-            'urllib3<1.26,>=1.25.4'         # https://github.com/quiltdata/quilt/pull/1903
             'numpy>=1.14.0',                # required by pandas, but missing from its dependencies.
             'pandas>=0.19.2',
             'pyarrow>=0.14.1',              # as of 7/5/19: linux/circleci bugs on 0.14.0
-            'pytest<5.1.0',                 # TODO: Fix pytest.ensuretemp in conftest.py
+            'pytest==6.*',
             'pytest-cov',
             'pytest-env',
             'pytest-subtests',
