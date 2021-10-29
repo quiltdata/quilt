@@ -34,16 +34,31 @@ const loaderChain = [
   fallback,
 ]
 
+const isUsingExtendedOptions = (Loader) =>
+  // TODO: fix detect arity and remove this function
+  Loader === Echarts.Loader || Loader === Voila.Loader
+
+function findLoader(key, options) {
+  return loaderChain.find(({ Loader, detect }) =>
+    isUsingExtendedOptions(Loader) ? detect(key, options) : detect(key),
+  )
+}
+
+export function getRenderProps(key, options) {
+  const { Loader, detect } = findLoader(key, options)
+  const optionsSpecificToType = isUsingExtendedOptions(Loader)
+    ? detect(key, options)
+    : detect(key)
+  return optionsSpecificToType && optionsSpecificToType.style
+    ? {
+        style: optionsSpecificToType.style,
+      }
+    : null
+}
+
 export function Load({ handle, children, options }) {
   const key = handle.logicalKey || handle.key
-  const { Loader } = React.useMemo(
-    () =>
-      // TODO: fix L.detect arity
-      loaderChain.find((L) =>
-        L === Echarts || L === Voila ? L.detect(key, options) : L.detect(key),
-      ),
-    [key, options],
-  )
+  const { Loader } = React.useMemo(() => findLoader(key, options), [key, options])
   return <Loader {...{ handle, children, options }} />
 }
 

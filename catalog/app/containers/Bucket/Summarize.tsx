@@ -20,7 +20,12 @@ import { getBreadCrumbs, getPrefix, withoutPrefix } from 'utils/s3paths'
 import * as requests from './requests'
 import * as errors from './errors'
 
-type SummaryFileType = 'echarts' | 'voila'
+type SummaryFileTypeShorthand = 'echarts' | 'voila'
+type SummaryFileTypeExtended = {
+  name: SummaryFileTypeShorthand
+  style?: { height: string }
+}
+type SummaryFileType = SummaryFileTypeShorthand | SummaryFileTypeExtended
 type SummaryFileTypes = SummaryFileType[]
 
 interface S3Handle {
@@ -35,7 +40,6 @@ interface S3Handle {
 interface SummarizeFile {
   description?: string
   handle: S3Handle
-  height?: string
   path: string
   title?: string
   types?: SummaryFileTypes
@@ -270,10 +274,8 @@ export function FilePreview({
   const description = file ? <Markdown data={file.description} /> : null
   const heading = headingOverride != null ? headingOverride : <Crumbs handle={handle} />
 
-  const previewProps = React.useMemo(
-    () => (file?.height ? { style: { height: file.height } } : null),
-    [file?.height],
-  )
+  const key = handle.logicalKey || handle.key
+  const props = React.useMemo(() => Preview.getRenderProps(key, file), [key, file])
 
   // TODO: check for glacier and hide items
   return (
@@ -285,7 +287,7 @@ export function FilePreview({
             <PreviewBox {...{ contents, expanded }} />
           ),
           renderProgress: () => <ContentSkel />,
-          props: previewProps,
+          props,
         }),
         file,
       )}
