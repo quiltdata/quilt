@@ -1,6 +1,8 @@
 import json
 from unittest.mock import patch
 
+import pytest
+
 from .. import index
 
 
@@ -35,11 +37,24 @@ def test_403():
     assert body['error'] == ''
 
 
-def test_bad_params():
+@pytest.mark.parametrize(
+    'params',
+    [
+        {"width": "foo"},
+        {"width": "700"},
+        {"width": "5"},
+        {"height": "blah"},
+        {"height": "500"},
+        {"height": "5"},
+        {"duration": "zzz"},
+        {"duration": "20"},
+        {"duration": "-1"},
+    ]
+)
+def test_bad_params(params):
     """test invalid input"""
     url = "https://example.com/folder/file.ext"
-    width = "foo"
-    event = _make_event({"url": url, "width": width})
+    event = _make_event({"url": url, **params})
 
     # Get the response
     with patch.object(index, 'FFMPEG', '/bin/false'):
@@ -47,7 +62,7 @@ def test_bad_params():
 
     assert response["statusCode"] == 400
     body = json.loads(response["body"])
-    assert 'width' in body['error']
+    assert body['error']
 
 
 def test_success():
