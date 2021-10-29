@@ -446,7 +446,13 @@ def large_request_handler(request_type):
                 request.stream = tmp_file
                 result = f(request)
                 try:
-                    s3.delete_object(SERVICE_BUCKET, user_request_key, version_id)
+                    # TODO: rework this as context manager, to make sure object
+                    # is deleted even when code above raises exception.
+                    s3.delete_object(
+                        Bucket=SERVICE_BUCKET,
+                        Key=user_request_key,
+                        VersionId=version_id,
+                    )
                 except Exception:
                     logger.exception('error while removing user request file from S3')
                 return result
