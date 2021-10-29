@@ -16,7 +16,6 @@ GZIP_TYPES = {'text/plain', 'application/json'}
 QUILT_INFO_HEADER = 'X-Quilt-Info'
 
 
-# pylint: disable=too-many-instance-attributes
 class Request:
     """
     Wraps a lambda event in an object similar to a Flask Request:
