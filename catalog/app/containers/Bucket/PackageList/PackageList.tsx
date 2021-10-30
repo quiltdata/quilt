@@ -83,7 +83,7 @@ type CountsProps = NonNullable<
 
 function Counts({ counts, total }: CountsProps) {
   // TODO: consider fetching access counts separately for every package
-  const [cursor, setCursor] = React.useState(null)
+  const [cursor, setCursor] = React.useState<number | null>(null)
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const sm = M.useMediaQuery(t.breakpoints.down('sm'))
