@@ -732,58 +732,7 @@ const withCalculatedRevisions = (s) => ({
 
 const getRevisionKeyFromId = (name, id) => `${PACKAGES_PREFIX}${name}/${id}`
 
-export async function fetchRevisionsAccessCounts({
-  s3,
-  analyticsBucket,
-  bucket,
-  name,
-  today,
-  window,
-}) {
-  if (!analyticsBucket) return {}
-  try {
-    const records = await s3Select({
-      s3,
-      Bucket: analyticsBucket,
-      Key: `${ACCESS_COUNTS_PREFIX}/PackageVersions.csv`,
-      Expression: `
-        SELECT hash, counts FROM s3object
-        WHERE eventname = 'GetObject'
-        AND bucket = '${sqlEscape(bucket)}'
-        AND name = '${sqlEscape(name)}'
-      `,
-      InputSerialization: {
-        CSV: {
-          FileHeaderInfo: 'Use',
-          AllowQuotedRecordDelimiter: true,
-        },
-      },
-    })
-
-    return records.reduce((acc, r) => {
-      const recordedCounts = JSON.parse(r.counts)
-
-      const counts = R.times((i) => {
-        const date = dateFns.subDays(today, window - i - 1)
-        return {
-          date,
-          value: recordedCounts[dateFns.format(date, 'yyyy-MM-dd')] || 0,
-        }
-      }, window)
-
-      const total = Object.values(recordedCounts).reduce(R.add, 0)
-
-      return { ...acc, [r.hash]: { counts, total } }
-    }, {})
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.log('fetchRevisionsAccessCounts : error caught')
-    // eslint-disable-next-line no-console
-    console.error(e)
-    return {}
-  }
-}
-
+// TODO: remove this, only used by Overview ATM
 export const countPackageRevisions = ({ req, bucket, name }) =>
   req(
     `/search${mkSearch({
@@ -821,6 +770,7 @@ function tryParse(s) {
   }
 }
 
+// TODO: remove. only used by RevisionInfo ATM
 export const getPackageRevisions = withErrorHandling(
   ({ req, bucket, name, page = 1, perPage = 10 }) =>
     req(
