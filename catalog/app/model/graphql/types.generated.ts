@@ -288,12 +288,17 @@ export enum PackageListOrder {
 
 export interface PackageRevision {
   readonly __typename: 'PackageRevision'
-  readonly pointer: Scalars['String']
   readonly hash: Scalars['String']
   readonly modified: Scalars['Datetime']
+  readonly isLatest: Scalars['Boolean']
   readonly message: Maybe<Scalars['String']>
   readonly metadata: Scalars['JsonRecord']
   readonly entries: PackageEntryList
+  readonly accessCounts: Maybe<AccessCounts>
+}
+
+export interface PackageRevisionaccessCountsArgs {
+  window?: Maybe<Scalars['Int']>
 }
 
 export interface PackageRevisionList {
