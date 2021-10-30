@@ -60,34 +60,45 @@ class Package:
                 {"value": 80, "date": datetime.datetime.fromisoformat("2021-10-07")},
             ],
         }
-        # return None #{} # AccessCounts
 
 
 class PackageRevision:
-    def __init__(self, package: Package, pointer: str, hash: str):
+    def __init__(self, package: Package, hash: str):
         self.package = package
-        self.pointer = pointer
         self.hash = hash
-
-    # def pointer(self):
-    #     return "" # String!
-    #
-    # def hash(self):
-    #     return "" # String!
 
     def modified(self, *_):
         # return None # Datetime!
         return datetime.datetime.now()
 
+    # TODO: snake_case
+    def isLatest(self, *_):
+        # TODO
+        return False
+
     def message(self, *_):
         return "test message" # String
 
     def metadata(self, *_):
-        return {} # JsonDict!
+        return {"test": "meta"} # JsonDict!
 
     def entries(self, *_):
         # return {} #PackageEntryList!
         return PackageEntryList(self)
+
+    def accessCounts(self, *_, window: int):
+        return {
+            "total": 99,
+            "counts": [
+                {"value": 10, "date": datetime.datetime.fromisoformat("2021-10-01")},
+                {"value": 11, "date": datetime.datetime.fromisoformat("2021-10-02")},
+                {"value": 99, "date": datetime.datetime.fromisoformat("2021-10-03")},
+                {"value": 20, "date": datetime.datetime.fromisoformat("2021-10-04")},
+                {"value": 1, "date": datetime.datetime.fromisoformat("2021-10-05")},
+                {"value": 10, "date": datetime.datetime.fromisoformat("2021-10-06")},
+                {"value": 80, "date": datetime.datetime.fromisoformat("2021-10-07")},
+            ],
+        }
 
 
 pkg1 = Package(
@@ -95,14 +106,18 @@ pkg1 = Package(
     name="nl0/pkg1",
     modified=datetime.datetime.fromisoformat("2021-10-01"),
 )
-pkg1.set_revisions([PackageRevision(pkg1, pointer="latest", hash="hash1")])
+pkg1.set_revisions([
+    PackageRevision(pkg1, hash="hash1-1"),
+    PackageRevision(pkg1, hash="hash1-2"),
+    PackageRevision(pkg1, hash="hash1-3"),
+])
 
 pkg2 = Package(
     bucket="quilt-nl0-stage",
     name="nl0/pkg2",
     modified=datetime.datetime.fromisoformat("2021-10-21"),
 )
-pkg2.set_revisions([PackageRevision(pkg2, pointer="latest", hash="hash2")])
+pkg2.set_revisions([PackageRevision(pkg2, hash="hash2")])
 
 dummy_pkg_list = [pkg1, pkg2]
 
@@ -137,7 +152,8 @@ class PackageEntryList:
     def total(self, *_):
         return 10
 
-    def total_bytes(self, *_):
+    #TODO: def total_bytes(self, *_):
+    def totalBytes(self, *_):
         return 100000
 
 
@@ -161,7 +177,7 @@ def query_packages(_query, _info, bucket: str, filter: T.Optional[str] = None):
 
 @query.field("package")
 def package(_query, _info, bucket: str, name: str):
-    return Package(bucket=bucket, name=name)
+    return pkg1
 
 
 schema = ariadne.make_executable_schema(type_defs, query, datetime_scalar)
