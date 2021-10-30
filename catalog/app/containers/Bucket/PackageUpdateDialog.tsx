@@ -13,7 +13,7 @@ import * as requests from './requests'
 interface UsePackageUpdateDialogProps {
   bucket: string
   name: string
-  hash: string
+  hash?: string
   onExited: (result: {
     pushed: PD.PackageCreationSuccess | false
   }) => boolean | undefined | void
