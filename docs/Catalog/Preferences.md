@@ -68,7 +68,7 @@ array instead of a string:
   "file1.json",
   [{
     "path": "file2.csv",
-    "width": "200px",
+    "width": "200px"
   }, {
     "path": "file3.ipynb",
     "title": "Scientific notebook",
@@ -76,14 +76,48 @@ array instead of a string:
   }]
 ]
 ```
+
 ![](../imgs/quilt-summarize-columns.png)
+
+You can also force the render method for files. You can use `types` property for this:
+
+```json
+// quilt_summarize.json
+[
+  {
+    "path": "file1.json",
+    "types": ["echarts"]
+  }
+]
+```
+
+If you need to fine-grain height for file view you can use extended syntax for type:
+
+```json
+// quilt_summarize.json
+[
+  {
+    "path": "file1.json",
+    "types": [
+      {
+        "name": "echarts",
+        "style": { "height": "1000px" }
+      }
+    ]
+  }
+]
+```
+
+At the moment we support forcing `echart` or `voila` renderers only, and from all style properties, you can override `height` only. However, the syntax is a bit noisy because we leave room for future enhancements.
 
 Each element of an array in `quilt_summarize.json` can either be a path string
 or an object with one or more of the following properties:
+
 - `path` - file path relative to `quilt_summarize.json`
 - `title` - title rendered instead of file path
 - `description` - description in markdown format
 - `width` - column width either in pixels or ratio (default is ratio `1`)
+- `types` - list of types that forces to render file (at this moment this list can consist of one item)
 
 `quilt_summarize.json` will render in any directory that contains a file of the
 same name, in both bucket view and package view.
