@@ -68,7 +68,7 @@ array instead of a string:
   "file1.json",
   [{
     "path": "file2.csv",
-    "width": "200px",
+    "width": "200px"
   }, {
     "path": "file3.ipynb",
     "title": "Scientific notebook",
