@@ -7,6 +7,15 @@
 ## Catalog, Lambdas
 !-->
 
+# unreleased - YYYY-MM-DD
+## Python API
+
+## CLI
+
+## Catalog, Lambdas
+* [Added] Echarts renderer ([#2382](https://github.com/quiltdata/quilt/pull/2382))
+* [Added] Set height for `quilt_summarize.json` files ([#2474](https://github.com/quiltdata/quilt/pull/2474))
+
 # 3.6.0 - 2021-10-15
 ## Python API
 * [Added] Validation of package names with `handle_pattern` in [workflows](advanced-features/workflows.md) config.
@@ -37,6 +46,8 @@
 * [Added] Subpackage download ([#2258](https://github.com/quiltdata/quilt/pull/2258))
 * [Added] Per-bucket deep indexing settings ([#2290](https://github.com/quiltdata/quilt/pull/2290))
 * [Added] Embed: IPC, more debug features, docs ([#2314](https://github.com/quiltdata/quilt/pull/2314))
+* [Added] Download button on Summary page ([#2367](https://github.com/quiltdata/quilt/pull/2367))
+* [Added] Validation of package names and entries, pattern for default package name ([2364](https://github.com/quiltdata/quilt/pull/2364))
 * [Changed] New DataGrid-based file listing UI with arbitrary sorting and filtering ([#2097](https://github.com/quiltdata/quilt/pull/2097))
 * [Changed] Item selection in folder-to-package dialog ([#2122](https://github.com/quiltdata/quilt/pull/2122))
 * [Changed] Don't preview .tif (but keep .tiff), preview .results as plain text ([#2128](https://github.com/quiltdata/quilt/pull/2128))
@@ -52,6 +63,7 @@
 * [Changed] Cachebust revision list request ([#2298](https://github.com/quiltdata/quilt/pull/2298))
 * [Changed] Wrap wide Vega charts with horizontal scroll ([#2304](https://github.com/quiltdata/quilt/pull/2304))
 * [Changed] Unify package creation and update dialogs (support adding S3 files in both) ([#2302](https://github.com/quiltdata/quilt/pull/2302))
+* [Changed] Warmer chart colors ([#2329](https://github.com/quiltdata/quilt/pull/2329), [#2338](https://github.com/quiltdata/quilt/pull/2338))
 * [Fixed] `UnicodeDecodeError` in indexer and pkgselect lambdas ([#2123](https://github.com/quiltdata/quilt/pull/2123))
 * [Fixed] Catch and display package-related errors properly ("no such package" and "bad revision") ([#2160](https://github.com/quiltdata/quilt/pull/2160))
 * [Fixed] Crashing `pkgselect` lambda's folder view on an empty manifest ([#2147](https://github.com/quiltdata/quilt/pull/2147))
@@ -59,6 +71,7 @@
 * [Fixed] Dismiss error page when navigating from it ([#2291](https://github.com/quiltdata/quilt/pull/2291))
 * [Fixed] Avoid crash on non-existent logical keys in pkgselect detail view ([#2307](https://github.com/quiltdata/quilt/pull/2307)
 * [Fixed] Error while rendering a preview inside a package ([#2328](https://github.com/quiltdata/quilt/pull/2328))
+* [FIxed] Bring back missing username at Admin/Users table ([#2339](https://github.com/quiltdata/quilt/pull/2339))
 
 # 3.4.0 - 2021-03-15
 ## Python API
