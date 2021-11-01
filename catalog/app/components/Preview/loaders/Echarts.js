@@ -70,8 +70,7 @@ async function downloadDatasetFromWeb(url) {
   return loadedDatasetResponse.text()
 }
 
-const sourceFormatRegex = /(.tsv|.csv)$/
-const isSupportedSourceFormat = (filename) => sourceFormatRegex.test(filename)
+const isSupportedSourceFormat = utils.extIn(['.tsv', '.csv'])
 
 function useDataSetLoader() {
   // TODO: use utils.useObjectGetter
