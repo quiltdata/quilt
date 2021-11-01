@@ -27,6 +27,23 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
+type NodeRenderer = (props: {
+  expanded: boolean
+  setExpanded: (exp: boolean) => void
+}) => React.ReactNode
+
+type NodeOrFn = NodeRenderer | React.ReactNode
+
+interface SectionProps extends M.AccordionProps {
+  icon?: string
+  heading: NodeOrFn
+  defaultExpanded?: boolean
+  expandable?: boolean
+  gutterBottom?: boolean
+  gutterTop?: boolean
+  extraSummary?: NodeOrFn
+}
+
 export default function Section({
   icon,
   heading,
@@ -37,20 +54,20 @@ export default function Section({
   extraSummary,
   children,
   ...props
-}) {
+}: SectionProps) {
   const classes = useStyles()
-  const [expandedState, setExpanded] = React.useState(null)
+  const [expandedState, setExpanded] = React.useState<boolean | null>(null)
   const expanded =
     !expandable || (expandedState != null ? expandedState : defaultExpanded)
 
   const onChange = React.useCallback(
-    (e, changedExpanded) => {
+    (_e: unknown, changedExpanded: boolean) => {
       setExpanded(changedExpanded)
     },
     [setExpanded],
   )
 
-  const renderNodeOrFn = (nodeOrFn) =>
+  const renderNodeOrFn = (nodeOrFn: NodeOrFn) =>
     typeof nodeOrFn === 'function' ? nodeOrFn({ expanded, setExpanded }) : nodeOrFn
 
   return (
