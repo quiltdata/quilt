@@ -1,0 +1,13 @@
+query ($bucket: String!, $name: String!) {
+  package(bucket: $bucket, name: $name) {
+    bucket
+    name
+    revisions {
+      page(number: 1, perPage: 5) {
+        hash
+        modified
+        message
+      }
+    }
+  }
+}
