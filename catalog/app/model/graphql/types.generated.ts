@@ -256,17 +256,33 @@ export interface Package {
   readonly name: Scalars['String']
   readonly modified: Scalars['Datetime']
   readonly revisions: PackageRevisionList
+  readonly revision: Maybe<PackageRevision>
   readonly accessCounts: Maybe<AccessCounts>
+}
+
+export interface PackagerevisionArgs {
+  hashOrTag?: Maybe<Scalars['String']>
 }
 
 export interface PackageaccessCountsArgs {
   window?: Maybe<Scalars['Int']>
 }
 
-export interface PackageEntryList {
-  readonly __typename: 'PackageEntryList'
-  readonly total: Scalars['Int']
-  readonly totalBytes: Scalars['Int']
+export interface PackageDir {
+  readonly __typename: 'PackageDir'
+  readonly path: Scalars['String']
+  readonly metadata: Maybe<Scalars['JsonRecord']>
+  readonly children: ReadonlyArray<PackageEntry>
+}
+
+export type PackageEntry = PackageFile | PackageDir
+
+export interface PackageFile {
+  readonly __typename: 'PackageFile'
+  readonly path: Scalars['String']
+  readonly metadata: Maybe<Scalars['JsonRecord']>
+  readonly size: Scalars['Int']
+  readonly physicalKey: Scalars['String']
 }
 
 export interface PackageList {
@@ -290,11 +306,21 @@ export interface PackageRevision {
   readonly __typename: 'PackageRevision'
   readonly hash: Scalars['String']
   readonly modified: Scalars['Datetime']
-  readonly isLatest: Scalars['Boolean']
   readonly message: Maybe<Scalars['String']>
   readonly metadata: Scalars['JsonRecord']
-  readonly entries: PackageEntryList
+  readonly totalEntries: Scalars['Int']
+  readonly totalBytes: Scalars['Int']
+  readonly dir: Maybe<PackageDir>
+  readonly file: Maybe<PackageFile>
   readonly accessCounts: Maybe<AccessCounts>
+}
+
+export interface PackageRevisiondirArgs {
+  path: Scalars['String']
+}
+
+export interface PackageRevisionfileArgs {
+  path: Scalars['String']
 }
 
 export interface PackageRevisionaccessCountsArgs {
