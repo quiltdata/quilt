@@ -1006,6 +1006,24 @@ export default {
             args: [],
           },
           {
+            name: 'revision',
+            type: {
+              kind: 'OBJECT',
+              name: 'PackageRevision',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'hashOrTag',
+                type: {
+                  kind: 'SCALAR',
+                  name: 'String',
+                  ofType: null,
+                },
+              },
+            ],
+          },
+          {
             name: 'accessCounts',
             type: {
               kind: 'OBJECT',
@@ -1028,10 +1046,91 @@ export default {
       },
       {
         kind: 'OBJECT',
-        name: 'PackageEntryList',
+        name: 'PackageDir',
         fields: [
           {
-            name: 'total',
+            name: 'path',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'metadata',
+            type: {
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'children',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'LIST',
+                ofType: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'UNION',
+                    name: 'PackageEntry',
+                    ofType: null,
+                  },
+                },
+              },
+            },
+            args: [],
+          },
+        ],
+        interfaces: [],
+      },
+      {
+        kind: 'UNION',
+        name: 'PackageEntry',
+        possibleTypes: [
+          {
+            kind: 'OBJECT',
+            name: 'PackageFile',
+          },
+          {
+            kind: 'OBJECT',
+            name: 'PackageDir',
+          },
+        ],
+      },
+      {
+        kind: 'OBJECT',
+        name: 'PackageFile',
+        fields: [
+          {
+            name: 'path',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'String',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'metadata',
+            type: {
+              kind: 'SCALAR',
+              name: 'JsonRecord',
+              ofType: null,
+            },
+            args: [],
+          },
+          {
+            name: 'size',
             type: {
               kind: 'NON_NULL',
               ofType: {
@@ -1043,12 +1142,12 @@ export default {
             args: [],
           },
           {
-            name: 'totalBytes',
+            name: 'physicalKey',
             type: {
               kind: 'NON_NULL',
               ofType: {
                 kind: 'SCALAR',
-                name: 'Int',
+                name: 'String',
                 ofType: null,
               },
             },
@@ -1147,18 +1246,6 @@ export default {
             args: [],
           },
           {
-            name: 'isLatest',
-            type: {
-              kind: 'NON_NULL',
-              ofType: {
-                kind: 'SCALAR',
-                name: 'Boolean',
-                ofType: null,
-              },
-            },
-            args: [],
-          },
-          {
             name: 'message',
             type: {
               kind: 'SCALAR',
@@ -1180,16 +1267,70 @@ export default {
             args: [],
           },
           {
-            name: 'entries',
+            name: 'totalEntries',
             type: {
               kind: 'NON_NULL',
               ofType: {
-                kind: 'OBJECT',
-                name: 'PackageEntryList',
+                kind: 'SCALAR',
+                name: 'Int',
                 ofType: null,
               },
             },
             args: [],
+          },
+          {
+            name: 'totalBytes',
+            type: {
+              kind: 'NON_NULL',
+              ofType: {
+                kind: 'SCALAR',
+                name: 'Int',
+                ofType: null,
+              },
+            },
+            args: [],
+          },
+          {
+            name: 'dir',
+            type: {
+              kind: 'OBJECT',
+              name: 'PackageDir',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'path',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
+          },
+          {
+            name: 'file',
+            type: {
+              kind: 'OBJECT',
+              name: 'PackageFile',
+              ofType: null,
+            },
+            args: [
+              {
+                name: 'path',
+                type: {
+                  kind: 'NON_NULL',
+                  ofType: {
+                    kind: 'SCALAR',
+                    name: 'String',
+                    ofType: null,
+                  },
+                },
+              },
+            ],
           },
           {
             name: 'accessCounts',
