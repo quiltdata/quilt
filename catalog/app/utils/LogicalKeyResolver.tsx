@@ -7,7 +7,7 @@ interface S3Handle {
 }
 
 export interface LogicalKeyResolver {
-  (logicalKey: string): S3Handle
+  (logicalKey: string): S3Handle | Promise<S3Handle>
 }
 
 const Ctx = React.createContext<LogicalKeyResolver | null>(null)
