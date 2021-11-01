@@ -2,7 +2,6 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
-import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import type { ResultOf } from '@graphql-typed-document-node/core'
@@ -21,6 +20,7 @@ import mkStorage from 'utils/storage'
 import { readableQuantity } from 'utils/string'
 import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
+import useQuery from 'utils/useQuery'
 
 import { usePackageCreateDialog } from '../PackageCreateDialog'
 import Pagination from '../Pagination'
@@ -28,23 +28,6 @@ import { displayError } from '../errors'
 
 import PACKAGE_COUNT_QUERY from './gql/PackageCount.generated'
 import PACKAGE_LIST_QUERY from './gql/PackageList.generated'
-
-const DISABLE_SUSPENSE = { suspense: false }
-
-interface OpCases<D, DR, ER, FR> {
-  data: (data: D, error: urql.CombinedError | undefined) => DR
-  error: (error: urql.CombinedError | undefined) => ER
-  fetching: () => FR
-}
-
-function opCase<D, DR, ER, FR>(
-  result: urql.UseQueryState<D, any>,
-  { data, error, fetching }: OpCases<D, DR, ER, FR>,
-) {
-  if (result.fetching) return fetching()
-  if (result.data) return data(result.data, result.error)
-  return error(result.error)
-}
 
 const EXAMPLE_PACKAGE_URL = 'https://docs.quiltdata.com/walkthrough/editing-a-package'
 
@@ -382,19 +365,17 @@ export default function PackageList({
   const computedFilter = filter || ''
   const filtering = useDebouncedInput(computedFilter, 500)
 
-  const [totalCountQuery] = urql.useQuery({
+  const totalCountQuery = useQuery({
     query: PACKAGE_COUNT_QUERY,
     variables: { bucket, filter: null },
-    context: DISABLE_SUSPENSE,
   })
 
-  const [filteredCountQuery] = urql.useQuery({
+  const filteredCountQuery = useQuery({
     query: PACKAGE_COUNT_QUERY,
     variables: { bucket, filter: filter || null },
-    context: DISABLE_SUSPENSE,
   })
 
-  const [packagesQuery] = urql.useQuery({
+  const packagesQuery = useQuery({
     query: PACKAGE_LIST_QUERY,
     variables: {
       bucket,
@@ -403,7 +384,6 @@ export default function PackageList({
       page: computedPage,
       perPage: PER_PAGE,
     },
-    context: DISABLE_SUSPENSE,
   })
 
   const refreshData = React.useCallback(() => {
@@ -473,7 +453,7 @@ export default function PackageList({
 
       {createDialog.element}
 
-      {opCase(totalCountQuery, {
+      {totalCountQuery.case({
         fetching: () => (
           <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
             <M.Box mt={{ xs: 0, sm: 3 }} display="flex" justifyContent="space-between">
@@ -592,7 +572,7 @@ export default function PackageList({
                 </M.Box>
               </M.Box>
 
-              {opCase(filteredCountQuery, {
+              {filteredCountQuery.case({
                 fetching: () => R.range(0, 10).map((i) => <PackageSkel key={i} />),
                 error: displayError(),
                 data: (dd) => {
@@ -620,7 +600,7 @@ export default function PackageList({
 
                   return (
                     <>
-                      {opCase(packagesQuery, {
+                      {packagesQuery.case({
                         fetching: () => {
                           const items =
                             computedPage < pages ? PER_PAGE : filteredCount % PER_PAGE
