@@ -34,21 +34,13 @@ const loaderChain = [
   fallback,
 ]
 
-const isUsingExtendedOptions = (Loader) =>
-  // TODO: fix detect arity and remove this function
-  Loader === Echarts.Loader || Loader === Voila.Loader
-
 function findLoader(key, options) {
-  return loaderChain.find(({ Loader, detect }) =>
-    isUsingExtendedOptions(Loader) ? detect(key, options) : detect(key),
-  )
+  return loaderChain.find(({ detect }) => detect(key, options))
 }
 
 export function getRenderProps(key, options) {
-  const { Loader, detect } = findLoader(key, options)
-  const optionsSpecificToType = isUsingExtendedOptions(Loader)
-    ? detect(key, options)
-    : detect(key)
+  const { detect } = findLoader(key, options)
+  const optionsSpecificToType = detect(key, options)
   return optionsSpecificToType && optionsSpecificToType.style
     ? {
         style: optionsSpecificToType.style,
