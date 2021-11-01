@@ -12,7 +12,9 @@ import * as s3paths from 'utils/s3paths'
 import { PreviewData, PreviewError } from '../types'
 import * as utils from './utils'
 
-export const detect = (key, options) => options?.types?.includes('echarts')
+const FILE_TYPE = 'echarts'
+export const detect = (key, options) =>
+  options?.types?.find((type) => type === FILE_TYPE || type.name === FILE_TYPE)
 
 const hl = (language) => (contents) => hljs.highlight(contents, { language }).value
 

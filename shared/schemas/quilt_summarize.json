@@ -21,8 +21,14 @@
         "types": {
           "type": "array",
           "items": {
-            "type": "string",
-            "enum": ["echarts", "json", "jupyter", "vega", "voila"]
+            "oneOf": [
+              {
+                "$ref": "#/definitions/typeShorthand"
+              },
+              {
+                "$ref": "#/definitions/typeExtended"
+              }
+            ]
           }
         },
         "width": {
@@ -30,6 +36,31 @@
         }
       },
       "required": ["path"]
+    },
+
+    "typeShorthand": {
+      "type": "string",
+      "enum": ["echarts", "json", "jupyter", "vega", "voila"]
+    },
+
+    "typeExtended": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/typeShorthand"
+        },
+        "style": {
+          "type": "object",
+          "properties": {
+            "height": {
+              "description": "Height as an absolute value (in `px`, `vh`, `em` etc.)",
+              "examples": ["1000px", "500vh"],
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": ["name"]
     },
 
     "file": {

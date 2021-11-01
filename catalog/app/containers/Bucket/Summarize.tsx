@@ -20,7 +20,12 @@ import { getBreadCrumbs, getPrefix, withoutPrefix } from 'utils/s3paths'
 import * as requests from './requests'
 import * as errors from './errors'
 
-type SummaryFileType = 'echarts' | 'voila'
+type SummaryFileTypeShorthand = 'echarts' | 'voila'
+type SummaryFileTypeExtended = {
+  name: SummaryFileTypeShorthand
+  style?: { height: string }
+}
+type SummaryFileType = SummaryFileTypeShorthand | SummaryFileTypeExtended
 type SummaryFileTypes = SummaryFileType[]
 
 interface S3Handle {
@@ -37,8 +42,8 @@ interface SummarizeFile {
   handle: S3Handle
   path: string
   title?: string
-  width?: string | number
   types?: SummaryFileTypes
+  width?: string | number
 }
 
 type MakeURL = (h: S3Handle) => LocationDescriptor
@@ -221,23 +226,12 @@ function PreviewBox({ contents, expanded: defaultExpanded = false }: PreviewBoxP
 
 const CrumbLink = M.styled(Link)({ wordBreak: 'break-word' })
 
-interface FilePreviewProps {
-  description: React.ReactNode
+interface CrumbsProps {
   handle: S3Handle
-  headingOverride: React.ReactNode
-  expanded?: boolean
-  types?: SummaryFileTypes
 }
 
-export function FilePreview({
-  description,
-  expanded,
-  handle,
-  headingOverride,
-  types,
-}: FilePreviewProps) {
+function Crumbs({ handle }: CrumbsProps) {
   const { urls } = NamedRoutes.use()
-
   const crumbs = React.useMemo(() => {
     const all = getBreadCrumbs(handle.key)
     const dirs = R.init(all).map(({ label, path }) => ({
@@ -251,25 +245,37 @@ export function FilePreview({
     return { dirs, file }
   }, [handle.bucket, handle.key, urls])
 
-  const heading =
-    headingOverride != null ? (
-      headingOverride
-    ) : (
-      <span onCopy={copyWithoutSpaces}>
-        {crumbs.dirs.map((c) => (
-          <React.Fragment key={`crumb:${c.to}`}>
-            <CrumbLink {...c} />
-            &nbsp;/{' '}
-          </React.Fragment>
-        ))}
-        <CrumbLink {...crumbs.file} />
-      </span>
-    )
+  return (
+    <span onCopy={copyWithoutSpaces}>
+      {crumbs.dirs.map((c) => (
+        <React.Fragment key={`crumb:${c.to}`}>
+          <CrumbLink {...c} />
+          &nbsp;/{' '}
+        </React.Fragment>
+      ))}
+      <CrumbLink {...crumbs.file} />
+    </span>
+  )
+}
 
-  let options: { types?: SummaryFileTypes } | undefined
-  if (types) {
-    options = { types }
-  }
+interface FilePreviewProps {
+  expanded?: boolean
+  file?: SummarizeFile
+  handle: S3Handle
+  headingOverride: React.ReactNode
+}
+
+export function FilePreview({
+  expanded,
+  file,
+  handle,
+  headingOverride,
+}: FilePreviewProps) {
+  const description = file ? <Markdown data={file.description} /> : null
+  const heading = headingOverride != null ? headingOverride : <Crumbs handle={handle} />
+
+  const key = handle.logicalKey || handle.key
+  const props = React.useMemo(() => Preview.getRenderProps(key, file), [key, file])
 
   // TODO: check for glacier and hide items
   return (
@@ -281,8 +287,9 @@ export function FilePreview({
             <PreviewBox {...{ contents, expanded }} />
           ),
           renderProgress: () => <ContentSkel />,
+          props,
         }),
-        options,
+        file,
       )}
     </Section>
   )
@@ -394,10 +401,9 @@ function FileHandle({ file, mkUrl, s3 }: FileHandleProps) {
     <EnsureAvailability s3={s3} handle={file.handle}>
       {() => (
         <FilePreview
-          description={<Markdown data={file.description} />}
           handle={file.handle}
-          types={file.types}
           headingOverride={getHeadingOverride(file, mkUrl)}
+          file={file}
         />
       )}
     </EnsureAvailability>
