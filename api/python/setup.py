@@ -71,7 +71,7 @@ setup(
         'tenacity>=5.1.1',
         'tqdm>=4.32',
         'requests_futures==1.0.0',
-        'jsonschema==3.*',
+        'jsonschema>=3,<5',
     ],
     extras_require={
         'pyarrow': [

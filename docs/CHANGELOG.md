@@ -7,6 +7,10 @@
 ## Catalog, Lambdas
 !-->
 
+# unreleased - YYYY-MM-DD
+## Python API
+* [Added] Declared compatibility with `jsonschema==4.*`.
+
 # 3.6.0 - 2021-10-15
 ## Python API
 * [Added] Validation of package names with `handle_pattern` in [workflows](advanced-features/workflows.md) config.
