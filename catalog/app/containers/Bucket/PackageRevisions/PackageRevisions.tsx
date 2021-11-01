@@ -2,7 +2,6 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
-import * as urql from 'urql'
 import type { ResultOf } from '@graphql-typed-document-node/core'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
@@ -19,6 +18,7 @@ import * as Format from 'utils/format'
 import parseSearch from 'utils/parseSearch'
 import { readableBytes, readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
+import useQuery from 'utils/useQuery'
 
 import { usePackageUpdateDialog } from '../PackageUpdateDialog'
 import Pagination from '../Pagination'
@@ -28,7 +28,6 @@ import REVISION_COUNT_QUERY from './gql/RevisionCount.generated'
 import REVISION_LIST_QUERY from './gql/RevisionList.generated'
 
 const PER_PAGE = 30
-const DISABLE_SUSPENSE = { suspense: false }
 
 type RevisionFields = NonNullable<
   NonNullable<
@@ -38,21 +37,6 @@ type RevisionFields = NonNullable<
 
 type AccessCounts = NonNullable<RevisionFields['accessCounts']>
 
-// TODO: extract for reuse
-interface OpCases<D, DR, ER, FR> {
-  data: (data: D, error: urql.CombinedError | undefined) => DR
-  error: (error: urql.CombinedError | undefined) => ER
-  fetching: () => FR
-}
-
-function opCase<D, DR, ER, FR>(
-  result: urql.UseQueryState<D, any>,
-  { data, error, fetching }: OpCases<D, DR, ER, FR>,
-) {
-  if (result.fetching) return fetching()
-  if (result.data) return data(result.data, result.error)
-  return error(result.error)
-}
 interface SparklineSkelProps {
   width: number
   height: number
@@ -443,15 +427,13 @@ export default function PackageRevisions({
     console.log('refresh data')
   }, [])
 
-  const [revisionCountQuery] = urql.useQuery({
+  const revisionCountQuery = useQuery({
     query: REVISION_COUNT_QUERY,
     variables: { bucket, name },
-    context: DISABLE_SUSPENSE,
   })
-  const [revisionListQuery] = urql.useQuery({
+  const revisionListQuery = useQuery({
     query: REVISION_LIST_QUERY,
     variables: { bucket, name, page: actualPage, perPage: PER_PAGE },
-    context: DISABLE_SUSPENSE,
   })
 
   const onExited = React.useCallback(
@@ -495,7 +477,7 @@ export default function PackageRevisions({
         </M.Button>
       </M.Box>
 
-      {opCase(revisionCountQuery, {
+      {revisionCountQuery.case({
         error: displayError(),
         fetching: () => renderRevisionSkeletons(10),
         data: (d) => {
@@ -512,7 +494,7 @@ export default function PackageRevisions({
 
           return (
             <>
-              {opCase(revisionListQuery, {
+              {revisionListQuery.case({
                 error: displayError(),
                 fetching: () => {
                   const items = actualPage < pages ? PER_PAGE : revisionCount % PER_PAGE
