@@ -75,7 +75,7 @@
     "date-fns": "^2.25.0",
     "dedent": "^0.7.0",
     "dompurify": "^2.3.3",
-    "echarts": "^5.2.1",
+    "echarts": "^5.2.2",
     "express": "^4.17.1",
     "final-form": "^4.20.2",
     "fontfaceobserver": "^2.1.0",
