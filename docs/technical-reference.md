@@ -89,18 +89,18 @@ for the installation, visit `IAM > Roles > Create Role > AWS service > CloudForm
 in the AWS console.
 
 The following service role is equivalent to `AdministratorAccess`:
-    ```json
-    {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Action": "*",
-                "Resource": "*"
-            }
-        ]
-    }
-    ```
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "*",
+            "Resource": "*"
+        }
+    ]
+}
+```
 
 1. The **ability to create DNS entries**, such as CNAME records,
 for your company's domain.
