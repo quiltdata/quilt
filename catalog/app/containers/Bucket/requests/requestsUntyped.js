@@ -20,11 +20,6 @@ import * as errors from '../errors'
 
 import { decodeS3Key } from './utils'
 
-const withErrorHandling =
-  (fn, pairs) =>
-  (...args) =>
-    fn(...args).catch(errors.catchErrors(pairs))
-
 const promiseProps = (obj) =>
   Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
 
@@ -684,30 +679,6 @@ export const summarize = async ({ s3, handle: inputHandle, resolveLogicalKey }) 
 const PACKAGES_PREFIX = '.quilt/named_packages/'
 const MANIFESTS_PREFIX = '.quilt/packages/'
 
-const NOT_DELETED_METRIC = {
-  scripted_metric: {
-    init_script: 'state.last_modified = 0; state.deleted = false',
-    map_script: `
-      def last_modified = doc.last_modified.getValue().toInstant().toEpochMilli();
-      if (last_modified > state.last_modified) {
-        state.last_modified = last_modified;
-        state.deleted = doc.delete_marker.getValue();
-      }
-    `,
-    reduce_script: `
-      def last_modified = 0;
-      def deleted = false;
-      for (s in states) {
-        if (s.last_modified > last_modified) {
-          last_modified = s.last_modified;
-          deleted = s.deleted;
-        }
-      }
-      return deleted ? 0 : 1;
-    `,
-  },
-}
-
 const withCalculatedRevisions = (s) => ({
   scripted_metric: {
     init_script: `
@@ -770,97 +741,6 @@ function tryParse(s) {
   }
 }
 
-// TODO: remove. only used by RevisionInfo ATM
-export const getPackageRevisions = withErrorHandling(
-  ({ req, bucket, name, page = 1, perPage = 10 }) =>
-    req(
-      `/search${mkSearch({
-        nonce: Math.random(),
-        index: `${bucket}_packages`,
-        action: 'packages',
-        size: 0,
-        filter_path: [
-          'took',
-          'timed_out',
-          'hits.total',
-          'aggregations.revisions.buckets.latest.hits.hits._source',
-        ].join(','),
-        body: JSON.stringify({
-          query: {
-            bool: {
-              must: [
-                { term: { handle: name } },
-                { regexp: { pointer_file: TIMESTAMP_RE_SRC } },
-              ],
-            },
-          },
-          aggs: {
-            revisions: {
-              terms: {
-                field: 'key',
-                size: 1000000,
-                order: { _key: 'desc' },
-              },
-              aggs: {
-                not_deleted: NOT_DELETED_METRIC,
-                drop_deleted: {
-                  bucket_selector: {
-                    buckets_path: { not_deleted: 'not_deleted.value' },
-                    script: 'params.not_deleted > 0',
-                  },
-                },
-                latest: {
-                  top_hits: {
-                    size: 1,
-                    sort: { last_modified: 'desc' },
-                    _source: [
-                      'pointer_file',
-                      'comment',
-                      'hash',
-                      'last_modified',
-                      'metadata',
-                      'package_stats',
-                    ],
-                  },
-                },
-                sort: {
-                  bucket_sort: {
-                    size: perPage,
-                    from: perPage * (page - 1),
-                  },
-                },
-              },
-            },
-          },
-        }),
-      })}`,
-    ).then(
-      R.pipe(
-        R.pathOr([], ['aggregations', 'revisions', 'buckets']),
-        R.map(
-          ({
-            latest: {
-              hits: {
-                hits: [{ _source: s }],
-              },
-            },
-          }) => ({
-            pointer: s.pointer_file,
-            hash: s.hash,
-            modified: new Date(s.last_modified),
-            stats: {
-              files: R.pathOr(0, ['package_stats', 'total_files'], s),
-              bytes: R.pathOr(0, ['package_stats', 'total_bytes'], s),
-            },
-            message: s.comment,
-            metadata: tryParse(s.metadata),
-            // header, // not in ES
-          }),
-        ),
-      ),
-    ),
-)
-
 export const loadRevisionHash = async ({ s3, bucket, name, id }) =>
   s3
     .getObject({ Bucket: bucket, Key: getRevisionKeyFromId(name, id) })
@@ -869,54 +749,6 @@ export const loadRevisionHash = async ({ s3, bucket, name, id }) =>
       modified: res.LastModified,
       hash: res.Body.toString('utf-8'),
     }))
-
-export const checkPackageExistence = ({ s3, bucket, name }) =>
-  s3
-    .listObjectsV2({ Bucket: bucket, Prefix: getRevisionKeyFromId(name, ''), MaxKeys: 1 })
-    .promise()
-    .then((res) => !!res.KeyCount)
-
-export const ensurePackageExists = ({ s3, bucket, name }) =>
-  checkPackageExistence({ s3, bucket, name }).then((exists) => {
-    if (!exists) throw new errors.NoSuchPackage({ bucket, handle: name })
-  })
-
-const HASH_RE = /^[a-f0-9]{64}$/
-const TIMESTAMP_RE_SRC = '[0-9]{10}'
-const TIMESTAMP_RE = new RegExp(`^${TIMESTAMP_RE_SRC}$`)
-
-// returns { hash, modified }
-export async function resolvePackageRevision({ s3, bucket, name, revision }) {
-  if (HASH_RE.test(revision)) {
-    const manifestKey = `${MANIFESTS_PREFIX}${revision}`
-    try {
-      const head = await s3.headObject({ Bucket: bucket, Key: manifestKey }).promise()
-      return { hash: revision, modified: head.LastModified }
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(
-        'resolvePackageRevision: revision appears like top_hash, but manifest could not be loaded',
-        { bucket, name, revision },
-      )
-      // eslint-disable-next-line no-console
-      console.error(e)
-    }
-  } else if (TIMESTAMP_RE.test(revision) || revision === 'latest') {
-    try {
-      return await loadRevisionHash({ s3, bucket, name, id: revision })
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.log(
-        'resolvePackageRevision: revision appears like pointer file name, but it could not be loaded',
-        { bucket, name, revision },
-      )
-      // eslint-disable-next-line no-console
-      console.error(e)
-    }
-  }
-  throw new errors.BadRevision({ bucket, handle: name, revision })
-  // TODO: try tags (when implemented), resolve short hashes
-}
 
 // TODO: Preview endpoint only allows up to 512 lines right now. Increase it to 1000.
 const MAX_PACKAGE_ENTRIES = 500
