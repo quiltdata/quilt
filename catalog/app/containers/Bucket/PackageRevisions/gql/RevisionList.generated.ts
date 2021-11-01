@@ -19,12 +19,8 @@ export type containers_Bucket_PackageRevisions_gql_RevisionListQuery = {
           readonly page: ReadonlyArray<
             { readonly __typename: 'PackageRevision' } & Pick<
               Types.PackageRevision,
-              'hash' | 'modified' | 'message' | 'metadata'
+              'hash' | 'modified' | 'message' | 'metadata' | 'totalEntries' | 'totalBytes'
             > & {
-                readonly entries: { readonly __typename: 'PackageEntryList' } & Pick<
-                  Types.PackageEntryList,
-                  'total' | 'totalBytes'
-                >
                 readonly accessCounts: Types.Maybe<
                   { readonly __typename: 'AccessCounts' } & Pick<
                     Types.AccessCounts,
@@ -148,20 +144,11 @@ export const containers_Bucket_PackageRevisions_gql_RevisionListDocument = {
                             { kind: 'Field', name: { kind: 'Name', value: 'metadata' } },
                             {
                               kind: 'Field',
-                              name: { kind: 'Name', value: 'entries' },
-                              selectionSet: {
-                                kind: 'SelectionSet',
-                                selections: [
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'total' },
-                                  },
-                                  {
-                                    kind: 'Field',
-                                    name: { kind: 'Name', value: 'totalBytes' },
-                                  },
-                                ],
-                              },
+                              name: { kind: 'Name', value: 'totalEntries' },
+                            },
+                            {
+                              kind: 'Field',
+                              name: { kind: 'Name', value: 'totalBytes' },
                             },
                             {
                               kind: 'Field',

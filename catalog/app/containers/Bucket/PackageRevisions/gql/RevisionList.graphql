@@ -8,10 +8,8 @@ query ($bucket: String!, $name: String!, $page: Int!, $perPage: Int!) {
         modified
         message
         metadata
-        entries {
-          total
-          totalBytes
-        }
+        totalEntries
+        totalBytes
         accessCounts {
           total
           counts {

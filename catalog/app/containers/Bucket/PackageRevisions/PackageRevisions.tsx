@@ -327,7 +327,8 @@ function Revision({
   modified,
   message,
   metadata,
-  entries,
+  totalEntries,
+  totalBytes,
   accessCounts,
 }: RevisionProps) {
   const classes = useRevisionStyles()
@@ -373,15 +374,15 @@ function Revision({
           <M.Icon color="disabled">storage</M.Icon>
           &nbsp;&nbsp;
           <M.Typography component="span" variant="body2">
-            {readableBytes(entries.totalBytes)}
+            {readableBytes(totalBytes)}
           </M.Typography>
           <M.Box pr={2} />
           <M.Icon color="disabled">insert_drive_file</M.Icon>
           &nbsp;
           <M.Typography component="span" variant="body2">
-            {readableQuantity(entries.total)}
+            {readableQuantity(totalEntries)}
             &nbsp;
-            <Format.Plural value={entries.total} one="file" other="files" />
+            <Format.Plural value={totalEntries} one="file" other="files" />
           </M.Typography>
         </>
       }
