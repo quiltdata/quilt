@@ -34,7 +34,13 @@ export default function EditFileMeta({ name, value, onChange }: EditMetaProps) {
           list
         </M.Icon>
       </M.IconButton>
-      <M.Dialog fullWidth onClose={closeEditor} open={open} classes={dialogClasses}>
+      <M.Dialog
+        fullWidth
+        maxWidth="xl"
+        onClose={closeEditor}
+        open={open}
+        classes={dialogClasses}
+      >
         <M.DialogTitle>
           Metadata for <Code>{name}</Code>
         </M.DialogTitle>
