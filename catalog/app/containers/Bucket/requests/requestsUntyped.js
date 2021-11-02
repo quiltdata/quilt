@@ -861,60 +861,6 @@ const s3Select = ({
       ),
     )
 
-export async function packageSelect({
-  s3,
-  credentials,
-  endpoint,
-  bucket,
-  name,
-  hash,
-  ...args
-}) {
-  await credentials.getPromise()
-
-  const r = await fetch(
-    `${endpoint}/pkgselect${mkSearch({
-      bucket,
-      manifest: `${MANIFESTS_PREFIX}${hash}`,
-      access_key: credentials.accessKeyId,
-      secret_key: credentials.secretAccessKey,
-      session_token: credentials.sessionToken,
-      ...args,
-    })}`,
-  )
-
-  if (r.status >= 400) {
-    const msg = await r.text()
-    // eslint-disable-next-line no-console
-    console.error(`pkgselect error (${r.status}): ${msg}`)
-    throw new errors.BucketError(msg, { status: r.status })
-  }
-
-  const json = await r.json()
-
-  return R.evolve(
-    {
-      objects: R.map((o) => ({
-        name: o.logical_key,
-        physicalKey: o.physical_key,
-        size: o.size,
-      })),
-      prefixes: R.pluck('logical_key'),
-    },
-    json.contents,
-  )
-}
-
-export async function packageFileDetail({ path, ...args }) {
-  const r = await packageSelect({ logical_key: path, ...args })
-  return {
-    ...s3paths.parseS3Url(r.physical_keys[0]),
-    size: r.size,
-    logicalKey: r.logical_key,
-    meta: r.meta,
-  }
-}
-
 const sqlEscape = (arg) => arg.replace(/'/g, "''")
 
 const ACCESS_COUNTS_PREFIX = 'AccessCounts'
