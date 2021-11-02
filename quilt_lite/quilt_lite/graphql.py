@@ -1,8 +1,10 @@
 import datetime
+import functools
 import typing as T
 
 import ariadne
 import importlib_resources
+import quilt3
 
 
 # TODO: load schema from a public shared folder
@@ -16,168 +18,180 @@ def serialize_datetime(value):
     return value.isoformat()
 
 
-query = ariadne.QueryType()
+query_type = ariadne.QueryType()
 
 
 # Buckets
-@query.field("bucketConfigs")
+@query_type.field("bucketConfigs")
 def query_bucket_configs(*_):
     return []
 
-@query.field("bucketConfig")
+@query_type.field("bucketConfig")
 def query_bucket_config(*_, name: str):
     return None
 
 
-# Packages
-class Package:
-    def __init__(self, bucket: str, name: str, modified: datetime.datetime):
+class RevisionWrapper:
+    def __init__(self, bucket: str, name: str, hash: str, tags: T.Optional[list[str]]):
         self.bucket = bucket
         self.name = name
-        self.modified = modified
-
-    # def set_revisions(self, revisions: list(PackageRevision)):
-    def set_revisions(self, revisions):
-        self._revisions = revisions
-
-    def get_revisions(self):
-        return self._revisions
-
-    def revisions(self, *_):
-        # return {} # PackageRevisionList!
-        return PackageRevisionList(self)
-
-    def accessCounts(self, *_, window: int):
-        return {
-            "total": 99,
-            "counts": [
-                {"value": 10, "date": datetime.datetime.fromisoformat("2021-10-01")},
-                {"value": 11, "date": datetime.datetime.fromisoformat("2021-10-02")},
-                {"value": 99, "date": datetime.datetime.fromisoformat("2021-10-03")},
-                {"value": 20, "date": datetime.datetime.fromisoformat("2021-10-04")},
-                {"value": 1, "date": datetime.datetime.fromisoformat("2021-10-05")},
-                {"value": 10, "date": datetime.datetime.fromisoformat("2021-10-06")},
-                {"value": 80, "date": datetime.datetime.fromisoformat("2021-10-07")},
-            ],
-        }
-
-
-class PackageRevision:
-    def __init__(self, package: Package, hash: str):
-        self.package = package
         self.hash = hash
+        self.tags = tags
+
+    @functools.cached_property
+    def _browse(self):
+        return quilt3.Package.browse(self.name, f"s3://${self.bucket}", self.hash)
 
     def modified(self, *_):
-        # return None # Datetime!
         return datetime.datetime.now()
 
-    # TODO: snake_case
-    def isLatest(self, *_):
-        # TODO
-        return False
-
     def message(self, *_):
+        #TODO: get from meta
         return "test message" # String
 
-    def metadata(self, *_):
+    @functools.cached_property
+    def metadata(self):
+        #TODO: return meta (all meta or just user_meta?)
         return {"test": "meta"} # JsonDict!
 
-    def entries(self, *_):
-        # return {} #PackageEntryList!
-        return PackageEntryList(self)
+    def totalEntries(self, *_):
+        #TODO
+        return 1
 
-    def accessCounts(self, *_, window: int):
-        return {
-            "total": 99,
-            "counts": [
-                {"value": 10, "date": datetime.datetime.fromisoformat("2021-10-01")},
-                {"value": 11, "date": datetime.datetime.fromisoformat("2021-10-02")},
-                {"value": 99, "date": datetime.datetime.fromisoformat("2021-10-03")},
-                {"value": 20, "date": datetime.datetime.fromisoformat("2021-10-04")},
-                {"value": 1, "date": datetime.datetime.fromisoformat("2021-10-05")},
-                {"value": 10, "date": datetime.datetime.fromisoformat("2021-10-06")},
-                {"value": 80, "date": datetime.datetime.fromisoformat("2021-10-07")},
-            ],
-        }
+    def totalBytes(self, *_):
+        #TODO
+        return 1
+
+    def dir(self, *_, path: str):
+        #TODO -> PackageDir
+        return None
+
+    def file(self, *_, path: str):
+        #TODO -> PackageFile
+        return None
+
+    def accessCounts(self, *_, **__):
+        return None
+
+class RevisionListWrapper:
+    def __init__(self, bucket: str, name: str):
+        self.bucket = bucket
+        self.name = name
+
+    @functools.cached_property
+    def _package_versions(self):
+        # XXX: for some reason it's sooooooo slow
+        return dict(quilt3.list_package_versions(self.name, f"s3://{self.bucket}"))
+
+    @functools.cached_property
+    def _revisions_by_hash(self):
+        by_hash = {}
+        for tag, hash in self._package_versions.items():
+            if hash in by_hash:
+                by_hash[hash].append(tag)
+            else:
+                by_hash[hash] = [tag]
+        return by_hash
+
+    @functools.cached_property
+    def _revision_wrappers(self):
+        #XXX: order?
+        wrappers = [RevisionWrapper(bucket=self.bucket, name=self.name, hash=hash, tags=tags) for hash, tags in self._revisions_by_hash.items()]
+        return wrappers
+
+    @functools.cached_property
+    def total(self):
+        print('versions', self._revisions_by_hash)
+        return len(self._revisions_by_hash)
+
+    def page(self, *_, number: int, perPage: int):
+        offset = (number - 1) * perPage
+        return self._revision_wrappers[offset:offset + perPage]
 
 
-pkg1 = Package(
-    bucket="quilt-nl0-stage",
-    name="nl0/pkg1",
-    modified=datetime.datetime.fromisoformat("2021-10-01"),
-)
-pkg1.set_revisions([
-    PackageRevision(pkg1, hash="hash1-1"),
-    PackageRevision(pkg1, hash="hash1-2"),
-    PackageRevision(pkg1, hash="hash1-3"),
-])
+class PackageWrapper:
+    def __init__(self, bucket: str, name: str):
+        self.bucket = bucket
+        self.name = name
 
-pkg2 = Package(
-    bucket="quilt-nl0-stage",
-    name="nl0/pkg2",
-    modified=datetime.datetime.fromisoformat("2021-10-21"),
-)
-pkg2.set_revisions([PackageRevision(pkg2, hash="hash2")])
+    @functools.cached_property
+    def _browse(self):
+        return quilt3.Package.browse(self.name, f"s3://${self.bucket}")
 
-dummy_pkg_list = [pkg1, pkg2]
+    @functools.cached_property
+    def modified(self):
+        # TODO: get meta, find mtime
+        return datetime.datetime.fromisoformat("2021-10-21")
+
+    @functools.cached_property
+    def revisions(self):
+        return RevisionListWrapper(self.bucket, self.name)
+
+    def revision(self, *_, hashOrTag: str):
+        # TODO: resolve revision
+        return None
+
+    def accessCounts(self, *_, **__):
+        return None
 
 
-class PackageList:
+class PackageListWrapper:
     def __init__(self, bucket: str, filter: T.Optional[str] = None):
         self.bucket = bucket
         self.filter = filter
 
+    @functools.cached_property
+    def _package_list(self):
+        return quilt3.list_packages(f"s3://{self.bucket}")
+
+    # TODO: proper filtering
+    # pipeThru(filter)(
+    #           R.unless(R.test(/[*?]/), (f) => `*${f}*`),
+    #           R.map(
+    #             R.cond([
+    #               [isLetter, bothCases],
+    #               [isReserved, escapeReserved],
+    #               [R.equals('*'), () => '.*'],
+    #               [R.equals('?'), () => '.{0,1}'],
+    #               [R.T, R.identity],
+    #             ]),
+    #           ),
+    #           R.join(''),
+    def _filter(self, package_name):
+        if not self.filter: return True
+        return self.filter in package_name
+
+    @functools.cached_property
+    def _filtered_package_list(self):
+        return list(filter(self._filter, self._package_list))
+
+    @functools.cached_property
+    def _package_wrappers(self):
+        return [PackageWrapper(self.bucket, name) for name in self._filtered_package_list]
+
     def total(self, *_):
-        # count packages
-        return len(dummy_pkg_list)
-        # return 0
+        return len(self._filtered_package_list)
 
     # TODO: ensure perPage is converted to per_page
     # order is actually an enum 'NAME' | 'MODIFIED'
     def page(self, *_, number: int, perPage: int, order: str):
-        # fetch packages
         key = lambda p: p.name
         reverse = False
         if order == 'MODIFIED':
             key = lambda p: p.modified
             reverse = True
-        return sorted(dummy_pkg_list, key=key, reverse=reverse)
-        # return [] # Package[]
+        sorted_packages = sorted(self._package_wrappers, key=key, reverse=reverse)
+        offset = (number - 1) * perPage
+        return sorted_packages[offset:offset + perPage]
 
 
-class PackageEntryList:
-    def __init__(self, package: Package):
-        self.package = package
-
-    def total(self, *_):
-        return 10
-
-    #TODO: def total_bytes(self, *_):
-    def totalBytes(self, *_):
-        return 100000
-
-
-class PackageRevisionList:
-    def __init__(self, package: Package):
-        self.package = package
-
-    def total(self, *_):
-        # return 0
-        return len(self.package.get_revisions())
-
-    def page(self, *_, number: int, perPage: int):
-        return self.package.get_revisions()
-        # return [] # PackageRevision[]
-
-
-@query.field("packages")
-# filter is optional
+@query_type.field("packages")
 def query_packages(_query, _info, bucket: str, filter: T.Optional[str] = None):
-    return PackageList(bucket=bucket, filter=filter)
+    return PackageListWrapper(bucket=bucket, filter=filter)
 
-@query.field("package")
+@query_type.field("package")
 def package(_query, _info, bucket: str, name: str):
-    return pkg1
+    return PackageWrapper(bucket, name)
 
 
-schema = ariadne.make_executable_schema(type_defs, query, datetime_scalar)
+schema = ariadne.make_executable_schema(type_defs, query_type, datetime_scalar)
