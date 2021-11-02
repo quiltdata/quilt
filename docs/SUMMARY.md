@@ -42,6 +42,7 @@
 * [Workflows](advanced-features/workflows.md)
 * [Enterprise install](technical-reference.md)
 * [S3 Events, EventBridge](EventBridge.md)
+* [Interactive Jupyter Notebooks (beta preview)](advanced-features/voila.md)
 
 
 ### More
