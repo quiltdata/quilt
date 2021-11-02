@@ -98,41 +98,34 @@ type AccessCounts {
 #   # meta
 #   # type and preview stuff
 # }
-#
-# type PackageEntryFile {
-#   name: String! # absolute vs relative?
-#   size: Int!
-#   meta: JsonRecord
-#   # physicalKey
-#   physicalObject: PhysicalObject!
-# }
-#
-# type PackageEntryDir {
-#   name: String!
-#   size: Int!
-#   meta: JsonRecord
-#   children: PackageEntryList!
-# }
-#
-# union PackageEntry = PackageEntryFile | PackageEntryDir
 
-type PackageEntryList {
-  total: Int!
-  totalBytes: Int!
-  # page(number: Int = 1, perPage: Int = 50, prefix: String): [PackageEntry!]!
+type PackageDir {
+  path: String!
+  metadata: JsonRecord
+  # TODO: paginate
+  children: [PackageEntry!]!
 }
 
+type PackageFile {
+  path: String!
+  metadata: JsonRecord
+  size: Int!
+  physicalKey: String!
+}
+
+union PackageEntry = PackageFile | PackageDir
+
 type PackageRevision {
-  # link to package?
+  # XXX: link to package?
   hash: String!
   modified: Datetime!
-  isLatest: Boolean!
-  # stats: PackageRevisionStats!
   message: String
   metadata: JsonRecord!
   # header: do we need this?
-  entries: PackageEntryList!
-  # entry(path: String!): PackageEntry
+  totalEntries: Int!
+  totalBytes: Int!
+  dir(path: String!): PackageDir
+  file(path: String!): PackageFile
   accessCounts(window: Int = 30): AccessCounts
 }
 
@@ -146,7 +139,7 @@ type Package {
   name: String!
   modified: Datetime!
   revisions: PackageRevisionList!
-  # revision(hashOrTag: String = "latest"): PackageRevision
+  revision(hashOrTag: String = "latest"): PackageRevision
   accessCounts(window: Int = 30): AccessCounts
 }
 
@@ -158,7 +151,11 @@ enum PackageListOrder {
 type PackageList {
   # id? bucket + filter?
   total: Int!
-  page(number: Int = 1, perPage: Int = 30, order: PackageListOrder = NAME): [Package!]!
+  page(
+    number: Int = 1
+    perPage: Int = 30
+    order: PackageListOrder = NAME
+  ): [Package!]!
 }
 
 type Query {
@@ -357,16 +354,22 @@ type RoleAssigned {
   _: Boolean
 }
 
-union RoleDeleteResult = RoleDeleteSuccess | RoleDoesNotExist | RoleNameReserved | RoleAssigned
+union RoleDeleteResult =
+    RoleDeleteSuccess
+  | RoleDoesNotExist
+  | RoleNameReserved
+  | RoleAssigned
 
 type Mutation {
   bucketAdd(input: BucketAddInput!): BucketAddResult! @admin
-  bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult! @admin
+  bucketUpdate(name: String!, input: BucketUpdateInput!): BucketUpdateResult!
+    @admin
   bucketRemove(name: String!): BucketRemoveResult! @admin
 
   roleCreateManaged(input: ManagedRoleInput!): RoleCreateResult! @admin
   roleCreateUnmanaged(input: UnmanagedRoleInput!): RoleCreateResult! @admin
   roleUpdateManaged(id: ID!, input: ManagedRoleInput!): RoleUpdateResult! @admin
-  roleUpdateUnmanaged(id: ID!, input: UnmanagedRoleInput!): RoleUpdateResult! @admin
+  roleUpdateUnmanaged(id: ID!, input: UnmanagedRoleInput!): RoleUpdateResult!
+    @admin
   roleDelete(id: ID!): RoleDeleteResult! @admin
 }
