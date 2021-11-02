@@ -9,7 +9,7 @@ import Column from './Column'
 import State from './State'
 import { JsonValue, RowData } from './constants'
 
-const useStyles = M.makeStyles({
+const useStyles = M.makeStyles((t) => ({
   disabled: {
     position: 'relative',
     '&:after': {
@@ -28,18 +28,24 @@ const useStyles = M.makeStyles({
     display: 'flex',
     overflow: 'auto',
   },
-})
+  column: {
+    maxWidth: t.spacing(65),
+  },
+}))
+
+interface ColumnData {
+  items: RowData[]
+  parent: JsonValue
+}
 
 interface JsonEditorProps {
   addRow: (path: string[], key: string | number, value: JsonValue) => JsonValue
   changeValue: (path: string[], id: 'key' | 'value', value: JsonValue) => JsonValue
   className?: string
-  columns: {
-    items: RowData[]
-    parent: JsonValue
-  }[]
+  columns: ColumnData[]
   disabled?: boolean
   fieldPath: string[]
+  isMultiColumned: boolean
   jsonDict: Record<string, JsonValue>
   onChange: (value: JsonValue) => JsonValue
   removeField: (path: string[]) => JsonValue
@@ -54,6 +60,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
     columns,
     disabled,
     fieldPath,
+    isMultiColumned,
     jsonDict,
     onChange,
     removeField,
@@ -87,26 +94,32 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
     [changeValue, onChange],
   )
 
-  const columnData = R.last(columns)
+  if (!columns.length) throw new Error('No column data')
 
-  if (!columnData) throw new Error('No column data')
+  const columnsView = React.useMemo(
+    () => (isMultiColumned ? columns : ([R.last(columns)] as ColumnData[])),
+    [columns, isMultiColumned],
+  )
 
   return (
     <div className={cx({ [classes.disabled]: disabled }, className)}>
       <div className={classes.inner} ref={ref}>
-        <Column
-          {...{
-            columnPath: fieldPath,
-            data: columnData,
-            jsonDict,
-            key: fieldPath.join(','),
-            onAddRow: handleRowAdd,
-            onBreadcrumb: setFieldPath,
-            onChange: handleValueChange,
-            onExpand: setFieldPath,
-            onRemove: handleRowRemove,
-          }}
-        />
+        {columnsView.map((columnData, index) => (
+          <Column
+            {...{
+              className: classes.column,
+              columnPath: fieldPath.slice(0, index),
+              data: columnData,
+              jsonDict,
+              key: fieldPath.slice(0, index).join(','),
+              onAddRow: handleRowAdd,
+              onBreadcrumb: setFieldPath,
+              onChange: handleValueChange,
+              onExpand: setFieldPath,
+              onRemove: handleRowRemove,
+            }}
+          />
+        ))}
       </div>
     </div>
   )
@@ -132,6 +145,7 @@ interface StateRenderProps {
 interface JsonEditorWrapperProps {
   className?: string
   disabled?: boolean
+  isMultiColumned?: boolean
   onChange: (value: JsonValue) => void
   schema?: JsonSchema
   value: JsonValue
@@ -139,7 +153,7 @@ interface JsonEditorWrapperProps {
 
 export default React.forwardRef<HTMLDivElement, JsonEditorWrapperProps>(
   function JsonEditorWrapper(
-    { className, disabled, onChange, schema: optSchema, value },
+    { className, disabled, isMultiColumned, onChange, schema: optSchema, value },
     ref,
   ) {
     const schema = optSchema || EMPTY_SCHEMA
@@ -152,6 +166,7 @@ export default React.forwardRef<HTMLDivElement, JsonEditorWrapperProps>(
               className,
               disabled,
               onChange,
+              isMultiColumned: !!isMultiColumned,
               ref,
             }}
             {...stateProps}

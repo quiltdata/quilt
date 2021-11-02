@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
@@ -64,6 +65,7 @@ function EmptyColumn({ columnType }: EmptyColumnProps) {
 }
 
 interface ColumnProps {
+  className: string
   columnPath: string[]
   data: {
     items: RowData[]
@@ -78,6 +80,7 @@ interface ColumnProps {
 }
 
 export default function Column({
+  className,
   columnPath,
   data,
   jsonDict,
@@ -132,7 +135,7 @@ export default function Column({
   )
 
   return (
-    <div className={classes.root}>
+    <div className={cx(classes.root, className)}>
       {!!columnPath.length && <Breadcrumbs items={columnPath} onSelect={onBreadcrumb} />}
 
       <M.TableContainer>
