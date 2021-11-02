@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 import { fade } from '@material-ui/core/styles'
 
+import { JsonValue } from 'components/JsonEditor/constants'
 import * as urls from 'constants/urls'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
@@ -16,8 +17,14 @@ import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
 
+import EditFileMeta from './EditFileMeta'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
+
+const onMetaStub = (meta: JsonValue) => {
+  // eslint-disable-next-line no-console
+  console.log('new meta', meta)
+}
 
 const COLORS = {
   default: M.colors.grey[900],
@@ -187,6 +194,7 @@ const FilesEntry = tagged.create(FilesEntryTag, {
     state: FilesEntryState
     type: FilesEntryType
     size: number
+    meta?: JsonValue
   }) => v,
 })
 
@@ -242,9 +250,9 @@ interface IntermediateEntry {
 
 const computeEntries = ({ added, deleted, existing }: FilesState) => {
   const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
-    ([path, { size, hash }]) => {
+    ([path, { size, hash, meta }]) => {
       if (path in deleted) {
-        return { state: 'deleted' as const, type: 'local' as const, path, size }
+        return { state: 'deleted' as const, type: 'local' as const, path, size, meta }
       }
       if (path in added) {
         const a = added[path]
@@ -262,9 +270,9 @@ const computeEntries = ({ added, deleted, existing }: FilesState) => {
             ? ('unchanged' as const)
             : ('modified' as const)
         }
-        return { state, type, path, size: a.size }
+        return { state, type, path, size: a.size, meta }
       }
-      return { state: 'unchanged' as const, type: 'local' as const, path, size }
+      return { state: 'unchanged' as const, type: 'local' as const, path, size, meta }
     },
   )
   const addedEntries = Object.entries(added).reduce((acc, [path, f]) => {
@@ -442,6 +450,8 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   type?: FilesEntryType
   size?: number
   action?: React.ReactNode
+  meta?: JsonValue
+  onMeta: (value: JsonValue) => void
   interactive?: boolean
   faint?: boolean
   disableStateDisplay?: boolean
@@ -453,6 +463,8 @@ function File({
   type = 'local',
   size,
   action,
+  meta,
+  onMeta,
   interactive = false,
   faint = false,
   className,
@@ -481,6 +493,7 @@ function File({
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
+      <EditFileMeta name={name} value={meta} onChange={onMeta} />
       {action}
     </div>
   )
@@ -979,6 +992,7 @@ function FileUpload({
   prefix,
   disableStateDisplay,
   dispatch,
+  meta,
 }: FileUploadProps) {
   const path = (prefix || '') + name
 
@@ -1041,6 +1055,8 @@ function FileUpload({
       type={type}
       name={name}
       size={size}
+      meta={meta}
+      onMeta={onMetaStub}
       action={
         <M.IconButton onClick={action.handler} title={action.hint} size="small">
           <M.Icon fontSize="inherit">{action.icon}</M.Icon>
@@ -1551,6 +1567,7 @@ interface FilesSelectorEntry {
   name: string
   selected: boolean
   size?: number
+  meta?: JsonValue
 }
 
 export type FilesSelectorState = FilesSelectorEntry[]
@@ -1657,7 +1674,7 @@ export function FilesSelector({
         <Contents error={!!error} warn={truncated}>
           {value.length ? (
             <FilesContainer noBorder>
-              {value.map(({ type, name, selected: sel, size }) =>
+              {value.map(({ type, name, selected: sel, size, meta: fileMeta }) =>
                 type === 'dir' ? (
                   <Dir
                     key={`dir:${name}`}
@@ -1677,6 +1694,8 @@ export function FilesSelector({
                     data-name={name}
                     faint={!sel}
                     interactive
+                    meta={fileMeta}
+                    onMeta={onMetaStub}
                   />
                 ),
               )}
