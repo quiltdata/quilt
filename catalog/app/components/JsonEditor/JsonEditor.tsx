@@ -29,7 +29,7 @@ const useStyles = M.makeStyles((t) => ({
     overflow: 'auto',
   },
   column: {
-    maxWidth: t.spacing(65),
+    maxWidth: t.spacing(76),
   },
 }))
 
