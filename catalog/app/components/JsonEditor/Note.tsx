@@ -56,8 +56,8 @@ function TypeHelp({ humanReadableSchema, schema }: TypeHelpProps) {
 
   return (
     <div>
-      Value should be of {humanReadableSchema} type
-      {!!schema?.description && <p>{schema.description}</p>}
+      Type: {humanReadableSchema}
+      {!!schema?.description && <p>Description: {schema.description}</p>}
     </div>
   )
 }
