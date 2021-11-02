@@ -4,6 +4,7 @@ import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as RRDom from 'react-router-dom'
+import * as urql from 'urql'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 
@@ -611,26 +612,25 @@ function ResolverProvider({
   hash,
   children,
 }: React.PropsWithChildren<ResolverProviderProps>) {
-  const s3 = AWS.S3.use()
-  const { apiGatewayEndpoint: endpoint } = Config.use()
-  const credentials = AWS.Credentials.use()
-
+  const client = urql.useClient()
   // XXX: consider optimization: check current level (objects) for quick response
   // const found = objects.find((o) => o.name === logicalKey)
   // if (found) return s3paths.parseS3Url(found.physicalKey)
-  // TODO: use urql
-  const resolveLogicalKey = React.useMemo(
-    () => (logicalKey: string) =>
-      requests.packageFileDetail({
-        s3,
-        credentials,
-        endpoint,
-        bucket,
-        name,
-        hash,
-        path: logicalKey,
-      }) as $TSFixMe,
-    [s3, credentials, endpoint, bucket, name, hash],
+  const resolveLogicalKey = React.useCallback(
+    (path: string) =>
+      client
+        .query(FILE_QUERY, { bucket, name, hash, path })
+        .toPromise()
+        .then((r) => {
+          const file = r.data?.package?.revision?.file
+          if (!file) throw r.error || new Error(`Could not resolve logical key "${path}"`)
+          return {
+            ...s3paths.parseS3Url(file.physicalKey),
+            logicalKey: file.path,
+            size: file.size,
+          }
+        }),
+    [client, bucket, name, hash],
   )
 
   return (
