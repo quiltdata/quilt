@@ -1,5 +1,6 @@
 import datetime
 import functools
+import re
 import typing as T
 
 import ariadne
@@ -31,8 +32,58 @@ def query_bucket_config(*_, name: str):
     return None
 
 
+def append_path(base: str, child: str):
+    if not base: return child
+    return base + "/" + child
+
+class PackageDirWrapper:
+    def __init__(self, path: str, subpkg: quilt3.Package):
+        self.path = path
+        self._subpkg = subpkg
+
+    @functools.cached_property
+    def metadata(self):
+        return self._subpkg._meta
+
+    @functools.cached_property
+    def children(self):
+        top_level_paths = []
+        for key in self._subpkg.keys():
+            first_seg = key.split("/")[0]
+            if first_seg not in top_level_paths:
+                top_level_paths.append(first_seg)
+
+        dirs = []
+        files = []
+        for path in top_level_paths:
+            sub = self._subpkg[path]
+            full_path = append_path(self.path, path)
+            if isinstance(sub, quilt3.Package):
+                dirs.append(PackageDirWrapper(full_path, sub))
+            else:
+                files.append(PackageFileWrapper(full_path, sub))
+
+        return dirs + files
+
+class PackageFileWrapper:
+    def __init__(self, path: str, entry: quilt3.packages.PackageEntry):
+        self.path = path
+        self.entry = entry
+
+    @functools.cached_property
+    def size(self):
+        return self.entry.size
+
+    @functools.cached_property
+    def metadata(self):
+        return self.entry._meta
+
+    @functools.cached_property
+    def physicalKey(self):
+        return str(self.entry.physical_key)
+
 class RevisionWrapper:
-    def __init__(self, bucket: str, name: str, hash: str, tags: T.Optional[list[str]]):
+    def __init__(self, bucket: str, name: str, hash: str, tags: T.Optional[list[str]] = None):
         self.bucket = bucket
         self.name = name
         self.hash = hash
@@ -40,35 +91,50 @@ class RevisionWrapper:
 
     @functools.cached_property
     def _browse(self):
-        return quilt3.Package.browse(self.name, f"s3://${self.bucket}", self.hash)
+        return quilt3.Package.browse(self.name, f"s3://{self.bucket}", self.hash)
 
     def modified(self, *_):
+        # TODO: figure out where to find mtime (manifest timestamp maybe?)
         return datetime.datetime.now()
-
-    def message(self, *_):
-        #TODO: get from meta
-        return "test message" # String
 
     @functools.cached_property
     def metadata(self):
-        #TODO: return meta (all meta or just user_meta?)
-        return {"test": "meta"} # JsonDict!
+        return self._browse._meta
 
+    @functools.cached_property
+    def message(self):
+        return self.metadata.get("message")
+
+    @functools.cached_property
     def totalEntries(self, *_):
-        #TODO
-        return 1
+        return len(self._browse.keys())
 
+    @functools.cached_property
     def totalBytes(self, *_):
-        #TODO
-        return 1
+        sum = 0
+        for key, entry in self._browse.walk():
+            sum += entry.size
+        return sum
 
     def dir(self, *_, path: str):
-        #TODO -> PackageDir
-        return None
+        try:
+            subpkg = self._browse[path] if path else self._browse
+        except KeyError:
+            return None
+
+        if not isinstance(subpkg, quilt3.Package):
+            return None
+        return PackageDirWrapper(path, subpkg)
 
     def file(self, *_, path: str):
-        #TODO -> PackageFile
-        return None
+        try:
+            entry = self._browse[path]
+        except KeyError:
+            return None
+
+        if not isinstance(entry, quilt3.packages.PackageEntry):
+            return None
+        return PackageFileWrapper(path, entry)
 
     def accessCounts(self, *_, **__):
         return None
@@ -109,6 +175,14 @@ class RevisionListWrapper:
         return self._revision_wrappers[offset:offset + perPage]
 
 
+POINTER_RE = re.compile("^1[0-9]{9}$")
+
+
+def is_pointer(hash_or_tag: str):
+    if hash_or_tag == "latest": return True
+    if POINTER_RE.match(hash_or_tag): return True
+    return False
+
 class PackageWrapper:
     def __init__(self, bucket: str, name: str):
         self.bucket = bucket
@@ -116,11 +190,11 @@ class PackageWrapper:
 
     @functools.cached_property
     def _browse(self):
-        return quilt3.Package.browse(self.name, f"s3://${self.bucket}")
+        return quilt3.Package.browse(self.name, f"s3://{self.bucket}")
 
     @functools.cached_property
     def modified(self):
-        # TODO: get meta, find mtime
+        # TODO: figure out where to find mtime (manifest timestamp maybe?)
         return datetime.datetime.fromisoformat("2021-10-21")
 
     @functools.cached_property
@@ -128,8 +202,13 @@ class PackageWrapper:
         return RevisionListWrapper(self.bucket, self.name)
 
     def revision(self, *_, hashOrTag: str):
-        # TODO: resolve revision
-        return None
+        registry = quilt3.backends.get_package_registry(f"s3://{self.bucket}")
+        hash = (
+            quilt3.data_transfer.get_bytes(registry.pointer_pk(self.name, hashOrTag)).decode()
+            if is_pointer(hashOrTag) else
+            registry.resolve_top_hash(self.name, hashOrTag)
+        )
+        return RevisionWrapper(bucket=self.bucket, name=self.name, hash=hash)
 
     def accessCounts(self, *_, **__):
         return None
@@ -185,6 +264,13 @@ class PackageListWrapper:
         return sorted_packages[offset:offset + perPage]
 
 
+def resolve_package_entry_type(obj, *_):
+    if isinstance(obj, PackageFileWrapper): return "PackageFile"
+    if isinstance(obj, PackageDirWrapper): return "PackageDir"
+    return None
+
+package_entry_type = ariadne.UnionType("PackageEntry", resolve_package_entry_type)
+
 @query_type.field("packages")
 def query_packages(_query, _info, bucket: str, filter: T.Optional[str] = None):
     return PackageListWrapper(bucket=bucket, filter=filter)
@@ -194,4 +280,9 @@ def package(_query, _info, bucket: str, name: str):
     return PackageWrapper(bucket, name)
 
 
-schema = ariadne.make_executable_schema(type_defs, query_type, datetime_scalar)
+schema = ariadne.make_executable_schema(
+    type_defs,
+    query_type,
+    package_entry_type,
+    datetime_scalar,
+)
