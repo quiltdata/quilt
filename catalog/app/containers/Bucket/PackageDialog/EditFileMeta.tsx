@@ -2,12 +2,18 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Code from 'components/Code'
-import JsonEditor from 'components/JsonEditor'
 import { JsonValue } from 'components/JsonEditor/constants'
+import MetadataEditor from 'components/MetadataEditor'
 
 const useDialogStyles = M.makeStyles({
   paper: {
     height: '100vh',
+  },
+})
+
+const useStyles = M.makeStyles({
+  switch: {
+    marginRight: 'auto',
   },
 })
 
@@ -19,7 +25,9 @@ interface EditMetaProps {
 
 export default function EditFileMeta({ name, value, onChange }: EditMetaProps) {
   const dialogClasses = useDialogStyles()
+  const classes = useStyles()
   const [open, setOpen] = React.useState(false)
+  const [isRaw, setRaw] = React.useState(false)
   const [innerValue, setInnerValue] = React.useState(value)
   const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
   const openEditor = React.useCallback(() => setOpen(true), [setOpen])
@@ -45,13 +53,19 @@ export default function EditFileMeta({ name, value, onChange }: EditMetaProps) {
           Metadata for <Code>{name}</Code>
         </M.DialogTitle>
         <M.DialogContent>
-          <JsonEditor
+          <MetadataEditor
             isMultiColumned
+            isRaw={isRaw}
             value={innerValue}
-            onChange={(v) => setInnerValue(v)}
+            onChange={setInnerValue}
           />
         </M.DialogContent>
         <M.DialogActions>
+          <M.FormControlLabel
+            className={classes.switch}
+            control={<M.Switch checked={isRaw} onChange={() => setRaw(!isRaw)} />}
+            label="Edit raw data"
+          />
           <M.Button onClick={closeEditor}>Cancel</M.Button>
           <M.Button onClick={handleSubmit} variant="contained" color="primary">
             Submit
