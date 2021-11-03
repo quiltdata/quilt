@@ -9,6 +9,40 @@ import Column from './Column'
 import State from './State'
 import { JsonValue, RowData } from './constants'
 
+interface ColumnData {
+  items: RowData[]
+  parent: JsonValue
+}
+
+function shouldSqueezeColumn(columnIndex: number, columns: ColumnData[]) {
+  return columns.length > 2 && columnIndex > 0 && columnIndex < columns.length - 1
+}
+
+const useSqueezeStyles = M.makeStyles((t) => ({
+  root: {
+    cursor: 'pointer',
+    padding: t.spacing(2, 2),
+  },
+}))
+
+interface SqueezeProps {
+  columnPath: string[]
+  onClick: () => void
+}
+
+function Squeeze({ columnPath, onClick }: SqueezeProps) {
+  const classes = useSqueezeStyles()
+  return (
+    <div
+      className={classes.root}
+      title={`# > ${columnPath.join(' > ')}`}
+      onClick={onClick}
+    >
+      <M.Icon>more_horiz</M.Icon>
+    </div>
+  )
+}
+
 const useStyles = M.makeStyles((t) => ({
   disabled: {
     position: 'relative',
@@ -32,11 +66,6 @@ const useStyles = M.makeStyles((t) => ({
     maxWidth: t.spacing(76),
   },
 }))
-
-interface ColumnData {
-  items: RowData[]
-  parent: JsonValue
-}
 
 interface JsonEditorProps {
   addRow: (path: string[], key: string | number, value: JsonValue) => JsonValue
@@ -104,22 +133,30 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   return (
     <div className={cx({ [classes.disabled]: disabled }, className)}>
       <div className={classes.inner} ref={ref}>
-        {columnsView.map((columnData, index) => (
-          <Column
-            {...{
-              className: classes.column,
-              columnPath: fieldPath.slice(0, index),
-              data: columnData,
-              jsonDict,
-              key: fieldPath.slice(0, index).join(','),
-              onAddRow: handleRowAdd,
-              onBreadcrumb: setFieldPath,
-              onChange: handleValueChange,
-              onExpand: setFieldPath,
-              onRemove: handleRowRemove,
-            }}
-          />
-        ))}
+        {columnsView.map((columnData, index) => {
+          const columnPath = fieldPath.slice(0, index)
+          return shouldSqueezeColumn(index, columns) ? (
+            <Squeeze
+              columnPath={columnPath}
+              key={columnPath.join(',')}
+              onClick={() => setFieldPath(columnPath)}
+            />
+          ) : (
+            <Column
+              className={classes.column}
+              columnPath={columnPath}
+              data={columnData}
+              isMultiColumned={isMultiColumned}
+              jsonDict={jsonDict}
+              key={columnPath.join(',')}
+              onAddRow={handleRowAdd}
+              onBreadcrumb={setFieldPath}
+              onChange={handleValueChange}
+              onExpand={setFieldPath}
+              onRemove={handleRowRemove}
+            />
+          )
+        })}
       </div>
     </div>
   )

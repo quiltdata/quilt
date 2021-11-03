@@ -55,11 +55,16 @@ function BreadcrumbsDivider() {
 }
 
 interface BreadcrumbsProps {
+  isMultiColumned: boolean
   items: string[]
   onSelect: (path: string[]) => void
 }
 
-export default function Breadcrumbs({ items, onSelect }: BreadcrumbsProps) {
+export default function Breadcrumbs({
+  isMultiColumned,
+  items,
+  onSelect,
+}: BreadcrumbsProps) {
   const classes = useStyles()
   const overrideClasses = useOverrideStyles()
 
@@ -84,12 +89,16 @@ export default function Breadcrumbs({ items, onSelect }: BreadcrumbsProps) {
       ref={ref}
       separator={<BreadcrumbsDivider />}
     >
-      <BreadcrumbsItem index={0} onClick={onBreadcrumb}>
-        <M.Icon fontSize="small">home</M.Icon>
-      </BreadcrumbsItem>
+      {!isMultiColumned ||
+        (items.length < 2 && (
+          <BreadcrumbsItem index={0} onClick={onBreadcrumb}>
+            <M.Icon fontSize="small">home</M.Icon>
+          </BreadcrumbsItem>
+        ))}
 
-      {items.map((item, index) =>
-        index === items.length - 1 ? (
+      {items.map((item, index) => {
+        if (isMultiColumned && index < items.length - 2) return null
+        return index === items.length - 1 ? (
           <M.Typography key="last-breadcrumb" variant="subtitle2">
             {item}
           </M.Typography>
@@ -103,8 +112,8 @@ export default function Breadcrumbs({ items, onSelect }: BreadcrumbsProps) {
           >
             {item}
           </BreadcrumbsItem>
-        ),
-      )}
+        )
+      })}
     </M.Breadcrumbs>
   )
 }

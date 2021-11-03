@@ -20,6 +20,10 @@ const useStyles = M.makeStyles((t) => ({
     width: '100%',
   },
 
+  multiColumned: {
+    flex: 1,
+  },
+
   table: {
     tableLayout: 'fixed',
   },
@@ -71,6 +75,7 @@ interface ColumnProps {
     items: RowData[]
     parent: JsonValue
   }
+  isMultiColumned: boolean
   jsonDict: Record<string, JsonValue>
   onAddRow: (path: string[], key: string | number, value: JsonValue) => void
   onBreadcrumb: (path: string[]) => void
@@ -83,6 +88,7 @@ export default function Column({
   className,
   columnPath,
   data,
+  isMultiColumned,
   jsonDict,
   onAddRow,
   onBreadcrumb,
@@ -135,8 +141,20 @@ export default function Column({
   )
 
   return (
-    <div className={cx(classes.root, className)}>
-      {!!columnPath.length && <Breadcrumbs items={columnPath} onSelect={onBreadcrumb} />}
+    <div
+      className={cx(
+        classes.root,
+        { [classes.multiColumned]: isMultiColumned },
+        className,
+      )}
+    >
+      {!!columnPath.length && (
+        <Breadcrumbs
+          isMultiColumned={isMultiColumned}
+          items={columnPath}
+          onSelect={onBreadcrumb}
+        />
+      )}
 
       <M.TableContainer>
         <M.Table {...getTableProps({ className: classes.table })}>
