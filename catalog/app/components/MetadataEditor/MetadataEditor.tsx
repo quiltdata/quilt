@@ -3,6 +3,7 @@ import brace from 'brace'
 import { JsonEditor as ReactJsonEditor } from 'jsoneditor-react'
 import * as React from 'react'
 import * as Lab from '@material-ui/lab'
+import * as M from '@material-ui/core'
 
 import JsonEditor from 'components/JsonEditor'
 import { JsonValue } from 'components/JsonEditor/constants'
@@ -15,8 +16,19 @@ import 'jsoneditor-react/es/editor.min.css'
 const ajv = new Ajv({ allErrors: true, verbose: true })
 
 const editorHtmlProps = {
-  style: { height: '100%' },
+  style: { flexGrow: 1 },
 }
+
+const useStyles = M.makeStyles((t) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+  },
+  error: {
+    margin: t.spacing(1, 0, 0),
+  },
+}))
 
 interface MetadataEditorProps {
   isMultiColumned: boolean
@@ -32,9 +44,10 @@ export default function MetadataEditor({
   schema,
   value,
 }: MetadataEditorProps) {
+  const classes = useStyles()
   const [errors, setErrors] = React.useState<Error[]>([])
   return (
-    <>
+    <div className={classes.root}>
       {isRaw ? (
         <ReactJsonEditor
           ace={brace}
@@ -58,10 +71,10 @@ export default function MetadataEditor({
 
       {!!errors.length &&
         errors.map((error) => (
-          <Lab.Alert key={error.message} severity="error">
+          <Lab.Alert className={classes.error} key={error.message} severity="error">
             {error.message}
           </Lab.Alert>
         ))}
-    </>
+    </div>
   )
 }

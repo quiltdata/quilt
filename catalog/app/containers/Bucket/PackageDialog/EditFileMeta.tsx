@@ -17,6 +17,57 @@ const useStyles = M.makeStyles({
   },
 })
 
+interface DialogProps {
+  name: string
+  onChange: (value: JsonValue) => void
+  onClose: () => void
+  open: boolean
+  value: JsonValue
+}
+
+function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
+  const [innerValue, setInnerValue] = React.useState(value)
+  const classes = useStyles()
+  const dialogClasses = useDialogStyles()
+  const [isRaw, setRaw] = React.useState(false)
+  const handleSubmit = React.useCallback(() => {
+    onChange(innerValue)
+    onClose()
+  }, [innerValue, onChange, onClose])
+  return (
+    <M.Dialog
+      fullWidth
+      maxWidth="xl"
+      onClose={onClose}
+      open={open}
+      classes={dialogClasses}
+    >
+      <M.DialogTitle>
+        Metadata for <Code>{name}</Code>
+      </M.DialogTitle>
+      <M.DialogContent>
+        <MetadataEditor
+          isMultiColumned
+          isRaw={isRaw}
+          value={innerValue}
+          onChange={setInnerValue}
+        />
+      </M.DialogContent>
+      <M.DialogActions>
+        <M.FormControlLabel
+          className={classes.switch}
+          control={<M.Switch checked={isRaw} onChange={() => setRaw(!isRaw)} />}
+          label="Edit raw data"
+        />
+        <M.Button onClick={onClose}>Cancel</M.Button>
+        <M.Button onClick={handleSubmit} variant="contained" color="primary">
+          Submit
+        </M.Button>
+      </M.DialogActions>
+    </M.Dialog>
+  )
+}
+
 interface EditMetaProps {
   name: string
   value: JsonValue
@@ -24,54 +75,24 @@ interface EditMetaProps {
 }
 
 export default function EditFileMeta({ name, value, onChange }: EditMetaProps) {
-  const dialogClasses = useDialogStyles()
-  const classes = useStyles()
   const [open, setOpen] = React.useState(false)
-  const [isRaw, setRaw] = React.useState(false)
-  const [innerValue, setInnerValue] = React.useState(value)
   const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
   const openEditor = React.useCallback(() => setOpen(true), [setOpen])
-  const handleSubmit = React.useCallback(() => {
-    onChange(innerValue)
-    closeEditor()
-  }, [closeEditor, innerValue, onChange])
   return (
     <>
       <M.IconButton onClick={openEditor} title="Edit meta" size="small">
-        <M.Icon fontSize="inherit" color={innerValue ? 'primary' : 'inherit'}>
+        <M.Icon fontSize="inherit" color={value ? 'primary' : 'inherit'}>
           list
         </M.Icon>
       </M.IconButton>
-      <M.Dialog
-        fullWidth
-        maxWidth="xl"
+
+      <Dialog
+        name={name}
+        onChange={onChange}
         onClose={closeEditor}
         open={open}
-        classes={dialogClasses}
-      >
-        <M.DialogTitle>
-          Metadata for <Code>{name}</Code>
-        </M.DialogTitle>
-        <M.DialogContent>
-          <MetadataEditor
-            isMultiColumned
-            isRaw={isRaw}
-            value={innerValue}
-            onChange={setInnerValue}
-          />
-        </M.DialogContent>
-        <M.DialogActions>
-          <M.FormControlLabel
-            className={classes.switch}
-            control={<M.Switch checked={isRaw} onChange={() => setRaw(!isRaw)} />}
-            label="Edit raw data"
-          />
-          <M.Button onClick={closeEditor}>Cancel</M.Button>
-          <M.Button onClick={handleSubmit} variant="contained" color="primary">
-            Submit
-          </M.Button>
-        </M.DialogActions>
-      </M.Dialog>
+        value={value}
+      />
     </>
   )
 }
