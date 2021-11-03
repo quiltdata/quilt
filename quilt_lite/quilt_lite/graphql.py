@@ -47,15 +47,9 @@ class PackageDirWrapper:
 
     @functools.cached_property
     def children(self):
-        top_level_paths = []
-        for key in self._subpkg.keys():
-            first_seg = key.split("/")[0]
-            if first_seg not in top_level_paths:
-                top_level_paths.append(first_seg)
-
         dirs = []
         files = []
-        for path in top_level_paths:
+        for path in self._subpkg.keys():
             sub = self._subpkg[path]
             full_path = append_path(self.path, path)
             if isinstance(sub, quilt3.Package):
@@ -107,7 +101,7 @@ class RevisionWrapper:
 
     @functools.cached_property
     def totalEntries(self, *_):
-        return len(self._browse.keys())
+        return len(list(self._browse.walk()))
 
     @functools.cached_property
     def totalBytes(self, *_):
