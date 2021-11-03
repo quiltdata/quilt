@@ -8,6 +8,7 @@ query ($bucket: String!, $name: String!, $hash: String!, $path: String!) {
         path
         metadata
         children {
+          __typename
           ... on PackageFile {
             path
             size

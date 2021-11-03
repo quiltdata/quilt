@@ -145,6 +145,10 @@ export const containers_Bucket_PackageTree_gql_DirDocument = {
                                 kind: 'SelectionSet',
                                 selections: [
                                   {
+                                    kind: 'Field',
+                                    name: { kind: 'Name', value: '__typename' },
+                                  },
+                                  {
                                     kind: 'InlineFragment',
                                     typeCondition: {
                                       kind: 'NamedType',
