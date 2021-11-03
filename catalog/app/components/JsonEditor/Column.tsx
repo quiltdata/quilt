@@ -22,6 +22,10 @@ const useStyles = M.makeStyles((t) => ({
 
   multiColumned: {
     flex: 1,
+
+    '& + &': {
+      marginLeft: '-1px',
+    },
   },
 
   table: {

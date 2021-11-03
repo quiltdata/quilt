@@ -8,7 +8,7 @@ const useStyles = M.makeStyles((t) => ({
     borderWidth: '1px 1px 0',
     color: t.palette.text.hint,
     display: 'flex',
-    padding: '5px 8px',
+    padding: '4px 8px',
   },
 }))
 
