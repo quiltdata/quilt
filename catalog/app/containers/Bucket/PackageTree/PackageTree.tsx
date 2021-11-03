@@ -200,7 +200,7 @@ function DirDisplay({
 
   const dirQuery = useQuery({
     query: DIR_QUERY,
-    variables: { bucket, name, hash, path },
+    variables: { bucket, name, hash, path: s3paths.ensureNoSlash(path) },
   })
 
   const mkUrl = React.useCallback(
@@ -278,7 +278,8 @@ function DirDisplay({
     [bucket, hash, name],
   )
 
-  if (dirQuery.fetching) {
+  // XXX: use different "strategy" (e.g. network-only)?
+  if (dirQuery.fetching || dirQuery.stale) {
     // TODO: skeleton placeholder
     return (
       <>
@@ -341,8 +342,13 @@ function DirDisplay({
       case 'PackageDir':
         return {
           type: 'dir' as const,
-          name: s3paths.ensureNoSlash(basename(c.path)),
-          to: urls.bucketPackageTree(bucket, name, hashOrTag, c.path),
+          name: basename(c.path),
+          to: urls.bucketPackageTree(
+            bucket,
+            name,
+            hashOrTag,
+            s3paths.ensureSlash(c.path),
+          ),
         }
       default:
         return assertNever(c)
@@ -527,7 +533,8 @@ function FileDisplay({
     </>
   )
 
-  if (fileQuery.fetching) return renderProgress()
+  // XXX: use different "strategy" (e.g. network-only)?
+  if (fileQuery.fetching || fileQuery.stale) return renderProgress()
 
   const file = fileQuery.data?.package?.revision?.file
 
