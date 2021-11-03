@@ -825,26 +825,30 @@ export default function PackageTreeWrapper({
 }: RRDom.RouteComponentProps<PackageTreeRouteParams>) {
   const path = s3paths.decode(encodedPath)
   const { resolvedFrom, mode } = parseSearch(location.search, true)
-  return useQuery({
+  const revisionQuery = useQuery({
     query: REVISION_QUERY,
     variables: { bucket, name, hashOrTag },
-  }).case({
-    error: errors.displayError(),
-    fetching: () => <Placeholder color="text.secondary" />,
-    data: (d) => {
-      if (!d.package) {
-        return (
-          <Message headline="No Such Package">
-            Package named{' '}
-            <M.Box component="span" fontWeight="fontWeightMedium">{`"${name}"`}</M.Box>{' '}
-            could not be found in this bucket.
-          </Message>
-        )
-      }
-      const hash = d.package.revision?.hash
-      return (
-        <PackageTree {...{ bucket, name, hashOrTag, hash, path, mode, resolvedFrom }} />
-      )
-    },
   })
+
+  // XXX: consider using different request policy
+  if (revisionQuery.fetching || revisionQuery.stale) {
+    return <Placeholder color="text.secondary" />
+  }
+
+  if (!revisionQuery.data) {
+    return errors.displayError()(revisionQuery.error || new Error('no data'))
+  }
+
+  if (!revisionQuery.data.package) {
+    return (
+      <Message headline="No Such Package">
+        Package named{' '}
+        <M.Box component="span" fontWeight="fontWeightMedium">{`"${name}"`}</M.Box> could
+        not be found in this bucket.
+      </Message>
+    )
+  }
+
+  const hash = revisionQuery.data.package.revision?.hash
+  return <PackageTree {...{ bucket, name, hashOrTag, hash, path, mode, resolvedFrom }} />
 }
