@@ -133,7 +133,7 @@
     "tslib": "^2.3.1",
     "urql": "^2.0.5",
     "urql-custom-scalars-exchange": "^0.1.5",
-    "use-debounce": "^7.0.0",
+    "use-debounce": "^7.0.1",
     "uuid": "^8.3.2",
     "vega": "^5.20.2",
     "vega-embed": "^6.18.2",
