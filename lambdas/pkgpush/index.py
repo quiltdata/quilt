@@ -1,3 +1,4 @@
+import concurrent.futures
 import contextlib
 import functools
 import json
@@ -29,6 +30,8 @@ PROMOTE_PKG_MAX_PKG_SIZE = int(os.environ['PROMOTE_PKG_MAX_PKG_SIZE'])
 PROMOTE_PKG_MAX_FILES = int(os.environ['PROMOTE_PKG_MAX_FILES'])
 PKG_FROM_FOLDER_MAX_PKG_SIZE = int(os.environ['PKG_FROM_FOLDER_MAX_PKG_SIZE'])
 PKG_FROM_FOLDER_MAX_FILES = int(os.environ['PKG_FROM_FOLDER_MAX_FILES'])
+S3_HASH_LAMBDA = os.environ['S3_HASH_LAMBDA']
+S3_HASH_LAMBDA_CONCURRENCY = int(os.environ['S3_HASH_LAMBDA_CONCURRENCY'])
 
 SERVICE_BUCKET = os.environ['SERVICE_BUCKET']
 
@@ -162,6 +165,7 @@ PACKAGE_CREATE_ENTRY_SCHEMA = {
 
 
 s3 = boto3.client('s3')
+lambda_ = boto3.client('lambda')
 
 
 # Monkey patch quilt3 S3ClientProvider, so it builds a client using user credentials.
@@ -170,6 +174,40 @@ quilt3.data_transfer.S3ClientProvider.get_boto_session = staticmethod(lambda: us
 
 
 logger = get_quilt_logger()
+
+
+def calculate_pkg_hashes(pkg):
+    s3_user = user_boto_session.client('s3')
+
+    def calculate_pkg_entry_hash(pkg_entry):
+        pk = pkg_entry.physical_key
+        params = {
+            'Bucket': pk.bucket,
+            'Key': pk.path,
+        }
+        if pk.version_id is not None:
+            params['VersionId'] = pk.version_id
+        url = s3_user.generate_presigned_url(
+            ClientMethod='get_object',
+            ExpiresIn=900,
+            Params=params,
+        )
+        resp = lambda_.invoke(FunctionName=S3_HASH_LAMBDA, Payload=json.dumps(url))
+        assert 'FunctionError' not in resp
+        hash_ = json.load(resp['Payload'])
+        pkg_entry.hash = {
+            'type': 'SHA256',
+            'value': hash_,
+        }
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=S3_HASH_LAMBDA_CONCURRENCY) as pool:
+        fs = [
+            pool.submit(calculate_pkg_entry_hash, entry)
+            for lk, entry in pkg.walk()
+            if entry.hash is None
+        ]
+        for f in concurrent.futures.as_completed(fs):
+            f.result()
 
 
 def get_user_credentials(request):
@@ -334,6 +372,7 @@ def _push_pkg_to_successor(data, *, get_src, get_dst, get_name, get_pkg, pkg_max
             pkg._meta.pop('user_meta', None)
         else:
             pkg.set_meta(meta)
+        calculate_pkg_hashes(pkg)
         return make_json_response(200, {
             'top_hash': pkg._push(
                 name=get_name(data),
