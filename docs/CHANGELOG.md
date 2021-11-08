@@ -16,7 +16,7 @@
 ## Catalog, Lambdas
 * [Added] Echarts renderer ([#2382](https://github.com/quiltdata/quilt/pull/2382))
 * [Added] Set height for `quilt_summarize.json` files ([#2474](https://github.com/quiltdata/quilt/pull/2474))
-* [Added] Add a "transcode" lambda for previewing video files ([#2366](https://github.com/quiltdata/quilt/pull/2366/)
+* [Added] Add a "transcode" lambda for previewing video files ([#2366](https://github.com/quiltdata/quilt/pull/2366/))
 
 # 3.6.0 - 2021-10-15
 ## Python API
