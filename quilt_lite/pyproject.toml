@@ -5,7 +5,8 @@ description = ""
 authors = ["Alexei Mochalov <alexei@quiltdata.io>"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+# TODO: make it working under 3.7
+python = "^3.8"
 ariadne = {git = "https://github.com/mirumee/ariadne.git"}
 boto3 = "^1.10.0"
 quilt3 = {path = "../api/python/", develop = true}
