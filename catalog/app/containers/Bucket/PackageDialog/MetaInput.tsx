@@ -217,154 +217,157 @@ interface MetaInputProps {
 }
 
 // FIXME: disabled state
-export function MetaInput({
-  className,
-  schemaError,
-  input: { value, onChange },
-  meta,
-  schema,
-}: MetaInputProps) {
-  const classes = useMetaInputStyles()
-  const error = schemaError || ((meta.modified || meta.submitFailed) && meta.error)
-  const disabled = meta.submitting || meta.submitSucceeded
+export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
+  function MetaInput(
+    { className, schemaError, input: { value, onChange }, meta, schema },
+    ref,
+  ) {
+    const classes = useMetaInputStyles()
+    const error = schemaError || ((meta.modified || meta.submitFailed) && meta.error)
+    const disabled = meta.submitting || meta.submitSucceeded
 
-  const [open, setOpen] = React.useState(false)
-  const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
-  const openEditor = React.useCallback(() => setOpen(true), [setOpen])
+    const [open, setOpen] = React.useState(false)
+    const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
+    const openEditor = React.useCallback(() => setOpen(true), [setOpen])
 
-  const onJsonEditor = React.useCallback(
-    (json: {}) => {
-      onChange(json)
-    },
-    [onChange],
-  )
+    const onJsonEditor = React.useCallback(
+      (json: {}) => {
+        onChange(json)
+      },
+      [onChange],
+    )
 
-  const { push: notify } = Notifications.use()
-  const [locked, setLocked] = React.useState(false)
+    const { push: notify } = Notifications.use()
+    const [locked, setLocked] = React.useState(false)
 
-  // used to force json editor re-initialization
-  const [jsonEditorKey, setJsonEditorKey] = React.useState(1)
+    // used to force json editor re-initialization
+    const [jsonEditorKey, setJsonEditorKey] = React.useState(1)
 
-  const onDrop = React.useCallback(
-    ([file]) => {
-      if (file.size > MAX_META_FILE_SIZE) {
-        notify(
-          <>
-            File too large ({readableBytes(file.size)}), must be under{' '}
-            {readableBytes(MAX_META_FILE_SIZE)}.
-          </>,
-        )
-        return
-      }
-      setLocked(true)
-      readFile(file, schema)
-        .then((contents: string | {}) => {
-          if (R.is(Object, contents)) {
-            onJsonEditor(contents)
-          } else {
-            try {
-              JSON.parse(contents as string)
-            } catch (e) {
-              notify('The file does not contain valid JSON')
+    const onDrop = React.useCallback(
+      ([file]) => {
+        if (file.size > MAX_META_FILE_SIZE) {
+          notify(
+            <>
+              File too large ({readableBytes(file.size)}), must be under{' '}
+              {readableBytes(MAX_META_FILE_SIZE)}.
+            </>,
+          )
+          return
+        }
+        setLocked(true)
+        readFile(file, schema)
+          .then((contents: string | {}) => {
+            if (R.is(Object, contents)) {
+              onJsonEditor(contents)
+            } else {
+              try {
+                JSON.parse(contents as string)
+              } catch (e) {
+                notify('The file does not contain valid JSON')
+              }
+              // FIXME: show error
             }
-            // FIXME: show error
-          }
-          // force json editor to re-initialize
-          setJsonEditorKey(R.inc)
-        })
-        .catch((e) => {
-          if (e.message === 'abort') return
-          // eslint-disable-next-line no-console
-          console.log('Error reading file')
-          // eslint-disable-next-line no-console
-          console.error(e)
-          notify("Couldn't read that file")
-        })
-        .finally(() => {
-          setLocked(false)
-        })
-    },
-    [schema, setLocked, onJsonEditor, setJsonEditorKey, notify],
-  )
+            // force json editor to re-initialize
+            setJsonEditorKey(R.inc)
+          })
+          .catch((e) => {
+            if (e.message === 'abort') return
+            // eslint-disable-next-line no-console
+            console.log('Error reading file')
+            // eslint-disable-next-line no-console
+            console.error(e)
+            notify("Couldn't read that file")
+          })
+          .finally(() => {
+            setLocked(false)
+          })
+      },
+      [schema, setLocked, onJsonEditor, setJsonEditorKey, notify],
+    )
 
-  const isDragging = useDragging()
+    const isDragging = useDragging()
 
-  const { getRootProps, isDragActive } = useDropzone({ onDrop })
+    const { getRootProps, isDragActive } = useDropzone({ onDrop })
 
-  return (
-    <div className={className}>
-      <div className={classes.header}>
-        {/* eslint-disable-next-line no-nested-ternary */}
-        <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
-          Metadata
-        </M.Typography>
-      </div>
-
-      <Dialog
-        key={jsonEditorKey}
-        onChange={onChange}
-        onClose={closeEditor}
-        open={open}
-        value={value}
-      />
-
-      <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
-        {isDragging && <div className={classes.outlined} />}
-
-        <div className={classes.json}>
-          <JsonDisplay
-            name=""
-            topLevel={1}
-            value={value}
-            className={classes.jsonDisplay}
-            defaultExpanded={1}
-          />
-          <M.Button
-            className={classes.jsonTrigger}
-            onClick={openEditor}
-            startIcon={
-              <M.Icon fontSize="inherit" color="primary">
-                list
-              </M.Icon>
-            }
-            title="Edit meta"
-            variant="outlined"
-          >
-            Edit
-          </M.Button>
+    return (
+      <div className={className}>
+        <div className={classes.header}>
+          {/* eslint-disable-next-line no-nested-ternary */}
+          <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
+            Metadata
+          </M.Typography>
         </div>
 
-        <MetaInputErrorHelper className={classes.errors} error={error} />
+        <Dialog
+          key={jsonEditorKey}
+          onChange={onChange}
+          onClose={closeEditor}
+          open={open}
+          value={value}
+        />
 
-        {locked && (
-          <div className={classes.overlay}>
-            <Delay ms={500} alwaysRender>
-              {(ready) => (
-                <M.Fade in={ready}>
-                  <div className={classes.overlayContents}>
-                    <M.CircularProgress size={20} className={classes.overlayProgress} />
-                    <div className={classes.overlayText}>Reading file contents</div>
-                  </div>
-                </M.Fade>
-              )}
-            </Delay>
+        <div
+          {...getRootProps({ className: classes.dropzone })}
+          tabIndex={undefined}
+          ref={ref}
+        >
+          {isDragging && <div className={classes.outlined} />}
+
+          <div className={classes.json}>
+            <JsonDisplay
+              name=""
+              topLevel={1}
+              value={value}
+              className={classes.jsonDisplay}
+              defaultExpanded={1}
+            />
+            <M.Button
+              className={classes.jsonTrigger}
+              onClick={openEditor}
+              startIcon={
+                <M.Icon fontSize="inherit" color="primary">
+                  list
+                </M.Icon>
+              }
+              title="Edit meta"
+              variant="outlined"
+            >
+              Edit
+            </M.Button>
           </div>
-        )}
 
-        {isDragging && (
-          <div
-            className={cx(classes.overlay, classes.overlayDraggable, {
-              [classes.overlayDragActive]: isDragActive,
-            })}
-          >
-            <div className={classes.overlayContents}>
-              <div className={classes.overlayText}>
-                Drop metadata file (XLSX, CSV, JSON)
+          <MetaInputErrorHelper className={classes.errors} error={error} />
+
+          {locked && (
+            <div className={classes.overlay}>
+              <Delay ms={500} alwaysRender>
+                {(ready) => (
+                  <M.Fade in={ready}>
+                    <div className={classes.overlayContents}>
+                      <M.CircularProgress size={20} className={classes.overlayProgress} />
+                      <div className={classes.overlayText}>Reading file contents</div>
+                    </div>
+                  </M.Fade>
+                )}
+              </Delay>
+            </div>
+          )}
+
+          {isDragging && (
+            <div
+              className={cx(classes.overlay, classes.overlayDraggable, {
+                [classes.overlayDragActive]: isDragActive,
+              })}
+            >
+              <div className={classes.overlayContents}>
+                <div className={classes.overlayText}>
+                  Drop metadata file (XLSX, CSV, JSON)
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  },
+)
