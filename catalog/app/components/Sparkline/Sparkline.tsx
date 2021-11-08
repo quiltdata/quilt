@@ -4,6 +4,35 @@ import * as M from '@material-ui/core'
 
 import * as SVG from 'utils/SVG'
 
+interface SparklineProps extends M.BoxProps {
+  data: number[]
+  onCursor?: (idx: number | null) => void
+  width?: number
+  height?: number
+  stroke?: $TSFixMe // SVG.Paint
+  fill?: $TSFixMe // SVG.Paint
+  contourThickness?: number
+  contourStroke?: $TSFixMe // SVG.Paint
+  extendL?: boolean
+  extendR?: boolean
+  cursorLineThickness?: number
+  cursorLineExtendUp?: boolean
+  cursorLineExtendDown?: boolean
+  cursorLineStroke?: $TSFixMe // SVG.Paint
+  cursorCircleThickness?: number
+  cursorCircleR?: number
+  cursorCircleFill?: $TSFixMe // SVG.Paint
+  cursorCircleStroke?: $TSFixMe // SVG.Paint
+  padding?: number
+  px?: number
+  py?: number
+  pt?: number
+  pb?: number
+  pl?: number
+  pr?: number
+  boxProps?: M.BoxProps
+}
+
 export default function Sparkline({
   data, // PT.arrayOf(PT.number).isRequired,
   onCursor,
@@ -32,12 +61,12 @@ export default function Sparkline({
   pr = px,
   boxProps,
   ...props
-}) {
-  const [cursor, showCursor] = React.useState(null)
+}: SparklineProps) {
+  const [cursor, showCursor] = React.useState<number | null>(null)
   const hideCursor = React.useCallback(() => showCursor(null), [showCursor])
 
   const handleMove = React.useCallback(
-    (e) => {
+    (e: React.MouseEvent) => {
       const rect = e.currentTarget.getBoundingClientRect()
       const pos = (e.clientX - rect.x - pl) / (rect.width - pl - pr)
       const step = 1 / (data.length - 1)
@@ -76,7 +105,7 @@ export default function Sparkline({
   const cursorCircleStrokePaint = SVG.usePaint(cursorCircleStroke)
   const fillPaint = SVG.usePaint(fill)
 
-  const fillShape = React.useMemo(
+  const fillShape: null | typeof contourShape = React.useMemo(
     () =>
       SVG.Paint.case(
         {
@@ -98,6 +127,7 @@ export default function Sparkline({
   return (
     <M.Box
       component="svg"
+      // @ts-expect-error
       viewBox={`0 0 ${width} ${height}`}
       onMouseLeave={handleLeave}
       onMouseMove={handleMove}
