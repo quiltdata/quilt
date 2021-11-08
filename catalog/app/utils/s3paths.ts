@@ -7,55 +7,32 @@ import { mkSearch } from 'utils/NamedRoutes'
 
 /**
  * Handle for an S3 object.
- *
- * @typedef {Object} S3Handle
- *
- * @property {string} region
- * @property {string} bucket
- * @property {string} key
- * @property {string} version
- * @property {Date} modified
- * @property {number} size
- * @property {string} etag
  */
-
-interface S3HandleBase {
+export interface S3HandleBase {
   bucket: string
   key: string
   version?: string
 }
 
-interface S3Handle extends S3HandleBase {
+export interface S3Handle extends S3HandleBase {
   region: string
   modified: Date
-  size: Number
+  size: number
   etag: string
 }
 
 /**
  * Ensure the string has no trailing slash.
- *
- * @param {string} str
- *
- * @returns {string}
  */
 export const ensureNoSlash = (str: string) => str.replace(/\/$/, '')
 
 /**
  * Ensure the string has a trailing slash.
- *
- * @param {string} str
- *
- * @returns {string}
  */
 export const ensureSlash = (str: string) => `${ensureNoSlash(str)}/`
 
 /**
  * Go up a level.
- *
- * @param {string} prefix
- *
- * @returns {string}
  */
 export const up = (prefix: string) => {
   // handle double slashes
@@ -68,19 +45,11 @@ export const up = (prefix: string) => {
 
 /**
  * Check if the path is a directory / prefix (ends with a slash).
- *
- * @param {string} path
- *
- * @returns {bool}
  */
 export const isDir = (path: string) => path === '' || path.endsWith('/')
 
 /**
  * Get the "prefix" part of a path.
- *
- * @param {string} path
- *
- * @returns {string}
  */
 export const getPrefix = (path: string) => {
   if (!path) return ''
@@ -91,10 +60,6 @@ export const getPrefix = (path: string) => {
 
 /**
  * Get the "basename" part of a path.
- *
- * @param {string} path
- *
- * @returns {string}
  */
 export const getBasename = (path: string) => {
   if (!path) return ''
@@ -111,10 +76,6 @@ export const getBasename = (path: string) => {
  * 'hey/'     | 'hey/'     | ''
  * 'hey/sup'  | 'hey/'     | 'sup'
  * 'hey/sup/' | 'hey/sup/' | ''
- *
- * @param {string} path
- *
- * @returns {{ prefix: string, basename: string }}
  */
 export const splitPath = (path: string) => ({
   prefix: getPrefix(path),
@@ -123,33 +84,26 @@ export const splitPath = (path: string) => ({
 
 /**
  * Remove specified prefix from the path.
- *
- * @param {string} prefix
- * @param {string} path
- *
- * @returns {string}
  */
 export const withoutPrefix = (prefix: string, path: string) =>
   path.startsWith(prefix) ? path.replace(prefix, '') : path
 
 /**
  * Check if the string is an S3 URL.
- *
- * @param {string} url
- *
- * @returns {bool}
  */
 export const isS3Url = (url: string) => url.startsWith('s3://')
 
 /**
  * Parse an S3 URL and create an S3Handle out of it.
- *
- * @param {string} url
- *
- * @returns {S3Handle}
  */
-export const parseS3Url = (url: string) => {
+export const parseS3Url = (url: string): S3HandleBase => {
   const u = parseUrl(url, true)
+  if (Array.isArray(u.query.versionId)) {
+    throw new Error('versionId specified multiple times')
+  }
+  if (!u.hostname) {
+    throw new Error('bucket not specified')
+  }
   return {
     bucket: u.hostname,
     key: decode((u.pathname || '/').substring(1)),
@@ -159,22 +113,12 @@ export const parseS3Url = (url: string) => {
 
 /**
  * Resolve an S3 key.
- *
- * @param {string} from
- * @param {string} to
- *
- * @returns {string}
  */
 export const resolveKey = (from: string, to: string) =>
   resolve(`/${getPrefix(from)}`, to).substring(1)
 
 /**
  * Create an S3Handle for a URL relative to the given S3Handle.
- *
- * @param {string} url
- * @param {S3Handle} referrer
- *
- * @returns {S3Handle}
  */
 export const handleFromUrl = (url: string, referrer: S3Handle) => {
   // absolute URL (e.g. `s3://${bucket}/${key}`)
@@ -198,10 +142,6 @@ export const handleToS3Url = ({ bucket, key, version = undefined }: S3HandleBase
 
 /**
  * Get breadcrumbs for a path.
- *
- * @param {string} path
- *
- * @returns {[{ label: string, path: string }]}
  */
 export const getBreadCrumbs = (path: string): { label: string; path: string }[] =>
   path

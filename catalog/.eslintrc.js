@@ -17,10 +17,13 @@ module.exports = {
     '@typescript-eslint/no-throw-literal': 0,
     'arrow-body-style': [2, 'as-needed'],
     'class-methods-use-this': 0,
+    'import/newline-after-import': 2,
+    'import/no-duplicates': 2,
     'import/no-extraneous-dependencies': 0,
     'import/no-named-as-default': 0,
     'import/no-unresolved': 2,
     'import/no-webpack-loader-syntax': 0,
+    'import/order': [2, { groups: ["builtin", "external", "internal", "parent", "sibling"] }],
     'import/prefer-default-export': 0,
     'jsx-a11y/aria-props': 2,
     'jsx-a11y/label-has-associated-control': [
