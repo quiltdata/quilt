@@ -7,7 +7,6 @@
 * [Architecture](Architecture.md)
 
 ### Walkthrough
-
 * [Editing a Package](walkthrough/editing-a-package.md)
 * [Uploading a Package](walkthrough/uploading-a-package.md)
 * [Installing a Package](walkthrough/installing-a-package.md)
@@ -16,7 +15,6 @@
 * [Working with a Bucket](walkthrough/working-with-a-bucket.md)
 
 ### API Reference
-
 * [quilt3](api-reference/api.md)
 * [quilt3.Package](api-reference/Package.md)
 * [quilt3.Bucket](api-reference/Bucket.md)
@@ -24,7 +22,6 @@
 * [Known limitations](api-reference/limitations.md)
 
 ### Catalog
-
 * [Configuration](Catalog/Preferences.md)
 * [Preview](Catalog/Preview.md)
 * [Search & query](Catalog/SearchQuery.md)
@@ -32,8 +29,10 @@
 * [Admin UI](Catalog/Admin.md)
 * [Embed](Catalog/Embed.md)
 
-### Advanced Usage
+### Examples
+* [Git-like management for data](examples/GitLike.md)
 
+### Advanced Usage
 * [Filtering a Package](advanced-features/filtering-a-package.md)
 * [.quiltignore](advanced-features/.quiltignore.md)
 * [Materialization](advanced-features/materialization.md)
@@ -45,7 +44,6 @@
 
 
 ### More
-
 * [Frequently Asked Questions](FAQ.md)
 * [Troubleshooting](Troubleshooting.md)
 * [Contributing](CONTRIBUTING.md)
