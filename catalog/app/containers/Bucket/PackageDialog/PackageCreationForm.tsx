@@ -8,6 +8,7 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
+import JsonValidationErrors from 'components/JsonValidationErrors'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as s3paths from 'utils/s3paths'
@@ -15,19 +16,19 @@ import * as tagged from 'utils/taggedV2'
 import * as validators from 'utils/validators'
 import type * as workflows from 'utils/workflows'
 
+import * as requests from '../requests'
+
 import DialogError from './DialogError'
 import DialogLoading from './DialogLoading'
 import DialogSuccess, { DialogSuccessRenderMessageProps } from './DialogSuccess'
 import * as FI from './FilesInput'
 import * as Layout from './Layout'
-import MetaInputErrorHelper from './MetaInputErrorHelper'
 import * as MI from './MetaInput'
 import * as PD from './PackageDialog'
 import { isS3File, S3File } from './S3FilePicker'
 import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 import { useUploads } from './Uploads'
-import * as requests from '../requests'
 
 const EMPTY_MANIFEST_ENTRIES: Record<string, FI.ExistingFile> = {}
 
@@ -475,7 +476,7 @@ function PackageCreationForm({
                     ui={{ reset: ui.resetFiles }}
                   />
 
-                  <MetaInputErrorHelper
+                  <JsonValidationErrors
                     className={classes.filesError}
                     error={entriesError}
                   />

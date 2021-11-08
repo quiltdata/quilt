@@ -9,6 +9,7 @@ import * as M from '@material-ui/core'
 
 import JsonDisplay from 'components/JsonDisplay'
 import { JsonValue } from 'components/JsonEditor/constants'
+import JsonValidationErrors from 'components/JsonValidationErrors'
 import MetadataEditor from 'components/MetadataEditor'
 import * as Notifications from 'containers/Notifications'
 import Delay from 'utils/Delay'
@@ -16,8 +17,6 @@ import useDragging from 'utils/dragging'
 import { JsonSchema } from 'utils/json-schema'
 import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
-
-import MetaInputErrorHelper from './MetaInputErrorHelper'
 
 const MAX_META_FILE_SIZE = 10 * 1000 * 1000 // 10MB
 
@@ -339,7 +338,7 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
             </M.Button>
           </div>
 
-          <MetaInputErrorHelper className={classes.errors} error={error} />
+          <JsonValidationErrors className={classes.errors} error={error} />
 
           {locked && (
             <div className={classes.overlay}>

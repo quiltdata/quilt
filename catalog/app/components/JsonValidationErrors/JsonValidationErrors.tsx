@@ -1,3 +1,4 @@
+import type { ErrorObject } from 'ajv'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
@@ -13,14 +14,19 @@ const useSingleErrorStyles = M.makeStyles((t) => ({
   },
 }))
 
-function SingleError({ className, error }) {
+interface SingleErrorProps {
+  className?: string
+  error: Error | ErrorObject
+}
+
+function SingleError({ className, error }: SingleErrorProps) {
   const classes = useSingleErrorStyles()
 
   return (
     <Lab.Alert severity="error" className={className}>
-      {error.instancePath && (
+      {(error as ErrorObject).instancePath && (
         <>
-          <code className={classes.code}>{error.instancePath}</code>
+          <code className={classes.code}>{(error as ErrorObject).instancePath}</code>
         </>
       )}
       {error.message}
@@ -36,7 +42,15 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function ErrorHelper({ className, error }) {
+interface JsonValidationErrorsProps {
+  className: string
+  error: (Error | ErrorObject)[] | null
+}
+
+export default function JsonValidationErrors({
+  className,
+  error,
+}: JsonValidationErrorsProps) {
   const classes = useStyles()
 
   if (!error) return null
@@ -48,7 +62,7 @@ export default function ErrorHelper({ className, error }) {
           <SingleError
             className={classes.item}
             error={e}
-            key={e.instancePath + e.message}
+            key={(e as ErrorObject).instancePath + e.message}
           />
         ))
       ) : (

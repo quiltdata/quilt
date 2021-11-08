@@ -6,7 +6,7 @@ import * as M from '@material-ui/core'
 
 import JsonEditor from 'components/JsonEditor'
 import { JsonValue } from 'components/JsonEditor/constants'
-import MetaInputErrorHelper from 'containers/Bucket/PackageDialog/MetaInputErrorHelper'
+import JsonValidationErrors from 'components/JsonValidationErrors'
 import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
 
 import 'brace/mode/json'
@@ -86,7 +86,7 @@ export default function MetadataEditor({
         />
       )}
 
-      <MetaInputErrorHelper className={classes.error} error={errors} />
+      <JsonValidationErrors className={classes.error} error={errors} />
     </div>
   )
 }
