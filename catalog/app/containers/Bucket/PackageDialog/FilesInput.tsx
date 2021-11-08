@@ -75,6 +75,7 @@ export const FilesAction = tagged.create(
     }) => v,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
+    Meta: (v: { path: string; meta: JsonValue }) => v,
     Revert: (path: string) => path,
     RevertDir: (prefix: string) => prefix,
     Reset: () => {},
@@ -160,6 +161,15 @@ const handleFilesAction = FilesAction.match<
       ),
       ...rest,
     }),
+  Meta: ({ path, meta }) => {
+    const setMeta = R.set(R.lensPath([path, 'meta']), meta)
+    const setMetaIfFileExists = R.ifElse(R.has(path), setMeta, R.identity)
+    return R.evolve({
+      added: setMetaIfFileExists,
+      deleted: setMetaIfFileExists,
+      existing: setMetaIfFileExists,
+    })
+  },
   Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
   // remove all descendants from added and deleted
   RevertDir: (prefix) =>
@@ -1056,7 +1066,7 @@ function FileUpload({
       name={name}
       size={size}
       meta={meta}
-      onMeta={onMetaStub}
+      onMeta={(m) => dispatch(FilesAction.Meta({ path, meta: m }))}
       action={
         <M.IconButton onClick={action.handler} title={action.hint} size="small">
           <M.Icon fontSize="inherit">{action.icon}</M.Icon>
