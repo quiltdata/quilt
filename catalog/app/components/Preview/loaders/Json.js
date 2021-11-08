@@ -8,8 +8,9 @@ import { useLogicalKeyResolver } from 'utils/LogicalKeyResolver'
 import * as Resource from 'utils/Resource'
 import * as s3paths from 'utils/s3paths'
 
-import * as Text from './Text'
 import { PreviewData, PreviewError } from '../types'
+
+import * as Text from './Text'
 import * as utils from './utils'
 
 const MAX_SIZE = 20 * 1024 * 1024
