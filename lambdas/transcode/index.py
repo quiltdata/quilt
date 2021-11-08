@@ -36,6 +36,11 @@ FFMPEG = '/opt/bin/ffmpeg'
 # Also, leave a few KB for the headers.
 MAX_VIDEO_SIZE = 6 * 1024 * 1024 * 3 // 4 - 4096
 
+MIN_WIDTH = 10
+MAX_WIDTH = 640
+MIN_HEIGHT = 10
+MAX_HEIGHT = 480
+
 
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
@@ -51,17 +56,17 @@ def lambda_handler(request):
 
     try:
         width = int(width_str)
-        if not 10 <= width <= 640:
+        if not MIN_WIDTH <= width <= MAX_WIDTH:
             raise ValueError
     except ValueError:
-        return make_json_response(400, {'error': "Invalid 'width'"})
+        return make_json_response(400, {'error': f"Invalid 'width'; must be between {MIN_WIDTH} and {MAX_WIDTH}"})
 
     try:
         height = int(height_str)
-        if not 10 <= height <= 480:
+        if not MIN_HEIGHT <= height <= MAX_HEIGHT:
             raise ValueError
     except ValueError:
-        return make_json_response(400, {'error': "Invalid 'height'"})
+        return make_json_response(400, {'error': f"Invalid 'height'; must be between {MIN_HEIGHT} and {MAX_HEIGHT}"})
 
     try:
         duration = float(duration_str)
