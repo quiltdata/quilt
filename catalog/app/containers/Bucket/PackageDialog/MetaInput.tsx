@@ -41,9 +41,10 @@ interface DialogProps {
   onClose: () => void
   open: boolean
   value: JsonValue
+  schema?: JsonSchema
 }
 
-function Dialog({ onChange, onClose, open, value }: DialogProps) {
+function Dialog({ onChange, onClose, open, schema, value }: DialogProps) {
   const [innerValue, setInnerValue] = React.useState(value)
   const classes = useStyles()
   const dialogClasses = useDialogStyles()
@@ -67,6 +68,7 @@ function Dialog({ onChange, onClose, open, value }: DialogProps) {
           isRaw={isRaw}
           value={innerValue}
           onChange={setInnerValue}
+          schema={schema}
         />
       </M.DialogContent>
       <M.DialogActions>
@@ -299,6 +301,7 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
         </div>
 
         <Dialog
+          schema={schema}
           key={jsonEditorKey}
           onChange={onChange}
           onClose={closeEditor}

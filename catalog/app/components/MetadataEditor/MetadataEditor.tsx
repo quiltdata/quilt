@@ -61,7 +61,7 @@ export default function MetadataEditor({
           onValidationError={setErrors}
           schema={schema}
           search={false}
-          statusBar={false}
+          statusBar={true}
           theme="ace/theme/eclipse"
           value={value || {}}
         />
