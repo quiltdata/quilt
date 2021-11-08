@@ -1,13 +1,13 @@
-import Ajv from 'ajv'
+import Ajv, { ErrorObject } from 'ajv'
 import brace from 'brace'
 import { JsonEditor as ReactJsonEditor } from 'jsoneditor-react'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import * as Lab from '@material-ui/lab'
 
 import JsonEditor from 'components/JsonEditor'
 import { JsonValue } from 'components/JsonEditor/constants'
-import { JsonSchema } from 'utils/json-schema'
+import MetaInputErrorHelper from 'containers/Bucket/PackageDialog/MetaInputErrorHelper'
+import { JsonSchema, makeSchemaValidator } from 'utils/json-schema'
 
 import 'brace/mode/json'
 import 'brace/theme/eclipse'
@@ -45,7 +45,19 @@ export default function MetadataEditor({
   value,
 }: MetadataEditorProps) {
   const classes = useStyles()
-  const [errors, setErrors] = React.useState<Error[]>([])
+  const [errors, setErrors] = React.useState<(Error | ErrorObject)[]>([])
+
+  const schemaValidator = React.useMemo(() => makeSchemaValidator(schema), [schema])
+  const handleChange = React.useCallback(
+    (newValue: JsonValue) => {
+      const validationErrors = schemaValidator(newValue)
+      if (validationErrors.length) {
+        setErrors(validationErrors)
+      }
+      onChange(newValue)
+    },
+    [onChange, schemaValidator],
+  )
   return (
     <div className={classes.root}>
       {isRaw ? (
@@ -66,15 +78,15 @@ export default function MetadataEditor({
           value={value || {}}
         />
       ) : (
-        <JsonEditor isMultiColumned value={value} onChange={onChange} schema={schema} />
+        <JsonEditor
+          isMultiColumned
+          value={value}
+          onChange={handleChange}
+          schema={schema}
+        />
       )}
 
-      {!!errors.length &&
-        errors.map((error) => (
-          <Lab.Alert className={classes.error} key={error.message} severity="error">
-            {error.message}
-          </Lab.Alert>
-        ))}
+      <MetaInputErrorHelper className={classes.error} error={errors} />
     </div>
   )
 }
