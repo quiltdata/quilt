@@ -25,12 +25,13 @@
 
 ### Catalog
 
+* [Admin UI](Catalog/Admin.md)
 * [Configuration](Catalog/Preferences.md)
+* [Embed](Catalog/Embed.md)
+* [Metadata for teams](Catalog/Metadata.md)
 * [Preview](Catalog/Preview.md)
 * [Search & query](Catalog/SearchQuery.md)
-* [Metadata for teams](Catalog/Metadata.md)
-* [Admin UI](Catalog/Admin.md)
-* [Embed](Catalog/Embed.md)
+* [Visualization & dashboards](Catalog/VisualizationDashboards.md)
 
 ### Advanced Usage
 
