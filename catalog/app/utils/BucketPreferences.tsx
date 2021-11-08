@@ -1,12 +1,13 @@
 import * as R from 'ramda'
 import * as React from 'react'
 
+import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
+
 import * as AWS from 'utils/AWS'
 import { useData } from 'utils/Data'
 import * as Sentry from 'utils/Sentry'
 import { makeSchemaValidator } from 'utils/json-schema'
 import yaml from 'utils/yaml'
-import bucketPreferencesSchema from 'schemas/bucketConfig.yml.json'
 import * as bucketErrors from 'containers/Bucket/errors'
 import * as requests from 'containers/Bucket/requests'
 
