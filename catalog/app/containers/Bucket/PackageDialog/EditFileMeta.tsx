@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
@@ -78,10 +79,11 @@ export default function EditFileMeta({ name, value, onChange }: EditMetaProps) {
   const [open, setOpen] = React.useState(false)
   const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
   const openEditor = React.useCallback(() => setOpen(true), [setOpen])
+  const color = React.useMemo(() => (R.isEmpty(value) ? 'inherit' : 'primary'), [value])
   return (
     <>
       <M.IconButton onClick={openEditor} title="Edit meta" size="small">
-        <M.Icon fontSize="inherit" color={value ? 'primary' : 'inherit'}>
+        <M.Icon fontSize="inherit" color={color}>
           list
         </M.Icon>
       </M.IconButton>
