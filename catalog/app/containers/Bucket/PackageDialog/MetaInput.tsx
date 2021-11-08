@@ -28,6 +28,9 @@ const useDialogStyles = M.makeStyles({
 })
 
 const useStyles = M.makeStyles({
+  content: {
+    height: '100%',
+  },
   switch: {
     marginRight: 'auto',
   },
@@ -58,7 +61,7 @@ function Dialog({ onChange, onClose, open, value }: DialogProps) {
       classes={dialogClasses}
     >
       <M.DialogTitle>Metadata for package</M.DialogTitle>
-      <M.DialogContent>
+      <M.DialogContent className={classes.content}>
         <MetadataEditor
           isMultiColumned
           isRaw={isRaw}

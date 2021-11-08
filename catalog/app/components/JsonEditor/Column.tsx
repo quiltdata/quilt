@@ -28,6 +28,11 @@ const useStyles = M.makeStyles((t) => ({
     },
   },
 
+  scroll: {
+    maxHeight: `calc(100% - ${t.spacing(8)}px)`,
+    overflowY: 'auto',
+  },
+
   table: {
     tableLayout: 'fixed',
   },
@@ -160,7 +165,7 @@ export default function Column({
         />
       )}
 
-      <M.TableContainer>
+      <M.TableContainer className={cx({ [classes.scroll]: isMultiColumned })}>
         <M.Table {...getTableProps({ className: classes.table })}>
           <M.TableBody {...getTableBodyProps()}>
             {rows.map((row, index: number) => {

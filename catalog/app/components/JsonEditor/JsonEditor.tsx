@@ -43,7 +43,10 @@ function Squeeze({ columnPath, onClick }: SqueezeProps) {
   )
 }
 
-const useStyles = M.makeStyles((t) => ({
+const useStyles = M.makeStyles<any, { isMultiColumned: boolean }>((t) => ({
+  root: {
+    height: ({ isMultiColumned }) => (isMultiColumned ? '100%' : 'auto'),
+  },
   disabled: {
     position: 'relative',
     '&:after': {
@@ -61,9 +64,12 @@ const useStyles = M.makeStyles((t) => ({
   inner: {
     display: 'flex',
     overflow: 'auto',
+    height: ({ isMultiColumned }) => (isMultiColumned ? '100%' : 'auto'),
   },
   column: {
     maxWidth: t.spacing(76),
+    overflowY: 'auto',
+    height: ({ isMultiColumned }) => (isMultiColumned ? '100%' : 'auto'),
   },
 }))
 
@@ -97,7 +103,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   },
   ref,
 ) {
-  const classes = useStyles()
+  const classes = useStyles({ isMultiColumned })
 
   const handleRowAdd = React.useCallback(
     (path: string[], key: string | number, value: JsonValue) => {
@@ -131,7 +137,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   )
 
   return (
-    <div className={cx({ [classes.disabled]: disabled }, className)}>
+    <div className={cx(classes.root, { [classes.disabled]: disabled }, className)}>
       <div className={classes.inner} ref={ref}>
         {columnsView.map((columnData, index) => {
           const columnPath = fieldPath.slice(0, index)
