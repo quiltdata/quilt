@@ -113,13 +113,7 @@ export default function Breadcrumbs({ tailOnly, items, onSelect }: BreadcrumbsPr
           return <CurrentItem key="last-breadcrumb">{item}</CurrentItem>
 
         return (
-          <Item
-            {...{
-              key: `${item}_${actualIndex}`,
-              index: actualIndex,
-              onClick: onBreadcrumb,
-            }}
-          >
+          <Item key={`${item}_${actualIndex}`} index={actualIndex} onClick={onBreadcrumb}>
             {item}
           </Item>
         )
