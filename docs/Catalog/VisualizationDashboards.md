@@ -34,7 +34,7 @@ The simplest summary is a list of relative paths to files that you wish to previ
 ]
 ```
 
-By default each list element renders in its own row.
+By default, each list element renders in its own row.
 
 ![](../imgs/quilt-summarize-rows.png)
 
@@ -66,7 +66,7 @@ or an object with one or more of the following properties:
 - `width` - column width either in pixels or ratio (default is ratio `1`)
 - `types` - a list of rendering types; currently only singleton list values are supported:
     - `["echarts"]` to render JSON as an EChart
-    - `["voila"]` to render a Jupyter notebooks as an interactive Voila dashboard
+    - `["voila"]` to render a Jupyter notebook as an interactive Voila dashboard
 
 If you need to control the height of an element (useful for Voila dashboards),
 use the following extended syntax:
@@ -180,7 +180,7 @@ The following example is a
 
 ### External files
 
-As with Vega, you can you can provide either a relative path or URL to the dataset file.
+As with Vega, you can provide either a relative path or URL to the dataset file.
 
 ```json
 // echarts.json
@@ -223,7 +223,7 @@ notebook. This enables you to create interactive, Jupyter-driven apps for your
 Quilt catalog users.
 
 The Voila libraries execute a remote Jupyter Kernel and stream the results to the
-browser with Tornado. Jupyter kernels run on single EC2 instance (`t3.small` by default)
+browser with tornado. Jupyter kernels run on a single EC2 instance (`t3.small` by default)
 in Linux containers that have network access but do not have access to persistent
 storage. The catalog users's AWS credentials are passed to Jupyter kernel as
 [environment variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html#envvars-list).
