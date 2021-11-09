@@ -63,7 +63,7 @@ function Dialog({ onChange, onClose, open, schema, value }: DialogProps) {
       <M.DialogTitle>Metadata for package</M.DialogTitle>
       <M.DialogContent className={classes.content}>
         <MetadataEditor
-          isMultiColumned
+          multiColumned
           isRaw={isRaw}
           value={innerValue}
           onChange={setInnerValue}

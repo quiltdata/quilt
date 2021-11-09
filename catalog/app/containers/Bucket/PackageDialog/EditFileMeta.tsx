@@ -48,7 +48,7 @@ function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
       </M.DialogTitle>
       <M.DialogContent>
         <MetadataEditor
-          isMultiColumned
+          multiColumned
           isRaw={isRaw}
           value={innerValue}
           onChange={setInnerValue}

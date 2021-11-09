@@ -31,8 +31,8 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 interface MetadataEditorProps {
-  isMultiColumned: boolean
   isRaw: boolean
+  multiColumned: boolean
   onChange: (value: JsonValue) => void
   schema?: JsonSchema
   value: JsonValue
@@ -40,6 +40,7 @@ interface MetadataEditorProps {
 
 export default function MetadataEditor({
   isRaw,
+  multiColumned,
   onChange,
   schema,
   value,
@@ -79,7 +80,7 @@ export default function MetadataEditor({
         />
       ) : (
         <JsonEditor
-          isMultiColumned
+          multiColumned={multiColumned}
           value={value}
           onChange={handleChange}
           schema={schema}

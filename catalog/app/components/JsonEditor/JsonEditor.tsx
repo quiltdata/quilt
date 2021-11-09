@@ -43,9 +43,9 @@ function Squeeze({ columnPath, onClick }: SqueezeProps) {
   )
 }
 
-const useStyles = M.makeStyles<any, { isMultiColumned: boolean }>((t) => ({
+const useStyles = M.makeStyles<any, { multiColumned: boolean }>((t) => ({
   root: {
-    height: ({ isMultiColumned }) => (isMultiColumned ? '100%' : 'auto'),
+    height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
   },
   disabled: {
     position: 'relative',
@@ -64,12 +64,12 @@ const useStyles = M.makeStyles<any, { isMultiColumned: boolean }>((t) => ({
   inner: {
     display: 'flex',
     overflow: 'auto',
-    height: ({ isMultiColumned }) => (isMultiColumned ? '100%' : 'auto'),
+    height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
   },
   column: {
     maxWidth: t.spacing(76),
     overflowY: 'auto',
-    height: ({ isMultiColumned }) => (isMultiColumned ? '100%' : 'auto'),
+    height: ({ multiColumned }) => (multiColumned ? '100%' : 'auto'),
   },
 }))
 
@@ -80,8 +80,8 @@ interface JsonEditorProps {
   columns: ColumnData[]
   disabled?: boolean
   fieldPath: string[]
-  isMultiColumned: boolean
   jsonDict: Record<string, JsonValue>
+  multiColumned: boolean
   onChange: (value: JsonValue) => JsonValue
   removeField: (path: string[]) => JsonValue
   setFieldPath: (path: string[]) => void
@@ -95,15 +95,15 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
     columns,
     disabled,
     fieldPath,
-    isMultiColumned,
     jsonDict,
+    multiColumned,
     onChange,
     removeField,
     setFieldPath,
   },
   ref,
 ) {
-  const classes = useStyles({ isMultiColumned })
+  const classes = useStyles({ multiColumned })
 
   const handleRowAdd = React.useCallback(
     (path: string[], key: string | number, value: JsonValue) => {
@@ -132,8 +132,8 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
   if (!columns.length) throw new Error('No column data')
 
   const columnsView = React.useMemo(
-    () => (isMultiColumned ? columns : ([R.last(columns)] as ColumnData[])),
-    [columns, isMultiColumned],
+    () => (multiColumned ? columns : ([R.last(columns)] as ColumnData[])),
+    [columns, multiColumned],
   )
 
   return (
@@ -152,7 +152,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
               className={classes.column}
               columnPath={columnPath}
               data={columnData}
-              adjacent={isMultiColumned}
+              adjacent={multiColumned}
               jsonDict={jsonDict}
               key={columnPath.join(',')}
               onAddRow={handleRowAdd}
@@ -188,7 +188,7 @@ interface StateRenderProps {
 interface JsonEditorWrapperProps {
   className?: string
   disabled?: boolean
-  isMultiColumned?: boolean
+  multiColumned?: boolean
   onChange: (value: JsonValue) => void
   schema?: JsonSchema
   value: JsonValue
@@ -196,7 +196,7 @@ interface JsonEditorWrapperProps {
 
 export default React.forwardRef<HTMLDivElement, JsonEditorWrapperProps>(
   function JsonEditorWrapper(
-    { className, disabled, isMultiColumned, onChange, schema: optSchema, value },
+    { className, disabled, multiColumned, onChange, schema: optSchema, value },
     ref,
   ) {
     const schema = optSchema || EMPTY_SCHEMA
@@ -209,7 +209,7 @@ export default React.forwardRef<HTMLDivElement, JsonEditorWrapperProps>(
               className,
               disabled,
               onChange,
-              isMultiColumned: !!isMultiColumned,
+              multiColumned: !!multiColumned,
               ref,
             }}
             {...stateProps}
