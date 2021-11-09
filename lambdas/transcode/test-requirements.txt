@@ -1,0 +1,7 @@
+atomicwrites==1.3.0
+more-itertools==6.0.0
+pluggy==0.9.0
+py==1.10.0
+pytest==4.3.0
+pytest-cov==2.6.1
+pytest-raises==0.10
