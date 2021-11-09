@@ -12,18 +12,6 @@ gen_cmd_docs () {
     echo '```' >> cli.md
 }
 
-gen_env_docs () {
-  env=$1
-  env_cmd=$2
-  desc=$3
-
-  echo '### `'${env}'`' >> cli.md
-  echo ${desc} >> cli.md
-  echo '```' >> cli.md
-  echo ${env_cmd} >> cli.md
-  echo '```' >> cli.md
-}
-
 echo "# Quilt3 CLI and environment" >> cli.md
 echo "" >> cli.md
 
