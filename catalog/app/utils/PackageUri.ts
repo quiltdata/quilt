@@ -8,12 +8,20 @@ import { BaseError } from 'utils/error'
 export class PackageUriError extends BaseError {
   static displayName = 'PackageUriError'
 
-  constructor(msg, uri) {
+  constructor(msg: string, uri: string) {
     super(`Invalid package URI (${uri}): ${msg}`, { msg, uri })
   }
 }
 
-function parsePackageSpec(spec, uri) {
+export interface PackageUri {
+  bucket: string
+  name: string
+  path?: string
+  hash?: string
+  tag?: string
+}
+
+function parsePackageSpec(spec: string, uri: string) {
   if (spec.includes(':') && spec.includes('@')) {
     throw new PackageUriError('"package=" part may either contain ":" or "@".', uri)
   }
@@ -54,7 +62,7 @@ function parsePackageSpec(spec, uri) {
 
 // TODO: do we need strict parsing here (throw on extra parameters)?
 // TODO: do we need extra validation for each part (package name, path, registry, etc)?
-export function parse(uri) {
+export function parse(uri: string): PackageUri {
   const url = parseUrl(uri)
   if (url.protocol !== 'quilt+s3:') {
     throw new PackageUriError(
@@ -76,16 +84,23 @@ export function parse(uri) {
   if (!params.package) {
     throw new PackageUriError('missing "package=" part.', uri)
   }
-  const path = params.path ? decodeURIComponent(params.path) : undefined
+  if (Array.isArray(params.package)) {
+    throw new PackageUriError('"package=" specified multiple times.', uri)
+  }
   const { name, hash, tag } = parsePackageSpec(params.package, uri)
-  return R.reject(R.isNil, { bucket, name, hash, tag, path })
+  if (Array.isArray(params.path)) {
+    throw new PackageUriError('"path=" specified multiple times.', uri)
+  }
+  const path = params.path ? decodeURIComponent(params.path) : undefined
+  return R.reject(R.isNil, { bucket, name, hash, tag, path }) as unknown as PackageUri
 }
 
-export function stringify({ bucket, name, hash, tag, path }) {
+export function stringify({ bucket, name, hash, tag, path }: PackageUri) {
   if (!bucket) throw new Error('PackageUri.stringify: missing "bucket"')
   if (!name) throw new Error('PackageUri.stringify: missing "name"')
-  if (hash && tag)
+  if (hash && tag) {
     throw new Error(`PackageUri.stringify: can't have both "hash" and "tag"`)
+  }
   let pkgSpec = name
   if (hash) {
     pkgSpec += `@${hash}`

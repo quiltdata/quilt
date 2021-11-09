@@ -15,6 +15,8 @@ import * as tagged from 'utils/taggedV2'
 import * as validators from 'utils/validators'
 import type * as workflows from 'utils/workflows'
 
+import * as requests from '../requests'
+
 import DialogError from './DialogError'
 import DialogLoading from './DialogLoading'
 import DialogSuccess, { DialogSuccessRenderMessageProps } from './DialogSuccess'
@@ -26,7 +28,6 @@ import { isS3File, S3File } from './S3FilePicker'
 import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
 import SubmitSpinner from './SubmitSpinner'
 import { useUploads } from './Uploads'
-import * as requests from '../requests'
 
 const EMPTY_MANIFEST_ENTRIES: Record<string, FI.ExistingFile> = {}
 

@@ -62,6 +62,18 @@ describe('utils/PackageUri', () => {
       ).toThrowError('missing "package=" part')
     })
 
+    it('should throw on multiple "package=" parts', () => {
+      expect(() =>
+        PackageUri.parse('quilt+s3://bucket-name#package=quilt/test&package=quilt/test2'),
+      ).toThrowError('"package=" specified multiple times')
+    })
+
+    it('should throw on multiple "path=" parts', () => {
+      expect(() =>
+        PackageUri.parse('quilt+s3://bucket-name#package=quilt/test&path=p1&path=p2'),
+      ).toThrowError('"path=" specified multiple times')
+    })
+
     it('should throw on empty tag', () => {
       expect(() =>
         PackageUri.parse('quilt+s3://bucket-name#package=quilt/test:'),
@@ -95,13 +107,13 @@ describe('utils/PackageUri', () => {
 
   describe('stringify', () => {
     it('should throw on missing bucket', () => {
-      expect(() => PackageUri.stringify({ name: 'quilt/test' })).toThrowError(
+      expect(() => PackageUri.stringify({ name: 'quilt/test' } as any)).toThrowError(
         /missing "bucket"/,
       )
     })
 
     it('should throw on missing name', () => {
-      expect(() => PackageUri.stringify({ bucket: 'bucket' })).toThrowError(
+      expect(() => PackageUri.stringify({ bucket: 'bucket' } as any)).toThrowError(
         /missing "name"/,
       )
     })
