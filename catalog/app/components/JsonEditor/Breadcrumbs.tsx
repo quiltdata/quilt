@@ -50,6 +50,14 @@ function BreadcrumbsItem({ index, children, onClick }: BreadcrumbsItemProps) {
   )
 }
 
+interface CurrentBreadcrumbsItemProps {
+  children: React.ReactNode
+}
+
+function CurrentBreadcrumbsItem({ children }: CurrentBreadcrumbsItemProps) {
+  return <M.Typography variant="subtitle2">{children}</M.Typography>
+}
+
 function BreadcrumbsDivider() {
   return <M.Icon fontSize="small">chevron_right</M.Icon>
 }
@@ -97,16 +105,20 @@ export default function Breadcrumbs({ tailOnly, items, onSelect }: BreadcrumbsPr
       )}
 
       {items.map((item, index) => {
-        if (!shoudShowBreadcrumb(index + 1, items.length, tailOnly)) return null
-        return index === items.length - 1 ? (
-          <M.Typography key="last-breadcrumb" variant="subtitle2">
-            {item}
-          </M.Typography>
-        ) : (
+        const actualIndex = index + 1
+
+        if (!shoudShowBreadcrumb(actualIndex, items.length, tailOnly)) return null
+
+        if (index === items.length - 1)
+          return (
+            <CurrentBreadcrumbsItem key="last-breadcrumb">{item}</CurrentBreadcrumbsItem>
+          )
+
+        return (
           <BreadcrumbsItem
             {...{
-              key: `${item}_${index}`,
-              index: index + 1,
+              key: `${item}_${actualIndex}`,
+              index: actualIndex,
               onClick: onBreadcrumb,
             }}
           >
