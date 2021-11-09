@@ -159,7 +159,7 @@ export default function Column({
     >
       {!!columnPath.length && (
         <Breadcrumbs
-          isMultiColumned={isMultiColumned}
+          tailOnly={isMultiColumned}
           items={columnPath}
           onSelect={onBreadcrumb}
         />

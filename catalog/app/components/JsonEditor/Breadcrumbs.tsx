@@ -54,17 +54,18 @@ function BreadcrumbsDivider() {
   return <M.Icon fontSize="small">chevron_right</M.Icon>
 }
 
+function shoudShowBreadcrumb(index: number, itemsNumber: number, tailOnly: boolean) {
+  if (!tailOnly) return true
+  return index > itemsNumber - 2
+}
+
 interface BreadcrumbsProps {
-  isMultiColumned: boolean
+  tailOnly: boolean
   items: string[]
   onSelect: (path: string[]) => void
 }
 
-export default function Breadcrumbs({
-  isMultiColumned,
-  items,
-  onSelect,
-}: BreadcrumbsProps) {
+export default function Breadcrumbs({ tailOnly, items, onSelect }: BreadcrumbsProps) {
   const classes = useStyles()
   const overrideClasses = useOverrideStyles()
 
@@ -89,15 +90,14 @@ export default function Breadcrumbs({
       ref={ref}
       separator={<BreadcrumbsDivider />}
     >
-      {!isMultiColumned ||
-        (items.length < 2 && (
-          <BreadcrumbsItem index={0} onClick={onBreadcrumb}>
-            <M.Icon fontSize="small">home</M.Icon>
-          </BreadcrumbsItem>
-        ))}
+      {shoudShowBreadcrumb(0, items.length, tailOnly) && (
+        <BreadcrumbsItem index={0} onClick={onBreadcrumb}>
+          <M.Icon fontSize="small">home</M.Icon>
+        </BreadcrumbsItem>
+      )}
 
       {items.map((item, index) => {
-        if (isMultiColumned && index < items.length - 2) return null
+        if (!shoudShowBreadcrumb(index + 1, items.length, tailOnly)) return null
         return index === items.length - 1 ? (
           <M.Typography key="last-breadcrumb" variant="subtitle2">
             {item}
