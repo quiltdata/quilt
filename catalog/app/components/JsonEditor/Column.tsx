@@ -18,7 +18,6 @@ const useStyles = M.makeStyles((t) => ({
     position: 'relative',
     width: '100%',
   },
-
   adjacent: {
     flex: 1,
 
@@ -26,12 +25,13 @@ const useStyles = M.makeStyles((t) => ({
       marginLeft: '-1px',
     },
   },
-
+  adjacentButton: {
+    paddingLeft: t.spacing(1),
+  },
   scroll: {
     maxHeight: `calc(100% - ${t.spacing(8)}px)`,
     overflowY: 'auto',
   },
-
   table: {
     tableLayout: 'fixed',
   },
@@ -183,6 +183,7 @@ export default function Column({
             {columnType === 'array' && (
               <AddArrayItem
                 {...{
+                  className: adjacent ? classes.adjacentButton : undefined,
                   columnPath,
                   index: rows.length,
                   onAdd: onAddRowInternal,
