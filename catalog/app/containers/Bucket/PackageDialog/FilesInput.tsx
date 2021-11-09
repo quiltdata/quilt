@@ -21,11 +21,6 @@ import EditFileMeta from './EditFileMeta'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
 
-const onMetaStub = (meta: JsonValue) => {
-  // eslint-disable-next-line no-console
-  console.log('new meta', meta)
-}
-
 const COLORS = {
   default: M.colors.grey[900],
   added: M.colors.green[900],
@@ -461,7 +456,7 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: number
   action?: React.ReactNode
   meta?: JsonValue
-  onMeta: (value: JsonValue) => void
+  onMeta?: (value: JsonValue) => void
   interactive?: boolean
   faint?: boolean
   disableStateDisplay?: boolean
@@ -503,7 +498,7 @@ function File({
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
-      <EditFileMeta name={name} value={meta} onChange={onMeta} />
+      {onMeta && <EditFileMeta name={name} value={meta} onChange={onMeta} />}
       {action}
     </div>
   )
@@ -1684,7 +1679,7 @@ export function FilesSelector({
         <Contents error={!!error} warn={truncated}>
           {value.length ? (
             <FilesContainer noBorder>
-              {value.map(({ type, name, selected: sel, size, meta: fileMeta }) =>
+              {value.map(({ type, name, selected: sel, size }) =>
                 type === 'dir' ? (
                   <Dir
                     key={`dir:${name}`}
@@ -1704,8 +1699,6 @@ export function FilesSelector({
                     data-name={name}
                     faint={!sel}
                     interactive
-                    meta={fileMeta}
-                    onMeta={onMetaStub}
                   />
                 ),
               )}
