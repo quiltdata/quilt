@@ -13,13 +13,13 @@ const useStyles = M.makeStyles((t) => ({
 }))
 
 const useOverrideStyles = M.makeStyles({
-  separator: {
-    alignItems: 'center',
-  },
   li: {
     '&::before': {
       position: 'absolute', // Workaround for sanitize.css a11y styles
     },
+  },
+  separator: {
+    alignItems: 'center',
   },
 })
 
@@ -31,8 +31,8 @@ const useItemStyles = M.makeStyles({
 })
 
 interface ItemProps {
-  index: number
   children: React.ReactNode
+  index: number
   onClick: (index: number) => void
 }
 
@@ -68,9 +68,9 @@ function shoudShowItem(index: number, itemsNumber: number, tailOnly: boolean) {
 }
 
 interface BreadcrumbsProps {
-  tailOnly: boolean
   items: string[]
   onSelect: (path: string[]) => void
+  tailOnly: boolean
 }
 
 export default function Breadcrumbs({ tailOnly, items, onSelect }: BreadcrumbsProps) {
