@@ -30,13 +30,13 @@ const useItemStyles = M.makeStyles({
   },
 })
 
-interface BreadcrumbsItemProps {
+interface ItemProps {
   index: number
   children: React.ReactNode
   onClick: (index: number) => void
 }
 
-function BreadcrumbsItem({ index, children, onClick }: BreadcrumbsItemProps) {
+function Item({ index, children, onClick }: ItemProps) {
   const classes = useItemStyles()
 
   return (
@@ -50,11 +50,11 @@ function BreadcrumbsItem({ index, children, onClick }: BreadcrumbsItemProps) {
   )
 }
 
-interface CurrentBreadcrumbsItemProps {
+interface CurrentItemProps {
   children: React.ReactNode
 }
 
-function CurrentBreadcrumbsItem({ children }: CurrentBreadcrumbsItemProps) {
+function CurrentItem({ children }: CurrentItemProps) {
   return <M.Typography variant="subtitle2">{children}</M.Typography>
 }
 
@@ -62,7 +62,7 @@ function BreadcrumbsDivider() {
   return <M.Icon fontSize="small">chevron_right</M.Icon>
 }
 
-function shoudShowBreadcrumb(index: number, itemsNumber: number, tailOnly: boolean) {
+function shoudShowItem(index: number, itemsNumber: number, tailOnly: boolean) {
   if (!tailOnly) return true
   return index > itemsNumber - 2
 }
@@ -98,24 +98,22 @@ export default function Breadcrumbs({ tailOnly, items, onSelect }: BreadcrumbsPr
       ref={ref}
       separator={<BreadcrumbsDivider />}
     >
-      {shoudShowBreadcrumb(0, items.length, tailOnly) && (
-        <BreadcrumbsItem index={0} onClick={onBreadcrumb}>
+      {shoudShowItem(0, items.length, tailOnly) && (
+        <Item index={0} onClick={onBreadcrumb}>
           <M.Icon fontSize="small">home</M.Icon>
-        </BreadcrumbsItem>
+        </Item>
       )}
 
       {items.map((item, index) => {
         const actualIndex = index + 1
 
-        if (!shoudShowBreadcrumb(actualIndex, items.length, tailOnly)) return null
+        if (!shoudShowItem(actualIndex, items.length, tailOnly)) return null
 
         if (index === items.length - 1)
-          return (
-            <CurrentBreadcrumbsItem key="last-breadcrumb">{item}</CurrentBreadcrumbsItem>
-          )
+          return <CurrentItem key="last-breadcrumb">{item}</CurrentItem>
 
         return (
-          <BreadcrumbsItem
+          <Item
             {...{
               key: `${item}_${actualIndex}`,
               index: actualIndex,
@@ -123,7 +121,7 @@ export default function Breadcrumbs({ tailOnly, items, onSelect }: BreadcrumbsPr
             }}
           >
             {item}
-          </BreadcrumbsItem>
+          </Item>
         )
       })}
     </M.Breadcrumbs>
