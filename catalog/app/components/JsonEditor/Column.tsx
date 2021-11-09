@@ -20,7 +20,7 @@ const useStyles = M.makeStyles((t) => ({
     width: '100%',
   },
 
-  multiColumned: {
+  adjacent: {
     flex: 1,
 
     '& + &': {
@@ -78,13 +78,13 @@ function EmptyColumn({ columnType }: EmptyColumnProps) {
 }
 
 interface ColumnProps {
+  adjacent: boolean
   className: string
   columnPath: string[]
   data: {
     items: RowData[]
     parent: JsonValue
   }
-  isMultiColumned: boolean
   jsonDict: Record<string, JsonValue>
   onAddRow: (path: string[], key: string | number, value: JsonValue) => void
   onBreadcrumb: (path: string[]) => void
@@ -94,10 +94,10 @@ interface ColumnProps {
 }
 
 export default function Column({
+  adjacent,
   className,
   columnPath,
   data,
-  isMultiColumned,
   jsonDict,
   onAddRow,
   onBreadcrumb,
@@ -150,22 +150,12 @@ export default function Column({
   )
 
   return (
-    <div
-      className={cx(
-        classes.root,
-        { [classes.multiColumned]: isMultiColumned },
-        className,
-      )}
-    >
+    <div className={cx(classes.root, { [classes.adjacent]: adjacent }, className)}>
       {!!columnPath.length && (
-        <Breadcrumbs
-          tailOnly={isMultiColumned}
-          items={columnPath}
-          onSelect={onBreadcrumb}
-        />
+        <Breadcrumbs tailOnly={adjacent} items={columnPath} onSelect={onBreadcrumb} />
       )}
 
-      <M.TableContainer className={cx({ [classes.scroll]: isMultiColumned })}>
+      <M.TableContainer className={cx({ [classes.scroll]: adjacent })}>
         <M.Table {...getTableProps({ className: classes.table })}>
           <M.TableBody {...getTableBodyProps()}>
             {rows.map((row, index: number) => {
