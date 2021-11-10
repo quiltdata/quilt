@@ -93,7 +93,7 @@
     "jsoneditor-react": "^3.1.1",
     "katex": "^0.13.19",
     "lodash": "^4.17.21",
-    "match-sorter": "^6.3.0",
+    "match-sorter": "^6.3.1",
     "mime-types": "^2.1.34",
     "minimist": "^1.2.5",
     "mixpanel-browser": "^2.41.0",
