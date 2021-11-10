@@ -20,8 +20,14 @@ function shouldSqueezeColumn(columnIndex: number, columns: ColumnData[]) {
 
 const useSqueezeStyles = M.makeStyles((t) => ({
   root: {
+    alignSelf: 'flex-start',
     cursor: 'pointer',
-    padding: t.spacing(2, 2),
+    margin: t.spacing(0, 2),
+    padding: '5px 0',
+
+    '& + &': {
+      marginLeft: 0,
+    },
   },
 }))
 
