@@ -13,11 +13,12 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 // import StyledLink from 'utils/StyledLink' // TODO: uncomment on docs deploy
 
+import QuerySelect from '../QuerySelect'
 import * as requests from '../requests'
+
 import QueryEditor from './QueryEditor'
 import Results from './Results'
 import History from './History'
-import QuerySelect from '../QuerySelect'
 import WorkgroupSelect from './WorkgroupSelect'
 
 interface WorkgroupsEmptyProps {

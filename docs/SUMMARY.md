@@ -22,17 +22,18 @@
 * [Known limitations](api-reference/limitations.md)
 
 ### Catalog
+* [Admin UI](Catalog/Admin.md)
 * [Configuration](Catalog/Preferences.md)
+* [Embed](Catalog/Embed.md)
+* [Metadata for teams](Catalog/Metadata.md)
 * [Preview](Catalog/Preview.md)
 * [Search & query](Catalog/SearchQuery.md)
-* [Metadata for teams](Catalog/Metadata.md)
-* [Admin UI](Catalog/Admin.md)
-* [Embed](Catalog/Embed.md)
+* [Visualization & dashboards](Catalog/VisualizationDashboards.md)
 
 ### Examples
 * [Git-like management for data](examples/GitLike.md)
 
-### Advanced Usage
+### Advanced
 * [Filtering a Package](advanced-features/filtering-a-package.md)
 * [.quiltignore](advanced-features/.quiltignore.md)
 * [Materialization](advanced-features/materialization.md)
@@ -41,7 +42,6 @@
 * [Workflows](advanced-features/workflows.md)
 * [Enterprise install](technical-reference.md)
 * [S3 Events, EventBridge](EventBridge.md)
-
 
 ### More
 * [Frequently Asked Questions](FAQ.md)

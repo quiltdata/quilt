@@ -11,8 +11,15 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-// position: left | right
-export default function ButtonIcon({ className, position = 'left', ...props }) {
+interface ButtonIconProps extends M.IconProps {
+  position?: 'left' | 'right'
+}
+
+export default function ButtonIcon({
+  className,
+  position = 'left',
+  ...props
+}: ButtonIconProps) {
   const classes = useStyles()
   return <M.Icon {...props} className={cx(className, classes[position])} />
 }

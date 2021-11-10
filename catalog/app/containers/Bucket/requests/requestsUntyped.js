@@ -5,8 +5,9 @@ import * as FP from 'fp-ts'
 import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
-import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import quiltSummarizeSchema from 'schemas/quilt_summarize.json'
+
+import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import * as Resource from 'utils/Resource'
 import { makeSchemaValidator } from 'utils/json-schema'
 import mkSearch from 'utils/mkSearch'
