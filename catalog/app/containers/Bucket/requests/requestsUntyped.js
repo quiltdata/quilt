@@ -156,7 +156,8 @@ const processStats = R.applySpec({
 export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   if (overviewUrl) {
     try {
-      return s3
+      // eslint-disable-next-line @typescript-eslint/return-await
+      return await s3
         .getObject({
           Bucket: getOverviewBucket(overviewUrl),
           Key: getOverviewKey(overviewUrl, 'stats.json'),
@@ -383,7 +384,8 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
   }
   if (overviewUrl) {
     try {
-      return s3
+      // eslint-disable-next-line @typescript-eslint/return-await
+      return await s3
         .getObject({
           Bucket: getOverviewBucket(overviewUrl),
           Key: getOverviewKey(overviewUrl, 'summary.json'),
@@ -489,7 +491,8 @@ export const bucketReadmes = ({ s3, bucket, overviewUrl }) =>
 export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
   if (overviewUrl) {
     try {
-      return s3
+      // eslint-disable-next-line @typescript-eslint/return-await
+      return await s3
         .getObject({
           Bucket: getOverviewBucket(overviewUrl),
           Key: getOverviewKey(overviewUrl, 'summary.json'),
