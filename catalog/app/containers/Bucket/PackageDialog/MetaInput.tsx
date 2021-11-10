@@ -14,7 +14,7 @@ import MetadataEditor from 'components/MetadataEditor'
 import * as Notifications from 'containers/Notifications'
 import Delay from 'utils/Delay'
 import useDragging from 'utils/dragging'
-import { JsonSchema } from 'utils/json-schema'
+import { JsonSchema, makeSchemaDefaultsSetter } from 'utils/json-schema'
 import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
 
@@ -290,6 +290,11 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
 
     const { getRootProps, isDragActive } = useDropzone({ onDrop })
 
+    const valueToDisplay = React.useMemo(
+      () => makeSchemaDefaultsSetter(schema)(value),
+      [schema, value],
+    )
+
     return (
       <div className={className}>
         <div className={classes.header}>
@@ -319,7 +324,7 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
             <JsonDisplay
               name=""
               topLevel={1}
-              value={value}
+              value={valueToDisplay}
               className={classes.jsonDisplay}
               defaultExpanded={1}
             />
