@@ -116,7 +116,7 @@
     "react-input-autosize": "^3.0.0",
     "react-multi-carousel": "^2.6.5",
     "react-redux": "^7.2.6",
-    "react-router-dom": "^5.2.0",
+    "react-router-dom": "^5.3.0",
     "react-router-hash-link": "^1.2.2",
     "react-swipeable-views": "^0.14.0",
     "react-swipeable-views-core": "^0.14.0",
