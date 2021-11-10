@@ -156,15 +156,13 @@ const processStats = R.applySpec({
 export const bucketStats = async ({ req, s3, bucket, overviewUrl }) => {
   if (overviewUrl) {
     try {
-      // eslint-disable-next-line @typescript-eslint/return-await
-      return await s3
+      const r = await s3
         .getObject({
           Bucket: getOverviewBucket(overviewUrl),
           Key: getOverviewKey(overviewUrl, 'stats.json'),
         })
         .promise()
-        .then((r) => JSON.parse(r.Body.toString('utf-8')))
-        .then(processStats)
+      return processStats(JSON.parse(r.Body.toString('utf-8')))
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log(`Unable to fetch pre-rendered stats from '${overviewUrl}':`)
@@ -384,34 +382,31 @@ export const bucketSummary = async ({ s3, req, bucket, overviewUrl, inStack }) =
   }
   if (overviewUrl) {
     try {
-      // eslint-disable-next-line @typescript-eslint/return-await
-      return await s3
+      const r = await s3
         .getObject({
           Bucket: getOverviewBucket(overviewUrl),
           Key: getOverviewKey(overviewUrl, 'summary.json'),
         })
         .promise()
-        .then(
-          R.pipe(
-            (r) => JSON.parse(r.Body.toString('utf-8')),
-            R.pathOr([], ['aggregations', 'other', 'keys', 'buckets']),
-            R.map((b) => ({
-              bucket,
-              key: b.key,
-              // eslint-disable-next-line no-underscore-dangle
-              version: b.latestVersion.hits.hits[0]._source.version_id,
-              lastModified: parseDate(b.lastModified),
-              // eslint-disable-next-line no-underscore-dangle
-              ext: b.latestVersion.hits.hits[0]._source.ext,
-            })),
-            R.sortWith([
-              R.ascend((h) => SAMPLE_EXTS.indexOf(h.ext)),
-              R.descend(R.prop('lastModified')),
-            ]),
-            R.take(SAMPLE_SIZE),
-            R.map(R.objOf('handle')),
-          ),
-        )
+      return FP.function.pipe(
+        JSON.parse(r.Body.toString('utf-8')),
+        R.pathOr([], ['aggregations', 'other', 'keys', 'buckets']),
+        R.map((b) => ({
+          bucket,
+          key: b.key,
+          // eslint-disable-next-line no-underscore-dangle
+          version: b.latestVersion.hits.hits[0]._source.version_id,
+          lastModified: parseDate(b.lastModified),
+          // eslint-disable-next-line no-underscore-dangle
+          ext: b.latestVersion.hits.hits[0]._source.ext,
+        })),
+        R.sortWith([
+          R.ascend((h) => SAMPLE_EXTS.indexOf(h.ext)),
+          R.descend(R.prop('lastModified')),
+        ]),
+        R.take(SAMPLE_SIZE),
+        R.map(R.objOf('handle')),
+      )
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log(`Unable to fetch pre-rendered summary from '${overviewUrl}':`)
@@ -491,25 +486,22 @@ export const bucketReadmes = ({ s3, bucket, overviewUrl }) =>
 export const bucketImgs = async ({ req, s3, bucket, overviewUrl, inStack }) => {
   if (overviewUrl) {
     try {
-      // eslint-disable-next-line @typescript-eslint/return-await
-      return await s3
+      const r = await s3
         .getObject({
           Bucket: getOverviewBucket(overviewUrl),
           Key: getOverviewKey(overviewUrl, 'summary.json'),
         })
         .promise()
-        .then(
-          R.pipe(
-            (r) => JSON.parse(r.Body.toString('utf-8')),
-            R.pathOr([], ['aggregations', 'images', 'keys', 'buckets']),
-            R.map((b) => ({
-              bucket,
-              key: b.key,
-              // eslint-disable-next-line no-underscore-dangle
-              version: b.latestVersion.hits.hits[0]._source.version_id,
-            })),
-          ),
-        )
+      return FP.function.pipe(
+        JSON.parse(r.Body.toString('utf-8')),
+        R.pathOr([], ['aggregations', 'images', 'keys', 'buckets']),
+        R.map((b) => ({
+          bucket,
+          key: b.key,
+          // eslint-disable-next-line no-underscore-dangle
+          version: b.latestVersion.hits.hits[0]._source.version_id,
+        })),
+      )
     } catch (e) {
       // eslint-disable-next-line no-console
       console.log(`Unable to fetch images sample from '${overviewUrl}':`)
