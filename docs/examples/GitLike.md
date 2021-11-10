@@ -65,7 +65,7 @@ Quilt will then print out something like the following:
 Package YOUR_NAME/reef-check@ea334b7 pushed to s3://YOUR_BUCKET
 Successfully pushed the new package to https://yourquilt.yourocmpany.com/b/YOUR_NAME/packages/akarve/reef-check
 ```
-## List the packages in a directory
+## List the packages in a bucket
 ```bash
 quilt3 list-packages s3://YOUR_BUCKET
 ```
