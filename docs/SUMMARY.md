@@ -31,7 +31,7 @@
 * [Visualization & dashboards](Catalog/VisualizationDashboards.md)
 
 ### Examples
-* [Git-like management for data](examples/GitLike.md)
+* [Git-like operations for datasets and Jupyter notebooks](examples/GitLike.md)
 
 ### Advanced
 * [Filtering a Package](advanced-features/filtering-a-package.md)
