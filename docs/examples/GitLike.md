@@ -1,6 +1,6 @@
 # Git-like operations for datasets and Jupyter notebooks
 
-`quilt3` provides a simple API for versioning large datasets and storing
+`quilt3` provides a simple command-line for versioning large datasets and storing
 them in Amazon S3. There are only two commands you need to know:
 * `push` creates a new package revision in an S3 bucket that you designate
 * `install` downloads data from a remote package to disk
@@ -16,11 +16,11 @@ and slow container operations down.
 
 ## Pre-requisites
 You will need either an AWS account, credentials, and an S3 bucket,
-or Quilt enterprise stack with at least one bucket.  In order to read from and
+OR a Quilt enterprise stack with at least one bucket. In order to read from and
 write to S3 with `quilt3`, you must first do one of the following:
 
 * [Configure your AWS credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
-* If you use a Quilt enterprise stack, run the following:
+* OR, if and only if your company runs a Quilt enterprise stack, run the following:
    ```bash
    $ pip install quilt3
    $ quilt3 config https://yourquilt.yourcompany.com
