@@ -17,15 +17,15 @@ echo "" >> cli.md
 
 gen_cmd_docs 'catalog'
 quilt3 catalog --detailed_help >> cli.md
+gen_cmd_docs 'config'
+gen_cmd_docs 'config-default-remote-registry'
+gen_cmd_docs 'disable-telemetry'
 gen_cmd_docs 'install'
-gen_cmd_docs 'verify'
+gen_cmd_docs 'list-packages'
 gen_cmd_docs 'login'
 gen_cmd_docs 'logout'
-gen_cmd_docs 'config'
-gen_cmd_docs 'disable-telemetry'
-gen_cmd_docs 'list-packages'
 gen_cmd_docs 'push'
-gen_cmd_docs 'config-default-remote-registry'
+gen_cmd_docs 'verify'
 
 # Document environment varialbes and constants
 cat env_constants.md >> cli.md

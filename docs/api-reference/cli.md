@@ -40,6 +40,47 @@ We strongly encourage users with
 sensitive data in S3 to run a private Quilt deployment. Visit
 https://quiltdata.com for more information.
 
+## `config`
+```
+usage: quilt3 config [-h] [--set KEY=VALUE [KEY=VALUE ...]] [catalog_url]
+
+Configure Quilt
+
+positional arguments:
+  catalog_url           URL of catalog to config with, or empty string to
+                        reset the config
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --set KEY=VALUE [KEY=VALUE ...]
+                        Set a number of key-value pairs for config_values(do
+                        not put spaces before or after the = sign). If a value
+                        contains spaces, you should define it with double
+                        quotes: foo="this is a sentence". Note that values are
+                        always treated as strings.
+```
+## `config-default-remote-registry`
+```
+usage: quilt3 config-default-remote-registry [-h] default_remote_registry
+
+Configure default remote registry for Quilt
+
+positional arguments:
+  default_remote_registry
+                        The default remote registry to use, e.g. s3://quilt-ml
+
+optional arguments:
+  -h, --help            show this help message and exit
+```
+## `disable-telemetry`
+```
+usage: quilt3 disable-telemetry [-h]
+
+Disable anonymous usage metrics
+
+optional arguments:
+  -h, --help  show this help message and exit
+```
 ## `install`
 ```
 usage: quilt3 install [-h] [--registry REGISTRY] [--top-hash TOP_HASH]
@@ -64,25 +105,17 @@ optional arguments:
                         registry.
   --path PATH           If specified, downloads only PATH or its children.
 ```
-## `verify`
+## `list-packages`
 ```
-usage: quilt3 verify [-h] --registry REGISTRY --top-hash TOP_HASH --dir DIR
-                     [--extra-files-ok]
-                     name
+usage: quilt3 list-packages [-h] registry
 
-Verify that package contents matches a given directory
+List all packages in a registry
 
 positional arguments:
-  name                 Name of package, in the USER/PKG format
+  registry    Registry for packages, e.g. s3://quilt-example
 
 optional arguments:
-  -h, --help           show this help message and exit
-  --registry REGISTRY  Registry where package is located, usually s3://MY-
-                       BUCKET
-  --top-hash TOP_HASH  Hash of package to verify
-  --dir DIR            Directory to verify
-  --extra-files-ok     Whether extra files in the directory should cause a
-                       failure
+  -h, --help  show this help message and exit
 ```
 ## `login`
 ```
@@ -98,46 +131,6 @@ optional arguments:
 usage: quilt3 logout [-h]
 
 Log out of current Quilt server
-
-optional arguments:
-  -h, --help  show this help message and exit
-```
-## `config`
-```
-usage: quilt3 config [-h] [--set KEY=VALUE [KEY=VALUE ...]] [catalog_url]
-
-Configure Quilt
-
-positional arguments:
-  catalog_url           URL of catalog to config with, or empty string to
-                        reset the config
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --set KEY=VALUE [KEY=VALUE ...]
-                        Set a number of key-value pairs for config_values(do
-                        not put spaces before or after the = sign). If a value
-                        contains spaces, you should define it with double
-                        quotes: foo="this is a sentence". Note that values are
-                        always treated as strings.
-```
-## `disable-telemetry`
-```
-usage: quilt3 disable-telemetry [-h]
-
-Disable anonymous usage metrics
-
-optional arguments:
-  -h, --help  show this help message and exit
-```
-## `list-packages`
-```
-usage: quilt3 list-packages [-h] registry
-
-List all packages in a registry
-
-positional arguments:
-  registry    Registry for packages, e.g. s3://quilt-example
 
 optional arguments:
   -h, --help  show this help message and exit
@@ -168,35 +161,50 @@ optional arguments:
                        validation. If not specified, the default workflow will
                        be used.
 ```
-## `config-default-remote-registry`
+## `verify`
 ```
-usage: quilt3 config-default-remote-registry [-h] default_remote_registry
+usage: quilt3 verify [-h] --registry REGISTRY --top-hash TOP_HASH --dir DIR
+                     [--extra-files-ok]
+                     name
 
-Configure default remote registry for Quilt
+Verify that package contents matches a given directory
 
 positional arguments:
-  default_remote_registry
-                        The default remote registry to use, e.g. s3://quilt-ml
+  name                 Name of package, in the USER/PKG format
 
 optional arguments:
-  -h, --help            show this help message and exit
+  -h, --help           show this help message and exit
+  --registry REGISTRY  Registry where package is located, usually s3://MY-
+                       BUCKET
+  --top-hash TOP_HASH  Hash of package to verify
+  --dir DIR            Directory to verify
+  --extra-files-ok     Whether extra files in the directory should cause a
+                       failure
 ```
 ## Environment variables
-### `QUILT_DISABLE_USAGE_METRICS`
-Disable anonymous usage collection. Defaults to `False`
-```
-$ export QUILT_DISABLE_USAGE_METRICS=true
-```
-### `QUILT_MINIMIZE_STDOUT`
-Turn off TQDM progress bars for log files. Defaults to `False`
-```
-$ export QUILT_MINIMIZE_STDOUT=true
-```
+
 ### `QUILT_DISABLE_CACHE`
 Turn off cache. Defaults to `False`.
 ```
 $ export QUILT_DISABLE_CACHE=true
 ```
+
+### `QUILT_DISABLE_USAGE_METRICS`
+Disable anonymous usage collection. Defaults to `False`
+```
+$ export QUILT_DISABLE_USAGE_METRICS=true
+```
+
+### `QUILT_MANIFEST_MAX_RECORD_SIZE`
+Maximum size of a record in package manifest. **Setting this variable is strongly discouraged.**
+Defaults to `1_000_000`.
+
+### `QUILT_MINIMIZE_STDOUT`
+Turn off TQDM progress bars for log files. Defaults to `False`
+```
+$ export QUILT_MINIMIZE_STDOUT=true
+```
+
 ### `QUILT_TRANSFER_MAX_CONCURRENCY`
 Number of threads for file transfers. Defaults to `10`.
 
@@ -205,9 +213,6 @@ depends on network bandwidth, CPU performance, file sizes, etc.
 ```
 $ export QUILT_TRANSFER_MAX_CONCURRENCY=20
 ```
-### `QUILT_MANIFEST_MAX_RECORD_SIZE`
-Maximum size of a record in package manifest. **Setting this variable is strongly discouraged.**
-Defaults to `1_000_000`.
 
 ### `XDG_*`
 Quilt uses appdirs for Python to determine where to write data. You can therefore
@@ -221,12 +226,12 @@ in Lambda, by setting the `XDG_CACHE_HOME` environment variable.
 
 ## Constants (see [util.py](https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/util.py) for more)
 
-- `APP_NAME`
 - `APP_AUTHOR`
+- `APP_NAME`
 - `BASE_DIR` - Base directory of the application
 - `BASE_PATH` - Base pathlib path for the application directory
 - `CACHE_PATH` - Pathlib path for the user cache directory
-- `TEMPFILE_DIR_PATH` - Base pathlib path for the application `tempfiles`
 - `CONFIG_PATH` - Base pathlib path for the application configuration file
 - `OPEN_DATA_URL` - Application data url
 - `PACKAGE_NAME_FORMAT` - Regex for legal package names
+- `TEMPFILE_DIR_PATH` - Base pathlib path for the application `tempfiles`
