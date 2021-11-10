@@ -7,7 +7,6 @@
 * [Architecture](Architecture.md)
 
 ### Walkthrough
-
 * [Editing a Package](walkthrough/editing-a-package.md)
 * [Uploading a Package](walkthrough/uploading-a-package.md)
 * [Installing a Package](walkthrough/installing-a-package.md)
@@ -16,7 +15,6 @@
 * [Working with a Bucket](walkthrough/working-with-a-bucket.md)
 
 ### API Reference
-
 * [quilt3](api-reference/api.md)
 * [quilt3.Package](api-reference/Package.md)
 * [quilt3.Bucket](api-reference/Bucket.md)
@@ -24,16 +22,18 @@
 * [Known limitations](api-reference/limitations.md)
 
 ### Catalog
-
+* [Admin UI](Catalog/Admin.md)
 * [Configuration](Catalog/Preferences.md)
+* [Embed](Catalog/Embed.md)
+* [Metadata for teams](Catalog/Metadata.md)
 * [Preview](Catalog/Preview.md)
 * [Search & query](Catalog/SearchQuery.md)
-* [Metadata for teams](Catalog/Metadata.md)
-* [Admin UI](Catalog/Admin.md)
-* [Embed](Catalog/Embed.md)
+* [Visualization & dashboards](Catalog/VisualizationDashboards.md)
 
-### Advanced Usage
+### Examples
+* [Git-like operations for datasets and Jupyter notebooks](examples/GitLike.md)
 
+### Advanced
 * [Filtering a Package](advanced-features/filtering-a-package.md)
 * [.quiltignore](advanced-features/.quiltignore.md)
 * [Materialization](advanced-features/materialization.md)
@@ -43,9 +43,7 @@
 * [Enterprise install](technical-reference.md)
 * [S3 Events, EventBridge](EventBridge.md)
 
-
 ### More
-
 * [Frequently Asked Questions](FAQ.md)
 * [Troubleshooting](Troubleshooting.md)
 * [Contributing](CONTRIBUTING.md)
