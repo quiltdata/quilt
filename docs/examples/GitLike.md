@@ -22,9 +22,9 @@ write to S3 with `quilt3`, you must first do one of the following:
 * [Configure your AWS credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
 * OR, if and only if your company runs a Quilt enterprise stack, run the following:
    ```bash
-   $ pip install quilt3
-   $ quilt3 config https://yourquilt.yourcompany.com
-   $ quilt3 login
+   pip install quilt3
+   quilt3 config https://yourquilt.yourcompany.com
+   quilt3 login
    ```
 
 ## Install a package
@@ -33,9 +33,9 @@ documentation that you specify.
 
 Let's get a data package from S3 and write it `quilt-hurdat/data` .
 ```bash
-$ mkdir reef-check
-$ cd reef-check
-$ quilt3 install \
+mkdir reef-check
+cd reef-check
+quilt3 install \
     "akarve/reef-check" \
     --registry s3://quilt-example \
     --dest .
@@ -43,7 +43,7 @@ $ quilt3 install \
 
 Now you've got data in the current working directory.
 ```
-$ ls
+ls
 CA-06-california-counties.json	quilt_summarize.json  urchins-interactive.json
 README.md			reef-check.ipynb      urchins2006-2019.parquet
 ```
