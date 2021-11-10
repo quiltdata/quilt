@@ -76,6 +76,9 @@ a README, data grid preview, and an interactive visualization in Altair.
 ![](../imgs/reef1.png)
 ![](../imgs/reef2.png)
 
+You can see an example of this package live
+[here](https://open.quiltdata.com/b/quilt-example/packages/akarve/reef-check/tree/8a0d875d5f46355a770143d66c4a1cfea43c7ffa215db600b9ff88fafe687676/).
+
 ## Learn more
 Those are the basics of reading and writing Quilt packages with the
 CLI. See the [CLI reference](../api-reference/cli.md) for more.
