@@ -107,6 +107,25 @@ export interface FilesState {
   counter?: number
 }
 
+const addMetaToFile = (
+  file: ExistingFile | LocalFile | S3FilePicker.S3File,
+  meta: JsonValue,
+) => {
+  if (file instanceof window.File) {
+    const fileCopy = new window.File([file as File], (file as File).name, {
+      type: (file as File).type,
+    })
+    Object.defineProperty(fileCopy, 'meta', {
+      value: meta,
+    })
+    Object.defineProperty(fileCopy, 'hash', {
+      value: (file as FileWithHash).hash,
+    })
+    return fileCopy
+  }
+  return R.assoc('meta', meta, file)
+}
+
 const handleFilesAction = FilesAction.match<
   (state: FilesState) => FilesState,
   [{ initial: FilesState }]
@@ -158,27 +177,18 @@ const handleFilesAction = FilesAction.match<
       ...rest,
     }),
   Meta: ({ path, meta }) => {
-    const setMetaToExistingFile = (existing: Record<string, ExistingFile>) => {
-      const file = existing[path]
-      if (!file) return existing
-      return R.assocPath([path, 'meta'], meta, existing)
-    }
+    // TODO: use one function and type overload
     const setMetaToAddedFile = (
-      added: Record<string, LocalFile | S3FilePicker.S3File>,
+      filesDict: Record<string, LocalFile | S3FilePicker.S3File>,
     ) => {
-      const file = added[path]
-      if (!file) return added
-      // Trigger useMemoEq hook
-      const fileCopy = new window.File([file as File], (file as File).name, {
-        type: (file as File).type,
-      })
-      Object.defineProperty(fileCopy, 'meta', {
-        value: meta,
-      })
-      Object.defineProperty(fileCopy, 'hash', {
-        value: (file as FileWithHash).hash,
-      })
-      return R.assoc(path, fileCopy, added)
+      const file = filesDict[path]
+      if (!file) return filesDict
+      return R.assoc(path, addMetaToFile(file, meta), filesDict)
+    }
+    const setMetaToExistingFile = (filesDict: Record<string, ExistingFile>) => {
+      const file = filesDict[path]
+      if (!file) return filesDict
+      return R.assoc(path, addMetaToFile(file, meta), filesDict)
     }
     return R.evolve({
       added: setMetaToAddedFile,
