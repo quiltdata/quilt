@@ -20,7 +20,7 @@ const BYTES_TO_SCAN = 128 * 1024
 
 const map = (fn) => R.ifElse(Array.isArray, R.map(fn), fn)
 
-const traverseUrls = (fn, spec) =>
+export const traverseUrls = (fn, spec) =>
   R.evolve(
     {
       data: map(R.evolve({ url: fn })),
