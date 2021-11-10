@@ -1,5 +1,5 @@
-import hashlib
 import functools
+import hashlib
 import urllib.request
 
 
