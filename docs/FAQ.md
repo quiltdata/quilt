@@ -62,3 +62,18 @@ a local machine or foreign region)—I/O is much faster.
 
 1. Increase [`QUILT_TRANSFER_MAX_CONCURRENCY`](api-reference/cli.md#quilt_transfer_max_concurrency)
 above its default to match your available vCPUs.
+
+## I'm having trouble pushing packages from inside of a notebook
+Since `quilt3.Package.push` displays progress bars, we recommended one of the
+following:
+
+1. Push from outside your notebook with the CLI (`quilt3 push ....`). You can
+use Jupyter terminal for this.
+
+1. If you must push from within the notebook, save it first, and use the `%%capture`
+magic to prevent output from cells that change during push. This prevents a race
+condition between hashing the file and physically copying it to S3, during which
+time the file hash and size might change, due to progress bars and other text
+that `quilt3` writes to your notebook. Failing this precaution, `quilt3 install`
+may fail since the file in S3 contains may have a different hash than your local
+machine did when `push` began.
