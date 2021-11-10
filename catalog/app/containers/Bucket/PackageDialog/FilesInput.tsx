@@ -34,6 +34,7 @@ interface FileWithHash extends File {
     ready: boolean
     promise: Promise<string>
   }
+  meta?: object
 }
 
 const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
@@ -157,12 +158,31 @@ const handleFilesAction = FilesAction.match<
       ...rest,
     }),
   Meta: ({ path, meta }) => {
-    const setMeta = R.set(R.lensPath([path, 'meta']), meta)
-    const setMetaIfFileExists = R.ifElse(R.has(path), setMeta, R.identity)
+    const setMetaToExistingFile = (existing: Record<string, ExistingFile>) => {
+      const file = existing[path]
+      if (!file) return existing
+      return R.assocPath([path, 'meta'], meta, existing)
+    }
+    const setMetaToAddedFile = (
+      added: Record<string, LocalFile | S3FilePicker.S3File>,
+    ) => {
+      const file = added[path]
+      if (!file) return added
+      // Trigger useMemoEq hook
+      const fileCopy = new window.File([file as File], (file as File).name, {
+        type: (file as File).type,
+      })
+      Object.defineProperty(fileCopy, 'meta', {
+        value: meta,
+      })
+      Object.defineProperty(fileCopy, 'hash', {
+        value: (file as FileWithHash).hash,
+      })
+      return R.assoc(path, fileCopy, added)
+    }
     return R.evolve({
-      added: setMetaIfFileExists,
-      deleted: setMetaIfFileExists,
-      existing: setMetaIfFileExists,
+      added: setMetaToAddedFile,
+      existing: setMetaToExistingFile,
     })
   },
   Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
@@ -251,6 +271,7 @@ interface IntermediateEntry {
   type: FilesEntryType
   path: string
   size: number
+  meta?: object
 }
 
 const computeEntries = ({ added, deleted, existing }: FilesState) => {
@@ -283,7 +304,7 @@ const computeEntries = ({ added, deleted, existing }: FilesState) => {
   const addedEntries = Object.entries(added).reduce((acc, [path, f]) => {
     if (path in existing) return acc
     const type = S3FilePicker.isS3File(f) ? ('s3' as const) : ('local' as const)
-    return acc.concat({ state: 'added', type, path, size: f.size })
+    return acc.concat({ state: 'added', type, path, size: f.size, meta: f.meta })
   }, [] as IntermediateEntry[])
   const entries: IntermediateEntry[] = [...existingEntries, ...addedEntries]
   return entries.reduce((children, { path, ...rest }) => {
@@ -1049,6 +1070,11 @@ function FileUpload({
     e.stopPropagation()
   }, [])
 
+  const onMeta = React.useCallback(
+    (m: JsonValue) => dispatch(FilesAction.Meta({ path, meta: m })),
+    [dispatch, path],
+  )
+
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events
     <File
@@ -1061,7 +1087,7 @@ function FileUpload({
       name={name}
       size={size}
       meta={meta}
-      onMeta={(m) => dispatch(FilesAction.Meta({ path, meta: m }))}
+      onMeta={state !== 'deleted' ? onMeta : undefined}
       action={
         <M.IconButton onClick={action.handler} title={action.hint} size="small">
           <M.Icon fontSize="inherit">{action.icon}</M.Icon>

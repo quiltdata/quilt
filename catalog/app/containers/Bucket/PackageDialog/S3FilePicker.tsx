@@ -24,6 +24,7 @@ export interface S3File {
   key: string
   version?: string
   size: number
+  meta?: object
 }
 
 export const isS3File = (f: any): f is S3File =>

@@ -209,7 +209,7 @@ function PackageCreationForm({
         files: toUpload,
         bucket,
         prefix: name,
-        getMeta: (path) => files.existing[path]?.meta,
+        getMeta: (path) => files.existing[path]?.meta || files.added[path]?.meta,
       })
     } catch (e) {
       // eslint-disable-next-line no-console
