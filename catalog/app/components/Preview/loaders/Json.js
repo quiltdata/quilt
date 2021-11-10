@@ -20,7 +20,14 @@ const BYTES_TO_SCAN = 128 * 1024
 
 const map = (fn) => R.ifElse(Array.isArray, R.map(fn), fn)
 
-const traverseUrls = (fn, spec) => R.evolve({ data: map(R.evolve({ url: fn })) }, spec)
+const traverseUrls = (fn, spec) =>
+  R.evolve(
+    {
+      data: map(R.evolve({ url: fn })),
+      layer: map((l) => traverseUrls(fn, l)),
+    },
+    spec,
+  )
 
 // NOTE: downloads content from urls embeded in `{ data: url-here-becomes-json }`
 function useVegaSpecSigner(handle) {
