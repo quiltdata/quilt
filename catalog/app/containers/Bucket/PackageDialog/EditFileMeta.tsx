@@ -60,9 +60,9 @@ function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
           control={<M.Switch checked={isRaw} onChange={() => setRaw(!isRaw)} />}
           label="Edit raw data"
         />
-        <M.Button onClick={onClose}>Cancel</M.Button>
+        <M.Button onClick={onClose}>Discard</M.Button>
         <M.Button onClick={handleSubmit} variant="contained" color="primary">
-          Submit
+          Save
         </M.Button>
       </M.DialogActions>
     </M.Dialog>

@@ -6,7 +6,6 @@ import * as M from '@material-ui/core'
 import * as Lab from '@material-ui/lab'
 import { fade } from '@material-ui/core/styles'
 
-import { JsonValue } from 'components/JsonEditor/constants'
 import * as urls from 'constants/urls'
 import StyledLink from 'utils/StyledLink'
 import assertNever from 'utils/assertNever'
@@ -16,6 +15,7 @@ import { withoutPrefix } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
+import { JsonRecord } from 'utils/types'
 
 import EditFileMeta from './EditFileMeta'
 import * as PD from './PackageDialog'
@@ -34,7 +34,7 @@ interface FileWithHash extends File {
     ready: boolean
     promise: Promise<string>
   }
-  meta?: object
+  meta?: JsonRecord
 }
 
 const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
@@ -71,7 +71,7 @@ export const FilesAction = tagged.create(
     }) => v,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
-    Meta: (v: { path: string; meta: JsonValue }) => v,
+    Meta: (v: { path: string; meta: JsonRecord }) => v,
     Revert: (path: string) => path,
     RevertDir: (prefix: string) => prefix,
     Reset: () => {},
@@ -85,14 +85,14 @@ export type FilesAction = tagged.InstanceOf<typeof FilesAction>
 export interface ExistingFile {
   physicalKey: string
   hash: string
-  meta: object
+  meta: JsonRecord
   size: number
 }
 
 export interface PartialExistingFile {
   physicalKey: string
   hash?: string
-  meta?: object
+  meta?: JsonRecord
   size?: number
 }
 
@@ -109,7 +109,7 @@ export interface FilesState {
 
 const addMetaToFile = (
   file: ExistingFile | LocalFile | S3FilePicker.S3File,
-  meta: JsonValue,
+  meta: JsonRecord,
 ) => {
   if (file instanceof window.File) {
     const fileCopy = new window.File([file as File], (file as File).name, {
@@ -229,7 +229,7 @@ const FilesEntry = tagged.create(FilesEntryTag, {
     state: FilesEntryState
     type: FilesEntryType
     size: number
-    meta?: JsonValue
+    meta?: JsonRecord
   }) => v,
 })
 
@@ -281,7 +281,7 @@ interface IntermediateEntry {
   type: FilesEntryType
   path: string
   size: number
-  meta?: object
+  meta?: JsonRecord
 }
 
 const computeEntries = ({ added, deleted, existing }: FilesState) => {
@@ -486,8 +486,8 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   type?: FilesEntryType
   size?: number
   action?: React.ReactNode
-  meta?: JsonValue
-  onMeta?: (value: JsonValue) => void
+  meta?: JsonRecord
+  onMeta?: (value: JsonRecord) => void
   interactive?: boolean
   faint?: boolean
   disableStateDisplay?: boolean
@@ -1081,7 +1081,7 @@ function FileUpload({
   }, [])
 
   const onMeta = React.useCallback(
-    (m: JsonValue) => dispatch(FilesAction.Meta({ path, meta: m })),
+    (m: JsonRecord) => dispatch(FilesAction.Meta({ path, meta: m })),
     [dispatch, path],
   )
 
@@ -1608,7 +1608,7 @@ interface FilesSelectorEntry {
   name: string
   selected: boolean
   size?: number
-  meta?: JsonValue
+  meta?: JsonRecord
 }
 
 export type FilesSelectorState = FilesSelectorEntry[]
