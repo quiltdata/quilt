@@ -25,9 +25,7 @@ function SingleError({ className, error }: SingleErrorProps) {
   return (
     <Lab.Alert severity="error" className={className}>
       {(error as ErrorObject).instancePath && (
-        <>
-          <code className={classes.code}>{(error as ErrorObject).instancePath}</code>
-        </>
+        <code className={classes.code}>{(error as ErrorObject).instancePath}</code>
       )}
       {error.message}
     </Lab.Alert>
