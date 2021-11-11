@@ -17,4 +17,6 @@ def pytest_configure(config):
             ),
             str(2 ** 64),  # Value big enough to serve as 'unlimited'.
         ),
+        S3_HASH_LAMBDA='s3-hash-lambda-name',
+        S3_HASH_LAMBDA_CONCURRENCY='40',
     )
