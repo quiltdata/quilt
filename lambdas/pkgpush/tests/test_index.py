@@ -8,8 +8,6 @@ from http import HTTPStatus
 from unittest import mock
 
 import boto3
-import quilt3
-
 import index
 from botocore.stub import Stubber
 from flask import Response
@@ -933,7 +931,7 @@ class PackageCreateWithHashingTestCase(PackageCreateTestCaseBase):
 
 class HashCalculationTest(unittest.TestCase):
     def setUp(self):
-        self.pkg = quilt3.Package()
+        self.pkg = Package()
         self.entry_with_hash = PackageEntry(
             PhysicalKey('test-bucket', 'with-hash', 'with-hash'),
             42,
