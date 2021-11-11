@@ -529,7 +529,7 @@ function File({
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
-      {onMeta && <EditFileMeta name={name} value={meta} onChange={onMeta} />}
+      <EditFileMeta name={name} value={meta} onChange={onMeta} />
       {action}
     </div>
   )

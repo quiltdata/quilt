@@ -73,23 +73,43 @@ function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
   )
 }
 
+interface MetadataIconProps {
+  color: M.PropTypes.Color | 'disabled'
+}
+
+function MetadataIcon({ color }: MetadataIconProps) {
+  return (
+    <M.Icon fontSize="inherit" color={color}>
+      list
+    </M.Icon>
+  )
+}
+
 interface EditMetaProps {
   name: string
   value: JsonValue
-  onChange: (value: JsonValue) => void
+  onChange?: (value: JsonValue) => void
 }
 
 export default function EditFileMeta({ name, value, onChange }: EditMetaProps) {
   const [open, setOpen] = React.useState(false)
   const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
   const openEditor = React.useCallback(() => setOpen(true), [setOpen])
+  // TODO: simplify R.isEmpty when meta will be normalized to null
   const color = React.useMemo(() => (R.isEmpty(value) ? 'inherit' : 'primary'), [value])
+
+  if (!onChange) {
+    return (
+      <M.IconButton size="small" disabled>
+        <MetadataIcon color="disabled" />
+      </M.IconButton>
+    )
+  }
+
   return (
     <>
       <M.IconButton onClick={openEditor} title="Edit meta" size="small">
-        <M.Icon fontSize="inherit" color={color}>
-          list
-        </M.Icon>
+        <MetadataIcon color={color} />
       </M.IconButton>
 
       <Dialog
