@@ -35,11 +35,15 @@ function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
     onChange(innerValue)
     onClose()
   }, [innerValue, onChange, onClose])
+  const handleCancel = React.useCallback(() => {
+    setInnerValue(value)
+    onClose()
+  }, [onClose, value])
   return (
     <M.Dialog
       fullWidth
       maxWidth="xl"
-      onClose={onClose}
+      onClose={handleCancel}
       open={open}
       classes={dialogClasses}
     >
@@ -60,7 +64,7 @@ function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
           control={<M.Switch checked={isRaw} onChange={() => setRaw(!isRaw)} />}
           label="Edit raw data"
         />
-        <M.Button onClick={onClose}>Discard</M.Button>
+        <M.Button onClick={handleCancel}>Discard</M.Button>
         <M.Button onClick={handleSubmit} variant="contained" color="primary">
           Save
         </M.Button>
