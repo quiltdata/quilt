@@ -134,6 +134,13 @@ class PackagePromoteTestBase(unittest.TestCase):
         self.get_user_boto_session_mock = get_user_boto_session_patcher.start()
         self.addCleanup(get_user_boto_session_patcher.stop)
 
+        calculate_pkg_hashes_patcher = mock.patch.object(
+            index,
+            'calculate_pkg_hashes',
+        )
+        calculate_pkg_hashes_patcher.start()
+        self.addCleanup(calculate_pkg_hashes_patcher.stop)
+
     @contextlib.contextmanager
     def mock_successors(self, successors):
         workflow_config_mock = mock.MagicMock()
