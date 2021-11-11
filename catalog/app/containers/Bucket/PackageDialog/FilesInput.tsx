@@ -510,6 +510,9 @@ function File({
   const classes = useFileStyles()
   const stateDisplay = disableStateDisplay ? 'unchanged' : state
 
+  // XXX: reset EditFileMeta state when file is reverted
+  const metaKey = React.useMemo(() => JSON.stringify(meta), [meta])
+
   return (
     <div
       className={cx(
@@ -529,7 +532,7 @@ function File({
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
-      <EditFileMeta name={name} value={meta} onChange={onMeta} />
+      <EditFileMeta key={metaKey} name={name} value={meta} onChange={onMeta} />
       {action}
     </div>
   )
