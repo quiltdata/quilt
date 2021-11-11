@@ -14,9 +14,11 @@ const useSingleErrorStyles = M.makeStyles((t) => ({
   },
 }))
 
+type Err = Error | ErrorObject
+
 interface SingleErrorProps {
   className?: string
-  error: Error | ErrorObject
+  error: Err
 }
 
 function SingleError({ className, error }: SingleErrorProps) {
@@ -42,7 +44,7 @@ const useStyles = M.makeStyles((t) => ({
 
 interface JsonValidationErrorsProps {
   className: string
-  error: (Error | ErrorObject)[] | null
+  error: Err[] | Err | null
 }
 
 export default function JsonValidationErrors({
