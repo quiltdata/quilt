@@ -92,7 +92,9 @@ interface EditMetaProps {
 }
 
 export default function EditFileMeta({ name, value, onChange }: EditMetaProps) {
-  // TODO: move innerValue from Dialog here, add button to reset innerValue
+  // TODO: move innerValue from Dialog here and:
+  //       1. add button to reset innerValue
+  //       2. show "modified" state
   const [open, setOpen] = React.useState(false)
   const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
   const openEditor = React.useCallback(() => setOpen(true), [setOpen])
