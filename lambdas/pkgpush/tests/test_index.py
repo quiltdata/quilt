@@ -8,6 +8,8 @@ from http import HTTPStatus
 from unittest import mock
 
 import boto3
+import quilt3
+
 import index
 from botocore.stub import Stubber
 from flask import Response
@@ -134,9 +136,18 @@ class PackagePromoteTestBase(unittest.TestCase):
         self.get_user_boto_session_mock = get_user_boto_session_patcher.start()
         self.addCleanup(get_user_boto_session_patcher.stop)
 
+        def calculate_pkg_hashes_side_effect(s3_client, pkg):
+            for lk, entry in pkg.walk():
+                if entry.hash is None:
+                    entry.hash = {
+                        'type': 'SHA256',
+                        'value': self.get_file_hash(entry.physical_key),
+                    }
+
         calculate_pkg_hashes_patcher = mock.patch.object(
             index,
             'calculate_pkg_hashes',
+            side_effect=calculate_pkg_hashes_side_effect,
         )
         calculate_pkg_hashes_patcher.start()
         self.addCleanup(calculate_pkg_hashes_patcher.stop)
@@ -188,7 +199,8 @@ class PackagePromoteTestBase(unittest.TestCase):
     @mock.patch('time.time', mock.MagicMock(return_value=mock_timestamp))
     def make_request(self, params, **kwargs):
         self.get_user_boto_session_mock.reset_mock()
-        with mock.patch('quilt3.telemetry.reset_session_id') as reset_session_id_mock:
+        with mock.patch('quilt3.telemetry.reset_session_id') as reset_session_id_mock, \
+             calculate_sha256_patcher(return_value=[]) as calculate_sha256_mock:
             response = self.make_request_base(params, credentials=self.credentials, **kwargs)
 
         self.get_user_boto_session_mock.assert_called_once_with(
@@ -197,6 +209,9 @@ class PackagePromoteTestBase(unittest.TestCase):
             aws_session_token=mock.sentinel.TEST_SESSION_TOKEN,
         )
         reset_session_id_mock.assert_called_once_with()
+
+        if calculate_sha256_mock.called:
+            calculate_sha256_mock.assert_called_once_with([], [])
 
         return response
 
@@ -583,20 +598,6 @@ class PackageFromFolderTest(PackagePromoteTest):
         self.setup_s3_get_non_dir_info(self.pkg_entries2['lk2'])
         self.setup_s3_get_dir_info('path3/', self.pkg_entries3)
 
-        # Setup data retrieval for hashing.
-        for lk, entry in self.entries.items():
-            self.s3_stubber.add_response(
-                'get_object',
-                service_response={
-                    'Body': io.BytesIO(self.get_file_data(entry.physical_key)),
-                },
-                expected_params={
-                    'Bucket': self.parent_bucket,
-                    'Key': entry.physical_key.path,
-                    'VersionId': entry.physical_key.version_id,
-                },
-            )
-
 
 class PackageCreateTestCaseBase(PackagePromoteTestBase):
     handler = staticmethod(index.create_package)
@@ -749,13 +750,6 @@ class PackageCreateTestCaseBase(PackagePromoteTestBase):
 
 
 class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
-    def make_request(self, params, **kwargs):
-        with calculate_sha256_patcher(return_value=[]) as calculate_sha256_mock:
-            result = super().make_request(params, **kwargs)
-        if calculate_sha256_mock.called:
-            calculate_sha256_mock.assert_called_once_with([], [])
-        return result
-
     def test_create_package_browser_hash(self):
         """
         Test creating a package with valid inputs including hashes
@@ -907,6 +901,10 @@ class PackageCreateNoHashingTestCase(PackageCreateTestCaseBase):
 
 @mock.patch('quilt3.workflows.validate', lambda *args, **kwargs: None)
 class PackageCreateWithHashingTestCase(PackageCreateTestCaseBase):
+    @classmethod
+    def get_file_hash(cls, pk: PhysicalKey):
+        return cls.file_data_hash
+
     def test_create_package_no_browser_hash(self):
         for entry in [
             self.gen_pkg_entry(hash=...),
@@ -914,22 +912,89 @@ class PackageCreateWithHashingTestCase(PackageCreateTestCaseBase):
             self.gen_pkg_entry(hash=..., size=...),
         ]:
             with self.subTest(entry=entry):
-                with calculate_sha256_patcher(return_value=[self.file_data_hash]) as mock_calculate_sha256:
-                    self.s3_stubber.add_response(
-                        'head_object',
-                        service_response={
-                            'ContentLength': self.file_data_size,
-                        },
-                        expected_params={
-                            'Bucket': self.physical_key.bucket,
-                            'Key': self.physical_key.path,
-                            'VersionId': self.physical_key.version_id,
-                        },
-                    )
-                    with self._mock_package_build(self.package_entries):
-                        pkg_response = self.make_request([
-                            self.params,
-                            entry,
-                        ])
-                    assert pkg_response.status_code == 200
-                mock_calculate_sha256.assert_called_once_with([self.physical_key], [self.file_data_size])
+                self.s3_stubber.add_response(
+                    'head_object',
+                    service_response={
+                        'ContentLength': self.file_data_size,
+                    },
+                    expected_params={
+                        'Bucket': self.physical_key.bucket,
+                        'Key': self.physical_key.path,
+                        'VersionId': self.physical_key.version_id,
+                    },
+                )
+                with self._mock_package_build(self.package_entries):
+                    pkg_response = self.make_request([
+                        self.params,
+                        entry,
+                    ])
+                assert pkg_response.status_code == 200
+
+
+class HashCalculationTest(unittest.TestCase):
+    def setUp(self):
+        self.pkg = quilt3.Package()
+        self.entry_with_hash = PackageEntry(
+            PhysicalKey('test-bucket', 'with-hash', 'with-hash'),
+            42,
+            {'type': 'SHA256', 'value': '0' * 64},
+            {},
+        )
+        self.entry_without_hash = PackageEntry(
+            PhysicalKey('test-bucket', 'without-hash', 'without-hash'),
+            42,
+            None,
+            {},
+        )
+        self.pkg.set('with-hash', self.entry_with_hash)
+        self.pkg.set('without-hash', self.entry_without_hash)
+
+    def test_calculate_pkg_hashes(self):
+        s3_client = mock.MagicMock()
+        with mock.patch.object(index, 'calculate_pkg_entry_hash') as calculate_pkg_entry_hash_mock:
+            index.calculate_pkg_hashes(s3_client, self.pkg)
+
+        calculate_pkg_entry_hash_mock.assert_called_once_with(s3_client, self.entry_without_hash)
+
+    def test_calculate_pkg_entry_hash(self):
+        s3_client_mock = mock.MagicMock()
+        s3_client_mock.generate_presigned_url.return_value = 'https://example.com'
+        with mock.patch.object(index, 'invoke_hash_lambda', return_value='0' * 64) as invoke_hash_lambda_mock:
+            index.calculate_pkg_entry_hash(s3_client_mock, self.entry_without_hash)
+
+        invoke_hash_lambda_mock.assert_called_once_with(s3_client_mock.generate_presigned_url.return_value)
+        s3_client_mock.generate_presigned_url.assert_called_once_with(
+            ClientMethod='get_object',
+            ExpiresIn=index.S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN,
+            Params={
+                'Bucket': self.entry_without_hash.physical_key.bucket,
+                'Key': self.entry_without_hash.physical_key.path,
+                'VersionId': self.entry_without_hash.physical_key.version_id,
+            },
+        )
+
+        assert self.entry_without_hash.hash == {
+            'type': 'SHA256',
+            'value': invoke_hash_lambda_mock.return_value,
+        }
+
+    def test_invoke_hash_lambda(self):
+        lambda_client_stubber = Stubber(index.lambda_)
+        lambda_client_stubber.activate()
+        self.addCleanup(lambda_client_stubber.deactivate)
+        test_hash = '0' * 64
+        test_url = 'https://example.com'
+
+        lambda_client_stubber.add_response(
+            'invoke',
+            service_response={
+                'Payload': io.BytesIO(b'"%s"' % test_hash.encode()),
+            },
+            expected_params={
+                'FunctionName': index.S3_HASH_LAMBDA,
+                'Payload': '"%s"' % test_url,
+            },
+        )
+
+        assert index.invoke_hash_lambda(test_url) == test_hash
+        lambda_client_stubber.assert_no_pending_responses()

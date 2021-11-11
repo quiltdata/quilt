@@ -32,6 +32,7 @@ PKG_FROM_FOLDER_MAX_PKG_SIZE = int(os.environ['PKG_FROM_FOLDER_MAX_PKG_SIZE'])
 PKG_FROM_FOLDER_MAX_FILES = int(os.environ['PKG_FROM_FOLDER_MAX_FILES'])
 S3_HASH_LAMBDA = os.environ['S3_HASH_LAMBDA']
 S3_HASH_LAMBDA_CONCURRENCY = int(os.environ['S3_HASH_LAMBDA_CONCURRENCY'])
+S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN = 15 * 60  # Max lambda duration.
 
 SERVICE_BUCKET = os.environ['SERVICE_BUCKET']
 
@@ -176,38 +177,40 @@ quilt3.data_transfer.S3ClientProvider.get_boto_session = staticmethod(lambda: us
 logger = get_quilt_logger()
 
 
-def calculate_pkg_hashes(pkg):
-    s3_user = user_boto_session.client('s3')
-
-    def calculate_pkg_entry_hash(pkg_entry):
-        pk = pkg_entry.physical_key
-        params = {
-            'Bucket': pk.bucket,
-            'Key': pk.path,
-        }
-        if pk.version_id is not None:
-            params['VersionId'] = pk.version_id
-        url = s3_user.generate_presigned_url(
-            ClientMethod='get_object',
-            ExpiresIn=900,
-            Params=params,
-        )
-        resp = lambda_.invoke(FunctionName=S3_HASH_LAMBDA, Payload=json.dumps(url))
-        assert 'FunctionError' not in resp
-        hash_ = json.load(resp['Payload'])
-        pkg_entry.hash = {
-            'type': 'SHA256',
-            'value': hash_,
-        }
-
+def calculate_pkg_hashes(s3_client, pkg):
     with concurrent.futures.ThreadPoolExecutor(max_workers=S3_HASH_LAMBDA_CONCURRENCY) as pool:
         fs = [
-            pool.submit(calculate_pkg_entry_hash, entry)
+            pool.submit(calculate_pkg_entry_hash, s3_client, entry)
             for lk, entry in pkg.walk()
             if entry.hash is None
         ]
         for f in concurrent.futures.as_completed(fs):
             f.result()
+
+
+def calculate_pkg_entry_hash(s3_client, pkg_entry):
+    pk = pkg_entry.physical_key
+    params = {
+        'Bucket': pk.bucket,
+        'Key': pk.path,
+    }
+    if pk.version_id is not None:
+        params['VersionId'] = pk.version_id
+    url = s3_client.generate_presigned_url(
+        ClientMethod='get_object',
+        ExpiresIn=S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN,
+        Params=params,
+    )
+    pkg_entry.hash = {
+        'type': 'SHA256',
+        'value': invoke_hash_lambda(url),
+    }
+
+
+def invoke_hash_lambda(url):
+    resp = lambda_.invoke(FunctionName=S3_HASH_LAMBDA, Payload=json.dumps(url))
+    assert 'FunctionError' not in resp
+    return json.load(resp['Payload'])
 
 
 def get_user_credentials(request):
@@ -372,7 +375,6 @@ def _push_pkg_to_successor(data, *, get_src, get_dst, get_name, get_pkg, pkg_max
             pkg._meta.pop('user_meta', None)
         else:
             pkg.set_meta(meta)
-        calculate_pkg_hashes(pkg)
         return make_json_response(200, {
             'top_hash': pkg._push(
                 name=get_name(data),
@@ -446,6 +448,7 @@ def package_from_folder(request):
         for entry in data['entries']:
             set_entry = p.set_dir if entry['is_dir'] else p.set
             set_entry(entry['logical_key'], str(src_registry.base.join(entry['path'])))
+        calculate_pkg_hashes(user_boto_session.client('s3'), p)
         return p
 
     return _push_pkg_to_successor(
@@ -577,6 +580,7 @@ def create_package(request):
     except quilt3.util.QuiltException as qe:
         raise ApiException(HTTPStatus.BAD_REQUEST, qe.message)
 
+    calculate_pkg_hashes(user_boto_session.client('s3'), pkg)
     try:
         top_hash = pkg._build(
             name=handle,
