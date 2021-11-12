@@ -32,7 +32,7 @@ describe('containers/Bucket/PackageDialog/PackageDialog', () => {
     test('height should be enough for content on large screen', () => {
       const metaHeight = 300
       const windowHeight = 1440
-      expect(PD.calcDialogHeight(windowHeight, metaHeight)).toBe(700)
+      expect(PD.calcDialogHeight(windowHeight, metaHeight)).toBe(621)
     })
   })
 
