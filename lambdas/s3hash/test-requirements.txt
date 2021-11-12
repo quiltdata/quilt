@@ -1,1 +1,1 @@
-pytest-subtests
+pytest==6.2.5

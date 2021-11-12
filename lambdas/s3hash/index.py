@@ -14,6 +14,10 @@ def hash_fileobj(*, fileobj, hashobj_constructor=hashlib.sha256):
     return hashobj.hexdigest()
 
 
+def urlopen(url: str):
+    return urllib.request.urlopen(url)
+
+
 def lambda_handler(url, context):
-    with urllib.request.urlopen(url) as f:
+    with urlopen(url) as f:
         return hash_fileobj(fileobj=f)
