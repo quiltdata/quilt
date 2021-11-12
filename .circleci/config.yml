@@ -247,6 +247,7 @@ workflows:
                 - thumbnail
                 - pkgselect
                 - shared
+                - s3hash
                 - pkgevents
                 - pkgpush
       - test-lambda:
