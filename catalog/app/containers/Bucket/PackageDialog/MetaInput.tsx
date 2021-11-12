@@ -164,6 +164,10 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     overflowY: 'auto',
     position: 'relative',
   },
+  metaContent: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
   outlined: {
     bottom: '1px',
     left: 0,
@@ -342,23 +346,21 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
           value={value}
         />
 
-        <div
-          {...getRootProps({ className: classes.dropzone })}
-          tabIndex={undefined}
-          ref={ref}
-        >
-          {isDragging && <div className={classes.outlined} />}
+        <div {...getRootProps({ className: classes.dropzone })} tabIndex={undefined}>
+          <div className={classes.metaContent} ref={ref}>
+            {isDragging && <div className={classes.outlined} />}
 
-          <div className={classes.json}>
-            <JsonEditor
-              key={jsonInlineEditorKey}
-              value={value}
-              onChange={onChangeInline}
-              schema={schema}
-            />
+            <div className={classes.json}>
+              <JsonEditor
+                key={jsonInlineEditorKey}
+                value={value}
+                onChange={onChangeInline}
+                schema={schema}
+              />
+            </div>
+
+            <JsonValidationErrors className={classes.errors} error={error} />
           </div>
-
-          <JsonValidationErrors className={classes.errors} error={error} />
 
           {locked && (
             <div className={classes.overlay}>
