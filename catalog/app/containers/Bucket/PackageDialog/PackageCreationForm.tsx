@@ -382,10 +382,6 @@ function PackageCreationForm({
 
               <Layout.Container>
                 <Layout.LeftColumn>
-                  <M.Typography color={submitting ? 'textSecondary' : undefined}>
-                    Main
-                  </M.Typography>
-
                   <RF.Field
                     component={PD.WorkflowInput}
                     name="workflow"
