@@ -7,14 +7,14 @@ import type * as RF from 'react-final-form'
 import { fade } from '@material-ui/core/styles'
 import * as M from '@material-ui/core'
 
-import JsonDisplay from 'components/JsonDisplay'
+import JsonEditor from 'components/JsonEditor'
 import { JsonValue } from 'components/JsonEditor/constants'
 import JsonValidationErrors from 'components/JsonValidationErrors'
 import MetadataEditor from 'components/MetadataEditor'
 import * as Notifications from 'containers/Notifications'
 import Delay from 'utils/Delay'
 import useDragging from 'utils/dragging'
-import { JsonSchema, makeSchemaDefaultsSetter } from 'utils/json-schema'
+import { JsonSchema } from 'utils/json-schema'
 import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
 
@@ -294,11 +294,6 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
 
     const { getRootProps, isDragActive } = useDropzone({ onDrop })
 
-    const valueToDisplay = React.useMemo(
-      () => makeSchemaDefaultsSetter(schema)(value),
-      [schema, value],
-    )
-
     return (
       <div className={className}>
         <div className={classes.header}>
@@ -306,11 +301,21 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
           <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
             Metadata
           </M.Typography>
+          <M.IconButton
+            className={classes.jsonTrigger}
+            onClick={openEditor}
+            title="Edit meta"
+            size="small"
+          >
+            <M.Icon fontSize="inherit" color="primary">
+              fullscreen
+            </M.Icon>
+          </M.IconButton>
         </div>
 
         <Dialog
           schema={schema}
-          key={jsonEditorKey}
+          key={`${jsonEditorKey}_fullscreen`}
           onChange={onChange}
           onClose={closeEditor}
           open={open}
@@ -325,26 +330,13 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
           {isDragging && <div className={classes.outlined} />}
 
           <div className={classes.json}>
-            <JsonDisplay
-              name=""
-              topLevel={1}
-              value={valueToDisplay}
+            <JsonEditor
+              key={`${jsonEditorKey}_inline`}
               className={classes.jsonDisplay}
-              defaultExpanded={1}
+              value={value}
+              onChange={onChange}
+              schema={schema}
             />
-            <M.Button
-              className={classes.jsonTrigger}
-              onClick={openEditor}
-              startIcon={
-                <M.Icon fontSize="inherit" color="primary">
-                  list
-                </M.Icon>
-              }
-              title="Edit meta"
-              variant="outlined"
-            >
-              Edit
-            </M.Button>
           </div>
 
           <JsonValidationErrors className={classes.errors} error={error} />
