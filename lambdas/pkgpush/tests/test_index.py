@@ -9,6 +9,7 @@ from unittest import mock
 
 import boto3
 import index
+import pytest
 from botocore.stub import Stubber
 from flask import Response
 
@@ -953,6 +954,12 @@ class HashCalculationTest(unittest.TestCase):
             index.calculate_pkg_hashes(s3_client, self.pkg)
 
         calculate_pkg_entry_hash_mock.assert_called_once_with(s3_client, self.entry_without_hash)
+
+    @mock.patch.object(index, 'S3_HASH_LAMBDA_MAX_FILE_SIZE', 1)
+    def test_calculate_pkg_hashes(self):
+        s3_client = mock.MagicMock()
+        with pytest.raises(index.FileTooLargeForHashing):
+            index.calculate_pkg_hashes(s3_client, self.pkg)
 
     def test_calculate_pkg_entry_hash(self):
         s3_client_mock = mock.MagicMock()

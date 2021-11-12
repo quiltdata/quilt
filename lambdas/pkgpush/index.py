@@ -32,6 +32,8 @@ PKG_FROM_FOLDER_MAX_PKG_SIZE = int(os.environ['PKG_FROM_FOLDER_MAX_PKG_SIZE'])
 PKG_FROM_FOLDER_MAX_FILES = int(os.environ['PKG_FROM_FOLDER_MAX_FILES'])
 S3_HASH_LAMBDA = os.environ['S3_HASH_LAMBDA']
 S3_HASH_LAMBDA_CONCURRENCY = int(os.environ['S3_HASH_LAMBDA_CONCURRENCY'])
+S3_HASH_LAMBDA_MAX_FILE_SIZE = int(os.environ['S3_HASH_LAMBDA_MAX_FILE_SIZE'])
+
 S3_HASH_LAMBDA_SIGNED_URL_EXPIRES_IN = 15 * 60  # Max lambda duration.
 
 SERVICE_BUCKET = os.environ['SERVICE_BUCKET']
@@ -178,6 +180,15 @@ logger = get_quilt_logger()
 
 
 def calculate_pkg_hashes(s3_client, pkg):
+    entries = []
+    for lk, entry in pkg.walk():
+        if entry.hash is not None:
+            continue
+        if entry.size > S3_HASH_LAMBDA_MAX_FILE_SIZE:
+            raise FileTooLargeForHashing(lk)
+
+        entries.append(entry)
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=S3_HASH_LAMBDA_CONCURRENCY) as pool:
         fs = [
             pool.submit(calculate_pkg_entry_hash, s3_client, entry)
@@ -268,6 +279,15 @@ class ApiException(Exception):
             boto_response['Error']['Message']
         )
         return cls(status_code, message)
+
+
+class FileTooLargeForHashing(ApiException):
+    def __init__(self, logical_key):
+        super(ApiException, self).__init__(
+            HTTPStatus.BAD_REQUEST,
+            f'Package entry {logical_key!r} is too large for hashing. '
+            f'Max size is {S3_HASH_LAMBDA_MAX_FILE_SIZE} bytes.'
+        )
 
 
 def api_exception_handler(f):
