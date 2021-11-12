@@ -2,7 +2,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import Code from 'components/Code'
 import { JsonValue } from 'components/JsonEditor/constants'
 import MetadataEditor from 'components/MetadataEditor'
 
@@ -47,9 +46,7 @@ function Dialog({ name, onChange, onClose, open, value }: DialogProps) {
       open={open}
       classes={dialogClasses}
     >
-      <M.DialogTitle>
-        Metadata for <Code>{name}</Code>
-      </M.DialogTitle>
+      <M.DialogTitle>Object-level metadata for "{name}"</M.DialogTitle>
       <M.DialogContent>
         <MetadataEditor
           multiColumned

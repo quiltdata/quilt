@@ -64,7 +64,7 @@ function Dialog({ onChange, onClose, open, schema, value }: DialogProps) {
       open={open}
       classes={dialogClasses}
     >
-      <M.DialogTitle>Metadata for package</M.DialogTitle>
+      <M.DialogTitle>Package-level metadata</M.DialogTitle>
       <M.DialogContent className={classes.content}>
         <MetadataEditor
           multiColumned
@@ -299,7 +299,7 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
         <div className={classes.header}>
           {/* eslint-disable-next-line no-nested-ternary */}
           <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
-            Metadata
+            Package-level metadata
           </M.Typography>
           <M.IconButton
             className={classes.jsonTrigger}
