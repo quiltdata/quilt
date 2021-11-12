@@ -146,7 +146,7 @@ const JsonEditor = React.forwardRef<HTMLDivElement, JsonEditorProps>(function Js
     <div className={cx(classes.root, { [classes.disabled]: disabled }, className)}>
       <div className={classes.inner} ref={ref}>
         {columnsView.map((columnData, index) => {
-          const columnPath = fieldPath.slice(0, index)
+          const columnPath = multiColumned ? fieldPath.slice(0, index) : fieldPath
           return shouldSqueezeColumn(index, columns) ? (
             <Squeeze
               columnPath={columnPath}
