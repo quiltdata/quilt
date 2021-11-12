@@ -1,3 +1,4 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as RTable from 'react-table'
 import * as M from '@material-ui/core'
@@ -12,13 +13,25 @@ import { COLUMN_IDS, JsonValue, RowData } from './constants'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
-    background: t.palette.common.white,
     flex: 'none',
     padding: '1px 0', // NOTE: fit 2px border for input
     position: 'relative',
     width: '100%',
   },
+  adjacent: {
+    flex: 1,
 
+    '& + &': {
+      marginLeft: '-1px',
+    },
+  },
+  adjacentButton: {
+    paddingLeft: t.spacing(1),
+  },
+  scroll: {
+    maxHeight: `calc(100% - ${t.spacing(8)}px)`,
+    overflowY: 'auto',
+  },
   table: {
     tableLayout: 'fixed',
   },
@@ -64,6 +77,8 @@ function EmptyColumn({ columnType }: EmptyColumnProps) {
 }
 
 interface ColumnProps {
+  adjacent: boolean
+  className: string
   columnPath: string[]
   data: {
     items: RowData[]
@@ -78,6 +93,8 @@ interface ColumnProps {
 }
 
 export default function Column({
+  adjacent,
+  className,
   columnPath,
   data,
   jsonDict,
@@ -132,10 +149,12 @@ export default function Column({
   )
 
   return (
-    <div className={classes.root}>
-      {!!columnPath.length && <Breadcrumbs items={columnPath} onSelect={onBreadcrumb} />}
+    <div className={cx(classes.root, { [classes.adjacent]: adjacent }, className)}>
+      {!!columnPath.length && (
+        <Breadcrumbs tailOnly={adjacent} items={columnPath} onSelect={onBreadcrumb} />
+      )}
 
-      <M.TableContainer>
+      <M.TableContainer className={cx({ [classes.scroll]: adjacent })}>
         <M.Table {...getTableProps({ className: classes.table })}>
           <M.TableBody {...getTableBodyProps()}>
             {rows.map((row, index: number) => {
@@ -164,6 +183,7 @@ export default function Column({
             {columnType === 'array' && (
               <AddArrayItem
                 {...{
+                  className: adjacent ? classes.adjacentButton : undefined,
                   columnPath,
                   index: rows.length,
                   onAdd: onAddRowInternal,

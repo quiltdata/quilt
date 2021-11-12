@@ -15,7 +15,9 @@ import { withoutPrefix } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 import * as tagged from 'utils/taggedV2'
 import useMemoEq from 'utils/useMemoEq'
+import { JsonRecord } from 'utils/types'
 
+import EditFileMeta from './EditFileMeta'
 import * as PD from './PackageDialog'
 import * as S3FilePicker from './S3FilePicker'
 
@@ -32,6 +34,7 @@ interface FileWithHash extends File {
     ready: boolean
     promise: Promise<string>
   }
+  meta?: JsonRecord
 }
 
 const hasHash = (f: File): f is FileWithHash => !!f && !!(f as FileWithHash).hash
@@ -68,6 +71,7 @@ export const FilesAction = tagged.create(
     }) => v,
     Delete: (path: string) => path,
     DeleteDir: (prefix: string) => prefix,
+    Meta: (v: { path: string; meta: JsonRecord }) => v,
     Revert: (path: string) => path,
     RevertDir: (prefix: string) => prefix,
     Reset: () => {},
@@ -81,14 +85,14 @@ export type FilesAction = tagged.InstanceOf<typeof FilesAction>
 export interface ExistingFile {
   physicalKey: string
   hash: string
-  meta: object
+  meta: JsonRecord
   size: number
 }
 
 export interface PartialExistingFile {
   physicalKey: string
   hash?: string
-  meta?: object
+  meta?: JsonRecord
   size?: number
 }
 
@@ -101,6 +105,25 @@ export interface FilesState {
   // XXX: workaround used to re-trigger validation and dependent computations
   // required due to direct mutations of File objects
   counter?: number
+}
+
+const addMetaToFile = (
+  file: ExistingFile | LocalFile | S3FilePicker.S3File,
+  meta: JsonRecord,
+) => {
+  if (file instanceof window.File) {
+    const fileCopy = new window.File([file as File], (file as File).name, {
+      type: (file as File).type,
+    })
+    Object.defineProperty(fileCopy, 'meta', {
+      value: meta,
+    })
+    Object.defineProperty(fileCopy, 'hash', {
+      value: (file as FileWithHash).hash,
+    })
+    return fileCopy
+  }
+  return R.assoc('meta', meta, file)
 }
 
 const handleFilesAction = FilesAction.match<
@@ -153,6 +176,25 @@ const handleFilesAction = FilesAction.match<
       ),
       ...rest,
     }),
+  Meta: ({ path, meta }) => {
+    // TODO: use one function and type overload
+    const setMetaToAddedFile = (
+      filesDict: Record<string, LocalFile | S3FilePicker.S3File>,
+    ) => {
+      const file = filesDict[path]
+      if (!file) return filesDict
+      return R.assoc(path, addMetaToFile(file, meta), filesDict)
+    }
+    const setMetaToExistingFile = (filesDict: Record<string, ExistingFile>) => {
+      const file = filesDict[path]
+      if (!file) return filesDict
+      return R.assoc(path, addMetaToFile(file, meta), filesDict)
+    }
+    return R.evolve({
+      added: setMetaToAddedFile,
+      existing: setMetaToExistingFile,
+    })
+  },
   Revert: (path) => R.evolve({ added: R.dissoc(path), deleted: R.dissoc(path) }),
   // remove all descendants from added and deleted
   RevertDir: (prefix) =>
@@ -187,6 +229,7 @@ const FilesEntry = tagged.create(FilesEntryTag, {
     state: FilesEntryState
     type: FilesEntryType
     size: number
+    meta?: JsonRecord
   }) => v,
 })
 
@@ -238,13 +281,14 @@ interface IntermediateEntry {
   type: FilesEntryType
   path: string
   size: number
+  meta?: JsonRecord
 }
 
 const computeEntries = ({ added, deleted, existing }: FilesState) => {
   const existingEntries: IntermediateEntry[] = Object.entries(existing).map(
-    ([path, { size, hash }]) => {
+    ([path, { size, hash, meta }]) => {
       if (path in deleted) {
-        return { state: 'deleted' as const, type: 'local' as const, path, size }
+        return { state: 'deleted' as const, type: 'local' as const, path, size, meta }
       }
       if (path in added) {
         const a = added[path]
@@ -262,15 +306,15 @@ const computeEntries = ({ added, deleted, existing }: FilesState) => {
             ? ('unchanged' as const)
             : ('modified' as const)
         }
-        return { state, type, path, size: a.size }
+        return { state, type, path, size: a.size, meta }
       }
-      return { state: 'unchanged' as const, type: 'local' as const, path, size }
+      return { state: 'unchanged' as const, type: 'local' as const, path, size, meta }
     },
   )
   const addedEntries = Object.entries(added).reduce((acc, [path, f]) => {
     if (path in existing) return acc
     const type = S3FilePicker.isS3File(f) ? ('s3' as const) : ('local' as const)
-    return acc.concat({ state: 'added', type, path, size: f.size })
+    return acc.concat({ state: 'added', type, path, size: f.size, meta: f.meta })
   }, [] as IntermediateEntry[])
   const entries: IntermediateEntry[] = [...existingEntries, ...addedEntries]
   return entries.reduce((children, { path, ...rest }) => {
@@ -442,6 +486,8 @@ interface FileProps extends React.HTMLAttributes<HTMLDivElement> {
   type?: FilesEntryType
   size?: number
   action?: React.ReactNode
+  meta?: JsonRecord
+  onMeta?: (value: JsonRecord) => void
   interactive?: boolean
   faint?: boolean
   disableStateDisplay?: boolean
@@ -453,6 +499,8 @@ function File({
   type = 'local',
   size,
   action,
+  meta,
+  onMeta,
   interactive = false,
   faint = false,
   className,
@@ -461,6 +509,9 @@ function File({
 }: FileProps) {
   const classes = useFileStyles()
   const stateDisplay = disableStateDisplay ? 'unchanged' : state
+
+  // XXX: reset EditFileMeta state when file is reverted
+  const metaKey = React.useMemo(() => JSON.stringify(meta), [meta])
 
   return (
     <div
@@ -481,6 +532,7 @@ function File({
         </div>
         {size != null && <div className={classes.size}>{readableBytes(size)}</div>}
       </div>
+      <EditFileMeta key={metaKey} name={name} value={meta} onChange={onMeta} />
       {action}
     </div>
   )
@@ -979,6 +1031,7 @@ function FileUpload({
   prefix,
   disableStateDisplay,
   dispatch,
+  meta,
 }: FileUploadProps) {
   const path = (prefix || '') + name
 
@@ -1030,6 +1083,11 @@ function FileUpload({
     e.stopPropagation()
   }, [])
 
+  const onMeta = React.useCallback(
+    (m: JsonRecord) => dispatch(FilesAction.Meta({ path, meta: m })),
+    [dispatch, path],
+  )
+
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events
     <File
@@ -1041,6 +1099,8 @@ function FileUpload({
       type={type}
       name={name}
       size={size}
+      meta={meta}
+      onMeta={state !== 'deleted' ? onMeta : undefined}
       action={
         <M.IconButton onClick={action.handler} title={action.hint} size="small">
           <M.Icon fontSize="inherit">{action.icon}</M.Icon>
@@ -1551,6 +1611,7 @@ interface FilesSelectorEntry {
   name: string
   selected: boolean
   size?: number
+  meta?: JsonRecord
 }
 
 export type FilesSelectorState = FilesSelectorEntry[]

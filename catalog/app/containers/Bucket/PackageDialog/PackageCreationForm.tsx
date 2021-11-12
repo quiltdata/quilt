@@ -8,6 +8,7 @@ import * as RF from 'react-final-form'
 import * as M from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
+import JsonValidationErrors from 'components/JsonValidationErrors'
 import AsyncResult from 'utils/AsyncResult'
 import * as BucketPreferences from 'utils/BucketPreferences'
 import * as s3paths from 'utils/s3paths'
@@ -22,7 +23,7 @@ import DialogLoading from './DialogLoading'
 import DialogSuccess, { DialogSuccessRenderMessageProps } from './DialogSuccess'
 import * as FI from './FilesInput'
 import * as Layout from './Layout'
-import MetaInputErrorHelper from './MetaInputErrorHelper'
+import * as MI from './MetaInput'
 import * as PD from './PackageDialog'
 import { isS3File, S3File } from './S3FilePicker'
 import { FormSkeleton, MetaInputSkeleton } from './Skeleton'
@@ -208,7 +209,7 @@ function PackageCreationForm({
         files: toUpload,
         bucket,
         prefix: name,
-        getMeta: (path) => files.existing[path]?.meta,
+        getMeta: (path) => files.existing[path]?.meta || files.added[path]?.meta,
       })
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -431,7 +432,7 @@ function PackageCreationForm({
                   ) : (
                     <RF.Field
                       className={classes.meta}
-                      component={PD.MetaInput}
+                      component={MI.MetaInput}
                       name="meta"
                       bucket={bucket}
                       schema={schema}
@@ -439,7 +440,7 @@ function PackageCreationForm({
                       validate={validateMetaInput}
                       validateFields={['meta']}
                       isEqual={R.equals}
-                      initialValue={initial?.manifest?.meta || PD.EMPTY_META_VALUE}
+                      initialValue={initial?.manifest?.meta || MI.EMPTY_META_VALUE}
                       ref={setEditorElement}
                     />
                   )}
@@ -475,7 +476,7 @@ function PackageCreationForm({
                     ui={{ reset: ui.resetFiles }}
                   />
 
-                  <MetaInputErrorHelper
+                  <JsonValidationErrors
                     className={classes.filesError}
                     error={entriesError}
                   />
