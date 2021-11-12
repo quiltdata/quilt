@@ -17,6 +17,7 @@ import useDragging from 'utils/dragging'
 import { JsonSchema } from 'utils/json-schema'
 import * as spreadsheets from 'utils/spreadsheets'
 import { readableBytes } from 'utils/string'
+import { JsonRecord } from 'utils/types'
 
 const MAX_META_FILE_SIZE = 10 * 1000 * 1000 // 10MB
 
@@ -232,8 +233,17 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
     const closeEditor = React.useCallback(() => setOpen(false), [setOpen])
     const openEditor = React.useCallback(() => setOpen(true), [setOpen])
 
-    const onJsonEditor = React.useCallback(
-      (json: {}) => {
+    const onChangeFullscreen = React.useCallback(
+      (json: JsonRecord) => {
+        setJsonInlineEditorKey(R.inc)
+        onChange(json)
+      },
+      [onChange],
+    )
+
+    const onChangeInline = React.useCallback(
+      (json: JsonRecord) => {
+        setJsonFullscreenEditorKey(R.inc)
         onChange(json)
       },
       [onChange],
@@ -243,7 +253,8 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
     const [locked, setLocked] = React.useState(false)
 
     // used to force json editor re-initialization
-    const [jsonEditorKey, setJsonEditorKey] = React.useState(1)
+    const [jsonInlineEditorKey, setJsonInlineEditorKey] = React.useState(1)
+    const [jsonFullscreenEditorKey, setJsonFullscreenEditorKey] = React.useState(1)
 
     const onDrop = React.useCallback(
       ([file]) => {
@@ -260,7 +271,7 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
         readFile(file, schema)
           .then((contents: string | {}) => {
             if (R.is(Object, contents)) {
-              onJsonEditor(contents)
+              onChange(contents)
             } else {
               try {
                 JSON.parse(contents as string)
@@ -270,7 +281,8 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
               // FIXME: show error
             }
             // force json editor to re-initialize
-            setJsonEditorKey(R.inc)
+            setJsonInlineEditorKey(R.inc)
+            setJsonFullscreenEditorKey(R.inc)
           })
           .catch((e) => {
             if (e.message === 'abort') return
@@ -284,7 +296,14 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
             setLocked(false)
           })
       },
-      [schema, setLocked, onJsonEditor, setJsonEditorKey, notify],
+      [
+        schema,
+        setLocked,
+        onChange,
+        setJsonInlineEditorKey,
+        setJsonFullscreenEditorKey,
+        notify,
+      ],
     )
 
     const isDragging = useDragging()
@@ -316,8 +335,8 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
 
         <Dialog
           schema={schema}
-          key={`${jsonEditorKey}_fullscreen`}
-          onChange={onChange}
+          key={jsonFullscreenEditorKey}
+          onChange={onChangeFullscreen}
           onClose={closeEditor}
           open={open}
           value={value}
@@ -332,9 +351,9 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
 
           <div className={classes.json}>
             <JsonEditor
-              key={`${jsonEditorKey}_inline`}
+              key={jsonInlineEditorKey}
               value={value}
-              onChange={onChange}
+              onChange={onChangeInline}
               schema={schema}
             />
           </div>
