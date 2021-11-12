@@ -283,7 +283,7 @@ class ApiException(Exception):
 
 class FileTooLargeForHashing(ApiException):
     def __init__(self, logical_key):
-        super(ApiException, self).__init__(
+        super().__init__(
             HTTPStatus.BAD_REQUEST,
             f'Package entry {logical_key!r} is too large for hashing. '
             f'Max size is {S3_HASH_LAMBDA_MAX_FILE_SIZE} bytes.'
