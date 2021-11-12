@@ -146,9 +146,6 @@ const useMetaInputStyles = M.makeStyles((t) => ({
     alignItems: 'flex-start',
     display: 'flex',
   },
-  jsonDisplay: {
-    margin: t.spacing(1, 2, 0, 0),
-  },
   jsonTrigger: {
     marginLeft: 'auto',
   },
@@ -299,18 +296,22 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
         <div className={classes.header}>
           {/* eslint-disable-next-line no-nested-ternary */}
           <M.Typography color={disabled ? 'textSecondary' : error ? 'error' : undefined}>
-            Package-level metadata
+            Metadata
           </M.Typography>
-          <M.IconButton
+          <M.Button
             className={classes.jsonTrigger}
             onClick={openEditor}
             title="Edit meta"
             size="small"
+            variant="outlined"
+            endIcon={
+              <M.Icon fontSize="inherit" color="primary">
+                fullscreen
+              </M.Icon>
+            }
           >
-            <M.Icon fontSize="inherit" color="primary">
-              fullscreen
-            </M.Icon>
-          </M.IconButton>
+            Edit
+          </M.Button>
         </div>
 
         <Dialog
@@ -332,7 +333,6 @@ export const MetaInput = React.forwardRef<HTMLDivElement, MetaInputProps>(
           <div className={classes.json}>
             <JsonEditor
               key={`${jsonEditorKey}_inline`}
-              className={classes.jsonDisplay}
               value={value}
               onChange={onChange}
               schema={schema}
