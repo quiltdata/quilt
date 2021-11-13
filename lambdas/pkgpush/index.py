@@ -192,7 +192,7 @@ def calculate_pkg_hashes(s3_client, pkg):
     with concurrent.futures.ThreadPoolExecutor(max_workers=S3_HASH_LAMBDA_CONCURRENCY) as pool:
         fs = [
             pool.submit(calculate_pkg_entry_hash, s3_client, entry)
-            for lk, entry in entries
+            for entry in entries
         ]
         for f in concurrent.futures.as_completed(fs):
             f.result()
