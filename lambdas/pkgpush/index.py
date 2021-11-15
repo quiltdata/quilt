@@ -31,6 +31,7 @@ PROMOTE_PKG_MAX_FILES = int(os.environ['PROMOTE_PKG_MAX_FILES'])
 PKG_FROM_FOLDER_MAX_PKG_SIZE = int(os.environ['PKG_FROM_FOLDER_MAX_PKG_SIZE'])
 PKG_FROM_FOLDER_MAX_FILES = int(os.environ['PKG_FROM_FOLDER_MAX_FILES'])
 S3_HASH_LAMBDA = os.environ['S3_HASH_LAMBDA']  # To dispatch separate, stack-created lambda function.
+# CFN template guarantees S3_HASH_LAMBDA_CONCURRENCY concurrent invocation of S3 hash lambda without throttling.
 S3_HASH_LAMBDA_CONCURRENCY = int(os.environ['S3_HASH_LAMBDA_CONCURRENCY'])
 S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES = int(os.environ['S3_HASH_LAMBDA_MAX_FILE_SIZE_BYTES'])
 
