@@ -48,9 +48,9 @@ export const getNormalizedPath = (f: { path?: string; name: string }) => {
 }
 
 export async function hashFile(file: File) {
-  if (!window.crypto || !window.crypto.subtle || !window.crypto.subtle.digest)
-    throw new Error('Crypto API unavailable')
+  if (!window.crypto?.subtle?.digest) throw new Error('Crypto API unavailable')
   const buf = await file.arrayBuffer()
+  // XXX: consider using hashwasm for stream-based hashing to support larger files
   const hashBuf = await window.crypto.subtle.digest('SHA-256', buf)
   return Array.from(new Uint8Array(hashBuf))
     .map((b) => b.toString(16).padStart(2, '0'))
