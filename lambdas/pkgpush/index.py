@@ -1,3 +1,9 @@
+"""
+Overall performance of this function is mostly limited by hashing rate which is
+limited by lambda's network throughput. Max network thoughput in
+benchmarks was about 75 MiB/s. To overcome this limitation this function
+concurrently invokes dedicated hash lambda for multiple files.
+"""
 import concurrent.futures
 import contextlib
 import functools
