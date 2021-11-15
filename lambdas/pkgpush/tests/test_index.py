@@ -1003,3 +1003,25 @@ class HashCalculationTest(unittest.TestCase):
 
         assert index.invoke_hash_lambda(test_url) == test_hash
         lambda_client_stubber.assert_no_pending_responses()
+
+    def test_invoke_hash_lambda_error(self):
+        lambda_client_stubber = Stubber(index.lambda_)
+        lambda_client_stubber.activate()
+        self.addCleanup(lambda_client_stubber.deactivate)
+        test_url = 'https://example.com'
+
+        lambda_client_stubber.add_response(
+            'invoke',
+            service_response={
+                'FunctionError': 'Unhandled',
+                'Payload': io.BytesIO(b'some error info'),
+            },
+            expected_params={
+                'FunctionName': index.S3_HASH_LAMBDA,
+                'Payload': '"%s"' % test_url,
+            },
+        )
+
+        with pytest.raises(index.S3HashLambdaUnhandledError):
+            index.invoke_hash_lambda(test_url)
+        lambda_client_stubber.assert_no_pending_responses()

@@ -218,9 +218,14 @@ def calculate_pkg_entry_hash(s3_client, pkg_entry):
     }
 
 
+class S3HashLambdaUnhandledError(Exception):
+    pass
+
+
 def invoke_hash_lambda(url):
     resp = lambda_.invoke(FunctionName=S3_HASH_LAMBDA, Payload=json.dumps(url))
-    assert 'FunctionError' not in resp
+    if 'FunctionError' in resp:
+        raise S3HashLambdaUnhandledError
     return json.load(resp['Payload'])
 
 
