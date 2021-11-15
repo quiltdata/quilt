@@ -12,7 +12,7 @@
 * [Added] Declared compatibility with `jsonschema==4.*`.
 
 ## Catalog, Lambdas
-* [Changed] `pkgpush` lambda now uses dedicated lambda for hashing files.
+* [Changed] `pkgpush` lambda now uses dedicated lambda for hashing files to push larger packages faster from catalog.
 
 ## CLI
 
