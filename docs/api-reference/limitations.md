@@ -15,7 +15,8 @@ API.
  Dimension                                                  | Max    
 ------------------------------------------------------------|--------
  Package manifest size (metadata)                           | 100 MB 
- Package size (data; via promotion or from an S3 directory) | 10 GB  
+ Package size (data; via promotion or from an S3 directory) | 100 GB
+ Maximum file size                                          | 10 GB
  Maximum number of files per push                           | 5,000  
 
 
